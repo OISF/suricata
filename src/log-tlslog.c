@@ -139,8 +139,33 @@ static void CreateTimeString(const struct timeval *ts, char *str, size_t size)
 static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState * state)
 {
     if (state->server_connp.cert0_fingerprint != NULL) {
-        MemBufferWriteString(aft->buffer, " SHA1='%s'\n", state->server_connp.cert0_fingerprint);
+        MemBufferWriteString(aft->buffer, " SHA1='%s'", state->server_connp.cert0_fingerprint);
     }
+    switch (state->server_connp.version) {
+        case TLS_VERSION_UNKNOWN:
+            MemBufferWriteString(aft->buffer, " VERSION='UNDETERMINED'");
+            break;
+        case SSL_VERSION_2:
+            MemBufferWriteString(aft->buffer, " VERSION='SSLv2'");
+            break;
+        case SSL_VERSION_3:
+            MemBufferWriteString(aft->buffer, " VERSION='SSLv3'");
+            break;
+        case TLS_VERSION_10:
+            MemBufferWriteString(aft->buffer, " VERSION='TLSv1'");
+            break;
+        case TLS_VERSION_11:
+            MemBufferWriteString(aft->buffer, " VERSION='TLS 1.1'");
+            break;
+        case TLS_VERSION_12:
+            MemBufferWriteString(aft->buffer, " VERSION='TLS 1.2'");
+            break;
+        default:
+            MemBufferWriteString(aft->buffer, " VERSION='0x%04x'",
+                                 state->server_connp.version);
+            break;
+    }
+    MemBufferWriteString(aft->buffer, "\n");
 }
 
 static int GetIPInformations(Packet *p, char* srcip, size_t srcip_len,
