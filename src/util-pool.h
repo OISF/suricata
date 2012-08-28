@@ -24,15 +24,20 @@
 #ifndef __UTIL_POOL_H__
 #define __UTIL_POOL_H__
 
+#define POOL_BUCKET_PREALLOCATED    1 << 0
+#define POOL_BUCKET_PREALLOCATED_DATA  1 << 1
+
 /* pool bucket structure */
 typedef struct PoolBucket_ {
     void *data;
+    uint8_t flags;
     struct PoolBucket_ *next;
 } PoolBucket;
 
 /* pool structure */
 typedef struct Pool_ {
     uint32_t max_buckets;
+    uint32_t preallocated;
     uint32_t allocated;
 
     PoolBucket *alloc_list;
@@ -41,16 +46,20 @@ typedef struct Pool_ {
     PoolBucket *empty_list;
     uint32_t empty_list_size;
 
-    void *(*Alloc)(void *);
+    PoolBucket *pb_buffer;
+    void *data_buffer;
+
+    void *(*Alloc)(void *, void *);
     void *AllocData;
     void (*Free)(void *);
 
+    uint32_t elt_size;
     uint32_t outstanding;
     uint32_t max_outstanding;
 } Pool;
 
 /* prototypes */
-Pool* PoolInit(uint32_t, uint32_t, void *(*Alloc)(void *), void *, void (*Free)(void *));
+Pool* PoolInit(uint32_t, uint32_t, uint32_t, void *(*Alloc)(void *, void *), void *, void (*Free)(void *));
 void PoolFree(Pool *);
 void PoolPrint(Pool *);
 void PoolPrintSaturation(Pool *p);

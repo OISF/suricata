@@ -44,10 +44,16 @@ static uint16_t toclient_min_chunk_len = 2560;
 static Pool *stream_msg_pool = NULL;
 static SCMutex stream_msg_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-void *StreamMsgAlloc(void *null) {
-    StreamMsg *s = SCMalloc(sizeof(StreamMsg));
-    if (s == NULL)
-        return NULL;
+void *StreamMsgAlloc(void *null, void *data) {
+    StreamMsg *s;
+
+    if (data == NULL) {
+        s = SCMalloc(sizeof(StreamMsg));
+        if (s == NULL)
+            return NULL;
+    } else {
+        s = data;
+    }
 
     memset(s, 0, sizeof(StreamMsg));
 
@@ -159,7 +165,7 @@ void StreamMsgQueuesInit(void) {
     SCMutexInit(&stream_pool_memuse_mutex, NULL);
 #endif
     SCMutexLock(&stream_msg_pool_mutex);
-    stream_msg_pool = PoolInit(0,250,StreamMsgAlloc,NULL,StreamMsgFree);
+    stream_msg_pool = PoolInit(0,250,sizeof(StreamMsg),StreamMsgAlloc,NULL,StreamMsgFree);
     if (stream_msg_pool == NULL)
         exit(EXIT_FAILURE); /* XXX */
     SCMutexUnlock(&stream_msg_pool_mutex);

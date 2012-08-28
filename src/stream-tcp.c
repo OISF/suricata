@@ -245,16 +245,23 @@ void StreamTcpSessionPktFree (Packet *p)
 
 /** \brief Stream alloc function for the Pool
  *  \param null NULL ptr (value of null is ignored)
+ *  \param data Pointer to potentially pre-allocated data
  *  \retval ptr void ptr to TcpSession structure with all vars set to 0/NULL
  */
-void *StreamTcpSessionPoolAlloc(void *null)
+void *StreamTcpSessionPoolAlloc(void *null, void* data)
 {
-    if (StreamTcpCheckMemcap((uint32_t)sizeof(TcpSession)) == 0)
-        return NULL;
+    void *ptr = NULL;
 
-    void *ptr = SCMalloc(sizeof(TcpSession));
-    if (ptr == NULL)
-        return NULL;
+    if (data == NULL) {
+        if (StreamTcpCheckMemcap((uint32_t)sizeof(TcpSession)) == 0)
+            return NULL;
+
+        ptr = SCMalloc(sizeof(TcpSession));
+        if (ptr == NULL)
+            return NULL;
+    } else {
+        ptr = data;
+    }
 
     memset(ptr, 0, sizeof(TcpSession));
 
@@ -488,6 +495,7 @@ void StreamTcpInitConfig(char quiet)
     SCMutexLock(&ssn_pool_mutex);
     ssn_pool = PoolInit(stream_config.max_sessions,
                         stream_config.prealloc_sessions,
+                        sizeof(TcpSession),
                         StreamTcpSessionPoolAlloc, NULL,
                         StreamTcpSessionPoolFree);
     if (ssn_pool == NULL) {

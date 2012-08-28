@@ -28,7 +28,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-Pool *PoolInit(uint32_t size, uint32_t prealloc_size, void *(*Alloc)(void *), void *AllocData, void (*Free)(void *))
+Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size, void *(*Alloc)(void *, void*), void *AllocData, void (*Free)(void *))
 {
     Pool *p = NULL;
 
@@ -48,24 +48,34 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, void *(*Alloc)(void *), vo
     memset(p,0,sizeof(Pool));
 
     p->max_buckets = size;
+    p->preallocated = prealloc_size;
+    p->elt_size = elt_size;
     p->Alloc = Alloc;
     p->AllocData = AllocData;
     p->Free  = Free;
 
     /* alloc the buckets and place them in the empty list */
     uint32_t u32 = 0;
-    for (u32 = 0; u32 < size; u32++) {
-        /* populate pool */
-        PoolBucket *pb = SCMalloc(sizeof(PoolBucket));
+    if (size > 0) {
+        PoolBucket *pb = SCCalloc(size, sizeof(PoolBucket));
+        p->pb_buffer = pb;
         if (pb == NULL)
             goto error;
-
-        memset(pb, 0, sizeof(PoolBucket));
-        pb->next = p->empty_list;
-        p->empty_list = pb;
-        p->empty_list_size++;
+        memset(pb, 0, size * sizeof(PoolBucket));
+        for (u32 = 0; u32 < size; u32++) {
+            /* populate pool */
+            pb->next = p->empty_list;
+            pb->flags |= POOL_BUCKET_PREALLOCATED;
+            p->empty_list = pb;
+            p->empty_list_size++;
+            pb++;
+        }
     }
 
+    p->data_buffer = SCCalloc(prealloc_size, elt_size);
+    /* FIXME better goto */
+    if (p->data_buffer == NULL)
+        goto error;
     /* prealloc the buckets and requeue them to the alloc list */
     for (u32 = 0; u32 < prealloc_size; u32++) {
         if (size == 0) { /* unlimited */
@@ -75,7 +85,7 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, void *(*Alloc)(void *), vo
 
             memset(pb, 0, sizeof(PoolBucket));
 
-            pb->data = p->Alloc(p->AllocData);
+            pb->data = p->Alloc(p->AllocData, NULL);
             p->allocated++;
 
             pb->next = p->alloc_list;
@@ -89,7 +99,9 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, void *(*Alloc)(void *), vo
             p->empty_list = pb->next;
             p->empty_list_size--;
 
-            pb->data = p->Alloc(p->AllocData);
+            pb->data = (char *)p->data_buffer + u32 * elt_size;
+            pb->flags |= POOL_BUCKET_PREALLOCATED_DATA;
+            p->Alloc(p->AllocData, pb->data);
             p->allocated++;
 
             pb->next = p->alloc_list;
@@ -107,6 +119,7 @@ error:
     return NULL;
 }
 
+
 void PoolFree(Pool *p) {
     if (p == NULL)
         return;
@@ -114,21 +127,30 @@ void PoolFree(Pool *p) {
     while (p->alloc_list != NULL) {
         PoolBucket *pb = p->alloc_list;
         p->alloc_list = pb->next;
-        p->Free(pb->data);
+        if (! pb->flags & POOL_BUCKET_PREALLOCATED_DATA) {
+            p->Free(pb->data);
+        }
         pb->data = NULL;
-        SCFree(pb);
+        if (! pb->flags & POOL_BUCKET_PREALLOCATED) {
+            SCFree(pb);
+        }
     }
 
     while (p->empty_list != NULL) {
         PoolBucket *pb = p->empty_list;
         p->empty_list = pb->next;
-	if (pb->data!= NULL) {
-            p->Free(pb->data);
+        if (pb->data!= NULL) {
+            if (! pb->flags & POOL_BUCKET_PREALLOCATED_DATA) {
+                p->Free(pb->data);
+            }
             pb->data = NULL;
         }
-        SCFree(pb);
+        if (! pb->flags & POOL_BUCKET_PREALLOCATED) {
+            SCFree(pb);
+        }
     }
 
+    SCFree(p->pb_buffer);
     SCFree(p);
 }
 
@@ -160,7 +182,7 @@ void *PoolGet(Pool *p) {
             if (p->outstanding > p->max_outstanding)
                 p->max_outstanding = p->outstanding;
 
-            SCReturnPtr(p->Alloc(p->AllocData), "void");
+            SCReturnPtr(p->Alloc(p->AllocData, NULL), "void");
         } else {
             SCReturnPtr(NULL, "void");
         }

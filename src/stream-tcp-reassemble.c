@@ -153,16 +153,22 @@ int StreamTcpReassembleCheckMemcap(uint32_t size) {
 }
 
 /** \brief alloc a tcp segment pool entry */
-void *TcpSegmentPoolAlloc(void *payload_len) {
+void *TcpSegmentPoolAlloc(void *payload_len, void* data) {
     if (StreamTcpReassembleCheckMemcap((uint32_t)sizeof(TcpSegment) +
                                             *((uint16_t *) payload_len)) == 0)
     {
         return NULL;
     }
 
-    TcpSegment *seg = SCMalloc(sizeof (TcpSegment));
-    if (seg == NULL)
-        return NULL;
+    TcpSegment *seg = NULL;
+
+    if (data == NULL) {
+        seg = SCMalloc(sizeof (TcpSegment));
+        if (seg == NULL)
+            return NULL;
+    } else {
+        seg = data;
+    }
 
     memset(seg, 0, sizeof (TcpSegment));
 
@@ -276,6 +282,7 @@ int StreamTcpReassembleInit(char quiet)
         SCMutexLock(&segment_pool_mutex[u16]);
         segment_pool[u16] = PoolInit(segment_pool_poolsizes[u16],
                                      segment_pool_poolsizes_prealloc[u16],
+                                     sizeof (TcpSegment),
                                      TcpSegmentPoolAlloc, (void *) &
                                      segment_pool_pktsizes[u16],
                                      TcpSegmentPoolFree);
