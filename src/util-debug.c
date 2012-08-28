@@ -1035,7 +1035,7 @@ SCLogOPIfaceCtx *SCLogInitOPIfaceCtx(const char *iface_name,
     if (log_level < SC_LOG_NONE || log_level > SC_LOG_DEBUG) {
 #ifndef UNITTESTS
         printf("Warning: Supplied log_level_override for op_interface \"%s\" "
-               "is invalid.  Defaulting to not specifing an override\n",
+               "is invalid.  Defaulting to not specifying an override\n",
                iface_name);
 #endif
         log_level = SC_LOG_NOTSET;

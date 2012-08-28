@@ -175,7 +175,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs "
-                       "preceeding content, uricontent option, http_client_body, "
+                       "preceding content, uricontent option, http_client_body, "
                        "http_server_body, http_header, http_raw_header, http_method, "
                        "http_cookie, http_raw_uri, http_stat_msg, http_stat_code "
                        "or http_user_agent option");
@@ -193,7 +193,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
             cd = (DetectContentData *)pm->ctx;
             if (cd == NULL) {
                 SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two "
-                "preceeding content or uricontent options");
+                "preceding content or uricontent options");
                 goto error;
             }
 
@@ -305,7 +305,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
 
         default:
             SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two "
-                       "preceeding content or uricontent options");
+                       "preceding content or uricontent options");
             goto error;
     }
 

@@ -1710,7 +1710,7 @@ char *htp_tx_progress_as_string(htp_tx_t *tx) {
             return "DONE";
     }
 
-    return "UNKOWN";
+    return "UNKNOWN";
 }
 
 bstr *htp_unparse_uri_noencode(htp_uri_t *uri) {

@@ -88,7 +88,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]);
     if (pm == NULL) {
-        SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "\"nocase\" needs a preceeding "
+        SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "\"nocase\" needs a preceding "
                    "content, uricontent, http_client_body, http_server_body, "
                    "http_header, http_method, http_uri, http_cookie, "
                    "http_raw_uri, http_stat_msg, http_stat_code or http_user_agent "
@@ -115,7 +115,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
             break;
             /* should never happen */
         default:
-            SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "\"nocase\" needs a preceeding "
+            SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "\"nocase\" needs a preceding "
                     "content, uricontent, http_client_body, http_server_body, "
                     "http_header, http_method, http_uri, http_cookie or "
                     "http_raw_uri option");

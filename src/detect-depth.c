@@ -76,7 +76,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
             if (pm == NULL) {
                 SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "
-                           "preceeding content option for dcerpc sig");
+                           "preceding content option for dcerpc sig");
                 if (dubbed)
                     SCFree(str);
                 return -1;
@@ -100,7 +100,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]);
             if (pm == NULL) {
                 SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "
-                        "preceeding content, uricontent option, http_client_body, "
+                        "preceding content, uricontent option, http_client_body, "
                         "http_server_body, http_header option, http_raw_header option, "
                         "http_method option, http_cookie, http_raw_uri, "
                         "http_stat_msg, http_stat_code or http_user_agent option");
@@ -177,7 +177,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
             break;
 
         default:
-            SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding "
+            SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceding "
                     "content (or uricontent) option");
             goto error;
     }

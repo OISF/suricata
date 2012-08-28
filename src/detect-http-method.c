@@ -103,7 +103,7 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
 
     if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         SCLogError(SC_ERR_HTTP_METHOD_NEEDS_PRECEEDING_CONTENT, "http_method "
-                "modifies preceeding \"content\", but none was found");
+                "modifies preceding \"content\", but none was found");
         SCReturnInt(-1);
     }
 
@@ -111,7 +111,7 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
                                                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
     if (sm == NULL) {
         SCLogError(SC_ERR_HTTP_METHOD_NEEDS_PRECEEDING_CONTENT, "http_method "
-                "modifies preceeding \"content\", but none was found");
+                "modifies preceding \"content\", but none was found");
         SCReturnInt(-1);
     }
 
@@ -152,7 +152,7 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
                                         s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_HTTP_METHOD_RELATIVE_MISSING, "http_method with "
-                    "a distance or within requires preceeding http_method "
+                    "a distance or within requires preceding http_method "
                     "content, but none was found");
             goto error;
         }

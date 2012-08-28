@@ -231,7 +231,7 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
         }
     }
 
-    SCLogDebug("dsize parsed succesfully dsize: %"PRIu16" dsize2: %"PRIu16"",dd->dsize,dd->dsize2);
+    SCLogDebug("dsize parsed successfully dsize: %"PRIu16" dsize2: %"PRIu16"",dd->dsize,dd->dsize2);
 
     SCFree(value1);
     SCFree(mode);

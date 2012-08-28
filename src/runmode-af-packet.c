@@ -191,7 +191,7 @@ void *ParseAFPConfig(const char *iface)
                 aconf->iface);
         ConfGetChildValueBool(if_root, "defrag", (int *)&defrag);
         if (defrag) {
-            SCLogInfo("Using defrag kernel functionnality for AF_PACKET (iface %s)",
+            SCLogInfo("Using defrag kernel functionality for AF_PACKET (iface %s)",
                     aconf->iface);
             defrag = PACKET_FANOUT_FLAG_DEFRAG;
         }
