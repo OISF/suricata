@@ -192,8 +192,10 @@ uint64_t UtilCpuGetTicks(void)
 #else
     __asm__ __volatile__ (
     "xorl %%eax,%%eax\n\t"
+    "pushl %%ebx\n\t"
     "cpuid\n\t"
-    ::: "%eax", "%ebx", "%ecx", "%edx");
+    "popl %%ebx\n\t"
+    ::: "%eax", "%ecx", "%edx");
 #endif
     uint32_t a, d;
     __asm__ __volatile__ ("rdtsc" : "=a" (a), "=d" (d));
@@ -206,8 +208,10 @@ uint64_t UtilCpuGetTicks(void)
 #else
     __asm__ __volatile__ (
     "xorl %%eax,%%eax\n\t"
+    "pushl %%ebx\n\t"
     "cpuid\n\t"
-    ::: "%eax", "%ebx", "%ecx", "%edx");
+    "popl %%ebx\n\t"
+    ::: "%eax", "%ecx", "%edx");
 #endif
 
 #else /* #if defined(__GNU__) */
