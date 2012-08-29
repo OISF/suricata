@@ -244,23 +244,28 @@ void StreamTcpSessionPktFree (Packet *p)
 }
 
 /** \brief Stream alloc function for the Pool
- *  \param null NULL ptr (value of null is ignored)
  *  \retval ptr void ptr to TcpSession structure with all vars set to 0/NULL
  */
-void *StreamTcpSessionPoolAlloc(void *null)
+void *StreamTcpSessionPoolAlloc()
 {
+    void *ptr = NULL;
+
     if (StreamTcpCheckMemcap((uint32_t)sizeof(TcpSession)) == 0)
         return NULL;
 
-    void *ptr = SCMalloc(sizeof(TcpSession));
+    ptr = SCMalloc(sizeof(TcpSession));
     if (ptr == NULL)
         return NULL;
 
-    memset(ptr, 0, sizeof(TcpSession));
+    return ptr;
+}
 
+int StreamTcpSessionPoolInit(void *data, void* initdata)
+{
+    memset(data, 0, sizeof(TcpSession));
     StreamTcpIncrMemuse((uint64_t)sizeof(TcpSession));
 
-    return ptr;
+    return 1;
 }
 
 /** \brief Pool free function
@@ -302,10 +307,7 @@ void StreamTcpSessionPoolFree(void *s)
     }
     ssn->toclient_smsg_head = NULL;
 
-    SCFree(ssn);
-
     StreamTcpDecrMemuse((uint64_t)sizeof(TcpSession));
-
 }
 
 /** \brief          To initialize the stream global configuration data
@@ -488,7 +490,9 @@ void StreamTcpInitConfig(char quiet)
     SCMutexLock(&ssn_pool_mutex);
     ssn_pool = PoolInit(stream_config.max_sessions,
                         stream_config.prealloc_sessions,
-                        StreamTcpSessionPoolAlloc, NULL,
+                        sizeof(TcpSession),
+                        StreamTcpSessionPoolAlloc,
+                        StreamTcpSessionPoolInit, NULL,
                         StreamTcpSessionPoolFree);
     if (ssn_pool == NULL) {
         SCLogError(SC_ERR_POOL_INIT, "ssn_pool is not initialized");
@@ -7513,7 +7517,7 @@ static int StreamTcpTest28(void)
     }
 
     if (StreamTcpCheckMemcap((memuse + stream_config.memcap)) != 0) {
-        printf("failed in validating the memcap");
+        printf("failed in validating the invalid memcap");
         goto end;
     }
 

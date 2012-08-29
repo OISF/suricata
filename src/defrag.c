@@ -303,28 +303,16 @@ DefragFragReset(Frag *frag)
 /**
  * \brief Allocate a new frag for use in a pool.
  */
-static void *
-DefragFragNew(void *arg)
+static int
+DefragFragInit(void *data, void *initdata)
 {
-    DefragContext *dc = arg;
-    Frag *frag;
+    DefragContext *dc = initdata;
+    Frag *frag = data;
 
-    frag = SCCalloc(1, sizeof(*frag));
-    if (frag == NULL)
-        return NULL;
+    memset(frag, 0, sizeof(*frag));
     frag->dc = dc;
 
-    return (void *)frag;
-}
-
-/**
- * \brief Free a frag when released from a pool.
- */
-static void
-DefragFragFree(void *arg)
-{
-    Frag *frag = arg;
-    SCFree(frag);
+    return 1;
 }
 
 /**
@@ -369,23 +357,20 @@ DefragTrackerReset(DefragTracker *tracker)
  *
  * \retval A new DefragTracker if successfull, NULL on failure.
  */
-static void *
-DefragTrackerNew(void *arg)
+static int
+DefragTrackerInit(void *data, void *initdata)
 {
-    DefragContext *dc = arg;
-    DefragTracker *tracker;
+    DefragContext *dc = initdata;
+    DefragTracker *tracker = data;
 
-    tracker = SCCalloc(1, sizeof(*tracker));
-    if (tracker == NULL)
-        return NULL;
+    memset(tracker, 0, sizeof(*tracker));
     if (SCMutexInit(&tracker->lock, NULL) != 0) {
-        SCFree(tracker);
-        return NULL;
+        return 0;
     }
     tracker->dc = dc;
     TAILQ_INIT(&tracker->frags);
 
-    return (void *)tracker;
+    return 1;
 }
 
 /**
@@ -399,7 +384,6 @@ DefragTrackerFree(void *arg)
 
     SCMutexDestroy(&tracker->lock);
     DefragTrackerFreeFrags(tracker);
-    SCFree(tracker);
 }
 
 /**
@@ -437,7 +421,8 @@ DefragContextNew(void)
         tracker_pool_size = DEFAULT_DEFRAG_HASH_SIZE;
     }
     dc->tracker_pool = PoolInit(tracker_pool_size, tracker_pool_size,
-        DefragTrackerNew, dc, DefragTrackerFree);
+        sizeof(DefragTracker),
+        NULL, DefragTrackerInit, dc, DefragTrackerFree);
     if (dc->tracker_pool == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,
             "Defrag: Failed to initialize tracker pool.");
@@ -456,7 +441,8 @@ DefragContextNew(void)
     }
     intmax_t frag_pool_prealloc = frag_pool_size / 2;
     dc->frag_pool = PoolInit(frag_pool_size, frag_pool_prealloc,
-        DefragFragNew, dc, DefragFragFree);
+        sizeof(Frag),
+        NULL, DefragFragInit, dc, NULL);
     if (dc->frag_pool == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,
             "Defrag: Failed to initialize fragment pool.");

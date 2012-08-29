@@ -153,16 +153,24 @@ int StreamTcpReassembleCheckMemcap(uint32_t size) {
 }
 
 /** \brief alloc a tcp segment pool entry */
-void *TcpSegmentPoolAlloc(void *payload_len) {
-    if (StreamTcpReassembleCheckMemcap((uint32_t)sizeof(TcpSegment) +
-                                            *((uint16_t *) payload_len)) == 0)
+void *TcpSegmentPoolAlloc()
+{
+    if (StreamTcpReassembleCheckMemcap((uint32_t)sizeof(TcpSegment)) == 0)
     {
         return NULL;
     }
 
-    TcpSegment *seg = SCMalloc(sizeof (TcpSegment));
+    TcpSegment *seg = NULL;
+
+    seg = SCMalloc(sizeof (TcpSegment));
     if (seg == NULL)
         return NULL;
+    return seg;
+}
+
+int TcpSegmentPoolInit(void *data, void *payload_len)
+{
+    TcpSegment *seg = (TcpSegment *) data;
 
     memset(seg, 0, sizeof (TcpSegment));
 
@@ -172,7 +180,7 @@ void *TcpSegmentPoolAlloc(void *payload_len) {
     seg->payload = SCMalloc(seg->payload_len);
     if (seg->payload == NULL) {
         SCFree(seg);
-        return NULL;
+        return 0;
     }
 
 #ifdef DEBUG
@@ -184,7 +192,7 @@ void *TcpSegmentPoolAlloc(void *payload_len) {
 #endif
 
     StreamTcpReassembleIncrMemuse((uint32_t)seg->pool_size + sizeof(TcpSegment));
-    return seg;
+    return 1;
 }
 
 /** \brief free a tcp segment pool entry */
@@ -205,7 +213,6 @@ void TcpSegmentPoolFree(void *ptr) {
 #endif
 
     SCFree(seg->payload);
-    SCFree(seg);
     return;
 }
 
@@ -276,8 +283,9 @@ int StreamTcpReassembleInit(char quiet)
         SCMutexLock(&segment_pool_mutex[u16]);
         segment_pool[u16] = PoolInit(segment_pool_poolsizes[u16],
                                      segment_pool_poolsizes_prealloc[u16],
-                                     TcpSegmentPoolAlloc, (void *) &
-                                     segment_pool_pktsizes[u16],
+                                     sizeof (TcpSegment),
+                                     TcpSegmentPoolAlloc, TcpSegmentPoolInit,
+                                     (void *) &segment_pool_pktsizes[u16],
                                      TcpSegmentPoolFree);
         SCMutexUnlock(&segment_pool_mutex[u16]);
     }

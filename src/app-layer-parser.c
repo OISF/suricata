@@ -98,14 +98,14 @@ FileContainer *AppLayerGetFilesFromFlow(Flow *f, uint8_t direction) {
 }
 
 /** \brief Alloc a AppLayerParserResultElmt func for the pool */
-static void *AlpResultElmtPoolAlloc(void *null)
+static void *AlpResultElmtPoolAlloc()
 {
-    AppLayerParserResultElmt *e = (AppLayerParserResultElmt *)SCMalloc
-                                    (sizeof(AppLayerParserResultElmt));
+    AppLayerParserResultElmt *e = NULL;
+
+    e = (AppLayerParserResultElmt *)SCMalloc
+        (sizeof(AppLayerParserResultElmt));
     if (e == NULL)
         return NULL;
-
-    memset(e, 0, sizeof(AppLayerParserResultElmt));
 
 #ifdef DEBUG
     al_result_pool_elmts++;
@@ -122,7 +122,6 @@ static void AlpResultElmtPoolFree(void *e)
         if (re->data_ptr != NULL)
             SCFree(re->data_ptr);
     }
-    SCFree(re);
 
 #ifdef DEBUG
     al_result_pool_elmts--;
@@ -1314,7 +1313,9 @@ void RegisterAppLayerParsers(void)
 
     /** setup result pool
      * \todo Per thread pool */
-    al_result_pool = PoolInit(1000,250,AlpResultElmtPoolAlloc,NULL,AlpResultElmtPoolFree);
+    al_result_pool = PoolInit(1000, 250,
+            sizeof(AppLayerParserResultElmt),
+            AlpResultElmtPoolAlloc, NULL, NULL, AlpResultElmtPoolFree);
 
     RegisterHTPParsers();
     RegisterSSLParsers();
