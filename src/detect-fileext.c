@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -51,18 +51,18 @@
 #include "stream-tcp.h"
 #include "detect-fileext.h"
 
-int DetectFileextMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
+static int DetectFileextMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
+        uint8_t, File *, Signature *, SigMatch *);
 static int DetectFileextSetup (DetectEngineCtx *, Signature *, char *);
-void DetectFileextRegisterTests(void);
-void DetectFileextFree(void *);
+static void DetectFileextRegisterTests(void);
+static void DetectFileextFree(void *);
 
 /**
  * \brief Registration function for keyword: fileext
  */
 void DetectFileextRegister(void) {
     sigmatch_table[DETECT_FILEEXT].name = "fileext";
-    sigmatch_table[DETECT_FILEEXT].Match = NULL;
-    sigmatch_table[DETECT_FILEEXT].AppLayerMatch = DetectFileextMatch;
+    sigmatch_table[DETECT_FILEEXT].FileMatch = DetectFileextMatch;
     sigmatch_table[DETECT_FILEEXT].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_FILEEXT].Setup = DetectFileextSetup;
     sigmatch_table[DETECT_FILEEXT].Free  = DetectFileextFree;
@@ -75,21 +75,24 @@ void DetectFileextRegister(void) {
 /**
  * \brief match the specified file extension
  *
- * \param t pointer to thread vars
- * \param det_ctx pointer to the pattern matcher thread
- * \param p pointer to the current packet
- * \param m pointer to the sigmatch that we will cast into DetectFileextData
+ * \param t thread local vars
+ * \param det_ctx pattern matcher thread local data
+ * \param f *LOCKED* flow
+ * \param flags direction flags
+ * \param file file being inspected
+ * \param s signature being inspected
+ * \param m sigmatch that we will cast into DetectFileextData
  *
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectFileextMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+static int DetectFileextMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, File *file, Signature *s, SigMatch *m)
 {
     SCEnter();
     int ret = 0;
 
     DetectFileextData *fileext = (DetectFileextData *)m->ctx;
-    File *file = (File *)state;
 
     if (file->name == NULL)
         SCReturnInt(0);
@@ -130,7 +133,7 @@ int DetectFileextMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, 
  * \retval pointer to DetectFileextData on success
  * \retval NULL on failure
  */
-DetectFileextData *DetectFileextParse (char *str)
+static DetectFileextData *DetectFileextParse (char *str)
 {
     DetectFileextData *fileext = NULL;
 
@@ -224,7 +227,7 @@ error:
  *
  * \param fileext pointer to DetectFileextData
  */
-void DetectFileextFree(void *ptr) {
+static void DetectFileextFree(void *ptr) {
     if (ptr != NULL) {
         DetectFileextData *fileext = (DetectFileextData *)ptr;
         if (fileext->ext != NULL)

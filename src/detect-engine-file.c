@@ -130,9 +130,9 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
             for (sm = s->sm_lists[DETECT_SM_LIST_FILEMATCH]; sm != NULL; sm = sm->next) {
                 SCLogDebug("sm %p, sm->next %p", sm, sm->next);
 
-                if (sigmatch_table[sm->type].AppLayerMatch != NULL) {
+                if (sigmatch_table[sm->type].FileMatch != NULL) {
                     match = sigmatch_table[sm->type].
-                        AppLayerMatch(tv, det_ctx, f, flags, (void *)file, s, sm);
+                        FileMatch(tv, det_ctx, f, flags, file, s, sm);
                     if (match == 0) {
                         r = 2;
                         break;
@@ -167,7 +167,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
             DetectFilestoreData *fd = sm->ctx;
             if (fd->scope > FILESTORE_SCOPE_DEFAULT) {
                 match = sigmatch_table[sm->type].
-                    AppLayerMatch(tv, det_ctx, f, flags, NULL, s, sm);
+                    FileMatch(tv, det_ctx, f, flags, /* no file */NULL, s, sm);
                 if (match == 1) {
                     r = 1;
                 }

@@ -38,6 +38,7 @@
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-radix-tree.h"
+#include "util-file.h"
 
 #include "detect-mark.h"
 
@@ -795,13 +796,22 @@ typedef struct DetectionEngineThreadCtx_ {
 #endif
 } DetectEngineThreadCtx;
 
-/** \brief element in sigmatch type table. */
+/** \brief element in sigmatch type table.
+ *  \note FileMatch pointer below takes a locked flow, AppLayerMatch an unlocked flow
+ */
 typedef struct SigTableElmt_ {
     /** Packet match function pointer */
     int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 
     /** AppLayer match function  pointer */
     int (*AppLayerMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t flags, void *alstate, Signature *, SigMatch *);
+
+    /** File match function  pointer */
+    int (*FileMatch)(ThreadVars *,  /**< thread local vars */
+        DetectEngineThreadCtx *,
+        Flow *,                     /**< *LOCKED* flow */
+        uint8_t flags, File *, Signature *, SigMatch *);
+
     /** app layer proto from app-layer-protos.h this match applies to */
     uint16_t alproto;
 

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -52,18 +52,18 @@
 
 #include "detect-filemagic.h"
 
-int DetectFilemagicMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
+static int DetectFilemagicMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
+        uint8_t, File *, Signature *, SigMatch *);
 static int DetectFilemagicSetup (DetectEngineCtx *, Signature *, char *);
-void DetectFilemagicRegisterTests(void);
-void DetectFilemagicFree(void *);
+static void DetectFilemagicRegisterTests(void);
+static void DetectFilemagicFree(void *);
 
 /**
  * \brief Registration function for keyword: filemagic
  */
 void DetectFilemagicRegister(void) {
     sigmatch_table[DETECT_FILEMAGIC].name = "filemagic";
-    sigmatch_table[DETECT_FILEMAGIC].Match = NULL;
-    sigmatch_table[DETECT_FILEMAGIC].AppLayerMatch = DetectFilemagicMatch;
+    sigmatch_table[DETECT_FILEMAGIC].FileMatch = DetectFilemagicMatch;
     sigmatch_table[DETECT_FILEMAGIC].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_FILEMAGIC].Setup = DetectFilemagicSetup;
     sigmatch_table[DETECT_FILEMAGIC].Free  = DetectFilemagicFree;
@@ -127,21 +127,23 @@ int FilemagicLookup(File *file) {
 /**
  * \brief match the specified filemagic
  *
- * \param t pointer to thread vars
- * \param det_ctx pointer to the pattern matcher thread
- * \param p pointer to the current packet
- * \param m pointer to the sigmatch that we will cast into DetectFilemagicData
+ * \param t thread local vars
+ * \param det_ctx pattern matcher thread local data
+ * \param f *LOCKED* flow
+ * \param flags direction flags
+ * \param file file being inspected
+ * \param s signature being inspected
+ * \param m sigmatch that we will cast into DetectFilemagicData
  *
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectFilemagicMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+static int DetectFilemagicMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, File *file, Signature *s, SigMatch *m)
 {
     SCEnter();
     int ret = 0;
     DetectFilemagicData *filemagic = (DetectFilemagicData *)m->ctx;
-
-    File *file = (File *)state;
 
     if (file->txid < det_ctx->tx_id)
         SCReturnInt(0);
@@ -191,7 +193,7 @@ int DetectFilemagicMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f
  * \retval filemagic pointer to DetectFilemagicData on success
  * \retval NULL on failure
  */
-DetectFilemagicData *DetectFilemagicParse (char *str)
+static DetectFilemagicData *DetectFilemagicParse (char *str)
 {
     DetectFilemagicData *filemagic = NULL;
 
@@ -291,7 +293,7 @@ error:
  *
  * \param filemagic pointer to DetectFilemagicData
  */
-void DetectFilemagicFree(void *ptr) {
+static void DetectFilemagicFree(void *ptr) {
     if (ptr != NULL) {
         DetectFilemagicData *filemagic = (DetectFilemagicData *)ptr;
         if (filemagic->bm_ctx != NULL) {
