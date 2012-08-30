@@ -49,7 +49,7 @@ static pcre_extra *parse_regex_study;
 
 /*prototypes*/
 static int DetectFilesizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
-                       uint8_t flags, void *state, Signature *s, SigMatch *m);
+                       uint8_t flags, File *file, Signature *s, SigMatch *m);
 static int DetectFilesizeSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFilesizeFree (void *);
 static void DetectFilesizeRegisterTests (void);
@@ -62,7 +62,7 @@ void DetectFilesizeRegister(void)
 {
     sigmatch_table[DETECT_FILESIZE].name = "filesize";
     sigmatch_table[DETECT_FILESIZE].alproto = ALPROTO_HTTP;
-    sigmatch_table[DETECT_FILESIZE].AppLayerMatch = DetectFilesizeMatch;
+    sigmatch_table[DETECT_FILESIZE].FileMatch = DetectFilesizeMatch;
     sigmatch_table[DETECT_FILESIZE].Setup = DetectFilesizeSetup;
     sigmatch_table[DETECT_FILESIZE].Free = DetectFilesizeFree;
     sigmatch_table[DETECT_FILESIZE].RegisterTests = DetectFilesizeRegisterTests;
@@ -109,12 +109,11 @@ error:
  * \retval 1 match
  */
 static int DetectFilesizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
-                       uint8_t flags, void *state, Signature *s, SigMatch *m)
+                       uint8_t flags, File *file, Signature *s, SigMatch *m)
 {
     SCEnter();
 
     DetectFilesizeData *fsd = m->ctx;
-    File *file = (File *)state;
     int ret = 0;
     SCLogDebug("file size %"PRIu64", check %"PRIu64, file->size, fsd->size1);
 
