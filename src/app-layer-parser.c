@@ -870,6 +870,9 @@ int AppLayerParse(void *local_data, Flow *f, uint8_t proto,
     /* Do this check before calling AppLayerParse */
     if (flags & STREAM_GAP) {
         SCLogDebug("stream gap detected (missing packets), this is not yet supported.");
+
+        if (f->alstate != NULL)
+            AppLayerStreamTruncated(proto, f->alstate, flags);
         goto error;
     }
 
