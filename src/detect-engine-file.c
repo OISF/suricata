@@ -126,6 +126,12 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                 break;
             }
 
+            if (s->file_flags & FILE_SIG_NEED_SIZE && file->state < FILE_STATE_CLOSED) {
+                SCLogDebug("sig needs filesize, but state < FILE_STATE_CLOSED");
+                r = 0;
+                break;
+            }
+
             /* run the file match functions. */
             for (sm = s->sm_lists[DETECT_SM_LIST_FILEMATCH]; sm != NULL; sm = sm->next) {
                 SCLogDebug("sm %p, sm->next %p", sm, sm->next);

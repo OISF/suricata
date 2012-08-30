@@ -97,6 +97,7 @@
 #include "detect-filestore.h"
 #include "detect-filemagic.h"
 #include "detect-filemd5.h"
+#include "detect-filesize.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
 #include "detect-flowint.h"
@@ -1915,6 +1916,14 @@ end:
                     SCLogDebug("disabling md5 for flow");
                     FileDisableMd5(p->flow, STREAM_TOSERVER);
                 }
+
+                /* see if this sgh requires us to consider filesize */
+                if (p->flow->sgh_toserver == NULL ||
+                            !(p->flow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILESIZE))
+                {
+                    SCLogDebug("disabling filesize for flow");
+                    FileDisableFilesize(p->flow, STREAM_TOSERVER);
+                }
             } else if (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flow->flags & FLOW_SGH_TOCLIENT)) {
                 p->flow->sgh_toclient = det_ctx->sgh;
                 p->flow->flags |= FLOW_SGH_TOCLIENT;
@@ -1937,6 +1946,14 @@ end:
                 {
                     SCLogDebug("disabling md5 for flow");
                     FileDisableMd5(p->flow, STREAM_TOCLIENT);
+                }
+
+                /* see if this sgh requires us to consider filesize */
+                if (p->flow->sgh_toclient == NULL ||
+                            !(p->flow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILESIZE))
+                {
+                    SCLogDebug("disabling filesize for flow");
+                    FileDisableFilesize(p->flow, STREAM_TOCLIENT);
                 }
             }
         }
@@ -2108,6 +2125,24 @@ int SignatureIsFileMd5Inspecting(Signature *s) {
         return 0;
 
     if (s->file_flags & FILE_SIG_NEED_MD5)
+        return 1;
+
+    return 0;
+}
+
+/**
+ *  \brief Check if a signature contains the filesize keyword.
+ *
+ *  \param s signature
+ *
+ *  \retval 0 no
+ *  \retval 1 yes
+ */
+int SignatureIsFilesizeInspecting(Signature *s) {
+    if (s == NULL)
+        return 0;
+
+    if (s->file_flags & FILE_SIG_NEED_SIZE)
         return 1;
 
     return 0;
@@ -4073,6 +4108,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx) {
         SigGroupHeadBuildHeadArray(de_ctx, sgh);
         SigGroupHeadSetFilemagicFlag(de_ctx, sgh);
         SigGroupHeadSetFileMd5Flag(de_ctx, sgh);
+        SigGroupHeadSetFilesizeFlag(de_ctx, sgh);
         SigGroupHeadSetFilestoreCount(de_ctx, sgh);
         SCLogDebug("filestore count %u", sgh->filestore_cnt);
     }
@@ -4743,6 +4779,7 @@ void SigTableSetup(void) {
     DetectFilestoreRegister();
     DetectFilemagicRegister();
     DetectFileMd5Register();
+    DetectFilesizeRegister();
     DetectAppLayerEventRegister();
     DetectHttpUARegister();
 

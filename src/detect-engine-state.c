@@ -1770,7 +1770,7 @@ static int DeStateSigTest03(void) {
         goto end;
     }
 
-    if (file->store != 1) {
+    if (!(file->flags & FILE_STORE)) {
         printf("file is set to store, but sig didn't match: ");
         goto end;
     }
@@ -1885,7 +1885,7 @@ static int DeStateSigTest04(void) {
         goto end;
     }
 
-    if (file->store == 1) {
+    if (file->flags & FILE_STORE) {
         printf("file is set to store, but sig didn't match: ");
         goto end;
     }
@@ -2000,8 +2000,8 @@ static int DeStateSigTest05(void) {
         goto end;
     }
 
-    if (file->store != -1) {
-        printf("file is not set to \"no store\", but %d: ", file->store);
+    if (!(file->flags & FILE_NOSTORE)) {
+        printf("file is not set to \"no store\": ");
         goto end;
     }
 
@@ -2115,8 +2115,8 @@ static int DeStateSigTest06(void) {
         goto end;
     }
 
-    if (file->store != -1) {
-        printf("file is not set to \"no store\", but %d: ", file->store);
+    if (!(file->flags & FILE_NOSTORE)) {
+        printf("file is not set to \"no store\": ");
         goto end;
     }
 
@@ -2247,7 +2247,7 @@ static int DeStateSigTest07(void) {
         goto end;
     }
 
-    if (file->store == 1) {
+    if (file->flags & FILE_STORE) {
         printf("file is set to store, but sig didn't match: ");
         goto end;
     }

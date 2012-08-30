@@ -1600,6 +1600,33 @@ void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
 }
 
 /**
+ *  \brief Set the need size flag in the sgh.
+ *
+ *  \param de_ctx detection engine ctx for the signatures
+ *  \param sgh sig group head to set the flag in
+ */
+void SigGroupHeadSetFilesizeFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
+    Signature *s = NULL;
+    uint32_t sig = 0;
+
+    if (sgh == NULL)
+        return;
+
+    for (sig = 0; sig < sgh->sig_cnt; sig++) {
+        s = sgh->match_array[sig];
+        if (s == NULL)
+            continue;
+
+        if (SignatureIsFilesizeInspecting(s)) {
+            sgh->flags |= SIG_GROUP_HEAD_HAVEFILESIZE;
+            break;
+        }
+    }
+
+    return;
+}
+
+/**
  *  \brief Set the need magic flag in the sgh.
  *
  *  \param de_ctx detection engine ctx for the signatures

@@ -29,14 +29,15 @@
 #include <sechash.h>
 #endif
 
-#define FILE_TRUNCATED  0x01
-#define FILE_NOSTORE    0x02
-#define FILE_NOMAGIC    0x04
-#define FILE_STORE      0x08
-#define FILE_MD5        0x10
-#define FILE_LOGGED     0x20
-#define FILE_STORED     0x40
-#define FILE_NOMD5      0x80
+#define FILE_TRUNCATED  0x0001
+#define FILE_NOMAGIC    0x0002
+#define FILE_NOMD5      0x0004
+#define FILE_MD5        0x0008
+#define FILE_LOGGED     0x0010
+#define FILE_NOSTORE    0x0020
+#define FILE_STORE      0x0040
+#define FILE_STORED     0x0080
+#define FILE_NOTRACK    0x0100 /**< track size of file */
 
 typedef enum FileState_ {
     FILE_STATE_NONE = 0,    /**< no state */
@@ -58,8 +59,7 @@ typedef struct FileData_ {
 } FileData;
 
 typedef struct File_ {
-    uint8_t flags;
-    int8_t store;                  /**< need storing? 0: no, 1: yes, -1: won't */
+    uint16_t flags;
     uint16_t txid;                  /**< tx this file is part of */
     unsigned int file_id;
     uint8_t *name;
@@ -155,6 +155,8 @@ int FileSetTx(File *, uint16_t txid);
  *  \param f *LOCKED* flow
  */
 void FileDisableStoring(struct Flow_ *, uint8_t);
+
+void FileDisableFilesize(Flow *f, uint8_t direction);
 
 /**
  *  \brief disable file storing for a transaction

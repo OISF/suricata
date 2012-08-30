@@ -305,8 +305,8 @@ static TmEcode LogFilestoreLogWrap(ThreadVars *tv, Packet *p, void *data, Packet
                 continue;
             }
 
-            if (ff->store != 1) {
-                SCLogDebug("ff->store %d, so not 1", ff->store);
+            if (!(ff->flags & FILE_STORE)) {
+                SCLogDebug("ff FILE_STORE not set");
                 continue;
             }
 

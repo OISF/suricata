@@ -94,9 +94,6 @@ static int FileAppendFileDataFilePtr(File *ff, FileData *ffd) {
         ff->chunks_tail = ffd;
     }
 
-    ff->size += ffd->len;
-    SCLogDebug("file size %"PRIu64, ff->size);
-
 #ifdef DEBUG
     ff->chunks_cnt++;
     if (ff->chunks_cnt > ff->chunks_cnt_max)
@@ -148,7 +145,7 @@ static void FilePruneFile(File *file) {
     while (fd != NULL) {
         SCLogDebug("fd %p", fd);
 
-        if (file->store == -1 || fd->stored == 1) {
+        if (file->flags & FILE_NOSTORE || fd->stored == 1) {
             file->chunks_head = fd->next;
             if (file->chunks_tail == fd)
                 file->chunks_tail = fd->next;
@@ -352,7 +349,7 @@ void FileContainerAdd(FileContainer *ffc, File *ff) {
  *  \param ff The file to store
  */
 int FileStore(File *ff) {
-    ff->store = 1;
+    ff->flags |= FILE_STORE;
     SCReturnInt(0);
 }
 
@@ -384,8 +381,7 @@ static int FileStoreNoStoreCheck(File *ff) {
         SCReturnInt(0);
     }
 
-
-    if (ff->store == -1) {
+    if (ff->flags & FILE_NOSTORE) {
         if (ff->state == FILE_STATE_OPENED &&
                 ff->size >= (uint64_t)FileMagicSize())
         {
@@ -416,23 +412,28 @@ int FileAppendData(FileContainer *ffc, uint8_t *data, uint32_t data_len) {
     }
 
     if (ffc->tail->state != FILE_STATE_OPENED) {
-        if (ffc->tail->store == -1) {
+        if (ffc->tail->flags & FILE_NOSTORE) {
             SCReturnInt(-2);
         }
         SCReturnInt(-1);
     }
 
+    ffc->tail->size += data_len;
+    SCLogDebug("file size is now %"PRIu64, ffc->tail->size);
+
     if (FileStoreNoStoreCheck(ffc->tail) == 1) {
 #ifdef HAVE_NSS
         /* no storage but forced md5 */
-        if (g_file_force_tracking || ffc->tail->md5_ctx) {
+        if (ffc->tail->md5_ctx) {
             if (ffc->tail->md5_ctx)
                 HASH_Update(ffc->tail->md5_ctx, data, data_len);
 
-            ffc->tail->size += data_len;
             SCReturnInt(0);
         }
 #endif
+        if (g_file_force_tracking || (!(ffc->tail->flags & FILE_NOTRACK)))
+            SCReturnInt(0);
+
         ffc->tail->state = FILE_STATE_TRUNCATED;
         SCLogDebug("flowfile state transitioned to FILE_STATE_TRUNCATED");
         SCReturnInt(-2);
@@ -482,9 +483,10 @@ File *FileOpenFile(FileContainer *ffc, uint8_t *name,
     }
 
     if (flags & FILE_STORE) {
-        ff->store = 1;
+        ff->flags |= FILE_STORE;
     } else if (flags & FILE_NOSTORE) {
-        ff->store = -1;
+        SCLogDebug("not storing this file");
+        ff->flags |= FILE_NOSTORE;
     }
     if (flags & FILE_NOMAGIC) {
         SCLogDebug("not doing magic for this file");
@@ -511,6 +513,8 @@ File *FileOpenFile(FileContainer *ffc, uint8_t *name,
 
     if (data != NULL) {
         //PrintRawDataFp(stdout, data, data_len);
+        ff->size += data_len;
+        SCLogDebug("file size is now %"PRIu64, ff->size);
 
         FileData *ffd = FileDataAlloc(data, data_len);
         if (ffd == NULL) {
@@ -542,16 +546,18 @@ static int FileCloseFilePtr(File *ff, uint8_t *data,
         SCReturnInt(-1);
     }
 
+    ff->size += data_len;
+    SCLogDebug("file size is now %"PRIu64, ff->size);
+
     if (data != NULL) {
         //PrintRawDataFp(stdout, data, data_len);
 
-        if (ff->store == -1) {
+        if (ff->flags & FILE_NOSTORE) {
 #ifdef HAVE_NSS
             /* no storage but md5 */
             if (ff->md5_ctx)
                 HASH_Update(ff->md5_ctx, data, data_len);
 #endif
-            ff->size += data_len;
         } else {
             FileData *ffd = FileDataAlloc(data, data_len);
             if (ffd == NULL) {
@@ -573,7 +579,8 @@ static int FileCloseFilePtr(File *ff, uint8_t *data,
         SCLogDebug("flowfile state transitioned to FILE_STATE_TRUNCATED");
 
         if (flags & FILE_NOSTORE) {
-            ff->store = -1;
+            SCLogDebug("not storing this file");
+            ff->flags |= FILE_NOSTORE;
         }
     } else {
         ff->state = FILE_STATE_CLOSED;
@@ -639,8 +646,10 @@ void FileDisableStoring(Flow *f, uint8_t direction) {
     FileContainer *ffc = AppLayerGetFilesFromFlow(f, direction);
     if (ffc != NULL) {
         for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
-            if (ptr->store == 0) {
-                ptr->store = -1;
+            /* if we're already storing, we'll continue */
+            if (!(ptr->flags & FILE_STORE)) {
+                SCLogDebug("not storing this file");
+                ptr->flags |= FILE_NOSTORE;
             }
         }
     }
@@ -716,6 +725,37 @@ void FileDisableMd5(Flow *f, uint8_t direction) {
 }
 
 /**
+ *  \brief disable file size tracking for this flow
+ *
+ *  \param f *LOCKED* flow
+ *  \param direction flow direction
+ */
+void FileDisableFilesize(Flow *f, uint8_t direction) {
+    File *ptr = NULL;
+
+    SCEnter();
+
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
+    if (direction == STREAM_TOSERVER)
+        f->flags |= FLOW_FILE_NO_SIZE_TS;
+    else
+        f->flags |= FLOW_FILE_NO_SIZE_TC;
+
+    FileContainer *ffc = AppLayerGetFilesFromFlow(f, direction);
+    if (ffc != NULL) {
+        for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
+            SCLogDebug("disabling size tracking for file %p from direction %s",
+                    ptr, direction == STREAM_TOSERVER ? "toserver":"toclient");
+            ptr->flags |= FILE_NOTRACK;
+        }
+    }
+
+    SCReturn;
+}
+
+
+/**
  *  \brief set no store flag, close file if needed
  *
  *  \param ff file
@@ -727,7 +767,8 @@ void FileDisableStoringForFile(File *ff) {
         SCReturn;
     }
 
-    ff->store = -1;
+    SCLogDebug("not storing this file");
+    ff->flags |= FILE_NOSTORE;
 
     if (ff->state == FILE_STATE_OPENED && ff->size >= (uint64_t)FileMagicSize()) {
         (void)FileCloseFilePtr(ff, NULL, 0,
@@ -753,7 +794,7 @@ void FileDisableStoringForTransaction(Flow *f, uint8_t direction, uint16_t tx_id
     if (ffc != NULL) {
         for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
             if (ptr->txid == tx_id) {
-                if (ptr->store == 1) {
+                if (ptr->flags & FILE_STORE) {
                     /* weird, already storing -- let it continue*/
                     SCLogDebug("file is already being stored");
                 } else {
@@ -780,7 +821,7 @@ void FileStoreFileById(FileContainer *fc, uint16_t file_id) {
     if (fc != NULL) {
         for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
             if (ptr->file_id == file_id) {
-                ptr->store = 1;
+                ptr->flags |= FILE_STORE;
             }
         }
     }
@@ -794,7 +835,7 @@ void FileStoreAllFilesForTx(FileContainer *fc, uint16_t tx_id) {
     if (fc != NULL) {
         for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
             if (ptr->txid == tx_id) {
-                ptr->store = 1;
+                ptr->flags |= FILE_STORE;
             }
         }
     }
@@ -807,7 +848,7 @@ void FileStoreAllFiles(FileContainer *fc) {
 
     if (fc != NULL) {
         for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
-            ptr->store = 1;
+            ptr->flags |= FILE_STORE;
         }
     }
 }
