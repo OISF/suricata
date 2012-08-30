@@ -2440,6 +2440,13 @@ static FileContainer *HTPStateGetFiles(void *state, uint8_t direction) {
     }
 }
 
+static void HTPStateTruncate(void *state, uint8_t flags) {
+    FileContainer *fc = HTPStateGetFiles(state, flags);
+    if (fc != NULL) {
+        FileTruncateAllOpenFiles(fc);
+    }
+}
+
 /**
  *  \brief  Register the HTTP protocol and state handling functions to APP layer
  *          of the engine.
@@ -2471,6 +2478,8 @@ void RegisterHTPParsers(void)
     AppLayerRegisterGetFilesFunc(ALPROTO_HTTP, HTPStateGetFiles);
 
     AppLayerDecoderEventsModuleRegister(ALPROTO_HTTP, http_decoder_event_table);
+
+    AppLayerRegisterTruncateFunc(ALPROTO_HTTP, HTPStateTruncate);
 
     AppLayerRegisterProto(proto_name, ALPROTO_HTTP, STREAM_TOSERVER,
                           HTPHandleRequestData);

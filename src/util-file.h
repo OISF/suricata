@@ -184,4 +184,6 @@ void FileStoreAllFiles(FileContainer *);
 void FileStoreAllFilesForTx(FileContainer *, uint16_t);
 void FileStoreFileById(FileContainer *fc, uint16_t);
 
+void FileTruncateAllOpenFiles(FileContainer *);
+
 #endif /* __UTIL_FILE_H__ */

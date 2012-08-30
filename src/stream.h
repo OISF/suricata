@@ -30,7 +30,8 @@
 #define STREAM_EOF              0x02
 #define STREAM_TOSERVER         0x04
 #define STREAM_TOCLIENT         0x08
-#define STREAM_GAP              0x10
+#define STREAM_GAP              0x10    /* data gap encountered */
+#define STREAM_DEPTH            0x20    /* depth reached */
 
 /** size of the data chunks sent to the app layer parser. */
 #define MSG_DATA_SIZE       4024 /* 4096 - 72 (size of rest of the struct) */

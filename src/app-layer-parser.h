@@ -54,6 +54,9 @@ typedef struct AppLayerProto_ {
     void (*StateTransactionFree)(void *, uint16_t);
     void *(*LocalStorageAlloc)(void);
     void (*LocalStorageFree)(void *);
+
+    /** truncate state after a gap/depth event */
+    void (*Truncate)(void *, uint8_t);
     FileContainer *(*StateGetFiles)(void *, uint8_t);
 
 } AppLayerProto;
@@ -259,6 +262,7 @@ void AppLayerRegisterGetFilesFunc(uint16_t proto,
         FileContainer *(*StateGetFile)(void *, uint8_t));
 void AppLayerRegisterLogger(uint16_t proto);
 uint16_t AppLayerGetProtoByName(const char *);
+void AppLayerRegisterTruncateFunc(uint16_t proto, void (*Truncate)(void *, uint8_t));
 
 int AppLayerParse(void *, Flow *, uint8_t,
                   uint8_t, uint8_t *, uint32_t);

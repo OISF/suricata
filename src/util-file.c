@@ -853,3 +853,16 @@ void FileStoreAllFiles(FileContainer *fc) {
     }
 }
 
+void FileTruncateAllOpenFiles(FileContainer *fc) {
+    File *ptr = NULL;
+
+    SCEnter();
+
+    if (fc != NULL) {
+        for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
+            if (ptr->state == FILE_STATE_OPENED) {
+                FileCloseFilePtr(ptr, NULL, 0, FILE_TRUNCATED);
+            }
+        }
+    }
+}

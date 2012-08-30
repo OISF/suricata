@@ -1656,6 +1656,9 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     } else { \
         flag |= STREAM_TOSERVER; \
     } \
+    if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {    \
+        flag |= STREAM_DEPTH; \
+    } \
 }
 
 #define STREAM_SET_INLINE_FLAGS(ssn, stream, p, flag) { \
@@ -1670,6 +1673,9 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
         flag |= STREAM_TOSERVER; \
     } else { \
         flag |= STREAM_TOCLIENT; \
+    } \
+    if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {    \
+        flag |= STREAM_DEPTH; \
     } \
 }
 
