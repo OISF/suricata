@@ -16,6 +16,12 @@
  */
 
 /**
+ * \ingroup utilpool
+ *
+ * @{
+ */
+
+/**
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
@@ -72,3 +78,6 @@ void PoolRegisterTests(void);
 
 #endif /* __UTIL_POOL_H__ */
 
+/**
+ * @}
+ */
