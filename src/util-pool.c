@@ -16,6 +16,21 @@
  */
 
 /**
+ * \defgroup utilpool Pool
+ *
+ * ::Pool are an effective way to maintain a set of ready to use
+ * structures.
+ *
+ * To create a ::Pool, you need to use PoolInit(). You can
+ * get an item from the ::Pool by using PoolGet(). When you're
+ * done with it call PoolReturn().
+ * To destroy the ::Pool, call PoolFree(), it will free all used
+ * memory.
+ *
+ * @{
+ */
+
+/**
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
@@ -49,6 +64,11 @@ static int PoolDataPreAllocated(Pool *p, void *data)
 }
 
 /** \brief Init a Pool
+ *
+ * PoolInit() creates a ::Pool. The Alloc function must only do
+ * allocation stuff. The Free function must not try to free
+ * the PoolBucket::data. This is done by the ::Pool management
+ * system.
  *
  * \param size
  * \param prealloc_size
@@ -629,3 +649,7 @@ void PoolRegisterTests(void) {
 #endif /* UNITTESTS */
 }
 
+
+/**
+ * @}
+ */
