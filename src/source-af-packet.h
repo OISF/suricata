@@ -83,6 +83,7 @@ typedef struct AFPIfaceConfig_
 typedef struct AFPPeer_ {
     char iface[AFP_IFACE_NAME_LENGTH];
     SC_ATOMIC_DECLARE(int, socket);
+    SC_ATOMIC_DECLARE(int, sock_usage);
     SC_ATOMIC_DECLARE(int, if_idx);
     SC_ATOMIC_DECLARE(uint8_t, state);
     SCMutex sock_protect;
@@ -96,7 +97,11 @@ typedef struct AFPPacketVars_
 {
     void *relptr;
     int copy_mode;
-    AFPPeer *peer;
+    AFPPeer *peer; /**< Sending peer for IPS/TAP mode */
+    /** Pointer to ::AFPPeer used for capture. Field is used to be able
+     * to do reference counting.
+     */
+    AFPPeer *mpeer;
 } AFPPacketVars;
 
 /**
