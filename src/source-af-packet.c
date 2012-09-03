@@ -16,6 +16,12 @@
  */
 
 /**
+ *  \defgroup afppacket AF_PACKET running mode
+ *
+ *  @{
+ */
+
+/**
  * \file
  *
  * \author Eric Leblond <eric@regit.org>
@@ -218,6 +224,20 @@ void TmModuleReceiveAFPRegister (void) {
     tmm_modules[TMM_RECEIVEAFP].flags = TM_FLAG_RECEIVE_TM;
 }
 
+
+/**
+ *  \defgroup afppeers AFP peers list
+ *
+ * AF_PACKET has an IPS mode were interface are peered: packet from
+ * on interface are sent the peered interface and the other way. The ::AFPPeer
+ * list is maitaining the list of peers. Each ::AFPPeer is storing the needed
+ * information to be able to send packet on the interface.
+ * A element of the list must not be destroyed during the run of Suricata as it
+ * is used by ::Packet and other threads.
+ *
+ *  @{
+ */
+
 typedef struct AFPPeersList_ {
     TAILQ_HEAD(, AFPPeer_) peers; /**< Head of list of fragments. */
     int cnt;
@@ -225,7 +245,11 @@ typedef struct AFPPeersList_ {
 } AFPPeersList;
 
 /**
- * Update the peer.
+ * \brief Update the peer.
+ *
+ * Update the AFPPeer of a thread ie set new state, socket number
+ * or iface index.
+ *
  */
 void AFPPeerUpdate(AFPThreadVars *ptv)
 {
@@ -238,6 +262,9 @@ void AFPPeerUpdate(AFPThreadVars *ptv)
     (void)SC_ATOMIC_SET(ptv->mpeer->state, ptv->afp_state);
 }
 
+/**
+ * \brief Clean and free ressource used by an ::AFPPeer
+ */
 void AFPPeerClean(AFPPeer *peer)
 {
     if (peer->flags & AFP_SOCK_PROTECT)
@@ -251,6 +278,9 @@ void AFPPeerClean(AFPPeer *peer)
 AFPPeersList peerslist;
 
 
+/**
+ * \brief Init the global list of ::AFPPeer
+ */
 TmEcode AFPPeersListInit()
 {
     SCEnter();
@@ -260,6 +290,11 @@ TmEcode AFPPeersListInit()
     SCReturnInt(TM_ECODE_OK);
 }
 
+/**
+ * \brief Check that all ::AFPPeer got a peer
+ *
+ * \retval TM_ECODE_FAILED if some threads are not peered or TM_ECODE_OK else.
+ */
 TmEcode AFPPeersListCheck()
 {
 #define AFP_PEERS_MAX_TRY 4
@@ -278,6 +313,9 @@ TmEcode AFPPeersListCheck()
     SCReturnInt(TM_ECODE_FAILED);
 }
 
+/**
+ * \brief Declare a new AFP thread to AFP peers list.
+ */
 TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
 {
     SCEnter();
@@ -321,6 +359,9 @@ TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
     SCReturnInt(TM_ECODE_OK);
 }
 
+/**
+ * \brief Clean the global peers list.
+ */
 void AFPPeersListClean()
 {
     AFPPeer *pitem;
@@ -330,6 +371,10 @@ void AFPPeersListClean()
         AFPPeerClean(pitem);
     }
 }
+
+/**
+ * @}
+ */
 
 /**
  * \brief Registration Function for DecodeAFP.
@@ -1387,3 +1432,6 @@ TmEcode DecodeAFPThreadInit(ThreadVars *tv, void *initdata, void **data)
 
 #endif /* HAVE_AF_PACKET */
 /* eof */
+/**
+ * @}
+ */
