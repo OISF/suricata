@@ -2015,7 +2015,9 @@ int main(int argc, char **argv)
     TmqhCleanup();
     TmModuleRunDeInit();
 
+#ifdef HAVE_AF_PACKET
     AFPPeersListClean();
+#endif
 
 #ifdef PROFILING
     if (profiling_rules_enabled)
