@@ -115,6 +115,16 @@ int DetectProtoParse(DetectProto *dp, char *str)
         proto = IPPROTO_SCTP;
         dp->proto[proto / 8] |= 1 << (proto % 8);
         SCLogDebug("SCTP protocol detected");
+    } else if (strcasecmp(str,"ipv4") == 0 ||
+               strcasecmp(str,"ip4") == 0 ) {
+        dp->flags |= DETECT_PROTO_IPV4;
+        memset(dp->proto, 0xff, sizeof(dp->proto));
+        SCLogDebug("IPv4 protocol detected");
+    } else if (strcasecmp(str,"ipv6") == 0 ||
+               strcasecmp(str,"ip6") == 0 ) {
+        dp->flags |= DETECT_PROTO_IPV6;
+        memset(dp->proto, 0xff, sizeof(dp->proto));
+        SCLogDebug("IPv6 protocol detected");
     } else if (strcasecmp(str,"ip") == 0 ||
                strcasecmp(str,"pkthdr") == 0) {
         /* Proto "ip" is treated as an "any" */

@@ -1051,6 +1051,8 @@ enum {
     DETECT_FILEMD5,
     DETECT_FILESIZE,
 
+    DETECT_L3PROTO,
+
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };

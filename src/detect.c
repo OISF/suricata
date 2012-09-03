@@ -72,6 +72,7 @@
 #include "detect-bytetest.h"
 #include "detect-bytejump.h"
 #include "detect-sameip.h"
+#include "detect-l3proto.h"
 #include "detect-ipproto.h"
 #include "detect-within.h"
 #include "detect-distance.h"
@@ -1639,6 +1640,15 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         "has SIG_FLAG_REQUIRE_FLOWVAR flag set.");
                 goto next;
             }
+        }
+
+        if ((s->proto.flags & DETECT_PROTO_IPV4) && !PKT_IS_IPV4(p)) {
+            SCLogDebug("ip version didn't match");
+            goto next;
+        }
+        if ((s->proto.flags & DETECT_PROTO_IPV6) && !PKT_IS_IPV6(p)) {
+            SCLogDebug("ip version didn't match");
+            goto next;
         }
 
         if (DetectProtoContainsProto(&s->proto, IP_GET_IPPROTO(p)) == 0) {
@@ -4717,6 +4727,7 @@ void SigTableSetup(void) {
     DetectBytetestRegister();
     DetectBytejumpRegister();
     DetectSameipRegister();
+    DetectL3ProtoRegister();
     DetectIPProtoRegister();
     DetectWithinRegister();
     DetectDistanceRegister();
