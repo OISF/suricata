@@ -250,8 +250,16 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
 
         FlowDecrUsecnt(p->root->flow);
         /* if p->root uses extended data, free them */
+        if (p->root->ReleaseData) {
+            if (p->root->ReleaseData(t, p->root) == TM_ECODE_FAILED) {
+                SCLogWarning(SC_ERR_INVALID_ACTION,
+                        "Unable to release packet data");
+            }
+        }
         if (p->root->ext_pkt) {
-            SCFree(p->root->ext_pkt);
+            if (!(p->root->flags & PKT_ZERO_COPY)) {
+                SCFree(p->root->ext_pkt);
+            }
             p->root->ext_pkt = NULL;
         }
         if (p->root->flags & PKT_ALLOC) {
@@ -261,6 +269,13 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         } else {
             PACKET_RECYCLE(p->root);
             RingBufferMrMwPut(ringbuffer, (void *)p->root);
+        }
+
+    }
+
+    if (p->ReleaseData) {
+        if (p->ReleaseData(t, p) == TM_ECODE_FAILED) {
+            SCLogWarning(SC_ERR_INVALID_ACTION, "Unable to release packet data");
         }
     }
 
