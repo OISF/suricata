@@ -526,7 +526,7 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
             continue;
 
         /* Check for multiline rules. */
-        while (isspace(line[--len]));
+        while (len > 0 && isspace(line[--len]));
         if (line[len] == '\\') {
             multiline++;
             offset = len;
