@@ -1027,6 +1027,15 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                 if (bitarray & 0x01) {
                     Signature *s = de_ctx->sig_array[u * 8 + i];
 
+                    if ((s->proto.flags & DETECT_PROTO_IPV4) && !PKT_IS_IPV4(p)) {
+                        SCLogDebug("ip version didn't match");
+                        continue;
+                    }
+                    if ((s->proto.flags & DETECT_PROTO_IPV6) && !PKT_IS_IPV6(p)) {
+                        SCLogDebug("ip version didn't match");
+                        continue;
+                    }
+
                     if (DetectProtoContainsProto(&s->proto, p->proto) == 0) {
                         SCLogDebug("proto didn't match");
                         continue;
