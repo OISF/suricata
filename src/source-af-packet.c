@@ -120,6 +120,7 @@ TmEcode NoAFPSupportExit(ThreadVars *tv, void *initdata, void **data)
 #define AFP_STATE_UP 1
 
 #define AFP_RECONNECT_TIMEOUT 500000
+#define AFP_DOWN_COUNTER_INTERVAL 40
 
 #define POLL_TIMEOUT 100
 
@@ -165,6 +166,7 @@ typedef struct AFPThreadVars_
 
     char iface[AFP_IFACE_NAME_LENGTH];
     LiveDevice *livedev;
+    int down_count;
 
     /* Filter */
     char *bpf_filter;
@@ -209,6 +211,9 @@ TmEcode DecodeAFP(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
 TmEcode AFPSetBPFFilter(AFPThreadVars *ptv);
 static int AFPGetIfnumByDev(int fd, const char *ifname, int verbose);
+static int AFPGetDevFlags(int fd, const char *ifname);
+static int AFPDerefSocket(AFPPeer* peer);
+static int AFPRefSocket(AFPPeer* peer);
 
 /**
  * \brief Registration Function for RecieveAFP.
@@ -330,6 +335,7 @@ TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
     }
     memset(peer, 0, sizeof(AFPPeer));
     SC_ATOMIC_INIT(peer->socket);
+    SC_ATOMIC_INIT(peer->sock_usage);
     SC_ATOMIC_INIT(peer->if_idx);
     SC_ATOMIC_INIT(peer->state);
     peer->flags = ptv->flags;
@@ -338,33 +344,37 @@ TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
         SCMutexInit(&peer->sock_protect, NULL);
     }
 
+    (void)SC_ATOMIC_SET(peer->sock_usage, 0);
     (void)SC_ATOMIC_SET(peer->state, AFP_STATE_DOWN);
     strlcpy(peer->iface, ptv->iface, AFP_IFACE_NAME_LENGTH);
     ptv->mpeer = peer;
     /* add element to iface list */
     TAILQ_INSERT_TAIL(&peerslist.peers, peer, next);
-    peerslist.cnt++;
 
-    /* Iter to find a peer */
-    TAILQ_FOREACH(pitem, &peerslist.peers, next) {
-        if (pitem->peer)
-            continue;
-        if (strcmp(pitem->iface, ptv->out_iface))
-            continue;
-        peer->peer = pitem;
-        pitem->peer = peer;
-        mtu = GetIfaceMTU(ptv->iface);
-        out_mtu = GetIfaceMTU(ptv->out_iface);
-        if (mtu != out_mtu) {
-            SCLogError(SC_ERR_AFP_CREATE,
-                      "MTU on %s (%d) and %s (%d) are not equal, "
-                      "transmission of packets bigger than %d will fail.",
-                      ptv->iface, mtu,
-                      ptv->out_iface, out_mtu,
-                      (out_mtu > mtu) ? mtu : out_mtu);
+    if (ptv->copy_mode != AFP_COPY_MODE_NONE) {
+        peerslist.cnt++;
+
+        /* Iter to find a peer */
+        TAILQ_FOREACH(pitem, &peerslist.peers, next) {
+            if (pitem->peer)
+                continue;
+            if (strcmp(pitem->iface, ptv->out_iface))
+                continue;
+            peer->peer = pitem;
+            pitem->peer = peer;
+            mtu = GetIfaceMTU(ptv->iface);
+            out_mtu = GetIfaceMTU(ptv->out_iface);
+            if (mtu != out_mtu) {
+                SCLogError(SC_ERR_AFP_CREATE,
+                        "MTU on %s (%d) and %s (%d) are not equal, "
+                        "transmission of packets bigger than %d will fail.",
+                        ptv->iface, mtu,
+                        ptv->out_iface, out_mtu,
+                        (out_mtu > mtu) ? mtu : out_mtu);
+            }
+            peerslist.peered += 2;
+            break;
         }
-        peerslist.peered += 2;
-        break;
     }
 
     AFPPeerUpdate(ptv);
@@ -600,6 +610,10 @@ TmEcode AFPReleaseDataFromRing(ThreadVars *t, Packet *p)
     if ((p->afp_v.copy_mode != AFP_COPY_MODE_NONE) && !PKT_IS_PSEUDOPKT(p)) {
         ret = AFPWritePacket(p);
     }
+
+    if (AFPDerefSocket(p->afp_v.mpeer) == 0)
+        return ret;
+
     if (p->afp_v.relptr) {
         union thdr h;
         h.raw = p->afp_v.relptr;
@@ -652,6 +666,8 @@ int AFPReadFromRing(AFPThreadVars *ptv)
 
         p->afp_v.relptr = h.raw;
         p->ReleaseData = AFPReleaseDataFromRing;
+        p->afp_v.mpeer = ptv->mpeer;
+        AFPRefSocket(ptv->mpeer);
 
         p->afp_v.copy_mode = ptv->copy_mode;
         if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
@@ -749,16 +765,90 @@ next_frame:
     SCReturnInt(AFP_READ_OK);
 }
 
+/**
+ * \brief Reference socket
+ *
+ * \retval O in case of failure, 1 in case of success
+ */
+static int AFPRefSocket(AFPPeer* peer)
+{
+    if (unlikely(peer == NULL))
+        return 0;
+
+    (void)SC_ATOMIC_ADD(peer->sock_usage, 1);
+    return 1;
+}
 
 
+/**
+ * \brief Dereference socket
+ *
+ * \retval 1 if socket is still alive, 0 if not
+ */
+static int AFPDerefSocket(AFPPeer* peer)
+{
+    if (SC_ATOMIC_SUB(peer->sock_usage, 1) == 0) {
+        if (SC_ATOMIC_GET(peer->state) == AFP_STATE_DOWN) {
+            SCLogInfo("Cleaning socket connected to '%s'", peer->iface);
+            close(SC_ATOMIC_GET(peer->socket));
+            return 0;
+        }
+    }
+    return 1;
+}
+
+void AFPSwitchState(AFPThreadVars *ptv, int state)
+{
+    ptv->afp_state = state;
+    ptv->down_count = 0;
+
+    AFPPeerUpdate(ptv);
+
+    /* Do cleaning if switching to down state */
+    if (state == AFP_STATE_DOWN) {
+        if (ptv->frame_buf) {
+            /* only used in reading phase, we can free it */
+            SCFree(ptv->frame_buf);
+            ptv->frame_buf = NULL;
+        }
+        if (ptv->socket != -1) {
+            /* we need to wait for all packets to return data */
+            if (SC_ATOMIC_SUB(ptv->mpeer->sock_usage, 1) == 0) {
+                SCLogInfo("Cleaning socket connected to '%s'", ptv->iface);
+                close(ptv->socket);
+                ptv->socket = -1;
+            }
+        }
+    }
+    if (state == AFP_STATE_UP) {
+         (void)SC_ATOMIC_SET(ptv->mpeer->sock_usage, 1);
+    }
+}
+
+/**
+ * \brief Try to reopen socket
+ *
+ * \retval 0 in case of success, negative if error occurs or a condition
+ * is not met.
+ */
 static int AFPTryReopen(AFPThreadVars *ptv)
 {
     int afp_activate_r;
 
-    ptv->afp_state = AFP_STATE_DOWN;
+    ptv->down_count++;
+
+
+    /* Don't reconnect till we have packet that did not release data */
+    if (SC_ATOMIC_GET(ptv->mpeer->sock_usage) != 0) {
+        return -1;
+    }
 
     afp_activate_r = AFPCreateSocket(ptv, ptv->iface, 0);
     if (afp_activate_r != 0) {
+        if (ptv->down_count % AFP_DOWN_COUNTER_INTERVAL == 0) {
+            SCLogWarning(SC_ERR_AFP_CREATE, "Can not open iface '%s'",
+                         ptv->iface);
+        }
         return afp_activate_r;
     }
 
@@ -788,8 +878,6 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
         /* Start by checking the state of our interface */
         if (unlikely(ptv->afp_state == AFP_STATE_DOWN)) {
             int dbreak = 0;
-
-            AFPPeerUpdate(ptv);
 
             do {
                 usleep(AFP_RECONNECT_TIMEOUT);
@@ -822,8 +910,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
         if (r > 0 &&
                 (fds.revents & (POLLHUP|POLLRDHUP|POLLERR|POLLNVAL))) {
             if (fds.revents & (POLLHUP | POLLRDHUP)) {
-                close(ptv->socket);
-                ptv->afp_state = AFP_STATE_DOWN;
+                AFPSwitchState(ptv, AFP_STATE_DOWN);
                 continue;
             } else if (fds.revents & POLLERR) {
                 char c;
@@ -832,13 +919,11 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                     continue; /* what, no error? */
                 SCLogError(SC_ERR_AFP_READ, "Error reading data from socket: (%d" PRIu32 ") %s",
                         errno, strerror(errno));
-                close(ptv->socket);
-                ptv->afp_state = AFP_STATE_DOWN;
+                AFPSwitchState(ptv, AFP_STATE_DOWN);
                 continue;
             } else if (fds.revents & POLLNVAL) {
                 SCLogError(SC_ERR_AFP_READ, "Invalid polling request");
-                close(ptv->socket);
-                ptv->afp_state = AFP_STATE_DOWN;
+                AFPSwitchState(ptv, AFP_STATE_DOWN);
                 continue;
             }
         } else if (r > 0) {
@@ -853,11 +938,10 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                     /* AFPRead in error: best to reset the socket */
                     SCLogError(SC_ERR_AFP_READ, "AFPRead error reading data from socket: (%d" PRIu32 ") %s",
                             errno, strerror(errno));
-                    close(ptv->socket);
-                    ptv->afp_state = AFP_STATE_DOWN;
+                    AFPSwitchState(ptv, AFP_STATE_DOWN);
                     continue;
                 case AFP_FAILURE:
-                    ptv->afp_state = AFP_STATE_DOWN;
+                    AFPSwitchState(ptv, AFP_STATE_DOWN);
                     SCReturnInt(TM_ECODE_FAILED);
                     break;
                 case AFP_READ_OK:
@@ -870,8 +954,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
         } else if ((r < 0) && (errno != EINTR)) {
             SCLogError(SC_ERR_AFP_READ, "Error reading data from socket: (%d" PRIu32 ") %s",
                        errno, strerror(errno));
-            close(ptv->socket);
-            ptv->afp_state = AFP_STATE_DOWN;
+            AFPSwitchState(ptv, AFP_STATE_DOWN);
             continue;
         }
         SCPerfSyncCountersIfSignalled(tv, 0);
@@ -879,6 +962,23 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
 
     SCReturnInt(TM_ECODE_OK);
 }
+
+static int AFPGetDevFlags(int fd, const char *ifname)
+{
+    struct ifreq ifr;
+
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+
+    if (ioctl(fd, SIOCGIFFLAGS, &ifr) == -1) {
+        SCLogError(SC_ERR_AFP_CREATE, "Unable to find type for iface \"%s\": %s",
+                   ifname, strerror(errno));
+        return -1;
+    }
+
+    return ifr.ifr_flags;
+}
+
 
 static int AFPGetIfnumByDev(int fd, const char *ifname, int verbose)
 {
@@ -978,9 +1078,8 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
     ptv->socket = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (ptv->socket == -1) {
         SCLogError(SC_ERR_AFP_CREATE, "Couldn't create a AF_PACKET socket, error %s", strerror(errno));
-        return -1;
+        goto error;
     }
-    SCLogInfo("Using interface '%s' via socket %d", (char *)devname, ptv->socket);
     if_idx = AFPGetIfnumByDev(ptv->socket, devname, verbose);
     /* bind socket */
     memset(&bind_address, 0, sizeof(bind_address));
@@ -990,89 +1089,10 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
     if (bind_address.sll_ifindex == -1) {
         if (verbose)
             SCLogError(SC_ERR_AFP_CREATE, "Couldn't find iface %s", devname);
-        return -1;
+        goto socket_err;
     }
 
-    if (ptv->flags & AFP_RING_MODE) {
-        int val = TPACKET_V2;
-        unsigned int len = sizeof(val);
-        if (getsockopt(ptv->socket, SOL_PACKET, PACKET_HDRLEN, &val, &len) < 0) {
-            if (errno == ENOPROTOOPT) {
-                SCLogError(SC_ERR_AFP_CREATE,
-                           "Too old kernel giving up (need 2.6.27 at least)");
-            }
-            SCLogError(SC_ERR_AFP_CREATE, "Error when retrieving packet header len");
-            return -1;
-        }
-        ptv->tp_hdrlen = val;
 
-        val = TPACKET_V2;
-        if (setsockopt(ptv->socket, SOL_PACKET, PACKET_VERSION, &val,
-                    sizeof(val)) < 0) {
-            SCLogError(SC_ERR_AFP_CREATE,
-                       "Can't activate TPACKET_V2 on packet socket: %s",
-                       strerror(errno));
-            return -1;
-        }
-
-        /* Allocate RX ring */
-#define DEFAULT_ORDER 3
-        for (order = DEFAULT_ORDER; order >= 0; order--) {
-            if (AFPComputeRingParams(ptv, order) != 1) {
-                SCLogInfo("Ring parameter are incorrect. Please correct the devel");
-            }
-
-            r = setsockopt(ptv->socket, SOL_PACKET, PACKET_RX_RING, (void *) &ptv->req, sizeof(ptv->req));
-            if (r < 0) {
-                if (errno == ENOMEM) {
-                    SCLogInfo("Memory issue with ring parameters. Retrying.");
-                    continue;
-                }
-                SCLogError(SC_ERR_MEM_ALLOC,
-                        "Unable to allocate RX Ring for iface %s: (%d) %s",
-                        devname,
-                        errno,
-                        strerror(errno));
-                return -1;
-            } else {
-                break;
-            }
-        }
-
-        if (order < 0) {
-            SCLogError(SC_ERR_MEM_ALLOC,
-                    "Unable to allocate RX Ring for iface %s (order 0 failed)",
-                    devname);
-            return -1;
-        }
-
-        /* Allocate the Ring */
-        ptv->ring_buflen = ptv->req.tp_block_nr * ptv->req.tp_block_size;
-        ptv->ring_buf = mmap(0, ptv->ring_buflen, PROT_READ|PROT_WRITE,
-                MAP_SHARED, ptv->socket, 0);
-        if (ptv->ring_buf == MAP_FAILED) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to mmap");
-            return -1;
-        }
-        /* allocate a ring for each frame header pointer*/
-        ptv->frame_buf = SCMalloc(ptv->req.tp_frame_nr * sizeof (union thdr *));
-        if (ptv->frame_buf == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate frame buf");
-            return -1;
-        }
-        memset(ptv->frame_buf, 0, ptv->req.tp_frame_nr * sizeof (union thdr *));
-        /* fill the header ring with proper frame ptr*/
-        ptv->frame_offset = 0;
-        for (i = 0; i < ptv->req.tp_block_nr; ++i) {
-            void *base = &ptv->ring_buf[i * ptv->req.tp_block_size];
-            unsigned int j;
-            for (j = 0; j < ptv->req.tp_block_size / ptv->req.tp_frame_size; ++j, ++ptv->frame_offset) {
-                (((union thdr **)ptv->frame_buf)[ptv->frame_offset]) = base;
-                base += ptv->req.tp_frame_size;
-            }
-        }
-        ptv->frame_offset = 0;
-    }
 
     if (ptv->promisc != 0) {
         /* Force promiscuous mode */
@@ -1084,8 +1104,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
             SCLogError(SC_ERR_AFP_CREATE,
                     "Couldn't switch iface %s to promiscuous, error %s",
                     devname, strerror(errno));
-            close(ptv->socket);
-            return -1;
+            goto frame_err;
         }
     }
 
@@ -1111,8 +1130,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
             SCLogError(SC_ERR_AFP_CREATE,
                     "Couldn't set buffer size to %d on iface %s, error %s",
                     ptv->buffer_size, devname, strerror(errno));
-            close(ptv->socket);
-            return -1;
+            goto frame_err;
         }
     }
 
@@ -1129,9 +1147,109 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
                         devname, strerror(errno));
             }
         }
-        close(ptv->socket);
-        return -1;
+        goto frame_err;
     }
+
+    int if_flags = AFPGetDevFlags(ptv->socket, ptv->iface);
+    if (if_flags == -1) {
+        if (verbose) {
+            SCLogError(SC_ERR_AFP_READ,
+                    "Can not acces to interface '%s'",
+                    ptv->iface);
+        }
+        goto frame_err;
+    }
+    if ((if_flags & IFF_UP) == 0) {
+        if (verbose) {
+            SCLogError(SC_ERR_AFP_READ,
+                    "Interface '%s' is down",
+                    ptv->iface);
+        }
+        goto frame_err;
+    }
+
+    if (ptv->flags & AFP_RING_MODE) {
+        int val = TPACKET_V2;
+        unsigned int len = sizeof(val);
+        if (getsockopt(ptv->socket, SOL_PACKET, PACKET_HDRLEN, &val, &len) < 0) {
+            if (errno == ENOPROTOOPT) {
+                SCLogError(SC_ERR_AFP_CREATE,
+                           "Too old kernel giving up (need 2.6.27 at least)");
+            }
+            SCLogError(SC_ERR_AFP_CREATE, "Error when retrieving packet header len");
+            goto socket_err;
+        }
+        ptv->tp_hdrlen = val;
+
+        val = TPACKET_V2;
+        if (setsockopt(ptv->socket, SOL_PACKET, PACKET_VERSION, &val,
+                    sizeof(val)) < 0) {
+            SCLogError(SC_ERR_AFP_CREATE,
+                       "Can't activate TPACKET_V2 on packet socket: %s",
+                       strerror(errno));
+            goto socket_err;
+        }
+
+        /* Allocate RX ring */
+#define DEFAULT_ORDER 3
+        for (order = DEFAULT_ORDER; order >= 0; order--) {
+            if (AFPComputeRingParams(ptv, order) != 1) {
+                SCLogInfo("Ring parameter are incorrect. Please correct the devel");
+            }
+
+            r = setsockopt(ptv->socket, SOL_PACKET, PACKET_RX_RING, (void *) &ptv->req, sizeof(ptv->req));
+            if (r < 0) {
+                if (errno == ENOMEM) {
+                    SCLogInfo("Memory issue with ring parameters. Retrying.");
+                    continue;
+                }
+                SCLogError(SC_ERR_MEM_ALLOC,
+                        "Unable to allocate RX Ring for iface %s: (%d) %s",
+                        devname,
+                        errno,
+                        strerror(errno));
+                goto socket_err;
+            } else {
+                break;
+            }
+        }
+
+        if (order < 0) {
+            SCLogError(SC_ERR_MEM_ALLOC,
+                    "Unable to allocate RX Ring for iface %s (order 0 failed)",
+                    devname);
+            goto socket_err;
+        }
+
+        /* Allocate the Ring */
+        ptv->ring_buflen = ptv->req.tp_block_nr * ptv->req.tp_block_size;
+        ptv->ring_buf = mmap(0, ptv->ring_buflen, PROT_READ|PROT_WRITE,
+                MAP_SHARED, ptv->socket, 0);
+        if (ptv->ring_buf == MAP_FAILED) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Unable to mmap");
+            goto socket_err;
+        }
+        /* allocate a ring for each frame header pointer*/
+        ptv->frame_buf = SCMalloc(ptv->req.tp_frame_nr * sizeof (union thdr *));
+        if (ptv->frame_buf == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate frame buf");
+            goto mmap_err;
+        }
+        memset(ptv->frame_buf, 0, ptv->req.tp_frame_nr * sizeof (union thdr *));
+        /* fill the header ring with proper frame ptr*/
+        ptv->frame_offset = 0;
+        for (i = 0; i < ptv->req.tp_block_nr; ++i) {
+            void *base = &ptv->ring_buf[i * ptv->req.tp_block_size];
+            unsigned int j;
+            for (j = 0; j < ptv->req.tp_block_size / ptv->req.tp_frame_size; ++j, ++ptv->frame_offset) {
+                (((union thdr **)ptv->frame_buf)[ptv->frame_offset]) = base;
+                base += ptv->req.tp_frame_size;
+            }
+        }
+        ptv->frame_offset = 0;
+    }
+
+    SCLogInfo("Using interface '%s' via socket %d", (char *)devname, ptv->socket);
 
 #ifdef HAVE_PACKET_FANOUT
     /* add binded socket to fanout group */
@@ -1145,8 +1263,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
             SCLogError(SC_ERR_AFP_CREATE,
                        "Coudn't set fanout mode, error %s",
                        strerror(errno));
-            close(ptv->socket);
-            return -1;
+            goto frame_err;
         }
     }
 #endif
@@ -1162,14 +1279,23 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
     rc = AFPSetBPFFilter(ptv);
     if (rc == TM_ECODE_FAILED) {
         SCLogError(SC_ERR_AFP_CREATE, "Set AF_PACKET bpf filter \"%s\" failed.", ptv->bpf_filter);
-        return -1;
+        goto frame_err;
     }
 
     /* Init is ok */
-    ptv->afp_state = AFP_STATE_UP;
-
-    AFPPeerUpdate(ptv);
+    AFPSwitchState(ptv, AFP_STATE_UP);
     return 0;
+
+frame_err:
+    if (ptv->frame_buf)
+        SCFree(ptv->frame_buf);
+mmap_err:
+    /* Packet mmap does the cleaning when socket is closed */
+socket_err:
+    close(ptv->socket);
+    ptv->socket = -1;
+error:
+    return -1;
 }
 
 TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
@@ -1230,7 +1356,6 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
  */
 TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCEnter();
-    int r;
     AFPIfaceConfig *afpconfig = initdata;
 
     if (initdata == NULL) {
@@ -1310,12 +1435,18 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
         SCLogInfo("Enabling zero copy mode by using data release call");
     }
 
-    r = AFPCreateSocket(ptv, ptv->iface, 1);
-    if (r < 0) {
-        SCLogError(SC_ERR_AFP_CREATE, "Couldn't init AF_PACKET socket");
+    if (AFPPeersListAdd(ptv) == TM_ECODE_FAILED) {
         SCFree(ptv);
         afpconfig->DerefFunc(afpconfig);
         SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    r = AFPCreateSocket(ptv, ptv->iface, 1);
+    if (r < 0) {
+        SCLogError(SC_ERR_AFP_CREATE, "Couldn't init AF_PACKET socket");
+        //SCFree(ptv);
+        //afpconfig->DerefFunc(afpconfig);
+        //SCReturnInt(TM_ECODE_OKFAILED);
     }
 
 
@@ -1323,11 +1454,6 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (ptv->copy_mode != AFP_COPY_MODE_NONE) {
         strlcpy(ptv->out_iface, afpconfig->out_iface, AFP_IFACE_NAME_LENGTH);
         ptv->out_iface[AFP_IFACE_NAME_LENGTH - 1]= '\0';
-        if (AFPPeersListAdd(ptv) == TM_ECODE_FAILED) {
-            SCFree(ptv);
-            afpconfig->DerefFunc(afpconfig);
-            SCReturnInt(TM_ECODE_FAILED);
-        }
     }
 
 #define T_DATA_SIZE 70000
@@ -1374,6 +1500,8 @@ void ReceiveAFPThreadExitStats(ThreadVars *tv, void *data) {
 TmEcode ReceiveAFPThreadDeinit(ThreadVars *tv, void *data) {
     AFPThreadVars *ptv = (AFPThreadVars *)data;
 
+    AFPSwitchState(ptv, AFP_STATE_DOWN);
+
     if (ptv->data != NULL) {
         SCFree(ptv->data);
         ptv->data = NULL;
@@ -1381,8 +1509,6 @@ TmEcode ReceiveAFPThreadDeinit(ThreadVars *tv, void *data) {
     ptv->datalen = 0;
 
     ptv->bpf_filter = NULL;
-
-    close(ptv->socket);
 
     SCReturnInt(TM_ECODE_OK);
 }
