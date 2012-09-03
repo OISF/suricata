@@ -16,6 +16,12 @@
  */
 
 /**
+ * \ingroup afppacket
+ *
+ * @{
+ */
+
+/**
  * \file
  *
  * \author Eric Leblond <eric@regit.org>
@@ -507,3 +513,7 @@ int RunModeIdsAFPWorkers(DetectEngineCtx *de_ctx)
 #endif /* HAVE_AF_PACKET */
     SCReturnInt(0);
 }
+
+/**
+ * @}
+ */

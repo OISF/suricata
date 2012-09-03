@@ -74,6 +74,11 @@ typedef struct AFPIfaceConfig_
     void (*DerefFunc)(void *);
 } AFPIfaceConfig;
 
+/**
+ * \ingroup afppeers
+ * @{
+ */
+
 typedef struct AFPPeer_ {
     char iface[AFP_IFACE_NAME_LENGTH];
     SC_ATOMIC_DECLARE(int, socket);
@@ -93,6 +98,9 @@ typedef struct AFPPacketVars_
     AFPPeer *peer;
 } AFPPacketVars;
 
+/**
+ * @}
+ */
 
 void TmModuleReceiveAFPRegister (void);
 void TmModuleDecodeAFPRegister (void);
