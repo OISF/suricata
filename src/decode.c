@@ -336,6 +336,10 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
                                                SC_PERF_TYPE_UINT64, "NULL");
     dtv->counter_teredo = SCPerfTVRegisterCounter("decoder.teredo", tv,
                                                SC_PERF_TYPE_UINT64, "NULL");
+    dtv->counter_ipv4inipv6 = SCPerfTVRegisterCounter("decoder.ipv4_in_ipv6", tv,
+                                               SC_PERF_TYPE_UINT64, "NULL");
+    dtv->counter_ipv6inipv6 = SCPerfTVRegisterCounter("decoder.ipv6_in_ipv6", tv,
+                                               SC_PERF_TYPE_UINT64, "NULL");
     dtv->counter_avg_pkt_size = SCPerfTVRegisterAvgCounter("decoder.avg_pkt_size", tv,
                                                            SC_PERF_TYPE_DOUBLE, "NULL");
     dtv->counter_max_pkt_size = SCPerfTVRegisterMaxCounter("decoder.max_pkt_size", tv,
