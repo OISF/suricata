@@ -650,16 +650,14 @@ int AFPReadFromRing(AFPThreadVars *ptv)
             SCReturnInt(AFP_FAILURE);
         }
 
-        if (ptv->flags & AFP_RING_MODE) {
-            p->afp_v.relptr = h.raw;
-            p->ReleaseData = AFPReleaseDataFromRing;
+        p->afp_v.relptr = h.raw;
+        p->ReleaseData = AFPReleaseDataFromRing;
 
-            p->afp_v.copy_mode = ptv->copy_mode;
-            if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
-                p->afp_v.peer = ptv->mpeer->peer;
-            } else {
-                p->afp_v.peer = NULL;
-            }
+        p->afp_v.copy_mode = ptv->copy_mode;
+        if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
+            p->afp_v.peer = ptv->mpeer->peer;
+        } else {
+            p->afp_v.peer = NULL;
         }
 
         from = (void *)h.raw + TPACKET_ALIGN(ptv->tp_hdrlen);
@@ -686,17 +684,15 @@ int AFPReadFromRing(AFPThreadVars *ptv)
                 TmqhOutputPacketpool(ptv->tv, p);
                 SCReturnInt(AFP_FAILURE);
             } else {
-                if (ptv->flags & AFP_RING_MODE) {
-                    p->afp_v.relptr = h.raw;
+                p->afp_v.relptr = h.raw;
 
-                    p->afp_v.copy_mode = ptv->copy_mode;
-                    if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
-                        p->afp_v.peer = ptv->mpeer->peer;
-                    } else {
-                        p->afp_v.peer = NULL;
-                    }
-                    p->ReleaseData = AFPReleaseDataFromRing;
+                p->afp_v.copy_mode = ptv->copy_mode;
+                if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
+                    p->afp_v.peer = ptv->mpeer->peer;
+                } else {
+                    p->afp_v.peer = NULL;
                 }
+                p->ReleaseData = AFPReleaseDataFromRing;
             }
         } else {
             if (PacketCopyData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
