@@ -655,6 +655,8 @@ int AFPReadFromRing(AFPThreadVars *ptv)
     union thdr h;
     struct sockaddr_ll *from;
     uint8_t emergency_flush = 0;
+    int read_pkts = 0;
+
 
     /* Loop till we have packets available */
     while (1) {
@@ -665,12 +667,21 @@ int AFPReadFromRing(AFPThreadVars *ptv)
         }
 
         if (h.h2->tp_status == TP_STATUS_KERNEL) {
+            if (read_pkts == 0) {
+               if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
+                   ptv->frame_offset = 0;
+               }
+               continue;
+            }
             if ((emergency_flush) && (ptv->flags & AFP_EMERGENCY_MODE)) {
                 SCReturnInt(AFP_KERNEL_DROP);
             } else {
                 SCReturnInt(AFP_READ_OK);
             }
         }
+
+        read_pkts++;
+
         if ((ptv->flags & AFP_EMERGENCY_MODE) && (emergency_flush == 1)) {
             h.h2->tp_status = TP_STATUS_KERNEL;
             goto next_frame;
