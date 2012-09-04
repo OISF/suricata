@@ -263,7 +263,6 @@ void AFPPeerUpdate(AFPThreadVars *ptv)
     if (ptv->mpeer == NULL) {
         return;
     }
-    SCLogInfo("Updating AFP peer");
     (void)SC_ATOMIC_SET(ptv->mpeer->if_idx, AFPGetIfnumByDev(ptv->socket, ptv->iface, 0));
     (void)SC_ATOMIC_SET(ptv->mpeer->socket, ptv->socket);
     (void)SC_ATOMIC_SET(ptv->mpeer->state, ptv->afp_state);
@@ -852,7 +851,7 @@ static int AFPTryReopen(AFPThreadVars *ptv)
         return afp_activate_r;
     }
 
-    SCLogInfo("Recovering interface listening");
+    SCLogInfo("Interface '%s' is back", ptv->iface);
     return 0;
 }
 
@@ -917,8 +916,9 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                 /* Do a recv to get errno */
                 if (recv(ptv->socket, &c, sizeof c, MSG_PEEK) != -1)
                     continue; /* what, no error? */
-                SCLogError(SC_ERR_AFP_READ, "Error reading data from socket: (%d" PRIu32 ") %s",
-                        errno, strerror(errno));
+                SCLogError(SC_ERR_AFP_READ,
+                           "Error reading data from iface '%s': (%d" PRIu32 ") %s",
+                           ptv->iface, errno, strerror(errno));
                 AFPSwitchState(ptv, AFP_STATE_DOWN);
                 continue;
             } else if (fds.revents & POLLNVAL) {
@@ -936,8 +936,9 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
             switch (r) {
                 case AFP_READ_FAILURE:
                     /* AFPRead in error: best to reset the socket */
-                    SCLogError(SC_ERR_AFP_READ, "AFPRead error reading data from socket: (%d" PRIu32 ") %s",
-                            errno, strerror(errno));
+                    SCLogError(SC_ERR_AFP_READ,
+                           "AFPRead error reading data from iface '%s': (%d" PRIu32 ") %s",
+                           ptv->iface, errno, strerror(errno));
                     AFPSwitchState(ptv, AFP_STATE_DOWN);
                     continue;
                 case AFP_FAILURE:
@@ -952,7 +953,8 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                     break;
             }
         } else if ((r < 0) && (errno != EINTR)) {
-            SCLogError(SC_ERR_AFP_READ, "Error reading data from socket: (%d" PRIu32 ") %s",
+            SCLogError(SC_ERR_AFP_READ, "Error reading data from iface '%s': (%d" PRIu32 ") %s",
+                       ptv->iface,
                        errno, strerror(errno));
             AFPSwitchState(ptv, AFP_STATE_DOWN);
             continue;
