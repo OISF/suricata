@@ -179,6 +179,7 @@ detect-byte-extract.c detect-byte-extract.h \
 detect-app-layer-event.c detect-app-layer-event.h \
 decode-events.c decode-events.h \
 detect-replace.c detect-replace.h \
+detect-luajit.c detect-luajit.h \
 util-magic.c util-magic.h \
 util-misc.c util-misc.h \
 util-atomic.c util-atomic.h \

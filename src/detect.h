@@ -1052,6 +1052,7 @@ enum {
     DETECT_FILESIZE,
 
     DETECT_L3PROTO,
+    DETECT_LUAJIT,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,
