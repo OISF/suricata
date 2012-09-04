@@ -755,9 +755,10 @@ int AFPReadFromRing(AFPThreadVars *ptv)
             if (h.h2->tp_status & TP_STATUS_CSUMNOTREADY) {
                 p->flags |= PKT_IGNORE_CHECKSUM;
             }
-            if (h.h2->tp_status & TP_STATUS_LOSING) {
-                emergency_flush = 1;
-            }
+        }
+        if (h.h2->tp_status & TP_STATUS_LOSING) {
+            emergency_flush = 1;
+            AFPDumpCounters(ptv, 1);
         }
 
         if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
