@@ -1208,6 +1208,41 @@ AC_INIT(configure.ac)
         fi
     fi
 
+  # libluajit
+    enable_luajit="no"
+    AC_ARG_WITH(libluajit_includes,
+            [  --with-libluajit-includes=DIR  libluajit include directory],
+            [with_libluajit_includes="$withval"],[with_libluajit_includes=no])
+    AC_ARG_WITH(libluajit_libraries,
+            [  --with-libluajit-libraries=DIR    libluajit library directory],
+            [with_libluajit_libraries="$withval"],[with_libluajit_libraries="no"])
+
+    if test "$with_libluajit_includes" != "no"; then
+        CPPFLAGS="${CPPFLAGS} -I${with_libluajit_includes}"
+    fi
+
+    AC_CHECK_HEADER(lualib.h,LUAJIT="yes",LUAJIT="no")
+    if test "$LUAJIT" = "yes"; then
+        if test "$with_libluajit_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS}  -L${with_libluajit_libraries}"
+        fi
+
+        AC_CHECK_LIB(luajit-5.1, luaL_openlibs,, LUAJIT="no")
+
+        if test "$LUAJIT" = "no"; then
+            echo
+            echo "   ERROR!  libluajit library not found, go get it"
+            echo "   from http://luajit.org/index.html or your distribution:"
+            echo
+            echo "   Ubuntu: apt-get install libluajit-5.1-dev"
+            echo
+            exit 1
+        fi
+
+        AC_DEFINE([HAVE_LUAJIT],[1],[libluajit available])
+        enable_luajit="yes"
+    fi
+
 # get revision
     if test -f ./revision; then
         REVISION=`cat ./revision`
@@ -1289,6 +1324,7 @@ Suricata Configuration:
   libnspr support:                         ${enable_nspr}
   Prelude support:                         ${enable_prelude}
   PCRE jit:                                ${pcre_jit_available}
+  libluajit:                               ${enable_luajit}
   Non-bundled htp:                         ${enable_non_bundled_htp}
   Old barnyard2 support:                   ${enable_old_barnyard2}
   CUDA enabled:                            ${enable_cuda}
