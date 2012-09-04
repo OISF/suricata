@@ -562,6 +562,8 @@ void FlowManagerThreadSpawn()
     tv_flowmgr = TmThreadCreateMgmtThread("FlowManagerThread",
                                           FlowManagerThread, 0);
 
+    TmThreadSetCPU(tv_flowmgr, MANAGEMENT_CPU_SET);
+
     if (tv_flowmgr == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(1);

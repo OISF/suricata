@@ -291,6 +291,9 @@ void DetectEngineSpawnLiveRuleSwapMgmtThread(void)
         SCLogError(SC_ERR_THREAD_CREATE, "Live rule swap thread spawn failed");
         exit(EXIT_FAILURE);
     }
+
+    TmThreadSetCPU(tv, MANAGEMENT_CPU_SET);
+
     if (TmThreadSpawn(tv) != 0) {
         SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed for "
                    "DetectEngineLiveRuleSwap");
