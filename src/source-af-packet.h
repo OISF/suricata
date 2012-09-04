@@ -88,6 +88,7 @@ typedef struct AFPPeer_ {
     SC_ATOMIC_DECLARE(uint8_t, state);
     SCMutex sock_protect;
     int flags;
+    int turn;
     struct AFPPeer_ *peer;
     TAILQ_ENTRY(AFPPeer_) next;
 } AFPPeer;

@@ -249,6 +249,8 @@ typedef struct AFPPeersList_ {
     TAILQ_HEAD(, AFPPeer_) peers; /**< Head of list of fragments. */
     int cnt;
     int peered;
+    int turn;
+    SC_ATOMIC_DECLARE(int, reached);
 } AFPPeersList;
 
 /**
@@ -293,6 +295,9 @@ TmEcode AFPPeersListInit()
     TAILQ_INIT(&peerslist.peers);
     peerslist.peered = 0;
     peerslist.cnt = 0;
+    peerslist.turn = 0;
+    SC_ATOMIC_INIT(peerslist.reached);
+    (void) SC_ATOMIC_SET(peerslist.reached, 0);
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -338,6 +343,7 @@ TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
     SC_ATOMIC_INIT(peer->if_idx);
     SC_ATOMIC_INIT(peer->state);
     peer->flags = ptv->flags;
+    peer->turn = peerslist.turn++;
 
     if (peer->flags & AFP_SOCK_PROTECT) {
         SCMutexInit(&peer->sock_protect, NULL);
@@ -379,6 +385,18 @@ TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
     AFPPeerUpdate(ptv);
 
     SCReturnInt(TM_ECODE_OK);
+}
+
+int AFPPeersListWaitTurn(AFPPeer *peer)
+{
+    if (peer->turn == SC_ATOMIC_GET(peerslist.reached))
+        return 0;
+    return 1;
+}
+
+void AFPPeersListReachedInc()
+{
+    (void)SC_ATOMIC_ADD(peerslist.reached, 1);
 }
 
 /**
@@ -869,6 +887,21 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
     TmSlot *s = (TmSlot *)slot;
 
     ptv->slot = s->slot_next;
+
+    if (ptv->afp_state == AFP_STATE_DOWN) {
+        /* Wait for our turn, threads before us must have opened the socket */
+        while (AFPPeersListWaitTurn(ptv->mpeer)) {
+            usleep(1000);
+        }
+        r = AFPCreateSocket(ptv, ptv->iface, 1);
+        if (r < 0) {
+            SCLogError(SC_ERR_AFP_CREATE, "Couldn't init AF_PACKET socket");
+        }
+        AFPPeersListReachedInc();
+    }
+    if (ptv->afp_state == AFP_STATE_UP) {
+        SCLogInfo("Thread %s using socket %d", tv->name, ptv->socket);
+    }
 
     fds.fd = ptv->socket;
     fds.events = POLLIN;
@@ -1442,15 +1475,6 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
         afpconfig->DerefFunc(afpconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
-
-    r = AFPCreateSocket(ptv, ptv->iface, 1);
-    if (r < 0) {
-        SCLogError(SC_ERR_AFP_CREATE, "Couldn't init AF_PACKET socket");
-        //SCFree(ptv);
-        //afpconfig->DerefFunc(afpconfig);
-        //SCReturnInt(TM_ECODE_OKFAILED);
-    }
-
 
     ptv->copy_mode = afpconfig->copy_mode;
     if (ptv->copy_mode != AFP_COPY_MODE_NONE) {
