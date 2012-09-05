@@ -146,11 +146,11 @@ void *TmThreadsSlot1NoIn(void *td)
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
 
-    /* Drop the capabilities for this thread */
-    SCDropCaps(tv);
-
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
+
+    /* Drop the capabilities for this thread */
+    SCDropCaps(tv);
 
     if (s->SlotThreadInit != NULL) {
         void *slot_data = NULL;
@@ -245,11 +245,11 @@ void *TmThreadsSlot1NoOut(void *td)
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
 
-    /* Drop the capabilities for this thread */
-    SCDropCaps(tv);
-
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
+
+    /* Drop the capabilities for this thread */
+    SCDropCaps(tv);
 
     if (s->SlotThreadInit != NULL) {
         void *slot_data = NULL;
@@ -325,11 +325,11 @@ void *TmThreadsSlot1NoInOut(void *td)
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
 
-    /* Drop the capabilities for this thread */
-    SCDropCaps(tv);
-
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
+
+    /* Drop the capabilities for this thread */
+    SCDropCaps(tv);
 
     SCLogDebug("%s starting", tv->name);
 
@@ -402,11 +402,11 @@ void *TmThreadsSlot1(void *td)
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
 
-    /* Drop the capabilities for this thread */
-    SCDropCaps(tv);
-
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
+
+    /* Drop the capabilities for this thread */
+    SCDropCaps(tv);
 
     SCLogDebug("%s starting", tv->name);
 
@@ -609,11 +609,11 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
 
-    /* Drop the capabilities for this thread */
-    SCDropCaps(tv);
-
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
+
+    /* Drop the capabilities for this thread */
+    SCDropCaps(tv);
 
     /* check if we are setup properly */
     if (s == NULL || s->PktAcqLoop == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
@@ -702,11 +702,11 @@ void *TmThreadsSlotVar(void *td)
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
 
-    /* Drop the capabilities for this thread */
-    SCDropCaps(tv);
-
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
+
+    /* Drop the capabilities for this thread */
+    SCDropCaps(tv);
 
     /* check if we are setup properly */
     if (s == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
