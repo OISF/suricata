@@ -389,6 +389,10 @@ TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
 
 int AFPPeersListWaitTurn(AFPPeer *peer)
 {
+    /* If turn is zero, we already have started threads once */
+    if (peerslist.turn == 0)
+        return 0;
+
     if (peer->turn == SC_ATOMIC_GET(peerslist.reached))
         return 0;
     return 1;
@@ -396,7 +400,17 @@ int AFPPeersListWaitTurn(AFPPeer *peer)
 
 void AFPPeersListReachedInc()
 {
-    (void)SC_ATOMIC_ADD(peerslist.reached, 1);
+    if (peerslist.turn == 0)
+        return;
+
+    if (SC_ATOMIC_ADD(peerslist.reached, 1) == peerslist.turn) {
+        SCLogInfo("All AFP capture threads are running.");
+        (void)SC_ATOMIC_SET(peerslist.reached, 0);
+        /* Set turn to 0 to skip syncrhonization when ReceiveAFPLoop is
+         * restarted.
+         */
+        peerslist.turn = 0;
+    }
 }
 
 /**
