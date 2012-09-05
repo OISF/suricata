@@ -113,17 +113,80 @@ static int DetectLuajitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
     int ret = 0;
-    //DetectLuajitData *luajit = (DetectLuajitData *)m->ctx;
+    DetectLuajitData *luajit = (DetectLuajitData *)m->ctx;
+    if (luajit == NULL)
+        SCReturnInt(0);
 
-    /** \todo */
+    DetectLuajitThreadData *tluajit = (DetectLuajitThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, luajit->thread_ctx_id);
+    if (tluajit == NULL)
+        SCReturnInt(0);
+
+    lua_getglobal(tluajit->luastate, "match");
+    lua_newtable(tluajit->luastate); /* stack at -1 */
+
+    if (p->payload_len) {
+        lua_pushliteral(tluajit->luastate, "payload"); /* stack at -2 */
+        lua_pushlstring (tluajit->luastate, (const char *)p->payload, (size_t)p->payload_len); /* stack at -3 */
+        lua_settable(tluajit->luastate, -3);
+    }
+    if (GET_PKT_LEN(p)) {
+        lua_pushliteral(tluajit->luastate, "packet"); /* stack at -2 */
+        lua_pushlstring (tluajit->luastate, (const char *)GET_PKT_DATA(p), (size_t)GET_PKT_LEN(p)); /* stack at -3 */
+        lua_settable(tluajit->luastate, -3);
+    }
+
+    int retval = lua_pcall(tluajit->luastate, 1, 1, 0);
+    if (retval != 0) {
+        SCLogInfo("failed to run script: %s", lua_tostring(tluajit->luastate, -1));
+    }
+
+    double script_ret = lua_tonumber(tluajit->luastate, 1);
+    SCLogDebug("script_ret %f", script_ret);
+    lua_pop(tluajit->luastate, 1);
+
+    if (script_ret == 1.0)
+        ret = 1;
 
     SCReturnInt(ret);
+}
+
+static void *DetectLuajitThreadInit(void *data) {
+    DetectLuajitThreadData *t = SCMalloc(sizeof(DetectLuajitThreadData));
+    if (t != NULL) {
+        memset(t, 0x00, sizeof(DetectLuajitThreadData));
+
+        t->luastate = luaL_newstate();
+        BUG_ON(t->luastate == NULL);
+        luaL_openlibs(t->luastate);
+
+        int status = luaL_loadfile(t->luastate, (char *)data);
+        if (status) {
+            fprintf(stderr, "Couldn't load file: %s\n", lua_tostring(t->luastate, -1));
+            BUG_ON(1);
+        }
+
+        /* prime the script (or something) */
+        if (lua_pcall(t->luastate, 0, 0, 0) != 0) {
+            fprintf(stderr, "Couldn't prime file: %s\n", lua_tostring(t->luastate, -1));
+            BUG_ON(1);
+        }
+    }
+
+    return (void *)t;
+}
+
+static void DetectLuajitThreadFree(void *ctx) {
+    DetectLuajitThreadData *t = (DetectLuajitThreadData *)ctx;
+
+    /** \todo lua state cleanup */
+
+    SCFree(t);
 }
 
 /**
  * \brief Parse the luajit keyword
  *
- * \param idstr Pointer to the user provided option
+ * \param str Pointer to the user provided option
  *
  * \retval luajit pointer to DetectLuajitData on success
  * \retval NULL on failure
@@ -145,12 +208,10 @@ static DetectLuajitData *DetectLuajitParse (char *str)
     }
 
     /* get full filename */
-    char *filename = DetectLoadCompleteSigPath(str);
-    if (filename == NULL) {
+    luajit->filename = DetectLoadCompleteSigPath(str);
+    if (luajit->filename == NULL) {
         goto error;
     }
-
-    /** \todo open file, etc */
 
     return luajit;
 
@@ -180,6 +241,12 @@ static int DetectLuajitSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     if (luajit == NULL)
         goto error;
 
+    luajit->thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "luajit",
+            DetectLuajitThreadInit, (void *)luajit->filename,
+            DetectLuajitThreadFree);
+    if (luajit->thread_ctx_id == -1)
+        goto error;
+
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
     sm = SigMatchAlloc();
@@ -189,7 +256,7 @@ static int DetectLuajitSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     sm->type = DETECT_LUAJIT;
     sm->ctx = (void *)luajit;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     return 0;
 

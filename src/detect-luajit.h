@@ -25,11 +25,19 @@
 #define __DETECT_LUAJIT_H__
 
 #ifdef HAVE_LUAJIT
-#include <luajit.h>
+
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
+
+typedef struct DetectLuajitThreadData {
+    lua_State *luastate;
+} DetectLuajitThreadData;
 
 typedef struct DetectLuajitData {
+    int thread_ctx_id;
     int negated;
-    lua_State *luastate;
+    char *filename;
 } DetectLuajitData;
 #endif
 
