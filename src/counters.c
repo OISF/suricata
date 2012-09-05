@@ -446,10 +446,14 @@ static void *SCPerfMgmtThread(void *arg)
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
 
+    if (tv_local->thread_setup_flags != 0)
+        TmThreadSetupOptions(tv_local);
+
     /* Set the threads capability */
     tv_local->cap_flags = 0;
 
     SCDropCaps(tv_local);
+
 
     if (sc_perf_op_ctx == NULL) {
         SCLogError(SC_ERR_PERF_STATS_NOT_INIT, "Perf Counter API not init"
@@ -506,6 +510,9 @@ static void *SCPerfWakeupThread(void *arg)
     if (SCSetThreadName(tv_local->name) < 0) {
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
+
+    if (tv_local->thread_setup_flags != 0)
+        TmThreadSetupOptions(tv_local);
 
     /* Set the threads capability */
     tv_local->cap_flags = 0;
