@@ -89,7 +89,7 @@ int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
                                                   IPPROTO_IPV6);
                 if (tp != NULL) {
                     /* send that to the Tunnel decoder */
-                    DecodeTunnel(tv, dtv, tp, start, blen,
+                    DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp), GET_PKT_LEN(tp),
                                  pq, IPPROTO_IPV6);
                     /* add the tp to the packet queue. */
                     PacketEnqueue(pq,tp);
