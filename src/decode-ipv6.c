@@ -60,7 +60,8 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
         if (pq != NULL) {
             Packet *tp = PacketPseudoPktSetup(p, pkt, plen, IPPROTO_IP);
             if (tp != NULL) {
-                DecodeTunnel(tv, dtv, tp, pkt, plen, pq, IPPROTO_IP);
+                DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
+                             GET_PKT_LEN(tp), pq, IPPROTO_IP);
                 PacketEnqueue(pq,tp);
                 SCPerfCounterIncr(dtv->counter_ipv4inipv6, tv->sc_perf_pca);
                 return;
@@ -87,7 +88,8 @@ static void DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uin
         if (pq != NULL) {
             Packet *tp = PacketPseudoPktSetup(p, pkt, plen, IPPROTO_IPV6);
             if (tp != NULL) {
-                DecodeTunnel(tv, dtv, tp, pkt, plen, pq, IPPROTO_IPV6);
+                DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
+                             GET_PKT_LEN(tp), pq, IPPROTO_IP);
                 PacketEnqueue(pq,tp);
                 SCPerfCounterIncr(dtv->counter_ipv6inipv6, tv->sc_perf_pca);
                 return;
