@@ -529,6 +529,15 @@ typedef struct ThresholdCtx_    {
     uint32_t th_size;
 } ThresholdCtx;
 
+typedef struct DetectEngineThreadKeywordCtxItem_ {
+    void *(*InitFunc)(void *);
+    void (*FreeFunc)(void *);
+    void *data;
+    struct DetectEngineThreadKeywordCtxItem_ *next;
+    int id;
+    const char *name; /* keyword name, for error printing */
+} DetectEngineThreadKeywordCtxItem;
+
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
     uint8_t flags;
@@ -676,6 +685,10 @@ typedef struct DetectEngineCtx_ {
 
     /** Is detect engine using a delayed init */
     int delayed_detect;
+
+    /** list of keywords that need thread local ctxs */
+    DetectEngineThreadKeywordCtxItem *keyword_list;
+    int keyword_id;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
@@ -795,6 +808,11 @@ typedef struct DetectionEngineThreadCtx_ {
      * thread can dump the packets once it has processed them */
     Tmq *cuda_mpm_rc_disp_outq;
 #endif
+
+    /** store for keyword contexts that need a per thread storage because of
+     *  thread safety issues */
+    void **keyword_ctxs_array;
+    int keyword_ctxs_size;
 } DetectEngineThreadCtx;
 
 /** \brief element in sigmatch type table.
@@ -1091,6 +1109,9 @@ int SignatureIsFilestoring(Signature *);
 int SignatureIsFilemagicInspecting(Signature *);
 int SignatureIsFileMd5Inspecting(Signature *);
 int SignatureIsFilesizeInspecting(Signature *);
+
+int DetectRegisterThreadCtxFuncs(DetectEngineCtx *, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *));
+void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *, int);
 
 #endif /* __DETECT_H__ */
 

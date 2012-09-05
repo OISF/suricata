@@ -407,6 +407,16 @@ error:
     return NULL;
 }
 
+static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx) {
+    DetectEngineThreadKeywordCtxItem *item = de_ctx->keyword_list;
+    while (item) {
+        DetectEngineThreadKeywordCtxItem *next = item->next;
+        SCFree(item);
+        item = next;
+    }
+    de_ctx->keyword_list = NULL;
+}
+
 void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
 
     if (de_ctx == NULL)
@@ -443,6 +453,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
         MpmFactoryDeRegisterAllMpmCtxProfiles(de_ctx);
     }
 
+    DetectEngineCtxFreeThreadKeywordData(de_ctx);
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();
@@ -667,6 +678,45 @@ void DetectEngineResetMaxSigId(DetectEngineCtx *de_ctx) {
     de_ctx->signum = 0;
 }
 
+static int DetectEngineThreadCtxInitKeywords(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx) {
+    if (de_ctx->keyword_id > 0) {
+        det_ctx->keyword_ctxs_array = SCMalloc(de_ctx->keyword_id * sizeof(void *));
+        if (det_ctx->keyword_ctxs_array == NULL) {
+            SCLogError(SC_ERR_DETECT_PREPARE, "setting up thread local detect ctx");
+            return TM_ECODE_FAILED;
+        }
+
+        memset(det_ctx->keyword_ctxs_array, 0x00, de_ctx->keyword_id * sizeof(void *));
+
+        det_ctx->keyword_ctxs_size = de_ctx->keyword_id;
+
+        DetectEngineThreadKeywordCtxItem *item = de_ctx->keyword_list;
+        while (item) {
+            det_ctx->keyword_ctxs_array[item->id] = item->InitFunc(item->data);
+            if (det_ctx->keyword_ctxs_array[item->id] == NULL) {
+                SCLogError(SC_ERR_DETECT_PREPARE, "setting up thread local detect ctx "
+                        "for keyword \"%s\" failed", item->name);
+                return TM_ECODE_FAILED;
+            }
+            item = item->next;
+        }
+    }
+    return TM_ECODE_OK;
+}
+
+static void DetectEngineThreadCtxDeinitKeywords(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx) {
+    if (de_ctx->keyword_id > 0) {
+        DetectEngineThreadKeywordCtxItem *item = de_ctx->keyword_list;
+        while (item) {
+            item->FreeFunc(det_ctx->keyword_ctxs_array[item->id]);
+            item = item->next;
+        }
+        det_ctx->keyword_ctxs_size = 0;
+        SCFree(det_ctx->keyword_ctxs_array);
+        det_ctx->keyword_ctxs_array = NULL;
+    }
+}
+
 TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     DetectEngineCtx *de_ctx = (DetectEngineCtx *)initdata;
     if (de_ctx == NULL)
@@ -733,6 +783,8 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     if (det_ctx->bj_values == NULL) {
         return TM_ECODE_FAILED;
     }
+
+    DetectEngineThreadCtxInitKeywords(de_ctx, det_ctx);
 
     SC_ATOMIC_INIT(det_ctx->so_far_used_by_detect);
 
@@ -814,6 +866,8 @@ static TmEcode DetectEngineThreadCtxInitForLiveRuleSwap(ThreadVars *tv, void *in
         return TM_ECODE_FAILED;
     }
 
+    DetectEngineThreadCtxInitKeywords(de_ctx, det_ctx);
+
     SC_ATOMIC_INIT(det_ctx->so_far_used_by_detect);
 
     *data = (void *)det_ctx;
@@ -868,6 +922,7 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data) {
         SCFree(det_ctx->hcbd);
     }
 
+    DetectEngineThreadCtxDeinitKeywords(det_ctx->de_ctx, det_ctx);
     SCFree(det_ctx);
 
     return TM_ECODE_OK;
@@ -878,6 +933,56 @@ void DetectEngineThreadCtxInfo(ThreadVars *t, DetectEngineThreadCtx *det_ctx) {
     PatternMatchThreadPrint(&det_ctx->mtc, det_ctx->de_ctx->mpm_matcher);
     PatternMatchThreadPrint(&det_ctx->mtcu, det_ctx->de_ctx->mpm_matcher);
 }
+
+/** \brief Register Thread keyword context Funcs
+ *
+ *  \param de_ctx detection engine to register in
+ *  \param name keyword name for error printing
+ *  \param InitFunc function ptr
+ *  \param data keyword init data to pass to Func
+ *  \param FreeFunc function ptr
+ *
+ *  \retval id for retrieval of ctx at runtime
+ *  \retval -1 on error
+ *
+ *  \note make sure "data" remains valid and it free'd elsewhere. It's
+ *        recommended to store it in the keywords global ctx so that
+ *        it's freed when the de_ctx is freed.
+ */
+int DetectRegisterThreadCtxFuncs(DetectEngineCtx *de_ctx, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *)) {
+    BUG_ON(de_ctx == NULL || InitFunc == NULL || FreeFunc == NULL || data == NULL);
+
+    DetectEngineThreadKeywordCtxItem *item = SCMalloc(sizeof(DetectEngineThreadKeywordCtxItem));
+    if (item == NULL)
+        return -1;
+    memset(item, 0x00, sizeof(DetectEngineThreadKeywordCtxItem));
+
+    item->InitFunc = InitFunc;
+    item->FreeFunc = FreeFunc;
+    item->data = data;
+
+    item->next = de_ctx->keyword_list;
+    de_ctx->keyword_list = item;
+    item->id = de_ctx->keyword_id++;
+
+    return item->id;
+}
+
+/** \brief Retrieve thread local keyword ctx by id
+ *
+ *  \param det_ctx detection engine thread ctx to retrieve the ctx from
+ *  \param id id of the ctx returned by DetectRegisterThreadCtxInitFunc at
+ *            keyword init.
+ *
+ *  \retval ctx or NULL on error
+ */
+void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, int id) {
+    if (id < 0 || id > det_ctx->keyword_ctxs_size || det_ctx->keyword_ctxs_array == NULL)
+        return NULL;
+
+    return det_ctx->keyword_ctxs_array[id];
+}
+
 
 /*************************************Unittest*********************************/
 
