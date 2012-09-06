@@ -142,10 +142,17 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *
             } else {
                 pb->data = SCMalloc(p->elt_size);
             }
-            if (pb->data == NULL)
+            if (pb->data == NULL) {
+                SCFree(pb);
                 goto error;
-            if (p->Init(pb->data, p->InitData) != 1)
+            }
+            if (p->Init(pb->data, p->InitData) != 1) {
+                if (p->Free)
+                    p->Free(pb->data);
+                SCFree(pb->data);
+                SCFree(pb);
                 goto error;
+            }
             p->allocated++;
 
             pb->next = p->alloc_list;
@@ -156,12 +163,16 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *
             if (pb == NULL)
                 goto error;
 
+            pb->data = (char *)p->data_buffer + u32 * elt_size;
+            if (p->Init(pb->data, p->InitData) != 1) {
+                if (p->Free)
+                    p->Free(pb->data);
+                goto error;
+            }
+
             p->empty_list = pb->next;
             p->empty_list_size--;
 
-            pb->data = (char *)p->data_buffer + u32 * elt_size;
-            if (p->Init(pb->data, p->InitData) != 1)
-                goto error;
             p->allocated++;
 
             pb->next = p->alloc_list;
