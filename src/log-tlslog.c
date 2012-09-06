@@ -562,13 +562,12 @@ OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
     }
 
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME) < 0) {
-        LogFileFreeCtx(file_ctx);
-        return NULL;
+        goto filectx_error;
     }
 
     LogTlsFileCtx *tlslog_ctx = SCCalloc(1, sizeof(LogTlsFileCtx));
     if (tlslog_ctx == NULL)
-        return NULL;
+        goto filectx_error;
     tlslog_ctx->file_ctx = file_ctx;
 
     const char *extended = ConfNodeLookupChildValue(conf, "extended");
@@ -582,13 +581,20 @@ OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (output_ctx == NULL)
-        return NULL;
+        goto tlslog_error;
     output_ctx->data = tlslog_ctx;
     output_ctx->DeInit = LogTlsLogDeInitCtx;
 
     SCLogDebug("TLS log output initialized");
 
     return output_ctx;
+
+tlslog_error:
+    if (tlslog_ctx != NULL)
+        SCFree(tlslog_ctx);
+filectx_error:
+    LogFileFreeCtx(file_ctx);
+    return NULL;
 }
 
 static void LogTlsLogDeInitCtx(OutputCtx *output_ctx)
