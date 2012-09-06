@@ -273,7 +273,10 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                                     aft->buffer->size, (uint8_t *)bstr_ptr(tx->response_status),
                                     bstr_len(tx->response_status));
                     /* Redirect? */
-                    if ((tx->response_status_number > 300) && ((tx->response_status_number) < 303)){
+                    if (tx->response_headers != NULL &&
+                            tx->response_status_number > 300 &&
+                            tx->response_status_number < 303)
+                    {
                         htp_header_t *h_location = table_getc(tx->response_headers, "location");
                         if (h_location != NULL) {
                             MemBufferWriteString(aft->buffer, "(");
