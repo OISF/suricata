@@ -1042,16 +1042,17 @@ DefragTimeoutTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
         tracker = HashListTableGetListData(next);
 
         if (tracker->timeout < (unsigned int)p->ts.tv_sec) {
+            int af_family = tracker->af;
             /* Tracker has timeout out. */
             HashListTableRemove(dc->frag_table, tracker, HASHLIST_NO_SIZE);
             DefragTrackerReset(tracker);
             PoolReturn(dc->tracker_pool, tracker);
             if (tv != NULL && dtv != NULL) {
-                if (tracker->af == AF_INET) {
+                if (af_family == AF_INET) {
                     SCPerfCounterIncr(dtv->counter_defrag_ipv4_timeouts,
                         tv->sc_perf_pca);
                 }
-                else if (tracker->af == AF_INET6) {
+                else if (af_family == AF_INET6) {
                     SCPerfCounterIncr(dtv->counter_defrag_ipv6_timeouts,
                         tv->sc_perf_pca);
                 }
