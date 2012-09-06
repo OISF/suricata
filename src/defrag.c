@@ -106,6 +106,7 @@ typedef struct DefragContext_ {
     SCMutex frag_pool_lock;
 
     time_t timeout; /**< Default timeout. */
+    time_t last_timeouted; /**< time of last cleaning */
 } DefragContext;
 
 /**
@@ -472,6 +473,8 @@ DefragContextNew(void)
         }
         dc->timeout = timeout;
     }
+
+    dc->last_timeouted = 0;
 
     SCLogDebug("Defrag Initialized:");
     SCLogDebug("\tTimeout: %"PRIuMAX, (uintmax_t)dc->timeout);
@@ -1026,6 +1029,15 @@ DefragTimeoutTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
 {
     HashListTableBucket *next = HashListTableGetListHead(dc->frag_table);
     DefragTracker *tracker;
+    struct timeval ts;
+
+    TimeGet(&ts);
+    /* If last cleaning was made in the current second, we leave */
+    if (dc->last_timeouted >= ts.tv_sec) {
+        return;
+    } else {
+        dc->last_timeouted = ts.tv_sec;
+    }
     while (next != NULL) {
         tracker = HashListTableGetListData(next);
 
