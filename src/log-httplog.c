@@ -180,7 +180,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                 break;
             case LOG_HTTP_CF_TIMESTAMP:
             /* TIMESTAMP */
-                if (httplog_ctx->cf_nodes[i]->data == '\0') {
+                if (httplog_ctx->cf_nodes[i]->data[0] == '\0') {
                     strftime(buf, 62, TIMESTAMP_DEFAULT_FORMAT, timestamp);
                 } else {
                     strftime(buf, 62, httplog_ctx->cf_nodes[i]->data, timestamp);
