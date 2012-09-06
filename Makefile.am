@@ -3,7 +3,7 @@
 AUTOMAKE_OPTIONS = foreign 1.4
 ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
-             classification.config \
+             classification.config threshold.config \
              reference.config
 if BUILD_LIBHTP
  HTP_DIR = libhtp
