@@ -210,7 +210,13 @@ Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
         p->root = parent;
 
     /* copy packet and set lenght, proto */
-    PacketCopyData(p, pkt, len);
+    if (parent->flags & PKT_ZERO_COPY) {
+        /* If parent packet is using zero copy we need to use the kernel
+         * mmap memory for the pseudo packet */
+        PacketSetData(p, pkt, len);
+    } else {
+        PacketCopyData(p, pkt, len);
+    }
     p->recursion_level = parent->recursion_level + 1;
     p->ts.tv_sec = parent->ts.tv_sec;
     p->ts.tv_usec = parent->ts.tv_usec;
