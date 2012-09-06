@@ -1,3 +1,24 @@
+1.4beta1 -- 2012-09-06
+
+- Custom HTTP logging contributed by Ignacio Sanchez (#530)
+- TLS certificate logging and fingerprint computation and keyword (#443)
+- TLS certificate store to disk feature (#444)
+- Decoding of IPv4-in-IPv6, IPv6-in-IPv6 and Teredo tunnels (#462, #514, #480)
+- AF_PACKET IPS support (#516)
+- Rules can be set to inspect only IPv4 or IPv6 (#494)
+- filesize keyword for matching on sizes of files in HTTP (#489)
+- Delayed detect initialization. Starts processing packets right away and loads detection engine in the background (#522)
+- NFQ fail open support (#507)
+- Highly experimental lua scripting support for detection
+- Live reloads now supports HTTP rule updates better (#522)
+- AF_PACKET performance improvements (#197, #415)
+- Make defrag more configurable (#517, #528)
+- Improve pool performance (#518)
+- Improve file inspection keywords by adding a separate API (#531)
+- Example threshold.config file provided (#302)
+- Fix building of perf profiling code on i386 platform. By Simon Moon (#534)
+- Various spelling corrections by Simon Moon (#533)
+
 1.3.1 -- 2012-08-21
 
 - AF_PACKET performance improvements
