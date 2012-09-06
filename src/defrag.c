@@ -418,7 +418,7 @@ DefragContextNew(void)
 
     /* Initialize the pool of trackers. */
     intmax_t tracker_pool_size;
-    if (!ConfGetInt("defrag.trackers", &tracker_pool_size)) {
+    if (!ConfGetInt("defrag.trackers", &tracker_pool_size) || tracker_pool_size == 0) {
         tracker_pool_size = DEFAULT_DEFRAG_HASH_SIZE;
     }
     dc->tracker_pool = PoolInit(tracker_pool_size, tracker_pool_size,
@@ -437,7 +437,7 @@ DefragContextNew(void)
 
     /* Initialize the pool of frags. */
     intmax_t frag_pool_size;
-    if (!ConfGetInt("defrag.max-frags", &frag_pool_size)) {
+    if (!ConfGetInt("defrag.max-frags", &frag_pool_size) || frag_pool_size == 0) {
         frag_pool_size = DEFAULT_DEFRAG_POOL_SIZE;
     }
     intmax_t frag_pool_prealloc = frag_pool_size / 2;
