@@ -354,6 +354,7 @@ end_fwrite_fpmeta:
         fclose(fpmeta);
         SCLogWarning(SC_ERR_FWRITE, "Unable to write certificate metafile");
     }
+    SCReturn;
 end_fp:
     fclose(fp);
 }
