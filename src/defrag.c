@@ -1169,6 +1169,7 @@ DefragGetTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
             SCMutexLock(&dc->tracker_pool_lock);
             PoolReturn(dc->tracker_pool, tracker);
             SCMutexUnlock(&dc->tracker_pool_lock);
+            tracker = NULL;
             goto done;
         }
     }
