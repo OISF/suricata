@@ -635,7 +635,7 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
         IPFWMutexLock(nq);
         if (sendto(nq->fd, GET_PKT_DATA(p), GET_PKT_LEN(p), 0,(struct sockaddr *)&nq->ipfw_sin, nq->ipfw_sinlen) == -1) {
             SCLogWarning(SC_WARN_IPFW_XMIT,"Write to ipfw divert socket failed: %s",strerror(errno));
-            IPFWMutexUnlock(&nq->socket_lock);
+            IPFWMutexUnlock(nq);
             SCReturnInt(TM_ECODE_FAILED);
         }
 
