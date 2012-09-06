@@ -399,6 +399,7 @@ int AFPReadFromRing(AFPThreadVars *ptv)
 {
     Packet *p = NULL;
     union thdr h;
+    int read_pkts = 0;
 
     /* Loop till we have packets available */
     while (1) {
@@ -408,8 +409,16 @@ int AFPReadFromRing(AFPThreadVars *ptv)
             SCReturnInt(AFP_FAILURE);
         }
         if (h.h2->tp_status == TP_STATUS_KERNEL) {
+            if (read_pkts == 0) {
+               if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
+                   ptv->frame_offset = 0;
+               }
+               continue;
+            }
             SCReturnInt(AFP_READ_OK);
         }
+
+        read_pkts++;
 
         p = PacketGetFromQueueOrAlloc();
         if (p == NULL) {
