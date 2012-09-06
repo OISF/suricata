@@ -1025,7 +1025,7 @@ void TmThreadActivateDummySlot()
             }
             SC_ATOMIC_SET(s->slot_data, slot_data);
         }
-        SC_ATOMIC_CAS(&s->SlotFunc, TmDummyFunc, dslot->SlotFunc);
+        (void)SC_ATOMIC_CAS(&s->SlotFunc, TmDummyFunc, dslot->SlotFunc);
     }
 }
 
@@ -1037,7 +1037,7 @@ void TmThreadDeActivateDummySlot()
     TmDummySlot *dslot;
 
     TAILQ_FOREACH(dslot, &dummy_slots, next) {
-        SC_ATOMIC_CAS(&dslot->slot->SlotFunc, dslot->SlotFunc, TmDummyFunc);
+        (void)SC_ATOMIC_CAS(&dslot->slot->SlotFunc, dslot->SlotFunc, TmDummyFunc);
         dslot->slot->SlotThreadInit = NULL;
     }
 }
