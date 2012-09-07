@@ -32,6 +32,7 @@
 #include "util-profiling-locks.h"
 #endif
 
+
 #if defined OS_FREEBSD || __OpenBSD__
 
 #if ! defined __OpenBSD__
@@ -101,6 +102,8 @@ enum {
 
 /** Get the Current Thread Id */
 #ifdef OS_FREEBSD
+#include <pthread_np.h>
+
 #define SCGetThreadIdLong(...) ({ \
     long tmpthid; \
     thr_self(&tmpthid); \
