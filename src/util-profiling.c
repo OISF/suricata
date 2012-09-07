@@ -41,7 +41,10 @@
 
 #ifdef PROFILING
 
+#ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#endif
+
 #define DEFAULT_LOG_FILENAME "profile.log"
 #define DEFAULT_LOG_MODE_APPEND "yes"
 
