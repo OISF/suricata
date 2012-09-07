@@ -41,14 +41,14 @@ static int SCAtomicTest01(void)
     if (temp_int != NULL)
         goto end;
 
-    SC_ATOMIC_SET(temp, &a);
+    (void)SC_ATOMIC_SET(temp, &a);
     temp_int = SC_ATOMIC_GET(temp);
     if (temp_int == NULL)
         goto end;
     if (*temp_int != a)
         goto end;
 
-    SC_ATOMIC_SET(temp, &b);
+    (void)SC_ATOMIC_SET(temp, &b);
     temp_int = SC_ATOMIC_GET(temp);
     if (temp_int == NULL)
         goto end;
