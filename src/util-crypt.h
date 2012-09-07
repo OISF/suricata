@@ -60,7 +60,9 @@ typedef enum {
 
 #define ROL(x, y) ( (((unsigned long)(x)<<(unsigned long)((y)&31)) | (((unsigned long)(x)&0xFFFFFFFFUL)>>(unsigned long)(32-((y)&31)))) & 0xFFFFFFFFUL)
 #define ROLc(x, y) ( (((unsigned long)(x)<<(unsigned long)((y)&31)) | (((unsigned long)(x)&0xFFFFFFFFUL)>>(unsigned long)(32-((y)&31)))) & 0xFFFFFFFFUL)
+#ifndef MIN
 #define MIN(x, y) ( ((x)<(y))?(x):(y) )
+#endif
 
 typedef struct Sha1State_ {
     uint64_t length;
