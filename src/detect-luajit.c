@@ -158,9 +158,9 @@ static int DetectLuajitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (tluajit == NULL)
         SCReturnInt(0);
 
-    if ((tluajit->flags & DATATYPE_PAYLOAD) && p->payload_len)
+    if ((tluajit->flags & DATATYPE_PAYLOAD) && p->payload_len == 0)
         SCReturnInt(0);
-    if ((tluajit->flags & DATATYPE_PACKET) && GET_PKT_LEN(p))
+    if ((tluajit->flags & DATATYPE_PACKET) && GET_PKT_LEN(p) == 0)
         SCReturnInt(0);
 
     lua_getglobal(tluajit->luastate, "match");
