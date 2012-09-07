@@ -130,8 +130,9 @@ AC_INIT(configure.ac)
     case "$host" in
 	    *-*-*freebsd*)
 		    CFLAGS="${CFLAGS} -DOS_FREEBSD"
-                    CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet11"
-                    LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/local/lib/libnet11"
+		    CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet11"
+		    LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/local/lib/libnet11"
+		    e_magic_file="/usr/share/misc/magic"
                     ;;
            *-*-openbsd*)
                     CFLAGS="${CFLAGS} -D__OpenBSD__ -fgnu89-inline"
