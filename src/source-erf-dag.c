@@ -483,7 +483,7 @@ static inline TmEcode ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    SET_PKT_LEN(p, wlen - 4);   /* Trim the FCS... */
+    SET_PKT_LEN(p, wlen);
     p->datalink = LINKTYPE_ETHERNET;
 
     /* Take into account for link type Ethernet ETH frame starts
