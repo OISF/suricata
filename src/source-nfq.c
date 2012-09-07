@@ -227,7 +227,7 @@ void NFQInitConfig(char quiet)
         }  else if (!strcmp("route", nfq_mode)) {
             nfq_config.mode = NFQ_ROUTE_MODE;
         } else {
-            SCLogError(SC_LOG_ERROR, "Unknown nfq.mode");
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Unknown nfq.mode");
             exit(EXIT_FAILURE);
         }
     }
