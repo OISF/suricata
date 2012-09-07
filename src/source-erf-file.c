@@ -186,7 +186,7 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    GET_PKT_LEN(p) = wlen - 4; /* Trim the FCS... */
+    GET_PKT_LEN(p) = wlen;
     p->datalink = LINKTYPE_ETHERNET;
 
     /* Convert ERF time to timeval - from libpcap. */
