@@ -96,6 +96,43 @@ void DetectLuajitRegister(void) {
     return;
 }
 
+#define DATATYPE_PACKET     (1<<0)
+#define DATATYPE_PAYLOAD    (1<<1)
+
+/** \brief dump stack from lua state to screen */
+void LuaDumpStack(lua_State *state) {
+    int size = lua_gettop(state);
+    int i;
+
+    for (i = 1; i <= size; i++) {
+        int type = lua_type(state, i);
+        printf("Stack size=%d, level=%d, type=%d, ", size, i, type);
+
+        switch (type) {
+            case LUA_TFUNCTION:
+                printf("function %s", lua_tostring(state, i) ? "true" : "false");
+                break;
+            case LUA_TBOOLEAN:
+                printf("bool %s", lua_toboolean(state, i) ? "true" : "false");
+                break;
+            case LUA_TNUMBER:
+                printf("number %g", lua_tonumber(state, i));
+                break;
+            case LUA_TSTRING:
+                printf("string `%s'", lua_tostring(state, i));
+                break;
+            case LUA_TTABLE:
+                printf("table `%s'", lua_tostring(state, i));
+                break;
+            default:
+                printf("other %s", lua_typename(state, type));
+                break;
+
+        }
+        printf("\n");
+    }
+}
+
 /**
  * \brief match the specified luajit
  *
@@ -121,15 +158,20 @@ static int DetectLuajitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (tluajit == NULL)
         SCReturnInt(0);
 
+    if ((tluajit->flags & DATATYPE_PAYLOAD) && p->payload_len)
+        SCReturnInt(0);
+    if ((tluajit->flags & DATATYPE_PACKET) && GET_PKT_LEN(p))
+        SCReturnInt(0);
+
     lua_getglobal(tluajit->luastate, "match");
     lua_newtable(tluajit->luastate); /* stack at -1 */
 
-    if (p->payload_len) {
+    if ((tluajit->flags & DATATYPE_PAYLOAD) && p->payload_len) {
         lua_pushliteral(tluajit->luastate, "payload"); /* stack at -2 */
         lua_pushlstring (tluajit->luastate, (const char *)p->payload, (size_t)p->payload_len); /* stack at -3 */
         lua_settable(tluajit->luastate, -3);
     }
-    if (GET_PKT_LEN(p)) {
+    if ((tluajit->flags & DATATYPE_PACKET) && GET_PKT_LEN(p)) {
         lua_pushliteral(tluajit->luastate, "packet"); /* stack at -2 */
         lua_pushlstring (tluajit->luastate, (const char *)GET_PKT_DATA(p), (size_t)GET_PKT_LEN(p)); /* stack at -3 */
         lua_settable(tluajit->luastate, -3);
@@ -140,12 +182,51 @@ static int DetectLuajitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         SCLogInfo("failed to run script: %s", lua_tostring(tluajit->luastate, -1));
     }
 
-    double script_ret = lua_tonumber(tluajit->luastate, 1);
-    SCLogDebug("script_ret %f", script_ret);
-    lua_pop(tluajit->luastate, 1);
+    /* process returns from script */
+    if (lua_gettop(tluajit->luastate) > 0) {
 
-    if (script_ret == 1.0)
-        ret = 1;
+        /* script returns a number (return 1 or return 0) */
+        if (lua_type(tluajit->luastate, 1) == LUA_TNUMBER) {
+            double script_ret = lua_tonumber(tluajit->luastate, 1);
+            SCLogDebug("script_ret %f", script_ret);
+            lua_pop(tluajit->luastate, 1);
+
+            if (script_ret == 1.0)
+                ret = 1;
+
+        /* script returns a table */
+        } else if (lua_type(tluajit->luastate, 1) == LUA_TTABLE) {
+            lua_pushnil(tluajit->luastate);
+            const char *k, *v;
+            while (lua_next(tluajit->luastate, -2)) {
+                v = lua_tostring(tluajit->luastate, -1);
+                lua_pop(tluajit->luastate, 1);
+                k = lua_tostring(tluajit->luastate, -1);
+
+                if (!k || !v)
+                    continue;
+
+                SCLogDebug("k='%s', v='%s'", k, v);
+
+                if (strcmp(k, "retval") == 0) {
+                    if (atoi(v) == 1)
+                        ret = 1;
+                } else {
+                    /* set flow var? */
+                }
+            }
+
+            /* pop the table */
+            lua_pop(tluajit->luastate, 1);
+        }
+    }
+
+    if (luajit->negated) {
+        if (ret == 1)
+            ret = 0;
+        else
+            ret = 1;
+    }
 
     SCReturnInt(ret);
 }
@@ -170,8 +251,66 @@ static void *DetectLuajitThreadInit(void *data) {
             fprintf(stderr, "Couldn't prime file: %s\n", lua_tostring(t->luastate, -1));
             BUG_ON(1);
         }
-    }
 
+        lua_getglobal(t->luastate, "init");
+        if (lua_type(t->luastate, -1) != LUA_TFUNCTION) {
+            SCLogInfo("no init function in script");
+            /** \todo proper cleanup */
+            return NULL;
+        }
+
+        lua_newtable(t->luastate); /* stack at -1 */
+        if (lua_gettop(t->luastate) == 0 || lua_type(t->luastate, 2) != LUA_TTABLE) {
+            SCLogInfo("no table setup");
+            /** \todo proper cleanup */
+            return NULL;
+        }
+
+        lua_pushliteral(t->luastate, "script_api_ver"); /* stack at -2 */
+        lua_pushnumber (t->luastate, 1); /* stack at -3 */
+        lua_settable(t->luastate, -3);
+
+        if (lua_pcall(t->luastate, 1, 1, 0) != 0) {
+            fprintf(stderr, "Couldn't prime file: %s\n", lua_tostring(t->luastate, -1));
+            BUG_ON(1);
+        }
+
+        /* process returns from script */
+        if (lua_gettop(t->luastate) == 0) {
+            SCLogInfo("init function in script should return table, nothing returned");
+            /** \todo proper cleanup */
+            return NULL;
+        }
+        if (lua_type(t->luastate, 1) != LUA_TTABLE) {
+            SCLogInfo("init function in script should return table, returned is not table");
+            /** \todo proper cleanup */
+            return NULL;
+        }
+
+        lua_pushnil(t->luastate);
+        const char *k, *v;
+        while (lua_next(t->luastate, -2)) {
+            v = lua_tostring(t->luastate, -1);
+            lua_pop(t->luastate, 1);
+            k = lua_tostring(t->luastate, -1);
+
+            if (!k || !v)
+                continue;
+
+            SCLogDebug("k='%s', v='%s'", k, v);
+            if (strcmp(k, "packet") == 0 && strcmp(v, "true") == 0) {
+                t->flags |= DATATYPE_PACKET;
+            } else if (strcmp(k, "payload") == 0 && strcmp(v, "true") == 0) {
+                t->flags |= DATATYPE_PAYLOAD;
+
+            } else {
+                SCLogInfo("unsupported data type %s", k);
+            }
+        }
+
+        /* pop the table */
+        lua_pop(t->luastate, 1);
+    }
     return (void *)t;
 }
 
