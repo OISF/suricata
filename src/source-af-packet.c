@@ -124,6 +124,11 @@ TmEcode NoAFPSupportExit(ThreadVars *tv, void *initdata, void **data)
 
 #define POLL_TIMEOUT 100
 
+#ifndef TP_STATUS_USER_BUSY
+/* for new use latest bit available in tp_status */
+#define TP_STATUS_USER_BUSY (1 << 31)
+#endif
+
 /** protect pfring_set_bpf_filter, as it is not thread safe */
 static SCMutex afpacket_bpf_set_filter_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -696,6 +701,12 @@ int AFPReadFromRing(AFPThreadVars *ptv)
 
         read_pkts++;
 
+        /* Our packet is still used by suricata, we exit read loop to
+         * gain some time */
+        if (h.h2->tp_status & TP_STATUS_USER_BUSY) {
+            SCReturnInt(AFP_READ_OK);
+        }
+
         if ((ptv->flags & AFP_EMERGENCY_MODE) && (emergency_flush == 1)) {
             h.h2->tp_status = TP_STATUS_KERNEL;
             goto next_frame;
@@ -705,6 +716,11 @@ int AFPReadFromRing(AFPThreadVars *ptv)
         if (p == NULL) {
             SCReturnInt(AFP_FAILURE);
         }
+
+        /* Suricata will treat packet so telling it is busy, this
+         * status will be reset to 0 (ie TP_STATUS_KERNEL) in the release
+         * function. */
+        h.h2->tp_status |= TP_STATUS_USER_BUSY;
 
         p->afp_v.relptr = h.raw;
         p->ReleaseData = AFPReleaseDataFromRing;
