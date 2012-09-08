@@ -33,6 +33,7 @@
 typedef struct DetectLuajitThreadData {
     lua_State *luastate;
     uint32_t flags;
+    int alproto;
 } DetectLuajitThreadData;
 
 typedef struct DetectLuajitData {

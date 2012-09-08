@@ -96,8 +96,13 @@ void DetectLuajitRegister(void) {
     return;
 }
 
-#define DATATYPE_PACKET     (1<<0)
-#define DATATYPE_PAYLOAD    (1<<1)
+#define DATATYPE_PACKET             (1<<0)
+#define DATATYPE_PAYLOAD            (1<<1)
+#define DATATYPE_STREAM             (1<<2)
+#define DATATYPE_HTTP_URI           (1<<3)
+#define DATATYPE_HTTP_URI_RAW       (1<<4)
+#define DATATYPE_HTTP_REQUEST_LINE  (1<<5)
+
 
 /** \brief dump stack from lua state to screen */
 void LuaDumpStack(lua_State *state) {
@@ -145,7 +150,7 @@ void LuaDumpStack(lua_State *state) {
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectLuajitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectLuajitMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         Packet *p, Signature *s, SigMatch *m)
 {
     SCEnter();
@@ -162,6 +167,17 @@ static int DetectLuajitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         SCReturnInt(0);
     if ((tluajit->flags & DATATYPE_PACKET) && GET_PKT_LEN(p) == 0)
         SCReturnInt(0);
+    if (tluajit->alproto != 0) {
+        if (p->flow == NULL)
+            SCReturnInt(0);
+
+        FLOWLOCK_RDLOCK(p->flow);
+        int alproto = p->flow->alproto;
+        FLOWLOCK_UNLOCK(p->flow);
+
+        if (tluajit->alproto != alproto)
+            SCReturnInt(0);
+    }
 
     lua_getglobal(tluajit->luastate, "match");
     lua_newtable(tluajit->luastate); /* stack at -1 */
@@ -175,6 +191,40 @@ static int DetectLuajitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         lua_pushliteral(tluajit->luastate, "packet"); /* stack at -2 */
         lua_pushlstring (tluajit->luastate, (const char *)GET_PKT_DATA(p), (size_t)GET_PKT_LEN(p)); /* stack at -3 */
         lua_settable(tluajit->luastate, -3);
+    }
+    if (tluajit->alproto == ALPROTO_HTTP) {
+        FLOWLOCK_RDLOCK(p->flow);
+        HtpState *htp_state = p->flow->alstate;
+        if (htp_state != NULL && htp_state->connp != NULL && htp_state->connp->conn != NULL) {
+            int idx = AppLayerTransactionGetInspectId(p->flow);
+            if (idx != -1) {
+                htp_tx_t *tx = NULL;
+
+                int size = (int)list_size(htp_state->connp->conn->transactions);
+                for ( ; idx < size; idx++)
+                {
+                    tx = list_get(htp_state->connp->conn->transactions, idx);
+                    if (tx == NULL || tx->request_uri_normalized == NULL)
+                        continue;
+
+                    if ((tluajit->flags & DATATYPE_HTTP_URI) && bstr_len(tx->request_uri_normalized) > 0) {
+                        lua_pushliteral(tluajit->luastate, "http.uri"); /* stack at -2 */
+                        lua_pushlstring (tluajit->luastate,
+                                (const char *)bstr_ptr(tx->request_uri_normalized),
+                                bstr_len(tx->request_uri_normalized));
+                        lua_settable(tluajit->luastate, -3);
+                    }
+                    if ((tluajit->flags & DATATYPE_HTTP_REQUEST_LINE) && bstr_len(tx->request_line) > 0) {
+                        lua_pushliteral(tluajit->luastate, "http.request_line"); /* stack at -2 */
+                        lua_pushlstring (tluajit->luastate,
+                                (const char *)bstr_ptr(tx->request_line),
+                                bstr_len(tx->request_line));
+                        lua_settable(tluajit->luastate, -3);
+                    }
+                }
+            }
+        }
+        FLOWLOCK_UNLOCK(p->flow);
     }
 
     int retval = lua_pcall(tluajit->luastate, 1, 1, 0);
@@ -302,6 +352,17 @@ static void *DetectLuajitThreadInit(void *data) {
                 t->flags |= DATATYPE_PACKET;
             } else if (strcmp(k, "payload") == 0 && strcmp(v, "true") == 0) {
                 t->flags |= DATATYPE_PAYLOAD;
+            } else if (strncmp(k, "http", 4) == 0 && strcmp(v, "true") == 0) {
+                /* http types */
+                t->alproto = ALPROTO_HTTP;
+
+                if (strcmp(k, "http.uri") == 0)
+                    t->flags |= DATATYPE_HTTP_URI;
+                else if (strcmp(k, "http.request_line") == 0)
+                    t->flags |= DATATYPE_HTTP_REQUEST_LINE;
+                else {
+                    SCLogInfo("unsupported http data type %s", k);
+                }
 
             } else {
                 SCLogInfo("unsupported data type %s", k);
