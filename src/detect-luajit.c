@@ -167,7 +167,7 @@ static int DetectLuajitMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         SCReturnInt(0);
     if ((tluajit->flags & DATATYPE_PACKET) && GET_PKT_LEN(p) == 0)
         SCReturnInt(0);
-    if (tluajit->alproto != 0) {
+    if (tluajit->alproto != ALPROTO_UNKNOWN) {
         if (p->flow == NULL)
             SCReturnInt(0);
 
@@ -204,17 +204,20 @@ static int DetectLuajitMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                 for ( ; idx < size; idx++)
                 {
                     tx = list_get(htp_state->connp->conn->transactions, idx);
-                    if (tx == NULL || tx->request_uri_normalized == NULL)
+                    if (tx == NULL)
                         continue;
 
-                    if ((tluajit->flags & DATATYPE_HTTP_URI) && bstr_len(tx->request_uri_normalized) > 0) {
+                    if ((tluajit->flags & DATATYPE_HTTP_URI) && tx->request_uri_normalized != NULL &&
+                            bstr_len(tx->request_uri_normalized) > 0)
+                    {
                         lua_pushliteral(tluajit->luastate, "http.uri"); /* stack at -2 */
                         lua_pushlstring (tluajit->luastate,
                                 (const char *)bstr_ptr(tx->request_uri_normalized),
                                 bstr_len(tx->request_uri_normalized));
                         lua_settable(tluajit->luastate, -3);
                     }
-                    if ((tluajit->flags & DATATYPE_HTTP_REQUEST_LINE) && bstr_len(tx->request_line) > 0) {
+                    if ((tluajit->flags & DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
+                            bstr_len(tx->request_line) > 0) {
                         lua_pushliteral(tluajit->luastate, "http.request_line"); /* stack at -2 */
                         lua_pushlstring (tluajit->luastate,
                                 (const char *)bstr_ptr(tx->request_line),
@@ -282,103 +285,54 @@ static int DetectLuajitMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 }
 
 static void *DetectLuajitThreadInit(void *data) {
+    DetectLuajitData *luajit = (DetectLuajitData *)data;
+    BUG_ON(luajit == NULL);
+
     DetectLuajitThreadData *t = SCMalloc(sizeof(DetectLuajitThreadData));
-    if (t != NULL) {
-        memset(t, 0x00, sizeof(DetectLuajitThreadData));
-
-        t->luastate = luaL_newstate();
-        BUG_ON(t->luastate == NULL);
-        luaL_openlibs(t->luastate);
-
-        int status = luaL_loadfile(t->luastate, (char *)data);
-        if (status) {
-            fprintf(stderr, "Couldn't load file: %s\n", lua_tostring(t->luastate, -1));
-            BUG_ON(1);
-        }
-
-        /* prime the script (or something) */
-        if (lua_pcall(t->luastate, 0, 0, 0) != 0) {
-            fprintf(stderr, "Couldn't prime file: %s\n", lua_tostring(t->luastate, -1));
-            BUG_ON(1);
-        }
-
-        lua_getglobal(t->luastate, "init");
-        if (lua_type(t->luastate, -1) != LUA_TFUNCTION) {
-            SCLogInfo("no init function in script");
-            /** \todo proper cleanup */
-            return NULL;
-        }
-
-        lua_newtable(t->luastate); /* stack at -1 */
-        if (lua_gettop(t->luastate) == 0 || lua_type(t->luastate, 2) != LUA_TTABLE) {
-            SCLogInfo("no table setup");
-            /** \todo proper cleanup */
-            return NULL;
-        }
-
-        lua_pushliteral(t->luastate, "script_api_ver"); /* stack at -2 */
-        lua_pushnumber (t->luastate, 1); /* stack at -3 */
-        lua_settable(t->luastate, -3);
-
-        if (lua_pcall(t->luastate, 1, 1, 0) != 0) {
-            fprintf(stderr, "Couldn't prime file: %s\n", lua_tostring(t->luastate, -1));
-            BUG_ON(1);
-        }
-
-        /* process returns from script */
-        if (lua_gettop(t->luastate) == 0) {
-            SCLogInfo("init function in script should return table, nothing returned");
-            /** \todo proper cleanup */
-            return NULL;
-        }
-        if (lua_type(t->luastate, 1) != LUA_TTABLE) {
-            SCLogInfo("init function in script should return table, returned is not table");
-            /** \todo proper cleanup */
-            return NULL;
-        }
-
-        lua_pushnil(t->luastate);
-        const char *k, *v;
-        while (lua_next(t->luastate, -2)) {
-            v = lua_tostring(t->luastate, -1);
-            lua_pop(t->luastate, 1);
-            k = lua_tostring(t->luastate, -1);
-
-            if (!k || !v)
-                continue;
-
-            SCLogDebug("k='%s', v='%s'", k, v);
-            if (strcmp(k, "packet") == 0 && strcmp(v, "true") == 0) {
-                t->flags |= DATATYPE_PACKET;
-            } else if (strcmp(k, "payload") == 0 && strcmp(v, "true") == 0) {
-                t->flags |= DATATYPE_PAYLOAD;
-            } else if (strncmp(k, "http", 4) == 0 && strcmp(v, "true") == 0) {
-                /* http types */
-                t->alproto = ALPROTO_HTTP;
-
-                if (strcmp(k, "http.uri") == 0)
-                    t->flags |= DATATYPE_HTTP_URI;
-                else if (strcmp(k, "http.request_line") == 0)
-                    t->flags |= DATATYPE_HTTP_REQUEST_LINE;
-                else {
-                    SCLogInfo("unsupported http data type %s", k);
-                }
-
-            } else {
-                SCLogInfo("unsupported data type %s", k);
-            }
-        }
-
-        /* pop the table */
-        lua_pop(t->luastate, 1);
+    if (t == NULL) {
+        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't alloc ctx memory");
+        return NULL;
     }
+    memset(t, 0x00, sizeof(DetectLuajitThreadData));
+
+    t->alproto = luajit->alproto;
+    t->flags = luajit->flags;
+
+    t->luastate = luaL_newstate();
+    if (t->luastate == NULL) {
+        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't load file: %s", lua_tostring(t->luastate, -1));
+        goto error;
+    }
+
+    luaL_openlibs(t->luastate);
+
+    int status = luaL_loadfile(t->luastate, luajit->filename);
+    if (status) {
+        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't load file: %s", lua_tostring(t->luastate, -1));
+        goto error;
+    }
+
+    /* prime the script (or something) */
+    if (lua_pcall(t->luastate, 0, 0, 0) != 0) {
+        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't prime file: %s", lua_tostring(t->luastate, -1));
+        goto error;
+    }
+
+    /* pop the table */
+    lua_pop(t->luastate, 1);
     return (void *)t;
+
+error:
+    if (t->luastate)
+        lua_close(t->luastate);
+    SCFree(t);
+    return NULL;
 }
 
 static void DetectLuajitThreadFree(void *ctx) {
     DetectLuajitThreadData *t = (DetectLuajitThreadData *)ctx;
 
-    /** \todo lua state cleanup */
+    lua_close(t->luastate);
 
     SCFree(t);
 }
@@ -421,6 +375,102 @@ error:
     return NULL;
 }
 
+static int DetectLuaSetupPrime(DetectLuajitData *ld) {
+    lua_State *luastate = luaL_newstate();
+    if (luastate == NULL)
+        goto error;
+    luaL_openlibs(luastate);
+
+    int status = luaL_loadfile(luastate, ld->filename);
+    if (status) {
+        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
+        goto error;
+    }
+
+    /* prime the script (or something) */
+    if (lua_pcall(luastate, 0, 0, 0) != 0) {
+        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't prime file: %s", lua_tostring(luastate, -1));
+        goto error;
+    }
+
+    lua_getglobal(luastate, "init");
+    if (lua_type(luastate, -1) != LUA_TFUNCTION) {
+        SCLogError(SC_ERR_LUAJIT_ERROR, "no init function in script");
+        goto error;
+    }
+
+    lua_newtable(luastate); /* stack at -1 */
+    if (lua_gettop(luastate) == 0 || lua_type(luastate, 2) != LUA_TTABLE) {
+        SCLogError(SC_ERR_LUAJIT_ERROR, "no table setup");
+        goto error;
+    }
+
+    lua_pushliteral(luastate, "script_api_ver"); /* stack at -2 */
+    lua_pushnumber (luastate, 1); /* stack at -3 */
+    lua_settable(luastate, -3);
+
+    if (lua_pcall(luastate, 1, 1, 0) != 0) {
+        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't run script 'init' function: %s", lua_tostring(luastate, -1));
+        goto error;
+    }
+
+    /* process returns from script */
+    if (lua_gettop(luastate) == 0) {
+        SCLogError(SC_ERR_LUAJIT_ERROR, "init function in script should return table, nothing returned");
+        goto error;
+    }
+    if (lua_type(luastate, 1) != LUA_TTABLE) {
+        SCLogError(SC_ERR_LUAJIT_ERROR, "init function in script should return table, returned is not table");
+        goto error;
+    }
+
+    lua_pushnil(luastate);
+    const char *k, *v;
+    while (lua_next(luastate, -2)) {
+        v = lua_tostring(luastate, -1);
+        lua_pop(luastate, 1);
+        k = lua_tostring(luastate, -1);
+        if (!k || !v)
+            continue;
+
+        SCLogDebug("k='%s', v='%s'", k, v);
+        if (strcmp(k, "packet") == 0 && strcmp(v, "true") == 0) {
+            ld->flags |= DATATYPE_PACKET;
+        } else if (strcmp(k, "payload") == 0 && strcmp(v, "true") == 0) {
+            ld->flags |= DATATYPE_PAYLOAD;
+        } else if (strncmp(k, "http", 4) == 0 && strcmp(v, "true") == 0) {
+            if (ld->alproto != ALPROTO_UNKNOWN) {
+                SCLogError(SC_ERR_LUAJIT_ERROR, "can just inspect script against one alproto %s", k);
+                goto error;
+            }
+
+            /* http types */
+            ld->alproto = ALPROTO_HTTP;
+
+            if (strcmp(k, "http.uri") == 0)
+                ld->flags |= DATATYPE_HTTP_URI;
+            else if (strcmp(k, "http.request_line") == 0)
+                ld->flags |= DATATYPE_HTTP_REQUEST_LINE;
+            else {
+                SCLogError(SC_ERR_LUAJIT_ERROR, "unsupported http data type %s", k);
+                goto error;
+            }
+
+        } else {
+            SCLogError(SC_ERR_LUAJIT_ERROR, "unsupported data type %s", k);
+            goto error;
+        }
+    }
+
+    /* pop the table */
+    lua_pop(luastate, 1);
+    lua_close(luastate);
+    return 0;
+error:
+    lua_close(luastate);
+    return -1;
+}
+
 /**
  * \brief this function is used to parse luajit options
  * \brief into the current signature
@@ -442,10 +492,21 @@ static int DetectLuajitSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         goto error;
 
     luajit->thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "luajit",
-            DetectLuajitThreadInit, (void *)luajit->filename,
+            DetectLuajitThreadInit, (void *)luajit,
             DetectLuajitThreadFree);
     if (luajit->thread_ctx_id == -1)
         goto error;
+
+    if (DetectLuaSetupPrime(luajit) == -1) {
+        goto error;
+    }
+
+    if (luajit->alproto != ALPROTO_UNKNOWN) {
+        if (s->alproto != ALPROTO_UNKNOWN && luajit->alproto != s->alproto) {
+            goto error;
+        }
+        s->alproto = luajit->alproto;
+    }
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */

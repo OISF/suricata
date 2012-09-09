@@ -232,6 +232,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_NO_MD5_SUPPORT);
         CASE_CODE (SC_ERR_EVENT_ENGINE);
         CASE_CODE (SC_ERR_NO_LUAJIT_SUPPORT);
+        CASE_CODE (SC_ERR_LUAJIT_ERROR);
         default:
             return "UNKNOWN_ERROR";
     }

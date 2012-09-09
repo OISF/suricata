@@ -247,6 +247,7 @@ typedef enum {
     SC_ERR_NO_MD5_SUPPORT,
     SC_ERR_EVENT_ENGINE,
     SC_ERR_NO_LUAJIT_SUPPORT,
+    SC_ERR_LUAJIT_ERROR,
 } SCError;
 
 const char *SCErrorToString(SCError);

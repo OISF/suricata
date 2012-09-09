@@ -40,6 +40,8 @@ typedef struct DetectLuajitData {
     int thread_ctx_id;
     int negated;
     char *filename;
+    uint32_t flags;
+    int alproto;
 } DetectLuajitData;
 #endif
 
