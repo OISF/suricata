@@ -357,6 +357,9 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_defrag_ipv6_timeouts =
         SCPerfTVRegisterCounter("defrag.ipv6.timeouts", tv,
             SC_PERF_TYPE_UINT64, "NULL");
+    dtv->counter_defrag_max_hit =
+        SCPerfTVRegisterCounter("defrag.max_frag_hits", tv,
+            SC_PERF_TYPE_UINT64, "NULL");
 
     tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
     SCPerfAddToClubbedTMTable(tv->name, &tv->sc_perf_pctx);

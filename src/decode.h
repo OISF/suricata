@@ -564,6 +564,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_defrag_ipv6_fragments;
     uint16_t counter_defrag_ipv6_reassembled;
     uint16_t counter_defrag_ipv6_timeouts;
+    uint16_t counter_defrag_max_hit;
 } DecodeThreadVars;
 
 /**
