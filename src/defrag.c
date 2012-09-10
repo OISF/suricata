@@ -1133,8 +1133,8 @@ DefragGetTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
         }
         SCMutexUnlock(&dc->tracker_pool_lock);
         if (tracker == NULL) {
-            /* Report memory error - actually a pool allocation error. */
-            SCLogError(SC_ERR_MEM_ALLOC, "Defrag: Failed to allocate tracker.");
+            SCPerfCounterIncr(dtv->counter_defrag_max_hit,
+                tv->sc_perf_pca);
             goto done;
         }
         DefragTrackerReset(tracker);
