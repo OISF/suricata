@@ -58,7 +58,7 @@ typedef struct Pool_ {
     void *(*Alloc)();
     int (*Init)(void *, void *);
     void *InitData;
-    void (*Free)(void *);
+    void (*Cleanup)(void *);
 
     uint32_t elt_size;
     uint32_t outstanding;

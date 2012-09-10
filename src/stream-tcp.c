@@ -270,7 +270,7 @@ int StreamTcpSessionPoolInit(void *data, void* initdata)
 
 /** \brief Pool free function
  *  \param s Void ptr to TcpSession memory */
-void StreamTcpSessionPoolFree(void *s)
+void StreamTcpSessionPoolCleanup(void *s)
 {
     StreamMsg *smsg = NULL;
 
@@ -493,7 +493,7 @@ void StreamTcpInitConfig(char quiet)
                         sizeof(TcpSession),
                         StreamTcpSessionPoolAlloc,
                         StreamTcpSessionPoolInit, NULL,
-                        StreamTcpSessionPoolFree);
+                        StreamTcpSessionPoolCleanup);
     if (ssn_pool == NULL) {
         SCLogError(SC_ERR_POOL_INIT, "ssn_pool is not initialized");
         SCMutexUnlock(&ssn_pool_mutex);
