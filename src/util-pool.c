@@ -66,7 +66,7 @@ static int PoolDataPreAllocated(Pool *p, void *data)
 /** \brief Init a Pool
  *
  * PoolInit() creates a ::Pool. The Alloc function must only do
- * allocation stuff. The Free function must not try to free
+ * allocation stuff. The Cleanup function must not try to free
  * the PoolBucket::data. This is done by the ::Pool management
  * system.
  *
@@ -76,10 +76,10 @@ static int PoolDataPreAllocated(Pool *p, void *data)
  * \param Alloc An allocation function or NULL to use a standard SCMalloc
  * \param Init An init function or NULL to use a standard memset to 0
  * \param InitData Init data
- * \Param Free a free function or NULL if no special treatment is needed
+ * \Param Cleanup a free function or NULL if no special treatment is needed
  * \retval the allocated Pool
  */
-Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *(*Alloc)(), int (*Init)(void *, void *), void *InitData,  void (*Free)(void *))
+Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *(*Alloc)(), int (*Init)(void *, void *), void *InitData,  void (*Cleanup)(void *))
 {
     Pool *p = NULL;
 
@@ -100,7 +100,7 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *
     p->Alloc = Alloc;
     p->Init = Init;
     p->InitData = InitData;
-    p->Free = Free;
+    p->Cleanup = Cleanup;
     if (p->Init == NULL) {
         p->Init = PoolMemset;
         p->InitData = p;
@@ -147,8 +147,8 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *
                 goto error;
             }
             if (p->Init(pb->data, p->InitData) != 1) {
-                if (p->Free)
-                    p->Free(pb->data);
+                if (p->Cleanup)
+                    p->Cleanup(pb->data);
                 SCFree(pb->data);
                 SCFree(pb);
                 goto error;
@@ -165,8 +165,8 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *
 
             pb->data = (char *)p->data_buffer + u32 * elt_size;
             if (p->Init(pb->data, p->InitData) != 1) {
-                if (p->Free)
-                    p->Free(pb->data);
+                if (p->Cleanup)
+                    p->Cleanup(pb->data);
                 goto error;
             }
 
@@ -198,8 +198,8 @@ void PoolFree(Pool *p) {
     while (p->alloc_list != NULL) {
         PoolBucket *pb = p->alloc_list;
         p->alloc_list = pb->next;
-        if (p->Free)
-            p->Free(pb->data);
+        if (p->Cleanup)
+            p->Cleanup(pb->data);
         if (PoolDataPreAllocated(p, pb->data) == 0) {
             SCFree(pb->data);
         }
@@ -213,8 +213,8 @@ void PoolFree(Pool *p) {
         PoolBucket *pb = p->empty_list;
         p->empty_list = pb->next;
         if (pb->data!= NULL) {
-            if (p->Free)
-                p->Free(pb->data);
+            if (p->Cleanup)
+                p->Cleanup(pb->data);
             if (PoolDataPreAllocated(p, pb->data) == 0) {
                 SCFree(pb->data);
             }
@@ -294,8 +294,8 @@ void PoolReturn(Pool *p, void *data) {
     if (pb == NULL) {
         p->allocated--;
         p->outstanding--;
-        if (p->Free != NULL) {
-            p->Free(data);
+        if (p->Cleanup != NULL) {
+            p->Cleanup(data);
         }
         if (PoolDataPreAllocated(p, data) == 0)
             SCFree(data);
@@ -374,9 +374,9 @@ static int PoolTestInit02 (void) {
         goto end;
     }
 
-    if (p->Free != PoolTestFree) {
+    if (p->Cleanup != PoolTestFree) {
         printf("Free func ptr %p != %p: ",
-            p->Free, PoolTestFree);
+            p->Cleanup, PoolTestFree);
         retval = 0;
         goto end;
     }

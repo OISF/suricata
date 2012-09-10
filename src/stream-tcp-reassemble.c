@@ -195,8 +195,8 @@ int TcpSegmentPoolInit(void *data, void *payload_len)
     return 1;
 }
 
-/** \brief free a tcp segment pool entry */
-void TcpSegmentPoolFree(void *ptr) {
+/** \brief clean up a tcp segment pool entry */
+void TcpSegmentPoolCleanup(void *ptr) {
     if (ptr == NULL)
         return;
 
@@ -286,7 +286,7 @@ int StreamTcpReassembleInit(char quiet)
                                      sizeof (TcpSegment),
                                      TcpSegmentPoolAlloc, TcpSegmentPoolInit,
                                      (void *) &segment_pool_pktsizes[u16],
-                                     TcpSegmentPoolFree);
+                                     TcpSegmentPoolCleanup);
         SCMutexUnlock(&segment_pool_mutex[u16]);
     }
 

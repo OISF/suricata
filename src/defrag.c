@@ -379,7 +379,7 @@ DefragTrackerInit(void *data, void *initdata)
  *     the pool.
  */
 static void
-DefragTrackerFree(void *arg)
+DefragTrackerCleanup(void *arg)
 {
     DefragTracker *tracker = arg;
 
@@ -423,7 +423,7 @@ DefragContextNew(void)
     }
     dc->tracker_pool = PoolInit(tracker_pool_size, tracker_pool_size,
         sizeof(DefragTracker),
-        NULL, DefragTrackerInit, dc, DefragTrackerFree);
+        NULL, DefragTrackerInit, dc, DefragTrackerCleanup);
     if (dc->tracker_pool == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,
             "Defrag: Failed to initialize tracker pool.");

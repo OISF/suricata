@@ -114,7 +114,7 @@ static void *AlpResultElmtPoolAlloc()
     return e;
 }
 
-static void AlpResultElmtPoolFree(void *e)
+static void AlpResultElmtPoolCleanup(void *e)
 {
     AppLayerParserResultElmt *re = (AppLayerParserResultElmt *)e;
 
@@ -1336,7 +1336,7 @@ void RegisterAppLayerParsers(void)
      * \todo Per thread pool */
     al_result_pool = PoolInit(1000, 250,
             sizeof(AppLayerParserResultElmt),
-            AlpResultElmtPoolAlloc, NULL, NULL, AlpResultElmtPoolFree);
+            AlpResultElmtPoolAlloc, NULL, NULL, AlpResultElmtPoolCleanup);
 
     RegisterHTPParsers();
     RegisterSSLParsers();
