@@ -30,3 +30,4 @@ Ubuntu_Installation.txt \
 Ubuntu_Installation_from_GIT.txt \
 Windows.txt
 
+dist_doc_DATA = ${EXTRA_DIST}
