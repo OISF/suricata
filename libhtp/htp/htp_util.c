@@ -644,6 +644,7 @@ uint8_t bestfit_codepoint(htp_cfg_t *cfg, uint32_t codepoint) {
         // Move to the next triplet
         p += 3;
     }
+    return cfg->path_replacement_char; // Non void function should have return value
 }
 
 /**
