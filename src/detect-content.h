@@ -55,11 +55,11 @@
  * the inspection phase */
 #define DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED (1 << 16)
 
-#define DETECT_CONTENT_IS_SINGLE(c) (!((c)->flags & DETECT_CONTENT_DISTANCE || \
-                                       (c)->flags & DETECT_CONTENT_WITHIN || \
-                                       (c)->flags & DETECT_CONTENT_RELATIVE_NEXT || \
-                                       (c)->flags & DETECT_CONTENT_DEPTH || \
-                                       (c)->flags & DETECT_CONTENT_OFFSET))
+#define DETECT_CONTENT_IS_SINGLE(c) (!( ((c)->flags & DETECT_CONTENT_DISTANCE) || \
+                                        ((c)->flags & DETECT_CONTENT_WITHIN) || \
+                                        ((c)->flags & DETECT_CONTENT_RELATIVE_NEXT) || \
+                                        ((c)->flags & DETECT_CONTENT_DEPTH) || \
+                                        ((c)->flags & DETECT_CONTENT_OFFSET) ))
 
 #include "util-spm-bm.h"
 

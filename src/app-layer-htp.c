@@ -1310,7 +1310,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
 
     /* if we're in the file storage process, deal with that now */
     if (htud->tsflags & HTP_FILENAME_SET) {
-        if (header_start != NULL || form_end != NULL || htud->tsflags & HTP_REQ_BODY_COMPLETE) {
+        if (header_start != NULL || form_end != NULL || (htud->tsflags & HTP_REQ_BODY_COMPLETE)) {
             SCLogDebug("reached the end of the file");
 
             uint8_t *filedata = chunks_buffer;

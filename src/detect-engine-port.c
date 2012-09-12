@@ -685,11 +685,11 @@ error:
  * */
 int DetectPortCmp(DetectPort *a, DetectPort *b) {
     /* check any */
-    if (a->flags & PORT_FLAG_ANY && b->flags & PORT_FLAG_ANY)
+    if ((a->flags & PORT_FLAG_ANY) && (b->flags & PORT_FLAG_ANY))
         return PORT_EQ;
-    if (a->flags & PORT_FLAG_ANY && !(b->flags & PORT_FLAG_ANY))
+    if ((a->flags & PORT_FLAG_ANY) && !(b->flags & PORT_FLAG_ANY))
         return PORT_LT;
-    if (!(a->flags & PORT_FLAG_ANY) && b->flags & PORT_FLAG_ANY)
+    if (!(a->flags & PORT_FLAG_ANY) && (b->flags & PORT_FLAG_ANY))
         return PORT_GT;
 
     uint16_t a_port1 = a->port;

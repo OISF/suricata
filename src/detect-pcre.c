@@ -610,13 +610,13 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     if (pd == NULL)
         goto error;
 
-    if (pd->flags & DETECT_PCRE_HTTP_CLIENT_BODY && s->init_flags & SIG_FLAG_INIT_FLOW
-        && s->flags & SIG_FLAG_TOCLIENT && !(s->flags & SIG_FLAG_TOSERVER)) {
+    if ((pd->flags & DETECT_PCRE_HTTP_CLIENT_BODY) && (s->init_flags & SIG_FLAG_INIT_FLOW)
+        && (s->flags & SIG_FLAG_TOCLIENT) && !(s->flags & SIG_FLAG_TOSERVER)) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Can't use pcre /P with flow:from_server or flow:to_client");
         goto error;
     }
-    if ((pd->flags & DETECT_PCRE_URI || pd->flags & DETECT_PCRE_HTTP_RAW_URI)
-        && s->init_flags & SIG_FLAG_INIT_FLOW && s->flags & SIG_FLAG_TOCLIENT && !(s->flags & SIG_FLAG_TOSERVER)) {
+    if (((pd->flags & DETECT_PCRE_URI) || (pd->flags & DETECT_PCRE_HTTP_RAW_URI))
+        && (s->init_flags & SIG_FLAG_INIT_FLOW) && (s->flags & SIG_FLAG_TOCLIENT) && !(s->flags & SIG_FLAG_TOSERVER)) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Can't use pcre /U or /I with flow:from_server or flow:to_client");
         goto error;
     }
@@ -753,7 +753,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
 
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSCDMATCH);
     } else {
-        if (s->alproto == ALPROTO_DCERPC && pd->flags & DETECT_PCRE_RELATIVE) {
+        if (s->alproto == ALPROTO_DCERPC && (pd->flags & DETECT_PCRE_RELATIVE)) {
             SigMatch *pm = NULL;
             SigMatch *dm = NULL;
 
