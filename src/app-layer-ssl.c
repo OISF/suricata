@@ -745,7 +745,7 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
             /* fresh record */
             case 0:
                 /* only SSLv2, has one of the top 2 bits set */
-                if (input[0] & 0x80 || input[0] & 0x40) {
+                if ((input[0] & 0x80) || (input[0] & 0x40)) {
                     SCLogDebug("SSLv2 detected");
                     ssl_state->curr_connp->version = SSL_VERSION_2;
                     retval = SSLv2Decode(direction, ssl_state, pstate, input,

@@ -127,7 +127,7 @@ int DetectSshVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
 
     int ret = 0;
     FLOWLOCK_RDLOCK(f);
-    if (flags & STREAM_TOCLIENT && ssh_state->flags & SSH_FLAG_SERVER_VERSION_PARSED) {
+    if ((flags & STREAM_TOCLIENT) && (ssh_state->flags & SSH_FLAG_SERVER_VERSION_PARSED)) {
         if (ssh->flags & SSH_FLAG_PROTOVERSION_2_COMPAT) {
             SCLogDebug("looking for ssh server protoversion 2 compat");
             if (strncmp((char *) ssh_state->server_proto_version, "2", 1) == 0 ||
@@ -138,7 +138,7 @@ int DetectSshVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
             SCLogDebug("looking for ssh server protoversion %s length %"PRIu16"", ssh->ver, ssh->len);
             ret = (strncmp((char *) ssh_state->server_proto_version, (char *) ssh->ver, ssh->len) == 0)? 1 : 0;
         }
-    } else if (flags & STREAM_TOSERVER && ssh_state->flags & SSH_FLAG_CLIENT_VERSION_PARSED) {
+    } else if ((flags & STREAM_TOSERVER) && (ssh_state->flags & SSH_FLAG_CLIENT_VERSION_PARSED)) {
         if (ssh->flags & SSH_FLAG_PROTOVERSION_2_COMPAT) {
             SCLogDebug("looking for client ssh client protoversion 2 compat");
             if (strncmp((char *) ssh_state->client_proto_version, "2", 1) == 0 ||

@@ -44,7 +44,7 @@ static int htp_gzip_decompressor_decompress(htp_decompressor_gzip_t *drec, htp_t
             if (d->data[3] == 0) {
                 drec->initialized = 1;
                 consumed = 10;
-            } else if (d->data[3] & (1 << 3) || d->data[3] & (1 << 4)) {
+            } else if ((d->data[3] & (1 << 3)) || (d->data[3] & (1 << 4))) {
                 /* skip past
                  * - FNAME extension, which is a name ended in a NUL terminator
                  * or
