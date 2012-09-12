@@ -1602,7 +1602,7 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
                "ACK %" PRIu32 ", WIN %"PRIu16"", ssn, p->payload_len,
                 TCP_GET_SEQ(p), TCP_GET_ACK(p), TCP_GET_WINDOW(p));
 
-    if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
+    if (StreamTcpValidateAck(ssn, &(ssn->server), p) == -1) {
         SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
         StreamTcpSetEvent(p, STREAM_EST_INVALID_ACK);
         return -1;
