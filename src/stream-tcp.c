@@ -1285,7 +1285,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
                             " not resetting the connection !!");
                 }
             } else {
-                if ((ssn->client.os_policy == OS_POLICY_LINUX) |
+                if ((ssn->client.os_policy == OS_POLICY_LINUX) ||
                         (ssn->client.os_policy == OS_POLICY_OLD_LINUX) ||
                         (ssn->client.os_policy == OS_POLICY_SOLARIS))
                 {
