@@ -599,7 +599,7 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
         }
     } else if (s->alproto == ALPROTO_DCERPC &&
-        data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
+        (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE)) {
         SigMatch *pm = NULL;
         SigMatch *dm = NULL;
 

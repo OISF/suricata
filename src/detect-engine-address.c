@@ -1479,7 +1479,7 @@ int DetectAddressCmp(DetectAddress *a, DetectAddress *b)
         return ADDRESS_ER;
 
     /* check any */
-    if (a->flags & ADDRESS_FLAG_ANY && b->flags & ADDRESS_FLAG_ANY)
+    if ((a->flags & ADDRESS_FLAG_ANY) && (b->flags & ADDRESS_FLAG_ANY))
         return ADDRESS_EQ;
     else if (a->ip.family == AF_INET)
         return DetectAddressCmpIPv4(a, b);

@@ -135,9 +135,9 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, DetectFilestoreData
         case FILESTORE_SCOPE_DEFAULT:
             if (rule_dir) {
                 this_file = 1;
-            } else if (p->flowflags & FLOW_PKT_TOCLIENT && toclient_dir) {
+            } else if ((p->flowflags & FLOW_PKT_TOCLIENT) && toclient_dir) {
                 this_file = 1;
-            } else if (p->flowflags & FLOW_PKT_TOSERVER && toserver_dir) {
+            } else if ((p->flowflags & FLOW_PKT_TOSERVER) && toserver_dir) {
                 this_file = 1;
             }
             break;

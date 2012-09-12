@@ -222,8 +222,8 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
             }
 
             if (s->flags & SIG_FLAG_IPONLY) {
-                if ((p->flowflags & FLOW_PKT_TOSERVER && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
-                    (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET))) {
+                if (((p->flowflags & FLOW_PKT_TOSERVER) && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
+                    ((p->flowflags & FLOW_PKT_TOCLIENT) && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET))) {
                     SCLogDebug("testing against \"ip-only\" signatures");
 
                     if (p->flow != NULL) {
@@ -256,7 +256,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 break;
             /* if the signature wants to drop, check if the
              * PACKET_ALERT_FLAG_DROP_FLOW flag is set. */
-            } else if (p->action & ACTION_DROP &&
+            } else if ((p->action & ACTION_DROP) &&
                     ((p->alerts.alerts[i].flags & PACKET_ALERT_FLAG_DROP_FLOW) ||
                          (s->flags & SIG_FLAG_APPLAYER))
                        && p->flow != NULL)

@@ -570,7 +570,7 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
 
     while (pe != NULL) {
         if ((buflen < pe->min_depth)  ||
-            al_proto_masks[0] & pe->al_proto_mask) {
+            (al_proto_masks[0] & pe->al_proto_mask)) {
             pe = pe->next;
             continue;
         }

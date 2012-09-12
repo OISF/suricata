@@ -1703,8 +1703,8 @@ static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
         smsg->flags |= STREAM_EOF;
     }
 
-    if ((!StreamTcpInlineMode() && p->flowflags & FLOW_PKT_TOSERVER) ||
-        ( StreamTcpInlineMode() && p->flowflags & FLOW_PKT_TOCLIENT))
+    if ((!StreamTcpInlineMode() && (p->flowflags & FLOW_PKT_TOSERVER)) ||
+        ( StreamTcpInlineMode() && (p->flowflags & FLOW_PKT_TOCLIENT)))
     {
         smsg->flags |= STREAM_TOCLIENT;
         SCLogDebug("stream mesage is to_client");
@@ -1827,8 +1827,8 @@ static void StreamTcpRemoveSegmentFromStream(TcpStream *stream, TcpSegment *seg)
  *  \retval 0 not done yet
  */
 #define StreamTcpAppLayerSegmentProcessed(stream, segment) \
-    (((stream)->flags & STREAMTCP_STREAM_FLAG_GAP || \
-      (segment)->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED) ? 1 :0)
+    (( ( (stream)->flags & STREAMTCP_STREAM_FLAG_GAP ) || \
+       ( (segment)->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED ) ? 1 :0 ))
 
 /**
  *  \brief Update the stream reassembly upon receiving a data segment
@@ -2543,8 +2543,8 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags) {
                 (uint32_t)(seg->seq + seg->payload_len));
 
         if (SEQ_LEQ((seg->seq + seg->payload_len), (ra_base_seq+1)) &&
-                   seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
-                   seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED) {
+                   (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
+                   (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) {
             if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
                 seg = seg->next;
                 break;
@@ -2677,8 +2677,8 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
             /* Remove the segments which are either completely before the
              * ra_base_seq and processed by both app layer and raw reassembly. */
         } else if (SEQ_LEQ((seg->seq + seg->payload_len), (ra_base_seq+1)) &&
-                   seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
-                   seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED) {
+                   (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
+                   (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) {
             if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
                 seg = seg->next;
                 continue;
@@ -3062,8 +3062,8 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
          * If the stream is in GAP state the app layer flag won't be set */
         if ((ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED) &&
                 (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
-                (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED ||
-                 stream->flags & STREAMTCP_STREAM_FLAG_GAP))
+                ((seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED) ||
+                 (stream->flags & STREAMTCP_STREAM_FLAG_GAP)))
         {
             if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
                 seg = seg->next;

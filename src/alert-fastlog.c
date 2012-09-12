@@ -140,7 +140,7 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             continue;
         }
 
-        if (pa->action & ACTION_DROP && IS_ENGINE_MODE_IPS(engine_mode)) {
+        if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
             action = "[Drop] ";
         } else if (pa->action & ACTION_DROP) {
             action = "[wDrop] ";
@@ -190,7 +190,7 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             continue;
         }
 
-        if (pa->action & ACTION_DROP && IS_ENGINE_MODE_IPS(engine_mode)) {
+        if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
             action = "[Drop] ";
         } else if (pa->action & ACTION_DROP) {
             action = "[wDrop] ";
@@ -238,7 +238,7 @@ TmEcode AlertFastLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQu
             continue;
         }
 
-        if (pa->action & ACTION_DROP && IS_ENGINE_MODE_IPS(engine_mode)) {
+        if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
             action = "[Drop] ";
         } else if (pa->action & ACTION_DROP) {
             action = "[wDrop] ";
