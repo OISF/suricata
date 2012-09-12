@@ -211,7 +211,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 }
             }
 
-            if (cd->flags & DETECT_CONTENT_DEPTH || cd->flags & DETECT_CONTENT_OFFSET) {
+            if ((cd->flags & DETECT_CONTENT_DEPTH) || (cd->flags & DETECT_CONTENT_OFFSET)) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a relative keyword "
                                "with a non-relative keyword for the same content." );
                 goto error;
