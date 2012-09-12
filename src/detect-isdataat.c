@@ -267,7 +267,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
     sm->ctx = (void *)idad;
 
     if (s->alproto == ALPROTO_DCERPC &&
-        idad->flags & ISDATAAT_RELATIVE) {
+        (idad->flags & ISDATAAT_RELATIVE)) {
 
         pm = SigMatchGetLastSMFromLists(s, 6,
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],

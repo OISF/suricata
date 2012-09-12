@@ -293,7 +293,7 @@ int FlowForceReassemblyNeedReassmbly(Flow *f, int *server, int *client) {
     TcpSession *ssn;
 
     /* looks like we have no flows in this queue */
-    if (f == NULL || f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) {
+    if (f == NULL || (f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE)) {
         return 0;
     }
 

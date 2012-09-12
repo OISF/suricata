@@ -992,8 +992,8 @@ static void SigBuildAddressMatchArray(Signature *s) {
 static int SigValidate(Signature *s) {
     SCEnter();
 
-    if (s->flags & SIG_FLAG_REQUIRE_PACKET &&
-        s->flags & SIG_FLAG_REQUIRE_STREAM) {
+    if ((s->flags & SIG_FLAG_REQUIRE_PACKET) &&
+        (s->flags & SIG_FLAG_REQUIRE_STREAM)) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix packet keywords with "
                    "tcp-stream or flow:only_stream.  Invalidating signature.");
         SCReturnInt(0);
@@ -1061,8 +1061,8 @@ static int SigValidate(Signature *s) {
         for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
-                if (cd->flags & DETECT_CONTENT_DISTANCE ||
-                    cd->flags & DETECT_CONTENT_WITHIN) {
+                if ((cd->flags & DETECT_CONTENT_DISTANCE) ||
+                    (cd->flags & DETECT_CONTENT_WITHIN)) {
                     SigMatch *pm = SigMatchGetLastSMFromLists(s, 4,
                                                               DETECT_PCRE, sm->prev,
                                                               DETECT_BYTEJUMP, sm->prev);

@@ -143,22 +143,22 @@ int DetectSslStateMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     FLOWLOCK_RDLOCK(f);
 
-    if (ssd->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO &&
+    if ((ssd->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
         !(ssl_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO)) {
         result = 0;
         goto end;
     }
-    if (ssd->flags & SSL_AL_FLAG_STATE_SERVER_HELLO &&
+    if ((ssd->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
         !(ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO)) {
         result = 0;
         goto end;
     }
-    if (ssd->flags & SSL_AL_FLAG_STATE_CLIENT_KEYX &&
+    if ((ssd->flags & SSL_AL_FLAG_STATE_CLIENT_KEYX) &&
         !(ssl_state->flags & SSL_AL_FLAG_STATE_CLIENT_KEYX)) {
         result = 0;
         goto end;
     }
-    if (ssd->flags & SSL_AL_FLAG_STATE_SERVER_KEYX &&
+    if ((ssd->flags & SSL_AL_FLAG_STATE_SERVER_KEYX) &&
         !(ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_KEYX)) {
         result = 0;
         goto end;

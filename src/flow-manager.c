@@ -136,7 +136,7 @@ static inline int FlowGetFlowState(Flow *f) {
     if (flow_proto[f->protomap].GetProtoState != NULL) {
         return flow_proto[f->protomap].GetProtoState(f->protoctx);
     } else {
-        if (f->flags & FLOW_TO_SRC_SEEN && f->flags & FLOW_TO_DST_SEEN)
+        if ((f->flags & FLOW_TO_SRC_SEEN) && (f->flags & FLOW_TO_DST_SEEN))
             return FLOW_STATE_ESTABLISHED;
         else
             return FLOW_STATE_NEW;

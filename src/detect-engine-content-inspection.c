@@ -134,8 +134,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         uint32_t prev_buffer_offset = det_ctx->buffer_offset;
 
         do {
-            if (cd->flags & DETECT_CONTENT_DISTANCE ||
-                cd->flags & DETECT_CONTENT_WITHIN) {
+            if ((cd->flags & DETECT_CONTENT_DISTANCE) ||
+                (cd->flags & DETECT_CONTENT_WITHIN)) {
                 SCLogDebug("det_ctx->buffer_offset %"PRIu32, det_ctx->buffer_offset);
 
                 offset = prev_buffer_offset;
@@ -255,9 +255,9 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
             if (found == NULL && !(cd->flags & DETECT_CONTENT_NEGATED)) {
                 SCReturnInt(0);
-            } else if (found == NULL && cd->flags & DETECT_CONTENT_NEGATED) {
+            } else if (found == NULL && (cd->flags & DETECT_CONTENT_NEGATED)) {
                 goto match;
-            } else if (found != NULL && cd->flags & DETECT_CONTENT_NEGATED) {
+            } else if (found != NULL && (cd->flags & DETECT_CONTENT_NEGATED)) {
                 SCLogDebug("content %"PRIu32" matched at offset %"PRIu32", but negated so no match", cd->id, match_offset);
                 /* don't bother carrying recursive matches now, for preceding
                  * relative keywords */
@@ -444,7 +444,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
-        if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN &&
+        if ((bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN) &&
             endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE) {
 
             DCERPCState *dcerpc_state = (DCERPCState *)data;

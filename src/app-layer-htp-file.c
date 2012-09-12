@@ -101,8 +101,8 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
         files = s->files_tc;
         files_opposite = s->files_ts;
 
-        if (s->flags & HTP_FLAG_STORE_FILES_TS ||
-                (s->flags & HTP_FLAG_STORE_FILES_TX_TS && txid == s->store_tx_id)) {
+        if ((s->flags & HTP_FLAG_STORE_FILES_TS) ||
+                ((s->flags & HTP_FLAG_STORE_FILES_TX_TS) && txid == s->store_tx_id)) {
             flags |= FILE_STORE;
         }
 
@@ -116,7 +116,7 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
             flags |= FILE_NOMD5;
         }
 
-        if (!(flags & FILE_STORE) && s->f->flags & FLOW_FILE_NO_STORE_TC) {
+        if (!(flags & FILE_STORE) && (s->f->flags & FLOW_FILE_NO_STORE_TC)) {
             flags |= FILE_NOSTORE;
         }
     } else {
@@ -131,8 +131,8 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
         files = s->files_ts;
         files_opposite = s->files_tc;
 
-        if (s->flags & HTP_FLAG_STORE_FILES_TC ||
-                (s->flags & HTP_FLAG_STORE_FILES_TX_TC && txid == s->store_tx_id)) {
+        if ((s->flags & HTP_FLAG_STORE_FILES_TC) ||
+                ((s->flags & HTP_FLAG_STORE_FILES_TX_TC) && txid == s->store_tx_id)) {
             flags |= FILE_STORE;
         }
         if (s->f->flags & FLOW_FILE_NO_MAGIC_TS) {
@@ -145,7 +145,7 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
             flags |= FILE_NOMD5;
         }
 
-        if (!(flags & FILE_STORE) && s->f->flags & FLOW_FILE_NO_STORE_TS) {
+        if (!(flags & FILE_STORE) && (s->f->flags & FLOW_FILE_NO_STORE_TS)) {
             flags |= FILE_NOSTORE;
         }
     }

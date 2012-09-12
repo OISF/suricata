@@ -584,7 +584,7 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
         }
     } else if (s->alproto == ALPROTO_DCERPC &&
-        data->flags & DETECT_BYTEJUMP_RELATIVE) {
+        (data->flags & DETECT_BYTEJUMP_RELATIVE)) {
         SigMatch *pm = NULL;
         SigMatch *dm = NULL;
 

@@ -206,11 +206,11 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
     }
 
     cd = pm->ctx;
-    if (cd->flags & DETECT_CONTENT_NEGATED &&
-        (cd->flags & DETECT_CONTENT_DISTANCE ||
-         cd->flags & DETECT_CONTENT_WITHIN ||
-         cd->flags & DETECT_CONTENT_OFFSET ||
-         cd->flags & DETECT_CONTENT_DEPTH)) {
+    if ((cd->flags & DETECT_CONTENT_NEGATED) &&
+        ((cd->flags & DETECT_CONTENT_DISTANCE) ||
+         (cd->flags & DETECT_CONTENT_WITHIN) ||
+         (cd->flags & DETECT_CONTENT_OFFSET) ||
+         (cd->flags & DETECT_CONTENT_DEPTH))) {
 
         /* we can't have any of these if we are having "only" */
         SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern; cannot be "
@@ -249,11 +249,11 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
                     strlen(arg), 0, 0, ov, MAX_SUBSTRINGS);
     /* fast pattern only */
     if (ret == 2) {
-        if (cd->flags & DETECT_CONTENT_NEGATED ||
-            cd->flags & DETECT_CONTENT_DISTANCE ||
-            cd->flags & DETECT_CONTENT_WITHIN ||
-            cd->flags & DETECT_CONTENT_OFFSET ||
-            cd->flags & DETECT_CONTENT_DEPTH) {
+        if ((cd->flags & DETECT_CONTENT_NEGATED) ||
+            (cd->flags & DETECT_CONTENT_DISTANCE) ||
+            (cd->flags & DETECT_CONTENT_WITHIN) ||
+            (cd->flags & DETECT_CONTENT_OFFSET) ||
+            (cd->flags & DETECT_CONTENT_DEPTH)) {
 
             /* we can't have any of these if we are having "only" */
             SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern: only; cannot be "

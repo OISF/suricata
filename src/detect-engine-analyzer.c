@@ -632,10 +632,10 @@ void EngineAnalysisRules(Signature *s, char *line)
             }
             else if (sm->type == DETECT_FLOW) {
                 rule_flow += 1;
-                if (s->flags & SIG_FLAG_TOSERVER && !(s->flags & SIG_FLAG_TOCLIENT)) {
+                if ((s->flags & SIG_FLAG_TOSERVER) && !(s->flags & SIG_FLAG_TOCLIENT)) {
                     rule_flow_toserver = 1;
                 }
-                else if (s->flags & SIG_FLAG_TOCLIENT && !(s->flags & SIG_FLAG_TOSERVER)) {
+                else if ((s->flags & SIG_FLAG_TOCLIENT) && !(s->flags & SIG_FLAG_TOSERVER)) {
                     rule_flow_toclient = 1;
                 }
                 DetectFlowData *fd = (DetectFlowData *)sm->ctx;
