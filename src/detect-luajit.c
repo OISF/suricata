@@ -102,6 +102,8 @@ void DetectLuajitRegister(void) {
 #define DATATYPE_HTTP_URI           (1<<3)
 #define DATATYPE_HTTP_URI_RAW       (1<<4)
 #define DATATYPE_HTTP_REQUEST_LINE  (1<<5)
+#define DATATYPE_HTTP_REQUEST_BODY  (1<<6)
+#define DATATYPE_HTTP_RESPONSE_BODY (1<<7)
 
 
 /** \brief dump stack from lua state to screen */
@@ -136,6 +138,88 @@ void LuaDumpStack(lua_State *state) {
         }
         printf("\n");
     }
+}
+
+int DetectLuajitMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm, uint8_t *buffer, uint32_t buffer_len, uint32_t offset) {
+    SCEnter();
+    int ret = 0;
+
+    if (buffer == NULL || buffer_len == 0)
+        SCReturnInt(0);
+
+    DetectLuajitData *luajit = (DetectLuajitData *)sm->ctx;
+    if (luajit == NULL)
+        SCReturnInt(0);
+
+    DetectLuajitThreadData *tluajit = (DetectLuajitThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, luajit->thread_ctx_id);
+    if (tluajit == NULL)
+        SCReturnInt(0);
+
+    lua_getglobal(tluajit->luastate, "match");
+    lua_newtable(tluajit->luastate); /* stack at -1 */
+
+    lua_pushliteral (tluajit->luastate, "offset"); /* stack at -2 */
+    lua_pushnumber (tluajit->luastate, (int)offset);
+    lua_settable(tluajit->luastate, -3);
+
+    lua_pushstring (tluajit->luastate, luajit->buffername); /* stack at -2 */
+    lua_pushlstring (tluajit->luastate, (const char *)buffer, (size_t)buffer_len);
+    lua_settable(tluajit->luastate, -3);
+
+    int retval = lua_pcall(tluajit->luastate, 1, 1, 0);
+    if (retval != 0) {
+        SCLogInfo("failed to run script: %s", lua_tostring(tluajit->luastate, -1));
+    }
+
+    /* process returns from script */
+    if (lua_gettop(tluajit->luastate) > 0) {
+        /* script returns a number (return 1 or return 0) */
+        if (lua_type(tluajit->luastate, 1) == LUA_TNUMBER) {
+            double script_ret = lua_tonumber(tluajit->luastate, 1);
+            SCLogDebug("script_ret %f", script_ret);
+            lua_pop(tluajit->luastate, 1);
+
+            if (script_ret == 1.0)
+                ret = 1;
+
+        /* script returns a table */
+        } else if (lua_type(tluajit->luastate, 1) == LUA_TTABLE) {
+            lua_pushnil(tluajit->luastate);
+            const char *k, *v;
+            while (lua_next(tluajit->luastate, -2)) {
+                v = lua_tostring(tluajit->luastate, -1);
+                lua_pop(tluajit->luastate, 1);
+                k = lua_tostring(tluajit->luastate, -1);
+
+                if (!k || !v)
+                    continue;
+
+                SCLogDebug("k='%s', v='%s'", k, v);
+
+                if (strcmp(k, "retval") == 0) {
+                    if (atoi(v) == 1)
+                        ret = 1;
+                } else {
+                    /* set flow var? */
+                }
+            }
+
+            /* pop the table */
+            lua_pop(tluajit->luastate, 1);
+        }
+    } else {
+        SCLogDebug("no stack");
+    }
+
+    if (luajit->negated) {
+        if (ret == 1)
+            ret = 0;
+        else
+            ret = 1;
+    }
+
+    SCReturnInt(ret);
+
 }
 
 /**
@@ -207,15 +291,6 @@ static int DetectLuajitMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                     if (tx == NULL)
                         continue;
 
-                    if ((tluajit->flags & DATATYPE_HTTP_URI) && tx->request_uri_normalized != NULL &&
-                            bstr_len(tx->request_uri_normalized) > 0)
-                    {
-                        lua_pushliteral(tluajit->luastate, "http.uri"); /* stack at -2 */
-                        lua_pushlstring (tluajit->luastate,
-                                (const char *)bstr_ptr(tx->request_uri_normalized),
-                                bstr_len(tx->request_uri_normalized));
-                        lua_settable(tluajit->luastate, -3);
-                    }
                     if ((tluajit->flags & DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
                             bstr_len(tx->request_line) > 0) {
                         lua_pushliteral(tluajit->luastate, "http.request_line"); /* stack at -2 */
@@ -318,8 +393,6 @@ static void *DetectLuajitThreadInit(void *data) {
         goto error;
     }
 
-    /* pop the table */
-    lua_pop(t->luastate, 1);
     return (void *)t;
 
 error:
@@ -439,8 +512,12 @@ static int DetectLuaSetupPrime(DetectLuajitData *ld) {
         } else if (strcmp(k, "payload") == 0 && strcmp(v, "true") == 0) {
             ld->flags |= DATATYPE_PAYLOAD;
         } else if (strncmp(k, "http", 4) == 0 && strcmp(v, "true") == 0) {
-            if (ld->alproto != ALPROTO_UNKNOWN) {
-                SCLogError(SC_ERR_LUAJIT_ERROR, "can just inspect script against one alproto %s", k);
+            if (ld->alproto != ALPROTO_UNKNOWN && ld->alproto != ALPROTO_HTTP) {
+                SCLogError(SC_ERR_LUAJIT_ERROR, "can just inspect script against one app layer proto like HTTP at a time");
+                goto error;
+            }
+            if (ld->flags != 0) {
+                SCLogError(SC_ERR_LUAJIT_ERROR, "when inspecting HTTP buffers only a single buffer can be inspected");
                 goto error;
             }
 
@@ -451,8 +528,19 @@ static int DetectLuaSetupPrime(DetectLuajitData *ld) {
                 ld->flags |= DATATYPE_HTTP_URI;
             else if (strcmp(k, "http.request_line") == 0)
                 ld->flags |= DATATYPE_HTTP_REQUEST_LINE;
-            else {
+            else if (strcmp(k, "http.request_body") == 0)
+                ld->flags |= DATATYPE_HTTP_REQUEST_BODY;
+            else if (strcmp(k, "http.response_body") == 0) {
+                ld->flags |= DATATYPE_HTTP_RESPONSE_BODY;
+
+            } else {
                 SCLogError(SC_ERR_LUAJIT_ERROR, "unsupported http data type %s", k);
+                goto error;
+            }
+
+            ld->buffername = SCStrdup(k);
+            if (ld->buffername == NULL) {
+                SCLogError(SC_ERR_LUAJIT_ERROR, "alloc error");
                 goto error;
             }
 
@@ -491,15 +579,15 @@ static int DetectLuajitSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     if (luajit == NULL)
         goto error;
 
+    if (DetectLuaSetupPrime(luajit) == -1) {
+        goto error;
+    }
+
     luajit->thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "luajit",
             DetectLuajitThreadInit, (void *)luajit,
             DetectLuajitThreadFree);
     if (luajit->thread_ctx_id == -1)
         goto error;
-
-    if (DetectLuaSetupPrime(luajit) == -1) {
-        goto error;
-    }
 
     if (luajit->alproto != ALPROTO_UNKNOWN) {
         if (s->alproto != ALPROTO_UNKNOWN && luajit->alproto != s->alproto) {
@@ -517,8 +605,18 @@ static int DetectLuajitSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     sm->type = DETECT_LUAJIT;
     sm->ctx = (void *)luajit;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-
+    if (luajit->alproto == ALPROTO_UNKNOWN)
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    else if (luajit->alproto == ALPROTO_HTTP) {
+        if (luajit->flags & DATATYPE_HTTP_RESPONSE_BODY)
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
+        else if (luajit->flags & DATATYPE_HTTP_REQUEST_BODY)
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCBDMATCH);
+        else if (luajit->flags & DATATYPE_HTTP_URI)
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
+        else
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+    }
     return 0;
 
 error:
@@ -537,6 +635,10 @@ error:
 static void DetectLuajitFree(void *ptr) {
     if (ptr != NULL) {
         DetectLuajitData *luajit = (DetectLuajitData *)ptr;
+
+        if (luajit->buffername)
+            SCFree(luajit->buffername);
+
         SCFree(luajit);
     }
 }

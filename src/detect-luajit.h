@@ -42,6 +42,7 @@ typedef struct DetectLuajitData {
     char *filename;
     uint32_t flags;
     int alproto;
+    char *buffername; /* buffer name in case of a single buffer */
 } DetectLuajitData;
 #endif
 

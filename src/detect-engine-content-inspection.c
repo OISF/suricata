@@ -497,6 +497,13 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         }
 
         SCReturnInt(0);
+    } else if (sm->type == DETECT_LUAJIT) {
+        if (DetectLuajitMatchBuffer(det_ctx, s, sm, buffer, buffer_len, det_ctx->buffer_offset) != 1) {
+            SCReturnInt(0);
+        }
+
+        goto match;
+
     } else {
         SCLogDebug("sm->type %u", sm->type);
 #ifdef DEBUG
