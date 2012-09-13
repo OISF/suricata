@@ -1012,10 +1012,10 @@ done:
 }
 
 /**
- * \brief Timeout a tracker.
+ * \brief Timeout trackers.
  *
- * Called when we fail to get a tracker from the pool.  The first
- * tracker that has expired will be released back to the pool then the
+ * Called when we fail to get a tracker from the pool.  The trackers
+ * that has expired will be released back to the pool then the
  * function will exit.
  *
  * Intended to be called with the tracker pool already locked.
@@ -1040,6 +1040,7 @@ DefragTimeoutTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
     }
     while (next != NULL) {
         tracker = HashListTableGetListData(next);
+        next = HashListTableGetListNext(next);
 
         if (tracker->timeout < (unsigned int)p->ts.tv_sec) {
             int af_family = tracker->af;
@@ -1057,10 +1058,7 @@ DefragTimeoutTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
                         tv->sc_perf_pca);
                 }
             }
-            return;
         }
-
-        next = HashListTableGetListNext(next);
     }
 }
 
