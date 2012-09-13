@@ -48,5 +48,6 @@ typedef struct DetectLuajitData {
 
 /* prototypes */
 void DetectLuajitRegister (void);
+int DetectLuajitMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm, uint8_t *buffer, uint32_t buffer_len, uint32_t offset);
 
 #endif /* __DETECT_FILELUAJIT_H__ */
