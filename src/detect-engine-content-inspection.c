@@ -41,6 +41,7 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-uricontent.h"
 #include "detect-urilen.h"
+#include "detect-luajit.h"
 
 #include "app-layer-dcerpc.h"
 
@@ -497,13 +498,14 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         }
 
         SCReturnInt(0);
-    } else if (sm->type == DETECT_LUAJIT) {
+#ifdef HAVE_LUAJIT
+    }
+    else if (sm->type == DETECT_LUAJIT) {
         if (DetectLuajitMatchBuffer(det_ctx, s, sm, buffer, buffer_len, det_ctx->buffer_offset) != 1) {
             SCReturnInt(0);
         }
-
         goto match;
-
+#endif
     } else {
         SCLogDebug("sm->type %u", sm->type);
 #ifdef DEBUG
