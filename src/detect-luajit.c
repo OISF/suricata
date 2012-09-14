@@ -96,14 +96,23 @@ void DetectLuajitRegister(void) {
     return;
 }
 
-#define DATATYPE_PACKET             (1<<0)
-#define DATATYPE_PAYLOAD            (1<<1)
-#define DATATYPE_STREAM             (1<<2)
-#define DATATYPE_HTTP_URI           (1<<3)
-#define DATATYPE_HTTP_URI_RAW       (1<<4)
-#define DATATYPE_HTTP_REQUEST_LINE  (1<<5)
-#define DATATYPE_HTTP_REQUEST_BODY  (1<<6)
-#define DATATYPE_HTTP_RESPONSE_BODY (1<<7)
+#define DATATYPE_PACKET                     (1<<0)
+#define DATATYPE_PAYLOAD                    (1<<1)
+#define DATATYPE_STREAM                     (1<<2)
+
+#define DATATYPE_HTTP_URI                   (1<<3)
+#define DATATYPE_HTTP_URI_RAW               (1<<4)
+
+#define DATATYPE_HTTP_REQUEST_HEADERS       (1<<5)
+#define DATATYPE_HTTP_REQUEST_HEADERS_RAW   (1<<6)
+#define DATATYPE_HTTP_REQUEST_COOKIE        (1<<7)
+#define DATATYPE_HTTP_REQUEST_UA            (1<<8)
+
+#define DATATYPE_HTTP_REQUEST_LINE          (1<<9)
+#define DATATYPE_HTTP_REQUEST_BODY          (1<<10)
+
+#define DATATYPE_HTTP_RESPONSE_COOKIE       (1<<11)
+#define DATATYPE_HTTP_RESPONSE_BODY         (1<<12)
 
 
 /** \brief dump stack from lua state to screen */
@@ -526,14 +535,25 @@ static int DetectLuaSetupPrime(DetectLuajitData *ld) {
 
             if (strcmp(k, "http.uri") == 0)
                 ld->flags |= DATATYPE_HTTP_URI;
+            else if (strcmp(k, "http.uri.raw") == 0)
+                ld->flags |= DATATYPE_HTTP_URI_RAW;
             else if (strcmp(k, "http.request_line") == 0)
                 ld->flags |= DATATYPE_HTTP_REQUEST_LINE;
-            else if (strcmp(k, "http.request_body") == 0)
+            else if (strcmp(k, "http.request_headers") == 0)
+                ld->flags |= DATATYPE_HTTP_REQUEST_HEADERS;
+            else if (strcmp(k, "http.request_headers.raw") == 0)
+                ld->flags |= DATATYPE_HTTP_REQUEST_HEADERS_RAW;
+            else if (strcmp(k, "http.request_cookie") == 0)
+                ld->flags |= DATATYPE_HTTP_REQUEST_COOKIE;
+            else if (strcmp(k, "http.request_cookie") == 0)
+                ld->flags |= DATATYPE_HTTP_REQUEST_UA;
+            else if (strcmp(k, "http.request_user_agent") == 0)
                 ld->flags |= DATATYPE_HTTP_REQUEST_BODY;
-            else if (strcmp(k, "http.response_body") == 0) {
+            else if (strcmp(k, "http.response_body") == 0)
                 ld->flags |= DATATYPE_HTTP_RESPONSE_BODY;
-
-            } else {
+            else if (strcmp(k, "http.response_cookie") == 0)
+                ld->flags |= DATATYPE_HTTP_RESPONSE_COOKIE;
+            else {
                 SCLogError(SC_ERR_LUAJIT_ERROR, "unsupported http data type %s", k);
                 goto error;
             }
@@ -614,6 +634,18 @@ static int DetectLuajitSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCBDMATCH);
         else if (luajit->flags & DATATYPE_HTTP_URI)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
+        else if (luajit->flags & DATATYPE_HTTP_URI_RAW)
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRUDMATCH);
+        else if (luajit->flags & DATATYPE_HTTP_REQUEST_COOKIE)
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
+        else if (luajit->flags & DATATYPE_HTTP_REQUEST_UA)
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HUADMATCH);
+        else if (luajit->flags & DATATYPE_HTTP_REQUEST_HEADERS)
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HHDMATCH);
+        else if (luajit->flags & DATATYPE_HTTP_REQUEST_HEADERS_RAW)
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRHDMATCH);
+        else if (luajit->flags & DATATYPE_HTTP_RESPONSE_COOKIE)
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
         else
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
     }
