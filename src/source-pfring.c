@@ -371,30 +371,30 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     /* We only set cluster info if the number of pfring threads is greater than 1 */
     ptv->threads = pfconf->threads;
 
-    if (ptv->threads > 1) {
-        ptv->cluster_id = pfconf->cluster_id;
+    ptv->cluster_id = pfconf->cluster_id;
 
 #ifdef HAVE_PFRING_CLUSTER_TYPE
-        ptv->ctype = pfconf->ctype;
-        rc = pfring_set_cluster(ptv->pd, ptv->cluster_id, ptv->ctype);
+    ptv->ctype = pfconf->ctype;
+    rc = pfring_set_cluster(ptv->pd, ptv->cluster_id, ptv->ctype);
 #else
-        rc = pfring_set_cluster(ptv->pd, ptv->cluster_id);
+    rc = pfring_set_cluster(ptv->pd, ptv->cluster_id);
 #endif /* HAVE_PFRING_CLUSTER_TYPE */
 
-        if (rc != 0) {
-            SCLogError(SC_ERR_PF_RING_SET_CLUSTER_FAILED, "pfring_set_cluster "
-                    "returned %d for cluster-id: %d", rc, ptv->cluster_id);
-            pfconf->DerefFunc(pfconf);
-            return TM_ECODE_FAILED;
-        }
+    if (rc != 0) {
+        SCLogError(SC_ERR_PF_RING_SET_CLUSTER_FAILED, "pfring_set_cluster "
+                "returned %d for cluster-id: %d", rc, ptv->cluster_id);
+        pfconf->DerefFunc(pfconf);
+        return TM_ECODE_FAILED;
+    }
+
+    if (ptv->threads > 1) {
         SCLogInfo("(%s) Using PF_RING v.%d.%d.%d, interface %s, cluster-id %d",
                 tv->name, (version & 0xFFFF0000) >> 16, (version & 0x0000FF00) >> 8,
                 version & 0x000000FF, ptv->interface, ptv->cluster_id);
-
     } else {
-        SCLogInfo("(%s) Using PF_RING v.%d.%d.%d, interface %s, single-pfring-thread",
+        SCLogInfo("(%s) Using PF_RING v.%d.%d.%d, interface %s, cluster-id %d, single-pfring-thread",
                 tv->name, (version & 0xFFFF0000) >> 16, (version & 0x0000FF00) >> 8,
-                version & 0x000000FF, ptv->interface);
+                version & 0x000000FF, ptv->interface, ptv->cluster_id);
     }
 
 #ifdef HAVE_PFRING_SET_BPF_FILTER
