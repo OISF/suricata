@@ -525,6 +525,9 @@ void usage(const char *progname)
 #ifdef HAVE_NAPATECH
     printf("\t--napatech <adapter>          : run Napatech feeds using <adapter>\n");
 #endif
+#ifdef BUILD_UNIX_SOCKET
+    printf("\t--unix-socket                : use unix socket to control suricata work\n");
+#endif
     printf("\n");
     printf("\nTo run the engine with default configuration on "
             "interface eth0 with signature file \"signatures.rules\", run the "
@@ -752,6 +755,9 @@ int main(int argc, char **argv)
         {"pfring-cluster-type", required_argument, 0, 0},
         {"af-packet", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
+#ifdef BUILD_UNIX_SOCKET
+        {"unix-socket", 0, 0, 0},
+#endif
         {"pcap-buffer-size", required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-app-layer-protos", 0, &list_app_layer_protocols, 1},
@@ -890,6 +896,17 @@ int main(int argc, char **argv)
                     fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
                     exit(EXIT_FAILURE);
                 }
+#ifdef BUILD_UNIX_SOCKET
+            } else if (strcmp((long_opts[option_index]).name , "unix-socket") == 0) {
+                if (run_mode == RUNMODE_UNKNOWN) {
+                    run_mode = RUNMODE_UNIX_SOCKET;
+                } else {
+                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                            "has been specified");
+                    usage(argv[0]);
+                    exit(EXIT_FAILURE);
+                }
+#endif
             }
             else if(strcmp((long_opts[option_index]).name, "list-app-layer-protocols") == 0) {
                 /* listing all supported app layer protocols */
@@ -1794,7 +1811,9 @@ int main(int argc, char **argv)
 
     SCDropMainThreadCaps(userid, groupid);
 
-    RunModeInitializeOutputs();
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        RunModeInitializeOutputs();
+    }
 
     /* run the selected runmode */
     if (run_mode == RUNMODE_PCAP_DEV) {
@@ -1850,17 +1869,18 @@ int main(int argc, char **argv)
     }
 #endif
 
-    /* Spawn the flow manager thread */
-    FlowManagerThreadSpawn();
-#ifdef BUILD_UNIX_SOCKET
-    /* Spawn the unix socket manager thread */
-    int unix_socket = 0;
-    if (ConfGetBool("unix-command", &unix_socket) != 1)
-        unix_socket = 0;
-    if (unix_socket == 1) {
-        UnixManagerThreadSpawn();
+    /* In Unix socket runmode, Flow manager is started on demand */
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        /* Spawn the unix socket manager thread */
+        int unix_socket = 0;
+        if (ConfGetBool("unix-command", &unix_socket) != 1)
+            unix_socket = 0;
+        if (unix_socket == 1) {
+            UnixManagerThreadSpawn(de_ctx);
+        }
+        /* Spawn the flow manager thread */
+        FlowManagerThreadSpawn();
     }
-#endif
 
     StreamTcpInitConfig(STREAM_VERBOSE);
 
@@ -1927,13 +1947,19 @@ int main(int argc, char **argv)
     SCCudaPBKillBatchingPackets();
 #endif
 
-    /* First we need to kill the flow manager thread */
-    FlowKillFlowManagerThread();
+    UnixSocketKillSocketThread();
+
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        /* First we need to kill the flow manager thread */
+        FlowKillFlowManagerThread();
+    }
 
     /* Disable packet acquire thread first */
     TmThreadDisableThreadsWithTMS(TM_FLAG_RECEIVE_TM | TM_FLAG_DECODE_TM);
 
-    FlowForceReassembly();
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        FlowForceReassembly();
+    }
 
     struct timeval end_time;
     memset(&end_time, 0, sizeof(end_time));
@@ -1961,7 +1987,9 @@ int main(int argc, char **argv)
     }
 
     DetectEngineCtx *global_de_ctx = DetectEngineGetGlobalDeCtx();
-    BUG_ON(global_de_ctx == NULL);
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        BUG_ON(global_de_ctx == NULL);
+    }
 
     TmThreadKillThreads();
 
@@ -2007,7 +2035,9 @@ int main(int argc, char **argv)
 
     AppLayerHtpPrintStats();
 
-    DetectEngineCtxFree(global_de_ctx);
+    if (global_de_ctx) {
+        DetectEngineCtxFree(global_de_ctx);
+    }
     AlpProtoDestroy();
 
     TagDestroyCtx();
