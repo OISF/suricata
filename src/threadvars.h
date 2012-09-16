@@ -77,6 +77,9 @@ typedef struct ThreadVars_ {
     void *outctx;
     char *outqh_name;
 
+    /** local data */
+    void *tdata;
+
     /** queue handlers */
     struct Packet_ * (*tmqh_in)(struct ThreadVars_ *);
     void (*InShutdownHandler)(struct ThreadVars_ *);

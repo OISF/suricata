@@ -33,4 +33,6 @@ void FlowManagerThreadSpawn(void);
 void FlowKillFlowManagerThread(void);
 void FlowMgrRegisterTests (void);
 
+void FlowManagerClean();
+
 #endif /* __FLOW_MANAGER_H__ */

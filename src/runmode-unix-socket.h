@@ -15,21 +15,18 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
+/** \file
  *
- * \author Eric Leblond <eric@regit.org>
+ *  \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef UNIX_MANAGER_H
-#define UNIX_MANAGER_H
+#ifndef __RUNMODE_UNIX_SOCKET_H__
+#define __RUNMODE_UNIX_SOCKET_H__
 
-SCCondT unix_manager_cond;
-SCMutex unix_manager_mutex;
+int RunModeUnixSocketSingle(DetectEngineCtx *);
+void RunModeUnixSocketRegister(void);
+const char *RunModeUnixSocketGetDefaultMode(void);
 
-void UnixManagerThreadSpawn();
-void UnixSocketKillSocketThread(void);
+int RunModeUnixSocketIsActive(void);
 
-void UnixSocketPcapFile(TmEcode tm);
-
-#endif /* UNIX_MANAGER_H */
+#endif /* __RUNMODE_UNIX_SOCKET_H__ */
