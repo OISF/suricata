@@ -22,13 +22,16 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 #include "unix-manager.h"
+#include "detect-engine.h"
 #include "tm-threads.h"
 #include "runmodes.h"
 #include "conf.h"
 
 #include "util-privs.h"
 #include "util-debug.h"
+#include "util-signal.h"
 
 #include <sys/un.h>
 #include <sys/stat.h>
@@ -297,6 +300,17 @@ int UnixCommandExecute(UnixCommand * this, char *command)
     if (!strcmp(value, "shutdown")) {
         json_object_set_new(server_msg, "message", json_string("Closing Suricata"));
         EngineStop();
+    } else if (!strcmp(value, "reload-rules")) {
+        if (suricata_ctl_flags != 0) {
+            json_object_set_new(server_msg, "message",
+                                json_string("Live rule swap no longer possible. Engine in shutdown mode."));
+            ret = 0;
+        } else {
+            /* FIXME : need to check option value */
+            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
+            DetectEngineSpawnLiveRuleSwapMgmtThread();
+            json_object_set_new(server_msg, "message", json_string("Reloading rules"));
+        }
     } else {
         json_object_set_new(server_msg, "message", json_string("Unknown command"));
         ret = 0;

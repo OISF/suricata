@@ -143,6 +143,7 @@ void EngineKill(void);
 /* live rule swap required this to be made static */
 void SignalHandlerSigusr2(int);
 void SignalHandlerSigusr2EngineShutdown(int);
+void SignalHandlerSigusr2Idle(int sig);
 
 int RunmodeIsUnittests(void);
 
