@@ -38,7 +38,7 @@ __thread int record_locks = 0;
 int profiling_locks_enabled = 0;
 int profiling_locks_output_to_file = 0;
 char *profiling_locks_file_name = NULL;
-char *profiling_locks_file_mode = NULL;
+char *profiling_locks_file_mode = "a";
 
 typedef struct LockRecord_ {
     char *file; // hash
@@ -147,11 +147,7 @@ void SCProfilingListLocks(void) {
     FILE *fp = NULL;
 
     if (profiling_locks_output_to_file == 1) {
-        if (strcasecmp(profiling_locks_file_mode, "yes") == 0) {
-            fp = fopen(profiling_locks_file_name, "a");
-        } else {
-            fp = fopen(profiling_locks_file_name, "w");
-        }
+        fp = fopen(profiling_locks_file_name, profiling_locks_file_mode);
 
         if (fp == NULL) {
             SCLogError(SC_ERR_FOPEN, "failed to open %s: %s",

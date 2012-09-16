@@ -94,7 +94,7 @@ int profiling_packets_output_to_file = 0;
 char *profiling_file_name;
 char *profiling_packets_file_name;
 char *profiling_csv_file_name;
-const char *profiling_packets_file_mode;
+const char *profiling_packets_file_mode = "a";
 
 /**
  * Used as a check so we don't double enter a profiling run.
@@ -143,9 +143,12 @@ SCProfilingInit(void)
                 profiling_packets_file_name = SCMalloc(PATH_MAX);
                 snprintf(profiling_packets_file_name, PATH_MAX, "%s/%s", log_dir, filename);
 
-                profiling_packets_file_mode = ConfNodeLookupChildValue(conf, "append");
-                if (profiling_packets_file_mode == NULL)
-                    profiling_packets_file_mode = DEFAULT_LOG_MODE_APPEND;
+                const char *v = ConfNodeLookupChildValue(conf, "append");
+                if (v == NULL || ConfValIsTrue(v)) {
+                    profiling_packets_file_mode = "a";
+                } else {
+                    profiling_packets_file_mode = "w";
+                }
 
                 profiling_packets_output_to_file = 1;
             }
@@ -214,9 +217,12 @@ SCProfilingInit(void)
                 profiling_locks_file_name = SCMalloc(PATH_MAX);
                 snprintf(profiling_locks_file_name, PATH_MAX, "%s/%s", log_dir, filename);
 
-                profiling_locks_file_mode = (char *)ConfNodeLookupChildValue(conf, "append");
-                if (profiling_locks_file_mode == NULL)
-                    profiling_locks_file_mode = DEFAULT_LOG_MODE_APPEND;
+                const char *v = ConfNodeLookupChildValue(conf, "append");
+                if (v == NULL || ConfValIsTrue(v)) {
+                    profiling_locks_file_mode = "a";
+                } else {
+                    profiling_locks_file_mode = "w";
+                }
 
                 profiling_locks_output_to_file = 1;
             }
@@ -267,11 +273,7 @@ void SCProfilingDumpPacketStats(void) {
         return;
 
     if (profiling_packets_output_to_file == 1) {
-        if (strcasecmp(profiling_packets_file_mode, "yes") == 0) {
-            fp = fopen(profiling_packets_file_name, "a");
-        } else {
-            fp = fopen(profiling_packets_file_name, "w");
-        }
+        fp = fopen(profiling_packets_file_name, profiling_packets_file_mode);
 
         if (fp == NULL) {
             SCLogError(SC_ERR_FOPEN, "failed to open %s: %s",

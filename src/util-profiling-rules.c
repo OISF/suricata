@@ -87,7 +87,7 @@ static SCProfileData rules_profile_data[0xffff];
 static pthread_mutex_t rules_profile_data_m;
 int profiling_rules_enabled = 0;
 static char *profiling_file_name = "";
-static const char *profiling_file_mode = "";
+static const char *profiling_file_mode = "a";
 
 /**
  * Sort orders for dumping profiled rules.
@@ -173,9 +173,12 @@ void SCProfilingRulesGlobalInit(void) {
                 profiling_file_name = SCMalloc(PATH_MAX);
                 snprintf(profiling_file_name, PATH_MAX, "%s/%s", log_dir, filename);
 
-                profiling_file_mode = ConfNodeLookupChildValue(conf, "append");
-                if (profiling_file_mode == NULL)
-                    profiling_file_mode = DEFAULT_LOG_MODE_APPEND;
+                const char *v = ConfNodeLookupChildValue(conf, "append");
+                if (v == NULL || ConfValIsTrue(v)) {
+                    profiling_file_mode = "a";
+                } else {
+                    profiling_file_mode = "w";
+                }
 
                 profiling_output_to_file = 1;
             }
@@ -272,11 +275,7 @@ SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx)
     struct timeval tval;
     struct tm *tms;
     if (profiling_output_to_file == 1) {
-        if (ConfValIsTrue(profiling_file_mode)) {
-            fp = fopen(profiling_file_name, "a");
-        } else {
-            fp = fopen(profiling_file_name, "w");
-        }
+        fp = fopen(profiling_file_name, profiling_file_mode);
 
         if (fp == NULL) {
             SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", profiling_file_name,
