@@ -1424,6 +1424,7 @@ int main(int argc, char **argv)
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     SCPerfInitCounterApi();
 #ifdef PROFILING
+    SCProfilingRulesGlobalInit();
     SCProfilingInit();
 #endif /* PROFILING */
     SCReputationInitCtx();
@@ -1776,10 +1777,6 @@ int main(int argc, char **argv)
      * can't call it during the first sig load phase */
     if (sig_file == NULL && rule_reload == 1)
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
-
-#ifdef PROFILING
-    SCProfilingInitRuleCounters(de_ctx);
-#endif /* PROFILING */
 
 #ifdef __SC_CUDA_SUPPORT__
     SCCudaPBSetUpQueuesAndBuffers();

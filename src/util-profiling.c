@@ -29,7 +29,6 @@
 #include "suricata-common.h"
 #include "decode.h"
 #include "detect.h"
-#include "counters.h"
 #include "conf.h"
 
 #include "tm-threads.h"
@@ -48,28 +47,6 @@
 #define DEFAULT_LOG_FILENAME "profile.log"
 #define DEFAULT_LOG_MODE_APPEND "yes"
 
-/**
- * Sort orders for dumping profiled rules.
- */
-enum {
-    SC_PROFILING_RULES_SORT_BY_TICKS = 0,
-    SC_PROFILING_RULES_SORT_BY_AVG_TICKS,
-    SC_PROFILING_RULES_SORT_BY_CHECKS,
-    SC_PROFILING_RULES_SORT_BY_MATCHES,
-    SC_PROFILING_RULES_SORT_BY_MAX_TICKS,
-    SC_PROFILING_RULES_SORT_BY_AVG_TICKS_MATCH,
-    SC_PROFILING_RULES_SORT_BY_AVG_TICKS_NO_MATCH,
-};
-static int profiling_rules_sort_order = SC_PROFILING_RULES_SORT_BY_TICKS;
-
-/**
- * Maximum number of rules to dump.
- */
-static uint32_t profiling_rules_limit = UINT32_MAX;
-
-static SCPerfContext rules_ctx;
-static SCPerfCounterArray *rules_pca;
-
 static pthread_mutex_t packet_profile_lock;
 static FILE *packet_profile_csv_fp = NULL;
 
@@ -77,19 +54,6 @@ extern int profiling_locks_enabled;
 extern int profiling_locks_output_to_file;
 extern char *profiling_locks_file_name;
 extern char *profiling_locks_file_mode;
-
-/**
- * Extra data for rule profiling.
- */
-typedef struct SCProfileData_ {
-    uint32_t gid;
-    uint8_t rev;
-    uint64_t matches;
-    uint64_t max;
-    uint64_t ticks_match;
-    uint64_t ticks_no_match;
-} SCProfileData;
-SCProfileData rules_profile_data[0xffff];
 
 typedef struct SCProfilePacketData_ {
     uint64_t min;
@@ -122,25 +86,6 @@ SCProfilePacketData packet_profile_app_pd_data6[257];
 SCProfilePacketData packet_profile_detect_data4[PROF_DETECT_SIZE][257];
 SCProfilePacketData packet_profile_detect_data6[PROF_DETECT_SIZE][257];
 
-/**
- * Used for generating the summary data to print.
- */
-typedef struct SCProfileSummary_ {
-    char *name;
-    uint32_t gid;
-    uint8_t rev;
-    uint64_t ticks;
-    double avgticks;
-    double avgticks_match;
-    double avgticks_no_match;
-    uint64_t checks;
-    uint64_t matches;
-    uint64_t max;
-    uint64_t ticks_match;
-    uint64_t ticks_no_match;
-} SCProfileSummary;
-
-int profiling_rules_enabled = 0;
 int profiling_packets_enabled = 0;
 int profiling_packets_csv_enabled = 0;
 
@@ -149,7 +94,6 @@ int profiling_packets_output_to_file = 0;
 char *profiling_file_name;
 char *profiling_packets_file_name;
 char *profiling_csv_file_name;
-const char *profiling_file_mode;
 const char *profiling_packets_file_mode;
 
 /**
@@ -167,84 +111,6 @@ void
 SCProfilingInit(void)
 {
     ConfNode *conf;
-    const char *val;
-
-    conf = ConfGetNode("profiling.rules");
-    if (conf != NULL) {
-        if (ConfNodeChildValueIsTrue(conf, "enabled")) {
-            memset(rules_profile_data, 0, sizeof(rules_profile_data));
-            memset(&rules_ctx, 0, sizeof(rules_ctx));
-            rules_pca = SCPerfGetAllCountersArray(NULL);
-            if (pthread_mutex_init(&rules_ctx.m, NULL) != 0) {
-                SCLogError(SC_ERR_MUTEX,
-                        "Failed to initialize hash table mutex.");
-                exit(EXIT_FAILURE);
-            }
-            profiling_rules_enabled = 1;
-
-            val = ConfNodeLookupChildValue(conf, "sort");
-            if (val != NULL) {
-                if (strcmp(val, "ticks") == 0) {
-                    profiling_rules_sort_order =
-                        SC_PROFILING_RULES_SORT_BY_TICKS;
-                }
-                else if (strcmp(val, "avgticks") == 0) {
-                    profiling_rules_sort_order =
-                        SC_PROFILING_RULES_SORT_BY_AVG_TICKS;
-                }
-                else if (strcmp(val, "avgticks_match") == 0) {
-                    profiling_rules_sort_order =
-                        SC_PROFILING_RULES_SORT_BY_AVG_TICKS_MATCH;
-                }
-                else if (strcmp(val, "avgticks_no_match") == 0) {
-                    profiling_rules_sort_order =
-                        SC_PROFILING_RULES_SORT_BY_AVG_TICKS_NO_MATCH;
-                }
-                else if (strcmp(val, "checks") == 0) {
-                    profiling_rules_sort_order =
-                        SC_PROFILING_RULES_SORT_BY_CHECKS;
-                }
-                else if (strcmp(val, "matches") == 0) {
-                    profiling_rules_sort_order =
-                        SC_PROFILING_RULES_SORT_BY_MATCHES;
-                }
-                else if (strcmp(val, "maxticks") == 0) {
-                    profiling_rules_sort_order =
-                        SC_PROFILING_RULES_SORT_BY_MAX_TICKS;
-                }
-                else {
-                    SCLogError(SC_ERR_INVALID_ARGUMENT,
-                            "Invalid profiling sort order: %s", val);
-                    exit(EXIT_FAILURE);
-                }
-            }
-
-            val = ConfNodeLookupChildValue(conf, "limit");
-            if (val != NULL) {
-                if (ByteExtractStringUint32(&profiling_rules_limit, 10,
-                            (uint16_t)strlen(val), val) <= 0) {
-                    SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid limit: %s", val);
-                    exit(EXIT_FAILURE);
-                }
-            }
-            const char *filename = ConfNodeLookupChildValue(conf, "filename");
-            if (filename != NULL) {
-
-                char *log_dir;
-                if (ConfGet("default-log-dir", &log_dir) != 1)
-                    log_dir = DEFAULT_LOG_DIR;
-
-                profiling_file_name = SCMalloc(PATH_MAX);
-                snprintf(profiling_file_name, PATH_MAX, "%s/%s", log_dir, filename);
-
-                profiling_file_mode = ConfNodeLookupChildValue(conf, "append");
-                if (profiling_file_mode == NULL)
-                    profiling_file_mode = DEFAULT_LOG_MODE_APPEND;
-
-                profiling_output_to_file = 1;
-            }
-        }
-    }
 
     conf = ConfGetNode("profiling.packets");
     if (conf != NULL) {
@@ -366,12 +232,6 @@ SCProfilingInit(void)
 void
 SCProfilingDestroy(void)
 {
-    if (profiling_rules_enabled) {
-        SCPerfReleasePerfCounterS(rules_ctx.head);
-        SCPerfReleasePCA(rules_pca);
-        pthread_mutex_destroy(&rules_ctx.m);
-    }
-
     if (profiling_packets_enabled) {
         pthread_mutex_destroy(&packet_profile_lock);
     }
@@ -392,319 +252,11 @@ SCProfilingDestroy(void)
 #endif
 }
 
-/**
- * \brief Qsort comparison function to sort by ticks.
- */
-static int
-SCProfileSummarySortByTicks(const void *a, const void *b)
-{
-    const SCProfileSummary *s0 = a;
-    const SCProfileSummary *s1 = b;
-    return s1->ticks - s0->ticks;
-}
-
-/**
- * \brief Qsort comparison function to sort by average ticks per match.
- */
-static int
-SCProfileSummarySortByAvgTicksMatch(const void *a, const void *b)
-{
-    const SCProfileSummary *s0 = a;
-    const SCProfileSummary *s1 = b;
-    return s1->avgticks_match - s0->avgticks_match;
-}
-
-/**
- * \brief Qsort comparison function to sort by average ticks per non match.
- */
-static int
-SCProfileSummarySortByAvgTicksNoMatch(const void *a, const void *b)
-{
-    const SCProfileSummary *s0 = a;
-    const SCProfileSummary *s1 = b;
-    return s1->avgticks_no_match - s0->avgticks_no_match;
-}
-
-/**
- * \brief Qsort comparison function to sort by average ticks.
- */
-static int
-SCProfileSummarySortByAvgTicks(const void *a, const void *b)
-{
-    const SCProfileSummary *s0 = a;
-    const SCProfileSummary *s1 = b;
-    return s1->avgticks - s0->avgticks;
-}
-
-/**
- * \brief Qsort comparison function to sort by checks.
- */
-static int
-SCProfileSummarySortByChecks(const void *a, const void *b)
-{
-    const SCProfileSummary *s0 = a;
-    const SCProfileSummary *s1 = b;
-    return s1->checks - s0->checks;
-}
-
-/**
- * \brief Qsort comparison function to sort by matches.
- */
-static int
-SCProfileSummarySortByMatches(const void *a, const void *b)
-{
-    const SCProfileSummary *s0 = a;
-    const SCProfileSummary *s1 = b;
-    return s1->matches - s0->matches;
-}
-
-/**
- * \brief Qsort comparison function to sort by max ticks.
- */
-static int
-SCProfileSummarySortByMaxTicks(const void *a, const void *b)
-{
-    const SCProfileSummary *s0 = a;
-    const SCProfileSummary *s1 = b;
-    return s1->max - s0->max;
-}
-
 void
 SCProfilingDump(void)
 {
-    uint32_t i;
-    FILE *fp;
-
     SCProfilingDumpPacketStats();
-
-    struct timeval tval;
-    struct tm *tms;
-    if (profiling_output_to_file == 1) {
-        if (ConfValIsTrue(profiling_file_mode)) {
-            fp = fopen(profiling_file_name, "a");
-        } else {
-            fp = fopen(profiling_file_name, "w");
-        }
-
-        if (fp == NULL) {
-            SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", profiling_file_name,
-                    strerror(errno));
-            return;
-        }
-    } else {
-       fp = stdout;
-    }
-
-    if (rules_pca == NULL) {
-        SCLogDebug("No rules specified to provide a profiling summary");
-        return;
-    }
-
-    int summary_size = sizeof(SCProfileSummary) * rules_pca->size;
-    SCProfileSummary *summary = SCMalloc(summary_size);
-    if (summary == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for profiling summary");
-        return;
-    }
-
-    uint32_t count = rules_pca->size;
-    uint64_t total_ticks = 0;
-
-    SCLogInfo("Dumping profiling data.");
-
-    memset(summary, 0, summary_size);
-    for (i = 1; i < count + 1; i++) {
-        summary[i - 1].name = rules_pca->head[i].pc->name->cname;
-        summary[i - 1].rev = rules_profile_data[i].rev;
-        summary[i - 1].gid = rules_profile_data[i].gid;
-        summary[i - 1].ticks =  rules_pca->head[i].ui64_cnt;
-        if (rules_pca->head[i].ui64_cnt) {
-            summary[i - 1].avgticks = (long double)rules_pca->head[i].ui64_cnt /
-                (long double)rules_pca->head[i].syncs;
-        }
-        summary[i - 1].checks = rules_pca->head[i].syncs;
-        summary[i - 1].matches = rules_profile_data[i].matches;
-        summary[i - 1].max = rules_profile_data[i].max;
-        summary[i - 1].ticks_match = rules_profile_data[i].ticks_match;
-        summary[i - 1].ticks_no_match = rules_profile_data[i].ticks_no_match;
-        if (rules_profile_data[i].ticks_match > 0) {
-            summary[i - 1].avgticks_match = (long double)rules_profile_data[i].ticks_match /
-                (long double)rules_profile_data[i].matches;
-        }
-
-        if (rules_profile_data[i].ticks_no_match > 0) {
-            summary[i - 1].avgticks_no_match = (long double)rules_profile_data[i].ticks_no_match /
-                ((long double)rules_pca->head[i].syncs - (long double)rules_profile_data[i].matches);
-        }
-        total_ticks += summary[i - 1].ticks;
-    }
-
-    switch (profiling_rules_sort_order) {
-    case SC_PROFILING_RULES_SORT_BY_TICKS:
-        qsort(summary, count, sizeof(SCProfileSummary),
-            SCProfileSummarySortByTicks);
-        break;
-    case SC_PROFILING_RULES_SORT_BY_AVG_TICKS:
-        qsort(summary, count, sizeof(SCProfileSummary),
-            SCProfileSummarySortByAvgTicks);
-        break;
-    case SC_PROFILING_RULES_SORT_BY_CHECKS:
-        qsort(summary, count, sizeof(SCProfileSummary),
-            SCProfileSummarySortByChecks);
-        break;
-    case SC_PROFILING_RULES_SORT_BY_MATCHES:
-        qsort(summary, count, sizeof(SCProfileSummary),
-            SCProfileSummarySortByMatches);
-        break;
-    case SC_PROFILING_RULES_SORT_BY_MAX_TICKS:
-        qsort(summary, count, sizeof(SCProfileSummary),
-            SCProfileSummarySortByMaxTicks);
-        break;
-    case SC_PROFILING_RULES_SORT_BY_AVG_TICKS_MATCH:
-        qsort(summary, count, sizeof(SCProfileSummary),
-            SCProfileSummarySortByAvgTicksMatch);
-        break;
-    case SC_PROFILING_RULES_SORT_BY_AVG_TICKS_NO_MATCH:
-        qsort(summary, count, sizeof(SCProfileSummary),
-            SCProfileSummarySortByAvgTicksNoMatch);
-        break;
-    }
-
-    gettimeofday(&tval, NULL);
-    struct tm local_tm;
-    tms = (struct tm *)SCLocalTime(tval.tv_sec, &local_tm);
-
-    fprintf(fp, "  ----------------------------------------------"
-            "----------------------------\n");
-    fprintf(fp, "  Date: %" PRId32 "/%" PRId32 "/%04d -- "
-            "%02d:%02d:%02d\n", tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900,
-            tms->tm_hour,tms->tm_min, tms->tm_sec);
-    fprintf(fp, "  ----------------------------------------------"
-            "----------------------------\n");
-    fprintf(fp, "   %-8s %-12s %-8s %-8s %-12s %-6s %-8s %-8s %-11s %-11s %-11s %-11s\n", "Num", "Rule", "Gid", "Rev", "Ticks", "%", "Checks", "Matches", "Max Ticks", "Avg Ticks", "Avg Match", "Avg No Match");
-    fprintf(fp, "  -------- "
-        "------------ "
-        "-------- "
-        "-------- "
-        "------------ "
-        "------ "
-        "-------- "
-        "-------- "
-        "----------- "
-        "----------- "
-        "----------- "
-        "-------------- "
-        "\n");
-    for (i = 0; i < MIN(count, profiling_rules_limit); i++) {
-
-        /* Stop dumping when we hit our first rule with 0 checks.  Due
-         * to sorting this will be the beginning of all the rules with
-         * 0 checks. */
-        if (summary[i].checks == 0)
-            break;
-
-        double percent = (long double)summary[i].ticks /
-            (long double)total_ticks * 100;
-        fprintf(fp,
-            "  %-8"PRIu32" %-12s %-8"PRIu32" %-8"PRIu32" %-12"PRIu64" %-6.2f %-8"PRIu64" %-8"PRIu64" %-11"PRIu64" %-11.2f %-11.2f %-11.2f\n",
-            i + 1,
-            summary[i].name,
-            summary[i].gid,
-            summary[i].rev,
-            summary[i].ticks,
-            percent,
-            summary[i].checks,
-            summary[i].matches,
-            summary[i].max,
-            summary[i].avgticks,
-            summary[i].avgticks_match,
-            summary[i].avgticks_no_match);
-    }
-
-    fprintf(fp,"\n");
-    if (fp != stdout)
-        fclose(fp);
     SCLogInfo("Done dumping profiling data.");
-}
-
-/**
- * \brief Register a rule profiling counter.
- *
- * \param gid The GID of the rule.
- * \param sid The SID of the rule.
- *
- * \retval Returns the ID of the counter on success, 0 on failure.
- */
-static uint16_t
-SCProfilingRegisterRuleCounter(Signature *sig)
-{
-    char name[12];
-    uint16_t id;
-
-    /* Don't use GID right now... */
-    //snprintf(name, sizeof(name), "%"PRIu32":%"PRIu32, gid, sid);
-    snprintf(name, sizeof(name), "%"PRIu32, sig->id);
-
-    id = SCPerfRegisterCounter(name, "profiler", SC_PERF_TYPE_UINT64, NULL,
-        &rules_ctx);
-    return id;
-}
-
-/**
- * \brief Register the rule profiling counters.
- *
- * \param de_ctx The active DetectEngineCtx, used to get at the loaded rules.
- */
-void
-SCProfilingInitRuleCounters(DetectEngineCtx *de_ctx)
-{
-    Signature *sig = de_ctx->sig_list;
-    uint32_t count = 0;
-    while (sig != NULL) {
-        sig->profiling_id = SCProfilingRegisterRuleCounter(sig);
-        rules_profile_data[sig->profiling_id].rev = sig->rev;
-        rules_profile_data[sig->profiling_id].gid = sig->gid;
-        sig = sig->next;
-        count++;
-    }
-    rules_pca = SCPerfGetAllCountersArray(&rules_ctx);
-    SCLogInfo("Registered %"PRIu32" rule profiling counters.", count);
-}
-
-/**
- * \brief Add a uint64_t value to the current value of the rule
- *     counter ID.
- *
- * \param id The ID of the rule profiling counter.
- * \paral val The value to add to the counter.
- */
-void
-SCProfilingCounterAddUI64(uint16_t id, uint64_t val)
-{
-    SCPerfCounterAddUI64(id, rules_pca, val);
-}
-
-/**
- * \brief Update a rule counter.
- *
- * \param id The ID of this counter.
- * \param ticks Number of CPU ticks for this rule.
- * \param match Did the rule match?
- */
-void
-SCProfilingUpdateRuleCounter(uint16_t id, uint64_t ticks, int match)
-{
-    pthread_mutex_lock(&rules_ctx.m);
-    SCProfilingCounterAddUI64(id, ticks);
-    rules_profile_data[id].matches += match;
-    if (ticks > rules_profile_data[id].max)
-        rules_profile_data[id].max = ticks;
-    if (match == 1)
-        rules_profile_data[id].ticks_match += ticks;
-    else
-        rules_profile_data[id].ticks_no_match += ticks;
-
-    pthread_mutex_unlock(&rules_ctx.m);
 }
 
 void SCProfilingDumpPacketStats(void) {
@@ -1235,6 +787,7 @@ const char * PacketProfileDetectIdToString(PacketProfileDetectId id)
 static int
 ProfilingTest01(void)
 {
+#if 0
     uint16_t counter1;
 
     Signature sig;
@@ -1264,7 +817,7 @@ ProfilingTest01(void)
     SCProfilingDump();
 
     SCProfilingDestroy();
-
+#endif
     return 1;
 }
 

@@ -1843,7 +1843,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 next:
         DetectReplaceFree(det_ctx->replist);
         det_ctx->replist = NULL;
-        RULE_PROFILING_END(s, smatch);
+        RULE_PROFILING_END(det_ctx, s, smatch);
 
         det_ctx->flags = 0;
         continue;
@@ -4681,7 +4681,9 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
 //    DetectAddressPrintMemory();
 //    DetectSigGroupPrintMemory();
 //    DetectPortPrintMemory();
-
+#ifdef PROFILING
+    SCProfilingRuleInitCounters(de_ctx);
+#endif
     return 0;
 }
 

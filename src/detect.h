@@ -42,6 +42,11 @@
 
 #include "detect-mark.h"
 
+#ifdef PROFILING
+typedef struct SCProfileData_ SCProfileData;
+typedef struct SCProfileDetectCtx_ SCProfileDetectCtx;
+#endif
+
 #define COUNTER_DETECT_ALERTS 1
 
 /* forward declarations for the structures from detect-engine-sigorder.h */
@@ -689,6 +694,10 @@ typedef struct DetectEngineCtx_ {
     /** list of keywords that need thread local ctxs */
     DetectEngineThreadKeywordCtxItem *keyword_list;
     int keyword_id;
+
+#ifdef PROFILING
+    SCProfileDetectCtx *profile_ctx;
+#endif
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
@@ -813,6 +822,11 @@ typedef struct DetectionEngineThreadCtx_ {
      *  thread safety issues */
     void **keyword_ctxs_array;
     int keyword_ctxs_size;
+
+#ifdef PROFILING
+    SCProfileData *rule_perf_data;
+    int rule_perf_data_size;
+#endif
 } DetectEngineThreadCtx;
 
 /** \brief element in sigmatch type table.

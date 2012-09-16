@@ -1162,7 +1162,7 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
             SCLogDebug("signature %"PRIu32" match state %s",
                     s->id, DeStateMatchResultToString(det_ctx->de_state_sig_array[item->sid]));
 
-            RULE_PROFILING_END(s, match);
+            RULE_PROFILING_END(det_ctx, s, match);
 
         }
     }

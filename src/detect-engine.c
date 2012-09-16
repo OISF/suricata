@@ -65,6 +65,10 @@
 
 #include "tm-threads.h"
 
+#ifdef PROFILING
+#include "util-profiling.h"
+#endif
+
 #define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 3000
 
 static uint32_t detect_engine_ctx_id = 1;
@@ -428,6 +432,12 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
     if (de_ctx == NULL)
         return;
 
+#ifdef PROFILING
+    if (de_ctx->profile_ctx != NULL) {
+        SCProfilingRuleDestroyCtx(de_ctx->profile_ctx);
+        de_ctx->profile_ctx = NULL;
+    }
+#endif
 
     /* Normally the hashes are freed elsewhere, but
      * to be sure look at them again here.
@@ -791,6 +801,9 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     }
 
     DetectEngineThreadCtxInitKeywords(de_ctx, det_ctx);
+#ifdef PROFILING
+    SCProfilingRuleThreadSetup(de_ctx->profile_ctx, det_ctx);
+#endif
 
     SC_ATOMIC_INIT(det_ctx->so_far_used_by_detect);
 
@@ -873,6 +886,9 @@ static TmEcode DetectEngineThreadCtxInitForLiveRuleSwap(ThreadVars *tv, void *in
     }
 
     DetectEngineThreadCtxInitKeywords(de_ctx, det_ctx);
+#ifdef PROFILING
+    SCProfilingRuleThreadSetup(de_ctx->profile_ctx, det_ctx);
+#endif
 
     SC_ATOMIC_INIT(det_ctx->so_far_used_by_detect);
 
@@ -888,6 +904,10 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data) {
         SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "argument \"data\" NULL");
         return TM_ECODE_OK;
     }
+
+#ifdef PROFILING
+    SCProfilingRuleThreadCleanup(det_ctx);
+#endif
 
     DetectEngineIPOnlyThreadDeinit(&det_ctx->io_ctx);
 
