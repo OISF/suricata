@@ -257,7 +257,7 @@ void SignalHandlerSigusr2SigFileStartup(int sig)
     return;
 }
 
-static void SignalHandlerSigusr2Idle(int sig)
+void SignalHandlerSigusr2Idle(int sig)
 {
     if (run_mode == RUNMODE_UNKNOWN || run_mode == RUNMODE_UNITTEST) {
         SCLogInfo("Ruleset load signal USR2 triggered for wrong runmode");
