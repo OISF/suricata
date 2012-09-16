@@ -28,10 +28,12 @@
 #include "tm-threads.h"
 #include "runmodes.h"
 #include "conf.h"
+#include "flow-manager.h"
 
 #include "util-privs.h"
 #include "util-debug.h"
 #include "util-signal.h"
+#include "output.h"
 
 #include <sys/un.h>
 #include <sys/stat.h>
@@ -44,6 +46,12 @@
 #define SOCKET_FILENAME "suricata-command.socket"
 #define SOCKET_TARGET SOCKET_PATH SOCKET_FILENAME
 
+typedef struct PcapFiles_ {
+    char *filename;
+    char *output_dir;
+    TAILQ_ENTRY(PcapFiles_) next;
+} PcapFiles;
+
 typedef struct UnixCommand_ {
     time_t start_timestamp;
     int socket;
@@ -51,7 +59,12 @@ typedef struct UnixCommand_ {
     struct sockaddr_un client_addr;
     int select_max;
     fd_set select_set;
+    DetectEngineCtx *de_ctx;
+    TAILQ_HEAD(, PcapFiles_) files;
+    int running;
 } UnixCommand;
+
+static int unix_manager_file_task_running = 0;
 
 int UnixNew(UnixCommand * this)
 {
@@ -64,6 +77,8 @@ int UnixNew(UnixCommand * this)
     this->socket = -1;
     this->client = -1;
     this->select_max = 0;
+
+    TAILQ_INIT(&this->files);
 
     /* Create socket dir */
     ret = mkdir(SOCKET_PATH, S_IRWXU);
@@ -232,6 +247,170 @@ int UnixCommandAccept(UnixCommand *this)
     return 1;
 }
 
+static void PcapFilesFree(PcapFiles *cfile)
+{
+    if (cfile == NULL)
+        return;
+    if (cfile->filename)
+        SCFree(cfile->filename);
+    if (cfile->output_dir)
+        SCFree(cfile->output_dir);
+    SCFree(cfile);
+}
+
+int UnixListAddFile(UnixCommand *this, const char *filename, const char *output_dir)
+{
+    PcapFiles *cfile = NULL;
+    if (filename == NULL || this == NULL)
+        return 0;
+    cfile = SCMalloc(sizeof(PcapFiles));
+    if (cfile == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate new file");
+        return 0;
+    }
+    memset(cfile, 0, sizeof(PcapFiles));
+
+    cfile->filename = SCStrdup(filename);
+    if (cfile->filename == NULL) {
+        SCFree(cfile);
+        SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup filename");
+        return 0;
+    }
+
+    if (output_dir) {
+        cfile->output_dir = SCStrdup(output_dir);
+        if (cfile->output_dir == NULL) {
+            SCFree(cfile->filename);
+            SCFree(cfile);
+            SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup output_dir");
+            return 0;
+        }
+    }
+
+    TAILQ_INSERT_TAIL(&this->files, cfile, next);
+    return 1;
+}
+
+int UnixPcapFilesHandle(UnixCommand *this)
+{
+    if (unix_manager_file_task_running == 1) {
+        return 1;
+    }
+    if (this->running == 1) {
+        this->running = 0;
+        FlowKillFlowManagerThread();
+        FlowManagerClean();
+        RunModeShutDown();
+    }
+    if (!TAILQ_EMPTY(&this->files)) {
+        PcapFiles *cfile = TAILQ_FIRST(&this->files);
+        TAILQ_REMOVE(&this->files, cfile, next);
+        SCLogInfo("Starting run for '%s'", cfile->filename);
+        if (ConfSet("pcap-file.file", cfile->filename, 1) != 1) {
+            SCLogInfo("Can not set working file to '%s'", cfile->filename);
+            PcapFilesFree(cfile);
+            return 0;
+        }
+        if (cfile->output_dir) {
+            if (ConfSet("default-log-dir", cfile->output_dir, 1) != 1) {
+                SCLogInfo("Can not set output dir to '%s'", cfile->output_dir);
+                PcapFilesFree(cfile);
+                return 0;
+            }
+        }
+        PcapFilesFree(cfile);
+        RunModeInitializeOutputs();
+        RunModeDispatch(RUNMODE_PCAP_FILE, NULL, this->de_ctx);
+        FlowManagerThreadSpawn();
+        unix_manager_file_task_running = 1;
+        this->running = 1;
+        /* Un-pause all the paused threads */
+        TmThreadContinueThreads();
+    }
+    return 1;
+}
+
+int UnixCommandBackgroundTasks(UnixCommand* this)
+{
+    int ret;
+
+    ret = UnixPcapFilesHandle(this);
+    if (ret == 0) {
+        SCLogInfo("Unable to handle PCAP file");
+    }
+    return 1;
+}
+
+int UnixCommandFile(UnixCommand* this, json_t *cmd, json_t* answer)
+{
+    int ret;
+    const char *filename;
+    const char *output_dir;
+#ifdef OS_WIN32
+    struct _stat st;
+#else
+    struct stat st;
+#endif /* OS_WIN32 */
+
+    json_t *jarg = json_object_get(cmd, "filename");
+    if(!json_is_string(jarg)) {
+        SCLogInfo("error: command is not a string");
+        return 0;
+    }
+    filename = json_string_value(jarg);
+#ifdef OS_WIN32
+    if(_stat(filename, &st) != 0) {
+#else
+    if(stat(filename, &st) != 0) {
+#endif /* OS_WIN32 */
+        json_object_set_new(answer, "message", json_string("File does not exist"));
+        return 0;
+    }
+
+    json_t *oarg = json_object_get(cmd, "output-dir");
+    if (oarg != NULL) {
+        if(!json_is_string(oarg)) {
+            SCLogInfo("error: output dir is not a string");
+            json_decref(jarg);
+            json_decref(oarg);
+            return 0;
+        }
+        output_dir = json_string_value(oarg);
+    }
+
+#ifdef OS_WIN32
+    if(_stat(output_dir, &st) != 0) {
+#else
+    if(stat(output_dir, &st) != 0) {
+#endif /* OS_WIN32 */
+        json_object_set_new(answer, "message", json_string("Output directory does not exist"));
+        json_decref(jarg);
+        json_decref(oarg);
+        return 0;
+    }
+
+    ret = UnixListAddFile(this, filename, output_dir);
+    switch(ret) {
+        case 0:
+            json_object_set_new(answer, "message", json_string("Unable to add file to list"));
+            json_decref(jarg);
+            json_decref(oarg);
+            return 0;
+        case 1:
+            SCLogInfo("Added file '%s' to list", filename);
+            json_object_set_new(answer, "message", json_string("Successfully added file to list"));
+            json_decref(jarg);
+            json_decref(oarg);
+            return 1;
+    }
+    return 1;
+}
+
+int UnixCommandListFiles(UnixCommand *this, json_t *answer)
+{
+    return 1;
+}
+
 int UnixCommandExecute(UnixCommand * this, char *command)
 {
     int ret = 1;
@@ -272,6 +451,13 @@ int UnixCommandExecute(UnixCommand * this, char *command)
             DetectEngineSpawnLiveRuleSwapMgmtThread();
             json_object_set_new(server_msg, "message", json_string("Reloading rules"));
         }
+    } else if (!strcmp(value, "pcap-file")) {
+        cmd = json_object_get(jsoncmd, "arguments");
+        if(!json_is_object(cmd)) {
+            SCLogInfo("error: argument is not an object");
+            goto error_cmd;
+        }
+        ret = UnixCommandFile(this, cmd, server_msg);
     } else {
         json_object_set_new(server_msg, "message", json_string("Unknown command"));
         ret = 0;
@@ -299,6 +485,7 @@ error_cmd:
     json_decref(cmd);
 error:
     json_decref(jsoncmd);
+    json_decref(server_msg);
     UnixCommandClose(this);
     return 0;
 }
@@ -337,8 +524,8 @@ int UnixMain(UnixCommand * this)
     FD_SET(this->socket, &this->select_set);
     if (0 <= this->client)
         FD_SET(this->client, &this->select_set);
-    tv.tv_sec = 1;
-    tv.tv_usec = 0;
+    tv.tv_sec = 0;
+    tv.tv_usec = 200 * 1000;
     ret = select(this->select_max, &this->select_set, NULL, NULL, &tv);
 
     /* catch select() error */
@@ -349,6 +536,11 @@ int UnixMain(UnixCommand * this)
         }
         SCLogInfo("Command server: select() fatal error: %s", strerror(errno));
         return 0;
+    }
+
+    if (suricata_ctl_flags != 0) {
+        UnixCommandClose(this);
+        return 1;
     }
 
     /* timeout: continue */
@@ -418,8 +610,11 @@ void *UnixManagerThread(void *td)
     (void) SCSetThreadName(th_v->name);
     SCLogDebug("%s started...", th_v->name);
 
+    command.de_ctx = (DetectEngineCtx *)th_v->tdata;
+    
     th_v->sc_perf_pca = SCPerfGetAllCountersArray(&th_v->sc_perf_pctx);
     SCPerfAddToClubbedTMTable(th_v->name, &th_v->sc_perf_pctx);
+
 
     if (UnixNew(&command) == 0) {
         int failure_fatal = 0;
@@ -431,6 +626,7 @@ void *UnixManagerThread(void *td)
         if (failure_fatal) {
             exit(EXIT_FAILURE);
         } else {
+            TmThreadsSetFlag(th_v, THV_INIT_DONE|THV_RUNNING_DONE);
             pthread_exit((void *) 0);
         }
     }
@@ -441,6 +637,7 @@ void *UnixManagerThread(void *td)
 
     /* Init Unix socket */
 
+
     TmThreadsSetFlag(th_v, THV_INIT_DONE);
     while (1) {
         UnixMain(&command);
@@ -450,6 +647,8 @@ void *UnixManagerThread(void *td)
             SCPerfSyncCounters(th_v, 0);
             break;
         }
+
+        UnixCommandBackgroundTasks(&command);
     }
     TmThreadWaitForFlag(th_v, THV_DEINIT);
 
@@ -459,7 +658,7 @@ void *UnixManagerThread(void *td)
 
 
 /** \brief spawn the unix socket manager thread */
-void UnixManagerThreadSpawn()
+void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx)
 {
     ThreadVars *tv_unixmgr = NULL;
 
@@ -467,6 +666,10 @@ void UnixManagerThreadSpawn()
 
     tv_unixmgr = TmThreadCreateMgmtThread("UnixManagerThread",
                                           UnixManagerThread, 0);
+
+    TmThreadSetCPU(tv_unixmgr, MANAGEMENT_CPU_SET);
+
+    tv_unixmgr->tdata = de_ctx;
 
     if (tv_unixmgr == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
@@ -478,6 +681,54 @@ void UnixManagerThreadSpawn()
     }
 
     return;
+}
+
+/**
+ * \brief Used to kill unix manager thread(s).
+ *
+ * \todo Kinda hackish since it uses the tv name to identify flow manager
+ *       thread.  We need an all weather identification scheme.
+ */
+void UnixSocketKillSocketThread(void)
+{
+    ThreadVars *tv = NULL;
+
+    SCMutexLock(&tv_root_lock);
+
+    /* flow manager thread(s) is/are a part of mgmt threads */
+    tv = tv_root[TVT_MGMT];
+
+    while (tv != NULL) {
+        if (strcasecmp(tv->name, "UnixManagerThread") == 0) {
+            /* If thread die during init it will have THV_RUNNING_DONE
+             * set. So we can set the correct flag and exit.
+             */
+            if (TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
+                TmThreadsSetFlag(tv, THV_KILL);
+                TmThreadsSetFlag(tv, THV_DEINIT);
+                TmThreadsSetFlag(tv, THV_CLOSED);
+                break;
+            }
+            TmThreadsSetFlag(tv, THV_KILL);
+            TmThreadsSetFlag(tv, THV_DEINIT);
+            /* be sure it has shut down */
+            while (!TmThreadsCheckFlag(tv, THV_CLOSED)) {
+                usleep(100);
+            }
+        }
+        tv = tv->next;
+    }
+
+    SCMutexUnlock(&tv_root_lock);
+    return;
+}
+
+
+void UnixSocketPcapFile(TmEcode tm)
+{
+    if (tm == TM_ECODE_DONE) {
+        unix_manager_file_task_running = 0;
+    }
 }
 
 #endif

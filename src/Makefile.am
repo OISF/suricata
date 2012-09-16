@@ -17,6 +17,7 @@ runmode-erf-file.c runmode-erf-file.h \
 runmode-erf-dag.c runmode-erf-dag.h \
 runmode-napatech.c runmode-napatech.h \
 runmode-af-packet.c runmode-af-packet.h \
+runmode-unix-socket.c runmode-unix-socket.h \
 packet-queue.c packet-queue.h \
 data-queue.c data-queue.h \
 threads.c threads.h \
