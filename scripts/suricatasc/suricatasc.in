@@ -24,7 +24,7 @@ import sys
 VERSION = "0.1"
 SOCKET_PATH = "@e_localstatedir@/run/suricata/suricata-command.socket"
 SIZE = 4096
-COMMANDS_REGEX = re.compile("^(?:shutdown|quit|reload-rules)$")
+COMMANDS_REGEX = re.compile("^(?:shutdown|quit|reload-rules|pcap-file .+)$")
 
 socket = socket(AF_UNIX)
 socket.connect(SOCKET_PATH)
@@ -32,6 +32,7 @@ socket.connect(SOCKET_PATH)
 #send version
 socket.send(json.dumps({"version": VERSION}))
 
+sleep(0.2)
 # get return
 data = socket.recv(SIZE)
 #decode json message
@@ -51,8 +52,24 @@ try:
             if command == "quit":
                 break;
             cmdmsg = {}
-            cmdmsg["command"] = command
+            if "pcap-file" in command:
+                try:
+                    [cmd, filename, output] = command.split(' ', 2)
+                except:
+                    print "Error: unable to split command '%s'" % (command)
+                    continue
+                if cmd != "pcap-file":
+                    print "Error: invalid command '%s'" % (command)
+                    continue
+                else:
+                    cmdmsg["command"] = cmd
+                    cmdmsg["arguments"] = {}
+                    cmdmsg["arguments"]["filename"] = filename
+                    cmdmsg["arguments"]["output-dir"] = output
+            else:
+                cmdmsg["command"] = command
             socket.send(json.dumps(cmdmsg))
+            sleep(0.3)
             data = socket.recv(SIZE)
             #decode json message
             cmdret = json.loads(data)
@@ -61,7 +78,7 @@ try:
             else:
                 print "Success: %s" % (cmdret["message"])
         else:
-            print "Unknown command: %s" % (command)
+            print "Unknown command: '%s'" % (command)
 except KeyboardInterrupt:
     print "[!] Interrupted"
 
