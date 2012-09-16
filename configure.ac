@@ -1338,7 +1338,7 @@ AC_SUBST(e_sysconfrulesdir)
 AC_DEFINE_UNQUOTED([CONFIG_DIR],["$e_sysconfdir"],[Our CONFIG_DIR])
 AC_SUBST(e_magic_file)
 
-AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile suricata.yaml)
+AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile scripts/Makefile scripts/suricatasc/Makefile suricata.yaml scripts/suricatasc/suricatasc)
 
 echo "
 Suricata Configuration:
