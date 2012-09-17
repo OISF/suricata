@@ -787,43 +787,6 @@ const char * PacketProfileDetectIdToString(PacketProfileDetectId id)
 #ifdef UNITTESTS
 
 static int
-ProfilingTest01(void)
-{
-#if 0
-    uint16_t counter1;
-
-    Signature sig;
-    sig.gid = 1;
-    sig.id = 1;
-
-    SCProfilingInit();
-    counter1 = SCProfilingRegisterRuleCounter(&sig);
-    if (counter1 == 0)
-        return 0;
-    rules_pca = SCPerfGetAllCountersArray(&rules_ctx);
-    if (rules_pca == NULL)
-        return 0;
-    SCProfilingCounterAddUI64(counter1, 64);
-    if (rules_pca->head[counter1].ui64_cnt != 64)
-        return 0;
-    if (rules_pca->head[counter1].syncs != 1)
-        return 0;
-    SCProfilingCounterAddUI64(counter1, 64);
-    if (rules_pca->head[counter1].ui64_cnt != 128)
-        return 0;
-    if (rules_pca->head[counter1].syncs != 2)
-        return 0;
-    if (rules_pca->head[counter1].wrapped_syncs != 0)
-        return 0;
-
-    SCProfilingDump();
-
-    SCProfilingDestroy();
-#endif
-    return 1;
-}
-
-static int
 ProfilingGenericTicksTest01(void) {
 #define TEST_RUNS 1024
     uint64_t ticks_start = 0;
@@ -928,7 +891,6 @@ void
 SCProfilingRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("ProfilingTest01", ProfilingTest01, 1);
     UtRegisterTest("ProfilingGenericTicksTest01", ProfilingGenericTicksTest01, 1);
 #endif /* UNITTESTS */
 }
