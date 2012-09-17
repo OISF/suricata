@@ -412,7 +412,9 @@ SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx)
     fprintf(fp,"\n");
     if (fp != stdout)
         fclose(fp);
+    SCFree(summary);
     SCLogInfo("Done dumping profiling data.");
+    memset(rules_profile_data, 0x00, sizeof(rules_profile_data));
 }
 
 /**
