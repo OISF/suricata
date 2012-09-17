@@ -668,6 +668,9 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
             || suricata_ctl_flags) {
             run = 0;
         }
+        if (r == TM_ECODE_DONE) {
+            run = 0;
+        }
     }
     SCPerfSyncCounters(tv, 0);
 
