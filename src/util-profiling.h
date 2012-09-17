@@ -197,11 +197,11 @@ void SCProfilingAddPacket(Packet *);
 
 
 void SCProfilingRulesGlobalInit(void);
-void SCProfilingRuleDestroyCtx(SCProfileDetectCtx *);
+void SCProfilingRuleDestroyCtx(struct SCProfileDetectCtx_ *);
 void SCProfilingRuleInitCounters(DetectEngineCtx *);
 void SCProfilingRuleUpdateCounter(DetectEngineThreadCtx *, uint16_t, uint64_t, int);
 
-void SCProfilingRuleThreadSetup(SCProfileDetectCtx *, DetectEngineThreadCtx *);
+void SCProfilingRuleThreadSetup(struct SCProfileDetectCtx_ *, DetectEngineThreadCtx *);
 void SCProfilingRuleThreadCleanup(DetectEngineThreadCtx *);
 
 void SCProfilingInit(void);
