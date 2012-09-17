@@ -47,6 +47,8 @@
 #include "util-optimize.h"
 #include "flow-manager.h"
 #include "util-profiling.h"
+#include "unix-manager.h"
+#include "runmode-unix-socket.h"
 
 extern uint8_t suricata_ctl_flags;
 extern int max_pending_packets;
@@ -192,8 +194,14 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
             SCReturnInt(TM_ECODE_FAILED);
         } else if (unlikely(r == 0)) {
             SCLogInfo("pcap file end of file reached (pcap err code %" PRId32 ")", r);
-
-            EngineStop();
+            if (! RunModeUnixSocketIsActive()) {
+                EngineStop();
+            } else {
+                pcap_close(pcap_g.pcap_handle);
+                pcap_g.pcap_handle = NULL;
+                UnixSocketPcapFile(TM_ECODE_DONE);
+                SCReturnInt(TM_ECODE_DONE);
+            }
             break;
         } else if (ptv->cb_result == TM_ECODE_FAILED) {
             SCLogError(SC_ERR_PCAP_DISPATCH, "Pcap callback PcapFileCallbackLoop failed");
