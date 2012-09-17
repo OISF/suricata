@@ -52,7 +52,7 @@ void SCProfilingAddPacket(Packet *);
 #define RULE_PROFILING_END(ctx, r, m) \
     if (profiling_rules_enabled) { \
         profile_rule_end_ = UtilCpuGetTicks(); \
-        SCProfilingUpdateRuleCounter(ctx, r->profiling_id, \
+        SCProfilingRuleUpdateCounter(ctx, r->profiling_id, \
             profile_rule_end_ - profile_rule_start_, m); \
         profiling_rules_entered--; \
     }
@@ -199,7 +199,7 @@ void SCProfilingAddPacket(Packet *);
 void SCProfilingRulesGlobalInit(void);
 void SCProfilingRuleDestroyCtx(SCProfileDetectCtx *);
 void SCProfilingRuleInitCounters(DetectEngineCtx *);
-void SCProfilingUpdateRuleCounter(DetectEngineThreadCtx *, uint16_t, uint64_t, int);
+void SCProfilingRuleUpdateCounter(DetectEngineThreadCtx *, uint16_t, uint64_t, int);
 
 void SCProfilingRuleThreadSetup(SCProfileDetectCtx *, DetectEngineThreadCtx *);
 void SCProfilingRuleThreadCleanup(DetectEngineThreadCtx *);

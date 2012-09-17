@@ -42,9 +42,6 @@
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
-#define DEFAULT_LOG_FILENAME "profile.log"
-#define DEFAULT_LOG_MODE_APPEND "yes"
-
 typedef struct SCProfileDetectCtx_ {
     uint32_t size;
     uint32_t id;
@@ -437,7 +434,7 @@ SCProfilingRegisterRuleCounter(SCProfileDetectCtx *ctx)
  * \param match Did the rule match?
  */
 void
-SCProfilingUpdateRuleCounter(DetectEngineThreadCtx *det_ctx, uint16_t id, uint64_t ticks, int match)
+SCProfilingRuleUpdateCounter(DetectEngineThreadCtx *det_ctx, uint16_t id, uint64_t ticks, int match)
 {
     if (det_ctx != NULL && det_ctx->rule_perf_data != NULL && det_ctx->rule_perf_data_size >= id) {
         SCProfileData *p = &det_ctx->rule_perf_data[id];
