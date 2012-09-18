@@ -579,16 +579,6 @@ void FlowManagerThreadSpawn()
     return;
 }
 
-void FlowManagerClean()
-{
-    struct timeval ts;
-    ts.tv_sec = 0xffffffff;
-    ts.tv_usec = 0xffffffff;
-    /* try to time out flows */
-    FlowTimeoutCounters counters = { 0, 0, 0, };
-    FlowTimeoutHash(&ts, 0 /* check all */, &counters);
-}
-
 #ifdef UNITTESTS
 
 /**
