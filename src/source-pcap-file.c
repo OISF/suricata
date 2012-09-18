@@ -200,6 +200,7 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
             } else {
                 pcap_close(pcap_g.pcap_handle);
                 pcap_g.pcap_handle = NULL;
+                SCFree(ptv);
                 UnixSocketPcapFile(TM_ECODE_DONE);
                 SCReturnInt(TM_ECODE_DONE);
             }
@@ -238,7 +239,16 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (pcap_g.pcap_handle == NULL) {
         SCLogError(SC_ERR_FOPEN, "%s\n", errbuf);
         SCFree(ptv);
-        exit(EXIT_FAILURE);
+#ifdef BUILD_UNIX_SOCKET
+        if (! RunModeUnixSocketIsActive()) {
+            return TM_ECODE_FAILED;
+        } else {
+            UnixSocketPcapFile(TM_ECODE_FAILED);
+            SCReturnInt(TM_ECODE_DONE);
+        }
+#else
+        return TM_ECODE_FAILED;
+#endif
     }
 
     if (ConfGet("bpf-filter", &tmpbpfstring) != 1) {
