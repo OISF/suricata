@@ -722,18 +722,6 @@ int AFPReadFromRing(AFPThreadVars *ptv)
          * function. */
         h.h2->tp_status |= TP_STATUS_USER_BUSY;
 
-        p->afp_v.relptr = h.raw;
-        p->ReleaseData = AFPReleaseDataFromRing;
-        p->afp_v.mpeer = ptv->mpeer;
-        AFPRefSocket(ptv->mpeer);
-
-        p->afp_v.copy_mode = ptv->copy_mode;
-        if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
-            p->afp_v.peer = ptv->mpeer->peer;
-        } else {
-            p->afp_v.peer = NULL;
-        }
-
         from = (void *)h.raw + TPACKET_ALIGN(ptv->tp_hdrlen);
 
         ptv->pkts++;
@@ -759,6 +747,9 @@ int AFPReadFromRing(AFPThreadVars *ptv)
                 SCReturnInt(AFP_FAILURE);
             } else {
                 p->afp_v.relptr = h.raw;
+                p->ReleaseData = AFPReleaseDataFromRing;
+                p->afp_v.mpeer = ptv->mpeer;
+                AFPRefSocket(ptv->mpeer);
 
                 p->afp_v.copy_mode = ptv->copy_mode;
                 if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
@@ -766,7 +757,6 @@ int AFPReadFromRing(AFPThreadVars *ptv)
                 } else {
                     p->afp_v.peer = NULL;
                 }
-                p->ReleaseData = AFPReleaseDataFromRing;
             }
         } else {
             if (PacketCopyData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
@@ -802,6 +792,11 @@ int AFPReadFromRing(AFPThreadVars *ptv)
             AFPDumpCounters(ptv, 1);
         }
 
+        /* release frame if not in zero copy mode */
+        if (!(ptv->flags &  AFP_ZERO_COPY)) {
+            h.h2->tp_status = TP_STATUS_KERNEL;
+        }
+
         if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
             h.h2->tp_status = TP_STATUS_KERNEL;
             if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
@@ -811,10 +806,6 @@ int AFPReadFromRing(AFPThreadVars *ptv)
             SCReturnInt(AFP_FAILURE);
         }
 
-        /* release frame if not in zero copy mode */
-        if (!(ptv->flags &  AFP_ZERO_COPY)) {
-            h.h2->tp_status = TP_STATUS_KERNEL;
-        }
 next_frame:
         if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
             ptv->frame_offset = 0;
