@@ -1732,22 +1732,69 @@ TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *tm_name)
     return slots;
 }
 
-void TmThreadKillThreads(void)
+void TmThreadKillThreadsFamily(int family)
 {
     ThreadVars *tv = NULL;
+
+    if ((family < 0) || (family >= TVT_MAX))
+        return;
+
+    tv = tv_root[family];
+
+    while (tv) {
+        TmThreadKillThread(tv);
+
+        tv = tv->next;
+    }
+}
+
+void TmThreadKillThreads(void)
+{
     int i = 0;
 
     for (i = 0; i < TVT_MAX; i++) {
-        tv = tv_root[i];
-
-        while (tv) {
-            TmThreadKillThread(tv);
-
-            tv = tv->next;
-        }
+        TmThreadKillThreadsFamily(i);
     }
 
     return;
+}
+
+void TmThreadFree(ThreadVars *tv)
+{
+    TmSlot *s;
+    TmSlot *ps;
+    if (tv == NULL)
+        return;
+
+    SCLogInfo("Freeing thread '%s'.", tv->name);
+
+    SCMutexDestroy(&tv->sc_perf_pctx.m);
+
+    s = (TmSlot *)tv->tm_slots;
+    while (s) {
+        ps = s;
+        s = s->slot_next;
+        SCFree(s);
+    }
+    SCFree(tv);
+}
+
+void TmThreadClearThreadsFamily(int family)
+{
+    ThreadVars *tv = NULL;
+    ThreadVars *ptv = NULL;
+
+    if ((family < 0) || (family >= TVT_MAX))
+        return;
+
+    tv = tv_root[family];
+
+    while (tv) {
+        ptv = tv;
+        tv = tv->next;
+        TmThreadFree(ptv);
+    }
+    tv_root[family] = NULL;
 }
 
 /**
