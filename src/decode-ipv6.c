@@ -564,7 +564,7 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
 
     /* Pass to defragger if a fragment. */
     if (IPV6_EXTHDR_ISSET_FH(p)) {
-        Packet *rp = Defrag(tv, dtv, NULL, p);
+        Packet *rp = Defrag(tv, dtv, p);
         if (rp != NULL) {
             DecodeIPV6(tv, dtv, rp, (uint8_t *)rp->ip6h, IPV6_GET_PLEN(rp) + IPV6_HEADER_LEN, pq);
             PacketEnqueue(pq, rp);
@@ -725,6 +725,7 @@ static int DecodeIPV6FragTest01 (void)   {
     PacketQueue pq;
 
     FlowInitConfig(FLOW_QUIET);
+    DefragInit();
 
     memset(&pq, 0, sizeof(PacketQueue));
     memset(&tv, 0, sizeof(ThreadVars));
@@ -765,6 +766,7 @@ end:
     PACKET_CLEANUP(p2);
     SCFree(p1);
     SCFree(p2);
+    DefragDestroy();
     FlowShutdown();
     return result;
 }

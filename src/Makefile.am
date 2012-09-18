@@ -301,6 +301,9 @@ app-layer-ssh.c app-layer-ssh.h \
 app-layer-tls-handshake.c app-layer-tls-handshake.h \
 app-layer-smtp.c app-layer-smtp.h \
 defrag.c defrag.h \
+defrag-hash.c defrag-hash.h \
+defrag-queue.c defrag-queue.h \
+defrag-timeout.c defrag-timeout.h \
 output.c output.h \
 win32-misc.c win32-misc.h \
 win32-service.c win32-service.h \

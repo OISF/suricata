@@ -476,6 +476,7 @@ void *FlowManagerThread(void *td)
         FlowTimeoutHash(&ts, 0 /* check all */, &counters);
 
 
+        DefragTimeoutHash(&ts);
         //uint32_t hosts_pruned =
         HostTimeoutHash(&ts);
 /*
