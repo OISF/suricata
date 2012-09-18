@@ -34,6 +34,7 @@
 #include "util-debug.h"
 #include "util-signal.h"
 #include "output.h"
+#include "host.h"
 
 #include <sys/un.h>
 #include <sys/stat.h>
@@ -355,7 +356,10 @@ int UnixPcapFilesHandle(UnixCommand *this)
         }
         unix_manager_file_task_failed = 0;
         this->running = 0;
+        SCPerfReleaseResources();
         FlowKillFlowManagerThread();
+        FlowShutdown();
+        HostShutdown();
         RunModeShutDown();
         TmThreadKillThreadsFamily(TVT_PPT);
         TmThreadClearThreadsFamily(TVT_PPT);
@@ -379,8 +383,11 @@ int UnixPcapFilesHandle(UnixCommand *this)
             }
         }
         PcapFilesFree(cfile);
+        SCPerfInitCounterApi();
         RunModeInitializeOutputs();
         RunModeDispatch(RUNMODE_PCAP_FILE, NULL, this->de_ctx);
+        HostInitConfig(HOST_QUIET);
+        FlowInitConfig(FLOW_QUIET);
         FlowManagerThreadSpawn();
         SCPerfSpawnThreads();
         /* Un-pause all the paused threads */
