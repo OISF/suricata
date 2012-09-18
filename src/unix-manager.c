@@ -34,6 +34,7 @@
 #include "util-debug.h"
 #include "util-signal.h"
 #include "output.h"
+#include "host.h"
 
 #include <sys/un.h>
 #include <sys/stat.h>
@@ -304,7 +305,8 @@ int UnixPcapFilesHandle(UnixCommand *this)
         unix_manager_file_task_failed = 0;
         this->running = 0;
         FlowKillFlowManagerThread();
-        FlowManagerClean();
+        FlowShutdown();
+        HostShutdown();
         SCLogInfo("Shutting down slave running mode");
         RunModeShutDown();
         TmThreadKillThreadsFamily(TVT_PPT);
@@ -331,6 +333,8 @@ int UnixPcapFilesHandle(UnixCommand *this)
         PcapFilesFree(cfile);
         RunModeInitializeOutputs();
         RunModeDispatch(RUNMODE_PCAP_FILE, NULL, this->de_ctx);
+        HostInitConfig(HOST_QUIET);
+        FlowInitConfig(FLOW_QUIET);
         FlowManagerThreadSpawn();
         /* Un-pause all the paused threads */
         TmThreadContinueThreads();
