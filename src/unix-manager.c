@@ -500,11 +500,6 @@ int UnixCommandFile(UnixCommand* this, json_t *cmd, json_t* answer)
     return 1;
 }
 
-int UnixCommandListFiles(UnixCommand *this, json_t *answer)
-{
-    return 1;
-}
-
 /**
  * \brief Command dispatcher
  *
