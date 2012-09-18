@@ -300,7 +300,10 @@ int UnixPcapFilesHandle(UnixCommand *this)
         this->running = 0;
         FlowKillFlowManagerThread();
         FlowManagerClean();
+        SCLogInfo("Shutting down slave running mode");
         RunModeShutDown();
+        TmThreadKillThreadsFamily(TVT_PPT);
+        TmThreadClearThreadsFamily(TVT_PPT);
     }
     if (!TAILQ_EMPTY(&this->files)) {
         PcapFiles *cfile = TAILQ_FIRST(&this->files);
@@ -583,7 +586,7 @@ int UnixMain(UnixCommand * this)
         return 0;
     }
 
-    if (suricata_ctl_flags != 0) {
+    if (suricata_ctl_flags & (SURICATA_STOP | SURICATA_KILL)) {
         UnixCommandClose(this);
         return 1;
     }
