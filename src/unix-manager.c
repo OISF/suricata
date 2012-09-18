@@ -391,6 +391,47 @@ int UnixCommandBackgroundTasks(UnixCommand* this)
     }
     return 1;
 }
+static int UnixCommandFileList(UnixCommand* this, json_t *cmd, json_t* answer)
+{
+    int i = 0;
+    PcapFiles *file;
+    json_t *jdata;
+    json_t *jarray;
+
+    jdata = json_object();
+    if (jdata == NULL) {
+        json_object_set_new(answer, "message",
+                            json_string("internal error at json object creation"));
+        return 0;
+    }
+    jarray = json_array();
+    if (jarray == NULL) {
+        json_object_set_new(answer, "message",
+                            json_string("internal error at json object creation"));
+        return 0;
+    }
+    TAILQ_FOREACH(file, &this->files, next) {
+        json_array_append(jarray, json_string(file->filename));
+        /* FIXME need to decrement ? */
+        i++;
+    }
+    json_object_set_new(jdata, "count", json_integer(i));
+    json_object_set_new(jdata, "files", jarray);
+    json_object_set_new(answer, "message", jdata);
+    return 1;
+}
+
+static int UnixCommandFileNumber(UnixCommand* this, json_t *cmd, json_t* answer)
+{
+    int i = 0;
+    PcapFiles *file;
+
+    TAILQ_FOREACH(file, &this->files, next) {
+        i++;
+    }
+    json_object_set_new(answer, "message", json_integer(i));
+    return 1;
+}
 
 int UnixCommandFile(UnixCommand* this, json_t *cmd, json_t* answer)
 {
@@ -518,6 +559,10 @@ int UnixCommandExecute(UnixCommand * this, char *command)
             goto error_cmd;
         }
         ret = UnixCommandFile(this, cmd, server_msg);
+    } else if (!strcmp(value, "pcap-file-number")) {
+        ret = UnixCommandFileNumber(this, cmd, server_msg);
+    } else if (!strcmp(value, "pcap-file-list")) {
+        ret = UnixCommandFileList(this, cmd, server_msg);
     } else {
         json_object_set_new(server_msg, "message", json_string("Unknown command"));
         ret = 0;
