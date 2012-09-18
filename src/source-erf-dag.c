@@ -315,7 +315,7 @@ TmEcode ReceiveErfDagLoop(ThreadVars *tv, void *data, void *slot)
 
     while (1)
     {
-        if (suricata_ctl_flags & (SURICATA_STOP || SURICATA_KILL)) {
+        if (suricata_ctl_flags & (SURICATA_STOP | SURICATA_KILL)) {
             SCReturnInt(TM_ECODE_OK);
         }
 

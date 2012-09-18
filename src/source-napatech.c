@@ -210,7 +210,7 @@ TmEcode NapatechFeedLoop(ThreadVars *tv, void *data, void *slot)
     ntv->slot = s->slot_next;
 
     while (1) {
-        if (suricata_ctl_flags & (SURICATA_STOP || SURICATA_KILL)) {
+        if (suricata_ctl_flags & (SURICATA_STOP | SURICATA_KILL)) {
             SCReturnInt(TM_ECODE_OK);
         }
 
