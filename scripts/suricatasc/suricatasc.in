@@ -24,7 +24,7 @@ import sys
 VERSION = "0.1"
 SOCKET_PATH = "@e_localstatedir@/run/suricata/suricata-command.socket"
 SIZE = 4096
-COMMANDS_REGEX = re.compile("^(?:shutdown|quit|reload-rules|pcap-file .+)$")
+COMMANDS_REGEX = re.compile("^(?:shutdown|quit|reload-rules|pcap-file .+|pcap-file-number|pcap-file-list)$")
 
 socket = socket(AF_UNIX)
 socket.connect(SOCKET_PATH)
@@ -52,7 +52,7 @@ try:
             if command == "quit":
                 break;
             cmdmsg = {}
-            if "pcap-file" in command:
+            if "pcap-file " in command:
                 try:
                     [cmd, filename, output] = command.split(' ', 2)
                 except:
