@@ -345,6 +345,16 @@ void EngineKill(void) {
     suricata_ctl_flags |= SURICATA_KILL;
 }
 
+/**
+ * \brief Used to indicate that the current task is done.
+ *
+ * This is mainly used by pcap-file to tell it has finished
+ * to treat a pcap files when running in unix-socket mode.
+ */
+void EngineDone(void) {
+    suricata_ctl_flags |= SURICATA_DONE;
+}
+
 static void SetBpfString(int optind, char *argv[]) {
     char *bpf_filter = NULL;
     uint32_t bpf_len = 0;
@@ -1440,7 +1450,9 @@ int main(int argc, char **argv)
     CIDRInit();
     SigParsePrepare();
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
-    SCPerfInitCounterApi();
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        SCPerfInitCounterApi();
+    }
 #ifdef PROFILING
     SCProfilingRulesGlobalInit();
     SCProfilingInit();
@@ -1888,7 +1900,9 @@ int main(int argc, char **argv)
     //AppLayerDetectProtoThreadSpawn();
 
     /* Spawn the perf counter threads.  Let these be the last one spawned */
-    SCPerfSpawnThreads();
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        SCPerfSpawnThreads();
+    }
 
     /* Check if the alloted queues have at least 1 reader and writer */
     TmValidateQueueState();
@@ -1929,7 +1943,7 @@ int main(int argc, char **argv)
 
     int engine_retval = EXIT_SUCCESS;
     while(1) {
-        if (suricata_ctl_flags != 0) {
+        if (suricata_ctl_flags & (SURICATA_KILL | SURICATA_STOP)) {
             SCLogInfo("Signal Received.  Stopping engine.");
 
             break;

@@ -65,6 +65,7 @@ typedef struct UnixCommand_ {
 } UnixCommand;
 
 static int unix_manager_file_task_running = 0;
+static int unix_manager_file_task_failed = 0;
 
 /**
  * \brief Create a command unix socket on system
@@ -348,7 +349,11 @@ int UnixPcapFilesHandle(UnixCommand *this)
     if (unix_manager_file_task_running == 1) {
         return 1;
     }
-    if (this->running == 1) {
+    if ((unix_manager_file_task_failed == 1) || (this->running == 1)) {
+        if (unix_manager_file_task_failed) {
+            SCLogInfo("Preceeding taks failed, cleaning the running mode");
+        }
+        unix_manager_file_task_failed = 0;
         this->running = 0;
         FlowKillFlowManagerThread();
         RunModeShutDown();
@@ -359,6 +364,8 @@ int UnixPcapFilesHandle(UnixCommand *this)
         PcapFiles *cfile = TAILQ_FIRST(&this->files);
         TAILQ_REMOVE(&this->files, cfile, next);
         SCLogInfo("Starting run for '%s'", cfile->filename);
+        unix_manager_file_task_running = 1;
+        this->running = 1;
         if (ConfSet("pcap-file.file", cfile->filename, 1) != 1) {
             SCLogInfo("Can not set working file to '%s'", cfile->filename);
             PcapFilesFree(cfile);
@@ -375,8 +382,7 @@ int UnixPcapFilesHandle(UnixCommand *this)
         RunModeInitializeOutputs();
         RunModeDispatch(RUNMODE_PCAP_FILE, NULL, this->de_ctx);
         FlowManagerThreadSpawn();
-        unix_manager_file_task_running = 1;
-        this->running = 1;
+        SCPerfSpawnThreads();
         /* Un-pause all the paused threads */
         TmThreadContinueThreads();
     }
@@ -833,8 +839,16 @@ void UnixSocketKillSocketThread(void)
 
 void UnixSocketPcapFile(TmEcode tm)
 {
-    if (tm == TM_ECODE_DONE) {
-        unix_manager_file_task_running = 0;
+    switch (tm) {
+        case TM_ECODE_DONE:
+            unix_manager_file_task_running = 0;
+            break;
+        case TM_ECODE_FAILED:
+            unix_manager_file_task_running = 0;
+            unix_manager_file_task_failed = 1;
+            break;
+        case TM_ECODE_OK:
+            break;
     }
 }
 

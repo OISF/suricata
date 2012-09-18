@@ -199,6 +199,7 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
             } else {
                 pcap_close(pcap_g.pcap_handle);
                 pcap_g.pcap_handle = NULL;
+                SCFree(ptv);
                 UnixSocketPcapFile(TM_ECODE_DONE);
                 SCReturnInt(TM_ECODE_DONE);
             }
@@ -234,7 +235,12 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (pcap_g.pcap_handle == NULL) {
         SCLogError(SC_ERR_FOPEN, "%s\n", errbuf);
         SCFree(ptv);
-        exit(EXIT_FAILURE);
+        if (! RunModeUnixSocketIsActive()) {
+            return TM_ECODE_FAILED;
+        } else {
+            UnixSocketPcapFile(TM_ECODE_FAILED);
+            SCReturnInt(TM_ECODE_DONE);
+        }
     }
 
     if (ConfGet("bpf-filter", &tmpbpfstring) != 1) {
@@ -258,7 +264,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
     pcap_g.datalink = pcap_datalink(pcap_g.pcap_handle);
     SCLogDebug("datalink %" PRId32 "", pcap_g.datalink);
 
-    switch(pcap_g.datalink)	{
+    switch(pcap_g.datalink) {
         case LINKTYPE_LINUX_SLL:
             pcap_g.Decoder = DecodeSll;
             break;

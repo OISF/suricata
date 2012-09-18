@@ -632,10 +632,15 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
             void *slot_data = NULL;
             r = slot->SlotThreadInit(tv, slot->slot_initdata, &slot_data);
             if (r != TM_ECODE_OK) {
-                EngineKill();
-
-                TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-                pthread_exit((void *) -1);
+                if (r == TM_ECODE_DONE) {
+                    EngineDone();
+                    TmThreadsSetFlag(tv, THV_CLOSED | THV_INIT_DONE | THV_RUNNING_DONE);
+                    pthread_exit((void *) -1);
+                } else {
+                    EngineKill();
+                    TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
+                    pthread_exit((void *) -1);
+                }
             }
             (void)SC_ATOMIC_SET(slot->slot_data, slot_data);
         }
@@ -1766,7 +1771,7 @@ void TmThreadFree(ThreadVars *tv)
     if (tv == NULL)
         return;
 
-    SCLogInfo("Freeing thread '%s'.", tv->name);
+    SCLogDebug("Freeing thread '%s'.", tv->name);
 
     SCMutexDestroy(&tv->sc_perf_pctx.m);
 
