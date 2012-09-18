@@ -343,6 +343,10 @@ void EngineKill(void) {
     suricata_ctl_flags |= SURICATA_KILL;
 }
 
+void EngineDone(void) {
+    suricata_ctl_flags |= SURICATA_DONE;
+}
+
 static void SetBpfString(int optind, char *argv[]) {
     char *bpf_filter = NULL;
     uint32_t bpf_len = 0;
@@ -1931,7 +1935,7 @@ int main(int argc, char **argv)
 
     int engine_retval = EXIT_SUCCESS;
     while(1) {
-        if (suricata_ctl_flags != 0) {
+        if (suricata_ctl_flags & (SURICATA_KILL | SURICATA_STOP)) {
             SCLogInfo("Signal Received.  Stopping engine.");
 
             break;
