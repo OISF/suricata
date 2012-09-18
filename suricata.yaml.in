@@ -46,6 +46,11 @@
 # overridden with the -l command line parameter.
 default-log-dir: @e_logdir@
 
+# Unix command socket can be used to pass commands to suricata.
+# An external tool can then connect to get information from suricata
+# or trigger some modification of the engine.
+#unix-command: yes
+
 # Configure the type of alert (and other) logging you would like.
 outputs:
 
