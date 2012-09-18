@@ -520,8 +520,8 @@ int UnixMain(UnixCommand * this)
     FD_SET(this->socket, &this->select_set);
     if (0 <= this->client)
         FD_SET(this->client, &this->select_set);
-    tv.tv_sec = 1;
-    tv.tv_usec = 0;
+    tv.tv_sec = 0;
+    tv.tv_usec = 200 * 1000;
     ret = select(this->select_max, &this->select_set, NULL, NULL, &tv);
 
     /* catch select() error */
