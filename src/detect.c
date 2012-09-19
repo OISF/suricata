@@ -2339,6 +2339,11 @@ PacketCreateMask(Packet *p, SignatureMask *mask, uint16_t alproto, void *alstate
         (*mask) |= SIG_MASK_REQUIRE_NO_PAYLOAD;
     }
 
+    if (p->events.cnt > 0) {
+        SCLogDebug("packet has events set");
+        (*mask) |= SIG_MASK_REQUIRE_ENGINE_EVENT;
+    }
+
     if (PKT_IS_TCP(p)) {
         if ((p->tcph->th_flags & MASK_TCP_INITDEINIT_FLAGS) != 0) {
             (*mask) |= SIG_MASK_REQUIRE_FLAGS_INITDEINIT;
@@ -2529,6 +2534,9 @@ static int SignatureCreateMask(Signature *s) {
                 }
                 break;
             }
+            case DETECT_ENGINE_EVENT:
+                s->mask |= SIG_MASK_REQUIRE_ENGINE_EVENT;
+                break;
         }
     }
 

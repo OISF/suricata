@@ -273,14 +273,14 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_FILE_DATA      (1<<5)  /**< file_data set */
 
 /* signature mask flags */
-#define SIG_MASK_REQUIRE_PAYLOAD            1
+#define SIG_MASK_REQUIRE_PAYLOAD            (1<<0)
 #define SIG_MASK_REQUIRE_FLOW               (1<<1)
 #define SIG_MASK_REQUIRE_FLAGS_INITDEINIT   (1<<2)    /* SYN, FIN, RST */
 #define SIG_MASK_REQUIRE_FLAGS_UNUSUAL      (1<<3)    /* URG, ECN, CWR */
 #define SIG_MASK_REQUIRE_NO_PAYLOAD         (1<<4)
-//
 #define SIG_MASK_REQUIRE_HTTP_STATE         (1<<5)
 #define SIG_MASK_REQUIRE_DCE_STATE          (1<<6)
+#define SIG_MASK_REQUIRE_ENGINE_EVENT       (1<<7)
 
 /* for now a uint8_t is enough */
 #define SignatureMask uint8_t
