@@ -674,7 +674,8 @@ typedef struct DecodeThreadVars_
         (p)->next = NULL;                       \
         (p)->prev = NULL;                       \
         (p)->root = NULL;                       \
-        (p)->livedev = NULL;                      \
+        (p)->livedev = NULL;                    \
+        (p)->ReleaseData = NULL;                \
         PACKET_RESET_CHECKSUMS((p));            \
         PACKET_PROFILING_RESET((p));            \
     } while (0)
