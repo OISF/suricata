@@ -1878,7 +1878,7 @@ int main(int argc, char **argv)
     if (run_mode != RUNMODE_UNIX_SOCKET) {
         /* Spawn the unix socket manager thread */
         int unix_socket = 0;
-        if (ConfGetBool("unix-command", &unix_socket) != 1)
+        if (ConfGetBool("unix-command.enabled", &unix_socket) != 1)
             unix_socket = 0;
         if (unix_socket == 1) {
             UnixManagerThreadSpawn();
