@@ -33,7 +33,6 @@
 #include "util-privs.h"
 #include "util-debug.h"
 #include "util-signal.h"
-#include "jansson.h"
 #include "output.h"
 #include "host.h"
 
@@ -46,6 +45,8 @@
 #define SOCKET_TARGET SOCKET_PATH SOCKET_FILENAME
 
 #ifdef HAVE_LIBJANSSON
+
+#include "jansson.h"
 
 typedef struct PcapFiles_ {
     char *filename;
