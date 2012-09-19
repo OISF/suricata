@@ -93,7 +93,12 @@ typedef struct AFPPeer_ {
     TAILQ_ENTRY(AFPPeer_) next;
 } AFPPeer;
 
-/* per packet AF_PACKET vars */
+/**
+ * \brief per packet AF_PACKET vars
+ *
+ * This structure is used y the release data system and is cleaned
+ * up by the AFPV_CLEANUP macro below.
+ */
 typedef struct AFPPacketVars_
 {
     void *relptr;
@@ -104,6 +109,13 @@ typedef struct AFPPacketVars_
      */
     AFPPeer *mpeer;
 } AFPPacketVars;
+
+#define AFPV_CLEANUP(afpv) do {           \
+    (afpv)->relptr = NULL;                \
+    (afpv)->copy_mode = 0;                \
+    (afpv)->peer = NULL;                  \
+    (afpv)->mpeer = NULL;                 \
+} while(0)
 
 /**
  * @}
