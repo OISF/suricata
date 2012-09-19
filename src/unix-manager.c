@@ -74,6 +74,8 @@ int UnixNew(UnixCommand * this)
     int len;
     int ret;
     int on = 1;
+    char *sockettarget;
+    char *socketname;
 
     this->start_timestamp = time(NULL);
     this->socket = -1;
@@ -92,12 +94,22 @@ int UnixNew(UnixCommand * this)
         }
     }
 
+    if (ConfGet("unix-command.filename", &socketname) == 1) {
+        int socketlen = strlen(SOCKET_PATH) + strlen(socketname) + 2;
+        sockettarget = SCMalloc(socketlen);
+        snprintf(sockettarget, socketlen, "%s/%s", SOCKET_PATH, socketname);
+        SCLogInfo("Use unix socket file '%s'.", sockettarget);
+    }
+    if (sockettarget == NULL) {
+        sockettarget = SCStrdup(SOCKET_TARGET);
+    }
+
     /* Remove socket file */
-    (void) unlink(SOCKET_TARGET);
+    (void) unlink(sockettarget);
 
     /* set address */
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, SOCKET_TARGET, sizeof(addr.sun_path));
+    strncpy(addr.sun_path, sockettarget, sizeof(addr.sun_path));
     addr.sun_path[sizeof(addr.sun_path) - 1] = 0;
     len = strlen(addr.sun_path) + sizeof(addr.sun_family);
 
@@ -128,7 +140,8 @@ int UnixNew(UnixCommand * this)
     if (ret == -1) {
         SCLogWarning(SC_ERR_INITIALIZATION,
                      "Unix socket: UNIX socket bind(%s) error: %s",
-                     SOCKET_TARGET, strerror(errno));
+                     sockettarget, strerror(errno));
+        SCFree(sockettarget);
         return 0;
     }
 
@@ -137,8 +150,10 @@ int UnixNew(UnixCommand * this)
         SCLogWarning(SC_ERR_INITIALIZATION,
                      "Command server: UNIX socket listen() error: %s",
                      strerror(errno));
+        SCFree(sockettarget);
         return 0;
     }
+    SCFree(sockettarget);
     return 1;
 }
 
