@@ -200,7 +200,7 @@ void DetectExitPrintStats(ThreadVars *tv, void *data);
 
 void DbgPrintSigs(DetectEngineCtx *, SigGroupHead *);
 void DbgPrintSigs2(DetectEngineCtx *, SigGroupHead *);
-static void PacketCreateMask(Packet *p, SignatureMask *mask, uint16_t alproto, void *alstate, StreamMsg *smsg);
+static void PacketCreateMask(Packet *, SignatureMask *, uint16_t, void *, StreamMsg *, int);
 
 /* tm module api functions */
 TmEcode Detect(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
@@ -1399,6 +1399,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     SigMatch *sm = NULL;
     uint16_t alversion = 0;
     int reset_de_state = 0;
+    AppLayerDecoderEvents *app_decoder_events = NULL;
+    int app_decoder_events_cnt = 0;
 
     SCEnter();
 
@@ -1484,6 +1486,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             } else {
                 SCLogDebug("packet doesn't have established flag set (proto %d)", p->proto);
             }
+
+            app_decoder_events = AppLayerGetDecoderEventsForFlow(p->flow);
+            if (app_decoder_events != NULL)
+                app_decoder_events_cnt = app_decoder_events->cnt;
         }
         FLOWLOCK_UNLOCK(p->flow);
 
@@ -1609,7 +1615,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* create our prefilter mask */
     SignatureMask mask = 0;
-    PacketCreateMask(p, &mask, alproto, alstate, smsg);
+    PacketCreateMask(p, &mask, alproto, alstate, smsg, app_decoder_events_cnt);
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PREFILTER);
     /* build the match array */
@@ -2330,7 +2336,9 @@ deonly:
  * SIG_MASK_REQUIRE_HTTP_STATE, SIG_MASK_REQUIRE_DCE_STATE
  */
 static void
-PacketCreateMask(Packet *p, SignatureMask *mask, uint16_t alproto, void *alstate, StreamMsg *smsg) {
+PacketCreateMask(Packet *p, SignatureMask *mask, uint16_t alproto, void *alstate, StreamMsg *smsg,
+        int app_decoder_events_cnt)
+{
     if (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && (p->payload_len > 0 || smsg != NULL)) {
         SCLogDebug("packet has payload");
         (*mask) |= SIG_MASK_REQUIRE_PAYLOAD;
@@ -2339,8 +2347,8 @@ PacketCreateMask(Packet *p, SignatureMask *mask, uint16_t alproto, void *alstate
         (*mask) |= SIG_MASK_REQUIRE_NO_PAYLOAD;
     }
 
-    if (p->events.cnt > 0) {
-        SCLogDebug("packet has events set");
+    if (p->events.cnt > 0 || app_decoder_events_cnt > 0) {
+        SCLogDebug("packet/flow has events set");
         (*mask) |= SIG_MASK_REQUIRE_ENGINE_EVENT;
     }
 
@@ -2454,6 +2462,9 @@ static int SignatureCreateMask(Signature *s) {
             case DETECT_AL_HTTP_URI:
                 s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
                 SCLogDebug("sig requires dce http state");
+                break;
+            case DETECT_AL_APP_LAYER_EVENT:
+                s->mask |= SIG_MASK_REQUIRE_ENGINE_EVENT;
                 break;
         }
     }
