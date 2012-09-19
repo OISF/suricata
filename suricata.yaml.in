@@ -49,9 +49,11 @@ default-log-dir: @e_logdir@
 # Unix command socket can be used to pass commands to suricata.
 # An external tool can then connect to get information from suricata
 # or trigger some modifications of the engine. Set enabled to yes
-# to activate the feature.
+# to activate the feature. You can use the filename variable to set
+# the file name of the socket.
 unix-command:
   enabled: no
+  #filename: custom.socket
 
 # Configure the type of alert (and other) logging you would like.
 outputs:

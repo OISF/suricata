@@ -536,7 +536,7 @@ void usage(const char *progname)
     printf("\t--napatech <adapter>          : run Napatech feeds using <adapter>\n");
 #endif
 #ifdef BUILD_UNIX_SOCKET
-    printf("\t--unix-socket                : use unix socket to control suricata work\n");
+    printf("\t--unix-socket[=<file>]         : use unix socket to control suricata work\n");
 #endif
     printf("\n");
     printf("\nTo run the engine with default configuration on "
@@ -766,7 +766,7 @@ int main(int argc, char **argv)
         {"af-packet", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
 #ifdef BUILD_UNIX_SOCKET
-        {"unix-socket", 0, 0, 0},
+        {"unix-socket", optional_argument, 0, 0},
 #endif
         {"pcap-buffer-size", required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
@@ -910,6 +910,13 @@ int main(int argc, char **argv)
             } else if (strcmp((long_opts[option_index]).name , "unix-socket") == 0) {
                 if (run_mode == RUNMODE_UNKNOWN) {
                     run_mode = RUNMODE_UNIX_SOCKET;
+                    if (optarg) {
+                        if (ConfSet("unix-command.filename", optarg, 0) != 1) {
+                            fprintf(stderr, "ERROR: Failed to set unix-command.filename.\n");
+                            exit(EXIT_FAILURE);
+                        }
+
+                    }
                 } else {
                     SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                             "has been specified");
