@@ -1512,16 +1512,16 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
         SCLogInfo("Enabling zero copy mode by using data release call");
     }
 
-    if (AFPPeersListAdd(ptv) == TM_ECODE_FAILED) {
-        SCFree(ptv);
-        afpconfig->DerefFunc(afpconfig);
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-
     ptv->copy_mode = afpconfig->copy_mode;
     if (ptv->copy_mode != AFP_COPY_MODE_NONE) {
         strlcpy(ptv->out_iface, afpconfig->out_iface, AFP_IFACE_NAME_LENGTH);
         ptv->out_iface[AFP_IFACE_NAME_LENGTH - 1]= '\0';
+    }
+
+    if (AFPPeersListAdd(ptv) == TM_ECODE_FAILED) {
+        SCFree(ptv);
+        afpconfig->DerefFunc(afpconfig);
+        SCReturnInt(TM_ECODE_FAILED);
     }
 
 #define T_DATA_SIZE 70000
