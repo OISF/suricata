@@ -1179,47 +1179,44 @@ static void HtpRequestBodyMultipartParseHeader(HtpState *hstate,
         } else {
             line_len = next_line - header;
         }
-
         uint8_t *sc = (uint8_t *)memchr(line, ':', line_len);
         if (sc == NULL) {
             AppLayerDecoderEventsSetEvent(hstate->f,
                     HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER);
-        } else {
             /* if the : we found is the final char, it means we have
              * no value */
-            if (line_len > 0 && sc == &line[line_len - 1])
-                AppLayerDecoderEventsSetEvent(hstate->f,
-                        HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER);
-        }
-
+        } else if (line_len > 0 && sc == &line[line_len - 1]) {
+            AppLayerDecoderEventsSetEvent(hstate->f,
+                    HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER);
+        } else {
 #ifdef PRINT
-        printf("LINE START: \n");
-        PrintRawDataFp(stdout, line, line_len);
-        printf("LINE END: \n");
+            printf("LINE START: \n");
+            PrintRawDataFp(stdout, line, line_len);
+            printf("LINE END: \n");
 #endif
-        if (line_len >= C_D_HDR_LEN &&
-                SCMemcmpLowercase(C_D_HDR, line, C_D_HDR_LEN) == 0) {
-            uint8_t *value = line + C_D_HDR_LEN;
-            uint32_t value_len = line_len - C_D_HDR_LEN;
+            if (line_len >= C_D_HDR_LEN &&
+                    SCMemcmpLowercase(C_D_HDR, line, C_D_HDR_LEN) == 0) {
+                uint8_t *value = line + C_D_HDR_LEN;
+                uint32_t value_len = line_len - C_D_HDR_LEN;
 
-            /* parse content-disposition */
-            (void)HTTPParseContentDispositionHeader((uint8_t *)"filename=", 9,
-                    value, value_len, &fn, &fn_len);
-        } else if (line_len >= C_T_HDR_LEN &&
-                SCMemcmpLowercase(C_T_HDR, line, C_T_HDR_LEN) == 0) {
-            SCLogDebug("content-type line");
-            uint8_t *value = line + C_T_HDR_LEN;
-            uint32_t value_len = line_len - C_T_HDR_LEN;
+                /* parse content-disposition */
+                (void)HTTPParseContentDispositionHeader((uint8_t *)"filename=", 9,
+                        value, value_len, &fn, &fn_len);
+            } else if (line_len >= C_T_HDR_LEN &&
+                    SCMemcmpLowercase(C_T_HDR, line, C_T_HDR_LEN) == 0) {
+                SCLogDebug("content-type line");
+                uint8_t *value = line + C_T_HDR_LEN;
+                uint32_t value_len = line_len - C_T_HDR_LEN;
 
-            (void)HTTPParseContentTypeHeader(NULL, 0,
-                    value, value_len, &ft, &ft_len);
+                (void)HTTPParseContentTypeHeader(NULL, 0,
+                        value, value_len, &ft, &ft_len);
+            }
         }
 
         if (next_line == NULL) {
             SCLogDebug("no next_line");
             break;
         }
-
         header_len -= ((next_line + 2) - header);
         header = next_line + 2;
     } /* while (header_len > 0) */
@@ -1321,6 +1318,9 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
     }
     uint8_t *form_end = Bs2bmSearch(chunks_buffer, chunks_buffer_len,
             expected_boundary_end, expected_boundary_end_len);
+
+    SCLogDebug("header_start %p, header_end %p, form_end %p", header_start,
+            header_end, form_end);
 
     /* if we're in the file storage process, deal with that now */
     if (htud->tsflags & HTP_FILENAME_SET) {
@@ -1524,7 +1524,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                     } else if (result == -2) {
                         htud->tsflags |= HTP_DONTSTORE;
                     }
-                } else {
+                } else if (header_next - filedata > 2) {
                     filedata_len = header_next - filedata - 2;
                     SCLogDebug("filedata_len %u", filedata_len);
 
@@ -4383,6 +4383,135 @@ end:
     return result;
 }
 
+/** \test BG box crash -- chunks are messed up. Observed for real. */
+static int HTPBodyReassemblyTest01(void)
+{
+    int result = 0;
+    HtpTxUserData htud;
+    memset(&htud, 0x00, sizeof(htud));
+    HtpState hstate;
+    memset(&hstate, 0x00, sizeof(hstate));
+    Flow flow;
+    memset(&flow, 0x00, sizeof(flow));
+    AppLayerParserStateStore parser;
+    memset(&parser, 0x00, sizeof(parser));
+
+    hstate.f = &flow;
+    flow.alparser = &parser;
+
+    uint8_t chunk1[] = "--e5a320f21416a02493a0a6f561b1c494\r\nContent-Disposition: form-data; name=\"uploadfile\"; filename=\"D2GUef.jpg\"\r";
+    uint8_t chunk2[] = "POST /uri HTTP/1.1\r\nHost: hostname.com\r\nKeep-Alive: 115\r\nAccept-Charset: utf-8\r\nUser-Agent: Mozilla/5.0 (X11; Linux i686; rv:9.0.1) Gecko/20100101 Firefox/9.0.1\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nConnection: keep-alive\r\nContent-length: 68102\r\nReferer: http://otherhost.com\r\nAccept-Encoding: gzip\r\nContent-Type: multipart/form-data; boundary=e5a320f21416a02493a0a6f561b1c494\r\nCookie: blah\r\nAccept-Language: us\r\n\r\n--e5a320f21416a02493a0a6f561b1c494\r\nContent-Disposition: form-data; name=\"uploadfile\"; filename=\"D2GUef.jpg\"\r";
+
+    int r = HtpBodyAppendChunk(&htud, &htud.request_body, (uint8_t *)chunk1, sizeof(chunk1)-1);
+    BUG_ON(r != 0);
+    r = HtpBodyAppendChunk(&htud, &htud.request_body, (uint8_t *)chunk2, sizeof(chunk2)-1);
+    BUG_ON(r != 0);
+
+    uint8_t *chunks_buffer = NULL;
+    uint32_t chunks_buffer_len = 0;
+
+    HtpRequestBodyReassemble(&htud, &chunks_buffer, &chunks_buffer_len);
+    if (chunks_buffer == NULL) {
+        goto end;
+    }
+#ifdef PRINT
+    printf("REASSCHUNK START: \n");
+    PrintRawDataFp(stdout, chunks_buffer, chunks_buffer_len);
+    printf("REASSCHUNK END: \n");
+#endif
+
+    HtpRequestBodyHandleMultipart(&hstate, &htud, chunks_buffer, chunks_buffer_len);
+
+    if (htud.request_body.content_len_so_far != 669) {
+        printf("htud.request_body.content_len_so_far %"PRIu64": ", htud.request_body.content_len_so_far);
+        goto end;
+    }
+
+    if (hstate.files_ts != NULL)
+        goto end;
+
+    result = 1;
+end:
+    return result;
+}
+
+/** \test BG crash */
+static int HTPSegvTest01(void) {
+    int result = 0;
+    Flow *f = NULL;
+    uint8_t httpbuf1[] = "POST /uri HTTP/1.1\r\nHost: hostname.com\r\nKeep-Alive: 115\r\nAccept-Charset: utf-8\r\nUser-Agent: Mozilla/5.0 (X11; Linux i686; rv:9.0.1) Gecko/20100101 Firefox/9.0.1\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nConnection: keep-alive\r\nContent-length: 68102\r\nReferer: http://otherhost.com\r\nAccept-Encoding: gzip\r\nContent-Type: multipart/form-data; boundary=e5a320f21416a02493a0a6f561b1c494\r\nCookie: blah\r\nAccept-Language: us\r\n\r\n--e5a320f21416a02493a0a6f561b1c494\r\nContent-Disposition: form-data; name=\"uploadfile\"; filename=\"D2GUef.jpg\"\r";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: IDS\n\
+    double-decode-path: no\n\
+    double-decode-query: no\n\
+    request-body-limit: 0\n\
+    response-body-limit: 0\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    HtpConfigCreateBackup();
+    ConfYamlLoadString(input, strlen(input));
+    HTPConfigure();
+
+    TcpSession ssn;
+    HtpState *http_state = NULL;
+
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
+    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    SCLogDebug("\n>>>> processing chunk 1 again <<<<\n");
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    http_state = f->alstate;
+    if (http_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    AppLayerDecoderEvents *decoder_events = AppLayerGetDecoderEventsForFlow(f);
+    if (decoder_events != NULL) {
+        printf("app events: ");
+        goto end;
+    }
+    result = 1;
+end:
+    HTPFreeConfig();
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
+    StreamTcpFreeConfig(TRUE);
+    if (http_state != NULL)
+        HTPStateFree(http_state);
+    UTHFreeFlow(f);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -4410,6 +4539,10 @@ void HTPParserRegisterTests(void) {
     UtRegisterTest("HTPParserDecodingTest01", HTPParserDecodingTest01, 1);
     UtRegisterTest("HTPParserDecodingTest02", HTPParserDecodingTest02, 1);
     UtRegisterTest("HTPParserDecodingTest03", HTPParserDecodingTest03, 1);
+
+    UtRegisterTest("HTPBodyReassemblyTest01", HTPBodyReassemblyTest01, 1);
+
+    UtRegisterTest("HTPSegvTest01", HTPSegvTest01, 1);
 
     HTPFileParserRegisterTests();
 #endif /* UNITTESTS */
