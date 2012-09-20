@@ -648,15 +648,17 @@ TmEcode AFPReleaseDataFromRing(ThreadVars *t, Packet *p)
     }
 
     if (AFPDerefSocket(p->afp_v.mpeer) == 0)
-        return ret;
+        goto cleanup;
 
     if (p->afp_v.relptr) {
         union thdr h;
         h.raw = p->afp_v.relptr;
         h.h2->tp_status = TP_STATUS_KERNEL;
-        return ret;
     }
-    return TM_ECODE_FAILED;
+
+cleanup:
+    memset(&p->afp_v, 0, sizeof(AFPPacketVars));
+    return ret;
 }
 
 /**
