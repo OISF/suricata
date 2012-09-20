@@ -62,6 +62,7 @@
 #include "app-layer-parser.h"
 
 #include "host-timeout.h"
+#include "defrag-timeout.h"
 
 /* Run mode selected at suricata.c */
 extern int run_mode;
