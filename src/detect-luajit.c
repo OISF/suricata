@@ -383,6 +383,7 @@ static void *DetectLuajitThreadInit(void *data) {
     t->flags = luajit->flags;
 
     t->luastate = luaL_newstate();
+
     if (t->luastate == NULL) {
         SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't set up luastate");
         goto error;
@@ -412,11 +413,11 @@ error:
 }
 
 static void DetectLuajitThreadFree(void *ctx) {
-    DetectLuajitThreadData *t = (DetectLuajitThreadData *)ctx;
-
-    lua_close(t->luastate);
-
-    SCFree(t);
+    if (ctx != NULL) {
+        DetectLuajitThreadData *t = (DetectLuajitThreadData *)ctx;
+        lua_close(t->luastate);
+        SCFree(t);
+    }
 }
 
 /**
