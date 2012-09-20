@@ -2713,6 +2713,7 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
                 AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                         data, data_len, flags);
                 PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+                data_len = 0;
             }
 
             /* don't conclude it's a gap straight away. If ra_base_seq is lower
