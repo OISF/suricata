@@ -535,24 +535,34 @@ static int DetectLuaSetupPrime(DetectLuajitData *ld) {
 
             if (strcmp(k, "http.uri") == 0)
                 ld->flags |= DATATYPE_HTTP_URI;
+
             else if (strcmp(k, "http.uri.raw") == 0)
                 ld->flags |= DATATYPE_HTTP_URI_RAW;
+
             else if (strcmp(k, "http.request_line") == 0)
                 ld->flags |= DATATYPE_HTTP_REQUEST_LINE;
+
             else if (strcmp(k, "http.request_headers") == 0)
                 ld->flags |= DATATYPE_HTTP_REQUEST_HEADERS;
+
             else if (strcmp(k, "http.request_headers.raw") == 0)
                 ld->flags |= DATATYPE_HTTP_REQUEST_HEADERS_RAW;
+
             else if (strcmp(k, "http.request_cookie") == 0)
                 ld->flags |= DATATYPE_HTTP_REQUEST_COOKIE;
-            else if (strcmp(k, "http.request_cookie") == 0)
-                ld->flags |= DATATYPE_HTTP_REQUEST_UA;
+
             else if (strcmp(k, "http.request_user_agent") == 0)
+                ld->flags |= DATATYPE_HTTP_REQUEST_UA;
+
+            else if (strcmp(k, "http.request_body") == 0)
                 ld->flags |= DATATYPE_HTTP_REQUEST_BODY;
+
             else if (strcmp(k, "http.response_body") == 0)
                 ld->flags |= DATATYPE_HTTP_RESPONSE_BODY;
+
             else if (strcmp(k, "http.response_cookie") == 0)
                 ld->flags |= DATATYPE_HTTP_RESPONSE_COOKIE;
+
             else {
                 SCLogError(SC_ERR_LUAJIT_ERROR, "unsupported http data type %s", k);
                 goto error;
