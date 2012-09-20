@@ -101,6 +101,7 @@
 #include "log-pcap.h"
 #include "log-file.h"
 #include "log-filestore.h"
+#include "log-pescanlog.h"
 
 #include "stream-tcp.h"
 
@@ -1506,6 +1507,8 @@ int main(int argc, char **argv)
     TmModuleLogTlsLogRegister();
     TmModuleLogTlsLogIPv4Register();
     TmModuleLogTlsLogIPv6Register();
+    /* pescan log */
+    TmModuleLogPescanLogRegister();
     /* pcap log */
     TmModulePcapLogRegister();
     /* file log */

@@ -139,6 +139,12 @@ static void FilePruneFile(File *file) {
         SCLogDebug("file->flags & FILE_NOMAGIC == true");
     }
 
+    /* If 'pescan' enabled but file has not been scanned yet, then bail out */
+    if (!(file->flags & FILE_NOPESCAN) && !(file->pescan_flags & PEFILE_SCANNED)) {
+	SCLogDebug("Attempting to prune file that has not been PE scanned yet");
+	SCReturn;
+    }
+
     /* okay, we now know we can prune */
     FileData *fd = file->chunks_head;
 
@@ -325,6 +331,11 @@ static void FileFree(File *ff) {
         }
     }
 
+    /* Free PE attribs data structure */
+    if (ff->peattrib != NULL) {
+	SCFree(ff->peattrib);
+    }
+
 #ifdef HAVE_NSS
     if (ff->md5_ctx)
         HASH_Destroy(ff->md5_ctx);
@@ -381,11 +392,21 @@ static int FileStoreNoStoreCheck(File *ff) {
         SCReturnInt(0);
     }
 
+
     if (ff->flags & FILE_NOSTORE) {
-        if (ff->state == FILE_STATE_OPENED &&
-                ff->size >= (uint64_t)FileMagicSize())
-        {
-            SCReturnInt(1);
+
+	if (ff->state == FILE_STATE_OPENED) {
+	    if (ff->size < (uint64_t)FileMagicSize()) {
+		SCReturnInt(0);
+	    }
+
+	    /* Check whether PEScan is acting on the file */
+	    else if (!(ff->flags & FILE_NOPESCAN) && !(ff->pescan_flags & PEFILE_SCANNED)) {
+		SCReturnInt(0);
+	    }
+
+	    /* Limit reached */
+	    SCReturnInt(1);
         }
     }
 
@@ -471,7 +492,7 @@ int FileAppendData(FileContainer *ffc, uint8_t *data, uint32_t data_len) {
  *  \note filename is not a string, so it's not nul terminated.
  */
 File *FileOpenFile(FileContainer *ffc, uint8_t *name,
-        uint16_t name_len, uint8_t *data, uint32_t data_len, uint8_t flags)
+        uint16_t name_len, uint8_t *data, uint32_t data_len, uint16_t flags)
 {
     SCEnter();
 
@@ -491,6 +512,10 @@ File *FileOpenFile(FileContainer *ffc, uint8_t *name,
     if (flags & FILE_NOMAGIC) {
         SCLogDebug("not doing magic for this file");
         ff->flags |= FILE_NOMAGIC;
+    }
+    if (flags & FILE_NOPESCAN) {
+	SCLogDebug("not doing pescan for this file");
+	ff->flags |= FILE_NOPESCAN;
     }
     if (flags & FILE_NOMD5) {
         SCLogDebug("not doing md5 for this file");
@@ -534,7 +559,7 @@ File *FileOpenFile(FileContainer *ffc, uint8_t *name,
 }
 
 static int FileCloseFilePtr(File *ff, uint8_t *data,
-        uint32_t data_len, uint8_t flags)
+        uint32_t data_len, uint16_t flags)
 {
     SCEnter();
 
@@ -610,7 +635,7 @@ static int FileCloseFilePtr(File *ff, uint8_t *data,
  *  \retval -1 error
  */
 int FileCloseFile(FileContainer *ffc, uint8_t *data,
-        uint32_t data_len, uint8_t flags)
+        uint32_t data_len, uint16_t flags)
 {
     SCEnter();
 
@@ -653,6 +678,36 @@ void FileDisableStoring(Flow *f, uint8_t direction) {
             }
         }
     }
+    SCReturn;
+}
+
+/**
+ *  \brief disable file pescan processing for this flow
+ *
+ *  \param f *LOCKED* flow
+ *  \param direction flow direction
+ */
+void FileDisablePEScan(Flow *f, uint8_t direction) {
+    File *ptr = NULL;
+
+    SCEnter();
+
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
+    if (direction == STREAM_TOSERVER)
+        f->flags |= FLOW_FILE_NO_PESCAN_TS;
+    else
+        f->flags |= FLOW_FILE_NO_PESCAN_TC;
+
+    FileContainer *ffc = AppLayerGetFilesFromFlow(f, direction);
+    if (ffc != NULL) {
+        for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
+            SCLogDebug("disabling pescan for file %p from direction %s",
+                    ptr, direction == STREAM_TOSERVER ? "toserver":"toclient");
+            ptr->flags |= FILE_NOPESCAN;
+        }
+    }
+
     SCReturn;
 }
 
