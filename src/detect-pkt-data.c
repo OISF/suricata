@@ -94,8 +94,9 @@ static int DetectPktdataTest01(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+    Signature *sig = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(pkt_data;)");
+    de_ctx->sig_list = sig;
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -121,7 +122,7 @@ static int DetectPktdataTest01(void)
     }
     
     
-    if (sm->init_flags && SIG_FLAG_INIT_FILE_DATA) {
+    if (sig->init_flags && SIG_FLAG_INIT_FILE_DATA) {
         goto end;
     }
 
