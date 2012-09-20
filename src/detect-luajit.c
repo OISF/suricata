@@ -384,7 +384,7 @@ static void *DetectLuajitThreadInit(void *data) {
 
     t->luastate = luaL_newstate();
     if (t->luastate == NULL) {
-        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't load file: %s", lua_tostring(t->luastate, -1));
+        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't set up luastate");
         goto error;
     }
 
