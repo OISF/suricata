@@ -1,0 +1,135 @@
+/* Copyright (C) 2012 Open Information Security Foundation
+ *
+ * You can copy, redistribute or modify this Program under the terms of
+ * the GNU General Public License version 2 as published by the Free
+ * Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
+ */
+
+/**
+ * \file
+ *
+ * \author Xavier Lange <xrlange@gmail.com>
+ *
+ */
+
+#include "suricata-common.h"
+#include "threads.h"
+#include "debug.h"
+#include "decode.h"
+
+#include "detect.h"
+#include "detect-parse.h"
+
+#include "detect-engine.h"
+#include "detect-engine-mpm.h"
+#include "detect-engine-state.h"
+
+#include "flow.h"
+#include "flow-var.h"
+#include "flow-util.h"
+
+#include "util-debug.h"
+#include "util-spm-bm.h"
+#include "util-unittest.h"
+#include "util-unittest-helper.h"
+
+static int DetectPktdataSetup (DetectEngineCtx *, Signature *, char *);
+
+/**
+ * \brief Registration function for keyword: file_data
+ */
+void DetectPktdataRegister(void) {
+    sigmatch_table[DETECT_FILE_DATA].name = "pkt_data";
+    sigmatch_table[DETECT_FILE_DATA].Match = NULL;
+    sigmatch_table[DETECT_FILE_DATA].AppLayerMatch = NULL;
+    sigmatch_table[DETECT_FILE_DATA].alproto = ALPROTO_HTTP;
+    sigmatch_table[DETECT_FILE_DATA].Setup = DetectPktdataSetup;
+    sigmatch_table[DETECT_FILE_DATA].Free  = NULL;
+    sigmatch_table[DETECT_FILE_DATA].RegisterTests = NULL;
+}
+
+/**
+ * \brief this function is used to parse pkt_data options
+ * \brief into the current signature
+ *
+ * \param de_ctx pointer to the Detection Engine Context
+ * \param s pointer to the Current Signature
+ * \param str pointer to the user provided "filestore" option
+ *
+ * \retval 0 on Success
+ * \retval -1 on Failure
+ */
+static int DetectPktDataSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+{
+    SCEnter();
+    if (s->init_flags & SIG_FLAG_INIT_FLOW && s->flags & SIG_FLAG_TOSERVER && !(s->flags & SIG_FLAG_TOCLIENT)) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use pkt_data with flow:to_server or from_client with http.");
+        return -1;
+    }
+    s->init_flags &= (~SIG_FLAG_INIT_FILE_DATA);
+
+    return 0;
+}
+
+/************************************Unittests*********************************/
+
+static int DetectPktdataTest01(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    SigMatch *sm = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(pkt_data;)");
+    if (de_ctx->sig_list == NULL) {
+        goto end;
+    }
+
+    /* sm should not be in the MATCH list */
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_MATCH];
+    if (sm != NULL) {
+        goto end;
+    }
+
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSBDMATCH];
+    if (sm == NULL) {
+        goto end;
+    }
+
+    if (sm->type != DETECT_CONTENT) {
+        printf("sm type not DETECT_AL_HTTP_SERVER_BODY: ");
+        goto end;
+    }
+
+    if (sm->next != NULL) {
+        goto end;
+    }
+    
+    
+    if (sm->init_flags && SIG_FLAG_INIT_FILE_DATA) {
+        goto end;
+    }
+
+    result = 1;
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
