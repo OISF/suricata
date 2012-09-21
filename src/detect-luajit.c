@@ -137,7 +137,7 @@ static void *LuaStatePoolAlloc(void) {
     return luaL_newstate();
 }
 
-static void LuaStatePoolClean(void *d) {
+static void LuaStatePoolFree(void *d) {
     lua_State *s = (lua_State *)d;
     if (s != NULL)
         lua_close(s);
@@ -164,13 +164,14 @@ int DetectLuajitSetupStatesPool(int num, int reloads) {
                 cpus = 10;
             }
             cnt = num * cpus;
+            cnt *= 3; /* assume 3 threads per core */
 
             /* alloc a bunch extra so reload can add new rules/instances */
             if (reloads)
                 cnt *= 5;
         }
 
-        luajit_states = PoolInit(0, cnt, 0, LuaStatePoolAlloc, NULL, NULL, LuaStatePoolClean);
+        luajit_states = PoolInit(0, cnt, 0, LuaStatePoolAlloc, NULL, NULL, NULL, LuaStatePoolFree);
         if (luajit_states == NULL) {
             SCLogError(SC_ERR_LUAJIT_ERROR, "luastate pool init failed, luajit keywords won't work");
             retval = -1;
@@ -192,9 +193,11 @@ static lua_State *DetectLuajitGetState(void) {
 }
 
 static void DetectLuajitReturnState(lua_State *s) {
-    pthread_mutex_lock(&luajit_states_lock);
-    PoolReturn(luajit_states, (void *)s);
-    pthread_mutex_unlock(&luajit_states_lock);
+    if (s != NULL) {
+        pthread_mutex_lock(&luajit_states_lock);
+        PoolReturn(luajit_states, (void *)s);
+        pthread_mutex_unlock(&luajit_states_lock);
+    }
 }
 
 /** \brief dump stack from lua state to screen */

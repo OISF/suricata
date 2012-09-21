@@ -190,7 +190,7 @@ DefragContextNew(void)
     intmax_t frag_pool_prealloc = frag_pool_size / 2;
     dc->frag_pool = PoolInit(frag_pool_size, frag_pool_prealloc,
         sizeof(Frag),
-        NULL, DefragFragInit, dc, NULL);
+        NULL, DefragFragInit, dc, NULL, NULL);
     if (dc->frag_pool == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,
             "Defrag: Failed to initialize fragment pool.");

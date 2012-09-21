@@ -493,7 +493,7 @@ void StreamTcpInitConfig(char quiet)
                         sizeof(TcpSession),
                         StreamTcpSessionPoolAlloc,
                         StreamTcpSessionPoolInit, NULL,
-                        StreamTcpSessionPoolCleanup);
+                        StreamTcpSessionPoolCleanup, NULL);
     if (ssn_pool == NULL) {
         SCLogError(SC_ERR_POOL_INIT, "ssn_pool is not initialized");
         SCMutexUnlock(&ssn_pool_mutex);

@@ -76,16 +76,19 @@ static int PoolDataPreAllocated(Pool *p, void *data)
  * \param Alloc An allocation function or NULL to use a standard SCMalloc
  * \param Init An init function or NULL to use a standard memset to 0
  * \param InitData Init data
- * \Param Cleanup a free function or NULL if no special treatment is needed
+ * \param Cleanup a free function or NULL if no special treatment is needed
+ * \param Free free func
  * \retval the allocated Pool
  */
-Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *(*Alloc)(), int (*Init)(void *, void *), void *InitData,  void (*Cleanup)(void *))
+Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *(*Alloc)(), int (*Init)(void *, void *), void *InitData,  void (*Cleanup)(void *), void (*Free)(void *))
 {
     Pool *p = NULL;
 
     if (size != 0 && prealloc_size > size)
         goto error;
     if (size != 0 && elt_size == 0)
+        goto error;
+    if (elt_size && Free)
         goto error;
 
     /* setup the filter */
@@ -103,6 +106,7 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *
     p->Init = Init;
     p->InitData = InitData;
     p->Cleanup = Cleanup;
+    p->Free = Free;
     if (p->Init == NULL) {
         p->Init = PoolMemset;
         p->InitData = p;
@@ -153,7 +157,10 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *
             if (p->Init(pb->data, p->InitData) != 1) {
                 if (p->Cleanup)
                     p->Cleanup(pb->data);
-                SCFree(pb->data);
+                if (p->Free)
+                    p->Free(pb->data);
+                else
+                    SCFree(pb->data);
                 SCFree(pb);
                 goto error;
             }
@@ -205,7 +212,10 @@ void PoolFree(Pool *p) {
         if (p->Cleanup)
             p->Cleanup(pb->data);
         if (PoolDataPreAllocated(p, pb->data) == 0) {
-            SCFree(pb->data);
+            if (p->Free)
+                p->Free(pb->data);
+            else
+                SCFree(pb->data);
         }
         pb->data = NULL;
         if (! pb->flags & POOL_BUCKET_PREALLOCATED) {
@@ -220,7 +230,10 @@ void PoolFree(Pool *p) {
             if (p->Cleanup)
                 p->Cleanup(pb->data);
             if (PoolDataPreAllocated(p, pb->data) == 0) {
-                SCFree(pb->data);
+                if (p->Free)
+                    p->Free(pb->data);
+                else
+                    SCFree(pb->data);
             }
             pb->data = NULL;
         }
@@ -301,8 +314,12 @@ void PoolReturn(Pool *p, void *data) {
         if (p->Cleanup != NULL) {
             p->Cleanup(data);
         }
-        if (PoolDataPreAllocated(p, data) == 0)
-            SCFree(data);
+        if (PoolDataPreAllocated(p, data) == 0) {
+            if (p->Free)
+                p->Free(data);
+            else
+                SCFree(data);
+        }
 
         SCLogDebug("tried to return data %p to the pool %p, but no more "
                    "buckets available. Just freeing the data.", data, p);
@@ -349,7 +366,7 @@ void PoolTestFree(void *ptr) {
 
 #ifdef UNITTESTS
 static int PoolTestInit01 (void) {
-    Pool *p = PoolInit(10,5,10,PoolTestAlloc,NULL,NULL,PoolTestFree);
+    Pool *p = PoolInit(10,5,10,PoolTestAlloc,NULL,NULL,PoolTestFree, NULL);
     if (p == NULL)
         return 0;
 
@@ -360,7 +377,7 @@ static int PoolTestInit01 (void) {
 static int PoolTestInit02 (void) {
     int retval = 0;
 
-    Pool *p = PoolInit(10,5,10,PoolTestAlloc,NULL,NULL,PoolTestFree);
+    Pool *p = PoolInit(10,5,10,PoolTestAlloc,NULL,NULL,PoolTestFree, NULL);
     if (p == NULL)
         goto end;
 
@@ -396,7 +413,7 @@ static int PoolTestInit03 (void) {
     int retval = 0;
     void *data = NULL;
 
-    Pool *p = PoolInit(10,5,10,PoolTestAlloc,NULL,NULL,PoolTestFree);
+    Pool *p = PoolInit(10,5,10,PoolTestAlloc,NULL,NULL,PoolTestFree, NULL);
     if (p == NULL)
         goto end;
 
@@ -430,7 +447,7 @@ static int PoolTestInit04 (void) {
     int retval = 0;
     char *str = NULL;
 
-    Pool *p = PoolInit(10,5,strlen("test") + 1,NULL, PoolTestInitArg,(void *)"test",PoolTestFree);
+    Pool *p = PoolInit(10,5,strlen("test") + 1,NULL, PoolTestInitArg,(void *)"test",PoolTestFree, NULL);
     if (p == NULL)
         goto end;
 
@@ -470,7 +487,7 @@ static int PoolTestInit05 (void) {
     int retval = 0;
     void *data = NULL;
 
-    Pool *p = PoolInit(10,5,10,PoolTestAlloc,NULL, NULL,PoolTestFree);
+    Pool *p = PoolInit(10,5,10,PoolTestAlloc,NULL, NULL,PoolTestFree, NULL);
     if (p == NULL)
         goto end;
 
@@ -520,7 +537,7 @@ static int PoolTestInit06 (void) {
     void *data = NULL;
     void *data2 = NULL;
 
-    Pool *p = PoolInit(1,0,10,PoolTestAlloc,NULL,NULL,PoolTestFree);
+    Pool *p = PoolInit(1,0,10,PoolTestAlloc,NULL,NULL,PoolTestFree, NULL);
     if (p == NULL)
         goto end;
 
@@ -578,7 +595,7 @@ static int PoolTestInit07 (void) {
     void *data = NULL;
     void *data2 = NULL;
 
-    Pool *p = PoolInit(0,1,10,PoolTestAlloc,NULL,NULL,PoolTestFree);
+    Pool *p = PoolInit(0,1,10,PoolTestAlloc,NULL,NULL,PoolTestFree, NULL);
     if (p == NULL)
         goto end;
 
