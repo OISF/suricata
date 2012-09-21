@@ -109,9 +109,11 @@ static int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 #ifdef DEBUG
         if (SCLogDebugEnabled()) {
             char *name = SCMalloc(filename->len + 1);
-            memcpy(name, filename->name, filename->len);
-            name[filename->len] = '\0';
-            SCLogDebug("will look for filename %s", name);
+            if (name != NULL) {
+                memcpy(name, filename->name, filename->len);
+                name[filename->len] = '\0';
+                SCLogDebug("will look for filename %s", name);
+            }
         }
 #endif
 
@@ -165,9 +167,11 @@ static DetectFilenameData *DetectFilenameParse (char *str)
 #ifdef DEBUG
     if (SCLogDebugEnabled()) {
         char *name = SCMalloc(filename->len + 1);
-        memcpy(name, filename->name, filename->len);
-        name[filename->len] = '\0';
-        SCLogDebug("will look for filename %s", name);
+        if (name != NULL) {
+            memcpy(name, filename->name, filename->len);
+            name[filename->len] = '\0';
+            SCLogDebug("will look for filename %s", name);
+        }
     }
 #endif
 

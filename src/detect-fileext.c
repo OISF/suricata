@@ -156,9 +156,11 @@ static DetectFileextData *DetectFileextParse (char *str)
 #ifdef DEBUG
     if (SCLogDebugEnabled()) {
         char *ext = SCMalloc(fileext->len + 1);
-        memcpy(ext, fileext->ext, fileext->len);
-        ext[fileext->len] = '\0';
-        SCLogDebug("will look for fileext %s", ext);
+        if (ext != NULL) {
+            memcpy(ext, fileext->ext, fileext->len);
+            ext[fileext->len] = '\0';
+            SCLogDebug("will look for fileext %s", ext);
+        }
     }
 #endif
 

@@ -350,6 +350,8 @@ void PoolPrintSaturation(Pool *p) {
 
 void *PoolTestAlloc() {
     void *ptr = SCMalloc(10);
+    if (ptr == NULL)
+        return NULL;
     return ptr;
 }
 int PoolTestInitArg(void *data, void *allocdata) {

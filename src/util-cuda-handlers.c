@@ -470,6 +470,9 @@ int SCCudaHlGetCudaModule(CUmodule *p_module, const char *ptx_image, int handle)
     /* select the ptx image based on the compute capability supported by all
      * devices (i.e. the lowest) */
     char* image = SCMalloc(strlen(ptx_image)+15);
+    if (image == NULL) {
+        exit(EXIT_FAILURE);
+    }
     memset(image, 0x0, sizeof(image));
 
     int major = INT_MAX;
