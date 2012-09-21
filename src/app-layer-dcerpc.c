@@ -5751,7 +5751,6 @@ end:
 
 void DCERPCParserRegisterTests(void) {
 #ifdef UNITTESTS
-    printf("DCERPCParserRegisterTests\n");
     UtRegisterTest("DCERPCParserTest01", DCERPCParserTest01, 1);
     UtRegisterTest("DCERPCParserTest02", DCERPCParserTest02, 1);
     UtRegisterTest("DCERPCParserTest03", DCERPCParserTest03, 1);

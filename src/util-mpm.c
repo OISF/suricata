@@ -1278,6 +1278,9 @@ void MpmRegisterTests(void) {
     uint16_t i;
 
     for (i = 0; i < MPM_TABLE_SIZE; i++) {
+        if (i == MPM_NOTSET)
+            continue;
+
         if (mpm_table[i].RegisterUnittests != NULL) {
             mpm_table[i].RegisterUnittests();
         } else {
