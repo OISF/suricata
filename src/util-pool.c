@@ -85,6 +85,8 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *
 
     if (size != 0 && prealloc_size > size)
         goto error;
+    if (size != 0 && elt_size == 0)
+        goto error;
 
     /* setup the filter */
     p = SCMalloc(sizeof(Pool));
@@ -124,10 +126,12 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *
         }
     }
 
-    p->data_buffer = SCCalloc(prealloc_size, elt_size);
-    /* FIXME better goto */
-    if (p->data_buffer == NULL)
-        goto error;
+    if (size > 0) {
+        p->data_buffer = SCCalloc(prealloc_size, elt_size);
+        /* FIXME better goto */
+        if (p->data_buffer == NULL)
+            goto error;
+    }
     /* prealloc the buckets and requeue them to the alloc list */
     for (u32 = 0; u32 < prealloc_size; u32++) {
         if (size == 0) { /* unlimited */
