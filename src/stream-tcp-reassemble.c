@@ -286,7 +286,7 @@ int StreamTcpReassembleInit(char quiet)
                                      sizeof (TcpSegment),
                                      TcpSegmentPoolAlloc, TcpSegmentPoolInit,
                                      (void *) &segment_pool_pktsizes[u16],
-                                     TcpSegmentPoolCleanup);
+                                     TcpSegmentPoolCleanup, NULL);
         SCMutexUnlock(&segment_pool_mutex[u16]);
     }
 

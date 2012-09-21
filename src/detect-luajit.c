@@ -23,6 +23,8 @@
  */
 
 #include "suricata-common.h"
+#include "conf.h"
+
 #include "threads.h"
 #include "debug.h"
 #include "decode.h"
@@ -76,6 +78,8 @@ void DetectLuajitRegister(void) {
 
 #else /* HAVE_LUAJIT */
 
+#include "util-pool.h"
+
 static int DetectLuajitMatch (ThreadVars *, DetectEngineThreadCtx *,
         Packet *, Signature *, SigMatch *);
 static int DetectLuajitSetup (DetectEngineCtx *, Signature *, char *);
@@ -96,6 +100,21 @@ void DetectLuajitRegister(void) {
     return;
 }
 
+/** \brief lua_State pool
+ *
+ *  Luajit requires states to be alloc'd in memory <2GB. For this reason we
+ *  prealloc the states early during engine startup so we have a better chance
+ *  of getting the states. We protect the pool with a lock as the detect
+ *  threads access it during their init and cleanup.
+ *
+ *  Pool size is automagically determined based on number of keyword occurences,
+ *  cpus/cores and rule reloads being enabled or not.
+ *
+ *  Alternatively, the "detect-engine.luajit-states" var can be set.
+ */
+static Pool *luajit_states = NULL;
+static pthread_mutex_t luajit_states_lock = PTHREAD_MUTEX_INITIALIZER;
+
 #define DATATYPE_PACKET                     (1<<0)
 #define DATATYPE_PAYLOAD                    (1<<1)
 #define DATATYPE_STREAM                     (1<<2)
@@ -114,6 +133,75 @@ void DetectLuajitRegister(void) {
 #define DATATYPE_HTTP_RESPONSE_COOKIE       (1<<11)
 #define DATATYPE_HTTP_RESPONSE_BODY         (1<<12)
 
+#define DATATYPE_HTTP_RESPONSE_HEADERS      (1<<13)
+#define DATATYPE_HTTP_RESPONSE_HEADERS_RAW  (1<<14)
+
+static void *LuaStatePoolAlloc(void) {
+    return luaL_newstate();
+}
+
+static void LuaStatePoolFree(void *d) {
+    lua_State *s = (lua_State *)d;
+    if (s != NULL)
+        lua_close(s);
+}
+
+/** \brief Populate lua states pool
+ *
+ *  \param num keyword instances
+ *  \param reloads bool indicating we have rule reloads enabled
+ */
+int DetectLuajitSetupStatesPool(int num, int reloads) {
+    int retval = 0;
+    pthread_mutex_lock(&luajit_states_lock);
+
+    if (luajit_states == NULL) {
+        int cnt = 0;
+        char *conf_val = NULL;
+
+        if ((ConfGet("detect-engine.luajit-states", &conf_val)) == 1) {
+            cnt = (int)atoi(conf_val);
+        } else {
+            int cpus = UtilCpuGetNumProcessorsOnline();
+            if (cpus == 0) {
+                cpus = 10;
+            }
+            cnt = num * cpus;
+            cnt *= 3; /* assume 3 threads per core */
+
+            /* alloc a bunch extra so reload can add new rules/instances */
+            if (reloads)
+                cnt *= 5;
+        }
+
+        luajit_states = PoolInit(0, cnt, 0, LuaStatePoolAlloc, NULL, NULL, NULL, LuaStatePoolFree);
+        if (luajit_states == NULL) {
+            SCLogError(SC_ERR_LUAJIT_ERROR, "luastate pool init failed, luajit keywords won't work");
+            retval = -1;
+        }
+    }
+
+    pthread_mutex_unlock(&luajit_states_lock);
+    return retval;
+}
+
+static lua_State *DetectLuajitGetState(void) {
+
+    lua_State *s = NULL;
+    pthread_mutex_lock(&luajit_states_lock);
+    if (luajit_states != NULL)
+        s = (lua_State *)PoolGet(luajit_states);
+    pthread_mutex_unlock(&luajit_states_lock);
+    return s;
+}
+
+static void DetectLuajitReturnState(lua_State *s) {
+    if (s != NULL) {
+        pthread_mutex_lock(&luajit_states_lock);
+        PoolReturn(luajit_states, (void *)s);
+        pthread_mutex_unlock(&luajit_states_lock);
+    }
+}
 
 /** \brief dump stack from lua state to screen */
 void LuaDumpStack(lua_State *state) {
@@ -168,7 +256,7 @@ int DetectLuajitMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMat
     lua_newtable(tluajit->luastate); /* stack at -1 */
 
     lua_pushliteral (tluajit->luastate, "offset"); /* stack at -2 */
-    lua_pushnumber (tluajit->luastate, (int)offset);
+    lua_pushnumber (tluajit->luastate, (int)(offset + 1));
     lua_settable(tluajit->luastate, -3);
 
     lua_pushstring (tluajit->luastate, luajit->buffername); /* stack at -2 */
@@ -382,9 +470,9 @@ static void *DetectLuajitThreadInit(void *data) {
     t->alproto = luajit->alproto;
     t->flags = luajit->flags;
 
-    t->luastate = luaL_newstate();
+    t->luastate = DetectLuajitGetState();
     if (t->luastate == NULL) {
-        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't set up luastate");
+        SCLogError(SC_ERR_LUAJIT_ERROR, "luastate pool depleted");
         goto error;
     }
 
@@ -405,18 +493,19 @@ static void *DetectLuajitThreadInit(void *data) {
     return (void *)t;
 
 error:
-    if (t->luastate)
-        lua_close(t->luastate);
+    if (t->luastate != NULL)
+        DetectLuajitReturnState(t->luastate);
     SCFree(t);
     return NULL;
 }
 
 static void DetectLuajitThreadFree(void *ctx) {
-    DetectLuajitThreadData *t = (DetectLuajitThreadData *)ctx;
-
-    lua_close(t->luastate);
-
-    SCFree(t);
+    if (ctx != NULL) {
+        DetectLuajitThreadData *t = (DetectLuajitThreadData *)ctx;
+        if (t->luastate != NULL)
+            DetectLuajitReturnState(t->luastate);
+        SCFree(t);
+    }
 }
 
 /**
@@ -563,6 +652,12 @@ static int DetectLuaSetupPrime(DetectLuajitData *ld) {
             else if (strcmp(k, "http.response_cookie") == 0)
                 ld->flags |= DATATYPE_HTTP_RESPONSE_COOKIE;
 
+            else if (strcmp(k, "http.response_headers") == 0)
+                ld->flags |= DATATYPE_HTTP_RESPONSE_HEADERS;
+
+            else if (strcmp(k, "http.response_headers.raw") == 0)
+                ld->flags |= DATATYPE_HTTP_RESPONSE_HEADERS_RAW;
+
             else {
                 SCLogError(SC_ERR_LUAJIT_ERROR, "unsupported http data type %s", k);
                 goto error;
@@ -650,15 +745,17 @@ static int DetectLuajitSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
         else if (luajit->flags & DATATYPE_HTTP_REQUEST_UA)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HUADMATCH);
-        else if (luajit->flags & DATATYPE_HTTP_REQUEST_HEADERS)
+        else if (luajit->flags & (DATATYPE_HTTP_REQUEST_HEADERS|DATATYPE_HTTP_RESPONSE_HEADERS))
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HHDMATCH);
-        else if (luajit->flags & DATATYPE_HTTP_REQUEST_HEADERS_RAW)
+        else if (luajit->flags & (DATATYPE_HTTP_REQUEST_HEADERS_RAW|DATATYPE_HTTP_RESPONSE_HEADERS_RAW))
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRHDMATCH);
         else if (luajit->flags & DATATYPE_HTTP_RESPONSE_COOKIE)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
         else
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
     }
+
+    de_ctx->detect_luajit_instances++;
     return 0;
 
 error:

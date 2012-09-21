@@ -205,6 +205,8 @@ SC_ATOMIC_DECLARE(unsigned int, engine_stage);
 /* Max packets processed simultaniously. */
 #define DEFAULT_MAX_PENDING_PACKETS 1024
 
+int rule_reload = 0;
+
 /** suricata engine control flags */
 uint8_t suricata_ctl_flags = 0;
 
@@ -686,7 +688,6 @@ int main(int argc, char **argv)
     uint32_t groupid = 0;
 #endif /* OS_WIN32 */
     int build_info = 0;
-    int rule_reload = 0;
     int delayed_detect = 0;
 
     char *log_dir;

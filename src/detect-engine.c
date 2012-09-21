@@ -724,7 +724,9 @@ static void DetectEngineThreadCtxDeinitKeywords(DetectEngineCtx *de_ctx, DetectE
     if (de_ctx->keyword_id > 0) {
         DetectEngineThreadKeywordCtxItem *item = de_ctx->keyword_list;
         while (item) {
-            item->FreeFunc(det_ctx->keyword_ctxs_array[item->id]);
+            if (det_ctx->keyword_ctxs_array[item->id] != NULL)
+                item->FreeFunc(det_ctx->keyword_ctxs_array[item->id]);
+
             item = item->next;
         }
         det_ctx->keyword_ctxs_size = 0;

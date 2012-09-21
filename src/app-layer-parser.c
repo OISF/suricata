@@ -1336,7 +1336,8 @@ void RegisterAppLayerParsers(void)
      * \todo Per thread pool */
     al_result_pool = PoolInit(1000, 250,
             sizeof(AppLayerParserResultElmt),
-            AlpResultElmtPoolAlloc, NULL, NULL, AlpResultElmtPoolCleanup);
+            AlpResultElmtPoolAlloc, NULL, NULL,
+            AlpResultElmtPoolCleanup, NULL);
 
     RegisterHTPParsers();
     RegisterSSLParsers();
