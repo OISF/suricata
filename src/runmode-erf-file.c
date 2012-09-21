@@ -210,6 +210,10 @@ int RunModeErfFileAutoFp(DetectEngineCtx *de_ctx)
         SCLogDebug("tname %s, qname %s", tname, qname);
 
         char *thread_name = SCStrdup(tname);
+        if (thread_name == NULL) {
+            printf("ERROR: Can't allocate thread name\n");
+            exit(EXIT_FAILURE);
+        }
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
         ThreadVars *tv_detect_ncpu =

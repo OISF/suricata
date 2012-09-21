@@ -602,6 +602,8 @@ int DetectAddressParseString(DetectAddress *dd, char *str)
     char *mask = NULL;
     int r = 0;
 
+    if (ipdup == NULL)
+        return -1;
     SCLogDebug("str %s", str);
 
     /* first handle 'any' */

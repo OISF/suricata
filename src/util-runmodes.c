@@ -797,6 +797,10 @@ int RunModeSetIPSAuto(DetectEngineCtx *de_ctx,
         snprintf(tname, sizeof(tname), "Recv-Q%s", cur_queue);
 
         char *thread_name = SCStrdup(tname);
+        if (unlikely(thread_name == NULL)) {
+            printf("ERROR: Can't create thread name failed\n");
+            exit(EXIT_FAILURE);
+        }
         ThreadVars *tv_receivenfq =
             TmThreadCreatePacketHandler(thread_name,
                                         "packetpool", "packetpool",
