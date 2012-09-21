@@ -188,10 +188,6 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
 
     DetectPcreData *pe = (DetectPcreData *)sm->ctx;
 
-    /* If we want to inspect the http body, we will use HTP L7 parser */
-    //if (pe->flags & DETECT_PCRE_HTTP_BODY_AL)
-    //    SCReturnInt(0);
-
     if (pe->flags & DETECT_PCRE_RELATIVE) {
         ptr = payload + det_ctx->buffer_offset;
         len = payload_len - det_ctx->buffer_offset;
@@ -200,13 +196,13 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
         len = payload_len;
     }
 
+    int start_offset = 0;
     if (det_ctx->pcre_match_start_offset != 0) {
-        ptr = payload + det_ctx->pcre_match_start_offset;
-        len = payload_len - det_ctx->pcre_match_start_offset;
+        start_offset = (payload + det_ctx->pcre_match_start_offset - ptr);
     }
 
     /* run the actual pcre detection */
-    ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, start_offset, 0, ov, MAX_SUBSTRINGS);
     SCLogDebug("ret %d (negating %s)", ret, (pe->flags & DETECT_PCRE_NEGATE) ? "set" : "not set");
 
     if (ret == PCRE_ERROR_NOMATCH) {
