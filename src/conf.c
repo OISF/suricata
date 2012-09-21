@@ -129,6 +129,9 @@ ConfGetNode(char *key)
 
     /* Need to dup the key for tokenization... */
     char *tokstr = SCStrdup(key);
+    if (tokstr == NULL) {
+        return NULL;
+    }
 
 #if defined(__WIN32) || defined(_WIN32)
     token = strtok(tokstr, ".");
@@ -195,6 +198,9 @@ ConfSet(char *name, char *val, int allow_override)
     }
     else {
         char *tokstr = SCStrdup(name);
+        if (tokstr == NULL) {
+            return 0;
+        }
 #if defined(__WIN32) || defined(_WIN32)
         token = strtok(tokstr, ".");
 #else
@@ -727,9 +733,13 @@ char *ConfLoadCompleteIncludePath(char *file)
             strlcat(path, file, path_len);
        } else {
             path = SCStrdup(file);
+            if (path == NULL)
+                return NULL;
         }
     } else {
         path = SCStrdup(file);
+        if (path == NULL)
+            return NULL;
     }
     return path;
 }
