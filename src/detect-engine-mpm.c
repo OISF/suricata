@@ -1687,14 +1687,21 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                                           SigGroupHead *sgh)
 {
     uint32_t sig;
-    uint32_t *fast_pattern = NULL;
+    uint8_t *fast_pattern = NULL;
+    uint8_t *has_non_negated_non_stream_pattern = NULL;
 
-    fast_pattern = (uint32_t *)SCMalloc(sgh->sig_cnt * sizeof(uint32_t));
+    fast_pattern = (uint8_t *)SCMalloc(sgh->sig_cnt * sizeof(uint8_t));
     if (fast_pattern == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
-    memset(fast_pattern, 0, sgh->sig_cnt * sizeof(uint32_t));
+    memset(fast_pattern, 0, sgh->sig_cnt * sizeof(uint8_t));
+    has_non_negated_non_stream_pattern = (uint8_t *)SCMalloc(sgh->sig_cnt * sizeof(uint8_t));
+    if (has_non_negated_non_stream_pattern == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(has_non_negated_non_stream_pattern, 0, sgh->sig_cnt * sizeof(uint8_t));
 
     /* add all mpm candidates to a hash */
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
@@ -1728,6 +1735,11 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                 //}
 
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
+                if (!(cd->flags & DETECT_CONTENT_NEGATED) &&
+                    list_id != DETECT_SM_LIST_PMATCH) {
+                    has_non_negated_non_stream_pattern[sig] = 1;
+                }
+
                 if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
                     fast_pattern[sig] = 1;
                     break;
@@ -1760,6 +1772,12 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
             for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) {
                 if (!FastPatternSupportEnabledForSigMatchList(list_id))
                     continue;
+
+                if (list_id == DETECT_SM_LIST_PMATCH &&
+                    !fast_pattern[sig] &&
+                    has_non_negated_non_stream_pattern[sig]) {
+                    continue;
+                }
 
                 for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
                     if (sm->type != DETECT_CONTENT)
@@ -1796,6 +1814,12 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
         for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) {
             if (!FastPatternSupportEnabledForSigMatchList(list_id))
                 continue;
+
+            if (list_id == DETECT_SM_LIST_PMATCH &&
+                !fast_pattern[sig] &&
+                has_non_negated_non_stream_pattern[sig]) {
+                continue;
+            }
 
             for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
                 if (sm->type != DETECT_CONTENT)
@@ -1854,6 +1878,8 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
 
     if (fast_pattern != NULL)
         SCFree(fast_pattern);
+    if (has_non_negated_non_stream_pattern != NULL)
+        SCFree(has_non_negated_non_stream_pattern);
 
     return 0;
 }
