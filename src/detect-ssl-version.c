@@ -224,10 +224,10 @@ DetectSslVersionData *DetectSslVersionParse(char *str)
             }
 
             orig = SCStrdup((char*) str_ptr[i]);
-            tmp_str = orig;
-            if (tmp_str == NULL) {
+            if (orig == NULL) {
                 goto error;
             }
+            tmp_str = orig;
 
             /* Let's see if we need to scape "'s */
             if (tmp_str[0] == '"') {

@@ -797,6 +797,10 @@ int RunModeSetIPSAuto(DetectEngineCtx *de_ctx,
         snprintf(tname, sizeof(tname), "Recv-Q%s", cur_queue);
 
         char *thread_name = SCStrdup(tname);
+        if (unlikely(thread_name == NULL)) {
+            printf("ERROR: Can't create thread name failed\n");
+            exit(EXIT_FAILURE);
+        }
         ThreadVars *tv_receivenfq =
             TmThreadCreatePacketHandler(thread_name,
                                         "packetpool", "packetpool",
@@ -866,6 +870,10 @@ int RunModeSetIPSAuto(DetectEngineCtx *de_ctx,
         snprintf(tname, sizeof(tname), "Detect%"PRIu16, thread+1);
 
         char *thread_name = SCStrdup(tname);
+        if (unlikely(thread_name == NULL)) {
+            printf("ERROR: thead name creation failed\n");
+            exit(EXIT_FAILURE);
+        }
         SCLogDebug("Assigning %s affinity", thread_name);
 
         ThreadVars *tv_detect_ncpu =
@@ -906,6 +914,10 @@ int RunModeSetIPSAuto(DetectEngineCtx *de_ctx,
         snprintf(tname, sizeof(tname), "Verdict%"PRIu16, i);
 
         char *thread_name = SCStrdup(tname);
+        if (unlikely(thread_name == NULL)) {
+            printf("ERROR: thead name creation failed\n");
+            exit(EXIT_FAILURE);
+        }
         ThreadVars *tv_verdict =
             TmThreadCreatePacketHandler(thread_name,
                                         "verdict-queue", "simple",
@@ -1005,7 +1017,10 @@ int RunModeSetIPSAutoFp(DetectEngineCtx *de_ctx,
         snprintf(tname, sizeof(tname), "Recv-Q%s", cur_queue);
 
         char *thread_name = SCStrdup(tname);
-
+        if (unlikely(thread_name == NULL)) {
+            printf("ERROR: thead name creation failed\n");
+            exit(EXIT_FAILURE);
+        }
         ThreadVars *tv_receive =
             TmThreadCreatePacketHandler(thread_name,
                     "packetpool", "packetpool",
@@ -1094,6 +1109,10 @@ int RunModeSetIPSAutoFp(DetectEngineCtx *de_ctx,
         snprintf(tname, sizeof(tname), "Verdict%"PRIu16, i);
 
         char *thread_name = SCStrdup(tname);
+        if (unlikely(thread_name == NULL)) {
+            SCLogError(SC_ERR_RUNMODE, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
         ThreadVars *tv_verdict =
             TmThreadCreatePacketHandler(thread_name,
                                         "verdict-queue", "simple",
@@ -1151,6 +1170,10 @@ int RunModeSetIPSWorker(DetectEngineCtx *de_ctx,
         snprintf(tname, sizeof(tname), "Worker-Q%s", cur_queue);
 
         char *thread_name = SCStrdup(tname);
+        if (unlikely(thread_name == NULL)) {
+            SCLogError(SC_ERR_RUNMODE, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
         tv = TmThreadCreatePacketHandler(thread_name,
                 "packetpool", "packetpool",
                 "packetpool", "packetpool",
