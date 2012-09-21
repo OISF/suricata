@@ -116,9 +116,9 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *
     uint32_t u32 = 0;
     if (size > 0) {
         PoolBucket *pb = SCCalloc(size, sizeof(PoolBucket));
-        p->pb_buffer = pb;
-        if (pb == NULL)
+        if (unlikely(pb == NULL))
             goto error;
+        p->pb_buffer = pb;
         memset(pb, 0, size * sizeof(PoolBucket));
         for (u32 = 0; u32 < size; u32++) {
             /* populate pool */
@@ -350,6 +350,8 @@ void PoolPrintSaturation(Pool *p) {
 
 void *PoolTestAlloc() {
     void *ptr = SCMalloc(10);
+    if (ptr == NULL)
+        return NULL;
     return ptr;
 }
 int PoolTestInitArg(void *data, void *allocdata) {

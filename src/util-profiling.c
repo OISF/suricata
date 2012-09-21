@@ -141,6 +141,11 @@ SCProfilingInit(void)
                     log_dir = DEFAULT_LOG_DIR;
 
                 profiling_packets_file_name = SCMalloc(PATH_MAX);
+                if (profiling_packets_file_name == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "can't duplicate file name");
+                    exit(EXIT_FAILURE);
+                }
+
                 snprintf(profiling_packets_file_name, PATH_MAX, "%s/%s", log_dir, filename);
 
                 const char *v = ConfNodeLookupChildValue(conf, "append");
@@ -215,6 +220,11 @@ SCProfilingInit(void)
                     log_dir = DEFAULT_LOG_DIR;
 
                 profiling_locks_file_name = SCMalloc(PATH_MAX);
+                if (profiling_locks_file_name == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "can't duplicate file name");
+                    exit(EXIT_FAILURE);
+                }
+
                 snprintf(profiling_locks_file_name, PATH_MAX, "%s/%s", log_dir, filename);
 
                 const char *v = ConfNodeLookupChildValue(conf, "append");
