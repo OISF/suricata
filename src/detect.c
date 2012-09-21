@@ -257,9 +257,13 @@ char *DetectLoadCompleteSigPath(char *sig_file)
             strlcat(path, sig_file, path_len);
        } else {
             path = SCStrdup(sig_file);
+            if (path == NULL)
+                return NULL;
         }
     } else {
         path = SCStrdup(sig_file);
+        if (path == NULL)
+            return NULL;
     }
     return path;
 }

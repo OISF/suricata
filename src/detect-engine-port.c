@@ -1383,6 +1383,9 @@ DetectPort *PortParse(char *str) {
     char *port2 = NULL;
     DetectPort *dp = NULL;
 
+    if (portdup == NULL) {
+        return NULL;
+    }
     dp = DetectPortInit();
     if (dp == NULL)
         goto error;
