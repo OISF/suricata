@@ -189,6 +189,7 @@
 #include "runmodes.h"
 
 extern uint8_t engine_mode;
+extern int rule_reload;
 
 extern int engine_analysis;
 static int fp_engine_analysis_set = 0;
@@ -2650,6 +2651,12 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogDebug("building signature grouping structure, stage 1: "
                    "adding signatures to signature source addresses...");
+    }
+
+    /* run this before the mpm states are initialized */
+    if (DetectLuajitSetupStatesPool(de_ctx->detect_luajit_instances, rule_reload) != 0) {
+        if (de_ctx->failure_fatal)
+            return -1;
     }
 
     de_ctx->sig_array_len = DetectEngineGetMaxSigId(de_ctx);
