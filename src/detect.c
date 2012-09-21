@@ -2653,11 +2653,13 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
                    "adding signatures to signature source addresses...");
     }
 
+#ifdef HAVE_LUAJIT
     /* run this before the mpm states are initialized */
     if (DetectLuajitSetupStatesPool(de_ctx->detect_luajit_instances, rule_reload) != 0) {
         if (de_ctx->failure_fatal)
             return -1;
     }
+#endif
 
     de_ctx->sig_array_len = DetectEngineGetMaxSigId(de_ctx);
     de_ctx->sig_array_size = (de_ctx->sig_array_len * sizeof(Signature *));
