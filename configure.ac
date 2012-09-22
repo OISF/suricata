@@ -1249,6 +1249,46 @@ AC_INIT(configure.ac)
         fi
     fi
 
+   # sqlite3
+    AC_ARG_ENABLE(sqlite3,
+                [  --enable-sqlite3  Enable SQLite3 support],
+                [ enable_sqlite3="yes"],
+                [ enable_sqlite3="no"])
+    AC_ARG_WITH(libsqlite3_includes,
+            [  --with-sqlite3-includes=DIR  libsqlite3 include directory],
+            [with_libsqlite3_includes="$withval"],[with_libsqlite3_includes="no"])
+    AC_ARG_WITH(libsqlite3_libraries,
+            [  --with-libsqlite3-libraries=DIR    libsqlite3 library directory],
+            [with_libsqlite3_libraries="$withval"],[with_libsqlite3_libraries="no"])
+
+    if test "$enable_sqlite3" = "yes"; then
+        if test "$with_libsqlite3_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_libsqlite3_includes}"
+        fi
+
+        AC_CHECK_HEADER(sqlite3.h,SQLITE3="yes",SQLITE3="no")
+        if test "$SQLITE3" = "yes"; then
+            if test "$with_libsqlite3_libraries" != "no"; then
+                LDFLAGS="${LDFLAGS}  -L${with_libsqlite3_libraries}"
+            fi
+
+            AC_CHECK_LIB(sqlite3, sqlite3_open,, SQLITE3="no")
+
+            if test "$SQLITE3" = "no"; then
+                echo
+                echo "   ERROR!  libsqlite3 library not found, go get it"
+                echo "   from http://www.sqlite.org/ or your distribution:"
+                echo
+                echo "   Ubuntu: apt-get install libsqlite3-dev"
+                echo
+                exit 1
+            fi
+
+            AC_DEFINE([HAVE_SQLITE3],[1],[libsqlite3 available])
+            enable_sqlite3="yes"
+        fi
+    fi
+
 # get revision
     if test -f ./revision; then
         REVISION=`cat ./revision`
@@ -1331,6 +1371,7 @@ Suricata Configuration:
   Prelude support:                         ${enable_prelude}
   PCRE jit:                                ${pcre_jit_available}
   libluajit:                               ${enable_luajit}
+  libsqlite3:                              ${enable_sqlite3}
   Non-bundled htp:                         ${enable_non_bundled_htp}
   Old barnyard2 support:                   ${enable_old_barnyard2}
   CUDA enabled:                            ${enable_cuda}

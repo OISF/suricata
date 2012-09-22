@@ -26,6 +26,10 @@
 
 #include <stdint.h>
 
+#ifdef HAVE_LIBSQLITE3
+#include <sqlite3.h>
+#endif
+
 #include "flow.h"
 
 #include "detect-engine-proto.h"
