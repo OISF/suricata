@@ -51,6 +51,10 @@ typedef struct ConfNode_ {
 #define DEFAULT_LOG_DIR "/var/log/suricata"
 #endif /* OS_WIN32 */
 
+#ifdef HAVE_LIBSQLITE3
+#define DEFAULT_SIG_SQL_FILE "rules.sqlite"
+#endif
+
 void ConfInit(void);
 void ConfDeInit(void);
 ConfNode *ConfGetRootNode(void);
