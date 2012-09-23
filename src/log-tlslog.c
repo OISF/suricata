@@ -472,7 +472,7 @@ TmEcode LogTlsLog(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
 TmEcode LogTlsLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     LogTlsLogThread *aft = SCMalloc(sizeof(LogTlsLogThread));
-    if (aft == NULL)
+    if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
     memset(aft, 0, sizeof(LogTlsLogThread));
 
@@ -566,7 +566,7 @@ OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
     }
 
     LogTlsFileCtx *tlslog_ctx = SCCalloc(1, sizeof(LogTlsFileCtx));
-    if (tlslog_ctx == NULL)
+    if (unlikely(tlslog_ctx == NULL))
         goto filectx_error;
     tlslog_ctx->file_ctx = file_ctx;
 
@@ -580,7 +580,7 @@ OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (output_ctx == NULL)
+    if (unlikely(output_ctx == NULL))
         goto tlslog_error;
     output_ctx->data = tlslog_ctx;
     output_ctx->DeInit = LogTlsLogDeInitCtx;

@@ -235,7 +235,7 @@ static uint64_t ftp_state_memcnt = 0;
 
 static void *FTPStateAlloc(void) {
     void *s = SCMalloc(sizeof(FtpState));
-    if (s == NULL)
+    if (unlikely(s == NULL))
         return NULL;
 
     memset(s, 0, sizeof(FtpState));

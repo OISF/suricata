@@ -349,7 +349,7 @@ DetectEngineCtx *DetectEngineCtxInit(void) {
     char *insp_recursion_limit = NULL;
 
     de_ctx = SCMalloc(sizeof(DetectEngineCtx));
-    if (de_ctx == NULL)
+    if (unlikely(de_ctx == NULL))
         goto error;
 
     memset(de_ctx,0,sizeof(DetectEngineCtx));
@@ -741,7 +741,7 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
         return TM_ECODE_FAILED;
 
     DetectEngineThreadCtx *det_ctx = SCMalloc(sizeof(DetectEngineThreadCtx));
-    if (det_ctx == NULL)
+    if (unlikely(det_ctx == NULL))
         return TM_ECODE_FAILED;
     memset(det_ctx, 0, sizeof(DetectEngineThreadCtx));
 
@@ -828,7 +828,7 @@ static TmEcode DetectEngineThreadCtxInitForLiveRuleSwap(ThreadVars *tv, void *in
         return TM_ECODE_FAILED;
 
     DetectEngineThreadCtx *det_ctx = SCMalloc(sizeof(DetectEngineThreadCtx));
-    if (det_ctx == NULL)
+    if (unlikely(det_ctx == NULL))
         return TM_ECODE_FAILED;
     memset(det_ctx, 0, sizeof(DetectEngineThreadCtx));
 
@@ -981,7 +981,7 @@ int DetectRegisterThreadCtxFuncs(DetectEngineCtx *de_ctx, const char *name, void
     BUG_ON(de_ctx == NULL || InitFunc == NULL || FreeFunc == NULL || data == NULL);
 
     DetectEngineThreadKeywordCtxItem *item = SCMalloc(sizeof(DetectEngineThreadKeywordCtxItem));
-    if (item == NULL)
+    if (unlikely(item == NULL))
         return -1;
     memset(item, 0x00, sizeof(DetectEngineThreadKeywordCtxItem));
 

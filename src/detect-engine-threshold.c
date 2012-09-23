@@ -175,7 +175,7 @@ static inline DetectThresholdEntry *DetectThresholdEntryAlloc(DetectThresholdDat
     SCEnter();
 
     DetectThresholdEntry *ste = SCMalloc(sizeof(DetectThresholdEntry));
-    if (ste == NULL) {
+    if (unlikely(ste == NULL)) {
         SCReturnPtr(NULL, "DetectThresholdEntry");
     }
 

@@ -64,7 +64,7 @@ static void FlowAlertSidAdd(Flow *f, uint32_t sid) {
     FlowAlertSid *fb = FlowAlertSidGet(f, sid);
     if (fb == NULL) {
         fb = SCMalloc(sizeof(FlowAlertSid));
-        if (fb == NULL)
+        if (unlikely(fb == NULL))
             return;
 
         fb->type = DETECT_FLOWALERTSID;

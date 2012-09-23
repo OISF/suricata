@@ -62,7 +62,7 @@ Host *HostAlloc(void) {
     (void) SC_ATOMIC_ADD(host_memuse, sizeof(Host));
 
     Host *h = SCMalloc(sizeof(Host));
-    if (h == NULL)
+    if (unlikely(h == NULL))
         goto error;
 
     memset(h, 0x00, sizeof(Host));
@@ -181,7 +181,7 @@ void HostInitConfig(char quiet)
         exit(EXIT_FAILURE);
     }
     host_hash = SCCalloc(host_config.hash_size, sizeof(HostHashRow));
-    if (host_hash == NULL) {
+    if (unlikely(host_hash == NULL)) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in HostInitConfig. Exiting...");
         exit(EXIT_FAILURE);
     }

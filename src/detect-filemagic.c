@@ -201,7 +201,7 @@ static DetectFilemagicData *DetectFilemagicParse (char *str)
 
     /* We have a correct filemagic option */
     filemagic = SCMalloc(sizeof(DetectFilemagicData));
-    if (filemagic == NULL)
+    if (unlikely(filemagic == NULL))
         goto error;
 
     memset(filemagic, 0x00, sizeof(DetectFilemagicData));

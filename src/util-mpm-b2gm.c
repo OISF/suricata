@@ -126,7 +126,7 @@ void B2gmPrintInfo(MpmCtx *mpm_ctx) {
 
 static inline B2gmPattern *B2gmAllocPattern(MpmCtx *mpm_ctx) {
     B2gmPattern *p = SCMalloc(sizeof(B2gmPattern));
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return NULL;
     memset(p,0,sizeof(B2gmPattern));
 
@@ -138,7 +138,7 @@ static inline B2gmPattern *B2gmAllocPattern(MpmCtx *mpm_ctx) {
 static inline B2gmPattern *
 B2gmAllocHashItem(MpmCtx *mpm_ctx) {
     B2gmPattern *hi = SCMalloc(sizeof(B2gmPattern));
-    if (hi == NULL)
+    if (unlikely(hi == NULL))
         return NULL;
     memset(hi,0,sizeof(B2gmPattern));
 

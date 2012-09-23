@@ -70,7 +70,7 @@ static IPOnlyCIDRItem *IPOnlyCIDRItemNew() {
     IPOnlyCIDRItem *item = NULL;
 
     item = SCMalloc(sizeof(IPOnlyCIDRItem));
-    if (item == NULL)
+    if (unlikely(item == NULL))
         SCReturnPtr(NULL, "NULL");
     memset(item, 0, sizeof(IPOnlyCIDRItem));
 
@@ -108,7 +108,7 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, char *str)
     char *mask = NULL;
     int r = 0;
 
-    if (ipdup == NULL)
+    if (unlikely(ipdup == NULL))
         return -1;
     SCLogDebug("str %s", str);
 
@@ -508,7 +508,7 @@ static SigNumArray *SigNumArrayNew(DetectEngineCtx *de_ctx,
 {
     SigNumArray *new = SCMalloc(sizeof(SigNumArray));
 
-    if (new == NULL){
+    if (unlikely(new == NULL)) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in SigNumArrayNew. Exiting...");
         exit(EXIT_FAILURE);
     }
@@ -538,7 +538,7 @@ static SigNumArray *SigNumArrayNew(DetectEngineCtx *de_ctx,
 static SigNumArray *SigNumArrayCopy(SigNumArray *orig) {
     SigNumArray *new = SCMalloc(sizeof(SigNumArray));
 
-    if (new == NULL) {
+    if (unlikely(new == NULL)) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in SigNumArrayCopy. Exiting...");
         exit(EXIT_FAILURE);
     }
@@ -638,7 +638,7 @@ static IPOnlyCIDRItem *IPOnlyCIDRListParse2(char *s, int negate)
                 if ((negate + n_set) % 2) {
                     temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
 
-                    if (temp_rule_var_address == NULL) {
+                    if (unlikely(temp_rule_var_address == NULL)) {
                         goto error;
                     }
 
@@ -697,7 +697,7 @@ static IPOnlyCIDRItem *IPOnlyCIDRListParse2(char *s, int negate)
                 temp_rule_var_address = rule_var_address;
                 if ((negate + n_set) % 2) {
                     temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
-                    if (temp_rule_var_address == NULL) {
+                    if (unlikely(temp_rule_var_address == NULL)) {
                         goto error;
                     }
                     snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,

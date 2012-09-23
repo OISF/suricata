@@ -132,7 +132,7 @@ static DetectThresholdData *DetectThresholdParse (char *rawstr)
     int i = 0;
 
     copy_str = SCStrdup(rawstr);
-    if (copy_str == NULL) {
+    if (unlikely(copy_str == NULL)) {
         goto error;
     }
 
@@ -164,7 +164,7 @@ static DetectThresholdData *DetectThresholdParse (char *rawstr)
     }
 
     de = SCMalloc(sizeof(DetectThresholdData));
-    if (de == NULL)
+    if (unlikely(de == NULL))
         goto error;
 
     memset(de,0,sizeof(DetectThresholdData));

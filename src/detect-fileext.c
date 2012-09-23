@@ -139,7 +139,7 @@ static DetectFileextData *DetectFileextParse (char *str)
 
     /* We have a correct filename option */
     fileext = SCMalloc(sizeof(DetectFileextData));
-    if (fileext == NULL)
+    if (unlikely(fileext == NULL))
         goto error;
 
     memset(fileext, 0x00, sizeof(DetectFileextData));

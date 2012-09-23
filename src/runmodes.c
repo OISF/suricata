@@ -433,7 +433,7 @@ void RunModeInitializeOutputs(void)
             debuglog_enabled = 1;
 
         RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
-        if (runmode_output == NULL)
+        if (unlikely(runmode_output == NULL))
             return;
         runmode_output->tm_module = tm_module;
         runmode_output->output_ctx = output_ctx;

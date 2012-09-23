@@ -128,7 +128,7 @@ void SCRadixChopIPAddressAgainstNetmask(uint8_t *stream, uint8_t netmask,
 static SCRadixUserData *SCRadixAllocSCRadixUserData(uint8_t netmask, void *user)
 {
     SCRadixUserData *user_data = SCMalloc(sizeof(SCRadixUserData));
-    if (user_data == NULL) {
+    if (unlikely(user_data == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         return NULL;
     }
@@ -3183,7 +3183,7 @@ int SCRadixTestIPV4NetBlocksAndBestSearch15(void)
 
     for (; i <= 32; i++) {
         user = SCMalloc(sizeof(uint32_t));
-        if (user == NULL) {
+        if (unlikely(user == NULL)) {
             result = 0;
             goto end;
         }
@@ -3242,7 +3242,7 @@ int SCRadixTestIPV4NetBlocksAndBestSearch16(void)
 
     for (; i <= 32; i++) {
         user = SCMalloc(sizeof(uint32_t));
-        if (user == NULL) {
+        if (unlikely(user == NULL)) {
             result = 0;
             goto end;
         }
@@ -3301,7 +3301,7 @@ int SCRadixTestIPV4NetBlocksAndBestSearch17(void)
 
     for (; i <= 32; i++) {
         user = SCMalloc(sizeof(uint32_t));
-        if (user == NULL) {
+        if (unlikely(user == NULL)) {
             result = 0;
             goto end;
         }
@@ -3360,7 +3360,7 @@ int SCRadixTestIPV4NetBlocksAndBestSearch18(void)
 
     for (; i <= 32; i++) {
         user = SCMalloc(sizeof(uint32_t));
-        if (user == NULL) {
+        if (unlikely(user == NULL)) {
             result = 0;
             goto end;
         }
@@ -3416,7 +3416,7 @@ int SCRadixTestIPV4NetBlocksAndBestSearch19(void)
     }
 
     user = SCMalloc(sizeof(uint32_t));
-    if (user == NULL) {
+    if (unlikely(user == NULL)) {
         result = 0;
         goto end;
     }
@@ -3456,7 +3456,7 @@ int SCRadixTestIPV4NetBlocksAndBestSearch19(void)
     }
 
     user = SCMalloc(sizeof(uint32_t));
-    if (user == NULL) {
+    if (unlikely(user == NULL)) {
         result = 0;
         goto end;
     }
@@ -3520,7 +3520,7 @@ int SCRadixTestIPV4NetBlocksAndBestSearch19(void)
     }
 
     user = SCMalloc(sizeof(uint32_t));
-    if (user == NULL) {
+    if (unlikely(user == NULL)) {
         result = 0;
         goto end;
     }
@@ -3656,7 +3656,7 @@ int SCRadixTestIPV6NetBlocksAndBestSearch20(void)
 
     for (; i <= 128; i++) {
         user = SCMalloc(sizeof(uint32_t));
-        if (user == NULL) {
+        if (unlikely(user == NULL)) {
             result = 0;
             goto end;
         }
@@ -3715,7 +3715,7 @@ int SCRadixTestIPV6NetBlocksAndBestSearch21(void)
 
     for (; i <= 128; i++) {
         user = SCMalloc(sizeof(uint32_t));
-        if (user == NULL) {
+        if (unlikely(user == NULL)) {
             result = 0;
             goto end;
         }
@@ -3774,7 +3774,7 @@ int SCRadixTestIPV6NetBlocksAndBestSearch22(void)
 
     for (; i <= 128; i++) {
         user = SCMalloc(sizeof(uint32_t));
-        if (user == NULL) {
+        if (unlikely(user == NULL)) {
             result = 0;
             goto end;
         }
@@ -3833,7 +3833,7 @@ int SCRadixTestIPV6NetBlocksAndBestSearch23(void)
 
     for (; i <= 128; i++) {
         user = SCMalloc(sizeof(uint32_t));
-        if (user == NULL) {
+        if (unlikely(user == NULL)) {
             result = 0;
             goto end;
         }
@@ -3889,7 +3889,7 @@ int SCRadixTestIPV6NetBlocksAndBestSearch24(void)
     }
 
     user = SCMalloc(sizeof(uint32_t));
-    if (user == NULL) {
+    if (unlikely(user == NULL)) {
         result = 0;
         goto end;
     }
@@ -3929,7 +3929,7 @@ int SCRadixTestIPV6NetBlocksAndBestSearch24(void)
     }
 
     user = SCMalloc(sizeof(uint32_t));
-    if (user == NULL) {
+    if (unlikely(user == NULL)) {
         result = 0;
         goto end;
     }
@@ -3995,7 +3995,7 @@ int SCRadixTestIPV6NetBlocksAndBestSearch24(void)
     }
 
     user = SCMalloc(sizeof(uint32_t));
-    if (user == NULL) {
+    if (unlikely(user == NULL)) {
         result = 0;
         goto end;
     }
@@ -4203,7 +4203,7 @@ this_end:
 static int SCRadixTestUserdataMacro01(void) {
     int result = 0;
     SCRadixNode *node = SCMalloc(sizeof(SCRadixNode));
-    if (node == NULL) {
+    if (unlikely(node == NULL)) {
         goto end;
     }
     memset(node, 0x00, sizeof(*node));
@@ -4228,7 +4228,7 @@ static int SCRadixTestUserdataMacro02(void) {
     SCRadixPrefix prefix;
     int result = 0;
     SCRadixNode *node = SCMalloc(sizeof(SCRadixNode));
-    if (node == NULL) {
+    if (unlikely(node == NULL)) {
         goto end;
     }
     memset(node, 0x00, sizeof(*node));
@@ -4257,7 +4257,7 @@ static int SCRadixTestUserdataMacro03(void) {
     int result = 0;
     void *somep = &result;
     SCRadixNode *node = SCMalloc(sizeof(SCRadixNode));
-    if (node == NULL) {
+    if (unlikely(node == NULL)) {
         goto end;
     }
     memset(node, 0x00, sizeof(*node));

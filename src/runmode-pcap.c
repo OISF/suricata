@@ -93,7 +93,7 @@ void *ParsePcapConfig(const char *iface)
     char *tmpctype;
     intmax_t value;
 
-    if (aconf == NULL) {
+    if (unlikely(aconf == NULL)) {
         return NULL;
     }
 

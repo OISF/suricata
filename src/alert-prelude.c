@@ -772,7 +772,7 @@ TmEcode AlertPreludeThreadInit(ThreadVars *t, void *initdata, void **data)
     }
 
     aun = SCMalloc(sizeof(AlertPreludeThread));
-    if (aun == NULL)
+    if (unlikely(aun == NULL))
         SCReturnInt(TM_ECODE_FAILED);
     memset(aun, 0, sizeof(AlertPreludeThread));
 
@@ -865,7 +865,7 @@ OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     }
 
     ctx = SCMalloc(sizeof(AlertPreludeCtx));
-    if ( ctx == NULL ) {
+    if (unlikely(ctx == NULL)) {
         prelude_perror(ret, "Unable to allocate memory");
         prelude_client_destroy(client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
         SCReturnPtr(NULL, "AlertPreludeCtx");
@@ -880,9 +880,8 @@ OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
         ctx->log_packet_header = 0;
 
     output_ctx = SCMalloc(sizeof(OutputCtx));
-    if (output_ctx == NULL) {
+    if (unlikely(output_ctx == NULL)) {
         SCFree(ctx);
-
         prelude_perror(ret, "Unable to allocate memory");
         prelude_client_destroy(client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
         SCReturnPtr(NULL, "AlertPreludeCtx");
