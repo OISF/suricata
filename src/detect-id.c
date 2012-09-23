@@ -161,11 +161,11 @@ DetectIdData *DetectIdParse (char *idstr)
 
         /* We have a correct id option */
         id_d = SCMalloc(sizeof(DetectIdData));
-        if (id_d == NULL)
+        if (unlikely(id_d == NULL))
             goto error;
 
         orig = SCStrdup((char*)str_ptr);
-        if (orig == NULL) {
+        if (unlikely(orig == NULL)) {
             goto error;
         }
         tmp_str=orig;

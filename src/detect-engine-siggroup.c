@@ -92,7 +92,7 @@ void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid) {
 
 static SigGroupHeadInitData *SigGroupHeadInitDataAlloc(uint32_t size) {
     SigGroupHeadInitData *sghid = SCMalloc(sizeof(SigGroupHeadInitData));
-    if (sghid == NULL)
+    if (unlikely(sghid == NULL))
         return NULL;
 
     memset(sghid, 0x00, sizeof(SigGroupHeadInitData));
@@ -142,7 +142,7 @@ void SigGroupHeadStore(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
 static SigGroupHead *SigGroupHeadAlloc(DetectEngineCtx *de_ctx, uint32_t size)
 {
     SigGroupHead *sgh = SCMalloc(sizeof(SigGroupHead));
-    if (sgh == NULL)
+    if (unlikely(sgh == NULL))
         return NULL;
     memset(sgh, 0, sizeof(SigGroupHead));
 

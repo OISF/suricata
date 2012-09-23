@@ -163,7 +163,7 @@ DetectITypeData *DetectITypeParse(char *itypestr) {
     }
 
     itd = SCMalloc(sizeof(DetectITypeData));
-    if (itd == NULL)
+    if (unlikely(itd == NULL))
         goto error;
     itd->type1 = 0;
     itd->type2 = 0;

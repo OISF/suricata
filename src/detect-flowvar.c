@@ -140,7 +140,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
 
     if (varcontent[0] == '\"' && varcontent[strlen(varcontent)-1] == '\"') {
         str = SCStrdup(varcontent+1);
-        if (str == NULL) {
+        if (unlikely(str == NULL)) {
             return -1;
         }
         str[strlen(varcontent)-2] = '\0';
@@ -154,7 +154,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
     }
 
     cd = SCMalloc(sizeof(DetectFlowvarData));
-    if (cd == NULL)
+    if (unlikely(cd == NULL))
         goto error;
 
     char converted = 0;

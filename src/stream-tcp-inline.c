@@ -199,7 +199,7 @@ static int StreamTcpInlineTest01(void) {
     p->tcph->th_seq = htonl(10000000UL);
 
     t = SCMalloc(sizeof(TcpSegment));
-    if (t == NULL) {
+    if (unlikely(t == NULL)) {
         printf("alloc TcpSegment failed: ");
         goto end;
     }
@@ -259,7 +259,7 @@ static int StreamTcpInlineTest02(void) {
     p->tcph->th_seq = htonl(10000001UL);
 
     t = SCMalloc(sizeof(TcpSegment));
-    if (t == NULL) {
+    if (unlikely(t == NULL)) {
         printf("alloc TcpSegment failed: ");
         goto end;
     }
@@ -324,7 +324,7 @@ static int StreamTcpInlineTest03(void) {
     p->tcph->th_seq = htonl(10000000UL);
 
     t = SCMalloc(sizeof(TcpSegment));
-    if (t == NULL) {
+    if (unlikely(t == NULL)) {
         printf("alloc TcpSegment failed: ");
         goto end;
     }
@@ -389,7 +389,7 @@ static int StreamTcpInlineTest04(void) {
     p->tcph->th_seq = htonl(10000003UL);
 
     t = SCMalloc(sizeof(TcpSegment));
-    if (t == NULL) {
+    if (unlikely(t == NULL)) {
         printf("alloc TcpSegment failed: ");
         goto end;
     }
@@ -453,7 +453,7 @@ static int StreamTcpInlineTest05(void) {
     p->tcph->th_seq = htonl(10000000UL);
 
     t = SCMalloc(sizeof(TcpSegment));
-    if (t == NULL) {
+    if (unlikely(t == NULL)) {
         printf("alloc TcpSegment failed: ");
         goto end;
     }
@@ -518,7 +518,7 @@ static int StreamTcpInlineTest06(void) {
     p->tcph->th_seq = htonl(10000020UL);
 
     t = SCMalloc(sizeof(TcpSegment));
-    if (t == NULL) {
+    if (unlikely(t == NULL)) {
         printf("alloc TcpSegment failed: ");
         goto end;
     }
@@ -583,7 +583,7 @@ static int StreamTcpInlineTest07(void) {
     p->tcph->th_seq = htonl(10000000UL);
 
     t = SCMalloc(sizeof(TcpSegment));
-    if (t == NULL) {
+    if (unlikely(t == NULL)) {
         printf("alloc TcpSegment failed: ");
         goto end;
     }

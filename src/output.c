@@ -47,7 +47,7 @@ OutputRegisterModule(char *name, char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *))
 {
     OutputModule *module = SCCalloc(1, sizeof(*module));
-    if (module == NULL) {
+    if (unlikely(module == NULL)) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in OutputRegisterModule. Exiting...");
         exit(EXIT_FAILURE);
     }

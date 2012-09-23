@@ -227,9 +227,8 @@ ReceiveErfFileThreadInit(ThreadVars *tv, void *initdata, void **data)
     }
 
     ErfFileThreadVars *etv = SCMalloc(sizeof(ErfFileThreadVars));
-    if (etv == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Failed to allocate memory for ERF file thread vars.");
+    if (unlikely(etv == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for ERF file thread vars.");
         fclose(erf);
         SCReturnInt(TM_ECODE_FAILED);
     }

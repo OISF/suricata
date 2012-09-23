@@ -155,7 +155,7 @@ DetectReplaceList * DetectReplaceAddToList(DetectReplaceList *replist, uint8_t *
     SCLogDebug("replace: Adding match");
 
     newlist = SCMalloc(sizeof(DetectReplaceList));
-    if (newlist == NULL)
+    if (unlikely(newlist == NULL))
         return NULL;
     newlist->found = found;
     newlist->cd = cd;
@@ -218,7 +218,7 @@ int DetectReplaceLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, ch
 
     Packet *p = NULL;
     p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
 
     DecodeThreadVars dtv;

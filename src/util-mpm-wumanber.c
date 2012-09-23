@@ -136,7 +136,7 @@ void WmPrintInfo(MpmCtx *mpm_ctx) {
 
 static inline WmPattern *WmAllocPattern(MpmCtx *mpm_ctx) {
     WmPattern *p = SCMalloc(sizeof(WmPattern));
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return NULL;
     memset(p,0,sizeof(WmPattern));
 
@@ -148,7 +148,7 @@ static inline WmPattern *WmAllocPattern(MpmCtx *mpm_ctx) {
 static inline WmHashItem *
 WmAllocHashItem(MpmCtx *mpm_ctx) {
     WmHashItem *hi = SCMalloc(sizeof(WmHashItem));
-    if (hi == NULL)
+    if (unlikely(hi == NULL))
         return NULL;
     memset(hi,0,sizeof(WmHashItem));
 

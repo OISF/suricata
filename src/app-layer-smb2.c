@@ -503,7 +503,7 @@ static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
 
 static void *SMB2StateAlloc(void) {
     void *s = SCMalloc(sizeof(SMB2State));
-    if (s == NULL)
+    if (unlikely(s == NULL))
         return NULL;
 
     memset(s, 0, sizeof(SMB2State));

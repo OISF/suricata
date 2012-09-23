@@ -293,7 +293,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx)
         snprintf(tname, sizeof(tname), "Detect%"PRIu16, thread+1);
 
         char *thread_name = SCStrdup(tname);
-        if (thread_name == NULL) {
+        if (unlikely(thread_name == NULL)) {
             printf("ERROR: Can not strdup thread name\n");
             exit(EXIT_FAILURE);
         }
@@ -318,7 +318,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx)
         TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
         char *thread_group_name = SCStrdup("Detect");
-        if (thread_group_name == NULL) {
+        if (unlikely(thread_group_name == NULL)) {
             printf("Error allocating memory\n");
             exit(EXIT_FAILURE);
         }
@@ -460,7 +460,7 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx)
         SCLogDebug("tname %s, qname %s", tname, qname);
 
         char *thread_name = SCStrdup(tname);
-        if (thread_name == NULL) {
+        if (unlikely(thread_name == NULL)) {
             printf("ERROR: Can not strdup thread name\n");
             exit(EXIT_FAILURE);
         }
@@ -503,7 +503,7 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx)
         }
 
         char *thread_group_name = SCStrdup("Detect");
-        if (thread_group_name == NULL) {
+        if (unlikely(thread_group_name == NULL)) {
             printf("Error allocating memory\n");
             exit(EXIT_FAILURE);
         }

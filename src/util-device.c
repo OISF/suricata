@@ -43,7 +43,7 @@ static TAILQ_HEAD(, LiveDevice_) live_devices =
 int LiveRegisterDevice(char *dev)
 {
     LiveDevice *pd = SCMalloc(sizeof(LiveDevice));
-    if (pd == NULL) {
+    if (unlikely(pd == NULL)) {
         return -1;
     }
 

@@ -271,7 +271,7 @@ DetectTagData *DetectTagParse (char *tagstr)
     }
 
     DetectTagData *real_td = SCMalloc(sizeof(DetectTagData));
-    if (real_td == NULL) {
+    if (unlikely(real_td == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;
     }

@@ -48,7 +48,7 @@ void AppLayerDecoderEventsModuleRegister(uint16_t alproto, SCEnumCharMap *table)
 
     AppLayerDecoderEventsModule *new_dev =
         SCMalloc(sizeof(AppLayerDecoderEventsModule));
-    if (new_dev == NULL)
+    if (unlikely(new_dev == NULL))
         return;
 
     new_dev->alproto = alproto;

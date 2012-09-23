@@ -132,7 +132,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
 
             snprintf(tname, sizeof(tname),"%s-%s", thread_name, live_dev);
             tnamec = SCStrdup(tname);
-            if (tnamec == NULL) {
+            if (unlikely(tnamec == NULL)) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
                 exit(EXIT_FAILURE);
             }
@@ -311,7 +311,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
 
         char *thread_name = SCStrdup(tname);
 
-        if (thread_name == NULL) {
+        if (unlikely(thread_name == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
             exit(EXIT_FAILURE);
         }
@@ -336,7 +336,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
         TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
         char *thread_group_name = SCStrdup("Detect");
-        if (thread_group_name == NULL) {
+        if (unlikely(thread_group_name == NULL)) {
             SCLogError(SC_ERR_RUNMODE, "Error allocating memory");
             exit(EXIT_FAILURE);
         }
@@ -444,7 +444,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
         for (thread = 0; thread < threads_count; thread++) {
             snprintf(tname, sizeof(tname), "%s%"PRIu16, thread_name, thread+1);
             char *thread_name = SCStrdup(tname);
-            if (thread_name == NULL) {
+            if (unlikely(thread_name == NULL)) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
                 exit(EXIT_FAILURE);
             }
@@ -507,7 +507,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
                 snprintf(tname, sizeof(tname), "%s%s%"PRIu16, thread_name,
                          live_dev, thread+1);
                 char *thread_name = SCStrdup(tname);
-                if (thread_name == NULL) {
+                if (unlikely(thread_name == NULL)) {
                     SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
                     exit(EXIT_FAILURE);
                 }
@@ -550,7 +550,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
         SCLogDebug("tname %s, qname %s", tname, qname);
 
         char *thread_name = SCStrdup(tname);
-        if (thread_name == NULL) {
+        if (unlikely(thread_name == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
             exit(EXIT_FAILURE);
         }
@@ -581,7 +581,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
         TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
         char *thread_group_name = SCStrdup("Detect");
-        if (thread_group_name == NULL) {
+        if (unlikely(thread_group_name == NULL)) {
             SCLogError(SC_ERR_RUNMODE, "Error allocating memory");
             exit(EXIT_FAILURE);
         }
@@ -637,7 +637,7 @@ static int RunModeSetLiveCaptureWorkersForDevice(DetectEngineCtx *de_ctx,
                      thread_name, live_dev, thread+1);
         }
         n_thread_name = SCStrdup(tname);
-        if (n_thread_name == NULL) {
+        if (unlikely(n_thread_name == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
             exit(EXIT_FAILURE);
         }
@@ -715,7 +715,7 @@ int RunModeSetLiveCaptureWorkers(DetectEngineCtx *de_ctx,
         if (live_dev != NULL) {
             aconf = ConfigParser(live_dev);
             live_dev_c = SCStrdup(live_dev);
-            if (live_dev_c == NULL) {
+            if (unlikely(live_dev_c == NULL)) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate interface name");
                 exit(EXIT_FAILURE);
             }
@@ -892,7 +892,7 @@ int RunModeSetIPSAuto(DetectEngineCtx *de_ctx,
         TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
         char *thread_group_name = SCStrdup("Detect");
-        if (thread_group_name == NULL) {
+        if (unlikely(thread_group_name == NULL)) {
             printf("Error allocating memory\n");
             exit(EXIT_FAILURE);
         }
@@ -1047,7 +1047,7 @@ int RunModeSetIPSAutoFp(DetectEngineCtx *de_ctx,
         SCLogDebug("tname %s, qname %s", tname, qname);
 
         char *thread_name = SCStrdup(tname);
-        if (thread_name == NULL) {
+        if (unlikely(thread_name == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
             exit(EXIT_FAILURE);
         }
@@ -1080,7 +1080,7 @@ int RunModeSetIPSAutoFp(DetectEngineCtx *de_ctx,
         SetupOutputs(tv_detect_ncpu);
 
         char *thread_group_name = SCStrdup("Detect");
-        if (thread_group_name == NULL) {
+        if (unlikely(thread_group_name == NULL)) {
             SCLogError(SC_ERR_RUNMODE, "Error allocating memory");
             exit(EXIT_FAILURE);
         }

@@ -59,7 +59,7 @@ static void FlowBitAdd(Flow *f, uint16_t idx) {
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb == NULL) {
         fb = SCMalloc(sizeof(FlowBit));
-        if (fb == NULL)
+        if (unlikely(fb == NULL))
             return;
 
         fb->type = DETECT_FLOWBITS;

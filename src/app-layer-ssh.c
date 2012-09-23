@@ -718,7 +718,7 @@ static int SSHParseClientRecord(Flow *f, void *ssh_state, AppLayerParserState *p
 static void *SSHStateAlloc(void)
 {
     void *s = SCMalloc(sizeof(SshState));
-    if (s == NULL)
+    if (unlikely(s == NULL))
         return NULL;
 
     memset(s, 0, sizeof(SshState));

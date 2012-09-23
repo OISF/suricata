@@ -394,7 +394,7 @@ void FlowInitConfig(char quiet)
         exit(EXIT_FAILURE);
     }
     flow_hash = SCCalloc(flow_config.hash_size, sizeof(FlowBucket));
-    if (flow_hash == NULL) {
+    if (unlikely(flow_hash == NULL)) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in FlowInitConfig. Exiting...");
         exit(EXIT_FAILURE);
     }

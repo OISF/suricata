@@ -173,7 +173,7 @@ DefragContextNew(void)
     DefragContext *dc;
 
     dc = SCCalloc(1, sizeof(*dc));
-    if (dc == NULL)
+    if (unlikely(dc == NULL))
         return NULL;
 
     /* Initialize the pool of trackers. */
@@ -912,7 +912,7 @@ BuildTestPacket(uint16_t id, uint16_t off, int mf, const char content,
     IPV4Hdr ip4h;
 
     p = SCCalloc(1, sizeof(*p) + default_packet_size);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return NULL;
 
     PACKET_INITIALIZE(p);
@@ -941,7 +941,7 @@ BuildTestPacket(uint16_t id, uint16_t off, int mf, const char content,
     SET_IPV4_DST_ADDR(p, &p->dst);
 
     pcontent = SCCalloc(1, content_len);
-    if (pcontent == NULL)
+    if (unlikely(pcontent == NULL))
         return NULL;
     memset(pcontent, content, content_len);
     PacketCopyDataOffset(p, hlen, pcontent, content_len);
@@ -984,7 +984,7 @@ IPV6BuildTestPacket(uint32_t id, uint16_t off, int mf, const char content,
     IPV6Hdr ip6h;
 
     p = SCCalloc(1, sizeof(*p) + default_packet_size);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return NULL;
 
     PACKET_INITIALIZE(p);
@@ -1016,7 +1016,7 @@ IPV6BuildTestPacket(uint32_t id, uint16_t off, int mf, const char content,
     p->ip6eh.ip6fh->ip6fh_offlg = htons((off << 3) | mf);
 
     pcontent = SCCalloc(1, content_len);
-    if (pcontent == NULL)
+    if (unlikely(pcontent == NULL))
         return NULL;
     memset(pcontent, content, content_len);
     PacketCopyDataOffset(p, sizeof(IPV6Hdr) + sizeof(IPV6FragHdr), pcontent, content_len);

@@ -168,7 +168,7 @@ DetectEngineEventData *DetectEngineEventParse (char *rawstr)
     }
 
     de = SCMalloc(sizeof(DetectEngineEventData));
-    if (de == NULL)
+    if (unlikely(de == NULL))
         goto error;
 
     de->event = DEvents[i].code;
@@ -335,7 +335,7 @@ int EngineEventTestParse05 (void) {
  */
 int EngineEventTestParse06 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     int ret = 0;

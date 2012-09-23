@@ -139,7 +139,7 @@ void DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 static int DecodePPPtest01 (void)   {
     uint8_t raw_ppp[] = { 0xff, 0x03, 0x00, 0x21, 0x45, 0xc0, 0x00 };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -173,7 +173,7 @@ static int DecodePPPtest02 (void)   {
                            0x17, 0x6d, 0x0b, 0xba, 0xc3, 0x00, 0x00, 0x00, 0x00,
                            0x60, 0x02, 0x10, 0x20, 0xdd, 0xe1, 0x00, 0x00 };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -209,7 +209,7 @@ static int DecodePPPtest03 (void)   {
                            0x17, 0x6d, 0x0b, 0xba, 0xc3, 0x00, 0x00, 0x00, 0x00,
                            0x60, 0x02, 0x10, 0x20, 0xdd, 0xe1, 0x00, 0x00 };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -268,7 +268,7 @@ static int DecodePPPtest04 (void)   {
                            0x17, 0x6d, 0x0b, 0xba, 0xc3, 0x00, 0x00, 0x00, 0x00,
                            0x60, 0x02, 0x10, 0x20, 0xdd, 0xe1, 0x00, 0x00 };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;

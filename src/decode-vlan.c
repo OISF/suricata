@@ -112,7 +112,7 @@ void DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
 static int DecodeVLANtest01 (void)   {
     uint8_t raw_vlan[] = { 0x00, 0x20, 0x08 };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -149,7 +149,7 @@ static int DecodeVLANtest02 (void)   {
         0x3c, 0x4c, 0x00, 0x00, 0x01, 0x01, 0x08, 0x0a,
         0x00, 0x04, 0xf0, 0xc8, 0x01, 0x99, 0xa3, 0xf3};
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -187,7 +187,7 @@ static int DecodeVLANtest03 (void)   {
         0x3c, 0x4c, 0x00, 0x00, 0x01, 0x01, 0x08, 0x0a,
         0x00, 0x04, 0xf0, 0xc8, 0x01, 0x99, 0xa3, 0xf3};
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;

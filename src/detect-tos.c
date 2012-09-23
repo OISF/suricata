@@ -175,7 +175,7 @@ DetectTosData *DetectTosParse(char *arg)
     }
 
     tosd = SCMalloc(sizeof(DetectTosData));
-    if (tosd == NULL)
+    if (unlikely(tosd == NULL))
         goto error;
     tosd->tos = (uint8_t)tos;
     tosd->negated = negated;

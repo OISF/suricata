@@ -161,7 +161,7 @@ DetectIpOptsData *DetectIpOptsParse (char *rawstr)
         goto error;
 
     de = SCMalloc(sizeof(DetectIpOptsData));
-    if (de == NULL)
+    if (unlikely(de == NULL))
         goto error;
 
     de->ipopt = DIpOpts[i].code;
@@ -269,7 +269,7 @@ int IpOptsTestParse02 (void) {
  */
 int IpOptsTestParse03 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     int ret = 0;
@@ -321,7 +321,7 @@ error:
  */
 int IpOptsTestParse04 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     int ret = 0;

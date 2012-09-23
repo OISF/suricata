@@ -184,7 +184,7 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
     }
 
     dd = SCMalloc(sizeof(DetectDsizeData));
-    if (dd == NULL)
+    if (unlikely(dd == NULL))
         goto error;
     dd->dsize = 0;
     dd->dsize2 = 0;
@@ -720,7 +720,7 @@ int DetectDsizeIcmpv6Test01 (void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     IPV6Hdr ip6h;
     ThreadVars tv;

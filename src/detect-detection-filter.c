@@ -118,7 +118,7 @@ DetectThresholdData *DetectDetectionFilterParse (char *rawstr) {
     int i = 0;
 
     copy_str = SCStrdup(rawstr);
-    if (copy_str == NULL) {
+    if (unlikely(copy_str == NULL)) {
         goto error;
     }
 
@@ -147,7 +147,7 @@ DetectThresholdData *DetectDetectionFilterParse (char *rawstr) {
     }
 
     df = SCMalloc(sizeof(DetectThresholdData));
-    if (df == NULL)
+    if (unlikely(df == NULL))
         goto error;
 
     memset(df,0,sizeof(DetectThresholdData));
