@@ -69,7 +69,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
     /* strip "'s */
     if (distancestr[0] == '\"' && distancestr[strlen(distancestr) - 1] == '\"') {
         str = SCStrdup(distancestr + 1);
-        if (str == NULL)
+        if (unlikely(str == NULL))
             goto error;
         str[strlen(distancestr) - 2] = '\0';
         dubbed = 1;

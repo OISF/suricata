@@ -782,7 +782,7 @@ DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr)
     //printf("ret %" PRId32 " re \'%s\', op \'%s\'\n", ret, re, op);
 
     pd = SCMalloc(sizeof(DetectPcreData));
-    if (pd == NULL)
+    if (unlikely(pd == NULL))
         goto error;
     memset(pd, 0, sizeof(DetectPcreData));
 

@@ -76,7 +76,7 @@ static int DetectL3ProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
     /* strip "'s */
     if (optstr[0] == '\"' && optstr[strlen(optstr) - 1] == '\"') {
         str = SCStrdup(optstr + 1);
-        if (str == NULL)
+        if (unlikely(str == NULL))
             goto error;
         str[strlen(optstr) - 2] = '\0';
         dubbed = 1;
@@ -133,7 +133,7 @@ error:
 static int DetectL3protoTestSig1(void) {
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     Signature *s = NULL;
     ThreadVars th_v;
@@ -218,7 +218,7 @@ end:
 static int DetectL3protoTestSig2(void) {
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     Signature *s = NULL;
     ThreadVars th_v;
@@ -302,7 +302,7 @@ end:
 static int DetectL3protoTestSig3(void) {
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     Signature *s = NULL;
     ThreadVars th_v;

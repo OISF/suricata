@@ -105,7 +105,7 @@ void B3gPrintInfo(MpmCtx *mpm_ctx) {
 
 static inline B3gPattern *B3gAllocPattern(MpmCtx *mpm_ctx) {
     B3gPattern *p = SCMalloc(sizeof(B3gPattern));
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return NULL;
     memset(p,0,sizeof(B3gPattern));
 
@@ -117,7 +117,7 @@ static inline B3gPattern *B3gAllocPattern(MpmCtx *mpm_ctx) {
 static inline B3gHashItem *
 B3gAllocHashItem(MpmCtx *mpm_ctx) {
     B3gHashItem *hi = SCMalloc(sizeof(B3gHashItem));
-    if (hi == NULL)
+    if (unlikely(hi == NULL))
         return NULL;
     memset(hi,0,sizeof(B3gHashItem));
 

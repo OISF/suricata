@@ -254,7 +254,7 @@ void *StreamTcpSessionPoolAlloc()
         return NULL;
 
     ptr = SCMalloc(sizeof(TcpSession));
-    if (ptr == NULL)
+    if (unlikely(ptr == NULL))
         return NULL;
 
     return ptr;
@@ -3767,7 +3767,7 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     SCEnter();
     StreamTcpThread *stt = SCMalloc(sizeof(StreamTcpThread));
-    if (stt == NULL)
+    if (unlikely(stt == NULL))
         SCReturnInt(TM_ECODE_FAILED);
     memset(stt, 0, sizeof(StreamTcpThread));
 
@@ -4671,7 +4671,7 @@ int StreamTcpSegmentForEach(Packet *p, uint8_t flag, StreamSegmentCallback Callb
 
 static int StreamTcpTest01 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     memset(p, 0, SIZE_OF_PACKET);
@@ -4717,7 +4717,7 @@ end:
 
 static int StreamTcpTest02 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -4816,7 +4816,7 @@ end:
 
 static int StreamTcpTest03 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -4890,7 +4890,7 @@ end:
 
 static int StreamTcpTest04 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -4957,7 +4957,7 @@ end:
 
 static int StreamTcpTest05 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -5060,7 +5060,7 @@ end:
 
 static int StreamTcpTest06 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     TcpSession ssn;
@@ -5123,7 +5123,7 @@ end:
 
 static int StreamTcpTest07 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -5211,7 +5211,7 @@ end:
 static int StreamTcpTest08 (void) {
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     Flow f;
     ThreadVars tv;
@@ -5301,7 +5301,7 @@ end:
 static int StreamTcpTest09 (void) {
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     Flow f;
     ThreadVars tv;
@@ -5377,7 +5377,7 @@ end:
 
 static int StreamTcpTest10 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -5477,7 +5477,7 @@ end:
 
 static int StreamTcpTest11 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -5578,7 +5578,7 @@ end:
 
 static int StreamTcpTest12 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -5672,7 +5672,7 @@ end:
 
 static int StreamTcpTest13 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -5870,7 +5870,7 @@ char *StreamTcpParseOSPolicy (char *conf_var_name)
 
 static int StreamTcpTest14 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -6041,7 +6041,7 @@ end:
 static int StreamTcp4WHSTest01 (void) {
     int ret = 0;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -6121,7 +6121,7 @@ end:
 static int StreamTcp4WHSTest02 (void) {
     int ret = 0;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -6190,7 +6190,7 @@ end:
 static int StreamTcp4WHSTest03 (void) {
     int ret = 0;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -6268,7 +6268,7 @@ end:
 
 static int StreamTcpTest15 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -6438,7 +6438,7 @@ end:
 
 static int StreamTcpTest16 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -6609,7 +6609,7 @@ end:
 
 static int StreamTcpTest17 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -6779,7 +6779,7 @@ static int StreamTcpTest18 (void) {
     char *ip_addr;
     TcpStream stream;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     IPV4Hdr ipv4h;
     int ret = 0;
@@ -6828,7 +6828,7 @@ static int StreamTcpTest19 (void) {
     char *ip_addr;
     TcpStream stream;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     IPV4Hdr ipv4h;
     int ret = 0;
@@ -6880,7 +6880,7 @@ static int StreamTcpTest20 (void) {
     char *ip_addr;
     TcpStream stream;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     IPV4Hdr ipv4h;
     int ret = 0;
@@ -6932,7 +6932,7 @@ static int StreamTcpTest21 (void) {
     char *ip_addr;
     TcpStream stream;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     IPV4Hdr ipv4h;
     int ret = 0;
@@ -6984,7 +6984,7 @@ static int StreamTcpTest22 (void) {
     char *ip_addr;
     TcpStream stream;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     IPV4Hdr ipv4h;
     int ret = 0;
@@ -7041,7 +7041,7 @@ static int StreamTcpTest23(void)
     PacketQueue pq;
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
 
     memset(&pq,0,sizeof(PacketQueue));
@@ -7123,7 +7123,7 @@ static int StreamTcpTest24(void)
 {
     TcpSession ssn;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     TCPHdr tcph;
@@ -7213,7 +7213,7 @@ end:
  */
 static int StreamTcpTest25(void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -7311,7 +7311,7 @@ end:
  */
 static int StreamTcpTest26(void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -7405,7 +7405,7 @@ end:
  */
 static int StreamTcpTest27(void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -8393,7 +8393,7 @@ end:
  */
 static int StreamTcpTest37(void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Flow f;
     ThreadVars tv;
@@ -8534,7 +8534,7 @@ static int StreamTcpTest38 (void) {
     memset(&pq,0,sizeof(PacketQueue));
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
@@ -8650,7 +8650,7 @@ static int StreamTcpTest39 (void) {
     memset(&pq,0,sizeof(PacketQueue));
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
@@ -8753,7 +8753,7 @@ static int StreamTcpTest40(void) {
         0x00, 0x04, 0xf0, 0xc8, 0x01, 0x99, 0xa3, 0xf3
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -8811,7 +8811,7 @@ static int StreamTcpTest41(void) {
         0x04, 0x02, 0x08, 0x0a, 0x00, 0xdd, 0x1a, 0x39,
         0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x02 };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;

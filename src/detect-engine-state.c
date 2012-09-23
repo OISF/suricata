@@ -130,7 +130,7 @@ DeStateStore *DeStateStoreAlloc(void) {
     SCEnter();
 
     DeStateStore *d = SCMalloc(sizeof(DeStateStore));
-    if (d == NULL) {
+    if (unlikely(d == NULL)) {
         SCReturnPtr(NULL, "DeStateStore");
     }
     memset(d, 0x00, sizeof(DeStateStore));
@@ -165,7 +165,7 @@ DetectEngineState *DetectEngineStateAlloc(void) {
     SCEnter();
 
     DetectEngineState *d = SCMalloc(sizeof(DetectEngineState));
-    if (d == NULL) {
+    if (unlikely(d == NULL)) {
         SCReturnPtr(NULL, "DetectEngineState");
     }
     memset(d, 0x00, sizeof(DetectEngineState));

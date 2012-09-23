@@ -140,7 +140,7 @@ DetectWindowData *DetectWindowParse(char *windowstr) {
     }
 
     wd = SCMalloc(sizeof(DetectWindowData));
-    if (wd == NULL)
+    if (unlikely(wd == NULL))
         goto error;
 
     if (ret > 1) {

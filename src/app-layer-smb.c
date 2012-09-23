@@ -1292,7 +1292,7 @@ static void *SMBStateAlloc(void) {
     SCEnter();
 
     void *s = SCMalloc(sizeof(SMBState));
-    if (s == NULL) {
+    if (unlikely(s == NULL)) {
         SCReturnPtr(NULL, "void");
     }
 

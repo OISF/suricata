@@ -159,7 +159,7 @@ DetectFragOffsetData *DetectFragOffsetParse (char *fragoffsetstr) {
     }
 
     fragoff = SCMalloc(sizeof(DetectFragOffsetData));
-    if (fragoff == NULL)
+    if (unlikely(fragoff == NULL))
         goto error;
 
     fragoff->frag_off = 0;
@@ -302,7 +302,7 @@ int DetectFragOffsetParseTest03 (void) {
 int DetectFragOffsetMatchTest01 (void) {
     int result = 0;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Signature *s = NULL;
     DecodeThreadVars dtv;

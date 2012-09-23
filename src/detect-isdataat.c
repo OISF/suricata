@@ -176,7 +176,7 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr, char **offset)
         }
 
         idad = SCMalloc(sizeof(DetectIsdataatData));
-        if (idad == NULL)
+        if (unlikely(idad == NULL))
             goto error;
 
         idad->flags = 0;

@@ -439,7 +439,7 @@ void SCCudaPBDeAllocSCCudaPBPacketsBuffer(SCCudaPBPacketsBuffer *pb)
 SCCudaPBPacketsBuffer *SCCudaPBAllocSCCudaPBPacketsBuffer(void)
 {
     SCCudaPBPacketsBuffer *pb = SCMalloc(sizeof(SCCudaPBPacketsBuffer));
-    if (pb == NULL) {
+    if (unlikely(pb == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
@@ -591,7 +591,7 @@ TmEcode SCCudaPBThreadInit(ThreadVars *tv, void *initdata, void **data)
     }
 
     tctx = SCMalloc(sizeof(SCCudaPBThreadCtx));
-    if (tctx == NULL) {
+    if (unlikely(tctx == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
@@ -1149,7 +1149,7 @@ int SCCudaPBTest01(void)
     SCCudaPBThreadCtx *tctx = NULL;
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     DecodeThreadVars dtv;
     ThreadVars tv;
@@ -1415,7 +1415,7 @@ int SCCudaPBTest02(void)
     SCCudaPBThreadCtx *tctx = NULL;
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     DecodeThreadVars dtv;
     ThreadVars tv;

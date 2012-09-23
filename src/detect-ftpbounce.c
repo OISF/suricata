@@ -448,7 +448,7 @@ static int DetectFtpbounceTestALMatch03(void) {
     TcpSession ssn;
     Flow f;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Signature *s = NULL;
     ThreadVars th_v;

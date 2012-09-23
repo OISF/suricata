@@ -40,7 +40,7 @@ MemBuffer *MemBufferCreateNew(uint32_t size)
     uint32_t total_size = size + sizeof(MemBuffer);
 
     MemBuffer *buffer = SCMalloc(total_size);
-    if (buffer == NULL) {
+    if (unlikely(buffer == NULL)) {
         return NULL;
     }
     memset(buffer, 0, total_size);

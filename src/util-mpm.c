@@ -67,7 +67,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         memset(de_ctx->mpm_ctx_factory_container, 0, sizeof(MpmCtxFactoryContainer));
 
         MpmCtxFactoryItem *item = SCMalloc(sizeof(MpmCtxFactoryItem));
-        if (item == NULL) {
+        if (unlikely(item == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
         }
@@ -205,7 +205,7 @@ MpmCtx *MpmFactoryGetMpmCtxForProfile(DetectEngineCtx *de_ctx, int32_t id, int d
 {
     if (id == MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
         MpmCtx *mpm_ctx = SCMalloc(sizeof(MpmCtx));
-        if (mpm_ctx == NULL) {
+        if (unlikely(mpm_ctx == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
         }

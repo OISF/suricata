@@ -154,12 +154,12 @@ void *TmqhOutputFlowSetupCtx(char *queue_str)
         return NULL;
 
     TmqhFlowCtx *ctx = SCMalloc(sizeof(TmqhFlowCtx));
-    if (ctx == NULL)
+    if (unlikely(ctx == NULL))
         return NULL;
     memset(ctx,0x00,sizeof(TmqhFlowCtx));
 
     char *str = SCStrdup(queue_str);
-    if (str == NULL) {
+    if (unlikely(str == NULL)) {
         goto error;
     }
     char *tstr = str;

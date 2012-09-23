@@ -40,7 +40,7 @@ BloomFilter *BloomFilterInit(uint32_t size, uint8_t iter, uint32_t (*Hash)(void 
 
     /* setup the filter */
     bf = SCMalloc(sizeof(BloomFilter));
-    if (bf == NULL)
+    if (unlikely(bf == NULL))
         goto error;
     memset(bf,0,sizeof(BloomFilter));
     bf->bitarray_size = size;

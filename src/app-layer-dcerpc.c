@@ -1798,7 +1798,7 @@ static void *DCERPCStateAlloc(void) {
     SCEnter();
 
     DCERPCState *s = SCMalloc(sizeof(DCERPCState));
-    if (s == NULL) {
+    if (unlikely(s == NULL)) {
         SCReturnPtr(NULL, "void");
     }
     memset(s, 0, sizeof(DCERPCState));
