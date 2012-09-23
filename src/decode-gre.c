@@ -267,7 +267,7 @@ static int DecodeGREtest01 (void)   {
 
     uint8_t raw_gre[] = { 0x00 ,0x6e ,0x62 };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -309,7 +309,7 @@ static int DecodeGREtest02 (void)   {
         0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00 };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -352,7 +352,7 @@ static int DecodeGREtest03 (void)   {
         0x01, 0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00 };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;

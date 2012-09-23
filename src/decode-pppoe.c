@@ -229,7 +229,7 @@ static int DecodePPPOEtest01 (void)   {
 
     uint8_t raw_pppoe[] = { 0x11, 0x00, 0x00, 0x00, 0x00 };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -268,7 +268,7 @@ static int DecodePPPOEtest02 (void)   {
         0x46, 0x47, 0x48, 0x49 };
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -317,7 +317,7 @@ static int DecodePPPOEtest03 (void)   {
     };
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -350,7 +350,7 @@ static int DecodePPPOEtest04 (void)   {
     };
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -386,7 +386,7 @@ static int DecodePPPOEtest05 (void)   {
     };
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;

@@ -144,7 +144,7 @@ static DetectFilenameData *DetectFilenameParse (char *str)
 
     /* We have a correct filename option */
     filename = SCMalloc(sizeof(DetectFilenameData));
-    if (filename == NULL)
+    if (unlikely(filename == NULL))
         goto error;
 
     memset(filename, 0x00, sizeof(DetectFilenameData));

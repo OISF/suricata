@@ -210,7 +210,7 @@ int RunModeErfFileAutoFp(DetectEngineCtx *de_ctx)
         SCLogDebug("tname %s, qname %s", tname, qname);
 
         char *thread_name = SCStrdup(tname);
-        if (thread_name == NULL) {
+        if (unlikely(thread_name == NULL)) {
             printf("ERROR: Can't allocate thread name\n");
             exit(EXIT_FAILURE);
         }
@@ -253,7 +253,7 @@ int RunModeErfFileAutoFp(DetectEngineCtx *de_ctx)
         }
 
         char *thread_group_name = SCStrdup("Detect");
-        if (thread_group_name == NULL) {
+        if (unlikely(thread_group_name == NULL)) {
             printf("Error allocating memory\n");
             exit(EXIT_FAILURE);
         }

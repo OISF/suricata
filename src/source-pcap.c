@@ -340,7 +340,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
 
     PcapThreadVars *ptv = SCMalloc(sizeof(PcapThreadVars));
-    if (ptv == NULL) {
+    if (unlikely(ptv == NULL)) {
         pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -480,8 +480,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
 
     PcapThreadVars *ptv = SCMalloc(sizeof(PcapThreadVars));
-    if (ptv == NULL) {
-        /* Dereference config */
+    if (unlikely(ptv == NULL)) {
         pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }

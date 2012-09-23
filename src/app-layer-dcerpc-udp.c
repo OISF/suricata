@@ -684,7 +684,7 @@ static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
 
 static void *DCERPCUDPStateAlloc(void) {
 	void *s = SCMalloc(sizeof(DCERPCUDPState));
-	if (s == NULL)
+	if (unlikely(s == NULL))
 		return NULL;
 
 	memset(s, 0, sizeof(DCERPCUDPState));

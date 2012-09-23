@@ -46,7 +46,7 @@ DefragTracker *DefragTrackerAlloc(void) {
     (void) SC_ATOMIC_ADD(defrag_memuse, sizeof(DefragTracker));
 
     DefragTracker *dt = SCMalloc(sizeof(DefragTracker));
-    if (dt == NULL)
+    if (unlikely(dt == NULL))
         goto error;
 
     memset(dt, 0x00, sizeof(DefragTracker));
@@ -184,7 +184,7 @@ void DefragInitConfig(char quiet)
         exit(EXIT_FAILURE);
     }
     defragtracker_hash = SCCalloc(defrag_config.hash_size, sizeof(DefragTrackerHashRow));
-    if (defragtracker_hash == NULL) {
+    if (unlikely(defragtracker_hash == NULL)) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in DefragTrackerInitConfig. Exiting...");
         exit(EXIT_FAILURE);
     }

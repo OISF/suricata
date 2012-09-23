@@ -141,7 +141,7 @@ SCProfilingInit(void)
                     log_dir = DEFAULT_LOG_DIR;
 
                 profiling_packets_file_name = SCMalloc(PATH_MAX);
-                if (profiling_packets_file_name == NULL) {
+                if (unlikely(profiling_packets_file_name == NULL)) {
                     SCLogError(SC_ERR_MEM_ALLOC, "can't duplicate file name");
                     exit(EXIT_FAILURE);
                 }
@@ -173,7 +173,7 @@ SCProfilingInit(void)
                     log_dir = DEFAULT_LOG_DIR;
 
                 profiling_csv_file_name = SCMalloc(PATH_MAX);
-                if (profiling_csv_file_name == NULL) {
+                if (unlikely(profiling_csv_file_name == NULL)) {
                     SCLogError(SC_ERR_MEM_ALLOC, "out of memory");
                     exit(EXIT_FAILURE);
                 }
@@ -220,7 +220,7 @@ SCProfilingInit(void)
                     log_dir = DEFAULT_LOG_DIR;
 
                 profiling_locks_file_name = SCMalloc(PATH_MAX);
-                if (profiling_locks_file_name == NULL) {
+                if (unlikely(profiling_locks_file_name == NULL)) {
                     SCLogError(SC_ERR_MEM_ALLOC, "can't duplicate file name");
                     exit(EXIT_FAILURE);
                 }

@@ -187,7 +187,7 @@ DetectSshVersionData *DetectSshVersionParse (char *str)
 
         /* We have a correct id option */
         ssh = SCMalloc(sizeof(DetectSshVersionData));
-        if (ssh == NULL)
+        if (unlikely(ssh == NULL))
             goto error;
 
         memset(ssh, 0x00, sizeof(DetectSshVersionData));

@@ -210,7 +210,7 @@ DetectSslVersionData *DetectSslVersionParse(char *str)
 
         /* We have a correct ssl_version options */
         ssl = SCCalloc(1, sizeof (DetectSslVersionData));
-        if (ssl == NULL)
+        if (unlikely(ssl == NULL))
             goto error;
 
         int i;
@@ -224,7 +224,7 @@ DetectSslVersionData *DetectSslVersionParse(char *str)
             }
 
             orig = SCStrdup((char*) str_ptr[i]);
-            if (orig == NULL) {
+            if (unlikely(orig == NULL)) {
                 goto error;
             }
             tmp_str = orig;

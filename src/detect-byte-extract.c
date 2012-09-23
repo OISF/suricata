@@ -260,7 +260,7 @@ static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
     }
 
     bed = SCMalloc(sizeof(DetectByteExtractData));
-    if (bed == NULL)
+    if (unlikely(bed == NULL))
         goto error;
     memset(bed, 0, sizeof(DetectByteExtractData));
 

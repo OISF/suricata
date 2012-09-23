@@ -128,7 +128,7 @@ static DetectReference *DetectReferenceParse(char *rawstr, DetectEngineCtx *de_c
     }
 
     ref = SCMalloc(sizeof(DetectReference));
-    if (ref == NULL) {
+    if (unlikely(ref == NULL)) {
         goto error;
     }
     memset(ref, 0, sizeof(DetectReference));

@@ -158,7 +158,7 @@ OutputCtx *AlertSyslogInitCtx(ConfNode *conf)
     openlog(ident, LOG_PID|LOG_NDELAY, facility);
 
     OutputCtx *output_ctx = SCMalloc(sizeof(OutputCtx));
-    if (output_ctx == NULL) {
+    if (unlikely(output_ctx == NULL)) {
         SCLogDebug("AlertSyslogInitCtx: Could not create new OutputCtx");
         return NULL;
     }
@@ -207,7 +207,7 @@ TmEcode AlertSyslogThreadInit(ThreadVars *t, void *initdata, void **data)
     }
 
     AlertSyslogThread *ast = SCMalloc(sizeof(AlertSyslogThread));
-    if (ast == NULL)
+    if (unlikely(ast == NULL))
         return TM_ECODE_FAILED;
 
     memset(ast, 0, sizeof(AlertSyslogThread));

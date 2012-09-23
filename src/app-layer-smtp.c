@@ -746,7 +746,7 @@ static int SMTPParseServerRecord(Flow *f, void *alstate,
 static void *SMTPStateAlloc(void)
 {
     SMTPState *smtp_state = SCMalloc(sizeof(SMTPState));
-    if (smtp_state == NULL)
+    if (unlikely(smtp_state == NULL))
         return NULL;
     memset(smtp_state, 0, sizeof(SMTPState));
 
@@ -765,8 +765,7 @@ static void *SMTPLocalStorageAlloc(void)
 {
     /* needed by the mpm */
     PatternMatcherQueue *pmq = SCMalloc(sizeof(PatternMatcherQueue));
-    if (pmq == NULL) {
-        /* we need to exit here, since it is load time */
+    if (unlikely(pmq == NULL)) {
         exit(EXIT_FAILURE);
     }
     PmqSetup(pmq, 0,
@@ -811,15 +810,13 @@ static void SMTPStateFree(void *p)
 static void SMTPSetMpmState(void)
 {
     smtp_mpm_ctx = SCMalloc(sizeof(MpmCtx));
-    if (smtp_mpm_ctx == NULL) {
-        /* we need to exit here, since it is load time */
+    if (unlikely(smtp_mpm_ctx == NULL)) {
         exit(EXIT_FAILURE);
     }
     memset(smtp_mpm_ctx, 0, sizeof(MpmCtx));
 
     smtp_mpm_thread_ctx = SCMalloc(sizeof(MpmThreadCtx));
-    if (smtp_mpm_thread_ctx == NULL) {
-        /* we need to exit here, since it is load time */
+    if (unlikely(smtp_mpm_thread_ctx == NULL)) {
         exit(EXIT_FAILURE);
     }
     memset(smtp_mpm_thread_ctx, 0, sizeof(MpmThreadCtx));

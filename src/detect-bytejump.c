@@ -395,7 +395,7 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset)
 
     /* Initialize the data */
     data = SCMalloc(sizeof(DetectBytejumpData));
-    if (data == NULL)
+    if (unlikely(data == NULL))
         goto error;
     data->base = DETECT_BYTEJUMP_BASE_UNSET;
     data->flags = 0;
@@ -1223,7 +1223,7 @@ int DetectByteJumpTestPacket03(void)
     uint8_t *buf = NULL;
     uint16_t buflen = 0;
     buf = SCMalloc(4);
-    if (buf == NULL) {
+    if (unlikely(buf == NULL)) {
         printf("malloc failed\n");
         exit(EXIT_FAILURE);
     }

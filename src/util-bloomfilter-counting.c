@@ -49,7 +49,7 @@ BloomFilterCounting *BloomFilterCountingInit(uint32_t size, uint8_t type, uint8_
 
     /* setup the filter */
     bf = SCMalloc(sizeof(BloomFilterCounting));
-    if (bf == NULL)
+    if (unlikely(bf == NULL))
         goto error;
     memset(bf,0,sizeof(BloomFilterCounting));
     bf->type = type; /* size of the type: 1, 2, 4 */
