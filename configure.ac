@@ -471,6 +471,16 @@ AC_INIT(configure.ac)
     exit 1
     fi
 
+    AC_CHECK_LIB(jansson, json_loads,, JANSSON="no")
+    if test "$JANSSON" = "no"; then
+        echo
+        echo "   Unix socket command requires jansson: http://www.digip.org/jansson/"
+        echo
+        enable_unixsocket="no"
+    else
+        enable_unixsocket="yes"
+    fi
+
     #enable support for NFQUEUE
     AC_ARG_ENABLE(nfqueue,
            AS_HELP_STRING([--enable-nfqueue], [Enable NFQUEUE support for inline IDP]),,[enable_nfqueue=no])
@@ -1267,6 +1277,19 @@ AC_INIT(configure.ac)
         fi
     fi
 
+define([EXPAND_VARIABLE],
+[$2=[$]$1
+while true; do
+  case "[$]$2" in
+    *\[$]* ) eval "$2=[$]$2" ;;
+    *) break ;;
+  esac
+done])dnl EXPAND_VARIABLE
+
+EXPAND_VARIABLE(localstatedir,e_localstatedir)
+AC_SUBST(e_localstatedir)
+
+
 AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(CPPFLAGS)
@@ -1315,7 +1338,7 @@ AC_SUBST(e_sysconfrulesdir)
 AC_DEFINE_UNQUOTED([CONFIG_DIR],["$e_sysconfdir"],[Our CONFIG_DIR])
 AC_SUBST(e_magic_file)
 
-AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile suricata.yaml)
+AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile scripts/Makefile scripts/suricatasc/Makefile suricata.yaml scripts/suricatasc/suricatasc)
 
 echo "
 Suricata Configuration:
@@ -1325,6 +1348,7 @@ Suricata Configuration:
   IPFW support:                            ${enable_ipfw}
   DAG enabled:                             ${enable_dag}
   Napatech enabled:                        ${enable_napatech}
+  Unix socket enabled:                     ${enable_unixsocket}
 
   libnss support:                          ${enable_nss}
   libnspr support:                         ${enable_nspr}

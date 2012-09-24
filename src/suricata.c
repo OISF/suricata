@@ -131,6 +131,7 @@
 #include "pkt-var.h"
 
 #include "host.h"
+#include "unix-manager.h"
 
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
@@ -258,7 +259,7 @@ void SignalHandlerSigusr2SigFileStartup(int sig)
     return;
 }
 
-static void SignalHandlerSigusr2Idle(int sig)
+void SignalHandlerSigusr2Idle(int sig)
 {
     if (run_mode == RUNMODE_UNKNOWN || run_mode == RUNMODE_UNITTEST) {
         SCLogInfo("Ruleset load signal USR2 triggered for wrong runmode");
@@ -342,6 +343,10 @@ void EngineStop(void) {
 
 void EngineKill(void) {
     suricata_ctl_flags |= SURICATA_KILL;
+}
+
+void EngineDone(void) {
+    suricata_ctl_flags |= SURICATA_DONE;
 }
 
 static void SetBpfString(int optind, char *argv[]) {
@@ -524,6 +529,9 @@ void usage(const char *progname)
 #endif
 #ifdef HAVE_NAPATECH
     printf("\t--napatech <adapter>          : run Napatech feeds using <adapter>\n");
+#endif
+#ifdef HAVE_LIBJANSSON
+    printf("\t--unix-socket[=<file>]         : use unix socket to control suricata work\n");
 #endif
     printf("\n");
     printf("\nTo run the engine with default configuration on "
@@ -752,6 +760,9 @@ int main(int argc, char **argv)
         {"pfring-cluster-type", required_argument, 0, 0},
         {"af-packet", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
+#ifdef HAVE_LIBJANSSON
+        {"unix-socket", optional_argument, 0, 0},
+#endif
         {"pcap-buffer-size", required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-app-layer-protos", 0, &list_app_layer_protocols, 1},
@@ -890,6 +901,24 @@ int main(int argc, char **argv)
                     fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
                     exit(EXIT_FAILURE);
                 }
+#ifdef HAVE_LIBJANSSON
+            } else if (strcmp((long_opts[option_index]).name , "unix-socket") == 0) {
+                if (run_mode == RUNMODE_UNKNOWN) {
+                    run_mode = RUNMODE_UNIX_SOCKET;
+                    if (optarg) {
+                        if (ConfSet("unix-command.filename", optarg, 0) != 1) {
+                            fprintf(stderr, "ERROR: Failed to set unix-command.filename.\n");
+                            exit(EXIT_FAILURE);
+                        }
+
+                    }
+                } else {
+                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                            "has been specified");
+                    usage(argv[0]);
+                    exit(EXIT_FAILURE);
+                }
+#endif
             }
             else if(strcmp((long_opts[option_index]).name, "list-app-layer-protocols") == 0) {
                 /* listing all supported app layer protocols */
@@ -1794,7 +1823,9 @@ int main(int argc, char **argv)
 
     SCDropMainThreadCaps(userid, groupid);
 
-    RunModeInitializeOutputs();
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        RunModeInitializeOutputs();
+    }
 
     /* run the selected runmode */
     if (run_mode == RUNMODE_PCAP_DEV) {
@@ -1850,8 +1881,20 @@ int main(int argc, char **argv)
     }
 #endif
 
-    /* Spawn the flow manager thread */
-    FlowManagerThreadSpawn();
+#ifdef HAVE_LIBJANSSON
+    /* In Unix socket runmode, Flow manager is started on demand */
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        /* Spawn the unix socket manager thread */
+        int unix_socket = 0;
+        if (ConfGetBool("unix-command.enabled", &unix_socket) != 1)
+            unix_socket = 0;
+        if (unix_socket == 1) {
+            UnixManagerThreadSpawn();
+        }
+        /* Spawn the flow manager thread */
+        FlowManagerThreadSpawn();
+    }
+#endif
 
     StreamTcpInitConfig(STREAM_VERBOSE);
 
@@ -1900,7 +1943,7 @@ int main(int argc, char **argv)
 
     int engine_retval = EXIT_SUCCESS;
     while(1) {
-        if (suricata_ctl_flags != 0) {
+        if (suricata_ctl_flags & (SURICATA_KILL | SURICATA_STOP)) {
             SCLogInfo("Signal Received.  Stopping engine.");
 
             break;
@@ -1916,6 +1959,10 @@ int main(int argc, char **argv)
 
 #ifdef __SC_CUDA_SUPPORT__
     SCCudaPBKillBatchingPackets();
+#endif
+
+#ifdef HAVE_LIBJANSSON
+    UnixSocketKillSocketThread();
 #endif
 
     /* First we need to kill the flow manager thread */

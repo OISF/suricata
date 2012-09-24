@@ -86,7 +86,9 @@ TmEcode TmThreadSpawn(ThreadVars *);
 void TmThreadSetFlags(ThreadVars *, uint8_t);
 void TmThreadSetAOF(ThreadVars *, uint8_t);
 void TmThreadKillThread(ThreadVars *);
+void TmThreadKillThreadsFamily(int family);
 void TmThreadKillThreads(void);
+void TmThreadClearThreadsFamily(int family);
 void TmThreadAppend(ThreadVars *, int);
 void TmThreadRemove(ThreadVars *, int);
 
