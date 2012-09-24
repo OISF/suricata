@@ -211,7 +211,7 @@ static inline SCACGfbsPattern *SCACGfbsInitHashLookup(SCACGfbsCtx *ctx, uint8_t 
 static inline SCACGfbsPattern *SCACGfbsAllocPattern(MpmCtx *mpm_ctx)
 {
     SCACGfbsPattern *p = SCMalloc(sizeof(SCACGfbsPattern));
-    if (p == NULL) {
+    if (unlikely(p == NULL)) {
         exit(EXIT_FAILURE);
     }
     memset(p, 0, sizeof(SCACGfbsPattern));

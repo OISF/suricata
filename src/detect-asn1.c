@@ -259,7 +259,7 @@ DetectAsn1Data *DetectAsn1Parse(char *asn1str) {
     }
 
     fd = SCMalloc(sizeof(DetectAsn1Data));
-    if (fd == NULL) {
+    if (unlikely(fd == NULL)) {
         exit(EXIT_FAILURE);
     }
     memset(fd, 0x00, sizeof(DetectAsn1Data));

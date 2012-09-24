@@ -163,7 +163,7 @@ DetectICodeData *DetectICodeParse(char *icodestr) {
     }
 
     icd = SCMalloc(sizeof(DetectICodeData));
-    if (icd == NULL)
+    if (unlikely(icd == NULL))
         goto error;
     icd->code1 = 0;
     icd->code2 = 0;

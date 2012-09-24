@@ -332,7 +332,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
         return TM_ECODE_FAILED;
 
     PfringThreadVars *ptv = SCMalloc(sizeof(PfringThreadVars));
-    if (ptv == NULL) {
+    if (unlikely(ptv == NULL)) {
         pfconf->DerefFunc(pfconf);
         return TM_ECODE_FAILED;
     }

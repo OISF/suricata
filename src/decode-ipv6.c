@@ -712,12 +712,12 @@ static int DecodeIPV6FragTest01 (void)   {
         0x20, 0x20, 0x20, 0x20,
     };
     Packet *p1 = SCMalloc(SIZE_OF_PACKET);
-    if (p1 == NULL)
-        return 0;
+    if (unlikely(p1 == NULL))
+    return 0;
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (p2 == NULL) {
-        SCFree(p1);
-        return 0;
+    if (unlikely(p2 == NULL)) {
+    SCFree(p1);
+    return 0;
     }
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -789,8 +789,8 @@ static int DecodeIPV6RouteTest01 (void)   {
         0xfa, 0x87, 0x00, 0x00,
     };
     Packet *p1 = SCMalloc(SIZE_OF_PACKET);
-    if (p1 == NULL)
-        return 0;
+    if (unlikely(p1 == NULL))
+    return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
     int result = 0;

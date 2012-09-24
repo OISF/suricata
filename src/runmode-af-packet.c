@@ -121,7 +121,7 @@ void *ParseAFPConfig(const char *iface)
     char *bpf_filter = NULL;
     char *out_iface = NULL;
 
-    if (aconf == NULL) {
+    if (unlikely(aconf == NULL)) {
         return NULL;
     }
 

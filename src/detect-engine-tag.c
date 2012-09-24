@@ -65,7 +65,7 @@ void TagRestartCtx() {
 
 static DetectTagDataEntry *DetectTagDataCopy(DetectTagDataEntry *dtd) {
     DetectTagDataEntry *tde = SCMalloc(sizeof(DetectTagDataEntry));
-    if (tde == NULL) {
+    if (unlikely(tde == NULL)) {
         return NULL;
     }
     memset(tde, 0, sizeof(DetectTagDataEntry));

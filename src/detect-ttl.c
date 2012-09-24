@@ -177,8 +177,8 @@ DetectTtlData *DetectTtlParse (char *ttlstr) {
     }
 
     ttld = SCMalloc(sizeof (DetectTtlData));
-    if (ttld == NULL)
-        goto error;
+    if (unlikely(ttld == NULL))
+    goto error;
     ttld->ttl1 = 0;
     ttld->ttl2 = 0;
 
@@ -524,7 +524,7 @@ end:
 static int DetectTtlTestSig1(void) {
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     Signature *s = NULL;
     ThreadVars th_v;

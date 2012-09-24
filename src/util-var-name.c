@@ -134,7 +134,7 @@ uint16_t VariableNameGetIdx(DetectEngineCtx *de_ctx, char *name, uint8_t type) {
     uint16_t idx = 0;
 
     VariableName *fn = SCMalloc(sizeof(VariableName));
-    if (fn == NULL)
+    if (unlikely(fn == NULL))
         goto error;
 
     memset(fn, 0, sizeof(VariableName));
@@ -171,7 +171,7 @@ error:
 char *VariableIdxGetName(DetectEngineCtx *de_ctx, uint16_t idx, uint8_t type)
 {
     VariableName *fn = SCMalloc(sizeof(VariableName));
-    if (fn == NULL)
+    if (unlikely(fn == NULL))
         goto error;
 
     char *name = NULL;
@@ -183,7 +183,7 @@ char *VariableIdxGetName(DetectEngineCtx *de_ctx, uint16_t idx, uint8_t type)
     VariableName *lookup_fn = (VariableName *)HashListTableLookup(de_ctx->variable_idxs, (void *)fn, 0);
     if (lookup_fn != NULL) {
         name = SCStrdup(lookup_fn->name);
-        if (name == NULL)
+        if (unlikely(name == NULL))
             goto error;
 
         VariableNameFree(fn);

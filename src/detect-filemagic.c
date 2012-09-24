@@ -167,9 +167,11 @@ static int DetectFilemagicMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 #ifdef DEBUG
             if (SCLogDebugEnabled()) {
                 char *name = SCMalloc(filemagic->len + 1);
-                memcpy(name, filemagic->name, filemagic->len);
-                name[filemagic->len] = '\0';
-                SCLogDebug("will look for filemagic %s", name);
+                if (name != NULL) {
+                    memcpy(name, filemagic->name, filemagic->len);
+                    name[filemagic->len] = '\0';
+                    SCLogDebug("will look for filemagic %s", name);
+                }
             }
 #endif
 
@@ -199,7 +201,7 @@ static DetectFilemagicData *DetectFilemagicParse (char *str)
 
     /* We have a correct filemagic option */
     filemagic = SCMalloc(sizeof(DetectFilemagicData));
-    if (filemagic == NULL)
+    if (unlikely(filemagic == NULL))
         goto error;
 
     memset(filemagic, 0x00, sizeof(DetectFilemagicData));
@@ -222,9 +224,11 @@ static DetectFilemagicData *DetectFilemagicParse (char *str)
 #ifdef DEBUG
     if (SCLogDebugEnabled()) {
         char *name = SCMalloc(filemagic->len + 1);
-        memcpy(name, filemagic->name, filemagic->len);
-        name[filemagic->len] = '\0';
-        SCLogDebug("will look for filemagic %s", name);
+        if (name != NULL) {
+            memcpy(name, filemagic->name, filemagic->len);
+            name[filemagic->len] = '\0';
+            SCLogDebug("will look for filemagic %s", name);
+        }
     }
 #endif
 

@@ -148,7 +148,7 @@ static void * DetectMarkParse (char *rawstr)
 
     if (ptr == NULL) {
         data = SCMalloc(sizeof(DetectMarkData));
-        if (data == NULL) {
+        if (unlikely(data == NULL)) {
             return NULL;
         }
         data->mark = mark;
@@ -179,7 +179,7 @@ static void * DetectMarkParse (char *rawstr)
     SCFree(ptr);
 
     data = SCMalloc(sizeof(DetectMarkData));
-    if (data == NULL) {
+    if (unlikely(data == NULL)) {
         return NULL;
     }
     data->mark = mark;

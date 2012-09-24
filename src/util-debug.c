@@ -299,7 +299,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
     }
 
     char *temp_fmt = SCStrdup(sc_log_config->log_format);
-    if (temp_fmt == NULL) {
+    if (unlikely(temp_fmt == NULL)) {
         return SC_ERR_MEM_ALLOC;
     }
     char *temp_fmt_h = temp_fmt;
@@ -1362,7 +1362,7 @@ static char *SCLogGetLogFilename(char *filearg)
         log_dir = DEFAULT_LOG_DIR;
 
     log_filename = SCMalloc(PATH_MAX);
-    if (log_filename == NULL)
+    if (unlikely(log_filename == NULL))
         return NULL;
     snprintf(log_filename, PATH_MAX, "%s/%s", log_dir, filearg);
 

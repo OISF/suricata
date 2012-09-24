@@ -46,8 +46,8 @@ HashTable* HashTableInit(uint32_t size, uint32_t (*Hash)(struct HashTable_ *, vo
 
     /* setup the filter */
     ht = SCMalloc(sizeof(HashTable));
-    if (ht == NULL)
-        goto error;
+    if (unlikely(ht == NULL))
+    goto error;
     memset(ht,0,sizeof(HashTable));
     ht->array_size = size;
     ht->Hash = Hash;
@@ -115,7 +115,7 @@ int HashTableAdd(HashTable *ht, void *data, uint16_t datalen) {
     uint32_t hash = ht->Hash(ht, data, datalen);
 
     HashTableBucket *hb = SCMalloc(sizeof(HashTableBucket));
-    if (hb == NULL)
+    if (unlikely(hb == NULL))
         goto error;
     memset(hb, 0, sizeof(HashTableBucket));
     hb->data = data;

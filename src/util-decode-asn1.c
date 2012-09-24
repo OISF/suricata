@@ -338,7 +338,7 @@ uint8_t SCAsn1CheckBounds(Asn1Ctx *ac) {
 Asn1Ctx *SCAsn1CtxNew(void) {
     Asn1Ctx *ac = SCMalloc(sizeof(Asn1Ctx));
 
-    if (ac == NULL) {
+    if (unlikely(ac == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         return NULL;
     }

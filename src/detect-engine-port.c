@@ -67,7 +67,7 @@ static uint32_t detect_port_free_cnt = 0;
  */
 DetectPort *DetectPortInit(void) {
     DetectPort *dp = SCMalloc(sizeof(DetectPort));
-    if (dp == NULL)
+    if (unlikely(dp == NULL))
         return NULL;
     memset(dp, 0, sizeof(DetectPort));
 
@@ -1059,7 +1059,7 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                 temp_rule_var_port = rule_var_port;
                 if (negate == 1 || n_set == 1) {
                     temp_rule_var_port = SCMalloc(strlen(rule_var_port) + 3);
-                    if (temp_rule_var_port == NULL)
+                    if (unlikely(temp_rule_var_port == NULL))
                         goto error;
                     snprintf(temp_rule_var_port, strlen(rule_var_port) + 3,
                              "[%s]", rule_var_port);
@@ -1115,7 +1115,7 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                 temp_rule_var_port = rule_var_port;
                 if ((negate + n_set) % 2) {
                     temp_rule_var_port = SCMalloc(strlen(rule_var_port) + 3);
-                    if (temp_rule_var_port == NULL)
+                    if (unlikely(temp_rule_var_port == NULL))
                         goto error;
                     snprintf(temp_rule_var_port, strlen(rule_var_port) + 3,
                             "[%s]", rule_var_port);
@@ -1383,6 +1383,9 @@ DetectPort *PortParse(char *str) {
     char *port2 = NULL;
     DetectPort *dp = NULL;
 
+    if (unlikely(portdup == NULL)) {
+        return NULL;
+    }
     dp = DetectPortInit();
     if (dp == NULL)
         goto error;

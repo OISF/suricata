@@ -64,7 +64,7 @@ void BoyerMooreCtxToNocase(BmCtx *bm_ctx, uint8_t *needle, uint16_t needle_len) 
  */
 BmCtx *BoyerMooreCtxInit(uint8_t *needle, uint16_t needle_len) {
     BmCtx *new = SCMalloc(sizeof(BmCtx));
-    if (new == NULL) {
+    if (unlikely(new == NULL)) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in BoyerMooreCtxInit. Exiting...");
         exit(EXIT_FAILURE);
     }
@@ -162,7 +162,7 @@ int PreBmGs(const uint8_t *x, uint16_t m, uint16_t *bmGs) {
     uint16_t *suff;
 
     suff = SCMalloc(sizeof(uint16_t) * (m + 1));
-    if (suff == NULL)
+    if (unlikely(suff == NULL))
         return -1;
 
     BoyerMooreSuffixes(x, m, suff);
@@ -237,7 +237,7 @@ void PreBmGsNocase(const uint8_t *x, uint16_t m, uint16_t *bmGs) {
     uint16_t* suff;
 
     suff = SCMalloc(sizeof(uint16_t) * (m + 1));
-    if (suff == NULL)
+    if (unlikely(suff == NULL))
         return;
 
     BoyerMooreSuffixesNocase(x, m, suff);

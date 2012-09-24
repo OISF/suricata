@@ -95,12 +95,25 @@ int RunModeNapatechAuto(DetectEngineCtx *de_ctx) {
     for (feed=0; feed < feed_count; feed++) {
         snprintf(tname, sizeof(tname),"%"PRIu16":%"PRIu16, adapter, feed);
         feedName = SCStrdup(tname);
+        if (unlikely(feedName == NULL)) {
+        fprintf(stderr, "ERROR: Alloc feed name\n");
+        exit(EXIT_FAILURE);
+        }
 
         snprintf(tname, sizeof(tname),"Feed%"PRIu16,feed);
         threadName = SCStrdup(tname);
+        if (unlikely(threadName == NULL)) {
+        fprintf(stderr, "ERROR: Alloc thread name\n");
+        exit(EXIT_FAILURE);
+        }
+
 
         snprintf(tname, sizeof(tname),"feed-queue%"PRIu16,feed);
         outQueueName = SCStrdup(tname);
+        if (unlikely(outQueueName == NULL)) {
+        fprintf(stderr, "ERROR: Alloc output queue name\n");
+        exit(EXIT_FAILURE);
+        }
 
         /* create the threads */
         ThreadVars *tv_napatechFeed = TmThreadCreatePacketHandler(threadName,"packetpool",
@@ -149,8 +162,16 @@ int RunModeNapatechAuto(DetectEngineCtx *de_ctx) {
         {
             snprintf(tname, sizeof(tname),"Detect%"PRIu16"/%"PRIu16,feed,detect++);
             threadName = SCStrdup(tname);
+            if (unlikely(threadName == NULL)) {
+            fprintf(stderr, "ERROR: can not strdup thread name\n");
+            exit(EXIT_FAILURE);
+            }
             snprintf(tname, sizeof(tname),"feed-queue%"PRIu16,feed);
             inQueueName = SCStrdup(tname);
+            if (unlikely(inQueueName == NULL)) {
+            fprintf(stderr, "ERROR: can not strdup in queue name\n");
+            exit(EXIT_FAILURE);
+            }
 
             ThreadVars *tv_detect = TmThreadCreatePacketHandler(threadName,
                     inQueueName,"simple",
@@ -175,17 +196,17 @@ int RunModeNapatechAuto(DetectEngineCtx *de_ctx) {
             TmSlotSetFuncAppend(tv_detect,tm_module,(void *)de_ctx);
 
             thread_group_name = SCStrdup("Detect");
-            if (thread_group_name == NULL) {
-                fprintf(stderr, "Error allocating memory\n");
-                exit(EXIT_FAILURE);
+            if (unlikely(thread_group_name == NULL)) {
+            fprintf(stderr, "Error allocating memory\n");
+            exit(EXIT_FAILURE);
             }
             tv_detect->thread_group_name = thread_group_name;
 
             SetupOutputs(tv_detect);
             thread_group_name = SCStrdup("Outputs");
-            if (thread_group_name == NULL) {
-                fprintf(stderr, "Error allocating memory\n");
-                exit(EXIT_FAILURE);
+            if (unlikely(thread_group_name == NULL)) {
+            fprintf(stderr, "Error allocating memory\n");
+            exit(EXIT_FAILURE);
             }
             tv_detect->thread_group_name = thread_group_name;
 
@@ -241,12 +262,24 @@ int RunModeNapatechAuto2(DetectEngineCtx *de_ctx) {
     for (feed=0; feed < feed_count; feed++) {
         snprintf(tname, sizeof(tname),"%"PRIu16":%"PRIu16, adapter, feed);
         feedName = SCStrdup(tname);
+        if (unlikely(feedName == NULL)) {
+        fprintf(stderr, "ERROR: can not strdup feed name\n");
+        exit(EXIT_FAILURE);
+        }
 
         snprintf(tname, sizeof(tname),"Feed%"PRIu16,feed);
         threadName = SCStrdup(tname);
+        if (unlikely(threadName == NULL)) {
+        fprintf(stderr, "ERROR: can not strdup in thread name\n");
+        exit(EXIT_FAILURE);
+        }
 
         snprintf(tname, sizeof(tname),"feed-queue%"PRIu16,feed);
         outQueueName = SCStrdup(tname);
+        if (unlikely(outQueueName == NULL)) {
+        fprintf(stderr, "ERROR: can not strdup out queue name\n");
+        exit(EXIT_FAILURE);
+        }
 
         /* create the threads */
         ThreadVars *tv_napatechFeed = TmThreadCreatePacketHandler(threadName,"packetpool",
@@ -289,17 +322,17 @@ int RunModeNapatechAuto2(DetectEngineCtx *de_ctx) {
         TmSlotSetFuncAppend(tv_napatechFeed,tm_module,(void *)de_ctx);
 
         thread_group_name = SCStrdup("Detect");
-        if (thread_group_name == NULL) {
-            fprintf(stderr, "Error allocating memory\n");
-            exit(EXIT_FAILURE);
+        if (unlikely(thread_group_name == NULL)) {
+        fprintf(stderr, "Error allocating memory\n");
+        exit(EXIT_FAILURE);
         }
         tv_napatechFeed->thread_group_name = thread_group_name;
 
         SetupOutputs(tv_napatechFeed);
         thread_group_name = SCStrdup("Outputs");
-        if (thread_group_name == NULL) {
-            fprintf(stderr, "Error allocating memory\n");
-            exit(EXIT_FAILURE);
+        if (unlikely(thread_group_name == NULL)) {
+        fprintf(stderr, "Error allocating memory\n");
+        exit(EXIT_FAILURE);
         }
         tv_napatechFeed->thread_group_name = thread_group_name;
 

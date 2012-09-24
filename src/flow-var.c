@@ -67,7 +67,7 @@ void FlowVarAddStr(Flow *f, uint8_t idx, uint8_t *value, uint16_t size) {
     FlowVar *fv = FlowVarGet(f, idx);
     if (fv == NULL) {
         fv = SCMalloc(sizeof(FlowVar));
-        if (fv == NULL)
+        if (unlikely(fv == NULL))
             goto out;
 
         fv->type = DETECT_FLOWVAR;
@@ -95,7 +95,7 @@ void FlowVarAddInt(Flow *f, uint8_t idx, uint32_t value) {
     FlowVar *fv = FlowVarGet(f, idx);
     if (fv == NULL) {
         fv = SCMalloc(sizeof(FlowVar));
-        if (fv == NULL)
+        if (unlikely(fv == NULL))
             goto out;
 
         fv->type = DETECT_FLOWVAR;

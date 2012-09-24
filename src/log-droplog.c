@@ -106,7 +106,7 @@ TmEcode LogDropLogThreadInit(ThreadVars *t, void *initdata, void **data)
     }
 
     LogDropLogThread *dlt = SCMalloc(sizeof(LogDropLogThread));
-    if (dlt == NULL)
+    if (unlikely(dlt == NULL))
         return TM_ECODE_FAILED;
     memset(dlt, 0, sizeof(LogDropLogThread));
 
@@ -158,7 +158,7 @@ OutputCtx *LogDropLogInitCtx(ConfNode *conf)
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (output_ctx == NULL) {
+    if (unlikely(output_ctx == NULL)) {
         LogFileFreeCtx(logfile_ctx);
         return NULL;
     }
