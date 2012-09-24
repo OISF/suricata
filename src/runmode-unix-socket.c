@@ -63,7 +63,7 @@ void RunModeUnixSocketRegister(void)
 int RunModeUnixSocketSingle(DetectEngineCtx *de_ctx)
 {
 #ifdef BUILD_UNIX_SOCKET
-    UnixManagerThreadSpawn(de_ctx);
+    UnixManagerThreadSpawn(de_ctx, 1);
 
     unix_socket_mode_is_running = 1;
 #endif

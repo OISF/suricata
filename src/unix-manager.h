@@ -27,7 +27,7 @@
 SCCondT unix_manager_cond;
 SCMutex unix_manager_mutex;
 
-void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx);
+void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode);
 void UnixSocketKillSocketThread(void);
 
 void UnixSocketPcapFile(TmEcode tm);

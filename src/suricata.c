@@ -1895,7 +1895,7 @@ int main(int argc, char **argv)
         if (ConfGetBool("unix-command.enabled", &unix_socket) != 1)
             unix_socket = 0;
         if (unix_socket == 1) {
-            UnixManagerThreadSpawn(de_ctx);
+            UnixManagerThreadSpawn(de_ctx, 0);
         }
         /* Spawn the flow manager thread */
         FlowManagerThreadSpawn();

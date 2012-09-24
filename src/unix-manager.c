@@ -801,7 +801,7 @@ void *UnixManagerThread(void *td)
 
 
 /** \brief spawn the unix socket manager thread */
-void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx)
+void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode)
 {
     ThreadVars *tv_unixmgr = NULL;
 
@@ -822,7 +822,12 @@ void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx)
         SCLogError(SC_ERR_INITIALIZATION, "TmThreadSpawn failed");
         exit(EXIT_FAILURE);
     }
-
+    if (mode == 1) {
+        if (TmThreadsCheckFlag(tv_unixmgr, THV_RUNNING_DONE)) {
+            SCLogError(SC_ERR_INITIALIZATION, "Unix socket init failed");
+            exit(EXIT_FAILURE);
+        }
+    }
     return;
 }
 
