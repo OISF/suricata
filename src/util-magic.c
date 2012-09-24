@@ -104,6 +104,9 @@ char *MagicLookup(uint8_t *buf, uint32_t buflen) {
         result = magic_buffer(g_magic_ctx, (void *)buf, (size_t)buflen);
         if (result != NULL) {
             magic = SCStrdup(result);
+            if (magic == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup magic");
+            }
         }
     }
 
