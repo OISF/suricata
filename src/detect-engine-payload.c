@@ -931,6 +931,31 @@ end:
     return result;
 }
 
+/**
+ * \test Test pcre recursive matching - bug #529
+ */
+static int PayloadTestSig29(void)
+{
+    uint8_t *buf = (uint8_t *)"this is a super dupernova in super nova now";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
+        "pcre:/^.{4}/; content:\"nova\"; within:4; sid:1;)";
+
+    if (UTHPacketMatchSigMpm(p, sig, MPM_AC) == 1) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void PayloadRegisterTests(void) {
@@ -964,6 +989,7 @@ void PayloadRegisterTests(void) {
     UtRegisterTest("PayloadTestSig26", PayloadTestSig26, 1);
     UtRegisterTest("PayloadTestSig27", PayloadTestSig27, 1);
     UtRegisterTest("PayloadTestSig28", PayloadTestSig28, 1);
+    UtRegisterTest("PayloadTestSig29", PayloadTestSig29, 1);
 #endif /* UNITTESTS */
 
     return;
