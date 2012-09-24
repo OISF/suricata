@@ -237,8 +237,8 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
     }
 
     urilend = SCMalloc(sizeof (DetectUrilenData));
-    if (urilend == NULL)
-        goto error;
+    if (unlikely(urilend == NULL))
+    goto error;
     memset(urilend, 0, sizeof(DetectUrilenData));
 
     if (arg1[0] == '<')

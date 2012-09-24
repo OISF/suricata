@@ -173,7 +173,7 @@ static inline void memcpy_tolower(uint8_t *d, uint8_t *s, uint16_t len) {
 
 static inline B2gcPattern *B2gcAllocPattern(MpmCtx *mpm_ctx) {
     B2gcPattern *p = SCMalloc(sizeof(B2gcPattern));
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return NULL;
     memset(p,0,sizeof(B2gcPattern));
 

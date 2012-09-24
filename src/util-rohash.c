@@ -74,7 +74,7 @@ ROHashTable *ROHashInit(uint8_t hash_bits, uint16_t item_size) {
     uint32_t size = hashsize(hash_bits) * sizeof(ROHashTableOffsets);
 
     ROHashTable *table = SCMalloc(sizeof(ROHashTable) + size);
-    if (table == NULL) {
+    if (unlikely(table == NULL)) {
         SCLogError(SC_ERR_HASH_TABLE_INIT, "failed to alloc memory");
         return NULL;
     }

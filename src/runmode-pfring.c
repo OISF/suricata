@@ -114,7 +114,7 @@ void *OldParsePfringConfig(const char *iface)
     cluster_type default_ctype = CLUSTER_ROUND_ROBIN;
 #endif
 
-    if (pfconf == NULL) {
+    if (unlikely(pfconf == NULL)) {
         return NULL;
     }
 
@@ -206,7 +206,7 @@ void *ParsePfringConfig(const char *iface)
     char *bpf_filter = NULL;
 #endif /* HAVE_PFRING_SET_BPF_FILTER */
 
-    if (pfconf == NULL) {
+    if (unlikely(pfconf == NULL)) {
         return NULL;
     }
 

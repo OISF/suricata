@@ -278,16 +278,16 @@ static DetectTlsData *DetectTlsSubjectParse (char *str)
 
     /* We have a correct id option */
     tls = SCMalloc(sizeof(DetectTlsData));
-    if (tls == NULL)
+    if (unlikely(tls == NULL))
         goto error;
     tls->subject = NULL;
     tls->flags = flag;
 
     orig = SCStrdup((char*)str_ptr);
-    tmp_str=orig;
-    if (tmp_str == NULL) {
+    if (unlikely(orig == NULL)) {
         goto error;
     }
+    tmp_str=orig;
 
     /* Let's see if we need to escape "'s */
     if (tmp_str[0] == '"') {
@@ -477,16 +477,16 @@ static DetectTlsData *DetectTlsIssuerDNParse(char *str)
 
     /* We have a correct id option */
     tls = SCMalloc(sizeof(DetectTlsData));
-    if (tls == NULL)
+    if (unlikely(tls == NULL))
         goto error;
     tls->issuerdn = NULL;
     tls->flags = flag;
 
     orig = SCStrdup((char*)str_ptr);
-    tmp_str=orig;
-    if (tmp_str == NULL) {
+    if (unlikely(orig == NULL)) {
         goto error;
     }
+    tmp_str=orig;
 
     /* Let's see if we need to escape "'s */
     if (tmp_str[0] == '"')
@@ -613,16 +613,16 @@ static DetectTlsData *DetectTlsFingerprintParse (char *str)
 
     /* We have a correct id option */
     tls = SCMalloc(sizeof(DetectTlsData));
-    if (tls == NULL)
+    if (unlikely(tls == NULL))
         goto error;
     tls->fingerprint = NULL;
     tls->flags = flag;
 
     orig = SCStrdup((char*)str_ptr);
-    tmp_str=orig;
-    if (tmp_str == NULL) {
+    if (unlikely(orig == NULL)) {
         goto error;
     }
+    tmp_str=orig;
 
     /* Let's see if we need to escape "'s */
     if (tmp_str[0] == '"')

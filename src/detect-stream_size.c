@@ -231,8 +231,8 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
     value = (char *)str_ptr;
 
     sd = SCMalloc(sizeof(DetectStreamSizeData));
-    if (sd == NULL)
-        goto error;
+    if (unlikely(sd == NULL))
+    goto error;
     sd->ssize = 0;
     sd->flags = 0;
 
@@ -386,7 +386,7 @@ static int DetectStreamSizeParseTest03 (void) {
     ThreadVars tv;
     DetectEngineThreadCtx dtx;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     Signature s;
     SigMatch sm;
@@ -463,7 +463,7 @@ static int DetectStreamSizeParseTest04 (void) {
     ThreadVars tv;
     DetectEngineThreadCtx dtx;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     Signature s;
     SigMatch sm;

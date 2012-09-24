@@ -901,7 +901,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
 TmEcode Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     Unified2AlertThread *aun = SCMalloc(sizeof(Unified2AlertThread));
-    if (aun == NULL)
+    if (unlikely(aun == NULL))
         return TM_ECODE_FAILED;
     memset(aun, 0, sizeof(Unified2AlertThread));
     if(initdata == NULL)
@@ -1017,7 +1017,7 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
         goto error;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (output_ctx == NULL)
+    if (unlikely(output_ctx == NULL))
         goto error;
     output_ctx->data = file_ctx;
     output_ctx->DeInit = Unified2AlertDeInitCtx;
@@ -1125,7 +1125,7 @@ static int Unified2Test01 (void)   {
         0x28, 0x81, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03,
         0x03, 0x06};
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int ret;
 
@@ -1214,7 +1214,7 @@ static int Unified2Test02 (void)   {
         0x08, 0x0a, 0x00, 0x0a, 0x22, 0xa8, 0x00, 0x00,
         0x00, 0x00, 0x01, 0x03, 0x03, 0x05 };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int ret;
 
@@ -1309,7 +1309,7 @@ static int Unified2Test03 (void) {
         0x6e, 0x6f, 0x64, 0x65, 0x2e, 0x6e, 0x65, 0x74,
         0x0d, 0x0a};
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int ret;
 
@@ -1398,7 +1398,7 @@ static int Unified2Test04 (void)   {
         0x00, 0x00, 0x00, 0x00, 0x60, 0x02, 0x10, 0x20,
         0xdd, 0xe1, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4};
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int ret;
 
@@ -1485,7 +1485,7 @@ static int Unified2Test05 (void)   {
         0x28, 0x81, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03,
         0x03, 0x06};
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int ret;
 
@@ -1569,7 +1569,7 @@ static int Unified2TestRotate01(void)
     if (lf == NULL)
         return 0;
     filename = SCStrdup(lf->filename);
-    if (filename == NULL)
+    if (unlikely(filename == NULL))
         return 0;
 
     memset(&tv, 0, sizeof(ThreadVars));

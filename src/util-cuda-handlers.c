@@ -118,7 +118,7 @@ void SCCudaHlGetYamlConf(void)
 
     /* "mpm" profile, found under "cuda.mpm" in the conf file */
     profile = SCMalloc(sizeof(SCCudaHlCudaProfile));
-    if (profile == NULL) {
+    if (unlikely(profile == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
@@ -309,7 +309,7 @@ int SCCudaHlGetCudaModuleFromFile(CUmodule *p_module, const char *filename, int 
 
     /* Register new CUmodule in the module */
     new_module_cumodule = SCMalloc(sizeof(SCCudaHlModuleCUmodule));
-    if (new_module_cumodule == NULL) {
+    if (unlikely(new_module_cumodule == NULL)) {
         exit(EXIT_FAILURE);
     }
     memset(new_module_cumodule, 0, sizeof(SCCudaHlModuleCUmodule));
@@ -462,7 +462,7 @@ int SCCudaHlGetCudaModule(CUmodule *p_module, const char *ptx_image, int handle)
 
     /* Register new CUmodule in the module */
     new_module_cumodule = SCMalloc(sizeof(SCCudaHlModuleCUmodule));
-    if (new_module_cumodule == NULL) {
+    if (unlikely(new_module_cumodule == NULL)) {
         exit(EXIT_FAILURE);
     }
     memset(new_module_cumodule, 0, sizeof(SCCudaHlModuleCUmodule));
@@ -470,6 +470,9 @@ int SCCudaHlGetCudaModule(CUmodule *p_module, const char *ptx_image, int handle)
     /* select the ptx image based on the compute capability supported by all
      * devices (i.e. the lowest) */
     char* image = SCMalloc(strlen(ptx_image)+15);
+    if (unlikely(image == NULL)) {
+        exit(EXIT_FAILURE);
+    }
     memset(image, 0x0, sizeof(image));
 
     int major = INT_MAX;
@@ -620,7 +623,7 @@ int SCCudaHlGetCudaDevicePtr(CUdeviceptr *device_ptr, const char *name,
     }
 
     new_module_device_ptr = SCMalloc(sizeof(SCCudaHlModuleDevicePointer));
-    if (new_module_device_ptr == NULL)
+    if (unlikely(new_module_device_ptr == NULL))
         goto error;
     memset(new_module_device_ptr, 0, sizeof(SCCudaHlModuleDevicePointer));
 
@@ -854,7 +857,7 @@ int SCCudaHlRegisterModule(const char *name)
 
     /* the module is not already registered.  Register the module */
     new_data = SCMalloc(sizeof(SCCudaHlModuleData));
-    if (new_data == NULL) {
+    if (unlikely(new_data == NULL)) {
         exit(EXIT_FAILURE);
     }
     memset(new_data, 0, sizeof(SCCudaHlModuleData));

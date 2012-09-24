@@ -116,7 +116,7 @@ void PacketPoolInit(intmax_t max_pending_packets) {
     for (i = 0; i < max_pending_packets; i++) {
         /* XXX pkt alloc function */
         Packet *p = SCMalloc(SIZE_OF_PACKET);
-        if (p == NULL) {
+        if (unlikely(p == NULL)) {
             SCLogError(SC_ERR_FATAL, "Fatal error encountered while allocating a packet. Exiting...");
             exit(EXIT_FAILURE);
         }

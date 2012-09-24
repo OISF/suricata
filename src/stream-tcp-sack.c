@@ -63,7 +63,7 @@ static int StreamTcpSackInsertRange(TcpStream *stream, uint32_t le, uint32_t re)
                     SCLogDebug("SEQ_LT(re, rec->le)");
                     // entirely before, prepend
                     StreamTcpSackRecord *stsr = SCMalloc(sizeof(StreamTcpSackRecord));
-                    if (stsr == NULL) {
+                    if (unlikely(stsr == NULL)) {
                         SCReturnInt(-1);
                     }
                     stsr->le = le;
@@ -149,7 +149,7 @@ static int StreamTcpSackInsertRange(TcpStream *stream, uint32_t le, uint32_t re)
                     if (rec->next == NULL) {
                         SCLogDebug("rec->next == NULL");
                         StreamTcpSackRecord *stsr = SCMalloc(sizeof(StreamTcpSackRecord));
-                        if (stsr == NULL) {
+                        if (unlikely(stsr == NULL)) {
                             SCReturnInt(-1);
                         }
                         stsr->le = le;
@@ -164,7 +164,7 @@ static int StreamTcpSackInsertRange(TcpStream *stream, uint32_t le, uint32_t re)
                         if (SEQ_LT(le, rec->next->le) && SEQ_LT(re, rec->next->le)) {
                             SCLogDebug("SEQ_LT(le, rec->next->le) && SEQ_LT(re, rec->next->le)");
                             StreamTcpSackRecord *stsr = SCMalloc(sizeof(StreamTcpSackRecord));
-                            if (stsr == NULL) {
+                            if (unlikely(stsr == NULL)) {
                                 SCReturnInt(-1);
                             }
                             stsr->le = le;
@@ -175,7 +175,7 @@ static int StreamTcpSackInsertRange(TcpStream *stream, uint32_t le, uint32_t re)
                         } else if (SEQ_LT(le, rec->next->le) && SEQ_GEQ(re, rec->next->le)) {
                             SCLogDebug("SEQ_LT(le, rec->next->le) && SEQ_GEQ(re, rec->next->le)");
                             StreamTcpSackRecord *stsr = SCMalloc(sizeof(StreamTcpSackRecord));
-                            if (stsr == NULL) {
+                            if (unlikely(stsr == NULL)) {
                                 SCReturnInt(-1);
                             }
                             stsr->le = le;
@@ -192,7 +192,7 @@ static int StreamTcpSackInsertRange(TcpStream *stream, uint32_t le, uint32_t re)
     } else {
         SCLogDebug("implied empty list");
         StreamTcpSackRecord *stsr = SCMalloc(sizeof(StreamTcpSackRecord));
-        if (stsr == NULL) {
+        if (unlikely(stsr == NULL)) {
             SCReturnInt(-1);
         }
         stsr->le = le;

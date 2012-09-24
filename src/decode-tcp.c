@@ -302,7 +302,7 @@ static int TCPGetWscaleTest01(void)
                                 0x04, 0x02, 0x08, 0x0a, 0x00, 0x62, 0x88, 0x28,
                                 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x02};
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     IPV4Hdr ip4h;
     ThreadVars tv;
@@ -350,7 +350,7 @@ static int TCPGetWscaleTest02(void)
                                 0x04, 0x02, 0x08, 0x0a, 0x00, 0x62, 0x88, 0x28,
                                 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x0f};
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     IPV4Hdr ip4h;
     ThreadVars tv;
@@ -396,7 +396,7 @@ static int TCPGetWscaleTest03(void)
                                 0x7c, 0x70, 0x00, 0x00, 0x01, 0x01, 0x08, 0x0a,
                                 0x00, 0x62, 0x88, 0x9e, 0x00, 0x00, 0x00, 0x00};
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     IPV4Hdr ip4h;
     ThreadVars tv;
@@ -446,7 +446,7 @@ static int TCPGetSackTest01(void)
         0xf1, 0x59, 0x13, 0xfc, 0xf1, 0x59, 0x1f, 0x64,
         0xf1, 0x59, 0x08, 0x94, 0xf1, 0x59, 0x0e, 0x48 };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     IPV4Hdr ip4h;
     ThreadVars tv;

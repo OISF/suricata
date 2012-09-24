@@ -1499,7 +1499,7 @@ AppLayerCreateAppLayerProbingParserElement(const char *al_proto_name,
                                            (uint8_t *input, uint32_t input_len))
 {
     AppLayerProbingParserElement *pe = SCMalloc(sizeof(AppLayerProbingParserElement));
-    if (pe == NULL) {
+    if (unlikely(pe == NULL)) {
         return NULL;
     }
 
@@ -1541,7 +1541,7 @@ static AppLayerProbingParserElement *
 AppLayerDuplicateAppLayerProbingParserElement(AppLayerProbingParserElement *pe)
 {
     AppLayerProbingParserElement *new_pe = SCMalloc(sizeof(AppLayerProbingParserElement));
-    if (new_pe == NULL) {
+    if (unlikely(new_pe == NULL)) {
         return NULL;
     }
 
@@ -1576,7 +1576,7 @@ AppLayerInsertNewProbingParserSingleElement(AppLayerProbingParser *pp,
 {
     if (pp == NULL) {
         AppLayerProbingParser *new_pp = SCMalloc(sizeof(AppLayerProbingParser));
-        if (new_pp == NULL)
+        if (unlikely(new_pp == NULL))
             return;
         memset(new_pp, 0, sizeof(AppLayerProbingParser));
 
@@ -1830,7 +1830,7 @@ int AppLayerProbingParserInfoAdd(AlpProtoDetectCtx *ctx,
 
     if (ppi == NULL) {
         new_ppi = SCMalloc(sizeof(AppLayerProbingParserInfo));
-        if (new_ppi == NULL) {
+        if (unlikely(new_ppi == NULL)) {
             return -1;
         }
         memset(new_ppi, 0, sizeof(AppLayerProbingParserInfo));
@@ -2009,7 +2009,7 @@ static int TestProtocolParser(Flow *f, void *test_state, AppLayerParserState *ps
 static void *TestProtocolStateAlloc(void)
 {
     void *s = SCMalloc(sizeof(TestState));
-    if (s == NULL)
+    if (unlikely(s == NULL))
         return NULL;
 
     memset(s, 0, sizeof(TestState));

@@ -97,7 +97,7 @@ static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
     SigMatch *sm = NULL;
 
     data = SCMalloc(sizeof(DetectAckData));
-    if (data == NULL)
+    if (unlikely(data == NULL))
         goto error;
 
     sm = SigMatchAlloc();

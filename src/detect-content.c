@@ -222,7 +222,7 @@ DetectContentData *DetectContentParse (char *contentstr)
     }
 
     cd = SCMalloc(sizeof(DetectContentData) + len);
-    if (cd == NULL) {
+    if (unlikely(cd == NULL)) {
         SCFree(str);
         exit(EXIT_FAILURE);
     }
@@ -620,7 +620,7 @@ int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, ch
     int result = 0;
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     DecodeThreadVars dtv;
 

@@ -79,7 +79,7 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     uint32_t in[4];
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return NULL;
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
@@ -166,7 +166,7 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
     struct in_addr in;
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return NULL;
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = ((uint8_t *)p) + sizeof(*p);
@@ -282,7 +282,7 @@ Packet **UTHBuildPacketArrayFromEth(uint8_t *raw_eth[], int *pktsize, int numpkt
     }
     Packet **p = NULL;
     p = SCMalloc(sizeof(Packet *) * numpkts);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return NULL;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
@@ -315,7 +315,7 @@ Packet *UTHBuildPacketFromEth(uint8_t *raw_eth, uint16_t pktsize) {
     DecodeThreadVars dtv;
     ThreadVars th_v;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return NULL;
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
@@ -430,8 +430,9 @@ Flow *UTHBuildFlow(int family, char *src, char *dst, Port sp, Port dp) {
     struct in_addr in;
 
     Flow *f = SCMalloc(sizeof(Flow));
-    if (f == NULL) {
-        printf("FlowAlloc failed\n");;
+    if (unlikely(f == NULL)) {
+        printf("FlowAlloc failed\n");
+        ;
         return NULL;
     }
     memset(f, 0x00, sizeof(Flow));

@@ -193,7 +193,7 @@ static DetectFragBitsData *DetectFragBitsParse (char *rawstr)
     }
 
     de = SCMalloc(sizeof(DetectFragBitsData));
-    if (de == NULL)
+    if (unlikely(de == NULL))
         goto error;
 
     memset(de,0,sizeof(DetectFragBitsData));
@@ -403,7 +403,7 @@ static int FragBitsTestParse03 (void) {
         0x00 ,0x0e ,0x10 ,0x00 ,0x04 ,0x81 ,0x6f ,0x0b,
         0x51};
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -500,7 +500,7 @@ static int FragBitsTestParse04 (void) {
         0x00 ,0x0e ,0x10 ,0x00 ,0x04 ,0x81 ,0x6f ,0x0b,
         0x51};
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;

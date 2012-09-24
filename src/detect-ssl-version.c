@@ -210,7 +210,7 @@ DetectSslVersionData *DetectSslVersionParse(char *str)
 
         /* We have a correct ssl_version options */
         ssl = SCCalloc(1, sizeof (DetectSslVersionData));
-        if (ssl == NULL)
+        if (unlikely(ssl == NULL))
             goto error;
 
         int i;
@@ -224,10 +224,10 @@ DetectSslVersionData *DetectSslVersionParse(char *str)
             }
 
             orig = SCStrdup((char*) str_ptr[i]);
-            tmp_str = orig;
-            if (tmp_str == NULL) {
+            if (unlikely(orig == NULL)) {
                 goto error;
             }
+            tmp_str = orig;
 
             /* Let's see if we need to scape "'s */
             if (tmp_str[0] == '"') {
