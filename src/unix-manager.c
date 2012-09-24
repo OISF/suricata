@@ -733,7 +733,7 @@ void *UnixManagerThread(void *td)
 
 
 /** \brief spawn the unix socket manager thread */
-void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx)
+void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode)
 {
     ThreadVars *tv_unixmgr = NULL;
 
@@ -754,7 +754,12 @@ void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx)
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
-
+    if (mode == 1) {
+        if (TmThreadsCheckFlag(tv_unixmgr, THV_RUNNING_DONE)) {
+            printf("ERROR: unix socket init failed\n");
+            exit(EXIT_FAILURE);
+        }
+    }
     return;
 }
 
