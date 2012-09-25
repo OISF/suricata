@@ -571,7 +571,7 @@ TmEcode LogHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
 TmEcode LogHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     LogHttpLogThread *aft = SCMalloc(sizeof(LogHttpLogThread));
-    if (aft == NULL)
+    if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
     memset(aft, 0, sizeof(LogHttpLogThread));
 
@@ -639,7 +639,7 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
     }
 
     LogHttpFileCtx *httplog_ctx = SCMalloc(sizeof(LogHttpFileCtx));
-    if (httplog_ctx == NULL) {
+    if (unlikely(httplog_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
         return NULL;
     }
@@ -713,8 +713,8 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (output_ctx == NULL) {
-        for (n = 0; n < httplog_ctx->cf_n; n++) {
+    if (unlikely(output_ctx == NULL)) {
+        for (n = 0;n < httplog_ctx->cf_n;n++) {
             SCFree(httplog_ctx->cf_nodes[n]);
         }
         LogFileFreeCtx(file_ctx);

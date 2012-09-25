@@ -62,7 +62,7 @@ void PktVarAdd(Packet *p, char *name, uint8_t *value, uint16_t size) {
     PktVar *pv = PktVarGet(p, name);
     if (pv == NULL) {
         pv = SCMalloc(sizeof(PktVar));
-        if (pv == NULL)
+        if (unlikely(pv == NULL))
             return;
 
         pv->name = name;

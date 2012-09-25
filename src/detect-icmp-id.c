@@ -170,7 +170,7 @@ DetectIcmpIdData *DetectIcmpIdParse (char *icmpidstr) {
     }
 
     iid = SCMalloc(sizeof(DetectIcmpIdData));
-    if (iid == NULL)
+    if (unlikely(iid == NULL))
         goto error;
     iid->id = 0;
 
@@ -407,7 +407,7 @@ int DetectIcmpIdMatchTest02 (void) {
         0x00, 0x14, 0x00, 0x00 };
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     Signature *s = NULL;
     DecodeThreadVars dtv;

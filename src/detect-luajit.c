@@ -461,7 +461,7 @@ static void *DetectLuajitThreadInit(void *data) {
     BUG_ON(luajit == NULL);
 
     DetectLuajitThreadData *t = SCMalloc(sizeof(DetectLuajitThreadData));
-    if (t == NULL) {
+    if (unlikely(t == NULL)) {
         SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't alloc ctx memory");
         return NULL;
     }
@@ -522,7 +522,7 @@ static DetectLuajitData *DetectLuajitParse (char *str)
 
     /* We have a correct luajit option */
     luajit = SCMalloc(sizeof(DetectLuajitData));
-    if (luajit == NULL)
+    if (unlikely(luajit == NULL))
         goto error;
 
     memset(luajit, 0x00, sizeof(DetectLuajitData));

@@ -176,7 +176,7 @@ DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (char *str)
 
         /* We have a correct id option */
         ssh = SCMalloc(sizeof(DetectSshSoftwareVersionData));
-        if (ssh == NULL)
+        if (unlikely(ssh == NULL))
             goto error;
 
         ssh->software_ver = (uint8_t *)SCStrdup((char*)str_ptr);

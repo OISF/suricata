@@ -169,9 +169,8 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
     }
 
     ErfDagThreadVars *ewtn = SCMalloc(sizeof(ErfDagThreadVars));
-    if (ewtn == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-                   "Failed to allocate memory for ERF DAG thread vars.");
+    if (unlikely(ewtn == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for ERF DAG thread vars.");
         exit(EXIT_FAILURE);
     }
 

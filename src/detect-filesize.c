@@ -211,8 +211,8 @@ static DetectFilesizeData *DetectFilesizeParse (char *str)
     }
 
     fsd = SCMalloc(sizeof (DetectFilesizeData));
-    if (fsd == NULL)
-        goto error;
+    if (unlikely(fsd == NULL))
+    goto error;
     memset(fsd, 0, sizeof(DetectFilesizeData));
 
     if (arg1[0] == '<')

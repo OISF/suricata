@@ -35,7 +35,7 @@ static Tmq tmqs[TMQ_MAX_QUEUES];
 
 Tmq* TmqAlloc(void) {
     Tmq *q = SCMalloc(sizeof(Tmq));
-    if (q == NULL)
+    if (unlikely(q == NULL))
         goto error;
 
     memset(q, 0, sizeof(Tmq));

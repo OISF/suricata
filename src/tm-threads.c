@@ -907,7 +907,7 @@ ThreadVars *TmThreadsGetTVContainingSlot(TmSlot *tm_slot)
 static inline TmSlot * _TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
 {
     TmSlot *slot = SCMalloc(sizeof(TmSlot));
-    if (slot == NULL)
+    if (unlikely(slot == NULL))
         return NULL;
     memset(slot, 0, sizeof(TmSlot));
     SC_ATOMIC_INIT(slot->slot_data);
@@ -987,7 +987,7 @@ void TmSlotSetFuncAppendDelayed(ThreadVars *tv, TmModule *tm, void *data,
     }
 
     dslot = SCMalloc(sizeof(TmDummySlot));
-    if (dslot == NULL) {
+    if (unlikely(dslot == NULL)) {
         return;
     }
 
@@ -1309,7 +1309,7 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
 
     /* XXX create separate function for this: allocate a thread container */
     tv = SCMalloc(sizeof(ThreadVars));
-    if (tv == NULL)
+    if (unlikely(tv == NULL))
         goto error;
     memset(tv, 0, sizeof(ThreadVars));
 

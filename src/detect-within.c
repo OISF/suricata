@@ -72,7 +72,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
     /* strip "'s */
     if (withinstr[0] == '\"' && withinstr[strlen(withinstr)-1] == '\"') {
         str = SCStrdup(withinstr+1);
-        if (str == NULL)
+        if (unlikely(str == NULL))
             goto error;
         str[strlen(withinstr)-2] = '\0';
         dubbed = 1;

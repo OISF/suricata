@@ -73,7 +73,7 @@ static uint32_t detect_address_group_head_free_cnt = 0;
 DetectAddress *DetectAddressInit(void)
 {
     DetectAddress *ag = SCMalloc(sizeof(DetectAddress));
-    if (ag == NULL)
+    if (unlikely(ag == NULL))
         return NULL;
     memset(ag, 0, sizeof(DetectAddress));
 
@@ -602,6 +602,8 @@ int DetectAddressParseString(DetectAddress *dd, char *str)
     char *mask = NULL;
     int r = 0;
 
+    if (unlikely(ipdup == NULL))
+        return -1;
     SCLogDebug("str %s", str);
 
     /* first handle 'any' */
@@ -976,7 +978,7 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                 temp_rule_var_address = rule_var_address;
                 if ((negate + n_set) % 2) {
                     temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
-                    if (temp_rule_var_address == NULL)
+                    if (unlikely(temp_rule_var_address == NULL))
                         goto error;
                     snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
                              "[%s]", rule_var_address);
@@ -1025,7 +1027,7 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                 temp_rule_var_address = rule_var_address;
                 if ((negate + n_set) % 2) {
                     temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
-                    if (temp_rule_var_address == NULL)
+                    if (unlikely(temp_rule_var_address == NULL))
                         goto error;
                     snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
                             "[%s]", rule_var_address);
@@ -1342,7 +1344,7 @@ error:
 DetectAddressHead *DetectAddressHeadInit(void)
 {
     DetectAddressHead *gh = SCMalloc(sizeof(DetectAddressHead));
-    if (gh == NULL)
+    if (unlikely(gh == NULL))
         return NULL;
     memset(gh, 0, sizeof(DetectAddressHead));
 

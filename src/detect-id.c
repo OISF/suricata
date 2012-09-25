@@ -161,14 +161,14 @@ DetectIdData *DetectIdParse (char *idstr)
 
         /* We have a correct id option */
         id_d = SCMalloc(sizeof(DetectIdData));
-        if (id_d == NULL)
+        if (unlikely(id_d == NULL))
             goto error;
 
         orig = SCStrdup((char*)str_ptr);
-        tmp_str=orig;
-        if (tmp_str == NULL) {
+        if (unlikely(orig == NULL)) {
             goto error;
         }
+        tmp_str=orig;
 
         /* Let's see if we need to scape "'s */
         if (tmp_str[0] == '"')

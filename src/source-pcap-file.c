@@ -217,7 +217,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCLogInfo("reading pcap file %s", (char *)initdata);
 
     PcapFileThreadVars *ptv = SCMalloc(sizeof(PcapFileThreadVars));
-    if (ptv == NULL)
+    if (unlikely(ptv == NULL))
         SCReturnInt(TM_ECODE_FAILED);
     memset(ptv, 0, sizeof(PcapFileThreadVars));
 

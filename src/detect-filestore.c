@@ -354,7 +354,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
         }
 
         fd = SCMalloc(sizeof(DetectFilestoreData));
-        if (fd == NULL)
+        if (unlikely(fd == NULL))
             goto error;
         memset(fd, 0x00, sizeof(DetectFilestoreData));
 

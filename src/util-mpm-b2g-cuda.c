@@ -142,7 +142,7 @@ void B2gCudaPrintInfo(MpmCtx *mpm_ctx)
 static inline B2gCudaPattern *B2gCudaAllocPattern(MpmCtx *mpm_ctx)
 {
     B2gCudaPattern *p = SCMalloc(sizeof(B2gCudaPattern));
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return NULL;
     memset(p, 0, sizeof(B2gCudaPattern));
 
@@ -155,7 +155,7 @@ static inline B2gCudaPattern *B2gCudaAllocPattern(MpmCtx *mpm_ctx)
 static inline B2gCudaHashItem *B2gCudaAllocHashItem(MpmCtx *mpm_ctx)
 {
     B2gCudaHashItem *hi = SCMalloc(sizeof(B2gCudaHashItem));
-    if (hi == NULL)
+    if (unlikely(hi == NULL))
         return NULL;
     memset(hi, 0, sizeof(B2gCudaHashItem));
 
@@ -1700,7 +1700,7 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
     }
 
     B2gCudaMpmThreadCtxData *tctx = SCMalloc(sizeof(B2gCudaMpmThreadCtxData));
-    if (tctx == NULL) {
+    if (unlikely(tctx == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
@@ -2455,7 +2455,7 @@ static int B2gCudaTest01(void)
     pb->packets_payload_offset_buffer[0] = 0;
 
     p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         goto end;
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);

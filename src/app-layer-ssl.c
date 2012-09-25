@@ -857,7 +857,7 @@ int SSLParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
 void *SSLStateAlloc(void)
 {
     void *ssl_state = SCMalloc(sizeof(SSLState));
-    if (ssl_state == NULL)
+    if (unlikely(ssl_state == NULL))
         return NULL;
     memset(ssl_state, 0, sizeof(SSLState));
     ((SSLState*)ssl_state)->client_connp.cert_log_flag = 0;

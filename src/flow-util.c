@@ -56,8 +56,8 @@ Flow *FlowAlloc(void)
     (void) SC_ATOMIC_ADD(flow_memuse, sizeof(Flow));
 
     f = SCMalloc(sizeof(Flow));
-    if (f == NULL) {
-        (void) SC_ATOMIC_SUB(flow_memuse, sizeof(Flow));
+    if (unlikely(f == NULL)) {
+        (void)SC_ATOMIC_SUB(flow_memuse, sizeof(Flow));
         return NULL;
     }
 

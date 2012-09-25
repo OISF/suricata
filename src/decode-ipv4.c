@@ -638,7 +638,7 @@ void DecodeIPV4OptionsPrint(Packet *p) {
 int DecodeIPV4OptionsNONETest01(void) {
     uint8_t raw_opts[] = { };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     uint8_t *data = (uint8_t *)p;
     uint16_t i;
@@ -674,7 +674,7 @@ int DecodeIPV4OptionsEOLTest01(void) {
         IPV4_OPT_EOL, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     uint8_t *data = (uint8_t *)p;
     uint16_t i;
@@ -710,7 +710,7 @@ int DecodeIPV4OptionsNOPTest01(void) {
         IPV4_OPT_NOP, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     uint8_t *data = (uint8_t *)p;
     uint16_t i;
@@ -750,7 +750,7 @@ int DecodeIPV4OptionsRRTest01(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -784,7 +784,7 @@ int DecodeIPV4OptionsRRTest02(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -813,7 +813,7 @@ int DecodeIPV4OptionsRRTest03(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -842,7 +842,7 @@ int DecodeIPV4OptionsRRTest04(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -867,7 +867,7 @@ int DecodeIPV4OptionsQSTest01(void) {
         IPV4_OPT_QS, 0x08, 0x0d, 0x00, 0xbe, 0xef, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -897,7 +897,7 @@ int DecodeIPV4OptionsQSTest02(void) {
         IPV4_OPT_QS, 0x07, 0x0d, 0x00, 0xbe, 0xef, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -926,7 +926,7 @@ int DecodeIPV4OptionsTSTest01(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -960,7 +960,7 @@ int DecodeIPV4OptionsTSTest02(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -989,7 +989,7 @@ int DecodeIPV4OptionsTSTest03(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -1018,7 +1018,7 @@ int DecodeIPV4OptionsTSTest04(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -1044,7 +1044,7 @@ int DecodeIPV4OptionsSECTest01(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -1075,7 +1075,7 @@ int DecodeIPV4OptionsSECTest02(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -1104,7 +1104,7 @@ int DecodeIPV4OptionsLSRRTest01(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -1138,7 +1138,7 @@ int DecodeIPV4OptionsLSRRTest02(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -1167,7 +1167,7 @@ int DecodeIPV4OptionsLSRRTest03(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -1196,7 +1196,7 @@ int DecodeIPV4OptionsLSRRTest04(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -1223,7 +1223,7 @@ int DecodeIPV4OptionsCIPSOTest01(void) {
         0x00, 0x04, 0x00, 0x02, 0x00, 0x02, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -1253,7 +1253,7 @@ int DecodeIPV4OptionsSIDTest01(void) {
         IPV4_OPT_SID, 0x04, 0xbe, 0xef, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -1283,7 +1283,7 @@ int DecodeIPV4OptionsSIDTest02(void) {
         IPV4_OPT_SID, 0x05, 0xbe, 0xef, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -1312,7 +1312,7 @@ int DecodeIPV4OptionsSSRRTest01(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -1346,7 +1346,7 @@ int DecodeIPV4OptionsSSRRTest02(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -1375,7 +1375,7 @@ int DecodeIPV4OptionsSSRRTest03(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -1404,7 +1404,7 @@ int DecodeIPV4OptionsSSRRTest04(void) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -1429,7 +1429,7 @@ int DecodeIPV4OptionsRTRALTTest01(void) {
         IPV4_OPT_RTRALT, 0x04, 0xbe, 0xef, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -1459,7 +1459,7 @@ int DecodeIPV4OptionsRTRALTTest02(void) {
         IPV4_OPT_RTRALT, 0x05, 0xbe, 0xef, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     int rc;
 
@@ -1545,7 +1545,7 @@ int DecodeIPV4DefragTest01(void)
     };
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -1683,7 +1683,7 @@ int DecodeIPV4DefragTest02(void)
     };
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -1812,7 +1812,7 @@ int DecodeIPV4DefragTest03(void)
 
     Flow *f = NULL;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;

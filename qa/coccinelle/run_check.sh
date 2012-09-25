@@ -10,7 +10,7 @@ fi
 for SMPL in *.cocci; do
 	echo "Testing cocci file: $SMPL"
 	for FILE in $LIST ; do
-		spatch -sp_file $SMPL  $PREFIX$FILE 2>/dev/null || exit 1;
+		spatch -sp_file $SMPL --undefined UNITTESTS  $PREFIX$FILE 2>/dev/null || exit 1;
 	done
 done
 

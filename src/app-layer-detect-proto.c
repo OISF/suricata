@@ -108,7 +108,7 @@ void AlpProtoInit(AlpProtoDetectCtx *ctx) {
  */
 static void AlpProtoAddSignature(AlpProtoDetectCtx *ctx, DetectContentData *co, uint16_t ip_proto, uint16_t proto) {
     AlpProtoSignature *s = SCMalloc(sizeof(AlpProtoSignature));
-    if (s == NULL) {
+    if (unlikely(s == NULL)) {
         SCLogError(SC_ERR_FATAL, "Error allocating memory. Signature not loaded. Not enough memory so.. exiting..");
         exit(EXIT_FAILURE);
     }
@@ -413,7 +413,7 @@ uint16_t AppLayerDetectGetProtoPMParser(AlpProtoDetectCtx *ctx,
                                                 searchlen);
 #else
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         goto end;
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);

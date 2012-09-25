@@ -105,7 +105,7 @@ uint32_t DbgGetDstPortAnyCnt(void) {
 
 SigMatch *SigMatchAlloc(void) {
     SigMatch *sm = SCMalloc(sizeof(SigMatch));
-    if (sm == NULL)
+    if (unlikely(sm == NULL))
         return NULL;
 
     memset(sm, 0, sizeof(SigMatch));
@@ -369,8 +369,8 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr) 
     char *optname = NULL, *optvalue = NULL, *optmore = NULL;
 
     const char **arr = SCCalloc(OPTION_PARTS+1, sizeof(char *));
-    if (arr == NULL)
-        return -1;
+    if (unlikely(arr == NULL))
+    return -1;
 
     ret = pcre_exec(option_pcre, option_pcre_extra, optstr, strlen(optstr), 0, 0, ov, MAX_SUBSTRINGS);
     /* if successful, we either have:
@@ -653,8 +653,8 @@ static int SigParseBasics(Signature *s, char *sigstr, char ***result, uint8_t ad
     int ret = 0, i = 0;
 
     const char **arr = SCCalloc(CONFIG_PARTS + 1, sizeof(char *));
-    if (arr == NULL)
-        return -1;
+    if (unlikely(arr == NULL))
+    return -1;
 
     ret = pcre_exec(config_pcre, config_pcre_extra, sigstr, strlen(sigstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 8 && ret != 9) {
@@ -784,7 +784,7 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
 
 Signature *SigAlloc (void) {
     Signature *sig = SCMalloc(sizeof(Signature));
-    if (sig == NULL)
+    if (unlikely(sig == NULL))
         return NULL;
 
     memset(sig, 0, sizeof(Signature));
@@ -1467,7 +1467,7 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
 
     /* used for making a duplicate_sig_hash_table entry */
     sw = SCMalloc(sizeof(SigDuplWrapper));
-    if (sw == NULL) {
+    if (unlikely(sw == NULL)) {
         exit(EXIT_FAILURE);
     }
     memset(sw, 0, sizeof(SigDuplWrapper));
@@ -1794,7 +1794,7 @@ int DetectParseContentString (char *contentstr, uint8_t **result, uint16_t *resu
     }
 
     content = SCMalloc(len);
-    if (content == NULL) {
+    if (unlikely(content == NULL)) {
         exit(EXIT_FAILURE);
     }
 
@@ -2786,7 +2786,7 @@ int SigTestBidirec04 (void) {
         0x76,0x65,0x0d,0x0a,0x0d,0x0a }; /* end rawpkt1_ether */
 
     p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     DecodeThreadVars dtv;
     ThreadVars th_v;
