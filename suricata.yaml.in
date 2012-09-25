@@ -843,8 +843,9 @@ asn1-max-frames: 256
 # given by the parameter "default-log-dir", with engine reporting
 # subsection below printing reports in its own report file.
 engine-analysis:
-  # enables printing reports for fast-pattern for every rule.
-  rules-fast-pattern: yes
+  # now a deprecated option and would be phased out in the future.  Fast
+  # pattern analysis would now be printed as a part of rules analysis.
+  # rules-fast-pattern: yes
   # enables printing reports for each rule
   rules: yes
 

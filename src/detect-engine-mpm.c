@@ -1683,8 +1683,12 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
  *
  * \retval  0 Always.
  */
-static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
-                                          SigGroupHead *sgh)
+int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
+                                   SigGroupHead *sgh,
+                                   void (*PopulateMpmAddPatternToMpm)(DetectEngineCtx *de_ctx,
+                                                                      SigGroupHead *sgh,
+                                                                      Signature *s,
+                                                                      SigMatch *mpm_sm))
 {
     uint32_t sig;
     uint8_t *fast_pattern = NULL;
@@ -1873,7 +1877,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                 break;
         } /* for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) */
 
-        PopulateMpmAddPatternToMpm(de_ctx, sgh, s, mpm_sm);
+        (*PopulateMpmAddPatternToMpm)(de_ctx, sgh, s, mpm_sm);
     } /* for (sig = 0; sig < sgh->sig_cnt; sig++) */
 
     if (fast_pattern != NULL)
@@ -2313,7 +2317,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         has_co_hrud ||
         has_co_huad) {
 
-        PatternMatchPreparePopulateMpm(de_ctx, sh);
+        PatternMatchPreparePopulateMpm(de_ctx, sh, PopulateMpmAddPatternToMpm);
 
         //if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
          if (sh->mpm_proto_tcp_ctx_ts != NULL) {

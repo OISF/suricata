@@ -26,17 +26,117 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "detect.h"
+#include "detect-parse.h"
 #include "detect-engine-analyzer.h"
 #include "conf.h"
 #include "detect-content.h"
 #include "detect-flow.h"
 #include "detect-flags.h"
+#include "util-print.h"
 
 static int rule_warnings_only = 0;
 static FILE *rule_engine_analysis_FD = NULL;
 static pcre *percent_re = NULL;
 static pcre_extra *percent_re_study = NULL;
 static char log_path[PATH_MAX];
+
+static inline void EngineAnalysisWriteFastPattern(Signature *s, SigMatch *mpm_sm)
+{
+    int fast_pattern_set = 0;
+    int fast_pattern_only_set = 0;
+    int fast_pattern_chop_set = 0;
+    DetectContentData *fp_cd = NULL;
+
+    if (mpm_sm != NULL) {
+        fp_cd = (DetectContentData *)mpm_sm->ctx;
+        if (fp_cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+            fast_pattern_set = 1;
+            if (fp_cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                fast_pattern_only_set = 1;
+            } else if (fp_cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+                fast_pattern_chop_set = 1;
+            }
+        }
+    }
+
+    fprintf(rule_engine_analysis_FD, "    Fast Pattern analysis:\n");
+    if (fp_cd == NULL) {
+        fprintf(rule_engine_analysis_FD, "        No content present\n");
+        return;
+    }
+
+    fprintf(rule_engine_analysis_FD, "        Fast pattern matcher: ");
+    int list_type = SigMatchListSMBelongsTo(s, mpm_sm);
+    if (list_type == DETECT_SM_LIST_PMATCH)
+        fprintf(rule_engine_analysis_FD, "content\n");
+    else if (list_type == DETECT_SM_LIST_UMATCH)
+        fprintf(rule_engine_analysis_FD, "http uri content\n");
+    else if (list_type == DETECT_SM_LIST_HRUDMATCH)
+        fprintf(rule_engine_analysis_FD, "http raw uri content\n");
+    else if (list_type == DETECT_SM_LIST_HHDMATCH)
+        fprintf(rule_engine_analysis_FD, "http header content\n");
+    else if (list_type == DETECT_SM_LIST_HRHDMATCH)
+        fprintf(rule_engine_analysis_FD, "http raw header content\n");
+    else if (list_type == DETECT_SM_LIST_HMDMATCH)
+        fprintf(rule_engine_analysis_FD, "http method content\n");
+    else if (list_type == DETECT_SM_LIST_HCDMATCH)
+        fprintf(rule_engine_analysis_FD, "http cookie content\n");
+    else if (list_type == DETECT_SM_LIST_HCBDMATCH)
+        fprintf(rule_engine_analysis_FD, "http client body content\n");
+    else if (list_type == DETECT_SM_LIST_HSBDMATCH)
+        fprintf(rule_engine_analysis_FD, "http server body content\n");
+    else if (list_type == DETECT_SM_LIST_HSCDMATCH)
+        fprintf(rule_engine_analysis_FD, "http stat code content\n");
+    else if (list_type == DETECT_SM_LIST_HSMDMATCH)
+        fprintf(rule_engine_analysis_FD, "http stat msg content\n");
+    else if (list_type == DETECT_SM_LIST_HUADMATCH)
+        fprintf(rule_engine_analysis_FD, "http user agent content\n");
+
+    fprintf(rule_engine_analysis_FD, "        Fast pattern set: %s\n", fast_pattern_set ? "yes" : "no");
+    fprintf(rule_engine_analysis_FD, "        Fast pattern only set: %s\n",
+            fast_pattern_only_set ? "yes" : "no");
+    fprintf(rule_engine_analysis_FD, "        Fast pattern chop set: %s\n",
+            fast_pattern_chop_set ? "yes" : "no");
+    if (fast_pattern_chop_set) {
+        fprintf(rule_engine_analysis_FD, "        Fast pattern offset, length: %u, %u\n",
+                fp_cd->fp_chop_offset, fp_cd->fp_chop_len);
+    }
+    fprintf(rule_engine_analysis_FD, "        Content negated: %s\n",
+            (fp_cd->flags & DETECT_CONTENT_NEGATED) ? "yes" : "no");
+
+    uint16_t patlen = fp_cd->content_len;
+    uint8_t *pat = SCMalloc(fp_cd->content_len + 1);
+    if (unlikely(pat == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(pat, fp_cd->content, fp_cd->content_len);
+    pat[fp_cd->content_len] = '\0';
+    fprintf(rule_engine_analysis_FD, "        Original content: ");
+    PrintRawUriFp(rule_engine_analysis_FD, pat, patlen);
+    fprintf(rule_engine_analysis_FD, "\n");
+
+    if (fast_pattern_chop_set) {
+        SCFree(pat);
+        patlen = fp_cd->fp_chop_len;
+        pat = SCMalloc(fp_cd->fp_chop_len + 1);
+        if (unlikely(pat == NULL)) {
+            exit(EXIT_FAILURE);
+        }
+        memcpy(pat, fp_cd->content + fp_cd->fp_chop_offset, fp_cd->fp_chop_len);
+        pat[fp_cd->fp_chop_len] = '\0';
+        fprintf(rule_engine_analysis_FD, "        Final content: ");
+        PrintRawUriFp(rule_engine_analysis_FD, pat, patlen);
+        fprintf(rule_engine_analysis_FD, "\n");
+    } else {
+        fprintf(rule_engine_analysis_FD, "        Final content: ");
+        PrintRawUriFp(rule_engine_analysis_FD, pat, patlen);
+        fprintf(rule_engine_analysis_FD, "\n");
+    }
+    SCFree(pat);
+
+    return;
+}
 
 /**
  * \brief Sets up the rule analyzer according to the config
@@ -214,6 +314,7 @@ void EngineAnalysisRules(Signature *s, char *line)
     uint32_t warn_encoding_norm_http_buf = 0;
     uint32_t warn_offset_depth_pkt_stream = 0;
     uint32_t warn_offset_depth_alproto = 0;
+    uint32_t warn_non_alproto_fp_for_alproto_sig = 0;
 
     if (s->init_flags & SIG_FLAG_INIT_BIDIREC) {
         rule_bidirectional = 1;
@@ -454,6 +555,11 @@ void EngineAnalysisRules(Signature *s, char *line)
         rule_warning += 1;
         warn_offset_depth_alproto = 1;
     }
+    if (s->mpm_sm != NULL && s->alproto == ALPROTO_HTTP &&
+        SigMatchListSMBelongsTo(s, s->mpm_sm) == DETECT_SM_LIST_PMATCH) {
+        rule_warning += 1;
+        warn_non_alproto_fp_for_alproto_sig = 1;
+    }
 
     if (!rule_warnings_only || (rule_warnings_only && rule_warning > 0)) {
         fprintf(rule_engine_analysis_FD, "== Sid: %u ==\n", s->id);
@@ -481,6 +587,10 @@ void EngineAnalysisRules(Signature *s, char *line)
         if (rule_content || rule_content_http || rule_pcre || rule_pcre_http) {
             fprintf(rule_engine_analysis_FD, "    Rule contains %d content options, %d http content options, %d pcre options, and %d pcre options with http modifiers.\n", rule_content, rule_content_http, rule_pcre, rule_pcre_http);
         }
+
+        EngineAnalysisWriteFastPattern(s, s->mpm_sm);
+
+        /* this is where the warnings start */
         if (warn_pcre_no_content /*rule_pcre > 0 && rule_content == 0 && rule_content_http == 0*/) {
             fprintf(rule_engine_analysis_FD, "    Warning: Rule uses pcre without a content option present.\n"
                                              "             -Consider adding a content to improve performance of this rule.\n");
@@ -547,6 +657,12 @@ void EngineAnalysisRules(Signature *s, char *line)
                     "have a offset/depth content match on a packet payload "
                     "before we can detect the app layer protocol for the "
                     "flow.\n", s->alproto);
+        }
+        if (warn_non_alproto_fp_for_alproto_sig) {
+            fprintf(rule_engine_analysis_FD, "    Warning: Rule app layer "
+                    "protocol is http, but the fast_pattern is set on the raw "
+                    "stream.  Consider adding fast_pattern over a http "
+                    "buffer for increased performance.");
         }
         if (rule_warning == 0) {
             fprintf(rule_engine_analysis_FD, "    No warnings for this rule.\n");

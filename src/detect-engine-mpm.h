@@ -26,6 +26,7 @@
 
 #include "tm-threads.h"
 
+#include "detect.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
 
@@ -78,5 +79,11 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *, void *, uint8_t);
 int SignatureHasPacketContent(Signature *);
 int SignatureHasStreamContent(Signature *);
 
+int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
+                                   SigGroupHead *sgh,
+                                   void (*PopulateMpmAddPatternToMpm)(DetectEngineCtx *de_ctx,
+                                                                      SigGroupHead *sgh,
+                                                                      Signature *s,
+                                                                      SigMatch *mpm_sm));
 #endif /* __DETECT_ENGINE_MPM_H__ */
 
