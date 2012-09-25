@@ -1234,48 +1234,45 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
 
         /* all http based mpms */
         if (alproto == ALPROTO_HTTP && alstate != NULL) {
-            if (p->flowflags & FLOW_PKT_TOSERVER) {
-                if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_URI) {
-                    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_URI);
-                    DetectUricontentInspectMpm(det_ctx, p->flow, alstate, flags);
-                    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_URI);
-                }
-                if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRUD) {
-                    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HRUD);
-                    DetectEngineRunHttpRawUriMpm(det_ctx, p->flow, alstate, flags);
-                    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HRUD);
-                }
-                if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HCBD) {
-                    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HCBD);
-                    DetectEngineRunHttpClientBodyMpm(de_ctx, det_ctx, p->flow, alstate, flags);
-                    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HCBD);
-                }
-                if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HMD) {
-                    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HMD);
-                    DetectEngineRunHttpMethodMpm(det_ctx, p->flow, alstate, flags);
-                    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HMD);
-                }
-                if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HUAD) {
-                    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HUAD);
-                    DetectEngineRunHttpUAMpm(det_ctx, p->flow, alstate, flags);
-                    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HUAD);
-                }
-            } else { /* implied FLOW_PKT_TOCLIENT */
-                if (p->flowflags & FLOW_PKT_TOCLIENT && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSBD) {
-                    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSBD);
-                    DetectEngineRunHttpServerBodyMpm(de_ctx, det_ctx, p->flow, alstate, flags);
-                    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HSBD);
-                }
-                if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSMD) {
-                    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSMD);
-                    DetectEngineRunHttpStatMsgMpm(det_ctx, p->flow, alstate, flags);
-                    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HSMD);
-                }
-                if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSCD) {
-                    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSCD);
-                    DetectEngineRunHttpStatCodeMpm(det_ctx, p->flow, alstate, flags);
-                    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HSCD);
-                }
+            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_URI) {
+                PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_URI);
+                DetectUricontentInspectMpm(det_ctx, p->flow, alstate, flags);
+                PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_URI);
+            }
+            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRUD) {
+                PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HRUD);
+                DetectEngineRunHttpRawUriMpm(det_ctx, p->flow, alstate, flags);
+                PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HRUD);
+            }
+            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HCBD) {
+                PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HCBD);
+                DetectEngineRunHttpClientBodyMpm(de_ctx, det_ctx, p->flow, alstate, flags);
+                PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HCBD);
+            }
+            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HMD) {
+                PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HMD);
+                DetectEngineRunHttpMethodMpm(det_ctx, p->flow, alstate, flags);
+                PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HMD);
+            }
+            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HUAD) {
+                PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HUAD);
+                DetectEngineRunHttpUAMpm(det_ctx, p->flow, alstate, flags);
+                PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HUAD);
+            }
+            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSBD) {
+                PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSBD);
+                DetectEngineRunHttpServerBodyMpm(de_ctx, det_ctx, p->flow, alstate, flags);
+                PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HSBD);
+            }
+            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSMD) {
+                PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSMD);
+                DetectEngineRunHttpStatMsgMpm(det_ctx, p->flow, alstate, flags);
+                PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HSMD);
+            }
+            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSCD) {
+                PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSCD);
+                DetectEngineRunHttpStatCodeMpm(det_ctx, p->flow, alstate, flags);
+                PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HSCD);
             }
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HHD) {
                 PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HHD);
