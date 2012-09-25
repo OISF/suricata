@@ -429,6 +429,12 @@ int UnixCommandBackgroundTasks(UnixCommand* this)
     }
     return 1;
 }
+
+/**
+ * \brief return list of files in the queue
+ *
+ * \retval 0 in case of error, 1 in case of success
+ */
 static int UnixCommandFileList(UnixCommand* this, json_t *cmd, json_t* answer)
 {
     int i = 0;
