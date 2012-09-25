@@ -161,11 +161,11 @@ static void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
          * and running content validation on this buffer type of architecture
          * to a stateful inspection, where we can inspect body chunks as and
          * when they come */
-            if ((htud->request_body.content_len_so_far > 0) &&
-                    tx->progress != TX_PROGRESS_REQ_BODY) {
-                /* final length of the body */
-                htud->tsflags |= HTP_REQ_BODY_COMPLETE;
-            }
+        if ((htud->request_body.content_len_so_far > 0) &&
+            tx->progress != TX_PROGRESS_REQ_BODY) {
+            /* final length of the body */
+            htud->tsflags |= HTP_REQ_BODY_COMPLETE;
+        }
 
         if (flags & STREAM_EOF) {
             htud->tsflags |= HTP_REQ_BODY_COMPLETE;
