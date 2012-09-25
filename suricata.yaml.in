@@ -779,6 +779,18 @@ vars:
 
     AIM_SERVERS: "$EXTERNAL_NET"
 
+    DNP3_SERVER: "$HOME_NET"
+
+    DNP3_CLIENT: "$HOME_NET"
+
+    MODBUS_CLIENT: "$HOME_NET"
+
+    MODBUS_SERVER: "$HOME_NET"
+
+    ENIP_CLIENT: "$HOME_NET"
+
+    ENIP_SERVER: "$HOME_NET"
+
   # Holds the port group vars that would be passed in a Signature.
   # These would be retrieved during the Signature port parsing stage.
   port-groups:
@@ -791,6 +803,7 @@ vars:
 
     SSH_PORTS: 22
 
+    DNP3_PORTS: 20000
 
 # Set the order of alerts bassed on actions
 # The default order is pass, drop, reject, alert
