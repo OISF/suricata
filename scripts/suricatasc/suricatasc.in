@@ -23,9 +23,9 @@ import sys
 
 VERSION = "0.1"
 if len(sys.argv) == 2:
-    SOCKET_PATH = "@e_localstatedir@/run/suricata/" + sys.argv[1]
+    SOCKET_PATH = "@e_localstatedir@/" + sys.argv[1]
 else:
-    SOCKET_PATH = "@e_localstatedir@/run/suricata/suricata-command.socket"
+    SOCKET_PATH = "@e_localstatedir@/suricata-command.socket"
 SIZE = 4096
 COMMANDS_REGEX = re.compile("^(?:shutdown|quit|reload-rules|pcap-file .+|pcap-file-number|pcap-file-list)$")
 

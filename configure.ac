@@ -1353,7 +1353,7 @@ else
   EXPAND_VARIABLE(localstatedir, e_logfilesdir, "/log/suricata/files")
   EXPAND_VARIABLE(sysconfdir, e_sysconfdir, "/suricata/")
   EXPAND_VARIABLE(sysconfdir, e_sysconfrulesdir, "/suricata/rules")
-  EXPAND_VARIABLE(localstatedir, e_localstatedir, "")
+  EXPAND_VARIABLE(localstatedir, e_localstatedir, "/run/suricata")
 fi
 AC_SUBST(e_logdir)
 AC_SUBST(e_logfilesdir)
