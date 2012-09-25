@@ -425,7 +425,7 @@ int UnixCommandBackgroundTasks(UnixCommand* this)
 
     ret = UnixPcapFilesHandle(this);
     if (ret == 0) {
-        SCLogInfo("Unable to handle PCAP file");
+        SCLogError(SC_ERR_OPENING_FILE, "Unable to handle PCAP file");
     }
     return 1;
 }
