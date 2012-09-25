@@ -142,25 +142,12 @@ static void DetectEngineBufferHttpServerBodies(DetectEngineCtx *de_ctx,
             continue;
         }
 
-        /* in case of chunked transfer encoding, we don't have the length
-         * of the response body until we see a chunk with length 0.  This
-         * doesn't let us use the response body callback function to
-         * figure out the end of response body.  Instead we do it here.  If
-         * the length is 0, and we have already seen content, it indicates
-         * chunked transfer.  We also check if the parser has truly seen
-         * the last chunk by checking the progress state for the
-         * transaction.  If we are done parsing all the chunks, we would
-         * have it set to something other than TX_PROGRESS_REQ_BODY.
-         * Either ways we should be moving away from buffering in the end
-         * and running content validation on this buffer type of architecture
-         * to a stateful inspection, where we can inspect body chunks as and
-         * when they come */
-        if (htud->response_body.content_len == 0) {
-            if ((htud->response_body.content_len_so_far > 0) &&
-                    tx->progress != TX_PROGRESS_REQ_BODY) {
-                /* final length of the body */
-                htud->tcflags |= HTP_RES_BODY_COMPLETE;
-            }
+        /* irrespective of chunked encoding or not, we rely on the tx state
+         * to decide if we have seen the whole body or not */
+        if ((htud->response_body.content_len_so_far > 0) &&
+            tx->progress != TX_PROGRESS_RES_BODY) {
+            /* final length of the body */
+            htud->tcflags |= HTP_RES_BODY_COMPLETE;
         }
 
         if (flags & STREAM_EOF) {
