@@ -46,7 +46,7 @@ static UtTest *ut_list;
 
 static UtTest *UtAllocTest(void) {
     UtTest *ut = SCMalloc(sizeof(UtTest));
-    if (ut == NULL)
+    if (unlikely(ut == NULL))
         return NULL;
 
     memset(ut, 0, sizeof(UtTest));

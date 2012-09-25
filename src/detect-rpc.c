@@ -200,7 +200,7 @@ DetectRpcData *DetectRpcParse (char *rpcstr)
     }
 
     rd = SCMalloc(sizeof(DetectRpcData));
-    if (rd == NULL)
+    if (unlikely(rd == NULL))
         goto error;
     rd->flags = 0;
     rd->program = 0;

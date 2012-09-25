@@ -113,7 +113,7 @@ static int DecodeEthernetTest01 (void)   {
         0xab, 0xcd };
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;

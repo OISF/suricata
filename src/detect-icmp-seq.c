@@ -170,7 +170,7 @@ DetectIcmpSeqData *DetectIcmpSeqParse (char *icmpseqstr) {
     }
 
     iseq = SCMalloc(sizeof(DetectIcmpSeqData));
-    if (iseq == NULL)
+    if (unlikely(iseq == NULL))
         goto error;
 
     iseq->seq = 0;

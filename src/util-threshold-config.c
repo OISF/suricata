@@ -584,7 +584,7 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
             }
 
             de = SCMalloc(sizeof(DetectThresholdData));
-            if (de == NULL)
+            if (unlikely(de == NULL))
                 goto error;
 
             memset(de,0,sizeof(DetectThresholdData));
@@ -665,7 +665,7 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
                 }
 
                 de = SCMalloc(sizeof(DetectThresholdData));
-                if (de == NULL)
+                if (unlikely(de == NULL))
                     goto error;
 
                 memset(de,0,sizeof(DetectThresholdData));
@@ -753,7 +753,7 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
             }
 
             de = SCMalloc(sizeof(DetectThresholdData));
-            if (de == NULL)
+            if (unlikely(de == NULL))
                 goto error;
 
             memset(de,0,sizeof(DetectThresholdData));

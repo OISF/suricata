@@ -121,7 +121,7 @@ TmEcode AlertPcapInfo (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
 TmEcode AlertPcapInfoThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     AlertPcapInfoThread *aft = SCMalloc(sizeof(AlertPcapInfoThread));
-    if (aft == NULL)
+    if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
     memset(aft, 0, sizeof(AlertPcapInfoThread));
     if(initdata == NULL)
@@ -187,7 +187,7 @@ OutputCtx *AlertPcapInfoInitCtx(ConfNode *conf)
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (output_ctx == NULL)
+    if (unlikely(output_ctx == NULL))
         return NULL;
     output_ctx->data = logfile_ctx;
     output_ctx->DeInit = AlertPcapInfoDeInitCtx;

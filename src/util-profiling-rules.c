@@ -168,6 +168,10 @@ void SCProfilingRulesGlobalInit(void) {
                     log_dir = DEFAULT_LOG_DIR;
 
                 profiling_file_name = SCMalloc(PATH_MAX);
+                if (unlikely(profiling_file_name == NULL)) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "can't duplicate file name");
+                    exit(EXIT_FAILURE);
+                }
                 snprintf(profiling_file_name, PATH_MAX, "%s/%s", log_dir, filename);
 
                 const char *v = ConfNodeLookupChildValue(conf, "append");
@@ -285,7 +289,7 @@ SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx)
 
     int summary_size = sizeof(SCProfileSummary) * rules_ctx->size;
     SCProfileSummary *summary = SCMalloc(summary_size);
-    if (summary == NULL) {
+    if (unlikely(summary == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for profiling summary");
         return;
     }

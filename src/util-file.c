@@ -182,7 +182,7 @@ void FilePrune(FileContainer *ffc) {
  */
 FileContainer *FileContainerAlloc(void) {
     FileContainer *new = SCMalloc(sizeof(FileContainer));
-    if (new == NULL) {
+    if (unlikely(new == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating mem");
         return NULL;
     }
@@ -240,7 +240,7 @@ void FileContainerFree(FileContainer *ffc) {
  */
 static FileData *FileDataAlloc(uint8_t *data, uint32_t data_len) {
     FileData *new = SCMalloc(sizeof(FileData));
-    if (new == NULL) {
+    if (unlikely(new == NULL)) {
         return NULL;
     }
     memset(new, 0, sizeof(FileData));
@@ -286,7 +286,7 @@ static void FileDataFree(FileData *ffd) {
  */
 static File *FileAlloc(uint8_t *name, uint16_t name_len) {
     File *new = SCMalloc(sizeof(File));
-    if (new == NULL) {
+    if (unlikely(new == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating mem");
         return NULL;
     }

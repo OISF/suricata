@@ -339,7 +339,7 @@ TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
     AFPPeer *pitem;
     int mtu, out_mtu;
 
-    if (peer == NULL) {
+    if (unlikely(peer == NULL)) {
         SCReturnInt(TM_ECODE_FAILED);
     }
     memset(peer, 0, sizeof(AFPPeer));
@@ -1434,7 +1434,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
 
     AFPThreadVars *ptv = SCMalloc(sizeof(AFPThreadVars));
-    if (ptv == NULL) {
+    if (unlikely(ptv == NULL)) {
         afpconfig->DerefFunc(afpconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }

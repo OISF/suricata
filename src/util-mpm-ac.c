@@ -217,7 +217,7 @@ static inline SCACPattern *SCACInitHashLookup(SCACCtx *ctx, uint8_t *pat,
 static inline SCACPattern *SCACAllocPattern(MpmCtx *mpm_ctx)
 {
     SCACPattern *p = SCMalloc(sizeof(SCACPattern));
-    if (p == NULL) {
+    if (unlikely(p == NULL)) {
         exit(EXIT_FAILURE);
     }
     memset(p, 0, sizeof(SCACPattern));

@@ -1129,7 +1129,7 @@ char UricontentHashCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t
 
 ContentHash *ContentHashAlloc(DetectContentData *ptr) {
     ContentHash *ch = SCMalloc(sizeof(ContentHash));
-    if (ch == NULL)
+    if (unlikely(ch == NULL))
         return NULL;
 
     ch->ptr = ptr;
@@ -1141,7 +1141,7 @@ ContentHash *ContentHashAlloc(DetectContentData *ptr) {
 
 UricontentHash *UricontentHashAlloc(DetectContentData *ptr) {
     UricontentHash *ch = SCMalloc(sizeof(UricontentHash));
-    if (ch == NULL)
+    if (unlikely(ch == NULL))
         return NULL;
 
     ch->ptr = ptr;
@@ -2948,7 +2948,7 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_list)
     PatIntId id = 0;
 
     e = SCMalloc(sizeof(MpmPatternIdTableElmt));
-    if (e == NULL) {
+    if (unlikely(e == NULL)) {
         exit(EXIT_FAILURE);
     }
 

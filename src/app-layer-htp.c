@@ -220,7 +220,7 @@ static void *HTPStateAlloc(void)
     SCEnter();
 
     HtpState *s = SCMalloc(sizeof(HtpState));
-    if (s == NULL)
+    if (unlikely(s == NULL))
         goto error;
 
     memset(s, 0x00, sizeof(HtpState));
@@ -1791,7 +1791,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
     if (htud == NULL) {
         htud = SCMalloc(sizeof(HtpTxUserData));
-        if (htud == NULL) {
+        if (unlikely(htud == NULL)) {
             SCReturnInt(HOOK_OK);
         }
         memset(htud, 0, sizeof(HtpTxUserData));
@@ -1908,7 +1908,7 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
     if (htud == NULL) {
         htud = SCMalloc(sizeof(HtpTxUserData));
-        if (htud == NULL) {
+        if (unlikely(htud == NULL)) {
             SCReturnInt(HOOK_OK);
         }
         memset(htud, 0, sizeof(HtpTxUserData));

@@ -129,7 +129,7 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
 
     /* Initialize the data */
     data = SCMalloc(sizeof(DetectIPProtoData));
-    if (data == NULL)
+    if (unlikely(data == NULL))
         goto error;
     data->op = DETECT_IPPROTO_OP_EQ;
     data->proto = 0;
@@ -8867,7 +8867,7 @@ static int DetectIPProtoTestSig2(void)
     };
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);

@@ -293,7 +293,7 @@ DetectBytetestData *DetectBytetestParse(char *optstr, char **value, char **offse
 
     /* Initialize the data */
     data = SCMalloc(sizeof(DetectBytetestData));
-    if (data == NULL)
+    if (unlikely(data == NULL))
         goto error;
     data->base = DETECT_BYTETEST_BASE_UNSET;
     data->flags = 0;
@@ -1394,7 +1394,7 @@ int DetectByteTestTestPacket03(void)
     uint8_t *buf = NULL;
     uint16_t buflen = 0;
     buf = SCMalloc(4);
-    if (buf == NULL) {
+    if (unlikely(buf == NULL)) {
         printf("malloc failed\n");
         exit(EXIT_FAILURE);
     }

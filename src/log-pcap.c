@@ -378,9 +378,8 @@ TmEcode PcapLogDataDeinit(ThreadVars *t, void *data)
 OutputCtx *PcapLogInitCtx(ConfNode *conf)
 {
     PcapLogData *pl = SCMalloc(sizeof(PcapLogData));
-    if (pl == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Failed to allocate Memory for PcapLogData");
+    if (unlikely(pl == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate Memory for PcapLogData");
         exit(EXIT_FAILURE);
     }
     memset(pl, 0, sizeof(PcapLogData));
@@ -561,7 +560,7 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
     /* create the output ctx and send it back */
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (output_ctx == NULL) {
+    if (unlikely(output_ctx == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for OutputCtx.");
         exit(EXIT_FAILURE);
     }
@@ -614,7 +613,7 @@ int PcapLogOpenFileCtx(PcapLogData *pl)
 
     /* Place to store the name of our PCAP file */
     PcapFileName *pf = SCMalloc(sizeof(PcapFileName));
-    if (pf == NULL) {
+    if (unlikely(pf == NULL)) {
         return -1;
     }
     memset(pf, 0, sizeof(PcapFileName));

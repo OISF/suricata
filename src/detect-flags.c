@@ -206,7 +206,7 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
     }
 
     de = SCMalloc(sizeof(DetectFlagsData));
-    if (de == NULL)
+    if (unlikely(de == NULL))
         goto error;
 
     memset(de,0,sizeof(DetectFlagsData));
@@ -567,7 +567,7 @@ static int FlagsTestParse02 (void) {
  */
 static int FlagsTestParse03 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     int ret = 0;
@@ -622,7 +622,7 @@ error:
  */
 static int FlagsTestParse04 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     int ret = 0;
@@ -677,7 +677,7 @@ error:
  */
 static int FlagsTestParse05 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     int ret = 0;
@@ -732,7 +732,7 @@ error:
  */
 static int FlagsTestParse06 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     int ret = 0;
@@ -787,7 +787,7 @@ error:
  */
 static int FlagsTestParse07 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     int ret = 0;
@@ -842,7 +842,7 @@ error:
  */
 static int FlagsTestParse08 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     int ret = 0;
@@ -897,7 +897,7 @@ error:
  */
 static int FlagsTestParse09 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     int ret = 0;
@@ -952,7 +952,7 @@ error:
  */
 static int FlagsTestParse10 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     int ret = 0;
@@ -1007,7 +1007,7 @@ error:
  */
 static int FlagsTestParse11 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     int ret = 0;
@@ -1062,7 +1062,7 @@ error:
  */
 static int FlagsTestParse12 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     int ret = 0;
@@ -1148,7 +1148,7 @@ static int FlagsTestParse14(void)
 static int FlagsTestParse15(void)
 {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     int ret = 0;
@@ -1202,7 +1202,7 @@ error:
 static int FlagsTestParse16(void)
 {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     int ret = 0;
@@ -1259,7 +1259,7 @@ error:
 static int FlagsTestParse17(void)
 {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     int ret = 0;

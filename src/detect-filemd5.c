@@ -218,7 +218,7 @@ static DetectFileMd5Data *DetectFileMd5Parse (char *str)
 
     /* We have a correct filemd5 option */
     filemd5 = SCMalloc(sizeof(DetectFileMd5Data));
-    if (filemd5 == NULL)
+    if (unlikely(filemd5 == NULL))
         goto error;
 
     memset(filemd5, 0x00, sizeof(DetectFileMd5Data));

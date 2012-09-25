@@ -199,7 +199,7 @@ DetectFlowData *DetectFlowParse (char *flowstr)
     }
 
     fd = SCMalloc(sizeof(DetectFlowData));
-    if (fd == NULL)
+    if (unlikely(fd == NULL))
         goto error;
     fd->flags = 0;
     fd->match_cnt = 0;

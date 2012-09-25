@@ -118,7 +118,7 @@ void DetectUricontentPrint(DetectContentData *cd)
         return;
     }
     char *tmpstr = SCMalloc(sizeof(char) * cd->content_len + 1);
-    if (tmpstr == NULL)
+    if (unlikely(tmpstr == NULL))
         return;
 
     if (tmpstr != NULL) {
@@ -170,7 +170,7 @@ DetectContentData *DoDetectUricontentSetup (char *contentstr)
     }
 
     cd = SCMalloc(sizeof(DetectContentData) + len);
-    if (cd == NULL) {
+    if (unlikely(cd == NULL)) {
         SCFree(str);
         exit(EXIT_FAILURE);
     }

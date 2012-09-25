@@ -54,7 +54,7 @@
 DetectProto *DetectProtoInit(void)
 {
     DetectProto *dp = SCMalloc(sizeof(DetectProto));
-    if (dp == NULL)
+    if (unlikely(dp == NULL))
         return NULL;
     memset(dp,0,sizeof(DetectProto));
 

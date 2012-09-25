@@ -47,8 +47,8 @@ HashListTable* HashListTableInit(uint32_t size, uint32_t (*Hash)(struct HashList
 
     /* setup the filter */
     ht = SCMalloc(sizeof(HashListTable));
-    if (ht == NULL)
-        goto error;
+    if (unlikely(ht == NULL))
+    goto error;
     memset(ht,0,sizeof(HashListTable));
     ht->array_size = size;
     ht->Hash = Hash;
@@ -120,7 +120,7 @@ int HashListTableAdd(HashListTable *ht, void *data, uint16_t datalen) {
     SCLogDebug("ht %p hash %"PRIu32"", ht, hash);
 
     HashListTableBucket *hb = SCMalloc(sizeof(HashListTableBucket));
-    if (hb == NULL)
+    if (unlikely(hb == NULL))
         goto error;
     memset(hb, 0, sizeof(HashListTableBucket));
     hb->data = data;

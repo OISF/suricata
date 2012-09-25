@@ -363,7 +363,7 @@ TmEcode LogFileLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
 TmEcode LogFileLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     LogFileLogThread *aft = SCMalloc(sizeof(LogFileLogThread));
-    if (aft == NULL)
+    if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
     memset(aft, 0, sizeof(LogFileLogThread));
 
@@ -422,7 +422,7 @@ static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (output_ctx == NULL)
+    if (unlikely(output_ctx == NULL))
         return NULL;
 
     output_ctx->data = logfile_ctx;

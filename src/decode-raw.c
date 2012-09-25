@@ -84,7 +84,7 @@ static int DecodeRawTest01 (void)   {
         0x04, 0x02, 0x08, 0x0a, 0x00, 0xdd, 0x1a, 0x39,
         0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x02 };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -130,7 +130,7 @@ static int DecodeRawTest02 (void)   {
         0x02, 0x04, 0x05, 0xb4, 0x01, 0x01, 0x04, 0x02 };
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -176,7 +176,7 @@ static int DecodeRawTest03 (void)   {
         0x20, 0x6b, 0x65, 0x79, 0x3b };
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (p == NULL)
+    if (unlikely(p == NULL))
     return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
