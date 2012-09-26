@@ -2089,325 +2089,185 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
     SCReturnInt(HOOK_OK);
 }
 
+static void HTPConfigSetDefaults(HTPCfgRec *cfg_prec)
+{
+    cfg_prec->request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
+    cfg_prec->response_body_limit = HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT;
+    htp_config_register_request(cfg_prec->cfg, HTPCallbackRequest);
+    htp_config_register_response(cfg_prec->cfg, HTPCallbackResponse);
+#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
+    htp_config_register_request_uri_normalize(cfg_prec->cfg, HTPCallbackRequestUriNormalizeQuery);
+#endif
+    htp_config_set_generate_request_uri_normalized(cfg_prec->cfg, 1);
+    htp_config_register_request_body_data(cfg_prec->cfg, HTPCallbackRequestBodyData);
+    htp_config_register_response_body_data(cfg_prec->cfg, HTPCallbackResponseBodyData);
+
+    return;
+}
+
+static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *node,
+                                     SCRadixTree *tree)
+{
+    if (cfg_prec == NULL || node == NULL || tree == NULL)
+        return;
+
+    ConfNode *p = NULL;
+
+    /* Default Parameters */
+    TAILQ_FOREACH(p, &node->head, next) {
+
+        if (strcasecmp("address", p->name) == 0) {
+            ConfNode *pval;
+            /* Addresses */
+            TAILQ_FOREACH(pval, &p->head, next) {
+                SCLogDebug("LIBHTP server %s: %s=%s", s->name, p->name,
+                           pval->val);
+
+                /* IPV6 or IPV4? */
+                if (strchr(pval->val, ':') != NULL) {
+                    SCLogDebug("LIBHTP adding ipv6 server %s at %s: %p",
+                               s->name, pval->val, htp);
+                    if (SCRadixAddKeyIPV6String(pval->val, tree, cfg_prec) == NULL) {
+                        SCLogWarning(SC_ERR_INVALID_VALUE, "LIBHTP failed to "
+                                     "add ipv6 server %s, ignoring", pval->val);
+                    }
+                } else {
+                    SCLogDebug("LIBHTP adding ipv4 server %s at %s: %p",
+                               s->name, pval->val, htp);
+                    if (SCRadixAddKeyIPV4String(pval->val, tree, cfg_prec) == NULL) {
+                            SCLogWarning(SC_ERR_INVALID_VALUE, "LIBHTP failed "
+                                         "to add ipv4 server %s, ignoring",
+                                         pval->val);
+                    }
+                } /* else - if (strchr(pval->val, ':') != NULL) */
+            } /* TAILQ_FOREACH(pval, &p->head, next) */
+
+        } else if (strcasecmp("personality", p->name) == 0) {
+            /* Personalities */
+            int personality = HTPLookupPersonality(p->val);
+            SCLogDebug("LIBHTP default: %s = %s", p->name, p->val);
+            SCLogDebug("LIBHTP default: %s = %s", p->name, p->val);
+
+            if (personality >= 0) {
+                SCLogDebug("LIBHTP default: %s=%s (%d)", p->name, p->val,
+                           personality);
+                if (htp_config_set_server_personality(cfg_prec->cfg, personality) == HTP_ERROR){
+                    SCLogWarning(SC_ERR_INVALID_VALUE, "LIBHTP Failed adding "
+                                 "personality \"%s\", ignoring", p->val);
+                } else {
+                    SCLogDebug("LIBHTP personality set to %s",
+                               HTPLookupPersonalityString(personality));
+                }
+
+                /* The IDS personality by default converts the path (and due to
+                 * our query string callback also the query string) to lowercase.
+                 * Signatures do not expect this, so override it. */
+                htp_config_set_path_case_insensitive(cfg_prec->cfg, 0);
+            } else {
+                SCLogWarning(SC_ERR_UNKNOWN_VALUE, "LIBHTP Unknown personality "
+                             "\"%s\", ignoring", p->val);
+                continue;
+            }
+
+        } else if (strcasecmp("request-body-limit", p->name) == 0 ||
+                   strcasecmp("request_body_limit", p->name) == 0) {
+            if (ParseSizeStringU32(p->val, &cfg_prec->request_body_limit) < 0) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-limit "
+                           "from conf file - %s.  Killing engine", p->val);
+                exit(EXIT_FAILURE);
+            }
+
+        } else if (strcasecmp("response-body-limit", p->name) == 0) {
+            if (ParseSizeStringU32(p->val, &cfg_prec->response_body_limit) < 0) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-limit "
+                           "from conf file - %s.  Killing engine", p->val);
+                exit(EXIT_FAILURE);
+            }
+
+        } else if (strcasecmp("double-decode-path", p->name) == 0) {
+            if (ConfValIsTrue(p->val)) {
+#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
+                htp_config_register_request_uri_normalize(cfg_prec->cfg,
+                                                          HTPCallbackRequestUriNormalizePath);
+#else
+                SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "\"double-decode-path\" "
+                             "option requires at least libhtp version 0.2.5");
+#endif
+            } /* if */
+
+        } else if (strcasecmp("double-decode-query", p->name) == 0) {
+            if (ConfValIsTrue(p->val)) {
+#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
+                htp_config_register_request_uri_normalize(cfg_prec->cfg,
+                                                          HTPCallbackRequestUriNormalizeQuery);
+#else
+                SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "\"double-decode-query\" "
+                             "option requires at least libhtp version 0.2.5");
+#endif
+            } /* if */
+
+        } else {
+            SCLogWarning(SC_ERR_UNKNOWN_VALUE, "LIBHTP Ignoring unknown "
+                         "default config: %s", p->name);
+        }
+    } /* TAILQ_FOREACH(p, &default_config->head, next) */
+
+    return;
+}
+
 static void HTPConfigure(void)
 {
     SCEnter();
-    ConfNode *default_config;
-    ConfNode *server_config;
 
     cfglist.next = NULL;
 
     cfgtree = SCRadixCreateRadixTree(NULL, NULL);
-    if (NULL == cfgtree) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error initializing HTP config tree");
-
-        if (SCLogDebugEnabled()) {
-            abort();
-        }
-        else {
-            exit(EXIT_FAILURE);
-        }
-    }
+    if (NULL == cfgtree)
+        exit(EXIT_FAILURE);
 
     /* Default Config */
     cfglist.cfg = htp_config_create();
     if (NULL == cfglist.cfg) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to create HTP default config");
-
-        if (SCLogDebugEnabled()) {
-            abort();
-        }
-        else {
-            exit(EXIT_FAILURE);
-        }
+        exit(EXIT_FAILURE);
     }
-
     SCLogDebug("LIBHTP default config: %p", cfglist.cfg);
-
-    cfglist.request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
-    cfglist.response_body_limit = HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT;
-    htp_config_register_request(cfglist.cfg, HTPCallbackRequest);
-    htp_config_register_response(cfglist.cfg, HTPCallbackResponse);
-#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
-    htp_config_register_request_uri_normalize(cfglist.cfg,
-            HTPCallbackRequestUriNormalizeQuery);
-#endif
-    htp_config_set_generate_request_uri_normalized(cfglist.cfg, 1);
-    htp_config_register_request_body_data(cfglist.cfg,
-                                          HTPCallbackRequestBodyData);
-    htp_config_register_response_body_data(cfglist.cfg,
-                                           HTPCallbackResponseBodyData);
-
-    default_config = ConfGetNode("libhtp.default-config");
-    if (NULL != default_config) {
-        ConfNode *p = NULL;
-
-        /* Default Parameters */
-        TAILQ_FOREACH(p, &default_config->head, next) {
-            //ConfNode *pval;
-
-            if (strcasecmp("personality", p->name) == 0) {
-                /* Personalities */
-                int personality = HTPLookupPersonality(p->val);
-
-                SCLogDebug("LIBHTP default: %s=%s",
-                        p->name, p->val);
-
-                SCLogDebug("LIBHTP default: %s=%s",
-                        p->name, p->val);
-
-                if (personality >= 0) {
-                    SCLogDebug("LIBHTP default: %s=%s (%d)",
-                            p->name, p->val,
-                            personality);
-                    if (htp_config_set_server_personality(cfglist.cfg,
-                                personality) == HTP_ERROR)
-                    {
-                        SCLogWarning(SC_ERR_INVALID_VALUE,
-                                "LIBHTP Failed adding personality "
-                                "\"%s\", ignoring", p->val);
-                    } else {
-                        SCLogDebug("LIBHTP personality set to %s",
-                                HTPLookupPersonalityString(personality));
-                    }
-
-                    /* The IDS personality by default converts the path (and due to
-                     * our query string callback also the query string) to lowercase.
-                     * Signatures do not expect this, so override it. */
-                    htp_config_set_path_case_insensitive(cfglist.cfg, 0);
-                }
-                else {
-                    SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                            "LIBHTP Unknown personality "
-                            "\"%s\", ignoring", p->val);
-                    continue;
-                }
-            } else if (strcasecmp("request-body-limit", p->name) == 0 ||
-                       strcasecmp("request_body_limit", p->name) == 0) {
-
-                if (ParseSizeStringU32(p->val, &cfglist.request_body_limit) < 0) {
-                    SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-limit "
-                               "from conf file - %s.  Killing engine",
-                               p->val);
-                    exit(EXIT_FAILURE);
-                }
-            } else if (strcasecmp("response-body-limit", p->name) == 0) {
-                if (ParseSizeStringU32(p->val, &cfglist.response_body_limit) < 0) {
-                    SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-limit "
-                               "from conf file - %s.  Killing engine",
-                               p->val);
-                    exit(EXIT_FAILURE);
-                }
-            } else if (strcasecmp("double-decode-path", p->name) == 0) {
-                if (ConfValIsTrue(p->val)) {
-#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
-                    htp_config_register_request_uri_normalize(cfglist.cfg,
-                            HTPCallbackRequestUriNormalizePath);
-#else
-                    SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "\"double-decode-path\" "
-                            "option requires at least libhtp version 0.2.5");
-#endif
-                }
-            } else if (strcasecmp("double-decode-query", p->name) == 0) {
-                if (ConfValIsTrue(p->val)) {
-#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
-                    htp_config_register_request_uri_normalize(cfglist.cfg,
-                            HTPCallbackRequestUriNormalizeQuery);
-#else
-                    SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "\"double-decode-query\" "
-                            "option requires at least libhtp version 0.2.5");
-#endif
-                }
-            } else {
-                SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                        "LIBHTP Ignoring unknown default config: %s",
-                        p->name);
-            }
-        }
-    }
+    HTPConfigSetDefaults(&cfglist);
+    HTPConfigParseParameters(&cfglist, ConfGetNode("libhtp.default-config"),
+                             cfgtree);
 
     /* Read server config and create a parser for each IP in radix tree */
-    server_config = ConfGetNode("libhtp.server-config");
+    ConfNode *server_config = ConfGetNode("libhtp.server-config");
     SCLogDebug("LIBHTP Configuring %p", server_config);
-    if (server_config != NULL) {
-        ConfNode *si;
-        ConfNode *s;
-        HTPCfgRec *htprec;
-        HTPCfgRec *nextrec;
-        htp_cfg_t *htp;
+    if (server_config == NULL)
+        SCReturn;
 
-        /* Server Nodes */
-        TAILQ_FOREACH(si, &server_config->head, next) {
-            ConfNode *p = NULL;
-
-            /* Need the named node, not the index */
-            s = TAILQ_FIRST(&si->head);
-            if (NULL == s) {
-                SCLogDebug("LIBHTP s NULL");
-                continue;
-            }
-
-            SCLogDebug("LIBHTP server %s", s->name);
-
-            nextrec = cfglist.next;
-            htprec = cfglist.next = SCMalloc(sizeof(HTPCfgRec));
-            if (NULL == htprec) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Failed to create HTP server config rec");
-                if (SCLogDebugEnabled()) {
-                    abort();
-                }
-                else {
-                    exit(EXIT_FAILURE);
-                }
-            }
-
-            cfglist.next->next = nextrec;
-            htp = cfglist.next->cfg = htp_config_create();
-            if (NULL == htp) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Failed to create HTP server config");
-                if (SCLogDebugEnabled()) {
-                    abort();
-                }
-                else {
-                    exit(EXIT_FAILURE);
-                }
-            }
-
-            htprec->request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
-            htprec->response_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
-            htp_config_register_request(htp, HTPCallbackRequest);
-            htp_config_register_response(htp, HTPCallbackResponse);
-            htp_config_register_request_body_data(htp,
-                                                  HTPCallbackRequestBodyData);
-            htp_config_register_response_body_data(htp,
-                                                   HTPCallbackResponseBodyData);
-#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
-            htp_config_register_request_uri_normalize(htp,
-                    HTPCallbackRequestUriNormalizeQuery);
-#endif
-            htp_config_set_generate_request_uri_normalized(htp, 1);
-
-            /* Server Parameters */
-            TAILQ_FOREACH(p, &s->head, next) {
-                ConfNode *pval;
-
-                if (strcasecmp("address", p->name) == 0) {
-
-                    /* Addresses */
-                    TAILQ_FOREACH(pval, &p->head, next) {
-                        SCLogDebug("LIBHTP server %s: %s=%s",
-                                   s->name, p->name, pval->val);
-
-                        /* IPV6 or IPV4? */
-                        if (strchr(pval->val, ':') != NULL) {
-                            SCLogDebug("LIBHTP adding ipv6 server %s at %s: %p",
-                                       s->name, pval->val, htp);
-                            if (SCRadixAddKeyIPV6String(pval->val,
-                                                        cfgtree, htprec) == NULL)
-                            {
-                                SCLogWarning(SC_ERR_INVALID_VALUE,
-                                             "LIBHTP failed to add "
-                                             "ipv6 server %s, ignoring",
-                                             pval->val);
-                            }
-                        } else {
-                            SCLogDebug("LIBHTP adding ipv4 server %s at %s: %p",
-                                       s->name, pval->val, htp);
-                            if (SCRadixAddKeyIPV4String(pval->val,
-                                                        cfgtree, htprec) == NULL)
-                            {
-                                SCLogWarning(SC_ERR_INVALID_VALUE,
-                                             "LIBHTP failed to add "
-                                             "ipv4 server %s, ignoring",
-                                             pval->val);
-                            }
-                        }
-                    }
-                } else if (strcasecmp("personality", p->name) == 0) {
-                    /* Personalitie */
-                    int personality = HTPLookupPersonality(p->val);
-
-                    SCLogDebug("LIBHTP server %s: %s=%s",
-                            s->name, p->name, p->val);
-
-                    SCLogDebug("LIBHTP server %s: %s=%s",
-                            s->name, p->name, p->val);
-
-                    if (personality >= 0) {
-                        SCLogDebug("LIBHTP %s: %s=%s (%d)",
-                                s->name, p->name, p->val,
-                                personality);
-                        if (htp_config_set_server_personality(htp,
-                                    personality) == HTP_ERROR)
-                        {
-                            SCLogWarning(SC_ERR_INVALID_VALUE,
-                                    "LIBHTP Failed adding personality "
-                                    "\"%s\", ignoring", p->val);
-                        } else {
-                            SCLogDebug("LIBHTP personality set to %s",
-                                    HTPLookupPersonalityString(personality));
-                        }
-
-                        /* The IDS personality by default converts the path (and due to
-                         * our query string callback also the query string) to lowercase.
-                         * Signatures do not expect this, so override it. */
-                        htp_config_set_path_case_insensitive(htp, 0);
-                    }
-                    else {
-                        SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                                "LIBHTP Unknown personality "
-                                "\"%s\", ignoring", p->val);
-                        continue;
-                    }
-
-                /* VJ the non underscore version was a typo but keeping it for
-                 * compatibility with existing installs */
-                } else if (strcasecmp("request-body-limit", p->name) == 0 ||
-                           strcasecmp("request_body_limit", p->name) == 0) {
-                    /* limit */
-                    SCLogDebug("LIBHTP default: %s=%s",
-                            p->name, p->val);
-
-                    if (ParseSizeStringU32(p->val, &htprec->request_body_limit) < 0) {
-                        SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-limit "
-                                   "from conf file - %s.  Killing engine",
-                                   p->val);
-                        exit(EXIT_FAILURE);
-                    }
-                } else if (strcasecmp("response-body-limit", p->name) == 0) {
-                    if (ParseSizeStringU32(p->val, &htprec->response_body_limit) < 0) {
-                        SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-limit "
-                                   "from conf file - %s.  Killing engine",
-                                   p->val);
-                        exit(EXIT_FAILURE);
-                    }
-                } else if (strcasecmp("double-decode-path", p->name) == 0) {
-                    if (ConfValIsTrue(p->val)) {
-#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
-                        htp_config_register_request_uri_normalize(htp,
-                                HTPCallbackRequestUriNormalizePath);
-#else
-                        SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "\"double-decode-path\" "
-                                "option requires at least libhtp version 0.2.5");
-#endif
-                    }
-                } else if (strcasecmp("double-decode-query", p->name) == 0) {
-                    if (ConfValIsTrue(p->val)) {
-#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
-                        htp_config_register_request_uri_normalize(htp,
-                                HTPCallbackRequestUriNormalizeQuery);
-#else
-                        SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "\"double-decode-query\" "
-                                "option requires at least libhtp version 0.2.5");
-#endif
-                    }
-                } else {
-                    SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                                 "LIBHTP Ignoring unknown server config: %s",
-                                 p->name);
-                }
-            }
+    ConfNode *si;
+    /* Server Nodes */
+    TAILQ_FOREACH(si, &server_config->head, next) {
+        /* Need the named node, not the index */
+        ConfNode *s = TAILQ_FIRST(&si->head);
+        if (NULL == s) {
+            SCLogDebug("LIBHTP s NULL");
+            continue;
         }
+
+        SCLogDebug("LIBHTP server %s", s->name);
+
+        HTPCfgRec *nextrec = cfglist.next;
+        HTPCfgRec *htprec = cfglist.next = SCMalloc(sizeof(HTPCfgRec));
+        if (NULL == htprec)
+            exit(EXIT_FAILURE);
+        cfglist.next->next = nextrec;
+        cfglist.next->cfg = htp_config_create();
+        if (NULL == cfglist.next->cfg) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed to create HTP server config");
+            exit(EXIT_FAILURE);
+        }
+
+
+        HTPConfigSetDefaults(htprec);
+        HTPConfigParseParameters(htprec, s, cfgtree);
     }
 
     SCReturn;
