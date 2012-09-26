@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,24 +15,18 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
+/** \file
  *
- * \author Anoop Saldanha <anoopsaldanha@gmail.com>
+ *  \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __FLOW_MANAGER_H__
-#define __FLOW_MANAGER_H__
+#ifndef __RUNMODE_UNIX_SOCKET_H__
+#define __RUNMODE_UNIX_SOCKET_H__
 
-/** flow manager scheduling condition */
-SCCondT flow_manager_cond;
-SCMutex flow_manager_mutex;
-#define FlowWakeupFlowManagerThread() SCCondSignal(&flow_manager_cond)
+int RunModeUnixSocketSingle(DetectEngineCtx *);
+void RunModeUnixSocketRegister(void);
+const char *RunModeUnixSocketGetDefaultMode(void);
 
-void FlowManagerThreadSpawn(void);
-void FlowKillFlowManagerThread(void);
-void FlowMgrRegisterTests (void);
+int RunModeUnixSocketIsActive(void);
 
-void FlowManagerClean();
-
-#endif /* __FLOW_MANAGER_H__ */
+#endif /* __RUNMODE_UNIX_SOCKET_H__ */
