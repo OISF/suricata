@@ -43,19 +43,20 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-static int DetectPktdataSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectPktDataSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectPktDataTestRegister(void);
 
 /**
  * \brief Registration function for keyword: file_data
  */
-void DetectPktdataRegister(void) {
+void DetectPktDataRegister(void) {
     sigmatch_table[DETECT_PKT_DATA].name = "pkt_data";
     sigmatch_table[DETECT_PKT_DATA].Match = NULL;
     sigmatch_table[DETECT_PKT_DATA].AppLayerMatch = NULL;
     sigmatch_table[DETECT_PKT_DATA].alproto = ALPROTO_HTTP;
-    sigmatch_table[DETECT_PKT_DATA].Setup = DetectPktdataSetup;
+    sigmatch_table[DETECT_PKT_DATA].Setup = DetectPktDataSetup;
     sigmatch_table[DETECT_PKT_DATA].Free  = NULL;
-    sigmatch_table[DETECT_PKT_DATA].RegisterTests = NULL;
+    sigmatch_table[DETECT_PKT_DATA].RegisterTests = DetectPktDataTestRegister;
 }
 
 /**
@@ -83,7 +84,7 @@ static int DetectPktDataSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 
 /************************************Unittests*********************************/
 
-static int DetectPktdataTest01(void)
+static int DetectPktDataTest01(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -122,7 +123,7 @@ static int DetectPktdataTest01(void)
     }
     
     
-    if (sig->init_flags && SIG_FLAG_INIT_FILE_DATA) {
+    if (sig->init_flags & SIG_FLAG_INIT_FILE_DATA) {
         goto end;
     }
 
@@ -133,4 +134,10 @@ end:
     DetectEngineCtxFree(de_ctx);
 
     return result;
+}
+
+static int DetectPktDataTestRegister(void){
+#ifdef UNITTESTS
+    UtRegisterTest("DetectPktDataTest01", DetectPktDataTest01, 1);
+#endif
 }
