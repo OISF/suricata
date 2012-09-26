@@ -95,13 +95,21 @@ static int DetectPktDataTest01(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
+
     Signature *sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(pkt_data;)");
-    de_ctx->sig_list = sig;
-    if (de_ctx->sig_list == NULL) {
+                               "(file_data; content:\"in file data\";"
+                               " pkt_data; content:\"in pkt data\";)");
+    if (sig == NULL) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE,"could not load test signature");
         goto end;
     }
 
+
+    if(de_ctx->sig_list == NULL){
+        SCLogError(SC_ERR_NO_RULES_LOADED,"there are no sig_lists");
+        goto end;
+    }
+    
     /* sm should not be in the MATCH list */
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_MATCH];
     if (sm != NULL) {
@@ -112,7 +120,7 @@ static int DetectPktDataTest01(void)
     if (sm == NULL) {
         goto end;
     }
-
+    
     if (sm->type != DETECT_CONTENT) {
         printf("sm type not DETECT_AL_HTTP_SERVER_BODY: ");
         goto end;
