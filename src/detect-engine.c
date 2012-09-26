@@ -502,7 +502,7 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
 
     if (de_ctx_custom != NULL) {
         TAILQ_FOREACH(opt, &de_ctx_custom->head, next) {
-            if (strncmp(opt->val, "profile", 3) == 0) {
+            if (strcmp(opt->val, "profile") == 0) {
                 de_ctx_profile = opt->head.tqh_first->val;
             } else if (strcmp(opt->val, "sgh-mpm-context") == 0) {
                 sgh_mpm_context = opt->head.tqh_first->val;
@@ -511,13 +511,13 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
     }
 
     if (de_ctx_profile != NULL) {
-        if (strncmp(de_ctx_profile, "low", 3) == 0) {
+        if (strcmp(de_ctx_profile, "low") == 0) {
             profile = ENGINE_PROFILE_LOW;
-        } else if (strncmp(de_ctx_profile, "medium", 6) == 0) {
+        } else if (strcmp(de_ctx_profile, "medium") == 0) {
             profile = ENGINE_PROFILE_MEDIUM;
-        } else if (strncmp(de_ctx_profile, "high", 4) == 0) {
+        } else if (strcmp(de_ctx_profile, "high") == 0) {
             profile = ENGINE_PROFILE_HIGH;
-        } else if (strncmp(de_ctx_profile, "custom", 4) == 0) {
+        } else if (strcmp(de_ctx_profile, "custom") == 0) {
             profile = ENGINE_PROFILE_CUSTOM;
         }
 
