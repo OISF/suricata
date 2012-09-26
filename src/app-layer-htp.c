@@ -2105,16 +2105,16 @@ static void HTPConfigSetDefaults(HTPCfgRec *cfg_prec)
     return;
 }
 
-static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *node,
+static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                                      SCRadixTree *tree)
 {
-    if (cfg_prec == NULL || node == NULL || tree == NULL)
+    if (cfg_prec == NULL || s == NULL || tree == NULL)
         return;
 
     ConfNode *p = NULL;
 
     /* Default Parameters */
-    TAILQ_FOREACH(p, &node->head, next) {
+    TAILQ_FOREACH(p, &s->head, next) {
 
         if (strcasecmp("address", p->name) == 0) {
             ConfNode *pval;
@@ -2126,14 +2126,14 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *node,
                 /* IPV6 or IPV4? */
                 if (strchr(pval->val, ':') != NULL) {
                     SCLogDebug("LIBHTP adding ipv6 server %s at %s: %p",
-                               s->name, pval->val, htp);
+                               s->name, pval->val, cfg_prec->cfg);
                     if (SCRadixAddKeyIPV6String(pval->val, tree, cfg_prec) == NULL) {
                         SCLogWarning(SC_ERR_INVALID_VALUE, "LIBHTP failed to "
                                      "add ipv6 server %s, ignoring", pval->val);
                     }
                 } else {
                     SCLogDebug("LIBHTP adding ipv4 server %s at %s: %p",
-                               s->name, pval->val, htp);
+                               s->name, pval->val, cfg_prec->cfg);
                     if (SCRadixAddKeyIPV4String(pval->val, tree, cfg_prec) == NULL) {
                             SCLogWarning(SC_ERR_INVALID_VALUE, "LIBHTP failed "
                                          "to add ipv4 server %s, ignoring",
@@ -2206,6 +2206,118 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *node,
 #endif
             } /* if */
 
+        } else if (strcasecmp("path-backslash-separators", p->name) == 0) {
+            if (ConfValIsTrue(p->val))
+                htp_config_set_path_backslash_separators(cfg_prec->cfg, 1);
+            else
+                htp_config_set_path_backslash_separators(cfg_prec->cfg, 0);
+        } else if (strcasecmp("path-compress-separators", p->name) == 0) {
+            if (ConfValIsTrue(p->val))
+                htp_config_set_path_compress_separators(cfg_prec->cfg, 1);
+            else
+                htp_config_set_path_compress_separators(cfg_prec->cfg, 0);
+        } else if (strcasecmp("path-control-char-handling", p->name) == 0) {
+            if (strcasecmp(p->val, "none") == 0) {
+                htp_config_set_path_control_char_handling(cfg_prec->cfg, NONE);
+            } else if (strcasecmp(p->val, "status_400") == 0) {
+                htp_config_set_path_control_char_handling(cfg_prec->cfg,
+                                                          STATUS_400);
+            } else {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
+                           "for libhtp param path-control-char-handling");
+            }
+        } else if (strcasecmp("path-convert-utf8", p->name) == 0) {
+            if (ConfValIsTrue(p->val))
+                htp_config_set_path_convert_utf8(cfg_prec->cfg, 1);
+            else
+                htp_config_set_path_convert_utf8(cfg_prec->cfg, 0);
+        } else if (strcasecmp("path-decode-separators", p->name) == 0) {
+            if (ConfValIsTrue(p->val))
+                htp_config_set_path_decode_separators(cfg_prec->cfg, 1);
+            else
+                htp_config_set_path_decode_separators(cfg_prec->cfg, 0);
+        } else if (strcasecmp("path-decode-u-encoding", p->name) == 0) {
+            if (ConfValIsTrue(p->val))
+                htp_config_set_path_decode_u_encoding(cfg_prec->cfg, 1);
+            else
+                htp_config_set_path_decode_u_encoding(cfg_prec->cfg, 0);
+        } else if (strcasecmp("path-invalid-encoding-handling", p->name) == 0) {
+            if (strcasecmp(p->val, "preserve_percent") == 0) {
+                htp_config_set_path_invalid_encoding_handling(cfg_prec->cfg,
+                                                              URL_DECODER_PRESERVE_PERCENT);
+            } else if (strcasecmp(p->val, "remove_percent") == 0) {
+                htp_config_set_path_invalid_encoding_handling(cfg_prec->cfg,
+                                                              URL_DECODER_REMOVE_PERCENT);
+            } else if (strcasecmp(p->val, "decode_invalid") == 0) {
+                htp_config_set_path_invalid_encoding_handling(cfg_prec->cfg,
+                                                              URL_DECODER_DECODE_INVALID);
+            } else if (strcasecmp(p->val, "status_400") == 0) {
+                htp_config_set_path_invalid_encoding_handling(cfg_prec->cfg,
+                                                              STATUS_400);
+            } else {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
+                           "for libhtp param path-invalid-encoding-handling");
+            }
+        } else if (strcasecmp("path-invalid-utf8-handling", p->name) == 0) {
+            if (strcasecmp(p->val, "none") == 0) {
+                htp_config_set_path_invalid_utf8_handling(cfg_prec->cfg, NONE);
+            } else if (strcasecmp(p->val, "status_400") == 0) {
+                htp_config_set_path_invalid_utf8_handling(cfg_prec->cfg,
+                                                          STATUS_400);
+            } else {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
+                           "for libhtp param path-invalid-utf8-handling");
+            }
+        } else if (strcasecmp("path-nul-encoded-handling", p->name) == 0) {
+            if (strcasecmp(p->val, "terminate") == 0) {
+                htp_config_set_path_nul_encoded_handling(cfg_prec->cfg,
+                                                         TERMINATE);
+            } else if (strcasecmp(p->val, "status_400") == 0) {
+                htp_config_set_path_nul_encoded_handling(cfg_prec->cfg,
+                                                         STATUS_400);
+            } else if (strcasecmp(p->val, "status_404") == 0) {
+                htp_config_set_path_nul_encoded_handling(cfg_prec->cfg,
+                                                         STATUS_404);
+            } else {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
+                           "for libhtp param path-nul-encoded-handling");
+            }
+        } else if (strcasecmp("path-nul-raw-handling", p->name) == 0) {
+            if (strcasecmp(p->val, "terminate") == 0) {
+                htp_config_set_path_nul_raw_handling(cfg_prec->cfg,
+                                                     TERMINATE);
+            } else if (strcasecmp(p->val, "status_400") == 0) {
+                htp_config_set_path_nul_raw_handling(cfg_prec->cfg,
+                                                     STATUS_400);
+            } else if (strcasecmp(p->val, "status_404") == 0) {
+                htp_config_set_path_nul_raw_handling(cfg_prec->cfg,
+                                                     STATUS_404);
+            } else {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
+                           "for libhtp param path-nul-raw-handling");
+            }
+        } else if (strcasecmp("path-replacement-char", p->name) == 0) {
+            if (strlen(p->val) == 1) {
+                htp_config_set_path_replacement_char(cfg_prec->cfg,
+                                                     p->val[0]);
+            } else {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
+                           "for libhtp param set-path-replacement-char");
+            }
+        } else if (strcasecmp("path-unicode-mapping", p->name) == 0) {
+            if (strcasecmp(p->val, "bestfit") == 0) {
+                htp_config_set_path_unicode_mapping(cfg_prec->cfg,
+                                                    BESTFIT);
+            } else if (strcasecmp(p->val, "status_400") == 0) {
+                htp_config_set_path_unicode_mapping(cfg_prec->cfg,
+                                                    STATUS_400);
+            } else if (strcasecmp(p->val, "status_404") == 0) {
+                htp_config_set_path_unicode_mapping(cfg_prec->cfg,
+                                                    STATUS_404);
+            } else {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
+                           "for libhtp param set-path-unicode-mapping");
+            }
         } else {
             SCLogWarning(SC_ERR_UNKNOWN_VALUE, "LIBHTP Ignoring unknown "
                          "default config: %s", p->name);
@@ -3805,6 +3917,77 @@ end:
     return result;
 }
 
+int HTPParserConfigTest04(void)
+{
+    int result = 0;
+
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: IDS\n\
+    path-control-char-handling: status_400\n\
+    path-convert-utf8: yes\n\
+    path-invalid-encoding-handling: remove_percent\n\
+\n\
+  server-config:\n\
+\n\
+    - apache-tomcat:\n\
+        personality: Tomcat_6_0\n\
+        path-invalid-utf8-handling: none\n\
+        path-nul-encoded-handling: status_404\n\
+        path-nul-raw-handling: status_400\n\
+\n\
+    - iis7:\n\
+        personality: IIS_7_0\n\
+        path-replacement-char: o\n\
+        path-unicode-mapping: status_400\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    HtpConfigCreateBackup();
+
+    ConfYamlLoadString(input, strlen(input));
+
+    HTPConfigure();
+
+    HTPCfgRec *cfg_rec = &cfglist;
+    if (cfg_rec->cfg->path_control_char_handling != STATUS_400 ||
+        cfg_rec->cfg->path_convert_utf8 != 1 ||
+        cfg_rec->cfg->path_invalid_encoding_handling != URL_DECODER_REMOVE_PERCENT) {
+        printf("failed 1\n");
+        goto end;
+    }
+
+    cfg_rec = cfg_rec->next;
+    if (cfg_rec->cfg->path_replacement_char != 'o' ||
+        cfg_rec->cfg->path_unicode_mapping != STATUS_400) {
+        printf("failed 2\n");
+        goto end;
+    }
+
+    cfg_rec = cfg_rec->next;
+    if (cfg_rec->cfg->path_invalid_utf8_handling != NONE ||
+        cfg_rec->cfg->path_nul_encoded_handling != STATUS_404 ||
+        cfg_rec->cfg->path_nul_raw_handling != STATUS_400) {
+        printf("failed 3\n");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    HTPFreeConfig();
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
+
+    return result;
+}
+
 /** \test Test %2f decoding in profile Apache_2_2
  *
  *        %2f in path is left untouched
@@ -4395,6 +4578,7 @@ void HTPParserRegisterTests(void) {
     UtRegisterTest("HTPParserConfigTest01", HTPParserConfigTest01, 1);
     UtRegisterTest("HTPParserConfigTest02", HTPParserConfigTest02, 1);
     UtRegisterTest("HTPParserConfigTest03", HTPParserConfigTest03, 1);
+    UtRegisterTest("HTPParserConfigTest04", HTPParserConfigTest04, 1);
 
     UtRegisterTest("HTPParserDecodingTest01", HTPParserDecodingTest01, 1);
     UtRegisterTest("HTPParserDecodingTest02", HTPParserDecodingTest02, 1);
