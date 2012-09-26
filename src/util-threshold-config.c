@@ -728,15 +728,18 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
                 sig->flags |= SIG_FLAG_NOALERT;
                 goto end;
             }
-            if (parsed_type != TYPE_SUPPRESS) {
+
+            if (parsed_type != TYPE_SUPPRESS && parsed_type != TYPE_THRESHOLD &&
+                parsed_type != TYPE_BOTH && parsed_type != TYPE_LIMIT)
+            {
                 m = SigMatchGetLastSMFromLists(sig, 2,
                         DETECT_THRESHOLD, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
                 if (m != NULL) {
                     SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
-                            "an event var set.  The signature event var is "
-                            "given precedence over the threshold.conf one.  "
-                            "We'll change this in the future though.", id);
+                            "a threshold set. The signature event var is "
+                            "given precedence over the threshold.conf one. "
+                            "Bug #425.", sig->id);
                     goto end;
                 }
 
@@ -745,10 +748,24 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
 
                 if (m != NULL) {
                     SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
-                            "an event var set.  The signature event var is "
-                            "given precedence over the threshold.conf one.  "
-                            "We'll change this in the future though.", id);
+                            "a detection_filter set. The signature event var is "
+                            "given precedence over the threshold.conf one. "
+                            "Bug #425.", sig->id);
                     goto end;
+                }
+
+            /* replace threshold on sig if we have a global override for it */
+            } else if (parsed_type == TYPE_THRESHOLD || parsed_type == TYPE_BOTH || parsed_type == TYPE_LIMIT) {
+                m = SigMatchGetLastSMFromLists(sig, 2,
+                        DETECT_THRESHOLD, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+                if (m == NULL) {
+                    m = SigMatchGetLastSMFromLists(sig, 2,
+                            DETECT_DETECTION_FILTER, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+                }
+                if (m != NULL) {
+                    SigMatchRemoveSMFromList(sig, m, DETECT_SM_LIST_THRESHOLD);
+                    SigMatchFree(m);
+                    m = NULL;
                 }
             }
 
@@ -803,7 +820,6 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
 
             SigMatchAppendSMToList(sig, sm, DETECT_SM_LIST_THRESHOLD);
         }
-
     }
 
 end:
