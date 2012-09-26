@@ -29,6 +29,7 @@
 #include "runmodes.h"
 #include "conf.h"
 #include "flow-manager.h"
+#include "stream-tcp.h"
 
 #include "util-privs.h"
 #include "util-debug.h"
@@ -383,6 +384,7 @@ int UnixPcapFilesHandle(UnixCommand *this)
         FlowKillFlowManagerThread();
         FlowShutdown();
         HostShutdown();
+        StreamTcpFreeConfig(STREAM_VERBOSE);
         RunModeShutDown();
         TmThreadKillThreadsFamily(TVT_PPT);
         TmThreadClearThreadsFamily(TVT_PPT);
@@ -412,6 +414,7 @@ int UnixPcapFilesHandle(UnixCommand *this)
         HostInitConfig(HOST_QUIET);
         FlowInitConfig(FLOW_QUIET);
         FlowManagerThreadSpawn();
+        StreamTcpInitConfig(STREAM_VERBOSE);
         SCPerfSpawnThreads();
         /* Un-pause all the paused threads */
         TmThreadContinueThreads();

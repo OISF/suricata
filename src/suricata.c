@@ -1899,9 +1899,8 @@ int main(int argc, char **argv)
         }
         /* Spawn the flow manager thread */
         FlowManagerThreadSpawn();
+        StreamTcpInitConfig(STREAM_VERBOSE);
     }
-
-    StreamTcpInitConfig(STREAM_VERBOSE);
 
     /* Spawn the L7 App Detect thread */
     //AppLayerDetectProtoThreadSpawn();
@@ -2014,10 +2013,13 @@ int main(int argc, char **argv)
 
     TmThreadKillThreads();
 
-    SCPerfReleaseResources();
-    FlowShutdown();
-    HostShutdown();
-    StreamTcpFreeConfig(STREAM_VERBOSE);
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        SCPerfReleaseResources();
+        FlowShutdown();
+        HostShutdown();
+        StreamTcpFreeConfig(STREAM_VERBOSE);
+    }
+
     HTPFreeConfig();
     HTPAtExitPrintStats();
 
