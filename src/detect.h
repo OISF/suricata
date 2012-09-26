@@ -264,6 +264,8 @@ typedef struct DetectPort_ {
 
 #define SIG_FLAG_TLSSTORE               (1<<21)
 
+#define SIG_FLAG_PESCAN                 (1<<22) /**< signature has pescan keyword */
+
 /* signature init flags */
 #define SIG_FLAG_INIT_DEONLY         1  /**< decode event only signature */
 #define SIG_FLAG_INIT_PACKET         (1<<1)  /**< signature has matches against a packet (as opposed to app layer) */
@@ -876,6 +878,7 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_MPM_HUAD         (1 << 18)
 #define SIG_GROUP_HEAD_HAVEFILEMD5      (1 << 19)
 #define SIG_GROUP_HEAD_HAVEFILESIZE     (1 << 20)
+#define SIG_GROUP_HEAD_HAVEPESCAN       (1 << 21)
 
 typedef struct SigGroupHeadInitData_ {
     /* list of content containers
@@ -1083,6 +1086,8 @@ enum {
     DETECT_L3PROTO,
     DETECT_LUAJIT,
 
+    DETECT_PESCAN,
+
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };
@@ -1120,6 +1125,7 @@ int SignatureIsFilestoring(Signature *);
 int SignatureIsFilemagicInspecting(Signature *);
 int SignatureIsFileMd5Inspecting(Signature *);
 int SignatureIsFilesizeInspecting(Signature *);
+int SignatureIsPEScanning(Signature *);
 
 int DetectRegisterThreadCtxFuncs(DetectEngineCtx *, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *));
 void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *, int);

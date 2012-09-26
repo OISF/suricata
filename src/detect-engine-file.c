@@ -52,10 +52,10 @@
 #include "app-layer-dcerpc-common.h"
 #include "app-layer-dcerpc.h"
 
+#include "util-pescan.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-profiling.h"
-
 
 /**
  *  \brief Inspect the file inspecting keywords.
@@ -85,6 +85,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     if (ffc != NULL) {
         File *file = ffc->head;
         for (; file != NULL; file = file->next) {
+
             SCLogDebug("file");
 
             if (file->state == FILE_STATE_NONE) {
@@ -96,6 +97,17 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                 SCLogDebug("file->txid < det_ctx->tx_id == %u < %u", file->txid, det_ctx->tx_id);
                 continue;
             }
+
+	    /* PESCAN support detection on multiple files in the same flow */
+	    if (s->flags & SIG_FLAG_PESCAN) {
+
+		/* If file is large, then wait for at least N bytes before processing */
+		if (file->state == FILE_STATE_OPENED && file->size < PEScanGetConfig()->wait_scan_bytes) {
+		    SCLogDebug("need more data to run pescan");
+		    r = 0;
+		    break;
+		}
+	    }
 
             if (file->txid > det_ctx->tx_id) {
                 SCLogDebug("file->txid > det_ctx->tx_id == %u > %u", file->txid, det_ctx->tx_id);
@@ -159,6 +171,11 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
              * return 3 so we can distinguish */
             if (s->flags & SIG_FLAG_FILESTORE && r == 2)
                 r = 3;
+
+	    /* if this is a pescan sig w/out filestore, then a lack of a match means we can keep scanning more files in this flow */
+	    if (s->flags & SIG_FLAG_PESCAN && !(s->flags & SIG_FLAG_FILESTORE) && r == 2) {
+		r = 0;
+	    }
 
             /* continue, this file may (or may not) be unable to match
              * maybe we have more that can :) */

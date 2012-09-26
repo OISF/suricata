@@ -99,6 +99,7 @@
 #include "detect-filemagic.h"
 #include "detect-filemd5.h"
 #include "detect-filesize.h"
+#include "detect-pescan.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
 #include "detect-flowint.h"
@@ -1923,6 +1924,14 @@ end:
                     FileDisableStoring(p->flow, STREAM_TOSERVER);
                 }
 
+                /* see if this sgh requires us to consider file pe-scanning */
+                if (p->flow->sgh_toserver == NULL ||
+                            !(p->flow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEPESCAN))
+                {
+                    SCLogDebug("disabling pescan for flow");
+                    FileDisablePEScan(p->flow, STREAM_TOSERVER);
+                }
+
                 /* see if this sgh requires us to consider file magic */
                 if (!FileForceMagic() && (p->flow->sgh_toserver == NULL ||
                             !(p->flow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILEMAGIC)))
@@ -1953,6 +1962,15 @@ end:
                 if (p->flow->sgh_toclient == NULL || p->flow->sgh_toclient->filestore_cnt == 0) {
                     FileDisableStoring(p->flow, STREAM_TOCLIENT);
                 }
+
+                /* check if this flow needs file content to pescan, if not disable it */
+                if (p->flow->sgh_toclient == NULL ||
+                            !(p->flow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEPESCAN))
+                {
+                    SCLogDebug("disabling pescan for flow");
+                    FileDisablePEScan(p->flow, STREAM_TOCLIENT);
+                }
+
 
                 /* check if this flow needs magic, if not disable it */
                 if (!FileForceMagic() && (p->flow->sgh_toclient == NULL ||
@@ -2129,6 +2147,24 @@ int SignatureIsFilemagicInspecting(Signature *s) {
         return 0;
 
     if (s->file_flags & FILE_SIG_NEED_MAGIC)
+        return 1;
+
+    return 0;
+}
+
+/**
+ *  \brief Check if a signature is inspecting file content for PEs.
+ *
+ *  \param s signature
+ *
+ *  \retval 0 no
+ *  \retval 1 yes
+ */
+int SignatureIsPEScanning(Signature *s) {
+    if (s == NULL)
+        return 0;
+
+    if (s->flags & SIG_FLAG_PESCAN)
         return 1;
 
     return 0;
@@ -4150,6 +4186,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx) {
 
         SigGroupHeadBuildHeadArray(de_ctx, sgh);
         SigGroupHeadSetFilemagicFlag(de_ctx, sgh);
+	SigGroupHeadSetPEScanFlag(de_ctx, sgh);
         SigGroupHeadSetFileMd5Flag(de_ctx, sgh);
         SigGroupHeadSetFilesizeFlag(de_ctx, sgh);
         SigGroupHeadSetFilestoreCount(de_ctx, sgh);
@@ -4826,6 +4863,7 @@ void SigTableSetup(void) {
     DetectFilemagicRegister();
     DetectFileMd5Register();
     DetectFilesizeRegister();
+    DetectPescanRegister();
     DetectAppLayerEventRegister();
     DetectHttpUARegister();
     DetectLuajitRegister();
