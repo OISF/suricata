@@ -1,0 +1,4 @@
+1.0beta1 -- 2012-09-28
+
+- First revision of Portable Executable (PE) anomaly detector and logger
+- Features libpescan (light) version

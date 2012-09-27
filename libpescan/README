@@ -1,0 +1,14 @@
+LibPEScan
+Copyright 2012 BAE Systems
+==========================
+
+LibPEScan is a software library used to scan binary files for charactistics of Windows Portable Executables (PEs).  Particularly interesting to users would be the ability to detect various PE header anomalies and to score the results based on these anomalies.
+
+INSTALLATION
+------------
+
+The installation process should be as simple as:
+
+  $ ./configure
+  $ make
+  $ make install
