@@ -912,6 +912,47 @@ AC_INIT(configure.ac)
         AC_DEFINE_UNQUOTED([HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW],[1],[Assuming htp_tx_get_response_headers_raw function in bundled libhtp])
     ])
 
+  #enable libpescan
+    AC_ARG_ENABLE(non-bundled-pescan,
+           AS_HELP_STRING([--enable-non-bundled-pescan], [Enable the use of an already installed version of pescan]),,[enable_non_bundled_pescan=no])
+    AS_IF([test "x$enable_non_bundled_pescan" = "xyes"], [
+        AC_ARG_WITH(libpescan_includes,
+                [  --with-libpescan-includes=DIR  libpescan include directory],
+                [with_libpescan_includes="$withval"],[with_libpescan_includes=no])
+        AC_ARG_WITH(libpescan_libraries,
+                [  --with-libpescan-libraries=DIR    libpescan library directory],
+                [with_libpescan_libraries="$withval"],[with_libpescan_libraries="no"])
+
+        if test "$with_libpescan_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_libpescan_includes}"
+        fi
+
+        if test "$with_libpescan_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS} -L${with_libpescan_libraries}"
+        fi
+
+        AC_CHECK_HEADER(src/libpescan.h,,[AC_ERROR(src/libpescan.h not found ...)])
+
+        LIBPESCAN=""
+        AC_CHECK_LIB(pescan, pescore,, LIBPESCAN="no")
+        if test "$LIBPESCAN" = "no"; then
+            echo
+            echo "   ERROR! libpescan library not found"
+            echo
+            exit 1
+        fi
+        PKG_CHECK_MODULES(LIBPESCANMINVERSION, pescan >= 0.1.0,[libpescasn_minver_found="yes"],[libpescan_minver_found="no"])
+        if test "$libpescan_minver_found" = "no"; then
+            echo
+            echo "   ERROR! libpescan was found but is not the minimum version required >=0.1.0"
+            echo
+            exit 1
+        fi
+    ])
+
+    # even if we are using an installed pescan lib we still need to gen Makefiles inside of pescan
+    AC_CONFIG_SUBDIRS([libpescan])
+    AM_CONDITIONAL([BUILD_LIBPESCAN], [test "x$enable_non_bundled_pescan" = "xno"])
 
   # enable CUDA output
     AC_ARG_ENABLE(cuda,
@@ -1332,6 +1373,7 @@ Suricata Configuration:
   PCRE jit:                                ${pcre_jit_available}
   libluajit:                               ${enable_luajit}
   Non-bundled htp:                         ${enable_non_bundled_htp}
+  Non-bundled pescan:                      ${enable_non_bundled_pescan}
   Old barnyard2 support:                   ${enable_old_barnyard2}
   CUDA enabled:                            ${enable_cuda}
 

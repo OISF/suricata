@@ -90,5 +90,6 @@ void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFilestoreCount(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFileMd5Flag(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFilesizeFlag(DetectEngineCtx *, SigGroupHead *);
+void SigGroupHeadSetPEScanFlag(DetectEngineCtx *, SigGroupHead *);
 
 #endif /* __DETECT_ENGINE_SIGGROUP_H__ */
