@@ -4494,9 +4494,7 @@ Packet *StreamTcpPseudoSetup(Packet *parent, uint8_t *pkt, uint32_t len)
     p->ts.tv_sec = parent->ts.tv_sec;
     p->ts.tv_usec = parent->ts.tv_usec;
 
-    p->flow = parent->flow;
-    FlowIncrUsecnt(p->flow);
-
+    FlowReference(&p->flow, parent->flow);
     /* set tunnel flags */
 
     /* tell new packet it's part of a tunnel */

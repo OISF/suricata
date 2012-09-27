@@ -113,8 +113,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
 {
     p->datalink = DLT_RAW;
     p->proto = IPPROTO_TCP;
-    p->flow = f;
-    FlowIncrUsecnt(f);
+    FlowReference(&p->flow, f);
     p->flags |= PKT_STREAM_EST;
     p->flags |= PKT_STREAM_EOF;
     p->flags |= PKT_HAS_FLOW;
