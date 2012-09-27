@@ -102,11 +102,11 @@ static uint8_t IPOnlyCIDRItemCompare(IPOnlyCIDRItem *head,
  */
 static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, char *str)
 {
-    char *ipdup = SCStrdup(str);
     char *ip = NULL;
     char *ip2 = NULL;
     char *mask = NULL;
     int r = 0;
+    char *ipdup = SCStrdup(str);
 
     if (unlikely(ipdup == NULL))
         return -1;
@@ -135,9 +135,6 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, char *str)
 
     /* we dup so we can put a nul-termination in it later */
     ip = ipdup;
-    if (ip == NULL) {
-        goto error;
-    }
 
     /* handle the negation case */
     if (ip[0] == '!') {

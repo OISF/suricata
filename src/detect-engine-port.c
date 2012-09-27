@@ -1379,13 +1379,14 @@ error:
  * \retval NULL on error
  */
 DetectPort *PortParse(char *str) {
-    char *portdup = SCStrdup(str);
     char *port2 = NULL;
     DetectPort *dp = NULL;
+    char *portdup = SCStrdup(str);
 
     if (unlikely(portdup == NULL)) {
         return NULL;
     }
+
     dp = DetectPortInit();
     if (dp == NULL)
         goto error;
@@ -1394,9 +1395,6 @@ DetectPort *PortParse(char *str) {
 
     /* we dup so we can put a nul-termination in it later */
     char *port = portdup;
-    if (port == NULL) {
-        goto error;
-    }
 
     /* handle the negation case */
     if (port[0] == '!') {

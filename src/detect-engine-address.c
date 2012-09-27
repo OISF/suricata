@@ -596,11 +596,11 @@ static void DetectAddressParseIPv6CIDR(int cidr, struct in6_addr *in6)
  */
 int DetectAddressParseString(DetectAddress *dd, char *str)
 {
-    char *ipdup = SCStrdup(str);
     char *ip = NULL;
     char *ip2 = NULL;
     char *mask = NULL;
     int r = 0;
+    char *ipdup = SCStrdup(str);
 
     if (unlikely(ipdup == NULL))
         return -1;
@@ -618,9 +618,6 @@ int DetectAddressParseString(DetectAddress *dd, char *str)
 
     /* we dup so we can put a nul-termination in it later */
     ip = ipdup;
-    if (ip == NULL) {
-        goto error;
-    }
 
     /* handle the negation case */
     if (ip[0] == '!') {
