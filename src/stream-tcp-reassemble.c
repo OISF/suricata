@@ -1714,10 +1714,8 @@ static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
     }
 
     smsg->data.data_len = 0;
-    smsg->flow = p->flow;
+    FlowReference(&smsg->flow, p->flow);
     BUG_ON(smsg->flow == NULL);
-
-    FlowIncrUsecnt(smsg->flow);
 
     SCLogDebug("smsg %p", smsg);
     SCReturn;

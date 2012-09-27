@@ -113,8 +113,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
 {
     p->datalink = DLT_RAW;
     p->proto = IPPROTO_TCP;
-    p->flow = f;
-    FlowIncrUsecnt(f);
+    FlowReference(&p->flow, f);
     p->flags |= PKT_STREAM_EST;
     p->flags |= PKT_STREAM_EOF;
     p->flags |= PKT_HAS_FLOW;
@@ -369,19 +368,23 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
         if (server == 1) {
             p2 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
             if (p2 == NULL) {
-                TmqhOutputPacketpool(NULL,p1);
+                FlowDeReference(&p1->flow);
+                TmqhOutputPacketpool(NULL, p1);
                 return 1;
             }
 
             p3 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p3 == NULL) {
+                FlowDeReference(&p1->flow);
                 TmqhOutputPacketpool(NULL, p1);
+                FlowDeReference(&p2->flow);
                 TmqhOutputPacketpool(NULL, p2);
                 return 1;
             }
         } else {
             p2 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
             if (p2 == NULL) {
+                FlowDeReference(&p1->flow);
                 TmqhOutputPacketpool(NULL, p1);
                 return 1;
             }
@@ -396,6 +399,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
 
             p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p2 == NULL) {
+                FlowDeReference(&p1->flow);
                 TmqhOutputPacketpool(NULL, p1);
                 return 1;
             }
@@ -408,6 +412,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
             if (server == 2) {
                 p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
                 if (p2 == NULL) {
+                    FlowDeReference(&p1->flow);
                     TmqhOutputPacketpool(NULL, p1);
                     return 1;
                 }
@@ -423,6 +428,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
 
             p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p2 == NULL) {
+                FlowDeReference(&p1->flow);
                 TmqhOutputPacketpool(NULL, p1);
                 return 1;
             }
