@@ -310,7 +310,6 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
     FLOWLOCK_UNLOCK(f);
 
     /* set the flow in the packet */
-    p->flow = f;
     p->flags |= PKT_HAS_FLOW;
     return;
 }
