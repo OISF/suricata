@@ -657,6 +657,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     sm = NULL; /* set to NULL as we have a match */
 
                     if (inspect_flags == 0 || (inspect_flags == match_flags)) {
+                        match_flags |= DE_STATE_FLAG_FULL_MATCH;
                         r = 1;
                     }
                     break;
