@@ -60,6 +60,7 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
         if (pq != NULL) {
             Packet *tp = PacketPseudoPktSetup(p, pkt, plen, IPPROTO_IP);
             if (tp != NULL) {
+                PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
                 DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
                              GET_PKT_LEN(tp), pq, IPPROTO_IP);
                 PacketEnqueue(pq,tp);
@@ -88,6 +89,7 @@ static void DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uin
         if (pq != NULL) {
             Packet *tp = PacketPseudoPktSetup(p, pkt, plen, IPPROTO_IPV6);
             if (tp != NULL) {
+                PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
                 DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
                              GET_PKT_LEN(tp), pq, IPPROTO_IP);
                 PacketEnqueue(pq,tp);

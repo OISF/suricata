@@ -373,6 +373,7 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
         if (p == NULL) {
             SCReturnInt(TM_ECODE_FAILED);
         }
+        PKT_SET_SRC(p, PKT_SRC_WIRE);
 
         SCLogDebug("Received Packet Len: %d", pktlen);
 

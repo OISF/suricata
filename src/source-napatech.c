@@ -244,6 +244,7 @@ TmEcode NapatechFeedLoop(ThreadVars *tv, void *data, void *slot)
         if (unlikely(p == NULL)) {
             SCReturnInt(TM_ECODE_FAILED);
         }
+        PKT_SET_SRC(p, PKT_SRC_WIRE);
 
         p->ts.tv_sec = header->ts.tv_sec;
         p->ts.tv_usec = header->ts.tv_usec;
