@@ -334,7 +334,7 @@ int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
     p->nfq_v.ifo  = nfq_get_outdev(tb);
 
 #ifdef NFQ_GET_PAYLOAD_SIGNED
-    ret = nfq_get_payload(tb, &pktdata);
+    ret = nfq_get_payload(tb, (unsigned char **)&pktdata);
 #else
     ret = nfq_get_payload(tb, (unsigned char **) &pktdata);
 #endif /* NFQ_GET_PAYLOAD_SIGNED */
