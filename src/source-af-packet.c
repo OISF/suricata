@@ -523,6 +523,7 @@ int AFPRead(AFPThreadVars *ptv)
     if (p == NULL) {
         SCReturnInt(AFP_FAILURE);
     }
+    PKT_SET_SRC(p, PKT_SRC_WIRE);
 
     /* get timestamp of packet via ioctl */
     if (ioctl(ptv->socket, SIOCGSTAMP, &p->ts) == -1) {

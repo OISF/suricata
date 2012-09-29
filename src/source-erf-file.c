@@ -135,6 +135,7 @@ TmEcode ReceiveErfFileLoop(ThreadVars *tv, void *data, void *slot)
             EngineStop();
             SCReturnInt(TM_ECODE_FAILED);
         }
+        PKT_SET_SRC(p, PKT_SRC_WIRE);
 
         if (ReadErfRecord(tv, p, data) != TM_ECODE_OK) {
             TmqhOutputPacketpool(etv->tv, p);

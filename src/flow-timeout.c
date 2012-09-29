@@ -365,6 +365,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
         if (p1 == NULL) {
             return 1;
         }
+        PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
 
         if (server == 1) {
             p2 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
@@ -372,6 +373,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                 TmqhOutputPacketpool(NULL,p1);
                 return 1;
             }
+            PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
 
             p3 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p3 == NULL) {
@@ -379,12 +381,14 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                 TmqhOutputPacketpool(NULL, p2);
                 return 1;
             }
+            PKT_SET_SRC(p3, PKT_SRC_FFR_V2);
         } else {
             p2 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
             if (p2 == NULL) {
                 TmqhOutputPacketpool(NULL, p1);
                 return 1;
             }
+            PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
         }
 
     } else if (client == 2) {
@@ -393,17 +397,20 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
             if (p1 == NULL) {
                 return 1;
             }
+            PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
 
             p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p2 == NULL) {
                 TmqhOutputPacketpool(NULL, p1);
                 return 1;
             }
+            PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
         } else {
             p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
             if (p1 == NULL) {
                 return 1;
             }
+            PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
 
             if (server == 2) {
                 p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
@@ -411,6 +418,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                     TmqhOutputPacketpool(NULL, p1);
                     return 1;
                 }
+                PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
             }
         }
 
@@ -420,17 +428,20 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
             if (p1 == NULL) {
                 return 1;
             }
+            PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
 
             p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p2 == NULL) {
                 TmqhOutputPacketpool(NULL, p1);
                 return 1;
             }
+            PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
         } else if (server == 2) {
             p1 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p1 == NULL) {
                 return 1;
             }
+            PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
         } else {
             /* impossible */
             BUG_ON(1);
@@ -562,6 +573,7 @@ static inline void FlowForceReassemblyForHash(void)
                     FBLOCK_UNLOCK(fb);
                     return;
                 }
+                PKT_SET_SRC(p, PKT_SRC_FFR_SHUTDOWN);
 
                 if (stream_pseudo_pkt_detect_prev_TV != NULL) {
                     stream_pseudo_pkt_detect_prev_TV->
@@ -592,6 +604,7 @@ static inline void FlowForceReassemblyForHash(void)
                     FBLOCK_UNLOCK(fb);
                     return;
                 }
+                PKT_SET_SRC(p, PKT_SRC_FFR_SHUTDOWN);
 
                 if (stream_pseudo_pkt_detect_prev_TV != NULL) {
                     stream_pseudo_pkt_detect_prev_TV->
@@ -618,6 +631,7 @@ static inline void FlowForceReassemblyForHash(void)
         FBLOCK_UNLOCK(fb);
     }
 
+    PKT_SET_SRC(reassemble_p, PKT_SRC_FFR_SHUTDOWN);
     TmqhOutputPacketpool(NULL, reassemble_p);
     return;
 }

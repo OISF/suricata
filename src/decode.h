@@ -39,6 +39,18 @@ typedef enum {
     CHECKSUM_VALIDATION_KERNEL,
 } ChecksumValidationMode;
 
+enum {
+    PKT_SRC_WIRE = 1,
+    PKT_SRC_DECODER_GRE,
+    PKT_SRC_DECODER_IPV4,
+    PKT_SRC_DECODER_IPV6,
+    PKT_SRC_DECODER_TEREDO,
+    PKT_SRC_DEFRAG,
+    PKT_SRC_STREAM_TCP_STREAM_END_PSEUDO,
+    PKT_SRC_FFR_V2,
+    PKT_SRC_FFR_SHUTDOWN,
+};
+
 #include "source-nfq.h"
 #include "source-ipfw.h"
 #include "source-pcap.h"
@@ -489,6 +501,8 @@ typedef struct Packet_
     uint16_t mpm_offsets[CUDA_MAX_PAYLOAD_SIZE + 1];
 #endif
 
+    uint8_t pkt_src;
+
 #ifdef PROFILING
     PktProfiling profile;
 #endif
@@ -676,6 +690,7 @@ typedef struct DecodeThreadVars_
         (p)->root = NULL;                       \
         (p)->livedev = NULL;                    \
         (p)->ReleaseData = NULL;                \
+        (p)->pkt_src = 0;                       \
         PACKET_RESET_CHECKSUMS((p));            \
         PACKET_PROFILING_RESET((p));            \
     } while (0)
@@ -921,6 +936,8 @@ void AddressDebugPrint(Address *);
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) ((p)->flags & PKT_PSEUDO_STREAM_END)
+
+#define PKT_SET_SRC(p, src_val) ((p)->pkt_src = src_val)
 
 #endif /* __DECODE_H__ */
 
