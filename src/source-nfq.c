@@ -379,6 +379,7 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     if (p == NULL) {
         return -1;
     }
+    PKT_SET_SRC(p, PKT_SRC_WIRE);
 
     p->nfq_v.nfq_index = ntv->nfq_index;
     ret = NFQSetupPkt(p, qh, (void *)nfa);

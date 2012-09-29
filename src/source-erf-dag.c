@@ -481,6 +481,7 @@ static inline TmEcode ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
             ewtn->dagstream, ewtn->dagname);
         SCReturnInt(TM_ECODE_FAILED);
     }
+    PKT_SET_SRC(p, PKT_SRC_WIRE);
 
     SET_PKT_LEN(p, wlen);
     p->datalink = LINKTYPE_ETHERNET;

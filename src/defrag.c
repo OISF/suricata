@@ -289,6 +289,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
                    "fragmentation re-assembly, dumping fragments.");
         goto remove_tracker;
     }
+    PKT_SET_SRC(rp, PKT_SRC_DEFRAG);
     rp->recursion_level = p->recursion_level;
 
     int fragmentable_offset = 0;
@@ -402,6 +403,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
                 "fragmentation re-assembly, dumping fragments.");
         goto remove_tracker;
     }
+    PKT_SET_SRC(rp, PKT_SRC_DEFRAG);
 
     int fragmentable_offset = 0;
     int fragmentable_len = 0;

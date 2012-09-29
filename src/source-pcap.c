@@ -210,6 +210,7 @@ void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {
         SCReturn;
     }
 
+    PKT_SET_SRC(p, PKT_SRC_WIRE);
     p->ts.tv_sec = h->ts.tv_sec;
     p->ts.tv_usec = h->ts.tv_usec;
     SCLogDebug("p->ts.tv_sec %"PRIuMAX"", (uintmax_t)p->ts.tv_sec);
