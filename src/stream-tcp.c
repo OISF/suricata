@@ -4577,6 +4577,7 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(Packet *p, TcpSession *ssn, Pack
         SCLogDebug("The packet received from packet allocation is NULL");
         SCReturn;
     }
+    PKT_SET_SRC(np, PKT_SRC_STREAM_TCP_STREAM_END_PSEUDO);
 
     /* Setup the IP and TCP headers */
     StreamTcpPseudoPacketSetupHeader(np,p);

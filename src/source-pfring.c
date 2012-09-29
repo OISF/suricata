@@ -270,6 +270,7 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
         if (p == NULL) {
             SCReturnInt(TM_ECODE_FAILED);
         }
+        PKT_SET_SRC(p, PKT_SRC_WIRE);
 
         /* Some flavours of PF_RING may fail to set timestamp - see PF-RING-enabled libpcap code*/
         hdr.ts.tv_sec = hdr.ts.tv_usec = 0;
