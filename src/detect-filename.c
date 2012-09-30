@@ -122,7 +122,7 @@ static int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         }
     }
 
-    if (ret == 0 && filename->flags & DETECT_CONTENT_NEGATED) {
+    if (ret == 0 && (filename->flags & DETECT_CONTENT_NEGATED)) {
         SCLogDebug("negated match");
         ret = 1;
     }

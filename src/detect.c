@@ -768,7 +768,7 @@ static inline int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThre
         Packet *p, SignatureHeader *s, uint16_t alproto)
 {
     /* if the sig has alproto and the session as well they should match */
-    if (s->flags & SIG_FLAG_APPLAYER && s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
+    if ((s->flags & SIG_FLAG_APPLAYER) && s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
         if (s->alproto == ALPROTO_DCERPC) {
             if (alproto != ALPROTO_SMB && alproto != ALPROTO_SMB2) {
                 SCLogDebug("DCERPC sig, alproto not SMB or SMB2");
@@ -1116,7 +1116,7 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags) {
         TcpSession *ssn = (TcpSession *)f->protoctx;
 
         /* at stream eof, or in inline mode, inspect all smsg's */
-        if (flags & STREAM_EOF || StreamTcpInlineMode()) {
+        if ((flags & STREAM_EOF) || StreamTcpInlineMode()) {
             if (p->flowflags & FLOW_PKT_TOSERVER) {
                 smsg = ssn->toserver_smsg_head;
                 /* deref from the ssn */
@@ -1215,7 +1215,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
 
             *sms_runflags |= SMS_USED_PM;
         }
-        if (!(p->flags & PKT_STREAM_ADD) && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM) {
+        if (!(p->flags & PKT_STREAM_ADD) && (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM)) {
             *sms_runflags |= SMS_USED_PM;
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_PKT_STREAM);
             PacketPatternSearchWithStreamCtx(det_ctx, p);
@@ -1226,7 +1226,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
     /* have a look at the reassembled stream (if any) */
     if (p->flowflags & FLOW_PKT_ESTABLISHED) {
         SCLogDebug("p->flowflags & FLOW_PKT_ESTABLISHED");
-        if (smsg != NULL && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM) {
+        if (smsg != NULL && (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM)) {
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_STREAM);
             StreamPatternSearch(det_ctx, p, smsg, flags);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_STREAM);
@@ -1265,7 +1265,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HUAD);
                 }
             } else { /* implied FLOW_PKT_TOCLIENT */
-                if (p->flowflags & FLOW_PKT_TOCLIENT && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSBD) {
+                if ((p->flowflags & FLOW_PKT_TOCLIENT) && (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSBD)) {
                     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSBD);
                     DetectEngineRunHttpServerBodyMpm(de_ctx, det_ctx, p->flow, alstate, flags);
                     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HSBD);
@@ -1457,10 +1457,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
              * the sgh for icmp error packets part of the same stream. */
             if (IP_GET_IPPROTO(p) == p->flow->proto) { /* filter out icmp */
                 PACKET_PROFILING_DETECT_START(p, PROF_DETECT_GETSGH);
-                if (p->flowflags & FLOW_PKT_TOSERVER && p->flow->flags & FLOW_SGH_TOSERVER) {
+                if ((p->flowflags & FLOW_PKT_TOSERVER) && (p->flow->flags & FLOW_SGH_TOSERVER)) {
                     det_ctx->sgh = p->flow->sgh_toserver;
                     sms_runflags |= SMS_USE_FLOW_SGH;
-                } else if (p->flowflags & FLOW_PKT_TOCLIENT && p->flow->flags & FLOW_SGH_TOCLIENT) {
+                } else if ((p->flowflags & FLOW_PKT_TOCLIENT) && (p->flow->flags & FLOW_SGH_TOCLIENT)) {
                     det_ctx->sgh = p->flow->sgh_toclient;
                     sms_runflags |= SMS_USE_FLOW_SGH;
                 }
@@ -1480,9 +1480,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
             /* Retrieve the app layer state and protocol and the tcp reassembled
              * stream chunks. */
-            if ((p->proto == IPPROTO_TCP && p->flags & PKT_STREAM_EST) ||
-                (p->proto == IPPROTO_UDP && p->flowflags & FLOW_PKT_ESTABLISHED) ||
-                (p->proto == IPPROTO_SCTP && p->flowflags & FLOW_PKT_ESTABLISHED))
+            if ((p->proto == IPPROTO_TCP && (p->flags & PKT_STREAM_EST)) ||
+                (p->proto == IPPROTO_UDP && (p->flowflags & FLOW_PKT_ESTABLISHED)) ||
+                (p->proto == IPPROTO_SCTP && (p->flowflags & FLOW_PKT_ESTABLISHED)))
             {
                 alstate = AppLayerGetProtoStateFromPacket(p);
                 alproto = AppLayerGetProtoFromPacket(p);
@@ -1528,8 +1528,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
         }
 
-        if ((p->flowflags & FLOW_PKT_TOSERVER && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
-            (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET)))
+        if (((p->flowflags & FLOW_PKT_TOSERVER) && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
+            ((p->flowflags & FLOW_PKT_TOCLIENT) && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET)))
         {
             SCLogDebug("testing against \"ip-only\" signatures");
 
@@ -1541,9 +1541,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
              * done in the FlowSetIPOnlyFlag function. */
             FlowSetIPOnlyFlag(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
 
-        } else if ((p->flowflags & FLOW_PKT_TOSERVER &&
+        } else if (((p->flowflags & FLOW_PKT_TOSERVER) &&
                    (p->flow->flags & FLOW_TOSERVER_IPONLY_SET)) ||
-                   (p->flowflags & FLOW_PKT_TOCLIENT &&
+                   ((p->flowflags & FLOW_PKT_TOCLIENT) &&
                    (p->flow->flags & FLOW_TOCLIENT_IPONLY_SET)))
         {
             /* Get the result of the first IPOnlyMatch() */
@@ -1603,7 +1603,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
     /* stateful app layer detection */
-    if (p->flags & PKT_HAS_FLOW && alstate != NULL) {
+    if ((p->flags & PKT_HAS_FLOW) && alstate != NULL) {
         /* initialize to 0 (DE_STATE_MATCH_NOSTATE) */
         memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
 
@@ -1641,7 +1641,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         /* check if this signature has a requirement for flowvars of some type
          * and if so, if we actually have any in the flow. If not, the sig
          * can't match and we skip it. */
-        if (p->flags & PKT_HAS_FLOW && s->flags & SIG_FLAG_REQUIRE_FLOWVAR) {
+        if ((p->flags & PKT_HAS_FLOW) && (s->flags & SIG_FLAG_REQUIRE_FLOWVAR)) {
             FLOWLOCK_RDLOCK(p->flow);
             int m  = p->flow->flowvar ? 1 : 0;
             FLOWLOCK_UNLOCK(p->flow);
@@ -1752,7 +1752,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     }
 
                     if (sms_runflags & SMS_USED_PM) {
-                        if (s->flags & SIG_FLAG_MPM_PACKET && !(s->flags & SIG_FLAG_MPM_PACKET_NEG) &&
+                        if ((s->flags & SIG_FLAG_MPM_PACKET) && !(s->flags & SIG_FLAG_MPM_PACKET_NEG) &&
                             !(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] &
                               s->mpm_pattern_id_mod_8)) {
                             goto next;
@@ -1768,7 +1768,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 }
             } else {
                 if (sms_runflags & SMS_USED_PM) {
-                    if (s->flags & SIG_FLAG_MPM_PACKET && !(s->flags & SIG_FLAG_MPM_PACKET_NEG) &&
+                    if ((s->flags & SIG_FLAG_MPM_PACKET) && !(s->flags & SIG_FLAG_MPM_PACKET_NEG) &&
                         !(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] &
                           s->mpm_pattern_id_mod_8)) {
                         goto next;
@@ -1913,7 +1913,7 @@ end:
         }
 
         if (!(sms_runflags & SMS_USE_FLOW_SGH)) {
-            if (p->flowflags & FLOW_PKT_TOSERVER && !(p->flow->flags & FLOW_SGH_TOSERVER)) {
+            if ((p->flowflags & FLOW_PKT_TOSERVER) && !(p->flow->flags & FLOW_SGH_TOSERVER)) {
                 /* first time we see this toserver sgh, store it */
                 p->flow->sgh_toserver = det_ctx->sgh;
                 p->flow->flags |= FLOW_SGH_TOSERVER;
@@ -1946,7 +1946,7 @@ end:
                     SCLogDebug("disabling filesize for flow");
                     FileDisableFilesize(p->flow, STREAM_TOSERVER);
                 }
-            } else if (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flow->flags & FLOW_SGH_TOCLIENT)) {
+            } else if ((p->flowflags & FLOW_PKT_TOCLIENT) && !(p->flow->flags & FLOW_SGH_TOCLIENT)) {
                 p->flow->sgh_toclient = det_ctx->sgh;
                 p->flow->flags |= FLOW_SGH_TOCLIENT;
 
@@ -2008,7 +2008,7 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
     DEBUG_VALIDATE_PACKET(p);
 
     /* No need to perform any detection on this packet, if the the given flag is set.*/
-    if (p->flags & PKT_NOPACKET_INSPECTION || p->action & ACTION_DROP)
+    if ((p->flags & PKT_NOPACKET_INSPECTION) || (p->action & ACTION_DROP))
         return 0;
 
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
@@ -2556,8 +2556,8 @@ static int SignatureCreateMask(Signature *s) {
         }
     }
 
-    if (s->mask & SIG_MASK_REQUIRE_DCE_STATE ||
-        s->mask & SIG_MASK_REQUIRE_HTTP_STATE)
+    if ((s->mask & SIG_MASK_REQUIRE_DCE_STATE) ||
+        (s->mask & SIG_MASK_REQUIRE_HTTP_STATE))
     {
         s->mask |= SIG_MASK_REQUIRE_FLOW;
         SCLogDebug("sig requires flow");

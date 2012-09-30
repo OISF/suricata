@@ -52,9 +52,9 @@ uint8_t action_order_sigs[4] = {ACTION_PASS, ACTION_DROP, ACTION_REJECT, ACTION_
  */
 uint8_t ActionOrderVal(uint8_t action) {
     /* reject_both and reject_dst have the same prio as reject */
-    if( action & ACTION_REJECT ||
-        action & ACTION_REJECT_BOTH ||
-        action & ACTION_REJECT_BOTH) {
+    if( (action & ACTION_REJECT) ||
+        (action & ACTION_REJECT_BOTH) ||
+        (action & ACTION_REJECT_DST)) {
         action = ACTION_REJECT;
     }
     uint8_t i = 0;

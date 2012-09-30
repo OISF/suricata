@@ -102,31 +102,31 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                 break;
             }
 
-            if (s->file_flags & FILE_SIG_NEED_FILENAME && file->name == NULL) {
+            if ((s->file_flags & FILE_SIG_NEED_FILENAME) && file->name == NULL) {
                 SCLogDebug("sig needs filename, but we don't have any");
                 r = 0;
                 break;
             }
 
-            if (s->file_flags & FILE_SIG_NEED_MAGIC && file->chunks_head == NULL) {
+            if ((s->file_flags & FILE_SIG_NEED_MAGIC) && file->chunks_head == NULL) {
                 SCLogDebug("sig needs file content, but we don't have any");
                 r = 0;
                 break;
             }
 
-            if (s->file_flags & FILE_SIG_NEED_FILECONTENT && file->chunks_head == NULL) {
+            if ((s->file_flags & FILE_SIG_NEED_FILECONTENT) && file->chunks_head == NULL) {
                 SCLogDebug("sig needs file content, but we don't have any");
                 r = 0;
                 break;
             }
 
-            if (s->file_flags & FILE_SIG_NEED_MD5 && (!(file->flags & FILE_MD5))) {
+            if ((s->file_flags & FILE_SIG_NEED_MD5) && (!(file->flags & FILE_MD5))) {
                 SCLogDebug("sig needs file md5, but we don't have any");
                 r = 0;
                 break;
             }
 
-            if (s->file_flags & FILE_SIG_NEED_SIZE && file->state < FILE_STATE_CLOSED) {
+            if ((s->file_flags & FILE_SIG_NEED_SIZE) && file->state < FILE_STATE_CLOSED) {
                 SCLogDebug("sig needs filesize, but state < FILE_STATE_CLOSED");
                 r = 0;
                 break;
@@ -157,7 +157,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 
             /* if this is a filestore sig, and the sig can't match
              * return 3 so we can distinguish */
-            if (s->flags & SIG_FLAG_FILESTORE && r == 2)
+            if ((s->flags & SIG_FLAG_FILESTORE) && r == 2)
                 r = 3;
 
             /* continue, this file may (or may not) be unable to match

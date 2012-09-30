@@ -756,12 +756,12 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                 /* check first if we have received new files in the livetime of
                  * this de_state (this tx). */
                 if (item->flags & (DE_STATE_FLAG_FILE_TC_INSPECT|DE_STATE_FLAG_FILE_TS_INSPECT)) {
-                    if (flags & STREAM_TOCLIENT && f->de_state->flags & DE_STATE_FILE_TC_NEW) {
+                    if ((flags & STREAM_TOCLIENT) && (f->de_state->flags & DE_STATE_FILE_TC_NEW)) {
                         item->flags &= ~DE_STATE_FLAG_FILE_TC_INSPECT;
                         item->flags &= ~DE_STATE_FLAG_FULL_MATCH;
                     }
 
-                    if (flags & STREAM_TOSERVER && f->de_state->flags & DE_STATE_FILE_TS_NEW) {
+                    if ((flags & STREAM_TOSERVER) && (f->de_state->flags & DE_STATE_FILE_TS_NEW)) {
                         item->flags &= ~DE_STATE_FLAG_FILE_TS_INSPECT;
                         item->flags &= ~DE_STATE_FLAG_FULL_MATCH;
                     }
@@ -776,17 +776,17 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
 
             /* if we know for sure we can't ever match, detect that here */
             if (item->flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
-                if (flags & STREAM_TOSERVER &&
-                        item->flags & DE_STATE_FLAG_FILE_TS_INSPECT &&
-                        f->de_state->flags & DE_STATE_FILE_TS_NEW) {
+                if ((flags & STREAM_TOSERVER) &&
+                        (item->flags & DE_STATE_FLAG_FILE_TS_INSPECT) &&
+                        (f->de_state->flags & DE_STATE_FILE_TS_NEW)) {
 
                     /* new file, fall through */
                     item->flags &= ~DE_STATE_FLAG_FILE_TS_INSPECT;
                     item->flags &= ~DE_STATE_FLAG_SIG_CANT_MATCH;
 
-                } else if (flags & STREAM_TOCLIENT &&
-                        item->flags & DE_STATE_FLAG_FILE_TC_INSPECT &&
-                        f->de_state->flags & DE_STATE_FILE_TC_NEW) {
+                } else if ((flags & STREAM_TOCLIENT) &&
+                        (item->flags & DE_STATE_FLAG_FILE_TC_INSPECT) &&
+                        (f->de_state->flags & DE_STATE_FILE_TC_NEW)) {
 
                     /* new file, fall through */
                     item->flags &= ~DE_STATE_FLAG_FILE_TC_INSPECT;
@@ -799,9 +799,9 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
             }
 
             /* only inspect in the right direction here */
-            if (flags & STREAM_TOSERVER && !(s->flags & SIG_FLAG_TOSERVER))
+            if ((flags & STREAM_TOSERVER) && !(s->flags & SIG_FLAG_TOSERVER))
                 continue;
-            else if (flags & STREAM_TOCLIENT && !(s->flags & SIG_FLAG_TOCLIENT))
+            else if ((flags & STREAM_TOCLIENT) && !(s->flags & SIG_FLAG_TOCLIENT))
                 continue;
 
             RULE_PROFILING_START;
