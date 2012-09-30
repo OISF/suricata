@@ -24,8 +24,12 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
+#ifndef likely
 #define likely(expr) __builtin_expect(!!(expr), 1)
+#endif
+#ifndef unlikely
 #define unlikely(expr) __builtin_expect(!!(expr), 0)
+#endif
 
 /** from http://en.wikipedia.org/wiki/Memory_ordering
  *
