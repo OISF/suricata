@@ -29,6 +29,7 @@
 
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -36,6 +37,7 @@
 #include "detect-flow.h"
 
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 #include "util-debug.h"
 
 /**
@@ -340,9 +342,10 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, char *flowstr)
     }
     if (fd->flags & FLOW_PKT_NOSTREAM) {
         s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    } else {
+        s->init_flags |= SIG_FLAG_INIT_FLOW;
     }
 
-    s->init_flags |= SIG_FLAG_INIT_FLOW;
     return 0;
 
 error:
@@ -991,6 +994,67 @@ int DetectFlowTestParse21 (void) {
 }
 #endif /* UNITTESTS */
 
+static int DetectFlowSigTest01(void)
+{
+    int result = 0;
+
+    uint8_t *buf = (uint8_t *)"supernovaduper";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
+    if (p->flow != NULL) {
+        printf("packet has flow set\n");
+        goto end;
+    }
+
+    char *sig1 = "alert tcp any any -> any any (msg:\"dummy\"; "
+        "content:\"nova\"; flow:no_stream; sid:1;)";
+
+    ThreadVars th_v;
+    DecodeThreadVars dtv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        printf("de_ctx == NULL: ");
+        goto end;
+    }
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    if (de_ctx->sig_list == NULL) {
+        printf("signature == NULL: ");
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1) != 1) {
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    if (p != NULL)
+        UTHFreePacket(p);
+
+    return result;
+}
+
 /**
  * \brief this function registers unit tests for DetectFlow
  */
@@ -1030,5 +1094,7 @@ void DetectFlowRegisterTests(void) {
     UtRegisterTest("DetectFlowTestParse20", DetectFlowTestParse20, 1);
     UtRegisterTest("DetectFlowTestParseNocase20", DetectFlowTestParseNocase20, 1);
     UtRegisterTest("DetectFlowTestParse21", DetectFlowTestParse21, 1);
+
+    UtRegisterTest("DetectFlowSigTest01", DetectFlowSigTest01, 1);
 #endif /* UNITTESTS */
 }
