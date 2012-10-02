@@ -2089,325 +2089,297 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
     SCReturnInt(HOOK_OK);
 }
 
+static void HTPConfigSetDefaults(HTPCfgRec *cfg_prec)
+{
+    cfg_prec->request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
+    cfg_prec->response_body_limit = HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT;
+    htp_config_register_request(cfg_prec->cfg, HTPCallbackRequest);
+    htp_config_register_response(cfg_prec->cfg, HTPCallbackResponse);
+#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
+    htp_config_register_request_uri_normalize(cfg_prec->cfg, HTPCallbackRequestUriNormalizeQuery);
+#endif
+    htp_config_set_generate_request_uri_normalized(cfg_prec->cfg, 1);
+    htp_config_register_request_body_data(cfg_prec->cfg, HTPCallbackRequestBodyData);
+    htp_config_register_response_body_data(cfg_prec->cfg, HTPCallbackResponseBodyData);
+
+    return;
+}
+
+static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *node,
+                                     SCRadixTree *tree)
+{
+    if (cfg_prec == NULL || node == NULL || tree == NULL)
+        return;
+
+    ConfNode *p = NULL;
+
+    /* Default Parameters */
+    TAILQ_FOREACH(p, &node->head, next) {
+
+        if (strcasecmp("address", p->name) == 0) {
+            ConfNode *pval;
+            /* Addresses */
+            TAILQ_FOREACH(pval, &p->head, next) {
+                SCLogDebug("LIBHTP server %s: %s=%s", s->name, p->name,
+                           pval->val);
+
+                /* IPV6 or IPV4? */
+                if (strchr(pval->val, ':') != NULL) {
+                    SCLogDebug("LIBHTP adding ipv6 server %s at %s: %p",
+                               s->name, pval->val, htp);
+                    if (SCRadixAddKeyIPV6String(pval->val, tree, cfg_prec) == NULL) {
+                        SCLogWarning(SC_ERR_INVALID_VALUE, "LIBHTP failed to "
+                                     "add ipv6 server %s, ignoring", pval->val);
+                    }
+                } else {
+                    SCLogDebug("LIBHTP adding ipv4 server %s at %s: %p",
+                               s->name, pval->val, htp);
+                    if (SCRadixAddKeyIPV4String(pval->val, tree, cfg_prec) == NULL) {
+                            SCLogWarning(SC_ERR_INVALID_VALUE, "LIBHTP failed "
+                                         "to add ipv4 server %s, ignoring",
+                                         pval->val);
+                    }
+                } /* else - if (strchr(pval->val, ':') != NULL) */
+            } /* TAILQ_FOREACH(pval, &p->head, next) */
+
+        } else if (strcasecmp("personality", p->name) == 0) {
+            /* Personalities */
+            int personality = HTPLookupPersonality(p->val);
+            SCLogDebug("LIBHTP default: %s = %s", p->name, p->val);
+            SCLogDebug("LIBHTP default: %s = %s", p->name, p->val);
+
+            if (personality >= 0) {
+                SCLogDebug("LIBHTP default: %s=%s (%d)", p->name, p->val,
+                           personality);
+                if (htp_config_set_server_personality(cfg_prec->cfg, personality) == HTP_ERROR){
+                    SCLogWarning(SC_ERR_INVALID_VALUE, "LIBHTP Failed adding "
+                                 "personality \"%s\", ignoring", p->val);
+                } else {
+                    SCLogDebug("LIBHTP personality set to %s",
+                               HTPLookupPersonalityString(personality));
+                }
+
+                /* The IDS personality by default converts the path (and due to
+                 * our query string callback also the query string) to lowercase.
+                 * Signatures do not expect this, so override it. */
+                htp_config_set_path_case_insensitive(cfg_prec->cfg, 0);
+            } else {
+                SCLogWarning(SC_ERR_UNKNOWN_VALUE, "LIBHTP Unknown personality "
+                             "\"%s\", ignoring", p->val);
+                continue;
+            }
+
+        } else if (strcasecmp("request-body-limit", p->name) == 0 ||
+                   strcasecmp("request_body_limit", p->name) == 0) {
+            if (ParseSizeStringU32(p->val, &cfg_prec->request_body_limit) < 0) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-limit "
+                           "from conf file - %s.  Killing engine", p->val);
+                exit(EXIT_FAILURE);
+            }
+
+        } else if (strcasecmp("response-body-limit", p->name) == 0) {
+            if (ParseSizeStringU32(p->val, &cfg_prec->response_body_limit) < 0) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-limit "
+                           "from conf file - %s.  Killing engine", p->val);
+                exit(EXIT_FAILURE);
+            }
+
+        } else if (strcasecmp("double-decode-path", p->name) == 0) {
+            if (ConfValIsTrue(p->val)) {
+#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
+                htp_config_register_request_uri_normalize(cfg_prec->cfg,
+                                                          HTPCallbackRequestUriNormalizePath);
+#else
+                SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "\"double-decode-path\" "
+                             "option requires at least libhtp version 0.2.5");
+#endif
+            } /* if */
+
+        } else if (strcasecmp("double-decode-query", p->name) == 0) {
+            if (ConfValIsTrue(p->val)) {
+#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
+                htp_config_register_request_uri_normalize(cfg_prec->cfg,
+                                                          HTPCallbackRequestUriNormalizeQuery);
+#else
+                SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "\"double-decode-query\" "
+                             "option requires at least libhtp version 0.2.5");
+#endif
+            } /* if */
+
+        } else if (strcasecmp("path-backslash-separators", p->name) == 0) {
+            if (ConfValIsTrue(p->val))
+                htp_config_set_path_backslash_separators(cfg_prec->cfg, 1);
+            else
+                htp_config_set_path_backslash_separators(cfg_prec->cfg, 0);
+        } else if (strcasecmp("path-compress-separators", p->name) == 0) {
+            if (ConfValIsTrue(p->val))
+                htp_config_set_path_compress_separators(cfg_prec->cfg, 1);
+            else
+                htp_config_set_path_compress_separators(cfg_prec->cfg, 0);
+        } else if (strcasecmp("path-control-char-handling", p->name) == 0) {
+            if (strcasecmp(p->val, "none") == 0) {
+                htp_config_set_path_control_char_handling(cfg_prec->cfg, NONE);
+            } else if (strcasecmp(p->val, "status_400") == 0) {
+                htp_config_set_path_control_char_handling(cfg_prec->cfg,
+                                                          STATUS_400);
+            } else {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
+                           "for libhtp param path-control-char-handling");
+            }
+        } else if (strcasecmp("path-convert-utf8", p->name) == 0) {
+            if (ConfValIsTrue(p->val))
+                htp_config_set_path_convert_utf8(cfg_prec->cfg, 1);
+            else
+                htp_config_set_path_convert_utf8(cfg_prec->cfg, 0);
+        } else if (strcasecmp("path-decode-separators", p->name) == 0) {
+            if (ConfValIsTrue(p->val))
+                htp_config_set_path_decode_separators(cfg_prec->cfg, 1);
+            else
+                htp_config_set_path_decode_separators(cfg_prec->cfg, 0);
+        } else if (strcasecmp("path-decode-u-encoding", p->name) == 0) {
+            if (ConfValIsTrue(p->val))
+                htp_config_set_path_decode_u_encoding(cfg_prec->cfg, 1);
+            else
+                htp_config_set_path_decode_u_encoding(cfg_prec->cfg, 0);
+        } else if (strcasecmp("path-invalid-encoding-handling", p->name) == 0) {
+            if (strcasecmp(p->val, "preserve_percent") == 0) {
+                htp_config_set_path_invalid_encoding_handling(cfg_prec->cfg,
+                                                              URL_DECODER_PRESERVE_PERCENT);
+            } else if (strcasecmp(p->val, "remove_percent") == 0) {
+                htp_config_set_path_invalid_encoding_handling(cfg_prec->cfg,
+                                                              URL_DECODER_REMOVE_PERCENT);
+            } else if (strcasecmp(p->val, "decode_invalid") == 0) {
+                htp_config_set_path_invalid_encoding_handling(cfg_prec->cfg,
+                                                              URL_DECODER_DECODE_INVALID);
+            } else if (strcasecmp(p->val, "status_400") == 0) {
+                htp_config_set_path_invalid_encoding_handling(cfg_prec->cfg,
+                                                              STATUS_400);
+            } else {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
+                           "for libhtp param path-invalid-encoding-handling");
+            }
+        } else if (strcasecmp("path-invalid-utf8-handling", p->name) == 0) {
+            if (strcasecmp(p->val, "none") == 0) {
+                htp_config_set_path_invalid_utf8_handling(cfg_prec->cfg, NONE);
+            } else if (strcasecmp(p->val, "status_400") == 0) {
+                htp_config_set_path_invalid_utf8_handling(cfg_prec->cfg,
+                                                          STATUS_400);
+            } else {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
+                           "for libhtp param path-invalid-utf8-handling");
+            }
+        } else if (strcasecmp("path-nul-encoded-handling", p->name) == 0) {
+            if (strcasecmp(p->val, "terminate") == 0) {
+                htp_config_set_path_nul_encoded_handling(cfg_prec->cfg,
+                                                         TERMINATE);
+            } else if (strcasecmp(p->val, "status_400") == 0) {
+                htp_config_set_path_nul_encoded_handling(cfg_prec->cfg,
+                                                         STATUS_400);
+            } else if (strcasecmp(p->val, "status_404") == 0) {
+                htp_config_set_path_nul_encoded_handling(cfg_prec->cfg,
+                                                         STATUS_404);
+            } else {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
+                           "for libhtp param path-nul-encoded-handling");
+            }
+        } else if (strcasecmp("path-nul-raw-handling", p->name) == 0) {
+            if (strcasecmp(p->val, "terminate") == 0) {
+                htp_config_set_path_nul_raw_handling(cfg_prec->cfg,
+                                                     TERMINATE);
+            } else if (strcasecmp(p->val, "status_400") == 0) {
+                htp_config_set_path_nul_raw_handling(cfg_prec->cfg,
+                                                     STATUS_400);
+            } else if (strcasecmp(p->val, "status_404") == 0) {
+                htp_config_set_path_nul_raw_handling(cfg_prec->cfg,
+                                                     STATUS_404);
+            } else {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
+                           "for libhtp param path-nul-raw-handling");
+            }
+        } else if (strcasecmp("path-replacement-char", p->name) == 0) {
+            if (strlen(p->val) == 1) {
+                htp_config_set_path_replacement_char(cfg_prec->cfg,
+                                                     p->val[0]);
+            } else {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
+                           "for libhtp param set-path-replacement-char");
+            }
+        } else if (strcasecmp("path-unicode-mapping", p->name) == 0) {
+            if (strcasecmp(p->val, "bestfit") == 0) {
+                htp_config_set_path_unicode_mapping(cfg_prec->cfg,
+                                                    BESTFIT);
+            } else if (strcasecmp(p->val, "status_400") == 0) {
+                htp_config_set_path_unicode_mapping(cfg_prec->cfg,
+                                                    STATUS_400);
+            } else if (strcasecmp(p->val, "status_404") == 0) {
+                htp_config_set_path_unicode_mapping(cfg_prec->cfg,
+                                                    STATUS_404);
+            } else {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
+                           "for libhtp param set-path-unicode-mapping");
+            }
+        } else {
+            SCLogWarning(SC_ERR_UNKNOWN_VALUE, "LIBHTP Ignoring unknown "
+                         "default config: %s", p->name);
+        }
+    } /* TAILQ_FOREACH(p, &default_config->head, next) */
+
+    return;
+}
+
 static void HTPConfigure(void)
 {
     SCEnter();
-    ConfNode *default_config;
-    ConfNode *server_config;
 
     cfglist.next = NULL;
 
     cfgtree = SCRadixCreateRadixTree(NULL, NULL);
-    if (NULL == cfgtree) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error initializing HTP config tree");
-
-        if (SCLogDebugEnabled()) {
-            abort();
-        }
-        else {
-            exit(EXIT_FAILURE);
-        }
-    }
+    if (NULL == cfgtree)
+        exit(EXIT_FAILURE);
 
     /* Default Config */
     cfglist.cfg = htp_config_create();
     if (NULL == cfglist.cfg) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to create HTP default config");
-
-        if (SCLogDebugEnabled()) {
-            abort();
-        }
-        else {
-            exit(EXIT_FAILURE);
-        }
+        exit(EXIT_FAILURE);
     }
-
     SCLogDebug("LIBHTP default config: %p", cfglist.cfg);
-
-    cfglist.request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
-    cfglist.response_body_limit = HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT;
-    htp_config_register_request(cfglist.cfg, HTPCallbackRequest);
-    htp_config_register_response(cfglist.cfg, HTPCallbackResponse);
-#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
-    htp_config_register_request_uri_normalize(cfglist.cfg,
-            HTPCallbackRequestUriNormalizeQuery);
-#endif
-    htp_config_set_generate_request_uri_normalized(cfglist.cfg, 1);
-    htp_config_register_request_body_data(cfglist.cfg,
-                                          HTPCallbackRequestBodyData);
-    htp_config_register_response_body_data(cfglist.cfg,
-                                           HTPCallbackResponseBodyData);
-
-    default_config = ConfGetNode("libhtp.default-config");
-    if (NULL != default_config) {
-        ConfNode *p = NULL;
-
-        /* Default Parameters */
-        TAILQ_FOREACH(p, &default_config->head, next) {
-            //ConfNode *pval;
-
-            if (strcasecmp("personality", p->name) == 0) {
-                /* Personalities */
-                int personality = HTPLookupPersonality(p->val);
-
-                SCLogDebug("LIBHTP default: %s=%s",
-                        p->name, p->val);
-
-                SCLogDebug("LIBHTP default: %s=%s",
-                        p->name, p->val);
-
-                if (personality >= 0) {
-                    SCLogDebug("LIBHTP default: %s=%s (%d)",
-                            p->name, p->val,
-                            personality);
-                    if (htp_config_set_server_personality(cfglist.cfg,
-                                personality) == HTP_ERROR)
-                    {
-                        SCLogWarning(SC_ERR_INVALID_VALUE,
-                                "LIBHTP Failed adding personality "
-                                "\"%s\", ignoring", p->val);
-                    } else {
-                        SCLogDebug("LIBHTP personality set to %s",
-                                HTPLookupPersonalityString(personality));
-                    }
-
-                    /* The IDS personality by default converts the path (and due to
-                     * our query string callback also the query string) to lowercase.
-                     * Signatures do not expect this, so override it. */
-                    htp_config_set_path_case_insensitive(cfglist.cfg, 0);
-                }
-                else {
-                    SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                            "LIBHTP Unknown personality "
-                            "\"%s\", ignoring", p->val);
-                    continue;
-                }
-            } else if (strcasecmp("request-body-limit", p->name) == 0 ||
-                       strcasecmp("request_body_limit", p->name) == 0) {
-
-                if (ParseSizeStringU32(p->val, &cfglist.request_body_limit) < 0) {
-                    SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-limit "
-                               "from conf file - %s.  Killing engine",
-                               p->val);
-                    exit(EXIT_FAILURE);
-                }
-            } else if (strcasecmp("response-body-limit", p->name) == 0) {
-                if (ParseSizeStringU32(p->val, &cfglist.response_body_limit) < 0) {
-                    SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-limit "
-                               "from conf file - %s.  Killing engine",
-                               p->val);
-                    exit(EXIT_FAILURE);
-                }
-            } else if (strcasecmp("double-decode-path", p->name) == 0) {
-                if (ConfValIsTrue(p->val)) {
-#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
-                    htp_config_register_request_uri_normalize(cfglist.cfg,
-                            HTPCallbackRequestUriNormalizePath);
-#else
-                    SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "\"double-decode-path\" "
-                            "option requires at least libhtp version 0.2.5");
-#endif
-                }
-            } else if (strcasecmp("double-decode-query", p->name) == 0) {
-                if (ConfValIsTrue(p->val)) {
-#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
-                    htp_config_register_request_uri_normalize(cfglist.cfg,
-                            HTPCallbackRequestUriNormalizeQuery);
-#else
-                    SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "\"double-decode-query\" "
-                            "option requires at least libhtp version 0.2.5");
-#endif
-                }
-            } else {
-                SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                        "LIBHTP Ignoring unknown default config: %s",
-                        p->name);
-            }
-        }
-    }
+    HTPConfigSetDefaults(&cfglist);
+    HTPConfigParseParameters(&cfglist, ConfGetNode("libhtp.default-config"),
+                             cfgtree);
 
     /* Read server config and create a parser for each IP in radix tree */
-    server_config = ConfGetNode("libhtp.server-config");
+    ConfNode *server_config = ConfGetNode("libhtp.server-config");
     SCLogDebug("LIBHTP Configuring %p", server_config);
-    if (server_config != NULL) {
-        ConfNode *si;
-        ConfNode *s;
-        HTPCfgRec *htprec;
-        HTPCfgRec *nextrec;
-        htp_cfg_t *htp;
+    if (server_config == NULL)
+        SCReturn;
 
-        /* Server Nodes */
-        TAILQ_FOREACH(si, &server_config->head, next) {
-            ConfNode *p = NULL;
-
-            /* Need the named node, not the index */
-            s = TAILQ_FIRST(&si->head);
-            if (NULL == s) {
-                SCLogDebug("LIBHTP s NULL");
-                continue;
-            }
-
-            SCLogDebug("LIBHTP server %s", s->name);
-
-            nextrec = cfglist.next;
-            htprec = cfglist.next = SCMalloc(sizeof(HTPCfgRec));
-            if (NULL == htprec) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Failed to create HTP server config rec");
-                if (SCLogDebugEnabled()) {
-                    abort();
-                }
-                else {
-                    exit(EXIT_FAILURE);
-                }
-            }
-
-            cfglist.next->next = nextrec;
-            htp = cfglist.next->cfg = htp_config_create();
-            if (NULL == htp) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Failed to create HTP server config");
-                if (SCLogDebugEnabled()) {
-                    abort();
-                }
-                else {
-                    exit(EXIT_FAILURE);
-                }
-            }
-
-            htprec->request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
-            htprec->response_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
-            htp_config_register_request(htp, HTPCallbackRequest);
-            htp_config_register_response(htp, HTPCallbackResponse);
-            htp_config_register_request_body_data(htp,
-                                                  HTPCallbackRequestBodyData);
-            htp_config_register_response_body_data(htp,
-                                                   HTPCallbackResponseBodyData);
-#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
-            htp_config_register_request_uri_normalize(htp,
-                    HTPCallbackRequestUriNormalizeQuery);
-#endif
-            htp_config_set_generate_request_uri_normalized(htp, 1);
-
-            /* Server Parameters */
-            TAILQ_FOREACH(p, &s->head, next) {
-                ConfNode *pval;
-
-                if (strcasecmp("address", p->name) == 0) {
-
-                    /* Addresses */
-                    TAILQ_FOREACH(pval, &p->head, next) {
-                        SCLogDebug("LIBHTP server %s: %s=%s",
-                                   s->name, p->name, pval->val);
-
-                        /* IPV6 or IPV4? */
-                        if (strchr(pval->val, ':') != NULL) {
-                            SCLogDebug("LIBHTP adding ipv6 server %s at %s: %p",
-                                       s->name, pval->val, htp);
-                            if (SCRadixAddKeyIPV6String(pval->val,
-                                                        cfgtree, htprec) == NULL)
-                            {
-                                SCLogWarning(SC_ERR_INVALID_VALUE,
-                                             "LIBHTP failed to add "
-                                             "ipv6 server %s, ignoring",
-                                             pval->val);
-                            }
-                        } else {
-                            SCLogDebug("LIBHTP adding ipv4 server %s at %s: %p",
-                                       s->name, pval->val, htp);
-                            if (SCRadixAddKeyIPV4String(pval->val,
-                                                        cfgtree, htprec) == NULL)
-                            {
-                                SCLogWarning(SC_ERR_INVALID_VALUE,
-                                             "LIBHTP failed to add "
-                                             "ipv4 server %s, ignoring",
-                                             pval->val);
-                            }
-                        }
-                    }
-                } else if (strcasecmp("personality", p->name) == 0) {
-                    /* Personalitie */
-                    int personality = HTPLookupPersonality(p->val);
-
-                    SCLogDebug("LIBHTP server %s: %s=%s",
-                            s->name, p->name, p->val);
-
-                    SCLogDebug("LIBHTP server %s: %s=%s",
-                            s->name, p->name, p->val);
-
-                    if (personality >= 0) {
-                        SCLogDebug("LIBHTP %s: %s=%s (%d)",
-                                s->name, p->name, p->val,
-                                personality);
-                        if (htp_config_set_server_personality(htp,
-                                    personality) == HTP_ERROR)
-                        {
-                            SCLogWarning(SC_ERR_INVALID_VALUE,
-                                    "LIBHTP Failed adding personality "
-                                    "\"%s\", ignoring", p->val);
-                        } else {
-                            SCLogDebug("LIBHTP personality set to %s",
-                                    HTPLookupPersonalityString(personality));
-                        }
-
-                        /* The IDS personality by default converts the path (and due to
-                         * our query string callback also the query string) to lowercase.
-                         * Signatures do not expect this, so override it. */
-                        htp_config_set_path_case_insensitive(htp, 0);
-                    }
-                    else {
-                        SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                                "LIBHTP Unknown personality "
-                                "\"%s\", ignoring", p->val);
-                        continue;
-                    }
-
-                /* VJ the non underscore version was a typo but keeping it for
-                 * compatibility with existing installs */
-                } else if (strcasecmp("request-body-limit", p->name) == 0 ||
-                           strcasecmp("request_body_limit", p->name) == 0) {
-                    /* limit */
-                    SCLogDebug("LIBHTP default: %s=%s",
-                            p->name, p->val);
-
-                    if (ParseSizeStringU32(p->val, &htprec->request_body_limit) < 0) {
-                        SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-limit "
-                                   "from conf file - %s.  Killing engine",
-                                   p->val);
-                        exit(EXIT_FAILURE);
-                    }
-                } else if (strcasecmp("response-body-limit", p->name) == 0) {
-                    if (ParseSizeStringU32(p->val, &htprec->response_body_limit) < 0) {
-                        SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-limit "
-                                   "from conf file - %s.  Killing engine",
-                                   p->val);
-                        exit(EXIT_FAILURE);
-                    }
-                } else if (strcasecmp("double-decode-path", p->name) == 0) {
-                    if (ConfValIsTrue(p->val)) {
-#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
-                        htp_config_register_request_uri_normalize(htp,
-                                HTPCallbackRequestUriNormalizePath);
-#else
-                        SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "\"double-decode-path\" "
-                                "option requires at least libhtp version 0.2.5");
-#endif
-                    }
-                } else if (strcasecmp("double-decode-query", p->name) == 0) {
-                    if (ConfValIsTrue(p->val)) {
-#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
-                        htp_config_register_request_uri_normalize(htp,
-                                HTPCallbackRequestUriNormalizeQuery);
-#else
-                        SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "\"double-decode-query\" "
-                                "option requires at least libhtp version 0.2.5");
-#endif
-                    }
-                } else {
-                    SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                                 "LIBHTP Ignoring unknown server config: %s",
-                                 p->name);
-                }
-            }
+    ConfNode *si;
+    /* Server Nodes */
+    TAILQ_FOREACH(si, &server_config->head, next) {
+        /* Need the named node, not the index */
+        ConfNode *s = TAILQ_FIRST(&si->head);
+        if (NULL == s) {
+            SCLogDebug("LIBHTP s NULL");
+            continue;
         }
+
+        SCLogDebug("LIBHTP server %s", s->name);
+
+        HTPCfgRec *nextrec = cfglist.next;
+        HTPCfgRec *htprec = cfglist.next = SCMalloc(sizeof(HTPCfgRec));
+        if (NULL == htprec)
+            exit(EXIT_FAILURE);
+        cfglist.next->next = nextrec;
+        cfglist.next->cfg = htp_config_create();
+        if (NULL == cfglist.next->cfg) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed to create HTP server config");
+            exit(EXIT_FAILURE);
+        }
+
+
+        HTPConfigSetDefaults(htprec);
+        HTPConfigParseParameters(htprec, s, cfgtree);
     }
 
     SCReturn;
@@ -3945,6 +3917,77 @@ end:
     return result;
 }
 
+int HTPParserConfigTest04(void)
+{
+    int result = 0;
+
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: IDS\n\
+    path-control-char-handling: status_400\n\
+    path-convert-utf8: yes\n\
+    path-invalid-encoding-handling: remove_percent\n\
+\n\
+  server-config:\n\
+\n\
+    - apache-tomcat:\n\
+        personality: Tomcat_6_0\n\
+        path-invalid-utf8-handling: none\n\
+        path-nul-encoded-handling: status_404\n\
+        path-nul-raw-handling: status_400\n\
+\n\
+    - iis7:\n\
+        personality: IIS_7_0\n\
+        path-replacement-char: o\n\
+        path-unicode-mapping: status_400\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    HtpConfigCreateBackup();
+
+    ConfYamlLoadString(input, strlen(input));
+
+    HTPConfigure();
+
+    HTPCfgRec *cfg_rec = &cfglist;
+    if (cfg_rec->cfg->path_control_char_handling != STATUS_400 ||
+        cfg_rec->cfg->path_convert_utf8 != 1 ||
+        cfg_rec->cfg->path_invalid_encoding_handling != URL_DECODER_REMOVE_PERCENT) {
+        printf("failed 1\n");
+        goto end;
+    }
+
+    cfg_rec = cfg_rec->next;
+    if (cfg_rec->cfg->path_replacement_char != 'o' ||
+        cfg_rec->cfg->path_unicode_mapping != STATUS_400) {
+        printf("failed 2\n");
+        goto end;
+    }
+
+    cfg_rec = cfg_rec->next;
+    if (cfg_rec->cfg->path_invalid_utf8_handling != NONE ||
+        cfg_rec->cfg->path_nul_encoded_handling != STATUS_404 ||
+        cfg_rec->cfg->path_nul_raw_handling != STATUS_400) {
+        printf("failed 3\n");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    HTPFreeConfig();
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
+
+    return result;
+}
+
 /** \test Test %2f decoding in profile Apache_2_2
  *
  *        %2f in path is left untouched
@@ -4535,6 +4578,7 @@ void HTPParserRegisterTests(void) {
     UtRegisterTest("HTPParserConfigTest01", HTPParserConfigTest01, 1);
     UtRegisterTest("HTPParserConfigTest02", HTPParserConfigTest02, 1);
     UtRegisterTest("HTPParserConfigTest03", HTPParserConfigTest03, 1);
+    UtRegisterTest("HTPParserConfigTest04", HTPParserConfigTest04, 1);
 
     UtRegisterTest("HTPParserDecodingTest01", HTPParserDecodingTest01, 1);
     UtRegisterTest("HTPParserDecodingTest02", HTPParserDecodingTest02, 1);
