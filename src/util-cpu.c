@@ -183,7 +183,7 @@ void UtilCpuPrintSummary() {
 uint64_t UtilCpuGetTicks(void)
 {
     uint64_t val;
-#if defined(__GNUC__)
+#if defined(__GNUC__) && (defined(__x86_64) || defined(_X86_64_) || defined(ia_64) || defined(__i386__))
 #if defined(__x86_64) || defined(_X86_64_) || defined(ia_64)
     __asm__ __volatile__ (
     "xorl %%eax,%%eax\n\t"
