@@ -26,44 +26,34 @@
 
 /* Flags affecting this content */
 
-#define DETECT_CONTENT_NOCASE            0x00000001
-#define DETECT_CONTENT_DISTANCE          0x00000002
-#define DETECT_CONTENT_WITHIN            0x00000004
-#define DETECT_CONTENT_OFFSET            0x00000008
-#define DETECT_CONTENT_DEPTH             0x00000010
-#define DETECT_CONTENT_FAST_PATTERN      0x00000020
-#define DETECT_CONTENT_FAST_PATTERN_ONLY 0x00000040
-#define DETECT_CONTENT_FAST_PATTERN_CHOP 0x00000080
+#define DETECT_CONTENT_NOCASE            (1)
+#define DETECT_CONTENT_DISTANCE          (1 << 1)
+#define DETECT_CONTENT_WITHIN            (1 << 2)
+#define DETECT_CONTENT_OFFSET            (1 << 3)
+#define DETECT_CONTENT_DEPTH             (1 << 4)
+#define DETECT_CONTENT_FAST_PATTERN      (1 << 5)
+#define DETECT_CONTENT_FAST_PATTERN_ONLY (1 << 6)
+#define DETECT_CONTENT_FAST_PATTERN_CHOP (1 << 7)
 /** content applies to a "raw"/undecoded field if applicable */
-#define DETECT_CONTENT_RAWBYTES          0x00000100
+#define DETECT_CONTENT_RAWBYTES          (1 << 8)
 /** content is negated */
-#define DETECT_CONTENT_NEGATED           0x00000200
+#define DETECT_CONTENT_NEGATED           (1 << 9)
 
 /** a relative match to this content is next, used in matching phase */
-#define DETECT_CONTENT_RELATIVE_NEXT     0x00000400
-
-#define DETECT_CONTENT_PACKET_MPM        0x00000800
-#define DETECT_CONTENT_STREAM_MPM        0x00001000
-#define DETECT_CONTENT_URI_MPM           0x00002000
-#define DETECT_CONTENT_HCBD_MPM          0x00004000
-#define DETECT_CONTENT_HSBD_MPM          0x00008000
-#define DETECT_CONTENT_HHD_MPM           0x00010000
-#define DETECT_CONTENT_HRHD_MPM          0x00020000
-#define DETECT_CONTENT_HMD_MPM           0x00040000
-#define DETECT_CONTENT_HCD_MPM           0x00080000
-#define DETECT_CONTENT_HRUD_MPM          0x00100000
-#define DETECT_CONTENT_HSMD_MPM          0x00200000
-#define DETECT_CONTENT_HSCD_MPM          0x00400000
-#define DETECT_CONTENT_HUAD_MPM          0x00800000
+#define DETECT_CONTENT_RELATIVE_NEXT     (1 << 10)
 
 /* BE - byte extract */
-#define DETECT_CONTENT_OFFSET_BE         0x01000000
-#define DETECT_CONTENT_DEPTH_BE          0x02000000
-#define DETECT_CONTENT_DISTANCE_BE       0x04000000
-#define DETECT_CONTENT_WITHIN_BE         0x08000000
+#define DETECT_CONTENT_OFFSET_BE         (1 << 11)
+#define DETECT_CONTENT_DEPTH_BE          (1 << 12)
+#define DETECT_CONTENT_DISTANCE_BE       (1 << 13)
+#define DETECT_CONTENT_WITHIN_BE         (1 << 14)
 
 /* replace data */
-#define DETECT_CONTENT_REPLACE           0x10000000
+#define DETECT_CONTENT_REPLACE           (1 << 15)
+/* this flag is set during the staging phase.  It indicates that a content
+ * has been added to the mpm phase and requires no further inspection inside
+ * the inspection phase */
+#define DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED (1 << 16)
 
 #define DETECT_CONTENT_IS_SINGLE(c) (!((c)->flags & DETECT_CONTENT_DISTANCE || \
                                        (c)->flags & DETECT_CONTENT_WITHIN || \

@@ -116,10 +116,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         /* we might have already have this content matched by the mpm.
          * (if there is any other reason why we'd want to avoid checking
          *  it here, please fill it in) */
-        if (inspection_mode == DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM) {
-            if (cd->flags & DETECT_CONTENT_STREAM_MPM && !(cd->flags & DETECT_CONTENT_NEGATED)) {
-                goto match;
-            }
+        if (cd->flags & DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED) {
+            goto match;
         }
 
         /* rule parsers should take care of this */

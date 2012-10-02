@@ -1258,6 +1258,13 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
         {
             cd = (DetectContentData *)mpm_sm->ctx;
             if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+                if (DETECT_CONTENT_IS_SINGLE(cd) &&
+                    !(cd->flags & DETECT_CONTENT_NEGATED) &&
+                    !(cd->flags & DETECT_CONTENT_REPLACE) &&
+                    cd->content_len == cd->fp_chop_len) {
+                    cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
+                }
+
                 /* add the content to the "packet" mpm */
                 if (SignatureHasPacketContent(s)) {
                     if (s->proto.proto[6 / 8] & 1 << (6 % 8)) {
@@ -1341,23 +1348,11 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                     }
                 }
             } else {
-                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    if (DETECT_CONTENT_IS_SINGLE(cd)) {
-                        if (SignatureHasPacketContent(s))
-                            cd->flags |= DETECT_CONTENT_PACKET_MPM;
-                        if (SignatureHasStreamContent(s))
-                            cd->flags |= DETECT_CONTENT_STREAM_MPM;
-                    }
-
-                    /* see if we can bypass the match validation for this pattern */
-                } else {
-                    if (DETECT_CONTENT_IS_SINGLE(cd)) {
-                        if (SignatureHasPacketContent(s))
-                            cd->flags |= DETECT_CONTENT_PACKET_MPM;
-                        if (SignatureHasStreamContent(s))
-                            cd->flags |= DETECT_CONTENT_STREAM_MPM;
-                    }
-                } /* else - if (co->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
+                if (DETECT_CONTENT_IS_SINGLE(cd) &&
+                    !(cd->flags & DETECT_CONTENT_NEGATED) &&
+                    !(cd->flags & DETECT_CONTENT_REPLACE)) {
+                    cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
+                }
 
                 if (SignatureHasPacketContent(s)) {
                     /* add the content to the "packet" mpm */
@@ -1464,7 +1459,6 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
             MpmCtx *mpm_ctx_ts = NULL;
             MpmCtx *mpm_ctx_tc = NULL;
             uint32_t sgh_flags = 0;
-            uint32_t cd_flags = 0;
             uint32_t sig_flags = 0;
 
             cd = (DetectContentData *)mpm_sm->ctx;
@@ -1475,7 +1469,6 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_uri_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_URI;
-                cd_flags = DETECT_CONTENT_URI_MPM;
                 sig_flags |= SIG_FLAG_MPM_HTTP;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
                     sig_flags |= SIG_FLAG_MPM_HTTP_NEG;
@@ -1485,7 +1478,6 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hcbd_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HCBD;
-                cd_flags = DETECT_CONTENT_HCBD_MPM;
                 sig_flags |= SIG_FLAG_MPM_HTTP;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
                     sig_flags |= SIG_FLAG_MPM_HTTP_NEG;
@@ -1495,7 +1487,6 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hsbd_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HSBD;
-                cd_flags = DETECT_CONTENT_HSBD_MPM;
                 sig_flags |= SIG_FLAG_MPM_HTTP;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
                     sig_flags |= SIG_FLAG_MPM_HTTP_NEG;
@@ -1505,7 +1496,6 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hhd_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HHD;
-                cd_flags = DETECT_CONTENT_HHD_MPM;
                 sig_flags |= SIG_FLAG_MPM_HTTP;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
                     sig_flags |= SIG_FLAG_MPM_HTTP_NEG;
@@ -1515,7 +1505,6 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hrhd_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HRHD;
-                cd_flags = DETECT_CONTENT_HRHD_MPM;
                 sig_flags |= SIG_FLAG_MPM_HTTP;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
                     sig_flags |= SIG_FLAG_MPM_HTTP_NEG;
@@ -1525,7 +1514,6 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hmd_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HMD;
-                cd_flags = DETECT_CONTENT_HMD_MPM;
                 sig_flags |= SIG_FLAG_MPM_HTTP;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
                     sig_flags |= SIG_FLAG_MPM_HTTP_NEG;
@@ -1535,7 +1523,6 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hcd_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HCD;
-                cd_flags = DETECT_CONTENT_HCD_MPM;
                 sig_flags |= SIG_FLAG_MPM_HTTP;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
                     sig_flags |= SIG_FLAG_MPM_HTTP_NEG;
@@ -1545,7 +1532,6 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hrud_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HRUD;
-                cd_flags = DETECT_CONTENT_HRUD_MPM;
                 sig_flags |= SIG_FLAG_MPM_HTTP;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
                     sig_flags |= SIG_FLAG_MPM_HTTP_NEG;
@@ -1555,7 +1541,6 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hsmd_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HSMD;
-                cd_flags = DETECT_CONTENT_HSMD_MPM;
                 sig_flags |= SIG_FLAG_MPM_HTTP;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
                     sig_flags |= SIG_FLAG_MPM_HTTP_NEG;
@@ -1565,7 +1550,6 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hscd_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HSCD;
-                cd_flags = DETECT_CONTENT_HSCD_MPM;
                 sig_flags |= SIG_FLAG_MPM_HTTP;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
                     sig_flags |= SIG_FLAG_MPM_HTTP_NEG;
@@ -1575,13 +1559,19 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_huad_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HUAD;
-                cd_flags = DETECT_CONTENT_HUAD_MPM;
                 sig_flags |= SIG_FLAG_MPM_HTTP;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
                     sig_flags |= SIG_FLAG_MPM_HTTP_NEG;
             }
 
             if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+                if (DETECT_CONTENT_IS_SINGLE(cd) &&
+                    !(cd->flags & DETECT_CONTENT_NEGATED) &&
+                    !(cd->flags & DETECT_CONTENT_REPLACE) &&
+                    cd->content_len == cd->fp_chop_len) {
+                    cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
+                }
+
                 /* add the content to the mpm */
                 if (cd->flags & DETECT_CONTENT_NOCASE) {
                     if (mpm_ctx_ts != NULL) {
@@ -1615,17 +1605,11 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                     }
                 }
             } else {
-                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    if (DETECT_CONTENT_IS_SINGLE(cd)) {
-                        cd->flags |= cd_flags;
-                    }
-
-                    /* see if we can bypass the match validation for this pattern */
-                } else {
-                    if (DETECT_CONTENT_IS_SINGLE(cd)) {
-                        cd->flags |= cd_flags;
-                    }
-                } /* else - if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
+                if (DETECT_CONTENT_IS_SINGLE(cd) &&
+                    !(cd->flags & DETECT_CONTENT_NEGATED) &&
+                    !(cd->flags & DETECT_CONTENT_REPLACE)) {
+                    cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
+                }
 
                 /* add the content to the "uri" mpm */
                 if (cd->flags & DETECT_CONTENT_NOCASE) {
