@@ -992,7 +992,6 @@ int DetectFlowTestParse21 (void) {
 
     return result;
 }
-#endif /* UNITTESTS */
 
 static int DetectFlowSigTest01(void)
 {
@@ -1054,6 +1053,7 @@ static int DetectFlowSigTest01(void)
 
     return result;
 }
+#endif /* UNITTESTS */
 
 /**
  * \brief this function registers unit tests for DetectFlow
