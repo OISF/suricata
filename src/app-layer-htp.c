@@ -1545,9 +1545,6 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                     htud->request_body.body_parsed += (header_end - chunks_buffer);
                 }
             }
-
-        } else {
-            htud->request_body.body_parsed += (header_end - chunks_buffer);
         }
 next:
         SCLogDebug("header_start %p, header_end %p, form_end %p",
