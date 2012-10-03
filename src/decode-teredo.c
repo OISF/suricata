@@ -88,6 +88,7 @@ int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
                 Packet *tp = PacketPseudoPktSetup(p, start, blen,
                                                   IPPROTO_IPV6);
                 if (tp != NULL) {
+                    PKT_SET_SRC(tp, PKT_SRC_DECODER_TEREDO);
                     /* send that to the Tunnel decoder */
                     DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp), GET_PKT_LEN(tp),
                                  pq, IPPROTO_IPV6);

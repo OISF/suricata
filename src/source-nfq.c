@@ -334,7 +334,7 @@ int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
     p->nfq_v.ifo  = nfq_get_outdev(tb);
 
 #ifdef NFQ_GET_PAYLOAD_SIGNED
-    ret = nfq_get_payload(tb, &pktdata);
+    ret = nfq_get_payload(tb, (unsigned char **)&pktdata);
 #else
     ret = nfq_get_payload(tb, (unsigned char **) &pktdata);
 #endif /* NFQ_GET_PAYLOAD_SIGNED */
@@ -379,6 +379,7 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     if (p == NULL) {
         return -1;
     }
+    PKT_SET_SRC(p, PKT_SRC_WIRE);
 
     p->nfq_v.nfq_index = ntv->nfq_index;
     ret = NFQSetupPkt(p, qh, (void *)nfa);
