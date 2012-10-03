@@ -341,7 +341,6 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
 TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     int rc;
     u_int32_t version = 0;
-    char *tmpclusterid;
     PfringIfaceConfig *pfconf = (PfringIfaceConfig *) initdata;
 
 
