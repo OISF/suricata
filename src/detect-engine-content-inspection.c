@@ -112,15 +112,6 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         DetectContentData *cd = (DetectContentData *)sm->ctx;
         SCLogDebug("inspecting content %"PRIu32" buffer_len %"PRIu32, cd->id, buffer_len);
 
-        /* we might have already have this content matched by the mpm.
-         * (if there is any other reason why we'd want to avoid checking
-         *  it here, please fill it in) */
-        if (inspection_mode == DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM) {
-            if (cd->flags & DETECT_CONTENT_STREAM_MPM && !(cd->flags & DETECT_CONTENT_NEGATED)) {
-                goto match;
-            }
-        }
-
         /* rule parsers should take care of this */
 #ifdef DEBUG
         BUG_ON(cd->depth != 0 && cd->depth <= cd->offset);
