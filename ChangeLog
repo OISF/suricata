@@ -1,3 +1,15 @@
+1.3.2 -- 2012-10-03
+
+- Fixed a possible FP when a regular and "chopped" fast_pattern were the same (#562)
+- Fixed a FN condition with the flow:no_stream option (#575)
+- Fix building of perf profiling code on i386 platform. By Simon Moon (#534)
+- Fix multiple issues in HTTP multipart parsing
+- Fix stream engine sometimes resending the same data to app layer
+- Always set cluster_id in PF_RING
+- Defrag: silence some potentially noisy errors/warnings
+- IPFW: fix broken broadcast handling
+- AF_PACKET kernel offset issue
+
 1.3.1 -- 2012-08-21
 
 - AF_PACKET performance improvements
