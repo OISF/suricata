@@ -839,6 +839,12 @@ TmEcode ReceiveNFQLoop(ThreadVars *tv, void *data, void *slot)
 
     while(1) {
         if (suricata_ctl_flags != 0) {
+            NFQMutexLock(nq);
+            if (nq->qh) {
+                nfq_destroy_queue(nq->qh);
+                nq->qh = NULL;
+            }
+            NFQMutexUnlock(nq);
             break;
         }
         NFQRecvPkt(nq, ntv);
