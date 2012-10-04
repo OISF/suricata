@@ -562,7 +562,7 @@ AC_INIT(configure.ac)
         if test `basename $CC` = "clang"; then
             CFLAGS="${CFLAGS} -Werror=incompatible-pointer-types"
         else
-            CFLAGS="${CFLAGS} -Werror=pointer-sign"
+            CFLAGS="${CFLAGS} -Werror"
         fi
         AC_COMPILE_IFELSE(
             [AC_LANG_PROGRAM(
