@@ -371,6 +371,9 @@ typedef struct Packet_
     uint16_t flags;
     /* flow */
     uint8_t flowflags;
+
+    uint8_t pkt_src;
+
     struct Flow_ *flow;
 
     struct timeval ts;
@@ -500,8 +503,6 @@ typedef struct Packet_
     /* the extra 1 in the 1481, is to hold the no_of_matches from the mpm run */
     uint16_t mpm_offsets[CUDA_MAX_PAYLOAD_SIZE + 1];
 #endif
-
-    uint8_t pkt_src;
 
 #ifdef PROFILING
     PktProfiling profile;
@@ -639,6 +640,7 @@ typedef struct DecodeThreadVars_
         (p)->recursion_level = 0;               \
         (p)->flags = 0;                         \
         (p)->flowflags = 0;                     \
+        (p)->pkt_src = 0;                       \
         (p)->flow = NULL;                       \
         (p)->ts.tv_sec = 0;                     \
         (p)->ts.tv_usec = 0;                    \
@@ -690,7 +692,6 @@ typedef struct DecodeThreadVars_
         (p)->root = NULL;                       \
         (p)->livedev = NULL;                    \
         (p)->ReleaseData = NULL;                \
-        (p)->pkt_src = 0;                       \
         PACKET_RESET_CHECKSUMS((p));            \
         PACKET_PROFILING_RESET((p));            \
     } while (0)
