@@ -1,3 +1,39 @@
+1.4beta2 -- 2012-10-04
+
+- New keyword: "luajit" to inspect packet, payload and all HTTP buffers with a Lua script (#346)
+- Added ability to control per server HTTP parser settings in much more detail (#503)
+- Rewrite of IP Defrag engine to improve performance and fix locking logic (#512, #540)
+- Big performance improvement in inspecting decoder, stream and app layer events (#555)
+- Pool performance improvements (#541)
+- Improved performance of signatures with simple pattern setups (#577)
+- Bundled docs are installed upon make install (#527)
+- Support for a number of global vs rule thresholds [3] was added (#425)
+- Improved rule profiling performance
+- If not explicit fast_pattern is set, pick HTTP patterns over stream patterns. HTTP method, stat code and stat msg are excluded.
+- Fix compilation on architectures other than x86 and x86_64 (#572)
+- Fix FP with anchored pcre combined with relative matching (#529)
+- Fix engine hanging instead of exitting if the pcap device doesn't exist (#533)
+- Work around for potential FP, will get properly fixed in next release (#574)
+- Improve ERF handling. Thanks to Jason Ish
+- Always set cluster_id in PF_RING
+- IPFW: fix broken broadcast handling
+- AF_PACKET kernel offset issue, IPS fix and cleanup
+- Fix stream engine sometimes resending the same data to app layer
+- Fix multiple issues in HTTP multipart parsing
+- Fixed a lockup at shutdown with NFQ (#537)
+
+1.3.2 -- 2012-10-03
+
+- Fixed a possible FP when a regular and "chopped" fast_pattern were the same (#562)
+- Fixed a FN condition with the flow:no_stream option (#575)
+- Fix building of perf profiling code on i386 platform. By Simon Moon (#534)
+- Fix multiple issues in HTTP multipart parsing
+- Fix stream engine sometimes resending the same data to app layer
+- Always set cluster_id in PF_RING
+- Defrag: silence some potentially noisy errors/warnings
+- IPFW: fix broken broadcast handling
+- AF_PACKET kernel offset issue
+
 1.4beta1 -- 2012-09-06
 
 - Custom HTTP logging contributed by Ignacio Sanchez (#530)
