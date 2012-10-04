@@ -1,26 +1,4 @@
-DETECTION ENGINE:
-- implement flow as a prefilter
-- implement protocol as a prefilter
-- implement src ports as prefilters
-- do a sort-insert for the temp address lists: sort it big to small to speed up later inserts: partly done
-- deal with icmp & icmpv6 sigs
-- ip only sigs only need to be checked once per flow direction, so put flags in packet to deal with that
-- store a ptr to the rule group in the flow (the src,dst,sp,dp,proto will never change in a flow, so we can use that as a starting point)
+Plenty, and you're welcome to help!
 
-WU-MANBER:
-
-ADDRESSES:
-- support [1.2.3.4,2.3.4.5] notation: unittest
-
-MAIN:
-- move packet preallocation into it's own function
-- create a cleanup function
-- consider a api for per module init/deinit functions per packet, for example to clean up flowvars & http_uri
-
-THREADING
-- Add pre-threading initialization API e.g. for Sig loading on Detect.
-- Add post-threading deinitialization API
-
-CUSTOM LOGGING:
-- idea: add a logging module that can be told to output things based on flowvars
+http://suricata-ids.org/participate/
 
