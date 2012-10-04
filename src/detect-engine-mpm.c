@@ -1720,7 +1720,12 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
 
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
                 if (!(cd->flags & DETECT_CONTENT_NEGATED) &&
-                    list_id != DETECT_SM_LIST_PMATCH) {
+                    list_id != DETECT_SM_LIST_PMATCH &&
+                    /* don't consider http_method, http_stat_msg, http_stat_code
+                     * to automatically override longest stream match */
+                    list_id != DETECT_SM_LIST_HMDMATCH &&
+                    list_id != DETECT_SM_LIST_HSMDMATCH &&
+                    list_id != DETECT_SM_LIST_HSCDMATCH) {
                     has_non_negated_non_stream_pattern[sig] = 1;
                 }
 
