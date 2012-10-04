@@ -504,6 +504,8 @@ typedef struct Packet_
     uint16_t mpm_offsets[CUDA_MAX_PAYLOAD_SIZE + 1];
 #endif
 
+    uint8_t pkt_src;
+
 #ifdef PROFILING
     PktProfiling profile;
 #endif
@@ -692,6 +694,7 @@ typedef struct DecodeThreadVars_
         (p)->root = NULL;                       \
         (p)->livedev = NULL;                    \
         (p)->ReleaseData = NULL;                \
+        (p)->pkt_src = 0;                       \
         PACKET_RESET_CHECKSUMS((p));            \
         PACKET_PROFILING_RESET((p));            \
     } while (0)
