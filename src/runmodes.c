@@ -116,6 +116,8 @@ static const char *RunModeTranslateModeToName(int runmode)
             return "ERF_DAG";
         case RUNMODE_NAPATECH:
             return "NAPATECH";
+        case RUNMODE_NAPATECH_3GD:
+            return "NAPATECH_3GD";
         case RUNMODE_UNITTEST:
             return "UNITTEST";
         case RUNMODE_AFP_DEV:
@@ -175,6 +177,7 @@ void RunModeRegisterRunModes(void)
     RunModeErfFileRegister();
     RunModeErfDagRegister();
     RunModeNapatechRegister();
+    RunModeNapatech3GDRegister();
     RunModeIdsAFPRegister();
 #ifdef UNITTESTS
     UtRunModeRegister();
@@ -262,6 +265,9 @@ void RunModeDispatch(int runmode, const char *custom_mode, DetectEngineCtx *de_c
                 break;
             case RUNMODE_NAPATECH:
                 custom_mode = RunModeNapatechGetDefaultMode();
+                break;
+            case RUNMODE_NAPATECH_3GD:
+                custom_mode = RunModeNapatech3GDGetDefaultMode();
                 break;
             case RUNMODE_AFP_DEV:
                 custom_mode = RunModeAFPGetDefaultMode();
