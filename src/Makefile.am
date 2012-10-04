@@ -310,7 +310,7 @@ win32-service.c win32-service.h \
 util-action.c util-action.h \
 win32-syslog.h \
 util-profiling.c util-profiling.h \
-util-profiling-rules.c util-profiling-rules.h \
+util-profiling-rules.c \
 util-profiling-locks.c util-profiling-locks.h \
 cuda-packet-batcher.c cuda-packet-batcher.h \
 util-ioctl.h util-ioctl.c \
