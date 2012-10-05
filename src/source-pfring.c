@@ -123,6 +123,9 @@ typedef struct PfringThreadVars_
     uint64_t bytes;
     uint32_t pkts;
 
+    uint16_t capture_kernel_packets;
+    uint16_t capture_kernel_drops;
+
     ThreadVars *tv;
     TmSlot *slot;
 
@@ -169,6 +172,17 @@ void TmModuleDecodePfringRegister (void) {
     tmm_modules[TMM_DECODEPFRING].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEPFRING].RegisterTests = NULL;
     tmm_modules[TMM_DECODEPFRING].flags = TM_FLAG_DECODE_TM;
+}
+
+static inline void PfringDumpCounters(PfringThreadVars *ptv, int forced)
+{
+    if (((ptv->pkts & 0xfff) == 0) || forced) {
+        pfring_stat pfring_s;
+        if (pfring_stats(ptv->pd, &pfring_s) >= 0) {
+            SCPerfCounterSetUI64(ptv->capture_kernel_packets, ptv->tv->sc_perf_pca, pfring_s.recv);
+            SCPerfCounterSetUI64(ptv->capture_kernel_drops, ptv->tv->sc_perf_pca, pfring_s.drop);
+        }
+    }
 }
 
 /**
@@ -298,6 +312,8 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
                 TmqhOutputPacketpool(ptv->tv, p);
                 SCReturnInt(TM_ECODE_FAILED);
             }
+
+            PfringDumpCounters(ptv, 0);
         } else {
             SCLogError(SC_ERR_PF_RING_RECV,"pfring_recv error  %" PRId32 "", r);
             TmqhOutputPacketpool(ptv->tv, p);
@@ -410,6 +426,15 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
         }
     }
 #endif /* HAVE_PFRING_SET_BPF_FILTER */
+
+    ptv->capture_kernel_packets = SCPerfTVRegisterCounter("capture.kernel_packets",
+            ptv->tv,
+            SC_PERF_TYPE_UINT64,
+            "NULL");
+    ptv->capture_kernel_drops = SCPerfTVRegisterCounter("capture.kernel_drops",
+            ptv->tv,
+            SC_PERF_TYPE_UINT64,
+            "NULL");
 
 /* It seems that as of 4.7.1 this is required */
 #ifdef HAVE_PFRING_ENABLE
