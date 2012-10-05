@@ -30,6 +30,7 @@
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp-private.h"
 #include "flow.h"
+#include "flow-util.h"
 
 #include "util-debug.h"
 #include "util-print.h"
@@ -258,17 +259,13 @@ int AppLayerHandleTCPMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
             }
         }
 
-        /* flow is free again */
-        FlowDecrUsecnt(smsg->flow);
-        /* dereference the flow */
-        smsg->flow = NULL;
+        FlowDeReference(&smsg->flow);
     } else { /* no ssn ptr */
         /* if there is no ssn ptr we won't
          * be inspecting this msg in detect
          * so return it to the pool. */
 
-        /* flow is free again */
-        FlowDecrUsecnt(smsg->flow);
+        FlowDeReference(&smsg->flow);
 
         /* return the used message to the queue */
         StreamMsgReturnToPool(smsg);

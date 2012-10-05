@@ -190,7 +190,7 @@ void StreamTcpSessionClear(void *ssnptr)
         SCLogDebug("returning smsg %p to pool", smsg);
         smsg->next = NULL;
         smsg->prev = NULL;
-        smsg->flow = NULL;
+        FlowDeReference(&smsg->flow);
         StreamMsgReturnToPool(smsg);
         smsg = smsg_next;
     }
@@ -202,7 +202,7 @@ void StreamTcpSessionClear(void *ssnptr)
         SCLogDebug("returning smsg %p to pool", smsg);
         smsg->next = NULL;
         smsg->prev = NULL;
-        smsg->flow = NULL;
+        FlowDeReference(&smsg->flow);
         StreamMsgReturnToPool(smsg);
         smsg = smsg_next;
     }
@@ -284,7 +284,7 @@ void StreamTcpSessionPoolFree(void *s)
         SCLogDebug("returning smsg %p to pool", smsg);
         smsg->next = NULL;
         smsg->prev = NULL;
-        smsg->flow = NULL;
+        FlowDeReference(&smsg->flow);
         StreamMsgReturnToPool(smsg);
         smsg = smsg_next;
     }
@@ -296,7 +296,7 @@ void StreamTcpSessionPoolFree(void *s)
         SCLogDebug("returning smsg %p to pool", smsg);
         smsg->next = NULL;
         smsg->prev = NULL;
-        smsg->flow = NULL;
+        FlowDeReference(&smsg->flow);
         StreamMsgReturnToPool(smsg);
         smsg = smsg_next;
     }
@@ -4490,9 +4490,7 @@ Packet *StreamTcpPseudoSetup(Packet *parent, uint8_t *pkt, uint32_t len)
     p->ts.tv_sec = parent->ts.tv_sec;
     p->ts.tv_usec = parent->ts.tv_usec;
 
-    p->flow = parent->flow;
-    FlowIncrUsecnt(p->flow);
-
+    FlowReference(&p->flow, parent->flow);
     /* set tunnel flags */
 
     /* tell new packet it's part of a tunnel */

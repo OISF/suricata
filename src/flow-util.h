@@ -134,6 +134,9 @@
         }                                       \
     } while (0)
 
+/* \todo there is another copy of this same macro inside decode.h.  The reason
+ *       we have this duplicate is because we couldn't solve endless header
+ *       files cross-reference. */
 #define FlowDeReference(src_f_ptr) do {         \
         if (*(src_f_ptr) != NULL) {             \
             FlowDecrUsecnt(*(src_f_ptr));       \
