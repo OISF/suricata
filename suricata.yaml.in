@@ -41,6 +41,11 @@
 # Will use this file if no --pidfile in command options.
 #pid-file: /var/run/suricata.pid
 
+# Daemon working directory
+# Suricata will change directory to this one if provided
+# Default: "/"
+#daemon-directory: "/"
+
 # Preallocated size for packet. Default is 1514 which is the classical
 # size for pcap on ethernet. You should adjust this value to the highest
 # packet size (MTU + hardware header) on your system.
