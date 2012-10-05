@@ -30,6 +30,7 @@
 #include "util-pool.h"
 #include "util-debug.h"
 #include "stream-tcp.h"
+#include "flow-util.h"
 
 #ifdef DEBUG
 static SCMutex stream_pool_memuse_mutex;
@@ -215,7 +216,7 @@ void StreamMsgReturnListToPool(void *list) {
         SCLogDebug("returning smsg %p to pool", smsg);
         smsg->next = NULL;
         smsg->prev = NULL;
-        smsg->flow = NULL;
+        FlowDeReference(&smsg->flow);
         StreamMsgReturnToPool(smsg);
         smsg = smsg_next;
     }

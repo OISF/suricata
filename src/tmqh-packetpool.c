@@ -36,6 +36,7 @@
 #include "threads.h"
 #include "threadvars.h"
 #include "flow.h"
+#include "flow-util.h"
 
 #include "stream.h"
 #include "stream-tcp-reassemble.h"
@@ -242,13 +243,13 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         SCLogDebug("tunnel stuff done, move on (proot %d)", proot);
     }
 
-    FlowDecrUsecnt(p->flow);
+    FlowDeReference(&p->flow);
 
     /* we're done with the tunnel root now as well */
     if (proot == 1) {
         SCLogDebug("getting rid of root pkt... alloc'd %s", p->root->flags & PKT_ALLOC ? "true" : "false");
 
-        FlowDecrUsecnt(p->root->flow);
+        FlowDeReference(&p->root->flow);
         /* if p->root uses extended data, free them */
         if (p->root->ReleaseData) {
             if (p->root->ReleaseData(t, p->root) == TM_ECODE_FAILED) {
