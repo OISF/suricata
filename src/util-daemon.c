@@ -133,6 +133,8 @@ void Daemonize (void) {
             exit(EXIT_FAILURE);
         } */
 
+        chdir("/");
+
         SetupLogging();
 
         /* Child is ready, tell its parent */
