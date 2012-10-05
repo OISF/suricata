@@ -442,8 +442,6 @@ static Flow *FlowGetNew(Packet *p) {
         /* flow is initialized (recylced) but *unlocked* */
     }
 
-    FlowIncrUsecnt(f);
-
     FLOWLOCK_WRLOCK(f);
     return f;
 }
@@ -488,6 +486,8 @@ Flow *FlowGetFlowFromHash (Packet *p)
         fb->head = f;
         fb->tail = f;
 
+        FlowReference(&p->flow, f);
+
         /* got one, now lock, initialize and return */
         FlowInit(f,p);
         f->fb = fb;
@@ -523,6 +523,8 @@ Flow *FlowGetFlowFromHash (Packet *p)
 
                 f->hprev = pf;
 
+                FlowReference(&p->flow, f);
+
                 /* initialize and return */
                 FlowInit(f,p);
                 f->fb = fb;
@@ -550,6 +552,8 @@ Flow *FlowGetFlowFromHash (Packet *p)
                 fb->head->hprev = f;
                 fb->head = f;
 
+                FlowReference(&p->flow, f);
+
                 /* found our flow, lock & return */
                 FlowIncrUsecnt(f);
                 FLOWLOCK_WRLOCK(f);
@@ -561,7 +565,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
     }
 
     /* lock & return */
-    FlowIncrUsecnt(f);
+    FlowReference(&p->flow, f);
     FLOWLOCK_WRLOCK(f);
     FBLOCK_UNLOCK(fb);
     FlowHashCountUpdate;

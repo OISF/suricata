@@ -1416,8 +1416,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             SCLogDebug("STREAM_EOF set");
         }
 
-        FlowIncrUsecnt(p->flow);
-
         FLOWLOCK_WRLOCK(p->flow);
         {
             /* live ruleswap check for flow updates */
@@ -1946,8 +1944,6 @@ end:
         StreamMsgReturnListToPool(smsg);
 
         FLOWLOCK_UNLOCK(p->flow);
-
-        FlowDecrUsecnt(p->flow);
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_CLEANUP);
 
