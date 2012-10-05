@@ -633,14 +633,15 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
     if (!(hstate->flags & HTP_FLAG_STATE_OPEN)) {
         SCLogDebug("opening htp handle at %p", hstate->connp);
 
-        htp_connp_open(hstate->connp, NULL, f->sp, NULL, f->dp, 0);
+        htp_connp_open(hstate->connp, NULL, f->sp, NULL, f->dp, &f->startts);
         hstate->flags |= HTP_FLAG_STATE_OPEN;
     } else {
         SCLogDebug("using existing htp handle at %p", hstate->connp);
     }
 
+    htp_time_t ts = { f->lastts_sec, 0 };
     /* pass the new data to the htp parser */
-    r = htp_connp_req_data(hstate->connp, 0, input, input_len);
+    r = htp_connp_req_data(hstate->connp, &ts, input, input_len);
 
     switch(r) {
         case STREAM_STATE_ERROR:
@@ -669,7 +670,8 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         hstate->connp->in_status = STREAM_STATE_CLOSED;
         // Call the parsers one last time, which will allow them
         // to process the events that depend on stream closure
-        htp_connp_req_data(hstate->connp, 0, NULL, 0);
+        htp_time_t ts = { f->lastts_sec, 0 };
+        htp_connp_req_data(hstate->connp, &ts, NULL, 0);
         hstate->flags |= HTP_FLAG_STATE_CLOSED_TS;
         SCLogDebug("stream eof encountered, closing htp handle for ts");
     }
@@ -723,7 +725,8 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
      * reactivate it if necessary) */
     hstate->flags &=~ HTP_FLAG_NEW_BODY_SET;
 
-    r = htp_connp_res_data(hstate->connp, 0, input, input_len);
+    htp_time_t ts = { f->lastts_sec, 0 };
+    r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
     switch(r) {
         case STREAM_STATE_ERROR:
             HTPHandleError(hstate);
@@ -750,7 +753,8 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
         hstate->connp->out_status = STREAM_STATE_CLOSED;
         // Call the parsers one last time, which will allow them
         // to process the events that depend on stream closure
-        htp_connp_res_data(hstate->connp, 0, NULL, 0);
+        htp_time_t ts = { f->lastts_sec, 0 };
+        htp_connp_res_data(hstate->connp, &ts, NULL, 0);
         hstate->flags |= HTP_FLAG_STATE_CLOSED_TC;
     }
 
@@ -2375,7 +2379,10 @@ static FileContainer *HTPStateGetFiles(void *state, uint8_t direction) {
 
 static int HTPStateGetAlstateProgress(void *tx, uint8_t direction)
 {
-    return ((htp_tx_t *)tx)->progress[direction];
+    if (direction == 0)
+        return ((htp_tx_t *)tx)->request_progress;
+    else
+        return ((htp_tx_t *)tx)->response_progress;
 }
 
 static uint64_t HTPStateGetTxCnt(void *alstate)
@@ -3949,7 +3956,7 @@ libhtp:\n\
     }
 
     cfg_rec = cfg_rec->next;
-    if (cfg_rec->cfg->path_replacement_char != 'o' ||
+    if (cfg_rec->cfg->bestfit_replacement_char != 'o' ||
         cfg_rec->cfg->path_unicode_mapping != STATUS_400) {
         printf("failed 2\n");
         goto end;
