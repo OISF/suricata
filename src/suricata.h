@@ -81,6 +81,9 @@
 
 #define DEFAULT_CONF_FILE CONFIG_DIR "/suricata.yaml"
 
+#define DEFAULT_PID_DIR LOCAL_STATE_DIR "/run/"
+#define DEFAULT_PID_BASENAME "suricata.pid"
+#define DEFAULT_PID_FILENAME DEFAULT_PID_DIR DEFAULT_PID_BASENAME
 
 /* runtime engine control flags */
 #define SURICATA_STOP    0x01   /**< gracefully stop the engine: process all

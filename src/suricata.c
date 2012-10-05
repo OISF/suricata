@@ -1658,17 +1658,21 @@ int main(int argc, char **argv)
     TmModuleRunInit();
 
     if (daemon == 1) {
-        Daemonize();
         if (pid_filename == NULL) {
             if (ConfGet("pid-file", &pid_filename) == 1) {
                 SCLogInfo("Use pid file %s from config file.", pid_filename);
+           } else {
+                pid_filename = DEFAULT_PID_FILENAME;
            }
         }
-        if (pid_filename != NULL) {
-            if (SCPidfileCreate(pid_filename) != 0) {
-                pid_filename = NULL;
-                exit(EXIT_FAILURE);
-            }
+        if (SCPidfileTestRunning(pid_filename) != 0) {
+            pid_filename = NULL;
+            exit(EXIT_FAILURE);
+        }
+        Daemonize();
+        if (SCPidfileCreate(pid_filename) != 0) {
+            pid_filename = NULL;
+            exit(EXIT_FAILURE);
         }
     } else {
         if (pid_filename != NULL) {
