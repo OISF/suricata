@@ -100,18 +100,21 @@ static void DetectEngineBufferHttpHeaders(DetectEngineThreadCtx *det_ctx, Flow *
     /* assign space to hold buffers.  Each per transaction */
     det_ctx->hhd_buffers = SCMalloc(det_ctx->hhd_buffers_list_len * sizeof(uint8_t *));
     if (det_ctx->hhd_buffers == NULL) {
+        det_ctx->hhd_buffers_list_len = 0;
         goto end;
     }
     memset(det_ctx->hhd_buffers, 0, det_ctx->hhd_buffers_list_len * sizeof(uint8_t *));
 
     det_ctx->hhd_buffers_len = SCMalloc(det_ctx->hhd_buffers_list_len * sizeof(uint32_t));
     if (det_ctx->hhd_buffers_len == NULL) {
+        det_ctx->hhd_buffers_list_len = 0;
         goto end;
     }
     memset(det_ctx->hhd_buffers_len, 0, det_ctx->hhd_buffers_list_len * sizeof(uint32_t));
 
     idx = AppLayerTransactionGetInspectId(f);
     if (idx == -1) {
+        det_ctx->hhd_buffers_list_len = 0;
         goto end;
     }
 
@@ -153,6 +156,7 @@ static void DetectEngineBufferHttpHeaders(DetectEngineThreadCtx *det_ctx, Flow *
             /* the extra 4 bytes if for ": " and "\r\n" */
             headers_buffer = SCRealloc(headers_buffer, headers_buffer_len + size1 + size2 + 4);
             if (headers_buffer == NULL) {
+                headers_buffer_len = 0;
                 continue;
             }
 
@@ -279,15 +283,15 @@ void DetectEngineCleanHHDBuffers(DetectEngineThreadCtx *det_ctx)
             if (det_ctx->hhd_buffers[i] != NULL)
                 SCFree(det_ctx->hhd_buffers[i]);
         }
-        if (det_ctx->hhd_buffers != NULL) {
-            SCFree(det_ctx->hhd_buffers);
-            det_ctx->hhd_buffers = NULL;
-        }
-        if (det_ctx->hhd_buffers_len != NULL) {
-            SCFree(det_ctx->hhd_buffers_len);
-            det_ctx->hhd_buffers_len = NULL;
-        }
         det_ctx->hhd_buffers_list_len = 0;
+    }
+    if (det_ctx->hhd_buffers != NULL) {
+        SCFree(det_ctx->hhd_buffers);
+        det_ctx->hhd_buffers = NULL;
+    }
+    if (det_ctx->hhd_buffers_len != NULL) {
+        SCFree(det_ctx->hhd_buffers_len);
+        det_ctx->hhd_buffers_len = NULL;
     }
 
     return;
