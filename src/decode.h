@@ -627,6 +627,16 @@ typedef struct DecodeThreadVars_
 #endif
 
 
+/* \todo there is another copy of this same macro inside flow-util.h.  The
+ *       reason we have this duplicate is because we couldn't solve endless
+ *       header files cross-reference. */
+#define FlowDeReference(src_f_ptr) do {               \
+        if (*(src_f_ptr) != NULL) {                   \
+            FlowDecrUsecnt(*(src_f_ptr));             \
+            *(src_f_ptr) = NULL;                      \
+        }                                             \
+    } while (0)
+
 /**
  *  \brief Recycle a packet structure for reuse.
  *  \todo the mutex destroy & init is necessary because of the memset, reconsider
@@ -641,7 +651,7 @@ typedef struct DecodeThreadVars_
         (p)->flags = 0;                         \
         (p)->flowflags = 0;                     \
         (p)->pkt_src = 0;                       \
-        (p)->flow = NULL;                       \
+        FlowDeReference(&((p)->flow));          \
         (p)->ts.tv_sec = 0;                     \
         (p)->ts.tv_usec = 0;                    \
         (p)->datalink = 0;                      \
