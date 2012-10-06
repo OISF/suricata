@@ -768,20 +768,30 @@ static inline int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThre
         Packet *p, SignatureHeader *s, uint16_t alproto)
 {
     /* if the sig has alproto and the session as well they should match */
-    if (s->flags & SIG_FLAG_APPLAYER && s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
-        if (s->alproto == ALPROTO_DCERPC) {
-            if (alproto != ALPROTO_SMB && alproto != ALPROTO_SMB2) {
-                SCLogDebug("DCERPC sig, alproto not SMB or SMB2");
+    if (likely(s->flags & SIG_FLAG_APPLAYER)) {
+        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
+            if (s->alproto == ALPROTO_DCERPC) {
+                if (alproto != ALPROTO_SMB && alproto != ALPROTO_SMB2) {
+                    SCLogDebug("DCERPC sig, alproto not SMB or SMB2");
+                    return 0;
+                }
+            } else {
+                SCLogDebug("alproto mismatch");
                 return 0;
             }
-        } else {
-            SCLogDebug("alproto mismatch");
+        }
+    }
+
+    if (unlikely(s->flags & SIG_FLAG_DSIZE)) {
+        if (likely(p->payload_len < s->dsize_low || p->payload_len > s->dsize_high)) {
+            SCLogDebug("kicked out as p->payload_len %u, dsize low %u, hi %u",
+                    p->payload_len, s->dsize_low, s->dsize_high);
             return 0;
         }
     }
 
     /* check for a pattern match of the one pattern in this sig. */
-    if (s->flags & (SIG_FLAG_MPM_PACKET|SIG_FLAG_MPM_STREAM|SIG_FLAG_MPM_HTTP))
+    if (likely(s->flags & (SIG_FLAG_MPM_PACKET|SIG_FLAG_MPM_STREAM|SIG_FLAG_MPM_HTTP)))
     {
         /* filter out sigs that want pattern matches, but
          * have no matches */
@@ -2628,6 +2638,10 @@ static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
     return;
 }
 
+/** \brief get max dsize "depth"
+ *  \param s signature to get dsize value from
+ *  \retval depth or negative value
+ */
 static int SigParseGetMaxDsize(Signature *s) {
     if (s->flags & SIG_FLAG_DSIZE && s->dsize_sm != NULL) {
         DetectDsizeData *dd = (DetectDsizeData *)s->dsize_sm->ctx;
@@ -2646,18 +2660,55 @@ static int SigParseGetMaxDsize(Signature *s) {
     SCReturnInt(-1);
 }
 
+/** \brief set prefilter dsize pair
+ *  \param s signature to get dsize value from
+ */
+static void SigParseSetDsizePair(Signature *s) {
+    if (s->flags & SIG_FLAG_DSIZE && s->dsize_sm != NULL) {
+        DetectDsizeData *dd = (DetectDsizeData *)s->dsize_sm->ctx;
+
+        uint16_t low = 0;
+        uint16_t high = 65535;
+
+        switch (dd->mode) {
+            case DETECTDSIZE_LT:
+                low = 0;
+                high = dd->dsize;
+                break;
+            case DETECTDSIZE_EQ:
+                low = dd->dsize;
+                high = dd->dsize;
+                break;
+            case DETECTDSIZE_RA:
+                low = dd->dsize;
+                high = dd->dsize2;
+                break;
+            case DETECTDSIZE_GT:
+                low = dd->dsize;
+                high = 65535;
+                break;
+        }
+        s->dsize_low = low;
+        s->dsize_high = high;
+
+        SCLogDebug("low %u, high %u", low, high);
+    }
+}
+
 /**
  *  \brief Apply dsize as depth to content matches in the rule
+ *  \param s signature to get dsize value from
  */
-static int SigParseApplyDsizeToContent(Signature *s) {
+static void SigParseApplyDsizeToContent(Signature *s) {
     SCEnter();
 
     if (s->flags & SIG_FLAG_DSIZE) {
-        int dsize = SigParseGetMaxDsize(s);
+        SigParseSetDsizePair(s);
 
+        int dsize = SigParseGetMaxDsize(s);
         if (dsize < 0) {
             /* nothing to do */
-            return 0;
+            return;
         }
 
         SigMatch *sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
@@ -2678,8 +2729,6 @@ static int SigParseApplyDsizeToContent(Signature *s) {
             }
         }
     }
-
-    SCReturnInt(0);
 }
 
 /**

@@ -322,30 +322,26 @@ typedef struct SignatureHeader_ {
     union {
         struct {
             uint32_t flags;
-            uint16_t mpm_pattern_id_div_8;
-            uint8_t mpm_pattern_id_mod_8;
-            SignatureMask mask;
+            uint16_t alproto;
+            uint16_t dsize_low;
         };
         uint64_t hdr_copy1;
     };
     union {
         struct {
-            uint16_t alproto;
-            SigIntId num; /**< signature number, internal id */
+            uint16_t dsize_high;
+            uint16_t mpm_pattern_id_div_8;
         };
         uint32_t hdr_copy2;
     };
     union {
         struct {
-            SigIntId order_id;
-
-            /** inline -- action */
-            uint8_t action;
-            uint8_t file_flags;
+            uint8_t mpm_pattern_id_mod_8;
+            SignatureMask mask;
+            SigIntId num; /**< signature number, internal id */
         };
         uint32_t hdr_copy3;
     };
-
     /** pointer to the full signature */
     struct Signature_ *full_sig;
 } SignatureHeader;
@@ -364,66 +360,59 @@ typedef struct Signature_ {
     union {
         struct {
             uint32_t flags;
-            uint16_t mpm_pattern_id_div_8;
-            uint8_t mpm_pattern_id_mod_8;
-            SignatureMask mask;
+            uint16_t alproto;
+            uint16_t dsize_low;
         };
         uint64_t hdr_copy1;
     };
     union {
         struct {
-            uint16_t alproto;
-            SigIntId num; /**< signature number, internal id */
+            uint16_t dsize_high;
+            uint16_t mpm_pattern_id_div_8;
         };
         uint32_t hdr_copy2;
     };
     union {
         struct {
-            SigIntId order_id;
-
-            /** inline -- action */
-            uint8_t action;
-            uint8_t file_flags;
+            uint8_t mpm_pattern_id_mod_8;
+            SignatureMask mask;
+            SigIntId num; /**< signature number, internal id */
         };
         uint32_t hdr_copy3;
     };
 
-    /* the fast pattern added from this signature */
-    SigMatch *mpm_sm;
+    SigIntId order_id;
+
+    /** inline -- action */
+    uint8_t action;
+    uint8_t file_flags;
 
     /** ipv4 match arrays */
-    DetectMatchAddressIPv4 *addr_dst_match4;
     uint16_t addr_dst_match4_cnt;
-    DetectMatchAddressIPv4 *addr_src_match4;
     uint16_t addr_src_match4_cnt;
+    DetectMatchAddressIPv4 *addr_dst_match4;
+    DetectMatchAddressIPv4 *addr_src_match4;
     /** ipv6 match arrays */
     DetectMatchAddressIPv6 *addr_dst_match6;
-    uint16_t addr_dst_match6_cnt;
     DetectMatchAddressIPv6 *addr_src_match6;
+    uint16_t addr_dst_match6_cnt;
     uint16_t addr_src_match6_cnt;
 
+    uint32_t id;  /**< sid, set by the 'sid' rule keyword */
     /** port settings for this signature */
     DetectPort *sp, *dp;
 
     /** addresses, ports and proto this sig matches on */
     DetectProto proto;
 
+    /** classification id **/
+    uint8_t class;
+    uint32_t gid; /**< generator id */
+
     /** netblocks and hosts specified at the sid, in CIDR format */
     IPOnlyCIDRItem *CidrSrc, *CidrDst;
 
-    /* helper for init phase */
-    uint16_t mpm_content_maxlen;
-    uint16_t mpm_uricontent_maxlen;
-
-    /** number of sigmatches in the match and pmatch list */
-    uint16_t sm_cnt;
-
-    uint32_t id;  /**< sid, set by the 'sid' rule keyword */
-    uint32_t gid; /**< generator id */
     uint32_t rev;
-
-    /** classification id **/
-    uint8_t class;
 
     int prio;
 
@@ -453,8 +442,16 @@ typedef struct Signature_ {
 
     /* used to hold flags that are predominantly used during init */
     uint32_t init_flags;
+    /** number of sigmatches in the match and pmatch list */
+    uint16_t sm_cnt;
 
     SigMatch *dsize_sm;
+    /* the fast pattern added from this signature */
+    SigMatch *mpm_sm;
+    /* helper for init phase */
+    uint16_t mpm_content_maxlen;
+    uint16_t mpm_uricontent_maxlen;
+
 
     /** ptr to the next sig in the list */
     struct Signature_ *next;
