@@ -756,7 +756,7 @@ rule-files:
 # If you want, you can read rules from SQLite3 database
 sig-sql-file: rules.sqlite
 sig-sqls:
- - SELECT sid,sig FROM rules WHERE enabled=1
+ - SELECT sid,action||" "||sig FROM rules WHERE enabled='1';
 # Rule is simple, SQL must return two columns, first id and second 
 # signature itself. 
 # If you have more queries/tables, feel free to add them, for example:
