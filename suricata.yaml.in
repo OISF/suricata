@@ -760,8 +760,8 @@ sig-sqls:
 # Rule is simple, SQL must return two columns, first id and second 
 # signature itself. 
 # If you have more queries/tables, feel free to add them, for example:
-# - SELECT sid,sig FROM et WHERE enabled=1
-# - SELECT sid,sig FROM vrt WHERE enabled=1
+# - SELECT sid,action||" "||sig FROM et WHERE enabled=1
+# - SELECT sid,action||" "||sig FROM vrt WHERE enabled=1
 
 classification-file: @e_sysconfdir@classification.config
 reference-config-file: @e_sysconfdir@reference.config
