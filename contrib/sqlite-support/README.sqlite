@@ -1,0 +1,45 @@
+Quick tutorial
+==============
+
+Just start following command (it will create database and tables 
+if they don't exist and import the rules):
+./import-rules2db.pl -v -t -d rules.sqlite ~/Downloads/rules/*rules
+
+Remove comment or add following line to your suricata.yaml file:
+select sid,action||" "||sig from rules where enabled='1';
+
+Start suricata:
+suricata -i eth0
+
+
+Quick facts:
+============
+
+You can create database and tables yourself:
+sqlite3 rules.sqlite < rules-table.sql
+
+
+SQL Tips
+========
+
+Disable specific classtype (for example, classtype with id 1):
+update rules set enabled=0 where classtypes_cid=1;
+
+Disable specific classtype (for example, classtype with name 'trojan-activity'):
+update rules set enabled=0 where classtypes_cid=(select cid from classtypes where title='trojan-activity');
+
+List classtypes with count of rules for each classtype:
+select title,count(sid) from rules inner join classtypes on classtypes_cid=cid group by title;
+
+Get number of rules on specific classtype id (for example, classtype with id 1):
+select count(sid) from rules where classtypes_cid=1;
+
+Get number of rules on specific classtype name:
+select count(sid) from rules inner join classtypes on classtypes_cid=cid where title='trojan-activity';
+
+Number of rules by it's state (enabled/disabled):
+select enabled,count(sid) from rules group by enabled;
+
+List number of rules by its action (alert, block, ...):
+select action,count(sid) from rules group by action;
+
