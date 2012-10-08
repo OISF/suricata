@@ -42,11 +42,6 @@
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
-typedef struct SCProfileDetectCtx_ {
-    uint32_t size;
-    uint32_t id;
-} SCProfileDetectCtx;
-
 /**
  * Extra data for rule profiling.
  */
@@ -60,6 +55,13 @@ typedef struct SCProfileData_ {
     uint64_t ticks_match;
     uint64_t ticks_no_match;
 } SCProfileData;
+
+typedef struct SCProfileDetectCtx_ {
+    uint32_t size;
+    uint32_t id;
+    SCProfileData *data;
+    pthread_mutex_t data_m;
+} SCProfileDetectCtx;
 
 /**
  * Used for generating the summary data to print.
@@ -80,8 +82,6 @@ typedef struct SCProfileSummary_ {
 } SCProfileSummary;
 
 extern int profiling_output_to_file;
-static SCProfileData rules_profile_data[0xffff];
-static pthread_mutex_t rules_profile_data_m;
 int profiling_rules_enabled = 0;
 static char *profiling_file_name = "";
 static const char *profiling_file_mode = "a";
@@ -112,7 +112,6 @@ void SCProfilingRulesGlobalInit(void) {
     conf = ConfGetNode("profiling.rules");
     if (conf != NULL) {
         if (ConfNodeChildValueIsTrue(conf, "enabled")) {
-            memset(rules_profile_data, 0, sizeof(rules_profile_data));
             profiling_rules_enabled = 1;
 
             val = ConfNodeLookupChildValue(conf, "sort");
@@ -301,29 +300,29 @@ SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx)
 
     memset(summary, 0, summary_size);
     for (i = 0; i < count; i++) {
-        summary[i].sid = rules_profile_data[i].sid;
-        summary[i].rev = rules_profile_data[i].rev;
-        summary[i].gid = rules_profile_data[i].gid;
+        summary[i].sid = rules_ctx->data[i].sid;
+        summary[i].rev = rules_ctx->data[i].rev;
+        summary[i].gid = rules_ctx->data[i].gid;
 
-        summary[i].ticks = rules_profile_data[i].ticks_match + rules_profile_data[i].ticks_no_match;
-        summary[i].checks = rules_profile_data[i].checks;
+        summary[i].ticks = rules_ctx->data[i].ticks_match + rules_ctx->data[i].ticks_no_match;
+        summary[i].checks = rules_ctx->data[i].checks;
 
         if (summary[i].ticks > 0) {
-            summary[i].avgticks = (long double)summary[i].ticks / (long double)rules_profile_data[i].checks;
+            summary[i].avgticks = (long double)summary[i].ticks / (long double)summary[i].checks;
         }
 
-        summary[i].matches = rules_profile_data[i].matches;
-        summary[i].max = rules_profile_data[i].max;
-        summary[i].ticks_match = rules_profile_data[i].ticks_match;
-        summary[i].ticks_no_match = rules_profile_data[i].ticks_no_match;
-        if (rules_profile_data[i].ticks_match > 0) {
-            summary[i].avgticks_match = (long double)rules_profile_data[i].ticks_match /
-                (long double)rules_profile_data[i].matches;
+        summary[i].matches = rules_ctx->data[i].matches;
+        summary[i].max = rules_ctx->data[i].max;
+        summary[i].ticks_match = rules_ctx->data[i].ticks_match;
+        summary[i].ticks_no_match = rules_ctx->data[i].ticks_no_match;
+        if (summary[i].ticks_match > 0) {
+            summary[i].avgticks_match = (long double)summary[i].ticks_match /
+                (long double)summary[i].matches;
         }
 
-        if (rules_profile_data[i].ticks_no_match > 0) {
-            summary[i].avgticks_no_match = (long double)rules_profile_data[i].ticks_no_match /
-                ((long double)rules_profile_data[i].checks - (long double)rules_profile_data[i].matches);
+        if (summary[i].ticks_no_match > 0) {
+            summary[i].avgticks_no_match = (long double)summary[i].ticks_no_match /
+                ((long double)summary[i].checks - (long double)summary[i].matches);
         }
         total_ticks += summary[i].ticks;
     }
@@ -415,7 +414,6 @@ SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx)
         fclose(fp);
     SCFree(summary);
     SCLogInfo("Done dumping profiling data.");
-    memset(rules_profile_data, 0x00, sizeof(rules_profile_data));
 }
 
 /**
@@ -459,7 +457,7 @@ SCProfileDetectCtx *SCProfilingRuleInitCtx(void) {
     if (ctx != NULL) {
         memset(ctx, 0x00, sizeof(SCProfileDetectCtx));
 
-        if (pthread_mutex_init(&rules_profile_data_m, NULL) != 0) {
+        if (pthread_mutex_init(&ctx->data_m, NULL) != 0) {
             SCLogError(SC_ERR_MUTEX,
                     "Failed to initialize hash table mutex.");
             exit(EXIT_FAILURE);
@@ -472,7 +470,9 @@ SCProfileDetectCtx *SCProfilingRuleInitCtx(void) {
 void SCProfilingRuleDestroyCtx(SCProfileDetectCtx *ctx) {
     if (ctx != NULL) {
         SCProfilingRuleDump(ctx);
-        pthread_mutex_destroy(&rules_profile_data_m);
+        if (ctx->data != NULL)
+            SCFree(ctx->data);
+        pthread_mutex_destroy(&ctx->data_m);
         SCFree(ctx);
     }
 }
@@ -490,28 +490,29 @@ void SCProfilingRuleThreadSetup(SCProfileDetectCtx *ctx, DetectEngineThreadCtx *
     }
 }
 
-static void SCProfilingRuleThreadMerge(DetectEngineThreadCtx *det_ctx) {
-    if (det_ctx == NULL || det_ctx->rule_perf_data == NULL)
+static void SCProfilingRuleThreadMerge(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx) {
+    if (de_ctx == NULL || de_ctx->profile_ctx == NULL || de_ctx->profile_ctx->data == NULL ||
+        det_ctx == NULL || det_ctx->rule_perf_data == NULL)
         return;
 
     int i;
     for (i = 0; i < det_ctx->rule_perf_data_size; i++) {
-        rules_profile_data[i].checks += det_ctx->rule_perf_data[i].checks;
-        rules_profile_data[i].matches += det_ctx->rule_perf_data[i].matches;
-        rules_profile_data[i].ticks_match += det_ctx->rule_perf_data[i].ticks_match;
-        rules_profile_data[i].ticks_no_match += det_ctx->rule_perf_data[i].ticks_no_match;
-        if (det_ctx->rule_perf_data[i].max > rules_profile_data[i].max)
-            rules_profile_data[i].max = det_ctx->rule_perf_data[i].max;
+        de_ctx->profile_ctx->data[i].checks += det_ctx->rule_perf_data[i].checks;
+        de_ctx->profile_ctx->data[i].matches += det_ctx->rule_perf_data[i].matches;
+        de_ctx->profile_ctx->data[i].ticks_match += det_ctx->rule_perf_data[i].ticks_match;
+        de_ctx->profile_ctx->data[i].ticks_no_match += det_ctx->rule_perf_data[i].ticks_no_match;
+        if (det_ctx->rule_perf_data[i].max > de_ctx->profile_ctx->data[i].max)
+            de_ctx->profile_ctx->data[i].max = det_ctx->rule_perf_data[i].max;
     }
 }
 
 void SCProfilingRuleThreadCleanup(DetectEngineThreadCtx *det_ctx) {
-    if (det_ctx == NULL || det_ctx->rule_perf_data == NULL)
+    if (det_ctx == NULL || det_ctx->de_ctx == NULL || det_ctx->rule_perf_data == NULL)
         return;
 
-    pthread_mutex_lock(&rules_profile_data_m);
-    SCProfilingRuleThreadMerge(det_ctx);
-    pthread_mutex_unlock(&rules_profile_data_m);
+    pthread_mutex_lock(&det_ctx->de_ctx->profile_ctx->data_m);
+    SCProfilingRuleThreadMerge(det_ctx->de_ctx, det_ctx);
+    pthread_mutex_unlock(&det_ctx->de_ctx->profile_ctx->data_m);
 }
 
 /**
@@ -529,12 +530,24 @@ SCProfilingRuleInitCounters(DetectEngineCtx *de_ctx)
     uint32_t count = 0;
     while (sig != NULL) {
         sig->profiling_id = SCProfilingRegisterRuleCounter(de_ctx->profile_ctx);
-        rules_profile_data[sig->profiling_id].sid = sig->id;
-        rules_profile_data[sig->profiling_id].gid = sig->gid;
-        rules_profile_data[sig->profiling_id].rev = sig->rev;
         sig = sig->next;
         count++;
     }
+
+    if (count > 0) {
+        de_ctx->profile_ctx->data = SCMalloc(sizeof(SCProfileData) * de_ctx->profile_ctx->size);
+        BUG_ON(de_ctx->profile_ctx->data == NULL);
+        memset(de_ctx->profile_ctx->data, 0x00, sizeof(SCProfileData) * de_ctx->profile_ctx->size);
+
+        sig = de_ctx->sig_list;
+        while (sig != NULL) {
+            de_ctx->profile_ctx->data[sig->profiling_id].sid = sig->id;
+            de_ctx->profile_ctx->data[sig->profiling_id].gid = sig->gid;
+            de_ctx->profile_ctx->data[sig->profiling_id].rev = sig->rev;
+            sig = sig->next;
+        }
+    }
+
     SCLogInfo("Registered %"PRIu32" rule profiling counters.", count);
 }
 
