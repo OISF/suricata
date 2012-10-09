@@ -440,10 +440,21 @@ TmEcode LogFilestoreLogThreadInit(ThreadVars *t, void *initdata, void **data)
 
     struct stat stat_buf;
     if (stat(g_logfile_base_dir, &stat_buf) != 0) {
-        SCLogError(SC_ERR_LOGDIR_CONFIG, "The file drop directory \"%s\" "
-                "supplied doesn't exist. Shutting down the engine",
-                g_logfile_base_dir);
-        exit(EXIT_FAILURE);
+        int ret;
+        ret = mkdir(g_logfile_base_dir, S_IRWXU|S_IXGRP|S_IRGRP);
+        if (ret != 0) {
+            int err = errno;
+            if (err != EEXIST) {
+                SCLogError(SC_ERR_LOGDIR_CONFIG,
+                        "Cannot create file drop directory %s: %s",
+                        g_logfile_base_dir, strerror(err));
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            SCLogInfo("Created file drop directory %s",
+                    g_logfile_base_dir);
+        }
+
     }
 
     *data = (void *)aft;
