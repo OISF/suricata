@@ -212,7 +212,7 @@ af-packet:
     #  * cluster_round_robin: round robin load balancing
     #  * cluster_flow: all packets of a given flow are send to the same socket
     #  * cluster_cpu: all packets treated in kernel by a CPU are send to the same socket
-    cluster-type: cluster_round_robin
+    cluster-type: cluster_flow
     # In some fragmentation case, the hash can not be computed. If "defrag" is set
     # to yes, the kernel will do the needed defragmentation before sending the packets.
     defrag: yes
@@ -238,7 +238,7 @@ af-packet:
   - interface: eth1
     threads: 1
     cluster-id: 98
-    cluster-type: cluster_round_robin
+    cluster-type: cluster_flow
     defrag: yes
     # buffer-size: 32768
     # disable-promisc: no
@@ -607,7 +607,7 @@ pfring:
 
     # Default PF_RING cluster type. PF_RING can load balance per flow or per hash.
     # This is only supported in versions of PF_RING > 4.1.1.
-    cluster-type: cluster_round_robin
+    cluster-type: cluster_flow
     # bpf filter for this interface
     #bpf-filter: tcp
     # Choose checksum verification mode for the interface. At the moment
