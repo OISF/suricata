@@ -342,7 +342,7 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     }
 
     SCMutexLock(&aft->file_ctx->fp_mutex);
-    MemBufferPrintToFPAsString(aft->buffer, aft->file_ctx->fp);
+    (void)MemBufferPrintToFPAsString(aft->buffer, aft->file_ctx->fp);
     fflush(aft->file_ctx->fp);
     aft->file_ctx->alerts += p->alerts.cnt;
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
@@ -402,7 +402,7 @@ TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQ
                          GET_PKT_DATA(p), GET_PKT_LEN(p));
 
     SCMutexLock(&aft->file_ctx->fp_mutex);
-    MemBufferPrintToFPAsString(aft->buffer, aft->file_ctx->fp);
+    (void)MemBufferPrintToFPAsString(aft->buffer, aft->file_ctx->fp);
     fflush(aft->file_ctx->fp);
     aft->file_ctx->alerts += p->alerts.cnt;
     SCMutexUnlock(&aft->file_ctx->fp_mutex);

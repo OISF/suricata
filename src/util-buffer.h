@@ -74,9 +74,9 @@ void MemBufferFree(MemBuffer *buffer);
  * \param buffer Pointer to the src MemBuffer instance to write.
  * \param fp     Pointer to the file file instance to write to.
  */
-#define MemBufferPrintToFPAsString(mem_buffer, fp) do {                     \
-        fwrite((mem_buffer)->buffer, sizeof(uint8_t), (mem_buffer)->offset, fp); \
-    } while (0)
+#define MemBufferPrintToFPAsString(mem_buffer, fp) ({                           \
+    fwrite((mem_buffer)->buffer, sizeof(uint8_t), (mem_buffer)->offset, fp);    \
+})
 
 /**
  * \brief Write a buffer in hex format.

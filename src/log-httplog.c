@@ -523,7 +523,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
         aft->uri_cnt ++;
 
         SCMutexLock(&hlog->file_ctx->fp_mutex);
-        MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
+        (void)MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
         fflush(hlog->file_ctx->fp);
         SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 

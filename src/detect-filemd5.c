@@ -142,18 +142,6 @@ static int MD5MatchLookupBuffer(ROHashTable *hash, uint8_t *buf, size_t buflen) 
         return 1;
 }
 
-static int MD5MatchLookupString(ROHashTable *hash, char *string) {
-    uint8_t md5[16];
-    if (Md5ReadString(md5, string) == 1) {
-        void *ptr = ROHashLookup(hash, &md5, (uint16_t)sizeof(md5));
-        if (ptr == NULL)
-            return 0;
-        else
-            return 1;
-    }
-    return 0;
-}
-
 /**
  * \brief match the specified filemd5
  *
@@ -352,6 +340,18 @@ static void DetectFileMd5Free(void *ptr) {
 }
 
 #ifdef UNITTESTS
+static int MD5MatchLookupString(ROHashTable *hash, char *string) {
+    uint8_t md5[16];
+    if (Md5ReadString(md5, string) == 1) {
+        void *ptr = ROHashLookup(hash, &md5, (uint16_t)sizeof(md5));
+        if (ptr == NULL)
+            return 0;
+        else
+            return 1;
+    }
+    return 0;
+}
+
 static int MD5MatchTest01(void) {
     ROHashTable *hash = ROHashInit(4, 16);
     if (hash == NULL) {

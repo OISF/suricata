@@ -60,22 +60,6 @@ SCEnumCharMap sc_hinfo_os_policy_map[ ] = {
 static SCRadixTree *sc_hinfo_tree = NULL;
 static SCRadixTree *sc_hinfo_tree_backup = NULL;
 
-static void SCHInfoCreateContextBackup(void)
-{
-    sc_hinfo_tree_backup = sc_hinfo_tree;
-    sc_hinfo_tree = NULL;
-
-    return;
-}
-
-static void SCHInfoRestoreContextBackup(void)
-{
-    sc_hinfo_tree = sc_hinfo_tree_backup;
-    sc_hinfo_tree_backup = NULL;
-
-    return;
-}
-
 /**
  * \brief Validates an IPV4 address and returns the network endian arranged
  *        version of the IPV4 address
@@ -447,6 +431,22 @@ void SCHInfoLoadFromConfig(void)
 /*------------------------------------Unit_Tests------------------------------*/
 
 #ifdef UNITTESTS
+
+static void SCHInfoCreateContextBackup(void)
+{
+    sc_hinfo_tree_backup = sc_hinfo_tree;
+    sc_hinfo_tree = NULL;
+
+    return;
+}
+
+static void SCHInfoRestoreContextBackup(void)
+{
+    sc_hinfo_tree = sc_hinfo_tree_backup;
+    sc_hinfo_tree_backup = NULL;
+
+    return;
+}
 
 /**
  * \test Check if we the IPs with the right OS flavours are added to the host OS
