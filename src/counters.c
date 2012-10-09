@@ -1223,8 +1223,6 @@ void SCPerfSpawnThreads(void)
         exit(EXIT_FAILURE);
     }
 
-    TmThreadSetCPU(tv_wakeup, MANAGEMENT_CPU_SET);
-
     if (TmThreadSpawn(tv_wakeup) != 0) {
         SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed for "
                    "SCPerfWakeupThread");
@@ -1239,8 +1237,6 @@ void SCPerfSpawnThreads(void)
                    "TmThreadCreateMgmtThread failed");
         exit(EXIT_FAILURE);
     }
-
-    TmThreadSetCPU(tv_mgmt, MANAGEMENT_CPU_SET);
 
     if (TmThreadSpawn(tv_mgmt) != 0) {
         SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed for "
