@@ -1465,10 +1465,10 @@ ThreadVars *TmThreadCreateMgmtThread(char *name, void *(fn_p)(void *),
 
     tv = TmThreadCreate(name, NULL, NULL, NULL, NULL, "custom", fn_p, mucond);
 
-    TmThreadSetCPU(tv, MANAGEMENT_CPU_SET);
-
-    if (tv != NULL)
+    if (tv != NULL) {
         tv->type = TVT_MGMT;
+        TmThreadSetCPU(tv, MANAGEMENT_CPU_SET);
+    }
 
     return tv;
 }
