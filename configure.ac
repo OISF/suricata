@@ -912,6 +912,8 @@ AC_INIT(configure.ac)
         AC_DEFINE_UNQUOTED([HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW],[1],[Assuming htp_tx_get_response_headers_raw function in bundled libhtp])
     ])
 
+  #enable libpescan
+  AC_CONFIG_SUBDIRS([libpescan])
 
   # enable CUDA output
     AC_ARG_ENABLE(cuda,

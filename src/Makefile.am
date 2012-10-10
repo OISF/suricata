@@ -172,6 +172,7 @@ detect-filestore.c detect-filestore.h \
 detect-filemagic.c detect-filemagic.h \
 detect-filemd5.c detect-filemd5.h \
 detect-filesize.c detect-filesize.h \
+detect-pescan.c detect-pescan.h \
 detect-http-stat-code.c detect-http-stat-code.h \
 detect-ssl-version.c detect-ssl-version.h \
 detect-ssl-state.c detect-ssl-state.h \
@@ -180,6 +181,7 @@ detect-app-layer-event.c detect-app-layer-event.h \
 decode-events.c decode-events.h \
 detect-replace.c detect-replace.h \
 detect-luajit.c detect-luajit.h \
+util-pescan.c util-pescan.h \
 util-magic.c util-magic.h \
 util-misc.c util-misc.h \
 util-atomic.c util-atomic.h \
@@ -273,6 +275,7 @@ log-tlslog.c log-tlslog.h \
 log-pcap.c log-pcap.h \
 log-file.c log-file.h \
 log-filestore.c log-filestore.h \
+log-pescanlog.c log-pescanlog.h \
 stream.c stream.h \
 stream-tcp.c stream-tcp.h stream-tcp-private.h \
 stream-tcp-reassemble.c stream-tcp-reassemble.h \
@@ -324,11 +327,15 @@ INCLUDES= $(all_includes)
 
 # the library search path.
 suricata_LDFLAGS = $(all_libraries)
-
+suricata_LDADD =
 if BUILD_LIBHTP
-suricata_LDADD = $(top_builddir)/libhtp/htp/libhtp.la
+suricata_LDADD += $(top_builddir)/libhtp/htp/libhtp.la
 INCLUDES += -I$(top_srcdir)/libhtp
 endif
+
+# libpescan
+suricata_LDADD += $(top_builddir)/libpescan/src/libpescan.la
+INCLUDES += -I$(top_srcdir)/libpescan/src/
 
 # Rules to build CUDA ptx modules
 if BUILD_CUDA
