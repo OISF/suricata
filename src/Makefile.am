@@ -17,6 +17,7 @@ runmode-erf-file.c runmode-erf-file.h \
 runmode-erf-dag.c runmode-erf-dag.h \
 runmode-napatech.c runmode-napatech.h \
 runmode-af-packet.c runmode-af-packet.h \
+runmode-unix-socket.c runmode-unix-socket.h \
 packet-queue.c packet-queue.h \
 data-queue.c data-queue.h \
 threads.c threads.h \
@@ -252,6 +253,7 @@ util-file.c util-file.h \
 util-path.c util-path.h \
 util-buffer.c util-buffer.h \
 util-crypt.c util-crypt.h \
+unix-manager.c unix-manager.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \
@@ -381,6 +383,7 @@ endif
 
 
 #suricata_CFLAGS = -Wall -fno-strict-aliasing 
+AM_CFLAGS = -DLOCAL_STATE_DIR=\"$(localstatedir)\"
 
 if BUILD_UNITTESTS
 check-am:

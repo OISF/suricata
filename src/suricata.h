@@ -83,10 +83,11 @@
 
 
 /* runtime engine control flags */
-#define SURICATA_STOP    0x01   /**< gracefully stop the engine: process all
+#define SURICATA_STOP    (1 << 0)   /**< gracefully stop the engine: process all
                                      outstanding packets first */
-#define SURICATA_KILL    0x02   /**< shut down asap, discarding outstanding
+#define SURICATA_KILL    (1 << 1)   /**< shut down asap, discarding outstanding
                                      packets. */
+#define SURICATA_DONE    (1 << 2)   /**< packets capture ended */
 
 /* Engine stage/status*/
 enum {
@@ -139,10 +140,12 @@ extern char *conf_filename;
 
 void EngineStop(void);
 void EngineKill(void);
+void EngineDone(void);
 
 /* live rule swap required this to be made static */
 void SignalHandlerSigusr2(int);
 void SignalHandlerSigusr2EngineShutdown(int);
+void SignalHandlerSigusr2Idle(int sig);
 
 int RunmodeIsUnittests(void);
 
