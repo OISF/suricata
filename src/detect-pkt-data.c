@@ -99,25 +99,22 @@ static int DetectPktDataTest01(void)
     Signature *sig = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(file_data; content:\"in file data\";"
                                " pkt_data; content:\"in pkt data\";)");
-    if (sig == NULL) {
+    de_ctx->sig_list = sig;
+    if (de_ctx->sig_list == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE,"could not load test signature");
-        goto end;
-    }
-
-
-    if(de_ctx->sig_list == NULL){
-        SCLogError(SC_ERR_NO_RULES_LOADED,"there are no sig_lists");
         goto end;
     }
     
     /* sm should not be in the MATCH list */
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_MATCH];
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSBDMATCH];
     if (sm != NULL) {
+        printf("\nsm not in DETECT_SM_LIST_HSBDMATCH\n");
         goto end;
     }
 
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSBDMATCH];
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
     if (sm == NULL) {
+        printf("\nsm not in DETECT_SM_LIST_PMATCH\n");
         goto end;
     }
     
