@@ -43,3 +43,11 @@
 # Alert and store pdf attachment but not pdf file
 #alert http any any -> any any (msg:"FILE pdf claimed, but not pdf"; flow:established,to_client; fileext:"pdf"; filemagic:!"PDF document"; filestore; sid:22; rev:1;)
 
+# Alert when a PE file is detected
+#alert http any any -> any any (msg:"PE File Found"; pescan; sid:23; rev:1;)
+
+# Alert when a PE with a score above 1.0 is detected
+#alert http any any -> any any (msg:"PE File Found which exceeds minimum score"; pescan:>1.0; sid:24; rev:1;)
+
+# Alert when a PE with a score between 1.0 and 3.0 (exclusive) is detected
+#alert http any any -> any any (msg:"PE File Found with score within range"; pescan:1.0-3.0; sid:25; rev:1;)
