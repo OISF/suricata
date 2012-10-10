@@ -34,3 +34,11 @@ ltmain.sh
 src/TAGS
 src/suricata
 stamp-h1
+
+/depcomp
+/install-sh
+/libhtp/depcomp
+/libhtp/INSTALL
+/libhtp/install-sh
+/libhtp/missing
+/missing

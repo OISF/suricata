@@ -34,6 +34,7 @@ enum {
     RUNMODE_ERF_FILE,
     RUNMODE_DAG,
     RUNMODE_NAPATECH,
+    RUNMODE_NAPATECH_3GD,
     RUNMODE_AFP_DEV,
     RUNMODE_UNITTEST,
     RUNMODE_MAX,
@@ -59,6 +60,7 @@ void RunModeShutDown(void);
 #include "runmode-erf-file.h"
 #include "runmode-erf-dag.h"
 #include "runmode-napatech.h"
+#include "runmode-napatech-3gd.h"
 #include "runmode-af-packet.h"
 
 int threading_set_cpu_affinity;
