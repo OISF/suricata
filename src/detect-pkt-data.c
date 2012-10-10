@@ -105,9 +105,9 @@ static int DetectPktDataTest01(void)
         goto end;
     }
     
-    /* sm should not be in the MATCH list */
+    /* sm should be in the MATCH list */
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSBDMATCH];
-    if (sm != NULL) {
+    if (sm == NULL) {
         printf("\nsm not in DETECT_SM_LIST_HSBDMATCH\n");
         goto end;
     }
