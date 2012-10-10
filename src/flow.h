@@ -477,6 +477,20 @@ static inline void FlowSetSessionNoApplayerInspectionFlag(Flow *f) {
     f->flags |= FLOW_NO_APPLAYER_INSPECTION;
 }
 
+#define FlowReference(dst_f_ptr, f) do {        \
+        if ((f) != NULL) {                      \
+            FlowIncrUsecnt((f));                \
+            *(dst_f_ptr) = f;                   \
+        }                                       \
+    } while (0)
+
+#define FlowDeReference(src_f_ptr) do {         \
+        if (*(src_f_ptr) != NULL) {             \
+            FlowDecrUsecnt(*(src_f_ptr));       \
+            *(src_f_ptr) = NULL;                \
+        }                                       \
+    } while (0)
+
 int FlowClearMemory(Flow *,uint8_t );
 
 #endif /* __FLOW_H__ */
