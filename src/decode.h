@@ -601,7 +601,6 @@ typedef struct DecodeThreadVars_
 }
 #endif
 
-
 /**
  *  \brief Recycle a packet structure for reuse.
  *  \todo the mutex destroy & init is necessary because of the memset, reconsider
@@ -615,7 +614,7 @@ typedef struct DecodeThreadVars_
         (p)->recursion_level = 0;               \
         (p)->flags = 0;                         \
         (p)->flowflags = 0;                     \
-        (p)->flow = NULL;                       \
+        FlowDeReference(&((p)->flow));          \
         (p)->ts.tv_sec = 0;                     \
         (p)->ts.tv_usec = 0;                    \
         (p)->datalink = 0;                      \
