@@ -127,20 +127,6 @@
 #define FLOW_CHECK_MEMCAP(size) \
     ((((uint64_t)SC_ATOMIC_GET(flow_memuse) + (uint64_t)(size)) <= flow_config.memcap))
 
-#define FlowReference(dst_f_ptr, f) do {            \
-        if ((f) != NULL) {                          \
-            FlowIncrUsecnt((f));                    \
-            *(dst_f_ptr) = f;                       \
-        }                                           \
-    } while (0)
-
-#define FlowDeReference(src_f_ptr) do {               \
-        if (*(src_f_ptr) != NULL) {                   \
-            FlowDecrUsecnt(*(src_f_ptr));             \
-            *(src_f_ptr) = NULL;                      \
-        }                                             \
-    } while (0)
-
 Flow *FlowAlloc(void);
 Flow *FlowAllocDirect(void);
 void FlowFree(Flow *);
