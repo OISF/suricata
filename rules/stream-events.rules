@@ -56,5 +56,6 @@ alert tcp any any -> any any (msg:"SURICATA STREAM SHUTDOWN RST invalid ack"; st
 #alert tcp any any -> any any (msg:"SURICATA STREAM reassembly segment before base seq"; stream-event:reassembly_segment_before_base_seq; sid:2210047; rev:1;)
 # Sequence gap: missing data in the reassembly engine. Usually due to packet loss. Will be very noisy on a overloaded link / sensor.
 #alert tcp any any -> any any (msg:"SURICATA STREAM reassembly sequence GAP -- missing packet(s)"; stream-event:reassembly_seq_gap; sid:2210048; rev:1;)
-# next sid 2210050
+alert tcp any any -> any any (msg:"SURICATA STREAM reassembly overlap with different data"; stream-event:reassembly_overlap_different_data; sid:2210050; rev:1;)
+# next sid 2210051
 

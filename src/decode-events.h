@@ -183,6 +183,8 @@ enum {
 
     STREAM_REASSEMBLY_SEQ_GAP,
 
+    STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA,
+
     /* SCTP EVENTS */
     SCTP_PKT_TOO_SMALL,              /**< sctp packet smaller than minimum size */
 

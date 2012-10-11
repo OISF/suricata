@@ -34,6 +34,9 @@
 
 #include "util-debug.h"
 
+#include "stream-tcp.h"
+
+
 /* Need to get the DEvents[] array */
 #define DETECT_EVENTS
 
@@ -172,6 +175,10 @@ DetectEngineEventData *DetectEngineEventParse (char *rawstr)
         goto error;
 
     de->event = DEvents[i].code;
+
+    if (de->event == STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA) {
+        StreamTcpReassembleConfigEnableOverlapCheck();
+    }
     return de;
 
 error:

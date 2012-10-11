@@ -92,6 +92,7 @@ static uint64_t segment_pool_cnt = 0;
 #endif
 /* index to the right pool for all packet sizes. */
 static uint16_t segment_pool_idx[65536]; /* O(1) lookups of the pool */
+static int check_overlap_different_data = 0;
 
 /* Memory use counter */
 SC_ATOMIC_DECLARE(uint64_t, ra_memuse);
@@ -108,6 +109,12 @@ void StreamTcpSegmentDataCopy(TcpSegment *, TcpSegment *);
 TcpSegment* StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *, uint16_t);
 void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
 void StreamTcpReassemblePseudoPacketCreate(TcpStream *, Packet *, PacketQueue *);
+static int StreamTcpSegmentDataCompare(TcpSegment *dst_seg, TcpSegment *src_seg,
+                                 uint32_t start_point, uint16_t len);
+
+void StreamTcpReassembleConfigEnableOverlapCheck(void) {
+    check_overlap_different_data = 1;
+}
 
 /**
  *  \brief  Function to Increment the memory usage counter for the TCP reassembly
@@ -1067,6 +1074,12 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
             }
         }
 
+        if (check_overlap_different_data &&
+                !StreamTcpSegmentDataCompare(seg, list_seg, list_seg->seq, overlap)) {
+            /* interesting, overlap with different data */
+            StreamTcpSetEvent(p, STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA);
+        }
+
         if (StreamTcpInlineMode()) {
             if (StreamTcpInlineSegmentCompare(seg, list_seg) != 0) {
                 StreamTcpInlineSegmentReplacePacket(p, list_seg);
@@ -1257,6 +1270,12 @@ static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThr
                 if (stream->seg_list_tail == list_seg)
                     stream->seg_list_tail = new_seg;
             }
+        }
+
+        if (check_overlap_different_data &&
+                !StreamTcpSegmentDataCompare(list_seg, seg, seg->seq, overlap)) {
+            /* interesting, overlap with different data */
+            StreamTcpSetEvent(p, STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA);
         }
 
         if (StreamTcpInlineMode()) {
@@ -1458,6 +1477,12 @@ static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThre
                 if (stream->seg_list_tail == list_seg)
                     stream->seg_list_tail = new_seg;
             }
+        }
+
+        if (check_overlap_different_data &&
+                !StreamTcpSegmentDataCompare(list_seg, seg, seg->seq, overlap)) {
+            /* interesting, overlap with different data */
+            StreamTcpSetEvent(p, STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA);
         }
 
         if (StreamTcpInlineMode()) {
@@ -3454,7 +3479,7 @@ void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg,
 
     if (SEQ_GT(start_point, dst_seg->seq)) {
         dst_pos = start_point - dst_seg->seq;
-    } else if (SEQ_LT(dst_seg->seq, start_point)) {
+    } else if (SEQ_LT(start_point, dst_seg->seq)) {
         dst_pos = dst_seg->seq - start_point;
     }
 
@@ -3478,6 +3503,60 @@ void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg,
 
     SCLogDebug("Replaced data of size %"PRIu16" up to src_pos %"PRIu16
             " dst_pos %"PRIu16, len, src_pos, dst_pos);
+}
+
+/**
+ *  \brief  Function to compare the data from a specific point up to given length.
+ *
+ *  \param  dst_seg     Destination segment to compare the data
+ *  \param  src_seg     Source segment of which data is to be compared to destination
+ *  \param  start_point Starting point to compare the data onwards
+ *  \param  len         Length up to which data is need to be compared
+ *
+ *  \retval 1 same
+ *  \retval 0 different
+ */
+static int StreamTcpSegmentDataCompare(TcpSegment *dst_seg, TcpSegment *src_seg,
+                                 uint32_t start_point, uint16_t len)
+{
+    uint32_t seq;
+    uint16_t src_pos = 0;
+    uint16_t dst_pos = 0;
+
+    SCLogDebug("start_point %u dst_seg %u src_seg %u", start_point, dst_seg->seq, src_seg->seq);
+
+    if (SEQ_GT(start_point, dst_seg->seq)) {
+        SCLogDebug("start_point %u > dst %u", start_point, dst_seg->seq);
+        dst_pos = start_point - dst_seg->seq;
+    } else if (SEQ_LT(start_point, dst_seg->seq)) {
+        SCLogDebug("start_point %u < dst %u", start_point, dst_seg->seq);
+        dst_pos = dst_seg->seq - start_point;
+    }
+
+    if (SCLogDebugEnabled()) {
+        BUG_ON(((len + dst_pos) - 1) > dst_seg->payload_len);
+    } else {
+        if (((len + dst_pos) - 1) > dst_seg->payload_len)
+            return 1;
+    }
+
+    src_pos = (uint16_t)(start_point - src_seg->seq);
+
+    SCLogDebug("Comparing data from dst_pos %"PRIu16", src_pos %u", dst_pos, src_pos);
+
+    for (seq = start_point; SEQ_LT(seq, (start_point + len)) &&
+            src_pos < src_seg->payload_len && dst_pos < dst_seg->payload_len;
+            seq++, dst_pos++, src_pos++)
+    {
+        if (dst_seg->payload[dst_pos] != src_seg->payload[src_pos]) {
+            SCLogDebug("data is different %02x != %02x, dst_pos %u, src_pos %u", dst_seg->payload[dst_pos], src_seg->payload[src_pos], dst_pos, src_pos);
+            return 0;
+        }
+    }
+
+    SCLogDebug("Compared data of size %"PRIu16" up to src_pos %"PRIu16
+            " dst_pos %"PRIu16, len, src_pos, dst_pos);
+    return 1;
 }
 
 /**

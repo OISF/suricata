@@ -171,6 +171,7 @@ struct DetectEngineEvents_ {
     { "stream.reassembly_segment_before_base_seq", STREAM_REASSEMBLY_SEGMENT_BEFORE_BASE_SEQ, },
     { "stream.reassembly_no_segment", STREAM_REASSEMBLY_NO_SEGMENT, },
     { "stream.reassembly_seq_gap", STREAM_REASSEMBLY_SEQ_GAP, },
+    { "stream.reassembly_overlap_different_data", STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA, },
     { NULL, 0 },
 };
 #endif /* DETECT_EVENTS */

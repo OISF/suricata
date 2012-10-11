@@ -57,6 +57,8 @@ typedef struct TcpStreamCnf_ {
     uint16_t reassembly_toserver_chunk_size;
     uint16_t reassembly_toclient_chunk_size;
 
+    int check_overlap_different_data;
+
     /** reassembly -- inline mode
      *
      *  sliding window size for raw stream reassembly
@@ -115,6 +117,7 @@ Packet *StreamTcpPseudoSetup(Packet *, uint8_t *, uint32_t);
 int StreamTcpSegmentForEach(Packet *p, uint8_t flag,
                         StreamSegmentCallback CallbackFunc,
                         void *data);
+void StreamTcpReassembleConfigEnableOverlapCheck(void);
 
 /** ------- Inline functions: ------ */
 
