@@ -119,6 +119,7 @@ detect-flowvar.c detect-flowvar.h \
 detect-fragbits.c detect-fragbits.h \
 detect-fragoffset.c detect-fragoffset.h \
 detect-ftpbounce.c detect-ftpbounce.h \
+detect-geoip.c detect-geoip.h \
 detect-gid.c detect-gid.h \
 detect-http-client-body.c detect-http-client-body.h \
 detect-http-cookie.c detect-http-cookie.h \
