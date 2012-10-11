@@ -4762,6 +4762,7 @@ void SigTableSetup(void) {
     DetectBytetestRegister();
     DetectBytejumpRegister();
     DetectSameipRegister();
+    DetectGeoipRegister();    
     DetectL3ProtoRegister();
     DetectIPProtoRegister();
     DetectWithinRegister();

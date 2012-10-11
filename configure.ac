@@ -1249,6 +1249,47 @@ AC_INIT(configure.ac)
         fi
     fi
 
+  # libgeoip
+    AC_ARG_ENABLE(geoip,
+	        [  --enable-geoip  Enable GeoIP support],
+	        [ enable_geoip="yes"],
+	        [ enable_geoip="no"])
+    AC_ARG_WITH(libgeoip_includes,
+            [  --with-libgeoip-includes=DIR  libgeoip include directory],
+            [with_libgeoip_includes="$withval"],[with_libgeoip_includes="no"])
+    AC_ARG_WITH(libgeoip_libraries,
+            [  --with-libgeoip-libraries=DIR    libgeoip library directory],
+            [with_libgeoip_libraries="$withval"],[with_libgeoip_libraries="no"])
+
+    if test "$enable_geoip" = "yes"; then
+        if test "$with_libgeoip_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_libgeoip_includes}"
+        fi
+
+        AC_CHECK_HEADER(GeoIP.h,GEOIP="yes",GEOIP="no")
+        if test "$GEOIP" = "yes"; then
+            if test "$with_libgeoip_libraries" != "no"; then
+                LDFLAGS="${LDFLAGS}  -L${with_libgeoip_libraries}"
+            fi
+
+            AC_CHECK_LIB(GeoIP, GeoIP_country_code_by_ipnum,, GEOIP="no")
+
+            if test "$GEOIP" = "no"; then
+                echo
+                echo "   ERROR!  libgeoip library not found, go get it"
+                echo "   from http://www.maxmind.com/en/geolite or your distribution:"
+                echo
+                echo "   Ubuntu: apt-get install libgeoip-dev"
+                echo
+                exit 1
+            fi
+
+            AC_DEFINE([HAVE_GEOIP],[1],[libgeoip available])
+            enable_geoip="yes"
+        fi
+    fi
+    
+    
 # get revision
     if test -f ./revision; then
         REVISION=`cat ./revision`
@@ -1331,6 +1372,7 @@ Suricata Configuration:
   Prelude support:                         ${enable_prelude}
   PCRE jit:                                ${pcre_jit_available}
   libluajit:                               ${enable_luajit}
+  libgeoip:                                ${enable_geoip}
   Non-bundled htp:                         ${enable_non_bundled_htp}
   Old barnyard2 support:                   ${enable_old_barnyard2}
   CUDA enabled:                            ${enable_cuda}
