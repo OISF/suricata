@@ -54,21 +54,33 @@
  */
 void DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
+    uint32_t proto;
+
     SCPerfCounterIncr(dtv->counter_vlan, tv->sc_perf_pca);
 
     if(len < VLAN_HEADER_LEN)    {
         ENGINE_SET_EVENT(p,VLAN_HEADER_TOO_SMALL);
         return;
     }
+    if (p->vlan_idx >= 2) {
+        ENGINE_SET_EVENT(p,VLAN_HEADER_TOO_MANY_LAYERS);
+        return;
+    }
 
-    p->vlanh = (VLANHdr *)pkt;
-    if(p->vlanh == NULL)
+    p->vlanh[p->vlan_idx] = (VLANHdr *)pkt;
+    if(p->vlanh[p->vlan_idx] == NULL)
         return;
 
-    SCLogDebug("p %p pkt %p VLAN protocol %04x VLAN PRI %d VLAN CFI %d VLAN ID %d Len: %" PRId32 "",
-        p, pkt, GET_VLAN_PROTO(p->vlanh), GET_VLAN_PRIORITY(p->vlanh), GET_VLAN_CFI(p->vlanh), GET_VLAN_ID(p->vlanh), len);
+    proto = GET_VLAN_PROTO(p->vlanh[p->vlan_idx]);
 
-    switch (GET_VLAN_PROTO(p->vlanh))   {
+    SCLogDebug("p %p pkt %p VLAN protocol %04x VLAN PRI %d VLAN CFI %d VLAN ID %d Len: %" PRId32 "",
+            p, pkt, proto, GET_VLAN_PRIORITY(p->vlanh[p->vlan_idx]),
+            GET_VLAN_CFI(p->vlanh[p->vlan_idx]), GET_VLAN_ID(p->vlanh[p->vlan_idx]), len);
+
+    p->vlan_id[p->vlan_idx] = (uint16_t)GET_VLAN_ID(p->vlanh[p->vlan_idx]);
+    p->vlan_idx++;
+
+    switch (proto)   {
         case ETHERNET_TYPE_IP:
             DecodeIPV4(tv, dtv, p, pkt + VLAN_HEADER_LEN,
                        len - VLAN_HEADER_LEN, pq);
@@ -86,11 +98,15 @@ void DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
                                  len - VLAN_HEADER_LEN, pq);
             break;
         case ETHERNET_TYPE_VLAN:
-            DecodeVLAN(tv, dtv, p, pkt + VLAN_HEADER_LEN,
-                                 len - VLAN_HEADER_LEN, pq);
+            if (p->vlan_idx >= 2) {
+                ENGINE_SET_EVENT(p,VLAN_HEADER_TOO_MANY_LAYERS);
+            } else {
+                DecodeVLAN(tv, dtv, p, pkt + VLAN_HEADER_LEN,
+                        len - VLAN_HEADER_LEN, pq);
+            }
             break;
         default:
-            SCLogDebug("unknown VLAN type: %" PRIx32 "",GET_VLAN_PROTO(p->vlanh));
+            SCLogDebug("unknown VLAN type: %" PRIx32 "", proto);
             ENGINE_SET_EVENT(p,VLAN_UNKNOWN_TYPE);
             return;
     }
