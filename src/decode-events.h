@@ -132,6 +132,7 @@ enum {
     /* VLAN EVENTS */
     VLAN_HEADER_TOO_SMALL,          /**< vlan header smaller than minimum size */
     VLAN_UNKNOWN_TYPE,              /**< vlan unknown type */
+    VLAN_HEADER_TOO_MANY_LAYERS,
 
     /* RAW EVENTS */
     IPRAW_INVALID_IPV,              /**< invalid ip version in ip raw */
