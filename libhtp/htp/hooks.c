@@ -130,6 +130,19 @@ int hook_run_all(htp_hook_t *hook, void *data) {
         return HOOK_OK;
     }
 
+    /* HACK https://redmine.openinfosecfoundation.org/issues/601 */
+    size_t i = 0;
+    for (i = 0; i < ((list_array_t *)hook->callbacks)->current_size; i++) {
+        void *r = ((list_array_t *)hook->callbacks)->elements[i];
+        if (r == NULL)
+            continue;
+
+        htp_callback_t *callback = r;
+        if (callback->fn(data) == HOOK_ERROR) {
+            return HOOK_ERROR;
+        }
+    }
+#if 0
     htp_callback_t *callback = NULL;
     list_iterator_reset(hook->callbacks);
     while ((callback = list_iterator_next(hook->callbacks)) != NULL) {
@@ -137,7 +150,7 @@ int hook_run_all(htp_hook_t *hook, void *data) {
             return HOOK_ERROR;
         }
     }
-
+#endif
     return HOOK_OK;
 }
 
@@ -153,6 +166,20 @@ int hook_run_one(htp_hook_t *hook, void *data) {
         return HOOK_DECLINED;
     }
 
+    /* HACK https://redmine.openinfosecfoundation.org/issues/601 */
+    size_t i = 0;
+    for (i = 0; i < ((list_array_t *)hook->callbacks)->current_size; i++) {
+        void *r = ((list_array_t *)hook->callbacks)->elements[i];
+        if (r == NULL)
+            continue;
+
+        htp_callback_t *callback = r;
+        int status = callback->fn(data);
+        if (status != HOOK_DECLINED) {
+            return status;
+        }
+    }
+#if 0
     htp_callback_t *callback = NULL;
     list_iterator_reset(hook->callbacks);
     while ((callback = list_iterator_next(hook->callbacks)) != NULL) {
@@ -162,6 +189,6 @@ int hook_run_one(htp_hook_t *hook, void *data) {
             return status;
         }
     }
-
+#endif
     return HOOK_DECLINED;
 }
