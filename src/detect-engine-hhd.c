@@ -56,6 +56,123 @@
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
 
+#define BUFFER_STEP 50
+
+static uint8_t *DetectEngineHHDGetBufferForTX(int tx_id,
+                                              DetectEngineCtx *de_ctx,
+                                              DetectEngineThreadCtx *det_ctx,
+                                              Flow *f, HtpState *htp_state,
+                                              uint8_t flags,
+                                              uint32_t *buffer_len)
+{
+#define HHDCreateSpace(det_ctx, size) do {                              \
+        if (size > det_ctx->hhd_buffers_size) {                         \
+            det_ctx->hhd_buffers = SCRealloc(det_ctx->hhd_buffers, (det_ctx->hhd_buffers_size + BUFFER_STEP) * sizeof(uint8_t *)); \
+            if (det_ctx->hhd_buffers == NULL) {                         \
+                det_ctx->hhd_buffers_size = 0;                          \
+                det_ctx->hhd_buffers_list_len = 0;                      \
+                goto end;                                               \
+            }                                                           \
+            memset(det_ctx->hhd_buffers + det_ctx->hhd_buffers_size, 0, BUFFER_STEP * sizeof(uint8_t *)); \
+            det_ctx->hhd_buffers_len = SCRealloc(det_ctx->hhd_buffers_len, (det_ctx->hhd_buffers_size + BUFFER_STEP) * sizeof(uint32_t)); \
+            if (det_ctx->hhd_buffers_len == NULL) {                     \
+                det_ctx->hhd_buffers_size = 0;                          \
+                det_ctx->hhd_buffers_list_len = 0;                      \
+                goto end;                                               \
+            }                                                           \
+            memset(det_ctx->hhd_buffers_len + det_ctx->hhd_buffers_size, 0, BUFFER_STEP * sizeof(uint32_t)); \
+            det_ctx->hhd_buffers_size += BUFFER_STEP;                   \
+        }                                                               \
+        memset(det_ctx->hhd_buffers_len + det_ctx->hhd_buffers_list_len, 0, (size - det_ctx->hhd_buffers_list_len) * sizeof(uint32_t)); \
+    } while (0)
+
+    int index = 0;
+    *buffer_len = 0;
+
+    if (det_ctx->hhd_buffers_list_len == 0) {
+        HHDCreateSpace(det_ctx, 1);
+        index = 0;
+    } else {
+        if ((tx_id - det_ctx->hhd_start_tx_id) < det_ctx->hhd_buffers_list_len) {
+            if (det_ctx->hhd_buffers_len[(tx_id - det_ctx->hhd_start_tx_id)] != 0) {
+                *buffer_len = det_ctx->hhd_buffers_len[(tx_id - det_ctx->hhd_start_tx_id)];
+                return det_ctx->hhd_buffers[(tx_id - det_ctx->hhd_start_tx_id)];
+            }
+        } else {
+            HHDCreateSpace(det_ctx, (tx_id - det_ctx->hhd_start_tx_id) + 1);
+        }
+        index = (tx_id - det_ctx->hhd_start_tx_id);
+    }
+
+    if (det_ctx->hhd_buffers_list_len == 0) {
+        det_ctx->hhd_start_tx_id = tx_id;
+    }
+    det_ctx->hhd_buffers_list_len++;
+
+    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, tx_id);
+    if (tx == NULL) {
+        SCLogDebug("no tx");
+        goto end;
+    }
+
+    table_t *headers;
+    if (flags & STREAM_TOSERVER) {
+        headers = tx->request_headers;
+    } else {
+        headers = tx->response_headers;
+    }
+
+    htp_header_t *h = NULL;
+    uint8_t *headers_buffer = det_ctx->hhd_buffers[index];
+    size_t headers_buffer_len = 0;
+
+    table_iterator_reset(headers);
+    while (table_iterator_next(headers, (void **)&h) != NULL) {
+        size_t size1 = bstr_size(h->name);
+        size_t size2 = bstr_size(h->value);
+
+        if (flags & STREAM_TOSERVER) {
+            if (size1 == 6 &&
+                SCMemcmpLowercase("cookie", bstr_ptr(h->name), 6)) {
+                continue;
+            }
+        } else {
+            if (size1 == 10 &&
+                SCMemcmpLowercase("set-cookie", bstr_ptr(h->name), 10) == 0) {
+                continue;
+            }
+        }
+
+        /* the extra 4 bytes if for ": " and "\r\n" */
+        headers_buffer = SCRealloc(headers_buffer, headers_buffer_len + size1 + size2 + 4);
+        if (headers_buffer == NULL) {
+            det_ctx->hhd_buffers[index] = NULL;
+            det_ctx->hhd_buffers_len[index] = 0;
+            goto end;
+        }
+
+        memcpy(headers_buffer + headers_buffer_len, bstr_ptr(h->name), size1);
+        headers_buffer_len += size1;
+        headers_buffer[headers_buffer_len] = ':';
+        headers_buffer[headers_buffer_len + 1] = ' ';
+        headers_buffer_len += 2;
+        memcpy(headers_buffer + headers_buffer_len, bstr_ptr(h->value), size2);
+        headers_buffer_len += size2 + 2;
+        /* \r */
+        headers_buffer[headers_buffer_len - 2] = '\r';
+        /* \n */
+        headers_buffer[headers_buffer_len - 1] = '\n';
+    }
+
+    /* store the buffers.  We will need it for further inspection */
+    det_ctx->hhd_buffers[index] = headers_buffer;
+    det_ctx->hhd_buffers_len[index] = headers_buffer_len;
+
+    *buffer_len = headers_buffer_len;
+ end:
+    return headers_buffer;
+}
+
 /**
  * \brief Helps buffer http normalized headers from different transactions and
  *        stores them away in detection context.
@@ -179,6 +296,48 @@ end:
     return;
 }
 
+int DetectEngineRunHttpHeaderMpmV2(DetectEngineThreadCtx *det_ctx, Flow *f,
+                                   HtpState *htp_state, uint8_t flags)
+{
+    uint32_t cnt = 0;
+
+    if (htp_state == NULL) {
+        SCLogDebug("no HTTP state");
+        goto end;
+    }
+
+    FLOWLOCK_WRLOCK(f);
+
+    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
+        SCLogDebug("HTP state has no conn(p)");
+        goto end;
+    }
+
+    /* get the transaction id */
+    int idx = AppLayerTransactionGetInspectId(f);
+    /* error!  get out of here */
+    if (idx == -1)
+        goto end;
+
+    int size = (int)list_size(htp_state->connp->conn->transactions);
+    for (; idx < size; idx++) {
+        uint32_t buffer_len = 0;
+        uint8_t *buffer = DetectEngineHHDGetBufferForTX(idx,
+                                                        NULL, det_ctx,
+                                                        f, htp_state,
+                                                        flags,
+                                                        &buffer_len);
+        if (buffer_len == 0)
+            continue;
+
+        cnt += HttpHeaderPatternSearch(det_ctx, buffer, buffer_len, flags);
+    }
+
+ end:
+    FLOWLOCK_UNLOCK(f);
+    return cnt;
+}
+
 /**
  *  \brief run the mpm against the assembled http header buffer(s)
  *  \retval cnt Number of matches reported by the mpm algo.
@@ -210,6 +369,63 @@ int DetectEngineRunHttpHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     }
 
     return cnt;
+}
+
+int DetectEngineInspectHttpHeaderV2(DetectEngineCtx *de_ctx,
+                                    DetectEngineThreadCtx *det_ctx,
+                                    Signature *s, Flow *f, uint8_t flags,
+                                    void *alstate)
+{
+    int r = 0;
+
+    HtpState *htp_state = (HtpState *)alstate;
+
+    if (htp_state == NULL) {
+        SCLogDebug("no HTTP state");
+        goto end;
+    }
+
+    FLOWLOCK_WRLOCK(f);
+
+    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
+        SCLogDebug("HTP state has no conn(p)");
+        goto end;
+    }
+
+    /* get the transaction id */
+    int idx = AppLayerTransactionGetInspectId(f);
+    /* error!  get out of here */
+    if (idx == -1)
+        goto end;
+
+    int size = (int)list_size(htp_state->connp->conn->transactions);
+    for (; idx < size; idx++) {
+        det_ctx->buffer_offset = 0;
+        det_ctx->discontinue_matching = 0;
+        det_ctx->inspection_recursion_counter = 0;
+
+        uint32_t buffer_len = 0;
+        uint8_t *buffer = DetectEngineHHDGetBufferForTX(idx,
+                                                        de_ctx, det_ctx,
+                                                        f, htp_state,
+                                                        flags,
+                                                        &buffer_len);
+        if (buffer_len == 0)
+            continue;
+
+        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HHDMATCH],
+                                          f,
+                                          buffer,
+                                          buffer_len,
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_HHD, NULL);
+        if (r == 1) {
+            break;
+        }
+    }
+
+ end:
+    FLOWLOCK_UNLOCK(f);
+    return r;
 }
 
 /**
@@ -264,6 +480,20 @@ int DetectEngineInspectHttpHeader(DetectEngineCtx *de_ctx,
     }
 
     SCReturnInt(r);
+}
+
+void DetectEngineCleanHHDBuffersV2(DetectEngineThreadCtx *det_ctx)
+{
+    if (det_ctx->hhd_buffers_list_len != 0) {
+        int i;
+        for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
+            det_ctx->hhd_buffers_len[i] = 0;
+        }
+        det_ctx->hhd_buffers_list_len = 0;
+    }
+    det_ctx->hhd_start_tx_id = 0;
+
+    return;
 }
 
 /**

@@ -741,16 +741,21 @@ typedef struct DetectionEngineThreadCtx_ {
     /* counter for the filestore array below -- up here for cache reasons. */
     uint16_t filestore_cnt;
 
-    uint16_t hhd_buffers_list_len;
-
-    uint16_t hcbd_buffers_list_len;
+    HttpReassembledBody *hsbd;
+    int hsbd_start_tx_id;
+    uint16_t hsbd_buffers_size;
     uint16_t hsbd_buffers_list_len;
 
-    HttpReassembledBody *hsbd;
     HttpReassembledBody *hcbd;
+    int hcbd_start_tx_id;
+    uint16_t hcbd_buffers_size;
+    uint16_t hcbd_buffers_list_len;
 
     uint8_t **hhd_buffers;
     uint32_t *hhd_buffers_len;
+    uint16_t hhd_buffers_size;
+    uint16_t hhd_buffers_list_len;
+    int hhd_start_tx_id;
 
     /** id for alert counter */
     uint16_t counter_alerts;

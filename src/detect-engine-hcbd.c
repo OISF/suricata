@@ -58,6 +58,161 @@
 #define BODY_SCAN_WINDOW 4096
 #define BODY_MINIMAL_SIZE 32768
 
+#define BUFFER_STEP 50
+
+static uint8_t *DetectEngineHCBDGetBufferForTX(int tx_id,
+                                               DetectEngineCtx *de_ctx,
+                                               DetectEngineThreadCtx *det_ctx,
+                                               Flow *f, HtpState *htp_state,
+                                               uint8_t flags,
+                                               uint32_t *buffer_len)
+{
+#define HCBDCreateSpace(det_ctx, size) do {                             \
+        if (size > det_ctx->hcbd_buffers_size) {                        \
+            det_ctx->hcbd = SCRealloc(det_ctx->hcbd, (det_ctx->hcbd_buffers_size + BUFFER_STEP) * sizeof(HttpReassembledBody)); \
+            if (det_ctx->hcbd == NULL) {                                \
+                det_ctx->hcbd_buffers_size = 0;                         \
+                det_ctx->hcbd_buffers_list_len = 0;                     \
+                goto end;                                               \
+            }                                                           \
+            memset(det_ctx->hcbd + det_ctx->hcbd_buffers_size, 0, BUFFER_STEP * sizeof(HttpReassembledBody)); \
+            det_ctx->hcbd_buffers_size += BUFFER_STEP;                  \
+        }                                                               \
+        for (int i = det_ctx->hcbd_buffers_list_len; i < (size); i++) { \
+            det_ctx->hcbd[i].buffer_len = 0;                            \
+            det_ctx->hcbd[i].offset = 0;                                \
+        }                                                               \
+    } while (0)
+
+    int index = 0;
+    uint8_t *buffer = NULL;
+    *buffer_len = 0;
+
+    if (det_ctx->hcbd_buffers_list_len == 0) {
+        HCBDCreateSpace(det_ctx, 1);
+        index = 0;
+    } else {
+        if ((tx_id - det_ctx->hcbd_start_tx_id) < det_ctx->hcbd_buffers_list_len) {
+            if (det_ctx->hcbd[(tx_id - det_ctx->hcbd_start_tx_id)].buffer_len != 0) {
+                *buffer_len = det_ctx->hcbd[(tx_id - det_ctx->hcbd_start_tx_id)].buffer_len;
+                return det_ctx->hcbd[(tx_id - det_ctx->hcbd_start_tx_id)].buffer;
+            }
+        } else {
+            HCBDCreateSpace(det_ctx, (tx_id - det_ctx->hcbd_start_tx_id) + 1);
+        }
+        index = (tx_id - det_ctx->hcbd_start_tx_id);
+    }
+
+    if (det_ctx->hcbd_buffers_list_len == 0) {
+        det_ctx->hcbd_start_tx_id = tx_id;
+    }
+    det_ctx->hcbd_buffers_list_len++;
+
+    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, tx_id);
+    if (tx == NULL) {
+        SCLogDebug("no tx");
+        goto end;
+    }
+
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    if (htud == NULL) {
+        SCLogDebug("no htud");
+        goto end;
+    }
+
+    /* no new data */
+    if (htud->request_body.body_inspected == htud->request_body.content_len_so_far) {
+        SCLogDebug("no new data");
+        goto end;
+    }
+
+    HtpBodyChunk *cur = htud->request_body.first;
+    if (cur == NULL) {
+        SCLogDebug("No http chunks to inspect for this transacation");
+        goto end;
+    }
+
+    /* in case of chunked transfer encoding, we don't have the length
+     * of the request body until we see a chunk with length 0.  This
+     * doesn't let us use the request body callback function to
+     * figure out the end of request body.  Instead we do it here.  If
+     * the length is 0, and we have already seen content, it indicates
+     * chunked transfer.  We also check if the parser has truly seen
+     * the last chunk by checking the progress state for the
+     * transaction.  If we are done parsing all the chunks, we would
+     * have it set to something other than TX_PROGRESS_REQ_BODY.
+     * Either ways we should be moving away from buffering in the end
+     * and running content validation on this buffer type of architecture
+     * to a stateful inspection, where we can inspect body chunks as and
+     * when they come */
+    if (htud->request_body.content_len == 0) {
+        if ((htud->request_body.content_len_so_far > 0) &&
+            tx->progress != TX_PROGRESS_REQ_BODY) {
+            /* final length of the body */
+            htud->tsflags |= HTP_REQ_BODY_COMPLETE;
+        }
+    }
+
+    if (flags & STREAM_EOF) {
+        htud->tsflags |= HTP_REQ_BODY_COMPLETE;
+    }
+
+    /* inspect the body if the transfer is complete or we have hit
+     * our body size limit */
+    if (htud->request_body.content_len_so_far < BODY_MINIMAL_SIZE &&
+        !(htud->tsflags & HTP_REQ_BODY_COMPLETE)) {
+        SCLogDebug("we still haven't seen the entire request body.  "
+                   "Let's defer body inspection till we see the "
+                   "entire body.");
+        goto end;
+    }
+
+    int first = 1;
+    while (cur != NULL) {
+        /* see if we can filter out chunks */
+        if (htud->request_body.body_inspected > 0) {
+            if (cur->stream_offset < htud->request_body.body_inspected) {
+                if ((htud->request_body.body_inspected - cur->stream_offset) > BODY_SCAN_WINDOW) {
+                    cur = cur->next;
+                    continue;
+                } else {
+                    /* include this one */
+                }
+            } else {
+                /* include this one */
+            }
+        }
+
+        if (first) {
+            det_ctx->hcbd[index].offset = cur->stream_offset;
+            first = 0;
+        }
+
+        /* see if we need to grow the buffer */
+        if (det_ctx->hcbd[index].buffer == NULL || (det_ctx->hcbd[index].buffer_len + cur->len) > det_ctx->hcbd[index].buffer_size) {
+            det_ctx->hcbd[index].buffer_size += cur->len * 2;
+
+            if ((det_ctx->hcbd[index].buffer = SCRealloc(det_ctx->hcbd[index].buffer, det_ctx->hcbd[index].buffer_size)) == NULL) {
+                det_ctx->hcbd[index].buffer_size = 0;
+                det_ctx->hcbd[index].buffer_len = 0;
+                goto end;
+            }
+        }
+        memcpy(det_ctx->hcbd[index].buffer + det_ctx->hcbd[index].buffer_len, cur->data, cur->len);
+        det_ctx->hcbd[index].buffer_len += cur->len;
+
+        cur = cur->next;
+    }
+
+    /* update inspected tracker */
+    htud->request_body.body_inspected = htud->request_body.last->stream_offset + htud->request_body.last->len;
+
+    buffer = det_ctx->hcbd[index].buffer;
+    *buffer_len = det_ctx->hcbd[index].buffer_len;
+ end:
+    return buffer;
+}
+
 /**
  * \brief Helps buffer request bodies for different transactions and stores them
  *        away in detection code.
@@ -228,6 +383,49 @@ end:
     return;
 }
 
+int DetectEngineRunHttpClientBodyMpmV2(DetectEngineCtx *de_ctx,
+                                       DetectEngineThreadCtx *det_ctx, Flow *f,
+                                       HtpState *htp_state, uint8_t flags)
+{
+    uint32_t cnt = 0;
+
+    if (htp_state == NULL) {
+        SCLogDebug("no HTTP state");
+        goto end;
+    }
+
+    FLOWLOCK_WRLOCK(f);
+
+    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
+        SCLogDebug("HTP state has no conn(p)");
+        goto end;
+    }
+
+    /* get the transaction id */
+    int idx = AppLayerTransactionGetInspectId(f);
+    /* error!  get out of here */
+    if (idx == -1)
+        goto end;
+
+    int size = (int)list_size(htp_state->connp->conn->transactions);
+    for (; idx < size; idx++) {
+        uint32_t buffer_len = 0;
+        uint8_t *buffer = DetectEngineHCBDGetBufferForTX(idx,
+                                                         de_ctx, det_ctx,
+                                                         f, htp_state,
+                                                         flags,
+                                                         &buffer_len);
+        if (buffer_len == 0)
+            continue;
+
+        cnt += HttpClientBodyPatternSearch(det_ctx, buffer, buffer_len, flags);
+    }
+
+ end:
+    FLOWLOCK_UNLOCK(f);
+    return cnt;
+}
+
 int DetectEngineRunHttpClientBodyMpm(DetectEngineCtx *de_ctx,
                                      DetectEngineThreadCtx *det_ctx, Flow *f,
                                      HtpState *htp_state, uint8_t flags)
@@ -254,6 +452,62 @@ int DetectEngineRunHttpClientBodyMpm(DetectEngineCtx *de_ctx,
     return cnt;
 }
 
+int DetectEngineInspectHttpClientBodyV2(DetectEngineCtx *de_ctx,
+                                        DetectEngineThreadCtx *det_ctx,
+                                        Signature *s, Flow *f, uint8_t flags,
+                                        void *alstate)
+{
+    int r = 0;
+
+    HtpState *htp_state = (HtpState *)alstate;
+
+    if (htp_state == NULL) {
+        SCLogDebug("no HTTP state");
+        goto end;
+    }
+
+    FLOWLOCK_WRLOCK(f);
+
+    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
+        SCLogDebug("HTP state has no conn(p)");
+        goto end;
+    }
+
+    /* get the transaction id */
+    int idx = AppLayerTransactionGetInspectId(f);
+    /* error!  get out of here */
+    if (idx == -1)
+        goto end;
+
+    int size = (int)list_size(htp_state->connp->conn->transactions);
+    for (; idx < size; idx++) {
+        det_ctx->buffer_offset = 0;
+        det_ctx->discontinue_matching = 0;
+        det_ctx->inspection_recursion_counter = 0;
+
+        uint32_t buffer_len = 0;
+        uint8_t *buffer = DetectEngineHCBDGetBufferForTX(idx,
+                                                         de_ctx, det_ctx,
+                                                         f, htp_state,
+                                                         flags,
+                                                         &buffer_len);
+        if (buffer_len == 0)
+            continue;
+
+        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HCBDMATCH],
+                                          f,
+                                          buffer,
+                                          buffer_len,
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_HCBD, NULL);
+        if (r == 1) {
+            break;
+        }
+    }
+
+ end:
+    FLOWLOCK_UNLOCK(f);
+    return r;
+}
 
 /**
  * \brief Do the http_client_body content inspection for a signature.
@@ -304,6 +558,20 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
     }
 
     SCReturnInt(r);
+}
+
+void DetectEngineCleanHCBDBuffersV2(DetectEngineThreadCtx *det_ctx)
+{
+    if (det_ctx->hcbd_buffers_list_len > 0) {
+        for (int i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
+            det_ctx->hcbd[i].buffer_len = 0;
+            det_ctx->hcbd[i].offset = 0;
+        }
+    }
+    det_ctx->hcbd_buffers_list_len = 0;
+    det_ctx->hcbd_start_tx_id = 0;
+
+    return;
 }
 
 /**

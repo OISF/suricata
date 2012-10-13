@@ -1247,7 +1247,8 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                 }
                 if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HCBD) {
                     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HCBD);
-                    DetectEngineRunHttpClientBodyMpm(de_ctx, det_ctx, p->flow, alstate, flags);
+                    DetectEngineRunHttpClientBodyMpmV2(de_ctx, det_ctx, p->flow, alstate, flags);
+                    //DetectEngineRunHttpClientBodyMpm(de_ctx, det_ctx, p->flow, alstate, flags);
                     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HCBD);
                 }
                 if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HMD) {
@@ -1263,7 +1264,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
             } else { /* implied FLOW_PKT_TOCLIENT */
                 if (p->flowflags & FLOW_PKT_TOCLIENT && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSBD) {
                     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSBD);
-                    DetectEngineRunHttpServerBodyMpm(de_ctx, det_ctx, p->flow, alstate, flags);
+                    DetectEngineRunHttpServerBodyMpmV2(de_ctx, det_ctx, p->flow, alstate, flags);
                     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HSBD);
                 }
                 if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSMD) {
@@ -1279,7 +1280,8 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
             }
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HHD) {
                 PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HHD);
-                DetectEngineRunHttpHeaderMpm(det_ctx, p->flow, alstate, flags);
+                //DetectEngineRunHttpHeaderMpm(det_ctx, p->flow, alstate, flags);
+                DetectEngineRunHttpHeaderMpmV2(det_ctx, p->flow, alstate, flags);
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HHD);
             }
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRHD) {
@@ -1889,9 +1891,12 @@ end:
     /* cleanup pkt specific part of the patternmatcher */
     PacketPatternCleanup(th_v, det_ctx);
 
-    DetectEngineCleanHCBDBuffers(det_ctx);
-    DetectEngineCleanHSBDBuffers(det_ctx);
-    DetectEngineCleanHHDBuffers(det_ctx);
+    //DetectEngineCleanHCBDBuffers(det_ctx);
+    DetectEngineCleanHCBDBuffersV2(det_ctx);
+    //DetectEngineCleanHSBDBuffers(det_ctx);
+    DetectEngineCleanHSBDBuffersV2(det_ctx);
+    //DetectEngineCleanHHDBuffers(det_ctx);
+    DetectEngineCleanHHDBuffersV2(det_ctx);
 
     /* store the found sgh (or NULL) in the flow to save us from looking it
      * up again for the next packet. Also return any stream chunk we processed
