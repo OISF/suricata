@@ -29,9 +29,12 @@
 #include <GeoIP.h>
 #include "util-spm-bm.h"
 
+#define GEOOPTION_MAXSIZE 64
+#define GEOOPTION_MAXLOCATIONS 64
+
 typedef struct DetectGeoipData_ {
-    uint8_t *country;  /** file extension to match */
-    uint16_t len;  /** length of the file */
+    uint8_t location[GEOOPTION_MAXSIZE][GEOOPTION_MAXSIZE];  /** country code for now, null term.*/
+    int nlocations; /** number of location strings parsed */
     uint32_t flags;
     GeoIP *geoengine;
 } DetectGeoipData;

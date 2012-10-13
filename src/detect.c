@@ -142,6 +142,7 @@
 #include "detect-tos.h"
 #include "detect-app-layer-event.h"
 #include "detect-luajit.h"
+#include "detect-geoip.h"
 
 #include "util-rule-vars.h"
 

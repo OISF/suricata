@@ -248,9 +248,9 @@ typedef enum {
     SC_ERR_EVENT_ENGINE,
     SC_ERR_NO_LUAJIT_SUPPORT,
     SC_ERR_LUAJIT_ERROR,
+    SC_ERR_DEFRAG_INIT,
     SC_ERR_NO_GEOIP_SUPPORT,
     SC_ERR_GEOIP_ERROR,
-    SC_ERR_DEFRAG_INIT,
 } SCError;
 
 const char *SCErrorToString(SCError);

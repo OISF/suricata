@@ -1271,19 +1271,18 @@ AC_INIT(configure.ac)
             if test "$with_libgeoip_libraries" != "no"; then
                 LDFLAGS="${LDFLAGS}  -L${with_libgeoip_libraries}"
             fi
-
             AC_CHECK_LIB(GeoIP, GeoIP_country_code_by_ipnum,, GEOIP="no")
-
-            if test "$GEOIP" = "no"; then
-                echo
-                echo "   ERROR!  libgeoip library not found, go get it"
-                echo "   from http://www.maxmind.com/en/geolite or your distribution:"
-                echo
-                echo "   Ubuntu: apt-get install libgeoip-dev"
-                echo
-                exit 1
-            fi
-
+        fi
+        if test "$GEOIP" = "no"; then
+            echo
+            echo "   ERROR!  libgeoip library not found, go get it"
+            echo "   from http://www.maxmind.com/en/geolite or your distribution:"
+            echo
+            echo "   Ubuntu: apt-get install libgeoip-dev"
+            echo
+            exit 1
+        fi
+        if test "$GEOIP" = "yes"; then
             AC_DEFINE([HAVE_GEOIP],[1],[libgeoip available])
             enable_geoip="yes"
         fi
