@@ -145,7 +145,7 @@ static int CheckGeoMatchIPv4(DetectGeoipData *geoipdata, uint32_t ip)
         for (i = 0; i < geoipdata->nlocations; i++)  
             if (country != NULL && strcmp(country, (char *)geoipdata->location[i])==0)
                 return 0; /* if one matches, rule does NOT match (negated) */
-            return 1; /* returns 1 if no location matches (negated) */
+        return 1; /* returns 1 if no location matches (negated) */
     }
     return 0;
 }
@@ -168,7 +168,6 @@ static int DetectGeoipMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     DetectGeoipData *geoipdata = (DetectGeoipData *)m->ctx;
     int match = 0;
     int matches = 0;
-    uint32_t ip;
 
     if (PKT_IS_IPV4(p))
     {
@@ -176,29 +175,34 @@ static int DetectGeoipMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         {        
             /* if there is a flow get SRC IP of the flow, not packet */            
             if (p->flowflags & FLOW_PKT_TOCLIENT)
-                ip = GET_IPV4_DST_ADDR_U32(p); /* the dst (from server to client) is our src */
+                /* the dst (from server to client) is our src */
+                match = CheckGeoMatchIPv4(geoipdata, GET_IPV4_DST_ADDR_U32(p));
             else 
-                ip = GET_IPV4_SRC_ADDR_U32(p);
-            match = CheckGeoMatchIPv4(geoipdata, ip);
-            if (match && geoipdata->flags & GEOIP_MATCH_BOTH_FLAG)
-                matches++;
-            else                    
-                return 1;
+                match = CheckGeoMatchIPv4(geoipdata, GET_IPV4_SRC_ADDR_U32(p));
+            if (match)
+            {
+                if (geoipdata->flags & GEOIP_MATCH_BOTH_FLAG)
+                    matches++;
+                else                    
+                    return 1;
+            }
         }
         if (geoipdata->flags & GEOIP_MATCH_DST_FLAG || geoipdata->flags & GEOIP_MATCH_BOTH_FLAG)
         {     
             /* if there is a flow get DST IP of the flow, not packet */            
             if (p->flowflags & FLOW_PKT_TOCLIENT)
-                ip = GET_IPV4_SRC_ADDR_U32(p); /* the src (from server to client) is our dst */
+                /* the src (from server to client) is our dst */
+                match = CheckGeoMatchIPv4(geoipdata, GET_IPV4_SRC_ADDR_U32(p));
             else 
-                ip = GET_IPV4_DST_ADDR_U32(p);
-            match = CheckGeoMatchIPv4(geoipdata, ip);
-            if (match && geoipdata->flags & GEOIP_MATCH_BOTH_FLAG)
-                matches++;
-            else                    
-                return 1;
+                match = CheckGeoMatchIPv4(geoipdata, GET_IPV4_DST_ADDR_U32(p));
+            if (match)
+            {
+                if (geoipdata->flags & GEOIP_MATCH_BOTH_FLAG)
+                    matches++;
+                else                    
+                    return 1;
+            }
         }
-
         /* if matches == 2 is because match-on is "both" */
         if (matches == 2) 
             return 1;
@@ -243,12 +247,12 @@ static DetectGeoipData *DetectGeoipDataParse (char *str)
             if (geoipdata->flags == GEOIP_MATCH_NO_FLAG)
             {
                 /* Parse match-on condition */
-                if (pos == slen)
-                    if (pos-prevpos > GEOOPTION_MAXSIZE)
-                        strlcpy((char *)geoipdata->location, &str[pos+1], GEOOPTION_MAXSIZE);
-                    else
-                        strlcpy((char *)geoipdata->location, &str[pos+1], pos-prevpos);
-                else {
+                if (pos == slen) /* if end of option str then there are no match-on cond. */
+                {
+                    /* There was NO match-on condition! we default to ANY*/
+                    skiplocationparsing = 0;                      
+                    geoipdata->flags |= GEOIP_MATCH_ANY_FLAG;
+                } else {
                     skiplocationparsing = 1;
                     if (strncmp(&str[prevpos], GEOIP_MATCH_SRC_STR, pos-prevpos) == 0)
                         geoipdata->flags |= GEOIP_MATCH_SRC_FLAG;
@@ -274,11 +278,11 @@ static DetectGeoipData *DetectGeoipDataParse (char *str)
                     prevpos++; /* dot not copy the ! */
                 }
                 if (pos-prevpos > GEOOPTION_MAXSIZE)
-                    strlcpy((char *)geoipdata->location[geoipdata->nlocations], &str[prevpos+1], 
+                    strlcpy((char *)geoipdata->location[geoipdata->nlocations], &str[prevpos], 
                                                                             GEOOPTION_MAXSIZE);
                 else
-                    strlcpy((char *)geoipdata->location[geoipdata->nlocations], &str[prevpos+1],
-                                                                                pos-prevpos);
+                    strlcpy((char *)geoipdata->location[geoipdata->nlocations], &str[prevpos],
+                                                                                pos-prevpos+1);
 
                 if (geoipdata->nlocations < GEOOPTION_MAXLOCATIONS)                
                     geoipdata->nlocations++;
@@ -290,6 +294,9 @@ static DetectGeoipData *DetectGeoipDataParse (char *str)
     }
 
     SCLogDebug("GeoIP: %"PRIu32" countries loaded", geoipdata->nlocations);
+    for (int i=0; i<geoipdata->nlocations; i++)  
+        SCLogDebug("GeoIP country code: %s", geoipdata->location[i]);
+
     SCLogDebug("flags %02X", geoipdata->flags);
     if (geoipdata->flags & GEOIP_MATCH_NEGATED) {
         SCLogDebug("negated geoip");
