@@ -32,5 +32,13 @@ int DetectEngineInspectHttpHeader(DetectEngineCtx *, DetectEngineThreadCtx *,
 void DetectEngineCleanHHDBuffers(DetectEngineThreadCtx *);
 void DetectEngineHttpHeaderRegisterTests(void);
 
+int DetectEngineInspectHttpHeaderV2(DetectEngineCtx *de_ctx,
+                                    DetectEngineThreadCtx *det_ctx,
+                                    Signature *s, Flow *f, uint8_t flags,
+                                    void *alstate);
+int DetectEngineRunHttpHeaderMpmV2(DetectEngineThreadCtx *det_ctx, Flow *f,
+                                   HtpState *htp_state, uint8_t flags);
+void DetectEngineCleanHHDBuffersV2(DetectEngineThreadCtx *det_ctx);
+
 #endif /* __DETECT_ENGINE_HHD_H__ */
 
