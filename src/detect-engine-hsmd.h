@@ -27,8 +27,9 @@
 
 int DetectEngineRunHttpStatMsgMpm(DetectEngineThreadCtx *,
                                   Flow *f, HtpState *, uint8_t);
-int DetectEngineInspectHttpStatMsg(DetectEngineCtx *, DetectEngineThreadCtx *,
-                                   Signature *, Flow *, uint8_t, void *);
+int DetectEngineInspectHttpStatMsg(ThreadVars *tv,
+                                   DetectEngineCtx *, DetectEngineThreadCtx *,
+                                   Signature *, Flow *, uint8_t, void *, int tx_id);
 void DetectEngineHttpStatMsgRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HSMD_H__ */

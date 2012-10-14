@@ -24,6 +24,8 @@
 #ifndef __DETECT_ENGINE_FILE_H__
 #define __DETECT_ENGINE_FILE_H__
 
-int DetectFileInspectHttp(ThreadVars *, DetectEngineThreadCtx *, Flow *, Signature *, void *, uint8_t);
+int DetectFileInspectHttp(ThreadVars *tv, DetectEngineCtx *de_ctx,
+                          DetectEngineThreadCtx *det_ctx, Signature *s,
+                          Flow *f, uint8_t flags, void *alstate, int tx_id);
 
 #endif /* __DETECT_ENGINE_FILE_H__ */

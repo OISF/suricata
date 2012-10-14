@@ -256,10 +256,11 @@ int DetectEngineRunHttpClientBodyMpmV2(DetectEngineCtx *de_ctx,
     return cnt;
 }
 
-int DetectEngineInspectHttpClientBodyV2(DetectEngineCtx *de_ctx,
+int DetectEngineInspectHttpClientBodyV2(ThreadVars *tv,
+                                        DetectEngineCtx *de_ctx,
                                         DetectEngineThreadCtx *det_ctx,
                                         Signature *s, Flow *f, uint8_t flags,
-                                        void *alstate)
+                                        void *alstate, int tx_id)
 {
     int r = 0;
 

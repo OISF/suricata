@@ -257,10 +257,11 @@ int DetectEngineRunHttpServerBodyMpmV2(DetectEngineCtx *de_ctx,
     return cnt;
 }
 
-int DetectEngineInspectHttpServerBodyV2(DetectEngineCtx *de_ctx,
+int DetectEngineInspectHttpServerBodyV2(ThreadVars *tv,
+                                        DetectEngineCtx *de_ctx,
                                         DetectEngineThreadCtx *det_ctx,
                                         Signature *s, Flow *f, uint8_t flags,
-                                        void *alstate)
+                                        void *alstate, int tx_id)
 {
     int r = 0;
 
