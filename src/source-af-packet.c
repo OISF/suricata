@@ -676,6 +676,7 @@ int AFPReadFromRing(AFPThreadVars *ptv)
     struct sockaddr_ll *from;
     uint8_t emergency_flush = 0;
     int read_pkts = 0;
+    int loop_start = -1;
 
 
     /* Loop till we have packets available */
@@ -688,10 +689,15 @@ int AFPReadFromRing(AFPThreadVars *ptv)
 
         if (h.h2->tp_status == TP_STATUS_KERNEL) {
             if (read_pkts == 0) {
-               if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
-                   ptv->frame_offset = 0;
-               }
-               continue;
+                if (loop_start == -1) {
+                    loop_start = ptv->frame_offset;
+                } else if (unlikely(loop_start == (int)ptv->frame_offset)) {
+                    SCReturnInt(AFP_READ_OK);
+                }
+                if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
+                    ptv->frame_offset = 0;
+                }
+                continue;
             }
             if ((emergency_flush) && (ptv->flags & AFP_EMERGENCY_MODE)) {
                 SCReturnInt(AFP_KERNEL_DROP);
@@ -701,6 +707,7 @@ int AFPReadFromRing(AFPThreadVars *ptv)
         }
 
         read_pkts++;
+        loop_start = -1;
 
         /* Our packet is still used by suricata, we exit read loop to
          * gain some time */
