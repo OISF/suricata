@@ -28,8 +28,9 @@
 
 int DetectEngineRunHttpRawUriMpm(DetectEngineThreadCtx *,
                                  Flow *f, HtpState *, uint8_t);
-int DetectEngineInspectHttpRawUri(DetectEngineCtx *, DetectEngineThreadCtx *,
-                                  Signature *, Flow *, uint8_t, void *);
+int DetectEngineInspectHttpRawUri(ThreadVars *tv,
+                                  DetectEngineCtx *, DetectEngineThreadCtx *,
+                                  Signature *, Flow *, uint8_t, void *, int);
 void DetectEngineHttpRawUriRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HRUD_H__ */

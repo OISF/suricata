@@ -25,8 +25,9 @@
 
 #include "app-layer-htp.h"
 
-int DetectEngineInspectHttpUA(DetectEngineCtx *, DetectEngineThreadCtx *,
-                              Signature *, Flow *, uint8_t, void *);
+int DetectEngineInspectHttpUA(ThreadVars *tv,
+                              DetectEngineCtx *, DetectEngineThreadCtx *,
+                              Signature *, Flow *, uint8_t, void *, int);
 int DetectEngineRunHttpUAMpm(DetectEngineThreadCtx *, Flow *, HtpState *, uint8_t);
 void DetectEngineHttpUARegisterTests(void);
 

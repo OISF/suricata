@@ -59,9 +59,11 @@
  *  \retval 0 no match
  *  \retval 1 match
  */
-int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags,
-        void *alstate)
+int DetectEngineInspectPacketUris(ThreadVars *tv,
+                                  DetectEngineCtx *de_ctx,
+                                  DetectEngineThreadCtx *det_ctx,
+                                  Signature *s, Flow *f, uint8_t flags,
+                                  void *alstate, int tx_id)
 {
     SCEnter();
     int r = 0;

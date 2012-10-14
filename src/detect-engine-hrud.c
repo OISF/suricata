@@ -116,10 +116,11 @@ end:
  * \retval 0 No match.
  * \retval 1 Match.
  */
-int DetectEngineInspectHttpRawUri(DetectEngineCtx *de_ctx,
+int DetectEngineInspectHttpRawUri(ThreadVars *tv,
+                                  DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
                                   Signature *s, Flow *f, uint8_t flags,
-                                  void *alstate)
+                                  void *alstate, int tx_id)
 {
     SCEnter();
 
