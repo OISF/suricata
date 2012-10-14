@@ -203,7 +203,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
  *
  *  \note flow is not locked at this time
  */
-int DetectFileInspectHttp(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *f, Signature *s, void *alstate, uint8_t flags) {
+int DetectFileInspectHttp(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags, void *alstate, int tx_id) {
     SCEnter();
 
     int r = 0;

@@ -128,10 +128,11 @@ int DetectEngineRunHttpCookieMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
  * \retval 0 No match.
  * \retval 1 Match.
  */
-int DetectEngineInspectHttpCookie(DetectEngineCtx *de_ctx,
+int DetectEngineInspectHttpCookie(ThreadVars *tv,
+                                  DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
                                   Signature *s, Flow *f, uint8_t flags,
-                                  void *alstate)
+                                  void *alstate, int tx_id)
 {
     SCEnter();
     int r = 0;

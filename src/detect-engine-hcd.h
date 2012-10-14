@@ -25,8 +25,9 @@
 
 #include "app-layer-htp.h"
 
-int DetectEngineInspectHttpCookie(DetectEngineCtx *, DetectEngineThreadCtx *,
-                                  Signature *, Flow *, uint8_t, void *);
+int DetectEngineInspectHttpCookie(ThreadVars *tv,
+                                  DetectEngineCtx *, DetectEngineThreadCtx *,
+                                  Signature *, Flow *, uint8_t, void *, int);
 int DetectEngineRunHttpCookieMpm(DetectEngineThreadCtx *, Flow *, HtpState *, uint8_t);
 void DetectEngineHttpCookieRegisterTests(void);
 
