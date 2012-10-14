@@ -1521,6 +1521,8 @@ int main(int argc, char **argv)
 
     AppLayerHtpNeedFileInspection();
 
+    DetectEngineRegisterAppInspectionEngines();
+
     if (rule_reload) {
         if (sig_file == NULL)
             UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);

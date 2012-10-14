@@ -221,56 +221,28 @@ int DetectEngineInspectHttpHeaderV2(ThreadVars *tv,
                                     Signature *s, Flow *f, uint8_t flags,
                                     void *alstate, int tx_id)
 {
-    int r = 0;
-
     HtpState *htp_state = (HtpState *)alstate;
+    uint32_t buffer_len = 0;
+    uint8_t *buffer = DetectEngineHHDGetBufferForTX(tx_id,
+                                                    de_ctx, det_ctx,
+                                                    f, htp_state,
+                                                    flags,
+                                                    &buffer_len);
+    if (buffer_len == 0)
+        return 0;
 
-    if (htp_state == NULL) {
-        SCLogDebug("no HTTP state");
-        goto end;
-    }
-
-    FLOWLOCK_WRLOCK(f);
-
-    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-        SCLogDebug("HTP state has no conn(p)");
-        goto end;
-    }
-
-    /* get the transaction id */
-    int idx = AppLayerTransactionGetInspectId(f);
-    /* error!  get out of here */
-    if (idx == -1)
-        goto end;
-
-    int size = (int)list_size(htp_state->connp->conn->transactions);
-    for (; idx < size; idx++) {
-        det_ctx->buffer_offset = 0;
-        det_ctx->discontinue_matching = 0;
-        det_ctx->inspection_recursion_counter = 0;
-
-        uint32_t buffer_len = 0;
-        uint8_t *buffer = DetectEngineHHDGetBufferForTX(idx,
-                                                        de_ctx, det_ctx,
-                                                        f, htp_state,
-                                                        flags,
-                                                        &buffer_len);
-        if (buffer_len == 0)
-            continue;
-
-        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HHDMATCH],
+    det_ctx->buffer_offset = 0;
+    det_ctx->discontinue_matching = 0;
+    det_ctx->inspection_recursion_counter = 0;
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HHDMATCH],
                                           f,
                                           buffer,
                                           buffer_len,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HHD, NULL);
-        if (r == 1) {
-            break;
-        }
-    }
+    if (r == 1)
+        return 1;
 
- end:
-    FLOWLOCK_UNLOCK(f);
-    return r;
+    return 0;
 }
 
 void DetectEngineCleanHHDBuffersV2(DetectEngineThreadCtx *det_ctx)
