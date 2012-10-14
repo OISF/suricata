@@ -39,12 +39,12 @@ enum {
     ALPROTO_DCERPC,
     ALPROTO_DCERPC_UDP,
     ALPROTO_IRC,
-#ifdef UNITTESTS
-    ALPROTO_TEST,
-#endif /* UNITESTS */
     /* used by the probing parser when alproto detection fails
      * permanently for that particular stream */
     ALPROTO_FAILED,
+#ifdef UNITTESTS
+    ALPROTO_TEST,
+#endif /* UNITESTS */
     /* keep last */
     ALPROTO_MAX,
 };
