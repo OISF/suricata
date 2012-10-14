@@ -453,22 +453,20 @@ void TmModuleDecodeAFPRegister (void) {
 
 static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose);
 
-static inline void AFPDumpCounters(AFPThreadVars *ptv, int forced)
+static inline void AFPDumpCounters(AFPThreadVars *ptv)
 {
-    if (((ptv->pkts & 0xff) == 0) || forced) {
 #ifdef PACKET_STATISTICS
-        struct tpacket_stats kstats;
-        socklen_t len = sizeof (struct tpacket_stats);
-        if (getsockopt(ptv->socket, SOL_PACKET, PACKET_STATISTICS,
-                    &kstats, &len) > -1) {
-            SCLogDebug("(%s) Kernel: Packets %" PRIu32 ", dropped %" PRIu32 "",
-                    ptv->tv->name,
-                    kstats.tp_packets, kstats.tp_drops);
-            SCPerfCounterAddUI64(ptv->capture_kernel_packets, ptv->tv->sc_perf_pca, kstats.tp_packets);
-            SCPerfCounterAddUI64(ptv->capture_kernel_drops, ptv->tv->sc_perf_pca, kstats.tp_drops);
-        }
-#endif
+    struct tpacket_stats kstats;
+    socklen_t len = sizeof (struct tpacket_stats);
+    if (getsockopt(ptv->socket, SOL_PACKET, PACKET_STATISTICS,
+                &kstats, &len) > -1) {
+        SCLogDebug("(%s) Kernel: Packets %" PRIu32 ", dropped %" PRIu32 "",
+                ptv->tv->name,
+                kstats.tp_packets, kstats.tp_drops);
+        SCPerfCounterAddUI64(ptv->capture_kernel_packets, ptv->tv->sc_perf_pca, kstats.tp_packets);
+        SCPerfCounterAddUI64(ptv->capture_kernel_drops, ptv->tv->sc_perf_pca, kstats.tp_drops);
     }
+#endif
 }
 
 /**
@@ -793,7 +791,7 @@ int AFPReadFromRing(AFPThreadVars *ptv)
         }
         if (h.h2->tp_status & TP_STATUS_LOSING) {
             emergency_flush = 1;
-            AFPDumpCounters(ptv, 1);
+            AFPDumpCounters(ptv);
         }
 
         /* release frame if not in zero copy mode */
@@ -922,6 +920,8 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
     struct pollfd fds;
     int r;
     TmSlot *s = (TmSlot *)slot;
+    time_t last_dump = 0;
+    struct timeval current_time;
 
     ptv->slot = s->slot_next;
 
@@ -1016,10 +1016,15 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                     SCReturnInt(TM_ECODE_FAILED);
                     break;
                 case AFP_READ_OK:
-                    AFPDumpCounters(ptv, 0);
+                    /* Trigger one dump of stats every second */
+                    TimeGet(&current_time);
+                    if (current_time.tv_sec != last_dump) {
+                        AFPDumpCounters(ptv);
+                        last_dump = current_time.tv_sec;
+                    }
                     break;
                 case AFP_KERNEL_DROP:
-                    AFPDumpCounters(ptv, 1);
+                    AFPDumpCounters(ptv);
                     break;
             }
         } else if ((r < 0) && (errno != EINTR)) {
@@ -1545,7 +1550,7 @@ void ReceiveAFPThreadExitStats(ThreadVars *tv, void *data) {
     AFPThreadVars *ptv = (AFPThreadVars *)data;
 
 #ifdef PACKET_STATISTICS
-    AFPDumpCounters(ptv, 1);
+    AFPDumpCounters(ptv);
     SCLogInfo("(%s) Kernel: Packets %" PRIu64 ", dropped %" PRIu64 "",
             tv->name,
             (uint64_t) SCPerfGetLocalCounterValue(ptv->capture_kernel_packets, tv->sc_perf_pca),
