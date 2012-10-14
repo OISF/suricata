@@ -1248,7 +1248,6 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                 if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HCBD) {
                     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HCBD);
                     DetectEngineRunHttpClientBodyMpmV2(de_ctx, det_ctx, p->flow, alstate, flags);
-                    //DetectEngineRunHttpClientBodyMpm(de_ctx, det_ctx, p->flow, alstate, flags);
                     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HCBD);
                 }
                 if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HMD) {
@@ -1280,7 +1279,6 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
             }
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HHD) {
                 PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HHD);
-                //DetectEngineRunHttpHeaderMpm(det_ctx, p->flow, alstate, flags);
                 DetectEngineRunHttpHeaderMpmV2(det_ctx, p->flow, alstate, flags);
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HHD);
             }

@@ -27,15 +27,6 @@
 
 #include "app-layer-htp.h"
 
-int DetectEngineRunHttpServerBodyMpm(DetectEngineCtx *,
-                                     DetectEngineThreadCtx *, Flow *f,
-                                     HtpState *, uint8_t);
-int DetectEngineInspectHttpServerBody(DetectEngineCtx *,
-        DetectEngineThreadCtx *, Signature *, Flow *, uint8_t, void *);
-
-void DetectEngineCleanHSBDBuffers(DetectEngineThreadCtx *);
-void DetectEngineHttpServerBodyRegisterTests(void);
-
 int DetectEngineRunHttpServerBodyMpmV2(DetectEngineCtx *de_ctx,
                                        DetectEngineThreadCtx *det_ctx, Flow *f,
                                        HtpState *htp_state, uint8_t flags);
@@ -44,6 +35,8 @@ int DetectEngineInspectHttpServerBodyV2(DetectEngineCtx *de_ctx,
                                         Signature *s, Flow *f, uint8_t flags,
                                         void *alstate);
 void DetectEngineCleanHSBDBuffersV2(DetectEngineThreadCtx *det_ctx);
+
+void DetectEngineHttpServerBodyRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HSBD_H__ */
 
