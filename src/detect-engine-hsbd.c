@@ -61,6 +61,27 @@
 
 #define BUFFER_STEP 50
 
+static inline int HSBDCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size)
+{
+    if (size > det_ctx->hsbd_buffers_size) {
+        det_ctx->hsbd = SCRealloc(det_ctx->hsbd, (det_ctx->hsbd_buffers_size + BUFFER_STEP) * sizeof(HttpReassembledBody));
+        if (det_ctx->hsbd == NULL) {
+            det_ctx->hsbd_buffers_size = 0;
+            det_ctx->hsbd_buffers_list_len = 0;
+            return -1;
+        }
+        memset(det_ctx->hsbd + det_ctx->hsbd_buffers_size, 0, BUFFER_STEP * sizeof(HttpReassembledBody));
+        det_ctx->hsbd_buffers_size += BUFFER_STEP;
+    }
+    for (int i = det_ctx->hsbd_buffers_list_len; i < (size); i++) {
+        det_ctx->hsbd[i].buffer_len = 0;
+        det_ctx->hsbd[i].offset = 0;
+    }
+
+    return 0;
+}
+
+
 static uint8_t *DetectEngineHSBDGetBufferForTX(int tx_id,
                                                DetectEngineCtx *de_ctx,
                                                DetectEngineThreadCtx *det_ctx,
@@ -68,29 +89,13 @@ static uint8_t *DetectEngineHSBDGetBufferForTX(int tx_id,
                                                uint8_t flags,
                                                uint32_t *buffer_len)
 {
-#define HSBDCreateSpace(det_ctx, size) do {                             \
-        if (size > det_ctx->hsbd_buffers_size) {                        \
-            det_ctx->hsbd = SCRealloc(det_ctx->hsbd, (det_ctx->hsbd_buffers_size + BUFFER_STEP) * sizeof(HttpReassembledBody)); \
-            if (det_ctx->hsbd == NULL) {                                \
-                det_ctx->hsbd_buffers_size = 0;                         \
-                det_ctx->hsbd_buffers_list_len = 0;                     \
-                goto end;                                               \
-            }                                                           \
-            memset(det_ctx->hsbd + det_ctx->hsbd_buffers_size, 0, BUFFER_STEP * sizeof(HttpReassembledBody)); \
-            det_ctx->hsbd_buffers_size += BUFFER_STEP;                  \
-        }                                                               \
-        for (int i = det_ctx->hsbd_buffers_list_len; i < (size); i++) { \
-            det_ctx->hsbd[i].buffer_len = 0;                            \
-            det_ctx->hsbd[i].offset = 0;                                \
-        }                                                               \
-    } while (0)
-
     int index = 0;
     uint8_t *buffer = NULL;
     *buffer_len = 0;
 
     if (det_ctx->hsbd_buffers_list_len == 0) {
-        HSBDCreateSpace(det_ctx, 1);
+        if (HSBDCreateSpace(det_ctx, 1) < 0)
+            goto end;
         index = 0;
     } else {
         if ((tx_id - det_ctx->hsbd_start_tx_id) < det_ctx->hsbd_buffers_list_len) {
@@ -99,7 +104,8 @@ static uint8_t *DetectEngineHSBDGetBufferForTX(int tx_id,
                 return det_ctx->hsbd[(tx_id - det_ctx->hsbd_start_tx_id)].buffer;
             }
         } else {
-            HSBDCreateSpace(det_ctx, (tx_id - det_ctx->hsbd_start_tx_id) + 1);
+            if (HSBDCreateSpace(det_ctx, (tx_id - det_ctx->hsbd_start_tx_id) + 1) < 0)
+                goto end;
         }
         index = (tx_id - det_ctx->hsbd_start_tx_id);
     }
@@ -214,9 +220,9 @@ static uint8_t *DetectEngineHSBDGetBufferForTX(int tx_id,
     return buffer;
 }
 
-int DetectEngineRunHttpServerBodyMpmV2(DetectEngineCtx *de_ctx,
-                                       DetectEngineThreadCtx *det_ctx, Flow *f,
-                                       HtpState *htp_state, uint8_t flags)
+int DetectEngineRunHttpServerBodyMpm(DetectEngineCtx *de_ctx,
+                                     DetectEngineThreadCtx *det_ctx, Flow *f,
+                                     HtpState *htp_state, uint8_t flags)
 {
     uint32_t cnt = 0;
 
@@ -257,65 +263,37 @@ int DetectEngineRunHttpServerBodyMpmV2(DetectEngineCtx *de_ctx,
     return cnt;
 }
 
-int DetectEngineInspectHttpServerBodyV2(ThreadVars *tv,
-                                        DetectEngineCtx *de_ctx,
-                                        DetectEngineThreadCtx *det_ctx,
-                                        Signature *s, Flow *f, uint8_t flags,
-                                        void *alstate, int tx_id)
+int DetectEngineInspectHttpServerBody(ThreadVars *tv,
+                                      DetectEngineCtx *de_ctx,
+                                      DetectEngineThreadCtx *det_ctx,
+                                      Signature *s, Flow *f, uint8_t flags,
+                                      void *alstate, int tx_id)
 {
-    int r = 0;
-
     HtpState *htp_state = (HtpState *)alstate;
+    uint32_t buffer_len = 0;
+    uint8_t *buffer = DetectEngineHSBDGetBufferForTX(tx_id,
+                                                     de_ctx, det_ctx,
+                                                     f, htp_state,
+                                                     flags,
+                                                     &buffer_len);
+    if (buffer_len == 0)
+        return 0;
 
-    if (htp_state == NULL) {
-        SCLogDebug("no HTTP state");
-        goto end;
-    }
-
-    FLOWLOCK_WRLOCK(f);
-
-    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-        SCLogDebug("HTP state has no conn(p)");
-        goto end;
-    }
-
-    /* get the transaction id */
-    int idx = AppLayerTransactionGetInspectId(f);
-    /* error!  get out of here */
-    if (idx == -1)
-        goto end;
-
-    int size = (int)list_size(htp_state->connp->conn->transactions);
-    for (; idx < size; idx++) {
-        det_ctx->buffer_offset = 0;
-        det_ctx->discontinue_matching = 0;
-        det_ctx->inspection_recursion_counter = 0;
-
-        uint32_t buffer_len = 0;
-        uint8_t *buffer = DetectEngineHSBDGetBufferForTX(idx,
-                                                         de_ctx, det_ctx,
-                                                         f, htp_state,
-                                                         flags,
-                                                         &buffer_len);
-        if (buffer_len == 0)
-            continue;
-
-        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HSBDMATCH],
+    det_ctx->buffer_offset = 0;
+    det_ctx->discontinue_matching = 0;
+    det_ctx->inspection_recursion_counter = 0;
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HSBDMATCH],
                                           f,
                                           buffer,
                                           buffer_len,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HSBD, NULL);
-        if (r == 1) {
-            break;
-        }
-    }
+    if (r == 1)
+        return 1;
 
- end:
-    FLOWLOCK_UNLOCK(f);
-    return r;
+    return 0;
 }
 
-void DetectEngineCleanHSBDBuffersV2(DetectEngineThreadCtx *det_ctx)
+void DetectEngineCleanHSBDBuffers(DetectEngineThreadCtx *det_ctx)
 {
     if (det_ctx->hsbd_buffers_list_len > 0) {
         for (int i = 0; i < det_ctx->hsbd_buffers_list_len; i++) {
