@@ -62,7 +62,7 @@
 #ifdef __SC_CUDA_SUPPORT__
 #define PM   MPM_B2G_CUDA
 #else
-#define PM   MPM_B2G
+#define PM   MPM_AC
 #endif
 
 #define POPULATE_MPM_AVOID_PACKET_MPM_PATTERNS 0x01
