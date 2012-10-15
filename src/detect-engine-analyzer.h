@@ -26,10 +26,16 @@
 
 #include <stdint.h>
 
+int SetupFPAnalyzer(void);
+void CleanupFPAnalyzer(void);
+
 int SetupRuleAnalyzer(void);
 void CleanupRuleAnalyzer (void);
+
 int PerCentEncodingSetup ();
 int PerCentEncodingMatch (uint8_t *content, uint8_t content_len);
+
+void EngineAnalysisFP(Signature *s, char *line);
 void EngineAnalysisRules(Signature *s, char *line);
 
 #endif /* __DETECT_ENGINE_ANALYZER_H__ */
