@@ -101,7 +101,7 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(Packet *, TcpSession *, PacketQu
 static int StreamTcpValidateTimestamp(TcpSession * , Packet *);
 static int StreamTcpHandleTimestamp(TcpSession * , Packet *);
 static int StreamTcpValidateRst(TcpSession * , Packet *);
-static inline int StreamTcpValidateAck(TcpStream *, Packet *);
+static inline int StreamTcpValidateAck(TcpSession *ssn, TcpStream *, Packet *);
 
 static Pool *ssn_pool = NULL;
 static SCMutex ssn_pool_mutex;
@@ -1388,7 +1388,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
                 return -1;
             }
 
-            if (StreamTcpValidateAck(&ssn->client, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
                 SCLogDebug("ssn %p: 4WHS invalid ack nr on packet", ssn);
                 StreamTcpSetEvent(p, STREAM_4WHS_INVALID_ACK);
                 return -1;
@@ -1569,7 +1569,7 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
                "ACK %" PRIu32 ", WIN %"PRIu16"", ssn, p->payload_len,
                 TCP_GET_SEQ(p), TCP_GET_ACK(p), TCP_GET_WINDOW(p));
 
-    if (StreamTcpValidateAck(&ssn->server, p) == -1) {
+    if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
         SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
         StreamTcpSetEvent(p, STREAM_EST_INVALID_ACK);
         return -1;
@@ -1710,7 +1710,7 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
                " ACK %" PRIu32 ", WIN %"PRIu16"", ssn, p->payload_len,
                 TCP_GET_SEQ(p), TCP_GET_ACK(p), TCP_GET_WINDOW(p));
 
-    if (StreamTcpValidateAck(&ssn->client, p) == -1) {
+    if (StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
         SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
         StreamTcpSetEvent(p, STREAM_EST_INVALID_ACK);
         return -1;
@@ -2058,7 +2058,7 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
                 " ACK %" PRIu32 "", ssn, p->payload_len, TCP_GET_SEQ(p),
                 TCP_GET_ACK(p));
 
-        if (StreamTcpValidateAck(&ssn->server, p) == -1) {
+        if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
             SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
             StreamTcpSetEvent(p, STREAM_FIN_INVALID_ACK);
             return -1;
@@ -2106,7 +2106,7 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
                    "ACK %" PRIu32 "", ssn, p->payload_len, TCP_GET_SEQ(p),
                     TCP_GET_ACK(p));
 
-        if (StreamTcpValidateAck(&ssn->client, p) == -1) {
+        if (StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
             SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
             StreamTcpSetEvent(p, STREAM_FIN_INVALID_ACK);
             return -1;
@@ -2236,7 +2236,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 return -1;
             }
 
-            if (StreamTcpValidateAck(&ssn->server, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_FIN1_INVALID_ACK);
                 return -1;
@@ -2286,7 +2286,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 return -1;
             }
 
-            if (StreamTcpValidateAck(&ssn->client, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_FIN1_INVALID_ACK);
                 return -1;
@@ -2339,7 +2339,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                     "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
                     TCP_GET_SEQ(p), TCP_GET_ACK(p));
 
-            if (StreamTcpValidateAck(&ssn->server, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_FIN1_INVALID_ACK);
                 return -1;
@@ -2402,7 +2402,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                     "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
                     TCP_GET_SEQ(p), TCP_GET_ACK(p));
 
-            if (StreamTcpValidateAck(&ssn->client, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_FIN1_INVALID_ACK);
                 return -1;
@@ -2544,7 +2544,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 return -1;
             }
 
-            if (StreamTcpValidateAck(&ssn->server, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_FIN2_INVALID_ACK);
                 return -1;
@@ -2590,7 +2590,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 return -1;
             }
 
-            if (StreamTcpValidateAck(&ssn->client, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_FIN2_INVALID_ACK);
                 return -1;
@@ -2638,7 +2638,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                     "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
                     TCP_GET_SEQ(p), TCP_GET_ACK(p));
 
-            if (StreamTcpValidateAck(&ssn->server, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_FIN2_INVALID_ACK);
                 return -1;
@@ -2689,7 +2689,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                     "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
                     TCP_GET_SEQ(p), TCP_GET_ACK(p));
 
-            if (StreamTcpValidateAck(&ssn->client, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_FIN2_INVALID_ACK);
                 return -1;
@@ -2824,7 +2824,7 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
                 return -1;
             }
 
-            if (StreamTcpValidateAck(&ssn->server, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_CLOSING_INVALID_ACK);
                 return -1;
@@ -2863,7 +2863,7 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
                 return -1;
             }
 
-            if (StreamTcpValidateAck(&ssn->client, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_CLOSING_INVALID_ACK);
                 return -1;
@@ -2990,7 +2990,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
                 SCReturnInt(-1);
             }
 
-            if (StreamTcpValidateAck(&ssn->server, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_CLOSEWAIT_INVALID_ACK);
                 SCReturnInt(-1);
@@ -3033,7 +3033,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
                 SCReturnInt(-1);
             }
 
-            if (StreamTcpValidateAck(&ssn->client, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_CLOSEWAIT_INVALID_ACK);
                 SCReturnInt(-1);
@@ -3089,7 +3089,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
                 StreamTcpSetEvent(p, STREAM_CLOSEWAIT_ACK_OUT_OF_WINDOW);
             }
 
-            if (StreamTcpValidateAck(&ssn->server, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_CLOSEWAIT_INVALID_ACK);
                 SCReturnInt(-1);
@@ -3131,7 +3131,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
                 SCReturnInt(-1);
             }
 
-            if (StreamTcpValidateAck(&ssn->client, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_CLOSEWAIT_INVALID_ACK);
                 SCReturnInt(-1);
@@ -3251,7 +3251,7 @@ static int StreamTcpPakcetStateLastAck(ThreadVars *tv, Packet *p,
                 return -1;
             }
 
-            if (StreamTcpValidateAck(&ssn->server, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_LASTACK_INVALID_ACK);
                 SCReturnInt(-1);
@@ -3371,7 +3371,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
                 return -1;
             }
 
-            if (StreamTcpValidateAck(&ssn->server, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_TIMEWAIT_INVALID_ACK);
                 SCReturnInt(-1);
@@ -3413,7 +3413,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
                 return -1;
             }
 
-            if (StreamTcpValidateAck(&ssn->client, p) == -1) {
+            if (StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_TIMEWAIT_INVALID_ACK);
                 SCReturnInt(-1);
@@ -3894,7 +3894,7 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
 
         os_policy = ssn->server.os_policy;
 
-        if (TCP_GET_ACK(p) && StreamTcpValidateAck(&ssn->server, p) == -1) {
+        if (TCP_GET_ACK(p) && StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
             SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
             StreamTcpSetEvent(p, STREAM_RST_INVALID_ACK);
             SCReturnInt(0);
@@ -3906,7 +3906,7 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
 
         os_policy = ssn->client.os_policy;
 
-        if (TCP_GET_ACK(p) && StreamTcpValidateAck(&ssn->client, p) == -1) {
+        if (TCP_GET_ACK(p) && StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
             SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
             StreamTcpSetEvent(p, STREAM_RST_INVALID_ACK);
             SCReturnInt(0);
@@ -4366,13 +4366,14 @@ invalid:
  *          and previous ack value. ACK values should be higher than previous
  *          ACK value and less than the next_win value.
  *
+ *  \param  ssn     TcpSession for state access
  *  \param  stream  TcpStream of which last_ack needs to be tested
  *  \param  p       Packet which is used to test the last_ack
  *
  *  \retval 0  ACK is valid, last_ack is updated if ACK was higher
  *  \retval -1 ACK is invalid
  */
-static inline int StreamTcpValidateAck(TcpStream *stream, Packet *p)
+static inline int StreamTcpValidateAck(TcpSession *ssn, TcpStream *stream, Packet *p)
 {
     SCEnter();
 
@@ -4407,9 +4408,15 @@ static inline int StreamTcpValidateAck(TcpStream *stream, Packet *p)
         SCReturnInt(0);
     }
 
-    if (SEQ_GT(ack, stream->next_win)) {
+    if (ssn->state > TCP_SYN_SENT && SEQ_GT(ack, stream->next_win)) {
         SCLogDebug("ACK %"PRIu32" is after next_win %"PRIu32, ack, stream->next_win);
         goto invalid;
+    /* a toclient RST as a reponse to SYN, next_win is 0, ack will be isn+1, just like
+     * the syn ack */
+    } else if (ssn->state == TCP_SYN_SENT && PKT_IS_TOCLIENT(p) &&
+            p->tcph->th_flags & TH_RST &&
+            SEQ_EQ(ack, stream->isn + 1)) {
+        SCReturnInt(0);
     }
 
     SCLogDebug("default path leading to invalid: ACK %"PRIu32", last_ack %"PRIu32
