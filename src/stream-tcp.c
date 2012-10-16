@@ -3576,6 +3576,9 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
                 if (p->payload_len > 0 && TCP_GET_SEQ(p) == ssn->server.last_ack) {
                     SCLogDebug("ssn %p: -> retransmission", ssn);
                     retransmission = 1;
+                } else if (p->payload_len > 0 && SEQ_LEQ((TCP_GET_SEQ(p) + p->payload_len), ssn->server.last_ack)) {
+                    SCLogDebug("ssn %p: -> retransmission", ssn);
+                    retransmission = 1;
                 } else {
                     SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
                             " != %" PRIu32 " from stream", ssn,
