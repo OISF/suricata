@@ -24,7 +24,8 @@ alert tcp any any -> any any (msg:"SURICATA STREAM CLOSEWAIT invalid ACK"; strea
 alert tcp any any -> any any (msg:"SURICATA STREAM CLOSING ACK wrong seq"; stream-event:closing_ack_wrong_seq; sid:2210018; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM CLOSING invalid ACK"; stream-event:closing_invalid_ack; sid:2210019; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED packet out of window"; stream-event:est_packet_out_of_window; sid:2210020; rev:1;)
-alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED retransmission packet before last ack"; stream-event:est_pkt_before_last_ack; sid:2210021; rev:2;)
+# "regular" retransmissions
+#alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED retransmission packet before last ack"; stream-event:est_pkt_before_last_ack; sid:2210021; rev:2;)
 alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYNACK resend"; stream-event:est_synack_resend; sid:2210022; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYNACK resend with different ACK"; stream-event:est_synack_resend_with_different_ack; sid:2210023; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYNACK resend with different seq"; stream-event:est_synack_resend_with_diff_seq; sid:2210024; rev:1;)
