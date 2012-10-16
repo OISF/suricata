@@ -166,6 +166,7 @@ struct DetectEngineEvents_ {
     { "stream.timewait_invalid_ack", STREAM_TIMEWAIT_INVALID_ACK, },
     { "stream.pkt_invalid_timestamp", STREAM_PKT_INVALID_TIMESTAMP, },
     { "stream.pkt_invalid_ack", STREAM_PKT_INVALID_ACK, },
+    { "stream.pkt_broken_ack", STREAM_PKT_BROKEN_ACK, },
     { "stream.rst_invalid_ack", STREAM_RST_INVALID_ACK, },
     { "stream.shutdown_syn_resend", STREAM_SHUTDOWN_SYN_RESEND, },
     { "stream.reassembly_segment_before_base_seq", STREAM_REASSEMBLY_SEGMENT_BEFORE_BASE_SEQ, },

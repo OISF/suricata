@@ -3591,6 +3591,11 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         SCPerfCounterIncr(stt->counter_tcp_rst, tv->sc_perf_pca);
     }
 
+    /* broken TCP http://ask.wireshark.org/questions/3183/acknowledgment-number-broken-tcp-the-acknowledge-field-is-nonzero-while-the-ack-flag-is-not-set */
+    if (!(p->tcph->th_flags & TH_ACK) && TCP_GET_ACK(p) != 0) {
+        StreamTcpSetEvent(p, STREAM_PKT_BROKEN_ACK);
+    }
+
     /* If we are on IPS mode, and got a drop action triggered from
      * the IP only module, or from a reassembled msg and/or from an
      * applayer detection, then drop the rest of the packets of the
@@ -4012,7 +4017,8 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
 
         os_policy = ssn->server.os_policy;
 
-        if (TCP_GET_ACK(p) && StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
+        if (p->tcph->th_flags & TH_ACK &&
+                TCP_GET_ACK(p) && StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
             SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
             StreamTcpSetEvent(p, STREAM_RST_INVALID_ACK);
             SCReturnInt(0);
@@ -4024,7 +4030,8 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
 
         os_policy = ssn->client.os_policy;
 
-        if (TCP_GET_ACK(p) && StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
+        if (p->tcph->th_flags & TH_ACK &&
+                TCP_GET_ACK(p) && StreamTcpValidateAck(ssn, &ssn->client, p) == -1) {
             SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
             StreamTcpSetEvent(p, STREAM_RST_INVALID_ACK);
             SCReturnInt(0);
