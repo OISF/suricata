@@ -20,6 +20,7 @@ alert tcp any any -> any any (msg:"SURICATA STREAM 4way handshake invalid ack"; 
 alert tcp any any -> any any (msg:"SURICATA STREAM CLOSEWAIT ACK out of window"; stream-event:closewait_ack_out_of_window; sid:2210015; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM CLOSEWAIT FIN out of window"; stream-event:closewait_fin_out_of_window; sid:2210016; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM CLOSEWAIT invalid ACK"; stream-event:closewait_invalid_ack; sid:2210017; rev:1;)
+#alert tcp any any -> any any (msg:"SURICATA STREAM CLOSEWAIT retransmission packet before last ack"; stream-event:closewait_pkt_before_last_ack; sid:2210052; rev:2;)
 alert tcp any any -> any any (msg:"SURICATA STREAM CLOSING ACK wrong seq"; stream-event:closing_ack_wrong_seq; sid:2210018; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM CLOSING invalid ACK"; stream-event:closing_invalid_ack; sid:2210019; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED packet out of window"; stream-event:est_packet_out_of_window; sid:2210020; rev:1;)
@@ -60,5 +61,5 @@ alert tcp any any -> any any (msg:"SURICATA STREAM SHUTDOWN RST invalid ack"; st
 # Sequence gap: missing data in the reassembly engine. Usually due to packet loss. Will be very noisy on a overloaded link / sensor.
 #alert tcp any any -> any any (msg:"SURICATA STREAM reassembly sequence GAP -- missing packet(s)"; stream-event:reassembly_seq_gap; sid:2210048; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM reassembly overlap with different data"; stream-event:reassembly_overlap_different_data; sid:2210050; rev:1;)
-# next sid 2210052
+# next sid 2210053
 

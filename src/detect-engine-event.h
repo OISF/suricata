@@ -137,6 +137,7 @@ struct DetectEngineEvents_ {
     { "stream.4whs_invalid_ack", STREAM_4WHS_INVALID_ACK, },
     { "stream.closewait_ack_out_of_window", STREAM_CLOSEWAIT_ACK_OUT_OF_WINDOW, },
     { "stream.closewait_fin_out_of_window", STREAM_CLOSEWAIT_FIN_OUT_OF_WINDOW, },
+    { "stream.closewait_pkt_before_last_ack", STREAM_CLOSEWAIT_PKT_BEFORE_LAST_ACK, },
     { "stream.closewait_invalid_ack", STREAM_CLOSEWAIT_INVALID_ACK, },
     { "stream.closing_ack_wrong_seq", STREAM_CLOSING_ACK_WRONG_SEQ, },
     { "stream.closing_invalid_ack", STREAM_CLOSING_INVALID_ACK, },
