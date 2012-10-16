@@ -254,6 +254,7 @@ typedef enum {
     SC_ERR_NAPATECH_STAT_DROPS_FAILED,
     SC_ERR_NAPATECH_PARSE_CONFIG,
     SC_ERR_NO_REPUTATION,
+    SC_ERR_NOT_SUPPORTED,
 } SCError;
 
 const char *SCErrorToString(SCError);
