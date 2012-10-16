@@ -1644,14 +1644,23 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
         }
     }
 
-    if (SEQ_EQ(ssn->client.next_seq, TCP_GET_SEQ(p))) {
+    int zerowindowprobe = 0;
+    /* zero window probe */
+    if (p->payload_len == 1 && TCP_GET_SEQ(p) == ssn->client.next_seq && ssn->client.window == 0) {
+        SCLogDebug("ssn %p: zero window probe", ssn);
+        zerowindowprobe = 1;
+
+    /* expected packet */
+    } else if (SEQ_EQ(ssn->client.next_seq, TCP_GET_SEQ(p))) {
         ssn->client.next_seq += p->payload_len;
         SCLogDebug("ssn %p: ssn->client.next_seq %" PRIu32 "",
                     ssn, ssn->client.next_seq);
     }
 
     /* in window check */
-    if (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->client.next_win) ||
+    if (zerowindowprobe) {
+        SCLogDebug("ssn %p: zero window probe, skipping oow check", ssn);
+    } else if (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->client.next_win) ||
             (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) ||
             ssn->flags & STREAMTCP_FLAG_ASYNC)
     {
@@ -1763,13 +1772,22 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
         }
     }
 
-    if (SEQ_EQ(ssn->server.next_seq, TCP_GET_SEQ(p))) {
+    int zerowindowprobe = 0;
+    /* zero window probe */
+    if (p->payload_len == 1 && TCP_GET_SEQ(p) == ssn->server.next_seq && ssn->server.window == 0) {
+        SCLogDebug("ssn %p: zero window probe", ssn);
+        zerowindowprobe = 1;
+
+    /* expected packet */
+    } else if (SEQ_EQ(ssn->server.next_seq, TCP_GET_SEQ(p))) {
         ssn->server.next_seq += p->payload_len;
         SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32 "",
                 ssn, ssn->server.next_seq);
     }
 
-    if (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->server.next_win) ||
+    if (zerowindowprobe) {
+        SCLogDebug("ssn %p: zero window probe, skipping oow check", ssn);
+    } else if (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->server.next_win) ||
             (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) ||
             (ssn->flags & STREAMTCP_FLAG_ASYNC)) {
         SCLogDebug("ssn %p: seq %"PRIu32" in window, ssn->server.next_win "
