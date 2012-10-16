@@ -1575,7 +1575,13 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
         return -1;
     }
 
-    if (!(SEQ_GEQ((TCP_GET_SEQ(p)+p->payload_len), ssn->client.last_ack))) {
+    /* check for Keep Alive */
+    if ((p->payload_len == 0 || p->payload_len == 1) &&
+            (TCP_GET_SEQ(p) == (ssn->client.next_seq - 1))) {
+        SCLogDebug("ssn %p: pkt is keep alive", ssn);
+
+    /* normal pkt */
+    } else if (!(SEQ_GEQ((TCP_GET_SEQ(p)+p->payload_len), ssn->client.last_ack))) {
         if (ssn->flags & STREAMTCP_FLAG_ASYNC) {
             SCLogDebug("ssn %p: server => Asynchrouns stream, packet SEQ"
                     " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "),"
@@ -1632,6 +1638,7 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
                     ssn->client.last_ack, ssn->client.next_win,
                     TCP_GET_SEQ(p) + p->payload_len - ssn->client.next_win);
 
+            SCLogDebug("ssn %p: rejecting because pkt before last_ack", ssn);
             StreamTcpSetEvent(p, STREAM_EST_PKT_BEFORE_LAST_ACK);
             return -1;
         }
@@ -1728,7 +1735,13 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
                 "%" PRIu32 "", ssn, ssn->server.next_win);
     }
 
-    if (!(SEQ_GEQ((TCP_GET_SEQ(p)+p->payload_len), ssn->server.last_ack))) {
+    /* check for Keep Alive */
+    if ((p->payload_len == 0 || p->payload_len == 1) &&
+            (TCP_GET_SEQ(p) == (ssn->server.next_seq - 1))) {
+        SCLogDebug("ssn %p: pkt is keep alive", ssn);
+
+    /* normal pkt */
+    } else if (!(SEQ_GEQ((TCP_GET_SEQ(p)+p->payload_len), ssn->server.last_ack))) {
         if (ssn->flags & STREAMTCP_FLAG_ASYNC) {
 
             SCLogDebug("ssn %p: client => Asynchrouns stream, packet SEQ"
