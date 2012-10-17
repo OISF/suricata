@@ -27,8 +27,9 @@
 
 int DetectEngineRunHttpStatCodeMpm(DetectEngineThreadCtx *,
                                    Flow *f, HtpState *, uint8_t);
-int DetectEngineInspectHttpStatCode(DetectEngineCtx *, DetectEngineThreadCtx *,
-                                    Signature *, Flow *, uint8_t, void *);
+int DetectEngineInspectHttpStatCode(ThreadVars *tv,
+                                    DetectEngineCtx *, DetectEngineThreadCtx *,
+                                    Signature *, Flow *, uint8_t, void *, int);
 void DetectEngineHttpStatCodeRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HSCD_H__ */

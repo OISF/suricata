@@ -119,66 +119,36 @@ int DetectEngineRunHttpUAMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
  * \retval 0 No match.
  * \retval 1 Match.
  */
-int DetectEngineInspectHttpUA(DetectEngineCtx *de_ctx,
+int DetectEngineInspectHttpUA(ThreadVars *tv,
+                              DetectEngineCtx *de_ctx,
                               DetectEngineThreadCtx *det_ctx,
                               Signature *s, Flow *f, uint8_t flags,
-                              void *alstate)
+                              void *alstate, int tx_id)
 {
-    SCEnter();
+    HtpState *htp_state = (HtpState *)alstate;
+    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, tx_id);
+    if (tx == NULL)
+        return 0;
 
-    int r = 0;
-    HtpState *htp_state = NULL;
-    htp_tx_t *tx = NULL;
-    int idx;
-
-    FLOWLOCK_RDLOCK(f);
-
-    htp_state = (HtpState *)alstate;
-    if (htp_state == NULL) {
-        SCLogDebug("no HTTP state");
-        goto end;
+    htp_header_t *h = (htp_header_t *)table_getc(tx->request_headers,
+                                                 "User-Agent");
+    if (h == NULL) {
+        SCLogDebug("HTTP user agent header not present in this request");
+        return 0;
     }
 
-    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-        SCLogDebug("HTP state has no conn(p)");
-        goto end;
-    }
-
-    idx = AppLayerTransactionGetInspectId(f);
-    if (idx == -1) {
-        goto end;
-    }
-
-    int size = (int)list_size(htp_state->connp->conn->transactions);
-    for (; idx < size; idx++) {
-        tx = list_get(htp_state->connp->conn->transactions, idx);
-        if (tx == NULL)
-            continue;
-
-        htp_header_t *h = (htp_header_t *)table_getc(tx->request_headers,
-                                                     "User-Agent");
-        if (h == NULL) {
-            SCLogDebug("HTTP user agent header not present in this request");
-            continue;
-        }
-
-        det_ctx->buffer_offset = 0;
-        det_ctx->discontinue_matching = 0;
-        det_ctx->inspection_recursion_counter = 0;
-
-        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HUADMATCH],
+    det_ctx->buffer_offset = 0;
+    det_ctx->discontinue_matching = 0;
+    det_ctx->inspection_recursion_counter = 0;
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HUADMATCH],
                                           f,
                                           (uint8_t *)bstr_ptr(h->value),
                                           bstr_len(h->value),
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HUAD, NULL);
-        if (r == 1) {
-            break;
-        }
-    }
+    if (r == 1)
+        return 1;
 
-end:
-    FLOWLOCK_UNLOCK(f);
-    SCReturnInt(r);
+    return 0;
 }
 
 /***********************************Unittests**********************************/

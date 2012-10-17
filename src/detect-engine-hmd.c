@@ -112,62 +112,29 @@ int DetectEngineRunHttpMethodMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
  * \retval 0 No match.
  * \retval 1 Match.
  */
-int DetectEngineInspectHttpMethod(DetectEngineCtx *de_ctx,
+int DetectEngineInspectHttpMethod(ThreadVars *tv,
+                                  DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
                                   Signature *s, Flow *f, uint8_t flags,
-                                  void *alstate)
+                                  void *alstate, int tx_id)
 {
-    SCEnter();
-    int r = 0;
-    HtpState *htp_state = NULL;
-    htp_tx_t *tx = NULL;
-    int idx;
+    HtpState *htp_state = (HtpState *)alstate;
+    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, tx_id);
+    if (tx == NULL || tx->request_method == NULL)
+        return 0;
 
-    FLOWLOCK_RDLOCK(f);
-
-    htp_state = (HtpState *)alstate;
-    if (htp_state == NULL) {
-        SCLogDebug("no HTTP state");
-        goto end;
-    }
-
-    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-        SCLogDebug("HTP state has no conn(p)");
-        goto end;
-    }
-
-    idx = AppLayerTransactionGetInspectId(f);
-    if (idx == -1) {
-        goto end;
-    }
-
-    int size = (int)list_size(htp_state->connp->conn->transactions);
-    for (; idx < size; idx++) {
-
-        tx = list_get(htp_state->connp->conn->transactions, idx);
-        if (tx == NULL || tx->request_method == NULL)
-            continue;
-
-        det_ctx->buffer_offset = 0;
-        det_ctx->discontinue_matching = 0;
-        det_ctx->inspection_recursion_counter = 0;
-
-        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HMDMATCH],
+    det_ctx->buffer_offset = 0;
+    det_ctx->discontinue_matching = 0;
+    det_ctx->inspection_recursion_counter = 0;
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HMDMATCH],
                                           f,
                                           (uint8_t *)bstr_ptr(tx->request_method),
                                           bstr_len(tx->request_method),
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HMD, NULL);
-        //r = DoInspectHttpMethod(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HMDMATCH],
-        //(uint8_t *)bstr_ptr(tx->request_method),
-        //bstr_len(tx->request_method));
-        if (r == 1) {
-            break;
-        }
-    }
+    if (r == 1)
+        return 1;
 
-end:
-    FLOWLOCK_UNLOCK(f);
-    SCReturnInt(r);
+    return 0;
 }
 
 /***********************************Unittests**********************************/

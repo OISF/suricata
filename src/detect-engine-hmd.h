@@ -25,8 +25,9 @@
 
 #include "app-layer-htp.h"
 
-int DetectEngineInspectHttpMethod(DetectEngineCtx *, DetectEngineThreadCtx *,
-                                  Signature *, Flow *, uint8_t, void *);
+int DetectEngineInspectHttpMethod(ThreadVars *tv,
+                                  DetectEngineCtx *, DetectEngineThreadCtx *,
+                                  Signature *, Flow *, uint8_t, void *, int);
 int DetectEngineRunHttpMethodMpm(DetectEngineThreadCtx *, Flow *, HtpState *, uint8_t);
 void DetectEngineHttpMethodRegisterTests(void);
 

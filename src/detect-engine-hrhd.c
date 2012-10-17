@@ -127,72 +127,41 @@ end:
  * \retval 0 No match.
  * \retval 1 Match.
  */
-int DetectEngineInspectHttpRawHeader(DetectEngineCtx *de_ctx,
+int DetectEngineInspectHttpRawHeader(ThreadVars *tv,
+                                     DetectEngineCtx *de_ctx,
                                      DetectEngineThreadCtx *det_ctx,
                                      Signature *s, Flow *f, uint8_t flags,
-                                     void *alstate)
+                                     void *alstate, int tx_id)
 {
-    SCEnter();
-    int r = 0;
-    HtpState *htp_state = NULL;
-    htp_tx_t *tx = NULL;
-    int idx;
+    HtpState *htp_state = (HtpState *)alstate;
+    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, tx_id);
+    if (tx == NULL)
+        return 0;
 
-    FLOWLOCK_RDLOCK(f);
-
-    htp_state = (HtpState *)alstate;
-    if (htp_state == NULL) {
-        SCLogDebug("no HTTP state");
-        goto end;
+    bstr *raw_headers = NULL;
+    if (flags & STREAM_TOSERVER) {
+        raw_headers = htp_tx_get_request_headers_raw(tx);
     }
-
-    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-        SCLogDebug("HTP state has no conn(p)");
-        goto end;
-    }
-
-    idx = AppLayerTransactionGetInspectId(f);
-    if (idx == -1) {
-        goto end;
-    }
-    int size = (int)list_size(htp_state->connp->conn->transactions);
-    for (; idx < size; idx++) {
-
-        tx = list_get(htp_state->connp->conn->transactions, idx);
-        if (tx == NULL)
-            continue;
-
-        bstr *raw_headers = NULL;
-        if (flags & STREAM_TOSERVER) {
-            raw_headers = htp_tx_get_request_headers_raw(tx);
-        }
 #ifdef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
-        else {
-            raw_headers = htp_tx_get_response_headers_raw(tx);
-        }
+    else {
+        raw_headers = htp_tx_get_response_headers_raw(tx);
+    }
 #endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
-        if (raw_headers == NULL)
-            continue;
+    if (raw_headers == NULL)
+        return 0;
 
-        det_ctx->buffer_offset = 0;
-        det_ctx->discontinue_matching = 0;
-        det_ctx->inspection_recursion_counter = 0;
-        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HRHDMATCH],
+    det_ctx->buffer_offset = 0;
+    det_ctx->discontinue_matching = 0;
+    det_ctx->inspection_recursion_counter = 0;
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HRHDMATCH],
                                           f,
                                           (uint8_t *)bstr_ptr(raw_headers),
                                           bstr_len(raw_headers),
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HRHD, NULL);
-        //r = DoInspectHttpRawHeader(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HRHDMATCH],
-        //(uint8_t *)bstr_ptr(raw_headers),
-        //bstr_len(raw_headers));
-        if (r == 1) {
-            break;
-        }
-    }
+    if (r == 1)
+        return 1;
 
-end:
-    FLOWLOCK_UNLOCK(f);
-    SCReturnInt(r);
+    return 0;
 }
 
 /***********************************Unittests**********************************/

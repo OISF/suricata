@@ -113,67 +113,30 @@ end:
  * \retval 0 No match.
  * \retval 1 Match.
  */
-int DetectEngineInspectHttpStatMsg(DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx,
-                                  Signature *s, Flow *f, uint8_t flags,
-                                  void *alstate)
+int DetectEngineInspectHttpStatMsg(ThreadVars *tv,
+                                   DetectEngineCtx *de_ctx,
+                                   DetectEngineThreadCtx *det_ctx,
+                                   Signature *s, Flow *f, uint8_t flags,
+                                   void *alstate, int tx_id)
 {
-    SCEnter();
-
-    int r = 0;
-
     HtpState *htp_state = (HtpState *)alstate;
-    if (htp_state == NULL) {
-        SCLogDebug("no HTTP state");
-        SCReturnInt(0);
-    }
+    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, tx_id);
+    if (tx == NULL || tx->response_message == NULL)
+        return 0;
 
-    /* locking the flow, we will inspect the htp state */
-    FLOWLOCK_RDLOCK(f);
-
-    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-        SCLogDebug("HTP state has no conn(p)");
-        goto end;
-    }
-
-#ifdef DEBUG
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_HSMDMATCH];
-    DetectContentData *co = (DetectContentData *)sm->ctx;
-    SCLogDebug("co->id %"PRIu32, co->id);
-#endif
-
-    int idx = AppLayerTransactionGetInspectId(f);
-    if (idx == -1) {
-        goto end;
-    }
-
-    htp_tx_t *tx = NULL;
-
-    int size = (int)list_size(htp_state->connp->conn->transactions);
-    for ( ; idx < size; idx++)
-    {
-        tx = list_get(htp_state->connp->conn->transactions, idx);
-        if (tx == NULL || tx->response_message == NULL)
-            continue;
-
-        det_ctx->discontinue_matching = 0;
-        det_ctx->buffer_offset = 0;
-        det_ctx->inspection_recursion_counter = 0;
-
-        r = DetectEngineContentInspection(de_ctx, det_ctx, s,
+    det_ctx->discontinue_matching = 0;
+    det_ctx->buffer_offset = 0;
+    det_ctx->inspection_recursion_counter = 0;
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s,
                                           s->sm_lists[DETECT_SM_LIST_HSMDMATCH],
                                           f,
                                           (uint8_t *)bstr_ptr(tx->response_message),
                                           bstr_len(tx->response_message),
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HSMD, NULL);
-        if (r == 1) {
-            goto end;
-        }
-    }
+    if (r == 1)
+        return 1;
 
-end:
-    FLOWLOCK_UNLOCK(f);
-    SCReturnInt(r);
+    return 0;
 }
 
 /***********************************Unittests**********************************/

@@ -30,10 +30,13 @@
 int DetectEngineRunHttpClientBodyMpm(DetectEngineCtx *,
                                      DetectEngineThreadCtx *, Flow *f,
                                      HtpState *, uint8_t);
-int DetectEngineInspectHttpClientBody(DetectEngineCtx *,
-        DetectEngineThreadCtx *, Signature *, Flow *, uint8_t, void *);
-
+int DetectEngineInspectHttpClientBody(ThreadVars *tv,
+                                      DetectEngineCtx *,
+                                      DetectEngineThreadCtx *,
+                                      Signature *, Flow *,
+                                      uint8_t, void *, int);
 void DetectEngineCleanHCBDBuffers(DetectEngineThreadCtx *);
+
 void DetectEngineHttpClientBodyRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HCBD_H__ */

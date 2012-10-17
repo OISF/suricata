@@ -201,70 +201,35 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
  *  \retval 2 can't match
  *  \retval 3 can't match filestore signature
  *
- *  \note flow is not locked at this time
+ *  \note flow should be locked when this function's called.
  */
-int DetectFileInspectHttp(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *f, Signature *s, void *alstate, uint8_t flags) {
-    SCEnter();
-
+int DetectFileInspectHttp(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags, void *alstate, int tx_id) {
     int r = 0;
-    HtpState *htp_state = NULL;
-    int idx = 0;
-    int start_tx = 0;
-    int end_tx = 0;
-    int match = 0;
     FileContainer *ffc;
-
-    /* locking the flow, we will inspect the htp state, files + we will set
-     * magic, so need a WRITE lock */
-    FLOWLOCK_WRLOCK(f);
-
-    htp_state = (HtpState *)alstate;
-    if (htp_state == NULL) {
-        SCLogDebug("no HTTP state");
-        goto end;
-    }
+    HtpState *htp_state = (HtpState *)alstate;
 
     if (flags & STREAM_TOCLIENT)
         ffc = htp_state->files_tc;
     else
         ffc = htp_state->files_ts;
 
-    if (htp_state->connp != NULL && htp_state->connp->conn != NULL)
-    {
-        start_tx = AppLayerTransactionGetInspectId(f);
-        if (start_tx == -1) {
-            goto end;
+    /* inspect files for this transaction */
+    det_ctx->tx_id = (uint16_t)tx_id;
+
+    int match = DetectFileInspect(tv, det_ctx, f, s, flags, ffc);
+    if (match == 1) {
+        r = 1;
+    } else if (match == 2) {
+        if (r != 1) {
+            SCLogDebug("sid %u can't match on this transaction", s->id);
+            r = 2;
         }
-
-        /* tx cnt is incremented after request finishes, so we need to inspect
-         * response one before the lowest. */
-        if ((flags & STREAM_TOCLIENT) && start_tx > 0)
-            start_tx--;
-        end_tx = (int)list_size(htp_state->connp->conn->transactions);
-    }
-
-    for (idx = start_tx ; idx < end_tx; idx++)
-    {
-        /* inspect files for this transaction */
-        det_ctx->tx_id = (uint16_t)idx;
-
-        match = DetectFileInspect(tv, det_ctx, f, s, flags, ffc);
-        if (match == 1) {
-            r = 1;
-        } else if (match == 2) {
-            if (r != 1) {
-                SCLogDebug("sid %u can't match on this transaction", s->id);
-                r = 2;
-            }
-        } else if (match == 3) {
-            if (r != 1) {
-                SCLogDebug("sid %u can't match on this transaction (filestore sig)", s->id);
-                r = 3;
-            }
+    } else if (match == 3) {
+        if (r != 1) {
+            SCLogDebug("sid %u can't match on this transaction (filestore sig)", s->id);
+            r = 3;
         }
     }
 
-end:
-    FLOWLOCK_UNLOCK(f);
-    SCReturnInt(r);
+    return r;
 }
