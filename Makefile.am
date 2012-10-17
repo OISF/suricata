@@ -8,7 +8,12 @@ EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
 if BUILD_LIBHTP
  HTP_DIR = libhtp
 endif
-SUBDIRS = $(HTP_DIR) src qa rules doc
+
+if BUILD_LIBPESCAN
+  PESCAN_DIR = libpescan
+endif
+
+SUBDIRS = $(HTP_DIR) $(PESCAN_DIR) src qa rules doc
 
 install-data-am:
 	@echo "Run 'make install-conf' if you want to install initial configuration files. Or 'make install-full' to install configuration and rules";

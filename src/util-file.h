@@ -29,6 +29,7 @@
 #include <sechash.h>
 #endif
 
+#include "libpescan.h"
 #define FILE_TRUNCATED  0x0001
 #define FILE_NOMAGIC    0x0002
 #define FILE_NOMD5      0x0004
@@ -38,6 +39,11 @@
 #define FILE_STORE      0x0040
 #define FILE_STORED     0x0080
 #define FILE_NOTRACK    0x0100 /**< track size of file */
+#define FILE_NOPESCAN   0x0200
+
+/* PE Scan defs */
+#define PEFILE_SCANNED  0x01
+#define PEFILE_LOGGED   0x02
 
 typedef enum FileState_ {
     FILE_STATE_NONE = 0,    /**< no state */
@@ -67,6 +73,10 @@ typedef struct File_ {
     int16_t state;
     uint64_t size;                  /**< size tracked so far */
     char *magic;
+
+    uint8_t pescan_flags;          /**< Flags indicating whether file is scanned or logged */
+    peattrib_t *peattrib;          /**< Data structure of attribs if portable executable (PE) */
+
     FileData *chunks_head;
     FileData *chunks_tail;
     struct File_ *next;
@@ -107,7 +117,7 @@ void FileContainerAdd(FileContainer *, File *);
  *  \note filename is not a string, so it's not nul terminated.
  */
 File *FileOpenFile(FileContainer *, uint8_t *name, uint16_t name_len,
-        uint8_t *data, uint32_t data_len, uint8_t flags);
+        uint8_t *data, uint32_t data_len, uint16_t flags);
 /**
  *  \brief Close a File
  *
@@ -119,7 +129,7 @@ File *FileOpenFile(FileContainer *, uint8_t *name, uint16_t name_len,
  *  \retval 0 ok
  *  \retval -1 error
  */
-int FileCloseFile(FileContainer *, uint8_t *data, uint32_t data_len, uint8_t flags);
+int FileCloseFile(FileContainer *, uint8_t *data, uint32_t data_len, uint16_t flags);
 
 /**
  *  \brief Store a chunk of file data in the flow. The open "flowfile"
@@ -159,6 +169,13 @@ void FileDisableStoring(struct Flow_ *, uint8_t);
 void FileDisableFilesize(Flow *f, uint8_t direction);
 
 /**
+ *  \brief set no store flag, close file if needed
+ *
+ *  \param ff file
+ */
+void FileDisableStoringForFile(File *ff);
+
+/**
  *  \brief disable file storing for a transaction
  *
  *  \param f flow
@@ -169,7 +186,7 @@ void FileDisableStoringForTransaction(struct Flow_ *, uint8_t, uint16_t);
 void FlowFileDisableStoringForTransaction(struct Flow_ *f, uint16_t tx_id);
 void FilePrune(FileContainer *ffc);
 
-
+void FileDisablePEScan(Flow *f, uint8_t);
 void FileDisableMagic(Flow *f, uint8_t);
 void FileForceMagicEnable(void);
 int FileForceMagic(void);
