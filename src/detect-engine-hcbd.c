@@ -55,9 +55,6 @@
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
 
-#define BODY_SCAN_WINDOW 4096
-#define BODY_MINIMAL_SIZE 32768
-
 #define BUFFER_STEP 50
 
 static inline int HCBDCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size)
@@ -165,7 +162,7 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(int tx_id,
 
     /* inspect the body if the transfer is complete or we have hit
      * our body size limit */
-    if (htud->request_body.content_len_so_far < BODY_MINIMAL_SIZE &&
+    if (htud->request_body.content_len_so_far < htp_state->cfg->request_inspect_min_size &&
         !(htud->tsflags & HTP_REQ_BODY_COMPLETE)) {
         SCLogDebug("we still haven't seen the entire request body.  "
                    "Let's defer body inspection till we see the "
@@ -178,7 +175,7 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(int tx_id,
         /* see if we can filter out chunks */
         if (htud->request_body.body_inspected > 0) {
             if (cur->stream_offset < htud->request_body.body_inspected) {
-                if ((htud->request_body.body_inspected - cur->stream_offset) > BODY_SCAN_WINDOW) {
+                if ((htud->request_body.body_inspected - cur->stream_offset) > htp_state->cfg->request_inspect_min_size) {
                     cur = cur->next;
                     continue;
                 } else {

@@ -39,8 +39,12 @@
 #include <htp/htp.h>
 
 /* default request body limit */
-#define HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT       4096U
-#define HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT      4096U
+#define HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT           4096U
+#define HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT          4096U
+#define HTP_CONFIG_DEFAULT_REQUEST_INSPECT_MIN_SIZE     32768U
+#define HTP_CONFIG_DEFAULT_REQUEST_INSPECT_WINDOW       4096U
+#define HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_MIN_SIZE    32768U
+#define HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_WINDOW      4096U
 
 /** a boundary should be smaller in size */
 #define HTP_BOUNDARY_MAX                            200U
@@ -122,6 +126,22 @@ enum {
 #define HTP_PCRE_HAS_MATCH      0x02    /**< Flag to indicate that the chunks
                                              matched on some rule */
 
+/** Need a linked list in order to keep track of these */
+typedef struct HTPCfgRec_ {
+    htp_cfg_t           *cfg;
+    struct HTPCfgRec_   *next;
+
+    /** max size of the client body we inspect */
+    uint32_t            request_body_limit;
+    uint32_t            response_body_limit;
+
+    uint32_t            request_inspect_min_size;
+    uint32_t            request_inspect_window;
+
+    uint32_t            response_inspect_min_size;
+    uint32_t            response_inspect_window;
+} HTPCfgRec;
+
 /** Struct used to hold chunks of a body on a request */
 struct HtpBodyChunk_ {
     uint8_t *data;              /**< Pointer to the data of the chunk */
@@ -201,6 +221,7 @@ typedef struct HtpState_ {
     uint32_t response_body_limit;
     FileContainer *files_ts;
     FileContainer *files_tc;
+    struct HTPCfgRec_ *cfg;
 } HtpState;
 
 /** part of the engine needs the request body (e.g. http_client_body keyword) */

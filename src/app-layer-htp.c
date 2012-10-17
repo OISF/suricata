@@ -74,16 +74,6 @@
 
 //#define PRINT
 
-/** Need a linked list in order to keep track of these */
-typedef struct HTPCfgRec_ {
-    htp_cfg_t           *cfg;
-    struct HTPCfgRec_   *next;
-
-    /** max size of the client body we inspect */
-    uint32_t            request_body_limit;
-    uint32_t            response_body_limit;
-} HTPCfgRec;
-
 /** Fast lookup tree (radix) for the various HTP configurations */
 static SCRadixTree *cfgtree;
 /** List of HTP configurations. */
@@ -582,6 +572,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
      * tree.  Failing that, the default HTP config is used.
      */
     if (NULL == hstate->connp ) {
+        HTPCfgRec *htp_cfg_rec = &cfglist;
         htp_cfg_t *htp = cfglist.cfg; /* Default to the global HTP config */
         SCRadixNode *cfgnode = NULL;
 
@@ -599,7 +590,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         }
 
         if (cfgnode != NULL) {
-            HTPCfgRec *htp_cfg_rec = SC_RADIX_NODE_USERDATA(cfgnode, HTPCfgRec);
+            htp_cfg_rec = SC_RADIX_NODE_USERDATA(cfgnode, HTPCfgRec);
             if (htp_cfg_rec != NULL) {
                 htp = htp_cfg_rec->cfg;
                 SCLogDebug("LIBHTP using config: %p", htp);
@@ -626,6 +617,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         }
 
         htp_connp_set_user_data(hstate->connp, (void *)hstate);
+        hstate->cfg = htp_cfg_rec;
 
         SCLogDebug("New hstate->connp %p", hstate->connp);
     }
@@ -2090,6 +2082,10 @@ static void HTPConfigSetDefaults(HTPCfgRec *cfg_prec)
 {
     cfg_prec->request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
     cfg_prec->response_body_limit = HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT;
+    cfg_prec->request_inspect_min_size = HTP_CONFIG_DEFAULT_REQUEST_INSPECT_MIN_SIZE;
+    cfg_prec->request_inspect_window = HTP_CONFIG_DEFAULT_REQUEST_INSPECT_WINDOW;
+    cfg_prec->response_inspect_min_size = HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_MIN_SIZE;
+    cfg_prec->response_inspect_window = HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_WINDOW;
     htp_config_register_request(cfg_prec->cfg, HTPCallbackRequest);
     htp_config_register_response(cfg_prec->cfg, HTPCallbackResponse);
 #ifdef HAVE_HTP_URI_NORMALIZE_HOOK
@@ -2177,6 +2173,33 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
         } else if (strcasecmp("response-body-limit", p->name) == 0) {
             if (ParseSizeStringU32(p->val, &cfg_prec->response_body_limit) < 0) {
                 SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-limit "
+                           "from conf file - %s.  Killing engine", p->val);
+                exit(EXIT_FAILURE);
+            }
+        } else if (strcasecmp("request-body-minimal-inspect-size", p->name) == 0) {
+            if (ParseSizeStringU32(p->val, &cfg_prec->request_inspect_min_size) < 0) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-minimal-inspect-size "
+                           "from conf file - %s.  Killing engine", p->val);
+                exit(EXIT_FAILURE);
+            }
+
+        } else if (strcasecmp("request-body-inspect-window", p->name) == 0) {
+            if (ParseSizeStringU32(p->val, &cfg_prec->request_inspect_window) < 0) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-inspect-window "
+                           "from conf file - %s.  Killing engine", p->val);
+                exit(EXIT_FAILURE);
+            }
+
+        } else if (strcasecmp("response-body-minimal-inspect-size", p->name) == 0) {
+            if (ParseSizeStringU32(p->val, &cfg_prec->response_inspect_min_size) < 0) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-minimal-inspect-size "
+                           "from conf file - %s.  Killing engine", p->val);
+                exit(EXIT_FAILURE);
+            }
+
+        } else if (strcasecmp("response-body-inspect-window", p->name) == 0) {
+            if (ParseSizeStringU32(p->val, &cfg_prec->response_inspect_window) < 0) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-inspect-window "
                            "from conf file - %s.  Killing engine", p->val);
                 exit(EXIT_FAILURE);
             }
