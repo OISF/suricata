@@ -420,6 +420,7 @@ static void SCPerfReleaseOPCtx()
     }
 
     SCFree(sc_perf_op_ctx);
+    sc_perf_op_ctx = NULL;
 
     return;
 }
