@@ -498,6 +498,92 @@ void EngineAnalysisFastPattern(Signature *s)
     return;
 }
 
+#ifdef HAVE_LIBSQLITE3 
+/**
+ *  \brief Load a database with signatures
+ *  \param de_ctx Pointer to the detection engine context
+ *  \param sig_file Database filename to load signatures from
+ *  \param sigs_tot Will store number of signatures processed in the database
+ *  \param sqlq SQL query which will be run to get rules
+ *  \retval Number of rules loaded successfully, -1 on error
+ */
+int DetectLoadSigDB(DetectEngineCtx *de_ctx, char *db_file, int *sigs_tot, char *sqlq) {
+    Signature *sig = NULL;
+    int good = 0, bad = 0;
+    int lineno = 0;
+    sqlite3 *sqlhandle;
+    sqlite3_stmt *stmt;
+    int sqlret;
+    int cols;
+
+    if (db_file == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "opening rule DB file null");
+        return -1;
+    }
+
+    sqlret = sqlite3_open(db_file,&sqlhandle); 
+    if (sqlret) {
+        SCLogError(SC_ERR_OPENING_DB_FILE, "opening rule db %s:"
+                   " %d.", db_file, sqlret);
+        return -1;
+    }
+
+    sqlret = sqlite3_prepare_v2(sqlhandle,sqlq,-1,&stmt,0);
+    if (sqlret) {
+        SCLogError(SC_ERR_PREPARING_SQL, "prepare query failed for '%s' db '%s':"
+                   " %d.", sqlq, db_file, sqlret);
+        sqlite3_close(sqlhandle);     
+        return -1;
+    }
+   
+    cols = sqlite3_column_count(stmt);
+    if (cols != 2) {
+        SCLogError(SC_ERR_WRONG_COLUMNS_SQL, "number of columns expected %s:"
+                   "%s: got %d.", sqlq, db_file, cols);
+        sqlite3_close(sqlhandle);     
+        return -1;
+    }
+    
+    while (1) {
+        sqlret = sqlite3_step(stmt);
+        if (sqlret == SQLITE_ROW) {
+                lineno = sqlite3_column_int(stmt,0); /* ID of signature */
+                char *val = (char*)sqlite3_column_text(stmt,1); /* signature itself */
+
+                de_ctx->rule_file = db_file;
+                de_ctx->rule_line = lineno;
+
+                sig = DetectEngineAppendSig(de_ctx, val);
+                (*sigs_tot)++;
+                if (sig != NULL) {
+                    if (fp_engine_analysis_set) {
+                        EngineAnalysisFastPattern(sig);
+                    }
+                    if (rule_engine_analysis_set) {
+                        EngineAnalysisRules(sig, val);
+                    }
+                    SCLogDebug("signature %"PRIu32" loaded", sig->id);
+                    good++;
+                } else {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "error parsing signature \"%s\" from "
+                         "database %s at line %"PRId32"", val, db_file, lineno);
+                    if (de_ctx->failure_fatal == 1) {
+                        sqlite3_close(sqlhandle);     
+                        exit(EXIT_FAILURE);
+                    }
+                    bad++;
+                }
+        } else {
+            break;
+        }
+    }
+
+    sqlite3_close(sqlhandle);     
+
+    return good;    
+}
+#endif
+
 /**
  *  \brief Load a file with signatures
  *  \param de_ctx Pointer to the detection engine context
@@ -600,6 +686,11 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     int r = 0;
     int cnt = 0;
     int cntf = 0;
+    int fcntf = 0;
+#ifdef HAVE_LIBSQLITE3
+    int cntdb = 0;
+    int fcntdb = 0;
+#endif
     int sigtotal = 0;
     char *sfile = NULL;
 
@@ -664,6 +755,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
                         exit(EXIT_FAILURE);
                     }
                 } else if (r < 0){
+                    fcntf++;
                     if (de_ctx->failure_fatal == 1) {
                         exit(EXIT_FAILURE);
                     }
@@ -672,6 +764,42 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
             }
         }
     }
+
+#ifdef HAVE_LIBSQLITE3
+    /* let's load signatures from databases from the general config */
+    if (ConfGet("sig-sql-file", &sfile) != 1)
+        sfile = DetectLoadCompleteSigPath(DEFAULT_SIG_SQL_FILE);
+    else
+        sfile = DetectLoadCompleteSigPath(sfile);
+    
+    SCLogDebug("Using rules database: %s", sfile);
+
+    if (!(sig_file != NULL && sig_file_exclusive == TRUE)) {
+        rule_files = ConfGetNode("sig-sqls");
+        if (rule_files != NULL) {
+            TAILQ_FOREACH(file, &rule_files->head, next) {
+                SCLogDebug("Loading rules from database '%s' with following SQL '%s'", sfile, file->val);
+
+                r = DetectLoadSigDB(de_ctx, sfile, &sigtotal, file->val);
+                cntdb++;
+                if (r > 0) {
+                    cnt += r;
+                } else if (r == 0){
+                    SCLogWarning(SC_ERR_NO_RULES, "No rules loaded from database '%s' using SQL query '%s'", sfile, file->val);
+                    if (de_ctx->failure_fatal == 1) {
+                        exit(EXIT_FAILURE);
+                    }
+                } else if (r < 0){
+                    fcntdb++;
+                    if (de_ctx->failure_fatal == 1) {
+                        exit(EXIT_FAILURE);
+                    }
+                }
+            }
+        }
+    }
+    SCFree(sfile);
+#endif
 
     /* If a Signature file is specified from commandline, parse it too */
     if (sig_file != NULL) {
@@ -706,7 +834,13 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
         }
     } else {
         /* we report the total of files and rules successfully loaded and failed */
-        SCLogInfo("%" PRId32 " rule files processed. %" PRId32 " rules successfully loaded, %" PRId32 " rules failed", cntf, cnt, sigtotal-cnt);
+#ifdef HAVE_LIBSQLITE3
+        SCLogInfo("%" PRId32 " SQL queries processed, %" PRId32 " successfully, %" PRId32 " failed.", 
+            cntdb, cntdb-fcntdb, fcntdb);
+#endif
+        SCLogInfo("%" PRId32 " rule files processed. %" PRId32 " successfully, %" PRId32 " failed.", 
+            cntf, cntf-fcntf, fcntf);
+        SCLogInfo("%" PRId32 " rules successfully loaded, %" PRId32 " rules failed", cnt, sigtotal-cnt);
     }
 
     if (ret < 0 && de_ctx->failure_fatal) {
