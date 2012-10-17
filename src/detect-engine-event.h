@@ -170,6 +170,7 @@ struct DetectEngineEvents_ {
     { "stream.pkt_broken_ack", STREAM_PKT_BROKEN_ACK, },
     { "stream.rst_invalid_ack", STREAM_RST_INVALID_ACK, },
     { "stream.shutdown_syn_resend", STREAM_SHUTDOWN_SYN_RESEND, },
+    { "stream.pkt_retransmission", STREAM_PKT_RETRANSMISSION, },
     { "stream.reassembly_segment_before_base_seq", STREAM_REASSEMBLY_SEGMENT_BEFORE_BASE_SEQ, },
     { "stream.reassembly_no_segment", STREAM_REASSEMBLY_NO_SEGMENT, },
     { "stream.reassembly_seq_gap", STREAM_REASSEMBLY_SEQ_GAP, },

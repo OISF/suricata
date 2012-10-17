@@ -20,12 +20,9 @@ alert tcp any any -> any any (msg:"SURICATA STREAM 4way handshake invalid ack"; 
 alert tcp any any -> any any (msg:"SURICATA STREAM CLOSEWAIT ACK out of window"; stream-event:closewait_ack_out_of_window; sid:2210015; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM CLOSEWAIT FIN out of window"; stream-event:closewait_fin_out_of_window; sid:2210016; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM CLOSEWAIT invalid ACK"; stream-event:closewait_invalid_ack; sid:2210017; rev:1;)
-#alert tcp any any -> any any (msg:"SURICATA STREAM CLOSEWAIT retransmission packet before last ack"; stream-event:closewait_pkt_before_last_ack; sid:2210052; rev:2;)
 alert tcp any any -> any any (msg:"SURICATA STREAM CLOSING ACK wrong seq"; stream-event:closing_ack_wrong_seq; sid:2210018; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM CLOSING invalid ACK"; stream-event:closing_invalid_ack; sid:2210019; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED packet out of window"; stream-event:est_packet_out_of_window; sid:2210020; rev:1;)
-# "regular" retransmissions
-#alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED retransmission packet before last ack"; stream-event:est_pkt_before_last_ack; sid:2210021; rev:2;)
 alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYNACK resend"; stream-event:est_synack_resend; sid:2210022; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYNACK resend with different ACK"; stream-event:est_synack_resend_with_different_ack; sid:2210023; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED SYNACK resend with different seq"; stream-event:est_synack_resend_with_diff_seq; sid:2210024; rev:1;)
@@ -58,9 +55,27 @@ alert tcp any any -> any any (msg:"SURICATA STREAM Packet with invalid ack"; str
 alert tcp any any -> any any (msg:"SURICATA STREAM SHUTDOWN RST invalid ack"; stream-event:rst_invalid_ack; sid:2210046; rev:1;)
 # SYN (re)send during shutdown (closing, closewait, finwait1, finwait2, lastack, timewait states)
 #alert tcp any any -> any any (msg:"SURICATA STREAM SYN resend"; stream-event:shutdown_syn_resend; sid:2210049; rev:1;)
-#alert tcp any any -> any any (msg:"SURICATA STREAM reassembly segment before base seq"; stream-event:reassembly_segment_before_base_seq; sid:2210047; rev:1;)
 # Sequence gap: missing data in the reassembly engine. Usually due to packet loss. Will be very noisy on a overloaded link / sensor.
 #alert tcp any any -> any any (msg:"SURICATA STREAM reassembly sequence GAP -- missing packet(s)"; stream-event:reassembly_seq_gap; sid:2210048; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM reassembly overlap with different data"; stream-event:reassembly_overlap_different_data; sid:2210050; rev:1;)
-# next sid 2210053
+
+# retransmission detection
+#
+# The rules below match on retransmissions detected in various stages of the
+# stream engine. They are all "noalert" rules that increment the counter
+# tcp.retransmission.count. The last rule sid:2210054 matches if the counter
+# reaches 10. Increase this number if the rule is too noisy.
+#
+# "regular" retransmissions, only count
+alert tcp any any -> any any (msg:"SURICATA STREAM ESTABLISHED retransmission packet before last ack"; stream-event:est_pkt_before_last_ack; flowint:tcp.retransmission.count,+,1; noalert; classtype:protocol-command-decode; sid:2210021; rev:3;)
+# retransmission, only count
+alert tcp any any -> any any (msg:"SURICATA STREAM CLOSEWAIT retransmission packet before last ack"; stream-event:closewait_pkt_before_last_ack; flowint:tcp.retransmission.count,+,1; noalert; classtype:protocol-command-decode; sid:2210052; rev:3;)
+# retransmission of pkt before reassembly window, only count
+alert tcp any any -> any any (msg:"SURICATA STREAM reassembly segment before base seq (retransmission)"; stream-event:reassembly_segment_before_base_seq; flowint:tcp.retransmission.count,+,1; noalert; classtype:protocol-command-decode; sid:2210047; rev:2;)
+# count "general" retransmissions
+alert tcp any any -> any any (msg:"SURICATA STREAM Packet is retransmission"; stream-event:pkt_retransmission; flowint:tcp.retransmission.count,+,1; noalert; classtype:protocol-command-decode; sid:2210053; rev:1;)
+# rule to alert if a stream has excessive retransmissions
+alert tcp any any -> any any (msg:"SURICATA STREAM excessive retransmissions"; flowbits:isnotset,tcp.retransmission.alerted; flowint:tcp.retransmission.count,>=,10; flowbits:set,tcp.retransmission.alerted; classtype:protocol-command-decode; sid:2210054; rev:1;)
+
+# next sid 2210055
 
