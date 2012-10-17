@@ -594,15 +594,9 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             if (htp_cfg_rec != NULL) {
                 htp = htp_cfg_rec->cfg;
                 SCLogDebug("LIBHTP using config: %p", htp);
-
-                hstate->request_body_limit = htp_cfg_rec->request_body_limit;
-                hstate->response_body_limit = htp_cfg_rec->response_body_limit;
             }
         } else {
             SCLogDebug("Using default HTP config: %p", htp);
-
-            hstate->request_body_limit = cfglist.request_body_limit;
-            hstate->response_body_limit = cfglist.response_body_limit;
         }
 
         if (NULL == htp) {
@@ -1806,17 +1800,17 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     }
 
     SCLogDebug("htud->request_body.content_len_so_far %"PRIu64, htud->request_body.content_len_so_far);
-    SCLogDebug("hstate->request_body_limit %u", hstate->request_body_limit);
+    SCLogDebug("hstate->cfg->request_body_limit %u", hstate->cfg->request_body_limit);
 
     /* within limits, add the body chunk to the state. */
-    if (hstate->request_body_limit == 0 || htud->request_body.content_len_so_far < hstate->request_body_limit)
+    if (hstate->cfg->request_body_limit == 0 || htud->request_body.content_len_so_far < hstate->cfg->request_body_limit)
     {
         uint32_t len = (uint32_t)d->len;
 
-        if (hstate->request_body_limit > 0 &&
-                (htud->request_body.content_len_so_far + len) > hstate->request_body_limit)
+        if (hstate->cfg->request_body_limit > 0 &&
+                (htud->request_body.content_len_so_far + len) > hstate->cfg->request_body_limit)
         {
-            len = hstate->request_body_limit - htud->request_body.content_len_so_far;
+            len = hstate->cfg->request_body_limit - htud->request_body.content_len_so_far;
             BUG_ON(len > (uint32_t)d->len);
         }
         SCLogDebug("len %u", len);
@@ -1824,8 +1818,8 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
         int r = HtpBodyAppendChunk(htud, &htud->request_body, (uint8_t *)d->data, len);
         if (r < 0) {
             htud->tsflags |= HTP_REQ_BODY_COMPLETE;
-        } else if (hstate->request_body_limit > 0 &&
-            htud->request_body.content_len_so_far >= hstate->request_body_limit)
+        } else if (hstate->cfg->request_body_limit > 0 &&
+            htud->request_body.content_len_so_far >= hstate->cfg->request_body_limit)
         {
             htud->tsflags |= HTP_REQ_BODY_COMPLETE;
         } else if (htud->request_body.content_len_so_far == htud->request_body.content_len) {
@@ -1912,17 +1906,17 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     }
 
     SCLogDebug("htud->response_body.content_len_so_far %"PRIu64, htud->response_body.content_len_so_far);
-    SCLogDebug("hstate->response_body_limit %u", hstate->response_body_limit);
+    SCLogDebug("hstate->cfg->response_body_limit %u", hstate->cfg->response_body_limit);
 
     /* within limits, add the body chunk to the state. */
-    if (hstate->response_body_limit == 0 || htud->response_body.content_len_so_far < hstate->response_body_limit)
+    if (hstate->cfg->response_body_limit == 0 || htud->response_body.content_len_so_far < hstate->cfg->response_body_limit)
     {
         uint32_t len = (uint32_t)d->len;
 
-        if (hstate->response_body_limit > 0 &&
-                (htud->response_body.content_len_so_far + len) > hstate->response_body_limit)
+        if (hstate->cfg->response_body_limit > 0 &&
+                (htud->response_body.content_len_so_far + len) > hstate->cfg->response_body_limit)
         {
-            len = hstate->response_body_limit - htud->response_body.content_len_so_far;
+            len = hstate->cfg->response_body_limit - htud->response_body.content_len_so_far;
             BUG_ON(len > (uint32_t)d->len);
         }
         SCLogDebug("len %u", len);
@@ -1930,8 +1924,8 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
         int r = HtpBodyAppendChunk(htud, &htud->response_body, (uint8_t *)d->data, len);
         if (r < 0) {
             htud->tcflags |= HTP_RES_BODY_COMPLETE;
-        } else if (hstate->response_body_limit > 0 &&
-            htud->response_body.content_len_so_far >= hstate->response_body_limit)
+        } else if (hstate->cfg->response_body_limit > 0 &&
+            htud->response_body.content_len_so_far >= hstate->cfg->response_body_limit)
         {
             htud->tcflags |= HTP_RES_BODY_COMPLETE;
         } else if (htud->response_body.content_len_so_far == htud->response_body.content_len) {
