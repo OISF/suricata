@@ -979,3 +979,13 @@ profiling:
 
 coredump:
   max-dump: unlimited
+  
+# Suricata Napatech 3GD configuration.
+# streams : should be equal to the number of streams the Napatech 3GD is configured
+#           to use - this is set using NTPL
+# detect_threads : number of detect threads to spawn
+napatech3gd:
+  streams: 8
+  detect-threads-per-stream: 4
+  output-threads: 2
+  
