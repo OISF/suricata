@@ -99,7 +99,7 @@ void TmModuleReceivePcapFileRegister (void) {
     tmm_modules[TMM_RECEIVEPCAPFILE].Func = NULL;
     tmm_modules[TMM_RECEIVEPCAPFILE].PktAcqLoop = ReceivePcapFileLoop;
     tmm_modules[TMM_RECEIVEPCAPFILE].ThreadExitPrintStats = ReceivePcapFileThreadExitStats;
-    tmm_modules[TMM_RECEIVEPCAPFILE].ThreadDeinit = NULL;
+    tmm_modules[TMM_RECEIVEPCAPFILE].ThreadDeinit = ReceivePcapFileThreadDeinit;
     tmm_modules[TMM_RECEIVEPCAPFILE].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVEPCAPFILE].cap_flags = 0;
     tmm_modules[TMM_RECEIVEPCAPFILE].flags = TM_FLAG_RECEIVE_TM;
@@ -287,6 +287,10 @@ void ReceivePcapFileThreadExitStats(ThreadVars *tv, void *data) {
 
 TmEcode ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data) {
     SCEnter();
+    PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
+    if (ptv) {
+        SCFree(ptv);
+    }
     SCReturnInt(TM_ECODE_OK);
 }
 
