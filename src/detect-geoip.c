@@ -166,20 +166,13 @@ static int DetectGeoipMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                              Packet *p, Signature *s, SigMatch *m)
 {
     DetectGeoipData *geoipdata = (DetectGeoipData *)m->ctx;
-    int match = 0;
     int matches = 0;
 
     if (PKT_IS_IPV4(p))
     {
-        if (geoipdata->flags & GEOIP_MATCH_SRC_FLAG || geoipdata->flags & GEOIP_MATCH_BOTH_FLAG)
+        if (geoipdata->flags & ( GEOIP_MATCH_SRC_FLAG | GEOIP_MATCH_BOTH_FLAG ))
         {        
-            /* if there is a flow get SRC IP of the flow, not packet */            
-            if (p->flowflags & FLOW_PKT_TOCLIENT)
-                /* the dst (from server to client) is our src */
-                match = CheckGeoMatchIPv4(geoipdata, GET_IPV4_DST_ADDR_U32(p));
-            else 
-                match = CheckGeoMatchIPv4(geoipdata, GET_IPV4_SRC_ADDR_U32(p));
-            if (match)
+            if (CheckGeoMatchIPv4(geoipdata, GET_IPV4_SRC_ADDR_U32(p)))
             {
                 if (geoipdata->flags & GEOIP_MATCH_BOTH_FLAG)
                     matches++;
@@ -187,15 +180,9 @@ static int DetectGeoipMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                     return 1;
             }
         }
-        if (geoipdata->flags & GEOIP_MATCH_DST_FLAG || geoipdata->flags & GEOIP_MATCH_BOTH_FLAG)
+        if (geoipdata->flags & ( GEOIP_MATCH_DST_FLAG | GEOIP_MATCH_BOTH_FLAG ))
         {     
-            /* if there is a flow get DST IP of the flow, not packet */            
-            if (p->flowflags & FLOW_PKT_TOCLIENT)
-                /* the src (from server to client) is our dst */
-                match = CheckGeoMatchIPv4(geoipdata, GET_IPV4_SRC_ADDR_U32(p));
-            else 
-                match = CheckGeoMatchIPv4(geoipdata, GET_IPV4_DST_ADDR_U32(p));
-            if (match)
+            if (CheckGeoMatchIPv4(geoipdata, GET_IPV4_DST_ADDR_U32(p)))
             {
                 if (geoipdata->flags & GEOIP_MATCH_BOTH_FLAG)
                     matches++;
