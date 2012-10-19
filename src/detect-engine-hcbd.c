@@ -93,6 +93,11 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(int tx_id,
         if (HCBDCreateSpace(det_ctx, 1) < 0)
             goto end;
         index = 0;
+
+        if (det_ctx->hcbd_buffers_list_len == 0) {
+            det_ctx->hcbd_start_tx_id = tx_id;
+        }
+        det_ctx->hcbd_buffers_list_len++;
     } else {
         if ((tx_id - det_ctx->hcbd_start_tx_id) < det_ctx->hcbd_buffers_list_len) {
             if (det_ctx->hcbd[(tx_id - det_ctx->hcbd_start_tx_id)].buffer_len != 0) {
@@ -102,14 +107,14 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(int tx_id,
         } else {
             if (HCBDCreateSpace(det_ctx, (tx_id - det_ctx->hcbd_start_tx_id) + 1) < 0)
                 goto end;
+
+            if (det_ctx->hcbd_buffers_list_len == 0) {
+                det_ctx->hcbd_start_tx_id = tx_id;
+            }
+            det_ctx->hcbd_buffers_list_len++;
         }
         index = (tx_id - det_ctx->hcbd_start_tx_id);
     }
-
-    if (det_ctx->hcbd_buffers_list_len == 0) {
-        det_ctx->hcbd_start_tx_id = tx_id;
-    }
-    det_ctx->hcbd_buffers_list_len++;
 
     htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, tx_id);
     if (tx == NULL) {
