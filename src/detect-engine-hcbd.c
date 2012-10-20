@@ -3375,6 +3375,100 @@ end:
     return result;
 }
 
+static int DetectEngineHttpClientBodyTest29(void)
+{
+    int result = 0;
+    Packet *p = NULL;
+    TcpSession ssn;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    const char *request_buffer = "GET /one HTTP/1.0\r\n"
+        "Host: localhost\r\n"
+        "\r\n";
+
+#define TOTAL_REQUESTS 45
+    uint8_t *http_buf = SCMalloc(TOTAL_REQUESTS * strlen(request_buffer));
+    if (http_buf == NULL)
+        goto end;
+    for (int i = 0; i < TOTAL_REQUESTS; i++) {
+        memcpy(http_buf + i * strlen(request_buffer), request_buffer,
+               strlen(request_buffer));
+    }
+    uint32_t http_buf_len = TOTAL_REQUESTS * strlen(request_buffer);
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.flags |= FLOW_IPV4;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(content:\"dummyone\"; fast_pattern:0,3; http_server_body; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    uint8_t response_buf[] = "HTTP/1.0 200 ok\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: 5\r\n"
+        "\r\n"
+        "dummy";
+    uint32_t response_buf_len = strlen((char *)response_buf);
+    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOCLIENT,
+                      response_buf, response_buf_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DetectEngineHttpClientBodyRegisterTests(void)
@@ -3437,6 +3531,8 @@ void DetectEngineHttpClientBodyRegisterTests(void)
                    DetectEngineHttpClientBodyTest27, 1);
     UtRegisterTest("DetectEngineHttpClientBodyTest28",
                    DetectEngineHttpClientBodyTest28, 1);
+    UtRegisterTest("DetectEngineHttpClientBodyTest29",
+                   DetectEngineHttpClientBodyTest29, 1);
 #endif /* UNITTESTS */
 
     return;
