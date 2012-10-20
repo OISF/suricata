@@ -665,13 +665,13 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                 if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
                     SCLogDebug("HTP state has no conn(p)");
                     FLOWLOCK_UNLOCK(f);
-                    SCReturnInt(0);
+                    goto end;
                 }
 
                 int tx_id = AppLayerTransactionGetInspectId(f);
                 if (tx_id == -1) {
                     FLOWLOCK_UNLOCK(f);
-                    SCReturnInt(0);
+                    goto end;
                 }
 
                 int total_txs = (int)list_size(htp_state->connp->conn->transactions);
