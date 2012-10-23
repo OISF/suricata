@@ -54,6 +54,7 @@
 #include "detect-luajit.h"
 
 #include "queue.h"
+#include "util-cpu.h"
 
 #ifndef HAVE_LUAJIT
 
