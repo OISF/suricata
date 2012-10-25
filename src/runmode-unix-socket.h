@@ -29,4 +29,6 @@ const char *RunModeUnixSocketGetDefaultMode(void);
 
 int RunModeUnixSocketIsActive(void);
 
+void UnixSocketPcapFile(TmEcode tm);
+
 #endif /* __RUNMODE_UNIX_SOCKET_H__ */
