@@ -28,16 +28,10 @@
 #include "tm-threads.h"
 #include "runmodes.h"
 #include "conf.h"
-#include "flow-manager.h"
-#include "flow-timeout.h"
-#include "stream-tcp.h"
 
 #include "util-privs.h"
 #include "util-debug.h"
 #include "util-signal.h"
-#include "output.h"
-#include "host.h"
-#include "defrag.h"
 
 #include <sys/un.h>
 #include <sys/stat.h>
@@ -50,11 +44,19 @@
 #define SOCKET_FILENAME "suricata-command.socket"
 #define SOCKET_TARGET SOCKET_PATH SOCKET_FILENAME
 
-typedef struct PcapFiles_ {
-    char *filename;
-    char *output_dir;
-    TAILQ_ENTRY(PcapFiles_) next;
-} PcapFiles;
+typedef struct Command_ {
+    char *name;
+    TmEcode (*Func)(json_t *, json_t *, void *);
+    void *data;
+    int flags;
+    TAILQ_ENTRY(Command_) next;
+} Command;
+
+typedef struct Task_ {
+    TmEcode (*Func)(void *);
+    void *data;
+    TAILQ_ENTRY(Task_) next;
+} Task;
 
 typedef struct UnixCommand_ {
     time_t start_timestamp;
@@ -63,13 +65,9 @@ typedef struct UnixCommand_ {
     struct sockaddr_un client_addr;
     int select_max;
     fd_set select_set;
-    DetectEngineCtx *de_ctx;
-    TAILQ_HEAD(, PcapFiles_) files;
-    int running;
+    TAILQ_HEAD(, Command_) commands;
+    TAILQ_HEAD(, Task_) tasks;
 } UnixCommand;
-
-static int unix_manager_file_task_running = 0;
-static int unix_manager_file_task_failed = 0;
 
 /**
  * \brief Create a command unix socket on system
@@ -89,9 +87,9 @@ int UnixNew(UnixCommand * this)
     this->socket = -1;
     this->client = -1;
     this->select_max = 0;
-    this->running = 0;
 
-    TAILQ_INIT(&this->files);
+    TAILQ_INIT(&this->commands);
+    TAILQ_INIT(&this->tasks);
 
     /* Create socket dir */
     ret = mkdir(SOCKET_PATH, S_IRWXU|S_IXGRP|S_IRGRP);
@@ -305,247 +303,18 @@ int UnixCommandAccept(UnixCommand *this)
     return 1;
 }
 
-
-static void PcapFilesFree(PcapFiles *cfile)
-{
-    if (cfile == NULL)
-        return;
-    if (cfile->filename)
-        SCFree(cfile->filename);
-    if (cfile->output_dir)
-        SCFree(cfile->output_dir);
-    SCFree(cfile);
-}
-
-/**
- * \brief Add file to file queue
- *
- * \param this a UnixCommand:: structure
- * \param filename absolute filename
- * \param output_dir absolute name of directory where log will be put
- *
- * \retval 0 in case of error, 1 in case of success
- */
-int UnixListAddFile(UnixCommand *this, const char *filename, const char *output_dir)
-{
-    PcapFiles *cfile = NULL;
-    if (filename == NULL || this == NULL)
-        return 0;
-    cfile = SCMalloc(sizeof(PcapFiles));
-    if (cfile == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate new file");
-        return 0;
-    }
-    memset(cfile, 0, sizeof(PcapFiles));
-
-    cfile->filename = SCStrdup(filename);
-    if (cfile->filename == NULL) {
-        SCFree(cfile);
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup filename");
-        return 0;
-    }
-
-    if (output_dir) {
-        cfile->output_dir = SCStrdup(output_dir);
-        if (cfile->output_dir == NULL) {
-            SCFree(cfile->filename);
-            SCFree(cfile);
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup output_dir");
-            return 0;
-        }
-    }
-
-    TAILQ_INSERT_TAIL(&this->files, cfile, next);
-    return 1;
-}
-
-/**
- * \brief Handle the file queue
- *
- * This function check if there is currently a file
- * being parse. If it is not the case, it will start to
- * work on a new file. This implies to start a new 'pcap-file'
- * running mode after having set the file and the output dir.
- * This function also handles the cleaning of the previous
- * running mode.
- *
- * \param this a UnixCommand:: structure
- * \retval 0 in case of error, 1 in case of success
- */
-int UnixPcapFilesHandle(UnixCommand *this)
-{
-    if (unix_manager_file_task_running == 1) {
-        return 1;
-    }
-    if ((unix_manager_file_task_failed == 1) || (this->running == 1)) {
-        if (unix_manager_file_task_failed) {
-            SCLogInfo("Preceeding taks failed, cleaning the running mode");
-        }
-        unix_manager_file_task_failed = 0;
-        this->running = 0;
-        TmThreadKillThreadsFamily(TVT_MGMT);
-        TmThreadClearThreadsFamily(TVT_MGMT);
-        FlowForceReassembly();
-        TmThreadKillThreadsFamily(TVT_PPT);
-        TmThreadClearThreadsFamily(TVT_PPT);
-        RunModeShutDown();
-        SCPerfReleaseResources();
-        /* thread killed, we can run non thread-safe shutdown functions */
-        FlowShutdown();
-        HostShutdown();
-        StreamTcpFreeConfig(STREAM_VERBOSE);
-        DefragDestroy();
-        TmqResetQueues();
-    }
-    if (!TAILQ_EMPTY(&this->files)) {
-        PcapFiles *cfile = TAILQ_FIRST(&this->files);
-        TAILQ_REMOVE(&this->files, cfile, next);
-        SCLogInfo("Starting run for '%s'", cfile->filename);
-        unix_manager_file_task_running = 1;
-        this->running = 1;
-        if (ConfSet("pcap-file.file", cfile->filename, 1) != 1) {
-            SCLogInfo("Can not set working file to '%s'", cfile->filename);
-            PcapFilesFree(cfile);
-            return 0;
-        }
-        if (cfile->output_dir) {
-            if (ConfSet("default-log-dir", cfile->output_dir, 1) != 1) {
-                SCLogInfo("Can not set output dir to '%s'", cfile->output_dir);
-                PcapFilesFree(cfile);
-                return 0;
-            }
-        }
-        PcapFilesFree(cfile);
-        SCPerfInitCounterApi();
-        DefragInit();
-        HostInitConfig(HOST_QUIET);
-        FlowInitConfig(FLOW_QUIET);
-        StreamTcpInitConfig(STREAM_VERBOSE);
-        RunModeInitializeOutputs();
-        /* FIXME add a variable to herit from the mode in the
-         * configuration file */
-        RunModeDispatch(RUNMODE_PCAP_FILE, NULL, this->de_ctx);
-        FlowManagerThreadSpawn();
-        SCPerfSpawnThreads();
-        /* Un-pause all the paused threads */
-        TmThreadContinueThreads();
-    }
-    return 1;
-}
-
 int UnixCommandBackgroundTasks(UnixCommand* this)
 {
-    int ret;
+    int ret = 1;
+    Task *ltask;
 
-    ret = UnixPcapFilesHandle(this);
-    if (ret == 0) {
-        SCLogError(SC_ERR_OPENING_FILE, "Unable to handle PCAP file");
-    }
-    return 1;
-}
-
-/**
- * \brief return list of files in the queue
- *
- * \retval 0 in case of error, 1 in case of success
- */
-static int UnixCommandFileList(UnixCommand* this, json_t *cmd, json_t* answer)
-{
-    int i = 0;
-    PcapFiles *file;
-    json_t *jdata;
-    json_t *jarray;
-
-    jdata = json_object();
-    if (jdata == NULL) {
-        json_object_set_new(answer, "message",
-                            json_string("internal error at json object creation"));
-        return 0;
-    }
-    jarray = json_array();
-    if (jarray == NULL) {
-        json_object_set_new(answer, "message",
-                            json_string("internal error at json object creation"));
-        return 0;
-    }
-    TAILQ_FOREACH(file, &this->files, next) {
-        json_array_append(jarray, json_string(file->filename));
-        /* FIXME need to decrement ? */
-        i++;
-    }
-    json_object_set_new(jdata, "count", json_integer(i));
-    json_object_set_new(jdata, "files", jarray);
-    json_object_set_new(answer, "message", jdata);
-    return 1;
-}
-
-static int UnixCommandFileNumber(UnixCommand* this, json_t *cmd, json_t* answer)
-{
-    int i = 0;
-    PcapFiles *file;
-
-    TAILQ_FOREACH(file, &this->files, next) {
-        i++;
-    }
-    json_object_set_new(answer, "message", json_integer(i));
-    return 1;
-}
-
-int UnixCommandFile(UnixCommand* this, json_t *cmd, json_t* answer)
-{
-    int ret;
-    const char *filename;
-    const char *output_dir;
-#ifdef OS_WIN32
-    struct _stat st;
-#else
-    struct stat st;
-#endif /* OS_WIN32 */
-
-    json_t *jarg = json_object_get(cmd, "filename");
-    if(!json_is_string(jarg)) {
-        SCLogInfo("error: command is not a string");
-        return 0;
-    }
-    filename = json_string_value(jarg);
-#ifdef OS_WIN32
-    if(_stat(filename, &st) != 0) {
-#else
-    if(stat(filename, &st) != 0) {
-#endif /* OS_WIN32 */
-        json_object_set_new(answer, "message", json_string("File does not exist"));
-        return 0;
-    }
-
-    json_t *oarg = json_object_get(cmd, "output-dir");
-    if (oarg != NULL) {
-        if(!json_is_string(oarg)) {
-            SCLogInfo("error: output dir is not a string");
-            return 0;
+    TAILQ_FOREACH(ltask, &this->tasks, next) {
+        int fret = ltask->Func(ltask->data); 
+        if (fret != TM_ECODE_OK) {
+            ret = 0;
         }
-        output_dir = json_string_value(oarg);
     }
-
-#ifdef OS_WIN32
-    if(_stat(output_dir, &st) != 0) {
-#else
-    if(stat(output_dir, &st) != 0) {
-#endif /* OS_WIN32 */
-        json_object_set_new(answer, "message", json_string("Output directory does not exist"));
-        return 0;
-    }
-
-    ret = UnixListAddFile(this, filename, output_dir);
-    switch(ret) {
-        case 0:
-            json_object_set_new(answer, "message", json_string("Unable to add file to list"));
-            return 0;
-        case 1:
-            SCLogInfo("Added file '%s' to list", filename);
-            json_object_set_new(answer, "message", json_string("Successfully added file to list"));
-            return 1;
-    }
-    return 1;
+    return ret;
 }
 
 /**
@@ -565,6 +334,8 @@ int UnixCommandExecute(UnixCommand * this, char *command)
     json_t *cmd = NULL;
     json_t *server_msg = json_object();
     const char * value;
+    int found = 0;
+    Command *lcmd;
 
     jsoncmd = json_loads(command, 0, &error);
     if (jsoncmd == NULL) {
@@ -583,35 +354,29 @@ int UnixCommandExecute(UnixCommand * this, char *command)
     }
     value = json_string_value(cmd);
 
-    if (!strcmp(value, "shutdown")) {
-        json_object_set_new(server_msg, "message", json_string("Closing Suricata"));
-        EngineStop();
-    } else if (!strcmp(value, "reload-rules")) {
-        if (suricata_ctl_flags != 0) {
-            json_object_set_new(server_msg, "message",
-                                json_string("Live rule swap no longer possible. Engine in shutdown mode."));
-            ret = 0;
-        } else {
-            /* FIXME : need to check option value */
-            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
-            DetectEngineSpawnLiveRuleSwapMgmtThread();
-            json_object_set_new(server_msg, "message", json_string("Reloading rules"));
+    TAILQ_FOREACH(lcmd, &this->commands, next) {
+        if (!strcmp(value, lcmd->name)) {
+            int fret = TM_ECODE_OK;
+            found = 1;
+            if (lcmd->flags & UNIX_CMD_TAKE_ARGS) { 
+                cmd = json_object_get(jsoncmd, "arguments");
+                if(!json_is_object(cmd)) {
+                    SCLogInfo("error: argument is not an object");
+                    goto error_cmd;
+                }               
+            }
+            fret = lcmd->Func(cmd, server_msg, lcmd->data); 
+            if (fret != TM_ECODE_OK) {
+                ret = 0;
+            }
         }
-    } else if (!strcmp(value, "pcap-file")) {
-        cmd = json_object_get(jsoncmd, "arguments");
-        if(!json_is_object(cmd)) {
-            SCLogInfo("error: argument is not an object");
-            goto error_cmd;
-        }
-        ret = UnixCommandFile(this, cmd, server_msg);
-    } else if (!strcmp(value, "pcap-file-number")) {
-        ret = UnixCommandFileNumber(this, cmd, server_msg);
-    } else if (!strcmp(value, "pcap-file-list")) {
-        ret = UnixCommandFileList(this, cmd, server_msg);
-    } else {
+    }
+
+    if (found == 0) {
         json_object_set_new(server_msg, "message", json_string("Unknown command"));
         ret = 0;
     }
+
     switch (ret) {
         case 0:
             json_object_set_new(server_msg, "return", json_string("NOK"));
@@ -754,20 +519,138 @@ void UnixKillUnixManagerThread(void)
     return;
 }
 
+
+TmEcode UnixManagerShutdownCommand(json_t *cmd,
+                                   json_t *server_msg, void *data)
+{
+    SCEnter();
+    json_object_set_new(server_msg, "message", json_string("Closing Suricata"));
+    EngineStop();
+    SCReturn(TM_ECODE_OK);
+}
+
+TmEcode UnixManagerReloadRules(json_t *cmd,
+                                   json_t *server_msg, void *data)
+{
+    SCEnter();
+    if (suricata_ctl_flags != 0) {
+        json_object_set_new(server_msg, "message",
+                json_string("Live rule swap no longer possible. Engine in shutdown mode."));
+        SCReturn(TM_ECODE_FAILED);
+    } else {
+        /* FIXME : need to check option value */
+        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
+        DetectEngineSpawnLiveRuleSwapMgmtThread();
+        json_object_set_new(server_msg, "message", json_string("Reloading rules"));
+    }
+    SCReturn(TM_ECODE_OK);
+}
+
+UnixCommand command;
+
+/**
+ * \brief Add a command to the list of commands
+ *
+ * This function adds a command to the list of commands available
+ * through the unix socket.
+ * 
+ * When a command is received from user through the unix socket, the content
+ * of 'Command' field in the JSON message is match against keyword, then the
+ * Func is called. See UnixSocketAddPcapFile() for an example.
+ *
+ * \param keyword name of the command
+ * \param Func function to run when command is received
+ * \param data a pointer to data that are pass to Func when runned
+ * \param flags a flag now used to tune the command type
+ * \retval TM_ECODE_OK in case of success, TM_ECODE_FAILED in case of failure
+ */
+TmEcode UnixManagerRegisterCommand(const char * keyword, 
+        TmEcode (*Func)(json_t *, json_t *, void *),
+        void *data, int flags)
+{
+    SCEnter();
+    Command *cmd = NULL;
+    Command *lcmd = NULL;
+
+    if (Func == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Null function");
+        SCReturn(TM_ECODE_FAILED);
+    }
+
+    if (keyword == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Null keyword");
+        SCReturn(TM_ECODE_FAILED);
+    }
+
+    TAILQ_FOREACH(lcmd, &command.commands, next) {
+        if (!strcmp(keyword, lcmd->name)) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Null keyword");
+            SCReturn(TM_ECODE_FAILED);
+        }
+    }
+
+    cmd = SCMalloc(sizeof(Command));
+    if (cmd == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Can't alloc cmd");
+        SCReturn(TM_ECODE_FAILED);
+    }
+    cmd->name = SCStrdup(keyword);
+    cmd->Func = Func;
+    cmd->data = data;
+    cmd->flags = flags;
+    /* Add it to the list */
+    TAILQ_INSERT_TAIL(&command.commands, cmd, next);
+
+    SCReturn(TM_ECODE_OK);
+}
+
+/**
+ * \brief Add a task to the list of tasks
+ *
+ * This function adds a task to run in background. The task is runned
+ * each time the UnixMain() function exit from select.
+ * 
+ * \param Func function to run when command is received
+ * \param data a pointer to data that are pass to Func when runned
+ * \retval TM_ECODE_OK in case of success, TM_ECODE_FAILED in case of failure
+ */
+TmEcode UnixManagerRegisterBackgroundTask( 
+        TmEcode (*Func)(void *),
+        void *data)
+{
+    SCEnter();
+    Task *task = NULL;
+
+    if (Func == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Null function");
+        SCReturn(TM_ECODE_FAILED);
+    }
+
+    task = SCMalloc(sizeof(Task));
+    if (task == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Can't alloc task");
+        SCReturn(TM_ECODE_FAILED);
+    }
+    task->Func = Func;
+    task->data = data;
+    /* Add it to the list */
+    TAILQ_INSERT_TAIL(&command.tasks, task, next);
+
+    SCReturn(TM_ECODE_OK);
+}
+
+
+
 void *UnixManagerThread(void *td)
 {
     ThreadVars *th_v = (ThreadVars *)td;
-    UnixCommand command;
 
     /* set the thread name */
     (void) SCSetThreadName(th_v->name);
     SCLogDebug("%s started...", th_v->name);
 
-    command.de_ctx = (DetectEngineCtx *)th_v->tdata;
-
     th_v->sc_perf_pca = SCPerfGetAllCountersArray(&th_v->sc_perf_pctx);
     SCPerfAddToClubbedTMTable(th_v->name, &th_v->sc_perf_pctx);
-
 
     if (UnixNew(&command) == 0) {
         int failure_fatal = 0;
@@ -789,7 +672,8 @@ void *UnixManagerThread(void *td)
     SCDropCaps(th_v);
 
     /* Init Unix socket */
-
+    UnixManagerRegisterCommand("shutdown", UnixManagerShutdownCommand, NULL, 0);
+    UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
 
     TmThreadsSetFlag(th_v, THV_INIT_DONE);
     while (1) {
@@ -879,22 +763,6 @@ void UnixSocketKillSocketThread(void)
     return;
 }
 
-
-void UnixSocketPcapFile(TmEcode tm)
-{
-    switch (tm) {
-        case TM_ECODE_DONE:
-            unix_manager_file_task_running = 0;
-            break;
-        case TM_ECODE_FAILED:
-            unix_manager_file_task_running = 0;
-            unix_manager_file_task_failed = 1;
-            break;
-        case TM_ECODE_OK:
-            break;
-    }
-}
-
 #else /* BUILD_UNIX_SOCKET */
 
 void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode)
@@ -908,9 +776,19 @@ void UnixSocketKillSocketThread(void)
     return;
 }
 
-void UnixSocketPcapFile(TmEcode tm)
+TmEcode UnixManagerRegisterCommand(const char * keyword, 
+        TmEcode (*Func)(json_t *, json_t *, void *),
+        void *data, int flags)
 {
-    return;
+    return TM_ECODE_OK;
 }
+
+TmEcode UnixManagerRegisterBackgroundTask( 
+        TmEcode (*Func)(void *),
+        void *data)
+{
+    return TM_ECODE_OK;
+}
+
 
 #endif /* BUILD_UNIX_SOCKET */
