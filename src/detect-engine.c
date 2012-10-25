@@ -1234,6 +1234,7 @@ void DetectEngineThreadCtxInfo(ThreadVars *t, DetectEngineThreadCtx *det_ctx) {
  *  \param InitFunc function ptr
  *  \param data keyword init data to pass to Func
  *  \param FreeFunc function ptr
+ *  \param mode 0 normal (ctx per keyword instance) 1 shared (one ctx per det_ct)
  *
  *  \retval id for retrieval of ctx at runtime
  *  \retval -1 on error
@@ -1242,8 +1243,19 @@ void DetectEngineThreadCtxInfo(ThreadVars *t, DetectEngineThreadCtx *det_ctx) {
  *        recommended to store it in the keywords global ctx so that
  *        it's freed when the de_ctx is freed.
  */
-int DetectRegisterThreadCtxFuncs(DetectEngineCtx *de_ctx, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *)) {
+int DetectRegisterThreadCtxFuncs(DetectEngineCtx *de_ctx, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int mode) {
     BUG_ON(de_ctx == NULL || InitFunc == NULL || FreeFunc == NULL || data == NULL);
+
+    if (mode) {
+        DetectEngineThreadKeywordCtxItem *item = de_ctx->keyword_list;
+        while (item != NULL) {
+            if (strcmp(name, item->name) == 0) {
+                return item->id;
+            }
+
+            item = item->next;
+        }
+    }
 
     DetectEngineThreadKeywordCtxItem *item = SCMalloc(sizeof(DetectEngineThreadKeywordCtxItem));
     if (unlikely(item == NULL))
@@ -1253,6 +1265,7 @@ int DetectRegisterThreadCtxFuncs(DetectEngineCtx *de_ctx, const char *name, void
     item->InitFunc = InitFunc;
     item->FreeFunc = FreeFunc;
     item->data = data;
+    item->name = name;
 
     item->next = de_ctx->keyword_list;
     de_ctx->keyword_list = item;

@@ -25,8 +25,14 @@
 #define __DETECT_FILEMAGIC_H__
 
 #include "util-spm-bm.h"
+#include <magic.h>
+
+typedef struct DetectFilemagicThreadData {
+    magic_t ctx;
+} DetectFilemagicThreadData;
 
 typedef struct DetectFilemagicData {
+    int thread_ctx_id;
     uint8_t *name; /** name of the file to match */
     BmCtx *bm_ctx; /** BM context */
     uint16_t len; /** name length */
@@ -35,6 +41,6 @@ typedef struct DetectFilemagicData {
 
 /* prototypes */
 void DetectFilemagicRegister (void);
-int FilemagicLookup(File *file);
+int FilemagicGlobalLookup(File *file);
 
 #endif /* __DETECT_FILEMAGIC_H__ */

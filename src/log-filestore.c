@@ -296,7 +296,7 @@ static TmEcode LogFilestoreLogWrap(ThreadVars *tv, Packet *p, void *data, Packet
             int file_fd = -1;
 
             if (FileForceMagic() && ff->magic == NULL) {
-                FilemagicLookup(ff);
+                FilemagicGlobalLookup(ff);
             }
 
             SCLogDebug("ff %p", ff);

@@ -711,7 +711,7 @@ static int DetectLuajitSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 
     luajit->thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "luajit",
             DetectLuajitThreadInit, (void *)luajit,
-            DetectLuajitThreadFree);
+            DetectLuajitThreadFree, 0);
     if (luajit->thread_ctx_id == -1)
         goto error;
 

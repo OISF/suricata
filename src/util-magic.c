@@ -93,7 +93,7 @@ error:
  *
  *  \retval result pointer to null terminated string
  */
-char *MagicLookup(uint8_t *buf, uint32_t buflen) {
+char *MagicGlobalLookup(uint8_t *buf, uint32_t buflen) {
     const char *result = NULL;
     char *magic = NULL;
 
@@ -110,6 +110,31 @@ char *MagicLookup(uint8_t *buf, uint32_t buflen) {
     }
 
     SCMutexUnlock(&g_magic_lock);
+    SCReturnPtr(magic, "const char");
+}
+
+/**
+ *  \brief Find the magic value for a buffer.
+ *
+ *  \param buf the buffer
+ *  \param buflen length of the buffer
+ *
+ *  \retval result pointer to null terminated string
+ */
+char *MagicThreadLookup(magic_t *ctx, uint8_t *buf, uint32_t buflen) {
+    const char *result = NULL;
+    char *magic = NULL;
+
+    if (buf != NULL && buflen > 0) {
+        result = magic_buffer(*ctx, (void *)buf, (size_t)buflen);
+        if (result != NULL) {
+            magic = SCStrdup(result);
+            if (magic == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup magic");
+            }
+        }
+    }
+
     SCReturnPtr(magic, "const char");
 }
 
@@ -341,7 +366,7 @@ int MagicDetectTest05(void) {
 
     MagicInit();
 
-    result = MagicLookup(buffer, buffer_len);
+    result = MagicGlobalLookup(buffer, buffer_len);
     if (result == NULL || strncmp(result, "PDF document", 12) != 0) {
         printf("result %p:%s, not \"PDF document\": ", result,result?result:"(null)");
         goto end;
@@ -377,7 +402,7 @@ int MagicDetectTest06(void) {
 
     MagicInit();
 
-    result = MagicLookup(buffer, buffer_len);
+    result = MagicGlobalLookup(buffer, buffer_len);
     if (result == NULL || strcmp(result, "Microsoft Office Document") != 0) {
         printf("result %p:%s, not \"Microsoft Office Document\": ", result,result?result:"(null)");
         goto end;
@@ -422,7 +447,7 @@ int MagicDetectTest07(void) {
 
     MagicInit();
 
-    result = MagicLookup(buffer, buffer_len);
+    result = MagicGlobalLookup(buffer, buffer_len);
     if (result == NULL || strcmp(result, "OpenDocument Text") != 0) {
         printf("result %p:%s, not \"OpenDocument Text\": ", result,result?result:"(null)");
         goto end;
@@ -472,7 +497,7 @@ int MagicDetectTest08(void) {
 
     MagicInit();
 
-    result = MagicLookup(buffer, buffer_len);
+    result = MagicGlobalLookup(buffer, buffer_len);
     if (result == NULL || strcmp(result, "OpenOffice.org 1.x Database file") != 0) {
         printf("result %p:%s, not \"OpenOffice.org 1.x Database file\": ", result,result?result:"(null)");
         goto end;
@@ -494,13 +519,13 @@ int MagicDetectTest09(void) {
 
     MagicInit();
 
-    result1 = MagicLookup(buffer, buffer_len);
+    result1 = MagicGlobalLookup(buffer, buffer_len);
     if (result1 == NULL || strncmp(result1, "PDF document", 12) != 0) {
         printf("result %p:%s, not \"PDF document\": ", result1,result1?result1:"(null)");
         goto end;
     }
 
-    result2 = MagicLookup(buffer, buffer_len);
+    result2 = MagicGlobalLookup(buffer, buffer_len);
     if (result2 == NULL || strncmp(result2, "PDF document", 12) != 0) {
         printf("result %p:%s, not \"PDF document\": ", result2,result2?result2:"(null)");
         goto end;
@@ -519,7 +544,7 @@ end:
 
 /** \test results in valgrind warning about invalid read, tested with
  *        file 5.09 and 5.11 */
-int MagicDetectTest10(void) {
+static int MagicDetectTest10ValgrindError(void) {
     const char *result = NULL;
     uint8_t buffer[] = {
         0xFF,0xD8,0xFF,0xE0,0x00,0x10,0x4A,0x46,0x49,0x46,0x00,0x01,0x01,0x01,0x01,0x2C,
@@ -539,7 +564,7 @@ int MagicDetectTest10(void) {
 
     MagicInit();
 
-    result = MagicLookup(buffer, buffer_len);
+    result = MagicGlobalLookup(buffer, buffer_len);
     if (result == NULL || strncmp(result, "JPEG", 4) != 0) {
         printf("result %p:%s, not \"JPEG\": ", result,result?result:"(null)");
         goto end;
@@ -569,6 +594,6 @@ void MagicRegisterTests(void) {
     /* fails in valgrind, somehow it returns different pointers then.
     UtRegisterTest("MagicDetectTest09", MagicDetectTest09, 1); */
 
-    UtRegisterTest("MagicDetectTest10", MagicDetectTest10, 1);
+    UtRegisterTest("MagicDetectTest10ValgrindError", MagicDetectTest10ValgrindError, 1);
 #endif /* UNITTESTS */
 }
