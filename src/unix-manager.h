@@ -24,12 +24,24 @@
 #ifndef UNIX_MANAGER_H
 #define UNIX_MANAGER_H
 
+#ifdef BUILD_UNIX_SOCKET
+#include <jansson.h>
+#endif
+
+#define UNIX_CMD_TAKE_ARGS 1
+
 SCCondT unix_manager_cond;
 SCMutex unix_manager_mutex;
 
 void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode);
 void UnixSocketKillSocketThread(void);
 
-void UnixSocketPcapFile(TmEcode tm);
+
+TmEcode UnixManagerRegisterCommand(const char * keyword, 
+        TmEcode (*Func)(json_t *, json_t *, void *),
+        void *data, int flags);
+TmEcode UnixManagerRegisterBackgroundTask( 
+        TmEcode (*Func)(void *),
+        void *data);
 
 #endif /* UNIX_MANAGER_H */
