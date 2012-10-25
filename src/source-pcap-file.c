@@ -47,7 +47,6 @@
 #include "util-optimize.h"
 #include "flow-manager.h"
 #include "util-profiling.h"
-#include "unix-manager.h"
 #include "runmode-unix-socket.h"
 
 extern uint8_t suricata_ctl_flags;
