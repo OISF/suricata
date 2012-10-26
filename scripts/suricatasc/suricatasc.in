@@ -31,15 +31,23 @@ COMMANDS_REGEX = re.compile("^(?:shutdown|quit|reload-rules|pcap-file .+|pcap-fi
 
 socket = socket(AF_UNIX)
 socket.connect(SOCKET_PATH)
+socket.settimeout(10)
 
 #send version
 socket.send(json.dumps({"version": VERSION}))
 
-sleep(0.2)
 # get return
-data = socket.recv(SIZE)
-#decode json message
-cmdret = json.loads(data)
+cmdret = None
+i = 0
+data = ""
+while i < 5:
+    i += 1
+    data += socket.recv(SIZE)
+    try:
+        cmdret = json.loads(data)
+        break
+    except json.decoder.JSONDecodeError:
+        sleep(0.3)
 
 # if ok loop
 if cmdret["return"] == "NOK":
@@ -72,10 +80,17 @@ try:
             else:
                 cmdmsg["command"] = command
             socket.send(json.dumps(cmdmsg))
-            sleep(0.3)
-            data = socket.recv(SIZE)
+            i = 0
+            data = ""
+            while i < 3:
+                i += 1
+                data += socket.recv(SIZE)
+                try:
+                    cmdret = json.loads(data)
+                    break
+                except json.decoder.JSONDecodeError:
+                    sleep(0.3)
             #decode json message
-            cmdret = json.loads(data)
             if cmdret["return"] == "NOK":
                 print "Error: %s" % (cmdret["message"])
             else:
@@ -86,5 +101,7 @@ except KeyboardInterrupt:
     print "[!] Interrupted"
 
 print "[+] Quit command client"
+
+socket.close()
 
 sys.exit(1)
