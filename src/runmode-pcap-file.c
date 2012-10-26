@@ -74,6 +74,7 @@ int RunModeFilePcapSingle(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
+    RunModeInitialize();
     TimeModeSetOffline();
 
     /* create the threads */
@@ -115,6 +116,8 @@ int RunModeFilePcapSingle(DetectEngineCtx *de_ctx)
     TmSlotSetFuncAppend(tv, tm_module, (void *)de_ctx);
 
     SetupOutputs(tv);
+
+    TmThreadSetCPU(tv, DETECT_CPU_SET);
 
     if (TmThreadSpawn(tv) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -186,8 +189,6 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx)
         }
         TmSlotSetFuncAppend(tv_receivepcap, tm_module, file);
 
-        TmThreadSetCPU(tv_receivepcap, RECEIVE_CPU_SET);
-
         tm_module = TmModuleGetByName("DecodePcapFile");
         if (tm_module == NULL) {
             printf("ERROR: TmModuleGetByName DecodePcap failed\n");
@@ -202,7 +203,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx)
         }
         TmSlotSetFuncAppend(tv_receivepcap, tm_module, (void *)de_ctx);
 
-        TmThreadSetCPU(tv_receivepcap, DECODE_CPU_SET);
+        TmThreadSetCPU(tv_receivepcap, RECEIVE_CPU_SET);
 
         if (TmThreadSpawn(tv_receivepcap) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");
@@ -236,7 +237,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx)
         }
         TmSlotSetFuncAppend(tv_receivepcap, tm_module, NULL);
 
-        TmThreadSetCPU(tv_receivepcap, DECODE_CPU_SET);
+        TmThreadSetCPU(tv_receivepcap, RECEIVE_CPU_SET);
 
         if (TmThreadSpawn(tv_receivepcap) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");
@@ -315,14 +316,14 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx)
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
 
-        TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
-
         char *thread_group_name = SCStrdup("Detect");
         if (unlikely(thread_group_name == NULL)) {
             printf("Error allocating memory\n");
             exit(EXIT_FAILURE);
         }
         tv_detect_ncpu->thread_group_name = thread_group_name;
+
+        TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");
@@ -358,7 +359,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx)
 }
 
 /**
- * \brief RunModeFilePcapAuto set up the following thread packet handlers:
+ * \brief RunModeFilePcapAutoFp set up the following thread packet handlers:
  *        - Receive thread (from pcap file)
  *        - Decode thread
  *        - Stream thread
@@ -442,11 +443,7 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx)
     }
     TmSlotSetFuncAppend(tv_receivepcap, tm_module, NULL);
 
-    if (threading_set_cpu_affinity) {
-        TmThreadSetCPUAffinity(tv_receivepcap, 0);
-        if (ncpus > 1)
-            TmThreadSetThreadPriority(tv_receivepcap, PRIO_MEDIUM);
-    }
+    TmThreadSetCPU(tv_receivepcap, RECEIVE_CPU_SET);
 
     if (TmThreadSpawn(tv_receivepcap) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -489,18 +486,6 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx)
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
 
-        if (threading_set_cpu_affinity) {
-            TmThreadSetCPUAffinity(tv_detect_ncpu, (int)cpu);
-            /* If we have more than one core/cpu, the first Detect thread
-             * (at cpu 0) will have less priority (higher 'nice' value)
-             * In this case we will set the thread priority to +10 (default is 0)
-             */
-            if (cpu == 0 && ncpus > 1) {
-                TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_LOW);
-            } else if (ncpus > 1) {
-                TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_MEDIUM);
-            }
-        }
 
         char *thread_group_name = SCStrdup("Detect");
         if (unlikely(thread_group_name == NULL)) {
@@ -511,6 +496,8 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx)
 
         /* add outputs as well */
         SetupOutputs(tv_detect_ncpu);
+
+        TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");
