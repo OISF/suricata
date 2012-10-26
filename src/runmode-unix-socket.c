@@ -226,10 +226,10 @@ TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
 
     ret = UnixListAddFile(this, filename, output_dir);
     switch(ret) {
-        case 0:
+        case TM_ECODE_FAILED:
             json_object_set_new(answer, "message", json_string("Unable to add file to list"));
             return TM_ECODE_FAILED;
-        case 1:
+        case TM_ECODE_OK:
             SCLogInfo("Added file '%s' to list", filename);
             json_object_set_new(answer, "message", json_string("Successfully added file to list"));
             return TM_ECODE_OK;
