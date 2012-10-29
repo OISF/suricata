@@ -373,18 +373,22 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     ptv->cluster_id = pfconf->cluster_id;
 
+    if ((ptv->threads == 1) && (!strncmp(ptv->interface, "dna", 3))) {
+        SCLogInfo("DNA interface detected, not adding thread to cluster");
+    } else {
 #ifdef HAVE_PFRING_CLUSTER_TYPE
-    ptv->ctype = pfconf->ctype;
-    rc = pfring_set_cluster(ptv->pd, ptv->cluster_id, ptv->ctype);
+        ptv->ctype = pfconf->ctype;
+        rc = pfring_set_cluster(ptv->pd, ptv->cluster_id, ptv->ctype);
 #else
-    rc = pfring_set_cluster(ptv->pd, ptv->cluster_id);
+        rc = pfring_set_cluster(ptv->pd, ptv->cluster_id);
 #endif /* HAVE_PFRING_CLUSTER_TYPE */
 
-    if (rc != 0) {
-        SCLogError(SC_ERR_PF_RING_SET_CLUSTER_FAILED, "pfring_set_cluster "
-                "returned %d for cluster-id: %d", rc, ptv->cluster_id);
-        pfconf->DerefFunc(pfconf);
-        return TM_ECODE_FAILED;
+        if (rc != 0) {
+            SCLogError(SC_ERR_PF_RING_SET_CLUSTER_FAILED, "pfring_set_cluster "
+                    "returned %d for cluster-id: %d", rc, ptv->cluster_id);
+            pfconf->DerefFunc(pfconf);
+            return TM_ECODE_FAILED;
+        }
     }
 
     if (ptv->threads > 1) {
