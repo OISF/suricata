@@ -396,8 +396,20 @@ void StreamTcpInitConfig(char quiet)
 
     int inl = 0;
 
-    if (ConfGetBool("stream.inline", &inl) == 1) {
+
+    char *temp_stream_inline_str;
+    if (ConfGet("stream.inline", &temp_stream_inline_str) == 1) {
+        /* checking for "auto" and falling back to boolean to provide
+         * backward compatibility */
+        if (strcmp(temp_stream_inline_str, "auto") == 0) {
+            if (IS_ENGINE_MODE_IPS(engine_mode)) {
+                stream_inline = 1;
+            } else {
+                stream_inline = 0;
+            }
+        } else if (ConfGetBool("stream.inline", &inl) == 1) {
             stream_inline = inl;
+        }
     }
 
     if (!quiet) {
