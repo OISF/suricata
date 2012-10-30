@@ -281,27 +281,27 @@ int UnixCommandAccept(UnixCommand *this)
     ret = recv(client, buffer, sizeof(buffer)-1, 0);
     if (ret < 0) {
         SCLogInfo("Command server: client doesn't send version");
-        UnixCommandClose(this, client);
+        close(client);
         return 0;
     }
     if (ret >= (int)(sizeof(buffer)-1)) {
         SCLogInfo("Command server: client message is too long, "
                   "disconnect him.");
-        UnixCommandClose(this, client);
+        close(client);
     }
     buffer[ret] = 0;
 
     client_msg = json_loads(buffer, 0, &jerror);
     if (client_msg == NULL) {
         SCLogInfo("Invalid command, error on line %d: %s\n", jerror.line, jerror.text);
-        UnixCommandClose(this, client);
+        close(client);
         return 0;
     }
 
     version = json_object_get(client_msg, "version");
     if(!json_is_string(version)) {
         SCLogInfo("error: version is not a string");
-        UnixCommandClose(this, client);
+        close(client);
         return 0;
     }
 
@@ -309,7 +309,7 @@ int UnixCommandAccept(UnixCommand *this)
     if (strcmp(json_string_value(version), UNIX_PROTO_VERSION) != 0) {
         SCLogInfo("Unix socket: invalid client version: \"%s\"",
                 json_string_value(version));
-        UnixCommandClose(this, client);
+        close(client);
         return 0;
     } else {
         SCLogInfo("Unix socket: client version: \"%s\"",
@@ -319,16 +319,18 @@ int UnixCommandAccept(UnixCommand *this)
     /* send answer */
     server_msg = json_object();
     if (server_msg == NULL) {
-        UnixCommandClose(this, client);
+        close(client);
         return 0;
     }
     json_object_set_new(server_msg, "return", json_string("OK"));
 
     if (json_dump_callback(server_msg, UnixCommandSendCallback, &client, 0) == -1) {
         SCLogWarning(SC_ERR_SOCKET, "Unable to send command");
-        UnixCommandClose(this, client);
+        json_decref(server_msg);
+        close(client);
         return 0;
     }
+    json_decref(server_msg);
 
     /* client connected */
     SCLogInfo("Unix socket: client connected");
@@ -518,7 +520,7 @@ int UnixMain(UnixCommand * this)
     }
     if (FD_ISSET(this->socket, &select_set)) {
         if (!UnixCommandAccept(this))
-            return 0;
+            return 1;
     }
 
     return 1;
