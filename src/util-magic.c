@@ -104,7 +104,7 @@ char *MagicGlobalLookup(uint8_t *buf, uint32_t buflen) {
         if (result != NULL) {
             magic = SCStrdup(result);
             if (magic == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup magic");
+                SCLogMallocError("Unable to dup magic");
             }
         }
     }
@@ -130,7 +130,7 @@ char *MagicThreadLookup(magic_t *ctx, uint8_t *buf, uint32_t buflen) {
         if (result != NULL) {
             magic = SCStrdup(result);
             if (magic == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup magic");
+                SCLogMallocError("Unable to dup magic");
             }
         }
     }

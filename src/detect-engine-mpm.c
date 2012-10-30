@@ -1676,13 +1676,13 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
 
     fast_pattern = (uint8_t *)SCMalloc(sgh->sig_cnt * sizeof(uint8_t));
     if (fast_pattern == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memset(fast_pattern, 0, sgh->sig_cnt * sizeof(uint8_t));
     has_non_negated_non_stream_pattern = (uint8_t *)SCMalloc(sgh->sig_cnt * sizeof(uint8_t));
     if (has_non_negated_non_stream_pattern == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memset(has_non_negated_non_stream_pattern, 0, sgh->sig_cnt * sizeof(uint8_t));

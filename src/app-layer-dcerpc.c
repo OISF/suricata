@@ -639,7 +639,7 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
                             dcerpc->dcerpcbindbindack.uuid_entry = (DCERPCUuidEntry *)
                                 SCCalloc(1, sizeof(DCERPCUuidEntry));
                             if (dcerpc->dcerpcbindbindack.uuid_entry == NULL) {
-                                SCLogError(SC_ERR_MEM_ALLOC,
+                                SCLogMallocError(
                                            "Error allocating memory\n");
                                 exit(EXIT_FAILURE);
                             }
@@ -775,7 +775,7 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
                         dcerpc->dcerpcbindbindack.uuid_entry = (DCERPCUuidEntry *)
                             SCCalloc(1, sizeof(DCERPCUuidEntry));
                         if (dcerpc->dcerpcbindbindack.uuid_entry == NULL) {
-                            SCLogError(SC_ERR_MEM_ALLOC,
+                            SCLogMallocError(
                                        "Error allocating memory\n");
                             exit(EXIT_FAILURE);
                         }
@@ -1135,7 +1135,7 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
 
     *stub_data_buffer = SCRealloc(*stub_data_buffer, *stub_data_buffer_len + stub_len);
     if (*stub_data_buffer == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         goto end;
     }
     memcpy(*stub_data_buffer + *stub_data_buffer_len, input, stub_len);

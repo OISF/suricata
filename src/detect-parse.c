@@ -1650,7 +1650,7 @@ int DetectParseContentString (char *contentstr, uint8_t **result, uint16_t *resu
     uint32_t flags = 0;
 
     if ((temp = SCStrdup(contentstr)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory. Exiting...");
+        SCLogMallocError("Error allocating memory. Exiting...");
         exit(EXIT_FAILURE);
     }
 
@@ -1669,7 +1669,7 @@ int DetectParseContentString (char *contentstr, uint8_t **result, uint16_t *resu
         SCFree(temp);
 
         if ((temp = SCStrdup(contentstr + pos + 1)) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "error allocating memory. exiting...");
+            SCLogMallocError("error allocating memory. exiting...");
             exit(EXIT_FAILURE);
         }
 
@@ -1683,7 +1683,7 @@ int DetectParseContentString (char *contentstr, uint8_t **result, uint16_t *resu
 
     if (temp[pos] == '\"' && temp[pos + strlen(temp + pos) - 1] == '\"') {
         if ((str = SCStrdup(temp + pos + 1)) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "error allocating memory. exiting...");
+            SCLogMallocError("error allocating memory. exiting...");
             exit(EXIT_FAILURE);
         }
 
@@ -1692,7 +1692,7 @@ int DetectParseContentString (char *contentstr, uint8_t **result, uint16_t *resu
         goto error;
     } else {
         if ((str = SCStrdup(temp + pos)) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "error allocating memory. exiting...");
+            SCLogMallocError("error allocating memory. exiting...");
             exit(EXIT_FAILURE);
         }
     }

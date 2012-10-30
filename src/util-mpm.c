@@ -61,27 +61,27 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
     if (de_ctx->mpm_ctx_factory_container == NULL) {
         de_ctx->mpm_ctx_factory_container = SCMalloc(sizeof(MpmCtxFactoryContainer));
         if (de_ctx->mpm_ctx_factory_container == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogMallocError("Error allocating memory");
             exit(EXIT_FAILURE);
         }
         memset(de_ctx->mpm_ctx_factory_container, 0, sizeof(MpmCtxFactoryContainer));
 
         MpmCtxFactoryItem *item = SCMalloc(sizeof(MpmCtxFactoryItem));
         if (unlikely(item == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogMallocError("Error allocating memory");
             exit(EXIT_FAILURE);
         }
 
         item[0].name = SCStrdup(name);
         if (item[0].name == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogMallocError("Error allocating memory");
             exit(EXIT_FAILURE);
         }
 
         /* toserver */
         item[0].mpm_ctx_ts = SCMalloc(sizeof(MpmCtx));
         if (item[0].mpm_ctx_ts == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogMallocError("Error allocating memory");
             exit(EXIT_FAILURE);
         }
         memset(item[0].mpm_ctx_ts, 0, sizeof(MpmCtx));
@@ -90,7 +90,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         /* toclient */
         item[0].mpm_ctx_tc = SCMalloc(sizeof(MpmCtx));
         if (item[0].mpm_ctx_tc == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogMallocError("Error allocating memory");
             exit(EXIT_FAILURE);
         }
         memset(item[0].mpm_ctx_tc, 0, sizeof(MpmCtx));
@@ -118,7 +118,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
                 if (items[i].mpm_ctx_ts == NULL) {
                     items[i].mpm_ctx_ts = SCMalloc(sizeof(MpmCtx));
                     if (items[i].mpm_ctx_ts == NULL) {
-                        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                        SCLogMallocError("Error allocating memory");
                         exit(EXIT_FAILURE);
                     }
                     memset(items[i].mpm_ctx_ts, 0, sizeof(MpmCtx));
@@ -127,7 +127,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
                 if (items[i].mpm_ctx_tc == NULL) {
                     items[i].mpm_ctx_tc = SCMalloc(sizeof(MpmCtx));
                     if (items[i].mpm_ctx_tc == NULL) {
-                        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                        SCLogMallocError("Error allocating memory");
                         exit(EXIT_FAILURE);
                     }
                     memset(items[i].mpm_ctx_tc, 0, sizeof(MpmCtx));
@@ -142,7 +142,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         items = SCRealloc(items,
                           (de_ctx->mpm_ctx_factory_container->no_of_items + 1) * sizeof(MpmCtxFactoryItem));
         if (items == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogMallocError("Error allocating memory");
             exit(EXIT_FAILURE);
         }
 
@@ -151,14 +151,14 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         MpmCtxFactoryItem *new_item = &items[de_ctx->mpm_ctx_factory_container->no_of_items];
         new_item[0].name = SCStrdup(name);
         if (new_item[0].name == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogMallocError("Error allocating memory");
             exit(EXIT_FAILURE);
         }
 
         /* toserver */
         new_item[0].mpm_ctx_ts = SCMalloc(sizeof(MpmCtx));
         if (new_item[0].mpm_ctx_ts == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogMallocError("Error allocating memory");
             exit(EXIT_FAILURE);
         }
         memset(new_item[0].mpm_ctx_ts, 0, sizeof(MpmCtx));
@@ -167,7 +167,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         /* toclient */
         new_item[0].mpm_ctx_tc = SCMalloc(sizeof(MpmCtx));
         if (new_item[0].mpm_ctx_tc == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogMallocError("Error allocating memory");
             exit(EXIT_FAILURE);
         }
         memset(new_item[0].mpm_ctx_tc, 0, sizeof(MpmCtx));
@@ -206,7 +206,7 @@ MpmCtx *MpmFactoryGetMpmCtxForProfile(DetectEngineCtx *de_ctx, int32_t id, int d
     if (id == MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
         MpmCtx *mpm_ctx = SCMalloc(sizeof(MpmCtx));
         if (unlikely(mpm_ctx == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogMallocError("Error allocating memory");
             exit(EXIT_FAILURE);
         }
         memset(mpm_ctx, 0, sizeof(MpmCtx));
@@ -536,7 +536,7 @@ MpmCudaConf *MpmCudaConfParse(void)
     const char *cuda_streams = NULL;
 
     if ((profile = SCMalloc(sizeof(MpmCudaConf))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memset(profile, 0, sizeof(MpmCudaConf));

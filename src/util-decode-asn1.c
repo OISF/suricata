@@ -339,7 +339,7 @@ Asn1Ctx *SCAsn1CtxNew(void) {
     Asn1Ctx *ac = SCMalloc(sizeof(Asn1Ctx));
 
     if (unlikely(ac == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         return NULL;
     }
     memset(ac, 0, sizeof(Asn1Ctx));

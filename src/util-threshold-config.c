@@ -600,7 +600,7 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
             if ((parsed_type == TYPE_SUPPRESS) && (parsed_track != TRACK_RULE)) {
                 de->addr = DetectAddressInit();
                 if (de->addr == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Can't init DetectAddress");
+                    SCLogMallocError("Can't init DetectAddress");
                     goto error;
                 }
                 if (DetectAddressParseString(de->addr, (char *)th_ip) < 0) {
@@ -611,7 +611,7 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
 
             sm = SigMatchAlloc();
             if (sm == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
+                SCLogMallocError("Error allocating SigMatch");
                 goto error;
             }
 
@@ -624,7 +624,7 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
             if (parsed_track == TRACK_RULE) {
                 de_ctx->ths_ctx.th_entry = SCRealloc(de_ctx->ths_ctx.th_entry, (de_ctx->ths_ctx.th_size + 1) * sizeof(DetectThresholdEntry *));
                 if (de_ctx->ths_ctx.th_entry == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for threshold config"
+                    SCLogMallocError("Error allocating memory for threshold config"
                     " (tried to allocate %"PRIu32"th_entrys for rule tracking with rate_filter)", de_ctx->ths_ctx.th_size + 1);
                 } else {
                     de_ctx->ths_ctx.th_entry[de_ctx->ths_ctx.th_size] = NULL;
@@ -681,7 +681,7 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
                 if ((parsed_type == TYPE_SUPPRESS) && (parsed_track != TRACK_RULE)) {
                     de->addr = DetectAddressInit();
                     if (de->addr == NULL) {
-                        SCLogError(SC_ERR_MEM_ALLOC, "Can't init DetectAddress");
+                        SCLogMallocError("Can't init DetectAddress");
                         goto error;
                     }
                     if (DetectAddressParseString(de->addr, (char *)th_ip) < 0) {
@@ -692,7 +692,7 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
 
                 sm = SigMatchAlloc();
                 if (sm == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
+                    SCLogMallocError("Error allocating SigMatch");
                     goto error;
                 }
 
@@ -705,7 +705,7 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
                 if (parsed_track == TRACK_RULE) {
                     de_ctx->ths_ctx.th_entry = SCRealloc(de_ctx->ths_ctx.th_entry, (de_ctx->ths_ctx.th_size + 1) * sizeof(DetectThresholdEntry *));
                     if (de_ctx->ths_ctx.th_entry == NULL) {
-                        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for threshold config"
+                        SCLogMallocError("Error allocating memory for threshold config"
                         " (tried to allocate %"PRIu32"th_entrys for rule tracking with rate_filter)", de_ctx->ths_ctx.th_size + 1);
                     } else {
                         de_ctx->ths_ctx.th_entry[de_ctx->ths_ctx.th_size] = NULL;
@@ -786,7 +786,7 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
             if ((parsed_type == TYPE_SUPPRESS) && (parsed_track != TRACK_RULE)) {
                 de->addr = DetectAddressInit();
                 if (de->addr == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Can't init DetectAddress");
+                    SCLogMallocError("Can't init DetectAddress");
                     goto error;
                 }
                 if (DetectAddressParseString(de->addr, (char *)th_ip) < 0) {
@@ -797,7 +797,7 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
 
             sm = SigMatchAlloc();
             if (sm == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
+                SCLogMallocError("Error allocating SigMatch");
                 goto error;
             }
 
@@ -810,7 +810,7 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
             if (parsed_track == TRACK_RULE) {
                 de_ctx->ths_ctx.th_entry = SCRealloc(de_ctx->ths_ctx.th_entry, (de_ctx->ths_ctx.th_size + 1) * sizeof(DetectThresholdEntry *));
                 if (de_ctx->ths_ctx.th_entry == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for threshold config"
+                    SCLogMallocError("Error allocating memory for threshold config"
                     " (tried to allocate %"PRIu32"th_entrys for rule tracking with rate_filter)", de_ctx->ths_ctx.th_size + 1);
                 } else {
                     de_ctx->ths_ctx.th_entry[de_ctx->ths_ctx.th_size] = NULL;
@@ -951,7 +951,7 @@ void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
                 line = SCRealloc(line, strlen(line) + len + 1);
 
             if (line == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                SCLogMallocError("Error allocating memory");
                 break;
             }
 

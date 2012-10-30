@@ -1516,7 +1516,7 @@ static int B2gCudaMpmStreamDataInit(B2gCudaMpmThreadCtxData *tctx, MpmCudaConf *
                                           (profile->packet_size_limit + 1) *
                                           profile->packet_buffer_limit);
             if (sd->results_buffer == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                SCLogMallocError("Error allocating memory");
                 exit(EXIT_FAILURE);
             }
         }
@@ -1701,7 +1701,7 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     B2gCudaMpmThreadCtxData *tctx = SCMalloc(sizeof(B2gCudaMpmThreadCtxData));
     if (unlikely(tctx == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memset(tctx, 0, sizeof(B2gCudaMpmThreadCtxData));
@@ -1741,7 +1741,7 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
     /* Initialize resources for the streams */
     tctx->stream_data = SCMalloc(tctx->no_of_streams * sizeof(B2gCudaMpmStreamData));
     if (tctx->stream_data == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory.");
+        SCLogMallocError("Error allocating memory.");
         exit(EXIT_FAILURE);
     }
     memset(tctx->stream_data, 0, tctx->no_of_streams * sizeof(B2gCudaMpmStreamData));

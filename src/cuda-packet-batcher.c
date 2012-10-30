@@ -440,7 +440,7 @@ SCCudaPBPacketsBuffer *SCCudaPBAllocSCCudaPBPacketsBuffer(void)
 {
     SCCudaPBPacketsBuffer *pb = SCMalloc(sizeof(SCCudaPBPacketsBuffer));
     if (unlikely(pb == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memset(pb, 0, sizeof(SCCudaPBPacketsBuffer));
@@ -488,7 +488,7 @@ SCCudaPBPacketsBuffer *SCCudaPBAllocSCCudaPBPacketsBuffer(void)
                                     (profile->packet_size_limit +
                                      sizeof(SCCudaPBPacketDataForGPUNonPayload)));
         if (pb->packets_buffer == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogMallocError("Error allocating memory");
             exit(EXIT_FAILURE);
         }
     }
@@ -508,7 +508,7 @@ SCCudaPBPacketsBuffer *SCCudaPBAllocSCCudaPBPacketsBuffer(void)
         pb->packets_offset_buffer = SCMalloc(sizeof(uint32_t) *
                                            profile->packet_buffer_limit);
         if (pb->packets_offset_buffer == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogMallocError("Error allocating memory");
             exit(EXIT_FAILURE);
         }
     }
@@ -528,7 +528,7 @@ SCCudaPBPacketsBuffer *SCCudaPBAllocSCCudaPBPacketsBuffer(void)
         pb->packets_payload_offset_buffer = SCMalloc(sizeof(uint32_t) *
                                                    profile->packet_buffer_limit);
         if (pb->packets_payload_offset_buffer == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogMallocError("Error allocating memory");
             exit(EXIT_FAILURE);
         }
     }
@@ -545,7 +545,7 @@ SCCudaPBPacketsBuffer *SCCudaPBAllocSCCudaPBPacketsBuffer(void)
     pb->packets_address_buffer = SCMalloc(sizeof(Packet *) *
                                         profile->packet_buffer_limit);
     if (pb->packets_address_buffer == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memset(pb->packets_address_buffer, 0, sizeof(Packet *) *
@@ -592,7 +592,7 @@ TmEcode SCCudaPBThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     tctx = SCMalloc(sizeof(SCCudaPBThreadCtx));
     if (unlikely(tctx == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memset(tctx, 0, sizeof(SCCudaPBThreadCtx));

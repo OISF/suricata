@@ -205,7 +205,7 @@ static char *SCClassConfStringToLowercase(const char *str)
     char *temp_str = NULL;
 
     if ( (new_str = SCStrdup(str)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         exit(EXIT_FAILURE);
     }
 
@@ -391,13 +391,13 @@ SCClassConfClasstype *SCClassConfAllocClasstype(uint8_t classtype_id,
     memset(ct, 0, sizeof(SCClassConfClasstype));
 
     if ( (ct->classtype = SCClassConfStringToLowercase(classtype)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         exit(EXIT_FAILURE);
     }
 
     if (classtype_desc != NULL &&
         (ct->classtype_desc = SCStrdup(classtype_desc)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         exit(EXIT_FAILURE);
     }
 

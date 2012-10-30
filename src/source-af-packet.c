@@ -1275,7 +1275,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
                     SCLogInfo("Memory issue with ring parameters. Retrying.");
                     continue;
                 }
-                SCLogError(SC_ERR_MEM_ALLOC,
+                SCLogMallocError(
                         "Unable to allocate RX Ring for iface %s: (%d) %s",
                         devname,
                         errno,
@@ -1287,7 +1287,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         }
 
         if (order < 0) {
-            SCLogError(SC_ERR_MEM_ALLOC,
+            SCLogMallocError(
                     "Unable to allocate RX Ring for iface %s (order 0 failed)",
                     devname);
             goto socket_err;
@@ -1298,13 +1298,13 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         ptv->ring_buf = mmap(0, ptv->ring_buflen, PROT_READ|PROT_WRITE,
                 MAP_SHARED, ptv->socket, 0);
         if (ptv->ring_buf == MAP_FAILED) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to mmap");
+            SCLogMallocError("Unable to mmap");
             goto socket_err;
         }
         /* allocate a ring for each frame header pointer*/
         ptv->frame_buf = SCMalloc(ptv->req.tp_frame_nr * sizeof (union thdr *));
         if (ptv->frame_buf == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate frame buf");
+            SCLogMallocError("Unable to allocate frame buf");
             goto mmap_err;
         }
         memset(ptv->frame_buf, 0, ptv->req.tp_frame_nr * sizeof (union thdr *));

@@ -335,7 +335,7 @@ void AlpProtoFinalizeGlobal(AlpProtoDetectCtx *ctx) {
     /* allocate and initialize the mapping between pattern id and signature */
     ctx->map = (AlpProtoSignature **)SCMalloc(ctx->sigs * sizeof(AlpProtoSignature *));
     if (ctx->map == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "%s", strerror(errno));
+        SCLogMallocError("%s", strerror(errno));
         return;
     }
     memset(ctx->map, 0x00, ctx->sigs * sizeof(AlpProtoSignature *));

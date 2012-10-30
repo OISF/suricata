@@ -312,7 +312,7 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
         *(it should be a value or another var) */
         str = SCStrdup(varval);
         if (unlikely(str == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "malloc from strdup failed");
+            SCLogMallocError("malloc from strdup failed");
             goto error;
         }
 

@@ -620,7 +620,7 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 void ThresholdHashInit(DetectEngineCtx *de_ctx)
 {
     if (SCMutexInit(&de_ctx->ths_ctx.threshold_table_lock, NULL) != 0) {
-        SCLogError(SC_ERR_MEM_ALLOC,
+        SCLogMallocError(
                 "Threshold: Failed to initialize hash table mutex.");
         exit(EXIT_FAILURE);
     }

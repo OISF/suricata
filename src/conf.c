@@ -59,7 +59,7 @@ ConfInit(void)
     }
     root = ConfNodeNew();
     if (root == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
+        SCLogMallocError(
             "ERROR: Failed to allocate memory for root configuration node, "
             "aborting.");
         exit(EXIT_FAILURE);

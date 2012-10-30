@@ -369,7 +369,7 @@ static void SCPerfInitOPCtx(void)
         /* Let us use the standard output for output */
         sc_perf_op_ctx->fp = stdout;
         if ( (sc_perf_op_ctx->file = SCStrdup("stdout")) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCLogMallocError("Error allocating memory");
             exit(EXIT_FAILURE);
         }
     }
@@ -798,12 +798,12 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
     memset(pc->value, 0, sizeof(SCPerfCounterValue));
 
     if ( (pc->name->cname = SCStrdup(cname)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         exit(EXIT_FAILURE);
     }
 
     if ( (pc->name->tm_name = SCStrdup(tm_name)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         exit(EXIT_FAILURE);
     }
 
@@ -812,7 +812,7 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
     pc->id = ++(pctx->curr_id);
 
     if (desc != NULL && (pc->desc = SCStrdup(desc)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         exit(EXIT_FAILURE);
     }
 

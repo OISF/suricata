@@ -161,7 +161,7 @@ static DetectReference *DetectReferenceParse(char *rawstr, DetectEngineCtx *de_c
     /* make a copy so we can free pcre's substring */
     ref->reference = SCStrdup((char *)content);
     if (ref->reference == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "strdup failed: %s", strerror(errno));
+        SCLogMallocError("strdup failed: %s", strerror(errno));
         goto error;
     }
 
