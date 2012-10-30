@@ -1066,11 +1066,14 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                             (void)sigmatch_table[sm->type].Match(tv, det_ctx, p, s, sm);
                         }
                     }
-                    if ( !(s->flags & SIG_FLAG_NOALERT)) {
+                    if (!(s->flags & SIG_FLAG_NOALERT)) {
                         if (s->action & ACTION_DROP)
                             PacketAlertAppend(det_ctx, s, p, PACKET_ALERT_FLAG_DROP_FLOW);
                         else
                             PacketAlertAppend(det_ctx, s, p, 0);
+                    } else {
+                        /* apply actions for noalert/rule suppressed as well */
+                        p->action |= s->action;
                     }
                 }
             }

@@ -54,6 +54,7 @@ PacketAlert *PacketAlertGetTag(void) {
 
 /**
  * \brief Handle a packet and check if needs a threshold logic
+ *        Also apply rule action if necessary.
  *
  * \param de_ctx Detection Context
  * \param sig Signature pointer
@@ -78,16 +79,18 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
         td = SigGetThresholdTypeIter(s, p, &sm);
         if (td != NULL) {
             SCLogDebug("td %p", td);
+
+            /* PacketAlertThreshold returns 2 if the alert is suppressed but
+             * we do need to apply rule actions to the packet. */
             ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s);
-            if (ret == 0) {
+            if (ret == 0 || ret == 2) {
                 /* It doesn't match threshold, remove it */
-                PacketAlertRemove(p, pos);
-                break;
+                SCReturnInt(ret);
             }
         }
     } while (sm != NULL);
 
-    SCReturnInt(ret);
+    SCReturnInt(1);
 }
 
 
@@ -126,8 +129,11 @@ int PacketAlertRemove(Packet *p, uint16_t pos)
 {
     uint16_t i = 0;
     int match = 0;
-    if (pos > p->alerts.cnt)
+
+    if (pos > p->alerts.cnt) {
+        SCLogDebug("removing %u failed, pos > cnt %u", pos, p->alerts.cnt);
         return 0;
+    }
 
     for (i = pos; i <= p->alerts.cnt - 1; i++) {
         memcpy(&p->alerts.alerts[i], &p->alerts.alerts[i + 1], sizeof(PacketAlert));
@@ -198,20 +204,16 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, u
  */
 void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p) {
     SCEnter();
-
     int i = 0;
     Signature *s = NULL;
     SigMatch *sm = NULL;
 
-    for (i = 0; i < p->alerts.cnt; i++) {
+    while (i < p->alerts.cnt) {
         SCLogDebug("Sig->num: %"PRIu16, p->alerts.alerts[i].num);
         s = de_ctx->sig_array[p->alerts.alerts[i].num];
 
         int res = PacketAlertHandle(de_ctx, det_ctx, s, p, i);
-        /* Thresholding might remove one alert */
-        if (res == 0) {
-            i--;
-        } else {
+        if (res > 0) {
             /* Now, if we have an alert, we have to check if we want
              * to tag this session or src/dst host */
             sm = s->sm_lists[DETECT_SM_LIST_TMATCH];
@@ -267,9 +269,16 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 FLOWLOCK_UNLOCK(p->flow);
             }
         }
-        /* Because we removed the alert from the array, we should
-         * have compacted the array and decreased cnt by one, so
-         * process again the same position (with different alert now) */
+
+        /* Thresholding removes this alert */
+        if (res == 0 || res == 2) {
+            PacketAlertRemove(p, i);
+
+            if (p->alerts.cnt == 0)
+                break;
+        } else {
+            i++;
+        }
     }
 
     /* At this point, we should have all the new alerts. Now check the tag

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -201,6 +201,11 @@ static DetectThresholdEntry *ThresholdHostLookupEntry(Host *h, uint32_t sid, uin
     return e;
 }
 
+/**
+ *  \retval 2 silent match (no alert but apply actions)
+ *  \retval 1 normal match
+ *  \retval 0 no match
+ */
 int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint32_t sid, uint32_t gid) {
     int ret = 0;
 
@@ -218,6 +223,8 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
 
                     if (lookup_tsh->current_count <= td->count) {
                         ret = 1;
+                    } else {
+                        ret = 2;
                     }
                 } else    {
                     lookup_tsh->tv_sec1 = p->ts.tv_sec;
@@ -286,6 +293,9 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
                     lookup_tsh->current_count++;
                     if (lookup_tsh->current_count == td->count) {
                         ret = 1;
+                    } else if (lookup_tsh->current_count > td->count) {
+                        /* silent match */
+                        ret = 2;
                     }
                 } else {
                     /* expired, so reset */
@@ -462,6 +472,8 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
             }
             if (res == 0)
                 ret = 1;
+            else
+                ret = 2; /* suppressed but still need actions */
             break;
         }
         default:
@@ -564,6 +576,7 @@ static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p, DetectT
  * \param p Packet structure
  * \param s Signature structure
  *
+ * \retval 2 silent match (no alert but apply actions)
  * \retval 1 alert on this event
  * \retval 0 do not alert on this event
  */
