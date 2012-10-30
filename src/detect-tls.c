@@ -633,7 +633,7 @@ static DetectTlsData *DetectTlsFingerprintParse (char *str)
 
     tls->fingerprint = SCStrdup(tmp_str);
     if (tls->fingerprint == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate fingerprint");
+        SCLogMallocError("Unable to allocate fingerprint");
     }
 
     SCFree(orig);

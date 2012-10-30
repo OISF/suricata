@@ -192,7 +192,7 @@ DefragContextNew(void)
         sizeof(Frag),
         NULL, DefragFragInit, dc, NULL, NULL);
     if (dc->frag_pool == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
+        SCLogMallocError(
             "Defrag: Failed to initialize fragment pool.");
         exit(EXIT_FAILURE);
     }
@@ -285,7 +285,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
      * SCFree all the resources held by this tracker. */
     rp = PacketDefragPktSetup(p, NULL, 0, IPV4_GET_IPPROTO(p));
     if (rp == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
+        SCLogMallocError("Failed to allocate packet for "
                    "fragmentation re-assembly, dumping fragments.");
         goto remove_tracker;
     }
@@ -399,7 +399,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     rp = PacketDefragPktSetup(p, (uint8_t *)p->ip6h,
             IPV6_GET_PLEN(p) + sizeof(IPV6Hdr), 0);
     if (rp == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
+        SCLogMallocError("Failed to allocate packet for "
                 "fragmentation re-assembly, dumping fragments.");
         goto remove_tracker;
     }
@@ -882,7 +882,7 @@ DefragInit(void)
     /* Allocate the DefragContext. */
     defrag_context = DefragContextNew();
     if (defrag_context == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
+        SCLogMallocError(
             "Failed to allocate memory for the Defrag module.");
         exit(EXIT_FAILURE);
     }

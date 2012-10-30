@@ -119,7 +119,7 @@ void SCCudaHlGetYamlConf(void)
     /* "mpm" profile, found under "cuda.mpm" in the conf file */
     profile = SCMalloc(sizeof(SCCudaHlCudaProfile));
     if (unlikely(profile == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memset(profile, 0, sizeof(SCCudaHlCudaProfile));
@@ -863,7 +863,7 @@ int SCCudaHlRegisterModule(const char *name)
     memset(new_data, 0, sizeof(SCCudaHlModuleData));
 
     if ( (new_data->name = SCStrdup(name)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         exit(EXIT_FAILURE);
     }
 

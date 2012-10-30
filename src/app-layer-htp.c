@@ -2354,7 +2354,7 @@ static void HTPConfigure(void)
     /* Default Config */
     cfglist.cfg = htp_config_create();
     if (NULL == cfglist.cfg) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to create HTP default config");
+        SCLogMallocError("Failed to create HTP default config");
         exit(EXIT_FAILURE);
     }
     SCLogDebug("LIBHTP default config: %p", cfglist.cfg);
@@ -2387,7 +2387,7 @@ static void HTPConfigure(void)
         cfglist.next->next = nextrec;
         cfglist.next->cfg = htp_config_create();
         if (NULL == cfglist.next->cfg) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to create HTP server config");
+            SCLogMallocError("Failed to create HTP server config");
             exit(EXIT_FAILURE);
         }
 

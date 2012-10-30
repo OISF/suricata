@@ -170,7 +170,7 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     ErfDagThreadVars *ewtn = SCMalloc(sizeof(ErfDagThreadVars));
     if (unlikely(ewtn == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for ERF DAG thread vars.");
+        SCLogMallocError("Failed to allocate memory for ERF DAG thread vars.");
         exit(EXIT_FAILURE);
     }
 
@@ -476,7 +476,7 @@ static inline TmEcode ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
 
     p = PacketGetFromQueueOrAlloc();
     if (p == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
+        SCLogMallocError(
             "Failed to allocate a Packet on stream: %d, DAG: %s",
             ewtn->dagstream, ewtn->dagname);
         SCReturnInt(TM_ECODE_FAILED);

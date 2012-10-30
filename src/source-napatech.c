@@ -160,7 +160,7 @@ TmEcode NapatechFeedThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     NapatechThreadVars *ntv = SCMalloc(sizeof(NapatechThreadVars));
     if (unlikely(ntv == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for NAPATECH thread vars.");
+        SCLogMallocError("Failed to allocate memory for NAPATECH thread vars.");
         exit(EXIT_FAILURE);
     }
 

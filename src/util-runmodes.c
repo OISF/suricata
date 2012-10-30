@@ -68,7 +68,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
 
         aconf = ConfigParser(live_dev);
         if (aconf == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Single dev: Failed to allocate config");
+            SCLogMallocError("Single dev: Failed to allocate config");
             exit(EXIT_FAILURE);
         }
 
@@ -118,7 +118,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
 
             aconf = ConfigParser(live_dev);
             if (aconf == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate config for %s (%d)",
+                SCLogMallocError("Failed to allocate config for %s (%d)",
                        live_dev, thread);
                 exit(EXIT_FAILURE);
             }
@@ -133,7 +133,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
             snprintf(tname, sizeof(tname),"%s-%s", thread_name, live_dev);
             tnamec = SCStrdup(tname);
             if (unlikely(tnamec == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
+                SCLogMallocError("Can't allocate thread name");
                 exit(EXIT_FAILURE);
             }
 
@@ -312,7 +312,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
         char *thread_name = SCStrdup(tname);
 
         if (unlikely(thread_name == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
+            SCLogMallocError("Can't allocate thread name");
             exit(EXIT_FAILURE);
         }
 
@@ -445,7 +445,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
             snprintf(tname, sizeof(tname), "%s%"PRIu16, thread_name, thread+1);
             char *thread_name = SCStrdup(tname);
             if (unlikely(thread_name == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
+                SCLogMallocError("Can't allocate thread name");
                 exit(EXIT_FAILURE);
             }
             ThreadVars *tv_receive =
@@ -508,7 +508,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
                          live_dev, thread+1);
                 char *thread_name = SCStrdup(tname);
                 if (unlikely(thread_name == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
+                    SCLogMallocError("Can't allocate thread name");
                     exit(EXIT_FAILURE);
                 }
                 ThreadVars *tv_receive =
@@ -551,7 +551,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
 
         char *thread_name = SCStrdup(tname);
         if (unlikely(thread_name == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
+            SCLogMallocError("Can't allocate thread name");
             exit(EXIT_FAILURE);
         }
         ThreadVars *tv_detect_ncpu =
@@ -638,7 +638,7 @@ static int RunModeSetLiveCaptureWorkersForDevice(DetectEngineCtx *de_ctx,
         }
         n_thread_name = SCStrdup(tname);
         if (unlikely(n_thread_name == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
+            SCLogMallocError("Can't allocate thread name");
             exit(EXIT_FAILURE);
         }
         tv = TmThreadCreatePacketHandler(n_thread_name,
@@ -716,7 +716,7 @@ int RunModeSetLiveCaptureWorkers(DetectEngineCtx *de_ctx,
             aconf = ConfigParser(live_dev);
             live_dev_c = SCStrdup(live_dev);
             if (unlikely(live_dev_c == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate interface name");
+                SCLogMallocError("Can't allocate interface name");
                 exit(EXIT_FAILURE);
             }
         } else {
@@ -1059,7 +1059,7 @@ int RunModeSetIPSAutoFp(DetectEngineCtx *de_ctx,
 
         char *thread_name = SCStrdup(tname);
         if (unlikely(thread_name == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
+            SCLogMallocError("Can't allocate thread name");
             exit(EXIT_FAILURE);
         }
         ThreadVars *tv_detect_ncpu =

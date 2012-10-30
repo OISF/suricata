@@ -68,7 +68,7 @@ static void SupportFastPatternForSigMatchList(int list_id)
 
     SCFPSupportSMList *new_smlist_fp = SCMalloc(sizeof(SCFPSupportSMList));
     if (unlikely(new_smlist_fp == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memset(new_smlist_fp, 0, sizeof(SCFPSupportSMList));

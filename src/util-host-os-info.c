@@ -77,7 +77,7 @@ static struct in_addr *SCHInfoValidateIPV4Address(const char *addr_str)
     struct in_addr *addr = NULL;
 
     if ( (addr = SCMalloc(sizeof(struct in_addr))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Fatal error encountered in SCHInfoValidateIPV4Address. Mem not allocated");
+        SCLogMallocError("Fatal error encountered in SCHInfoValidateIPV4Address. Mem not allocated");
         return NULL;
     }
 
@@ -241,7 +241,7 @@ int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
     }
 
     if ( (ip_str = SCStrdup(host_os_ip_range)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        SCLogMallocError("Error allocating memory");
         exit(EXIT_FAILURE);
     }
 

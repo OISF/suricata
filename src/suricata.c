@@ -412,7 +412,7 @@ static void SetBpfStringFromFile(char *filename) {
 
     bpf_filter = SCMalloc(bpf_len * sizeof(char));
     if (unlikely(bpf_filter == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate buffer for bpf filter in file %s", filename);
+        SCLogMallocError("Failed to allocate buffer for bpf filter in file %s", filename);
         exit(EXIT_FAILURE);
     }
     memset(bpf_filter, 0x00, bpf_len);

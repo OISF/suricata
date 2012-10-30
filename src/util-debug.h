@@ -277,6 +277,15 @@ extern int sc_log_module_cleaned;
  */
 #define SCLogError(err_code, ...) SCLogErr(SC_LOG_ERROR, err_code, \
                                         __VA_ARGS__)
+
+int sc_seen_malloc_error;
+
+#define SCLogMallocError(...) do { \
+                                if (sc_seen_malloc_error) break; \
+                                sc_seen_malloc_error = 1; \
+                                SCLogError(SC_ERR_MEM_ALLOC, __VA_ARGS__); \
+                              } while(0)
+
 /**
  * \brief Macro used to log CRITICAL messages.
  *
