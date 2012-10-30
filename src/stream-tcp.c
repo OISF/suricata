@@ -401,7 +401,7 @@ void StreamTcpInitConfig(char quiet)
     if (ConfGet("stream.inline", &temp_stream_inline_str) == 1) {
         /* checking for "auto" and falling back to boolean to provide
          * backward compatibility */
-        if (!strncmp(temp_stream_inline_str, "auto", strlen("auto"))) {
+        if (strcmp(temp_stream_inline_str, "auto") == 0) {
             if (IS_ENGINE_MODE_IPS(engine_mode)) {
                 stream_inline = 1;
             } else {
