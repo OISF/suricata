@@ -817,8 +817,10 @@ static int DetectThresholdTestSig5(void) {
 
     if(alerts == 10)
         result = 1;
-    else
+    else {
+        printf("alerts %d != 10: ", alerts);
         goto cleanup;
+    }
 
 cleanup:
     SigGroupCleanup(de_ctx);
@@ -914,6 +916,565 @@ end:
     HostShutdown();
     return result;
 }
+
+/**
+ * \test Test drop action being set even if thresholded
+ */
+static int DetectThresholdTestSig7(void) {
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+    int alerts = 0;
+    int drops = 0;
+    struct timeval ts;
+
+    HostInitConfig(HOST_QUIET);
+
+    memset (&ts, 0, sizeof(struct timeval));
+    TimeGet(&ts);
+
+    memset(&th_v, 0, sizeof(th_v));
+
+    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type limit, track by_src, count 1, seconds 300; sid:10;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    TimeGet(&p->ts);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts = PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    TimeSetIncrementTime(200);
+    TimeGet(&p->ts);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    if (alerts == 1 && drops == 6)
+        result = 1;
+    else {
+        if (alerts != 1)
+            printf("alerts: %d != 1: ", alerts);
+        if (drops != 6)
+            printf("drops: %d != 6: ", drops);
+        goto cleanup;
+    }
+
+cleanup:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    UTHFreePackets(&p, 1);
+    HostShutdown();
+    return result;
+}
+
+/**
+ * \test Test drop action being set even if thresholded
+ */
+static int DetectThresholdTestSig8(void) {
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+    int alerts = 0;
+    int drops = 0;
+    struct timeval ts;
+
+    HostInitConfig(HOST_QUIET);
+
+    memset (&ts, 0, sizeof(struct timeval));
+    TimeGet(&ts);
+
+    memset(&th_v, 0, sizeof(th_v));
+
+    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type limit, track by_src, count 2, seconds 300; sid:10;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    TimeGet(&p->ts);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts = PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    TimeSetIncrementTime(200);
+    TimeGet(&p->ts);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    if (alerts == 2 && drops == 6)
+        result = 1;
+    else {
+        if (alerts != 1)
+            printf("alerts: %d != 1: ", alerts);
+        if (drops != 6)
+            printf("drops: %d != 6: ", drops);
+        goto cleanup;
+    }
+
+cleanup:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    UTHFreePackets(&p, 1);
+    HostShutdown();
+    return result;
+}
+
+/**
+ * \test Test drop action being set even if thresholded
+ */
+static int DetectThresholdTestSig9(void) {
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+    int alerts = 0;
+    int drops = 0;
+    struct timeval ts;
+
+    HostInitConfig(HOST_QUIET);
+
+    memset (&ts, 0, sizeof(struct timeval));
+    TimeGet(&ts);
+
+    memset(&th_v, 0, sizeof(th_v));
+
+    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type threshold, track by_src, count 3, seconds 100; sid:10;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    TimeGet(&p->ts);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts = PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    TimeSetIncrementTime(200);
+    TimeGet(&p->ts);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    if (alerts == 2 && drops == 2)
+        result = 1;
+    else {
+        if (alerts != 2)
+            printf("alerts: %d != 2: ", alerts);
+        if (drops != 2)
+            printf("drops: %d != 2: ", drops);
+        goto cleanup;
+    }
+
+cleanup:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    UTHFreePackets(&p, 1);
+    HostShutdown();
+    return result;
+}
+
+/**
+ * \test Test drop action being set even if thresholded
+ */
+static int DetectThresholdTestSig10(void) {
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+    int alerts = 0;
+    int drops = 0;
+    struct timeval ts;
+
+    HostInitConfig(HOST_QUIET);
+
+    memset (&ts, 0, sizeof(struct timeval));
+    TimeGet(&ts);
+
+    memset(&th_v, 0, sizeof(th_v));
+
+    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type threshold, track by_src, count 5, seconds 300; sid:10;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    TimeGet(&p->ts);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts = PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    TimeSetIncrementTime(200);
+    TimeGet(&p->ts);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    if (alerts == 1 && drops == 1)
+        result = 1;
+    else {
+        if (alerts != 1)
+            printf("alerts: %d != 1: ", alerts);
+        if (drops != 1)
+            printf("drops: %d != 1: ", drops);
+        goto cleanup;
+    }
+
+cleanup:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    UTHFreePackets(&p, 1);
+    HostShutdown();
+    return result;
+}
+
+/**
+ * \test Test drop action being set even if thresholded
+ */
+static int DetectThresholdTestSig11(void) {
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+    int alerts = 0;
+    int drops = 0;
+    struct timeval ts;
+
+    HostInitConfig(HOST_QUIET);
+
+    memset (&ts, 0, sizeof(struct timeval));
+    TimeGet(&ts);
+
+    memset(&th_v, 0, sizeof(th_v));
+
+    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type both, track by_src, count 3, seconds 300; sid:10;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    TimeGet(&p->ts);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts = PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    TimeSetIncrementTime(200);
+    TimeGet(&p->ts);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    if (alerts == 1 && drops == 4)
+        result = 1;
+    else {
+        if (alerts != 1)
+            printf("alerts: %d != 1: ", alerts);
+        if (drops != 4)
+            printf("drops: %d != 4: ", drops);
+        goto cleanup;
+    }
+
+cleanup:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    UTHFreePackets(&p, 1);
+    HostShutdown();
+    return result;
+}
+
+/**
+ * \test Test drop action being set even if thresholded
+ */
+static int DetectThresholdTestSig12(void) {
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+    int alerts = 0;
+    int drops = 0;
+    struct timeval ts;
+
+    HostInitConfig(HOST_QUIET);
+
+    memset (&ts, 0, sizeof(struct timeval));
+    TimeGet(&ts);
+
+    memset(&th_v, 0, sizeof(th_v));
+
+    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type both, track by_src, count 5, seconds 300; sid:10;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    TimeGet(&p->ts);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts = PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    TimeSetIncrementTime(200);
+    TimeGet(&p->ts);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    if (alerts == 1 && drops == 2)
+        result = 1;
+    else {
+        if (alerts != 1)
+            printf("alerts: %d != 1: ", alerts);
+        if (drops != 2)
+            printf("drops: %d != 2: ", drops);
+        goto cleanup;
+    }
+
+cleanup:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    UTHFreePackets(&p, 1);
+    HostShutdown();
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void ThresholdRegisterTests(void) {
@@ -929,6 +1490,12 @@ void ThresholdRegisterTests(void) {
     UtRegisterTest("DetectThresholdTestSig4", DetectThresholdTestSig4, 1);
     UtRegisterTest("DetectThresholdTestSig5", DetectThresholdTestSig5, 1);
     UtRegisterTest("DetectThresholdTestSig6Ticks", DetectThresholdTestSig6Ticks, 1);
+    UtRegisterTest("DetectThresholdTestSig7", DetectThresholdTestSig7, 1);
+    UtRegisterTest("DetectThresholdTestSig8", DetectThresholdTestSig8, 1);
+    UtRegisterTest("DetectThresholdTestSig9", DetectThresholdTestSig9, 1);
+    UtRegisterTest("DetectThresholdTestSig10", DetectThresholdTestSig10, 1);
+    UtRegisterTest("DetectThresholdTestSig11", DetectThresholdTestSig11, 1);
+    UtRegisterTest("DetectThresholdTestSig12", DetectThresholdTestSig12, 1);
 #endif /* UNITTESTS */
 }
 

@@ -2169,6 +2169,213 @@ end:
     return result;
 }
 
+/**
+ * \test Check if the suppress rules work
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+static int SCThresholdConfTest15(void)
+{
+    Signature *sig = NULL;
+    int result = 0;
+    FILE *fd = NULL;
+
+    HostInitConfig(HOST_QUIET);
+
+    Packet *p = UTHBuildPacketReal((uint8_t*)"lalala", 6, IPPROTO_TCP, "192.168.0.10",
+                                    "192.168.0.100", 1234, 24);
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&th_v, 0, sizeof(th_v));
+
+    struct timeval ts;
+
+    memset (&ts, 0, sizeof(struct timeval));
+    TimeGet(&ts);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL || p == NULL)
+        return result;
+
+    de_ctx->flags |= DE_QUIET;
+
+    sig = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any any (msg:\"suppress test\"; content:\"lalala\"; gid:1; sid:10000;)");
+    if (sig == NULL) {
+        goto end;
+    }
+
+    fd = SCThresholdConfGenerateValidDummyFD11();
+    SCThresholdConfInitContext(de_ctx,fd);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    /* 10000 shouldn't match */
+    if (PacketAlertCheck(p, 10000) != 0) {
+        printf("sid 10000 should not have alerted: ");
+        goto end;
+    }
+    /* however, it should have set the drop flag */
+    if (!(p->action & ACTION_DROP)) {
+        printf("sid 10000 should have set DROP flag even if suppressed: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    UTHFreePacket(p);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    HostShutdown();
+    return result;
+}
+
+/**
+ * \test Check if the suppress rules work
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+static int SCThresholdConfTest16(void)
+{
+    Signature *sig = NULL;
+    int result = 0;
+    FILE *fd = NULL;
+
+    HostInitConfig(HOST_QUIET);
+
+    Packet *p = UTHBuildPacketReal((uint8_t*)"lalala", 6, IPPROTO_TCP, "192.168.1.1",
+                                    "192.168.0.100", 1234, 24);
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&th_v, 0, sizeof(th_v));
+
+    struct timeval ts;
+
+    memset (&ts, 0, sizeof(struct timeval));
+    TimeGet(&ts);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL || p == NULL)
+        return result;
+
+    de_ctx->flags |= DE_QUIET;
+
+    sig = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any any (msg:\"suppress test\"; gid:1; sid:1000;)");
+    if (sig == NULL) {
+        goto end;
+    }
+
+    fd = SCThresholdConfGenerateValidDummyFD11();
+    SCThresholdConfInitContext(de_ctx,fd);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    /* 10000 shouldn't match */
+    if (PacketAlertCheck(p, 1000) != 0) {
+        printf("sid 1000 should not have alerted: ");
+        goto end;
+    }
+    /* however, it should have set the drop flag */
+    if (!(p->action & ACTION_DROP)) {
+        printf("sid 1000 should have set DROP flag even if suppressed: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    UTHFreePacket(p);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    HostShutdown();
+    return result;
+}
+
+/**
+ * \test Check if the suppress rules work - ip only rule
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+static int SCThresholdConfTest17(void)
+{
+    Signature *sig = NULL;
+    int result = 0;
+    FILE *fd = NULL;
+
+    HostInitConfig(HOST_QUIET);
+
+    Packet *p = UTHBuildPacketReal((uint8_t*)"lalala", 6, IPPROTO_TCP, "192.168.0.10",
+                                    "192.168.0.100", 1234, 24);
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&th_v, 0, sizeof(th_v));
+
+    struct timeval ts;
+
+    memset (&ts, 0, sizeof(struct timeval));
+    TimeGet(&ts);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL || p == NULL)
+        return result;
+
+    de_ctx->flags |= DE_QUIET;
+
+    sig = de_ctx->sig_list = SigInit(de_ctx,"drop tcp 192.168.0.10 any -> 192.168.0.100 any (msg:\"suppress test\"; gid:1; sid:10000;)");
+    if (sig == NULL) {
+        goto end;
+    }
+
+    fd = SCThresholdConfGenerateValidDummyFD11();
+    SCThresholdConfInitContext(de_ctx,fd);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    /* 10000 shouldn't match */
+    if (PacketAlertCheck(p, 10000) != 0) {
+        printf("sid 10000 should not have alerted: ");
+        goto end;
+    }
+    /* however, it should have set the drop flag */
+    if (!(p->action & ACTION_DROP)) {
+        printf("sid 10000 should have set DROP flag even if suppressed: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    UTHFreePacket(p);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    HostShutdown();
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -2191,6 +2398,9 @@ void SCThresholdConfRegisterTests(void)
     UtRegisterTest("SCThresholdConfTest12 - event_filter", SCThresholdConfTest12, 1);
     UtRegisterTest("SCThresholdConfTest13", SCThresholdConfTest13, 1);
     UtRegisterTest("SCThresholdConfTest14 - suppress", SCThresholdConfTest14, 1);
+    UtRegisterTest("SCThresholdConfTest15 - suppress drop", SCThresholdConfTest15, 1);
+    UtRegisterTest("SCThresholdConfTest16 - suppress drop", SCThresholdConfTest16, 1);
+    UtRegisterTest("SCThresholdConfTest17 - suppress drop", SCThresholdConfTest17, 1);
 #endif /* UNITTESTS */
 }
 

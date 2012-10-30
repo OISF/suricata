@@ -1858,6 +1858,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         if (!(s->flags & SIG_FLAG_NOALERT)) {
             PacketAlertAppend(det_ctx, s, p, alert_flags);
+        } else {
+            /* apply actions even if not alerting */
+            p->action |= s->action;
         }
 next:
         DetectReplaceFree(det_ctx->replist);

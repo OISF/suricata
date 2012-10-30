@@ -536,7 +536,102 @@ end:
     return result;
 }
 
+/**
+ *  \test drops
+ */
+static int DetectDetectionFilterTestSig3(void) {
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 0;
+    int alerts = 0;
+    int drops = 0;
+    struct timeval ts;
 
+    HostInitConfig(HOST_QUIET);
+
+    memset (&ts, 0, sizeof(struct timeval));
+    TimeGet(&ts);
+
+    memset(&th_v, 0, sizeof(th_v));
+
+    p = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (msg:\"detection_filter Test 2\"; detection_filter: track by_dst, count 2, seconds 60; sid:10;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    TimeGet(&p->ts);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts = PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    TimeSetIncrementTime(200);
+    TimeGet(&p->ts);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    drops += ((p->action & ACTION_DROP)?1:0);
+    p->action = 0;
+
+    if (alerts == 3 && drops == 3)
+        result = 1;
+    else {
+        if (alerts != 3)
+            printf("alerts: %d != 3: ", alerts);
+        if (drops != 3)
+            printf("drops: %d != 3: ", drops);
+    }
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+end:
+    UTHFreePackets(&p, 1);
+    HostShutdown();
+    return result;
+}
 #endif /* UNITTESTS */
 
 void DetectDetectionFilterRegisterTests(void) {
@@ -549,6 +644,7 @@ void DetectDetectionFilterRegisterTests(void) {
     UtRegisterTest("DetectDetectionFilterTestParse06", DetectDetectionFilterTestParse06, 0);
     UtRegisterTest("DetectDetectionFilterTestSig1", DetectDetectionFilterTestSig1, 1);
     UtRegisterTest("DetectDetectionFilterTestSig2", DetectDetectionFilterTestSig2, 1);
+    UtRegisterTest("DetectDetectionFilterTestSig3", DetectDetectionFilterTestSig3, 1);
 #endif /* UNITTESTS */
 }
 
