@@ -36,6 +36,11 @@
 # Will use this file if no --pidfile in command options.
 #pid-file: /var/run/suricata.pid
 
+# Daemon working directory
+# Suricata will change directory to this one if provided
+# Default: "/"
+#daemon-directory: "/"
+
 # Preallocated size for packet. Default is 1514 which is the classical
 # size for pcap on ethernet. You should adjust this value to the highest
 # packet size (MTU + hardware header) on your system.
@@ -45,6 +50,15 @@
 # placed here if its not specified with a full path name.  This can be
 # overridden with the -l command line parameter.
 default-log-dir: @e_logdir@
+
+# Unix command socket can be used to pass commands to suricata.
+# An external tool can then connect to get information from suricata
+# or trigger some modifications of the engine. Set enabled to yes
+# to activate the feature. You can use the filename variable to set
+# the file name of the socket.
+unix-command:
+  enabled: no
+  #filename: custom.socket
 
 # Configure the type of alert (and other) logging you would like.
 outputs:

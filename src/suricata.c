@@ -131,6 +131,7 @@
 #include "pkt-var.h"
 
 #include "host.h"
+#include "unix-manager.h"
 
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
@@ -258,7 +259,7 @@ void SignalHandlerSigusr2SigFileStartup(int sig)
     return;
 }
 
-static void SignalHandlerSigusr2Idle(int sig)
+void SignalHandlerSigusr2Idle(int sig)
 {
     if (run_mode == RUNMODE_UNKNOWN || run_mode == RUNMODE_UNITTEST) {
         SCLogInfo("Ruleset load signal USR2 triggered for wrong runmode");
@@ -342,6 +343,16 @@ void EngineStop(void) {
 
 void EngineKill(void) {
     suricata_ctl_flags |= SURICATA_KILL;
+}
+
+/**
+ * \brief Used to indicate that the current task is done.
+ *
+ * This is mainly used by pcap-file to tell it has finished
+ * to treat a pcap files when running in unix-socket mode.
+ */
+void EngineDone(void) {
+    suricata_ctl_flags |= SURICATA_DONE;
 }
 
 static void SetBpfString(int optind, char *argv[]) {
@@ -508,7 +519,7 @@ void usage(const char *progname)
     printf("\t--af-packet[=<dev>]          : run in af-packet mode, no value select interfaces from suricata.yaml\n");
 #endif
 #ifdef HAVE_PFRING
-    printf("\t--pfring[=<dev>]               : run in pfring mode, use interfaces from suricata.yaml\n");
+    printf("\t--pfring[=<dev>]             : run in pfring mode, use interfaces from suricata.yaml\n");
     printf("\t--pfring-int <dev>           : run in pfring mode, use interface <dev>\n");
     printf("\t--pfring-cluster-id <id>     : pfring cluster id \n");
     printf("\t--pfring-cluster-type <type> : pfring cluster type for PF_RING 4.1.2 and later cluster_round_robin|cluster_flow\n");
@@ -522,7 +533,10 @@ void usage(const char *progname)
     printf("\t--dag <dagX:Y>               : process ERF records from DAG interface X, stream Y\n");
 #endif
 #ifdef HAVE_NAPATECH
-    printf("\t--napatech <adapter>          : run Napatech feeds using <adapter>\n");
+    printf("\t--napatech <adapter>         : run Napatech feeds using <adapter>\n");
+#endif
+#ifdef BUILD_UNIX_SOCKET
+    printf("\t--unix-socket[=<file>]       : use unix socket to control suricata work\n");
 #endif
     printf("\n");
     printf("\nTo run the engine with default configuration on "
@@ -751,6 +765,9 @@ int main(int argc, char **argv)
         {"pfring-cluster-type", required_argument, 0, 0},
         {"af-packet", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
+#ifdef BUILD_UNIX_SOCKET
+        {"unix-socket", optional_argument, 0, 0},
+#endif
         {"pcap-buffer-size", required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-app-layer-protos", 0, &list_app_layer_protocols, 1},
@@ -889,6 +906,24 @@ int main(int argc, char **argv)
                     fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
                     exit(EXIT_FAILURE);
                 }
+#ifdef BUILD_UNIX_SOCKET
+            } else if (strcmp((long_opts[option_index]).name , "unix-socket") == 0) {
+                if (run_mode == RUNMODE_UNKNOWN) {
+                    run_mode = RUNMODE_UNIX_SOCKET;
+                    if (optarg) {
+                        if (ConfSet("unix-command.filename", optarg, 0) != 1) {
+                            fprintf(stderr, "ERROR: Failed to set unix-command.filename.\n");
+                            exit(EXIT_FAILURE);
+                        }
+
+                    }
+                } else {
+                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                            "has been specified");
+                    usage(argv[0]);
+                    exit(EXIT_FAILURE);
+                }
+#endif
             }
             else if(strcmp((long_opts[option_index]).name, "list-app-layer-protocols") == 0) {
                 /* listing all supported app layer protocols */
@@ -1380,7 +1415,9 @@ int main(int argc, char **argv)
 
     /* Load the Host-OS lookup. */
     SCHInfoLoadFromConfig();
-    DefragInit();
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        DefragInit();
+    }
 
     if (run_mode == RUNMODE_UNKNOWN) {
         if (!engine_analysis && !list_keywords && !conf_test) {
@@ -1422,7 +1459,9 @@ int main(int argc, char **argv)
     CIDRInit();
     SigParsePrepare();
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
-    SCPerfInitCounterApi();
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        SCPerfInitCounterApi();
+    }
 #ifdef PROFILING
     SCProfilingRulesGlobalInit();
     SCProfilingInit();
@@ -1660,17 +1699,21 @@ int main(int argc, char **argv)
     TmModuleRunInit();
 
     if (daemon == 1) {
-        Daemonize();
         if (pid_filename == NULL) {
             if (ConfGet("pid-file", &pid_filename) == 1) {
                 SCLogInfo("Use pid file %s from config file.", pid_filename);
+           } else {
+                pid_filename = DEFAULT_PID_FILENAME;
            }
         }
-        if (pid_filename != NULL) {
-            if (SCPidfileCreate(pid_filename) != 0) {
-                pid_filename = NULL;
-                exit(EXIT_FAILURE);
-            }
+        if (SCPidfileTestRunning(pid_filename) != 0) {
+            pid_filename = NULL;
+            exit(EXIT_FAILURE);
+        }
+        Daemonize();
+        if (SCPidfileCreate(pid_filename) != 0) {
+            pid_filename = NULL;
+            exit(EXIT_FAILURE);
         }
     } else {
         if (pid_filename != NULL) {
@@ -1717,8 +1760,10 @@ int main(int argc, char **argv)
 #endif /* OS_WIN32 */
 
     PacketPoolInit(max_pending_packets);
-    HostInitConfig(HOST_VERBOSE);
-    FlowInitConfig(FLOW_VERBOSE);
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        HostInitConfig(HOST_VERBOSE);
+        FlowInitConfig(FLOW_VERBOSE);
+    }
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1795,7 +1840,9 @@ int main(int argc, char **argv)
 
     SCDropMainThreadCaps(userid, groupid);
 
-    RunModeInitializeOutputs();
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        RunModeInitializeOutputs();
+    }
 
     /* run the selected runmode */
     if (run_mode == RUNMODE_PCAP_DEV) {
@@ -1851,16 +1898,27 @@ int main(int argc, char **argv)
     }
 #endif
 
-    /* Spawn the flow manager thread */
-    FlowManagerThreadSpawn();
-
-    StreamTcpInitConfig(STREAM_VERBOSE);
+    /* In Unix socket runmode, Flow manager is started on demand */
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        /* Spawn the unix socket manager thread */
+        int unix_socket = 0;
+        if (ConfGetBool("unix-command.enabled", &unix_socket) != 1)
+            unix_socket = 0;
+        if (unix_socket == 1) {
+            UnixManagerThreadSpawn(de_ctx, 0);
+        }
+        /* Spawn the flow manager thread */
+        FlowManagerThreadSpawn();
+        StreamTcpInitConfig(STREAM_VERBOSE);
+    }
 
     /* Spawn the L7 App Detect thread */
     //AppLayerDetectProtoThreadSpawn();
 
     /* Spawn the perf counter threads.  Let these be the last one spawned */
-    SCPerfSpawnThreads();
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        SCPerfSpawnThreads();
+    }
 
     /* Check if the alloted queues have at least 1 reader and writer */
     TmValidateQueueState();
@@ -1901,7 +1959,7 @@ int main(int argc, char **argv)
 
     int engine_retval = EXIT_SUCCESS;
     while(1) {
-        if (suricata_ctl_flags != 0) {
+        if (suricata_ctl_flags & (SURICATA_KILL | SURICATA_STOP)) {
             SCLogInfo("Signal Received.  Stopping engine.");
 
             break;
@@ -1919,13 +1977,19 @@ int main(int argc, char **argv)
     SCCudaPBKillBatchingPackets();
 #endif
 
-    /* First we need to kill the flow manager thread */
-    FlowKillFlowManagerThread();
+    UnixSocketKillSocketThread();
+
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        /* First we need to kill the flow manager thread */
+        FlowKillFlowManagerThread();
+    }
 
     /* Disable packet acquire thread first */
     TmThreadDisableThreadsWithTMS(TM_FLAG_RECEIVE_TM | TM_FLAG_DECODE_TM);
 
-    FlowForceReassembly();
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        FlowForceReassembly();
+    }
 
     struct timeval end_time;
     memset(&end_time, 0, sizeof(end_time));
@@ -1953,14 +2017,19 @@ int main(int argc, char **argv)
     }
 
     DetectEngineCtx *global_de_ctx = DetectEngineGetGlobalDeCtx();
-    BUG_ON(global_de_ctx == NULL);
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        BUG_ON(global_de_ctx == NULL);
+    }
 
     TmThreadKillThreads();
 
-    SCPerfReleaseResources();
-    FlowShutdown();
-    HostShutdown();
-    StreamTcpFreeConfig(STREAM_VERBOSE);
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        SCPerfReleaseResources();
+        FlowShutdown();
+        HostShutdown();
+        StreamTcpFreeConfig(STREAM_VERBOSE);
+    }
+
     HTPFreeConfig();
     HTPAtExitPrintStats();
 
@@ -1999,7 +2068,9 @@ int main(int argc, char **argv)
 
     AppLayerHtpPrintStats();
 
-    DetectEngineCtxFree(global_de_ctx);
+    if (global_de_ctx) {
+        DetectEngineCtxFree(global_de_ctx);
+    }
     AlpProtoDestroy();
 
     TagDestroyCtx();
@@ -2008,7 +2079,9 @@ int main(int argc, char **argv)
     OutputDeregisterAll();
     TimeDeinit();
     SCProtoNameDeInit();
-    DefragDestroy();
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
+        DefragDestroy();
+    }
     PacketPoolDestroy();
     MagicDeinit();
     TmqhCleanup();

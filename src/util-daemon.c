@@ -116,6 +116,7 @@ void Daemonize (void) {
         exit(EXIT_FAILURE);
     } else if (pid == 0) {
         /* Child continues here */
+        char *daemondir;
 
         umask(027);
 
@@ -125,13 +126,14 @@ void Daemonize (void) {
             exit(EXIT_FAILURE);
         }
 
-        /** \todo The daemon runs on the current directory, but later we'll want
-                  to allow through the configuration file (or other means) to
-                  change the running directory  */
-        /* if ((chdir(DAEMON_WORKING_DIRECTORY)) < 0) {
-            SCLogError(SC_ERR_DAEMON, "Error changing to working directory");
-            exit(EXIT_FAILURE);
-        } */
+        if (ConfGet("daemon-directory", &daemondir) == 1) {
+            if ((chdir(daemondir)) < 0) {
+                SCLogError(SC_ERR_DAEMON, "Error changing to working directory");
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            chdir("/");
+        }
 
         SetupLogging();
 

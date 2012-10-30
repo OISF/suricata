@@ -83,6 +83,8 @@ ThreadsAffinityType thread_affinity[MAX_CPU_SET] = {
 
 };
 
+int thread_affinity_init_done = 0;
+
 /**
  * \brief find affinity by its name
  * \retval a pointer to the affinity or NULL if not found
@@ -111,7 +113,7 @@ static void AffinitySetupInit()
         for (j = 0; j < ncpu; j++) {
             CPU_SET(j, cs);
         }
-	SCMutexInit(&thread_affinity[i].taf_mutex, NULL);
+        SCMutexInit(&thread_affinity[i].taf_mutex, NULL);
     }
     return;
 }
@@ -191,7 +193,10 @@ void AffinitySetupLoadFromConfig()
     ConfNode *root = ConfGetNode("threading.cpu-affinity");
     ConfNode *affinity;
 
-    AffinitySetupInit();
+    if (thread_affinity_init_done == 0) {
+        AffinitySetupInit();
+        thread_affinity_init_done = 1;
+    }
 
     SCLogDebug("Load affinity from config\n");
     if (root == NULL) {

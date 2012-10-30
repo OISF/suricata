@@ -47,6 +47,7 @@
 #include "util-optimize.h"
 #include "flow-manager.h"
 #include "util-profiling.h"
+#include "runmode-unix-socket.h"
 
 extern uint8_t suricata_ctl_flags;
 extern int max_pending_packets;
@@ -99,7 +100,7 @@ void TmModuleReceivePcapFileRegister (void) {
     tmm_modules[TMM_RECEIVEPCAPFILE].Func = NULL;
     tmm_modules[TMM_RECEIVEPCAPFILE].PktAcqLoop = ReceivePcapFileLoop;
     tmm_modules[TMM_RECEIVEPCAPFILE].ThreadExitPrintStats = ReceivePcapFileThreadExitStats;
-    tmm_modules[TMM_RECEIVEPCAPFILE].ThreadDeinit = NULL;
+    tmm_modules[TMM_RECEIVEPCAPFILE].ThreadDeinit = ReceivePcapFileThreadDeinit;
     tmm_modules[TMM_RECEIVEPCAPFILE].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVEPCAPFILE].cap_flags = 0;
     tmm_modules[TMM_RECEIVEPCAPFILE].flags = TM_FLAG_RECEIVE_TM;
@@ -193,8 +194,14 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
             SCReturnInt(TM_ECODE_FAILED);
         } else if (unlikely(r == 0)) {
             SCLogInfo("pcap file end of file reached (pcap err code %" PRId32 ")", r);
-
-            EngineStop();
+            if (! RunModeUnixSocketIsActive()) {
+                EngineStop();
+            } else {
+                pcap_close(pcap_g.pcap_handle);
+                pcap_g.pcap_handle = NULL;
+                UnixSocketPcapFile(TM_ECODE_DONE);
+                SCReturnInt(TM_ECODE_DONE);
+            }
             break;
         } else if (ptv->cb_result == TM_ECODE_FAILED) {
             SCLogError(SC_ERR_PCAP_DISPATCH, "Pcap callback PcapFileCallbackLoop failed");
@@ -227,7 +234,12 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (pcap_g.pcap_handle == NULL) {
         SCLogError(SC_ERR_FOPEN, "%s\n", errbuf);
         SCFree(ptv);
-        exit(EXIT_FAILURE);
+        if (! RunModeUnixSocketIsActive()) {
+            return TM_ECODE_FAILED;
+        } else {
+            UnixSocketPcapFile(TM_ECODE_FAILED);
+            SCReturnInt(TM_ECODE_DONE);
+        }
     }
 
     if (ConfGet("bpf-filter", &tmpbpfstring) != 1) {
@@ -251,7 +263,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
     pcap_g.datalink = pcap_datalink(pcap_g.pcap_handle);
     SCLogDebug("datalink %" PRId32 "", pcap_g.datalink);
 
-    switch(pcap_g.datalink)	{
+    switch(pcap_g.datalink) {
         case LINKTYPE_LINUX_SLL:
             pcap_g.Decoder = DecodeSll;
             break;
@@ -287,6 +299,10 @@ void ReceivePcapFileThreadExitStats(ThreadVars *tv, void *data) {
 
 TmEcode ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data) {
     SCEnter();
+    PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
+    if (ptv) {
+        SCFree(ptv);
+    }
     SCReturnInt(TM_ECODE_OK);
 }
 

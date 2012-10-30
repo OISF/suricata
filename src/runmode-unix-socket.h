@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,19 +15,20 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
+/** \file
  *
- * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
- * \author Victor Julien <victor@inliniac.net>
+ *  \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __UTIL_PID_H__
-#define __UTIL_PID_H__
+#ifndef __RUNMODE_UNIX_SOCKET_H__
+#define __RUNMODE_UNIX_SOCKET_H__
 
-int SCPidfileCreate(const char *);
-void SCPidfileRemove(const char *);
-int SCPidfileTestRunning(const char *pid_filename);
+int RunModeUnixSocketSingle(DetectEngineCtx *);
+void RunModeUnixSocketRegister(void);
+const char *RunModeUnixSocketGetDefaultMode(void);
 
-#endif /* __UTIL_PID_H__ */
+int RunModeUnixSocketIsActive(void);
 
+void UnixSocketPcapFile(TmEcode tm);
+
+#endif /* __RUNMODE_UNIX_SOCKET_H__ */

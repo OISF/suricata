@@ -632,10 +632,15 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
             void *slot_data = NULL;
             r = slot->SlotThreadInit(tv, slot->slot_initdata, &slot_data);
             if (r != TM_ECODE_OK) {
-                EngineKill();
-
-                TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-                pthread_exit((void *) -1);
+                if (r == TM_ECODE_DONE) {
+                    EngineDone();
+                    TmThreadsSetFlag(tv, THV_CLOSED | THV_INIT_DONE | THV_RUNNING_DONE);
+                    pthread_exit((void *) -1);
+                } else {
+                    EngineKill();
+                    TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
+                    pthread_exit((void *) -1);
+                }
             }
             (void)SC_ATOMIC_SET(slot->slot_data, slot_data);
         }
@@ -654,6 +659,9 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
 
         if (r == TM_ECODE_FAILED || TmThreadsCheckFlag(tv, THV_KILL)
             || suricata_ctl_flags) {
+            run = 0;
+        }
+        if (r == TM_ECODE_DONE) {
             run = 0;
         }
     }
@@ -1451,10 +1459,37 @@ ThreadVars *TmThreadCreateMgmtThread(char *name, void *(fn_p)(void *),
 
     tv = TmThreadCreate(name, NULL, NULL, NULL, NULL, "custom", fn_p, mucond);
 
-    TmThreadSetCPU(tv, MANAGEMENT_CPU_SET);
-
-    if (tv != NULL)
+    if (tv != NULL) {
         tv->type = TVT_MGMT;
+        TmThreadSetCPU(tv, MANAGEMENT_CPU_SET);
+    }
+
+    return tv;
+}
+
+/**
+ * \brief Creates and returns the TV instance for a CMD thread.
+ *        This function supports only custom slot functions and hence a
+ *        function pointer should be sent as an argument.
+ *
+ * \param name       Name of this TV instance
+ * \param fn_p       Pointer to function when \"slots\" is of type \"custom\"
+ * \param mucond     Flag to indicate whether to initialize the condition
+ *                   and the mutex variables for this newly created TV.
+ *
+ * \retval the newly created TV instance, or NULL on error
+ */
+ThreadVars *TmThreadCreateCmdThread(char *name, void *(fn_p)(void *),
+                                     int mucond)
+{
+    ThreadVars *tv = NULL;
+
+    tv = TmThreadCreate(name, NULL, NULL, NULL, NULL, "custom", fn_p, mucond);
+
+    if (tv != NULL) {
+        tv->type = TVT_CMD;
+        TmThreadSetCPU(tv, MANAGEMENT_CPU_SET);
+    }
 
     return tv;
 }
@@ -1729,22 +1764,69 @@ TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *tm_name)
     return slots;
 }
 
-void TmThreadKillThreads(void)
+void TmThreadKillThreadsFamily(int family)
 {
     ThreadVars *tv = NULL;
+
+    if ((family < 0) || (family >= TVT_MAX))
+        return;
+
+    tv = tv_root[family];
+
+    while (tv) {
+        TmThreadKillThread(tv);
+
+        tv = tv->next;
+    }
+}
+
+void TmThreadKillThreads(void)
+{
     int i = 0;
 
     for (i = 0; i < TVT_MAX; i++) {
-        tv = tv_root[i];
-
-        while (tv) {
-            TmThreadKillThread(tv);
-
-            tv = tv->next;
-        }
+        TmThreadKillThreadsFamily(i);
     }
 
     return;
+}
+
+void TmThreadFree(ThreadVars *tv)
+{
+    TmSlot *s;
+    TmSlot *ps;
+    if (tv == NULL)
+        return;
+
+    SCLogDebug("Freeing thread '%s'.", tv->name);
+
+    SCMutexDestroy(&tv->sc_perf_pctx.m);
+
+    s = (TmSlot *)tv->tm_slots;
+    while (s) {
+        ps = s;
+        s = s->slot_next;
+        SCFree(ps);
+    }
+    SCFree(tv);
+}
+
+void TmThreadClearThreadsFamily(int family)
+{
+    ThreadVars *tv = NULL;
+    ThreadVars *ptv = NULL;
+
+    if ((family < 0) || (family >= TVT_MAX))
+        return;
+
+    tv = tv_root[family];
+
+    while (tv) {
+        ptv = tv;
+        tv = tv->next;
+        TmThreadFree(ptv);
+    }
+    tv_root[family] = NULL;
 }
 
 /**

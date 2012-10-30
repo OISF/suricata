@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,16 +18,30 @@
 /**
  * \file
  *
- * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
- * \author Victor Julien <victor@inliniac.net>
+ * \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __UTIL_PID_H__
-#define __UTIL_PID_H__
+#ifndef UNIX_MANAGER_H
+#define UNIX_MANAGER_H
 
-int SCPidfileCreate(const char *);
-void SCPidfileRemove(const char *);
-int SCPidfileTestRunning(const char *pid_filename);
+#ifdef BUILD_UNIX_SOCKET
+#include <jansson.h>
+#endif
 
-#endif /* __UTIL_PID_H__ */
+#define UNIX_CMD_TAKE_ARGS 1
 
+SCCondT unix_manager_cond;
+SCMutex unix_manager_mutex;
+
+void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode);
+void UnixSocketKillSocketThread(void);
+
+
+TmEcode UnixManagerRegisterCommand(const char * keyword, 
+        TmEcode (*Func)(json_t *, json_t *, void *),
+        void *data, int flags);
+TmEcode UnixManagerRegisterBackgroundTask( 
+        TmEcode (*Func)(void *),
+        void *data);
+
+#endif /* UNIX_MANAGER_H */
