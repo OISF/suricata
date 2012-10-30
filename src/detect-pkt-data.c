@@ -44,7 +44,7 @@
 #include "util-unittest-helper.h"
 
 static int DetectPktDataSetup (DetectEngineCtx *, Signature *, char *);
-static int DetectPktDataTestRegister(void);
+static void DetectPktDataTestRegister(void);
 
 /**
  * \brief Registration function for keyword: file_data
@@ -73,10 +73,6 @@ void DetectPktDataRegister(void) {
 static int DetectPktDataSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     SCEnter();
-    if (s->init_flags & SIG_FLAG_INIT_FLOW && s->flags & SIG_FLAG_TOSERVER && !(s->flags & SIG_FLAG_TOCLIENT)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use pkt_data with flow:to_server or from_client with http.");
-        return -1;
-    }
     s->init_flags &= (~SIG_FLAG_INIT_FILE_DATA);
 
     return 0;
@@ -108,13 +104,13 @@ static int DetectPktDataTest01(void)
     /* sm should be in the MATCH list */
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSBDMATCH];
     if (sm == NULL) {
-        printf("\nsm not in DETECT_SM_LIST_HSBDMATCH\n");
+        printf("sm not in DETECT_SM_LIST_HSBDMATCH: ");
         goto end;
     }
 
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
     if (sm == NULL) {
-        printf("\nsm not in DETECT_SM_LIST_PMATCH\n");
+        printf("sm not in DETECT_SM_LIST_PMATCH: ");
         goto end;
     }
     
@@ -129,6 +125,7 @@ static int DetectPktDataTest01(void)
     
     
     if (sig->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+        printf("sm init_flags SIG_FLAG_INIT_FILE_DATA set: ");
         goto end;
     }
 
@@ -141,7 +138,7 @@ end:
     return result;
 }
 
-static int DetectPktDataTestRegister(void){
+static void DetectPktDataTestRegister(void){
 #ifdef UNITTESTS
     UtRegisterTest("DetectPktDataTest01", DetectPktDataTest01, 1);
 #endif
