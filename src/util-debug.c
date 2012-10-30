@@ -1109,6 +1109,8 @@ void SCLogLoadConfig(void)
         return;
     }
 
+    sc_seen_malloc_error = 0;
+
     sc_lid = SCLogAllocLogInitData();
     if (sc_lid == NULL) {
         SCLogDebug("Could not allocate memory for log init data");
