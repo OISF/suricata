@@ -36,6 +36,7 @@
 
 #if ! defined __OpenBSD__
 #include <sys/thr.h>
+#include <pthread_np.h>
 #endif
 enum {
     PRIO_LOW = 2,
