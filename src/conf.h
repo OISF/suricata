@@ -82,4 +82,6 @@ int ConfGetChildValueInt(ConfNode *base, char *name, intmax_t *val);
 int ConfGetChildValueBool(ConfNode *base, char *name, int *val);
 char *ConfLoadCompleteIncludePath(char *);
 
+char *ConfExpandEnvVar(char *string);
+
 #endif /* ! __CONF_H__ */

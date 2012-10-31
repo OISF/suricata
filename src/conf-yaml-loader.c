@@ -66,117 +66,6 @@ Mangle(char *string)
 }
 
 /**
- * \brief Get the compiled pcre for environment variable expansion.
- *
- * \retval The compiled pcre
- */
-static pcre *
-GetEnvVarPcre(void)
-{
-    static pcre *envvar_pcre = NULL;
-    const char *error;
-    int erroroffset;
-
-    static const char pattern[] = "\\$\\{" 
-        "("    "[^\\$\\{\\}:-]*" ")"
-        "(:-(" "[^\\$\\{\\}:-]*" "))?"
-        "\\}";
-
-    if (envvar_pcre == NULL) {
-        envvar_pcre = pcre_compile(pattern, 0, &error, &erroroffset, NULL);
-        if (envvar_pcre == NULL) {
-            fprintf(stderr, "ERROR: Failed to compile pcre: %s", error);
-            exit(1);
-        }
-    }
-
-    return envvar_pcre;
-}
-
-/**
- * \brief Perform environment variable expansion on the provided string.
- *
- * \param string The string to perform environment variable expansion.
- *
- * \retval A new string with environment variables expanded, only if expansion
- *    took place.  Otherwise NULL is returned.  As this is a new string it
- *    must be free'd by the caller.
- */
-static char *
-ExpandEnvVar(char *string)
-{
-    const char *var_name;
-    const char *var_val     = NULL;
-    int         var_val_len = 0;
-    int         segment_start;
-    int         segment_end;
-    const char *default_val = NULL;
-    char       *new_str;
-    int         new_str_len;
-    int         ovector[12];
-
-    int match = pcre_exec(GetEnvVarPcre(), NULL, string, strlen(string), 0, 0,
-        ovector, 12);
-    if (match < 2) {
-        return NULL;
-    }
-    segment_start = ovector[0];
-    segment_end = ovector[1];
-
-    if (pcre_get_substring(string, ovector, match, 1, &var_name) < 0) {
-        fprintf(stderr, "pcre failure\n");
-        exit(1);
-    }
-
-    /* Do we also have a default? */
-    if (match == 4) {
-        if (pcre_get_substring(string, ovector, match, 3, &default_val) < 0) {
-            fprintf(stderr, "pcre failure\n");
-            exit(1);
-        }
-    }
-
-    /* Get the environment variable, using the optional default if the
-     * environment variable is not set. */
-    if (NULL != (var_val = getenv(var_name))) {
-        var_val_len = strlen(var_val);
-    }
-    else if (default_val != NULL) {
-        var_val = default_val;
-        var_val_len = strlen(var_val);
-    }
-
-    /* Calculate the length of the new string including termination
-     * and then allocate it. */
-
-    new_str_len = strlen(string) - (segment_end - segment_start) +
-        var_val_len + 1;
-    BUG_ON(new_str_len < 1);
-    new_str = SCCalloc(1, new_str_len);
-
-    /* Build the new string. */
-    if (segment_start)
-        strncat(new_str, string, segment_start);
-    if (var_val != NULL)
-        strncat(new_str, var_val, var_val_len);
-    if (strlen(string) > (size_t)segment_end)
-        strcat(new_str, string + segment_end);
-
-    pcre_free_substring(var_name);
-    if (default_val != NULL)
-        pcre_free_substring(default_val);
-
-    /* Recurse to expand other variables. */
-    char *new_new_str = ExpandEnvVar(new_str);
-    if (new_new_str != NULL) {
-        SCFree(new_str);
-        new_str = new_new_str;
-    }
-
-    return new_str;
-}
-
-/**
  * \brief Parse a YAML layer.
  *
  * \param parser A pointer to an active yaml_parser_t.
@@ -230,7 +119,7 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                 if (seq_node->name == NULL)
                     return -1;
                 snprintf(seq_node->name, DEFAULT_NAME_LEN, "%d", seq_idx++);
-                if (NULL == (seq_node->val = ExpandEnvVar(value))) 
+                if (NULL == (seq_node->val = ConfExpandEnvVar(value))) 
                   seq_node->val = SCStrdup(value);
                 TAILQ_INSERT_TAIL(&parent->head, seq_node, next);
             }
@@ -274,7 +163,7 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                     if (node->allow_override) {
                         if (node->val != NULL)
                             SCFree(node->val);
-                        if (NULL == (node->val = ExpandEnvVar(value))) 
+                        if (NULL == (node->val = ConfExpandEnvVar(value))) 
                           node->val = SCStrdup(value);
                     }
                     state = CONF_KEY;
@@ -624,159 +513,6 @@ libhtp:\n\
     return 1;
 }
 
-static int
-ConfYamlEnvVarExpandTest(void)
-{
-    char *new;
-    const char *old_foo = getenv("FOO");
-    const char *old_bar = getenv("BAR");
-
-    setenv("FOO", "bar", 1);
-    setenv("BAR", "foo", 1);
-
-    if (ExpandEnvVar("something") != NULL)
-        return 0;
-    if (ExpandEnvVar("$something") != NULL)
-        return 0;
-    if (ExpandEnvVar("${something") != NULL)
-        return 0;
-
-    new = ExpandEnvVar("${}");
-    if (new == NULL || strcmp(new, "") != 0) {
-        return 0;
-    }
-    SCFree(new);
-
-    new = ExpandEnvVar("${FOO}");
-    if (new == NULL || strcmp(new, "bar") != 0) {
-        return 0;
-    }
-    SCFree(new);
-
-    new = ExpandEnvVar("pre${FOO}");
-    if (new == NULL || strcmp(new, "prebar") != 0) {
-        return 0;
-    }
-    SCFree(new);
-
-    new = ExpandEnvVar("${FOO}post");
-    if (new == NULL || strcmp(new, "barpost") != 0) {
-        fprintf(stderr, "expected '%s', got '%s'\n", "barpost", new);
-        return 0;
-    }
-    SCFree(new);
-
-    new = ExpandEnvVar("pre${FOO}post");
-    if (new == NULL || strcmp(new, "prebarpost") != 0) {
-        fprintf(stderr, "expected '%s', got '%s'\n", "prebarpost", new);
-        return 0;
-    }
-    SCFree(new);
-
-    new = ExpandEnvVar("pre${NOFOO}post");
-    if (new == NULL || strcmp(new, "prepost") != 0) {
-        fprintf(stderr, "expected '%s', got '%s'\n", "prepost", new);
-        return 0;
-    }
-    SCFree(new);
-
-    new = ExpandEnvVar("${FOO}${BAR}");
-    if (new == NULL || strcmp(new, "barfoo") != 0) {
-        fprintf(stderr, "expected '%s', got '%s'\n", "barfoo", new);
-        return 0;
-    }
-    SCFree(new);
-
-    new = ExpandEnvVar("${FOO}${BAR}${FOOBAR}");
-    if (new == NULL || strcmp(new, "barfoo") != 0) {
-        fprintf(stderr, "expected '%s', got '%s'\n", "barfoo", new);
-        return 0;
-    }
-    SCFree(new);
-
-    new = ExpandEnvVar("${USER}");
-    if (new == NULL || strcmp(new, getenv("USER")) != 0) {
-        fprintf(stderr, "expected '%s', got '%s'\n", getenv("USER"), new);
-        return 0;
-    }
-    SCFree(new);
-
-    unsetenv("FOO");
-    unsetenv("BAR");
-
-    if (old_foo != NULL)
-        setenv("FOO", old_foo, 1);
-    if (old_bar != NULL)
-        setenv("BAR", old_bar, 1);
-
-    return 1;
-}
-
-static int
-ConfYamlEnvVarExpandTestWithDefaultValue(void)
-{
-    char *new;
-
-    new = ExpandEnvVar("${FOO:-foo}");
-    if (new == NULL || strcmp(new, "foo") != 0) {
-        fprintf(stderr, "%d: expected '%s', got '%s'\n", __LINE__, "foo", new);
-        return 0;
-    }
-    SCFree(new);
-
-    new = ExpandEnvVar("pre${FOO:-foo}post");
-    if (new == NULL || strcmp(new, "prefoopost") != 0) {
-        fprintf(stderr, "%d: expected '%s', got '%s'\n", __LINE__, "foo", new);
-        return 0;
-    }
-    SCFree(new);
-
-    const char *old_foo = getenv("FOO");
-    const char *old_bar = getenv("BAR");
-
-    setenv("FOO", "bar", 1);
-    setenv("BAR", "foo", 1);
-
-    new = ExpandEnvVar("${FOO:-foo}");
-    if (new == NULL || strcmp(new, "bar") != 0) {
-        fprintf(stderr, "expected '%s', got '%s'\n", "foo", new);
-        return 0;
-    }
-    SCFree(new);
-    
-    new = ExpandEnvVar("${FOO:-${BAR}}");
-    if (new == NULL || strcmp(new, "bar") != 0) {
-        fprintf(stderr, "expected '%s', got '%s'\n", "foo", new);
-        return 0;
-    }
-    SCFree(new);
-    
-    new = ExpandEnvVar("${NOFOO:-${BAR}}");
-    if (new == NULL || strcmp(new, "foo") != 0) {
-        fprintf(stderr, "expected '%s', got '%s'\n", "foo", new);
-        return 0;
-    }
-    SCFree(new);
-
-    /* A bit silly now... */
-    new = ExpandEnvVar("${NOFOO:-${NOBAR:-nofoobar}}");
-    if (new == NULL || strcmp(new, "nofoobar") != 0) {
-        fprintf(stderr, "expected '%s', got '%s'\n", "foo", new);
-        return 0;
-    }
-    SCFree(new);
-
-    unsetenv("FOO");
-    unsetenv("BAR");
-
-    if (old_foo != NULL)
-        setenv("FOO", old_foo, 1);
-    if (old_bar != NULL)
-        setenv("BAR", old_bar, 1);
-
-    return 1;
-}
-
 #endif /* UNITTESTS */
 
 void
@@ -789,8 +525,5 @@ ConfYamlRegisterTests(void)
     UtRegisterTest("ConfYamlBadYamlVersionTest", ConfYamlBadYamlVersionTest, 1);
     UtRegisterTest("ConfYamlSecondLevelSequenceTest",
         ConfYamlSecondLevelSequenceTest, 1);
-    UtRegisterTest("ConfYamlEnvVarExpandTest", ConfYamlEnvVarExpandTest, 1);
-    UtRegisterTest("ConfYamlEnvVarExpandTestWithDefaultValue", 
-                   ConfYamlEnvVarExpandTestWithDefaultValue, 1);
 #endif /* UNITTESTS */
 }
