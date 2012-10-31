@@ -291,7 +291,15 @@ AC_INIT(configure.ac)
     AC_ARG_ENABLE(profiling,
            AS_HELP_STRING([--enable-profiling], [Enable performance profiling]),,[enable_profiling=no])
     AS_IF([test "x$enable_profiling" = "xyes"], [
-        CFLAGS="${CFLAGS} -DPROFILING"
+
+	case "$host" in
+           *-*-openbsd*)
+		AC_MSG_ERROR([profiling is not supported on OpenBSD])
+		;;
+	   *)
+		CFLAGS="${CFLAGS} -DPROFILING"
+		;;
+        esac
     ])
 
   # profiling support, locking
