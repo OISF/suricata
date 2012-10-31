@@ -38,6 +38,7 @@
 #include "util-byte.h"
 #include "util-privs.h"
 #include "util-device.h"
+#include "runmodes.h"
 
 #define IPFW_ACCEPT 0
 #define IPFW_DROP 1
