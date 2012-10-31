@@ -83,7 +83,7 @@ TAILQ_HEAD(, RunModeOutput_) RunModeOutputs =
 
 static RunModes runmodes[RUNMODE_MAX];
 
-static char *active_runmode;
+static char *active_runmode = NULL;
 
 /**
  * \internal
