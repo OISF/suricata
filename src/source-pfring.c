@@ -177,7 +177,7 @@ void TmModuleDecodePfringRegister (void) {
 static inline void PfringDumpCounters(PfringThreadVars *ptv)
 {
     pfring_stat pfring_s;
-    if (likely((pfring_stats(ptv->pd, &pfring_s) >= 0)) {
+    if (likely((pfring_stats(ptv->pd, &pfring_s) >= 0))) {
         SCPerfCounterSetUI64(ptv->capture_kernel_packets, ptv->tv->sc_perf_pca, pfring_s.recv);
         SCPerfCounterSetUI64(ptv->capture_kernel_drops, ptv->tv->sc_perf_pca, pfring_s.drop);
     }
