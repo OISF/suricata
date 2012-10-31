@@ -483,7 +483,7 @@ DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr)
         /* warning, so we won't print the sig after this. Adding
          * file and line to the message so the admin can figure
          * out what sig this is about */
-        SCLogWarning(SC_ERR_PCRE_STUDY, "PCRE JIT compiler does not support: %s. "
+        SCLogDebug("PCRE JIT compiler does not support: %s. "
                 "Falling back to regular PCRE handling (%s:%d)",
                 regexstr, de_ctx->rule_file, de_ctx->rule_line);
     }
@@ -493,7 +493,7 @@ DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr)
         SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed : %s", eb);
         goto error;
     }
-#endif /*PCRE_HAVE_SLJIT*/
+#endif /*PCRE_HAVE_JIT*/
 
     if(pd->sd == NULL)
         pd->sd = (pcre_extra *) SCCalloc(1,sizeof(pcre_extra));
