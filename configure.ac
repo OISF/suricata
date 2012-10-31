@@ -45,7 +45,7 @@ AC_INIT(configure.ac)
 
     if test "$gccvernum" -ge "400"; then
             dnl gcc 4.0 or later
-            CFLAGS="$CFLAGS -Wextra"
+            CFLAGS="$CFLAGS -Wextra -Werror=implicit-function-declaration"
     else
             CFLAGS="$CFLAGS -W"
     fi
