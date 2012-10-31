@@ -161,6 +161,11 @@ static void DetectEngineBufferHttpServerBodies(DetectEngineCtx *de_ctx,
                 /* final length of the body */
                 htud->tcflags |= HTP_RES_BODY_COMPLETE;
             }
+        } else {
+            if (htud->response_body.content_len == tx->response_entity_len) {
+                SCLogDebug("content_len reached");
+                htud->tcflags |= HTP_RES_BODY_COMPLETE;
+            }
         }
 
         if (flags & STREAM_EOF) {
