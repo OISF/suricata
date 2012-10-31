@@ -134,6 +134,12 @@ AC_INIT(configure.ac)
 		    LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/local/lib/libnet11"
 		    e_magic_file="/usr/share/misc/magic"
                     ;;
+           *-*-openbsd5.1)
+                    CFLAGS="${CFLAGS} -D__OpenBSD__ -fgnu89-inline"
+                    CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet-1.1"
+                    LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1"
+                    e_magic_file="/usr/local/share/misc/magic.mgc"
+                    ;;
            *-*-openbsd*)
                     CFLAGS="${CFLAGS} -D__OpenBSD__ -fgnu89-inline"
                     CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet-1.1"
@@ -285,7 +291,15 @@ AC_INIT(configure.ac)
     AC_ARG_ENABLE(profiling,
            AS_HELP_STRING([--enable-profiling], [Enable performance profiling]),,[enable_profiling=no])
     AS_IF([test "x$enable_profiling" = "xyes"], [
-        CFLAGS="${CFLAGS} -DPROFILING"
+
+    	case "$host" in
+           *-*-openbsd*)
+		AC_MSG_ERROR([profiling is not supported on OpenBSD])
+		;;
+	   *)
+        	CFLAGS="${CFLAGS} -DPROFILING"
+		;;
+        esac
     ])
 
   # profiling support, locking
