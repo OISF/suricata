@@ -449,6 +449,7 @@ typedef struct Signature_ {
 
     /* used to hold flags that are predominantly used during init */
     uint32_t init_flags;
+    SigMatch *filestore_sm;
 
     /** ptr to the next sig in the list */
     struct Signature_ *next;
@@ -780,7 +781,6 @@ typedef struct DetectionEngineThreadCtx_ {
         uint16_t file_id;
         uint16_t tx_id;
     } filestore[DETECT_FILESTORE_MAX];
-    SigMatch *filestore_sm;
 
     DetectEngineCtx *de_ctx;
 #ifdef __SC_CUDA_SUPPORT__

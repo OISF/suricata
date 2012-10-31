@@ -191,7 +191,7 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, DetectFilestoreData
  *  When we are sure all parts of the signature matched, we run this function
  *  to finalize the filestore.
  */
-int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p) {
+int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s) {
     uint8_t flags = 0;
 
     SCEnter();
@@ -200,7 +200,7 @@ int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
         SCReturnInt(0);
     }
 
-    if (det_ctx->filestore_sm == NULL || p->flow == NULL) {
+    if (s->filestore_sm == NULL || p->flow == NULL) {
 #ifndef DEBUG
         SCReturnInt(0);
 #else
@@ -218,13 +218,13 @@ int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
     FileContainer *ffc = AppLayerGetFilesFromFlow(p->flow, flags);
 
     /* filestore for single files only */
-    if (det_ctx->filestore_sm->ctx == NULL) {
+    if (s->filestore_sm->ctx == NULL) {
         uint16_t u;
         for (u = 0; u < det_ctx->filestore_cnt; u++) {
             FileStoreFileById(ffc, det_ctx->filestore[u].file_id);
         }
     } else {
-        DetectFilestoreData *filestore = det_ctx->filestore_sm->ctx;
+        DetectFilestoreData *filestore = s->filestore_sm->ctx;
         uint16_t u;
 
         for (u = 0; u < det_ctx->filestore_cnt; u++) {
@@ -277,8 +277,6 @@ int DetectFilestoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f
         det_ctx->filestore[det_ctx->filestore_cnt].tx_id);
 
     det_ctx->filestore_cnt++;
-
-    det_ctx->filestore_sm = m;
     SCReturnInt(1);
 }
 
@@ -400,6 +398,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
     }
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
+    s->filestore_sm = sm;
 
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");

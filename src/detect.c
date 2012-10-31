@@ -1022,7 +1022,9 @@ static int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
 
     DetectReplaceExecute(p, det_ctx->replist);
     det_ctx->replist = NULL;
-    DetectFilestorePostMatch(tv, det_ctx,p);
+
+    if (s->flags & SIG_FLAG_FILESTORE)
+        DetectFilestorePostMatch(tv, det_ctx, p, s);
 
     return 1;
 }
