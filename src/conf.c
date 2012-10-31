@@ -773,8 +773,119 @@ char *ConfLoadCompleteIncludePath(char *file)
     return path;
 }
 
+/**
+ * \brief Get the compiled pcre for environment variable expansion.
+ *
+ * This compiles the regular expression used in variable expansion and
+ * caches it for re-user.
+ *
+ * \retval The compiled pcre
+ */
+static pcre *
+ConfGetEnvVarPcre(void)
+{
+    static pcre *envvar_pcre = NULL;
+    const char *error;
+    int erroroffset;
 
+    static const char pattern[] = "\\$\\{" 
+        "("    "[^\\$\\{\\}:-]*" ")"
+        "(:-(" "[^\\$\\{\\}:-]*" "))?"
+        "\\}";
 
+    if (envvar_pcre == NULL) {
+        envvar_pcre = pcre_compile(pattern, 0, &error, &erroroffset, NULL);
+        if (envvar_pcre == NULL) {
+            fprintf(stderr, "ERROR: Failed to compile pcre: %s", error);
+            exit(1);
+        }
+    }
+
+    return envvar_pcre;
+}
+
+/**
+ * \brief Perform environment variable expansion on the provided string.
+ *
+ * \param string The string to perform environment variable expansion.
+ *
+ * \retval A new string with environment variables expanded, only if expansion
+ *    took place.  Otherwise NULL is returned.  As this is a new string it
+ *    must be free'd by the caller.
+ */
+char *
+ConfExpandEnvVar(char *string)
+{
+    const char *var_name;
+    const char *var_val = NULL;
+    int var_val_len = 0;
+    int segment_start;
+    int segment_end;
+    const char *default_val = NULL;
+    char *new_str;
+    int new_str_len;
+    int ovector[12];
+
+    int match = pcre_exec(ConfGetEnvVarPcre(), NULL, string, strlen(string), 0, 
+        0, ovector, 12);
+    if (match < 2) {
+        return NULL;
+    }
+    segment_start = ovector[0];
+    segment_end = ovector[1];
+
+    if (pcre_get_substring(string, ovector, match, 1, &var_name) < 0) {
+        fprintf(stderr, "pcre failure\n");
+        exit(1);
+    }
+
+    /* Do we also have a default? */
+    if (match == 4) {
+        if (pcre_get_substring(string, ovector, match, 3, &default_val) < 0) {
+            fprintf(stderr, "pcre failure\n");
+            exit(1);
+        }
+    }
+
+    /* Get the environment variable, using the optional default if the
+     * environment variable is not set. */
+    if (NULL != (var_val = getenv(var_name))) {
+        var_val_len = strlen(var_val);
+    }
+    else if (default_val != NULL) {
+        var_val = default_val;
+        var_val_len = strlen(var_val);
+    }
+
+    /* Calculate the length of the new string including termination
+     * and then allocate it. */
+
+    new_str_len = strlen(string) - (segment_end - segment_start) +
+        var_val_len + 1;
+    BUG_ON(new_str_len < 1);
+    new_str = SCCalloc(1, new_str_len);
+
+    /* Build the new string. */
+    if (segment_start)
+        strncat(new_str, string, segment_start);
+    if (var_val != NULL)
+        strncat(new_str, var_val, var_val_len);
+    if (strlen(string) > (size_t)segment_end)
+        strcat(new_str, string + segment_end);
+
+    pcre_free_substring(var_name);
+    if (default_val != NULL)
+        pcre_free_substring(default_val);
+
+    /* Recurse to expand other variables. */
+    char *new_new_str = ConfExpandEnvVar(new_str);
+    if (new_new_str != NULL) {
+        SCFree(new_str);
+        new_str = new_new_str;
+    }
+
+    return new_str;
+}
 
 #ifdef UNITTESTS
 
@@ -1194,6 +1305,158 @@ ConfSetTest(void)
     return 1;
 }
 
+static int
+ConfEnvVarExpandTest(void)
+{
+    char *new;
+    const char *old_foo = getenv("FOO");
+    const char *old_bar = getenv("BAR");
+
+    setenv("FOO", "bar", 1);
+    setenv("BAR", "foo", 1);
+
+    if (ConfExpandEnvVar("something") != NULL)
+        return 0;
+    if (ConfExpandEnvVar("$something") != NULL)
+        return 0;
+    if (ConfExpandEnvVar("${something") != NULL)
+        return 0;
+
+    new = ConfExpandEnvVar("${}");
+    if (new == NULL || strcmp(new, "") != 0) {
+        return 0;
+    }
+    SCFree(new);
+
+    new = ConfExpandEnvVar("${FOO}");
+    if (new == NULL || strcmp(new, "bar") != 0) {
+        return 0;
+    }
+    SCFree(new);
+
+    new = ConfExpandEnvVar("pre${FOO}");
+    if (new == NULL || strcmp(new, "prebar") != 0) {
+        return 0;
+    }
+    SCFree(new);
+
+    new = ConfExpandEnvVar("${FOO}post");
+    if (new == NULL || strcmp(new, "barpost") != 0) {
+        fprintf(stderr, "expected '%s', got '%s'\n", "barpost", new);
+        return 0;
+    }
+    SCFree(new);
+
+    new = ConfExpandEnvVar("pre${FOO}post");
+    if (new == NULL || strcmp(new, "prebarpost") != 0) {
+        fprintf(stderr, "expected '%s', got '%s'\n", "prebarpost", new);
+        return 0;
+    }
+    SCFree(new);
+
+    new = ConfExpandEnvVar("pre${NOFOO}post");
+    if (new == NULL || strcmp(new, "prepost") != 0) {
+        fprintf(stderr, "expected '%s', got '%s'\n", "prepost", new);
+        return 0;
+    }
+    SCFree(new);
+
+    new = ConfExpandEnvVar("${FOO}${BAR}");
+    if (new == NULL || strcmp(new, "barfoo") != 0) {
+        fprintf(stderr, "expected '%s', got '%s'\n", "barfoo", new);
+        return 0;
+    }
+    SCFree(new);
+
+    new = ConfExpandEnvVar("${FOO}${BAR}${FOOBAR}");
+    if (new == NULL || strcmp(new, "barfoo") != 0) {
+        fprintf(stderr, "expected '%s', got '%s'\n", "barfoo", new);
+        return 0;
+    }
+    SCFree(new);
+
+    new = ConfExpandEnvVar("${USER}");
+    if (new == NULL || strcmp(new, getenv("USER")) != 0) {
+        fprintf(stderr, "expected '%s', got '%s'\n", getenv("USER"), new);
+        return 0;
+    }
+    SCFree(new);
+
+    unsetenv("FOO");
+    unsetenv("BAR");
+
+    if (old_foo != NULL)
+        setenv("FOO", old_foo, 1);
+    if (old_bar != NULL)
+        setenv("BAR", old_bar, 1);
+
+    return 1;
+}
+
+static int
+ConfEnvVarExpandTestWithDefaultValue(void)
+{
+    char *new;
+
+    new = ConfExpandEnvVar("${FOO:-foo}");
+    if (new == NULL || strcmp(new, "foo") != 0) {
+        fprintf(stderr, "%d: expected '%s', got '%s'\n", __LINE__, "foo", new);
+        return 0;
+    }
+    SCFree(new);
+
+    new = ConfExpandEnvVar("pre${FOO:-foo}post");
+    if (new == NULL || strcmp(new, "prefoopost") != 0) {
+        fprintf(stderr, "%d: expected '%s', got '%s'\n", __LINE__, "foo", new);
+        return 0;
+    }
+    SCFree(new);
+
+    const char *old_foo = getenv("FOO");
+    const char *old_bar = getenv("BAR");
+
+    setenv("FOO", "bar", 1);
+    setenv("BAR", "foo", 1);
+
+    new = ConfExpandEnvVar("${FOO:-foo}");
+    if (new == NULL || strcmp(new, "bar") != 0) {
+        fprintf(stderr, "expected '%s', got '%s'\n", "foo", new);
+        return 0;
+    }
+    SCFree(new);
+    
+    new = ConfExpandEnvVar("${FOO:-${BAR}}");
+    if (new == NULL || strcmp(new, "bar") != 0) {
+        fprintf(stderr, "expected '%s', got '%s'\n", "foo", new);
+        return 0;
+    }
+    SCFree(new);
+    
+    new = ConfExpandEnvVar("${NOFOO:-${BAR}}");
+    if (new == NULL || strcmp(new, "foo") != 0) {
+        fprintf(stderr, "expected '%s', got '%s'\n", "foo", new);
+        return 0;
+    }
+    SCFree(new);
+
+    /* A bit silly now... */
+    new = ConfExpandEnvVar("${NOFOO:-${NOBAR:-nofoobar}}");
+    if (new == NULL || strcmp(new, "nofoobar") != 0) {
+        fprintf(stderr, "expected '%s', got '%s'\n", "foo", new);
+        return 0;
+    }
+    SCFree(new);
+
+    unsetenv("FOO");
+    unsetenv("BAR");
+
+    if (old_foo != NULL)
+        setenv("FOO", old_foo, 1);
+    if (old_bar != NULL)
+        setenv("BAR", old_bar, 1);
+
+    return 1;
+}
 
 void
 ConfRegisterTests(void)
@@ -1211,6 +1474,9 @@ ConfRegisterTests(void)
     UtRegisterTest("ConfGetChildValueWithDefaultTest", ConfGetChildValueWithDefaultTest, 1);
     UtRegisterTest("ConfGetChildValueIntWithDefaultTest", ConfGetChildValueIntWithDefaultTest, 1);
     UtRegisterTest("ConfGetChildValueBoolWithDefaultTest", ConfGetChildValueBoolWithDefaultTest, 1);
+    UtRegisterTest("ConfEnvVarExpandTest", ConfEnvVarExpandTest, 1);
+    UtRegisterTest("ConfEnvVarExpandTestWithDefaultValue", 
+                   ConfEnvVarExpandTestWithDefaultValue, 1);
 }
 
 #endif /* UNITTESTS */

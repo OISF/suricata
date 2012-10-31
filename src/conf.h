@@ -85,4 +85,6 @@ int ConfGetChildValueIntWithDefault(ConfNode *base, ConfNode *dflt, char *name, 
 int ConfGetChildValueBoolWithDefault(ConfNode *base, ConfNode *dflt, char *name, int *val);
 char *ConfLoadCompleteIncludePath(char *);
 
+char *ConfExpandEnvVar(char *string);
+
 #endif /* ! __CONF_H__ */
