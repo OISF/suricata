@@ -172,6 +172,8 @@ typedef struct AlertUnified2Packet_ {
 #define ALERT_UNIFIED2ALERT_XFF_OVERWRITE 2
 #define ALERT_UNIFIED2ALERT_XFF_DEFAULT "X-Forwarded-For"
 #define ALERT_UNIFIED2ALERT_XFF_MINLEN 7
+#define ALERT_UNIFIED2ALERT_XFF_MAXLEN 46
+#define ALERT_UNIFIED2ALERT_XFFCHAIN_MAXLEN 256
 
 typedef struct Unified2AlertFileCtx_ {
     LogFileCtx *file_ctx;
@@ -294,11 +296,11 @@ static int Unified2Write(Unified2AlertThread *aun)
 
 /**
  *  \brief Function to return XFF IP if any...
- *  \retval 1 if the IP has been foudn and returned in dstbuf
+ *  \retval 1 if the IP has been found and returned in dstbuf
  *  \retval 0 if the IP has not being found or error
  */
-int GetXFFIP ( Packet *p, Unified2AlertThread *aun, char *dstbuf ){
-    char xffip[128];
+static int GetXFFIP ( Packet *p, Unified2AlertThread *aun, char *dstbuf, int dstbuflen ){
+    char xffip[ALERT_UNIFIED2ALERT_XFFCHAIN_MAXLEN];
 
     if (aun->unified2alert_ctx->flags & ALERT_UNIFIED2ALERT_XFF) {
         HtpState *htp_state = NULL;
@@ -307,7 +309,9 @@ int GetXFFIP ( Packet *p, Unified2AlertThread *aun, char *dstbuf ){
         char *p_xff = NULL;
         size_t idx = 0;
         size_t hsize = 0;
-        if (p->flow && AppLayerGetProtoFromPacket(p) == ALPROTO_HTTP) {
+        if (p->flow == NULL)
+            return 0; /* No flow found */
+        if (AppLayerGetProtoFromPacket(p) == ALPROTO_HTTP) {
             htp_state = (HtpState *) AppLayerGetProtoStateFromPacket(p);
             if ( htp_state && htp_state->connp && htp_state->connp->conn) {
                 hsize = list_size(htp_state->connp->conn->transactions);
@@ -315,9 +319,9 @@ int GetXFFIP ( Packet *p, Unified2AlertThread *aun, char *dstbuf ){
                     tx = list_get(htp_state->connp->conn->transactions, idx);
                     if (tx != NULL && tx->request_headers != NULL) {
                         h_xff = table_getc(tx->request_headers, aun->unified2alert_ctx->xff_header);
-                        if (h_xff != NULL && bstr_len(h_xff->value) > ALERT_UNIFIED2ALERT_XFF_MINLEN - 1
-                                                            && bstr_len(h_xff->value) < 120) {
-                            strlcpy(xffip, bstr_ptr(h_xff->value), bstr_len(h_xff->value) + 1);
+                        if (h_xff != NULL && bstr_len(h_xff->value) >= ALERT_UNIFIED2ALERT_XFF_MINLEN
+                                        && bstr_len(h_xff->value) < ALERT_UNIFIED2ALERT_XFFCHAIN_MAXLEN) {
+                            strlcpy(xffip, bstr_ptr(h_xff->value), ALERT_UNIFIED2ALERT_XFFCHAIN_MAXLEN);
                             /* Check for chained ips separated by ", ", we will get the last one */
                             p_xff = strrchr(xffip, ' ');
                             if (p_xff == NULL) {
@@ -326,9 +330,9 @@ int GetXFFIP ( Packet *p, Unified2AlertThread *aun, char *dstbuf ){
                                 p_xff++;
                             }
                             /* Sanity check on extracted IP */ 
-                            if (strlen(p_xff) > ALERT_UNIFIED2ALERT_XFF_MINLEN - 1 &&
-                                            strlen(p_xff) < 43 ) {
-                                strlcpy(dstbuf, p_xff, 42);
+                            if (strlen(p_xff) >= ALERT_UNIFIED2ALERT_XFF_MINLEN &&
+                                            strlen(p_xff) <= ALERT_UNIFIED2ALERT_XFF_MAXLEN ) {
+                                strlcpy(dstbuf, p_xff, dstbuflen);
                                 return 1; // OK
                             }
                         }
@@ -447,12 +451,12 @@ static int Unified2PrintStreamSegmentCallback(Packet *p, void *data, uint8_t *bu
     aun->length = 0;
     aun->offset = 0;
     
-    char ipbuf[128];
+    char ipbuf[ALERT_UNIFIED2ALERT_XFF_MAXLEN];
     // If XFF in non overwrite mode...
     if ((aun->unified2alert_ctx->flags & ALERT_UNIFIED2ALERT_XFF) && 
             (aun->unified2alert_ctx->flags & ALERT_UNIFIED2ALERT_XFF_OVERWRITE) == 0 ) {
-        if ( GetXFFIP (p, aun, ipbuf) == 1 ) {
-            in_addr_t xffip;
+        if ( GetXFFIP (p, aun, ipbuf, ALERT_UNIFIED2ALERT_XFF_MAXLEN) == 1 ) {
+            uint32_t xffip;
             if ( inet_pton(AF_INET, ipbuf, &(xffip) ) == 1 ) {
                 memset(dhdr, 0, sizeof(Unified2ExtraData));
                 eu2hdr->type = htonl (110);
@@ -472,7 +476,6 @@ static int Unified2PrintStreamSegmentCallback(Packet *p, void *data, uint8_t *bu
                 aun->offset += sizeof(Unified2AlertFileHeader) + sizeof (Unified2ExtraDataHdr) 
                                                 + sizeof (Unified2ExtraData) + 4;
                 *edxff=xffip;
-                //memcpy(aun->data + (aun->offset - 4), &xffip_net, 4); 
                 /* Shift the *hdr and *phdr pointers */
                 hdr = (Unified2AlertFileHeader*)(edxff + 1);
                 phdr = (Unified2Packet *)(hdr + 1);                                
@@ -538,8 +541,8 @@ static int Unified2PrintStreamSegmentCallback(Packet *p, void *data, uint8_t *bu
         }
         // If XFF in overwrite mode...
         if (aun->unified2alert_ctx->flags & ALERT_UNIFIED2ALERT_XFF_OVERWRITE) {
-            if ( GetXFFIP (p, aun, ipbuf) == 1 ) {
-                in_addr_t xffip;
+            if ( GetXFFIP (p, aun, ipbuf, ALERT_UNIFIED2ALERT_XFF_MAXLEN) == 1 ) {
+                uint32_t xffip;
                 if ( inet_pton(AF_INET, ipbuf, &(xffip) ) == 1 ) {
                     fakehdr.ip4h.s_ip_src.s_addr = xffip;
                 }
@@ -549,7 +552,7 @@ static int Unified2PrintStreamSegmentCallback(Packet *p, void *data, uint8_t *bu
         aun->iphdr = (void *)(aun->data + aun->offset);
         aun->offset += hdr_length;
         
-     } else if (PKT_IS_IPV6(p)) {
+    } else if (PKT_IS_IPV6(p)) {
         FakeIPv6Hdr fakehdr;
         hdr_length = sizeof(FakeIPv6Hdr);
 
@@ -579,7 +582,7 @@ static int Unified2PrintStreamSegmentCallback(Packet *p, void *data, uint8_t *bu
         }
 
         if (aun->unified2alert_ctx->flags & ALERT_UNIFIED2ALERT_XFF_OVERWRITE) {
-            if ( GetXFFIP (p, aun, ipbuf) == 1 ) {
+            if ( GetXFFIP (p, aun, ipbuf, ALERT_UNIFIED2ALERT_XFF_MAXLEN) == 1 ) {
                 uint32_t xffip6[4];
                 if ( inet_pton(AF_INET6, ipbuf, xffip6 ) == 1 ) {
                     memcpy(fakehdr.ip6h.s_ip6_src, xffip6, 16);
@@ -794,7 +797,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     gphdr.event_second =  htonl(p->ts.tv_sec);
     gphdr.event_microsecond = htonl(p->ts.tv_usec);
     gphdr.src_ip = *(struct in6_addr*)GET_IPV6_SRC_ADDR(p);
-    gphdr.dst_ip = *(struct in6_addr*)GET_IPV6_DST_ADDR(p);    
+    gphdr.dst_ip = *(struct in6_addr*)GET_IPV6_DST_ADDR(p);
     gphdr.protocol = p->proto;
 
     if(p->action & ACTION_DROP)
@@ -944,9 +947,9 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     gphdr.dst_ip = p->ip4h->s_ip_dst.s_addr;
     // If XFF in overwrite mode...
     if (aun->unified2alert_ctx->flags & ALERT_UNIFIED2ALERT_XFF_OVERWRITE) {
-        char ipbuf[128];
-        if ( GetXFFIP (p, aun, ipbuf) == 1 ) {
-            in_addr_t xffip;
+        char ipbuf[ALERT_UNIFIED2ALERT_XFF_MAXLEN];
+        if ( GetXFFIP (p, aun, ipbuf, ALERT_UNIFIED2ALERT_XFF_MAXLEN) == 1 ) {
+            uint32_t xffip;
             if ( inet_pton(AF_INET, ipbuf, &(xffip) ) == 1 ) {
                 if (p->flowflags & FLOW_PKT_TOCLIENT) {
                     gphdr.dst_ip = xffip;
