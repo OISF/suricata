@@ -446,6 +446,7 @@ typedef struct Signature_ {
     uint16_t sm_cnt;
 
     SigMatch *dsize_sm;
+    SigMatch *filestore_sm;
     /* the fast pattern added from this signature */
     SigMatch *mpm_sm;
     /* helper for init phase */
@@ -810,7 +811,6 @@ typedef struct DetectionEngineThreadCtx_ {
         uint16_t file_id;
         uint16_t tx_id;
     } filestore[DETECT_FILESTORE_MAX];
-    SigMatch *filestore_sm;
 
     DetectEngineCtx *de_ctx;
 #ifdef __SC_CUDA_SUPPORT__

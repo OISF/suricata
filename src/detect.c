@@ -771,7 +771,7 @@ static int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
     det_ctx->replist = NULL;
 
     if (s->flags & SIG_FLAG_FILESTORE)
-        DetectFilestorePostMatch(tv, det_ctx, p);
+        DetectFilestorePostMatch(tv, det_ctx, p, s);
 
     return 1;
 }
@@ -1596,7 +1596,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 next:
         DetectReplaceFree(det_ctx->replist);
         det_ctx->replist = NULL;
-        det_ctx->filestore_sm = NULL;
         RULE_PROFILING_END(det_ctx, s, smatch);
 
         det_ctx->flags = 0;
