@@ -23,7 +23,7 @@
  * @return Protocol version or PROTOCOL_UKNOWN.
  */
 int htp_parse_protocol(bstr *protocol) {
-    if (bstr_len(protocol) == 8) {
+    if (protocol != NULL && bstr_len(protocol) == 8) {
         char *ptr = bstr_ptr(protocol);
         if ((ptr[0] == 'H') && (ptr[1] == 'T') && (ptr[2] == 'T') && (ptr[3] == 'P')
             && (ptr[4] == '/') && (ptr[6] == '.')) {

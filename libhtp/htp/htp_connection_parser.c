@@ -135,6 +135,11 @@ htp_connp_t *htp_connp_create_copycfg(htp_cfg_t *cfg) {
     if (connp == NULL) return NULL;
 
     connp->cfg = htp_config_copy(cfg);
+    if (connp->cfg == NULL) {
+        htp_connp_destroy(connp);
+        return NULL;
+    }
+
     connp->is_cfg_private = 1;
 
     return connp;
@@ -160,7 +165,8 @@ void htp_connp_destroy(htp_connp_t *connp) {
         free(connp->in_header_line);
     }
 
-    free(connp->in_line);
+    if (connp->in_line != NULL)
+        free(connp->in_line);
 
     if (connp->out_header_line != NULL) {
         if (connp->out_header_line->line != NULL) {
@@ -170,12 +176,14 @@ void htp_connp_destroy(htp_connp_t *connp) {
         free(connp->out_header_line);
     }
 
-    free(connp->out_line);
+    if (connp->out_line != NULL)
+        free(connp->out_line);
 
     // Destroy the configuration structure, but only
     // if it is our private copy
     if (connp->is_cfg_private) {
-        htp_config_destroy(connp->cfg);
+        if (connp->cfg != NULL)
+            htp_config_destroy(connp->cfg);
     }
 
     free(connp);
@@ -188,14 +196,11 @@ void htp_connp_destroy(htp_connp_t *connp) {
  * @param connp
  */
 void htp_connp_destroy_all(htp_connp_t *connp) {
-    if (connp->conn == NULL) {
-        fprintf(stderr, "HTP: htp_connp_destroy_all was invoked, but conn is NULL\n");
-        return;
+    if (connp->conn != NULL) {
+        // Destroy connection
+        htp_conn_destroy(connp->conn);
+        connp->conn = NULL;
     }
-
-    // Destroy connection
-    htp_conn_destroy(connp->conn);
-    connp->conn = NULL;
 
     // Destroy everything else
     htp_connp_destroy(connp);
