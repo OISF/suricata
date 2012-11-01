@@ -131,6 +131,8 @@ static uint8_t *DetectEngineHHDGetBufferForTX(int tx_id,
     } else {
         headers = tx->response_headers;
     }
+    if (headers == NULL)
+        goto end;
 
     htp_header_t *h = NULL;
     uint8_t *headers_buffer = det_ctx->hhd_buffers[index];
