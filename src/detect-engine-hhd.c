@@ -131,6 +131,8 @@ static void DetectEngineBufferHttpHeaders(DetectEngineThreadCtx *det_ctx, Flow *
         } else {
             headers = tx->response_headers;
         }
+        if (headers == NULL)
+            continue;
 
         htp_header_t *h = NULL;
         uint8_t *headers_buffer = NULL;
