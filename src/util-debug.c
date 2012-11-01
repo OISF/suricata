@@ -298,7 +298,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
         return SC_ERR_LOG_FG_FILTER_MATCH;
     }
 
-    char *temp_fmt = SCStrdup(sc_log_config->log_format);
+    char *temp_fmt = strdup(sc_log_config->log_format);
     if (unlikely(temp_fmt == NULL)) {
         return SC_ERR_MEM_ALLOC;
     }
