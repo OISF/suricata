@@ -58,25 +58,29 @@ void htp_conn_destroy(htp_conn_t *conn) {
     // using the iterator does not work here because some of the
     // list element may be NULL (and with the iterator it is impossible
     // to distinguish a NULL element from the end of the list).
-    size_t i;
-    for (i = 0; i < list_size(conn->transactions); i++) {
-        htp_tx_t *tx = (htp_tx_t *)list_get(conn->transactions, i);
-        if (tx != NULL) {
-            htp_tx_destroy(tx);
+    if (conn->transactions != NULL) {
+        size_t i;
+        for (i = 0; i < list_size(conn->transactions); i++) {
+            htp_tx_t *tx = (htp_tx_t *)list_get(conn->transactions, i);
+            if (tx != NULL) {
+                htp_tx_destroy(tx);
+            }
         }
+
+        list_destroy(conn->transactions);
     }
-    
-    list_destroy(conn->transactions);
 
     // Destroy individual messages
-    htp_log_t *l = NULL;
-    list_iterator_reset(conn->messages);
-    while ((l = list_iterator_next(conn->messages)) != NULL) {
-        free((void *)l->msg);
-        free(l);
-    }
+    if (conn->messages != NULL) {
+        htp_log_t *l = NULL;
+        list_iterator_reset(conn->messages);
+        while ((l = list_iterator_next(conn->messages)) != NULL) {
+            free((void *)l->msg);
+            free(l);
+        }
 
-    list_destroy(conn->messages);
+        list_destroy(conn->messages);
+    }
 
     if (conn->local_addr != NULL) {
         free(conn->local_addr);
@@ -101,7 +105,7 @@ void htp_conn_destroy(htp_conn_t *conn) {
  * @return 1 if transaction was removed or 0 if it wasn't found
  */
 int htp_conn_remove_tx(htp_conn_t *conn, htp_tx_t *tx) {
-    if ((tx == NULL)||(conn == NULL)) return 0;
+    if ((tx == NULL)||(conn == NULL)||(conn->transactions == NULL)) return 0;
 
     unsigned int i = 0;
     for (i = 0; i < list_size(conn->transactions); i++) {

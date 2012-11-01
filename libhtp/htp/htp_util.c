@@ -147,6 +147,7 @@ int htp_is_space(int c) {
  * @return Method number of M_UNKNOWN
  */
 int htp_convert_method_to_number(bstr *method) {
+    if (method == NULL) return M_UNKNOWN;
     // TODO Optimize using parallel matching, or something
     if (bstr_cmpc(method, "GET") == 0) return M_GET;
     if (bstr_cmpc(method, "PUT") == 0) return M_PUT;
@@ -446,6 +447,8 @@ int htp_parse_authority(htp_connp_t *connp, bstr *authority, htp_uri_t **uri) {
  * @return HTP_ERROR on memory allocation failure, HTP_OK otherwise
  */
 int htp_parse_uri(bstr *input, htp_uri_t **uri) {
+    if (input == NULL)
+        return HTP_ERROR;
     char *data = bstr_ptr(input);
     size_t len = bstr_len(input);
     size_t start, pos;
@@ -920,6 +923,9 @@ int decode_u_encoding(htp_cfg_t *cfg, htp_tx_t *tx, unsigned char *data) {
  * @param path
  */
 int htp_decode_path_inplace(htp_cfg_t *cfg, htp_tx_t *tx, bstr *path) {
+    if (path == NULL)
+        return -1;
+
     unsigned char *data = (unsigned char *) bstr_ptr(path);
     if (data == NULL) {
         return -1;
@@ -1228,22 +1234,23 @@ int htp_normalize_parsed_uri(htp_connp_t *connp, htp_uri_t *incomplete, htp_uri_
     if (incomplete->path != NULL) {
         // Make a copy of the path, on which we can work on
         normalized->path = bstr_strdup(incomplete->path);
+        if (normalized->path != NULL) {
+            // Decode URL-encoded (and %u-encoded) characters, as well as lowercase,
+            // compress separators and convert backslashes.
+            htp_decode_path_inplace(connp->cfg, connp->in_tx, normalized->path);
 
-        // Decode URL-encoded (and %u-encoded) characters, as well as lowercase,
-        // compress separators and convert backslashes.
-        htp_decode_path_inplace(connp->cfg, connp->in_tx, normalized->path);
+            // Handle UTF-8 in path
+            if (connp->cfg->path_convert_utf8) {
+                // Decode Unicode characters into a single-byte stream, using best-fit mapping
+                htp_utf8_decode_path_inplace(connp->cfg, connp->in_tx, normalized->path);
+            } else {
+                // Only validate path as a UTF-8 stream
+                htp_utf8_validate_path(connp->in_tx, normalized->path);
+            }
 
-        // Handle UTF-8 in path
-        if (connp->cfg->path_convert_utf8) {
-            // Decode Unicode characters into a single-byte stream, using best-fit mapping
-            htp_utf8_decode_path_inplace(connp->cfg, connp->in_tx, normalized->path);
-        } else {
-            // Only validate path as a UTF-8 stream
-            htp_utf8_validate_path(connp->in_tx, normalized->path);
+            // RFC normalization
+            htp_normalize_uri_path_inplace(normalized->path);
         }
-
-        // RFC normalization
-        htp_normalize_uri_path_inplace(normalized->path);
     }
 
     // Query
