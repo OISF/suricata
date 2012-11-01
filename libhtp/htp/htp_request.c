@@ -266,7 +266,7 @@ int htp_connp_REQ_BODY_DETERMINE(htp_connp_t *connp) {
 
     // Check for the Transfer-Encoding header, which
     // would indicate a chunked request body
-    if (te != NULL) {
+    if (te != NULL && te->value != NULL) {
         // Make sure it contains "chunked" only
         if (bstr_cmpc(te->value, "chunked") != 0) {
             // Invalid T-E header value
@@ -299,7 +299,7 @@ int htp_connp_REQ_BODY_DETERMINE(htp_connp_t *connp) {
         connp->in_tx->progress = TX_PROGRESS_REQ_BODY;
     } else
         // Next check for the presence of the Content-Length header
-        if (cl != NULL) {
+        if (cl != NULL && cl->value != NULL) {
         // It seems that we have a request body.
         connp->in_tx->request_transfer_coding = IDENTITY;
 

@@ -52,6 +52,13 @@ int htp_process_request_header_apache_2_2(htp_connp_t *connp) {
 
         for (i = connp->in_header_line_index; i < connp->in_header_line_counter; i++) {
             htp_header_line_t *hl = list_get(connp->in_tx->request_header_lines, i);
+            if (hl == NULL) {
+                // Internal error
+                htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0,
+                        "Process request header (Apache 2.2): Internal error");
+                free(h);
+                return HTP_ERROR;
+            }
             len += bstr_len(hl->line);
         }
 
@@ -65,6 +72,14 @@ int htp_process_request_header_apache_2_2(htp_connp_t *connp) {
 
         for (i = connp->in_header_line_index; i < connp->in_header_line_counter; i++) {
             htp_header_line_t *hl = list_get(connp->in_tx->request_header_lines, i);
+            if (hl == NULL) {
+                // Internal error
+                htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0,
+                        "Process request header (Apache 2.2): Internal error");
+                bstr_free(tempstr);
+                free(h);
+                return HTP_ERROR;
+            }
             char *data = bstr_ptr(hl->line);
             size_t len = bstr_len(hl->line);
             htp_chomp((unsigned char *)data, &len);
@@ -98,8 +113,10 @@ int htp_process_request_header_apache_2_2(htp_connp_t *connp) {
         bstr_add_str_noex(h_existing->value, h->value);
 
         // The header is no longer needed
-        free(h->name);
-        free(h->value);
+        if (h->name != NULL)
+            free(h->name);
+        if (h->value != NULL)
+            free(h->value);
         free(h);
 
         // Keep track of same-name headers        
@@ -276,6 +293,9 @@ int htp_parse_request_line_apache_2_2(htp_connp_t *connp) {
     }
 
     tx->request_uri = bstr_memdup((char *) data + start, pos - start);
+    if (tx->request_uri == NULL) {
+        return HTP_ERROR;
+    }
 
 #ifdef HTP_DEBUG
     fprint_raw_data(stderr, __FUNCTION__, (unsigned char *)bstr_ptr(tx->request_uri), bstr_len(tx->request_uri));

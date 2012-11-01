@@ -86,27 +86,31 @@ void htp_tx_destroy(htp_tx_t *tx) {
 
     // Destroy request_header_lines
     htp_header_line_t *hl = NULL;
-    list_iterator_reset(tx->request_header_lines);
-    while ((hl = list_iterator_next(tx->request_header_lines)) != NULL) {
-        bstr_free(hl->line);
-        bstr_free(hl->terminators);
-        // No need to destroy hl->header because
-        // htp_header_line_t does not own it.
-        free(hl);
-    }
+    if (tx->request_header_lines != NULL) {
+        list_iterator_reset(tx->request_header_lines);
+        while ((hl = list_iterator_next(tx->request_header_lines)) != NULL) {
+            bstr_free(hl->line);
+            bstr_free(hl->terminators);
+            // No need to destroy hl->header because
+            // htp_header_line_t does not own it.
+            free(hl);
+        }
 
-    list_destroy(tx->request_header_lines);
+        list_destroy(tx->request_header_lines);
+    }
 
     // Destroy request_headers    
     htp_header_t *h = NULL;
-    table_iterator_reset(tx->request_headers);
-    while (table_iterator_next(tx->request_headers, (void **) & h) != NULL) {
-        bstr_free(h->name);
-        bstr_free(h->value);
-        free(h);
-    }
+    if (tx->request_headers != NULL) {
+        table_iterator_reset(tx->request_headers);
+        while (table_iterator_next(tx->request_headers, (void **) & h) != NULL) {
+            bstr_free(h->name);
+            bstr_free(h->value);
+            free(h);
+        }
 
-    table_destroy(tx->request_headers);
+        table_destroy(tx->request_headers);
+    }
 
     if (tx->request_headers_raw != NULL) {
         bstr_free(tx->request_headers_raw);
@@ -119,25 +123,29 @@ void htp_tx_destroy(htp_tx_t *tx) {
 
     // Destroy response_header_lines
     hl = NULL;
-    list_iterator_reset(tx->response_header_lines);
-    while ((hl = list_iterator_next(tx->response_header_lines)) != NULL) {
-        bstr_free(hl->line);
-        bstr_free(hl->terminators);
-        // No need to destroy hl->header because
-        // htp_header_line_t does not own it.
-        free(hl);
+    if (tx->response_header_lines != NULL) {
+        list_iterator_reset(tx->response_header_lines);
+        while ((hl = list_iterator_next(tx->response_header_lines)) != NULL) {
+            bstr_free(hl->line);
+            bstr_free(hl->terminators);
+            // No need to destroy hl->header because
+            // htp_header_line_t does not own it.
+            free(hl);
+        }
+        list_destroy(tx->response_header_lines);
     }
-    list_destroy(tx->response_header_lines);
 
     // Destroy response headers    
     h = NULL;
-    table_iterator_reset(tx->response_headers);
-    while (table_iterator_next(tx->response_headers, (void **) & h) != NULL) {
-        bstr_free(h->name);
-        bstr_free(h->value);
-        free(h);
+    if (tx->response_headers) {
+        table_iterator_reset(tx->response_headers);
+        while (table_iterator_next(tx->response_headers, (void **) & h) != NULL) {
+            bstr_free(h->name);
+            bstr_free(h->value);
+            free(h);
+        }
+        table_destroy(tx->response_headers);
     }
-    table_destroy(tx->response_headers);
 
     // Tell the connection to remove this transaction
     // from the list
