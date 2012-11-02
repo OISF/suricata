@@ -36,13 +36,21 @@
 #define _GNU_SOURCE
 #define __USE_GNU
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <errno.h>
+#if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#if HAVE_INTTYPES_H
 #include <inttypes.h>
+#endif
 #include <limits.h>
 #include <ctype.h>
 #include <string.h>
@@ -57,14 +65,15 @@
 #include <syscall.h>
 #endif
 
+#if HAVE_SYS_TYPES_H
 #include <sys/types.h> /* for gettid(2) */
+#endif
+
+#if HAVE_SCHED_H
 #include <sched.h>     /* for sched_setaffinity(2) */
+#endif
 
 #include <pcre.h>
-
-#if HAVE_CONFIG_H
-#include <config.h>
-#endif
 
 #ifdef HAVE_SYSLOG_H
 #include <syslog.h>
@@ -79,7 +88,9 @@
 #include "win32-service.h"
 #endif /* OS_WIN32 */
 
+#if HAVE_SYS_TIME_H
 #include <sys/time.h>
+#endif
 
 #if HAVE_POLL_H
 #include <poll.h>
@@ -93,7 +104,9 @@
 #include <signal.h>
 #endif
 
+#if HAVE_SYS_TYPES_H
 #include <sys/types.h>
+#endif
 
 #if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
@@ -128,8 +141,12 @@
 #include <ws2tcpip.h>
 #endif
 
+#ifdef HAVE_ASSERT_H
 #include <assert.h>
 #define BUG_ON(x) assert(!(x))
+#else
+#define BUG_ON(x)
+#endif
 
 #ifdef HAVE_PCAP_H
 #include <pcap.h>

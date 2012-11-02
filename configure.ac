@@ -50,13 +50,12 @@ AC_INIT(configure.ac)
         if test "$gccvernum" -ge "400"; then
                 dnl gcc 4.0 or later
                 CFLAGS="$CFLAGS -Wextra -Werror-implicit-function-declaration"
+                # remove optimization options that break our code
+                # VJ 2010/06/27: no-tree-pre added. It breaks ringbuffers code.
+                CFLAGS="$CFLAGS -fno-tree-pre"
         else
                 CFLAGS="$CFLAGS -W"
         fi
-
-        # remove optimization options that break our code
-        # VJ 2010/06/27: no-tree-pre added. It breaks ringbuffers code.
-        CFLAGS="$CFLAGS -fno-tree-pre"
     fi
     CFLAGS="$CFLAGS -Wall -fno-strict-aliasing"
     CFLAGS="$CFLAGS -Wno-unused-parameter"
@@ -95,7 +94,7 @@ AC_INIT(configure.ac)
     # Checks for libraries.
 
     # Checks for header files.
-    AC_CHECK_HEADERS([arpa/inet.h inttypes.h limits.h netdb.h poll.h signal.h stdint.h stdlib.h string.h syslog.h sys/ioctl.h sys/prctl.h sys/socket.h sys/syscall.h netinet/in.h sys/time.h unistd.h windows.h winsock2.h ws2tcpip.h])
+    AC_CHECK_HEADERS([arpa/inet.h inttypes.h limits.h netdb.h poll.h signal.h stdint.h stdlib.h string.h syslog.h sys/ioctl.h sys/prctl.h sys/socket.h sys/syscall.h netinet/in.h sys/time.h unistd.h windows.h winsock2.h ws2tcpip.h sched.h assert.h])
     AC_CHECK_HEADERS([sys/socket.h net/if.h sys/mman.h], [], [],
     [[#ifdef HAVE_SYS_SOCKET_H
 #include <sys/types.h>
@@ -1299,16 +1298,12 @@ AC_INIT(configure.ac)
         REVISION=`cat ./revision`
         CFLAGS="${CFLAGS} -DREVISION=\"${REVISION}\""
     else
-        AC_MSG_CHECKING(git command available)
-        GIT=`which git`
-        if [ test "$GIT" != ""]; then
-            AC_MSG_RESULT(yes)
+        AC_PATH_PROG(HAVE_GIT_CMD, git, "no")
+        if test "$HAVE_GIT_CMD" != "no"; then
             if [ test -d .git ]; then
                 REVISION=`git rev-parse --short HEAD`
                 CFLAGS="${CFLAGS} -DREVISION=\"${REVISION}\""
             fi
-        else
-            AC_MSG_RESULT(no)
         fi
     fi
 

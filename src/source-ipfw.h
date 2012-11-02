@@ -25,8 +25,6 @@
 #ifndef __SOURCE_IPFW_H__
 #define __SOURCE_IPFW_H__
 
-#include <pthread.h>
-
 #define IPFW_MAX_QUEUE 16
 
 /* per packet IPFW vars (Not used) */
