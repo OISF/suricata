@@ -137,7 +137,6 @@ static NFQQueueVars nfq_q[NFQ_MAX_QUEUE];
 static uint16_t receive_queue_num = 0;
 static SCMutex nfq_init_lock;
 
-TmEcode ReceiveNFQ(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode ReceiveNFQLoop(ThreadVars *tv, void *data, void *slot);
 TmEcode ReceiveNFQThreadInit(ThreadVars *, void *, void **);
 TmEcode ReceiveNFQThreadDeinit(ThreadVars *, void *);
@@ -175,7 +174,7 @@ void TmModuleReceiveNFQRegister (void) {
 
     tmm_modules[TMM_RECEIVENFQ].name = "ReceiveNFQ";
     tmm_modules[TMM_RECEIVENFQ].ThreadInit = ReceiveNFQThreadInit;
-    tmm_modules[TMM_RECEIVENFQ].Func = ReceiveNFQ;
+    tmm_modules[TMM_RECEIVENFQ].Func = NULL;
     tmm_modules[TMM_RECEIVENFQ].PktAcqLoop = ReceiveNFQLoop;
     tmm_modules[TMM_RECEIVENFQ].ThreadExitPrintStats = ReceiveNFQThreadExitStats;
     tmm_modules[TMM_RECEIVENFQ].ThreadDeinit = ReceiveNFQThreadDeinit;
@@ -853,32 +852,6 @@ TmEcode ReceiveNFQLoop(ThreadVars *tv, void *data, void *slot)
         SCPerfSyncCountersIfSignalled(tv, 0);
     }
     SCReturnInt(TM_ECODE_OK);
-}
-
-/**
- * \brief NFQ receive module main entry function: receive a packet from NFQ
- */
-TmEcode ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
-
-    NFQThreadVars *ntv = (NFQThreadVars *)data;
-    NFQQueueVars *nq = NFQGetQueue(ntv->nfq_index);
-    if (nq == NULL) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                     "can't get queue for %" PRId16 "", ntv->nfq_index);
-        return TM_ECODE_FAILED;
-    }
-
-    /* make sure we have at least one packet in the packet pool, to prevent
-     * us from 1) alloc'ing packets at line rate, 2) have a race condition
-     * for the nfq mutex lock with the verdict thread. */
-    while (PacketPoolSize() == 0) {
-        PacketPoolWait();
-    }
-
-    /* do our nfq magic */
-    NFQRecvPkt(nq, ntv);
-
-    return TM_ECODE_OK;
 }
 
 /**
