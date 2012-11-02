@@ -137,6 +137,7 @@ detect-icode.c detect-icode.h \
 detect-id.c detect-id.h \
 detect-ipopts.c detect-ipopts.h \
 detect-ipproto.c detect-ipproto.h \
+detect-iprep.c detect-iprep.h \
 detect-isdataat.c detect-isdataat.h \
 detect-itype.c detect-itype.h \
 detect-l3proto.c detect-l3proto.h \

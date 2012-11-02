@@ -38,6 +38,7 @@
 #include "decode-events.h"
 #include "defrag.h"
 #include "pkt-var.h"
+#include "host.h"
 
 #include "util-unittest.h"
 #include "util-debug.h"

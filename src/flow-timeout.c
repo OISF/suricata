@@ -40,6 +40,7 @@
 #include "flow-private.h"
 #include "flow-manager.h"
 #include "pkt-var.h"
+#include "host.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"

@@ -37,6 +37,7 @@
 #include "threadvars.h"
 #include "flow.h"
 #include "flow-util.h"
+#include "host.h"
 
 #include "stream.h"
 #include "stream-tcp-reassemble.h"

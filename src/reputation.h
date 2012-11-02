@@ -26,6 +26,20 @@
 #ifndef __REPUTATION_H__
 #define __REPUTATION_H__
 
+#include "detect.h"
+#include "host.h"
+
+#define SREP_MAX_CATS 60
+typedef struct SReputation_ {
+    uint32_t version;
+    uint8_t rep[SREP_MAX_CATS];
+} SReputation;
+
+uint8_t SRepCatGetByShortname(char *shortname);
+int SRepInit(DetectEngineCtx *de_ctx);
+void SRepReloadComplete(void);
+int SRepHostTimedOut(Host *);
+
 /** Reputation numbers (types) that we can use to lookup/update, etc
  *  Please, dont convert this to a enum since we want the same reputation
  *  codes always. */

@@ -927,16 +927,11 @@ int IPOnlyMatchCompatSMs(ThreadVars *tv,
                          Signature *s, Packet *p)
 {
     SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
-    int match;
 
     while (sm != NULL) {
-        if (sm->type != DETECT_FLOWBITS) {
-            sm = sm->next;
-            continue;
-        }
+        BUG_ON(!(sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT));
 
-        match = sigmatch_table[sm->type].Match(tv, det_ctx, p, s, sm);
-        if (match > 0) {
+        if (sigmatch_table[sm->type].Match(tv, det_ctx, p, s, sm) > 0) {
             sm = sm->next;
             continue;
         }

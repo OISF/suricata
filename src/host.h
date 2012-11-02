@@ -67,6 +67,7 @@ typedef struct Host_ {
     /** pointers to tag and threshold storage */
     void *tag;
     void *threshold;
+    void *iprep;
 
     /** hash pointers, protected by hash row mutex/spin */
     struct Host_ *hnext;
@@ -106,6 +107,25 @@ typedef struct HostConfig_ {
 #define HOST_CHECK_MEMCAP(size) \
     ((((uint64_t)SC_ATOMIC_GET(host_memuse) + (uint64_t)(size)) <= host_config.memcap))
 
+#define HostIncrUsecnt(h) \
+    SC_ATOMIC_ADD((h)->use_cnt, 1)
+#define HostDecrUsecnt(h) \
+    SC_ATOMIC_SUB((h)->use_cnt, 1)
+
+#define HostReference(dst_h_ptr, h) do {            \
+        if ((h) != NULL) {                          \
+            HostIncrUsecnt((h));                    \
+            *(dst_h_ptr) = h;                       \
+        }                                           \
+    } while (0)
+
+#define HostDeReference(src_h_ptr) do {               \
+        if (*(src_h_ptr) != NULL) {                   \
+            HostDecrUsecnt(*(src_h_ptr));             \
+            *(src_h_ptr) = NULL;                      \
+        }                                             \
+    } while (0)
+
 HostConfig host_config;
 SC_ATOMIC_DECLARE(unsigned long long int,host_memuse);
 SC_ATOMIC_DECLARE(unsigned int,host_counter);
@@ -117,6 +137,7 @@ void HostShutdown(void);
 Host *HostLookupHostFromHash (Address *);
 Host *HostGetHostFromHash (Address *);
 void HostRelease(Host *);
+void HostLock(Host *);
 void HostClearMemory(Host *);
 void HostMoveToSpare(Host *);
 uint32_t HostSpareQueueGetSize(void);

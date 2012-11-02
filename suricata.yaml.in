@@ -828,6 +828,11 @@ action-order:
   - reject
   - alert
 
+# IP Reputation
+#reputation-categories-file: @e_sysconfdir@iprep/categories.txt
+#default-reputation-path: @e_sysconfdir@iprep
+#reputation-files:
+# - reputation.list
 
 # Host specific policies for defragmentation and TCP stream
 # reassembly.  The host OS lookup is done using a radix tree, just

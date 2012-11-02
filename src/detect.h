@@ -546,6 +546,9 @@ typedef struct DetectEngineCtx_ {
     Signature *sig_list;
     uint32_t sig_cnt;
 
+    /* version of the srep data */
+    uint32_t srep_version;
+
     Signature **sig_array;
     uint32_t sig_array_size; /* size in bytes */
     uint32_t sig_array_len;  /* size in array members */
@@ -1087,6 +1090,7 @@ enum {
 
     DETECT_L3PROTO,
     DETECT_LUAJIT,
+    DETECT_IPREP,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,

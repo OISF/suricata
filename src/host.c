@@ -108,6 +108,10 @@ void HostClearMemory(Host *h) {
         ThresholdListFree(h->threshold);
         h->threshold = NULL;
     }
+    if (h->iprep != NULL) {
+        SCFree(h->iprep);
+        h->iprep = NULL;
+    }
     SC_ATOMIC_DESTROY(h->use_cnt);
 }
 
@@ -362,11 +366,6 @@ static Host *HostGetNew(Address *a) {
     return h;
 }
 
-#define HostIncrUsecnt(h) \
-    SC_ATOMIC_ADD((h)->use_cnt, 1)
-#define HostDecrUsecnt(h) \
-    SC_ATOMIC_SUB((h)->use_cnt, 1)
-
 void HostInit(Host *h, Address *a) {
     COPY_ADDRESS(a, &h->a);
     (void) HostIncrUsecnt(h);
@@ -375,6 +374,10 @@ void HostInit(Host *h, Address *a) {
 void HostRelease(Host *h) {
     (void) HostDecrUsecnt(h);
     SCMutexUnlock(&h->m);
+}
+
+void HostLock(Host *h) {
+    SCMutexLock(&h->m);
 }
 
 /* HostGetHostFromHash

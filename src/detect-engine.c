@@ -84,6 +84,8 @@
 #include "util-profiling.h"
 #endif
 
+#include "reputation.h"
+
 #define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 3000
 
 static uint32_t detect_engine_ctx_id = 1;
@@ -541,6 +543,8 @@ static void *DetectEngineLiveRuleSwap(void *arg)
     }
     DetectEngineCtxFree(old_de_ctx);
 
+    SRepReloadComplete();
+
     /* reset the handler */
     UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
 
@@ -677,6 +681,9 @@ DetectEngineCtx *DetectEngineCtxInit(void) {
     }
 
     de_ctx->id = detect_engine_ctx_id++;
+
+    /* init iprep... ignore errors for now */
+    (void)SRepInit(de_ctx);
 
     return de_ctx;
 error:

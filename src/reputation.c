@@ -28,11 +28,501 @@
 #include "util-error.h"
 #include "util-debug.h"
 #include "util-radix-tree.h"
-#include "reputation.h"
 #include "util-host-os-info.h"
 #include "util-unittest.h"
 #include "suricata-common.h"
 #include "threads.h"
+#include "util-print.h"
+#include "host.h"
+#include "conf.h"
+#include "detect.h"
+#include "reputation.h"
+
+/** effective reputation version, atomic as the host
+ *  time out code will use it to check if a host's
+ *  reputation info is outdated. */
+SC_ATOMIC_DECL_AND_INIT(uint32_t, srep_eversion);
+/** reputation version set to the host's reputation */
+static uint32_t srep_version = 0;
+
+static uint32_t SRepIncrVersion(void) {
+    return ++srep_version;
+}
+
+static uint32_t SRepGetVersion(void) {
+    return srep_version;
+}
+
+static uint32_t SRepGetEffectiveVersion(void) {
+    return SC_ATOMIC_GET(srep_eversion);
+}
+
+/** \brief Increment effective reputation version after
+ *         a rule/reputatio reload is complete. */
+void SRepReloadComplete(void) {
+    (void) SC_ATOMIC_ADD(srep_eversion, 1);
+    SCLogDebug("effective Reputation version %u", SRepGetEffectiveVersion());
+}
+
+/** \brief Set effective reputation version after
+ *         reputation initialization is complete. */
+void SRepInitComplete(void) {
+    SC_ATOMIC_SET(srep_eversion, 1);
+    SCLogDebug("effective Reputation version %u", SRepGetEffectiveVersion());
+}
+
+/** \brief Check if a Host is timed out wrt ip rep, meaning a new
+ *         version is in place.
+ *
+ *  We clean up the old version here.
+ *
+ *  \param h host
+ *
+ *  \retval 0 not timed out
+ *  \retval 1 timed out
+ */
+int SRepHostTimedOut(Host *h) {
+    BUG_ON(h == NULL);
+
+    if (h->iprep == NULL)
+        return 1;
+
+    uint32_t eversion = SRepGetEffectiveVersion();
+    SReputation *r = h->iprep;
+    if (r->version < eversion) {
+        SCLogDebug("host %p has reputation version %u, "
+                "effective version is %u", h, r->version, eversion);
+
+        SCFree(h->iprep);
+        h->iprep = NULL;
+        return 1;
+    }
+
+    return 0;
+}
+
+static int SRepCatSplitLine(char *line, uint8_t *cat, char *shortname, size_t shortname_len) {
+    size_t line_len = strlen(line);
+    char *ptrs[2] = {NULL,NULL};
+    int i = 0;
+    int idx = 0;
+
+    while (i < (int)line_len) {
+        if (line[i] == ',' || line[i] == '\n' || line[i] == '\0' || i == (int)(line_len - 1)) {
+            line[i] = '\0';
+
+            ptrs[idx] = line;
+            idx++;
+
+            line += (i+1);
+            i = 0;
+
+            if (strlen(line) == 0)
+                break;
+            if (idx == 2)
+                break;
+        } else {
+            i++;
+        }
+    }
+
+    if (idx != 2) {
+        return -1;
+    }
+
+    SCLogDebug("%s, %s", ptrs[0], ptrs[1]);
+
+    int c = atoi(ptrs[0]);
+    if (c < 0 || c >= SREP_MAX_CATS) {
+        return -1;
+    }
+
+    *cat = (uint8_t)c;
+    strlcpy(shortname, ptrs[1], shortname_len);
+    return 0;
+
+}
+
+/**
+ *  \retval 0 valid
+ *  \retval 1 header
+ *  \retval -1 boo
+ */
+static int SRepSplitLine(char *line, uint32_t *ip, uint8_t *cat, uint8_t *value) {
+    size_t line_len = strlen(line);
+    char *ptrs[3] = {NULL,NULL,NULL};
+    int i = 0;
+    int idx = 0;
+
+    while (i < (int)line_len) {
+        if (line[i] == ',' || line[i] == '\n' || line[i] == '\0' || i == (int)(line_len - 1)) {
+            line[i] = '\0';
+
+            ptrs[idx] = line;
+            idx++;
+
+            line += (i+1);
+            i = 0;
+
+            if (strlen(line) == 0)
+                break;
+            if (idx == 3)
+                break;
+        } else {
+            i++;
+        }
+    }
+
+    if (idx != 3) {
+        return -1;
+    }
+
+    //SCLogInfo("%s, %s, %s", ptrs[0], ptrs[1], ptrs[2]);
+
+    if (strcmp(ptrs[0], "ip") == 0)
+        return 1;
+
+    uint32_t addr;
+    if (inet_pton(AF_INET, ptrs[0], &addr) <= 0) {
+        return -1;
+    }
+
+    int c = atoi(ptrs[1]);
+    if (c < 0 || c >= SREP_MAX_CATS) {
+        return -1;
+    }
+
+    int v = atoi(ptrs[2]);
+    if (v < 0 || v > 127) {
+        return -1;
+    }
+
+    *ip = addr;
+    *cat = c;
+    *value = v;
+    return 0;
+}
+
+#define SREP_SHORTNAME_LEN 32
+static char srep_cat_table[SREP_MAX_CATS][SREP_SHORTNAME_LEN];
+
+int SRepCatValid(uint8_t cat) {
+    if (cat > SREP_MAX_CATS)
+        return 0;
+
+    if (strlen(srep_cat_table[cat]) == 0)
+        return 0;
+
+    return 1;
+}
+
+uint8_t SRepCatGetByShortname(char *shortname) {
+    uint8_t cat;
+    for (cat = 0; cat < SREP_MAX_CATS; cat++) {
+        if (strcmp(srep_cat_table[cat], shortname) == 0)
+            return cat;
+    }
+
+    return 0;
+}
+
+int SRepLoadCatFile(char *filename) {
+    char line[8192] = "";
+    Address a;
+    memset(&a, 0x00, sizeof(a));
+    a.family = AF_INET;
+    memset(&srep_cat_table, 0x00, sizeof(srep_cat_table));
+
+    BUG_ON(SRepGetVersion() > 0);
+
+    FILE *fp = fopen(filename, "r");
+    if (fp == NULL) {
+        SCLogError(SC_ERR_OPENING_RULE_FILE, "opening ip rep file %s: %s", filename, strerror(errno));
+        return -1;
+    }
+
+    while(fgets(line, (int)sizeof(line), fp) != NULL) {
+        size_t len = strlen(line);
+
+        /* ignore comments and empty lines */
+        if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
+            continue;
+
+        while (isspace(line[--len]));
+
+        /* Check if we have a trailing newline, and remove it */
+        len = strlen(line);
+        if (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
+            line[len - 1] = '\0';
+        }
+
+        uint8_t cat = 0;
+        char shortname[SREP_SHORTNAME_LEN];
+        if (SRepCatSplitLine(line, &cat, shortname, sizeof(shortname)) == 0) {
+            strlcpy(srep_cat_table[cat], shortname, SREP_SHORTNAME_LEN);
+        } else {
+            SCLogError(SC_ERR_NO_REPUTATION, "bad line \"%s\"", line);
+        }
+    }
+    fclose(fp);
+    fp = NULL;
+
+    SCLogDebug("IP Rep categories:");
+    int i;
+    for (i = 0; i < SREP_MAX_CATS; i++) {
+        if (strlen(srep_cat_table[i]) == 0)
+            continue;
+        SCLogDebug("CAT %d, name %s", i, srep_cat_table[i]);
+    }
+    return 0;
+}
+
+static int SRepLoadFile(char *filename) {
+    char line[8192] = "";
+    Address a;
+    memset(&a, 0x00, sizeof(a));
+    a.family = AF_INET;
+
+    FILE *fp = fopen(filename, "r");
+    if (fp == NULL) {
+        SCLogError(SC_ERR_OPENING_RULE_FILE, "opening ip rep file \"%s\": %s", filename, strerror(errno));
+        return -1;
+    }
+
+    while(fgets(line, (int)sizeof(line), fp) != NULL) {
+        size_t len = strlen(line);
+
+        /* ignore comments and empty lines */
+        if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
+            continue;
+
+        while (isspace(line[--len]));
+
+        /* Check if we have a trailing newline, and remove it */
+        len = strlen(line);
+        if (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
+            line[len - 1] = '\0';
+        }
+
+        uint32_t ip = 0;
+        uint8_t cat = 0, value = 0;
+        int r = SRepSplitLine(line, &ip, &cat, &value);
+        if (r < 0) {
+            SCLogError(SC_ERR_NO_REPUTATION, "bad line \"%s\"", line);
+        } else if (r == 0) {
+            char ipstr[16];
+            PrintInet(AF_INET, (const void *)&ip, ipstr, sizeof(ipstr));
+            SCLogDebug("%s %u %u", ipstr, cat, value);
+
+            a.addr_data32[0] = ip;
+            Host *h = HostGetHostFromHash(&a);
+            if (h) {
+                //SCLogInfo("host %p", h);
+
+                if (h->iprep == NULL) {
+                    h->iprep = SCMalloc(sizeof(SReputation));
+                    if (h->iprep != NULL)
+                        memset(h->iprep, 0x00, sizeof(SReputation));
+                }
+                if (h->iprep != NULL) {
+                    SReputation *rep = h->iprep;
+
+                    /* if version is 0, it has been used before, so
+                     * clear it */
+                    if (rep->version != 0) {
+                        memset(rep, 0x00, sizeof(SReputation));
+                    }
+
+                    rep->version = SRepGetVersion();
+                    rep->rep[cat] = value;
+                }
+
+                HostRelease(h);
+            }
+        }
+    }
+    fclose(fp);
+    fp = NULL;
+
+    return 0;
+}
+
+/**
+ *  \brief Create the path if default-rule-path was specified
+ *  \param sig_file The name of the file
+ *  \retval str Pointer to the string path + sig_file
+ */
+static char *SRepCompleteFilePath(char *file)
+{
+    char *defaultpath = NULL;
+    char *path = NULL;
+
+    /* Path not specified */
+    if (PathIsRelative(file)) {
+        if (ConfGet("default-reputation-path", &defaultpath) == 1) {
+            SCLogDebug("Default path: %s", defaultpath);
+            size_t path_len = sizeof(char) * (strlen(defaultpath) +
+                          strlen(file) + 2);
+            path = SCMalloc(path_len);
+            if (unlikely(path == NULL))
+                return NULL;
+            strlcpy(path, defaultpath, path_len);
+#if defined OS_WIN32 || defined __CYGWIN__
+            if (path[strlen(path) - 1] != '\\')
+                strlcat(path, "\\\\", path_len);
+#else
+            if (path[strlen(path) - 1] != '/')
+                strlcat(path, "/", path_len);
+#endif
+            strlcat(path, file, path_len);
+       } else {
+            path = SCStrdup(file);
+            if (unlikely(path == NULL))
+                return NULL;
+        }
+    } else {
+        path = SCStrdup(file);
+        if (unlikely(path == NULL))
+            return NULL;
+    }
+    return path;
+}
+
+/** \brief init reputation
+ *
+ *  \param de_ctx detection engine ctx for tracking iprep version
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ *
+ *  If this function is called more than once, the category file
+ *  is not reloaded.
+ */
+int SRepInit(DetectEngineCtx *de_ctx) {
+    ConfNode *files;
+    ConfNode *file = NULL;
+    int r = 0;
+    char *sfile = NULL;
+    char *filename = NULL;
+    int init = 0;
+
+    if (SRepGetVersion() == 0) {
+        init = 1;
+    }
+
+    if (init) {
+        if (ConfGet("reputation-categories-file", &filename) != 1) {
+            SCLogError(SC_ERR_NO_REPUTATION, "\"reputation-categories-file\" not set");
+            return -1;
+        }
+    }
+
+    files = ConfGetNode("reputation-files");
+    if (files == NULL) {
+        SCLogError(SC_ERR_NO_REPUTATION, "\"reputation-files\" not set");
+        return -1;
+    }
+
+    if (init) {
+        /* init even if we have reputation files, so that when we
+         * have a live reload, we have inited the cats */
+        if (SRepLoadCatFile(filename) < 0) {
+            SCLogError(SC_ERR_NO_REPUTATION, "failed to load reputation "
+                    "categories file %s", filename);
+            return -1;
+        }
+    }
+
+    de_ctx->srep_version = SRepIncrVersion();
+    SCLogDebug("Reputation version %u", de_ctx->srep_version);
+
+    /* ok, let's load signature files from the general config */
+    if (files != NULL) {
+        TAILQ_FOREACH(file, &files->head, next) {
+            sfile = SRepCompleteFilePath(file->val);
+            SCLogInfo("Loading reputation file: %s", sfile);
+
+            r = SRepLoadFile(sfile);
+            if (r < 0){
+                SCLogWarning(SC_ERR_NO_REPUTATION, "no reputation loaded from \"%s\"", sfile);
+                if (de_ctx->failure_fatal == 1) {
+                    exit(EXIT_FAILURE);
+                }
+            }
+            SCFree(sfile);
+        }
+    }
+
+    /* Set effective rep version.
+     * On live reload we will handle this after de_ctx has been swapped */
+    if (init) {
+        SRepInitComplete();
+    }
+    return 0;
+}
+
+#ifdef UNITTESTS
+static int SRepTest01(void) {
+    char str[] = "1.2.3.4,1,2";
+
+    uint32_t ip = 0;
+    uint8_t cat = 0, value = 0;
+    if (SRepSplitLine(str, &ip, &cat, &value) != 0) {
+        return 0;
+    }
+
+    char ipstr[16];
+    PrintInet(AF_INET, (const void *)&ip, ipstr, sizeof(ipstr));
+
+    if (strcmp(ipstr, "1.2.3.4") != 0)
+        return 0;
+
+    if (cat != 1)
+        return 0;
+
+    if (value != 2)
+        return 0;
+
+    return 1;
+}
+
+static int SRepTest02(void) {
+    char str[] = "1.1.1.1,";
+
+    uint32_t ip = 0;
+    uint8_t cat = 0, value = 0;
+    if (SRepSplitLine(str, &ip, &cat, &value) == 0) {
+        return 0;
+    }
+    return 1;
+}
+
+static int SRepTest03(void) {
+    char str[] = "1,Shortname,Long Name";
+
+    uint8_t cat = 0;
+    char shortname[SREP_SHORTNAME_LEN];
+
+    if (SRepCatSplitLine(str, &cat, shortname, sizeof(shortname)) != 0) {
+        printf("split failed: ");
+        return 0;
+    }
+
+    if (strcmp(shortname, "Shortname") != 0) {
+        printf("%s != Shortname: ", shortname);
+        return 0;
+    }
+
+    if (cat != 1) {
+        printf("cat 1 != %u: ", cat);
+        return 0;
+    }
+
+    return 1;
+}
+
+
+#endif
 
 /** Global trees that hold host reputation for IPV4 and IPV6 hosts */
 IPReputationCtx *rep_ctx;
@@ -1452,6 +1942,10 @@ void SCReputationRegisterTests(void)
                    SCReputationTestIPV4Update01, 1);
     UtRegisterTest("SCReputationTestIPV6Update01",
                    SCReputationTestIPV6Update01, 1);
+
+    UtRegisterTest("SRepTest01", SRepTest01, 1);
+    UtRegisterTest("SRepTest02", SRepTest02, 1);
+    UtRegisterTest("SRepTest03", SRepTest03, 1);
 #endif /* UNITTESTS */
 }
 

@@ -239,6 +239,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_NO_LUAJIT_SUPPORT);
         CASE_CODE (SC_ERR_LUAJIT_ERROR);
         CASE_CODE (SC_ERR_DEFRAG_INIT);
+        CASE_CODE (SC_ERR_NO_REPUTATION);
         default:
             return "UNKNOWN_ERROR";
     }

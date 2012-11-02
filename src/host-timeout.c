@@ -26,6 +26,7 @@
 
 #include "detect-engine-tag.h"
 #include "detect-engine-threshold.h"
+#include "reputation.h"
 
 uint32_t HostGetSpareCount(void) {
     return HostSpareQueueGetSize();
@@ -54,6 +55,13 @@ static int HostHostTimedOut(Host *h, struct timeval *ts) {
         return 0;
     }
 
+    if (h->iprep) {
+        if (SRepHostTimedOut(h) == 0)
+            return 0;
+
+        SCLogDebug("host %p reputation timed out", h);
+    }
+
     if (h->tag && TagTimeoutCheck(h, ts) == 0) {
         tags = 1;
     }
@@ -64,6 +72,7 @@ static int HostHostTimedOut(Host *h, struct timeval *ts) {
     if (tags || thresholds)
         return 0;
 
+    SCLogDebug("host %p timed out", h);
     return 1;
 }
 
