@@ -642,7 +642,7 @@ static DefragTracker *DefragTrackerGetUsedDefragTracker(void) {
     uint32_t cnt = defrag_config.hash_size;
 
     while (cnt--) {
-        if (idx++ >= defrag_config.hash_size)
+        if (++idx >= defrag_config.hash_size)
             idx = 0;
 
         DefragTrackerHashRow *hb = &defragtracker_hash[idx];
