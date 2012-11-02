@@ -563,7 +563,7 @@ static Host *HostGetUsedHost(void) {
     uint32_t cnt = host_config.hash_size;
 
     while (cnt--) {
-        if (idx++ >= host_config.hash_size)
+        if (++idx >= host_config.hash_size)
             idx = 0;
 
         HostHashRow *hb = &host_hash[idx];
