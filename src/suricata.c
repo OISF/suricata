@@ -483,10 +483,10 @@ void usage(const char *progname)
 #ifdef UNITTESTS
     printf("\t-u                           : run the unittests and exit\n");
     printf("\t-U, --unittest-filter=REGEX  : filter unittests with a regex\n");
-    printf("\t--list-app-layer-protos      : list supported app layer protocols\n");
     printf("\t--list-unittests             : list unit tests\n");
     printf("\t--fatal-unittests            : enable fatal failure on unittest error\n");
 #endif /* UNITTESTS */
+    printf("\t--list-app-layer-protos      : list supported app layer protocols\n");
     printf("\t--list-keywords              : list all keywords implemented by the engine\n");
 #ifdef __SC_CUDA_SUPPORT__
     printf("\t--list-cuda-cards            : list cuda supported cards\n");
