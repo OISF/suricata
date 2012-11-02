@@ -425,6 +425,10 @@ static Flow *FlowGetNew(Packet *p) {
             }
 
             f = FlowGetUsedFlow();
+            if (f == NULL) {
+                /* very rare, but we can fail. Just giving up */
+                return NULL;
+            }
 
             /* freed a flow, but it's unlocked */
         } else {
