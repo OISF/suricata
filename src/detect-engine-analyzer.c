@@ -177,7 +177,7 @@ int SetupFPAnalyzer(void)
         return 0;
     }
 
-    SCLogInfo("Engine-Analyis for fast_pattern printed to file - %s",
+    SCLogInfo("Engine-Analysis for fast_pattern printed to file - %s",
               log_path);
 
     struct timeval tval;
@@ -225,7 +225,7 @@ int SetupRuleAnalyzer(void)
                 return 0;
             }
 
-            SCLogInfo("Engine-Analyis for rules printed to file - %s",
+            SCLogInfo("Engine-Analysis for rules printed to file - %s",
                       log_path);
 
             struct timeval tval;
