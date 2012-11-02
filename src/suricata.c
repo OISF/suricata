@@ -1313,15 +1313,18 @@ int main(int argc, char **argv)
         log_dir = DEFAULT_LOG_DIR;
 #endif /* OS_WIN32 */
     }
+
+    if (!list_keywords && !list_app_layer_protocols) {
 #ifdef OS_WIN32
-    if (_stat(log_dir, &buf) != 0) {
+        if (_stat(log_dir, &buf) != 0) {
 #else
-    if (stat(log_dir, &buf) != 0) {
+        if (stat(log_dir, &buf) != 0) {
 #endif /* OS_WIN32 */
-        SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
-                    "supplied by %s (default-log-dir) doesn't exist. "
-                    "Shutting down the engine", log_dir, conf_filename);
-        exit(EXIT_FAILURE);
+            SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
+                        "supplied by %s (default-log-dir) doesn't exist. "
+                        "Shutting down the engine", log_dir, conf_filename);
+            exit(EXIT_FAILURE);
+        }
     }
 
     /* Pull the max pending packets from the config, if not found fall
