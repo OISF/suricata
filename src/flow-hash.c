@@ -592,7 +592,7 @@ static Flow *FlowGetUsedFlow(void) {
     uint32_t cnt = flow_config.hash_size;
 
     while (cnt--) {
-        if (idx++ >= flow_config.hash_size)
+        if (++idx >= flow_config.hash_size)
             idx = 0;
 
         FlowBucket *fb = &flow_hash[idx];
