@@ -150,7 +150,7 @@ void TmModuleReceiveIPFWRegister (void) {
 
     tmm_modules[TMM_RECEIVEIPFW].name = "ReceiveIPFW";
     tmm_modules[TMM_RECEIVEIPFW].ThreadInit = ReceiveIPFWThreadInit;
-    tmm_modules[TMM_RECEIVEIPFW].Func = ReceiveIPFW;
+    tmm_modules[TMM_RECEIVEIPFW].Func = NULL;
     tmm_modules[TMM_RECEIVEIPFW].PktAcqLoop = ReceiveIPFWLoop;
     tmm_modules[TMM_RECEIVEIPFW].ThreadExitPrintStats = ReceiveIPFWThreadExitStats;
     tmm_modules[TMM_RECEIVEIPFW].ThreadDeinit = ReceiveIPFWThreadDeinit;
@@ -215,98 +215,6 @@ static inline void IPFWMutexUnlock(IPFWQueueVars *nq)
     if (nq->use_mutex)
         SCMutexUnlock(&nq->socket_lock);
 }
-
-
-
-/**
- * \brief Recieves packets from an interface via ipfw divert socket.
- * \todo Unit tests are needed for this module.
- *
- *  This function recieves packets from an ipfw divert socket and passes
- *  the packet on to the queue
- *
- * \param tv pointer to ThreadVars
- * \param p pointer to Packet
- * \param data pointer that gets cast into IPFWThreadVars for ptv
- * \param pq pointer to the PacketQueue (not used here but part of the api)
- * \retval TM_ECODE_FAILED on failure and TM_ECODE_OK on success
- */
-TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    IPFWThreadVars *ptv = (IPFWThreadVars *)data;
-    IPFWQueueVars *nq = IPFWGetQueue(ptv->ipfw_index);
-    uint8_t pkt[IP_MAXPACKET];
-    int pktlen=0;
-    int r = 0;
-    struct pollfd IPFWpoll;
-    struct timeval IPFWts;
-    SCEnter();
-
-    //printf("Entering RecieveIPFW\n");
-
-    IPFWpoll.fd = nq->fd;
-    IPFWpoll.events = POLLRDNORM;
-
-    /* Read packets from divert socket */
-    while (r == 0) {
-
-       /* Did we receive a signal to shutdown */
-        if ( TmThreadsCheckFlag(tv, THV_KILL) || TmThreadsCheckFlag(tv, THV_PAUSE)) {
-            SCLogInfo("Received ThreadShutdown: IPFW divert socket polling interrupted");
-            SCReturnInt(TM_ECODE_OK);
-        }
-
-        /* Poll the socket for status */
-        if ( (poll(&IPFWpoll,1,IPFW_SOCKET_POLL_MSEC)) > 0) {
-            if ( IPFWpoll.revents & (POLLRDNORM | POLLERR) )
-                r++;
-        }
-
-    } /* end while */
-
-    if ((pktlen = recvfrom(nq->fd, pkt, sizeof(pkt), 0,(struct sockaddr *)&nq->ipfw_sin, &nq->ipfw_sinlen)) == -1) {
-        /* We received an error on socket read */
-        if (errno == EINTR || errno == EWOULDBLOCK) {
-            /* Nothing for us to process */
-            SCReturnInt(TM_ECODE_OK);
-
-        } else {
-            SCLogWarning(SC_WARN_IPFW_RECV,"Read from IPFW divert socket failed: %s",strerror(errno));
-            SCReturnInt(TM_ECODE_FAILED);
-        }
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-
-    /* We have a packet to process */
-    memset (&IPFWts, 0, sizeof(struct timeval));
-    gettimeofday(&IPFWts, NULL);
-    r++;
-
-    SCLogDebug("Received Packet Len: %d",pktlen);
-
-    /* Setup packet */
-    p = tv->tmqh_in(tv);
-
-    p->ts.tv_sec = IPFWts.tv_sec;
-    p->ts.tv_usec = IPFWts.tv_usec;
-
-    ptv->pkts++;
-    ptv->bytes += pktlen;
-
-    p->datalink = ptv->datalink;
-
-    p->ipfw_v.ipfw_index = ptv->ipfw_index;
-
-    PacketCopyData(p, pkt, pktlen);
-    SCLogDebug("Packet info: pkt_len: %" PRIu32 " (pkt %02x, pkt_data %02x)", GET_PKT_LEN(p), *pkt, GET_PKT_DATA(p));
-
-    /* pass on... */
-    tv->tmqh_out(tv, p);
-
-    SCReturnInt(TM_ECODE_OK);
-
-}
-
 
 TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
 {
