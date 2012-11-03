@@ -345,6 +345,10 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
         } else {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "error parsing signature \"%s\" from "
                  "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
+
+            if (rule_engine_analysis_set) {
+                EngineAnalysisRulesFailure(line, sig_file, lineno - multiline);
+            }
             if (de_ctx->failure_fatal == 1) {
                 exit(EXIT_FAILURE);
             }
