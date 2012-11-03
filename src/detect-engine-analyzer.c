@@ -409,6 +409,17 @@ static void EngineAnalysisRulesPrintFP(Signature *s)
     return;
 }
 
+
+void EngineAnalysisRulesFailure(char *line, char *file, int lineno)
+{
+        fprintf(rule_engine_analysis_FD, "== Sid: UNKNOWN ==\n");
+        fprintf(rule_engine_analysis_FD, "%s\n", line);
+        fprintf(rule_engine_analysis_FD, "    FAILURE: invalid rule.\n");
+        fprintf(rule_engine_analysis_FD, "    File: %s.\n", file);
+        fprintf(rule_engine_analysis_FD, "    Line: %d.\n", lineno);
+        fprintf(rule_engine_analysis_FD, "\n");
+}
+
 /**
  * \brief Prints analysis of loaded rules.
  *
