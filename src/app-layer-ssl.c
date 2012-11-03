@@ -106,7 +106,7 @@ SslConfig ssl_config;
 #define SSLV2_MT_REQUEST_CERTIFICATE  7
 #define SSLV2_MT_CLIENT_CERTIFICATE   8
 
-#define SSLV3_RECORD_LEN 5
+#define SSLV3_RECORD_HDR_LEN 5
 #define SSLV3_MESSAGE_HDR_LEN 4
 
 static void SSLParserReset(SSLState *ssl_state)
@@ -146,7 +146,7 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
 
         case SSLV3_HS_CERTIFICATE:
             if (ssl_state->curr_connp->trec == NULL) {
-                ssl_state->curr_connp->trec_len = 2 * ssl_state->curr_connp->record_length + SSLV3_RECORD_LEN + 1;
+                ssl_state->curr_connp->trec_len = 2 * ssl_state->curr_connp->record_length + SSLV3_RECORD_HDR_LEN + 1;
                 ssl_state->curr_connp->trec = SCMalloc( ssl_state->curr_connp->trec_len );
             }
             if (ssl_state->curr_connp->trec_pos + input_len >= ssl_state->curr_connp->trec_len) {
@@ -211,7 +211,7 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, uint8_t *input,
     }
 
     if (ssl_state->curr_connp->message_start == 0) {
-        ssl_state->curr_connp->message_start = SSLV3_RECORD_LEN;
+        ssl_state->curr_connp->message_start = SSLV3_RECORD_HDR_LEN;
     }
 
     switch (ssl_state->curr_connp->bytes_processed - ssl_state->curr_connp->message_start) {
@@ -272,8 +272,8 @@ static int SSLv3ParseRecord(uint8_t direction, SSLState *ssl_state,
                 ssl_state->curr_connp->version |= input[2];
                 ssl_state->curr_connp->record_length = input[3] << 8;
                 ssl_state->curr_connp->record_length |= input[4];
-                ssl_state->curr_connp->bytes_processed += SSLV3_RECORD_LEN;
-                return SSLV3_RECORD_LEN;
+                ssl_state->curr_connp->bytes_processed += SSLV3_RECORD_HDR_LEN;
+                return SSLV3_RECORD_HDR_LEN;
             } else {
                 ssl_state->curr_connp->content_type = *(input++);
                 if (--input_len == 0)
@@ -293,8 +293,6 @@ static int SSLv3ParseRecord(uint8_t direction, SSLState *ssl_state,
                 break;
         case 4:
             ssl_state->curr_connp->record_length |= *(input++);
-            if (ssl_state->curr_connp->record_length <= SSLV3_RECORD_LEN)
-                return -1;
             if (--input_len == 0)
                 break;
     } /* switch (ssl_state->curr_connp->bytes_processed) */
@@ -605,7 +603,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
     int retval = 0;
     uint32_t parsed = 0;
 
-    if (ssl_state->curr_connp->bytes_processed < SSLV3_RECORD_LEN) {
+    if (ssl_state->curr_connp->bytes_processed < SSLV3_RECORD_HDR_LEN) {
         retval = SSLv3ParseRecord(direction, ssl_state, input, input_len);
         if (retval < 0) {
             AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_TLS_HEADER);
@@ -663,7 +661,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
                 }
                 parsed += retval;
                 input_len -= retval;
-                if (ssl_state->curr_connp->bytes_processed == ssl_state->curr_connp->record_length + SSLV3_RECORD_LEN) {
+                if (ssl_state->curr_connp->bytes_processed == ssl_state->curr_connp->record_length + SSLV3_RECORD_HDR_LEN) {
                     SSLParserReset(ssl_state);
                 }
                 return parsed;
@@ -678,9 +676,9 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
             break;
     }
 
-    if (input_len + ssl_state->curr_connp->bytes_processed >= ssl_state->curr_connp->record_length + SSLV3_RECORD_LEN) {
+    if (input_len + ssl_state->curr_connp->bytes_processed >= ssl_state->curr_connp->record_length + SSLV3_RECORD_HDR_LEN) {
         /* looks like we have another record */
-        uint32_t diff = ssl_state->curr_connp->record_length + SSLV3_RECORD_LEN - ssl_state->curr_connp->bytes_processed;
+        uint32_t diff = ssl_state->curr_connp->record_length + SSLV3_RECORD_HDR_LEN - ssl_state->curr_connp->bytes_processed;
         parsed += diff;
         SSLParserReset(ssl_state);
         return parsed;
@@ -776,7 +774,7 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
                     } else {
                         input_len -= retval;
                         input += retval;
-                        if (ssl_state->curr_connp->bytes_processed == SSLV3_RECORD_LEN
+                        if (ssl_state->curr_connp->bytes_processed == SSLV3_RECORD_HDR_LEN
                                 && ssl_state->curr_connp->record_length == 0) {
                             /* empty record */
                             SSLParserReset(ssl_state);
@@ -821,7 +819,7 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
                         }
                         input_len -= retval;
                         input += retval;
-                        if (ssl_state->curr_connp->bytes_processed == SSLV3_RECORD_LEN
+                        if (ssl_state->curr_connp->bytes_processed == SSLV3_RECORD_HDR_LEN
                             && ssl_state->curr_connp->record_length == 0) {
                             /* empty record */
                             SSLParserReset(ssl_state);
