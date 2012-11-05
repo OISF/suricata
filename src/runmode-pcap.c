@@ -119,7 +119,6 @@ void *ParsePcapConfig(const char *iface)
     }
 
     SC_ATOMIC_INIT(aconf->ref);
-    (void) SC_ATOMIC_ADD(aconf->ref, 1);
     aconf->DerefFunc = PcapDerefConfig;
     aconf->threads = 1;
 
@@ -148,6 +147,8 @@ void *ParsePcapConfig(const char *iface)
     if (aconf->threads == 0) {
         aconf->threads = 1;
     }
+    (void) SC_ATOMIC_ADD(aconf->ref, aconf->threads);
+
     if (aconf->buffer_size == 0) {
         const char *s_limit = ConfNodeLookupChildValue(if_root, "buffer-size");
         if (s_limit != NULL) {
