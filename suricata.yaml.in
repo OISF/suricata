@@ -82,6 +82,12 @@ outputs:
       #extended: yes # Log extended information like fingerprint
       certs-log-dir: certs # directory to store the certificates files
 
+  # a line based log of PE header information for detected PEs
+  - pescan-log:
+      enabled: no
+      filename: pescan.log
+      append: yes
+
   # a line based log to used with pcap file study.
   # this module is dedicated to offline pcap parsing (empty output
   # if used with another kind of input). It can interoperate with
@@ -547,8 +553,8 @@ flow-timeouts:
 #                               # Warning: locally generated trafic can be
 #                               # generated without checksum due to hardware offload
 #                               # of checksum. You can control the handling of checksum
-#				# on a per-interface basis via the 'checksum-checks'
-#				# option
+#                               # on a per-interface basis via the 'checksum-checks'
+#                               # option
 #   max-sessions: 262144        # 256k concurrent sessions
 #   prealloc-sessions: 32768    # 32k sessions prealloc'd
 #   midstream: false            # don't allow midstream session pickups
@@ -932,6 +938,20 @@ libhtp:
          response-body-limit: 4096
          double-decode-path: no
          double-decode-query: no
+
+# Configure file PE-Scan enhancements
+file-pescan:
+
+    # Maximum number of bytes within a file to scan (default is 64k)
+    max-scan-bytes: 65536
+
+    # Preferred number of bytes within a file to scan
+    # (don't scan more unless scanner determines we need more data) (default is 512)
+    pref-scan-bytes: 512
+
+    # Amount of bytes to wait for before attempting to invoke the pescan detector match function
+    # Then will scan the data chunks of the file (default is 32k)
+    wait-scan-bytes: 32768
 
 # Profiling settings. Only effective if Suricata has been built with the
 # the --enable-profiling configure flag.
