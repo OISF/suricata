@@ -1117,7 +1117,7 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
      * frags from a fresh request/response.  Also if the state is in the
      * process of processing a fragmented pdu, we should append to the
      * existing stub and not reset the stub buffer */
-    if (dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG &&
+    if ((dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG) &&
         !dcerpc->pdu_fragged) {
         *stub_data_buffer_len = 0;
         /* just a hack to get thing working.  We shouldn't be setting
@@ -1405,7 +1405,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
             if (dcerpc->bytesprocessed < 10) {
                 /* if the parser is known to be fragmented at this stage itself,
                  * we reset the stub buffer here itself */
-                if (!dcerpc->pdu_fragged && dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG) {
+                if (!dcerpc->pdu_fragged && (dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG)) {
                     DCERPCResetStub(dcerpc);
                 }
                 dcerpc->pdu_fragged = 1;
@@ -1416,7 +1416,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                 } else {
                     /* if the parser is known to be fragmented at this stage itself,
                      * we reset the stub buffer here itself */
-                    if (!dcerpc->pdu_fragged && dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG) {
+                    if (!dcerpc->pdu_fragged && (dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG)) {
                         DCERPCResetStub(dcerpc);
                     }
                     dcerpc->pdu_fragged = 1;
@@ -1710,7 +1710,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     SCReturnInt(0);
                 } else {
                     if (!dcerpc->pdu_fragged &&
-                        dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG) {
+                        (dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG)) {
                         DCERPCResetStub(dcerpc);
                     }
                     /* temporary fix */

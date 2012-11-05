@@ -596,57 +596,70 @@ int test_compressed_response_gzip_chunked(htp_cfg_t *cfg) {
 
 int callback_transaction_start(htp_connp_t *connp) {
     printf("-- Callback: transaction_start\n");
+    return HOOK_OK;
 }
 
 int callback_request_line(htp_connp_t *connp) {
     printf("-- Callback: request_line\n");
+    return HOOK_OK;
 }
 
 int callback_request_headers(htp_connp_t *connp) {
     printf("-- Callback: request_headers\n");
+    return HOOK_OK;
 }
 
 int callback_request_body_data(htp_tx_data_t *d) {
     printf("-- Callback: request_body_data\n");
     fprint_raw_data(stdout, __FUNCTION__, d->data, d->len);
+    return HOOK_OK;
 }
 
 int callback_request_trailer(htp_connp_t *connp) {
     printf("-- Callback: request_trailer\n");
+    return HOOK_OK;
 }
 
 int callback_request(htp_connp_t *connp) {
     printf("-- Callback: request\n");
+    return HOOK_OK;
 }
 
 int callback_response_line(htp_connp_t *connp) {
     printf("-- Callback: response_line\n");
+    return HOOK_OK;
 }
 
 int callback_response_headers(htp_connp_t *connp) {
     printf("-- Callback: response_headers\n");
+    return HOOK_OK;
 }
 
 int callback_response_body_data(htp_tx_data_t *d) {
     printf("-- Callback: response_body_data\n");
     fprint_raw_data(stdout, __FUNCTION__, d->data, d->len);
+    return HOOK_OK;
 }
 
 int callback_response_trailer(htp_connp_t *connp) {
     printf("-- Callback: response_trailer\n");
+    return HOOK_OK;
 }
 
 int callback_response(htp_connp_t *connp) {
     printf("-- Callback: response\n");    
+    return HOOK_OK;
 }
 
 int callback_response_destroy(htp_connp_t *connp) {
     htp_tx_destroy(connp->out_tx);
     printf("-- Destroyed transaction\n");
+    return HOOK_OK;
 }
 
 int callback_log(htp_log_t *log) {    
     htp_print_log(stdout, log);
+    return HOOK_OK;
 }
 
 static void print_tx(htp_connp_t *connp, htp_tx_t *tx) {
@@ -739,6 +752,7 @@ int main_dir(int argc, char** argv) {
     //run_directory("/home/ivanr/work/traces/run3/", cfg);
     
     htp_config_destroy(cfg);
+    return (EXIT_SUCCESS);
 }
 
 #define RUN_TEST(X, Y) \
@@ -929,6 +943,8 @@ int main_path_decoding_tests(int argc, char** argv) {
     printf("Before: %s\n", bstr_tocstr(path));
     htp_decode_path_inplace(cfg, tx, path);
     printf("After: %s\n\n", bstr_tocstr(path));
+
+    return (EXIT_SUCCESS);
 }
 
 void encode_utf8_2(uint8_t *data, uint32_t i) {
@@ -998,6 +1014,7 @@ int main_utf8_decoder_tests(int argc, char** argv) {
             }
         }
     }
+    return (EXIT_SUCCESS);
 }
 
 #define PATH_DECODE_TEST_BEFORE(NAME) \
@@ -1366,4 +1383,6 @@ int main_path_tests(int argc, char** argv) {
 
     printf("\n");
     printf("Total tests: %i, %i failure(s).\n", tests, failures);
+
+    return (EXIT_SUCCESS);
 }

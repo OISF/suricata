@@ -1983,14 +1983,14 @@ void TmThreadCheckThreadState(void)
             if (TmThreadsCheckFlag(tv, THV_FAILED)) {
                 TmThreadsSetFlag(tv, THV_DEINIT);
                 pthread_join(tv->t, NULL);
-                if (tv_aof & THV_ENGINE_EXIT || tv->aof & THV_ENGINE_EXIT) {
+                if ((tv_aof & THV_ENGINE_EXIT) || (tv->aof & THV_ENGINE_EXIT)) {
                     EngineKill();
                     return;
                 } else {
                     /* if the engine kill-stop has been received by now, chuck
                      * restarting and return to kill the engine */
-                    if (suricata_ctl_flags & SURICATA_KILL ||
-                        suricata_ctl_flags & SURICATA_STOP) {
+                    if ((suricata_ctl_flags & SURICATA_KILL) ||
+                        (suricata_ctl_flags & SURICATA_STOP)) {
                         return;
                     }
                     TmThreadRestartThread(tv);

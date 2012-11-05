@@ -133,11 +133,11 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
          * initializer message, we run proto detection.
          * We receive 2 stream init msgs (one for each direction) but we
          * only run the proto detection once. */
-        if (f->alproto == ALPROTO_UNKNOWN && flags & STREAM_GAP) {
+        if (f->alproto == ALPROTO_UNKNOWN && (flags & STREAM_GAP)) {
             ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
             SCLogDebug("ALPROTO_UNKNOWN flow %p, due to GAP in stream start", f);
             StreamTcpSetSessionNoReassemblyFlag(ssn, 0);
-        } else if (f->alproto == ALPROTO_UNKNOWN && flags & STREAM_START) {
+        } else if (f->alproto == ALPROTO_UNKNOWN && (flags & STREAM_START)) {
             SCLogDebug("Stream initializer (len %" PRIu32 ")", data_len);
 #ifdef PRINT
             if (data_len > 0) {
@@ -161,8 +161,8 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
                 r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags, data, data_len);
                 PACKET_PROFILING_APP_END(dp_ctx, f->alproto);
             } else {
-                if (f->flags & FLOW_TS_PM_PP_ALPROTO_DETECT_DONE &&
-                    f->flags & FLOW_TC_PM_PP_ALPROTO_DETECT_DONE) {
+                if ((f->flags & FLOW_TS_PM_PP_ALPROTO_DETECT_DONE) &&
+                    (f->flags & FLOW_TC_PM_PP_ALPROTO_DETECT_DONE)) {
                     FlowSetSessionNoApplayerInspectionFlag(f);
                     ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
                 }

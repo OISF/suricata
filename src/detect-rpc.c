@@ -140,10 +140,10 @@ int DetectRpcMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
     if (ntohl(msg->prog) != rd->program)
         return 0;
 
-    if (rd->flags & DETECT_RPC_CHECK_VERSION && ntohl(msg->vers) != rd->program_version)
+    if ((rd->flags & DETECT_RPC_CHECK_VERSION) && ntohl(msg->vers) != rd->program_version)
         return 0;
 
-    if (rd->flags & DETECT_RPC_CHECK_PROCEDURE && ntohl(msg->proc) != rd->procedure)
+    if ((rd->flags & DETECT_RPC_CHECK_PROCEDURE) && ntohl(msg->proc) != rd->procedure)
         return 0;
 
     SCLogDebug("prog:%u pver:%u proc:%u matched", ntohl(msg->prog), ntohl(msg->vers), ntohl(msg->proc));

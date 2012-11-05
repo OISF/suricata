@@ -316,8 +316,8 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             PrintRawDataToBuffer(aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
                                  p->payload, p->payload_len);
         }
-        if (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH ||
-            pa->flags & PACKET_ALERT_FLAG_STREAM_MATCH) {
+        if ((pa->flags & PACKET_ALERT_FLAG_STATE_MATCH) ||
+            (pa->flags & PACKET_ALERT_FLAG_STREAM_MATCH)) {
             /* This is an app layer or stream alert */
             int ret;
             uint8_t flag;

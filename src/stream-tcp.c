@@ -955,7 +955,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
 
     /* SYN/ACK */
     } else if ((p->tcph->th_flags & (TH_SYN|TH_ACK)) == (TH_SYN|TH_ACK)) {
-        if (ssn->flags & STREAMTCP_FLAG_4WHS && PKT_IS_TOSERVER(p)) {
+        if ((ssn->flags & STREAMTCP_FLAG_4WHS) && PKT_IS_TOSERVER(p)) {
             SCLogDebug("ssn %p: SYN/ACK received on 4WHS session", ssn);
 
             /* Check if the SYN/ACK packet ack's the earlier
@@ -1318,7 +1318,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
                             " not resetting the connection !!");
                 }
             } else {
-                if ((ssn->client.os_policy == OS_POLICY_LINUX) |
+                if ((ssn->client.os_policy == OS_POLICY_LINUX) ||
                         (ssn->client.os_policy == OS_POLICY_OLD_LINUX) ||
                         (ssn->client.os_policy == OS_POLICY_SOLARIS))
                 {
@@ -1412,7 +1412,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
             }
         }
 
-        if (ssn->flags & STREAMTCP_FLAG_4WHS && PKT_IS_TOCLIENT(p)) {
+        if ((ssn->flags & STREAMTCP_FLAG_4WHS) && PKT_IS_TOCLIENT(p)) {
             SCLogDebug("ssn %p: ACK received on 4WHS session",ssn);
 
             if (!(SEQ_EQ(TCP_GET_SEQ(p), ssn->server.next_seq))) {
@@ -1602,7 +1602,7 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
                "ACK %" PRIu32 ", WIN %"PRIu16"", ssn, p->payload_len,
                 TCP_GET_SEQ(p), TCP_GET_ACK(p), TCP_GET_WINDOW(p));
 
-    if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
+    if (StreamTcpValidateAck(ssn, &(ssn->server), p) == -1) {
         SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
         StreamTcpSetEvent(p, STREAM_EST_INVALID_ACK);
         return -1;
@@ -1695,7 +1695,7 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
         SCLogDebug("ssn %p: zero window probe, skipping oow check", ssn);
     } else if (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->client.next_win) ||
             (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) ||
-            ssn->flags & STREAMTCP_FLAG_ASYNC)
+            (ssn->flags & STREAMTCP_FLAG_ASYNC))
     {
         SCLogDebug("ssn %p: seq %"PRIu32" in window, ssn->client.next_win "
                    "%" PRIu32 "", ssn, TCP_GET_SEQ(p), ssn->client.next_win);
@@ -2625,6 +2625,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 return -1;
             }
 
+<<<<<<< HEAD
             if (!retransmission) {
                 if (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->server.next_win) ||
                         (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) ||
@@ -2632,6 +2633,14 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 {
                     SCLogDebug("ssn %p: seq %"PRIu32" in window, ssn->server.next_win "
                             "%" PRIu32 "", ssn, TCP_GET_SEQ(p), ssn->server.next_win);
+=======
+            if (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->server.next_win) ||
+                    (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) ||
+                    (ssn->flags & STREAMTCP_FLAG_ASYNC))
+            {
+                SCLogDebug("ssn %p: seq %"PRIu32" in window, ssn->server.next_win "
+                        "%" PRIu32 "", ssn, TCP_GET_SEQ(p), ssn->server.next_win);
+>>>>>>> Added parentheses to fix Eclipse static code analysis
 
                     if (TCP_GET_SEQ(p) == ssn->server.next_seq) {
                         StreamTcpPacketSetState(p, ssn, TCP_FIN_WAIT2);
@@ -2891,6 +2900,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 return -1;
             }
 
+<<<<<<< HEAD
             if (!retransmission) {
                 if (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->client.next_win) ||
                         (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) ||
@@ -2898,6 +2908,14 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 {
                     SCLogDebug("ssn %p: seq %"PRIu32" in window, ssn->client.next_win "
                             "%" PRIu32 "", ssn, TCP_GET_SEQ(p), ssn->client.next_win);
+=======
+            if (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->client.next_win) ||
+                    (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) ||
+                    (ssn->flags & STREAMTCP_FLAG_ASYNC))
+            {
+                SCLogDebug("ssn %p: seq %"PRIu32" in window, ssn->client.next_win "
+                        "%" PRIu32 "", ssn, TCP_GET_SEQ(p), ssn->client.next_win);
+>>>>>>> Added parentheses to fix Eclipse static code analysis
 
                 } else {
                     SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
@@ -2950,6 +2968,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 return -1;
             }
 
+<<<<<<< HEAD
             if (!retransmission) {
                 if (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->server.next_win) ||
                         (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) ||
@@ -2964,6 +2983,21 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                     StreamTcpSetEvent(p, STREAM_FIN2_ACK_WRONG_SEQ);
                     return -1;
                 }
+=======
+            if (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->server.next_win) ||
+                    (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) ||
+                    (ssn->flags & STREAMTCP_FLAG_ASYNC))
+            {
+                SCLogDebug("ssn %p: seq %"PRIu32" in window, ssn->server.next_win "
+                        "%" PRIu32 "", ssn, TCP_GET_SEQ(p), ssn->server.next_win);
+            } else {
+                SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
+                        " != %" PRIu32 " from stream", ssn,
+                        TCP_GET_SEQ(p), ssn->server.next_seq);
+                StreamTcpSetEvent(p, STREAM_FIN2_ACK_WRONG_SEQ);
+                return -1;
+            }
+>>>>>>> Added parentheses to fix Eclipse static code analysis
 
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
             }
@@ -3971,15 +4005,15 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         /* check for conditions that may make us not want to log this packet */
 
         /* streams that hit depth */
-        if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED ||
-             ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))
+        if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ||
+             (ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))
         {
             p->flags |= PKT_STREAM_NOPCAPLOG;
         }
 
         /* encrypted packets */
-        if ((PKT_IS_TOSERVER(p) && ssn->client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
-            (PKT_IS_TOCLIENT(p) && ssn->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY))
+        if ((PKT_IS_TOSERVER(p) && (ssn->client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) ||
+            (PKT_IS_TOCLIENT(p) && (ssn->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)))
         {
             p->flags |= PKT_STREAM_NOPCAPLOG;
         }

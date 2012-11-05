@@ -148,6 +148,7 @@ TmEcode ReceiveErfFileLoop(ThreadVars *tv, void *data, void *slot)
             SCReturnInt(TM_ECODE_FAILED);
         }
     }
+    SCReturnInt(TM_ECODE_FAILED);
 }
 
 static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)

@@ -918,7 +918,7 @@ int AppLayerParse(void *local_data, Flow *f, uint8_t proto,
         }
     }
 
-    if (parser_idx == 0 || parser_state->flags & APP_LAYER_PARSER_DONE) {
+    if (parser_idx == 0 || (parser_state->flags & APP_LAYER_PARSER_DONE)) {
         SCLogDebug("no parser for protocol %" PRIu32 "", proto);
         SCReturnInt(0);
     }
