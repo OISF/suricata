@@ -857,6 +857,8 @@ typedef struct SigTableElmt_ {
 
     uint8_t flags;
     char *name;
+    char *desc;
+    
 } SigTableElmt;
 
 #define SIG_GROUP_HEAD_MPM_COPY         (1)
@@ -1111,7 +1113,7 @@ void SigAddressPrepareBidirectionals (DetectEngineCtx *);
 
 char *DetectLoadCompleteSigPath(char *sig_file);
 int SigLoadSignatures (DetectEngineCtx *, char *, int);
-void SigTableList(void);
+void SigTableList(const char *keyword);
 void SigTableSetup(void);
 int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                        DetectEngineThreadCtx *det_ctx, Packet *p);
