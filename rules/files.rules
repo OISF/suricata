@@ -43,3 +43,5 @@
 # Alert and store pdf attachment but not pdf file
 #alert http any any -> any any (msg:"FILE pdf claimed, but not pdf"; flow:established,to_client; fileext:"pdf"; filemagic:!"PDF document"; filestore; sid:22; rev:1;)
 
+# Alert and store files over SMTP
+#alert smtp any any -> any any (msg:"File Found over SMTP and stored"; filestore; sid:27; rev:1;)
