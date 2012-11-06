@@ -151,6 +151,8 @@
 
 #include "util-coredump-config.h"
 
+#include "mime-decode.h"
+
 #include "defrag.h"
 
 #include "runmodes.h"

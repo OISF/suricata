@@ -25,6 +25,7 @@
 #define __APP_LAYER_SMTP_H__
 
 #include "decode-events.h"
+#include "mime-decode.h"
 
 enum {
     SMTP_DECODER_EVENT_INVALID_REPLY,
@@ -36,6 +37,16 @@ enum {
     SMTP_DECODER_EVENT_NO_SERVER_WELCOME_MESSAGE,
     SMTP_DECODER_EVENT_TLS_REJECTED,
     SMTP_DECODER_EVENT_DATA_COMMAND_REJECTED,
+
+    /* MIME Events */
+    SMTP_DECODER_EVENT_MIME_PARSE_FAILED,
+    SMTP_DECODER_EVENT_MIME_MALFORMED_MSG,
+    SMTP_DECODER_EVENT_MIME_INVALID_BASE64,
+    SMTP_DECODER_EVENT_MIME_INVALID_QP,
+    SMTP_DECODER_EVENT_MIME_LONG_LINE,
+    SMTP_DECODER_EVENT_MIME_LONG_ENC_LINE,
+    SMTP_DECODER_EVENT_MIME_LONG_HEADER_NAME,
+    SMTP_DECODER_EVENT_MIME_LONG_HEADER_VALUE,
 };
 
 typedef struct SMTPState_ {
@@ -88,6 +99,16 @@ typedef struct SMTPState_ {
     /** index of the command in the buffer, currently in inspection by reply
      *  handler */
     uint16_t cmds_idx;
+
+    /* SMTP Mime decoding and file extraction */
+    /** the list of files sent to the server */
+    FileContainer *files_ts;
+    /** the first message contained in the session */
+    MimeDecEntity *msg_head;
+    /** the last message contained in the session */
+    MimeDecEntity *msg_tail;
+    /** the mime decoding parser state */
+    MimeDecParseState *mime_state;
 
 } SMTPState;
 
