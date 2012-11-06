@@ -55,6 +55,8 @@
 #include "util-logopenfile.h"
 
 #include "app-layer-htp.h"
+#include "app-layer-smtp.h"
+#include "mime-decode.h"
 #include "util-memcmp.h"
 #include "stream-tcp-reassemble.h"
 
@@ -144,6 +146,31 @@ static void LogFileMetaGetUserAgent(FILE *fp, const Packet *p, const File *ff)
     fprintf(fp, "<unknown>");
 }
 
+static void LogFileMetaGetSmtp(FILE *fp, const Packet *p, const File *ff) {
+
+    SMTPState *state = (SMTPState *) p->flow->alstate;
+    if (state != NULL && state->msg_tail != NULL) {
+
+        /* Message Id */
+        if (state->msg_tail->msg_id != NULL) {
+
+            fprintf(fp, "\"message-id\": \"");
+            PrintRawJsonFp(fp, (uint8_t *) state->msg_tail->msg_id,
+                    (int) state->msg_tail->msg_id_len);
+            fprintf(fp, "\", ");
+        }
+
+        /* Sender */
+        MimeDecField *field = MimeDecFindField(state->msg_tail, "From");
+        if (field != NULL) {
+            fprintf(fp, "\"sender\": \"");
+            PrintRawJsonFp(fp, (uint8_t *) field->value,
+                    (int) field->value_len);
+            fprintf(fp, "\", ");
+        }
+    }
+}
+
 /**
  *  \internal
  *  \brief Write meta data on a single line json record
@@ -231,6 +258,9 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const
         fprintf(fp, "\"http_user_agent\": \"");
         LogFileMetaGetUserAgent(fp, p, ff);
         fprintf(fp, "\", ");
+    } else if (p->flow->alproto == ALPROTO_SMTP) {
+        /* Only applicable to SMTP */
+        LogFileMetaGetSmtp(fp, p, ff);
     }
 
     fprintf(fp, "\"filename\": \"");

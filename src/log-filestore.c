@@ -53,6 +53,8 @@
 #include "util-logopenfile.h"
 
 #include "app-layer-htp.h"
+#include "app-layer-smtp.h"
+#include "mime-decode.h"
 #include "util-memcmp.h"
 #include "stream-tcp-reassemble.h"
 
@@ -139,8 +141,29 @@ static void LogFilestoreMetaGetUserAgent(FILE *fp, const Packet *p, const File *
     fprintf(fp, "<unknown>");
 }
 
-static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, const char *filename, int ipver)
-{
+static void LogFilestoreMetaGetSmtp(FILE *fp, Packet *p, File *ff) {
+
+    SMTPState *state = (SMTPState *) p->flow->alstate;
+    if (state != NULL && state->msg_tail != NULL) {
+
+        /* Message Id */
+        if (state->msg_tail->msg_id != NULL) {
+            fprintf(fp, "MESSAGE-ID:        ");
+            PrintRawUriFp(fp, (uint8_t *) state->msg_tail->msg_id, state->msg_tail->msg_id_len);
+            fprintf(fp, "\n");
+        }
+
+        /* Sender */
+        MimeDecField *field = MimeDecFindField(state->msg_tail, "From");
+        if (field != NULL) {
+            fprintf(fp, "SENDER:            ");
+            PrintRawUriFp(fp, (uint8_t *) field->value, field->value_len);
+            fprintf(fp, "\n");
+        }
+    }
+}
+
+static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char *filename, int ipver) {
     char metafilename[PATH_MAX] = "";
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
     FILE *fp = fopen(metafilename, "w+");
@@ -180,18 +203,26 @@ static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, const
             fprintf(fp, "SRC PORT:          %" PRIu16 "\n", sp);
             fprintf(fp, "DST PORT:          %" PRIu16 "\n", dp);
         }
-        fprintf(fp, "HTTP URI:          ");
-        LogFilestoreMetaGetUri(fp, p, ff);
-        fprintf(fp, "\n");
-        fprintf(fp, "HTTP HOST:         ");
-        LogFilestoreMetaGetHost(fp, p, ff);
-        fprintf(fp, "\n");
-        fprintf(fp, "HTTP REFERER:      ");
-        LogFilestoreMetaGetReferer(fp, p, ff);
-        fprintf(fp, "\n");
-        fprintf(fp, "HTTP USER AGENT:   ");
-        LogFilestoreMetaGetUserAgent(fp, p, ff);
-        fprintf(fp, "\n");
+
+        /* Only applicable to HTTP traffic */
+        if (ff->txid != 0) {
+            fprintf(fp, "HTTP URI:          ");
+            LogFilestoreMetaGetUri(fp, p, ff);
+            fprintf(fp, "\n");
+            fprintf(fp, "HTTP HOST:         ");
+            LogFilestoreMetaGetHost(fp, p, ff);
+            fprintf(fp, "\n");
+            fprintf(fp, "HTTP REFERER:      ");
+            LogFilestoreMetaGetReferer(fp, p, ff);
+            fprintf(fp, "\n");
+            fprintf(fp, "HTTP USER AGENT:   ");
+            LogFilestoreMetaGetUserAgent(fp, p, ff);
+            fprintf(fp, "\n");
+        } else if (p->flow->alproto == ALPROTO_SMTP) {
+            /* Only applicable to SMTP */
+            LogFilestoreMetaGetSmtp(fp, p, ff);
+        }
+
         fprintf(fp, "FILENAME:          ");
         PrintRawUriFp(fp, ff->name, ff->name_len);
         fprintf(fp, "\n");
