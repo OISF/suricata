@@ -487,7 +487,7 @@ void usage(const char *progname)
     printf("\t--fatal-unittests            : enable fatal failure on unittest error\n");
 #endif /* UNITTESTS */
     printf("\t--list-app-layer-protos      : list supported app layer protocols\n");
-    printf("\t--list-keywords              : list all keywords implemented by the engine\n");
+    printf("\t--list-keywords[=any|<kword>]: list keywords implemented by the engine\n");
 #ifdef __SC_CUDA_SUPPORT__
     printf("\t--list-cuda-cards            : list cuda supported cards\n");
 #endif
@@ -679,6 +679,7 @@ int main(int argc, char **argv)
     int list_cuda_cards = 0;
     int list_runmodes = 0;
     int list_keywords = 0;
+    const char *keyword_info = NULL;
     const char *runmode_custom_mode = NULL;
     int daemon = 0;
 #ifndef OS_WIN32
@@ -761,7 +762,7 @@ int main(int argc, char **argv)
         {"list-unittests", 0, &list_unittests, 1},
         {"list-cuda-cards", 0, &list_cuda_cards, 1},
         {"list-runmodes", 0, &list_runmodes, 1},
-        {"list-keywords", 0, &list_keywords, 1},
+        {"list-keywords", optional_argument, &list_keywords, 1},
         {"runmode", required_argument, NULL, 0},
         {"engine-analysis", 0, &engine_analysis, 1},
 #ifdef OS_WIN32
@@ -916,7 +917,9 @@ int main(int argc, char **argv)
                 RunModeListRunmodes();
                 exit(EXIT_SUCCESS);
             } else if (strcmp((long_opts[option_index]).name, "list-keywords") == 0) {
-                // do nothing
+                if (optarg) {
+                    keyword_info = optarg;
+                }
             } else if (strcmp((long_opts[option_index]).name, "runmode") == 0) {
                 runmode_custom_mode = optarg;
             } else if(strcmp((long_opts[option_index]).name, "engine-analysis") == 0) {
@@ -1431,7 +1434,7 @@ int main(int argc, char **argv)
     /* hardcoded initialization code */
     SigTableSetup(); /* load the rule keywords */
     if (list_keywords) {
-        SigTableList();
+        SigTableList(keyword_info);
         exit(EXIT_FAILURE);
     }
     TmqhSetup();

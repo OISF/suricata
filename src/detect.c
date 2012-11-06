@@ -4564,17 +4564,79 @@ int SigGroupCleanup (DetectEngineCtx *de_ctx) {
     return 0;
 }
 
-void SigTableList(void)
+static inline void PrintFeatureList(int flags, char sep)
+{
+    int prev = 0;
+    if (flags & SIGMATCH_NOOPT) {
+        printf("No option");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_IPONLY_COMPAT) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("IP only rule");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_DEONLY_COMPAT) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("IP only rule");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_PAYLOAD) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("payload inspecting rule");
+        prev = 1;
+    }
+    if (prev == 0) {
+        printf("none");
+    }
+}
+
+void SigTableList(const char *keyword)
 {
     size_t size = sizeof(sigmatch_table) / sizeof(SigTableElmt);
 
     size_t i;
-    printf("=====Supported keywords=====\n");
-    for (i = 0; i < size; i++) {
-        if (sigmatch_table[i].name != NULL)
-            printf("- %s\n", sigmatch_table[i].name);
+    
+    if (keyword == NULL) {
+        printf("=====Supported keywords=====\n");
+        for (i = 0; i < size; i++) {
+            if (sigmatch_table[i].name != NULL)
+                printf("- %s\n", sigmatch_table[i].name);
+        }
+    } else if (!strcmp("all", keyword)) {
+        printf("name;description;app layer;features\n");
+        for (i = 0; i < size; i++) {
+            if (sigmatch_table[i].name != NULL) {
+                printf("%s;", sigmatch_table[i].name);
+                if (sigmatch_table[i].desc) {
+                    printf("%s", sigmatch_table[i].desc);
+                }
+                /* Build feature */
+                printf(";%s;",
+                       TmModuleAlprotoToString(sigmatch_table[i].alproto));
+                PrintFeatureList(sigmatch_table[i].flags, ':');
+                printf("\n");
+            }
+        }
+    } else {
+        for (i = 0; i < size; i++) {
+            if ((sigmatch_table[i].name != NULL) &&
+                !strcmp(sigmatch_table[i].name, keyword)) {
+                printf("%s\n", sigmatch_table[i].name);
+                if (sigmatch_table[i].desc) {
+                    printf("Description: %s\n", sigmatch_table[i].desc);
+                }
+                printf("Protocol: %s\n",
+                       TmModuleAlprotoToString(sigmatch_table[i].alproto));
+                printf("Features: ");
+                PrintFeatureList(sigmatch_table[i].flags, ',');
+                printf("\n");
+            }
+        }
     }
-
     return;
 }
 
