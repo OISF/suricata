@@ -214,6 +214,7 @@ log-httplog.c log-httplog.h \
 log-pcap.c log-pcap.h \
 log-tcp-data.c log-tcp-data.h \
 log-tlslog.c log-tlslog.h \
+mime-decode.c mime-decode.h \
 output.c output.h \
 output-file.c output-file.h \
 output-filedata.c output-filedata.h \
@@ -283,6 +284,7 @@ tm-threads.c tm-threads.h tm-threads-common.h \
 unix-manager.c unix-manager.h \
 util-action.c util-action.h \
 util-atomic.c util-atomic.h \
+util-base64.c util-base64.h \
 util-bloomfilter-counting.c util-bloomfilter-counting.h \
 util-bloomfilter.c util-bloomfilter.h \
 util-buffer.c util-buffer.h \
