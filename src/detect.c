@@ -4564,17 +4564,38 @@ int SigGroupCleanup (DetectEngineCtx *de_ctx) {
     return 0;
 }
 
-void SigTableList(void)
+void SigTableList(const char *keyword)
 {
     size_t size = sizeof(sigmatch_table) / sizeof(SigTableElmt);
 
     size_t i;
-    printf("=====Supported keywords=====\n");
-    for (i = 0; i < size; i++) {
-        if (sigmatch_table[i].name != NULL)
-            printf("- %s\n", sigmatch_table[i].name);
+    
+    if (keyword == NULL) {
+        printf("=====Supported keywords=====\n");
+        for (i = 0; i < size; i++) {
+            if (sigmatch_table[i].name != NULL)
+                printf("- %s\n", sigmatch_table[i].name);
+        }
+    } else if (!strcmp("all", keyword)) {
+        for (i = 0; i < size; i++) {
+            if (sigmatch_table[i].name != NULL) {
+                printf("%s;%s;%s\n",
+                       sigmatch_table[i].name,
+                       sigmatch_table[i].features ? sigmatch_table[i].features : "",
+                       sigmatch_table[i].desc ? sigmatch_table[i].desc : "");
+            }
+        }
+    } else {
+        for (i = 0; i < size; i++) {
+            if ((sigmatch_table[i].name != NULL) &&
+                !strcmp(sigmatch_table[i].name, keyword)) {
+                printf("%s\nFeatures: %s\nDescription: %s\n",
+                       sigmatch_table[i].name,
+                       sigmatch_table[i].features ? sigmatch_table[i].features : "No info",
+                       sigmatch_table[i].desc ? sigmatch_table[i].features : "No info");
+            }
+        }
     }
-
     return;
 }
 
