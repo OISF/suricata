@@ -164,6 +164,8 @@
 
 #include "util-coredump-config.h"
 
+#include "mime-decode.h"
+
 #include "defrag.h"
 
 #include "runmodes.h"
@@ -1690,6 +1692,7 @@ int main(int argc, char **argv)
         DetectAddressTests();
         DetectProtoTests();
         DetectPortTests();
+        MimeDecRegisterTests();
         SCAtomicRegisterTests();
         if (list_unittests) {
             UtListTests(regex_arg);
