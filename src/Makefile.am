@@ -300,6 +300,7 @@ app-layer-ssl.c app-layer-ssl.h \
 app-layer-ssh.c app-layer-ssh.h \
 app-layer-tls-handshake.c app-layer-tls-handshake.h \
 app-layer-smtp.c app-layer-smtp.h \
+mime-decode.c mime-decode.h \
 defrag.c defrag.h \
 defrag-hash.c defrag-hash.h \
 defrag-queue.c defrag-queue.h \
