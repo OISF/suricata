@@ -1697,6 +1697,19 @@ int main(int argc, char **argv)
 	/* SIGHUP is not implemnetd on WIN32 */
     //UtilSignalHandlerSetup(SIGHUP, SignalHandlerSighup);
 
+    /* Try to get user/group to run suricata as if
+       command line as not decide of that */
+    if (do_setuid == FALSE && do_setgid == FALSE) {
+        char *id;
+        if (ConfGet("run-as.user", &id) == 1) {
+            do_setuid = TRUE;
+            user_name = id;
+        }
+        if (ConfGet("run-as.group", &id) == 1) {
+            do_setgid = TRUE;
+            group_name = id;
+        }
+    }
     /* Get the suricata user ID to given user ID */
     if (do_setuid == TRUE) {
         if (SCGetUserID(user_name, group_name, &userid, &groupid) != 0) {

@@ -32,6 +32,11 @@
 #
 #autofp-scheduler: active-packets
 
+# Run suricata as user and group.
+#run-as:
+#  user: suri
+#  group: suri
+
 # Default pid file.
 # Will use this file if no --pidfile in command options.
 #pid-file: /var/run/suricata.pid
