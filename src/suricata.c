@@ -1221,13 +1221,15 @@ int main(int argc, char **argv)
         }
     }
 
+    if (!list_keywords && !list_app_layer_protocols) {
 #ifdef REVISION
-    SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
+        SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
 #elif defined RELEASE
-    SCLogInfo("This is %s version %s RELEASE", PROG_NAME, PROG_VER);
+        SCLogInfo("This is %s version %s RELEASE", PROG_NAME, PROG_VER);
 #else
-    SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
+        SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
 #endif
+    }
 
 #ifndef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
     SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "libhtp < 0.2.7 detected. Keyword "
@@ -1236,7 +1238,8 @@ int main(int argc, char **argv)
 
     SetBpfString(optind, argv);
 
-    UtilCpuPrintSummary();
+    if (!list_keywords && !list_app_layer_protocols)
+        UtilCpuPrintSummary();
 
 #ifdef __SC_CUDA_SUPPORT__
     /* Init the CUDA environment */
@@ -1400,7 +1403,8 @@ int main(int argc, char **argv)
 
     /* Load the Host-OS lookup. */
     SCHInfoLoadFromConfig();
-    DefragInit();
+    if (!list_keywords && !list_app_layer_protocols)
+        DefragInit();
 
     if (run_mode == RUNMODE_UNKNOWN) {
         if (!engine_analysis && !list_keywords && !conf_test) {
