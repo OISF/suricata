@@ -262,6 +262,7 @@ void AppLayerRegisterGetFilesFunc(uint16_t proto,
         FileContainer *(*StateGetFile)(void *, uint8_t));
 void AppLayerRegisterLogger(uint16_t proto);
 uint16_t AppLayerGetProtoByName(const char *);
+const char *AppLayerGetProtoString(int proto);
 void AppLayerRegisterTruncateFunc(uint16_t proto, void (*Truncate)(void *, uint8_t));
 
 int AppLayerParse(void *, Flow *, uint8_t,
