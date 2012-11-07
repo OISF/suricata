@@ -461,7 +461,7 @@ void usage(const char *progname)
 #else
     printf("%s %s\n", PROG_NAME, PROG_VER);
 #endif
-    printf("USAGE: %s\n\n", progname);
+    printf("USAGE: %s [OPTIONS] [BPF FILTER]\n\n", progname);
     printf("\t-c <path>                    : path to configuration file\n");
     printf("\t-T                           : test configuration file (use with -c)\n");
     printf("\t-i <dev or ip>               : run in pcap live mode\n");
