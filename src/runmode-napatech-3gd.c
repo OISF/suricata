@@ -63,7 +63,7 @@ const char *RunModeNapatech3GDGetDefaultMode(void)
 
 void RunModeNapatech3GDRegister(void)
 {
-    SCLogInfo("RunModeNapatech3GDRegister called\n");
+    SCLogDebug("RunModeNapatech3GDRegister called");
 #ifdef HAVE_NAPATECH_3GD
     default_mode = "autofp";
     RunModeRegisterNewRunMode(RUNMODE_NAPATECH_3GD, "auto",
