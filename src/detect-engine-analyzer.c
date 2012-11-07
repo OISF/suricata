@@ -177,7 +177,7 @@ int SetupFPAnalyzer(void)
         return 0;
     }
 
-    SCLogInfo("Engine-Analyis for fast_pattern printed to file - %s",
+    SCLogInfo("Engine-Analysis for fast_pattern printed to file - %s",
               log_path);
 
     struct timeval tval;
@@ -225,7 +225,7 @@ int SetupRuleAnalyzer(void)
                 return 0;
             }
 
-            SCLogInfo("Engine-Analyis for rules printed to file - %s",
+            SCLogInfo("Engine-Analysis for rules printed to file - %s",
                       log_path);
 
             struct timeval tval;
@@ -407,6 +407,17 @@ static void EngineAnalysisRulesPrintFP(Signature *s)
     fprintf(rule_engine_analysis_FD, "\" buffer.\n");
 
     return;
+}
+
+
+void EngineAnalysisRulesFailure(char *line, char *file, int lineno)
+{
+        fprintf(rule_engine_analysis_FD, "== Sid: UNKNOWN ==\n");
+        fprintf(rule_engine_analysis_FD, "%s\n", line);
+        fprintf(rule_engine_analysis_FD, "    FAILURE: invalid rule.\n");
+        fprintf(rule_engine_analysis_FD, "    File: %s.\n", file);
+        fprintf(rule_engine_analysis_FD, "    Line: %d.\n", lineno);
+        fprintf(rule_engine_analysis_FD, "\n");
 }
 
 /**
