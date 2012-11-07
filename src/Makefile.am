@@ -383,6 +383,7 @@ endif
 
 
 #suricata_CFLAGS = -Wall -fno-strict-aliasing 
+AM_CFLAGS = -DLOCAL_STATE_DIR=\"$(localstatedir)\"
 
 if BUILD_UNITTESTS
 check-am:
