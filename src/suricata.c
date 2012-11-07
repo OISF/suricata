@@ -504,6 +504,7 @@ void usage(const char *progname)
     printf("\t--pidfile <file>             : write pid to this file (only for daemon mode)\n");
     printf("\t--init-errors-fatal          : enable fatal failure on signature init error\n");
     printf("\t--dump-config                : show the running configuration\n");
+    printf("\t--build-info                 : display build information\n");
     printf("\t--pcap[=<dev>]               : run in pcap mode, no value select interfaces from suricata.yaml\n");
 #ifdef HAVE_PCAP_SET_BUFF
     printf("\t--pcap-buffer-size           : size of the pcap buffer value from 0 - %i\n",INT_MAX);
