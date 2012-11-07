@@ -530,7 +530,8 @@ size_t table_size(table_t *table) {
  */
 void table_clear(table_t *table) {    
     // TODO Clear table by removing the existing elements
-    
+    if (table == NULL)
+        return;
     size_t size = list_size(table->list);
 
     list_destroy(table->list);
