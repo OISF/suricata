@@ -483,10 +483,10 @@ void usage(const char *progname)
 #ifdef UNITTESTS
     printf("\t-u                           : run the unittests and exit\n");
     printf("\t-U, --unittest-filter=REGEX  : filter unittests with a regex\n");
-    printf("\t--list-app-layer-protos      : list supported app layer protocols\n");
     printf("\t--list-unittests             : list unit tests\n");
     printf("\t--fatal-unittests            : enable fatal failure on unittest error\n");
 #endif /* UNITTESTS */
+    printf("\t--list-app-layer-protos      : list supported app layer protocols\n");
     printf("\t--list-keywords              : list all keywords implemented by the engine\n");
 #ifdef __SC_CUDA_SUPPORT__
     printf("\t--list-cuda-cards            : list cuda supported cards\n");
@@ -1327,15 +1327,18 @@ int main(int argc, char **argv)
         log_dir = DEFAULT_LOG_DIR;
 #endif /* OS_WIN32 */
     }
+
+    if (!list_keywords && !list_app_layer_protocols) {
 #ifdef OS_WIN32
-    if (_stat(log_dir, &buf) != 0) {
+        if (_stat(log_dir, &buf) != 0) {
 #else
-    if (stat(log_dir, &buf) != 0) {
+        if (stat(log_dir, &buf) != 0) {
 #endif /* OS_WIN32 */
-        SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
-                    "supplied by %s (default-log-dir) doesn't exist. "
-                    "Shutting down the engine", log_dir, conf_filename);
-        exit(EXIT_FAILURE);
+            SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
+                        "supplied by %s (default-log-dir) doesn't exist. "
+                        "Shutting down the engine", log_dir, conf_filename);
+            exit(EXIT_FAILURE);
+        }
     }
 
     /* Pull the max pending packets from the config, if not found fall
