@@ -491,7 +491,7 @@ void usage(const char *progname)
     printf("\t--fatal-unittests            : enable fatal failure on unittest error\n");
 #endif /* UNITTESTS */
     printf("\t--list-app-layer-protos      : list supported app layer protocols\n");
-    printf("\t--list-keywords[=any|<kword>]: list keywords implemented by the engine\n");
+    printf("\t--list-keywords[=all|<kword>]: list keywords implemented by the engine\n");
 #ifdef __SC_CUDA_SUPPORT__
     printf("\t--list-cuda-cards            : list cuda supported cards\n");
 #endif
