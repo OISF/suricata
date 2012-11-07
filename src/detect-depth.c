@@ -44,6 +44,8 @@ static int DetectDepthSetup (DetectEngineCtx *, Signature *, char *);
 
 void DetectDepthRegister (void) {
     sigmatch_table[DETECT_DEPTH].name = "depth";
+    sigmatch_table[DETECT_DEPTH].desc = "designate how many bytes from the beginning of the payload will be checked";
+    sigmatch_table[DETECT_DEPTH].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Payload_keywords#Depth";
     sigmatch_table[DETECT_DEPTH].Match = NULL;
     sigmatch_table[DETECT_DEPTH].Setup = DetectDepthSetup;
     sigmatch_table[DETECT_DEPTH].Free  = NULL;

@@ -57,6 +57,8 @@ void DetectWindowFree(void *);
  */
 void DetectWindowRegister (void) {
     sigmatch_table[DETECT_WINDOW].name = "window";
+    sigmatch_table[DETECT_WINDOW].desc = "check for a specific TCP window size";
+    sigmatch_table[DETECT_WINDOW].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#Window";
     sigmatch_table[DETECT_WINDOW].Match = DetectWindowMatch;
     sigmatch_table[DETECT_WINDOW].Setup = DetectWindowSetup;
     sigmatch_table[DETECT_WINDOW].Free  = DetectWindowFree;
