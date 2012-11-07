@@ -74,6 +74,8 @@ void DetectHttpStatMsgFree(void *);
  */
 void DetectHttpStatMsgRegister (void) {
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].name = "http_stat_msg";
+    sigmatch_table[DETECT_AL_HTTP_STAT_MSG].desc = "content modifier to match on stat-msg-buffer";
+    sigmatch_table[DETECT_AL_HTTP_STAT_MSG].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#http_stat_msg";
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].alproto = ALPROTO_HTTP;

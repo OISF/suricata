@@ -68,6 +68,8 @@ static void DetectFilestoreFree(void *);
  */
 void DetectFilestoreRegister(void) {
     sigmatch_table[DETECT_FILESTORE].name = "filestore";
+    sigmatch_table[DETECT_FILESTORE].desc = "stores files to disk if the signature matched";
+    sigmatch_table[DETECT_FILESTORE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/File-keywords#filestore";
     sigmatch_table[DETECT_FILESTORE].FileMatch = DetectFilestoreMatch;
     sigmatch_table[DETECT_FILESTORE].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_FILESTORE].Setup = DetectFilestoreSetup;

@@ -92,6 +92,8 @@ static void DetectLuajitFree(void *);
  */
 void DetectLuajitRegister(void) {
     sigmatch_table[DETECT_LUAJIT].name = "luajit";
+    sigmatch_table[DETECT_LUAJIT].desc = "match via a luajit script";
+    sigmatch_table[DETECT_LUAJIT].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Lua_scripting";
     sigmatch_table[DETECT_LUAJIT].Match = DetectLuajitMatch;
     sigmatch_table[DETECT_LUAJIT].Setup = DetectLuajitSetup;
     sigmatch_table[DETECT_LUAJIT].Free  = DetectLuajitFree;

@@ -68,6 +68,8 @@ void DetectHttpUAFree(void *);
 void DetectHttpUARegister(void)
 {
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].name = "http_user_agent";
+    sigmatch_table[DETECT_AL_HTTP_USER_AGENT].desc = "content modifier to match only on the User-Agent header";
+    sigmatch_table[DETECT_AL_HTTP_USER_AGENT].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#http_user_agent";
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].Setup = DetectHttpUASetup;

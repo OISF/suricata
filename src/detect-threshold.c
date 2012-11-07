@@ -72,6 +72,8 @@ static void DetectThresholdFree(void *);
 
 void DetectThresholdRegister (void) {
     sigmatch_table[DETECT_THRESHOLD].name = "threshold";
+    sigmatch_table[DETECT_THRESHOLD].desc = "control the rule's alert frequency";
+    sigmatch_table[DETECT_THRESHOLD].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Rule-Thresholding#threshold";
     sigmatch_table[DETECT_THRESHOLD].Match = DetectThresholdMatch;
     sigmatch_table[DETECT_THRESHOLD].Setup = DetectThresholdSetup;
     sigmatch_table[DETECT_THRESHOLD].Free  = DetectThresholdFree;
