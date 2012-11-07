@@ -56,6 +56,8 @@ static int DetectReferenceSetup(DetectEngineCtx *, Signature *s, char *str);
 void DetectReferenceRegister(void)
 {
     sigmatch_table[DETECT_REFERENCE].name = "reference";
+    sigmatch_table[DETECT_REFERENCE].desc = "direct to places where information about the rule can be found";
+    sigmatch_table[DETECT_REFERENCE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Meta-settings#Reference";
     sigmatch_table[DETECT_REFERENCE].Match = NULL;
     sigmatch_table[DETECT_REFERENCE].Setup = DetectReferenceSetup;
     sigmatch_table[DETECT_REFERENCE].Free  = NULL;

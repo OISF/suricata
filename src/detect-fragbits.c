@@ -70,6 +70,8 @@ static void DetectFragBitsFree(void *);
 
 void DetectFragBitsRegister (void) {
     sigmatch_table[DETECT_FRAGBITS].name = "fragbits";
+    sigmatch_table[DETECT_FRAGBITS].desc = "check if the fragmentation and reserved bits are set in the IP header";
+    sigmatch_table[DETECT_FRAGBITS].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#Fragbits";
     sigmatch_table[DETECT_FRAGBITS].Match = DetectFragBitsMatch;
     sigmatch_table[DETECT_FRAGBITS].Setup = DetectFragBitsSetup;
     sigmatch_table[DETECT_FRAGBITS].Free  = DetectFragBitsFree;

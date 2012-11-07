@@ -4576,24 +4576,39 @@ static inline void PrintFeatureList(int flags, char sep)
     if (flags & SIGMATCH_IPONLY_COMPAT) {
         if (prev == 1)
             printf("%c", sep);
-        printf("IP only rule");
+        printf("compatible with IP only rule");
         prev = 1;
     }
     if (flags & SIGMATCH_DEONLY_COMPAT) {
         if (prev == 1)
             printf("%c", sep);
-        printf("IP only rule");
+        printf("compatible with decoder event only rule");
         prev = 1;
     }
     if (flags & SIGMATCH_PAYLOAD) {
         if (prev == 1)
             printf("%c", sep);
-        printf("payload inspecting rule");
+        printf("payload inspecting keyword");
         prev = 1;
     }
     if (prev == 0) {
         printf("none");
     }
+}
+
+static inline void SigMultilinePrint(int i, char *prefix)
+{
+    if (sigmatch_table[i].desc) {
+        printf("%sDescription: %s\n", prefix, sigmatch_table[i].desc);
+    }
+    printf("%sProtocol: %s\n", prefix,
+            AppLayerGetProtoString(sigmatch_table[i].alproto));
+    printf("%sFeatures: ", prefix);
+    PrintFeatureList(sigmatch_table[i].flags, ',');
+    if (sigmatch_table[i].url) {
+        printf("\n%sDocumentation: %s", prefix, sigmatch_table[i].url);
+    }
+    printf("\n");
 }
 
 void SigTableList(const char *keyword)
@@ -4608,8 +4623,8 @@ void SigTableList(const char *keyword)
             if (sigmatch_table[i].name != NULL)
                 printf("- %s\n", sigmatch_table[i].name);
         }
-    } else if (!strcmp("all", keyword)) {
-        printf("name;description;app layer;features\n");
+    } else if (!strcmp("csv", keyword)) {
+        printf("name;description;app layer;features;documentation\n");
         for (i = 0; i < size; i++) {
             if (sigmatch_table[i].name != NULL) {
                 printf("%s;", sigmatch_table[i].name);
@@ -4618,24 +4633,27 @@ void SigTableList(const char *keyword)
                 }
                 /* Build feature */
                 printf(";%s;",
-                       TmModuleAlprotoToString(sigmatch_table[i].alproto));
+                       AppLayerGetProtoString(sigmatch_table[i].alproto));
                 PrintFeatureList(sigmatch_table[i].flags, ':');
+                printf(";");
+                if (sigmatch_table[i].url) {
+                    printf("%s", sigmatch_table[i].url);
+                }
+                printf(";");
                 printf("\n");
             }
+        }
+    } else if (!strcmp("all", keyword)) {
+        for (i = 0; i < size; i++) {
+            printf("%s:\n", sigmatch_table[i].name);
+            SigMultilinePrint(i, "\t");
         }
     } else {
         for (i = 0; i < size; i++) {
             if ((sigmatch_table[i].name != NULL) &&
                 !strcmp(sigmatch_table[i].name, keyword)) {
-                printf("%s\n", sigmatch_table[i].name);
-                if (sigmatch_table[i].desc) {
-                    printf("Description: %s\n", sigmatch_table[i].desc);
-                }
-                printf("Protocol: %s\n",
-                       TmModuleAlprotoToString(sigmatch_table[i].alproto));
-                printf("Features: ");
-                PrintFeatureList(sigmatch_table[i].flags, ',');
-                printf("\n");
+                printf("= %s =\n", sigmatch_table[i].name);
+                SigMultilinePrint(i, "");
             }
         }
     }

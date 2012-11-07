@@ -49,6 +49,8 @@ static void DetectSameipRegisterTests(void);
 void DetectSameipRegister(void)
 {
     sigmatch_table[DETECT_SAMEIP].name = "sameip";
+    sigmatch_table[DETECT_SAMEIP].desc = "check if the IP address of the source is the same as the IP address of the destination";
+    sigmatch_table[DETECT_SAMEIP].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#sameip";
     sigmatch_table[DETECT_SAMEIP].Match = DetectSameipMatch;
     sigmatch_table[DETECT_SAMEIP].Setup = DetectSameipSetup;
     sigmatch_table[DETECT_SAMEIP].Free = NULL;
