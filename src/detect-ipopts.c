@@ -56,6 +56,8 @@ void DetectIpOptsFree(void *);
  */
 void DetectIpOptsRegister (void) {
     sigmatch_table[DETECT_IPOPTS].name = "ipopts";
+    sigmatch_table[DETECT_IPOPTS].desc = "check if a specific IP option is set";
+    sigmatch_table[DETECT_IPOPTS].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#Ipopts";
     sigmatch_table[DETECT_IPOPTS].Match = DetectIpOptsMatch;
     sigmatch_table[DETECT_IPOPTS].Setup = DetectIpOptsSetup;
     sigmatch_table[DETECT_IPOPTS].Free  = DetectIpOptsFree;

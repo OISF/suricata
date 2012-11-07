@@ -65,6 +65,8 @@ void DetectIPProtoRegister(void)
     int opts = 0;
 
     sigmatch_table[DETECT_IPPROTO].name = "ip_proto";
+    sigmatch_table[DETECT_IPPROTO].desc = "match on the IP protocol in the packet-header";
+    sigmatch_table[DETECT_IPPROTO].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#ip_proto";
     sigmatch_table[DETECT_IPPROTO].Match = NULL;
     sigmatch_table[DETECT_IPPROTO].Setup = DetectIPProtoSetup;
     sigmatch_table[DETECT_IPPROTO].Free  = NULL;
