@@ -659,6 +659,9 @@ uint8_t bestfit_codepoint(htp_cfg_t *cfg, uint32_t codepoint) {
  * @param path
  */
 void htp_utf8_decode_path_inplace(htp_cfg_t *cfg, htp_tx_t *tx, bstr *path) {
+    if (path == NULL)
+        return;
+
     uint8_t *data = (unsigned char *) bstr_ptr(path);
     size_t len = bstr_len(path);
     size_t rpos = 0;
@@ -1198,17 +1201,23 @@ int htp_normalize_parsed_uri(htp_connp_t *connp, htp_uri_t *incomplete, htp_uri_
     if (incomplete->scheme != NULL) {
         // Duplicate and convert to lowercase
         normalized->scheme = bstr_dup_lower(incomplete->scheme);
+        if (normalized->scheme == NULL)
+            return HTP_ERROR;
     }
 
     // Username
     if (incomplete->username != NULL) {
         normalized->username = bstr_strdup(incomplete->username);
+        if (normalized->username == NULL)
+            return HTP_ERROR;
         htp_uriencoding_normalize_inplace(normalized->username);
     }
 
     // Password
     if (incomplete->password != NULL) {
         normalized->password = bstr_strdup(incomplete->password);
+        if (normalized->password == NULL)
+            return HTP_ERROR;
         htp_uriencoding_normalize_inplace(normalized->password);
     }
 
@@ -1217,6 +1226,8 @@ int htp_normalize_parsed_uri(htp_connp_t *connp, htp_uri_t *incomplete, htp_uri_
         // We know that incomplete->hostname does not contain
         // port information, so no need to check for it here
         normalized->hostname = bstr_strdup(incomplete->hostname);
+        if (normalized->hostname == NULL)
+            return HTP_ERROR;
         htp_uriencoding_normalize_inplace(normalized->hostname);
         htp_normalize_hostname_inplace(normalized->hostname);
     }
@@ -1250,6 +1261,8 @@ int htp_normalize_parsed_uri(htp_connp_t *connp, htp_uri_t *incomplete, htp_uri_
 
             // RFC normalization
             htp_normalize_uri_path_inplace(normalized->path);
+        } else {
+            return HTP_ERROR;
         }
     }
 
@@ -1258,11 +1271,15 @@ int htp_normalize_parsed_uri(htp_connp_t *connp, htp_uri_t *incomplete, htp_uri_
         // We cannot URL-decode the query string here; it needs to be
         // parsed into individual key-value pairs first.
         normalized->query = bstr_strdup(incomplete->query);
+        if (normalized->query == NULL)
+            return HTP_ERROR;
     }
 
     // Fragment
     if (incomplete->fragment != NULL) {
         normalized->fragment = bstr_strdup(incomplete->fragment);
+        if (normalized->fragment == NULL)
+            return HTP_ERROR;
         htp_uriencoding_normalize_inplace(normalized->fragment);
     }
 
@@ -1277,6 +1294,8 @@ int htp_normalize_parsed_uri(htp_connp_t *connp, htp_uri_t *incomplete, htp_uri_
  * @return normalized hostnanme
  */
 bstr *htp_normalize_hostname_inplace(bstr *hostname) {
+    if (hostname == NULL)
+        return NULL;
     bstr_tolowercase(hostname);
 
     char *data = bstr_ptr(hostname);
@@ -1301,6 +1320,8 @@ bstr *htp_normalize_hostname_inplace(bstr *hostname) {
  * @param hostname
  */
 void htp_replace_hostname(htp_connp_t *connp, htp_uri_t *parsed_uri, bstr *hostname) {
+    if (hostname == NULL)
+        return;
     int colon = bstr_chr(hostname, ':');
     if (colon == -1) {
         // Hostname alone
@@ -1355,6 +1376,7 @@ int htp_is_uri_unreserved(unsigned char c) {
  * @param s
  */
 void htp_uriencoding_normalize_inplace(bstr *s) {
+    if (s == NULL) return;
     unsigned char *data = (unsigned char *) bstr_ptr(s);
     size_t len = bstr_len(s);
 
@@ -1481,6 +1503,7 @@ int htp_prenormalize_uri_path_inplace(bstr *s, int *flags, int case_insensitive,
  * @param s
  */
 void htp_normalize_uri_path_inplace(bstr *s) {
+    if (s == NULL) return;
     char *data = bstr_ptr(s);
     size_t len = bstr_len(s);
 
