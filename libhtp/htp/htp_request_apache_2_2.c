@@ -238,7 +238,13 @@ int htp_parse_request_header_apache_2_2(htp_connp_t *connp, htp_header_t *h, uns
 
     // Now extract the name and the value
     h->name = bstr_memdup((char *) data + name_start, name_end - name_start);
+    if (h->name == NULL)
+        return HTP_ERROR;
     h->value = bstr_memdup((char *) data + value_start, value_end - value_start);
+    if (h->value == NULL) {
+        bstr_free(h->name);
+        return HTP_ERROR;
+    }
 
     return HTP_OK;
 }
@@ -270,6 +276,9 @@ int htp_parse_request_line_apache_2_2(htp_connp_t *connp) {
     // No, we don't care if the method is empty.
 
     tx->request_method = bstr_memdup((char *) data, pos);
+    if (tx->request_method == NULL) {
+        return HTP_ERROR;
+    }
 
 #ifdef HTP_DEBUG
     fprint_raw_data(stderr, __FUNCTION__, (unsigned char *)bstr_ptr(tx->request_method), bstr_len(tx->request_method));
@@ -315,6 +324,8 @@ int htp_parse_request_line_apache_2_2(htp_connp_t *connp) {
 
     // The protocol information spreads until the end of the line.
     tx->request_protocol = bstr_memdup((char *) data + pos, len - pos);
+    if (tx->request_protocol == NULL)
+        return HTP_ERROR;
     tx->request_protocol_number = htp_parse_protocol(tx->request_protocol);
 
 #ifdef HTP_DEBUG

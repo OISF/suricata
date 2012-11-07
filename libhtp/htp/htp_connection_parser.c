@@ -152,6 +152,9 @@ htp_connp_t *htp_connp_create_copycfg(htp_cfg_t *cfg) {
  * @param connp
  */
 void htp_connp_destroy(htp_connp_t *connp) {
+    if (connp == NULL)
+        return;
+
     if (connp->out_decompressor != NULL) {
         connp->out_decompressor->destroy(connp->out_decompressor);
         connp->out_decompressor = NULL;
@@ -181,7 +184,7 @@ void htp_connp_destroy(htp_connp_t *connp) {
 
     // Destroy the configuration structure, but only
     // if it is our private copy
-    if (connp->is_cfg_private) {
+    if ((connp->is_cfg_private) && (connp->cfg != NULL)) {
         if (connp->cfg != NULL)
             htp_config_destroy(connp->cfg);
     }
@@ -196,6 +199,9 @@ void htp_connp_destroy(htp_connp_t *connp) {
  * @param connp
  */
 void htp_connp_destroy_all(htp_connp_t *connp) {
+    if (connp == NULL)
+        return;
+
     if (connp->conn != NULL) {
         // Destroy connection
         htp_conn_destroy(connp->conn);
