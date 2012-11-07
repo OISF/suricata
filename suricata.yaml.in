@@ -427,8 +427,8 @@ pattern-matcher:
 # Defrag settings:
 
 defrag:
+  trackers: 65535
   max-frags: 65535
-  prealloc: yes
   timeout: 60
 
 # Flow settings:
