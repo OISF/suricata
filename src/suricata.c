@@ -479,6 +479,7 @@ void usage(const char *progname)
 	printf("\t--service-remove             : remove service\n");
 	printf("\t--service-change-params      : change service startup parameters\n");
 #endif /* OS_WIN32 */
+    printf("\t-V                           : display Suricata version\n");
 #ifdef UNITTESTS
     printf("\t-u                           : run the unittests and exit\n");
     printf("\t-U, --unittest-filter=REGEX  : filter unittests with a regex\n");
