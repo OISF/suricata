@@ -177,7 +177,7 @@ int SetupFPAnalyzer(void)
         return 0;
     }
 
-    SCLogInfo("Engine-Analyis for fast_pattern printed to file - %s",
+    SCLogInfo("Engine-Analysis for fast_pattern printed to file - %s",
               log_path);
 
     struct timeval tval;
@@ -225,7 +225,7 @@ int SetupRuleAnalyzer(void)
                 return 0;
             }
 
-            SCLogInfo("Engine-Analyis for rules printed to file - %s",
+            SCLogInfo("Engine-Analysis for rules printed to file - %s",
                       log_path);
 
             struct timeval tval;
@@ -409,6 +409,17 @@ static void EngineAnalysisRulesPrintFP(Signature *s)
     return;
 }
 
+
+void EngineAnalysisRulesFailure(char *line, char *file, int lineno)
+{
+        fprintf(rule_engine_analysis_FD, "== Sid: UNKNOWN ==\n");
+        fprintf(rule_engine_analysis_FD, "%s\n", line);
+        fprintf(rule_engine_analysis_FD, "    FAILURE: invalid rule.\n");
+        fprintf(rule_engine_analysis_FD, "    File: %s.\n", file);
+        fprintf(rule_engine_analysis_FD, "    Line: %d.\n", lineno);
+        fprintf(rule_engine_analysis_FD, "\n");
+}
+
 /**
  * \brief Prints analysis of loaded rules.
  *
@@ -431,6 +442,8 @@ void EngineAnalysisRules(Signature *s, char *line)
     uint32_t rule_flow_toserver = 0;
     uint32_t rule_flow_toclient = 0;
     uint32_t rule_flow_nostream = 0;
+    uint32_t rule_ipv4_only = 0;
+    uint32_t rule_ipv6_only = 0;
     uint32_t rule_flowbits = 0;
     uint32_t rule_flowint = 0;
     //uint32_t rule_flowvar = 0;
@@ -479,6 +492,14 @@ void EngineAnalysisRules(Signature *s, char *line)
     if (s->flags & SIG_FLAG_REQUIRE_STREAM) {
         stream_buf += 1;
     }
+
+    if (s->proto.flags & DETECT_PROTO_IPV4) {
+        rule_ipv4_only += 1;
+    }
+    if (s->proto.flags & DETECT_PROTO_IPV6) {
+        rule_ipv6_only += 1;
+    }
+
     for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
 
         SigMatch *sm = NULL;
@@ -718,7 +739,9 @@ void EngineAnalysisRules(Signature *s, char *line)
         fprintf(rule_engine_analysis_FD, "== Sid: %u ==\n", s->id);
         fprintf(rule_engine_analysis_FD, "%s\n", line);
 
-        if (s->flags & SIG_FLAG_IPONLY) fprintf(rule_engine_analysis_FD, "   Rule is ip only.\n");
+        if (s->flags & SIG_FLAG_IPONLY) fprintf(rule_engine_analysis_FD, "    Rule is ip only.\n");
+        if (rule_ipv6_only) fprintf(rule_engine_analysis_FD, "    Rule is IPv6 only.\n");
+        if (rule_ipv4_only) fprintf(rule_engine_analysis_FD, "    Rule is IPv4 only.\n");
         if (packet_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on packets.\n");
         if (!rule_flow_nostream && stream_buf && (rule_flow || rule_flowbits || rule_content || rule_pcre)) {
             fprintf(rule_engine_analysis_FD, "    Rule matches on reassembled stream.\n");

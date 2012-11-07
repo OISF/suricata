@@ -93,6 +93,8 @@ static int DetectTlsStoreMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, u
  */
 void DetectTlsRegister (void) {
     sigmatch_table[DETECT_AL_TLS_SUBJECT].name = "tls.subject";
+    sigmatch_table[DETECT_AL_TLS_SUBJECT].features = "state inspecting";
+    sigmatch_table[DETECT_AL_TLS_SUBJECT].desc = "Match TLS/SSL certificate Subject field";
     sigmatch_table[DETECT_AL_TLS_SUBJECT].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].AppLayerMatch = DetectTlsSubjectMatch;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].alproto = ALPROTO_TLS;
@@ -101,6 +103,8 @@ void DetectTlsRegister (void) {
     sigmatch_table[DETECT_AL_TLS_SUBJECT].RegisterTests = DetectTlsSubjectRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].name = "tls.issuerdn";
+    sigmatch_table[DETECT_AL_TLS_ISSUERDN].features = "state inspecting";
+    sigmatch_table[DETECT_AL_TLS_ISSUERDN].desc = "Match TLS/SSL certificate IssuerDN field";
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].AppLayerMatch = DetectTlsIssuerDNMatch;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].alproto = ALPROTO_TLS;
@@ -109,6 +113,8 @@ void DetectTlsRegister (void) {
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].RegisterTests = DetectTlsIssuerDNRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].name = "tls.fingerprint";
+    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].features = "state inspecting";
+    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].desc = "Match TLS/SSL certificate SHA1 fingerprint";
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].AppLayerMatch = DetectTlsFingerprintMatch;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].alproto = ALPROTO_TLS;
@@ -117,6 +123,8 @@ void DetectTlsRegister (void) {
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].RegisterTests = NULL;
 
     sigmatch_table[DETECT_AL_TLS_STORE].name = "tls.store";
+    sigmatch_table[DETECT_AL_TLS_STORE].features = "state inspecting";
+    sigmatch_table[DETECT_AL_TLS_STORE].desc = "Store certificate on disk";
     sigmatch_table[DETECT_AL_TLS_STORE].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_STORE].AppLayerMatch = DetectTlsStoreMatch;
     sigmatch_table[DETECT_AL_TLS_STORE].alproto = ALPROTO_TLS;
