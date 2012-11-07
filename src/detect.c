@@ -4607,7 +4607,7 @@ void SigTableList(const char *keyword)
                 printf("- %s\n", sigmatch_table[i].name);
         }
     } else if (!strcmp("all", keyword)) {
-        printf("name;description;app layer;features\n");
+        printf("name;description;app layer;features;documentation\n");
         for (i = 0; i < size; i++) {
             if (sigmatch_table[i].name != NULL) {
                 printf("%s;", sigmatch_table[i].name);
@@ -4618,6 +4618,11 @@ void SigTableList(const char *keyword)
                 printf(";%s;",
                        TmModuleAlprotoToString(sigmatch_table[i].alproto));
                 PrintFeatureList(sigmatch_table[i].flags, ':');
+                printf(";");
+                if (sigmatch_table[i].url) {
+                    printf("%s", sigmatch_table[i].url);
+                }
+                printf(";");
                 printf("\n");
             }
         }
@@ -4633,6 +4638,9 @@ void SigTableList(const char *keyword)
                        TmModuleAlprotoToString(sigmatch_table[i].alproto));
                 printf("Features: ");
                 PrintFeatureList(sigmatch_table[i].flags, ',');
+                if (sigmatch_table[i].url) {
+                    printf("\nDocumentation: %s", sigmatch_table[i].url);
+                }
                 printf("\n");
             }
         }

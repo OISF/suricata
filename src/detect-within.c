@@ -48,6 +48,8 @@ void DetectWithinRegisterTests(void);
 
 void DetectWithinRegister (void) {
     sigmatch_table[DETECT_WITHIN].name = "within";
+    sigmatch_table[DETECT_WITHIN].desc = "designate how a content relate to another content";
+    sigmatch_table[DETECT_WITHIN].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Payload_keywords#Within";
     sigmatch_table[DETECT_WITHIN].Match = NULL;
     sigmatch_table[DETECT_WITHIN].Setup = DetectWithinSetup;
     sigmatch_table[DETECT_WITHIN].Free  = NULL;

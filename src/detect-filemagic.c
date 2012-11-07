@@ -66,6 +66,8 @@ static void DetectFilemagicFree(void *);
  */
 void DetectFilemagicRegister(void) {
     sigmatch_table[DETECT_FILEMAGIC].name = "filemagic";
+    sigmatch_table[DETECT_FILEMAGIC].desc = "match on the information libmagic returns about a file";
+    sigmatch_table[DETECT_FILEMAGIC].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/File-keywords#filemagic";
     sigmatch_table[DETECT_FILEMAGIC].FileMatch = DetectFilemagicMatch;
     sigmatch_table[DETECT_FILEMAGIC].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_FILEMAGIC].Setup = DetectFilemagicSetup;

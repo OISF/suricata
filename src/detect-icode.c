@@ -56,6 +56,8 @@ void DetectICodeFree(void *);
  */
 void DetectICodeRegister (void) {
     sigmatch_table[DETECT_ICODE].name = "icode";
+    sigmatch_table[DETECT_ICODE].desc = "match on specific ICMP id-value";
+    sigmatch_table[DETECT_ICODE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#icode";
     sigmatch_table[DETECT_ICODE].Match = DetectICodeMatch;
     sigmatch_table[DETECT_ICODE].Setup = DetectICodeSetup;
     sigmatch_table[DETECT_ICODE].Free = DetectICodeFree;

@@ -858,6 +858,7 @@ typedef struct SigTableElmt_ {
     uint8_t flags;
     char *name;
     char *desc;
+    char *url;
     
 } SigTableElmt;
 
