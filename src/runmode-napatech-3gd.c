@@ -52,7 +52,9 @@
 #define NT3GD_RUNMODE_WORKERS 4
 
 static const char *default_mode = NULL;
+#ifdef HAVE_NAPATECH_3GD
 static int num_configured_streams = 0;
+#endif
 
 const char *RunModeNapatech3GDGetDefaultMode(void)
 {
