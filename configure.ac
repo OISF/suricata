@@ -1221,47 +1221,6 @@ AC_INIT(configure.ac)
         exit 1
     fi
 
-  # Check for Napatech support.
-    AC_ARG_ENABLE(napatech,
-                [  --enable-napatech  Enable Napatech adapter],
-                [ enable_napatech=yes ],
-                [ enable_napatech=no])
-    AC_ARG_WITH(napatech_includes,
-            [  --with-napatech-includes=DIR  napatech include directory],
-            [with_napatech_includes="$withval"],[with_napatech_includes="no"])
-    AC_ARG_WITH(napatech_libraries,
-            [  --with-napatech-libraries=DIR  napatech library directory],
-            [with_napatech_libraries="$withval"],[with_napatech_libraries="no"])
-
-    if test "$enable_napatech" = "yes"; then
-
-        if test "$with_napatech_includes" != "no"; then
-            CPPFLAGS="${CPPFLAGS} -I${with_napatech_includes}"
-        fi
-
-        if test "$with_napatech_libraries" != "no"; then
-            LDFLAGS="${LDFLAGS} -L${with_napatech_libraries} -lntfeeds -lntcommoninterface"
-        fi
-
-        AC_CHECK_HEADER(ntfeeds.h,NAPATECH="yes",NAPATECH="no")
-        if test "$NAPATECH" != "no"; then
-            NAPATECH=""
-            AC_CHECK_LIB(ntcommoninterface,NTCI_OpenCard,NAPATECH="yes",NAPATECH="no")
-            #AC_CHECK_LIB(ntfeeds,napatech_open,NAPATECH="yes",NAPATECH="no")
-        fi
-
-        if test "$NAPATECH" != "no"; then
-            CFLAGS="${CFLAGS} -DHAVE_NAPATECH"
-        fi
-
-        if test "$NAPATECH" = "no"; then
-            echo
-            echo "  ERROR! libntfeeds (and libntcommoninterface) library not found"
-            echo
-            exit 1
-        fi
-    fi
-
   # napatech-3gd
     AC_ARG_ENABLE(napatech-3gd,
                 [  --enable-napatech-3gd   Enabled Napatech 3GD Devices],
@@ -1410,7 +1369,6 @@ Suricata Configuration:
   NFQueue support:                         ${enable_nfqueue}
   IPFW support:                            ${enable_ipfw}
   DAG enabled:                             ${enable_dag}
-  Napatech enabled:                        ${enable_napatech}
   Napatech 3GD enabled:                    ${enable_napatech_3gd}
 
   libnss support:                          ${enable_nss}
