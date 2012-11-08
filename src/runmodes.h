@@ -33,7 +33,6 @@ enum {
     RUNMODE_IPFW,
     RUNMODE_ERF_FILE,
     RUNMODE_DAG,
-    RUNMODE_NAPATECH,
     RUNMODE_AFP_DEV,
     RUNMODE_UNITTEST,
     RUNMODE_NAPATECH_3GD,
@@ -59,7 +58,6 @@ void RunModeShutDown(void);
 #include "runmode-ipfw.h"
 #include "runmode-erf-file.h"
 #include "runmode-erf-dag.h"
-#include "runmode-napatech.h"
 #include "runmode-napatech-3gd.h"
 #include "runmode-af-packet.h"
 

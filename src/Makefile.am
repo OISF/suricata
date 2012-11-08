@@ -15,7 +15,6 @@ runmode-nfq.c runmode-nfq.h \
 runmode-ipfw.c runmode-ipfw.h \
 runmode-erf-file.c runmode-erf-file.h \
 runmode-erf-dag.c runmode-erf-dag.h \
-runmode-napatech.c runmode-napatech.h \
 runmode-napatech-3gd.c runmode-napatech-3gd.h \
 runmode-af-packet.c runmode-af-packet.h \
 packet-queue.c packet-queue.h \
@@ -28,7 +27,6 @@ source-pfring.c source-pfring.h \
 source-ipfw.c source-ipfw.h \
 source-erf-file.c source-erf-file.h \
 source-erf-dag.c source-erf-dag.h \
-source-napatech.c source-napatech.h \
 source-napatech-3gd.c source-napatech-3gd.h \
 source-af-packet.c source-af-packet.h \
 decode.c decode.h \
