@@ -35,24 +35,30 @@ AC_INIT(configure.ac)
             echo
             ])
 
-    dnl get gcc version
-    AC_MSG_CHECKING([gcc version])
-            gccver=$($CC -dumpversion)
-            gccvermajor=$(echo $gccver | cut -d . -f1)
-            gccverminor=$(echo $gccver | cut -d . -f2)
-            gccvernum=$(expr $gccvermajor "*" 100 + $gccverminor)
-    AC_MSG_RESULT($gccver)
-
-    if test "$gccvernum" -ge "400"; then
-            dnl gcc 4.0 or later
-            CFLAGS="$CFLAGS -Wextra -Werror-implicit-function-declaration"
-    else
-            CFLAGS="$CFLAGS -W"
+    if test `basename $CC` = "clang"; then
+        CFLAGS="$CFLAGS -Wextra -Werror-implicit-function-declaration"
     fi
+    if test `basename $CC` = "gcc"; then
+        dnl get gcc version
+        AC_MSG_CHECKING([gcc version])
+                gccver=$($CC -dumpversion)
+                gccvermajor=$(echo $gccver | cut -d . -f1)
+                gccverminor=$(echo $gccver | cut -d . -f2)
+                gccvernum=$(expr $gccvermajor "*" 100 + $gccverminor)
+        AC_MSG_RESULT($gccver)
 
-    # remove optimization options that break our code
-    # VJ 2010/06/27: no-tree-pre added. It breaks ringbuffers code.
-    CFLAGS="$CFLAGS -Wall -fno-strict-aliasing -fno-tree-pre"
+        if test "$gccvernum" -ge "400"; then
+                dnl gcc 4.0 or later
+                CFLAGS="$CFLAGS -Wextra -Werror-implicit-function-declaration"
+        else
+                CFLAGS="$CFLAGS -W"
+        fi
+
+        # remove optimization options that break our code
+        # VJ 2010/06/27: no-tree-pre added. It breaks ringbuffers code.
+        CFLAGS="$CFLAGS -fno-tree-pre"
+    fi
+    CFLAGS="$CFLAGS -Wall -fno-strict-aliasing"
     CFLAGS="$CFLAGS -Wno-unused-parameter"
     CFLAGS="$CFLAGS -std=gnu99"
 
