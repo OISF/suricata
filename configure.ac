@@ -248,22 +248,40 @@ AC_INIT(configure.ac)
     AC_ARG_ENABLE(gccmarch_native,
            AS_HELP_STRING([--enable-gccmarch-native], [Enable gcc march=native gcc 4.2 and later only]),,[enable_gccmarch_native=yes])
     AS_IF([test "x$enable_gccmarch_native" = "xyes"], [
-        case $host in
-	    *darwin*|*Darwin*)
-		if test "$gccvernum" -ge "403"; then
-                    dnl gcc 4.3 or later
-                    CFLAGS="$CFLAGS -march=native"
-		else
-		    enable_gccmarch_native=no
-		fi
-		;;
-	    *)
-		if test "$gccvernum" -ge "402"; then
-                    dnl gcc 4.2 or later
-                    CFLAGS="$CFLAGS -march=native"
-		fi
-		;;
-	esac
+        if test `basename $CC` = "clang"; then
+            OFLAGS="$CFLAGS"
+            CFLAGS="$CFLAGS -march=native"
+            AC_MSG_CHECKING([checking if $CC supports -march=native])
+            AC_COMPILE_IFELSE(  [AC_LANG_PROGRAM([[#include <stdlib.h>]])],
+                        [
+                          AC_MSG_RESULT([yes])
+                          CFLAGS="$OFLAGS -march=native"
+                        ],
+                        [
+                          AC_MSG_RESULT([no])
+                          CFLAGS="$OFLAGS"
+                          enable_gccmarch_native=no
+                        ]
+                     )
+        fi
+        if test `basename $CC` = "gcc"; then
+            case $host in
+            *darwin*|*Darwin*)
+            if test "$gccvernum" -ge "403"; then
+                        dnl gcc 4.3 or later
+                        CFLAGS="$CFLAGS -march=native"
+            else
+                enable_gccmarch_native=no
+            fi
+            ;;
+            *)
+            if test "$gccvernum" -ge "402"; then
+                        dnl gcc 4.2 or later
+                        CFLAGS="$CFLAGS -march=native"
+            fi
+            ;;
+            esac
+        fi
     ])
 
 # options
