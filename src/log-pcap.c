@@ -24,12 +24,6 @@
  * Pcap packet logging module.
  */
 
-#if LIBPCAP_VERSION_MAJOR == 1
-#include <pcap/pcap.h>
-#else
-#include <pcap.h>
-#endif
-
 #include "suricata-common.h"
 #include "debug.h"
 #include "detect.h"

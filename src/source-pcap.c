@@ -23,12 +23,6 @@
  * Live pcap packet acquisition support
  */
 
-#if LIBPCAP_VERSION_MAJOR == 1
-#include <pcap/pcap.h>
-#else
-#include <pcap.h>
-#endif
-
 #include "suricata-common.h"
 #include "suricata.h"
 #include "decode.h"

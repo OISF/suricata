@@ -128,43 +128,49 @@ AC_INIT(configure.ac)
 
     e_magic_file="/usr/share/file/magic"
     case "$host" in
-	    *-*-*freebsd*)
-		    CFLAGS="${CFLAGS} -DOS_FREEBSD"
-		    CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet11"
-		    LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/local/lib/libnet11"
-		    e_magic_file="/usr/share/misc/magic"
-                    ;;
-           *-*-openbsd5.1)
-                    CFLAGS="${CFLAGS} -D__OpenBSD__ -fgnu89-inline"
-                    CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet-1.1"
-                    LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1"
-                    e_magic_file="/usr/local/share/misc/magic.mgc"
-                    ;;
-           *-*-openbsd*)
-                    CFLAGS="${CFLAGS} -D__OpenBSD__ -fgnu89-inline"
-                    CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet-1.1"
-                    LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1"
-		    e_magic_file="/usr/local/share/file/magic.mgc"
-                    ;;
-	   *darwin*|*Darwin*)
-                    CFLAGS="${CFLAGS} -DOS_DARWIN"
-                    CPPFLAGS="${CPPFLAGS} -I/opt/local/include"
-                    LDFLAGS="${LDFLAGS} -L/opt/local/lib"
-			    ;;
-           *-*-linux*)
-                    #for now do nothing
-                    ;;
-           *-*-mingw32*)
-                    CFLAGS="${CFLAGS} -DOS_WIN32"
-                    LDFLAGS="${LDFLAGS} -lws2_32"
-			    WINDOWS_PATH="yes"
-                    ;;
-           *-*-cygwin)
-		              WINDOWS_PATH="yes"
-                    ;;
-	   *)
-		AC_MSG_WARN([unsupported OS this may or may not work])
-		;;
+        *-*-*freebsd*)
+            CFLAGS="${CFLAGS} -DOS_FREEBSD"
+            CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet11"
+            LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/local/lib/libnet11"
+            e_magic_file="/usr/share/misc/magic"
+            ;;
+        *-*-openbsd5.1)
+            CFLAGS="${CFLAGS} -D__OpenBSD__ -fgnu89-inline"
+            CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet-1.1"
+            LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1"
+            e_magic_file="/usr/local/share/misc/magic.mgc"
+            ;;
+        *-*-openbsd5.2)
+            CFLAGS="${CFLAGS} -D__OpenBSD__"
+            CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet-1.1"
+            LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1"
+            e_magic_file="/usr/local/share/misc/magic.mgc"
+            ;;
+        *-*-openbsd*)
+            CFLAGS="${CFLAGS} -D__OpenBSD__ -fgnu89-inline"
+            CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet-1.1"
+            LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1"
+            e_magic_file="/usr/local/share/file/magic.mgc"
+            ;;
+        *darwin*|*Darwin*)
+            CFLAGS="${CFLAGS} -DOS_DARWIN"
+            CPPFLAGS="${CPPFLAGS} -I/opt/local/include"
+            LDFLAGS="${LDFLAGS} -L/opt/local/lib"
+            ;;
+        *-*-linux*)
+            #for now do nothing
+            ;;
+        *-*-mingw32*)
+            CFLAGS="${CFLAGS} -DOS_WIN32"
+            LDFLAGS="${LDFLAGS} -lws2_32"
+            WINDOWS_PATH="yes"
+            ;;
+        *-*-cygwin)
+            WINDOWS_PATH="yes"
+            ;;
+        *)
+            AC_MSG_WARN([unsupported OS this may or may not work])
+            ;;
     esac
     AC_MSG_RESULT(ok)
 
@@ -641,7 +647,7 @@ AC_INIT(configure.ac)
         CPPFLAGS="${CPPFLAGS} -I${with_libnet_includes}"
         libnet_dir="${with_libnet_includes}"
     else
-        libnet_dir="/usr/include /usr/local/include /usr/local/include/libnet11 /opt/local/include"
+        libnet_dir="/usr/include /usr/local/include /usr/local/include/libnet11 /opt/local/include /usr/local/include/libnet-1.1"
     fi
 
     if test "x$with_libnet_libraries" != "xno"; then
@@ -820,6 +826,7 @@ AC_INIT(configure.ac)
     if test "$with_libpcap_libraries" != "no"; then
         LDFLAGS="${LDFLAGS}  -L${with_libpcap_libraries}"
     fi
+    AC_CHECK_HEADERS([pcap.h pcap/pcap.h])
 
     LIBPCAP=""
     AC_CHECK_LIB(pcap, pcap_open_live,, LIBPCAP="no", [-lpthread])
@@ -841,7 +848,12 @@ AC_INIT(configure.ac)
     TMPLIBS="${LIBS}"
     AC_CHECK_LIB(pcap, pcap_activate,, LPCAPVTEST="no")
     if test "$LPCAPVTEST" != "no"; then
-        CFLAGS="${CFLAGS} `pcap-config --defines` `pcap-config --cflags` -DLIBPCAP_VERSION_MAJOR=1"
+        AC_PATH_PROG(HAVE_PCAP_CONFIG, pcap-config, "no")
+        if test "$HAVE_PCAP_CONFIG" = "no"; then
+            CFLAGS="${CFLAGS} -DLIBPCAP_VERSION_MAJOR=1"
+        else
+            CFLAGS="${CFLAGS} `pcap-config --defines` `pcap-config --cflags` -DLIBPCAP_VERSION_MAJOR=1"
+        fi
     else
         CFLAGS="${CFLAGS} -DLIBPCAP_VERSION_MAJOR=0"
     fi
@@ -1001,6 +1013,8 @@ AC_INIT(configure.ac)
 
 
   # Check for libcap-ng
+    case $host in
+    *-*-linux*)
     AC_ARG_WITH(libcap_ng_includes,
             [  --with-libcap_ng-includes=DIR  libcap_ng include directory],
             [with_libcap-ng_includes="$withval"],[with_libcap_ng_includes=no])
@@ -1038,7 +1052,8 @@ AC_INIT(configure.ac)
         echo "   Suricata will be built without support for dropping privs."
         echo
     fi
-
+    ;;
+    esac
 
   # Check for DAG support.
     AC_ARG_ENABLE(dag,

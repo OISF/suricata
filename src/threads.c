@@ -67,7 +67,11 @@ int ThreadMacrosTest02Spinlocks(void) {
     int r = 0;
     r |= SCSpinInit(&mut, 0);
     r |= SCSpinLock(&mut);
+#ifndef __OpenBSD__
     r |= (SCSpinTrylock(&mut) == EBUSY)? 0 : 1;
+#else
+    r |= (SCSpinTrylock(&mut) == EDEADLK)? 0 : 1;
+#endif
     r |= SCSpinUnlock(&mut);
     r |= SCSpinDestroy(&mut);
 
