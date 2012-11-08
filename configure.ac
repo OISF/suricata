@@ -1197,32 +1197,32 @@ AC_INIT(configure.ac)
         exit 1
     fi
 
-  # napatech-3gd
-    AC_ARG_ENABLE(napatech-3gd,
-                [  --enable-napatech-3gd   Enabled Napatech 3GD Devices],
-                [ enable_napatech_3gd=yes ],
-                [ enable_napatech_3gd=no])
-    AC_ARG_WITH(napatech_3gd_includes,
-                [  --with-napatech-3gd-includes=DIR   napatech 3gd include directory],
-                [with_napatech_3gd_includes="$withval"],[with_napatech_3gd_includes="/opt/napatech3/include"])
-    AC_ARG_WITH(napatech_3gd_libraries,
-                [  --with-napatech-3gd-libraries=DIR  napatech 3gd library directory],
-                [with_napatech_3gd_libraries="$withval"],[with_napatech_3gd_libraries="/opt/napatech3/lib"])
+  # Napatech - Using the 3GD API
+    AC_ARG_ENABLE(napatech,
+                [  --enable-napatech   Enabled Napatech Devices],
+                [ enable_napatech=yes ],
+                [ enable_napatech=no])
+    AC_ARG_WITH(napatech_includes,
+                [  --with-napatech-includes=DIR   napatech include directory],
+                [with_napatech_includes="$withval"],[with_napatech_includes="/opt/napatech3/include"])
+    AC_ARG_WITH(napatech_libraries,
+                [  --with-napatech-libraries=DIR  napatech library directory],
+                [with_napatech_libraries="$withval"],[with_napatech_libraries="/opt/napatech3/lib"])
 
-    if test "$enable_napatech_3gd" = "yes"; then
-        CPPFLAGS="${CPPFLAGS} -I${with_napatech_3gd_includes}"
-        LDFLAGS="${LDFLAGS} -L${with_napatech_3gd_libraries} -lntapi"
-        AC_CHECK_HEADER(nt.h,NAPATECH_3GD="yes",NAPATECH_3GD="no")
-        if test "$NAPATECH_3GD" != "no"; then
-            NAPATECH_3GD=""
-            AC_CHECK_LIB(ntapi, NT_Init,NAPATECH_3GD="yes",NAPATECH_3GD="no")
+    if test "$enable_napatech" = "yes"; then
+        CPPFLAGS="${CPPFLAGS} -I${with_napatech_includes}"
+        LDFLAGS="${LDFLAGS} -L${with_napatech_libraries} -lntapi"
+        AC_CHECK_HEADER(nt.h,NAPATECH="yes",NAPATECH="no")
+        if test "$NAPATECH" != "no"; then
+            NAPATECH=""
+            AC_CHECK_LIB(ntapi, NT_Init,NAPATECH="yes",NAPATECH="no")
         fi
 
-        if test "$NAPATECH_3GD" != "no"; then
-            CFLAGS="${CFLAGS} -DHAVE_NAPATECH_3GD"
+        if test "$NAPATECH" != "no"; then
+            CFLAGS="${CFLAGS} -DHAVE_NAPATECH"
         fi
 
-        if test "$NAPATECH_3GD" = "no"; then
+        if test "$NAPATECH" = "no"; then
             echo
             echo "  ERROR! libntapi library not found"
             echo
@@ -1345,7 +1345,7 @@ Suricata Configuration:
   NFQueue support:                         ${enable_nfqueue}
   IPFW support:                            ${enable_ipfw}
   DAG enabled:                             ${enable_dag}
-  Napatech 3GD enabled:                    ${enable_napatech_3gd}
+  Napatech enabled:                        ${enable_napatech}
 
   libnss support:                          ${enable_nss}
   libnspr support:                         ${enable_nspr}
