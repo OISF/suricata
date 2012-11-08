@@ -130,7 +130,7 @@ AC_INIT(configure.ac)
     if test -z "$host" ; then
 	    host="`uname`"
     fi
-    echo -n "installation for $host OS... \c"
+    echo -n "installation for $host OS... "
 
     e_magic_file="/usr/share/file/magic"
     case "$host" in
