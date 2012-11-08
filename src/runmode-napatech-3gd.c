@@ -26,7 +26,6 @@
 #include "tm-threads.h"
 #include "conf.h"
 #include "runmodes.h"
-#include "runmode-napatech.h"
 #include "log-httplog.h"
 #include "output.h"
 
