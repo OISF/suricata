@@ -28,6 +28,8 @@ x@p1 = func(...)
 (
 if (unlikely(x == NULL)) S1
 |
+if (likely(x != NULL)) S1
+|
 if (x == NULL) S1
 |
 if (x != NULL) S1 else S2
