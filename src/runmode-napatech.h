@@ -16,28 +16,23 @@
  */
 
 /**
- * \file
+ *  \file
  *
- * \author nPulse Technologies, LLC
- * \author Matt Keeler <mk@npulsetech.com>
+ *  \autor nPulse Technologies, LLC.
+ *  \author Matt Keeler <mk@npulsetech.com>
  */
 
-#ifndef __SOURCE_NAPATECH_3GD_H__
-#define __SOURCE_NAPATECH_3GD_H__
+#ifndef __RUNMODE_NAPATECH_H__
+#define __RUNMODE_NAPATECH_H__
 
-void TmModuleNapatech3GDStreamRegister (void);
-TmEcode Napatech3GDStreamThreadDeinit(ThreadVars *tv, void *data);
-void TmModuleNapatech3GDDecodeRegister (void);
-
-struct Napatech3GDStreamDevConf
-{
-    int stream_id;
-};
-
-#ifdef HAVE_NAPATECH_3GD
-
+#ifdef HAVE_NAPATECH
 #include <nt.h>
-
 #endif
 
-#endif /* __SOURCE_NAPATECH_3GD_H__ */
+int RunModeNapatechAuto(DetectEngineCtx *);
+int RunModeNapatechAutoFp(DetectEngineCtx *);
+int RunModeNapatechWorkers(DetectEngineCtx *);
+void RunModeNapatechRegister(void);
+const char *RunModeNapatechGetDefaultMode(void);
+
+#endif /* __RUNMODE_NAPATECH_H__ */
