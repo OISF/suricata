@@ -35,24 +35,30 @@ AC_INIT(configure.ac)
             echo
             ])
 
-    dnl get gcc version
-    AC_MSG_CHECKING([gcc version])
-            gccver=$($CC -dumpversion)
-            gccvermajor=$(echo $gccver | cut -d . -f1)
-            gccverminor=$(echo $gccver | cut -d . -f2)
-            gccvernum=$(expr $gccvermajor "*" 100 + $gccverminor)
-    AC_MSG_RESULT($gccver)
-
-    if test "$gccvernum" -ge "400"; then
-            dnl gcc 4.0 or later
-            CFLAGS="$CFLAGS -Wextra -Werror-implicit-function-declaration"
-    else
-            CFLAGS="$CFLAGS -W"
+    if test `basename $CC` = "clang"; then
+        CFLAGS="$CFLAGS -Wextra -Werror-implicit-function-declaration"
     fi
+    if test `basename $CC` = "gcc"; then
+        dnl get gcc version
+        AC_MSG_CHECKING([gcc version])
+                gccver=$($CC -dumpversion)
+                gccvermajor=$(echo $gccver | cut -d . -f1)
+                gccverminor=$(echo $gccver | cut -d . -f2)
+                gccvernum=$(expr $gccvermajor "*" 100 + $gccverminor)
+        AC_MSG_RESULT($gccver)
 
-    # remove optimization options that break our code
-    # VJ 2010/06/27: no-tree-pre added. It breaks ringbuffers code.
-    CFLAGS="$CFLAGS -Wall -fno-strict-aliasing -fno-tree-pre"
+        if test "$gccvernum" -ge "400"; then
+                dnl gcc 4.0 or later
+                CFLAGS="$CFLAGS -Wextra -Werror-implicit-function-declaration"
+        else
+                CFLAGS="$CFLAGS -W"
+        fi
+
+        # remove optimization options that break our code
+        # VJ 2010/06/27: no-tree-pre added. It breaks ringbuffers code.
+        CFLAGS="$CFLAGS -fno-tree-pre"
+    fi
+    CFLAGS="$CFLAGS -Wall -fno-strict-aliasing"
     CFLAGS="$CFLAGS -Wno-unused-parameter"
     CFLAGS="$CFLAGS -std=gnu99"
 
@@ -124,7 +130,7 @@ AC_INIT(configure.ac)
     if test -z "$host" ; then
 	    host="`uname`"
     fi
-    echo -n "installation for $host OS... \c"
+    echo -n "installation for $host OS... "
 
     e_magic_file="/usr/share/file/magic"
     case "$host" in
@@ -242,22 +248,40 @@ AC_INIT(configure.ac)
     AC_ARG_ENABLE(gccmarch_native,
            AS_HELP_STRING([--enable-gccmarch-native], [Enable gcc march=native gcc 4.2 and later only]),,[enable_gccmarch_native=yes])
     AS_IF([test "x$enable_gccmarch_native" = "xyes"], [
-        case $host in
-	    *darwin*|*Darwin*)
-		if test "$gccvernum" -ge "403"; then
-                    dnl gcc 4.3 or later
-                    CFLAGS="$CFLAGS -march=native"
-		else
-		    enable_gccmarch_native=no
-		fi
-		;;
-	    *)
-		if test "$gccvernum" -ge "402"; then
-                    dnl gcc 4.2 or later
-                    CFLAGS="$CFLAGS -march=native"
-		fi
-		;;
-	esac
+        if test `basename $CC` = "clang"; then
+            OFLAGS="$CFLAGS"
+            CFLAGS="$CFLAGS -march=native"
+            AC_MSG_CHECKING([checking if $CC supports -march=native])
+            AC_COMPILE_IFELSE(  [AC_LANG_PROGRAM([[#include <stdlib.h>]])],
+                        [
+                          AC_MSG_RESULT([yes])
+                          CFLAGS="$OFLAGS -march=native"
+                        ],
+                        [
+                          AC_MSG_RESULT([no])
+                          CFLAGS="$OFLAGS"
+                          enable_gccmarch_native=no
+                        ]
+                     )
+        fi
+        if test `basename $CC` = "gcc"; then
+            case $host in
+            *darwin*|*Darwin*)
+            if test "$gccvernum" -ge "403"; then
+                        dnl gcc 4.3 or later
+                        CFLAGS="$CFLAGS -march=native"
+            else
+                enable_gccmarch_native=no
+            fi
+            ;;
+            *)
+            if test "$gccvernum" -ge "402"; then
+                        dnl gcc 4.2 or later
+                        CFLAGS="$CFLAGS -march=native"
+            fi
+            ;;
+            esac
+        fi
     ])
 
 # options
