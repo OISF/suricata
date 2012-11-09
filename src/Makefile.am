@@ -173,6 +173,7 @@ detect-filemagic.c detect-filemagic.h \
 detect-filemd5.c detect-filemd5.h \
 detect-filesize.c detect-filesize.h \
 detect-http-stat-code.c detect-http-stat-code.h \
+detect-pkt-data.c detect-pkt-data.h \
 detect-ssl-version.c detect-ssl-version.h \
 detect-ssl-state.c detect-ssl-state.h \
 detect-byte-extract.c detect-byte-extract.h \

@@ -138,6 +138,7 @@
 #include "detect-engine-hua.h"
 #include "detect-byte-extract.h"
 #include "detect-file-data.h"
+#include "detect-pkt-data.h"
 #include "detect-replace.h"
 #include "detect-tos.h"
 #include "detect-app-layer-event.h"
@@ -4655,6 +4656,7 @@ void SigTableSetup(void) {
     DetectSslVersionRegister();
     DetectByteExtractRegister();
     DetectFiledataRegister();
+    DetectPktDataRegister();
     DetectFilenameRegister();
     DetectFileextRegister();
     DetectFilestoreRegister();
