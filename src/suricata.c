@@ -522,7 +522,7 @@ void usage(const char *progname)
     printf("\t--dag <dagX:Y>               : process ERF records from DAG interface X, stream Y\n");
 #endif
 #ifdef HAVE_NAPATECH
-    printf("\t--napatech               : run Napatech Streams using the API\n");
+    printf("\t--napatech                   : run Napatech Streams using the API\n");
 #endif
     printf("\n");
     printf("\nTo run the engine with default configuration on "
@@ -656,6 +656,8 @@ void SCPrintBuildInfo(void) {
 #ifdef _FORTIFY_SOURCE
     SCLogInfo("compiled with _FORTIFY_SOURCE=%d", _FORTIFY_SOURCE);
 #endif
+
+    SCLogInfo("compiled with libhtp %s, linked against %s", HTP_BASE_VERSION_TEXT, htp_get_version());
 }
 
 int main(int argc, char **argv)
