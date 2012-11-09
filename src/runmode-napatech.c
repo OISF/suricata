@@ -127,6 +127,8 @@ void *NapatechConfigParser(const char *device) {
     // Expect device to be of the form nt%d where %d is the stream id to use
     int dev_len = strlen(device);
     struct NapatechStreamDevConf *conf = SCMalloc(sizeof(struct NapatechStreamDevConf));
+    if (unlikely(conf == NULL))
+        return NULL;
     if (dev_len < 3 || dev_len > 5)
     {
         SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG, "Could not parse config for device: %s - invalid length", device);
