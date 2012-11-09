@@ -1,4 +1,4 @@
-/* Copyright (C) 2011 Open Information Security Foundation
+/* Copyright (C) 2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,19 +15,23 @@
  * 02110-1301, USA.
  */
 
-/** \file
+/**
+ *  \file
  *
- *  \author Randy Caldejon <randy@packetchaser.org>
+ *  \autor nPulse Technologies, LLC.
+ *  \author Matt Keeler <mk@npulsetech.com>
  */
 
 #ifndef __RUNMODE_NAPATECH_H__
 #define __RUNMODE_NAPATECH_H__
 
 #ifdef HAVE_NAPATECH
-#include "ntfeeds.h"
+#include <nt.h>
 #endif
 
 int RunModeNapatechAuto(DetectEngineCtx *);
+int RunModeNapatechAutoFp(DetectEngineCtx *);
+int RunModeNapatechWorkers(DetectEngineCtx *);
 void RunModeNapatechRegister(void);
 const char *RunModeNapatechGetDefaultMode(void);
 

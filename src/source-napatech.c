@@ -1,4 +1,4 @@
-/* Copyright (C) 2011 Open Information Security Foundation
+/* Copyright (C) 2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,10 +19,10 @@
  * \file
  *
  * \author nPulse Technologies, LLC.
- * \author Randy Caldejon <rc@npulsetech.com>
+ * \author Matt Keeler <mk@npulsetech.com>
  *
- * Support for NAPATECH adapter.  Requires libntfeeds from nPulse Technologies
- * and libntcommoninterface from Napatech A/S.
+ * Support for NAPATECH adapter with the 3GD Driver/API.
+ * Requires libntapi from Napatech A/S.
  *
  */
 
@@ -42,8 +42,8 @@
 TmEcode NoNapatechSupportExit(ThreadVars *, void *, void **);
 
 
-void TmModuleNapatechFeedRegister (void) {
-    tmm_modules[TMM_RECEIVENAPATECH].name = "NapatechFeed";
+void TmModuleNapatechStreamRegister (void) {
+    tmm_modules[TMM_RECEIVENAPATECH].name = "NapatechStream";
     tmm_modules[TMM_RECEIVENAPATECH].ThreadInit = NoNapatechSupportExit;
     tmm_modules[TMM_RECEIVENAPATECH].Func = NULL;
     tmm_modules[TMM_RECEIVENAPATECH].ThreadExitPrintStats = NULL;
@@ -73,18 +73,16 @@ TmEcode NoNapatechSupportExit(ThreadVars *tv, void *initdata, void **data)
 
 #else /* Implied we do have NAPATECH support */
 
-
 #include "source-napatech.h"
+#include <nt.h>
 
 extern int max_pending_packets;
 extern uint8_t suricata_ctl_flags;
 
 typedef struct NapatechThreadVars_ {
     ThreadVars *tv;
-    NAPATECH_FEED feed;
-    uint16_t adapter_number;
-    uint16_t feed_number;
-    uint32_t max_read_packets;
+    NtNetStreamRx_t rx_stream;
+    uint64_t stream_id;
     uint64_t pkts;
     uint64_t drops;
     uint64_t bytes;
@@ -93,24 +91,24 @@ typedef struct NapatechThreadVars_ {
 } NapatechThreadVars;
 
 
-TmEcode NapatechFeedThreadInit(ThreadVars *, void *, void **);
-void NapatechFeedThreadExitStats(ThreadVars *, void *);
-TmEcode NapatechFeedLoop(ThreadVars *tv, void *data, void *slot);
+TmEcode NapatechStreamThreadInit(ThreadVars *, void *, void **);
+void NapatechStreamThreadExitStats(ThreadVars *, void *);
+TmEcode NapatechStreamLoop(ThreadVars *tv, void *data, void *slot);
 
 TmEcode NapatechDecodeThreadInit(ThreadVars *, void *, void **);
 TmEcode NapatechDecode(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
 /**
- * \brief Register the Napatech receiver (reader) module.
+ * \brief Register the Napatech  receiver (reader) module.
  */
-void TmModuleNapatechFeedRegister(void)
+void TmModuleNapatechStreamRegister(void)
 {
-    tmm_modules[TMM_RECEIVENAPATECH].name = "NapatechFeed";
-    tmm_modules[TMM_RECEIVENAPATECH].ThreadInit = NapatechFeedThreadInit;
+    tmm_modules[TMM_RECEIVENAPATECH].name = "NapatechStream";
+    tmm_modules[TMM_RECEIVENAPATECH].ThreadInit = NapatechStreamThreadInit;
     tmm_modules[TMM_RECEIVENAPATECH].Func = NULL;
-    tmm_modules[TMM_RECEIVENAPATECH].PktAcqLoop = NapatechFeedLoop;
-    tmm_modules[TMM_RECEIVENAPATECH].ThreadExitPrintStats = NapatechFeedThreadExitStats;
-    tmm_modules[TMM_RECEIVENAPATECH].ThreadDeinit = NapatechFeedThreadDeinit;
+    tmm_modules[TMM_RECEIVENAPATECH].PktAcqLoop = NapatechStreamLoop;
+    tmm_modules[TMM_RECEIVENAPATECH].ThreadExitPrintStats = NapatechStreamThreadExitStats;
+    tmm_modules[TMM_RECEIVENAPATECH].ThreadDeinit = NapatechStreamThreadDeinit;
     tmm_modules[TMM_RECEIVENAPATECH].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVENAPATECH].cap_flags = SC_CAP_NET_RAW;
     tmm_modules[TMM_RECEIVENAPATECH].flags = TM_FLAG_RECEIVE_TM;
@@ -134,8 +132,8 @@ void TmModuleNapatechDecodeRegister(void)
 /**
  * \brief   Initialize the Napatech receiver thread, generate a single
  *          NapatechThreadVar structure for each thread, this will
- *          contain a NAPATECH file descriptor which is read when the
- *          thread executes.
+ *          contain a NtNetStreamRx_t stream handle which is used when the
+ *          thread executes to acquire the packets.
  *
  * \param tv        Thread variable to ThreadVars
  * \param initdata  Initial data to the adapter passed from the user,
@@ -147,72 +145,65 @@ void TmModuleNapatechDecodeRegister(void)
  * \param data      data pointer gets populated with
  *
  */
-TmEcode NapatechFeedThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode NapatechStreamThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     SCEnter();
-    char *feedName = (char *) initdata;
+    struct NapatechStreamDevConf *conf = (struct NapatechStreamDevConf *)initdata;
+    uintmax_t stream_id = conf->stream_id;
     *data = NULL;
-    //TODO:
-    if (initdata == NULL||*((char *)initdata+1)!=':') {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Error: No NAPATECH adapter provided.");
-        SCReturnInt(TM_ECODE_FAILED);
-    }
+
+    SCLogInfo("Napatech  Thread Stream ID:%lu", stream_id);
 
     NapatechThreadVars *ntv = SCMalloc(sizeof(NapatechThreadVars));
-    if (unlikely(ntv == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for NAPATECH thread vars.");
+    if (ntv == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+                "Failed to allocate memory for NAPATECH  thread vars.");
         exit(EXIT_FAILURE);
     }
 
     memset(ntv, 0, sizeof (NapatechThreadVars));
-    ntv->adapter_number = *(feedName)-'0';
-    ntv->feed_number = atoi((feedName+2));
+    ntv->stream_id = stream_id;
     ntv->tv = tv;
 
-    /*  Use max_pending_packets as our maximum number of packets read
-        from the NAPATECH buffer.
-     */
-    ntv->max_read_packets = max_pending_packets;
-    SCLogInfo("Opening NAPATECH %d:%d for processing", ntv->adapter_number, ntv->feed_number);
-
-
-    if ((ntv->feed = (NAPATECH_FEED) napatech_open(ntv->adapter_number, ntv->feed_number)) == NULL) {
-        SCLogError(SC_ERR_NAPATECH_OPEN_FAILED, "Failed to open NAPATECH %d:%d", ntv->adapter_number, ntv->feed_number);
-        SCFree(ntv);
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-
-    SCLogInfo("Started processing packets from NAPATECH %d:%d", ntv->adapter_number, ntv->feed_number);
+    SCLogInfo("Started processing packets from NAPATECH  Stream: %lu", ntv->stream_id);
 
     *data = (void *)ntv;
 
     SCReturnInt(TM_ECODE_OK);
 }
 
-
 /**
  *  \brief Main Napatech reading Loop function
  */
-TmEcode NapatechFeedLoop(ThreadVars *tv, void *data, void *slot)
+TmEcode NapatechStreamLoop(ThreadVars *tv, void *data, void *slot)
 {
     SCEnter();
 
     int32_t status;
-    int32_t caplen;
-    PCAP_HEADER *header;
-    uint8_t *frame;
+    char errbuf[100];
     uint16_t packet_q_len = 0;
+    uint64_t pkt_ts;
+    NtNetBuf_t packet_buffer;
     NapatechThreadVars *ntv = (NapatechThreadVars *)data;
-    int r;
-    TmSlot *s = (TmSlot *)slot;
+    NtNetRx_t stat_cmd;
 
+    SCLogInfo("Opening NAPATECH Stream: %lu for processing", ntv->stream_id);
+
+    if ((status = NT_NetRxOpen(&(ntv->rx_stream), "SuricataStream", NT_NET_INTERFACE_PACKET, ntv->stream_id, -1)) != NT_SUCCESS) {
+        NT_ExplainError(status, errbuf, sizeof(errbuf));
+        SCLogError(SC_ERR_NAPATECH_OPEN_FAILED, "Failed to open NAPATECH Stream: %lu - %s", ntv->stream_id, errbuf);
+        SCFree(ntv);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    stat_cmd.cmd = NT_NETRX_READ_CMD_STREAM_DROP;
+
+    SCLogInfo("Napatech Packet Stream Loop Started for Stream ID: %lu", ntv->stream_id);
+
+    TmSlot *s = (TmSlot *)slot;
     ntv->slot = s->slot_next;
 
-    while (1) {
-        if (suricata_ctl_flags & (SURICATA_STOP | SURICATA_KILL)) {
-            SCReturnInt(TM_ECODE_OK);
-        }
-
+    while (!(suricata_ctl_flags & (SURICATA_STOP | SURICATA_KILL))) {
         /* make sure we have at least one packet in the packet pool, to prevent
          * us from alloc'ing packets at line rate */
         do {
@@ -223,46 +214,90 @@ TmEcode NapatechFeedLoop(ThreadVars *tv, void *data, void *slot)
         } while (packet_q_len == 0);
 
         /*
-         * Napatech returns frames in segment chunks.  Function ntci_next_frame
-         * returns 1 for a frame, 0 if the segment is empty, and -1 on error
+         * Napatech returns packets 1 at a time
          */
-        status = napatech_next_frame (ntv->feed, &header, &frame);
-        if (status == 0) {
+        status = NT_NetRxGet(ntv->rx_stream, &packet_buffer, 1000);
+        if (unlikely(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN)) {
             /*
              * no frames currently available
              */
             continue;
-        } else if (status < 0) {
-            SCLogError(SC_ERR_NAPATECH_FEED_NEXT_FAILED,
-                       "Failed to read from Napatech feed %d:%d",
-                       ntv->adapter_number, ntv->feed_number);
+        } else if (unlikely(status != NT_SUCCESS)) {
+            SCLogError(SC_ERR_NAPATECH_STREAM_NEXT_FAILED,
+                       "Failed to read from Napatech Stream: %lu",
+                       ntv->stream_id);
             SCReturnInt(TM_ECODE_FAILED);
         }
-        // beware that storelen is aligned; therefore, it may be larger than "caplen"
-        caplen = (header->wireLen < header->storeLen) ? header->wireLen : header->storeLen;
+
         Packet *p = PacketGetFromQueueOrAlloc();
         if (unlikely(p == NULL)) {
+            NT_NetRxRelease(ntv->rx_stream, packet_buffer);
             SCReturnInt(TM_ECODE_FAILED);
         }
-        PKT_SET_SRC(p, PKT_SRC_WIRE);
 
-        p->ts.tv_sec = header->ts.tv_sec;
-        p->ts.tv_usec = header->ts.tv_usec;
+        pkt_ts = NT_NET_GET_PKT_TIMESTAMP(packet_buffer);
+
+        /*
+         * Handle the different timestamp forms that the napatech cards could use
+         *   - NT_TIMESTAMP_TYPE_NATIVE is not supported due to having an base of 0 as opposed to NATIVE_UNIX which has a base of 1/1/1970
+         */
+        switch(NT_NET_GET_PKT_TIMESTAMP_TYPE(packet_buffer)) {
+            case NT_TIMESTAMP_TYPE_NATIVE_UNIX:
+                p->ts.tv_sec = pkt_ts / 100000000;
+                p->ts.tv_usec = ((pkt_ts % 100000000) / 100) + (pkt_ts % 100) > 50 ? 1 : 0;
+                break;
+            case NT_TIMESTAMP_TYPE_PCAP:
+                p->ts.tv_sec = pkt_ts >> 32;
+                p->ts.tv_usec = pkt_ts & 0xFFFFFFFF;
+                break;
+            case NT_TIMESTAMP_TYPE_PCAP_NANOTIME:
+                p->ts.tv_sec = pkt_ts >> 32;
+                p->ts.tv_usec = ((pkt_ts & 0xFFFFFFFF) / 1000) + (pkt_ts % 1000) > 500 ? 1 : 0;
+                break;
+            case NT_TIMESTAMP_TYPE_NATIVE_NDIS:
+                /* number of seconds between 1/1/1601 and 1/1/1970 */
+                p->ts.tv_sec = (pkt_ts / 100000000) - 11644473600;
+                p->ts.tv_usec = ((pkt_ts % 100000000) / 100) + (pkt_ts % 100) > 50 ? 1 : 0;
+                break;
+            default:
+                SCLogError(SC_ERR_NAPATECH_TIMESTAMP_TYPE_NOT_SUPPORTED,
+                           "Packet from Napatech Stream: %lu does not have a supported timestamp format",
+                           ntv->stream_id);
+                NT_NetRxRelease(ntv->rx_stream, packet_buffer);
+                SCReturnInt(TM_ECODE_FAILED);
+        }
+
         SCLogDebug("p->ts.tv_sec %"PRIuMAX"", (uintmax_t)p->ts.tv_sec);
         p->datalink = LINKTYPE_ETHERNET;
 
         ntv->pkts++;
-        ntv->bytes += caplen;
+        ntv->bytes += NT_NET_GET_PKT_WIRE_LENGTH(packet_buffer);
 
-        if (unlikely(PacketCopyData(p, frame, caplen))) {
+        // Update drop counter
+        if (unlikely((status = NT_NetRxRead(ntv->rx_stream, &stat_cmd)) != NT_SUCCESS))
+        {
+            NT_ExplainError(status, errbuf, sizeof(errbuf));
+            SCLogWarning(SC_ERR_NAPATECH_STAT_DROPS_FAILED, "Couldn't retrieve drop statistics from the RX stream: %lu - %s", ntv->stream_id, errbuf);
+        }
+        else
+        {
+            ntv->drops += stat_cmd.u.streamDrop.pktsDropped;
+        }
+
+        if (unlikely(PacketCopyData(p, (uint8_t *)NT_NET_GET_PKT_L2_PTR(packet_buffer), NT_NET_GET_PKT_WIRE_LENGTH(packet_buffer)))) {
             TmqhOutputPacketpool(ntv->tv, p);
+            NT_NetRxRelease(ntv->rx_stream, packet_buffer);
             SCReturnInt(TM_ECODE_FAILED);
         }
 
-        if (TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p) != TM_ECODE_OK) {
+        if (unlikely(TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p) != TM_ECODE_OK)) {
             TmqhOutputPacketpool(ntv->tv, p);
+            NT_NetRxRelease(ntv->rx_stream, packet_buffer);
             SCReturnInt(TM_ECODE_FAILED);
         }
+
+        NT_NetRxRelease(ntv->rx_stream, packet_buffer);
+        SCPerfSyncCountersIfSignalled(tv, 0);
     }
 
     SCReturnInt(TM_ECODE_OK);
@@ -274,17 +309,14 @@ TmEcode NapatechFeedLoop(ThreadVars *tv, void *data, void *slot)
  * \param tv Pointer to ThreadVars.
  * \param data Pointer to data, ErfFileThreadVars.
  */
-void NapatechFeedThreadExitStats(ThreadVars *tv, void *data)
+void NapatechStreamThreadExitStats(ThreadVars *tv, void *data)
 {
     NapatechThreadVars *ntv = (NapatechThreadVars *)data;
-    if (napatech_statistics(ntv->feed, &ntv->pkts, &ntv->drops, &ntv->bytes)==0) {
-        double percent = 0;
-        if (ntv->drops > 0) {
-            double drops = ntv->drops;
-            percent = (drops / ( ntv->pkts+ntv->drops)) * 100;
-        }
-        SCLogInfo("Packets: %"PRIu64"; Drops: %"PRIu64" (%5.2f%%); Bytes: %"PRIu64, ntv->pkts, ntv->drops, percent, ntv->bytes);
-    }
+    double percent = 0;
+    if (ntv->drops > 0)
+        percent = (((double) ntv->drops) / (ntv->pkts+ntv->drops)) * 100;
+
+    SCLogInfo("Stream: %lu; Packets: %"PRIu64"; Drops: %"PRIu64" (%5.2f%%); Bytes: %"PRIu64, ntv->stream_id, ntv->pkts, ntv->drops, percent, ntv->bytes);
 }
 
 /**
@@ -292,21 +324,22 @@ void NapatechFeedThreadExitStats(ThreadVars *tv, void *data)
  * \param   tv pointer to ThreadVars
  * \param   data pointer that gets cast into PcapThreadVars for ptv
  */
-TmEcode NapatechFeedThreadDeinit(ThreadVars *tv, void *data)
+TmEcode NapatechStreamThreadDeinit(ThreadVars *tv, void *data)
 {
     SCEnter();
     NapatechThreadVars *ntv = (NapatechThreadVars *)data;
-    SCLogDebug("Closing Napatech feed %d:%d", ntv->adapter_number, ntv->feed_number);
-    napatech_close(ntv->feed);
+    SCLogDebug("Closing Napatech Stream: %d", ntv->stream_id);
+    NT_NetRxClose(ntv->rx_stream);
     SCReturnInt(TM_ECODE_OK);
 }
+
 
 /** Decode Napatech */
 
 /**
  * \brief   This function passes off to link type decoders.
  *
- * DecodeNapatech reads packets from the PacketQueue and passes
+ * NapatechDecode reads packets from the PacketQueue and passes
  * them off to the proper link type decoder.
  *
  * \param t pointer to ThreadVars
@@ -324,12 +357,7 @@ TmEcode NapatechDecode(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     /* update counters */
     SCPerfCounterIncr(dtv->counter_pkts, tv->sc_perf_pca);
     SCPerfCounterIncr(dtv->counter_pkts_per_sec, tv->sc_perf_pca);
-
     SCPerfCounterAddUI64(dtv->counter_bytes, tv->sc_perf_pca, GET_PKT_LEN(p));
-//    SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->sc_perf_pca, GET_PKT_LEN(p));
-//    SCPerfCounterAddDouble(dtv->counter_mbit_per_sec, tv->sc_perf_pca,
-//            (GET_PKT_LEN(p) * 8)/1000000.0);
-
     SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
     SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
 
@@ -339,7 +367,7 @@ TmEcode NapatechDecode(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             break;
         default:
             SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED,
-                    "Error: datalink type %" PRId32 " not yet supported in module DecodeNapatech",
+                    "Error: datalink type %" PRId32 " not yet supported in module NapatechDecode",
                     p->datalink);
             break;
     }
@@ -364,3 +392,4 @@ TmEcode NapatechDecodeThreadInit(ThreadVars *tv, void *initdata, void **data)
 }
 
 #endif /* HAVE_NAPATECH */
+

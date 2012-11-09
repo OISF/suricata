@@ -1,4 +1,4 @@
-/* Copyright (C) 2010 Open Information Security Foundation
+/* Copyright (C) 2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,19 +19,24 @@
  * \file
  *
  * \author nPulse Technologies, LLC
- * \author Randy Caldejon <rc@npulsetech.com>
+ * \author Matt Keeler <mk@npulsetech.com>
  */
 
 #ifndef __SOURCE_NAPATECH_H__
 #define __SOURCE_NAPATECH_H__
 
-void TmModuleNapatechFeedRegister (void);
-TmEcode NapatechFeedThreadDeinit(ThreadVars *tv, void *data);
+void TmModuleNapatechStreamRegister (void);
+TmEcode NapatechStreamThreadDeinit(ThreadVars *tv, void *data);
 void TmModuleNapatechDecodeRegister (void);
+
+struct NapatechStreamDevConf
+{
+    int stream_id;
+};
 
 #ifdef HAVE_NAPATECH
 
-#include "ntfeeds.h"
+#include <nt.h>
 
 #endif
 
