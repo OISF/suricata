@@ -23,11 +23,6 @@
  * Signature ordering part of the detection engine.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <pcre.h>
-
 #include "suricata-common.h"
 #include "detect.h"
 #include "detect-flowbits.h"

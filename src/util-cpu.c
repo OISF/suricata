@@ -23,11 +23,6 @@
  * Retrieve CPU information (configured CPUs, online CPUs)
  */
 
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
 #include "util-error.h"
 #include "util-debug.h"
 #include "suricata-common.h"

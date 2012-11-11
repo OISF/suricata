@@ -47,7 +47,6 @@
 #include "util-debug.h"
 #include "app-layer-htp.h"
 #include "util-time.h"
-#include <htp/htp.h>
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"

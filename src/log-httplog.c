@@ -24,8 +24,6 @@
  * Implements http logging portion of the engine.
  */
 
-#include <htp/dslib.h>
-
 #include "suricata-common.h"
 #include "debug.h"
 #include "detect.h"

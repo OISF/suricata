@@ -50,7 +50,6 @@
 #include "app-layer-htp.h"
 #include "app-layer-htp-file.h"
 #include "util-time.h"
-#include <htp/htp.h>
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"

@@ -36,8 +36,6 @@
  *   stays approach?
  */
 
-#include <string.h>
-
 #include "suricata-common.h"
 #include "conf.h"
 #include "util-unittest.h"

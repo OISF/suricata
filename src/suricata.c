@@ -24,9 +24,13 @@
 #include "suricata-common.h"
 #include "config.h"
 
+#if HAVE_GETOPT_H
 #include <getopt.h>
+#endif
+
+#if HAVE_SIGNAL_H
 #include <signal.h>
-#include <pthread.h>
+#endif
 
 #ifdef HAVE_NSS
 #include <prinit.h>

@@ -56,17 +56,32 @@
 #include "runmodes.h"
 
 #ifdef HAVE_AF_PACKET
-#include <sys/ioctl.h>
-#include <linux/if_ether.h>
-#include <linux/if_packet.h>
-#include <linux/if_arp.h>
 
-#include <pcap/pcap.h>
-#include <pcap/bpf.h>
+#if HAVE_SYS_IOCTL_H
+#include <sys/ioctl.h>
+#endif
+
+#if HAVE_LINUX_IF_ETHER_H
+#include <linux/if_ether.h>
+#endif
+
+#if HAVE_LINUX_IF_PACKET_H
+#include <linux/if_packet.h>
+#endif
+
+#if HAVE_LINUX_IF_ARP_H
+#include <linux/if_arp.h>
+#endif
+
+#if HAVE_LINUX_FILTER_H
 #include <linux/filter.h>
 #endif
 
+#if HAVE_SYS_MMAN_H
 #include <sys/mman.h>
+#endif
+
+#endif /* HAVE_AF_PACKET */
 
 extern uint8_t suricata_ctl_flags;
 extern int max_pending_packets;

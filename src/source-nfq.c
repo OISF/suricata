@@ -102,7 +102,6 @@ TmEcode NoNFQSupportExit(ThreadVars *tv, void *initdata, void **data)
 }
 
 #else /* implied we do have NFQ support */
-#include <pthread.h>
 
 extern int max_pending_packets;
 

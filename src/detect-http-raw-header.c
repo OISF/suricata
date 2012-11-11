@@ -54,7 +54,6 @@
 
 #include "app-layer.h"
 
-#include <htp/htp.h>
 #include "app-layer-htp.h"
 #include "detect-http-raw-header.h"
 #include "stream-tcp.h"

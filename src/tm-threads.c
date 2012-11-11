@@ -36,8 +36,6 @@
 #include "tmqh-packetpool.h"
 #include "threads.h"
 #include "util-debug.h"
-#include <pthread.h>
-#include <unistd.h>
 #include "util-privs.h"
 #include "util-cpu.h"
 #include "util-optimize.h"

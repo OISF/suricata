@@ -94,12 +94,19 @@ AC_INIT(configure.ac)
     # Checks for libraries.
 
     # Checks for header files.
-    AC_CHECK_HEADERS([arpa/inet.h inttypes.h limits.h netdb.h poll.h signal.h stdint.h stdlib.h string.h syslog.h sys/ioctl.h sys/prctl.h sys/socket.h sys/syscall.h netinet/in.h sys/time.h unistd.h windows.h winsock2.h ws2tcpip.h sched.h assert.h])
-    AC_CHECK_HEADERS([sys/socket.h net/if.h sys/mman.h], [], [],
+    AC_CHECK_HEADERS([arpa/inet.h assert.h ctype.h errno.h fcntl.h inttypes.h])
+    AC_CHECK_HEADERS([getopt.h])
+    AC_CHECK_HEADERS([limits.h netdb.h netinet/in.h poll.h sched.h signal.h])
+    AC_CHECK_HEADERS([stdarg.h stdint.h stdio.h stdlib.h string.h sys/ioctl.h])
+    AC_CHECK_HEADERS([syslog.h sys/prctl.h sys/socket.h sys/stat.h sys/syscall.h])
+    AC_CHECK_HEADERS([sys/time.h time.h unistd.h windows.h winsock2.h ws2tcpip.h])
+    AC_CHECK_HEADERS([sys/ioctl.h linux/if_ether.h linux/if_packet.h linux/filter.h])
+
+    AC_CHECK_HEADERS([sys/socket.h net/if.h sys/mman.h linux/if_arp.h], [], [],
     [[#ifdef HAVE_SYS_SOCKET_H
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif
+        #include <sys/types.h>
+        #include <sys/socket.h>
+        #endif
     ]])
 
 
@@ -846,7 +853,7 @@ AC_INIT(configure.ac)
     if test "$with_libpcap_libraries" != "no"; then
         LDFLAGS="${LDFLAGS}  -L${with_libpcap_libraries}"
     fi
-    AC_CHECK_HEADERS([pcap.h pcap/pcap.h])
+    AC_CHECK_HEADERS([pcap.h pcap/pcap.h pcap/bpf.h])
 
     LIBPCAP=""
     AC_CHECK_LIB(pcap, pcap_open_live,, LIBPCAP="no", [-lpthread])

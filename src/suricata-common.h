@@ -40,22 +40,53 @@
 #include <config.h>
 #endif
 
+#if HAVE_STDIO_H
 #include <stdio.h>
+#endif
+
+#if HAVE_STDINT_h
 #include <stdint.h>
+#endif
+
+#if HAVE_STDARG_H
 #include <stdarg.h>
+#endif
+
+#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
+#endif
+
+#if HAVE_ERRNO_H
 #include <errno.h>
+#endif
+
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+
 #if HAVE_INTTYPES_H
 #include <inttypes.h>
 #endif
+
+#if HAVE_LIMITS_H
 #include <limits.h>
+#endif
+
+#if HAVE_CTYPE_H
 #include <ctype.h>
+#endif
+
+#if HAVE_STRING_H
 #include <string.h>
+#endif
+
+#if HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
+
+#ifdef HAVE_TIME_H
 #include <time.h>
+#endif
 
 #if HAVE_SYS_SYSCALL_H
 #include <sys/syscall.h>
@@ -112,7 +143,9 @@
 #include <sys/socket.h>
 #endif
 
+#if HAVE_SYS_STAT_H
 #include <sys/stat.h>
+#endif
 
 #if HAVE_NETINET_IN_H
 #include <netinet/in.h>
@@ -154,6 +187,10 @@
 
 #ifdef HAVE_PCAP_PCAP_H
 #include <pcap/pcap.h>
+#endif
+
+#ifdef HAVE_PCAP_BPF_H
+#include <pcap/bpf.h>
 #endif
 
 /* we need this to stringify the defines which are supplied at compiletime see:

@@ -57,7 +57,6 @@
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 
-#include <htp/htp.h>
 #include "stream.h"
 
 

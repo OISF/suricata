@@ -53,7 +53,6 @@
 
 #include "app-layer.h"
 
-#include <htp/htp.h>
 #include "app-layer-htp.h"
 #include "stream-tcp.h"
 #include "detect-http-ua.h"

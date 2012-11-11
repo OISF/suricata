@@ -55,7 +55,6 @@
 
 #include "app-layer.h"
 
-#include <htp/htp.h>
 #include "app-layer-htp.h"
 #include "detect-http-cookie.h"
 #include "stream-tcp.h"

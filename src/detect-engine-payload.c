@@ -452,7 +452,6 @@ static int PayloadTestSig13(void)
         "content:\"aa\"; content:\"aa\"; distance:0; content:\"aa\"; distance:0; "
         "byte_test:1,>,200,0,relative; sid:1;)";
 
-#include <sys/time.h>
     struct timeval tv_start, tv_end, tv_diff;
 
     gettimeofday(&tv_start, NULL);
