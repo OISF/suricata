@@ -356,54 +356,51 @@ AC_INIT(configure.ac)
             [with_libpcre_libraries="$withval"],[with_libpcre_libraries="no"])
 
     if test "$with_libpcre_includes" != "no"; then
-    CPPFLAGS="${CPPFLAGS} -I${with_libpcre_includes}"
+        CPPFLAGS="${CPPFLAGS} -I${with_libpcre_includes}"
     fi
-
     AC_CHECK_HEADER(pcre.h,,[AC_ERROR(pcre.h not found ...)])
 
     if test "$with_libpcre_libraries" != "no"; then
-    LDFLAGS="${LDFLAGS}  -L${with_libpcre_libraries}"
+        LDFLAGS="${LDFLAGS}  -L${with_libpcre_libraries}"
     fi
-
     PCRE=""
     AC_CHECK_LIB(pcre, pcre_get_substring,, PCRE="no")
-
     if test "$PCRE" = "no"; then
-    echo
-    echo "   ERROR!  pcre library not found, go get it"
-    echo "   from www.pcre.org."
-    echo
-    exit 1
+        echo
+        echo "   ERROR!  pcre library not found, go get it"
+        echo "   from www.pcre.org."
+        echo
+        exit 1
     fi
 
-   # To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
-   # see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
-   PCRE=""
-   TMPLIBS="${LIBS}"
-   AC_CHECK_LIB(pcre, pcre_dfa_exec,, PCRE="no")
-   if test "$PCRE" = "no"; then
-   echo
-   echo "   ERROR!  pcre library was found but version was < 6.0"
-   echo "   please upgrade to a newer version of pcre which you can get from"
-   echo "   www.pcre.org."
-   echo
-   exit 1
-   fi
-   LIBS="${TMPLIBS}"
+    # To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
+    # see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
+    PCRE=""
+    TMPLIBS="${LIBS}"
+    AC_CHECK_LIB(pcre, pcre_dfa_exec,, PCRE="no")
+    if test "$PCRE" = "no"; then
+        echo
+        echo "   ERROR!  pcre library was found but version was < 6.0"
+        echo "   please upgrade to a newer version of pcre which you can get from"
+        echo "   www.pcre.org."
+        echo
+        exit 1
+    fi
+    LIBS="${TMPLIBS}"
 
-   AC_TRY_COMPILE([ #include <pcre.h> ],
-   [ int eo = 0; eo |= PCRE_EXTRA_MATCH_LIMIT_RECURSION; ],
-   [ pcre_match_limit_recursion_available=yes ], [:]
-   )
-   if test "$pcre_match_limit_recursion_available" != "yes"; then
-    CFLAGS="${CFLAGS} -DNO_PCRE_MATCH_RLIMIT"
-    echo
-    echo "   Warning! pcre extra opt PCRE_EXTRA_MATCH_LIMIT_RECURSION not found"
-    echo "   This could lead to potential DoS please upgrade to pcre >= 6.5"
-    echo "   Continuing for now...."
-    echo "   from www.pcre.org."
-    echo
-   fi
+    AC_TRY_COMPILE([ #include <pcre.h> ],
+        [ int eo = 0; eo |= PCRE_EXTRA_MATCH_LIMIT_RECURSION; ],
+        [ pcre_match_limit_recursion_available=yes ], [:]
+    )
+    if test "$pcre_match_limit_recursion_available" != "yes"; then
+        CFLAGS="${CFLAGS} -DNO_PCRE_MATCH_RLIMIT"
+        echo
+        echo "   Warning! pcre extra opt PCRE_EXTRA_MATCH_LIMIT_RECURSION not found"
+        echo "   This could lead to potential DoS please upgrade to pcre >= 6.5"
+        echo "   Continuing for now...."
+        echo "   from www.pcre.org."
+        echo
+    fi
 
     #enable support for PCRE-jit available since pcre-8.20
     AC_MSG_CHECKING(for PCRE JIT support)
@@ -450,7 +447,7 @@ AC_INIT(configure.ac)
            AC_MSG_RESULT(yes)
        fi
     else
-       AC_MSG_RESULT(no)
+        AC_MSG_RESULT(no)
     fi
 
   # libyaml
@@ -462,13 +459,13 @@ AC_INIT(configure.ac)
             [with_libyaml_libraries="$withval"],[with_libyaml_libraries="no"])
 
     if test "$with_libyaml_includes" != "no"; then
-    CPPFLAGS="${CPPFLAGS} -I${with_libyaml_includes}"
+        CPPFLAGS="${CPPFLAGS} -I${with_libyaml_includes}"
     fi
 
     AC_CHECK_HEADER(yaml.h,,LIBYAML="no")
 
     if test "$with_libyaml_libraries" != "no"; then
-    LDFLAGS="${LDFLAGS}  -L${with_libyaml_libraries}"
+        LDFLAGS="${LDFLAGS}  -L${with_libyaml_libraries}"
     fi
 
     LIBYAML=""
@@ -495,23 +492,23 @@ AC_INIT(configure.ac)
             [with_libpthread_libraries="$withval"],[with_libpthread_libraries="no"])
 
     if test "$with_libpthread_includes" != "no"; then
-    CPPFLAGS="${CPPFLAGS} -I${with_libpthread_includes}"
+        CPPFLAGS="${CPPFLAGS} -I${with_libpthread_includes}"
     fi
 
     dnl AC_CHECK_HEADER(pthread.h,,[AC_ERROR(pthread.h not found ...)])
 
     if test "$with_libpthread_libraries" != "no"; then
-    LDFLAGS="${LDFLAGS}  -L${with_libpthread_libraries}"
+        LDFLAGS="${LDFLAGS}  -L${with_libpthread_libraries}"
     fi
 
     PTHREAD=""
     AC_CHECK_LIB(pthread, pthread_create,, PTHREAD="no")
 
     if test "$PTHREAD" = "no"; then
-    echo
-    echo "   ERROR! libpthread library not found, glibc problem?"
-    echo
-    exit 1
+        echo
+        echo "   ERROR! libpthread library not found, glibc problem?"
+        echo
+        exit 1
     fi
 
     #enable support for NFQUEUE
@@ -746,11 +743,11 @@ AC_INIT(configure.ac)
                 [with_libpfring_libraries="$withval"],[with_libpfring_libraries="no"])
 
         if test "$with_libpfring_includes" != "no"; then
-        CPPFLAGS="${CPPFLAGS} -I${with_libpfring_includes}"
+            CPPFLAGS="${CPPFLAGS} -I${with_libpfring_includes}"
         fi
 
         if test "$with_libpfring_libraries" != "no"; then
-        LDFLAGS="${LDFLAGS}  -L${with_libpfring_libraries}"
+            LDFLAGS="${LDFLAGS}  -L${with_libpfring_libraries}"
         fi
 
         LIBPFRING=""
