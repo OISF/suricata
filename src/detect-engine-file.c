@@ -51,6 +51,7 @@
 #include "app-layer-smb.h"
 #include "app-layer-dcerpc-common.h"
 #include "app-layer-dcerpc.h"
+#include "app-layer-smtp.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -232,4 +233,51 @@ int DetectFileInspectHttp(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngineT
     }
 
     return r;
+}
+
+/**
+ *  \brief Inspect the file inspecting keywords against the SMTP transactions.
+ *
+ *  \param tv thread vars
+ *  \param det_ctx detection engine thread ctx
+ *  \param f flow
+ *  \param s signature to inspect
+ *  \param alstate state
+ *  \param flags direction flag
+ *
+ *  \retval 0 no match
+ *  \retval 1 match
+ *  \retval 2 can't match
+ *  \retval 3 can't match filestore signature
+ *
+ *  \note flow is not locked at this time
+ */
+int DetectFileInspectSmtp(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *f,
+        Signature *s, void *alstate, uint8_t flags) {
+    SCEnter();
+
+    int r = 0;
+    SMTPState *smtp_state = NULL;
+    FileContainer *ffc;
+
+    /* locking the flow, we will inspect the htp state, files + we will set
+     * magic, so need a WRITE lock */
+    FLOWLOCK_WRLOCK(f);
+
+    smtp_state = (SMTPState *)alstate;
+    if (smtp_state == NULL) {
+        SCLogDebug("no SMTP state");
+        goto end;
+    }
+
+    if (flags & STREAM_TOSERVER)
+        ffc = smtp_state->files_ts;
+    else
+        goto end;
+
+    r = DetectFileInspect(tv, det_ctx, f, s, flags, ffc);
+
+end:
+    FLOWLOCK_UNLOCK(f);
+    SCReturnInt(r);
 }

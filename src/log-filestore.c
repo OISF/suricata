@@ -52,6 +52,8 @@
 #include "util-logopenfile.h"
 
 #include "app-layer-htp.h"
+#include "app-layer-smtp.h"
+#include "mime-decode.h"
 #include "util-memcmp.h"
 #include "stream-tcp-reassemble.h"
 
@@ -102,6 +104,28 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
     snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
         t->tm_mon + 1, t->tm_mday, t->tm_year + 1900, t->tm_hour,
             t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
+}
+
+static void LogFilestoreMetaGetSmtp(FILE *fp, Packet *p, File *ff) {
+
+    SMTPState *state = (SMTPState *) p->flow->alstate;
+    if (state != NULL && state->msg_tail != NULL) {
+
+        /* Message Id */
+        if (state->msg_tail->msg_id != NULL) {
+            fprintf(fp, "MESSAGE-ID:        ");
+            PrintRawUriFp(fp, (uint8_t *) state->msg_tail->msg_id, state->msg_tail->msg_id_len);
+            fprintf(fp, "\n");
+        }
+
+        /* Sender */
+        MimeDecField *field = MimeDecFindField(state->msg_tail, "From");
+        if (field != NULL) {
+            fprintf(fp, "SENDER:            ");
+            PrintRawUriFp(fp, (uint8_t *) field->value, field->value_len);
+            fprintf(fp, "\n");
+        }
+    }
 }
 
 static void LogFilestoreMetaGetUri(FILE *fp, Packet *p, File *ff) {
@@ -206,15 +230,23 @@ static void LogFilestoreLogCreateMetaFile(Packet *p, File *ff, char *filename, i
             fprintf(fp, "SRC PORT:          %" PRIu16 "\n", sp);
             fprintf(fp, "DST PORT:          %" PRIu16 "\n", dp);
         }
-        fprintf(fp, "HTTP URI:          ");
-        LogFilestoreMetaGetUri(fp, p, ff);
-        fprintf(fp, "\n");
-        fprintf(fp, "HTTP HOST:         ");
-        LogFilestoreMetaGetHost(fp, p, ff);
-        fprintf(fp, "\n");
-        fprintf(fp, "HTTP REFERER:      ");
-        LogFilestoreMetaGetReferer(fp, p, ff);
-        fprintf(fp, "\n");
+
+        /* Only applicable to HTTP traffic */
+        if (ff->txid != 0) {
+            fprintf(fp, "HTTP URI:          ");
+            LogFilestoreMetaGetUri(fp, p, ff);
+            fprintf(fp, "\n");
+            fprintf(fp, "HTTP HOST:         ");
+            LogFilestoreMetaGetHost(fp, p, ff);
+            fprintf(fp, "\n");
+            fprintf(fp, "HTTP REFERER:      ");
+            LogFilestoreMetaGetReferer(fp, p, ff);
+            fprintf(fp, "\n");
+        } else if (p->flow->alproto == ALPROTO_SMTP) {
+            /* Only applicable to SMTP */
+            LogFilestoreMetaGetSmtp(fp, p, ff);
+        }
+
         fprintf(fp, "FILENAME:          ");
         PrintRawUriFp(fp, ff->name, ff->name_len);
         fprintf(fp, "\n");

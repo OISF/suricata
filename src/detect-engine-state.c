@@ -479,6 +479,33 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         }
     }
 
+    /* Look for files over SMTP traffic */
+    else if (alproto == ALPROTO_SMTP && (flags & STREAM_TOSERVER)) {
+
+	if (s->sm_lists[DETECT_SM_LIST_FILEMATCH] != NULL) {
+
+	    SCLogDebug("file inspection");
+	    if (match_flags == inspect_flags) {
+		SCLogDebug("ready to inspect files");
+
+		inspect_flags |= DE_STATE_FLAG_FILE_TS_INSPECT;
+
+		match = DetectFileInspectSmtp(tv, det_ctx, f, s, alstate, flags);
+		SCLogDebug("match %d", match);
+		if (match == 1) {
+		    match_flags |= DE_STATE_FLAG_FILE_TS_MATCH;
+		} else if (match == 2) {
+		    match_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
+		} else if (match == 3) {
+		    match_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
+		    file_no_match++;
+		}
+	    } else {
+		SCLogDebug("skipping file inspection as we're not yet done with the other inspection");
+	    }
+	}
+    }
+
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
         for ( ; sm != NULL; sm = sm->next) {
             SCLogDebug("sm %p, sm->next %p", sm, sm->next);
@@ -734,6 +761,34 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                 }
 
             }
+
+	    /* Otherwise process files over SMTP */
+	    else if (alproto == ALPROTO_SMTP && (flags & STREAM_TOSERVER)) {
+
+		if (s->sm_lists[DETECT_SM_LIST_FILEMATCH] != NULL) {
+
+		    if (!(item->flags & DE_STATE_FLAG_FILE_TS_MATCH)) {
+			SCLogDebug("file inspection");
+			if (match_flags == inspect_flags) {
+			    SCLogDebug("ready to inspect files");
+
+			    inspect_flags |= DE_STATE_FLAG_FILE_TS_INSPECT;
+
+			    match = DetectFileInspectSmtp(tv, det_ctx, f, s, alstate, flags);
+			    if (match == 1) {
+				match_flags |= DE_STATE_FLAG_FILE_TS_MATCH;
+			    } else if (match == 2) {
+				match_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
+			    } else if (match == 3) {
+				match_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
+				file_no_match++;
+			    }
+			} else {
+			    SCLogDebug("skipping file inspection as we're not yet done with the other inspection");
+			}
+		    }
+		}
+	    }
 
             /* next, check the other sig matches */
             if (item->nm != NULL) {
