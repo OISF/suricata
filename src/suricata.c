@@ -1672,7 +1672,16 @@ int main(int argc, char **argv)
         Daemonize();
         if (SCPidfileCreate(pid_filename) != 0) {
             pid_filename = NULL;
+#if 1
+            SCLogError(SC_ERR_PIDFILE_DAEMON,
+                       "Unable to create PID file, concurrent run of"
+                       " Suricata can occur.");
+            SCLogError(SC_ERR_PIDFILE_DAEMON,
+                       "PID file creation WILL be mandatory for daemon mode"
+                       " in future version");
+#else
             exit(EXIT_FAILURE);
+#endif
         }
     } else {
         if (pid_filename != NULL) {
