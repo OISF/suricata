@@ -1348,11 +1348,13 @@ if test "$WINDOWS_PATH" = "yes"; then
   e_logfilesdir="$e_logdir\\\\files"
 else
   EXPAND_VARIABLE(localstatedir, e_logdir, "/log/suricata/")
+  EXPAND_VARIABLE(localstatedir, e_rundir, "/run/")
   EXPAND_VARIABLE(localstatedir, e_logfilesdir, "/log/suricata/files")
   EXPAND_VARIABLE(sysconfdir, e_sysconfdir, "/suricata/")
   EXPAND_VARIABLE(sysconfdir, e_sysconfrulesdir, "/suricata/rules")
 fi
 AC_SUBST(e_logdir)
+AC_SUBST(e_rundir)
 AC_SUBST(e_logfilesdir)
 AC_SUBST(e_sysconfdir)
 AC_SUBST(e_sysconfrulesdir)
