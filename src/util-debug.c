@@ -1098,10 +1098,11 @@ void SCLogInitLogModule(SCLogInitData *sc_lid)
     return;
 }
 
-void SCLogLoadConfig(void)
+void SCLogLoadConfig(int daemon)
 {
     ConfNode *outputs;
     SCLogInitData *sc_lid;
+    int have_logging = 0;
 
     outputs = ConfGetNode("logging.outputs");
     if (outputs == NULL) {
@@ -1178,6 +1179,7 @@ void SCLogLoadConfig(void)
                     "Logging to file requires a filename");
                 exit(EXIT_FAILURE);
             }
+            have_logging = 1;
             op_iface_ctx = SCLogInitFileOPIface(filename, format, level);
         }
         else if (strcmp(output->name, "syslog") == 0) {
@@ -1195,6 +1197,7 @@ void SCLogLoadConfig(void)
             }
             printf("Initialization syslog logging with format \"%s\".\n",
                 format);
+            have_logging = 1;
             op_iface_ctx = SCLogInitSyslogOPIface(facility, format, level);
         }
         else {
@@ -1204,6 +1207,13 @@ void SCLogLoadConfig(void)
         if (op_iface_ctx != NULL) {
             SCLogAppendOPIfaceCtx(op_iface_ctx, sc_lid);
         }
+    }
+
+    if (daemon && (have_logging == 0)) {
+        SCLogError(SC_ERR_MISSING_CONFIG_PARAM,
+                   "NO logging compatible with daemon mode selected,"
+                   " suricata won't be able to log. Please update "
+                   " 'logging.outputs' in the YAML.");
     }
 
     SCLogInitLogModule(sc_lid);
