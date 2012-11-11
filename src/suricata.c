@@ -1369,7 +1369,7 @@ int main(int argc, char **argv)
 
     /* Since our config is now loaded we can finish configurating the
      * logging module. */
-    SCLogLoadConfig();
+    SCLogLoadConfig(daemon);
 
 #ifdef __SC_CUDA_SUPPORT__
     /* load the cuda configuration */
