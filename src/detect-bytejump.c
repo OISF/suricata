@@ -179,7 +179,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
             val += 4 - (val % 4);
         }
     }
-    val += extbytes + data->post_offset;
+    val += data->post_offset;
 
     /* Calculate the jump location */
     if (flags & DETECT_BYTEJUMP_BEGIN) {
@@ -187,6 +187,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
         //printf("NEWVAL: payload %p + %ld = %p\n", p->payload, val, jumpptr);
     }
     else {
+        val += extbytes;
         jumpptr = ptr + val;
         //printf("NEWVAL: ptr %p + %ld = %p\n", ptr, val, jumpptr);
     }
@@ -287,7 +288,7 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
             val += 4 - (val % 4);
         }
     }
-    val += extbytes + data->post_offset;
+    val += data->post_offset;
 
     /* Calculate the jump location */
     if (data->flags & DETECT_BYTEJUMP_BEGIN) {
@@ -295,6 +296,7 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         //printf("NEWVAL: payload %p + %ld = %p\n", p->payload, val, jumpptr);
     }
     else {
+        val += extbytes;
         jumpptr = ptr + val;
         //printf("NEWVAL: ptr %p + %ld = %p\n", ptr, val, jumpptr);
     }
@@ -1249,6 +1251,94 @@ end:
     return result;
 }
 
+/**
+ * \test check matches of with from_beginning (bug 626)
+ */
+int DetectByteJumpTestPacket04 (void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"XYZ04abcdABCD";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p;
+    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    if (p == NULL)
+        goto end;
+
+    char sig[] = "alert tcp any any -> any any (content:\"XYZ\"; byte_jump:2,0,relative,string,dec; content:\"ABCD\"; distance:0; within:4; sid:1; rev:1;)";
+
+    result = UTHPacketMatchSig(p, sig);
+
+    UTHFreePacket(p);
+end:
+    return result;
+}
+
+/**
+ * \test check matches of with from_beginning (bug 626)
+ */
+int DetectByteJumpTestPacket05 (void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"XYZ04abcdABCD";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p;
+    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    if (p == NULL)
+        goto end;
+
+    char sig[] = "alert tcp any any -> any any (content:\"XYZ\"; byte_jump:2,0,relative,string,dec; content:\"cdABCD\"; within:6; sid:1; rev:1;)";
+
+    result = UTHPacketMatchSig(p, sig) ? 0 : 1;
+
+    UTHFreePacket(p);
+end:
+    return result;
+}
+
+/**
+ * \test check matches of with from_beginning (bug 626)
+ */
+int DetectByteJumpTestPacket06 (void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"XX04abcdABCD";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p;
+    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    if (p == NULL)
+        goto end;
+
+    char sig[] = "alert tcp any any -> any any (content:\"XX\"; byte_jump:2,0,relative,string,dec,from_beginning; content:\"ABCD\"; distance:4; within:4; sid:1; rev:1;)";
+
+    result = UTHPacketMatchSig(p, sig);
+
+    UTHFreePacket(p);
+end:
+    return result;
+}
+
+/**
+ * \test check matches of with from_beginning (bug 626)
+ */
+int DetectByteJumpTestPacket07 (void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"XX04abcdABCD";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p;
+    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    if (p == NULL)
+        goto end;
+
+    char sig[] = "alert tcp any any -> any any (content:\"XX\"; byte_jump:2,0,relative,string,dec,from_beginning; content:\"abcdABCD\"; distance:0; within:8; sid:1; rev:1;)";
+
+    result = UTHPacketMatchSig(p, sig) ? 1 : 0;
+
+    UTHFreePacket(p);
+end:
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 
@@ -1273,6 +1363,10 @@ void DetectBytejumpRegisterTests(void) {
     UtRegisterTest("DetectByteJumpTestPacket01", DetectByteJumpTestPacket01, 1);
     UtRegisterTest("DetectByteJumpTestPacket02", DetectByteJumpTestPacket02, 1);
     UtRegisterTest("DetectByteJumpTestPacket03", DetectByteJumpTestPacket03, 1);
+    UtRegisterTest("DetectByteJumpTestPacket04", DetectByteJumpTestPacket04, 1);
+    UtRegisterTest("DetectByteJumpTestPacket05", DetectByteJumpTestPacket05, 1);
+    UtRegisterTest("DetectByteJumpTestPacket06", DetectByteJumpTestPacket06, 1);
+    UtRegisterTest("DetectByteJumpTestPacket07", DetectByteJumpTestPacket07, 1);
 #endif /* UNITTESTS */
 }
 
