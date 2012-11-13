@@ -22,6 +22,7 @@ install-conf:
 	@test -e "$(e_sysconfdir)/reference.config" || install -m 600 "$(top_srcdir)/reference.config" "$(e_sysconfdir)"
 	@test -e "$(e_sysconfdir)/threshold.config" || install -m 600 "$(top_srcdir)/threshold.config" "$(e_sysconfdir)"
 	install -d "$(e_logfilesdir)"
+	install -d "$(e_rundir)"
 
 install-rules:
 	install -d "$(e_sysconfrulesdir)"
