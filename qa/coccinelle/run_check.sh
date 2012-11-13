@@ -1,16 +1,28 @@
 #!/bin/sh
 
 if [ $1 ]; then
-	LIST=$1;
+	case $1 in
+	*[ch])
+		LIST=$@;
+		;;
+        *..*) 
+        	LIST=$(git diff --pretty="format:" --name-only $1 | grep -E '[ch]$')
+		PREFIX=$(git rev-parse --show-toplevel)/
+		;;
+	*)
+		LIST=$(git show --pretty="format:" --name-only $1 | grep -E '[ch]$')
+		PREFIX=$(git rev-parse --show-toplevel)/
+		;;
+	esac
 else
 	LIST=$(git ls-tree -r --name-only --full-tree  HEAD src/ | grep -E '*.c$')
-	PREFIX="../../"
+	PREFIX=$(git rev-parse --show-toplevel)/
 fi
 
-for SMPL in *.cocci; do
+for SMPL in $(git rev-parse --show-toplevel)/qa/coccinelle/*.cocci; do
 	echo "Testing cocci file: $SMPL"
 	for FILE in $LIST ; do
-		spatch -sp_file $SMPL  $PREFIX$FILE 2>/dev/null || exit 1;
+		spatch --very-quiet -sp_file $SMPL $PREFIX$FILE || exit 1;
 	done
 done
 
