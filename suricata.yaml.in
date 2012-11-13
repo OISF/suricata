@@ -544,7 +544,7 @@ flow-timeouts:
     emergency-new: 10
     emergency-established: 100
 
-# Stream engine settings. Here the TCP stream tracking and reaasembly
+# Stream engine settings. Here the TCP stream tracking and reassembly
 # engine is configured.
 #
 # stream:
