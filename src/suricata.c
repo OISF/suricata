@@ -462,73 +462,73 @@ void usage(const char *progname)
     printf("%s %s\n", PROG_NAME, PROG_VER);
 #endif
     printf("USAGE: %s [OPTIONS] [BPF FILTER]\n\n", progname);
-    printf("\t-c <path>                    : path to configuration file\n");
-    printf("\t-T                           : test configuration file (use with -c)\n");
-    printf("\t-i <dev or ip>               : run in pcap live mode\n");
-    printf("\t-F <bpf filter file>         : bpf filter file\n");
-    printf("\t-r <path>                    : run in pcap file/offline mode\n");
+    printf("\t-c <path>                            : path to configuration file\n");
+    printf("\t-T                                   : test configuration file (use with -c)\n");
+    printf("\t-i <dev or ip>                       : run in pcap live mode\n");
+    printf("\t-F <bpf filter file>                 : bpf filter file\n");
+    printf("\t-r <path>                            : run in pcap file/offline mode\n");
 #ifdef NFQ
-    printf("\t-q <qid>                     : run in inline nfqueue mode\n");
+    printf("\t-q <qid>                             : run in inline nfqueue mode\n");
 #endif /* NFQ */
 #ifdef IPFW
-    printf("\t-d <divert port>             : run in inline ipfw divert mode\n");
+    printf("\t-d <divert port>                     : run in inline ipfw divert mode\n");
 #endif /* IPFW */
-    printf("\t-s <path>                    : path to signature file loaded in addition to suricata.yaml settings (optional)\n");
-    printf("\t-S <path>                    : path to signature file loaded exclusively (optional)\n");
-    printf("\t-l <dir>                     : default log directory\n");
+    printf("\t-s <path>                            : path to signature file loaded in addition to suricata.yaml settings (optional)\n");
+    printf("\t-S <path>                            : path to signature file loaded exclusively (optional)\n");
+    printf("\t-l <dir>                             : default log directory\n");
 #ifndef OS_WIN32
-    printf("\t-D                           : run as daemon\n");
+    printf("\t-D                                   : run as daemon\n");
 #else
-	printf("\t--service-install            : install as service\n");
-	printf("\t--service-remove             : remove service\n");
-	printf("\t--service-change-params      : change service startup parameters\n");
+	printf("\t--service-install                    : install as service\n");
+	printf("\t--service-remove                     : remove service\n");
+	printf("\t--service-change-params              : change service startup parameters\n");
 #endif /* OS_WIN32 */
-    printf("\t-V                           : display Suricata version\n");
+    printf("\t-V                                   : display Suricata version\n");
 #ifdef UNITTESTS
-    printf("\t-u                           : run the unittests and exit\n");
-    printf("\t-U, --unittest-filter=REGEX  : filter unittests with a regex\n");
-    printf("\t--list-unittests             : list unit tests\n");
-    printf("\t--fatal-unittests            : enable fatal failure on unittest error\n");
+    printf("\t-u                                   : run the unittests and exit\n");
+    printf("\t-U, --unittest-filter=REGEX          : filter unittests with a regex\n");
+    printf("\t--list-unittests                     : list unit tests\n");
+    printf("\t--fatal-unittests                    : enable fatal failure on unittest error\n");
 #endif /* UNITTESTS */
-    printf("\t--list-app-layer-protos      : list supported app layer protocols\n");
-    printf("\t--list-keywords[=all|<kword>]: list keywords implemented by the engine\n");
+    printf("\t--list-app-layer-protos              : list supported app layer protocols\n");
+    printf("\t--list-keywords[=all|short|<kword>]  : list keywords implemented by the engine\n");
 #ifdef __SC_CUDA_SUPPORT__
-    printf("\t--list-cuda-cards            : list cuda supported cards\n");
+    printf("\t--list-cuda-cards                    : list cuda supported cards\n");
 #endif
-    printf("\t--list-runmodes              : list supported runmodes\n");
-    printf("\t--runmode <runmode_id>       : specific runmode modification the engine should run.  The argument\n"
-           "\t                               supplied should be the id for the runmode obtained by running\n"
-           "\t                               --list-runmodes\n");
-    printf("\t--engine-analysis            : print reports on analysis of different sections in the engine and exit.\n"
-           "\t                               Please have a look at the conf parameter engine-analysis on what reports\n"
-           "\t                               can be printed\n");
-    printf("\t--pidfile <file>             : write pid to this file (only for daemon mode)\n");
-    printf("\t--init-errors-fatal          : enable fatal failure on signature init error\n");
-    printf("\t--dump-config                : show the running configuration\n");
-    printf("\t--build-info                 : display build information\n");
-    printf("\t--pcap[=<dev>]               : run in pcap mode, no value select interfaces from suricata.yaml\n");
+    printf("\t--list-runmodes                      : list supported runmodes\n");
+    printf("\t--runmode <runmode_id>               : specific runmode modification the engine should run.  The argument\n"
+           "\t                                       supplied should be the id for the runmode obtained by running\n"
+           "\t                                       --list-runmodes\n");
+    printf("\t--engine-analysis                    : print reports on analysis of different sections in the engine and exit.\n"
+           "\t                                       Please have a look at the conf parameter engine-analysis on what reports\n"
+           "\t                                       can be printed\n");
+    printf("\t--pidfile <file>                     : write pid to this file (only for daemon mode)\n");
+    printf("\t--init-errors-fatal                  : enable fatal failure on signature init error\n");
+    printf("\t--dump-config                        : show the running configuration\n");
+    printf("\t--build-info                         : display build information\n");
+    printf("\t--pcap[=<dev>]                       : run in pcap mode, no value select interfaces from suricata.yaml\n");
 #ifdef HAVE_PCAP_SET_BUFF
-    printf("\t--pcap-buffer-size           : size of the pcap buffer value from 0 - %i\n",INT_MAX);
+    printf("\t--pcap-buffer-size                   : size of the pcap buffer value from 0 - %i\n",INT_MAX);
 #endif /* HAVE_SET_PCAP_BUFF */
 #ifdef HAVE_AF_PACKET
-    printf("\t--af-packet[=<dev>]          : run in af-packet mode, no value select interfaces from suricata.yaml\n");
+    printf("\t--af-packet[=<dev>]                  : run in af-packet mode, no value select interfaces from suricata.yaml\n");
 #endif
 #ifdef HAVE_PFRING
-    printf("\t--pfring[=<dev>]               : run in pfring mode, use interfaces from suricata.yaml\n");
-    printf("\t--pfring-int <dev>           : run in pfring mode, use interface <dev>\n");
-    printf("\t--pfring-cluster-id <id>     : pfring cluster id \n");
-    printf("\t--pfring-cluster-type <type> : pfring cluster type for PF_RING 4.1.2 and later cluster_round_robin|cluster_flow\n");
+    printf("\t--pfring[=<dev>]                       : run in pfring mode, use interfaces from suricata.yaml\n");
+    printf("\t--pfring-int <dev>                   : run in pfring mode, use interface <dev>\n");
+    printf("\t--pfring-cluster-id <id>             : pfring cluster id \n");
+    printf("\t--pfring-cluster-type <type>         : pfring cluster type for PF_RING 4.1.2 and later cluster_round_robin|cluster_flow\n");
 #endif /* HAVE_PFRING */
 #ifdef HAVE_LIBCAP_NG
-    printf("\t--user <user>                : run suricata as this user after init\n");
-    printf("\t--group <group>              : run suricata as this group after init\n");
+    printf("\t--user <user>                        : run suricata as this user after init\n");
+    printf("\t--group <group>                      : run suricata as this group after init\n");
 #endif /* HAVE_LIBCAP_NG */
-    printf("\t--erf-in <path>              : process an ERF file\n");
+    printf("\t--erf-in <path>                      : process an ERF file\n");
 #ifdef HAVE_DAG
-    printf("\t--dag <dagX:Y>               : process ERF records from DAG interface X, stream Y\n");
+    printf("\t--dag <dagX:Y>                       : process ERF records from DAG interface X, stream Y\n");
 #endif
 #ifdef HAVE_NAPATECH
-    printf("\t--napatech                   : run Napatech Streams using the API\n");
+    printf("\t--napatech                           : run Napatech Streams using the API\n");
 #endif
     printf("\n");
     printf("\nTo run the engine with default configuration on "
@@ -921,7 +921,9 @@ int main(int argc, char **argv)
                 exit(EXIT_SUCCESS);
             } else if (strcmp((long_opts[option_index]).name, "list-keywords") == 0) {
                 if (optarg) {
-                    keyword_info = optarg;
+                    if (strcmp("short",optarg)) {
+                        keyword_info = optarg;
+                    }
                 }
             } else if (strcmp((long_opts[option_index]).name, "runmode") == 0) {
                 runmode_custom_mode = optarg;
