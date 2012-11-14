@@ -53,7 +53,9 @@ int SCPidfileCreate(const char *pidfile)
 
     pidfd = open(pidfile, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
     if (pidfd < 0) {
-        SCLogError(SC_ERR_PIDFILE_OPEN, "unable to set pidfile: %s", strerror(errno));
+        SCLogError(SC_ERR_PIDFILE_OPEN, "unable to set pidfile '%s': %s",
+                   pidfile,
+                   strerror(errno));
         SCReturnInt(-1);
     }
 
