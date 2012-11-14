@@ -558,6 +558,7 @@ void FlowManagerThreadSpawn()
     ThreadVars *tv_flowmgr = NULL;
 
     SCCondInit(&flow_manager_cond, NULL);
+    SCMutexInit(&flow_manager_mutex, NULL);
 
     tv_flowmgr = TmThreadCreateMgmtThread("FlowManagerThread",
                                           FlowManagerThread, 0);
