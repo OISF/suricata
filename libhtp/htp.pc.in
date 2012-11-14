@@ -5,7 +5,7 @@ includedir=${prefix}/include
 
 Name: HTP
 Description: HTTP parser
-Version: 0.2.9
+Version: 0.2.11
 Libs: -L${libdir} -lhtp
 Cflags: -I${includedir}/htp -I${libdir}/htp/include
 
