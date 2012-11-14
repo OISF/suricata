@@ -163,6 +163,30 @@ static void LogFileMetaGetReferer(FILE *fp, Packet *p, File *ff) {
     fprintf(fp, "<unknown>");
 }
 
+static void LogFileMetaGetUserAgent(FILE *fp, Packet *p, File *ff) {
+    HtpState *htp_state = (HtpState *)p->flow->alstate;
+    if (htp_state != NULL) {
+        htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, ff->txid);
+        if (tx != NULL) {
+            table_t *headers;
+            headers = tx->request_headers;
+            htp_header_t *h = NULL;
+
+            table_iterator_reset(headers);
+            while (table_iterator_next(headers, (void **)&h) != NULL) {
+                if (bstr_len(h->name) >= 4 &&
+                        SCMemcmpLowercase((uint8_t *)"user-agent", (uint8_t *)bstr_ptr(h->name), bstr_len(h->name)) == 0) {
+                    PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(h->value),
+                        bstr_len(h->value));
+                    return;
+                }
+            }
+        }
+    }
+
+    fprintf(fp, "<unknown>");
+}
+
 /**
  *  \internal
  *  \brief Write meta data on a single line json record
@@ -225,6 +249,10 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, Packet *p, File *ff, i
 
     fprintf(fp, "\"http_referer\": \"");
     LogFileMetaGetReferer(fp, p, ff);
+    fprintf(fp, "\", ");
+
+    fprintf(fp, "\"http_user_agent\": \"");
+    LogFileMetaGetUserAgent(fp, p, ff);
     fprintf(fp, "\", ");
 
     fprintf(fp, "\"filename\": \"");
