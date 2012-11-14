@@ -61,6 +61,8 @@ void DetectDetectionFilterFree(void *);
  */
 void DetectDetectionFilterRegister (void) {
     sigmatch_table[DETECT_DETECTION_FILTER].name = "detection_filter";
+    sigmatch_table[DETECT_DETECTION_FILTER].desc = "alert on every match after a threshold has been reached";
+    sigmatch_table[DETECT_DETECTION_FILTER].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Rule-Thresholding#detection_filter";
     sigmatch_table[DETECT_DETECTION_FILTER].Match = DetectDetectionFilterMatch;
     sigmatch_table[DETECT_DETECTION_FILTER].Setup = DetectDetectionFilterSetup;
     sigmatch_table[DETECT_DETECTION_FILTER].Free = DetectDetectionFilterFree;
