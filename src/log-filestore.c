@@ -166,6 +166,30 @@ static void LogFilestoreMetaGetReferer(FILE *fp, Packet *p, File *ff) {
     fprintf(fp, "<unknown>");
 }
 
+static void LogFilestoreMetaGetUserAgent(FILE *fp, Packet *p, File *ff) {
+    HtpState *htp_state = (HtpState *)p->flow->alstate;
+    if (htp_state != NULL) {
+        htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, ff->txid);
+        if (tx != NULL) {
+            table_t *headers;
+            headers = tx->request_headers;
+            htp_header_t *h = NULL;
+
+            table_iterator_reset(headers);
+            while (table_iterator_next(headers, (void **)&h) != NULL) {
+                if (bstr_len(h->name) >= 4 &&
+                        SCMemcmpLowercase((uint8_t *)"user-agent", (uint8_t *)bstr_ptr(h->name), bstr_len(h->name)) == 0) {
+                    PrintRawUriFp(fp, (uint8_t *)bstr_ptr(h->value),
+                        bstr_len(h->value));
+                    return;
+                }
+            }
+        }
+    }
+
+    fprintf(fp, "<unknown>");
+}
+
 static void LogFilestoreLogCreateMetaFile(Packet *p, File *ff, char *filename, int ipver) {
     char metafilename[PATH_MAX] = "";
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
@@ -214,6 +238,9 @@ static void LogFilestoreLogCreateMetaFile(Packet *p, File *ff, char *filename, i
         fprintf(fp, "\n");
         fprintf(fp, "HTTP REFERER:      ");
         LogFilestoreMetaGetReferer(fp, p, ff);
+        fprintf(fp, "\n");
+        fprintf(fp, "HTTP USER AGENT:   ");
+        LogFilestoreMetaGetUserAgent(fp, p, ff);
         fprintf(fp, "\n");
         fprintf(fp, "FILENAME:          ");
         PrintRawUriFp(fp, ff->name, ff->name_len);
