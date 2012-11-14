@@ -1,3 +1,50 @@
+1.4beta3 2012-11-14
+
+- support for Napatech cards was greatly improved by Matt Keeler from Npulse (#430, #619)
+- support for pkt_data keyword was added
+- user and group to run as can now be set in the config file
+- make HTTP request and response body inspection sizes configurable per HTTP server config (#560)
+- PCAP/AF_PACKET/PF_RING packet stats are now printed in stats.log (#561, #625)
+- add contrib directory to the dist (#567)
+- performance improvements to signatures with dsize option
+- improved rule analyzer: print fast_pattern along with the rule (#558)
+- fixes to stream engine reducing the number of events generated (#604)
+- add stream event to match on overlaps with different data in stream reassembly (#603)
+- stream.inline option new defaults to "auto", meaning enabled in IPS mode, disabled in IDS mode (#592)
+- HTTP handling in OOM condition was greatly improved (#557)
+- filemagic keyword performance was improved (#585)
+- fixes and improvements to daemon mode (#624)
+- fix drop rules not working correctly when thresholded (#613)
+- fixed a possible FP when a regular and "chopped" fast_pattern were the same (#581)
+- fix a false possitive condition in http_header (#607)
+- fix inaccuracy in byte_jump keyword when using "from_beginning" option (#627)
+- fixes to rule profiling (#576)
+- cleanups and misc fixes (#379, #395)
+- updated bundled libhtp to 0.2.11
+- build system improvements and cleanups
+- fix to SSL record parsing
+
+1.3.4 -- 2012-11-14
+
+- fix crash in flow and host engines in cases of low memory or low memcap settings (#617)
+- improve http handling in low memory conditions (#620)
+- fix inaccuracy in byte_jump keyword when using "from_beginning" option (#626)
+- fix building on OpenBSD 5.2
+- update default config's defrag settings to reflect all available options
+- fixes to make check
+- fix to SSL record parsing
+
+1.3.3 -- 2012-11-01
+
+- fix drop rules not working correctly when thresholded (#615)
+- fix a false possitive condition in http_header (#606)
+- fix extracted file corruption (#601)
+- fix a false possitive condition with the pcre keyword and relative matching (#588)
+- fix PF_RING set cluster problem on dma interfaces (#598)
+- improve http handling in low memory conditions (#586, #587)
+- fix FreeBSD inline mode crash (#612)
+- suppress pcre jit warning (#579)
+
 1.4beta2 -- 2012-10-04
 
 - New keyword: "luajit" to inspect packet, payload and all HTTP buffers with a Lua script (#346)
