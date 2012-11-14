@@ -3,7 +3,7 @@
 AC_INIT(configure.ac)
 
     AM_CONFIG_HEADER(config.h)
-    AM_INIT_AUTOMAKE(suricata, 1.4dev)
+    AM_INIT_AUTOMAKE(suricata, 1.4beta3)
 
     AC_LANG_C
     AC_PROG_CC_C99
@@ -1359,7 +1359,7 @@ AC_SUBST(e_sysconfrulesdir)
 AC_DEFINE_UNQUOTED([CONFIG_DIR],["$e_sysconfdir"],[Our CONFIG_DIR])
 AC_SUBST(e_magic_file)
 
-AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile suricata.yaml)
+AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile suricata.yaml)
 
 echo "
 Suricata Configuration:
