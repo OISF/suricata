@@ -89,6 +89,7 @@ static uint8_t *DetectEngineHHDGetBufferForTX(int tx_id,
                                               uint8_t flags,
                                               uint32_t *buffer_len)
 {
+    uint8_t *headers_buffer = NULL;
     int index = 0;
     *buffer_len = 0;
 
@@ -135,7 +136,7 @@ static uint8_t *DetectEngineHHDGetBufferForTX(int tx_id,
         goto end;
 
     htp_header_t *h = NULL;
-    uint8_t *headers_buffer = det_ctx->hhd_buffers[index];
+    headers_buffer = det_ctx->hhd_buffers[index];
     size_t headers_buffer_len = 0;
 
     table_iterator_reset(headers);
