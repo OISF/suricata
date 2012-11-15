@@ -71,6 +71,7 @@ void DetectLuajitRegister(void) {
     sigmatch_table[DETECT_LUAJIT].Setup = DetectLuajitSetupNoSupport;
     sigmatch_table[DETECT_LUAJIT].Free  = NULL;
     sigmatch_table[DETECT_LUAJIT].RegisterTests = NULL;
+    sigmatch_table[DETECT_LUAJIT].flags = SIGMATCH_NOT_BUILT;
 
 	SCLogDebug("registering luajit rule option");
     return;

@@ -4619,13 +4619,21 @@ void SigTableList(const char *keyword)
     if (keyword == NULL) {
         printf("=====Supported keywords=====\n");
         for (i = 0; i < size; i++) {
-            if (sigmatch_table[i].name != NULL)
-                printf("- %s\n", sigmatch_table[i].name);
+            if (sigmatch_table[i].name != NULL) {
+                if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
+                    printf("- %s (not built-in)\n", sigmatch_table[i].name);
+                } else {
+                    printf("- %s\n", sigmatch_table[i].name);
+                }
+            }
         }
     } else if (!strcmp("csv", keyword)) {
         printf("name;description;app layer;features;documentation\n");
         for (i = 0; i < size; i++) {
             if (sigmatch_table[i].name != NULL) {
+                if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
+                    continue;
+                }
                 printf("%s;", sigmatch_table[i].name);
                 if (sigmatch_table[i].desc) {
                     printf("%s", sigmatch_table[i].desc);
@@ -4652,7 +4660,12 @@ void SigTableList(const char *keyword)
             if ((sigmatch_table[i].name != NULL) &&
                 !strcmp(sigmatch_table[i].name, keyword)) {
                 printf("= %s =\n", sigmatch_table[i].name);
+                if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
+                    printf("Not built-in\n");
+                    return;
+                }
                 SigMultilinePrint(i, "");
+                return;
             }
         }
     }

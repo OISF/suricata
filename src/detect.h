@@ -971,13 +971,15 @@ typedef struct SigGroupHead_ {
 } SigGroupHead;
 
 /** sigmatch has no options, so the parser shouldn't expect any */
-#define SIGMATCH_NOOPT          0x01
+#define SIGMATCH_NOOPT          (1 << 0)
 /** sigmatch is compatible with a ip only rule */
-#define SIGMATCH_IPONLY_COMPAT  0x02
+#define SIGMATCH_IPONLY_COMPAT  (1 << 1)
 /** sigmatch is compatible with a decode event only rule */
-#define SIGMATCH_DEONLY_COMPAT  0x04
+#define SIGMATCH_DEONLY_COMPAT  (1 << 2)
 /**< Flag to indicate that the signature inspects the packet payload */
-#define SIGMATCH_PAYLOAD        0x08
+#define SIGMATCH_PAYLOAD        (1 << 3)
+/**< Flag to indicate that the signature is not built-in */
+#define SIGMATCH_NOT_BUILT      (1 << 4)
 
 /** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
 
