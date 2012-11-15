@@ -344,6 +344,10 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
         } else {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "error parsing signature \"%s\" from "
                  "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
+
+            if (rule_engine_analysis_set) {
+                EngineAnalysisRulesFailure(line, sig_file, lineno - multiline);
+            }
             if (de_ctx->failure_fatal == 1) {
                 exit(EXIT_FAILURE);
             }
@@ -4561,17 +4565,97 @@ int SigGroupCleanup (DetectEngineCtx *de_ctx) {
     return 0;
 }
 
-void SigTableList(void)
+static inline void PrintFeatureList(int flags, char sep)
+{
+    int prev = 0;
+    if (flags & SIGMATCH_NOOPT) {
+        printf("No option");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_IPONLY_COMPAT) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("compatible with IP only rule");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_DEONLY_COMPAT) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("compatible with decoder event only rule");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_PAYLOAD) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("payload inspecting keyword");
+        prev = 1;
+    }
+    if (prev == 0) {
+        printf("none");
+    }
+}
+
+static inline void SigMultilinePrint(int i, char *prefix)
+{
+    if (sigmatch_table[i].desc) {
+        printf("%sDescription: %s\n", prefix, sigmatch_table[i].desc);
+    }
+    printf("%sProtocol: %s\n", prefix,
+            AppLayerGetProtoString(sigmatch_table[i].alproto));
+    printf("%sFeatures: ", prefix);
+    PrintFeatureList(sigmatch_table[i].flags, ',');
+    if (sigmatch_table[i].url) {
+        printf("\n%sDocumentation: %s", prefix, sigmatch_table[i].url);
+    }
+    printf("\n");
+}
+
+void SigTableList(const char *keyword)
 {
     size_t size = sizeof(sigmatch_table) / sizeof(SigTableElmt);
 
     size_t i;
-    printf("=====Supported keywords=====\n");
-    for (i = 0; i < size; i++) {
-        if (sigmatch_table[i].name != NULL)
-            printf("- %s\n", sigmatch_table[i].name);
+    
+    if (keyword == NULL) {
+        printf("=====Supported keywords=====\n");
+        for (i = 0; i < size; i++) {
+            if (sigmatch_table[i].name != NULL)
+                printf("- %s\n", sigmatch_table[i].name);
+        }
+    } else if (!strcmp("csv", keyword)) {
+        printf("name;description;app layer;features;documentation\n");
+        for (i = 0; i < size; i++) {
+            if (sigmatch_table[i].name != NULL) {
+                printf("%s;", sigmatch_table[i].name);
+                if (sigmatch_table[i].desc) {
+                    printf("%s", sigmatch_table[i].desc);
+                }
+                /* Build feature */
+                printf(";%s;",
+                       AppLayerGetProtoString(sigmatch_table[i].alproto));
+                PrintFeatureList(sigmatch_table[i].flags, ':');
+                printf(";");
+                if (sigmatch_table[i].url) {
+                    printf("%s", sigmatch_table[i].url);
+                }
+                printf(";");
+                printf("\n");
+            }
+        }
+    } else if (!strcmp("all", keyword)) {
+        for (i = 0; i < size; i++) {
+            printf("%s:\n", sigmatch_table[i].name);
+            SigMultilinePrint(i, "\t");
+        }
+    } else {
+        for (i = 0; i < size; i++) {
+            if ((sigmatch_table[i].name != NULL) &&
+                !strcmp(sigmatch_table[i].name, keyword)) {
+                printf("= %s =\n", sigmatch_table[i].name);
+                SigMultilinePrint(i, "");
+            }
+        }
     }
-
     return;
 }
 

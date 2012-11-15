@@ -51,6 +51,8 @@ void DetectPriorityRegister (void)
     int opts = 0;
 
     sigmatch_table[DETECT_PRIORITY].name = "priority";
+    sigmatch_table[DETECT_PRIORITY].desc = "rules with a higher priority will be examined first";
+    sigmatch_table[DETECT_PRIORITY].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Meta-settings#Priority";
     sigmatch_table[DETECT_PRIORITY].Match = NULL;
     sigmatch_table[DETECT_PRIORITY].Setup = DetectPrioritySetup;
     sigmatch_table[DETECT_PRIORITY].Free = NULL;

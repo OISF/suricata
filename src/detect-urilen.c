@@ -61,6 +61,8 @@ void DetectUrilenRegisterTests (void);
 void DetectUrilenRegister(void)
 {
     sigmatch_table[DETECT_AL_URILEN].name = "urilen";
+    sigmatch_table[DETECT_AL_URILEN].desc = "match on the length of the HTTP uri";
+    sigmatch_table[DETECT_AL_URILEN].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#Urilen";
     sigmatch_table[DETECT_AL_URILEN].Match = NULL;
     sigmatch_table[DETECT_AL_URILEN].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_AL_URILEN].AppLayerMatch = NULL /**< We handle this at detect-engine-uri.c now */;

@@ -68,6 +68,8 @@ void DetectTlsVersionFree(void *);
  */
 void DetectTlsVersionRegister (void) {
     sigmatch_table[DETECT_AL_TLS_VERSION].name = "tls.version";
+    sigmatch_table[DETECT_AL_TLS_VERSION].desc = "match on TLS/SSL version";
+    sigmatch_table[DETECT_AL_TLS_VERSION].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/TLS-keywords#tlsversion";
     sigmatch_table[DETECT_AL_TLS_VERSION].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_VERSION].AppLayerMatch = DetectTlsVersionMatch;
     sigmatch_table[DETECT_AL_TLS_VERSION].alproto = ALPROTO_TLS;
