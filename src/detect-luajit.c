@@ -68,7 +68,6 @@ static int DetectLuajitSetupNoSupport (DetectEngineCtx *a, Signature *b, char *c
  */
 void DetectLuajitRegister(void) {
     sigmatch_table[DETECT_LUAJIT].name = "luajit";
-    sigmatch_table[DETECT_LUAJIT].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_LUAJIT].Setup = DetectLuajitSetupNoSupport;
     sigmatch_table[DETECT_LUAJIT].Free  = NULL;
     sigmatch_table[DETECT_LUAJIT].RegisterTests = NULL;
