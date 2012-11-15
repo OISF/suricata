@@ -159,6 +159,18 @@
 #include <netdb.h>
 #endif
 
+#ifdef HAVE_PCAP_H
+#include <pcap.h>
+#endif
+
+#ifdef HAVE_PCAP_PCAP_H
+#include <pcap/pcap.h>
+#endif
+
+#ifdef HAVE_PCAP_BPF_H
+#include <pcap/bpf.h>
+#endif
+
 #ifdef HAVE_WINDOWS_H
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0501
@@ -179,18 +191,6 @@
 #define BUG_ON(x) assert(!(x))
 #else
 #define BUG_ON(x)
-#endif
-
-#ifdef HAVE_PCAP_H
-#include <pcap.h>
-#endif
-
-#ifdef HAVE_PCAP_PCAP_H
-#include <pcap/pcap.h>
-#endif
-
-#ifdef HAVE_PCAP_BPF_H
-#include <pcap/bpf.h>
 #endif
 
 /* we need this to stringify the defines which are supplied at compiletime see:
