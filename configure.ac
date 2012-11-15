@@ -1279,12 +1279,18 @@ AC_INIT(configure.ac)
     if test "$enable_luajit" = "yes"; then
         if test "$with_libluajit_includes" != "no"; then
             CPPFLAGS="${CPPFLAGS} -I${with_libluajit_includes}"
+        else
+            PKG_CHECK_MODULES([LUAJIT], [luajit])
+            CPPFLAGS="${CPPFLAGS} ${LUAJIT_CFLAGS}"
         fi
 
         AC_CHECK_HEADER(lualib.h,LUAJIT="yes",LUAJIT="no")
         if test "$LUAJIT" = "yes"; then
             if test "$with_libluajit_libraries" != "no"; then
                 LDFLAGS="${LDFLAGS}  -L${with_libluajit_libraries}"
+            else
+                PKG_CHECK_MODULES([LUAJIT], [luajit])
+                LDFLAGS="${LDFLAGS} ${LUAJIT_LIBS}"
             fi
 
             AC_CHECK_LIB(luajit-5.1, luaL_openlibs,, LUAJIT="no")
