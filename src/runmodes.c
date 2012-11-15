@@ -46,8 +46,6 @@
 
 #include "output.h"
 
-#include "cuda-packet-batcher.h"
-
 #include "source-pfring.h"
 
 int debuglog_enabled = 0;
