@@ -599,13 +599,6 @@ typedef struct DetectEngineCtx_ {
 
     uint16_t mpm_matcher; /**< mpm matcher this ctx uses */
 
-#ifdef __SC_CUDA_SUPPORT__
-    /* cuda rules content module handle.  Holds the handler serivice's
-     * (util-cuda-handler.c) handle for a module.  This module would
-     * hold the cuda context for all the rules content */
-    int cuda_rc_mod_handle;
-#endif
-
     /* Config options */
 
     uint16_t max_uniq_toclient_src_groups;
@@ -813,12 +806,6 @@ typedef struct DetectionEngineThreadCtx_ {
     } filestore[DETECT_FILESTORE_MAX];
 
     DetectEngineCtx *de_ctx;
-#ifdef __SC_CUDA_SUPPORT__
-    /* each detection thread would have it's own queue where the cuda dispatcher
-     * thread can dump the packets once it has processed them */
-    Tmq *cuda_mpm_rc_disp_outq;
-#endif
-
     /** store for keyword contexts that need a per thread storage because of
      *  thread safety issues */
     void **keyword_ctxs_array;

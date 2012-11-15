@@ -177,8 +177,6 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 #include "util-hashlist.h"
-#include "util-cuda-handlers.h"
-#include "util-mpm-b2g-cuda.h"
 #include "util-cuda.h"
 #include "util-privs.h"
 #include "util-profiling.h"
@@ -4340,31 +4338,6 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
         exit(EXIT_FAILURE);
     }
 
-#ifdef __SC_CUDA_SUPPORT__
-    size_t cuda_total = 0;
-    size_t cuda_free_before_alloc = 0;
-    /* we register a module that would require cuda handler service.  This
-     * module would hold the context for all the patterns in the rules */
-    de_ctx->cuda_rc_mod_handle = SCCudaHlRegisterModule("SC_RULES_CONTENT_B2G_CUDA");
-    if (de_ctx->mpm_matcher == MPM_B2G_CUDA) {
-        CUcontext dummy_context;
-        if (SCCudaHlGetCudaContext(&dummy_context, "mpm",
-                                   de_ctx->cuda_rc_mod_handle) == -1) {
-            SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda context for the "
-                       "module SC_RULES_CONTENT_B2G_CUDA");
-        }
-        SCCudaCtxPushCurrent(dummy_context);
-        if (SCCudaMemGetInfo(&cuda_free_before_alloc, &cuda_total) == 0) {
-            SCLogInfo("Total Memory available in the CUDA context used for mpm "
-                      "with b2g: %.2f MB", cuda_total/(1024.0 * 1024.0));
-            SCLogInfo("Free Memory available in the CUDA context used for b2g "
-                      "mpm before any allocation is made on the GPU for the "
-                      "context: %.2f MB", cuda_free_before_alloc/(1024.0 * 1024.0));
-        }
-    }
-
-#endif
-
     if (SigAddressPrepareStage3(de_ctx) != 0) {
         SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
         exit(EXIT_FAILURE);
@@ -4373,32 +4346,6 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
         SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
         exit(EXIT_FAILURE);
     }
-
-#ifdef __SC_CUDA_SUPPORT__
-    size_t cuda_free_after_alloc = 0;
-    /* if a user has selected some other mpm algo other than b2g_cuda, inspite of
-     * enabling cuda support, then no cuda contexts or cuda vars would be created.
-     * Pop the cuda context, only on confirming that the MPM algo selected is the
-     * CUDA mpm algo */
-    if (de_ctx->mpm_matcher == MPM_B2G_CUDA) {
-        if (SCCudaMemGetInfo(&cuda_free_after_alloc, &cuda_total) == 0) {
-            SCLogInfo("Free Memory available in the CUDA context used for b2g mpm "
-                      "after allocation is made on the GPU for the context: %.2f MB",
-                      cuda_free_after_alloc/(1024.0 * 1024.0));
-            SCLogInfo("Total memory consumed by the CUDA context for the b2g mpm: "
-                      "%.2f MB", (cuda_free_before_alloc/(1024.0 * 1024.0)) -
-                      (cuda_free_after_alloc/(1024.0 * 1024.0)));
-        }
-        /* the AddressPrepareStage3 actually handles the creation of device
-         * pointers on the gpu.  The cuda context that stage3 used would still be
-         * attached to this host thread.  We need to pop this cuda context so that
-         * the dispatcher thread that we are going to create for the above module
-         * we registered can attach to this cuda context */
-        CUcontext context;
-        if (SCCudaCtxPopCurrent(&context) == -1)
-            exit(EXIT_FAILURE);
-    }
-#endif
 
     if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
         MpmCtx *mpm_ctx = NULL;
