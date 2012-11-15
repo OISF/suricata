@@ -178,11 +178,6 @@
 #include "util-daemon.h"
 #include "reputation.h"
 
-/* holds the cuda b2g module */
-#include "util-mpm-b2g-cuda.h"
-#include "util-cuda-handlers.h"
-#include "cuda-packet-batcher.h"
-
 #include "output.h"
 #include "util-privs.h"
 
@@ -1455,11 +1450,6 @@ int main(int argc, char **argv)
      * logging module. */
     SCLogLoadConfig(daemon);
 
-#ifdef __SC_CUDA_SUPPORT__
-    /* load the cuda configuration */
-    SCCudaHlGetYamlConf();
-#endif /* __SC_CUDA_SUPPORT__ */
-
     /* Load the Host-OS lookup. */
     SCHInfoLoadFromConfig();
     if (!list_keywords && !list_app_layer_protocols &&
@@ -1598,11 +1588,6 @@ int main(int argc, char **argv)
     /* file log */
     TmModuleLogFileLogRegister();
     TmModuleLogFilestoreRegister();
-    /* cuda */
-#ifdef __SC_CUDA_SUPPORT__
-    TmModuleCudaMpmB2gRegister();
-    TmModuleCudaPacketBatcherRegister();
-#endif
     TmModuleDebugList();
 
     AppLayerHtpNeedFileInspection();
@@ -1724,15 +1709,6 @@ int main(int argc, char **argv)
         else {
             uint32_t failed = UtRunTests(regex_arg);
             UtCleanup();
-#ifdef __SC_CUDA_SUPPORT__
-            /* need this in case any of the cuda dispatcher threads are still
-             * running, kill them, so that we can free the cuda contexts.  We
-             * need to free those cuda contexts so that next when we call
-             * deregister functions, we will need to attach to those contexts
-             * the contexts and its associated data */
-            TmThreadKillThreads();
-            SCCudaHlDeRegisterAllRegisteredModules();
-#endif
             if (failed) {
                 exit(EXIT_FAILURE);
             }
@@ -1897,10 +1873,6 @@ int main(int argc, char **argv)
     if (sig_file == NULL && rule_reload == 1)
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
 
-#ifdef __SC_CUDA_SUPPORT__
-    SCCudaPBSetUpQueuesAndBuffers();
-#endif /* __SC_CUDA_SUPPORT__ */
-
     SCThresholdConfInitContext(de_ctx,NULL);
     SCAsn1LoadConfig();
 
@@ -1961,14 +1933,6 @@ int main(int argc, char **argv)
     }
 
     RunModeDispatch(run_mode, runmode_custom_mode, de_ctx);
-
-#ifdef __SC_CUDA_SUPPORT__
-    if (PatternMatchDefaultMatcher() == MPM_B2G_CUDA) {
-        /* start the dispatcher thread for this module */
-        if (B2gCudaStartDispatcherThreadRC("SC_RULES_CONTENT_B2G_CUDA") == -1)
-            exit(EXIT_FAILURE);
-    }
-#endif
 
     /* In Unix socket runmode, Flow manager is started on demand */
     if (run_mode != RUNMODE_UNIX_SOCKET) {
@@ -2050,10 +2014,6 @@ int main(int argc, char **argv)
     /* Update the engine stage/status flag */
     (void) SC_ATOMIC_CAS(&engine_stage, SURICATA_RUNTIME, SURICATA_DEINIT);
 
-#ifdef __SC_CUDA_SUPPORT__
-    SCCudaPBKillBatchingPackets();
-#endif
-
     UnixSocketKillSocketThread();
 
     if (run_mode != RUNMODE_UNIX_SOCKET) {
@@ -2119,30 +2079,6 @@ int main(int argc, char **argv)
 
     SCPidfileRemove(pid_filename);
 
-    /** \todo review whats needed here */
-#ifdef __SC_CUDA_SUPPORT__
-    if (PatternMatchDefaultMatcher() == MPM_B2G_CUDA) {
-        /* all threadvars related to cuda should be free by now, which means
-         * the cuda contexts would be floating */
-        if (SCCudaHlPushCudaContextFromModule("SC_RULES_CONTENT_B2G_CUDA") == -1) {
-            SCLogError(SC_ERR_CUDA_HANDLER_ERROR, "Call to "
-                       "SCCudaHlPushCudaContextForModule() failed during the "
-                       "shutdown phase just before the call to SigGroupCleanup()");
-        }
-    }
-#endif
-#ifdef __SC_CUDA_SUPPORT__
-    if (PatternMatchDefaultMatcher() == MPM_B2G_CUDA) {
-        /* pop the cuda context we just pushed before the call to SigGroupCleanup() */
-        if (SCCudaCtxPopCurrent(NULL) == -1) {
-            SCLogError(SC_ERR_CUDA_HANDLER_ERROR, "Call to SCCudaCtxPopCurrent() "
-                       "during the shutdown phase just before the call to "
-                       "SigGroupCleanup()");
-            return 0;
-        }
-    }
-#endif
-
     AppLayerHtpPrintStats();
 
     if (global_de_ctx) {
@@ -2174,13 +2110,6 @@ int main(int argc, char **argv)
     SCProfilingDestroy();
 #endif
 
-#ifdef __SC_CUDA_SUPPORT__
-    /* all cuda contexts attached to any threads should be free by now.
-     * if any host_thread is still attached to any cuda_context, they need
-     * to pop them by the time we reach here, if they aren't using those
-     * cuda contexts in any way */
-    SCCudaHlDeRegisterAllRegisteredModules();
-#endif
 #ifdef OS_WIN32
 	if (daemon) {
 		return 0;
