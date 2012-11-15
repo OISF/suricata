@@ -582,14 +582,14 @@ static int DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
 		case 79:
 			sstate->dcerpc.dcerpchdrudp.serial_lo = *(p++);
 			if (sstate->dcerpc.dcerpchdrudp.drep[0] != 0x10) {
-				SCByteSwap32(sstate->dcerpc.dcerpchdrudp.server_boot);
-				SCByteSwap32(sstate->dcerpc.dcerpchdrudp.if_vers);
-				SCByteSwap32(sstate->dcerpc.dcerpchdrudp.seqnum);
-				SCByteSwap16(sstate->dcerpc.dcerpchdrudp.opnum);
-				SCByteSwap16(sstate->dcerpc.dcerpchdrudp.ihint);
-				SCByteSwap16(sstate->dcerpc.dcerpchdrudp.ahint);
-				SCByteSwap16(sstate->dcerpc.dcerpchdrudp.fraglen);
-				SCByteSwap16(sstate->dcerpc.dcerpchdrudp.fragnum);
+				sstate->dcerpc.dcerpchdrudp.server_boot = SCByteSwap32(sstate->dcerpc.dcerpchdrudp.server_boot);
+				sstate->dcerpc.dcerpchdrudp.if_vers= SCByteSwap32(sstate->dcerpc.dcerpchdrudp.if_vers);
+				sstate->dcerpc.dcerpchdrudp.seqnum= SCByteSwap32(sstate->dcerpc.dcerpchdrudp.seqnum);
+				sstate->dcerpc.dcerpchdrudp.opnum = SCByteSwap16(sstate->dcerpc.dcerpchdrudp.opnum);
+				sstate->dcerpc.dcerpchdrudp.ihint= SCByteSwap16(sstate->dcerpc.dcerpchdrudp.ihint);
+				sstate->dcerpc.dcerpchdrudp.ahint = SCByteSwap16(sstate->dcerpc.dcerpchdrudp.ahint);
+				sstate->dcerpc.dcerpchdrudp.fraglen = SCByteSwap16(sstate->dcerpc.dcerpchdrudp.fraglen);
+				sstate->dcerpc.dcerpchdrudp.fragnum = SCByteSwap16(sstate->dcerpc.dcerpchdrudp.fragnum);
 			}
 			sstate->fraglenleft = sstate->dcerpc.dcerpchdrudp.fraglen;
 			sstate->uuid_entry = (DCERPCUuidEntry *) SCCalloc(1,
