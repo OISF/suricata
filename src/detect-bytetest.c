@@ -339,7 +339,7 @@ DetectBytetestData *DetectBytetestParse(char *optstr, char **value, char **offse
     }
 
     /* Value */
-    if (args[3][0] != '-' && isalpha(args[3][0])) {
+    if (args[3][0] != '-' && isalpha((unsigned char)args[3][0])) {
         if (value == NULL) {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "byte_test supplied with "
                        "var name for value.  \"value\" argument supplied to "
@@ -357,7 +357,7 @@ DetectBytetestData *DetectBytetestParse(char *optstr, char **value, char **offse
     }
 
     /* Offset */
-    if (args[4][0] != '-' && isalpha(args[4][0])) {
+    if (args[4][0] != '-' && isalpha((unsigned char)args[4][0])) {
         if (offset == NULL) {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "byte_test supplied with "
                        "var name for offset.  \"offset\" argument supplied to "

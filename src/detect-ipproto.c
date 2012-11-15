@@ -140,7 +140,7 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
     }
 
     /* Protocol name/number */
-    if (!isdigit(*(args[1]))) {
+    if (!isdigit((unsigned char)*(args[1]))) {
         struct protoent *pent = getprotobyname(args[1]);
         if (pent == NULL) {
             SCLogError(SC_ERR_INVALID_VALUE, "Malformed protocol name: %s",

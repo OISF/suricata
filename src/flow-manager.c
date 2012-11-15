@@ -555,6 +555,7 @@ void *FlowManagerThread(void *td)
 
     TmThreadsSetFlag(th_v, THV_CLOSED);
     pthread_exit((void *) 0);
+    return NULL;
 }
 
 /** \brief spawn the flow manager thread */

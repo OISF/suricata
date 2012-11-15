@@ -182,7 +182,7 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr, char **offset)
         idad->flags = 0;
         idad->dataat = 0;
 
-        if (args[0][0] != '-' && isalpha(args[0][0])) {
+        if (args[0][0] != '-' && isalpha((unsigned char)args[0][0])) {
             if (offset == NULL) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "isdataat supplied with "
                            "var name for offset.  \"offset\" argument supplied to "

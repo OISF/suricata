@@ -158,6 +158,7 @@ void *TmThreadsSlot1NoIn(void *td)
 
             TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
+            return NULL;
         }
         (void)SC_ATOMIC_SET(s->slot_data, slot_data);
     }
@@ -220,11 +221,13 @@ void *TmThreadsSlot1NoIn(void *td)
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);
+            return NULL;
         }
     }
 
     TmThreadsSetFlag(tv, THV_CLOSED);
     pthread_exit((void *) 0);
+    return NULL;
 }
 
 void *TmThreadsSlot1NoOut(void *td)
@@ -257,6 +260,7 @@ void *TmThreadsSlot1NoOut(void *td)
 
             TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
+            return NULL;
         }
         (void)SC_ATOMIC_SET(s->slot_data, slot_data);
     }
@@ -301,11 +305,13 @@ void *TmThreadsSlot1NoOut(void *td)
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);
+            return NULL;
         }
     }
 
     TmThreadsSetFlag(tv, THV_CLOSED);
     pthread_exit((void *) 0);
+    return NULL;
 }
 
 void *TmThreadsSlot1NoInOut(void *td)
@@ -339,6 +345,7 @@ void *TmThreadsSlot1NoInOut(void *td)
 
             TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
+            return NULL;
         }
         (void)SC_ATOMIC_SET(s->slot_data, slot_data);
     }
@@ -377,11 +384,13 @@ void *TmThreadsSlot1NoInOut(void *td)
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);
+            return NULL;
         }
     }
 
     TmThreadsSetFlag(tv, THV_CLOSED);
     pthread_exit((void *) 0);
+    return NULL;
 }
 
 void *TmThreadsSlot1(void *td)
@@ -416,6 +425,7 @@ void *TmThreadsSlot1(void *td)
 
             TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
+            return NULL;
         }
         (void)SC_ATOMIC_SET(s->slot_data, slot_data);
     }
@@ -492,12 +502,14 @@ void *TmThreadsSlot1(void *td)
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);
+            return NULL;
         }
     }
 
     SCLogDebug("%s ending", tv->name);
     TmThreadsSetFlag(tv, THV_CLOSED);
     pthread_exit((void *) 0);
+    return NULL;
 }
 
 /**
@@ -623,6 +635,7 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
 
         TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
         pthread_exit((void *) -1);
+        return NULL;
     }
 
     for (slot = s; slot != NULL; slot = slot->slot_next) {
@@ -634,6 +647,7 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
 
                 TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
                 pthread_exit((void *) -1);
+                return NULL;
             }
             (void)SC_ATOMIC_SET(slot->slot_data, slot_data);
         }
@@ -670,6 +684,7 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
             if (r != TM_ECODE_OK) {
                 TmThreadsSetFlag(tv, THV_CLOSED);
                 pthread_exit((void *) -1);
+                return NULL;
             }
         }
     }
@@ -677,6 +692,7 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
     SCLogDebug("%s ending", tv->name);
     TmThreadsSetFlag(tv, THV_CLOSED);
     pthread_exit((void *) 0);
+    return NULL;
 }
 
 
@@ -712,6 +728,7 @@ void *TmThreadsSlotVar(void *td)
 
         TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
         pthread_exit((void *) -1);
+        return NULL;
     }
 
     for (; s != NULL; s = s->slot_next) {
@@ -723,6 +740,7 @@ void *TmThreadsSlotVar(void *td)
 
                 TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
                 pthread_exit((void *) -1);
+                return NULL;
             }
             (void)SC_ATOMIC_SET(s->slot_data, slot_data);
         }
@@ -807,6 +825,7 @@ void *TmThreadsSlotVar(void *td)
             if (r != TM_ECODE_OK) {
                 TmThreadsSetFlag(tv, THV_CLOSED);
                 pthread_exit((void *) -1);
+                return NULL;
             }
         }
     }
@@ -814,6 +833,7 @@ void *TmThreadsSlotVar(void *td)
     SCLogDebug("%s ending", tv->name);
     TmThreadsSetFlag(tv, THV_CLOSED);
     pthread_exit((void *) 0);
+    return NULL;
 }
 
 /**

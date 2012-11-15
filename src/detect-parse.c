@@ -1661,7 +1661,7 @@ int DetectParseContentString (char *contentstr, uint8_t **result, uint16_t *resu
 
     /* skip the first spaces */
     slen = strlen(temp);
-    while (pos < slen && isspace(temp[pos])) {
+    while (pos < slen && isspace((unsigned char)temp[pos])) {
         pos++;
     }
 
@@ -1728,7 +1728,7 @@ int DetectParseContentString (char *contentstr, uint8_t **result, uint16_t *resu
                 escape = 1;
             } else {
                 if (bin) {
-                    if (isdigit(str[i]) ||
+                    if (isdigit((unsigned char)str[i]) ||
                             str[i] == 'A' || str[i] == 'a' ||
                             str[i] == 'B' || str[i] == 'b' ||
                             str[i] == 'C' || str[i] == 'c' ||

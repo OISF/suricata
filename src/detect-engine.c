@@ -549,6 +549,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
     SCLogInfo("===== Live rule swap DONE =====");
 
     pthread_exit(NULL);
+    return NULL;
 }
 
 void DetectEngineSpawnLiveRuleSwapMgmtThread(void)

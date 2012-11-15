@@ -113,10 +113,10 @@ int DetectFtpbounceMatchArgs(uint8_t *payload, uint16_t payload_len,
 
     i = offset;
     /* Search for the first IP octect(Skips "PORT ") */
-    while (i < payload_len && !isdigit(c[i])) i++;
+    while (i < payload_len && !isdigit((unsigned char)c[i])) i++;
 
     for (;i < payload_len && octet_ascii_len < 4 ;i++) {
-        if (isdigit(c[i])) {
+        if (isdigit((unsigned char)c[i])) {
             octet =(c[i] - '0') + octet * 10;
             octet_ascii_len++;
         } else {
@@ -125,8 +125,8 @@ int DetectFtpbounceMatchArgs(uint8_t *payload, uint16_t payload_len,
                 return 0;
             }
 
-            if (isspace(c[i]))
-                while (i < payload_len && isspace(c[i]) ) i++;
+            if (isspace((unsigned char)c[i]))
+                while (i < payload_len && isspace((unsigned char)c[i]) ) i++;
 
             if (i < payload_len && c[i] == ',') { /* we have an octet */
                 noctet++;

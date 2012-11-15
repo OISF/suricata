@@ -77,7 +77,7 @@ int DetectContentDataParse(char *keyword, char *contentstr, char** pstr, uint16_
     }
 
     /* skip the first spaces */
-    while (pos < slen && isspace(contentstr[pos]))
+    while (pos < slen && isspace((unsigned char)contentstr[pos]))
         pos++;
 
     if (contentstr[pos] == '!') {
@@ -135,7 +135,7 @@ int DetectContentDataParse(char *keyword, char *contentstr, char** pstr, uint16_
                 escape = 1;
             } else {
                 if (bin) {
-                    if (isdigit(str[i]) ||
+                    if (isdigit((unsigned char)str[i]) ||
                             str[i] == 'A' || str[i] == 'a' ||
                             str[i] == 'B' || str[i] == 'b' ||
                             str[i] == 'C' || str[i] == 'c' ||

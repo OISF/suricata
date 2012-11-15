@@ -161,7 +161,7 @@ int SCGetUserID(char *user_name, char *group_name, uint32_t *uid, uint32_t *gid)
     struct passwd *pw;
 
     /* Get the user ID */
-    if (isdigit(user_name[0]) != 0) {
+    if (isdigit((unsigned char)user_name[0]) != 0) {
         userid = atoi(user_name);
         pw = getpwuid(userid);
        if (pw == NULL) {
@@ -183,7 +183,7 @@ int SCGetUserID(char *user_name, char *group_name, uint32_t *uid, uint32_t *gid)
     if (group_name != NULL) {
         struct group *gp;
 
-        if (isdigit(group_name[0]) != 0) {
+        if (isdigit((unsigned char)group_name[0]) != 0) {
             groupid = atoi(group_name);
         } else {
             gp = getgrnam(group_name);
@@ -223,7 +223,7 @@ int SCGetGroupID(char *group_name, uint32_t *gid)
     struct group *gp;
 
     /* Get the group ID */
-    if (isdigit(group_name[0]) != 0) {
+    if (isdigit((unsigned char)group_name[0]) != 0) {
         grpid = atoi(group_name);
     } else {
         gp = getgrnam(group_name);

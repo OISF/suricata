@@ -269,7 +269,7 @@ DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr)
     uint16_t pos = 0;
     uint8_t negate = 0;
 
-    while (pos < slen && isspace(regexstr[pos])) {
+    while (pos < slen && isspace((unsigned char)regexstr[pos])) {
         pos++;
     }
 

@@ -863,7 +863,7 @@ int SCThresholdConfIsLineBlankOrComment(char *line)
             return 1;
 
         /* this line is neither a comment line, nor a blank line */
-        if (!isspace(*line))
+        if (!isspace((unsigned char)*line))
             return 0;
 
         line++;
@@ -892,7 +892,7 @@ int SCThresholdConfLineIsMultiline(char *line)
         if (*line == '\\')
             flag = line - rline;
         else
-            if (!isspace(*line))
+            if (!isspace((unsigned char)*line))
                 flag = 0;
 
         line++;

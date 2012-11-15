@@ -172,7 +172,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
                 }
             } else {
                 if (bin) {
-                    if (isdigit(str[i]) ||
+                    if (isdigit((unsigned char)str[i]) ||
                         str[i] == 'A' || str[i] == 'a' ||
                         str[i] == 'B' || str[i] == 'b' ||
                         str[i] == 'C' || str[i] == 'c' ||

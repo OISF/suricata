@@ -206,7 +206,7 @@ static char *SCRConfStringToLowercase(const char *str)
 
     temp_str = new_str;
     while (*temp_str != '\0') {
-        *temp_str = tolower(*temp_str);
+        *temp_str = tolower((unsigned char)*temp_str);
         temp_str++;
     }
 
@@ -305,7 +305,7 @@ static int SCRConfIsLineBlankOrComment(char *line)
             return 1;
 
         /* this line is neither a comment line, nor a blank line */
-        if (!isspace(*line))
+        if (!isspace((unsigned char)*line))
             return 0;
 
         line++;
@@ -418,7 +418,7 @@ uint32_t SCRConfReferenceHashFunc(HashTable *ht, void *data, uint16_t datalen)
     int len = strlen(ref->system);
 
     for (i = 0; i < len; i++)
-        hash += tolower(ref->system[i]);
+        hash += tolower((unsigned char)ref->system[i]);
 
     hash = hash % ht->array_size;
 

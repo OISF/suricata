@@ -644,7 +644,7 @@ int DetectAddressParseString(DetectAddress *dd, char *str)
                 /* 1.2.3.4/24 format */
 
                 for (u = 0; u < strlen(mask); u++) {
-                    if(!isdigit(mask[u]))
+                    if(!isdigit((unsigned char)mask[u]))
                         goto error;
                 }
 

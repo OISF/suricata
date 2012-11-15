@@ -211,7 +211,7 @@ static char *SCClassConfStringToLowercase(const char *str)
 
     temp_str = new_str;
     while (*temp_str != '\0') {
-        *temp_str = tolower(*temp_str);
+        *temp_str = tolower((unsigned char)*temp_str);
         temp_str++;
     }
 
@@ -328,7 +328,7 @@ static int SCClassConfIsLineBlankOrComment(char *line)
             return 1;
 
         /* this line is neither a comment line, nor a blank line */
-        if (!isspace(*line))
+        if (!isspace((unsigned char)*line))
             return 0;
 
         line++;
@@ -446,7 +446,7 @@ uint32_t SCClassConfClasstypeHashFunc(HashTable *ht, void *data, uint16_t datale
     int len = strlen(ct->classtype);
 
     for (i = 0; i < len; i++)
-        hash += tolower((ct->classtype)[i]);
+        hash += tolower((unsigned char)(ct->classtype)[i]);
 
     hash = hash % ht->array_size;
 

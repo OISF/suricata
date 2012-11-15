@@ -370,15 +370,15 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset)
      * and *yes* this *is* ugly.
      */
     end_ptr = str_ptr;
-    while (!(isspace(*end_ptr) || (*end_ptr == ','))) end_ptr++;
+    while (!(isspace((unsigned char)*end_ptr) || (*end_ptr == ','))) end_ptr++;
     *(end_ptr++) = '\0';
     args[0] = str_ptr;
     numargs++;
 
     str_ptr = end_ptr;
-    while (isspace(*str_ptr) || (*str_ptr == ',')) str_ptr++;
+    while (isspace((unsigned char)*str_ptr) || (*str_ptr == ',')) str_ptr++;
     end_ptr = str_ptr;
-    while (!(isspace(*end_ptr) || (*end_ptr == ',')) && (*end_ptr != '\0'))
+    while (!(isspace((unsigned char)*end_ptr) || (*end_ptr == ',')) && (*end_ptr != '\0'))
         end_ptr++;
     *(end_ptr++) = '\0';
     args[1] = str_ptr;
@@ -416,7 +416,7 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset)
     }
 
     /* Offset */
-    if (args[1][0] != '-' && isalpha(args[1][0])) {
+    if (args[1][0] != '-' && isalpha((unsigned char)args[1][0])) {
         if (offset == NULL) {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "byte_jump supplied with "
                        "var name for offset.  \"value\" argument supplied to "

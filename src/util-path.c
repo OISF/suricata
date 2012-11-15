@@ -42,7 +42,7 @@ int PathIsAbsolute(const char *path) {
 
 #if (defined OS_WIN32 || defined __CYGWIN__)
     if (strlen(path) > 2) {
-        if (isalpha(path[0]) && path[1] == ':') {
+        if (isalpha((unsigned char)path[0]) && path[1] == ':') {
             return 1;
         }
     }

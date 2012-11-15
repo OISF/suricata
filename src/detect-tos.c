@@ -153,7 +153,7 @@ DetectTosData *DetectTosParse(char *arg)
         negated = 1;
     }
 
-    while (isspace(*str_ptr))
+    while (isspace((unsigned char)*str_ptr))
         str_ptr++;
 
     if (*str_ptr == 'x' || *str_ptr == 'X') {

@@ -58,7 +58,6 @@ SCEnumCharMap sc_hinfo_os_policy_map[ ] = {
 
 /** Radix tree that holds the host OS information */
 static SCRadixTree *sc_hinfo_tree = NULL;
-static SCRadixTree *sc_hinfo_tree_backup = NULL;
 
 /**
  * \brief Validates an IPV4 address and returns the network endian arranged
@@ -431,6 +430,7 @@ void SCHInfoLoadFromConfig(void)
 /*------------------------------------Unit_Tests------------------------------*/
 
 #ifdef UNITTESTS
+static SCRadixTree *sc_hinfo_tree_backup = NULL;
 
 static void SCHInfoCreateContextBackup(void)
 {

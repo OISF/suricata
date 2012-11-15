@@ -148,7 +148,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                 goto error;
             }
 
-            if (str[0] != '-' && isalpha(str[0])) {
+            if (str[0] != '-' && isalpha((unsigned char)str[0])) {
                 SigMatch *bed_sm =
                     DetectByteExtractRetrieveSMVar(str, s,
                                                    SigMatchListSMBelongsTo(s, pm));
