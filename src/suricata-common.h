@@ -171,6 +171,12 @@
 #include <pcap/bpf.h>
 #endif
 
+#if __CYGWIN__
+#if !defined _X86_ && !defined __x86_64
+#define _X86_
+#endif
+#endif
+
 #ifdef HAVE_WINDOWS_H
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0501
@@ -178,13 +184,18 @@
 #include <windows.h>
 #endif
 
+#ifdef HAVE_W32API_WINBASE_H
+#include <w32api/winbase.h>
+#endif
+
+#if !__CYGWIN__
 #ifdef HAVE_WINSOCK2_H
 #include <winsock2.h>
 #endif
-
 #ifdef HAVE_WS2TCPIP_H
 #include <ws2tcpip.h>
 #endif
+#endif /* !__CYGWIN__ */
 
 #ifdef HAVE_ASSERT_H
 #include <assert.h>
