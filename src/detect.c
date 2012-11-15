@@ -943,38 +943,9 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, StreamMsg *smsg, Packet *p,
         uint8_t flags, uint16_t alproto, void *alstate, uint8_t *sms_runflags)
 {
-    if (p->payload_len > 0 && (!(p->flags & PKT_NOPAYLOAD_INSPECTION))) {
-        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_PACKET) {
-            /* run the multi packet matcher against the payload of the packet */
-            SCLogDebug("search: (%p, maxlen %" PRIu32 ", sgh->sig_cnt %" PRIu32 ")",
-                det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
-
-            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_PACKET);
-            PacketPatternSearch(det_ctx, p);
-            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_PACKET);
-
-            *sms_runflags |= SMS_USED_PM;
-        }
-        if (!(p->flags & PKT_STREAM_ADD) && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM) {
-            *sms_runflags |= SMS_USED_PM;
-            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_PKT_STREAM);
-            PacketPatternSearchWithStreamCtx(det_ctx, p);
-            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_PKT_STREAM);
-        }
-    }
-
     /* have a look at the reassembled stream (if any) */
     if (p->flowflags & FLOW_PKT_ESTABLISHED) {
         SCLogDebug("p->flowflags & FLOW_PKT_ESTABLISHED");
-        if (smsg != NULL && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM) {
-            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_STREAM);
-            StreamPatternSearch(det_ctx, p, smsg, flags);
-            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_STREAM);
-
-            *sms_runflags |= SMS_USED_STREAM_PM;
-        } else {
-            SCLogDebug("smsg NULL or no stream mpm for this sgh");
-        }
 
         /* all http based mpms */
         if (alproto == ALPROTO_HTTP && alstate != NULL) {
@@ -1037,8 +1008,38 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HCD);
             }
         }
+
+        if (smsg != NULL && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM) {
+            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_STREAM);
+            StreamPatternSearch(det_ctx, p, smsg, flags);
+            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_STREAM);
+
+            *sms_runflags |= SMS_USED_STREAM_PM;
+        } else {
+            SCLogDebug("smsg NULL or no stream mpm for this sgh");
+        }
     } else {
         SCLogDebug("NOT p->flowflags & FLOW_PKT_ESTABLISHED");
+    }
+
+    if (p->payload_len > 0 && (!(p->flags & PKT_NOPAYLOAD_INSPECTION))) {
+        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_PACKET) {
+            /* run the multi packet matcher against the payload of the packet */
+            SCLogDebug("search: (%p, maxlen %" PRIu32 ", sgh->sig_cnt %" PRIu32 ")",
+                det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
+
+            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_PACKET);
+            PacketPatternSearch(det_ctx, p);
+            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_PACKET);
+
+            *sms_runflags |= SMS_USED_PM;
+        }
+        if (!(p->flags & PKT_STREAM_ADD) && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM) {
+            *sms_runflags |= SMS_USED_PM;
+            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_PKT_STREAM);
+            PacketPatternSearchWithStreamCtx(det_ctx, p);
+            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_PKT_STREAM);
+        }
     }
 }
 
