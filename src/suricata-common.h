@@ -113,6 +113,14 @@
 #include <netdb.h>
 #endif
 
+#ifdef HAVE_PCAP_H
+#include <pcap.h>
+#endif
+
+#ifdef HAVE_PCAP_PCAP_H
+#include <pcap/pcap.h>
+#endif
+
 #ifdef HAVE_WINDOWS_H
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0501
@@ -130,14 +138,6 @@
 
 #include <assert.h>
 #define BUG_ON(x) assert(!(x))
-
-#ifdef HAVE_PCAP_H
-#include <pcap.h>
-#endif
-
-#ifdef HAVE_PCAP_PCAP_H
-#include <pcap/pcap.h>
-#endif
 
 /* we need this to stringify the defines which are supplied at compiletime see:
    http://gcc.gnu.org/onlinedocs/gcc-3.4.1/cpp/Stringification.html#Stringification */
