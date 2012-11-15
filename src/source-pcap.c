@@ -140,6 +140,7 @@ static inline void PcapDumpCounters(PcapThreadVars *ptv)
     if (likely((pcap_stats(ptv->pcap_handle, &pcap_s) >= 0))) {
         SCPerfCounterSetUI64(ptv->capture_kernel_packets, ptv->tv->sc_perf_pca, pcap_s.ps_recv);
         SCPerfCounterSetUI64(ptv->capture_kernel_drops, ptv->tv->sc_perf_pca, pcap_s.ps_drop);
+        SC_ATOMIC_SET(ptv->livedev->drop, pcap_s.ps_drop);
         SCPerfCounterSetUI64(ptv->capture_kernel_ifdrops, ptv->tv->sc_perf_pca, pcap_s.ps_ifdrop);
     }
 }
