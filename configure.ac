@@ -518,6 +518,52 @@ AC_INIT(configure.ac)
         exit 1
     fi
 
+  # libjansson
+    enable_jansson="no"
+    AC_ARG_WITH(libjansson_includes,
+            [  --with-libjansson-includes=DIR  libjansson include directory],
+            [with_libjansson_includes="$withval"],[with_libjansson_includes=no])
+    AC_ARG_WITH(libjansson_libraries,
+            [  --with-libjansson-libraries=DIR    libjansson library directory],
+            [with_libjansson_libraries="$withval"],[with_libjansson_libraries="no"])
+
+    if test "$with_libjansson_includes" != "no"; then
+        CPPFLAGS="${CPPFLAGS} -I${with_libjansson_includes}"
+    fi
+
+    enable_jansson="no"
+    enable_unixsocket="no"
+    AC_CHECK_HEADER(jansson.h,JANSSON="yes",JANSSON="no")
+    if test "$JANSSON" = "yes"; then
+        if test "$with_libjansson_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS}  -L${with_libjansson_libraries}"
+        fi
+
+	    AC_CHECK_LIB(jansson, json_loads,, JANSSON="no")
+        enable_jansson="yes"
+        if test "$JANSSON" = "no"; then
+            echo
+            echo "   Jansson is required for features like unix socket"
+	    echo "   Go get it from your distribution of from:"
+	    echo "     http://www.digip.org/jansson/"
+            echo
+            enable_unixsocket="no"
+            enable_jansson="no"
+        else
+            case $host in
+                *-*-mingw32*)
+                ;;
+                *-*-cygwin)
+                ;;
+                *)
+                enable_unixsocket="yes"
+                ;;
+            esac
+        fi
+    fi
+
+    AS_IF([test "x$enable_unixsocket" = "xyes"], [AC_DEFINE([BUILD_UNIX_SOCKET], [1], [Unix socket support enabled])])
+
     #enable support for NFQUEUE
     AC_ARG_ENABLE(nfqueue,
            AS_HELP_STRING([--enable-nfqueue], [Enable NFQUEUE support for inline IDP]),,[enable_nfqueue=no])
@@ -1352,16 +1398,18 @@ else
   EXPAND_VARIABLE(localstatedir, e_logfilesdir, "/log/suricata/files")
   EXPAND_VARIABLE(sysconfdir, e_sysconfdir, "/suricata/")
   EXPAND_VARIABLE(sysconfdir, e_sysconfrulesdir, "/suricata/rules")
+  EXPAND_VARIABLE(localstatedir, e_localstatedir, "/run/suricata")
 fi
 AC_SUBST(e_logdir)
 AC_SUBST(e_rundir)
 AC_SUBST(e_logfilesdir)
 AC_SUBST(e_sysconfdir)
 AC_SUBST(e_sysconfrulesdir)
+AC_SUBST(e_localstatedir)
 AC_DEFINE_UNQUOTED([CONFIG_DIR],["$e_sysconfdir"],[Our CONFIG_DIR])
 AC_SUBST(e_magic_file)
 
-AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile suricata.yaml)
+AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile suricata.yaml scripts/suricatasc/Makefile scripts/suricatasc/suricatasc)
 
 echo "
 Suricata Configuration:
@@ -1371,9 +1419,11 @@ Suricata Configuration:
   IPFW support:                            ${enable_ipfw}
   DAG enabled:                             ${enable_dag}
   Napatech enabled:                        ${enable_napatech}
+  Unix socket enabled:                     ${enable_unixsocket}
 
   libnss support:                          ${enable_nss}
   libnspr support:                         ${enable_nspr}
+  libjansson support:                      ${enable_jansson}
   Prelude support:                         ${enable_prelude}
   PCRE jit:                                ${pcre_jit_available}
   libluajit:                               ${enable_luajit}
