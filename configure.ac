@@ -1301,6 +1301,14 @@ AC_INIT(configure.ac)
 
             AC_DEFINE([HAVE_LUAJIT],[1],[libluajit available])
             enable_luajit="yes"
+        else
+	        echo
+                echo "   ERROR!  libluajit headers not found, go get them"
+                echo "   from http://luajit.org/index.html or your distribution:"
+                echo
+                echo "   Ubuntu: apt-get install libluajit-5.1-dev"
+                echo
+                exit 1
         fi
     fi
 
