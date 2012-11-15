@@ -27,7 +27,7 @@ if len(sys.argv) == 2:
 else:
     SOCKET_PATH = "@e_localstatedir@/suricata-command.socket"
 SIZE = 4096
-COMMANDS_REGEX = re.compile("^(?:shutdown|quit|reload-rules|pcap-file .+|pcap-file-number|pcap-file-list)$")
+COMMANDS_REGEX = re.compile("^(?:shutdown|quit|reload-rules|pcap-file .+|pcap-file-number|pcap-file-list|iface-list|iface-stat .+)$")
 
 socket = socket(AF_UNIX)
 socket.connect(SOCKET_PATH)
@@ -77,6 +77,19 @@ try:
                     cmdmsg["arguments"] = {}
                     cmdmsg["arguments"]["filename"] = filename
                     cmdmsg["arguments"]["output-dir"] = output
+            elif "iface-stat" in command:
+                try:
+                    [cmd, iface] = command.split(' ', 1)
+                except:
+                    print "Error: unable to split command '%s'" % (command)
+                    continue
+                if cmd != "iface-stat":
+                    print "Error: invalid command '%s'" % (command)
+                    continue
+                else:
+                    cmdmsg["command"] = cmd
+                    cmdmsg["arguments"] = {}
+                    cmdmsg["arguments"]["iface"] = iface
             else:
                 cmdmsg["command"] = command
             socket.send(json.dumps(cmdmsg))

@@ -19,6 +19,7 @@
 #define __UTIL_DEVICE_H__
 
 #include "queue.h"
+#include "unix-manager.h"
 
 /** storage for live device names */
 typedef struct LiveDevice_ {
@@ -35,5 +36,8 @@ int LiveGetDeviceCount(void);
 char *LiveGetDeviceName(int number);
 LiveDevice *LiveGetDevice(char *dev);
 int LiveBuildDeviceList(char * base);
+
+TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *server_msg, void *data);
+TmEcode LiveDeviceIfaceList(json_t *cmd, json_t *server_msg, void *data);
 
 #endif /* __UTIL_DEVICE_H__ */
