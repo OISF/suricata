@@ -278,6 +278,7 @@ util-mpm-b2gm.c util-mpm-b2gm.h \
 util-mpm-b3g.c util-mpm-b3g.h \
 util-mpm.c util-mpm.h \
 util-mpm-wumanber.c util-mpm-wumanber.h \
+util-mtsba.c util-mtsba.h \
 util-optimize.h \
 util-path.c util-path.h \
 util-pidfile.c util-pidfile.h \
