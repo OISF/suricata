@@ -220,6 +220,13 @@ DetectContentData *DetectContentParse (char *contentstr)
     if (ret == -1) {
         return NULL;
     }
+    if (len > 255) {
+        SCLogError(SC_ERR_NOT_SUPPORTED, "Currently we don't support content "
+                   "length greater than 255.  Please split the pattern, if "
+                   "length > 255.  The content length specified is %"PRIu16""
+                   "bytes longs.", len);
+        return NULL;
+    }
 
     cd = SCMalloc(sizeof(DetectContentData) + len);
     if (unlikely(cd == NULL)) {
