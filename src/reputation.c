@@ -41,7 +41,7 @@
 /** effective reputation version, atomic as the host
  *  time out code will use it to check if a host's
  *  reputation info is outdated. */
-SC_ATOMIC_DECL_AND_INIT(uint32_t, srep_eversion);
+SC_ATOMIC_DECLARE(uint32_t, srep_eversion);
 /** reputation version set to the host's reputation */
 static uint32_t srep_version = 0;
 
@@ -67,7 +67,7 @@ void SRepReloadComplete(void) {
 /** \brief Set effective reputation version after
  *         reputation initialization is complete. */
 void SRepInitComplete(void) {
-    SC_ATOMIC_SET(srep_eversion, 1);
+    (void) SC_ATOMIC_SET(srep_eversion, 1);
     SCLogDebug("effective Reputation version %u", SRepGetEffectiveVersion());
 }
 
@@ -95,6 +95,8 @@ int SRepHostTimedOut(Host *h) {
 
         SCFree(h->iprep);
         h->iprep = NULL;
+
+        HostDecrUsecnt(h);
         return 1;
     }
 
@@ -248,7 +250,7 @@ int SRepLoadCatFile(char *filename) {
         if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
             continue;
 
-        while (isspace(line[--len]));
+        while (isspace((unsigned char)line[--len]));
 
         /* Check if we have a trailing newline, and remove it */
         len = strlen(line);
@@ -296,7 +298,7 @@ static int SRepLoadFile(char *filename) {
         if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
             continue;
 
-        while (isspace(line[--len]));
+        while (isspace((unsigned char)line[--len]));
 
         /* Check if we have a trailing newline, and remove it */
         len = strlen(line);
@@ -316,13 +318,19 @@ static int SRepLoadFile(char *filename) {
 
             a.addr_data32[0] = ip;
             Host *h = HostGetHostFromHash(&a);
-            if (h) {
+            if (h == NULL) {
+                SCLogError(SC_ERR_NO_REPUTATION, "failed to get a host, increase host.memcap");
+                break;
+            } else {
                 //SCLogInfo("host %p", h);
 
                 if (h->iprep == NULL) {
                     h->iprep = SCMalloc(sizeof(SReputation));
-                    if (h->iprep != NULL)
+                    if (h->iprep != NULL) {
                         memset(h->iprep, 0x00, sizeof(SReputation));
+
+                        HostIncrUsecnt(h);
+                    }
                 }
                 if (h->iprep != NULL) {
                     SReputation *rep = h->iprep;
@@ -407,6 +415,7 @@ int SRepInit(DetectEngineCtx *de_ctx) {
     int init = 0;
 
     if (SRepGetVersion() == 0) {
+        SC_ATOMIC_INIT(srep_eversion);
         init = 1;
     }
 
@@ -444,7 +453,6 @@ int SRepInit(DetectEngineCtx *de_ctx) {
 
             r = SRepLoadFile(sfile);
             if (r < 0){
-                SCLogWarning(SC_ERR_NO_REPUTATION, "no reputation loaded from \"%s\"", sfile);
                 if (de_ctx->failure_fatal == 1) {
                     exit(EXIT_FAILURE);
                 }
@@ -458,6 +466,8 @@ int SRepInit(DetectEngineCtx *de_ctx) {
     if (init) {
         SRepInitComplete();
     }
+
+    HostPrintStats();
     return 0;
 }
 
