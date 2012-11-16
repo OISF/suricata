@@ -100,7 +100,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParse(const char *arg)
         return NULL;
     }
 
-    while (*arg != '\0' && isspace(*arg)) {
+    while (*arg != '\0' && isspace((unsigned char)*arg)) {
         arg++;
     }
 
