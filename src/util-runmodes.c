@@ -32,7 +32,6 @@
 #include "runmode-af-packet.h"
 #include "log-httplog.h"
 #include "output.h"
-#include "cuda-packet-batcher.h"
 #include "detect-engine-mpm.h"
 
 #include "alert-fastlog.h"
@@ -163,111 +162,6 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
         }
     }
 
-#if defined(__SC_CUDA_SUPPORT__)
-    if (PatternMatchDefaultMatcher() == MPM_B2G_CUDA) {
-        ThreadVars *tv_decode1 =
-            TmThreadCreatePacketHandler("Decode",
-                    "pickup-queue", "simple",
-                    "decode-queue1", "simple",
-                    "1slot");
-        if (tv_decode1 == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed for Decode1");
-            exit(EXIT_FAILURE);
-        }
-        tm_module = TmModuleGetByName(decode_mod_name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName %s failed", decode_mod_name);
-            exit(EXIT_FAILURE);
-        }
-        TmSlotSetFuncAppend(tv_decode1, tm_module, NULL);
-
-        TmThreadSetCPU(tv_decode1, DECODE_CPU_SET);
-
-        if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
-            exit(EXIT_FAILURE);
-        }
-
-        ThreadVars *tv_cuda_PB =
-            TmThreadCreate("CUDA_PB",
-                    "decode-queue1", "simple",
-                    "cuda-pb-queue1", "simple",
-                    "custom", SCCudaPBTmThreadsSlot1, 0);
-        if (tv_cuda_PB == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed for CUDA_PB");
-            exit(EXIT_FAILURE);
-        }
-        tv_cuda_PB->type = TVT_PPT;
-
-        tm_module = TmModuleGetByName("CudaPacketBatcher");
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName CudaPacketBatcher failed");
-            exit(EXIT_FAILURE);
-        }
-        TmSlotSetFuncAppend(tv_cuda_PB, tm_module, (void *)de_ctx);
-
-        TmThreadSetCPU(tv_cuda_PB, DETECT_CPU_SET);
-
-        if (TmThreadSpawn(tv_cuda_PB) != TM_ECODE_OK) {
-            SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed");
-            exit(EXIT_FAILURE);
-        }
-
-        ThreadVars *tv_stream1 =
-            TmThreadCreatePacketHandler("Stream1",
-                    "cuda-pb-queue1", "simple",
-                    "stream-queue1", "simple",
-                    "1slot");
-        if (tv_stream1 == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed for Stream1");
-            exit(EXIT_FAILURE);
-        }
-        tm_module = TmModuleGetByName("StreamTcp");
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName StreamTcp failed");
-            exit(EXIT_FAILURE);
-        }
-        TmSlotSetFuncAppend(tv_stream1, tm_module, NULL);
-
-        TmThreadSetCPU(tv_stream1, STREAM_CPU_SET);
-
-        if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
-            SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed");
-            exit(EXIT_FAILURE);
-        }
-    } else {
-        ThreadVars *tv_decode1 =
-            TmThreadCreatePacketHandler("Decode & Stream",
-                    "pickup-queue", "simple",
-                    "stream-queue1", "simple",
-                    "varslot");
-        if (tv_decode1 == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed for Decode1");
-            exit(EXIT_FAILURE);
-        }
-        tm_module = TmModuleGetByName(decode_mod_name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName %s failed", decode_mod_name);
-            exit(EXIT_FAILURE);
-        }
-        TmSlotSetFuncAppend(tv_decode1, tm_module, NULL);
-
-        tm_module = TmModuleGetByName("StreamTcp");
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName StreamTcp failed");
-            exit(EXIT_FAILURE);
-        }
-        TmSlotSetFuncAppend(tv_decode1, tm_module, NULL);
-
-        TmThreadSetCPU(tv_decode1, DECODE_CPU_SET);
-
-        if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
-            exit(EXIT_FAILURE);
-        }
-    }
-
-#else
     ThreadVars *tv_decode1 =
         TmThreadCreatePacketHandler("Decode & Stream",
                 "pickup-queue", "simple",
@@ -297,7 +191,6 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
         SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
         exit(EXIT_FAILURE);
     }
-#endif
 
     /* always create at least one thread */
     int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);

@@ -32,7 +32,6 @@ app-layer-tls-handshake.c app-layer-tls-handshake.h \
 conf.c conf.h \
 conf-yaml-loader.c conf-yaml-loader.h \
 counters.c counters.h \
-cuda-packet-batcher.c cuda-packet-batcher.h \
 data-queue.c data-queue.h \
 decode.c decode.h \
 decode-ethernet.c decode-ethernet.h \
@@ -248,7 +247,6 @@ util-coredump-config.c util-coredump-config.h \
 util-cpu.c util-cpu.h \
 util-crypt.c util-crypt.h \
 util-cuda.c util-cuda.h \
-util-cuda-handlers.c util-cuda-handlers.h \
 util-daemon.c util-daemon.h \
 util-debug.c util-debug.h \
 util-debug-filters.c util-debug-filters.h \
@@ -275,12 +273,12 @@ util-mpm-ac-bs.c util-mpm-ac-bs.h \
 util-mpm-ac.c util-mpm-ac.h \
 util-mpm-ac-gfbs.c util-mpm-ac-gfbs.h \
 util-mpm-b2gc.c util-mpm-b2gc.h \
-util-mpm-b2g-cuda.c util-mpm-b2g-cuda.h \
 util-mpm-b2g.c util-mpm-b2g.h \
 util-mpm-b2gm.c util-mpm-b2gm.h \
 util-mpm-b3g.c util-mpm-b3g.h \
 util-mpm.c util-mpm.h \
 util-mpm-wumanber.c util-mpm-wumanber.h \
+util-mtsba.c util-mtsba.h \
 util-optimize.h \
 util-path.c util-path.h \
 util-pidfile.c util-pidfile.h \
