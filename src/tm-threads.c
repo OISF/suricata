@@ -1128,23 +1128,14 @@ static int SetCPUAffinitySet(cpu_set_t *cs) {
  */
 static int SetCPUAffinity(uint16_t cpuid)
 {
-#ifndef __CYGWIN__
-#if !defined __OpenBSD__
-    int cpu = (int)cpuid;
-#endif
-
-#ifdef OS_WIN32
-	DWORD cs = 1 << cpu;
-#elif defined __OpenBSD__
+#if defined __OpenBSD__
     return 0;
 #else
-    cpu_set_t cs;
+    int cpu = (int)cpuid;
 
-    CPU_ZERO(&cs);
-    CPU_SET(cpu, &cs);
-#endif /* OS_WIN32 */
+#if defined OS_WIN32 || defined __CYGWIN__
+    DWORD cs = 1 << cpu;
 
-#ifdef OS_WIN32
     int r = (0 == SetThreadAffinityMask(GetCurrentThread(), cs));
     if (r != 0) {
         printf("Warning: sched_setaffinity failed (%" PRId32 "): %s\n", r,
@@ -1155,10 +1146,15 @@ static int SetCPUAffinity(uint16_t cpuid)
                SCGetThreadIdLong(), cpu);
 
     return 0;
-#elif !defined __OpenBSD__
+
+#else
+    cpu_set_t cs;
+
+    CPU_ZERO(&cs);
+    CPU_SET(cpu, &cs);
     return SetCPUAffinitySet(&cs);
-#endif /* OS_WIN32 */
-#endif
+#endif /* windows */
+#endif /* not supported */
 }
 
 
