@@ -234,12 +234,14 @@ void HostInitConfig(char quiet)
 
 /** \brief print some host stats
  *  \warning Not thread safe */
-static void HostPrintStats (void)
+void HostPrintStats (void)
 {
 #ifdef HOSTBITS_STATS
     SCLogInfo("hostbits added: %" PRIu32 ", removed: %" PRIu32 ", max memory usage: %" PRIu32 "",
         hostbits_added, hostbits_removed, hostbits_memuse_max);
 #endif /* HOSTBITS_STATS */
+    SCLogInfo("host memory usage: %llu bytes, maximum: %"PRIu64,
+            SC_ATOMIC_GET(host_memuse), host_config.memcap);
     return;
 }
 

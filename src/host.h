@@ -108,9 +108,9 @@ typedef struct HostConfig_ {
     ((((uint64_t)SC_ATOMIC_GET(host_memuse) + (uint64_t)(size)) <= host_config.memcap))
 
 #define HostIncrUsecnt(h) \
-    SC_ATOMIC_ADD((h)->use_cnt, 1)
+    (void)SC_ATOMIC_ADD((h)->use_cnt, 1)
 #define HostDecrUsecnt(h) \
-    SC_ATOMIC_SUB((h)->use_cnt, 1)
+    (void)SC_ATOMIC_SUB((h)->use_cnt, 1)
 
 #define HostReference(dst_h_ptr, h) do {            \
         if ((h) != NULL) {                          \
@@ -141,6 +141,7 @@ void HostLock(Host *);
 void HostClearMemory(Host *);
 void HostMoveToSpare(Host *);
 uint32_t HostSpareQueueGetSize(void);
+void HostPrintStats (void);
 
 #endif /* __HOST_H__ */
 
