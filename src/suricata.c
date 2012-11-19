@@ -1944,9 +1944,11 @@ int main(int argc, char **argv)
             unix_socket = 0;
         if (unix_socket == 1) {
             UnixManagerThreadSpawn(de_ctx, 0);
+#ifdef BUILD_UNIX_SOCKET
             UnixManagerRegisterCommand("iface-stat", LiveDeviceIfaceStat, NULL,
                                        UNIX_CMD_TAKE_ARGS);
             UnixManagerRegisterCommand("iface-list", LiveDeviceIfaceList, NULL, 0);
+#endif
         }
         /* Spawn the flow manager thread */
         FlowManagerThreadSpawn();

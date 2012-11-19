@@ -153,11 +153,10 @@ int LiveBuildDeviceList(char * runmode)
     return i;
 }
 
-
+#ifdef BUILD_UNIX_SOCKET
 TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *answer, void *data)
 {
     SCEnter();
-#ifdef BUILD_UNIX_SOCKET
     LiveDevice *pd;
     const char * name = NULL;
     json_t *jarg = json_object_get(cmd, "iface");
@@ -190,14 +189,12 @@ TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *answer, void *data)
         }
     }
     json_object_set_new(answer, "message", json_string("Iface does not exist"));
-#endif /* BUILD_UNIX_SOCKET */
     SCReturn(TM_ECODE_FAILED);
 }
 
 TmEcode LiveDeviceIfaceList(json_t *cmd, json_t *answer, void *data)
 {
     SCEnter();
-#ifdef BUILD_UNIX_SOCKET
     json_t *jdata;
     json_t *jarray;
     LiveDevice *pd;
@@ -224,7 +221,5 @@ TmEcode LiveDeviceIfaceList(json_t *cmd, json_t *answer, void *data)
     json_object_set_new(jdata, "ifaces", jarray);
     json_object_set_new(answer, "message", jdata);
     SCReturn(TM_ECODE_OK);
-#else /* BUILD_UNIX_SOCKET */
-    SCReturn(TM_ECODE_FAILED);
-#endif /* BUILD_UNIX_SOCKET */
 }
+#endif /* BUILD_UNIX_SOCKET */

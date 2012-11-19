@@ -37,11 +37,13 @@ void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode);
 void UnixSocketKillSocketThread(void);
 
 
-TmEcode UnixManagerRegisterCommand(const char * keyword, 
+#ifdef BUILD_UNIX_SOCKET
+TmEcode UnixManagerRegisterCommand(const char * keyword,
         TmEcode (*Func)(json_t *, json_t *, void *),
         void *data, int flags);
-TmEcode UnixManagerRegisterBackgroundTask( 
+TmEcode UnixManagerRegisterBackgroundTask(
         TmEcode (*Func)(void *),
         void *data);
+#endif
 
 #endif /* UNIX_MANAGER_H */

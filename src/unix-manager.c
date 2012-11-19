@@ -831,19 +831,4 @@ void UnixSocketKillSocketThread(void)
     return;
 }
 
-TmEcode UnixManagerRegisterCommand(const char * keyword, 
-        TmEcode (*Func)(json_t *, json_t *, void *),
-        void *data, int flags)
-{
-    return TM_ECODE_OK;
-}
-
-TmEcode UnixManagerRegisterBackgroundTask( 
-        TmEcode (*Func)(void *),
-        void *data)
-{
-    return TM_ECODE_OK;
-}
-
-
 #endif /* BUILD_UNIX_SOCKET */
