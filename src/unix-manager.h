@@ -26,6 +26,8 @@
 
 #ifdef BUILD_UNIX_SOCKET
 #include <jansson.h>
+#else
+#define json_t void
 #endif
 
 #define UNIX_CMD_TAKE_ARGS 1

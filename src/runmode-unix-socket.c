@@ -60,15 +60,16 @@ typedef struct PcapCommand_ {
     int running;
 } PcapCommand;
 
-static int unix_manager_file_task_running = 0;
-static int unix_manager_file_task_failed = 0;
-
 const char *RunModeUnixSocketGetDefaultMode(void)
 {
     return default_mode;
 }
 
 #ifdef BUILD_UNIX_SOCKET
+
+static int unix_manager_file_task_running = 0;
+static int unix_manager_file_task_failed = 0;
+
 /**
  * \brief return list of files in the queue
  *
