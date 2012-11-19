@@ -209,6 +209,7 @@ runmode-nfq.c runmode-nfq.h \
 runmode-pcap.c runmode-pcap.h \
 runmode-pcap-file.c runmode-pcap-file.h \
 runmode-pfring.c runmode-pfring.h \
+runmode-unix-socket.c runmode-unix-socket.h \
 runmodes.c runmodes.h \
 source-af-packet.c source-af-packet.h \
 source-erf-dag.c source-erf-dag.h \
@@ -236,6 +237,7 @@ tmqh-simple.c tmqh-simple.h \
 tm-queuehandlers.c tm-queuehandlers.h \
 tm-queues.c tm-queues.h \
 tm-threads.c tm-threads.h tm-threads-common.h \
+unix-manager.c unix-manager.h \
 util-action.c util-action.h \
 util-atomic.c util-atomic.h \
 util-bloomfilter-counting.c util-bloomfilter-counting.h \
