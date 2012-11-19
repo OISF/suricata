@@ -509,20 +509,47 @@ int SigParseProto(Signature *s, const char *protostr) {
             }
             SCReturnInt(0);
         }
-        AppLayerProbingParserInfo *ppi =
-            AppLayerGetProbingParserInfo(alp_proto_ctx.probing_parsers_info,
-                                         protostr);
-        if (ppi != NULL) {
-            /* indicate that the signature is app-layer */
-            s->flags |= SIG_FLAG_APPLAYER;
-            s->alproto = ppi->al_proto;
-            s->proto.proto[ppi->ip_proto / 8] |= 1 << (ppi->ip_proto % 8);
-            SCReturnInt(0);
+
+        AppLayerProbingParser *pp = alp_proto_ctx.probing_parsers;
+        while (pp != NULL) {
+            AppLayerProbingParserPort *pp_port = pp->port;
+            while (pp_port != NULL) {
+                AppLayerProbingParserElement *pp_pe = pp_port->toserver;
+                while (pp_pe != NULL) {
+                    if (strcasecmp(pp_pe->al_proto_name, protostr) == 0) {
+                        s->flags |= SIG_FLAG_APPLAYER;
+                        s->alproto = pp_pe->al_proto;
+                        s->proto.proto[pp->ip_proto / 8] |= 1 << (pp->ip_proto % 8);
+                    }
+
+                    pp_pe = pp_pe->next;
+                }
+
+                pp_pe = pp_port->toclient;
+                while (pp_pe != NULL) {
+                    if (strcasecmp(pp_pe->al_proto_name, protostr) == 0) {
+                        s->flags |= SIG_FLAG_APPLAYER;
+                        s->alproto = pp_pe->al_proto;
+                        s->proto.proto[pp->ip_proto / 8] |= 1 << (pp->ip_proto % 8);
+                    }
+
+                    pp_pe = pp_pe->next;
+                }
+
+                pp_port = pp_port->next;
+            }
+            pp = pp->next;
         }
 
-        SCLogError(SC_ERR_UNKNOWN_PROTOCOL, "protocol \"%s\" cannot be used "
-                "in a signature", protostr);
-        SCReturnInt(-1);
+        if (s->alproto == ALPROTO_UNKNOWN) {
+            SCLogError(SC_ERR_UNKNOWN_PROTOCOL, "protocol \"%s\" cannot be used "
+                       "in a signature.  Either detection for this protocol "
+                       "supported yet OR detection has been disabled for "
+                       "protocol through the yaml option "
+                       "app-layer.protocols.%s.detection-enabled", protostr,
+                       protostr);
+            SCReturnInt(-1);
+        }
     }
 
     /* if any of these flags are set they are set in a mutually exclusive
@@ -1049,6 +1076,51 @@ static int SigValidate(Signature *s) {
             SCReturnInt(0);
         }
 #endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
+    }
+
+    if (s->alproto != ALPROTO_UNKNOWN) {
+        if (al_proto_table[s->alproto].to_server == 0 &&
+            al_proto_table[s->alproto].to_client == 0) {
+            const char *proto_name = NULL;
+            switch (s->alproto) {
+                case ALPROTO_HTTP:
+                    proto_name = "http";
+                case ALPROTO_FTP:
+                    proto_name = "ftp";
+                case ALPROTO_SMTP:
+                    proto_name = "smtp";
+                case ALPROTO_TLS:
+                    proto_name = "tls";
+                case ALPROTO_SSH:
+                    proto_name = "ssh";
+                case ALPROTO_IMAP:
+                    proto_name = "imap";
+                case ALPROTO_MSN:
+                    proto_name = "msn";
+                case ALPROTO_JABBER:
+                    proto_name = "jabber";
+                case ALPROTO_SMB:
+                    proto_name = "smb";
+                case ALPROTO_SMB2:
+                    proto_name = "smb2";
+                case ALPROTO_DCERPC:
+                    proto_name = "dcerpc";
+                case ALPROTO_DCERPC_UDP:
+                    proto_name = "dcerpcudp";
+                case ALPROTO_IRC:
+                    proto_name = "irc";
+                default:
+                    BUG_ON(1);
+            }
+            SCLogInfo("Signature uses options that need the app layer parser "
+                      "for \"%s\", but the parser's disabled for the "
+                      "protocol.  Please check if you have disabled "
+                      "it either through the option "
+                      "\"app-layer.protocols.%s.detection-enabled\" "
+                      "OR through \"app-layer.protocols.%s.parser-enabled\".",
+                      proto_name, proto_name, proto_name);
+            SCReturnInt(0);
+        }
     }
 
     if (s->alproto == ALPROTO_DCERPC) {

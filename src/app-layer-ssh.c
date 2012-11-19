@@ -748,16 +748,26 @@ void RegisterSSHParsers(void)
 {
     char *proto_name = "ssh";
 
-    /** SSH */
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SSH, "SSH-", 4, 0, STREAM_TOSERVER);
+    if (AppLayerProtoDetectionEnabled(proto_name)) {
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SSH, "SSH-", 4, 0, STREAM_TOSERVER);
+    } else {
+        SCLogInfo("Protocol detection disabled for %s protocol and as a "
+                  "consequence the conf param \"app-layer.protocols.%s."
+                  "parser-enabled\" will now be ignored.", proto_name,
+                  proto_name);
+        return;
+    }
 
-    AppLayerRegisterProto(proto_name, ALPROTO_SSH, STREAM_TOCLIENT,
-                          SSHParseServerRecord);
-    AppLayerRegisterProto(proto_name, ALPROTO_SSH, STREAM_TOSERVER,
-                            SSHParseClientRecord);
+    if (AppLayerParserEnabled(proto_name)) {
+        AppLayerRegisterProto(proto_name, ALPROTO_SSH, STREAM_TOCLIENT,
+                              SSHParseServerRecord);
+        AppLayerRegisterProto(proto_name, ALPROTO_SSH, STREAM_TOSERVER,
+                              SSHParseClientRecord);
 
-    AppLayerRegisterStateFuncs(ALPROTO_SSH, SSHStateAlloc, SSHStateFree);
-
+        AppLayerRegisterStateFuncs(ALPROTO_SSH, SSHStateAlloc, SSHStateFree);
+    } else {
+        SCLogInfo("Parsed disabled for %s protocol.\n", proto_name);
+    }
 }
 
 /* UNITTESTS */

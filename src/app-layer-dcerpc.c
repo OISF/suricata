@@ -1859,17 +1859,29 @@ void DCERPCUpdateTransactionId(void *state, uint16_t *id) {
 void RegisterDCERPCParsers(void) {
     char *proto_name = "dcerpc";
 
-    /** DCERPC */
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_DCERPC, "|05 00|", 2, 0, STREAM_TOSERVER);
+    if (AppLayerProtoDetectionEnabled(proto_name)) {
+        /** DCERPC */
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_DCERPC, "|05 00|", 2, 0, STREAM_TOSERVER);
+    } else {
+        SCLogInfo("Protocol detection disabled for %s protocol and as a "
+                  "consequence the conf param \"app-layer.protocols.%s."
+                  "parser-enabled\" will now be ignored.", proto_name,
+                  proto_name);
+        return;
+    }
 
-    AppLayerRegisterProto(proto_name, ALPROTO_DCERPC, STREAM_TOSERVER,
-            DCERPCParse);
-    AppLayerRegisterProto(proto_name, ALPROTO_DCERPC, STREAM_TOCLIENT,
-            DCERPCParse);
-    AppLayerRegisterStateFuncs(ALPROTO_DCERPC, DCERPCStateAlloc,
-            DCERPCStateFree);
-    AppLayerRegisterTransactionIdFuncs(ALPROTO_DCERPC,
-            DCERPCUpdateTransactionId, NULL);
+    if (AppLayerParserEnabled(proto_name)) {
+        AppLayerRegisterProto(proto_name, ALPROTO_DCERPC, STREAM_TOSERVER,
+                              DCERPCParse);
+        AppLayerRegisterProto(proto_name, ALPROTO_DCERPC, STREAM_TOCLIENT,
+                              DCERPCParse);
+        AppLayerRegisterStateFuncs(ALPROTO_DCERPC, DCERPCStateAlloc,
+                                   DCERPCStateFree);
+        AppLayerRegisterTransactionIdFuncs(ALPROTO_DCERPC,
+                                           DCERPCUpdateTransactionId, NULL);
+    } else {
+        SCLogInfo("Parsed disabled for %s protocol.", proto_name);
+    }
 }
 
 /* UNITTESTS */

@@ -847,23 +847,34 @@ void RegisterSMTPParsers(void)
 {
     char *proto_name = "smtp";
 
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMTP, "EHLO", 4, 0,
+    if (AppLayerProtoDetectionEnabled(proto_name)) {
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMTP, "EHLO", 4, 0,
+                    STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMTP, "HELO", 4, 0,
                 STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMTP, "HELO", 4, 0,
-                STREAM_TOSERVER);
+    } else {
+        SCLogInfo("Protocol detection disabled for %s protocol and as a "
+                  "consequence the conf param \"app-layer.protocols.%s."
+                  "parser-enabled\" will now be ignored.", proto_name,
+                  proto_name);
+        return;
+    }
 
-    AppLayerRegisterStateFuncs(ALPROTO_SMTP, SMTPStateAlloc, SMTPStateFree);
+    if (AppLayerParserEnabled(proto_name)) {
+        AppLayerRegisterStateFuncs(ALPROTO_SMTP, SMTPStateAlloc, SMTPStateFree);
 
-    AppLayerRegisterProto(proto_name, ALPROTO_SMTP, STREAM_TOSERVER,
-                          SMTPParseClientRecord);
-    AppLayerRegisterProto(proto_name, ALPROTO_SMTP, STREAM_TOCLIENT,
-                          SMTPParseServerRecord);
-    AppLayerDecoderEventsModuleRegister(ALPROTO_SMTP, smtp_decoder_event_table);
+        AppLayerRegisterProto(proto_name, ALPROTO_SMTP, STREAM_TOSERVER,
+                              SMTPParseClientRecord);
+        AppLayerRegisterProto(proto_name, ALPROTO_SMTP, STREAM_TOCLIENT,
+                              SMTPParseServerRecord);
+        AppLayerDecoderEventsModuleRegister(ALPROTO_SMTP, smtp_decoder_event_table);
 
-    AppLayerRegisterLocalStorageFunc(ALPROTO_SMTP, SMTPLocalStorageAlloc,
-                                     SMTPLocalStorageFree);
-
-    SMTPSetMpmState();
+        AppLayerRegisterLocalStorageFunc(ALPROTO_SMTP, SMTPLocalStorageAlloc,
+                                         SMTPLocalStorageFree);
+        SMTPSetMpmState();
+    } else {
+        SCLogInfo("Parsed disabled for %s protocol.", proto_name);
+    }
 
     return;
 }
