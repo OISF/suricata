@@ -380,13 +380,13 @@ int UnixCommandExecute(UnixCommand * this, char *command, UnixClient *client)
     int found = 0;
     Command *lcmd;
 
-    jsoncmd = json_loads(command, 0, &error);
-    if (jsoncmd == NULL) {
-        SCLogInfo("Invalid command, error on line %d: %s\n", error.line, error.text);
+    if (server_msg == NULL) {
         return 0;
     }
 
-    if (server_msg == NULL) {
+    jsoncmd = json_loads(command, 0, &error);
+    if (jsoncmd == NULL) {
+        SCLogInfo("Invalid command, error on line %d: %s\n", error.line, error.text);
         goto error;
     }
 
@@ -401,14 +401,14 @@ int UnixCommandExecute(UnixCommand * this, char *command, UnixClient *client)
         if (!strcmp(value, lcmd->name)) {
             int fret = TM_ECODE_OK;
             found = 1;
-            if (lcmd->flags & UNIX_CMD_TAKE_ARGS) { 
+            if (lcmd->flags & UNIX_CMD_TAKE_ARGS) {
                 cmd = json_object_get(jsoncmd, "arguments");
                 if(!json_is_object(cmd)) {
                     SCLogInfo("error: argument is not an object");
                     goto error_cmd;
-                }               
+                }
             }
-            fret = lcmd->Func(cmd, server_msg, lcmd->data); 
+            fret = lcmd->Func(cmd, server_msg, lcmd->data);
             if (fret != TM_ECODE_OK) {
                 ret = 0;
             }
@@ -436,6 +436,7 @@ int UnixCommandExecute(UnixCommand * this, char *command, UnixClient *client)
     }
 
     json_decref(jsoncmd);
+    json_decref(server_msg);
     return ret;
 
 error_cmd:
@@ -751,7 +752,11 @@ void *UnixManagerThread(void *td)
 }
 
 
-/** \brief spawn the unix socket manager thread */
+/** \brief spawn the unix socket manager thread
+ *
+ * \param de_ctx context for detection engine
+ * \param mode if set to 1, init failure cause suricata exit
+ * */
 void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode)
 {
     ThreadVars *tv_unixmgr = NULL;
