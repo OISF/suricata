@@ -329,7 +329,6 @@ void StreamTcpReassembleFree(char quiet)
     uint16_t u16 = 0;
     for (u16 = 0; u16 < segment_pool_num; u16++) {
         SCMutexLock(&segment_pool_mutex[u16]);
-        PoolPrintSaturation(segment_pool[u16]);
 
         if (quiet == FALSE) {
             PoolPrintSaturation(segment_pool[u16]);

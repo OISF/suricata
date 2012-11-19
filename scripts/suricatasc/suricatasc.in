@@ -1,0 +1,120 @@
+#!/usr/bin/python
+# Copyright(C) 2012 Open Information Security Foundation
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+
+import simplejson as json
+import readline
+import re
+from socket import socket, AF_UNIX, error
+from time import sleep
+import sys
+
+VERSION = "0.1"
+if len(sys.argv) == 2:
+    SOCKET_PATH = "@e_localstatedir@/" + sys.argv[1]
+else:
+    SOCKET_PATH = "@e_localstatedir@/suricata-command.socket"
+SIZE = 4096
+COMMANDS_REGEX = re.compile("^(?:shutdown|quit|reload-rules|pcap-file .+|pcap-file-number|pcap-file-list|iface-list|iface-stat .+)$")
+
+socket = socket(AF_UNIX)
+socket.connect(SOCKET_PATH)
+socket.settimeout(10)
+
+#send version
+socket.send(json.dumps({"version": VERSION}))
+
+# get return
+cmdret = None
+i = 0
+data = ""
+while i < 5:
+    i += 1
+    data += socket.recv(SIZE)
+    try:
+        cmdret = json.loads(data)
+        break
+    except json.decoder.JSONDecodeError:
+        sleep(0.3)
+
+# if ok loop
+if cmdret["return"] == "NOK":
+    sys.stderr.write("Error: %s" % (cmdret["message"]))
+    sys.exit(1)
+
+# if ok loop
+try:
+    readline.parse_and_bind('tab: complete')
+    while True:
+        command = raw_input(">>> ").strip()
+        if COMMANDS_REGEX.match(command):
+            if command == "quit":
+                break;
+            cmdmsg = {}
+            if "pcap-file " in command:
+                try:
+                    [cmd, filename, output] = command.split(' ', 2)
+                except:
+                    print "Error: unable to split command '%s'" % (command)
+                    continue
+                if cmd != "pcap-file":
+                    print "Error: invalid command '%s'" % (command)
+                    continue
+                else:
+                    cmdmsg["command"] = cmd
+                    cmdmsg["arguments"] = {}
+                    cmdmsg["arguments"]["filename"] = filename
+                    cmdmsg["arguments"]["output-dir"] = output
+            elif "iface-stat" in command:
+                try:
+                    [cmd, iface] = command.split(' ', 1)
+                except:
+                    print "Error: unable to split command '%s'" % (command)
+                    continue
+                if cmd != "iface-stat":
+                    print "Error: invalid command '%s'" % (command)
+                    continue
+                else:
+                    cmdmsg["command"] = cmd
+                    cmdmsg["arguments"] = {}
+                    cmdmsg["arguments"]["iface"] = iface
+            else:
+                cmdmsg["command"] = command
+            socket.send(json.dumps(cmdmsg))
+            i = 0
+            data = ""
+            while i < 3:
+                i += 1
+                data += socket.recv(SIZE)
+                try:
+                    cmdret = json.loads(data)
+                    break
+                except json.decoder.JSONDecodeError:
+                    sleep(0.3)
+            #decode json message
+            if cmdret["return"] == "NOK":
+                print "Error: %s" % (cmdret["message"])
+            else:
+                print "Success: %s" % (cmdret["message"])
+        else:
+            print "Unknown command: '%s'" % (command)
+except KeyboardInterrupt:
+    print "[!] Interrupted"
+
+print "[+] Quit command client"
+
+socket.close()
+
+sys.exit(1)

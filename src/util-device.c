@@ -49,6 +49,7 @@ int LiveRegisterDevice(char *dev)
 
     pd->dev = SCStrdup(dev);
     SC_ATOMIC_INIT(pd->pkts);
+    SC_ATOMIC_INIT(pd->drop);
     SC_ATOMIC_INIT(pd->invalid_checksums);
     pd->ignore_checksum = 0;
     TAILQ_INSERT_TAIL(&live_devices, pd, next);
@@ -151,3 +152,74 @@ int LiveBuildDeviceList(char * runmode)
 
     return i;
 }
+
+#ifdef BUILD_UNIX_SOCKET
+TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *answer, void *data)
+{
+    SCEnter();
+    LiveDevice *pd;
+    const char * name = NULL;
+    json_t *jarg = json_object_get(cmd, "iface");
+    if(!json_is_string(jarg)) {
+        json_object_set_new(answer, "message", json_string("Iface is not a string"));
+        SCReturn(TM_ECODE_FAILED);
+    }
+    name = json_string_value(jarg);
+    if (name == NULL) {
+        json_object_set_new(answer, "message", json_string("Iface name is NULL"));
+        SCReturn(TM_ECODE_FAILED);
+    }
+
+    TAILQ_FOREACH(pd, &live_devices, next) {
+        if (!strcmp(name, pd->dev)) {
+            json_t *jdata = json_object();
+            if (jdata == NULL) {
+                json_object_set_new(answer, "message",
+                        json_string("internal error at json object creation"));
+                SCReturn(TM_ECODE_FAILED);
+            }
+            json_object_set_new(jdata, "pkts",
+                                json_integer(SC_ATOMIC_GET(pd->pkts)));
+            json_object_set_new(jdata, "invalid-checksums",
+                                json_integer(SC_ATOMIC_GET(pd->invalid_checksums)));
+            json_object_set_new(jdata, "drop",
+                                json_integer(SC_ATOMIC_GET(pd->drop)));
+            json_object_set_new(answer, "message", jdata);
+            SCReturn(TM_ECODE_OK);
+        }
+    }
+    json_object_set_new(answer, "message", json_string("Iface does not exist"));
+    SCReturn(TM_ECODE_FAILED);
+}
+
+TmEcode LiveDeviceIfaceList(json_t *cmd, json_t *answer, void *data)
+{
+    SCEnter();
+    json_t *jdata;
+    json_t *jarray;
+    LiveDevice *pd;
+    int i = 0;
+
+    jdata = json_object();
+    if (jdata == NULL) {
+        json_object_set_new(answer, "message",
+                            json_string("internal error at json object creation"));
+        return TM_ECODE_FAILED;
+    }
+    jarray = json_array();
+    if (jarray == NULL) {
+        json_object_set_new(answer, "message",
+                            json_string("internal error at json object creation"));
+        return TM_ECODE_FAILED;
+    }
+    TAILQ_FOREACH(pd, &live_devices, next) {
+        json_array_append(jarray, json_string(pd->dev));
+        i++;
+    }
+
+    json_object_set_new(jdata, "count", json_integer(i));
+    json_object_set_new(jdata, "ifaces", jarray);
+    json_object_set_new(answer, "message", jdata);
+    SCReturn(TM_ECODE_OK);
+}
+#endif /* BUILD_UNIX_SOCKET */

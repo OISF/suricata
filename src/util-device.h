@@ -19,12 +19,14 @@
 #define __UTIL_DEVICE_H__
 
 #include "queue.h"
+#include "unix-manager.h"
 
 /** storage for live device names */
 typedef struct LiveDevice_ {
     char *dev;  /**< the device (e.g. "eth0") */
     int ignore_checksum;
     SC_ATOMIC_DECLARE(unsigned int, pkts);
+    SC_ATOMIC_DECLARE(unsigned int, drop);
     SC_ATOMIC_DECLARE(unsigned int, invalid_checksums);
     TAILQ_ENTRY(LiveDevice_) next;
 } LiveDevice;
@@ -35,5 +37,10 @@ int LiveGetDeviceCount(void);
 char *LiveGetDeviceName(int number);
 LiveDevice *LiveGetDevice(char *dev);
 int LiveBuildDeviceList(char * base);
+
+#ifdef BUILD_UNIX_SOCKET
+TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *server_msg, void *data);
+TmEcode LiveDeviceIfaceList(json_t *cmd, json_t *server_msg, void *data);
+#endif
 
 #endif /* __UTIL_DEVICE_H__ */
