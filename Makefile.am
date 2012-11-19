@@ -8,7 +8,7 @@ EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
 if BUILD_LIBHTP
  HTP_DIR = libhtp
 endif
-SUBDIRS = $(HTP_DIR) src qa rules doc contrib
+SUBDIRS = $(HTP_DIR) src qa rules doc contrib scripts
 
 install-data-am:
 	@echo "Run 'make install-conf' if you want to install initial configuration files. Or 'make install-full' to install configuration and rules";
@@ -23,6 +23,7 @@ install-conf:
 	@test -e "$(e_sysconfdir)/threshold.config" || install -m 600 "$(top_srcdir)/threshold.config" "$(e_sysconfdir)"
 	install -d "$(e_logfilesdir)"
 	install -d "$(e_rundir)"
+	install -m 770 -d "$(e_localstatedir)"
 
 install-rules:
 	install -d "$(e_sysconfrulesdir)"
