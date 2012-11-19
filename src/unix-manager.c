@@ -578,6 +578,7 @@ TmEcode UnixManagerShutdownCommand(json_t *cmd,
     SCReturn(TM_ECODE_OK);
 }
 
+#if 0
 TmEcode UnixManagerReloadRules(json_t *cmd,
                                    json_t *server_msg, void *data)
 {
@@ -594,6 +595,7 @@ TmEcode UnixManagerReloadRules(json_t *cmd,
     }
     SCReturn(TM_ECODE_OK);
 }
+#endif
 
 UnixCommand command;
 
@@ -723,7 +725,9 @@ void *UnixManagerThread(void *td)
 
     /* Init Unix socket */
     UnixManagerRegisterCommand("shutdown", UnixManagerShutdownCommand, NULL, 0);
+#if 0
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
+#endif
 
     TmThreadsSetFlag(th_v, THV_INIT_DONE);
     while (1) {
