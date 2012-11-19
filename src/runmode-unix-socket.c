@@ -194,7 +194,7 @@ TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
     if(!json_is_string(jarg)) {
         SCLogInfo("error: command is not a string");
         json_object_set_new(answer, "message", json_string("command is not a string"));
-        return TM_ECODE_FAILED; 
+        return TM_ECODE_FAILED;
     }
     filename = json_string_value(jarg);
 #ifdef OS_WIN32
@@ -292,7 +292,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
             if (ConfSet("default-log-dir", cfile->output_dir, 1) != 1) {
                 SCLogInfo("Can not set output dir to '%s'", cfile->output_dir);
                 PcapFilesFree(cfile);
-                return TM_ECODE_FAILED; 
+                return TM_ECODE_FAILED;
             }
         }
         PcapFilesFree(cfile);

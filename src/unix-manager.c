@@ -334,7 +334,7 @@ int UnixCommandAccept(UnixCommand *this)
 
     /* client connected */
     SCLogInfo("Unix socket: client connected");
-    
+
     uclient = SCMalloc(sizeof(UnixClient));
     if (uclient == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate new cient");
@@ -352,7 +352,7 @@ int UnixCommandBackgroundTasks(UnixCommand* this)
     Task *ltask;
 
     TAILQ_FOREACH(ltask, &this->tasks, next) {
-        int fret = ltask->Func(ltask->data); 
+        int fret = ltask->Func(ltask->data);
         if (fret != TM_ECODE_OK) {
             ret = 0;
         }
@@ -380,13 +380,13 @@ int UnixCommandExecute(UnixCommand * this, char *command, UnixClient *client)
     int found = 0;
     Command *lcmd;
 
-    jsoncmd = json_loads(command, 0, &error);
-    if (jsoncmd == NULL) {
-        SCLogInfo("Invalid command, error on line %d: %s\n", error.line, error.text);
+    if (server_msg == NULL) {
         return 0;
     }
 
-    if (server_msg == NULL) {
+    jsoncmd = json_loads(command, 0, &error);
+    if (jsoncmd == NULL) {
+        SCLogInfo("Invalid command, error on line %d: %s\n", error.line, error.text);
         goto error;
     }
 
@@ -401,14 +401,14 @@ int UnixCommandExecute(UnixCommand * this, char *command, UnixClient *client)
         if (!strcmp(value, lcmd->name)) {
             int fret = TM_ECODE_OK;
             found = 1;
-            if (lcmd->flags & UNIX_CMD_TAKE_ARGS) { 
+            if (lcmd->flags & UNIX_CMD_TAKE_ARGS) {
                 cmd = json_object_get(jsoncmd, "arguments");
                 if(!json_is_object(cmd)) {
                     SCLogInfo("error: argument is not an object");
                     goto error_cmd;
-                }               
+                }
             }
-            fret = lcmd->Func(cmd, server_msg, lcmd->data); 
+            fret = lcmd->Func(cmd, server_msg, lcmd->data);
             if (fret != TM_ECODE_OK) {
                 ret = 0;
             }
@@ -436,6 +436,7 @@ int UnixCommandExecute(UnixCommand * this, char *command, UnixClient *client)
     }
 
     json_decref(jsoncmd);
+    json_decref(server_msg);
     return ret;
 
 error_cmd:
@@ -512,7 +513,6 @@ int UnixMain(UnixCommand * this)
         return 1;
     }
 
-    
     TAILQ_FOREACH(uclient, &this->clients, next) {
         if (FD_ISSET(uclient->fd, &select_set)) {
             UnixCommandRun(this, uclient);
@@ -613,7 +613,7 @@ UnixCommand command;
  * \param flags a flag now used to tune the command type
  * \retval TM_ECODE_OK in case of success, TM_ECODE_FAILED in case of failure
  */
-TmEcode UnixManagerRegisterCommand(const char * keyword, 
+TmEcode UnixManagerRegisterCommand(const char * keyword,
         TmEcode (*Func)(json_t *, json_t *, void *),
         void *data, int flags)
 {
@@ -663,7 +663,7 @@ TmEcode UnixManagerRegisterCommand(const char * keyword,
  * \param data a pointer to data that are pass to Func when runned
  * \retval TM_ECODE_OK in case of success, TM_ECODE_FAILED in case of failure
  */
-TmEcode UnixManagerRegisterBackgroundTask( 
+TmEcode UnixManagerRegisterBackgroundTask(
         TmEcode (*Func)(void *),
         void *data)
 {
@@ -751,7 +751,11 @@ void *UnixManagerThread(void *td)
 }
 
 
-/** \brief spawn the unix socket manager thread */
+/** \brief spawn the unix socket manager thread
+ *
+ * \param de_ctx context for detection engine
+ * \param mode if set to 1, init failure cause suricata exit
+ * */
 void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode)
 {
     ThreadVars *tv_unixmgr = NULL;
