@@ -57,6 +57,8 @@ void FlowBitsRegisterTests(void);
 
 void DetectFlowbitsRegister (void) {
     sigmatch_table[DETECT_FLOWBITS].name = "flowbits";
+    sigmatch_table[DETECT_FLOWBITS].desc = "operate on flow flag";
+    sigmatch_table[DETECT_FLOWBITS].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Flow-keywords#Flowbits";
     sigmatch_table[DETECT_FLOWBITS].Match = DetectFlowbitMatch;
     sigmatch_table[DETECT_FLOWBITS].Setup = DetectFlowbitSetup;
     sigmatch_table[DETECT_FLOWBITS].Free  = DetectFlowbitFree;

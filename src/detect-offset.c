@@ -43,6 +43,8 @@ static int DetectOffsetSetup (DetectEngineCtx *, Signature *, char *);
 
 void DetectOffsetRegister (void) {
     sigmatch_table[DETECT_OFFSET].name = "offset";
+    sigmatch_table[DETECT_OFFSET].desc = "designate from which byte in the payload will be checked to find a match";
+    sigmatch_table[DETECT_OFFSET].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Payload_keywords#Offset";
     sigmatch_table[DETECT_OFFSET].Match = NULL;
     sigmatch_table[DETECT_OFFSET].Setup = DetectOffsetSetup;
     sigmatch_table[DETECT_OFFSET].Free  = NULL;

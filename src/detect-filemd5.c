@@ -71,6 +71,7 @@ void DetectFileMd5Register(void) {
     sigmatch_table[DETECT_FILEMD5].Setup = DetectFileMd5SetupNoSupport;
     sigmatch_table[DETECT_FILEMD5].Free  = NULL;
     sigmatch_table[DETECT_FILEMD5].RegisterTests = NULL;
+    sigmatch_table[DETECT_FILEMD5].flags = SIGMATCH_NOT_BUILT;
 
 	SCLogDebug("registering filemd5 rule option");
     return;
@@ -89,6 +90,8 @@ static void DetectFileMd5Free(void *);
  */
 void DetectFileMd5Register(void) {
     sigmatch_table[DETECT_FILEMD5].name = "filemd5";
+    sigmatch_table[DETECT_FILEMD5].desc = "match file MD5 against list of MD5 checksums";
+    sigmatch_table[DETECT_FILEMD5].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/File-keywords#filemd5";
     sigmatch_table[DETECT_FILEMD5].FileMatch = DetectFileMd5Match;
     sigmatch_table[DETECT_FILEMD5].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_FILEMD5].Setup = DetectFileMd5Setup;

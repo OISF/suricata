@@ -53,6 +53,8 @@ void DetectFragOffsetFree(void *);
  */
 void DetectFragOffsetRegister (void) {
     sigmatch_table[DETECT_FRAGOFFSET].name = "fragoffset";
+    sigmatch_table[DETECT_FRAGOFFSET].desc = "match on specific decimal values of the IP fragment offset field";
+    sigmatch_table[DETECT_FRAGOFFSET].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#Fragoffset";
     sigmatch_table[DETECT_FRAGOFFSET].Match = DetectFragOffsetMatch;
     sigmatch_table[DETECT_FRAGOFFSET].Setup = DetectFragOffsetSetup;
     sigmatch_table[DETECT_FRAGOFFSET].Free = DetectFragOffsetFree;
