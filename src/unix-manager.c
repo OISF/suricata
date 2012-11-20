@@ -300,9 +300,10 @@ int UnixCommandAccept(UnixCommand *this)
     }
 
     version = json_object_get(client_msg, "version");
-    if(!json_is_string(version)) {
+    if (!json_is_string(version)) {
         SCLogInfo("error: version is not a string");
         close(client);
+        json_decref(client_msg);
         return 0;
     }
 
@@ -310,6 +311,7 @@ int UnixCommandAccept(UnixCommand *this)
     if (strcmp(json_string_value(version), UNIX_PROTO_VERSION) != 0) {
         SCLogInfo("Unix socket: invalid client version: \"%s\"",
                 json_string_value(version));
+        json_decref(client_msg);
         close(client);
         return 0;
     } else {
@@ -317,6 +319,7 @@ int UnixCommandAccept(UnixCommand *this)
                 json_string_value(version));
     }
 
+    json_decref(client_msg);
     /* send answer */
     server_msg = json_object();
     if (server_msg == NULL) {
@@ -413,6 +416,7 @@ int UnixCommandExecute(UnixCommand * this, char *command, UnixClient *client)
             if (fret != TM_ECODE_OK) {
                 ret = 0;
             }
+            break;
         }
     }
 
@@ -441,8 +445,8 @@ int UnixCommandExecute(UnixCommand * this, char *command, UnixClient *client)
     return ret;
 
 error_cmd:
-error:
     json_decref(jsoncmd);
+error:
     json_decref(server_msg);
     UnixCommandClose(this, client->fd);
     return 0;
