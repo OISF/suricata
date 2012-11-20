@@ -91,6 +91,7 @@ static TmEcode UnixSocketPcapFilesList(json_t *cmd, json_t* answer, void *data)
     }
     jarray = json_array();
     if (jarray == NULL) {
+        json_decref(jdata);
         json_object_set_new(answer, "message",
                             json_string("internal error at json object creation"));
         return TM_ECODE_FAILED;
