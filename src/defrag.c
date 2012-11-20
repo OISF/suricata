@@ -225,8 +225,8 @@ DefragContextNew(void)
     SCLogDebug("\tTimeout: %"PRIuMAX, (uintmax_t)dc->timeout);
     SCLogDebug("\tMaximum defrag trackers: %"PRIuMAX, tracker_pool_size);
     SCLogDebug("\tPreallocated defrag trackers: %"PRIuMAX, tracker_pool_size);
-    SCLogDebug("\tMaximum fragments: %ld", frag_pool_size);
-    SCLogDebug("\tPreallocated fragments: %ld", frag_pool_prealloc);
+    SCLogDebug("\tMaximum fragments: %"PRIuMAX, (uintmax_t)frag_pool_size);
+    SCLogDebug("\tPreallocated fragments: %"PRIuMAX, (uintmax_t)frag_pool_prealloc);
 
     return dc;
 }

@@ -203,8 +203,8 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
 #ifdef DEBUG
         if (SCLogDebugEnabled()) {
             for (i = 0; i < x; i++) {
-                if (isprint(str[i])) printf("%c", str[i]);
-                else                 printf("\\x%02u", str[i]);
+                if (isprint((unsigned char)str[i])) printf("%c", str[i]);
+                else printf("\\x%02u", str[i]);
             }
             printf("\n");
         }
