@@ -419,20 +419,25 @@ int SRepInit(DetectEngineCtx *de_ctx) {
         init = 1;
     }
 
-    if (init) {
-        if (ConfGet("reputation-categories-file", &filename) != 1) {
-            SCLogError(SC_ERR_NO_REPUTATION, "\"reputation-categories-file\" not set");
-            return -1;
-        }
+    /* if both settings are missing, we assume the user doesn't want ip rep */
+    (void)ConfGet("reputation-categories-file", &filename);
+    files = ConfGetNode("reputation-files");
+    if (filename == NULL && files == NULL) {
+        SCLogInfo("IP reputation disabled");
+        return 0;
     }
 
-    files = ConfGetNode("reputation-files");
     if (files == NULL) {
         SCLogError(SC_ERR_NO_REPUTATION, "\"reputation-files\" not set");
         return -1;
     }
 
     if (init) {
+        if (filename == NULL) {
+            SCLogError(SC_ERR_NO_REPUTATION, "\"reputation-categories-file\" not set");
+            return -1;
+        }
+
         /* init even if we have reputation files, so that when we
          * have a live reload, we have inited the cats */
         if (SRepLoadCatFile(filename) < 0) {
