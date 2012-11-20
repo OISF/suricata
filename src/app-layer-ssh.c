@@ -748,16 +748,25 @@ void RegisterSSHParsers(void)
 {
     char *proto_name = "ssh";
 
-    /** SSH */
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SSH, "SSH-", 4, 0, STREAM_TOSERVER);
+    if (AppLayerProtoDetectionEnabled(proto_name)) {
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SSH, "SSH-", 4, 0, STREAM_TOSERVER);
+    } else {
+        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
+                  proto_name);
+        return;
+    }
 
-    AppLayerRegisterProto(proto_name, ALPROTO_SSH, STREAM_TOCLIENT,
-                          SSHParseServerRecord);
-    AppLayerRegisterProto(proto_name, ALPROTO_SSH, STREAM_TOSERVER,
-                            SSHParseClientRecord);
+    if (AppLayerParserEnabled(proto_name)) {
+        AppLayerRegisterProto(proto_name, ALPROTO_SSH, STREAM_TOCLIENT,
+                              SSHParseServerRecord);
+        AppLayerRegisterProto(proto_name, ALPROTO_SSH, STREAM_TOSERVER,
+                              SSHParseClientRecord);
 
-    AppLayerRegisterStateFuncs(ALPROTO_SSH, SSHStateAlloc, SSHStateFree);
-
+        AppLayerRegisterStateFuncs(ALPROTO_SSH, SSHStateAlloc, SSHStateFree);
+    } else {
+        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
+                  "still on.", proto_name);
+    }
 }
 
 /* UNITTESTS */
