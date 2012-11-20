@@ -350,7 +350,7 @@ int RunModeUnixSocketSingle(DetectEngineCtx *de_ctx)
     PcapCommand *pcapcmd = SCMalloc(sizeof(PcapCommand));
 
     if (pcapcmd == NULL) {
-        /* FIXME: really ? */
+        SCLogError(SC_ERR_MEM_ALLOC, "Can not allocate pcap command");
         return 1;
     }
     pcapcmd->de_ctx = de_ctx;
