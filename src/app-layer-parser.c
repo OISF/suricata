@@ -54,6 +54,7 @@
 #include "app-layer-ssh.h"
 #include "app-layer-smtp.h"
 
+#include "conf.h"
 #include "util-spm.h"
 
 #include "util-debug.h"
@@ -1409,16 +1410,35 @@ void RegisterAppLayerParsers(void)
     RegisterSMTPParsers();
 
     /** IMAP */
-    //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_IMAP, "|2A 20|OK|20|", 5, 0, STREAM_TOCLIENT);
-    AlpProtoAdd(&alp_proto_ctx, "imap", IPPROTO_TCP, ALPROTO_IMAP, "1|20|capability", 12, 0, STREAM_TOSERVER);
+    if (AppLayerProtoDetectionEnabled("imap")) {
+        //AlpProtoAdd(&alp_proto_ctx, "imap", IPPROTO_TCP, ALPROTO_IMAP, "|2A 20|OK|20|", 5, 0, STREAM_TOCLIENT);
+        AlpProtoAdd(&alp_proto_ctx, "imap", IPPROTO_TCP, ALPROTO_IMAP, "1|20|capability", 12, 0, STREAM_TOSERVER);
+    } else {
+        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
+                  "imap");
+        return;
+    }
 
     /** MSN Messenger */
-    //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_MSN, "MSNP", 10, 6, STREAM_TOCLIENT);
-    AlpProtoAdd(&alp_proto_ctx, "msn", IPPROTO_TCP, ALPROTO_MSN, "MSNP", 10, 6, STREAM_TOSERVER);
+    if (AppLayerProtoDetectionEnabled("msn")) {
+        AlpProtoAdd(&alp_proto_ctx, "msn", IPPROTO_TCP, ALPROTO_MSN, "MSNP", 10, 6, STREAM_TOSERVER);
+    } else {
+        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
+                  "msn");
+        return;
+    }
 
     /** Jabber */
-    //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOCLIENT);
-    //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOSERVER);
+    //if (AppLayerProtoDetectionEnabled("jabber")) {
+    //AlpProtoAdd(&alp_proto_ctx, "jabber", IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOCLIENT);
+    //AlpProtoAdd(&alp_proto_ctx, "jabber", IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOSERVER);
+    //} else {
+    //SCLogInfo("Protocol detection disabled for %s protocol and as a "
+    //"consequence the conf param \"app-layer.protocols.%s."
+    //"parser-enabled\" will now be ignored.", "jabber", "jabber");
+    //    return;
+    //}
+
 
     return;
 }
@@ -1529,6 +1549,95 @@ void AppLayerParsersInitPostProcess(void)
                       " %" PRIu32 "", u16, x, al_proto_table[u16].map[x]->parser_id);
         }
     }
+}
+
+/*************************App Layer Conf Options Parsing***********************/
+/**
+ * \brief Given a protocol name, checks if the parser is enabled in the
+ *        conf file.
+ *
+ * \param al_proto Name of the app layer protocol.
+ *
+ * \retval 1 If enabled.
+ * \retval 0 If disabled.
+ */
+int AppLayerParserEnabled(const char *al_proto)
+{
+    int enabled = 1;
+
+    char param[100];
+    int r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
+                     al_proto, ".enabled");
+    if (r < 0) {
+        SCLogError(SC_ERR_FATAL, "snprintf failure.");
+        exit(EXIT_FAILURE);
+    } else if (r > (int)sizeof(param)) {
+        SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
+        exit(EXIT_FAILURE);
+    }
+
+    ConfNode *node = ConfGetNode(param);
+    if (node == NULL) {
+        SCLogInfo("Entry for %s not found.", param);
+        return enabled;
+    } else {
+        if (strcasecmp(node->val, "yes") == 0) {
+            enabled = 1;
+        } else if (strcasecmp(node->val, "no") == 0) {
+            enabled = 0;
+        } else if (strcasecmp(node->val, "detection-only") == 0) {
+            enabled = 0;
+        } else {
+            SCLogError(SC_ERR_FATAL, "Invalid value found for %s.", param);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    return enabled;
+}
+
+/**
+ * \brief Given a protocol name, checks if proto detection is enabled in the
+ *        conf file.
+ *
+ * \param al_proto Name of the app layer protocol.
+ *
+ * \retval 1 If enabled.
+ * \retval 0 If disabled.
+ */
+int AppLayerProtoDetectionEnabled(const char *al_proto)
+{
+    int enabled = 1;
+
+    char param[100];
+    int r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
+                     al_proto, ".enabled");
+    if (r < 0) {
+        SCLogError(SC_ERR_FATAL, "snprintf failure.");
+        exit(EXIT_FAILURE);
+    } else if (r > (int)sizeof(param)) {
+        SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
+        exit(EXIT_FAILURE);
+    }
+
+    ConfNode *node = ConfGetNode(param);
+    if (node == NULL) {
+        SCLogInfo("Entry for %s not found.", param);
+        return enabled;
+    } else {
+        if (strcasecmp(node->val, "yes") == 0) {
+            enabled = 1;
+        } else if (strcasecmp(node->val, "no") == 0) {
+            enabled = 0;
+        } else if (strcasecmp(node->val, "detection-only") == 0) {
+            enabled = 1;
+        } else {
+            SCLogError(SC_ERR_FATAL, "Invalid value found for %s.", param);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    return enabled;
 }
 
 /********************************Probing Parsers*******************************/
