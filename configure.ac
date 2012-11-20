@@ -551,8 +551,8 @@ AC_INIT(configure.ac)
         if test "$JANSSON" = "no"; then
             echo
             echo "   Jansson is required for features like unix socket"
-	    echo "   Go get it from your distribution of from:"
-	    echo "     http://www.digip.org/jansson/"
+            echo "   Go get it from your distribution of from:"
+	        echo "     http://www.digip.org/jansson/"
             echo
             enable_unixsocket="no"
             enable_jansson="no"
