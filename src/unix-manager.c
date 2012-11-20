@@ -597,7 +597,7 @@ TmEcode UnixManagerReloadRules(json_t *cmd,
 }
 #endif
 
-UnixCommand command;
+static UnixCommand command;
 
 /**
  * \brief Add a command to the list of commands
