@@ -97,7 +97,7 @@ static TmEcode UnixSocketPcapFilesList(json_t *cmd, json_t* answer, void *data)
         return TM_ECODE_FAILED;
     }
     TAILQ_FOREACH(file, &this->files, next) {
-        json_array_append(jarray, json_string(file->filename));
+        json_array_append_new(jarray, json_string(file->filename));
         i++;
     }
     json_object_set_new(jdata, "count", json_integer(i));
