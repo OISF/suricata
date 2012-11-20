@@ -580,7 +580,7 @@ TmEcode UnixManagerShutdownCommand(json_t *cmd,
     SCEnter();
     json_object_set_new(server_msg, "message", json_string("Closing Suricata"));
     EngineStop();
-    SCReturn(TM_ECODE_OK);
+    SCReturnInt(TM_ECODE_OK);
 }
 
 #if 0
@@ -630,31 +630,31 @@ TmEcode UnixManagerRegisterCommand(const char * keyword,
 
     if (Func == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "Null function");
-        SCReturn(TM_ECODE_FAILED);
+        SCReturnInt(TM_ECODE_FAILED);
     }
 
     if (keyword == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "Null keyword");
-        SCReturn(TM_ECODE_FAILED);
+        SCReturnInt(TM_ECODE_FAILED);
     }
 
     TAILQ_FOREACH(lcmd, &command.commands, next) {
         if (!strcmp(keyword, lcmd->name)) {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Null keyword");
-            SCReturn(TM_ECODE_FAILED);
+            SCReturnInt(TM_ECODE_FAILED);
         }
     }
 
     cmd = SCMalloc(sizeof(Command));
     if (unlikely(cmd == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Can't alloc cmd");
-        SCReturn(TM_ECODE_FAILED);
+        SCReturnInt(TM_ECODE_FAILED);
     }
     cmd->name = SCStrdup(keyword);
     if (unlikely(cmd->name == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Can't alloc cmd name");
         SCFree(cmd);
-        SCReturn(TM_ECODE_FAILED);
+        SCReturnInt(TM_ECODE_FAILED);
     }
     cmd->Func = Func;
     cmd->data = data;
@@ -662,7 +662,7 @@ TmEcode UnixManagerRegisterCommand(const char * keyword,
     /* Add it to the list */
     TAILQ_INSERT_TAIL(&command.commands, cmd, next);
 
-    SCReturn(TM_ECODE_OK);
+    SCReturnInt(TM_ECODE_OK);
 }
 
 /**
@@ -684,20 +684,20 @@ TmEcode UnixManagerRegisterBackgroundTask(
 
     if (Func == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "Null function");
-        SCReturn(TM_ECODE_FAILED);
+        SCReturnInt(TM_ECODE_FAILED);
     }
 
     task = SCMalloc(sizeof(Task));
     if (unlikely(task == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Can't alloc task");
-        SCReturn(TM_ECODE_FAILED);
+        SCReturnInt(TM_ECODE_FAILED);
     }
     task->Func = Func;
     task->data = data;
     /* Add it to the list */
     TAILQ_INSERT_TAIL(&command.tasks, task, next);
 
-    SCReturn(TM_ECODE_OK);
+    SCReturnInt(TM_ECODE_OK);
 }
 
 

@@ -162,12 +162,12 @@ TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *answer, void *data)
     json_t *jarg = json_object_get(cmd, "iface");
     if(!json_is_string(jarg)) {
         json_object_set_new(answer, "message", json_string("Iface is not a string"));
-        SCReturn(TM_ECODE_FAILED);
+        SCReturnInt(TM_ECODE_FAILED);
     }
     name = json_string_value(jarg);
     if (name == NULL) {
         json_object_set_new(answer, "message", json_string("Iface name is NULL"));
-        SCReturn(TM_ECODE_FAILED);
+        SCReturnInt(TM_ECODE_FAILED);
     }
 
     TAILQ_FOREACH(pd, &live_devices, next) {
@@ -176,7 +176,7 @@ TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *answer, void *data)
             if (jdata == NULL) {
                 json_object_set_new(answer, "message",
                         json_string("internal error at json object creation"));
-                SCReturn(TM_ECODE_FAILED);
+                SCReturnInt(TM_ECODE_FAILED);
             }
             json_object_set_new(jdata, "pkts",
                                 json_integer(SC_ATOMIC_GET(pd->pkts)));
@@ -185,11 +185,11 @@ TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *answer, void *data)
             json_object_set_new(jdata, "drop",
                                 json_integer(SC_ATOMIC_GET(pd->drop)));
             json_object_set_new(answer, "message", jdata);
-            SCReturn(TM_ECODE_OK);
+            SCReturnInt(TM_ECODE_OK);
         }
     }
     json_object_set_new(answer, "message", json_string("Iface does not exist"));
-    SCReturn(TM_ECODE_FAILED);
+    SCReturnInt(TM_ECODE_FAILED);
 }
 
 TmEcode LiveDeviceIfaceList(json_t *cmd, json_t *answer, void *data)
@@ -220,6 +220,6 @@ TmEcode LiveDeviceIfaceList(json_t *cmd, json_t *answer, void *data)
     json_object_set_new(jdata, "count", json_integer(i));
     json_object_set_new(jdata, "ifaces", jarray);
     json_object_set_new(answer, "message", jdata);
-    SCReturn(TM_ECODE_OK);
+    SCReturnInt(TM_ECODE_OK);
 }
 #endif /* BUILD_UNIX_SOCKET */
