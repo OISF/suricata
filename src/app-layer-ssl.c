@@ -926,49 +926,65 @@ void RegisterSSLParsers(void)
 {
     char *proto_name = "tls";
 
-    /** SSLv2  and SSLv23*/
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|01 00 02|", 5, 2, STREAM_TOSERVER);
-    /* subsection - SSLv2 style record by client, but informing the server the max
-     * version it supports */
-    /* Updated by Anoop Saldanha.  Disabled it for now.  We'll get back to it
-     * after some tests */
-    //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|01 03 00|", 5, 2, STREAM_TOSERVER);
-    //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|00 02|", 7, 5, STREAM_TOCLIENT);
+    if (AppLayerProtoDetectionEnabled(proto_name)) {
+        /** SSLv2  and SSLv23*/
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|01 00 02|", 5, 2, STREAM_TOSERVER);
+        /* subsection - SSLv2 style record by client, but informing the server the max
+         * version it supports */
+        /* Updated by Anoop Saldanha.  Disabled it for now.  We'll get back to it
+         * after some tests */
+        //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|01 03 00|", 5, 2, STREAM_TOSERVER);
+        //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|00 02|", 7, 5, STREAM_TOCLIENT);
 
-    /** SSLv3 */
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|01 03 00|", 3, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 00|", 3, 0, STREAM_TOSERVER); /* client hello */
-    /** TLSv1 */
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|01 03 01|", 3, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 01|", 3, 0, STREAM_TOSERVER); /* client hello */
-    /** TLSv1.1 */
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|01 03 02|", 3, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 02|", 3, 0, STREAM_TOSERVER); /* client hello */
-    /** TLSv1.2 */
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|01 03 03|", 3, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 03|", 3, 0, STREAM_TOSERVER); /* client hello */
+        /** SSLv3 */
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|01 03 00|", 3, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 00|", 3, 0, STREAM_TOSERVER); /* client hello */
+        /** TLSv1 */
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|01 03 01|", 3, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 01|", 3, 0, STREAM_TOSERVER); /* client hello */
+        /** TLSv1.1 */
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|01 03 02|", 3, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 02|", 3, 0, STREAM_TOSERVER); /* client hello */
+        /** TLSv1.2 */
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|01 03 03|", 3, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 03|", 3, 0, STREAM_TOSERVER); /* client hello */
 
-    AppLayerRegisterProto(proto_name, ALPROTO_TLS, STREAM_TOSERVER,
-                          SSLParseClientRecord);
+        AppLayerRegisterProbingParser(&alp_proto_ctx,
+                                      IPPROTO_TCP,
+                                      "443",
+                                      proto_name,
+                                      ALPROTO_TLS,
+                                      0, 3,
+                                      STREAM_TOSERVER,
+                                      SSLProbingParser);
+    } else {
+        SCLogInfo("Protocol detection and parser disabled for %s protocol",
+                  proto_name);
+        return;
+    }
 
-    AppLayerRegisterProto(proto_name, ALPROTO_TLS, STREAM_TOCLIENT,
-                          SSLParseServerRecord);
-    AppLayerDecoderEventsModuleRegister(ALPROTO_TLS, tls_decoder_event_table);
+    if (AppLayerParserEnabled(proto_name)) {
+        AppLayerRegisterProto(proto_name, ALPROTO_TLS, STREAM_TOSERVER,
+                              SSLParseClientRecord);
 
-    AppLayerRegisterStateFuncs(ALPROTO_TLS, SSLStateAlloc, SSLStateFree);
+        AppLayerRegisterProto(proto_name, ALPROTO_TLS, STREAM_TOCLIENT,
+                              SSLParseServerRecord);
+        AppLayerDecoderEventsModuleRegister(ALPROTO_TLS, tls_decoder_event_table);
 
-    AppLayerRegisterProbingParser(&alp_proto_ctx,
-                                  IPPROTO_TCP,
-                                  "443",
-                                  proto_name,
-                                  ALPROTO_TLS,
-                                  0, 3,
-                                  STREAM_TOSERVER,
-                                  SSLProbingParser);
+        AppLayerRegisterStateFuncs(ALPROTO_TLS, SSLStateAlloc, SSLStateFree);
 
-    /* Get the value of no reassembly option from the config file */
-    if (ConfGetBool("tls.no-reassemble", &ssl_config.no_reassemble) != 1)
-        ssl_config.no_reassemble = 1;
+        /* Get the value of no reassembly option from the config file */
+        if (ConfGetNode("app-layer.protocols.tls.no-reassemble") == NULL) {
+            if (ConfGetBool("tls.no-reassemble", &ssl_config.no_reassemble) != 1)
+                ssl_config.no_reassemble = 1;
+        } else {
+            if (ConfGetBool("app-layer.protocols.tls.no-reassemble", &ssl_config.no_reassemble) != 1)
+                ssl_config.no_reassemble = 1;
+        }
+    } else {
+        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
+                  "still on.", proto_name);
+    }
 
     return;
 }
