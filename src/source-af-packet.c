@@ -480,6 +480,7 @@ static inline void AFPDumpCounters(AFPThreadVars *ptv)
                 kstats.tp_packets, kstats.tp_drops);
         SCPerfCounterAddUI64(ptv->capture_kernel_packets, ptv->tv->sc_perf_pca, kstats.tp_packets);
         SCPerfCounterAddUI64(ptv->capture_kernel_drops, ptv->tv->sc_perf_pca, kstats.tp_drops);
+        (void) SC_ATOMIC_ADD(ptv->livedev->drop, kstats.tp_drops);
     }
 #endif
 }

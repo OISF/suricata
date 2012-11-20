@@ -180,6 +180,7 @@ static inline void PfringDumpCounters(PfringThreadVars *ptv)
     if (likely((pfring_stats(ptv->pd, &pfring_s) >= 0))) {
         SCPerfCounterSetUI64(ptv->capture_kernel_packets, ptv->tv->sc_perf_pca, pfring_s.recv);
         SCPerfCounterSetUI64(ptv->capture_kernel_drops, ptv->tv->sc_perf_pca, pfring_s.drop);
+        SC_ATOMIC_SET(ptv->livedev->drop, kstats.tp_drops);
     }
 }
 
