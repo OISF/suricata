@@ -109,7 +109,7 @@ int UnixNew(UnixCommand * this)
     if (ConfGet("unix-command.filename", &socketname) == 1) {
         int socketlen = strlen(SOCKET_PATH) + strlen(socketname) + 2;
         sockettarget = SCMalloc(socketlen);
-        if (sockettarget == NULL) {
+        if (unlikely(sockettarget == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate socket name");
             return 0;
         }
@@ -118,7 +118,7 @@ int UnixNew(UnixCommand * this)
     }
     if (sockettarget == NULL) {
         sockettarget = SCStrdup(SOCKET_TARGET);
-        if (sockettarget == NULL) {
+        if (unlikely(sockettarget == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate socket name");
             return 0;
         }
@@ -139,6 +139,7 @@ int UnixNew(UnixCommand * this)
         SCLogWarning(SC_ERR_OPENING_FILE,
                      "Unix Socket: unable to create UNIX socket %s: %s",
                      addr.sun_path, strerror(errno));
+        SCFree(sockettarget);
         return 0;
     }
     this->select_max = this->socket + 1;
@@ -336,7 +337,7 @@ int UnixCommandAccept(UnixCommand *this)
     SCLogInfo("Unix socket: client connected");
 
     uclient = SCMalloc(sizeof(UnixClient));
-    if (uclient == NULL) {
+    if (unlikely(uclient == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate new cient");
         return 0;
     }
@@ -641,11 +642,16 @@ TmEcode UnixManagerRegisterCommand(const char * keyword,
     }
 
     cmd = SCMalloc(sizeof(Command));
-    if (cmd == NULL) {
+    if (unlikely(cmd == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Can't alloc cmd");
         SCReturn(TM_ECODE_FAILED);
     }
     cmd->name = SCStrdup(keyword);
+    if (unlikely(cmd->name == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Can't alloc cmd name");
+        SCFree(cmd);
+        SCReturn(TM_ECODE_FAILED);
+    }
     cmd->Func = Func;
     cmd->data = data;
     cmd->flags = flags;
@@ -678,7 +684,7 @@ TmEcode UnixManagerRegisterBackgroundTask(
     }
 
     task = SCMalloc(sizeof(Task));
-    if (task == NULL) {
+    if (unlikely(task == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Can't alloc task");
         SCReturn(TM_ECODE_FAILED);
     }
