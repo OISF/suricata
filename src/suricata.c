@@ -1094,8 +1094,15 @@ int main(int argc, char **argv)
             break;
         case 'i':
             memset(pcap_dev, 0, sizeof(pcap_dev));
-            strlcpy(pcap_dev, optarg, ((strlen(optarg) < sizeof(pcap_dev)) ? (strlen(optarg)+1) : (sizeof(pcap_dev))));
-            PcapTranslateIPToDevice(pcap_dev, sizeof(pcap_dev));
+
+            /* some windows shells require escaping of the \ in \Device. Otherwise
+             * the backslashes are stripped. We put them back here. */
+            if (strlen(optarg) > 9 && strncmp(optarg, "DeviceNPF", 9) == 0) {
+                snprintf(pcap_dev, sizeof(pcap_dev), "\\Device\\NPF%s", optarg+9);
+            } else {
+                strlcpy(pcap_dev, optarg, ((strlen(optarg) < sizeof(pcap_dev)) ? (strlen(optarg)+1) : (sizeof(pcap_dev))));
+                PcapTranslateIPToDevice(pcap_dev, sizeof(pcap_dev));
+            }
 
             if (strcmp(pcap_dev, optarg) != 0) {
                 SCLogInfo("translated %s to pcap device %s", optarg, pcap_dev);
