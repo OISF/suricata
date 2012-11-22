@@ -85,8 +85,9 @@ typedef struct ErfDagThreadVars_ {
 
     struct timeval maxwait, poll;   /* Could possibly be made static */
 
-    uint32_t pkts;
     uint64_t bytes;
+    uint16_t packets;
+    uint16_t drops;
 
     /* Current location in the DAG stream input buffer.
      */
@@ -280,6 +281,11 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
+    ewtn->packets = SCPerfTVRegisterCounter("capture.dag_packets",
+        tv, SC_PERF_TYPE_UINT64, "NULL");
+    ewtn->drops = SCPerfTVRegisterCounter("capture.dag_drops",
+        tv, SC_PERF_TYPE_UINT64, "NULL");
+
     ewtn->tv = tv;
     *data = (void *)ewtn;
 
@@ -352,6 +358,8 @@ TmEcode ReceiveErfDagLoop(ThreadVars *tv, void *data, void *slot)
             SCReturnInt(TM_ECODE_FAILED);
         }
 
+        SCPerfSyncCountersIfSignalled(tv, 0);
+
         SCLogDebug("Read %d records from stream: %d, DAG: %s",
                    pkts_read, dtv->dagstream, dtv->dagname);
     }
@@ -411,10 +419,16 @@ static inline TmEcode ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top,
         case TYPE_PAD:
             /* Skip. */
             continue;
-        case TYPE_ETH:
         case TYPE_DSM_COLOR_ETH:
         case TYPE_COLOR_ETH:
         case TYPE_COLOR_HASH_ETH:
+            /* In these types the color value overwrites the lctr
+             * (drop count). */
+            break;
+        case TYPE_ETH:
+            if (dr->lctr) {
+                SCPerfCounterIncr(ewtn->drops, ewtn->tv->sc_perf_pca);
+            }
             break;
         default:
             SCLogError(SC_ERR_UNIMPLEMENTED,
@@ -505,7 +519,7 @@ static inline TmEcode ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
         p->ts.tv_sec++;
     }
 
-    ewtn->pkts++;
+    SCPerfCounterIncr(ewtn->packets, ewtn->tv->sc_perf_pca);
     ewtn->bytes += wlen;
 
     if (TmThreadsSlotProcessPkt(ewtn->tv, ewtn->slot, p) != TM_ECODE_OK) {
@@ -527,7 +541,12 @@ ReceiveErfDagThreadExitStats(ThreadVars *tv, void *data)
 {
     ErfDagThreadVars *ewtn = (ErfDagThreadVars *)data;
 
-    SCLogInfo("Packets: %"PRIu32"; Bytes: %"PRIu64, ewtn->pkts, ewtn->bytes);
+    SCLogInfo("Stream: %d; Bytes: %"PRIu64"; Packets: %"PRIu64
+        "; Drops: %"PRIu64,
+        ewtn->dagstream,
+        ewtn->bytes,
+        (uint64_t)SCPerfGetLocalCounterValue(ewtn->packets, tv->sc_perf_pca),
+        (uint64_t)SCPerfGetLocalCounterValue(ewtn->drops, tv->sc_perf_pca));
 }
 
 /**
@@ -605,10 +624,6 @@ TmEcode DecodeErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     SCEnter();
     DecodeThreadVars *dtv = NULL;
-
-   // if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
-   //     SCReturnInt(TM_ECODE_FAILED);
-   // memset(dtv, 0, sizeof(DecodeThreadVars));
 
     dtv = DecodeThreadVarsAlloc();
 
