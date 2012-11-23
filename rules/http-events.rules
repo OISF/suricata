@@ -35,5 +35,7 @@ alert http any any -> any any (msg:"SURICATA HTTP multipart generic error"; flow
 alert http any any -> any any (msg:"SURICATA HTTP multipart no filedata"; flow:established,to_server; app-layer-event:http.multipart_no_filedata; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221023; rev:1;)
 # Multipart header invalid.
 alert http any any -> any any (msg:"SURICATA HTTP multipart invalid header"; flow:established,to_server; app-layer-event:http.multipart_invalid_header; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221024; rev:1;)
-# next sid 2221025
+# Warn when the port in the Host: header doesn't match the actual TCP Server port.
+alert http any any -> any any (msg:"SURICATA HTTP request server port doesn't match TCP port"; flow:established,to_server; app-layer-event:http.request_server_port_tcp_port_mismatch; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221026; rev:1;)
+# next sid 2221026
 

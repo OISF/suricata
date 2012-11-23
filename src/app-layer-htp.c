@@ -130,7 +130,8 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG},
     { "RESPONSE_FIELD_TOO_LONG",
         HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG},
-
+    { "REQUEST_SERVER_PORT_TCP_PORT_MISMATCH",
+        HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH},
     /* suricata warnings/errors */
     { "MULTIPART_GENERIC_ERROR",
         HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR},
@@ -419,6 +420,7 @@ struct {
     { "Host information ambiguous", HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS},
     { "Invalid request field folding", HTTP_DECODER_EVENT_INVALID_REQUEST_FIELD_FOLDING},
     { "Invalid response field folding", HTTP_DECODER_EVENT_INVALID_RESPONSE_FIELD_FOLDING},
+    { "Request server port number differs from the actual TCP port", HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH},
 };
 
 #define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
