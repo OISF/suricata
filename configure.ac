@@ -1326,7 +1326,7 @@ AC_INIT(configure.ac)
         if test "$with_libluajit_includes" != "no"; then
             CPPFLAGS="${CPPFLAGS} -I${with_libluajit_includes}"
         else
-            PKG_CHECK_MODULES([LUAJIT], [luajit])
+            PKG_CHECK_MODULES([LUAJIT], [luajit], , LUAJIT="no")
             CPPFLAGS="${CPPFLAGS} ${LUAJIT_CFLAGS}"
         fi
 
@@ -1348,6 +1348,10 @@ AC_INIT(configure.ac)
                 echo
                 echo "   Ubuntu: apt-get install libluajit-5.1-dev"
                 echo
+                echo "   If you installed software in a non-standard prefix"
+                echo "   consider adjusting the PKG_CONFIG_PATH environment variable"
+                echo "   or use --with-libluajit-libraries configure option."
+                echo
                 exit 1
             fi
 
@@ -1359,6 +1363,11 @@ AC_INIT(configure.ac)
                 echo "   from http://luajit.org/index.html or your distribution:"
                 echo
                 echo "   Ubuntu: apt-get install libluajit-5.1-dev"
+                echo
+                echo "   If you installed software in a non-standard prefix"
+                echo "   consider adjusting the PKG_CONFIG_PATH environment variable"
+                echo "   or use --with-libluajit-includes and --with-libluajit-libraries"
+                echo "   configure option."
                 echo
                 exit 1
         fi
