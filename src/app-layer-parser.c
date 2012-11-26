@@ -1640,6 +1640,89 @@ int AppLayerProtoDetectionEnabled(const char *al_proto)
     return enabled;
 }
 
+void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_proto,
+                                     uint16_t min_depth, uint16_t max_depth,
+                                     uint16_t (*ProbingParser)(uint8_t *input, uint32_t input_len, uint32_t *offset))
+{
+    char param[100];
+    int r;
+    ConfNode *node;
+    ConfNode *proto_node = NULL;
+    ConfNode *port_node = NULL;
+
+    r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
+                 al_proto_name, ".detection-ports");
+    if (r < 0) {
+        SCLogError(SC_ERR_FATAL, "snprintf failure.");
+        exit(EXIT_FAILURE);
+    } else if (r > (int)sizeof(param)) {
+        SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
+        exit(EXIT_FAILURE);
+    }
+    node = ConfGetNode(param);
+    if (node == NULL) {
+        SCLogDebug("Entry for %s not found.", param);
+        return;
+    }
+
+    /* for each proto */
+    TAILQ_FOREACH(proto_node, &node->head, next) {
+        DetectProto dp;
+        int ip_proto = DetectProtoParse(&dp, proto_node->name);
+        if (ip_proto <= 0) {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                       "%s.%s", param, proto_node->name);
+            exit(EXIT_FAILURE);
+        }
+
+        /* toserver */
+        r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
+                     al_proto_name, ".detection-ports.", proto_node->name, ".toserver");
+        if (r < 0) {
+            SCLogError(SC_ERR_FATAL, "snprintf failure.");
+            exit(EXIT_FAILURE);
+        } else if (r > (int)sizeof(param)) {
+            SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
+            exit(EXIT_FAILURE);
+        }
+        port_node = ConfGetNode(param);
+        if (port_node != NULL && port_node->val != NULL) {
+            AppLayerRegisterProbingParser(&alp_proto_ctx,
+                                          ip_proto,
+                                          port_node->val,
+                                          (char *)al_proto_name,
+                                          al_proto,
+                                          min_depth, max_depth,
+                                          STREAM_TOSERVER,
+                                          ProbingParser);
+        }
+
+        /* toclient */
+        r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
+                     al_proto_name, ".detection-ports.", proto_node->name, ".toclient");
+        if (r < 0) {
+            SCLogError(SC_ERR_FATAL, "snprintf failure.");
+            exit(EXIT_FAILURE);
+        } else if (r > (int)sizeof(param)) {
+            SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
+            exit(EXIT_FAILURE);
+        }
+        port_node = ConfGetNode(param);
+        if (port_node != NULL && port_node->val != NULL) {
+            AppLayerRegisterProbingParser(&alp_proto_ctx,
+                                          ip_proto,
+                                          port_node->val,
+                                          (char *)al_proto_name,
+                                          al_proto,
+                                          min_depth, max_depth,
+                                          STREAM_TOCLIENT,
+                                          ProbingParser);
+
+        }
+    }
+
+    return;
+}
 /********************************Probing Parsers*******************************/
 
 

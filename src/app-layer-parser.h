@@ -295,5 +295,8 @@ void AppLayerTriggerRawStreamReassembly(Flow *);
 
 int AppLayerParserEnabled(const char *alproto);
 int AppLayerProtoDetectionEnabled(const char *alproto);
+void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_proto,
+                                     uint16_t min_depth, uint16_t max_depth,
+                                     uint16_t (*ProbingParser)(uint8_t *input, uint32_t input_len, uint32_t *offset));
 
 #endif /* __APP_LAYER_PARSER_H__ */

@@ -949,14 +949,9 @@ void RegisterSSLParsers(void)
         AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|01 03 03|", 3, 0, STREAM_TOSERVER);
         AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 03|", 3, 0, STREAM_TOSERVER); /* client hello */
 
-        AppLayerRegisterProbingParser(&alp_proto_ctx,
-                                      IPPROTO_TCP,
-                                      "443",
-                                      proto_name,
-                                      ALPROTO_TLS,
-                                      0, 3,
-                                      STREAM_TOSERVER,
-                                      SSLProbingParser);
+        AppLayerParseProbingParserPorts(proto_name, ALPROTO_TLS,
+                                        0, 3,
+                                        SSLProbingParser);
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol",
                   proto_name);
