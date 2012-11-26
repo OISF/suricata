@@ -1965,6 +1965,22 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL)
         return 0;
 
+    IPOnlyCIDRItem *cidr_item;
+    cidr_item = s->CidrSrc;
+    while (cidr_item != NULL) {
+        if (cidr_item->negated)
+            return 0;
+
+        cidr_item = cidr_item->next;
+    }
+    cidr_item = s->CidrDst;
+    while (cidr_item != NULL) {
+        if (cidr_item->negated)
+            return 0;
+
+        cidr_item = cidr_item->next;
+    }
+
     SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
     if (sm == NULL)
         goto iponly;
