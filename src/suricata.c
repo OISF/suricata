@@ -1805,8 +1805,8 @@ int main(int argc, char **argv)
 #endif /* OS_WIN32 */
 
     PacketPoolInit(max_pending_packets);
+    HostInitConfig(HOST_VERBOSE);
     if (run_mode != RUNMODE_UNIX_SOCKET) {
-        HostInitConfig(HOST_VERBOSE);
         FlowInitConfig(FLOW_VERBOSE);
     }
 
@@ -2076,9 +2076,9 @@ int main(int argc, char **argv)
     if (run_mode != RUNMODE_UNIX_SOCKET) {
         SCPerfReleaseResources();
         FlowShutdown();
-        HostShutdown();
         StreamTcpFreeConfig(STREAM_VERBOSE);
     }
+    HostShutdown();
 
     HTPFreeConfig();
     HTPAtExitPrintStats();
