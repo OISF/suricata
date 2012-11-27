@@ -273,7 +273,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         SCPerfReleaseResources();
         /* thread killed, we can run non thread-safe shutdown functions */
         FlowShutdown();
-        HostShutdown();
+        HostCleanup();
         StreamTcpFreeConfig(STREAM_VERBOSE);
         DefragDestroy();
         TmqResetQueues();
@@ -299,7 +299,6 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         PcapFilesFree(cfile);
         SCPerfInitCounterApi();
         DefragInit();
-        HostInitConfig(HOST_QUIET);
         FlowInitConfig(FLOW_QUIET);
         StreamTcpInitConfig(STREAM_VERBOSE);
         RunModeInitializeOutputs();

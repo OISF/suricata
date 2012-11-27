@@ -133,6 +133,7 @@ SC_ATOMIC_DECLARE(unsigned int,host_prune_idx);
 
 void HostInitConfig(char quiet);
 void HostShutdown(void);
+void HostCleanup(void);
 
 Host *HostLookupHostFromHash (Address *);
 Host *HostGetHostFromHash (Address *);
