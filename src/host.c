@@ -79,6 +79,7 @@ void HostFree(Host *h) {
     if (h != NULL) {
         HostClearMemory(h);
 
+        SC_ATOMIC_DESTROY(h->use_cnt);
         SCMutexDestroy(&h->m);
         SCFree(h);
         (void) SC_ATOMIC_SUB(host_memuse, sizeof(Host));
@@ -112,7 +113,6 @@ void HostClearMemory(Host *h) {
         SCFree(h->iprep);
         h->iprep = NULL;
     }
-    SC_ATOMIC_DESTROY(h->use_cnt);
 }
 
 #define HOST_DEFAULT_HASHSIZE 4096
