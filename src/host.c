@@ -260,7 +260,6 @@ void HostShutdown(void)
             Host *h = host_hash[u].head;
             while (h) {
                 Host *n = h->hnext;
-                HostClearMemory(h);
                 HostFree(h);
                 h = n;
             }
