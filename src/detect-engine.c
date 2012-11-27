@@ -449,6 +449,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
 
     DetectEngineThreadCtx *old_det_ctx[no_of_detect_tvs];
     DetectEngineThreadCtx *new_det_ctx[no_of_detect_tvs];
+    ThreadVars *detect_tvs[no_of_detect_tvs];
 
     /* all receive threads are part of packet processing threads */
     tv = tv_root[TVT_PPT];
@@ -465,6 +466,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
             }
 
             old_det_ctx[i] = SC_ATOMIC_GET(slots->slot_data);
+            detect_tvs[i] = tv;
 
             DetectEngineThreadCtx *det_ctx = NULL;
             DetectEngineThreadCtxInitForLiveRuleSwap(tv, (void *)de_ctx,
@@ -492,12 +494,28 @@ static void *DetectEngineLiveRuleSwap(void *arg)
 
     for (i = 0; i < no_of_detect_tvs; i++) {
         int break_out = 0;
+        int pseudo_pkt_inserted = 0;
+        usleep(1000);
         while (SC_ATOMIC_GET(new_det_ctx[i]->so_far_used_by_detect) != 1) {
             if (suricata_ctl_flags != 0) {
                 break_out = 1;
                 break;
             }
 
+            if (pseudo_pkt_inserted == 0) {
+                pseudo_pkt_inserted = 1;
+                if (detect_tvs[i]->inq != NULL) {
+                    Packet *p = PacketGetFromAlloc();
+                    if (p != NULL) {
+                        PacketQueue *q = &trans_q[detect_tvs[i]->inq->id];
+                        SCMutexLock(&q->mutex_q);
+
+                        PacketEnqueue(q, p);
+                        SCCondSignal(&q->cond_q);
+                        SCMutexUnlock(&q->mutex_q);
+                    }
+                }
+            }
             usleep(1000);
         }
         if (break_out)
