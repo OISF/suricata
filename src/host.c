@@ -79,6 +79,7 @@ void HostFree(Host *h) {
     if (h != NULL) {
         HostClearMemory(h);
 
+        SC_ATOMIC_DESTROY(h->use_cnt);
         SCMutexDestroy(&h->m);
         SCFree(h);
         (void) SC_ATOMIC_SUB(host_memuse, sizeof(Host));
@@ -112,7 +113,6 @@ void HostClearMemory(Host *h) {
         SCFree(h->iprep);
         h->iprep = NULL;
     }
-    SC_ATOMIC_DESTROY(h->use_cnt);
 }
 
 #define HOST_DEFAULT_HASHSIZE 4096
@@ -266,7 +266,6 @@ void HostShutdown(void)
             Host *h = host_hash[u].head;
             while (h) {
                 Host *n = h->hnext;
-                HostClearMemory(h);
                 HostFree(h);
                 h = n;
             }
@@ -283,6 +282,56 @@ void HostShutdown(void)
     SC_ATOMIC_DESTROY(host_memuse);
     SC_ATOMIC_DESTROY(host_counter);
     //SC_ATOMIC_DESTROY(flow_flags);
+    return;
+}
+
+/** \brief Cleanup the host engine
+ *
+ * Cleanup the host engine from tag and threshold.
+ *
+ *  \warning Not thread safe */
+void HostCleanup(void)
+{
+    Host *h;
+    uint32_t u;
+
+    if (host_hash != NULL) {
+        for (u = 0; u < host_config.hash_size; u++) {
+            h = host_hash[u].head;
+            HostHashRow *hb = &host_hash[u];
+            while (h) {
+                if ((SC_ATOMIC_GET(h->use_cnt) > 0) && (h->iprep != NULL)) {
+                    /* iprep is attached to host only clear tag and threshold */
+                    if (h->tag != NULL) {
+                        DetectTagDataListFree(h->tag);
+                        h->tag = NULL;
+                    }
+                    if (h->threshold != NULL) {
+                        ThresholdListFree(h->threshold);
+                        h->threshold = NULL;
+                    }
+                    h = h->hnext;
+                } else {
+                    Host *n = h->hnext;
+                    /* remove from the hash */
+                    if (h->hprev != NULL)
+                        h->hprev->hnext = h->hnext;
+                    if (h->hnext != NULL)
+                        h->hnext->hprev = h->hprev;
+                    if (hb->head == h)
+                        hb->head = h->hnext;
+                    if (hb->tail == h)
+                        hb->tail = h->hprev;
+                    h->hnext = NULL;
+                    h->hprev = NULL;
+                    HostClearMemory(h);
+                    HostMoveToSpare(h);
+                    h = n;
+                }
+            }
+        }
+    }
+
     return;
 }
 
