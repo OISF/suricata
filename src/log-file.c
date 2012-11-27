@@ -54,6 +54,8 @@
 #include "util-logopenfile.h"
 
 #include "app-layer-htp.h"
+#include "app-layer-smtp.h"
+#include "mime-decode.h"
 #include "util-memcmp.h"
 #include "stream-tcp-reassemble.h"
 
@@ -99,6 +101,31 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
     snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
         t->tm_mon + 1, t->tm_mday, t->tm_year + 1900, t->tm_hour,
             t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
+}
+
+static void LogFileMetaGetSmtp(FILE *fp, Packet *p, File *ff) {
+
+    SMTPState *state = (SMTPState *) p->flow->alstate;
+    if (state != NULL && state->msg_tail != NULL) {
+
+        /* Message Id */
+        if (state->msg_tail->msg_id != NULL) {
+
+            fprintf(fp, "\"message-id\": \"");
+            PrintRawJsonFp(fp, (uint8_t *) state->msg_tail->msg_id,
+                    (int) state->msg_tail->msg_id_len);
+            fprintf(fp, "\", ");
+        }
+
+        /* Sender */
+        MimeDecField *field = MimeDecFindField(state->msg_tail, "From");
+        if (field != NULL) {
+            fprintf(fp, "\"sender\": \"");
+            PrintRawJsonFp(fp, (uint8_t *) field->value,
+                    (int) field->value_len);
+            fprintf(fp, "\", ");
+        }
+    }
 }
 
 static void LogFileMetaGetUri(FILE *fp, Packet *p, File *ff) {
@@ -215,17 +242,23 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, Packet *p, File *ff, i
         fprintf(fp, "\"dp\": %" PRIu16 ", ", dp);
     }
 
-    fprintf(fp, "\"http_uri\": \"");
-    LogFileMetaGetUri(fp, p, ff);
-    fprintf(fp, "\", ");
+    /* Only applicable to HTTP traffic */
+    if (ff->txid != 0) {
+        fprintf(fp, "\"http_uri\": \"");
+        LogFileMetaGetUri(fp, p, ff);
+        fprintf(fp, "\", ");
 
-    fprintf(fp, "\"http_host\": \"");
-    LogFileMetaGetHost(fp, p, ff);
-    fprintf(fp, "\", ");
+        fprintf(fp, "\"http_host\": \"");
+        LogFileMetaGetHost(fp, p, ff);
+        fprintf(fp, "\", ");
 
-    fprintf(fp, "\"http_referer\": \"");
-    LogFileMetaGetReferer(fp, p, ff);
-    fprintf(fp, "\", ");
+        fprintf(fp, "\"http_referer\": \"");
+        LogFileMetaGetReferer(fp, p, ff);
+        fprintf(fp, "\", ");
+    } else if (p->flow->alproto == ALPROTO_SMTP) {
+        /* Only applicable to SMTP */
+        LogFileMetaGetSmtp(fp, p, ff);
+    }
 
     fprintf(fp, "\"filename\": \"");
     PrintRawJsonFp(fp, ff->name, ff->name_len);

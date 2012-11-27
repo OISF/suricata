@@ -27,5 +27,7 @@
 int DetectFileInspectHttp(ThreadVars *tv, DetectEngineCtx *de_ctx,
                           DetectEngineThreadCtx *det_ctx, Signature *s,
                           Flow *f, uint8_t flags, void *alstate, int tx_id);
+int DetectFileInspectSmtp(ThreadVars *tv, DetectEngineThreadCtx *de_ctx,
+                          Flow *f, Signature *s, void *alstate, uint8_t flags);
 
 #endif /* __DETECT_ENGINE_FILE_H__ */

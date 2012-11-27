@@ -85,6 +85,11 @@
 #include "util-unittest-helper.h"
 #include "util-profiling.h"
 
+/* File match constrants */
+#define DET_FILE_MATCH            1
+#define DET_FILE_CANT_MATCH       2
+#define DET_FILESTORE_CANT_MATCH  3
+
 /** convert enum to string */
 #define CASE_CODE(E)  case E: return #E
 
@@ -477,6 +482,34 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 }
             }
         }
+    } else if (alproto == ALPROTO_SMTP && (flags & STREAM_TOSERVER)) {
+        /* Look for files over SMTP traffic */
+        FLOWLOCK_WRLOCK(f);
+
+        if (s->sm_lists[DETECT_SM_LIST_FILEMATCH] != NULL) {
+            SCLogDebug("file inspection");
+            if (match_flags == inspect_flags) {
+                SCLogDebug("ready to inspect files");
+
+                inspect_flags |= DE_STATE_FLAG_FILE_TS_INSPECT;
+
+                match = DetectFileInspectSmtp(tv, det_ctx, f, s, alstate, flags);
+                SCLogDebug("match %d", match);
+                if (match == DET_FILE_MATCH) {
+                    match_flags |= DE_STATE_FLAG_FILE_TS_MATCH;
+                } else if (match == DET_FILE_CANT_MATCH) {
+                    match_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
+                } else if (match == DET_FILESTORE_CANT_MATCH) {
+                    match_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
+                    file_no_match++;
+                }
+            } else {
+                SCLogDebug("skipping file inspection as we're not yet done with"
+                        "the other inspection");
+            }
+        }
+
+        FLOWLOCK_UNLOCK(f);
     }
 
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
@@ -733,6 +766,35 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                     }
                 }
 
+            } else if (alproto == ALPROTO_SMTP && (flags & STREAM_TOSERVER)) {
+                /* Otherwise process files over SMTP */
+                FLOWLOCK_WRLOCK(f);
+
+                if (s->sm_lists[DETECT_SM_LIST_FILEMATCH] != NULL) {
+
+                    if (!(item->flags & DE_STATE_FLAG_FILE_TS_MATCH)) {
+                        SCLogDebug("file inspection");
+                        if (match_flags == inspect_flags) {
+                            SCLogDebug("ready to inspect files");
+
+                            inspect_flags |= DE_STATE_FLAG_FILE_TS_INSPECT;
+
+                            match = DetectFileInspectSmtp(tv, det_ctx, f, s, alstate, flags);
+                            if (match == 1) {
+                                match_flags |= DE_STATE_FLAG_FILE_TS_MATCH;
+                            } else if (match == 2) {
+                                match_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
+                            } else if (match == 3) {
+                                match_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
+                                file_no_match++;
+                            }
+                        } else {
+                            SCLogDebug("skipping file inspection as we're not yet done with the other inspection");
+                        }
+                    }
+                }
+
+                FLOWLOCK_UNLOCK(f);
             }
 
             /* next, check the other sig matches */
