@@ -174,7 +174,7 @@ static void LogFileMetaGetUserAgent(FILE *fp, Packet *p, File *ff) {
 
             table_iterator_reset(headers);
             while (table_iterator_next(headers, (void **)&h) != NULL) {
-                if (bstr_len(h->name) >= 4 &&
+                if (bstr_len(h->name) >= 10 &&
                         SCMemcmpLowercase((uint8_t *)"user-agent", (uint8_t *)bstr_ptr(h->name), bstr_len(h->name)) == 0) {
                     PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(h->value),
                         bstr_len(h->value));
