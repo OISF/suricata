@@ -532,7 +532,7 @@ uint16_t AppLayerGetProtoByName(const char *name)
 const char *AppLayerGetProtoString(int proto)
 {
 
-    if ((proto > ALPROTO_MAX) || (proto < 0)) {
+    if ((proto >= ALPROTO_MAX) || (proto < 0)) {
         return "Undefined";
     }
 
