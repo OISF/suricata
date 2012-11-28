@@ -748,7 +748,8 @@ void *UnixManagerThread(void *td)
 
         if ((ret == 0) || (TmThreadsCheckFlag(th_v, THV_KILL))) {
             UnixClient *item;
-            TAILQ_FOREACH(item, &(&command)->clients, next) {
+            UnixClient *titem;
+            TAILQ_FOREACH_SAFE(item, &(&command)->clients, next, titem) {
                 close(item->fd);
                 SCFree(item);
             }
