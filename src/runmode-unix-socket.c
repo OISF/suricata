@@ -215,6 +215,10 @@ TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
             return TM_ECODE_FAILED;
         }
         output_dir = json_string_value(oarg);
+    } else {
+        SCLogInfo("error: can't get output-dir");
+        json_object_set_new(answer, "message", json_string("output dir param is mandatory"));
+        return TM_ECODE_FAILED;
     }
 
 #ifdef OS_WIN32

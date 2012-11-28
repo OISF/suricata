@@ -346,6 +346,13 @@ struct {								\
 	    (var) != TAILQ_END(head);					\
 	    (var) = TAILQ_NEXT(var, field))
 
+/* removal safe iterator using a temprary element has last param */
+#define TAILQ_FOREACH_SAFE(var, head, field, tvar)					\
+	for((var) = TAILQ_FIRST(head), \
+        (tvar) = TAILQ_FIRST(head) ? TAILQ_NEXT(TAILQ_FIRST(head), field): NULL ; \
+	    (var) != TAILQ_END(head);					\
+	    (var = tvar), (tvar) = var ? TAILQ_NEXT(var, field): NULL)
+
 #define TAILQ_FOREACH_REVERSE(var, head, headname, field)		\
 	for((var) = TAILQ_LAST(head, headname);				\
 	    (var) != TAILQ_END(head);					\

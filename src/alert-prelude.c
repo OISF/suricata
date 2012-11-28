@@ -249,11 +249,13 @@ static int EventToImpact(PacketAlert *pa, Packet *p, idmef_alert_t *alert)
         idmef_assessment_set_action(assessment, action, 0);
     }
 
-    ret = idmef_impact_new_description(impact, &str);
-    if ( ret < 0 )
-        SCReturnInt(ret);
+    if (pa->s->class_msg) {
+        ret = idmef_impact_new_description(impact, &str);
+        if ( ret < 0 )
+            SCReturnInt(ret);
 
-    prelude_string_set_ref(str, pa->s->class_msg);
+        prelude_string_set_ref(str, pa->s->class_msg);
+    }
 
     SCReturnInt(0);
 }
@@ -693,11 +695,13 @@ TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
     if ( ret < 0 )
         goto err;
 
-    ret = idmef_classification_new_text(class, &str);
-    if ( ret < 0 )
-        goto err;
+    if (pa->s->msg) {
+        ret = idmef_classification_new_text(class, &str);
+        if ( ret < 0 )
+            goto err;
 
-    prelude_string_set_ref(str, pa->s->msg);
+        prelude_string_set_ref(str, pa->s->msg);
+    }
 
     ret = EventToImpact(pa, p, alert);
     if ( ret < 0 )
