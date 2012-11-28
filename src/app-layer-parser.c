@@ -541,8 +541,6 @@ const char *AppLayerGetProtoString(int proto)
     } else {
         return al_proto_table[proto].name;
     }
-
-    return "Undefined";
 }
 
 /** \brief Description: register a parser.
