@@ -21,6 +21,24 @@ from socket import socket, AF_UNIX, error
 from time import sleep
 import sys
 
+class Completer:
+    def __init__(self, words):
+        self.words = words
+        self.generator = None
+
+    def complete(self, text):
+        for word in self.words:
+            if word.startswith(text):
+                yield word
+
+    def __call__(self, text, state):
+        if state == 0:
+            self.generator = self.complete(text)
+        try:
+            return self.generator.next()
+        except StopIteration:
+            return None
+        return None
 
 def json_recv(socket):
     cmdret = None
@@ -81,6 +99,8 @@ cmd_list.append("quit")
 
 # if ok loop
 try:
+    readline.set_completer(Completer(cmd_list))
+    readline.set_completer_delims(";")
     readline.parse_and_bind('tab: complete')
     while True:
         command = raw_input(">>> ").strip()
