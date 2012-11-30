@@ -97,6 +97,8 @@ if cmdret["return"] == "NOK":
 cmd_list = cmdret["message"]["commands"]
 cmd_list.append("quit")
 
+print "Command list: " + ", ".join(cmd_list)
+
 # if ok loop
 try:
     readline.set_completer(Completer(cmd_list))
