@@ -285,10 +285,6 @@ MTSBA_Slice *MTSBA_GetSlice(MTSBA_Data *mtsba_data, uint32_t len, void *p)
 
 void MTSBA_DeRegister(MTSBA_Data *mtsba_data)
 {
-    SCFree(mtsba_data->d_buffer);
-    SCFree(mtsba_data->o_buffer);
-    SCFree(mtsba_data->p_buffer);
-
     MTSBA_Slice *slice_temp = mtsba_data->slice_head;
     SCMutexLock(&slice_pool_mutex);
     while (slice_temp != NULL) {
@@ -309,23 +305,17 @@ void MTSBA_DeRegister(MTSBA_Data *mtsba_data)
  *
  * \param len Length of the buffer to be assigned.
  */
-MTSBA_Data *MTSBA_RegisterNew(const char *buffer_len_str)
+MTSBA_Data *MTSBA_RegisterNew(uint8_t *d_buffer, uint32_t d_buffer_len,
+                              uint32_t *o_buffer, void **p_buffer,
+                              uint32_t op_buffer_no_of_items)
 {
-    uint32_t buffer_len = 0;
-
-    if (ParseSizeStringU32(buffer_len_str, &buffer_len) < 0) {
-        SCLogError(SC_ERR_SIZE_PARSE, "Error parsing MTSBA buffer size "
-                   "parsing for - %s.  Killing engine", buffer_len_str);
-        exit(EXIT_FAILURE);
-    }
-
-    if (buffer_len > MTSBA_BUFFER_LIMIT) {
+    if (d_buffer_len > MTSBA_BUFFER_LIMIT) {
         SCLogError(SC_ERR_MTSBA_ERROR, "Buffer max limit exceeded.  We "
                    "accept a max limit of %u bytes", MTSBA_BUFFER_LIMIT);
         return NULL;
     }
 
-    if ((buffer_len % 8) != 0) {
+    if ((d_buffer_len % 8) != 0) {
         SCLogError(SC_ERR_MTSBA_ERROR, "Please specify a buffer length which "
                    "is a multiple of 8");
         return NULL;
@@ -337,30 +327,15 @@ MTSBA_Data *MTSBA_RegisterNew(const char *buffer_len_str)
     }
     memset(new, 0, sizeof(MTSBA_Data));
 
-    /* malloc the payload/data buffer and set it's size */
-    new->d_buffer = SCMalloc(sizeof(uint8_t) * buffer_len);
-    if (new->d_buffer == NULL) {
-        return NULL;
-    }
-    memset(new->d_buffer, 0, sizeof(uint8_t) * buffer_len);
-    new->d_buffer_len = buffer_len;
+    /* payload/data buffer and set its size */
+    new->d_buffer = d_buffer;
+    new->d_buffer_len = d_buffer_len;
 
-    /* malloc the offset buffer */
-    new->o_buffer = SCMalloc(sizeof(uint32_t) * MTSBA_ITEM_LIMIT);
-    if (new->o_buffer == NULL) {
-        return NULL;
-    }
-    memset(new->o_buffer, 0, sizeof(uint32_t) * MTSBA_ITEM_LIMIT);
-
-    /* malloc the item pointer buffer */
-    new->p_buffer = SCMalloc(sizeof(void *) * MTSBA_ITEM_LIMIT);
-    if (new->p_buffer == NULL) {
-        return NULL;
-    }
-    memset(new->p_buffer, 0, sizeof(void *) * MTSBA_ITEM_LIMIT);
-
+    /* offset buffer and set its size */
+    new->o_buffer = o_buffer;
+    new->p_buffer = p_buffer;
     /* common to the above 2 malloc'ed buffers */
-    new->op_buffer_len = MTSBA_ITEM_LIMIT;
+    new->op_buffer_len = op_buffer_no_of_items;
 
     /* used to lock this new MTSBA instance when it's used */
     SCMutexInit(&new->m, NULL);
@@ -387,6 +362,8 @@ static int MTSBA_SlicePoolInit(void *data, void *init_data)
     return 1;
 }
 
+/* disabled to reflect the changes made in PoolInit */
+#if 0
 static void MTSBA_SlicePoolFree(void *data)
 {
     SC_ATOMIC_DESTROY(((MTSBA_Slice *)data)->done);
@@ -394,6 +371,7 @@ static void MTSBA_SlicePoolFree(void *data)
 
     return;
 }
+#endif
 
 static void MTSBA_SlicePoolCleanup(void *data)
 {
@@ -416,7 +394,7 @@ void MTSBA_Init(void)
                           MTSBA_SlicePoolInit,
                           NULL,
                           MTSBA_SlicePoolCleanup,
-                          MTSBA_SlicePoolFree);
+                          NULL);
     if (slice_pool == NULL) {
         SCLogError(SC_ERR_POOL_INIT, "MTSBA slice_pool is not initialized");
         exit(EXIT_FAILURE);
@@ -434,7 +412,19 @@ int MTSBA_Test01(void)
     MTSBA_Slice *slice1, *slice2, *slice3, *slice4, *slice_temp;
     int result = 0;
 
-    MTSBA_Data *data = MTSBA_RegisterNew("64");
+    uint8_t *d_buffer = SCMalloc(sizeof(uint8_t) * 64);
+    uint32_t *o_buffer = SCMalloc(sizeof(uint32_t) * 64);
+    void **p_buffer = SCMalloc(sizeof(void *) * 64);
+    if (d_buffer == NULL || o_buffer == NULL || p_buffer == NULL) {
+        printf("failure 0\n");
+        SCFree(d_buffer);
+        SCFree(o_buffer);
+        SCFree(p_buffer);
+        return 0;
+    }
+
+    MTSBA_Data *data = MTSBA_RegisterNew(d_buffer, 64,
+                                         o_buffer, p_buffer, 64);
     if (data == NULL) {
         goto end;
     }
@@ -551,6 +541,10 @@ int MTSBA_Test01(void)
     }
 
     MTSBA_DeRegister(data);
+    SCFree(d_buffer);
+    SCFree(o_buffer);
+    SCFree(p_buffer);
+
     return result;
 }
 
@@ -559,7 +553,19 @@ int MTSBA_Test02(void)
     MTSBA_Slice *slice1, *slice2, *slice3, *slice_temp;
     int result = 0;
 
-    MTSBA_Data *data = MTSBA_RegisterNew("64");
+    uint8_t *d_buffer = SCMalloc(sizeof(uint8_t) * 64);
+    uint32_t *o_buffer = SCMalloc(sizeof(uint32_t) * 64);
+    void **p_buffer = SCMalloc(sizeof(void *) * 64);
+    if (d_buffer == NULL || o_buffer == NULL || p_buffer == NULL) {
+        printf("failure 0\n");
+        SCFree(d_buffer);
+        SCFree(o_buffer);
+        SCFree(p_buffer);
+        return 0;
+    }
+
+    MTSBA_Data *data = MTSBA_RegisterNew(d_buffer, 64,
+                                         o_buffer, p_buffer, 64);
     if (data == NULL) {
         goto end;
     }
@@ -789,6 +795,10 @@ int MTSBA_Test02(void)
     }
 
     MTSBA_DeRegister(data);
+    SCFree(d_buffer);
+    SCFree(o_buffer);
+    SCFree(p_buffer);
+
     return result;
 }
 
@@ -797,7 +807,19 @@ int MTSBA_Test03(void)
     MTSBA_Slice *slice1, *slice2, *slice3, *slice_temp;
     int result = 0;
 
-    MTSBA_Data *data = MTSBA_RegisterNew("64");
+    uint8_t *d_buffer = SCMalloc(sizeof(uint8_t) * 64);
+    uint32_t *o_buffer = SCMalloc(sizeof(uint32_t) * 64);
+    void **p_buffer = SCMalloc(sizeof(void *) * 64);
+    if (d_buffer == NULL || o_buffer == NULL || p_buffer == NULL) {
+        printf("failure 0\n");
+        SCFree(d_buffer);
+        SCFree(o_buffer);
+        SCFree(p_buffer);
+        return 0;
+    }
+
+    MTSBA_Data *data = MTSBA_RegisterNew(d_buffer, 64,
+                                         o_buffer, p_buffer, 64);
     if (data == NULL) {
         goto end;
     }
@@ -859,6 +881,10 @@ int MTSBA_Test03(void)
     }
 
     MTSBA_DeRegister(data);
+    SCFree(d_buffer);
+    SCFree(o_buffer);
+    SCFree(p_buffer);
+
     return result;
 }
 
@@ -867,7 +893,19 @@ int MTSBA_Test04(void)
     MTSBA_Slice *slice1, *slice2, *slice3, *slice_temp;
     int result = 0;
 
-    MTSBA_Data *data = MTSBA_RegisterNew("64");
+    uint8_t *d_buffer = SCMalloc(sizeof(uint8_t) * 64);
+    uint32_t *o_buffer = SCMalloc(sizeof(uint32_t) * 64);
+    void **p_buffer = SCMalloc(sizeof(void *) * 64);
+    if (d_buffer == NULL || o_buffer == NULL || p_buffer == NULL) {
+        printf("failure 0\n");
+        SCFree(d_buffer);
+        SCFree(o_buffer);
+        SCFree(p_buffer);
+        return 0;
+    }
+
+    MTSBA_Data *data = MTSBA_RegisterNew(d_buffer, 64,
+                                         o_buffer, p_buffer, 64);
     if (data == NULL) {
         goto end;
     }
@@ -953,6 +991,10 @@ int MTSBA_Test04(void)
     }
 
     MTSBA_DeRegister(data);
+    SCFree(d_buffer);
+    SCFree(o_buffer);
+    SCFree(p_buffer);
+
     return result;
 }
 
@@ -961,7 +1003,19 @@ int MTSBA_Test05(void)
     MTSBA_Slice *slice1, *slice2, *slice3, *slice_temp;
     int result = 0;
 
-    MTSBA_Data *data = MTSBA_RegisterNew("64");
+    uint8_t *d_buffer = SCMalloc(sizeof(uint8_t) * 64);
+    uint32_t *o_buffer = SCMalloc(sizeof(uint32_t) * 64);
+    void **p_buffer = SCMalloc(sizeof(void *) * 64);
+    if (d_buffer == NULL || o_buffer == NULL || p_buffer == NULL) {
+        printf("failure 0\n");
+        SCFree(d_buffer);
+        SCFree(o_buffer);
+        SCFree(p_buffer);
+        return 0;
+    }
+
+    MTSBA_Data *data = MTSBA_RegisterNew(d_buffer, 64,
+                                         o_buffer, p_buffer, 64);
     if (data == NULL) {
         goto end;
     }
@@ -1014,6 +1068,10 @@ int MTSBA_Test05(void)
     }
 
     MTSBA_DeRegister(data);
+    SCFree(d_buffer);
+    SCFree(o_buffer);
+    SCFree(p_buffer);
+
     return result;
 }
 
@@ -1024,7 +1082,19 @@ int MTSBA_Test06(void)
     MTSBA_CulledInfo culled_info;
     memset(&culled_info, 0, sizeof(MTSBA_CulledInfo));
 
-    MTSBA_Data *data = MTSBA_RegisterNew("64");
+    uint8_t *d_buffer = SCMalloc(sizeof(uint8_t) * 64);
+    uint32_t *o_buffer = SCMalloc(sizeof(uint32_t) * 64);
+    void **p_buffer = SCMalloc(sizeof(void *) * 64);
+    if (d_buffer == NULL || o_buffer == NULL || p_buffer == NULL) {
+        printf("failure 0\n");
+        SCFree(d_buffer);
+        SCFree(o_buffer);
+        SCFree(p_buffer);
+        return 0;
+    }
+
+    MTSBA_Data *data = MTSBA_RegisterNew(d_buffer, 64,
+                                         o_buffer, p_buffer, 64);
     if (data == NULL) {
         goto end;
     }
@@ -1199,6 +1269,10 @@ int MTSBA_Test06(void)
     }
 
     MTSBA_DeRegister(data);
+    SCFree(d_buffer);
+    SCFree(o_buffer);
+    SCFree(p_buffer);
+
     return result;
 }
 

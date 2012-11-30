@@ -86,7 +86,9 @@ void MTSBA_CullCompletedSlices(MTSBA_Data *mtsba_data,
                                MTSBA_CulledInfo *culled_info);
 MTSBA_Slice *MTSBA_GetSlice(MTSBA_Data *data, uint32_t len, void *p);
 void MTSBA_DeRegister(MTSBA_Data *mtsba_data);
-MTSBA_Data* MTSBA_RegisterNew(const char *buffer_len_str);
+MTSBA_Data *MTSBA_RegisterNew(uint8_t *d_buffer, uint32_t d_buffer_len,
+                              uint32_t *o_buffer, void **p_buffer,
+                              uint32_t op_buffer_no_of_items);
 void MTSBA_Init(void);
 void MTSBA_RegisterUnittests(void);
 
