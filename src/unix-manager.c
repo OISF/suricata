@@ -619,6 +619,14 @@ TmEcode UnixManagerRunningModeCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
+TmEcode UnixManagerCaptureModeCommand(json_t *cmd,
+                                   json_t *server_msg, void *data)
+{
+    SCEnter();
+    json_object_set_new(server_msg, "message", json_string(RunModeGetMainMode()));
+    SCReturnInt(TM_ECODE_OK);
+}
+
 TmEcode UnixManagerListCommand(json_t *cmd,
                                json_t *answer, void *data)
 {
@@ -810,6 +818,7 @@ void *UnixManagerThread(void *td)
     UnixManagerRegisterCommand("version", UnixManagerVersionCommand, &command, 0);
     UnixManagerRegisterCommand("uptime", UnixManagerUptimeCommand, &command, 0);
     UnixManagerRegisterCommand("running-mode", UnixManagerRunningModeCommand, &command, 0);
+    UnixManagerRegisterCommand("capture-mode", UnixManagerCaptureModeCommand, &command, 0);
 #if 0
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
 #endif
