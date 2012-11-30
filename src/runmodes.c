@@ -163,6 +163,20 @@ char *RunmodeGetActive(void)
 }
 
 /**
+ * Return the running mode
+ *
+ * The returned string must not be freed.
+ *
+ * \return a string containing the current running mode
+ */
+const char *RunModeGetMainMode(void)
+{
+    int mainmode = RunmodeGetCurrent();
+
+    return RunModeTranslateModeToName(mainmode);
+}
+
+/**
  * \brief Register all runmodes in the engine.
  */
 void RunModeRegisterRunModes(void)

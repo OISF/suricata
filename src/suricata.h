@@ -151,6 +151,7 @@ void SignalHandlerSigusr2EngineShutdown(int);
 void SignalHandlerSigusr2Idle(int sig);
 
 int RunmodeIsUnittests(void);
+int RunmodeGetCurrent(void);
 
 extern int run_mode;
 
