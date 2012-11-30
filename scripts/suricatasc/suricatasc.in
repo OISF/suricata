@@ -137,6 +137,20 @@ try:
                     cmdmsg["command"] = cmd
                     cmdmsg["arguments"] = {}
                     cmdmsg["arguments"]["iface"] = iface
+            elif "conf-get" in command:
+                try:
+                    [cmd, variable] = command.split(' ', 1)
+                except:
+                    print "Error: unable to split command '%s'" % (command)
+                    continue
+                if cmd != "conf-get":
+                    print "Error: invalid command '%s'" % (command)
+                    continue
+                else:
+                    cmdmsg["command"] = cmd
+                    cmdmsg["arguments"] = {}
+                    cmdmsg["arguments"]["variable"] = variable
+
             else:
                 cmdmsg["command"] = command
             socket.send(json.dumps(cmdmsg))
