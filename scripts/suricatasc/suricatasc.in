@@ -21,13 +21,27 @@ from socket import socket, AF_UNIX, error
 from time import sleep
 import sys
 
+
+def json_recv(socket):
+    cmdret = None
+    i = 0
+    data = ""
+    while i < 5:
+        i += 1
+        data += socket.recv(SIZE)
+        try:
+            cmdret = json.loads(data)
+            break
+        except json.decoder.JSONDecodeError:
+            sleep(0.3)
+    return cmdret
+
 VERSION = "0.1"
 if len(sys.argv) == 2:
     SOCKET_PATH = "@e_localstatedir@/" + sys.argv[1]
 else:
     SOCKET_PATH = "@e_localstatedir@/suricata-command.socket"
 SIZE = 4096
-COMMANDS_REGEX = re.compile("^(?:shutdown|quit|command-list|reload-rules|pcap-file .+|pcap-file-number|pcap-file-list|pcap-current|iface-list|iface-stat .+)$")
 
 socket = socket(AF_UNIX)
 socket.connect(SOCKET_PATH)
@@ -37,29 +51,40 @@ socket.settimeout(10)
 socket.send(json.dumps({"version": VERSION}))
 
 # get return
-cmdret = None
-i = 0
-data = ""
-while i < 5:
-    i += 1
-    data += socket.recv(SIZE)
-    try:
-        cmdret = json.loads(data)
-        break
-    except json.decoder.JSONDecodeError:
-        sleep(0.3)
+cmdret = json_recv(socket)
+
+if cmdret == None:
+    sys.stderr.write("Unable to get message from server")
+    sys.exit(1)
 
 # if ok loop
 if cmdret["return"] == "NOK":
     sys.stderr.write("Error: %s" % (cmdret["message"]))
     sys.exit(1)
 
+# get command list
+
+socket.send(json.dumps({"command": "command-list"}))
+cmdret = json_recv(socket)
+
+if cmdret == None:
+    sys.stderr.write("Unable to get message from server")
+    sys.exit(1)
+
+# if ok loop
+if cmdret["return"] == "NOK":
+    sys.stderr.write("Error: %s" % (cmdret["message"]))
+    sys.exit(1)
+
+cmd_list = cmdret["message"]["commands"]
+cmd_list.append("quit")
+
 # if ok loop
 try:
     readline.parse_and_bind('tab: complete')
     while True:
         command = raw_input(">>> ").strip()
-        if COMMANDS_REGEX.match(command):
+        if command.split(' ', 2)[0] in cmd_list:
             if command == "quit":
                 break;
             cmdmsg = {}
@@ -93,16 +118,11 @@ try:
             else:
                 cmdmsg["command"] = command
             socket.send(json.dumps(cmdmsg))
-            i = 0
-            data = ""
-            while i < 3:
-                i += 1
-                data += socket.recv(SIZE)
-                try:
-                    cmdret = json.loads(data)
-                    break
-                except json.decoder.JSONDecodeError:
-                    sleep(0.3)
+            cmdret = json_recv(socket)
+
+            if cmdret == None:
+                sys.stderr.write("Unable to get message from server")
+                sys.exit(1)
             #decode json message
             if cmdret["return"] == "NOK":
                 print "Error: %s" % (cmdret["message"])
