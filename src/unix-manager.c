@@ -599,6 +599,18 @@ TmEcode UnixManagerVersionCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
+TmEcode UnixManagerUptimeCommand(json_t *cmd,
+                                   json_t *server_msg, void *data)
+{
+    SCEnter();
+    int uptime;
+    UnixCommand *ucmd = (UnixCommand *)data;
+
+    uptime = time(NULL) - ucmd->start_timestamp;
+    json_object_set_new(server_msg, "message", json_integer(uptime));
+    SCReturnInt(TM_ECODE_OK);
+}
+
 TmEcode UnixManagerListCommand(json_t *cmd,
                                json_t *answer, void *data)
 {
@@ -788,6 +800,7 @@ void *UnixManagerThread(void *td)
     UnixManagerRegisterCommand("shutdown", UnixManagerShutdownCommand, NULL, 0);
     UnixManagerRegisterCommand("command-list", UnixManagerListCommand, &command, 0);
     UnixManagerRegisterCommand("version", UnixManagerVersionCommand, &command, 0);
+    UnixManagerRegisterCommand("uptime", UnixManagerUptimeCommand, &command, 0);
 #if 0
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
 #endif
