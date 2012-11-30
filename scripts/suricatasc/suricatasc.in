@@ -20,6 +20,10 @@ import re
 from socket import socket, AF_UNIX, error
 from time import sleep
 import sys
+import argparse
+
+VERSION = "0.1"
+SIZE = 4096
 
 class Completer:
     def __init__(self, words):
@@ -54,18 +58,23 @@ def json_recv(socket):
             sleep(0.3)
     return cmdret
 
-VERSION = "0.1"
-if len(sys.argv) == 2:
-    SOCKET_PATH = "@e_localstatedir@/" + sys.argv[1]
+parser = argparse.ArgumentParser(prog='suricatasc', description='Client for Suricata unix socket')
+parser.add_argument('-v', '--verbose', action='store_const', const=True, help='verbose output (including JSON dump)')
+parser.add_argument('socket', metavar='socket', nargs='?', help='socket file to connnect to', default=None)
+args = parser.parse_args()
+
+if args.socket != None:
+    SOCKET_PATH = "@e_localstatedir@/" + args.socket[0]
 else:
     SOCKET_PATH = "@e_localstatedir@/suricata-command.socket"
-SIZE = 4096
 
 socket = socket(AF_UNIX)
 socket.connect(SOCKET_PATH)
 socket.settimeout(10)
 
 #send version
+if args.verbose:
+    print "SND: " + json.dumps({"version": VERSION})
 socket.send(json.dumps({"version": VERSION}))
 
 # get return
@@ -75,6 +84,8 @@ if cmdret == None:
     sys.stderr.write("Unable to get message from server")
     sys.exit(1)
 
+if args.verbose:
+    print "RCV: "+ json.dumps(cmdret)
 # if ok loop
 if cmdret["return"] == "NOK":
     sys.stderr.write("Error: %s" % (cmdret["message"]))
@@ -82,12 +93,17 @@ if cmdret["return"] == "NOK":
 
 # get command list
 
+if args.verbose:
+    print "SND: " + json.dumps({"command": "command-list"})
 socket.send(json.dumps({"command": "command-list"}))
 cmdret = json_recv(socket)
 
 if cmdret == None:
     sys.stderr.write("Unable to get message from server")
     sys.exit(1)
+
+if args.verbose:
+    print "RCV: "+ json.dumps(cmdret)
 
 # if ok loop
 if cmdret["return"] == "NOK":
@@ -150,15 +166,20 @@ try:
                     cmdmsg["command"] = cmd
                     cmdmsg["arguments"] = {}
                     cmdmsg["arguments"]["variable"] = variable
-
             else:
                 cmdmsg["command"] = command
+            if args.verbose:
+                print "SND: " + json.dumps(cmdmsg)
             socket.send(json.dumps(cmdmsg))
             cmdret = json_recv(socket)
 
             if cmdret == None:
                 sys.stderr.write("Unable to get message from server")
                 sys.exit(1)
+
+            if args.verbose:
+                print "RCV: "+ json.dumps(cmdret)
+
             #decode json message
             if cmdret["return"] == "NOK":
                 print "Error: %s" % (cmdret["message"])
