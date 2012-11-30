@@ -193,6 +193,7 @@ detect-ssl-state.c detect-ssl-state.h \
 detect-ssl-version.c detect-ssl-version.h \
 detect-stream_size.c detect-stream_size.h \
 detect-tag.c detect-tag.h \
+detect-template.c detect-template.h \
 detect-threshold.c detect-threshold.h \
 detect-tls.c detect-tls.h \
 detect-tls-version.c detect-tls-version.h \

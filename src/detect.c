@@ -155,6 +155,7 @@
 #include "detect-geoip.h"
 #include "detect-dns-query.h"
 #include "detect-app-layer-protocol.h"
+#include "detect-template.h"
 
 #include "util-rule-vars.h"
 
@@ -5236,6 +5237,7 @@ void SigTableSetup(void)
     DetectDnsQueryRegister();
     DetectModbusRegister();
     DetectAppLayerProtocolRegister();
+    DetectTemplateRegister();
 }
 
 void SigTableRegisterTests(void)
