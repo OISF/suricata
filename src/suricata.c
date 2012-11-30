@@ -240,6 +240,11 @@ int RunmodeIsUnittests(void) {
     return 0;
 }
 
+int RunmodeGetCurrent(void)
+{
+    return run_mode;
+}
+
 static void SignalHandlerSigint(/*@unused@*/ int sig) {
     sigint_count = 1;
     suricata_ctl_flags |= SURICATA_STOP;
