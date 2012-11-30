@@ -583,6 +583,41 @@ TmEcode UnixManagerShutdownCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
+TmEcode UnixManagerListCommand(json_t *cmd,
+                               json_t *answer, void *data)
+{
+    SCEnter();
+    json_t *jdata;
+    json_t *jarray;
+    Command *lcmd = NULL;
+    UnixCommand *gcmd = (UnixCommand *) data;
+    int i = 0;
+
+    jdata = json_object();
+    if (jdata == NULL) {
+        json_object_set_new(answer, "message",
+                            json_string("internal error at json object creation"));
+        return TM_ECODE_FAILED;
+    }
+    jarray = json_array();
+    if (jarray == NULL) {
+        json_object_set_new(answer, "message",
+                            json_string("internal error at json object creation"));
+        return TM_ECODE_FAILED;
+    }
+
+    TAILQ_FOREACH(lcmd, &gcmd->commands, next) {
+        json_array_append(jarray, json_string(lcmd->name));
+        i++;
+    }
+
+    json_object_set_new(jdata, "count", json_integer(i));
+    json_object_set_new(jdata, "commands", jarray);
+    json_object_set_new(answer, "message", jdata);
+    SCReturnInt(TM_ECODE_OK);
+}
+
+
 #if 0
 TmEcode UnixManagerReloadRules(json_t *cmd,
                                    json_t *server_msg, void *data)
@@ -735,6 +770,7 @@ void *UnixManagerThread(void *td)
 
     /* Init Unix socket */
     UnixManagerRegisterCommand("shutdown", UnixManagerShutdownCommand, NULL, 0);
+    UnixManagerRegisterCommand("command-list", UnixManagerListCommand, &command, 0);
 #if 0
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
 #endif
