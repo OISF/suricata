@@ -583,6 +583,22 @@ TmEcode UnixManagerShutdownCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
+TmEcode UnixManagerVersionCommand(json_t *cmd,
+                                   json_t *server_msg, void *data)
+{
+    SCEnter();
+    json_object_set_new(server_msg, "message", json_string(
+#ifdef REVISION
+                        PROG_VER  xstr(REVISION)
+#elif defined RELEASE
+                        PROG_VER " RELEASE"
+#else
+                        PROG_VER
+#endif
+                        ));
+    SCReturnInt(TM_ECODE_OK);
+}
+
 TmEcode UnixManagerListCommand(json_t *cmd,
                                json_t *answer, void *data)
 {
@@ -771,6 +787,7 @@ void *UnixManagerThread(void *td)
     /* Init Unix socket */
     UnixManagerRegisterCommand("shutdown", UnixManagerShutdownCommand, NULL, 0);
     UnixManagerRegisterCommand("command-list", UnixManagerListCommand, &command, 0);
+    UnixManagerRegisterCommand("version", UnixManagerVersionCommand, &command, 0);
 #if 0
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
 #endif
