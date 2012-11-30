@@ -627,6 +627,36 @@ TmEcode UnixManagerCaptureModeCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
+TmEcode UnixManagerConfGetCommand(json_t *cmd,
+                                   json_t *server_msg, void *data)
+{
+    SCEnter();
+
+    char *confval = NULL;
+    char *variable = NULL;
+
+    json_t *jarg = json_object_get(cmd, "variable");
+    if(!json_is_string(jarg)) {
+        SCLogInfo("error: variable is not a string");
+        json_object_set_new(server_msg, "message", json_string("variable is not a string"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    variable = (char *)json_string_value(jarg);
+    if (ConfGet(variable, &confval) != 1) {
+        json_object_set_new(server_msg, "message", json_string("Unable to get value"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    if (confval) {
+        json_object_set_new(server_msg, "message", json_string(confval));
+        SCReturnInt(TM_ECODE_OK);
+    }
+
+    json_object_set_new(server_msg, "message", json_string("No string value"));
+    SCReturnInt(TM_ECODE_FAILED);
+}
+
 TmEcode UnixManagerListCommand(json_t *cmd,
                                json_t *answer, void *data)
 {
@@ -819,6 +849,7 @@ void *UnixManagerThread(void *td)
     UnixManagerRegisterCommand("uptime", UnixManagerUptimeCommand, &command, 0);
     UnixManagerRegisterCommand("running-mode", UnixManagerRunningModeCommand, &command, 0);
     UnixManagerRegisterCommand("capture-mode", UnixManagerCaptureModeCommand, &command, 0);
+    UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
 #if 0
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
 #endif
