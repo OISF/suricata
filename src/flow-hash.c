@@ -556,10 +556,8 @@ Flow *FlowGetFlowFromHash (Packet *p)
                 fb->head->hprev = f;
                 fb->head = f;
 
-                FlowReference(&p->flow, f);
-
                 /* found our flow, lock & return */
-                FlowIncrUsecnt(f);
+                FlowReference(&p->flow, f);
                 FLOWLOCK_WRLOCK(f);
                 FBLOCK_UNLOCK(fb);
                 FlowHashCountUpdate;
