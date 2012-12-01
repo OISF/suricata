@@ -2631,7 +2631,7 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
     {
         /* send an empty EOF msg if we have no segments but TCP state
          * is beyond ESTABLISHED */
-        if (ssn->state > TCP_ESTABLISHED) {
+        if (ssn->state >= TCP_CLOSING) {
             SCLogDebug("sending empty eof message");
             /* send EOF to app layer */
             STREAM_SET_FLAGS(ssn, stream, p, flags);
