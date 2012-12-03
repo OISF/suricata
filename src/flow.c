@@ -474,6 +474,7 @@ void FlowShutdown(void)
         for (u = 0; u < flow_config.hash_size; u++) {
             Flow *f = flow_hash[u].head;
             while (f) {
+                BUG_ON(SC_ATOMIC_GET(f->use_cnt) > 0);
                 Flow *n = f->hnext;
                 uint8_t proto_map = FlowGetProtoMapping(f->proto);
                 FlowClearMemory(f, proto_map);

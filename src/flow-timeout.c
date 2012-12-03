@@ -597,6 +597,8 @@ static inline void FlowForceReassemblyForHash(void)
                     if (stream_pseudo_pkt_detect_TV != NULL) {
                         stream_pseudo_pkt_detect_TV->
                             tmqh_out(stream_pseudo_pkt_detect_TV, p);
+                    } else {
+                        TmqhOutputPacketpool(NULL, p);
                     }
                 }
             } /* if (ssn->client.seg_list != NULL) */
@@ -628,6 +630,8 @@ static inline void FlowForceReassemblyForHash(void)
                     if (stream_pseudo_pkt_detect_TV != NULL) {
                         stream_pseudo_pkt_detect_TV->
                             tmqh_out(stream_pseudo_pkt_detect_TV, p);
+                    } else {
+                        TmqhOutputPacketpool(NULL, p);
                     }
                 }
             } /* if (ssn->server.seg_list != NULL) */
@@ -727,7 +731,7 @@ void FlowForceReassemblySetup(void)
     if (stream_pseudo_pkt_detect_TV->tm_slots == stream_pseudo_pkt_detect_tm_slot) {
         stream_pseudo_pkt_detect_prev_TV = stream_pseudo_pkt_detect_TV->prev;
     }
-    if (stream_pseudo_pkt_detect_TV->next == NULL) {
+    if (strcasecmp(stream_pseudo_pkt_detect_TV->outqh_name, "packetpool") == 0) {
         stream_pseudo_pkt_detect_TV = NULL;
     }
 
