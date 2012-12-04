@@ -845,6 +845,7 @@ void *UnixManagerThread(void *td)
     /* Init Unix socket */
     UnixManagerRegisterCommand("shutdown", UnixManagerShutdownCommand, NULL, 0);
     UnixManagerRegisterCommand("command-list", UnixManagerListCommand, &command, 0);
+    UnixManagerRegisterCommand("help", UnixManagerListCommand, &command, 0);
     UnixManagerRegisterCommand("version", UnixManagerVersionCommand, &command, 0);
     UnixManagerRegisterCommand("uptime", UnixManagerUptimeCommand, &command, 0);
     UnixManagerRegisterCommand("running-mode", UnixManagerRunningModeCommand, &command, 0);
