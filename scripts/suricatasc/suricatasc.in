@@ -105,15 +105,14 @@ if cmdret == None:
 if args.verbose:
     print "RCV: "+ json.dumps(cmdret)
 
-# if ok loop
-if cmdret["return"] == "NOK":
-    sys.stderr.write("Error: %s" % (cmdret["message"]))
-    sys.exit(1)
 
-cmd_list = cmdret["message"]["commands"]
-cmd_list.append("quit")
-
-print "Command list: " + ", ".join(cmd_list)
+if cmdret["return"] == "OK":
+    cmd_list = cmdret["message"]["commands"]
+    cmd_list.append("quit")
+    print "Command list: " + ", ".join(cmd_list)
+else:
+    # This is the list of commands before command-list was added to the code.
+    cmd_list=['shutdown','quit','pcap-file','pcap-file-number','pcap-file-list','iface-list','iface-stat']
 
 # if ok loop
 try:
