@@ -181,9 +181,11 @@ try:
 
             #decode json message
             if cmdret["return"] == "NOK":
-                print "Error: %s" % (cmdret["message"])
+                print "Error:"
+                print json.dumps(cmdret["message"], sort_keys=True, indent=4, separators=(',', ': '))
             else:
-                print "Success: %s" % (cmdret["message"])
+                print "Success:"
+                print json.dumps(cmdret["message"], sort_keys=True, indent=4, separators=(',', ': '))
         else:
             print "Unknown command: '%s'" % (command)
 except KeyboardInterrupt:
