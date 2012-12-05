@@ -851,6 +851,7 @@ void *UnixManagerThread(void *td)
     UnixManagerRegisterCommand("running-mode", UnixManagerRunningModeCommand, &command, 0);
     UnixManagerRegisterCommand("capture-mode", UnixManagerCaptureModeCommand, &command, 0);
     UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("dump-counters", SCPerfOutputCounterSocket, NULL, 0);
 #if 0
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
 #endif
