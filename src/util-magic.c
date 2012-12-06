@@ -123,6 +123,12 @@ void MagicDeinit(void) {
 
 #ifdef UNITTESTS
 
+#ifndef FREEBSD
+#define MICROSOFT_OFFICE_DOC "Microsoft Office Document"
+#else
+#define MICROSOFT_OFFICE_DOC "OLE 2 Compound Document"
+#endif
+
 /** \test magic lib calls -- init */
 int MagicInitTest01(void) {
     magic_t magic_ctx;
@@ -215,7 +221,7 @@ int MagicDetectTest02(void) {
         return 0;
 
     result = (char *)magic_buffer(magic_ctx, (void *)buffer, buffer_len);
-    if (result == NULL || strcmp(result, "Microsoft Office Document") != 0) {
+    if (result == NULL || strcmp(result, MICROSOFT_OFFICE_DOC) != 0) {
         printf("result %p:%s, not \"Microsoft Office Document\": ", result,result?result:"(null)");
         goto end;
     }
@@ -376,7 +382,7 @@ int MagicDetectTest06(void) {
     MagicInit();
 
     result = MagicLookup(buffer, buffer_len);
-    if (result == NULL || strcmp(result, "Microsoft Office Document") != 0) {
+    if (result == NULL || strcmp(result, MICROSOFT_OFFICE_DOC) != 0) {
         printf("result %p:%s, not \"Microsoft Office Document\": ", result,result?result:"(null)");
         goto end;
     }
