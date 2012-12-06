@@ -123,7 +123,7 @@ void MagicDeinit(void) {
 
 #ifdef UNITTESTS
 
-#ifndef FREEBSD
+#ifndef OS_FREEBSD
 #define MICROSOFT_OFFICE_DOC "Microsoft Office Document"
 #else
 #define MICROSOFT_OFFICE_DOC "OLE 2 Compound Document"
