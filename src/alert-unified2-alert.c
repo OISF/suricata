@@ -1084,7 +1084,7 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
 
     snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, log_dir, prefix, (uint32_t)ts.tv_sec);
 
-    file_ctx->fp = fopen(filename, "wb");
+    file_ctx->fp = fopen(filename, "ab");
     if (file_ctx->fp == NULL) {
         SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", filename,
             strerror(errno));
