@@ -24,6 +24,7 @@
  */
 
 #include <yaml.h>
+#include <pcre.h>
 #include "suricata-common.h"
 #include "conf.h"
 #include "util-debug.h"
@@ -118,7 +119,8 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                 if (seq_node->name == NULL)
                     return -1;
                 snprintf(seq_node->name, DEFAULT_NAME_LEN, "%d", seq_idx++);
-                seq_node->val = SCStrdup(value);
+                if (NULL == (seq_node->val = ConfExpandEnvVar(value))) 
+                  seq_node->val = SCStrdup(value);
                 TAILQ_INSERT_TAIL(&parent->head, seq_node, next);
             }
             else {
@@ -161,7 +163,8 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                     if (node->allow_override) {
                         if (node->val != NULL)
                             SCFree(node->val);
-                        node->val = SCStrdup(value);
+                        if (NULL == (node->val = ConfExpandEnvVar(value))) 
+                          node->val = SCStrdup(value);
                     }
                     state = CONF_KEY;
                 }
