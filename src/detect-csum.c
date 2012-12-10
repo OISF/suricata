@@ -1475,6 +1475,94 @@ int DetectCsumICMPV6ValidArgsTestParse03(void) {
     return result;
 }
 
+#include "detect-engine.h"
+#include "stream-tcp.h"
+
+int DetectCsumICMPV6Test01(void)
+{
+    int result = 0;
+
+    Packet *p = PacketGetFromAlloc();
+    if (p == NULL) {
+        printf("failure PacketGetFromAlloc\n");
+        goto end;
+    }
+
+    uint8_t pkt[] = {
+        0x00, 0x30, 0x18, 0xa8, 0x7c, 0x23, 0x2c, 0x41,
+        0x38, 0xa7, 0xea, 0xeb, 0x86, 0xdd, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x40, 0x3c, 0x40, 0xad, 0xa1,
+        0x09, 0x80, 0x00, 0x01, 0xd6, 0xf3, 0x20, 0x01,
+        0xf4, 0xbe, 0xea, 0x3c, 0x00, 0x01, 0x00, 0x00,
+        0x00, 0x00, 0x32, 0xb2, 0x00, 0x01, 0x32, 0xb2,
+        0x09, 0x80, 0x20, 0x01, 0x00, 0x00, 0x3c, 0x00,
+        0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x3c, 0x00,
+        0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x2c, 0x00,
+        0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x2c, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3c, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2c, 0x00,
+        0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x3a, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00,
+        0x63, 0xc2, 0x00, 0x00, 0x00, 0x00 };
+
+    PacketCopyData(p, pkt, sizeof(pkt));
+
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DecodeThreadVars dtv;
+
+    memset(&tv, 0, sizeof(tv));
+    memset(&dtv, 0, sizeof(dtv));
+
+    StreamTcpInitConfig(TRUE);
+    FlowInitConfig(FLOW_QUIET);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        printf("DetectEngineCtxInit failure\n");
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_AC;
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert ip any any -> any any "
+                                   "(icmpv6-csum:valid; sid:1;)");
+    if (s == NULL) {
+        printf("SigInit failed\n");
+        goto end;
+    }
+    SigGroupBuild(de_ctx);
+
+    DecodeEthernet(&tv, &dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), NULL);
+
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sig 1 didn't alert on p, but it should: ");
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    StreamTcpFreeConfig(TRUE);
+    FlowShutdown();
+
+    SCFree(p);
+
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DetectCsumRegisterTests(void)
@@ -1530,6 +1618,10 @@ void DetectCsumRegisterTests(void)
                    DetectCsumICMPV6InValidArgsTestParse02, 1);
     UtRegisterTest("DetectCsumICMPV6ValidArgsTestParse03",
                    DetectCsumICMPV6ValidArgsTestParse03, 1);
+
+    UtRegisterTest("DetectCsumICMPV6Test01",
+                   DetectCsumICMPV6Test01, 1);
+
 
 #endif /* UNITTESTS */
 
