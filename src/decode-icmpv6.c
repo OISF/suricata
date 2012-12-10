@@ -163,7 +163,7 @@ void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
 void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                   uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    int error_msg = 0;
+    int full_hdr = 0;
     SCPerfCounterIncr(dtv->counter_icmpv6, tv->sc_perf_pca);
 
     if (len < ICMPV6_HEADER_LEN) {
@@ -191,9 +191,9 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             } else {
                 DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
                                   len - ICMPV6_HEADER_LEN );
+                full_hdr = 1;
             }
 
-            error_msg = 1;
             break;
         case ICMP6_PACKET_TOO_BIG:
             SCLogDebug("ICMP6_PACKET_TOO_BIG");
@@ -204,9 +204,9 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 p->icmpv6vars.mtu = ICMPV6_GET_MTU(p);
                 DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
                                   len - ICMPV6_HEADER_LEN );
+                full_hdr = 1;
             }
 
-            error_msg = 1;
             break;
         case ICMP6_TIME_EXCEEDED:
             SCLogDebug("ICMP6_TIME_EXCEEDED");
@@ -216,9 +216,9 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             } else {
                 DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
                                   len - ICMPV6_HEADER_LEN );
+                full_hdr = 1;
             }
 
-            error_msg = 1;
             break;
         case ICMP6_PARAM_PROB:
             SCLogDebug("ICMP6_PARAM_PROB");
@@ -229,9 +229,9 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 p->icmpv6vars.error_ptr= ICMPV6_GET_ERROR_PTR(p);
                 DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
                                   len - ICMPV6_HEADER_LEN );
+                full_hdr = 1;
             }
 
-            error_msg = 1;
             break;
         case ICMP6_ECHO_REQUEST:
             SCLogDebug("ICMP6_ECHO_REQUEST id: %u seq: %u",
@@ -242,6 +242,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             } else {
                 p->icmpv6vars.id = p->icmpv6h->icmpv6b.icmpv6i.id;
                 p->icmpv6vars.seq = p->icmpv6h->icmpv6b.icmpv6i.seq;
+                full_hdr = 1;
             }
 
             break;
@@ -254,6 +255,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             } else {
                 p->icmpv6vars.id = p->icmpv6h->icmpv6b.icmpv6i.id;
                 p->icmpv6vars.seq = p->icmpv6h->icmpv6b.icmpv6i.seq;
+                full_hdr = 1;
             }
 
             break;
@@ -264,7 +266,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     }
 
     /* for a info message the header is just 4 bytes */
-    if (!error_msg) {
+    if (!full_hdr) {
         if (p->payload_len >= 4) {
             p->payload_len -= 4;
             p->payload = pkt + 4;
