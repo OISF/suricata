@@ -72,6 +72,11 @@ enum {
     IPV6_WRONG_IP_VER,              /**< wrong version in ipv6 */
     IPV6_EXTHDR_AH_RES_NOT_NULL,    /**< AH hdr reserved fields not null (rfc 4302) */
 
+    IPV6_HOPOPTS_UNKNOWN_OPT,       /**< unknown HOP opt */
+    IPV6_HOPOPTS_ONLY_PADDING,      /**< all options in HOP opts are padding */
+    IPV6_DSTOPTS_UNKNOWN_OPT,       /**< unknown DST opt */
+    IPV6_DSTOPTS_ONLY_PADDING,      /**< all options in DST opts are padding */
+
     /* TCP EVENTS */
     TCP_PKT_TOO_SMALL,              /**< tcp packet smaller than minimum size */
     TCP_HLEN_TOO_SMALL,             /**< tcp header smaller than minimum size */
