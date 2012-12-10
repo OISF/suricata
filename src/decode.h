@@ -863,6 +863,7 @@ void AddressDebugPrint(Address *);
 
 
 #define ENGINE_SET_EVENT(p, e) do { \
+    SCLogDebug("p %p event %d", (p), e); \
     if ((p)->events.cnt < PACKET_ENGINE_EVENT_MAX) { \
         (p)->events.events[(p)->events.cnt] = e; \
         (p)->events.cnt++; \
