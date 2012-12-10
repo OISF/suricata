@@ -3116,12 +3116,14 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
         SCLogDebug("tmp_s->id %"PRIu32, tmp_s->id);
         if (tmp_s->flags & SIG_FLAG_IPONLY) {
             IPOnlyAddSignature(de_ctx, &de_ctx->io_ctx, tmp_s);
-        } else if (tmp_s->init_flags & SIG_FLAG_INIT_DEONLY) {
-            DetectEngineAddDecoderEventSig(de_ctx, tmp_s);
         } else {
             DetectEngineLookupFlowAddSig(de_ctx, tmp_s, AF_INET);
             DetectEngineLookupFlowAddSig(de_ctx, tmp_s, AF_INET6);
             DetectEngineLookupFlowAddSig(de_ctx, tmp_s, AF_UNSPEC);
+        }
+
+        if (tmp_s->init_flags & SIG_FLAG_INIT_DEONLY) {
+            DetectEngineAddDecoderEventSig(de_ctx, tmp_s);
         }
 
         sigs++;
