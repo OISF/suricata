@@ -802,7 +802,7 @@ int DetectICMPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     DetectCsumData *cd = (DetectCsumData *)m->ctx;
 
     if (p->ip6h == NULL || p->icmpv6h == NULL || p->proto != IPPROTO_ICMPV6 || PKT_IS_PSEUDOPKT(p) ||
-        (p->pktlen - ((uint8_t *)p->icmpv6h - p->pkt)) <= 0) {
+        (GET_PKT_LEN(p) - ((uint8_t *)p->icmpv6h - GET_PKT_DATA(p))) <= 0) {
         return 0;
     }
 
@@ -813,7 +813,7 @@ int DetectICMPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (p->icmpv6vars.comp_csum == -1)
         p->icmpv6vars.comp_csum = ICMPV6CalculateChecksum(p->ip6h->s_ip6_addrs,
                                                           (uint16_t *)p->icmpv6h,
-                                                          p->pktlen - ((uint8_t *)p->icmpv6h - p->pkt));
+                                                          GET_PKT_LEN(p) - ((uint8_t *)p->icmpv6h - GET_PKT_DATA(p)));
 
     if (p->icmpv6vars.comp_csum == p->icmpv6h->csum && cd->valid == 1)
         return 1;
