@@ -214,6 +214,7 @@ static void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
                 det_ctx->hcbd[i].buffer_size += cur->len * 2;
 
                 if ((det_ctx->hcbd[i].buffer = SCRealloc(det_ctx->hcbd[i].buffer, det_ctx->hcbd[i].buffer_size)) == NULL) {
+                    det_ctx->hcbd[i].buffer_len = 0;
                     goto end;
                 }
             }
