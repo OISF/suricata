@@ -69,6 +69,7 @@ struct DetectEngineEvents_ {
     { "ipv6.hopopts_only_padding", IPV6_HOPOPTS_ONLY_PADDING, },
     { "ipv6.dstopts_unknown_opt", IPV6_DSTOPTS_UNKNOWN_OPT, },
     { "ipv6.dstopts_only_padding", IPV6_DSTOPTS_ONLY_PADDING, },
+    { "ipv6.icmpv4", IPV6_WITH_ICMPV4, },
     { "icmpv4.pkt_too_small", ICMPV4_PKT_TOO_SMALL, },
     { "icmpv4.unknown_type", ICMPV4_UNKNOWN_TYPE, },
     { "icmpv4.unknown_code", ICMPV4_UNKNOWN_CODE, },

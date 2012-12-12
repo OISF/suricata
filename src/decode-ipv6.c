@@ -487,7 +487,9 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             case IPPROTO_NONE:
                 IPV6_SET_L4PROTO(p,nh);
                 SCReturn;
-
+            case IPPROTO_ICMP:
+                ENGINE_SET_EVENT(p,IPV6_WITH_ICMPV4);
+                break;
             default:
                 IPV6_SET_L4PROTO(p,nh);
                 SCReturn;
@@ -577,7 +579,9 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
         case IPPROTO_ESP:
             DecodeIPV6ExtHdrs(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq);
             break;
-
+        case IPPROTO_ICMP:
+            ENGINE_SET_EVENT(p,IPV6_WITH_ICMPV4);
+            break;
         default:
             p->proto = IPV6_GET_NH(p);
             break;
