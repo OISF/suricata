@@ -697,6 +697,10 @@ int AFPReadFromRing(AFPThreadVars *ptv)
 
     /* Loop till we have packets available */
     while (1) {
+        if (unlikely(suricata_ctl_flags != 0)) {
+            break;
+        }
+
         /* Read packet from ring */
         h.raw = (((union thdr **)ptv->frame_buf)[ptv->frame_offset]);
         if (h.raw == NULL) {
