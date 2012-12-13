@@ -32,7 +32,6 @@ int PcapLiveRegisterDevice(char *);
 int PcapLiveGetDeviceCount(void);
 char *PcapLiveGetDevice(int);
 
-/* XXX replace with user configurable options */
 #define LIBPCAP_SNAPLEN     1518
 #define LIBPCAP_COPYWAIT    500
 #define LIBPCAP_PROMISC     1
@@ -53,6 +52,8 @@ typedef struct PcapIfaceConfig_
     int threads;
     /* socket buffer size */
     int buffer_size;
+    /* promiscuous mode */
+    int promisc;
     /* BPF filter */
     char *bpf_filter;
     ChecksumValidationMode checksum_mode;
