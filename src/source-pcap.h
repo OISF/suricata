@@ -32,7 +32,6 @@ int PcapLiveRegisterDevice(char *);
 int PcapLiveGetDeviceCount(void);
 char *PcapLiveGetDevice(int);
 
-#define LIBPCAP_SNAPLEN     1518
 #define LIBPCAP_COPYWAIT    500
 #define LIBPCAP_PROMISC     1
 
