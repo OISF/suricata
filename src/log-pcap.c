@@ -293,7 +293,7 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
         SCLogDebug("Setting pcap-log link type to %u", p->datalink);
 
         if ((pl->pcap_dead_handle = pcap_open_dead(p->datalink,
-                                                   LIBPCAP_SNAPLEN)) == NULL) {
+                                                   -1)) == NULL) {
             SCLogDebug("Error opening dead pcap handle");
 
             SCMutexUnlock(&pl->plog_lock);
