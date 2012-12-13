@@ -1,3 +1,20 @@
+1.4 2012-12-13
+
+- Decoder event matching fixed (#672)
+- Unified2 would overwrite files if file rotation happened within a second of file creation, leading to loss of events/alerts (#665)
+- Add more events to IPv6 extension header anomolies (#678)
+- Fix ICMPv6 payload and checksum calculation (#677, #674)
+- Clean up flow timeout handling (#656)
+- Fix a shutdown bug when using AF_PACKET under high load (#653)
+- Fix TCP sessions being cleaned up to early (#652)
+
+1.3.5 2012-12-06
+
+- Flow engine memory leak fixed by Ludovico Cavedon (#651)
+- Unified2 would overwrite files if file rotation happened within a second of file creation, leading to loss of events/alerts (#664)
+- Flow manager mutex used unintialized, fixed by Ludovico Cavedon (#654)
+- Windows building in CYGWIN fixed (#630)
+
 1.4rc1 2012-11-29
 
 - Interactive unix socket mode (#571, #552)
