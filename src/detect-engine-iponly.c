@@ -1027,7 +1027,7 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                 if (bitarray & 0x01) {
                     Signature *s = de_ctx->sig_array[u * 8 + i];
 
-                    if (DetectProtoContainsProto(&s->proto, p->proto) == 0) {
+                    if (DetectProtoContainsProto(&s->proto, IP_GET_IPPROTO(p)) == 0) {
                         SCLogDebug("proto didn't match");
                         continue;
                     }
