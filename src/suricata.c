@@ -188,6 +188,10 @@
 #include "util-memcmp.h"
 #include "util-proto-name.h"
 #include "util-spm-bm.h"
+#ifdef __SC_CUDA_SUPPORT__
+#include "util-mtsba.h"
+#include "util-mpm-ac.h"
+#endif
 
 /*
  * we put this here, because we only use it here in main.
@@ -1292,6 +1296,7 @@ int main(int argc, char **argv)
         SCCudaListCards();
         exit(EXIT_SUCCESS);
     }
+    MTSBA_Init();
 #endif
 
     if (!CheckValidDaemonModes(daemon, run_mode)) {
@@ -1302,9 +1307,6 @@ int main(int argc, char **argv)
     GlobalInits();
     TimeInit();
     SupportFastPatternForSigMatchTypes();
-
-    /* load the pattern matchers */
-    MpmTableSetup();
 
     if (run_mode != RUNMODE_UNITTEST &&
             !list_keywords &&
@@ -1352,6 +1354,9 @@ int main(int argc, char **argv)
             }
         }
     }
+
+    /* load the pattern matchers */
+    MpmTableSetup();
 
     AppLayerDetectProtoThreadInit();
     if (list_app_layer_protocols) {
@@ -1693,6 +1698,7 @@ int main(int argc, char **argv)
         DetectProtoTests();
         DetectPortTests();
         SCAtomicRegisterTests();
+        MTSBA_RegisterUnittests();
         if (list_unittests) {
             UtListTests(regex_arg);
         }
@@ -1809,6 +1815,10 @@ int main(int argc, char **argv)
             "context failed.");
         exit(EXIT_FAILURE);
     }
+#ifdef __SC_CUDA_SUPPORT__
+    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
+        DecodePcapFileSetCudaDeCtx(de_ctx);
+#endif /* __SC_CUDA_SUPPORT__ */
 
     SCClassConfLoadClassficationConfigFile(de_ctx);
     SCRConfLoadReferenceConfigFile(de_ctx);
@@ -1950,6 +1960,11 @@ int main(int argc, char **argv)
     if (run_mode != RUNMODE_UNIX_SOCKET) {
         SCPerfSpawnThreads();
     }
+
+#ifdef __SC_CUDA_SUPPORT__
+    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
+        SCACCudaStartDispatcher();
+#endif
 
     /* Check if the alloted queues have at least 1 reader and writer */
     TmValidateQueueState();
@@ -2107,6 +2122,12 @@ int main(int argc, char **argv)
 #endif /* OS_WIN32 */
 
     SC_ATOMIC_DESTROY(engine_stage);
+
+#ifdef __SC_CUDA_SUPPORT__
+    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
+        MpmCudaBufferDeSetup();
+    CudaHL_FreeProfiles();
+#endif
 
     exit(engine_retval);
 }

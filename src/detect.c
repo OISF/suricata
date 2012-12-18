@@ -190,6 +190,7 @@
 #include "util-optimize.h"
 #include "util-vector.h"
 #include "util-path.h"
+#include "util-mpm-ac.h"
 
 #include "runmodes.h"
 
@@ -1044,6 +1045,12 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
     }
 
     if (p->payload_len > 0 && (!(p->flags & PKT_NOPAYLOAD_INSPECTION))) {
+        if (!(p->flags & PKT_STREAM_ADD) && (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM)) {
+            *sms_runflags |= SMS_USED_PM;
+            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_PKT_STREAM);
+            PacketPatternSearchWithStreamCtx(det_ctx, p);
+            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_PKT_STREAM);
+        }
         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_PACKET) {
             /* run the multi packet matcher against the payload of the packet */
             SCLogDebug("search: (%p, maxlen %" PRIu32 ", sgh->sig_cnt %" PRIu32 ")",
@@ -1054,12 +1061,6 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_PACKET);
 
             *sms_runflags |= SMS_USED_PM;
-        }
-        if (!(p->flags & PKT_STREAM_ADD) && (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM)) {
-            *sms_runflags |= SMS_USED_PM;
-            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_PKT_STREAM);
-            PacketPatternSearchWithStreamCtx(det_ctx, p);
-            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_PKT_STREAM);
         }
     }
 }
@@ -4413,6 +4414,26 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
 
     if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
         MpmCtx *mpm_ctx = NULL;
+
+#ifdef __SC_CUDA_SUPPORT__
+        if (PatternMatchDefaultMatcher() == MPM_AC_CUDA) {
+            /* setting it to default.  You've gotta remove it once you fix the state table thing */
+            SCACConstructBoth16and32StateTables();
+
+            MpmCudaConf *conf = CudaHL_GetCudaProfile("mpm");
+            CUcontext cuda_context = CudaHL_Module_GetContext(MPM_AC_CUDA_MODULE_NAME, conf->device_id);
+            if (cuda_context == 0) {
+                SCLogError(SC_ERR_FATAL, "cuda context is NULL.");
+                exit(EXIT_FAILURE);
+            }
+            int r = SCCudaCtxPushCurrent(cuda_context);
+            if (r < 0) {
+                SCLogError(SC_ERR_FATAL, "context push failed.");
+                exit(EXIT_FAILURE);
+            }
+        }
+#endif
+
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 0);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
             mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
@@ -4524,7 +4545,6 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
             mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
         //printf("hsmd- %d\n", mpm_ctx->pattern_cnt);
-
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hsmd, 1);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
             mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
@@ -4536,7 +4556,6 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
             mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
         //printf("hscd- %d\n", mpm_ctx->pattern_cnt);
-
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hscd, 1);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
             mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
@@ -4548,7 +4567,6 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
             mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
         //printf("huad- %d\n", mpm_ctx->pattern_cnt);
-
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_huad, 1);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
             mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
@@ -4578,6 +4596,263 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
             mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
         //printf("hrhhd- %d\n", mpm_ctx->pattern_cnt);
+
+#ifdef __SC_CUDA_SUPPORT__
+        if (PatternMatchDefaultMatcher() == MPM_AC_CUDA) {
+            int r = SCCudaCtxPopCurrent(NULL);
+            if (r < 0) {
+                SCLogError(SC_ERR_FATAL, "cuda context pop failure.");
+                exit(EXIT_FAILURE);
+            }
+        }
+#endif
+
+
+#ifdef __SC_CUDA_SUPPORT__
+
+        int ac_16_tables = 0;
+        int ac_32_tables = 0;
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 0);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 1);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 0);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 1);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_other_packet, 0);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_uri, 0);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_uri, 1);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcbd, 0);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcbd, 1);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hhd, 0);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hhd, 1);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrhd, 0);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrhd, 1);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hmd, 0);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hmd, 1);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcd, 0);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcd, 1);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrud, 0);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrud, 1);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_stream, 0);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_stream, 1);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hsmd, 0);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hsmd, 1);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hscd, 0);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hscd, 1);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_huad, 0);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_huad, 1);
+        if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+            SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+            if (ctx->state_count < 32767)
+                ac_16_tables++;
+            else
+                ac_32_tables++;
+        }
+
+        if (ac_16_tables > 0 && ac_32_tables > 0)
+            SCACConstructBoth16and32StateTables();
+
+#if 0
+        SCLogInfo("Total mpm ac 16 bit state tables - %d\n", ac_16_tables);
+        SCLogInfo("Total mpm ac 32 bit state tables - %d\n", ac_32_tables);
+#endif
+
+#endif /* __SC_CUDA_SUPPORT__ */
+
     }
 
 //    SigAddressPrepareStage5(de_ctx);
