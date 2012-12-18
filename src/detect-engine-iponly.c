@@ -1030,7 +1030,7 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                         continue;
                     }
 
-                    if (DetectProtoContainsProto(&s->proto, p->proto) == 0) {
+                    if (DetectProtoContainsProto(&s->proto, IP_GET_IPPROTO(p)) == 0) {
                         SCLogDebug("proto didn't match");
                         continue;
                     }
