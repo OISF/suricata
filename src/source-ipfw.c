@@ -326,6 +326,7 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
 TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     struct timeval timev;
+    int flag;
     IPFWThreadVars *ntv = (IPFWThreadVars *) initdata;
     IPFWQueueVars *nq = IPFWGetQueue(ntv->ipfw_index);
 
@@ -349,6 +350,15 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     if (setsockopt(nq->fd, SOL_SOCKET, SO_RCVTIMEO, &timev, sizeof(timev)) == -1) {
         SCLogWarning(SC_WARN_IPFW_SETSOCKOPT,"Can't set IPFW divert socket timeout: %s", strerror(errno));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    /* set SO_BROADCAST on the divert socket, otherwise sendto()
+     * returns EACCES when reinjecting broadcast packets. */
+    flag = 1;
+
+    if (setsockopt(nq->fd, SOL_SOCKET, SO_BROADCAST, &flag, sizeof(flag)) == -1) {
+        SCLogWarning(SC_WARN_IPFW_SETSOCKOPT,"Can't set IPFW divert socket broadcast flag: %s", strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
 
