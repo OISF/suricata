@@ -349,7 +349,7 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, void *initdata, void **data)
     timev.tv_usec = 0;
 
     if (setsockopt(nq->fd, SOL_SOCKET, SO_RCVTIMEO, &timev, sizeof(timev)) == -1) {
-        SCLogWarning(SC_WARN_IPFW_SETSOCKOPT,"Can't set IPFW divert socket timeout: %s", strerror(errno));
+        SCLogError(SC_ERR_IPFW_SETSOCKOPT,"Can't set IPFW divert socket timeout: %s", strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -358,7 +358,7 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, void *initdata, void **data)
     flag = 1;
 
     if (setsockopt(nq->fd, SOL_SOCKET, SO_BROADCAST, &flag, sizeof(flag)) == -1) {
-        SCLogWarning(SC_WARN_IPFW_SETSOCKOPT,"Can't set IPFW divert socket broadcast flag: %s", strerror(errno));
+        SCLogError(SC_ERR_IPFW_SETSOCKOPT,"Can't set IPFW divert socket broadcast flag: %s", strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
 
