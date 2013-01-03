@@ -1128,8 +1128,15 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
     TmSlot *s = (TmSlot *)slot;
     time_t last_dump = 0;
     struct timeval current_time;
+    int (*AFPReadFunc) (AFPThreadVars *);
 
     ptv->slot = s->slot_next;
+
+    if (ptv->flags & AFP_RING_MODE) {
+        AFPReadFunc = AFPReadFromRing;
+    } else {
+        AFPReadFunc = AFPRead;
+    }
 
     if (ptv->afp_state == AFP_STATE_DOWN) {
         /* Wait for our turn, threads before us must have opened the socket */
@@ -1211,12 +1218,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                 continue;
             }
         } else if (r > 0) {
-            if (ptv->flags & AFP_RING_MODE) {
-                r = AFPReadFromRing(ptv);
-            } else {
-                /* AFPRead will call TmThreadsSlotProcessPkt on read packets */
-                r = AFPRead(ptv);
-            }
+            r = AFPReadFunc(ptv);
             switch (r) {
                 case AFP_READ_FAILURE:
                     /* AFPRead in error: best to reset the socket */
