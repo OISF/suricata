@@ -44,6 +44,7 @@
 #include "threads.h"
 #include "detect-ftpbounce.h"
 #include "stream-tcp.h"
+#include "util-byte.h"
 
 int DetectFtpbounceMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                           Signature *, SigMatch *);
@@ -139,7 +140,9 @@ int DetectFtpbounceMatchArgs(uint8_t *payload, uint16_t payload_len,
             }
             if (noctet == 4) {
                 /* Different IP than src, ftp bounce scan */
-                if (ip != ntohl(ip_orig)) {
+                ip = SCByteSwap32(ip);
+
+                if (ip != ip_orig) {
                     SCLogDebug("Different ip, so Matched ip:%d <-> ip_orig:%d",
                                ip, ip_orig);
                     return 1;
