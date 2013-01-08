@@ -1589,6 +1589,8 @@ void TmThreadRemove(ThreadVars *tv, int type)
  */
 void TmThreadKillThread(ThreadVars *tv)
 {
+    SCLogInfo(">>Killing thread \"%s\"", tv->name);
+
     int i = 0;
 
     if (tv == NULL)
@@ -1611,12 +1613,16 @@ void TmThreadKillThread(ThreadVars *tv)
      * terminated */
     TmThreadsSetFlag(tv, THV_KILL);
     TmThreadsSetFlag(tv, THV_DEINIT);
+    SCLogInfo("We have set the THV_KILL and THV_DEINIT signal for \"%s\"\n",
+              tv->name);
 
     /* to be sure, signal more */
     int cnt = 0;
     while (1) {
         if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
             SCLogDebug("signalled the thread %" PRId32 " times", cnt);
+            SCLogInfo(">>We have the THV_CLOSED flag set on \"%s\".  Breaking ouf of loop\n",
+                      tv->name);
             break;
         }
 
@@ -1690,6 +1696,7 @@ void TmThreadDisableThreadsWithTMS(uint8_t tm_flags)
             TmModule *tm = TmModuleGetById(slots->tm_id);
 
             if (tm->flags & tm_flags) {
+                SCLogInfo(">>Disabling thread \"%s\".", tv->name);
                 disable = 1;
                 break;
             }
@@ -1737,6 +1744,7 @@ void TmThreadDisableThreadsWithTMS(uint8_t tm_flags)
                     exit(EXIT_FAILURE);
                 }
             }
+            SCLogInfo(">>Thread disabled - \"%s\".  THV_RUNNING_DONE flag set", tv->name);
         }
 
         tv = tv->next;
