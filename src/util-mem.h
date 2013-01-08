@@ -277,7 +277,7 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
  * _mm_free.
  */
 #define SCFreeAligned(a) ({ \
-    free((a)); \
+    _mm_free((a)); \
 })
 
 #endif /* __WIN32 */

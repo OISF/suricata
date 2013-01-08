@@ -223,7 +223,7 @@ static int CreateFileName(LogTlsFileCtx *log, Packet *p, SSLState *state, char *
     snprintf(filename, filenamelen, "%s/%ld.%ld-%d.pem",
              tls_logfile_base_dir,
              p->ts.tv_sec,
-             p->ts.tv_usec,
+             (long int)p->ts.tv_usec,
              file_id);
     return 1;
 }

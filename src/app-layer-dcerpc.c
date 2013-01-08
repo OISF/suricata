@@ -95,10 +95,10 @@ void hexdump(/*Flow *f,*/ const void *buf, size_t len) {
         if (n%16 == 1) {
             /* store address for this line */
 #if __WORDSIZE == 64
-            snprintf(addrstr, sizeof(addrstr), "%.4lx",
+            snprintf(addrstr, sizeof(addrstr), "%.4"PRIx64,
             ((uint64_t)p-(uint64_t)buf) );
 #else
-            snprintf(addrstr, sizeof(addrstr), "%.4x",
+            snprintf(addrstr, sizeof(addrstr), "%.4"PRIx32,
             ((uint32_t)p-(uint32_t)buf) );
 #endif
         }
