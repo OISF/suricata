@@ -2027,7 +2027,9 @@ int main(int argc, char **argv)
     SCCudaPBKillBatchingPackets();
 #endif
 
+    SCLogInfo(">>Let's kill unix socket thread");
     UnixSocketKillSocketThread();
+    SCLogInfo(">>We've managed to kill the unix socket thread");
 
     if (run_mode != RUNMODE_UNIX_SOCKET) {
         /* First we need to kill the flow manager thread */
