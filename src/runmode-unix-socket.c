@@ -266,10 +266,12 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         if (unix_manager_file_task_failed) {
             SCLogInfo("Preceeding taks failed, cleaning the running mode");
         }
+        SCLogInfo(">>Reseting data in unix socket");
         unix_manager_file_task_failed = 0;
         this->running = 0;
         TmThreadKillThreadsFamily(TVT_MGMT);
         TmThreadClearThreadsFamily(TVT_MGMT);
+        TmThreadDisableThreadsWithTMS(TM_FLAG_RECEIVE_TM | TM_FLAG_DECODE_TM);
         FlowForceReassembly();
         TmThreadKillThreadsFamily(TVT_PPT);
         TmThreadClearThreadsFamily(TVT_PPT);
