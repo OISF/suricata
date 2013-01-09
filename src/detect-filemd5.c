@@ -102,9 +102,10 @@ void DetectFileMd5Register(void) {
     return;
 }
 
-static int Md5ReadString(uint8_t *md5, char *str) {
+static int Md5ReadString(uint8_t *md5, char *str, char *filename, int line_no) {
     if (strlen(str) != 32) {
-        SCLogError(SC_ERR_INVALID_MD5, "md5 string not 32 bytes");
+        SCLogError(SC_ERR_INVALID_MD5, "%s:%d md5 string not 32 bytes",
+                filename, line_no);
         return -1;
     }
 
@@ -118,7 +119,8 @@ static int Md5ReadString(uint8_t *md5, char *str) {
         if (value >= 0 && value <= 255)
             md5[x] = (uint8_t)value;
         else {
-            SCLogError(SC_ERR_INVALID_MD5, "md5 byte out of range %ld", value);
+            SCLogError(SC_ERR_INVALID_MD5, "%s:%d md5 byte out of range %ld",
+                    filename, line_no, value);
             return -1;
         }
     }
@@ -126,10 +128,10 @@ static int Md5ReadString(uint8_t *md5, char *str) {
     return 1;
 }
 
-static int MD5LoadHash(ROHashTable *hash, char *string) {
+static int MD5LoadHash(ROHashTable *hash, char *string, char *filename, int line_no) {
     uint8_t md5[16];
 
-    if (Md5ReadString(md5, string) == 1) {
+    if (Md5ReadString(md5, string, filename, line_no) == 1) {
         if (ROHashInitQueueValue(hash, &md5, (uint16_t)sizeof(md5)) != 1)
             return -1;
     }
@@ -237,8 +239,10 @@ static DetectFileMd5Data *DetectFileMd5Parse (char *str)
         return NULL;
     }
 
+    int line_no = 0;
     while(fgets(line, (int)sizeof(line), fp) != NULL) {
         size_t len = strlen(line);
+        line_no++;
 
         /* ignore comments and empty lines */
         if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
@@ -256,7 +260,7 @@ static DetectFileMd5Data *DetectFileMd5Parse (char *str)
         if (strlen(line) > 32)
             line[32] = 0x00;
 
-        if (MD5LoadHash(filemd5->hash, line) != 1) {
+        if (MD5LoadHash(filemd5->hash, line, filename, line_no) != 1) {
             goto error;
         }
     }
@@ -345,7 +349,7 @@ static void DetectFileMd5Free(void *ptr) {
 #ifdef UNITTESTS
 static int MD5MatchLookupString(ROHashTable *hash, char *string) {
     uint8_t md5[16];
-    if (Md5ReadString(md5, string) == 1) {
+    if (Md5ReadString(md5, string, "file", 88) == 1) {
         void *ptr = ROHashLookup(hash, &md5, (uint16_t)sizeof(md5));
         if (ptr == NULL)
             return 0;
@@ -360,17 +364,17 @@ static int MD5MatchTest01(void) {
     if (hash == NULL) {
         return 0;
     }
-    if (MD5LoadHash(hash, "d80f93a93dc5f3ee945704754d6e0a36") != 1)
+    if (MD5LoadHash(hash, "d80f93a93dc5f3ee945704754d6e0a36", "file", 1) != 1)
         return 0;
-    if (MD5LoadHash(hash, "92a49985b384f0d993a36e4c2d45e206") != 1)
+    if (MD5LoadHash(hash, "92a49985b384f0d993a36e4c2d45e206", "file", 2) != 1)
         return 0;
-    if (MD5LoadHash(hash, "11adeaacc8c309815f7bc3e33888f281") != 1)
+    if (MD5LoadHash(hash, "11adeaacc8c309815f7bc3e33888f281", "file", 3) != 1)
         return 0;
-    if (MD5LoadHash(hash, "22e10a8fe02344ade0bea8836a1714af") != 1)
+    if (MD5LoadHash(hash, "22e10a8fe02344ade0bea8836a1714af", "file", 4) != 1)
         return 0;
-    if (MD5LoadHash(hash, "c3db2cbf02c68f073afcaee5634677bc") != 1)
+    if (MD5LoadHash(hash, "c3db2cbf02c68f073afcaee5634677bc", "file", 5) != 1)
         return 0;
-    if (MD5LoadHash(hash, "7ed095da259638f42402fb9e74287a17") != 1)
+    if (MD5LoadHash(hash, "7ed095da259638f42402fb9e74287a17", "file", 6) != 1)
         return 0;
 
     if (ROHashInitFinalize(hash) != 1) {
