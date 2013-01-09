@@ -658,7 +658,9 @@ void FlowForceReassembly(void)
 
     /** ----- Part 1 ------*/
     /* Flush out unattended packets */
+    SCLogInfo(">>FFR flushing packets");
     FlowForceReassemblyFlushPendingPseudoPackets();
+    SCLogInfo(">>FFR packets flushed.");
 
     /** ----- Part 2 ----- **/
     /* Check if all threads are idle.  We need this so that we have all
@@ -690,7 +692,9 @@ void FlowForceReassembly(void)
 
     /** ----- Part 3 ----- **/
     /* Carry out flow reassembly for unattended flows */
+    SCLogInfo(">>FFR Hash running.");
     FlowForceReassemblyForHash();
+    SCLogInfo(">>FFR Hash running done.");
 
     return;
 }
