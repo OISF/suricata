@@ -26,6 +26,7 @@
 #include "suricata-common.h"
 #include "detect.h"
 #include "detect-flowbits.h"
+#include "detect-flowint.h"
 #include "detect-engine-sigorder.h"
 #include "detect-pcre.h"
 
@@ -45,6 +46,10 @@
 #define DETECT_FLOWBITS_NOT_USED  1
 #define DETECT_FLOWBITS_TYPE_READ 2
 #define DETECT_FLOWBITS_TYPE_SET  3
+
+#define DETECT_FLOWINT_NOT_USED  1
+#define DETECT_FLOWINT_TYPE_READ 2
+#define DETECT_FLOWINT_TYPE_SET  3
 
 
 /**
@@ -148,6 +153,53 @@ static inline int SCSigGetFlowbitsType(Signature *sig)
     SCLogDebug("Sig %s typeval %d", sig->msg, flowbits_user_type);
 
     return flowbits_user_type;
+}
+
+static inline int SCSigGetFlowintType(Signature *sig)
+{
+    SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
+    DetectFlowintData *fi = NULL;
+    int modifier = FLOWINT_MODIFIER_UNKNOWN;
+    int flowint_user_type = DETECT_FLOWINT_NOT_USED;
+
+    while (sm != NULL) {
+        if (sm->type == DETECT_FLOWINT) {
+            fi = (DetectFlowintData *)sm->ctx;
+            if (modifier > fi->modifier)
+                modifier = fi->modifier;
+        }
+
+        sm = sm->next;
+    }
+
+    sm = sig->sm_lists[DETECT_SM_LIST_POSTMATCH];
+    while (sm != NULL) {
+        if (sm->type == DETECT_FLOWINT) {
+            fi = (DetectFlowintData *)sm->ctx;
+            if (modifier > fi->modifier)
+                modifier = fi->modifier;
+        }
+
+        sm = sm->next;
+    }
+
+    if (modifier == FLOWINT_MODIFIER_SET ||
+        modifier == FLOWINT_MODIFIER_ADD ||
+        modifier == FLOWINT_MODIFIER_SUB) {
+        flowint_user_type = DETECT_FLOWINT_TYPE_SET;
+    } else if (modifier == FLOWINT_MODIFIER_LT ||
+               modifier == FLOWINT_MODIFIER_LE ||
+               modifier == FLOWINT_MODIFIER_EQ ||
+               modifier == FLOWINT_MODIFIER_NE ||
+               modifier == FLOWINT_MODIFIER_GE ||
+               modifier == FLOWINT_MODIFIER_GT ||
+               modifier == FLOWINT_MODIFIER_ISSET) {
+        flowint_user_type = DETECT_FLOWINT_TYPE_READ;
+    }
+
+    SCLogDebug("Sig %s typeval %d", sig->msg, flowint_user_type);
+
+    return flowint_user_type;
 }
 
 /**
@@ -264,6 +316,13 @@ static inline void SCSigProcessUserDataForFlowbits(SCSigSignatureWrapper *sw)
 static inline void SCSigProcessUserDataForFlowvar(SCSigSignatureWrapper *sw)
 {
     *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWVAR])) = SCSigGetFlowvarType(sw->sig);
+
+    return;
+}
+
+static inline void SCSigProcessUserDataForFlowint(SCSigSignatureWrapper *sw)
+{
+    *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWINT])) = SCSigGetFlowintType(sw->sig);
 
     return;
 }
@@ -719,6 +778,109 @@ static void SCSigOrderByPktvar(DetectEngineCtx *de_ctx,
     return;
 }
 
+static void SCSigOrderByFlowint(DetectEngineCtx *de_ctx,
+                                SCSigSignatureWrapper *sw)
+{
+    SCSigSignatureWrapper *min = NULL;
+    SCSigSignatureWrapper *max = NULL;
+    SCSigSignatureWrapper *prev = NULL;
+
+    if (sw == NULL)
+        return;
+
+    if (de_ctx->sc_sig_sig_wrapper == NULL) {
+        de_ctx->sc_sig_sig_wrapper = sw;
+        sw->min = NULL;
+        sw->max = NULL;
+        return;
+    }
+
+    min = sw->min;
+    max = sw->max;
+    if (min == NULL)
+        min = de_ctx->sc_sig_sig_wrapper;
+    else
+        min = min->next;
+
+    while (min != max) {
+        prev = min;
+        /* the sorting logic */
+        if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWINT])) <=
+             *((int *)(min->user[SC_RADIX_USER_DATA_FLOWINT])) ) {
+            min = min->next;
+            continue;
+        }
+
+        if (min->prev == sw)
+            break;
+
+        if (sw->next != NULL)
+            sw->next->prev = sw->prev;
+        if (sw->prev != NULL)
+            sw->prev->next = sw->next;
+        if (de_ctx->sc_sig_sig_wrapper == sw)
+            de_ctx->sc_sig_sig_wrapper = sw->next;
+
+        sw->next = min;
+        sw->prev = min->prev;
+
+        if (min->prev != NULL)
+            min->prev->next = sw;
+        else
+            de_ctx->sc_sig_sig_wrapper = sw;
+
+        min->prev = sw;
+
+        break;
+    }
+
+    if (min == max && prev != sw) {
+        if (sw->next != NULL) {
+            sw->next->prev = sw->prev;
+        }
+        if (sw->prev != NULL) {
+            sw->prev->next = sw->next;
+        }
+
+        if (min == NULL) {
+            if (prev != NULL)
+                prev->next = sw;
+            sw->prev = prev;
+            sw->next = NULL;
+        } else {
+            sw->prev = min->prev;
+            sw->next = min;
+            if (min->prev != NULL)
+                min->prev->next = sw;
+            min->prev = sw;
+        }
+    }
+
+    /* set the min signature for this keyword, for the next ordering function */
+    min = sw;
+    while (min != NULL && min != sw->min) {
+        if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWINT])) !=
+             *((int *)(min->user[SC_RADIX_USER_DATA_FLOWINT])) )
+            break;
+
+        min = min->prev;
+    }
+    sw->min = min;
+
+    /* set the max signature for this keyword + 1, for the next ordering func */
+    max = sw;
+    while (max != NULL && max != sw->max) {
+        if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWINT])) !=
+             *((int *)(max->user[SC_RADIX_USER_DATA_FLOWINT])) )
+            break;
+
+        max = max->next;
+    }
+    sw->max = max;
+
+    return;
+}
+
 /**
  * \brief Orders an incoming Signature based on its priority type
  *
@@ -862,6 +1024,7 @@ static inline SCSigSignatureWrapper *SCSigAllocSignatureWrapper(Signature *sig)
      * sig_ordering module */
     SCSigProcessUserDataForFlowbits(sw);
     SCSigProcessUserDataForFlowvar(sw);
+    SCSigProcessUserDataForFlowint(sw);
     SCSigProcessUserDataForPktvar(sw);
 
     return sw;
@@ -939,6 +1102,7 @@ void SCSigRegisterSignatureOrderingFuncs(DetectEngineCtx *de_ctx)
 
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowint);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
