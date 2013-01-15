@@ -60,8 +60,6 @@
 
 /** All packets in this flow should be dropped */
 #define FLOW_ACTION_DROP                  0x00000200
-/** All packets in this flow should be accepted */
-#define FLOW_ACTION_PASS                  0x00000400
 
 /** Sgh for toserver direction set (even if it's NULL) */
 #define FLOW_SGH_TOSERVER                 0x00000800

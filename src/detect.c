@@ -1306,11 +1306,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                    ((p->flowflags & FLOW_PKT_TOCLIENT) &&
                    (p->flow->flags & FLOW_TOCLIENT_IPONLY_SET)))
         {
-            /* Get the result of the first IPOnlyMatch() */
-            if (p->flow->flags & FLOW_ACTION_PASS) {
-                /* if it matched a "pass" rule, we have to let it go */
-                p->action |= ACTION_PASS;
-            }
             /* If we have a drop from IP only module,
              * we will drop the rest of the flow packets
              * This will apply only to inline/IPS */

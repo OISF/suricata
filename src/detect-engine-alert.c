@@ -241,8 +241,9 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                             p->flow->flags |= FLOW_ACTION_DROP;
                         if (s->action & ACTION_REJECT_BOTH)
                             p->flow->flags |= FLOW_ACTION_DROP;
-                        if (s->action & ACTION_PASS)
-                            p->flow->flags |= FLOW_ACTION_PASS;
+                        if (s->action & ACTION_PASS) {
+                            FlowSetNoPacketInspectionFlag(p->flow);
+                        }
                         FLOWLOCK_UNLOCK(p->flow);
                     }
                 }
