@@ -1221,6 +1221,14 @@ AC_INIT(configure.ac)
 
   # libnss
     enable_nss="no"
+
+    # Try pkg-config first:
+    PKG_CHECK_MODULES([libnss], nss,, [with_pkgconfig_nss=no])
+    if test "$with_pkgconfig_nss" != "no"; then
+        CPPFLAGS="${CPPFLAGS} ${libnss_CFLAGS}"
+        LIBS="${LIBS} ${libnss_LIBS}"
+    fi
+
     AC_ARG_WITH(libnss_includes,
             [  --with-libnss-includes=DIR  libnss include directory],
             [with_libnss_includes="$withval"],[with_libnss_includes=no])
