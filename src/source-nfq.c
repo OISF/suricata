@@ -111,6 +111,7 @@ static int already_seen_warning;
 static int runmode_workers;
 
 #define NFQ_BURST_FACTOR 4
+#define NFQ_BATCHCOUNT 20
 
 #ifndef SOL_NETLINK
 #define SOL_NETLINK 270
@@ -270,6 +271,84 @@ void NFQInitConfig(char quiet)
         }
     }
 
+}
+
+static uint8_t NFQVerdictCacheLen(NFQQueueVars *t)
+{
+#ifdef HAVE_NFQ_SET_VERDICT_BATCH
+    return t->verdict_cache.len;
+#else
+    return 0;
+#endif
+}
+
+static void NFQVerdictCacheFlush(NFQQueueVars *t)
+{
+#ifdef HAVE_NFQ_SET_VERDICT_BATCH
+    int ret;
+    int iter = 0;
+
+    do {
+        if (t->verdict_cache.mark_valid)
+            ret = nfq_set_verdict_batch2(t->qh,
+                                         t->verdict_cache.packet_id,
+                                         t->verdict_cache.verdict,
+                                         t->verdict_cache.mark);
+        else
+            ret = nfq_set_verdict_batch(t->qh,
+                                        t->verdict_cache.packet_id,
+                                        t->verdict_cache.verdict);
+    } while ((ret < 0) && (iter++ < NFQ_VERDICT_RETRY_TIME));
+
+    if (ret < 0) {
+        SCLogWarning(SC_ERR_NFQ_SET_VERDICT, "nfq_set_verdict_batch failed");
+    } else {
+        t->verdict_cache.len = 0;
+        t->verdict_cache.mark_valid = 0;
+    }
+#endif
+}
+
+static int NFQVerdictCacheAdd(NFQQueueVars *t, Packet *p, uint32_t verdict)
+{
+#ifdef HAVE_NFQ_SET_VERDICT_BATCH
+    if (!runmode_workers)
+        return -1;
+
+    if (p->flags & PKT_STREAM_MODIFIED || verdict == NF_DROP)
+        goto flush;
+
+    if (p->flags & PKT_MARK_MODIFIED) {
+        if (!t->verdict_cache.mark_valid) {
+            if (t->verdict_cache.len)
+                goto flush;
+            t->verdict_cache.mark_valid = 1;
+            t->verdict_cache.mark = p->nfq_v.mark;
+        } else if (t->verdict_cache.mark != p->nfq_v.mark) {
+            goto flush;
+        }
+    } else if (t->verdict_cache.mark_valid) {
+        goto flush;
+    }
+
+    if (t->verdict_cache.len == 0) {
+        t->verdict_cache.verdict = verdict;
+    } else if (t->verdict_cache.verdict != verdict)
+        goto flush;
+
+    /* same verdict, mark not set or identical -> can cache */
+    t->verdict_cache.packet_id = p->nfq_v.id;
+    if (t->verdict_cache.len >= NFQ_BATCHCOUNT)
+        NFQVerdictCacheFlush(t);
+    else
+        t->verdict_cache.len++;
+    return 0;
+ flush:
+    /* can't cache. Flush current cache and signal caller it should send single verdict */
+    if (NFQVerdictCacheLen(t) > 0)
+      NFQVerdictCacheFlush(t);
+#endif
+    return -1;
 }
 
 static inline void NFQMutexInit(NFQQueueVars *nq)
@@ -722,13 +801,16 @@ void *NFQGetThread(int number) {
 #ifndef OS_WIN32
 void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv) {
     int rv, ret;
+    int flag = NFQVerdictCacheLen(t) ? MSG_DONTWAIT : 0;
 
     /* XXX what happens on rv == 0? */
-    rv = recv(t->fd, tv->data, tv->datalen, 0);
+    rv = recv(t->fd, tv->data, tv->datalen, flag);
 
     if (rv < 0) {
         if (errno == EINTR || errno == EWOULDBLOCK) {
             /* no error on timeout */
+            if (flag)
+	        NFQVerdictCacheFlush(t);
         } else {
 #ifdef COUNTERS
             NFQMutexLock(t);
@@ -927,6 +1009,12 @@ TmEcode NFQSetVerdict(Packet *p) {
 #ifdef COUNTERS
         t->accepted++;
 #endif /* COUNTERS */
+    }
+
+    ret = NFQVerdictCacheAdd(t, p, verdict);
+    if (ret == 0) {
+       NFQMutexUnlock(t);
+       return TM_ECODE_OK;
     }
 
     do {

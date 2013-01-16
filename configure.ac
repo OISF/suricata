@@ -665,6 +665,7 @@ AC_INIT(configure.ac)
         AC_CHECK_LIB([netfilter_queue], [nfq_set_queue_maxlen],AC_DEFINE_UNQUOTED([HAVE_NFQ_MAXLEN],[1],[Found queue max length support in netfilter_queue]) ,,[-lnfnetlink])
         AC_CHECK_LIB([netfilter_queue], [nfq_set_verdict2],AC_DEFINE_UNQUOTED([HAVE_NFQ_SET_VERDICT2],[1],[Found nfq_set_verdict2 function in netfilter_queue]) ,,[-lnfnetlink])
         AC_CHECK_LIB([netfilter_queue], [nfq_set_queue_flags],AC_DEFINE_UNQUOTED([HAVE_NFQ_SET_QUEUE_FLAGS],[1],[Found nfq_set_queue_flags function in netfilter_queue]) ,,[-lnfnetlink])
+        AC_CHECK_LIB([netfilter_queue], [nfq_set_verdict_batch],AC_DEFINE_UNQUOTED([HAVE_NFQ_SET_VERDICT_BATCH],[1],[Found nfq_set_verdict_batch function in netfilter_queue]) ,,[-lnfnetlink])
 
         # check if the argument to nfq_get_payload is signed or unsigned
         AC_MSG_CHECKING([for signed nfq_get_payload payload argument])
