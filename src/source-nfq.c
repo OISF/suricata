@@ -163,6 +163,7 @@ typedef struct NFQCnf_ {
     uint32_t mask;
     uint32_t next_queue;
     uint32_t flags;
+    uint8_t batchcount;
 } NFQCnf;
 
 NFQCnf nfq_config;
@@ -238,7 +239,7 @@ void NFQInitConfig(char quiet)
         nfq_config.flags |= NFQ_FLAG_FAIL_OPEN;
 #else
         SCLogError(SC_ERR_NFQ_NOSUPPORT,
-                   "nfq.fail-open set but NFQ library has no support for it.");
+                   "nfq.%s set but NFQ library has no support for it.", "fail-open");
 #endif
     }
 
@@ -252,6 +253,21 @@ void NFQInitConfig(char quiet)
 
     if ((ConfGetInt("nfq.route-queue", &value)) == 1) {
         nfq_config.next_queue = ((uint32_t)value) << 16;
+    }
+
+    if ((ConfGetInt("nfq.batchcount", &value)) == 1) {
+#ifdef HAVE_NFQ_SET_VERDICT_BATCH
+        if (value > 255) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "nfq.batchcount cannot exceed 255.");
+            value = 255;
+        }
+        if (value > 1)
+            nfq_config.batchcount = (uint8_t) (value - 1);
+#else
+        SCLogError(SC_ERR_NFQ_NOSUPPORT,
+                   "nfq.%s set but NFQ library has no support for it.", "batchcount");
+        exit(EXIT_FAILURE);
+#endif
     }
 
     if (!quiet) {
@@ -270,6 +286,85 @@ void NFQInitConfig(char quiet)
         }
     }
 
+}
+
+static uint8_t NFQVerdictCacheLen(NFQQueueVars *t)
+{
+#ifdef HAVE_NFQ_SET_VERDICT_BATCH
+    return t->verdict_cache.len;
+#else
+    return 0;
+#endif
+}
+
+static void NFQVerdictCacheFlush(NFQQueueVars *t)
+{
+#ifdef HAVE_NFQ_SET_VERDICT_BATCH
+    int ret;
+    int iter = 0;
+
+    do {
+        if (t->verdict_cache.mark_valid)
+            ret = nfq_set_verdict_batch2(t->qh,
+                                         t->verdict_cache.packet_id,
+                                         t->verdict_cache.verdict,
+                                         t->verdict_cache.mark);
+        else
+            ret = nfq_set_verdict_batch(t->qh,
+                                        t->verdict_cache.packet_id,
+                                        t->verdict_cache.verdict);
+    } while ((ret < 0) && (iter++ < NFQ_VERDICT_RETRY_TIME));
+
+    if (ret < 0) {
+        SCLogWarning(SC_ERR_NFQ_SET_VERDICT, "nfq_set_verdict_batch failed");
+    } else {
+        t->verdict_cache.len = 0;
+        t->verdict_cache.mark_valid = 0;
+    }
+#endif
+}
+
+static int NFQVerdictCacheAdd(NFQQueueVars *t, Packet *p, uint32_t verdict)
+{
+#ifdef HAVE_NFQ_SET_VERDICT_BATCH
+    if (t->verdict_cache.maxlen == 0)
+        return -1;
+
+    if (p->flags & PKT_STREAM_MODIFIED || verdict == NF_DROP)
+        goto flush;
+
+    if (p->flags & PKT_MARK_MODIFIED) {
+        if (!t->verdict_cache.mark_valid) {
+            if (t->verdict_cache.len)
+                goto flush;
+            t->verdict_cache.mark_valid = 1;
+            t->verdict_cache.mark = p->nfq_v.mark;
+        } else if (t->verdict_cache.mark != p->nfq_v.mark) {
+            goto flush;
+        }
+    } else if (t->verdict_cache.mark_valid) {
+        goto flush;
+    }
+
+    if (t->verdict_cache.len == 0) {
+        t->verdict_cache.verdict = verdict;
+    } else if (t->verdict_cache.verdict != verdict)
+        goto flush;
+
+    /* same verdict, mark not set or identical -> can cache */
+    t->verdict_cache.packet_id = p->nfq_v.id;
+
+    if (t->verdict_cache.len >= t->verdict_cache.maxlen)
+        NFQVerdictCacheFlush(t);
+    else
+        t->verdict_cache.len++;
+    return 0;
+ flush:
+    /* can't cache. Flush current cache and signal caller it should send single verdict */
+    if (NFQVerdictCacheLen(t) > 0)
+        NFQVerdictCacheFlush(t);
+#endif
+    return -1;
 }
 
 static inline void NFQMutexInit(NFQQueueVars *nq)
@@ -530,6 +625,14 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint32_t queue_maxlen)
     }
 #endif
 
+#ifdef HAVE_NFQ_SET_VERDICT_BATCH
+    if (runmode_workers) {
+        nfq_q->verdict_cache.maxlen = nfq_config.batchcount;
+    } else if (nfq_config.batchcount) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "nfq.batchcount is only valid in workers runmode.");
+    }
+#endif
+
     /* set a timeout to the socket so we can check for a signal
      * in case we don't get packets for a longer period. */
     tv.tv_sec = 1;
@@ -722,13 +825,16 @@ void *NFQGetThread(int number) {
 #ifndef OS_WIN32
 void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv) {
     int rv, ret;
+    int flag = NFQVerdictCacheLen(t) ? MSG_DONTWAIT : 0;
 
     /* XXX what happens on rv == 0? */
-    rv = recv(t->fd, tv->data, tv->datalen, 0);
+    rv = recv(t->fd, tv->data, tv->datalen, flag);
 
     if (rv < 0) {
         if (errno == EINTR || errno == EWOULDBLOCK) {
             /* no error on timeout */
+            if (flag)
+                NFQVerdictCacheFlush(t);
         } else {
 #ifdef COUNTERS
             NFQMutexLock(t);
@@ -927,6 +1033,12 @@ TmEcode NFQSetVerdict(Packet *p) {
 #ifdef COUNTERS
         t->accepted++;
 #endif /* COUNTERS */
+    }
+
+    ret = NFQVerdictCacheAdd(t, p, verdict);
+    if (ret == 0) {
+        NFQMutexUnlock(t);
+        return TM_ECODE_OK;
     }
 
     do {
