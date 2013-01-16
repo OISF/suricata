@@ -107,7 +107,8 @@ extern int max_pending_packets;
 
 #define MAX_ALREADY_TREATED 5
 #define NFQ_VERDICT_RETRY_TIME 3
-int already_seen_warning;
+static int already_seen_warning;
+static int runmode_workers;
 
 #define NFQ_BURST_FACTOR 4
 
@@ -277,12 +278,13 @@ static inline void NFQMutexInit(NFQQueueVars *nq)
 
     if (active_runmode && !strcmp("workers", active_runmode)) {
         nq->use_mutex = 0;
+        runmode_workers = 1;
         SCLogInfo("NFQ running in 'workers' runmode, will not use mutex.");
     } else {
         nq->use_mutex = 1;
-    }
-    if (nq->use_mutex)
+        runmode_workers = 0;
         SCMutexInit(&nq->mutex_qh, NULL);
+    }
 }
 
 #define NFQMutexLock(nq) do {           \
@@ -346,6 +348,8 @@ int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
              * This is unlikely to happen */
             SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "NFQ sent too big packet");
             SET_PKT_LEN(p, 0);
+        } else if (runmode_workers) {
+            PacketSetData(p, (uint8_t *)pktdata, ret);
         } else {
             PacketCopyData(p, (uint8_t *)pktdata, ret);
         }
