@@ -86,6 +86,7 @@ typedef struct NFQQueueVars_
       uint32_t mark;
       uint8_t mark_valid:1;
       uint8_t len;
+      uint8_t maxlen;
     } verdict_cache;
 
 } NFQQueueVars;

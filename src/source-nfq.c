@@ -111,7 +111,6 @@ static int already_seen_warning;
 static int runmode_workers;
 
 #define NFQ_BURST_FACTOR 4
-#define NFQ_BATCHCOUNT 20
 
 #ifndef SOL_NETLINK
 #define SOL_NETLINK 270
@@ -164,6 +163,7 @@ typedef struct NFQCnf_ {
     uint32_t mask;
     uint32_t next_queue;
     uint32_t flags;
+    uint8_t batchcount;
 } NFQCnf;
 
 NFQCnf nfq_config;
@@ -239,7 +239,7 @@ void NFQInitConfig(char quiet)
         nfq_config.flags |= NFQ_FLAG_FAIL_OPEN;
 #else
         SCLogError(SC_ERR_NFQ_NOSUPPORT,
-                   "nfq.fail-open set but NFQ library has no support for it.");
+                   "nfq.%s set but NFQ library has no support for it.", "fail-open");
 #endif
     }
 
@@ -253,6 +253,21 @@ void NFQInitConfig(char quiet)
 
     if ((ConfGetInt("nfq.route-queue", &value)) == 1) {
         nfq_config.next_queue = ((uint32_t)value) << 16;
+    }
+
+    if ((ConfGetInt("nfq.batchcount", &value)) == 1) {
+#ifdef HAVE_NFQ_SET_VERDICT_BATCH
+        if (value > 255) {
+          SCLogError(SC_ERR_INVALID_ARGUMENT, "nfq.batchcount cannot exceed 255.");
+          value = 255;
+        }
+        if (value > 1)
+           nfq_config.batchcount = (uint8_t) (value - 1);
+#else
+        SCLogError(SC_ERR_NFQ_NOSUPPORT,
+                   "nfq.%s set but NFQ library has no support for it.", "batchcount");
+        exit(EXIT_FAILURE);
+#endif
     }
 
     if (!quiet) {
@@ -312,7 +327,7 @@ static void NFQVerdictCacheFlush(NFQQueueVars *t)
 static int NFQVerdictCacheAdd(NFQQueueVars *t, Packet *p, uint32_t verdict)
 {
 #ifdef HAVE_NFQ_SET_VERDICT_BATCH
-    if (!runmode_workers)
+    if (t->verdict_cache.maxlen == 0)
         return -1;
 
     if (p->flags & PKT_STREAM_MODIFIED || verdict == NF_DROP)
@@ -338,7 +353,8 @@ static int NFQVerdictCacheAdd(NFQQueueVars *t, Packet *p, uint32_t verdict)
 
     /* same verdict, mark not set or identical -> can cache */
     t->verdict_cache.packet_id = p->nfq_v.id;
-    if (t->verdict_cache.len >= NFQ_BATCHCOUNT)
+
+    if (t->verdict_cache.len >= t->verdict_cache.maxlen)
         NFQVerdictCacheFlush(t);
     else
         t->verdict_cache.len++;
@@ -606,6 +622,14 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint32_t queue_maxlen)
         } else {
             SCLogInfo("fail-open mode should be set on queue");
         }
+    }
+#endif
+
+#ifdef HAVE_NFQ_SET_VERDICT_BATCH
+    if (runmode_workers) {
+       nfq_q->verdict_cache.maxlen = nfq_config.batchcount;
+    } else if (nfq_config.batchcount) {
+       SCLogError(SC_ERR_INVALID_ARGUMENT, "nfq.batchcount is only valid in workers runmode.");
     }
 #endif
 
