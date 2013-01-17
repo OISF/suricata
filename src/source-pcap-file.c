@@ -182,10 +182,16 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
         if (unlikely(r == -1)) {
             SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",
                        r, pcap_geterr(pcap_g.pcap_handle));
-
-            /* in the error state we just kill the engine */
-            EngineKill();
-            SCReturnInt(TM_ECODE_FAILED);
+            if (! RunModeUnixSocketIsActive()) {
+                /* in the error state we just kill the engine */
+                EngineKill();
+                SCReturnInt(TM_ECODE_FAILED);
+            } else {
+                pcap_close(pcap_g.pcap_handle);
+                pcap_g.pcap_handle = NULL;
+                UnixSocketPcapFile(TM_ECODE_DONE);
+                SCReturnInt(TM_ECODE_DONE);
+            }
         } else if (unlikely(r == 0)) {
             SCLogInfo("pcap file end of file reached (pcap err code %" PRId32 ")", r);
             if (! RunModeUnixSocketIsActive()) {
@@ -199,8 +205,15 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
             break;
         } else if (ptv->cb_result == TM_ECODE_FAILED) {
             SCLogError(SC_ERR_PCAP_DISPATCH, "Pcap callback PcapFileCallbackLoop failed");
-            EngineKill();
-            SCReturnInt(TM_ECODE_FAILED);
+            if (! RunModeUnixSocketIsActive()) {
+                EngineKill();
+                SCReturnInt(TM_ECODE_FAILED);
+            } else {
+                pcap_close(pcap_g.pcap_handle);
+                pcap_g.pcap_handle = NULL;
+                UnixSocketPcapFile(TM_ECODE_DONE);
+                SCReturnInt(TM_ECODE_DONE);
+            }
         }
         SCPerfSyncCountersIfSignalled(tv, 0);
     }
