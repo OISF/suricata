@@ -1308,6 +1308,14 @@ int DetectPortTestConfVars(void)
         }
         DetectPort *ghn = NULL;
 
+        if (seq_node->val == NULL) {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                       "Port var \"%s\" probably has a sequence(something "
+                       "in brackets) value set without any quotes.  Please "
+                       "quote it using \"..\".", seq_node->name);
+            goto error;
+        }
+
         int r = DetectPortParseDo(&gh, &ghn, seq_node->val, /* start with negate no */0);
         if (r < 0) {
             goto error;

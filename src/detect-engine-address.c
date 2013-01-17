@@ -1251,6 +1251,14 @@ int DetectAddressTestConfVars(void)
             goto error;
         }
 
+        if (seq_node->val == NULL) {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                       "Address var \"%s\" probably has a sequence(something "
+                       "in brackets) value set without any quotes.  Please "
+                       "quote it using \"..\".", seq_node->name);
+            goto error;
+        }
+
         int r = DetectAddressParse2(gh, ghn, seq_node->val, /* start with negate no */0);
         if (r < 0) {
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
