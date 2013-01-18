@@ -193,6 +193,7 @@
 #include "util-memcmp.h"
 #include "util-proto-name.h"
 #include "util-spm-bm.h"
+#include "util-storage.h"
 
 /*
  * we put this here, because we only use it here in main.
@@ -1708,6 +1709,9 @@ int main(int argc, char **argv)
         DetectProtoTests();
         DetectPortTests();
         SCAtomicRegisterTests();
+
+        StorageRegisterTests();
+
         if (list_unittests) {
             UtListTests(regex_arg);
         }
