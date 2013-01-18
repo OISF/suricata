@@ -192,6 +192,7 @@
 #include "util-cuda-buffer.h"
 #include "util-mpm-ac.h"
 #endif
+#include "util-storage.h"
 
 /*
  * we put this here, because we only use it here in main.
@@ -1715,6 +1716,8 @@ int main(int argc, char **argv)
 #ifdef __SC_CUDA_SUPPORT__
         CudaBufferRegisterUnittests();
 #endif
+        StorageRegisterTests();
+
         if (list_unittests) {
             UtListTests(regex_arg);
         } else if (coverage_unittests) {
