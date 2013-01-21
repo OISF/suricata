@@ -194,6 +194,7 @@ void *ParsePfringConfig(const char *iface)
 {
     char *threadsstr = NULL;
     ConfNode *if_root;
+    ConfNode *if_default = NULL;
     ConfNode *pf_ring_node;
     PfringIfaceConfig *pfconf = SCMalloc(sizeof(*pfconf));
     char *tmpclusterid;
@@ -234,7 +235,10 @@ void *ParsePfringConfig(const char *iface)
     }
 
     if_root = ConfNodeLookupKeyValue(pf_ring_node, "interface", iface);
-    if (if_root == NULL) {
+
+    if_default = ConfNodeLookupKeyValue(pf_ring_node, "interface", "default");
+
+    if (if_root == NULL && if_default == NULL) {
         /* Switch to old mode */
         if_root = pf_ring_node;
         SCLogInfo("Unable to find pfring config for "
@@ -244,7 +248,13 @@ void *ParsePfringConfig(const char *iface)
         return pfconf;
     }
 
-    if (ConfGetChildValue(if_root, "threads", &threadsstr) != 1) {
+    /* If there is no setting for current interface use default one as main iface */
+    if (if_root == NULL) {
+        if_root = if_default;
+        if_default = NULL;
+    }
+
+    if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
         pfconf->threads = 1;
     } else {
         if (threadsstr != NULL) {
@@ -264,7 +274,7 @@ void *ParsePfringConfig(const char *iface)
         SCLogDebug("Going to use command-line provided cluster-id %" PRId32,
                    pfconf->cluster_id);
     } else {
-        if (ConfGetChildValue(if_root, "cluster-id", &tmpclusterid) != 1) {
+        if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) != 1) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,
                        "Could not get cluster-id from config");
         } else {
@@ -282,7 +292,7 @@ void *ParsePfringConfig(const char *iface)
                        pfconf->bpf_filter);
         }
     } else {
-        if (ConfGetChildValue(if_root, "bpf-filter", &bpf_filter) == 1) {
+        if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &bpf_filter) == 1) {
             if (strlen(bpf_filter) > 0) {
                 pfconf->bpf_filter = SCStrdup(bpf_filter);
                 SCLogDebug("Going to use bpf filter %s", pfconf->bpf_filter);
@@ -296,7 +306,7 @@ void *ParsePfringConfig(const char *iface)
         SCLogDebug("Going to use command-line provided cluster-type");
         getctype = 1;
     } else {
-        if (ConfGetChildValue(if_root, "cluster-type", &tmpctype) != 1) {
+        if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) != 1) {
             SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,
                        "Could not get cluster-type fron config");
         } else {
@@ -324,7 +334,7 @@ void *ParsePfringConfig(const char *iface)
 
 #endif /* HAVE_PFRING_CLUSTER_TYPE */
 
-    if (ConfGetChildValue(if_root, "checksum-checks", &tmpctype) == 1) {
+    if (ConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
             pfconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
         } else if (strcmp(tmpctype, "yes") == 0) {

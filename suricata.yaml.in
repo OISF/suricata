@@ -680,6 +680,9 @@ pfring:
   #  threads: 3
   #  cluster-id: 93
   #  cluster-type: cluster_flow
+  # Put default values here
+  - interface: default
+    #threads: 2
 
 pcap:
   - interface: eth0
