@@ -289,6 +289,10 @@ af-packet:
     defrag: yes
     # buffer-size: 32768
     # disable-promisc: no
+  # Put default values here
+  - interface: default
+    #threads: 2
+    #use-mmap: yes
 
 # You can specify a threshold config file by setting "threshold-file"
 # to the path of the threshold config file:
@@ -676,6 +680,9 @@ pfring:
   #  threads: 3
   #  cluster-id: 93
   #  cluster-type: cluster_flow
+  # Put default values here
+  - interface: default
+    #threads: 2
 
 pcap:
   - interface: eth0
@@ -696,6 +703,9 @@ pcap:
     # rings. In this case, set up the threads variable to N to start N threads
     # listening on the same interface.
     #threads: 16
+  # Put default values here
+  - interface: default
+    #checksum-checks: auto
 
 # For FreeBSD ipfw(8) divert(4) support.
 # Please make sure you have ipfw_load="YES" and ipdivert_load="YES"

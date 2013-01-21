@@ -286,6 +286,17 @@ int ConfGetChildValue(ConfNode *base, char *name, char **vptr)
     }
 }
 
+
+int ConfGetChildValueWithDefault(ConfNode *base, ConfNode *dflt, char *name, char **vptr)
+{
+    int ret = ConfGetChildValue(base, name, vptr);
+    /* Get 'default' value */
+    if (ret == 0 && dflt) {
+        return ConfGetChildValue(dflt, name, vptr);
+    }
+    return ret;
+}
+
 /**
  * \brief Retrieve a configuration value as an integer.
  *
@@ -337,6 +348,15 @@ int ConfGetChildValueInt(ConfNode *base, char *name, intmax_t *val)
 
 }
 
+int ConfGetChildValueIntWithDefault(ConfNode *base, ConfNode *dflt, char *name, intmax_t *val)
+{
+    int ret = ConfGetChildValueInt(base, name, val);
+    /* Get 'default' value */
+    if (ret == 0 && dflt) {
+        return ConfGetChildValueInt(dflt, name, val);
+    }
+    return ret;
+}
 
 
 /**
@@ -375,6 +395,17 @@ int ConfGetChildValueBool(ConfNode *base, char *name, int *val)
 
     return 1;
 }
+
+int ConfGetChildValueBoolWithDefault(ConfNode *base, ConfNode *dflt, char *name, int *val)
+{
+    int ret = ConfGetChildValueBool(base, name, val);
+    /* Get 'default' value */
+    if (ret == 0 && dflt) {
+        return ConfGetChildValueBool(dflt, name, val);
+    }
+    return ret;
+}
+
 
 /**
  * \brief Check if a value is true.
@@ -1014,6 +1045,94 @@ ConfNodeLookupChildValueTest(void)
     return 1;
 }
 
+static int ConfGetChildValueWithDefaultTest(void)
+{
+    char  *val;
+    int ret = 1;
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfSet("af-packet.0.interface", "eth0", 1);
+    ConfSet("af-packet.1.interface", "default", 1);
+    ConfSet("af-packet.1.cluster-type", "cluster_cpu", 1);
+
+    ConfNode *root = ConfGetNode("af-packet.0");
+    ConfNode *dflt = ConfGetNode("af-packet.1");
+    ConfGetChildValueWithDefault(root, dflt, "cluster-type", &val);
+    if (strcmp(val, "cluster_cpu")) {
+        ConfDeInit();
+        ConfRestoreContextBackup();
+        return 0;
+    }
+
+    ConfSet("af-packet.0.cluster-type", "cluster_flow", 1);
+    ConfGetChildValueWithDefault(root, dflt, "cluster-type", &val);
+
+    if (strcmp(val, "cluster_flow")) {
+        ret = 0;
+    }
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    return ret;
+}
+
+static int ConfGetChildValueIntWithDefaultTest(void)
+{
+    intmax_t val;
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfSet("af-packet.0.interface", "eth0", 1);
+    ConfSet("af-packet.1.interface", "default", 1);
+    ConfSet("af-packet.1.threads", "2", 1);
+
+    ConfNode *root = ConfGetNode("af-packet.0");
+    ConfNode *dflt = ConfGetNode("af-packet.1");
+    ConfGetChildValueIntWithDefault(root, dflt, "threads", &val);
+    if (val != 2) {
+        ConfDeInit();
+        ConfRestoreContextBackup();
+        return 0;
+    }
+
+    ConfSet("af-packet.0.threads", "1", 1);
+    ConfGetChildValueIntWithDefault(root, dflt, "threads", &val);
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    if (val != 1) {
+        return 0;
+    }
+    return 1;
+}
+
+static int ConfGetChildValueBoolWithDefaultTest(void)
+{
+    int val;
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfSet("af-packet.0.interface", "eth0", 1);
+    ConfSet("af-packet.1.interface", "default", 1);
+    ConfSet("af-packet.1.use-mmap", "yes", 1);
+
+    ConfNode *root = ConfGetNode("af-packet.0");
+    ConfNode *dflt = ConfGetNode("af-packet.1");
+    ConfGetChildValueBoolWithDefault(root, dflt, "use-mmap", &val);
+    if (val == 0) {
+        ConfDeInit();
+        ConfRestoreContextBackup();
+        return 0;
+    }
+
+    ConfSet("af-packet.0.use-mmap", "no", 1);
+    ConfGetChildValueBoolWithDefault(root, dflt, "use-mmap", &val);
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    if (val) {
+        return 0;
+    }
+    return 1;
+}
+
 /**
  * Test the removal of a configuration node.
  */
@@ -1089,6 +1208,9 @@ ConfRegisterTests(void)
     UtRegisterTest("ConfNodeLookupChildTest", ConfNodeLookupChildTest, 1);
     UtRegisterTest("ConfNodeLookupChildValueTest", ConfNodeLookupChildValueTest, 1);
     UtRegisterTest("ConfNodeRemoveTest", ConfNodeRemoveTest, 1);
+    UtRegisterTest("ConfGetChildValueWithDefaultTest", ConfGetChildValueWithDefaultTest, 1);
+    UtRegisterTest("ConfGetChildValueIntWithDefaultTest", ConfGetChildValueIntWithDefaultTest, 1);
+    UtRegisterTest("ConfGetChildValueBoolWithDefaultTest", ConfGetChildValueBoolWithDefaultTest, 1);
 }
 
 #endif /* UNITTESTS */
