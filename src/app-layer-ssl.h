@@ -105,6 +105,8 @@ typedef struct SSLStateConnp_ {
 
     /* the no of bytes processed in the currently parsed record */
     uint16_t bytes_processed;
+    /* the no of bytes processed in the currently parsed handshake */
+    uint16_t hs_bytes_processed;
 
     /* sslv2 client hello session id length */
     uint16_t session_id_length;
@@ -123,8 +125,8 @@ typedef struct SSLStateConnp_ {
     /* buffer for the tls record.
      * We use a malloced buffer, if the record is fragmented */
     uint8_t *trec;
-    uint16_t trec_len;
-    uint16_t trec_pos;
+    uint32_t trec_len;
+    uint32_t trec_pos;
 } SSLStateConnp;
 
 /**
