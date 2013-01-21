@@ -111,6 +111,7 @@ void *ParseAFPConfig(const char *iface)
 {
     char *threadsstr = NULL;
     ConfNode *if_root;
+    ConfNode *if_default = NULL;
     ConfNode *af_packet_node;
     AFPIfaceConfig *aconf = SCMalloc(sizeof(*aconf));
     char *tmpclusterid;
@@ -160,14 +161,23 @@ void *ParseAFPConfig(const char *iface)
     }
 
     if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", iface);
-    if (if_root == NULL) {
+
+    if_default = ConfNodeLookupKeyValue(af_packet_node, "interface", "default");
+
+    if (if_root == NULL && if_default == NULL) {
         SCLogInfo("Unable to find af-packet config for "
-                  "interface %s, using default value",
+                  "interface \"%s\" or \"default\", using default value",
                   iface);
         return aconf;
     }
 
-    if (ConfGetChildValue(if_root, "threads", &threadsstr) != 1) {
+    /* If there is no setting for current interface use default one as main iface */
+    if (if_root == NULL) {
+        if_root = if_default;
+        if_default = NULL;
+    }
+
+    if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
         aconf->threads = 1;
     } else {
         if (threadsstr != NULL) {
@@ -178,19 +188,19 @@ void *ParseAFPConfig(const char *iface)
         aconf->threads = 1;
     }
 
-    if (ConfGetChildValue(if_root, "copy-iface", &out_iface) == 1) {
+    if (ConfGetChildValueWithDefault(if_root, if_default, "copy-iface", &out_iface) == 1) {
         if (strlen(out_iface) > 0) {
             aconf->out_iface = out_iface;
         }
     }
 
-    (void)ConfGetChildValueBool(if_root, "use-mmap", (int *)&boolval);
+    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "use-mmap", (int *)&boolval);
     if (boolval) {
         SCLogInfo("Enabling mmaped capture on iface %s",
                 aconf->iface);
         aconf->flags |= AFP_RING_MODE;
     }
-    (void)ConfGetChildValueBool(if_root, "use-emergency-flush", (int *)&boolval);
+    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "use-emergency-flush", (int *)&boolval);
     if (boolval) {
         SCLogInfo("Enabling ring emergency flush on iface %s",
                 aconf->iface);
@@ -199,7 +209,7 @@ void *ParseAFPConfig(const char *iface)
 
 
     aconf->copy_mode = AFP_COPY_MODE_NONE;
-    if (ConfGetChildValue(if_root, "copy-mode", &copymodestr) == 1) {
+    if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
         if (aconf->out_iface == NULL) {
             SCLogInfo("Copy mode activated but no destination"
                       " iface. Disabling feature");
@@ -226,14 +236,14 @@ void *ParseAFPConfig(const char *iface)
     SC_ATOMIC_RESET(aconf->ref);
     (void) SC_ATOMIC_ADD(aconf->ref, aconf->threads);
 
-    if (ConfGetChildValue(if_root, "cluster-id", &tmpclusterid) != 1) {
+    if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) != 1) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,"Could not get cluster-id from config");
     } else {
         aconf->cluster_id = (uint16_t)atoi(tmpclusterid);
         SCLogDebug("Going to use cluster-id %" PRId32, aconf->cluster_id);
     }
 
-    if (ConfGetChildValue(if_root, "cluster-type", &tmpctype) != 1) {
+    if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) != 1) {
         SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,"Could not get cluster-type from config");
     } else if (strcmp(tmpctype, "cluster_round_robin") == 0) {
         SCLogInfo("Using round-robin cluster mode for AF_PACKET (iface %s)",
@@ -245,7 +255,7 @@ void *ParseAFPConfig(const char *iface)
         uint16_t defrag = 0;
         SCLogInfo("Using flow cluster mode for AF_PACKET (iface %s)",
                 aconf->iface);
-        ConfGetChildValueBool(if_root, "defrag", (int *)&defrag);
+        ConfGetChildValueBoolWithDefault(if_root, if_default, "defrag", (int *)&defrag);
         if (defrag) {
             SCLogInfo("Using defrag kernel functionality for AF_PACKET (iface %s)",
                     aconf->iface);
@@ -265,7 +275,7 @@ void *ParseAFPConfig(const char *iface)
     /*load af_packet bpf filter*/
     /* command line value has precedence */
     if (ConfGet("bpf-filter", &bpf_filter) != 1) {
-        if (ConfGetChildValue(if_root, "bpf-filter", &bpf_filter) == 1) {
+        if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &bpf_filter) == 1) {
             if (strlen(bpf_filter) > 0) {
                 aconf->bpf_filter = bpf_filter;
                 SCLogInfo("Going to use bpf filter %s", aconf->bpf_filter);
@@ -273,12 +283,12 @@ void *ParseAFPConfig(const char *iface)
         }
     }
 
-    if ((ConfGetChildValueInt(if_root, "buffer-size", &value)) == 1) {
+    if ((ConfGetChildValueIntWithDefault(if_root, if_default, "buffer-size", &value)) == 1) {
         aconf->buffer_size = value;
     } else {
         aconf->buffer_size = 0;
     }
-    if ((ConfGetChildValueInt(if_root, "ring-size", &value)) == 1) {
+    if ((ConfGetChildValueIntWithDefault(if_root, if_default, "ring-size", &value)) == 1) {
         aconf->ring_size = value;
         if (value * aconf->threads < max_pending_packets) {
             aconf->ring_size = max_pending_packets / aconf->threads + 1;
@@ -294,14 +304,14 @@ void *ParseAFPConfig(const char *iface)
         aconf->ring_size = max_pending_packets * 2 / aconf->threads;
     }
 
-    (void)ConfGetChildValueBool(if_root, "disable-promisc", (int *)&boolval);
+    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", (int *)&boolval);
     if (boolval) {
         SCLogInfo("Disabling promiscuous mode on iface %s",
                 aconf->iface);
         aconf->promisc = 0;
     }
 
-    if (ConfGetChildValue(if_root, "checksum-checks", &tmpctype) == 1) {
+    if (ConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
         } else if (strcmp(tmpctype, "yes") == 0) {
