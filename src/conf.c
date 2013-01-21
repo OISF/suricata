@@ -286,6 +286,17 @@ int ConfGetChildValue(ConfNode *base, char *name, char **vptr)
     }
 }
 
+
+int ConfGetChildValueWithDefault(ConfNode *base, ConfNode *dflt, char *name, char **vptr)
+{
+    int ret = ConfGetChildValue(base, name, vptr);
+    /* Get 'default' value */
+    if (ret == 0 && dflt) {
+        return ConfGetChildValue(dflt, name, vptr);
+    }
+    return ret;
+}
+
 /**
  * \brief Retrieve a configuration value as an integer.
  *
@@ -337,6 +348,15 @@ int ConfGetChildValueInt(ConfNode *base, char *name, intmax_t *val)
 
 }
 
+int ConfGetChildValueIntWithDefault(ConfNode *base, ConfNode *dflt, char *name, intmax_t *val)
+{
+    int ret = ConfGetChildValueInt(base, name, val);
+    /* Get 'default' value */
+    if (ret == 0 && dflt) {
+        return ConfGetChildValueInt(dflt, name, val);
+    }
+    return ret;
+}
 
 
 /**
@@ -375,6 +395,17 @@ int ConfGetChildValueBool(ConfNode *base, char *name, int *val)
 
     return 1;
 }
+
+int ConfGetChildValueBoolWithDefault(ConfNode *base, ConfNode *dflt, char *name, int *val)
+{
+    int ret = ConfGetChildValueBool(base, name, val);
+    /* Get 'default' value */
+    if (ret == 0 && dflt) {
+        return ConfGetChildValueBool(dflt, name, val);
+    }
+    return ret;
+}
+
 
 /**
  * \brief Check if a value is true.

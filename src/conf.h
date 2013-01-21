@@ -80,6 +80,9 @@ ConfNode *ConfNodeLookupKeyValue(ConfNode *base, const char *key, const char *va
 int ConfGetChildValue(ConfNode *base, char *name, char **vptr);
 int ConfGetChildValueInt(ConfNode *base, char *name, intmax_t *val);
 int ConfGetChildValueBool(ConfNode *base, char *name, int *val);
+int ConfGetChildValueWithDefault(ConfNode *base, ConfNode *dflt, char *name, char **vptr);
+int ConfGetChildValueIntWithDefault(ConfNode *base, ConfNode *dflt, char *name, intmax_t *val);
+int ConfGetChildValueBoolWithDefault(ConfNode *base, ConfNode *dflt, char *name, int *val);
 char *ConfLoadCompleteIncludePath(char *);
 
 #endif /* ! __CONF_H__ */
