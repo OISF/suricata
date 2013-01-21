@@ -87,6 +87,7 @@ void *ParsePcapConfig(const char *iface)
 {
     char *threadsstr = NULL;
     ConfNode *if_root;
+    ConfNode *if_default = NULL;
     ConfNode *pcap_node;
     PcapIfaceConfig *aconf = SCMalloc(sizeof(*aconf));
     char *tmpbpf;
@@ -130,14 +131,23 @@ void *ParsePcapConfig(const char *iface)
     }
 
     if_root = ConfNodeLookupKeyValue(pcap_node, "interface", iface);
-    if (if_root == NULL) {
+
+    if_default = ConfNodeLookupKeyValue(pcap_node, "interface", "default");
+
+    if (if_root == NULL && if_default == NULL) {
         SCLogInfo("Unable to find pcap config for "
                   "interface %s, using default value",
                   iface);
         return aconf;
     }
 
-    if (ConfGetChildValue(if_root, "threads", &threadsstr) != 1) {
+    /* If there is no setting for current interface use default one as main iface */
+    if (if_root == NULL) {
+        if_root = if_default;
+        if_default = NULL;
+    }
+
+    if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
         aconf->threads = 1;
     } else {
         if (threadsstr != NULL) {
@@ -150,8 +160,10 @@ void *ParsePcapConfig(const char *iface)
     (void) SC_ATOMIC_ADD(aconf->ref, aconf->threads);
 
     if (aconf->buffer_size == 0) {
-        const char *s_limit = ConfNodeLookupChildValue(if_root, "buffer-size");
-        if (s_limit != NULL) {
+        char *s_limit = NULL;
+        int ret;
+        ret = ConfGetChildValueWithDefault(if_root, if_default, "buffer-size", &s_limit);
+        if (ret == 1 && s_limit) {
             uint64_t bsize = 0;
 
             if (ParseSizeStringU64(s_limit, &bsize) < 0) {
@@ -176,7 +188,7 @@ void *ParsePcapConfig(const char *iface)
 
     if (aconf->bpf_filter == NULL) {
         /* set bpf filter if we have one */
-        if (ConfGetChildValue(if_root, "bpf-filter", &tmpbpf) != 1) {
+        if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &tmpbpf) != 1) {
             SCLogDebug("could not get bpf or none specified");
         } else {
             aconf->bpf_filter = tmpbpf;
@@ -185,7 +197,7 @@ void *ParsePcapConfig(const char *iface)
         SCLogInfo("BPF filter set from command line or via old 'bpf-filter' option.");
     }
 
-    if (ConfGetChildValue(if_root, "checksum-checks", &tmpctype) == 1) {
+    if (ConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
         } else if (strcmp(tmpctype, "yes") == 0) {
