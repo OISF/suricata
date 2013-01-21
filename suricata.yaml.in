@@ -289,6 +289,10 @@ af-packet:
     defrag: yes
     # buffer-size: 32768
     # disable-promisc: no
+  # Put default values here
+  - interface: default
+    #threads: 2
+    #use-mmap: yes
 
 # You can specify a threshold config file by setting "threshold-file"
 # to the path of the threshold config file:
