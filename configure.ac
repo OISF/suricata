@@ -1413,6 +1413,7 @@ AC_INIT(configure.ac)
             echo "   from http://www.maxmind.com/en/geolite or your distribution:"
             echo
             echo "   Ubuntu: apt-get install libgeoip-dev"
+            echo "   Fedora: yum install GeoIP-devel"
             echo
             exit 1
         fi
