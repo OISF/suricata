@@ -25,6 +25,7 @@
 #define __HOST_H__
 
 #include "decode.h"
+#include "util-storage.h"
 
 /** Spinlocks or Mutex for the flow buckets. */
 //#define HRLOCK_SPIN
@@ -68,6 +69,8 @@ typedef struct Host_ {
     void *tag;
     void *threshold;
     void *iprep;
+    /** storage api handle */
+    Storage *storage;
 
     /** hash pointers, protected by hash row mutex/spin */
     struct Host_ *hnext;
