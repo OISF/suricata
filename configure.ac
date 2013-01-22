@@ -100,6 +100,19 @@ AC_INIT(configure.ac)
     fi
     AM_CONDITIONAL([HAVE_COCCINELLE], [test "$HAVE_COCCINELLE_CONFIG" != "no"])
 
+    AC_PATH_PROG(HAVE_PYTHON_CONFIG, python, "no")
+    if test "$HAVE_PYTHON_CONFIG" = "no"; then
+        echo
+        echo "   Warning! python not found, you will not be     "
+        echo "   able to install surictasc unix socket client   "
+        echo
+        enable_python="no"
+    else
+        enable_python="yes"
+    fi
+    AM_CONDITIONAL([HAVE_PYTHON], [test "$HAVE_PYTHON_CONFIG" != "no"])
+
+
 
     # Checks for libraries.
 
@@ -1512,6 +1525,8 @@ Suricata Configuration:
   Non-bundled htp:                         ${enable_non_bundled_htp}
   Old barnyard2 support:                   ${enable_old_barnyard2}
   CUDA enabled:                            ${enable_cuda}
+
+  Suricatasc install:                      ${enable_python}
 
   Unit tests enabled:                      ${enable_unittests}
   Debug output enabled:                    ${enable_debug}
