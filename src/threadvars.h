@@ -33,17 +33,18 @@
 struct TmSlot_;
 
 /** Thread flags set and read by threads to control the threads */
-#define THV_USE       0x01 /** thread is in use */
-#define THV_INIT_DONE 0x02 /** thread initialization done */
-#define THV_PAUSE     0x04 /** thread has been paused */
-#define THV_KILL      0x08 /** thread has been asked to cleanup and exit */
-#define THV_FAILED    0x10 /** thread has encountered an error and failed */
-#define THV_CLOSED    0x20 /** thread done, should be joinable */
+#define THV_USE       1 /** thread is in use */
+#define THV_INIT_DONE (1 << 1) /** thread initialization done */
+#define THV_PAUSE     (1 << 2) /** signal thread to pause itself */
+#define THV_PAUSED    (1 << 3) /** the thread is paused atm */
+#define THV_KILL      (1 << 4) /** thread has been asked to cleanup and exit */
+#define THV_FAILED    (1 << 5) /** thread has encountered an error and failed */
+#define THV_CLOSED    (1 << 6) /** thread done, should be joinable */
 /* used to indicate the thread is going through de-init.  Introduced as more
  * of a hack for solving stream-timeout-shutdown.  Is set by the main thread. */
-#define THV_DEINIT    0x40
-#define THV_RUNNING_DONE 0x80 /** thread has completed running and is entering
-                              * the de-init phase */
+#define THV_DEINIT    (1 << 7)
+#define THV_RUNNING_DONE (1 << 8) /** thread has completed running and is entering
+                                   * the de-init phase */
 
 /** Thread flags set and read by threads, to control the threads, when they
  *  encounter certain conditions like failure */
@@ -59,7 +60,7 @@ typedef struct ThreadVars_ {
     char *name;
     char *thread_group_name;
 
-    SC_ATOMIC_DECLARE(unsigned char, flags);
+    SC_ATOMIC_DECLARE(unsigned short, flags);
 
     /** aof(action on failure) determines what should be done with the thread
         when it encounters certain conditions like failures */

@@ -681,6 +681,19 @@ void FlowForceReassembly(void)
                 while (q->len != 0) {
                     usleep(100);
                 }
+                TmThreadsSetFlag(tv, THV_PAUSE);
+                if (tv->inq->q_type == 0)
+                    SCCondSignal(&trans_q[tv->inq->id].cond_q);
+                else
+                    SCCondSignal(&data_queues[tv->inq->id].cond_q);
+                while (!TmThreadsCheckFlag(tv, THV_PAUSED)) {
+                    if (tv->inq->q_type == 0)
+                        SCCondSignal(&trans_q[tv->inq->id].cond_q);
+                    else
+                        SCCondSignal(&data_queues[tv->inq->id].cond_q);
+                    usleep(100);
+                }
+                TmThreadsUnsetFlag(tv, THV_PAUSE);
             }
         }
         tv = tv->next;

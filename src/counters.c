@@ -465,7 +465,11 @@ static void *SCPerfMgmtThread(void *arg)
 
     TmThreadsSetFlag(tv_local, THV_INIT_DONE);
     while (run) {
-        TmThreadTestThreadUnPaused(tv_local);
+        if (TmThreadsCheckFlag(tv_local, THV_PAUSE)) {
+            TmThreadsSetFlag(tv_local, THV_PAUSED);
+            TmThreadTestThreadUnPaused(tv_local);
+            TmThreadsUnsetFlag(tv_local, THV_PAUSED);
+        }
 
         cond_time.tv_sec = time(NULL) + sc_counter_tts;
         cond_time.tv_nsec = 0;
@@ -529,7 +533,11 @@ static void *SCPerfWakeupThread(void *arg)
 
     TmThreadsSetFlag(tv_local, THV_INIT_DONE);
     while (run) {
-        TmThreadTestThreadUnPaused(tv_local);
+        if (TmThreadsCheckFlag(tv_local, THV_PAUSE)) {
+            TmThreadsSetFlag(tv_local, THV_PAUSED);
+            TmThreadTestThreadUnPaused(tv_local);
+            TmThreadsUnsetFlag(tv_local, THV_PAUSED);
+        }
 
         cond_time.tv_sec = time(NULL) + SC_PERF_WUT_TTS;
         cond_time.tv_nsec = 0;

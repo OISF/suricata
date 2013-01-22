@@ -698,7 +698,11 @@ void *AppLayerDetectProtoThread(void *td)
 
     /* main loop */
     while(run) {
-        TmThreadTestThreadUnPaused(tv);
+        if (TmThreadsCheckFlag(tv, THV_PAUSE)) {
+            TmThreadsSetFlag(tv, THV_PAUSED);
+            TmThreadTestThreadUnPaused(tv);
+            TmThreadsUnsetFlag(tv, THV_PAUSED);
+        }
 
         /* grab a msg, can return NULL on signals */
         StreamMsg *smsg = StreamMsgGetFromQueue(stream_q);

@@ -445,7 +445,11 @@ void *FlowManagerThread(void *td)
     TmThreadsSetFlag(th_v, THV_INIT_DONE);
     while (1)
     {
-        TmThreadTestThreadUnPaused(th_v);
+        if (TmThreadsCheckFlag(th_v, THV_PAUSE)) {
+            TmThreadsSetFlag(th_v, THV_PAUSED);
+            TmThreadTestThreadUnPaused(th_v);
+            TmThreadsUnsetFlag(th_v, THV_PAUSED);
+        }
 
         if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) {
             emerg = TRUE;
