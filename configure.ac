@@ -1492,8 +1492,7 @@ AC_SUBST(e_magic_file)
 
 AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile suricata.yaml scripts/Makefile scripts/suricatasc/Makefile scripts/suricatasc/suricatasc)
 
-echo "
-Suricata Configuration:
+SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}
   PF_RING support:                         ${enable_pfring}
   NFQueue support:                         ${enable_nfqueue}
@@ -1528,8 +1527,15 @@ Generic build parameters:
   GCC binary:                              ${CC}
   GCC Protect enabled:                     ${enable_gccprotect}
   GCC march native enabled:                ${enable_gccmarch_native}
-  GCC Profile enabled:                     ${enable_gccprofile}
+  GCC Profile enabled:                     ${enable_gccprofile}"
 
+echo
+echo "$SURICATA_BUILD_CONF"
+echo "SCLogInfo(" >${ac_srcdir}/src/build-info.h
+echo "$SURICATA_BUILD_CONF" | sed -e 's/^/"/' | sed -e 's/$/\\n"/' >>${ac_srcdir}/src/build-info.h
+echo ");" >>${ac_srcdir}/src/build-info.h
+
+echo "
 To build and install run 'make' and 'make install'.
 
 You can run 'make install-conf' if you want to install initial configuration

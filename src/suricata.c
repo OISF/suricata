@@ -684,6 +684,8 @@ void SCPrintBuildInfo(void) {
 #endif
 
     SCLogInfo("compiled with libhtp %s, linked against %s", HTP_BASE_VERSION_TEXT, htp_get_version());
+
+#include "build-info.h"
 }
 
 int main(int argc, char **argv)

@@ -34,3 +34,4 @@ ltmain.sh
 src/TAGS
 src/suricata
 stamp-h1
+src/build-info.h
