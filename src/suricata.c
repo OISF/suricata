@@ -557,11 +557,11 @@ void SCPrintBuildInfo(void) {
     char features[2048] = "";
 
 #ifdef REVISION
-    SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
+    printf("This is %s version %s (rev %s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
 #elif defined RELEASE
-    SCLogInfo("This is %s version %s RELEASE", PROG_NAME, PROG_VER);
+    printf("This is %s version %s RELEASE\n", PROG_NAME, PROG_VER);
 #else
-    SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
+    printf("This is %s version %s\n", PROG_NAME, PROG_VER);
 #endif
 
 #ifdef DEBUG
@@ -636,7 +636,7 @@ void SCPrintBuildInfo(void) {
         strlcat(features, "none", sizeof(features));
     }
 
-    SCLogInfo("Features: %s", features);
+    printf("Features: %s\n", features);
 
 #if __WORDSIZE == 64
     bits = "64-bits";
@@ -650,40 +650,40 @@ void SCPrintBuildInfo(void) {
     endian = "Little-endian";
 #endif
 
-    SCLogInfo("%s, %s architecture", bits, endian);
+    printf("%s, %s architecture\n", bits, endian);
 #ifdef __GNUC__
-    SCLogInfo("GCC version %s, C version %"PRIiMAX, __VERSION__, (intmax_t)__STDC_VERSION__);
+    printf("GCC version %s, C version %"PRIiMAX"\n", __VERSION__, (intmax_t)__STDC_VERSION__);
 #else
-    SCLogInfo("C version %"PRIiMAX, (intmax_t)__STDC_VERSION__);
+    printf("C version %"PRIiMAX"\n", (intmax_t)__STDC_VERSION__);
 #endif
 
 #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_1
-    SCLogInfo("__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1");
+    printf("  __GCC_HAVE_SYNC_COMPARE_AND_SWAP_1\n");
 #endif
 #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_2
-    SCLogInfo("__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2");
+    printf("  __GCC_HAVE_SYNC_COMPARE_AND_SWAP_2\n");
 #endif
 #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-    SCLogInfo("__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4");
+    printf("  __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4\n");
 #endif
 #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8
-    SCLogInfo("__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8");
+    printf("  __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8\n");
 #endif
 #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_16
-    SCLogInfo("__GCC_HAVE_SYNC_COMPARE_AND_SWAP_16");
+    printf("  __GCC_HAVE_SYNC_COMPARE_AND_SWAP_16\n");
 #endif
 
 #if __SSP__ == 1
-    SCLogInfo("compiled with -fstack-protector");
+    printf("compiled with -fstack-protector\n");
 #endif
 #if __SSP_ALL__ == 2
-    SCLogInfo("compiled with -fstack-protector-all");
+    printf("compiled with -fstack-protector-all\n");
 #endif
 #ifdef _FORTIFY_SOURCE
-    SCLogInfo("compiled with _FORTIFY_SOURCE=%d", _FORTIFY_SOURCE);
+    printf("compiled with _FORTIFY_SOURCE=%d\n", _FORTIFY_SOURCE);
 #endif
 
-    SCLogInfo("compiled with libhtp %s, linked against %s", HTP_BASE_VERSION_TEXT, htp_get_version());
+    printf("compiled with libhtp %s, linked against %s\n", HTP_BASE_VERSION_TEXT, htp_get_version());
 
 #include "build-info.h"
 }
