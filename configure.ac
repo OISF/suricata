@@ -1531,7 +1531,7 @@ Generic build parameters:
 
 echo
 echo "$SURICATA_BUILD_CONF"
-echo "SCLogInfo(" >${ac_srcdir}/src/build-info.h
+echo "printf(" >${ac_srcdir}/src/build-info.h
 echo "$SURICATA_BUILD_CONF" | sed -e 's/^/"/' | sed -e 's/$/\\n"/' >>${ac_srcdir}/src/build-info.h
 echo ");" >>${ac_srcdir}/src/build-info.h
 
