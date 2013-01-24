@@ -316,7 +316,8 @@ static void NFQVerdictCacheFlush(NFQQueueVars *t)
     } while ((ret < 0) && (iter++ < NFQ_VERDICT_RETRY_TIME));
 
     if (ret < 0) {
-        SCLogWarning(SC_ERR_NFQ_SET_VERDICT, "nfq_set_verdict_batch failed");
+        SCLogWarning(SC_ERR_NFQ_SET_VERDICT, "nfq_set_verdict_batch failed: %s",
+                     strerror(errno));
     } else {
         t->verdict_cache.len = 0;
         t->verdict_cache.mark_valid = 0;
@@ -419,8 +420,8 @@ int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
             } while ((ret < 0) && (iter++ < NFQ_VERDICT_RETRY_TIME));
             if (ret < 0) {
                 SCLogWarning(SC_ERR_NFQ_SET_VERDICT,
-                             "nfq_set_verdict of %p failed %" PRId32 "",
-                             p, ret);
+                             "nfq_set_verdict of %p failed %" PRId32 ": %s",
+                             p, ret, strerror(errno));
             }
             return -1 ;
         }
@@ -1107,7 +1108,9 @@ TmEcode NFQSetVerdict(Packet *p) {
     NFQMutexUnlock(t);
 
     if (ret < 0) {
-        SCLogWarning(SC_ERR_NFQ_SET_VERDICT, "nfq_set_verdict of %p failed %" PRId32 "", p, ret);
+        SCLogWarning(SC_ERR_NFQ_SET_VERDICT,
+                     "nfq_set_verdict of %p failed %" PRId32 ": %s",
+                     p, ret, strerror(errno));
         return TM_ECODE_FAILED;
     }
     return TM_ECODE_OK;
