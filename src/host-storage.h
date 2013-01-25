@@ -23,11 +23,20 @@
  * Host wrapper around storage api
  */
 
+#ifndef __HOST_STORAGE_H__
+#define __HOST_STORAGE_H__
+
 #include "util-storage.h"
 #include "host.h"
+
+unsigned int HostStorageSize(void);
 
 void *HostGetStorageById(Host *h, int id);
 void *HostAllocStorageById(Host *h, int id);
 
 void HostFreeStorageById(Host *h, int id);
 void HostFreeStorage(Host *h);
+
+void RegisterHostStorageTests(void);
+
+#endif /* __HOST_STORAGE_H__ */

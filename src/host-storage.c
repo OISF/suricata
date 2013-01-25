@@ -25,30 +25,36 @@
 
 #include "suricata-common.h"
 #include "host-storage.h"
-#include "util-unittests.h"
+#include "util-unittest.h"
+
+unsigned int HostStorageSize(void) {
+    return StorageGetSize(STORAGE_HOST);
+}
 
 void *HostGetStorageById(Host *h, int id) {
-    return StorageGetById(h->storage, STORAGE_HOST, id);
+    return StorageGetById((Storage *)(h + HostStorageSize()), STORAGE_HOST, id);
 }
 
 void *HostAllocStorageById(Host *h, int id) {
-    return StorageAllocById(&h->storage, STORAGE_HOST, id);
+    return StorageAllocById((Storage **)&h + HostStorageSize(), STORAGE_HOST, id);
 }
 
 void HostFreeStorageById(Host *h, int id) {
-    StorageFreeById(h->storage, STORAGE_HOST, id);
+    StorageFreeById((Storage *)(h + HostStorageSize()), STORAGE_HOST, id);
 }
 
 void HostFreeStorage(Host *h) {
-    StorageFree(&h->storage, STORAGE_HOST);
+    StorageFreeAll((Storage *)(h + HostStorageSize()), STORAGE_HOST);
 }
 
 #ifdef UNITTESTS
-
+static int HostStorageTest01(void) {
+    return 1;
+}
 #endif
 
 void RegisterHostStorageTests(void) {
 #ifdef UNITTESTS
-
+    UtRegisterTest("HostStorageTest01", HostStorageTest01, 1);
 #endif
 }
