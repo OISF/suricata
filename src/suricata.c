@@ -79,6 +79,7 @@
 #include "detect-engine-hsmd.h"
 #include "detect-engine-hscd.h"
 #include "detect-engine-hua.h"
+#include "detect-engine-hhhd.h"
 #include "detect-engine-state.h"
 #include "detect-engine-tag.h"
 #include "detect-fast-pattern.h"
@@ -1682,6 +1683,7 @@ int main(int argc, char **argv)
         DetectEngineHttpStatMsgRegisterTests();
         DetectEngineHttpStatCodeRegisterTests();
         DetectEngineHttpUARegisterTests();
+        DetectEngineHttpHHRegisterTests();
         DetectEngineRegisterTests();
         SCLogRegisterTests();
         SMTPParserRegisterTests();
