@@ -28,6 +28,7 @@
 
 #include "util-debug.h"
 #include "host.h"
+#include "host-storage.h"
 
 #include "util-random.h"
 #include "util-misc.h"
@@ -55,17 +56,19 @@ void HostMoveToSpare(Host *h) {
 }
 
 Host *HostAlloc(void) {
-    if (!(HOST_CHECK_MEMCAP(sizeof(Host)))) {
+    size_t size = sizeof(Host) + HostStorageSize();
+
+    if (!(HOST_CHECK_MEMCAP(size))) {
         return NULL;
     }
 
-    (void) SC_ATOMIC_ADD(host_memuse, sizeof(Host));
+    (void) SC_ATOMIC_ADD(host_memuse, size);
 
-    Host *h = SCMalloc(sizeof(Host));
+    Host *h = SCMalloc(size);
     if (unlikely(h == NULL))
         goto error;
 
-    memset(h, 0x00, sizeof(Host));
+    memset(h, 0x00, size);
 
     SCMutexInit(&h->m, NULL);
     SC_ATOMIC_INIT(h->use_cnt);
@@ -82,7 +85,7 @@ void HostFree(Host *h) {
         SC_ATOMIC_DESTROY(h->use_cnt);
         SCMutexDestroy(&h->m);
         SCFree(h);
-        (void) SC_ATOMIC_SUB(host_memuse, sizeof(Host));
+        (void) SC_ATOMIC_SUB(host_memuse, (sizeof(Host) + HostStorageSize()));
     }
 }
 
@@ -113,6 +116,9 @@ void HostClearMemory(Host *h) {
         SCFree(h->iprep);
         h->iprep = NULL;
     }
+
+    if (HostStorageSize() > 0)
+        HostFreeStorage(h);
 }
 
 #define HOST_DEFAULT_HASHSIZE 4096
@@ -673,4 +679,7 @@ static Host *HostGetUsedHost(void) {
     return NULL;
 }
 
+void HostRegisterUnittests(void) {
+    RegisterHostStorageTests();
+}
 
