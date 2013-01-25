@@ -31,7 +31,7 @@ typedef struct StorageMapping_ {
     const char *name;
     StorageEnum type; // host, flow, tx, stream, ssn, etc
     unsigned int size;
-    int (*Init)(void *);
+    void *(*Init)(unsigned int);
     void (*Free)(void *);
 } StorageMapping;
 
@@ -89,7 +89,7 @@ void StorageCleanup(void) {
     storage_list = NULL;
 }
 
-int StorageRegister(const StorageEnum type, const char *name, const unsigned int size, int (*Init)(void *), void (*Free)(void *)) {
+int StorageRegister(const StorageEnum type, const char *name, const unsigned int size, void *(*Init)(unsigned int), void (*Free)(void *)) {
     if (storage_registraton_closed)
         return -1;
 
@@ -185,7 +185,21 @@ int StorageFinalize(void) {
     return 0;
 }
 
-void *StorageGetById(Storage *storage, StorageEnum type, int id) {
+unsigned int StorageGetCnt(StorageEnum type) {
+    return storage_max_id[type];
+}
+
+/** \brief get the size of the void array used to store
+ *         the pointers
+ *  \retval size size in bytes, can return 0 if not storage is needed
+ *
+ *  \todo we could return -1 when registration isn't closed yet, however
+ *        this will break lots of tests currently, so not doing it now */
+unsigned int StorageGetSize(StorageEnum type) {
+    return storage_max_id[type] * sizeof(void *);
+}
+
+void *StorageGetById(const Storage *storage, const StorageEnum type, const int id) {
     SCLogDebug("storage %p id %d", storage, id);
     if (storage == NULL)
         return NULL;
@@ -206,18 +220,12 @@ void *StorageAllocById(Storage **storage, StorageEnum type, int id) {
     SCLogDebug("store %p", store);
 
     if (store[id] == NULL) {
-        store[id] = SCMalloc(map->size);
+        store[id] = map->Init(map->size);
         if (store[id] == NULL) {
             SCFree(store);
             *storage = NULL;
             return NULL;
         }
-    }
-
-    if (map->Init(store[id]) < 0) {
-        SCFree(store);
-        *storage = NULL;
-        return NULL;
     }
 
     *storage = store;
@@ -233,8 +241,22 @@ void StorageFreeById(Storage *storage, StorageEnum type, int id) {
         SCLogDebug("store %p", store);
         if (store[id] != NULL) {
             map->Free(store[id]);
-            SCFree(store[id]);
             store[id] = NULL;
+        }
+    }
+}
+
+void StorageFreeAll(Storage *storage, StorageEnum type) {
+    if (*storage == NULL)
+        return;
+
+    Storage *store = storage;
+    int i;
+    for (i = 0; i < storage_max_id[type]; i++) {
+        StorageMapping *map = &storage_map[type][i];
+        if (store[i] != NULL) {
+            map->Free(store[i]);
+            store[i] = NULL;
         }
     }
 }
@@ -249,7 +271,6 @@ void StorageFree(Storage **storage, StorageEnum type) {
         StorageMapping *map = &storage_map[type][i];
         if (store[i] != NULL) {
             map->Free(store[i]);
-            SCFree(store[i]);
             store[i] = NULL;
         }
     }
@@ -259,10 +280,13 @@ void StorageFree(Storage **storage, StorageEnum type) {
 
 #ifdef UNITTESTS
 
-static int StorageTestInit(void *x) {
-    return 0;
+static void *StorageTestInit(unsigned int size) {
+    void *x = SCMalloc(size);
+    return x;
 }
 void StorageTestFree(void *x) {
+    if (x)
+        SCFree(x);
 }
 
 static int StorageTest01(void) {
@@ -292,10 +316,11 @@ struct StorageTest02Data {
     int abc;
 };
 
-static int StorageTest02Init(void *x) {
-    struct StorageTest02Data *data = (struct StorageTest02Data *)x;
-    data->abc = 1234;
-    return 0;
+static void *StorageTest02Init(unsigned int size) {
+    struct StorageTest02Data *data = (struct StorageTest02Data *)SCMalloc(size);
+    if (data != NULL)
+        data->abc = 1234;
+    return (void *)data;
 }
 
 static int StorageTest02(void) {

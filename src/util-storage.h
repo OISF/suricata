@@ -38,13 +38,17 @@ typedef void* Storage;
 
 void StorageInit(void);
 void StorageCleanup(void);
-int StorageRegister(const StorageEnum type, const char *name, const unsigned int size, int (*Init)(void *), void (*Free)(void *));
+int StorageRegister(const StorageEnum type, const char *name, const unsigned int size, void *(*Init)(unsigned int), void (*Free)(void *));
 int StorageFinalize(void);
 
-void *StorageGetById(Storage *storage, StorageEnum type, int id);
-void *StorageAllocById(Storage **storage, StorageEnum type, int id);
-void StorageFreeById(Storage *storage, StorageEnum type, int id);
-void StorageFree(Storage **storage, StorageEnum type);
+unsigned int StorageGetCnt(const StorageEnum type);
+unsigned int StorageGetSize(const StorageEnum type);
+
+void *StorageGetById(const Storage *storage, const StorageEnum type, const int id);
+void *StorageAllocById(Storage **storage, const StorageEnum type, const int id);
+void StorageFreeById(Storage *storage, const StorageEnum type, const int id);
+void StorageFreeAll(Storage *storage, const StorageEnum type);
+void StorageFree(Storage **storage, const StorageEnum type);
 
 void StorageRegisterTests(void);
 #endif
