@@ -209,6 +209,9 @@ void AppLayerSetEOF(Flow *f)
         parser_state_store->id_flags |= APP_LAYER_TRANSACTION_EOF;
         parser_state_store->to_client.flags |= APP_LAYER_PARSER_EOF;
         parser_state_store->to_server.flags |= APP_LAYER_PARSER_EOF;
+        /* increase version so we will inspect it one more time
+         * with the EOF flags now set */
+        parser_state_store->version++;
     }
 }
 

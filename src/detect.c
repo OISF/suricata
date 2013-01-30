@@ -1355,7 +1355,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* if applicable, continue stateful detection */
         int state = DeStateFlowHasState(p->flow, flags, alversion);
-        if (state == 1) {
+        if (state == 1 || (flags & STREAM_EOF)) {
             DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p->flow,
                     flags, alstate, alproto, alversion);
         } else if (state == 2) {
