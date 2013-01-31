@@ -32,6 +32,7 @@
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "detect-content.h"
+#include "detect-content-len.h"
 #include "detect-pcre.h"
 #include "detect-isdataat.h"
 #include "detect-bytetest.h"
@@ -497,13 +498,37 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         SCReturnInt(0);
 #ifdef HAVE_LUAJIT
-    }
-    else if (sm->type == DETECT_LUAJIT) {
+    } else if (sm->type == DETECT_LUAJIT) {
         if (DetectLuajitMatchBuffer(det_ctx, s, sm, buffer, buffer_len, det_ctx->buffer_offset) != 1) {
             SCReturnInt(0);
         }
         goto match;
 #endif
+    } else if (sm->type == DETECT_CONTENT_LEN) {
+        if (inspection_mode == DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM)
+            goto match;
+
+        DetectContentLenData *cld = sm->ctx;
+        if (cld->op == DETECT_CONTENT_LEN_LT) {
+            if (buffer_len < cld->len)
+                goto match;
+        } else if (cld->op == DETECT_CONTENT_LEN_GT) {
+            if (buffer_len > cld->len)
+                goto match;
+        } else if (cld->op == DETECT_CONTENT_LEN_EQ) {
+            if (buffer_len == cld->len)
+                goto match;
+        } else if (cld->op == DETECT_CONTENT_LEN_LE) {
+            if (buffer_len <= cld->len)
+                goto match;
+        } else if (cld->op == DETECT_CONTENT_LEN_GE) {
+            if (buffer_len >= cld->len)
+                goto match;
+        } else if (cld->op == DETECT_CONTENT_LEN_NE) {
+            if (buffer_len != cld->len)
+                goto match;
+        }
+        SCReturnInt(0);
     } else {
         SCLogDebug("sm->type %u", sm->type);
 #ifdef DEBUG

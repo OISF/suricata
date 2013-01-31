@@ -3846,6 +3846,94 @@ end:
     return result;
 }
 
+static int UriTestSig39(void)
+{
+    int result = 0;
+    Flow f;
+    HtpState *http_state = NULL;
+    uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
+        "User-Agent: Mozilla/1.0\r\n"
+        "Cookie: hellocatch\r\n\r\n";
+    uint32_t http_buf1_len = sizeof(http_buf1) - 1;
+    TcpSession ssn;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p = UTHBuildPacket(http_buf1, http_buf1_len, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.flags |= FLOW_IPV4;
+
+    p->flow = &f;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_B2G;
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                   "(msg:\"Test uricontent option\"; "
+                                   "uricontent:\"one\"; "
+                                   "content_len:=,4; http_uri; "
+                                   "sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.alstate;
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sig 1 alerted, but it should not: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void UriRegisterTests(void)
@@ -3891,6 +3979,7 @@ void UriRegisterTests(void)
     UtRegisterTest("UriTestSig36", UriTestSig36, 1);
     UtRegisterTest("UriTestSig37", UriTestSig37, 1);
     UtRegisterTest("UriTestSig38", UriTestSig38, 1);
+    UtRegisterTest("UriTestSig39", UriTestSig39, 1);
 #endif /* UNITTESTS */
 
     return;

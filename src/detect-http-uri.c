@@ -98,22 +98,14 @@ static int DetectHttpUriSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         return -1;
     }
 
-    sm =  SigMatchGetLastSMFromLists(s, 2,
-                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+    sm =  SigMatchGetLastSMFromLists(s, 4,
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                     DETECT_CONTENT_LEN, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
     if (sm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "\"http_uri\" keyword "
                    "found inside the rule without a content context.  "
-                   "Please use a \"content\" keyword before using the "
-                   "\"http_uri\" keyword");
-        return -1;
-    }
-
-    cd = (DetectContentData *)sm->ctx;
-
-    /* http_uri should not be used with the rawbytes rule */
-    if (cd->flags & DETECT_CONTENT_RAWBYTES) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "http_uri rule can not "
-                   "be used with the rawbytes rule keyword");
+                   "Please use a \"content\" or \"content_len\" keyword "
+                   "before using the \"http_uri\" keyword");
         return -1;
     }
 
@@ -123,38 +115,49 @@ static int DetectHttpUriSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         goto error;
     }
 
-    if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
-        SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
-                                                   DETECT_CONTENT, sm->prev,
-                                                   DETECT_PCRE, sm->prev);
-        /* pm can be NULL now.  To accomodate parsing sigs like -
-         * content:one; http_modifier; content:two; distance:0; http_modifier */
-        if (pm != NULL) {
-            if (pm->type == DETECT_CONTENT) {
-                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
-                tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
-            } else {
-                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
-                tmp_pd->flags &= ~DETECT_PCRE_RELATIVE_NEXT;
-            }
-        } /* if (pm != NULL) */
+    if (sm->type == DETECT_CONTENT) {
+        cd = (DetectContentData *)sm->ctx;
 
-        /* reassigning pm */
-        pm = SigMatchGetLastSMFromLists(s, 2,
-                                        DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH]);
-        if (pm == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "uricontent seen with a "
-                       "distance or within without a previous http_uri "
-                       "content.  Invalidating signature.");
-            goto error;
+        /* http_uri should not be used with the rawbytes rule */
+        if (cd->flags & DETECT_CONTENT_RAWBYTES) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "http_uri rule can not "
+                       "be used with the rawbytes rule keyword");
+            return -1;
         }
-        DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
-        tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-    }
-    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_UMATCH);
-    sm->type = DETECT_CONTENT;
 
-    /* transfer the sm from the pmatch list to hcbdmatch list */
+
+        if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
+            SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
+                                                       DETECT_CONTENT, sm->prev,
+                                                       DETECT_PCRE, sm->prev);
+            /* pm can be NULL now.  To accomodate parsing sigs like -
+             * content:one; http_modifier; content:two; distance:0; http_modifier */
+            if (pm != NULL) {
+                if (pm->type == DETECT_CONTENT) {
+                    DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                    tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
+                } else {
+                    DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                    tmp_pd->flags &= ~DETECT_PCRE_RELATIVE_NEXT;
+                }
+            } /* if (pm != NULL) */
+
+            /* reassigning pm */
+            pm = SigMatchGetLastSMFromLists(s, 2,
+                                            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH]);
+            if (pm == NULL) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "uricontent seen with a "
+                           "distance or within without a previous http_uri "
+                           "content.  Invalidating signature.");
+                goto error;
+            }
+            DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+            tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+        }
+        cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_UMATCH);
+    }
+
+    /* transfer the sm from the pmatch list to umatch list */
     SigMatchTransferSigMatchAcrossLists(sm,
                                         &s->sm_lists[DETECT_SM_LIST_PMATCH],
                                         &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],

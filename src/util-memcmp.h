@@ -57,75 +57,86 @@ MemcmpLowercase(void *s1, void *s2, size_t n) {
 
 #include <nmmintrin.h>
 
-static inline int SCMemcmp(void *s1, void *s2, size_t n)
-{
-    __m128i b1, b2;
+/* No SIMD support, fall back to plain memcmp and a home grown lowercase one */
 
-    int r;
-    /* counter for how far we already matched in the buffer */
-    size_t m = 0;
+/* wrapper around memcmp to match the retvals of the SIMD implementations */
+#define SCMemcmp(a,b,c) ({ \
+    memcmp((a), (b), (c)) ? 1 : 0; \
+})
 
-    do {
-        /* load the buffers into the 128bit vars */
-        b1 = _mm_loadu_si128((const __m128i *) s1);
-        b2 = _mm_loadu_si128((const __m128i *) s2);
-
-        /* do the actual compare */
-        m += (r = _mm_cmpestri(b1, n - m, b2, 16,
-                    _SIDD_CMP_EQUAL_EACH | _SIDD_MASKED_NEGATIVE_POLARITY));
-
-        s1 += 16;
-        s2 += 16;
-    } while (r == 16);
-
-    return ((m == n) ? 0 : 1);
+static inline int SCMemcmpLowercase(void *s1, void *s2, size_t len) {
+    return MemcmpLowercase(s1, s2, len);
 }
 
-/* Range of values of uppercase characters */
-static char scmemcmp_uppercase[2] __attribute__((aligned(16))) = {
-    'A', 'Z' };
-
-/** \brief compare two buffers in a case insensitive way
- *  \param s1 buffer already in lowercase
- *  \param s2 buffer with mixed upper and lowercase
- */
-static inline int SCMemcmpLowercase(void *s1, void *s2, size_t n)
-{
-    __m128i b1, b2, mask;
-
-    int r;
-    /* counter for how far we already matched in the buffer */
-    size_t m = 0;
-
-    __m128i ucase = _mm_load_si128((const __m128i *) scmemcmp_uppercase);
-    __m128i nulls = _mm_setzero_si128();
-    __m128i uplow = _mm_set1_epi8(0x20);
-
-    do {
-        b1 = _mm_loadu_si128((const __m128i *) s1);
-        b2 = _mm_loadu_si128((const __m128i *) s2);
-        size_t len = n - m;
-
-        /* The first step is creating a mask that is FF for all uppercase
-         * characters, 00 for all others */
-        mask = _mm_cmpestrm(ucase, 2, b2, len, _SIDD_CMP_RANGES | _SIDD_UNIT_MASK);
-        /* Next we use that mask to create a new: this one has 0x20 for
-         * the uppercase chars, 00 for all other. */
-        mask = _mm_blendv_epi8(nulls, uplow, mask);
-        /* finally, merge the mask and the buffer converting the
-         * uppercase to lowercase */
-        b2 = _mm_add_epi8(b2, mask);
-
-        /* search using our converted buffer */
-        m += (r = _mm_cmpestri(b1, len, b2, 16,
-                    _SIDD_CMP_EQUAL_EACH | _SIDD_MASKED_NEGATIVE_POLARITY));
-
-        s1 += 16;
-        s2 += 16;
-    } while (r == 16);
-
-    return ((m == n) ? 0 : 1);
-}
+//static inline int SCMemcmp(void *s1, void *s2, size_t n)
+//{
+//    __m128i b1, b2;
+//
+//    int r;
+//    /* counter for how far we already matched in the buffer */
+//    size_t m = 0;
+//
+//    do {
+//        /* load the buffers into the 128bit vars */
+//        b1 = _mm_loadu_si128((const __m128i *) s1);
+//        b2 = _mm_loadu_si128((const __m128i *) s2);
+//
+//        /* do the actual compare */
+//        m += (r = _mm_cmpestri(b1, n - m, b2, 16,
+//                    _SIDD_CMP_EQUAL_EACH | _SIDD_MASKED_NEGATIVE_POLARITY));
+//
+//        s1 += 16;
+//        s2 += 16;
+//    } while (r == 16);
+//
+//    return ((m == n) ? 0 : 1);
+//}
+//
+///* Range of values of uppercase characters */
+//static char scmemcmp_uppercase[2] __attribute__((aligned(16))) = {
+//    'A', 'Z' };
+//
+///** \brief compare two buffers in a case insensitive way
+// *  \param s1 buffer already in lowercase
+// *  \param s2 buffer with mixed upper and lowercase
+// */
+//static inline int SCMemcmpLowercase(void *s1, void *s2, size_t n)
+//{
+//    __m128i b1, b2, mask;
+//
+//    int r;
+//    /* counter for how far we already matched in the buffer */
+//    size_t m = 0;
+//
+//    __m128i ucase = _mm_load_si128((const __m128i *) scmemcmp_uppercase);
+//    __m128i nulls = _mm_setzero_si128();
+//    __m128i uplow = _mm_set1_epi8(0x20);
+//
+//    do {
+//        b1 = _mm_loadu_si128((const __m128i *) s1);
+//        b2 = _mm_loadu_si128((const __m128i *) s2);
+//        size_t len = n - m;
+//
+//        /* The first step is creating a mask that is FF for all uppercase
+//         * characters, 00 for all others */
+//        mask = _mm_cmpestrm(ucase, 2, b2, len, _SIDD_CMP_RANGES | _SIDD_UNIT_MASK);
+//        /* Next we use that mask to create a new: this one has 0x20 for
+//         * the uppercase chars, 00 for all other. */
+//        mask = _mm_blendv_epi8(nulls, uplow, mask);
+//        /* finally, merge the mask and the buffer converting the
+//         * uppercase to lowercase */
+//        b2 = _mm_add_epi8(b2, mask);
+//
+//        /* search using our converted buffer */
+//        m += (r = _mm_cmpestri(b1, len, b2, 16,
+//                    _SIDD_CMP_EQUAL_EACH | _SIDD_MASKED_NEGATIVE_POLARITY));
+//
+//        s1 += 16;
+//        s2 += 16;
+//    } while (r == 16);
+//
+//    return ((m == n) ? 0 : 1);
+//}
 
 #elif defined(__SSE4_1__)
 
