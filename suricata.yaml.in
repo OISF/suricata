@@ -83,6 +83,9 @@ outputs:
       # File size limit.  Can be specified in kb, mb, gb.  Just a number
       # is parsed as bytes.
       #limit: 32mb
+      
+      # Sensor ID field of unified2 alerts.
+      #sensor-id: 0 
 
   # a line based log of HTTP requests (no alerts)
   - http-log:
