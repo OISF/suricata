@@ -1250,6 +1250,14 @@ int DetectAddressTestConfVars(void)
             goto error;
         }
 
+        if (seq_node->val == NULL) {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                       "Address var \"%s\" probably has a sequence(something "
+                       "in brackets) value set without any quotes. Please "
+                       "quote it using \"..\".", seq_node->name);
+            goto error;
+        }
+
         int r = DetectAddressParse2(gh, ghn, seq_node->val, /* start with negate no */0);
         if (r < 0) {
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
@@ -4312,6 +4320,45 @@ int AddressConfVarsTest04(void)
     return result;
 }
 
+int AddressConfVarsTest05(void)
+{
+    static const char *dummy_conf_string =
+        "%YAML 1.1\n"
+        "---\n"
+        "\n"
+        "vars:\n"
+        "\n"
+        "  address-groups:\n"
+        "\n"
+        "    HOME_NET: \"any\"\n"
+        "\n"
+        "    EXTERNAL_NET: [192.168.0.1]\n"
+        "\n"
+        "  port-groups:\n"
+        "\n"
+        "    HTTP_PORTS: \"any\"\n"
+        "\n"
+        "    SHELLCODE_PORTS: [80]\n"
+        "\n";
+
+    int result = 0;
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+
+    if (DetectAddressTestConfVars() != -1 && DetectPortTestConfVars() != -1)
+        goto end;
+
+    result = 1;
+
+ end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DetectAddressTests(void)
@@ -4489,6 +4536,7 @@ void DetectAddressTests(void)
     UtRegisterTest("AddressConfVarsTest02 ", AddressConfVarsTest02, 1);
     UtRegisterTest("AddressConfVarsTest03 ", AddressConfVarsTest03, 1);
     UtRegisterTest("AddressConfVarsTest04 ", AddressConfVarsTest04, 1);
+    UtRegisterTest("AddressConfVarsTest05 ", AddressConfVarsTest05, 1);
 
 #endif /* UNITTESTS */
 }
