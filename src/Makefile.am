@@ -166,6 +166,7 @@ detect-ssh-proto-version.c detect-ssh-proto-version.h \
 detect-ssh-software-version.c detect-ssh-software-version.h \
 detect-ssl-state.c detect-ssl-state.h \
 detect-ssl-version.c detect-ssl-version.h \
+detect-startswith.c detect-startswith.h \
 detect-stream_size.c detect-stream_size.h \
 detect-tag.c detect-tag.h \
 detect-threshold.c detect-threshold.h \
