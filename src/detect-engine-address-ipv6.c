@@ -512,11 +512,10 @@ int DetectAddressCutIPv6(DetectEngineCtx *de_ctx, DetectAddress *a,
             AddressCutIPv6Copy(a_ip1, b->ip.addr_data32);
             AddressCutIPv6Copy(a_ip2, b->ip2.addr_data32);
 
-            /* 'a' overlaps 'b' so 'b' needs the 'a' sigs */
-            SigGroupHeadCopySigs(de_ctx, a->sh, &tmp->sh);
+            SigGroupHeadCopySigs(de_ctx, b->sh, &tmp->sh);
+            SigGroupHeadCopySigs(de_ctx, a->sh, &b->sh);
             SigGroupHeadClearSigs(a->sh);
-            SigGroupHeadCopySigs(de_ctx, b->sh, &a->sh);
-            SigGroupHeadCopySigs(de_ctx, tmp->sh, &b->sh);
+            SigGroupHeadCopySigs(de_ctx, tmp->sh, &a->sh);
             SigGroupHeadClearSigs(tmp->sh);
 
             for (port = a->port; port != NULL; port = port->next)

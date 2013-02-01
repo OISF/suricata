@@ -494,10 +494,20 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
             b->port = a_port1;
             b->port2 = a_port2;
 
-            /** 'a' overlaps 'b' so 'b' needs the 'a' sigs */
+            /* [bbb[baba]] will be transformed into
+             * [aaa][bbb]
+             * steps: copy b sigs to tmp
+             *        a overlaps b, so copy a to b
+             *        clear a
+             *        copy tmp to a */
+            SigGroupHeadCopySigs(de_ctx,b->sh,&tmp->sh); /* store old a list */
+            tmp->cnt = b->cnt;
             SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh);
             b->cnt += a->cnt;
-
+            SigGroupHeadClearSigs(a->sh); /* clean a list */
+            SigGroupHeadCopySigs(de_ctx,tmp->sh,&a->sh);/* merge old a with b */
+            a->cnt = tmp->cnt;
+            SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
         } else {
             SCLogDebug("3");
             a->port = b_port1;
@@ -579,6 +589,7 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
         } else if (a_port2 == b_port2) {
             SCLogDebug("2");
+
             a->port = a_port1;
             a->port2 = b_port1 - 1;
 
@@ -2264,6 +2275,160 @@ end:
 }
 
 /**
+ * \test Test general functions
+ */
+static int PortTestFunctions05(void) {
+    DetectPort *dp1 = NULL;
+    DetectPort *dp2 = NULL;
+    DetectPort *dp3 = NULL;
+    int result = 0;
+    int r = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    Signature s[2];
+    memset(s,0x00,sizeof(s));
+
+    s[0].num = 0;
+    s[1].num = 1;
+
+    r = DetectPortParse(&dp1, "1024:65535");
+    if (r != 0) {
+        printf("r != 0 but %d: ", r);
+        goto end;
+    }
+    SigGroupHeadAppendSig(de_ctx, &dp1->sh, &s[0]);
+
+    r = DetectPortParse(&dp2, "any");
+    if (r != 0) {
+        printf("r != 0 but %d: ", r);
+        goto end;
+    }
+    SigGroupHeadAppendSig(de_ctx, &dp2->sh, &s[1]);
+
+    SCLogDebug("dp1");
+    DetectPortPrint(dp1);
+    SCLogDebug("dp2");
+    DetectPortPrint(dp2);
+
+    DetectPortInsert(de_ctx, &dp3, dp1);
+    DetectPortInsert(de_ctx, &dp3, dp2);
+
+    if (dp3 == NULL)
+        goto end;
+
+    SCLogDebug("dp3");
+    DetectPort *x = dp3;
+    for ( ; x != NULL; x = x->next) {
+        DetectPortPrint(x);
+        //SigGroupHeadPrintSigs(de_ctx, x->sh);
+    }
+
+    DetectPort *one = dp3;
+    DetectPort *two = dp3->next;
+
+    int sig = 0;
+    if ((one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'one', but it shouldn't: ", sig);
+        goto end;
+    }
+    sig = 1;
+    if (!(one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'one', but it shouldn't: ", sig);
+        goto end;
+    }
+    sig = 1;
+    if (!(two->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'two', but it shouldn't: ", sig);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (dp1 != NULL)
+        DetectPortFree(dp1);
+    if (dp2 != NULL)
+        DetectPortFree(dp2);
+    return result;
+}
+
+/**
+ * \test Test general functions
+ */
+static int PortTestFunctions06(void) {
+    DetectPort *dp1 = NULL;
+    DetectPort *dp2 = NULL;
+    DetectPort *dp3 = NULL;
+    int result = 0;
+    int r = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    Signature s[2];
+    memset(s,0x00,sizeof(s));
+
+    s[0].num = 0;
+    s[1].num = 1;
+
+    r = DetectPortParse(&dp1, "1024:65535");
+    if (r != 0) {
+        printf("r != 0 but %d: ", r);
+        goto end;
+    }
+    SigGroupHeadAppendSig(de_ctx, &dp1->sh, &s[0]);
+
+    r = DetectPortParse(&dp2, "any");
+    if (r != 0) {
+        printf("r != 0 but %d: ", r);
+        goto end;
+    }
+    SigGroupHeadAppendSig(de_ctx, &dp2->sh, &s[1]);
+
+    SCLogDebug("dp1");
+    DetectPortPrint(dp1);
+    SCLogDebug("dp2");
+    DetectPortPrint(dp2);
+
+    DetectPortInsert(de_ctx, &dp3, dp2);
+    DetectPortInsert(de_ctx, &dp3, dp1);
+
+    if (dp3 == NULL)
+        goto end;
+
+    SCLogDebug("dp3");
+    DetectPort *x = dp3;
+    for ( ; x != NULL; x = x->next) {
+        DetectPortPrint(x);
+        //SigGroupHeadPrintSigs(de_ctx, x->sh);
+    }
+
+    DetectPort *one = dp3;
+    DetectPort *two = dp3->next;
+
+    int sig = 0;
+    if ((one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'one', but it shouldn't: ", sig);
+        goto end;
+    }
+    sig = 1;
+    if (!(one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'one', but it shouldn't: ", sig);
+        goto end;
+    }
+    sig = 1;
+    if (!(two->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'two', but it shouldn't: ", sig);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (dp1 != NULL)
+        DetectPortFree(dp1);
+    if (dp2 != NULL)
+        DetectPortFree(dp2);
+    return result;
+}
+
+/**
  * \test Test packet Matches
  * \param raw_eth_pkt pointer to the ethernet packet
  * \param pktsize size of the packet
@@ -2581,6 +2746,8 @@ void DetectPortTests(void) {
     UtRegisterTest("PortTestFunctions02", PortTestFunctions02, 1);
     UtRegisterTest("PortTestFunctions03", PortTestFunctions03, 1);
     UtRegisterTest("PortTestFunctions04", PortTestFunctions04, 1);
+    UtRegisterTest("PortTestFunctions05", PortTestFunctions05, 1);
+    UtRegisterTest("PortTestFunctions06", PortTestFunctions06, 1);
     UtRegisterTest("PortTestMatchReal01", PortTestMatchReal01, 1);
     UtRegisterTest("PortTestMatchReal02", PortTestMatchReal02, 1);
     UtRegisterTest("PortTestMatchReal03", PortTestMatchReal03, 1);

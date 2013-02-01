@@ -275,11 +275,10 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
             b->ip2.addr_data32[0] = htonl(a_ip2);
 
             if (de_ctx != NULL) {
-                /* 'a' overlaps 'b' so 'b' needs the 'a' sigs */
-                SigGroupHeadCopySigs(de_ctx, a->sh, &tmp->sh);
+                SigGroupHeadCopySigs(de_ctx, b->sh, &tmp->sh);
+                SigGroupHeadCopySigs(de_ctx, a->sh, &b->sh);
                 SigGroupHeadClearSigs(a->sh);
-                SigGroupHeadCopySigs(de_ctx, b->sh, &a->sh);
-                SigGroupHeadCopySigs(de_ctx, tmp->sh, &b->sh);
+                SigGroupHeadCopySigs(de_ctx, tmp->sh, &a->sh);
                 SigGroupHeadClearSigs(tmp->sh);
 
                 for (port = a->port; port != NULL; port = port->next)
@@ -1596,7 +1595,6 @@ static int DetectAddressIPv4Join10(void)
 
 void DetectAddressIPv4Tests(void)
 {
-
 #ifdef UNITTESTS
     UtRegisterTest("DetectAddressIPv4TestAddressCmp01",
                    DetectAddressIPv4TestAddressCmp01, 1);
@@ -1613,6 +1611,4 @@ void DetectAddressIPv4Tests(void)
     UtRegisterTest("DetectAddressIPv4CutNot09", DetectAddressIPv4CutNot09, 1);
     UtRegisterTest("DetectAddressIPv4Join10", DetectAddressIPv4Join10, 1);
 #endif
-
-    return;
 }

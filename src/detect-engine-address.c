@@ -1657,9 +1657,9 @@ void DetectAddressPrint(DetectAddress *gr)
         struct in6_addr in6;
         char ip[66], mask[66];
 
-        memcpy(&in6, &gr->ip, sizeof(in6));
+        memcpy(&in6, &gr->ip.addr_data32, sizeof(in6));
         PrintInet(AF_INET6, &in6, ip, sizeof(ip));
-        memcpy(&in6, &gr->ip2, sizeof(in6));
+        memcpy(&in6, &gr->ip2.addr_data32, sizeof(in6));
         PrintInet(AF_INET6, &in6, mask, sizeof(mask));
 
         SCLogDebug("%s/%s", ip, mask);
@@ -2243,6 +2243,53 @@ int AddressTestParse35(void)
             dd->ip2.addr_data32[2] == 0xFFFFFFFF && dd->ip2.addr_data32[3] == 0xFFFFFFFF) {
             result = 1;
         }
+
+        DetectAddressFree(dd);
+        return result;
+    }
+
+    return 0;
+}
+
+int AddressTestParse36(void)
+{
+    int result = 1;
+    DetectAddress *dd = DetectAddressParseSingle("ffff::/16");
+
+    if (dd) {
+        if (dd->ip.addr_data32[0] != 0x0000FFFF || dd->ip.addr_data32[1] != 0x00000000 ||
+            dd->ip.addr_data32[2] != 0x00000000 || dd->ip.addr_data32[3] != 0x00000000 ||
+
+            dd->ip2.addr_data32[0] != 0xFFFFFFFF || dd->ip2.addr_data32[1] != 0xFFFFFFFF ||
+            dd->ip2.addr_data32[2] != 0xFFFFFFFF || dd->ip2.addr_data32[3] != 0xFFFFFFFF) {
+
+            DetectAddressPrint(dd);
+            result = 0;
+        }
+        DetectAddressPrint(dd);
+
+        DetectAddressFree(dd);
+        return result;
+    }
+
+    return 0;
+}
+
+int AddressTestParse37(void)
+{
+    int result = 1;
+    DetectAddress *dd = DetectAddressParseSingle("::/0");
+
+    if (dd) {
+        if (dd->ip.addr_data32[0] != 0x00000000 || dd->ip.addr_data32[1] != 0x00000000 ||
+            dd->ip.addr_data32[2] != 0x00000000 || dd->ip.addr_data32[3] != 0x00000000 ||
+
+            dd->ip2.addr_data32[0] != 0xFFFFFFFF || dd->ip2.addr_data32[1] != 0xFFFFFFFF ||
+            dd->ip2.addr_data32[2] != 0xFFFFFFFF || dd->ip2.addr_data32[3] != 0xFFFFFFFF) {
+            DetectAddressPrint(dd);
+            result = 0;
+        }
+        DetectAddressPrint(dd);
 
         DetectAddressFree(dd);
         return result;
@@ -4359,6 +4406,316 @@ int AddressConfVarsTest05(void)
     return result;
 }
 
+#include "detect-engine.h"
+
+/**
+ * \test Test sig distribution over address groups
+ */
+static int AddressTestFunctions01(void) {
+    DetectAddress *a1 = NULL;
+    DetectAddress *a2 = NULL;
+    DetectAddressHead *h = NULL;
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    Signature s[2];
+    memset(s,0x00,sizeof(s));
+
+    s[0].num = 0;
+    s[1].num = 1;
+
+    a1 = DetectAddressParseSingle("255.0.0.0/8");
+    if (a1 == NULL) {
+        printf("a1 == NULL: ");
+        goto end;
+    }
+    SigGroupHeadAppendSig(de_ctx, &a1->sh, &s[0]);
+
+    a2 = DetectAddressParseSingle("0.0.0.0/0");
+    if (a2 == NULL) {
+        printf("a2 == NULL: ");
+        goto end;
+    }
+    SigGroupHeadAppendSig(de_ctx, &a2->sh, &s[1]);
+
+    SCLogDebug("a1");
+    DetectAddressPrint(a1);
+    SCLogDebug("a2");
+    DetectAddressPrint(a2);
+
+    h = DetectAddressHeadInit();
+    if (h == NULL)
+        goto end;
+    DetectAddressInsert(de_ctx, h, a1);
+    DetectAddressInsert(de_ctx, h, a2);
+
+    if (h == NULL)
+        goto end;
+
+    DetectAddress *x = h->ipv4_head;
+    for ( ; x != NULL; x = x->next) {
+        SCLogDebug("x %p next %p", x, x->next);
+        DetectAddressPrint(x);
+        //SigGroupHeadPrintSigs(de_ctx, x->sh);
+    }
+
+    DetectAddress *one = h->ipv4_head;
+    DetectAddress *two = one->next;
+
+    int sig = 0;
+    if ((one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'one', but it shouldn't: ", sig);
+        goto end;
+    }
+    sig = 1;
+    if (!(one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'one', but it shouldn't: ", sig);
+        goto end;
+    }
+    sig = 1;
+    if (!(two->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'two', but it shouldn't: ", sig);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (h != NULL)
+        DetectAddressHeadFree(h);
+    return result;
+}
+
+/**
+ * \test Test sig distribution over address groups
+ */
+static int AddressTestFunctions02(void) {
+    DetectAddress *a1 = NULL;
+    DetectAddress *a2 = NULL;
+    DetectAddressHead *h = NULL;
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    Signature s[2];
+    memset(s,0x00,sizeof(s));
+
+    s[0].num = 0;
+    s[1].num = 1;
+
+    a1 = DetectAddressParseSingle("255.0.0.0/8");
+    if (a1 == NULL) {
+        printf("a1 == NULL: ");
+        goto end;
+    }
+    SigGroupHeadAppendSig(de_ctx, &a1->sh, &s[0]);
+
+    a2 = DetectAddressParseSingle("0.0.0.0/0");
+    if (a2 == NULL) {
+        printf("a2 == NULL: ");
+        goto end;
+    }
+    SigGroupHeadAppendSig(de_ctx, &a2->sh, &s[1]);
+
+    SCLogDebug("a1");
+    DetectAddressPrint(a1);
+    SCLogDebug("a2");
+    DetectAddressPrint(a2);
+
+    h = DetectAddressHeadInit();
+    if (h == NULL)
+        goto end;
+    DetectAddressInsert(de_ctx, h, a2);
+    DetectAddressInsert(de_ctx, h, a1);
+
+    BUG_ON(h == NULL);
+
+    SCLogDebug("dp3");
+
+    DetectAddress *x = h->ipv4_head;
+    for ( ; x != NULL; x = x->next) {
+        DetectAddressPrint(x);
+        //SigGroupHeadPrintSigs(de_ctx, x->sh);
+    }
+
+    DetectAddress *one = h->ipv4_head;
+    DetectAddress *two = one->next;
+
+    int sig = 0;
+    if ((one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'one', but it shouldn't: ", sig);
+        goto end;
+    }
+    sig = 1;
+    if (!(one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'one', but it shouldn't: ", sig);
+        goto end;
+    }
+    sig = 1;
+    if (!(two->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'two', but it shouldn't: ", sig);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (h != NULL)
+        DetectAddressHeadFree(h);
+    return result;
+}
+
+/**
+ * \test Test sig distribution over address groups
+ */
+static int AddressTestFunctions03(void) {
+    DetectAddress *a1 = NULL;
+    DetectAddress *a2 = NULL;
+    DetectAddressHead *h = NULL;
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    Signature s[2];
+    memset(s,0x00,sizeof(s));
+
+    s[0].num = 0;
+    s[1].num = 1;
+
+    a1 = DetectAddressParseSingle("ffff::/16");
+    if (a1 == NULL) {
+        printf("a1 == NULL: ");
+        goto end;
+    }
+    SigGroupHeadAppendSig(de_ctx, &a1->sh, &s[0]);
+
+    a2 = DetectAddressParseSingle("::/0");
+    if (a2 == NULL) {
+        printf("a2 == NULL: ");
+        goto end;
+    }
+    SigGroupHeadAppendSig(de_ctx, &a2->sh, &s[1]);
+
+    SCLogDebug("a1");
+    DetectAddressPrint(a1);
+    SCLogDebug("a2");
+    DetectAddressPrint(a2);
+
+    h = DetectAddressHeadInit();
+    if (h == NULL)
+        goto end;
+    DetectAddressInsert(de_ctx, h, a1);
+    DetectAddressInsert(de_ctx, h, a2);
+
+    if (h == NULL)
+        goto end;
+
+    DetectAddress *x = h->ipv6_head;
+    for ( ; x != NULL; x = x->next) {
+        SCLogDebug("x %p next %p", x, x->next);
+        DetectAddressPrint(x);
+        //SigGroupHeadPrintSigs(de_ctx, x->sh);
+    }
+
+    DetectAddress *one = h->ipv6_head;
+    DetectAddress *two = one->next;
+
+    int sig = 0;
+    if ((one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'one', but it shouldn't: ", sig);
+        goto end;
+    }
+    sig = 1;
+    if (!(one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'one', but it shouldn't: ", sig);
+        goto end;
+    }
+    sig = 1;
+    if (!(two->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'two', but it shouldn't: ", sig);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (h != NULL)
+        DetectAddressHeadFree(h);
+    return result;
+}
+
+/**
+ * \test Test sig distribution over address groups
+ */
+static int AddressTestFunctions04(void) {
+    DetectAddress *a1 = NULL;
+    DetectAddress *a2 = NULL;
+    DetectAddressHead *h = NULL;
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    Signature s[2];
+    memset(s,0x00,sizeof(s));
+
+    s[0].num = 0;
+    s[1].num = 1;
+
+    a1 = DetectAddressParseSingle("ffff::/16");
+    if (a1 == NULL) {
+        printf("a1 == NULL: ");
+        goto end;
+    }
+    SigGroupHeadAppendSig(de_ctx, &a1->sh, &s[0]);
+
+    a2 = DetectAddressParseSingle("::/0");
+    if (a2 == NULL) {
+        printf("a2 == NULL: ");
+        goto end;
+    }
+    SigGroupHeadAppendSig(de_ctx, &a2->sh, &s[1]);
+
+    SCLogDebug("a1");
+    DetectAddressPrint(a1);
+    SCLogDebug("a2");
+    DetectAddressPrint(a2);
+
+    h = DetectAddressHeadInit();
+    if (h == NULL)
+        goto end;
+    DetectAddressInsert(de_ctx, h, a2);
+    DetectAddressInsert(de_ctx, h, a1);
+
+    BUG_ON(h == NULL);
+
+    SCLogDebug("dp3");
+
+    DetectAddress *x = h->ipv6_head;
+    for ( ; x != NULL; x = x->next) {
+        DetectAddressPrint(x);
+        //SigGroupHeadPrintSigs(de_ctx, x->sh);
+    }
+
+    DetectAddress *one = h->ipv6_head;
+    DetectAddress *two = one->next;
+
+    int sig = 0;
+    if ((one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'one', but it shouldn't: ", sig);
+        goto end;
+    }
+    sig = 1;
+    if (!(one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'one', but it shouldn't: ", sig);
+        goto end;
+    }
+    sig = 1;
+    if (!(two->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
+        printf("sig %d part of 'two', but it shouldn't: ", sig);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (h != NULL)
+        DetectAddressHeadFree(h);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DetectAddressTests(void)
@@ -4402,6 +4759,8 @@ void DetectAddressTests(void)
     UtRegisterTest("AddressTestParse33", AddressTestParse33, 1);
     UtRegisterTest("AddressTestParse34", AddressTestParse34, 1);
     UtRegisterTest("AddressTestParse35", AddressTestParse35, 1);
+    UtRegisterTest("AddressTestParse36", AddressTestParse36, 1);
+    UtRegisterTest("AddressTestParse37", AddressTestParse37, 1);
 
     UtRegisterTest("AddressTestMatch01", AddressTestMatch01, 1);
     UtRegisterTest("AddressTestMatch02", AddressTestMatch02, 1);
@@ -4538,5 +4897,9 @@ void DetectAddressTests(void)
     UtRegisterTest("AddressConfVarsTest04 ", AddressConfVarsTest04, 1);
     UtRegisterTest("AddressConfVarsTest05 ", AddressConfVarsTest05, 1);
 
+    UtRegisterTest("AddressTestFunctions01", AddressTestFunctions01, 1);
+    UtRegisterTest("AddressTestFunctions02", AddressTestFunctions02, 1);
+    UtRegisterTest("AddressTestFunctions03", AddressTestFunctions03, 1);
+    UtRegisterTest("AddressTestFunctions04", AddressTestFunctions04, 1);
 #endif /* UNITTESTS */
 }
