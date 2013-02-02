@@ -69,6 +69,7 @@
 #define DE_STATE_FLAG_HSCD_MATCH        1 << 15 /**< hscd payload inspection part matched */
 #define DE_STATE_FLAG_HUAD_MATCH        1 << 16 /**< huad payload inspection part matched */
 #define DE_STATE_FLAG_HHHD_MATCH        1 << 17 /**< hhhd payload inspection part matched */
+#define DE_STATE_FLAG_HRHHD_MATCH       1 << 18 /**< hrhhd payload inspection part matched */
 
 #define DE_STATE_FLAG_URI_INSPECT       DE_STATE_FLAG_URI_MATCH     /**< uri part of the sig inspected */
 #define DE_STATE_FLAG_DCE_INSPECT       DE_STATE_FLAG_DCE_MATCH     /**< dce payload inspection part inspected */
@@ -85,6 +86,7 @@
 #define DE_STATE_FLAG_HSCD_INSPECT      DE_STATE_FLAG_HSCD_MATCH    /**< hscd payload inspection part inspected */
 #define DE_STATE_FLAG_HUAD_INSPECT      DE_STATE_FLAG_HUAD_MATCH    /**< huad payload inspection part inspected */
 #define DE_STATE_FLAG_HHHD_INSPECT      DE_STATE_FLAG_HHHD_MATCH    /**< hhhd payload inspection part inspected */
+#define DE_STATE_FLAG_HRHHD_INSPECT     DE_STATE_FLAG_HRHHD_MATCH   /**< hrhhd payload inspection part inspected */
 
 /* state flags */
 #define DE_STATE_FILE_STORE_DISABLED    0x0001
