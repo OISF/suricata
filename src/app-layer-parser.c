@@ -35,6 +35,7 @@
 #include "flow-util.h"
 
 #include "detect-engine-state.h"
+#include "detect-engine-port.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
@@ -53,6 +54,7 @@
 #include "app-layer-ssh.h"
 #include "app-layer-smtp.h"
 
+#include "conf.h"
 #include "util-spm.h"
 
 #include "util-debug.h"
@@ -527,6 +529,33 @@ uint16_t AppLayerGetProtoByName(const char *name)
             SCLogDebug("match, returning %"PRIu16"", u);
             return u;
         }
+    }
+
+    AppLayerProbingParser *pp = alp_proto_ctx.probing_parsers;
+    while (pp != NULL) {
+        AppLayerProbingParserPort *pp_port = pp->port;
+        while (pp_port != NULL) {
+            AppLayerProbingParserElement *pp_pe = pp_port->toserver;
+            while (pp_pe != NULL) {
+                if (strcasecmp(pp_pe->al_proto_name, name) == 0) {
+                    return pp_pe->al_proto;
+                }
+
+                pp_pe = pp_pe->next;
+            }
+
+            pp_pe = pp_port->toclient;
+            while (pp_pe != NULL) {
+                if (strcasecmp(pp_pe->al_proto_name, name) == 0) {
+                    return pp_pe->al_proto;
+                }
+
+                pp_pe = pp_pe->next;
+            }
+
+            pp_port = pp_port->next;
+        }
+        pp = pp->next;
     }
 
     return ALPROTO_UNKNOWN;
@@ -1280,20 +1309,36 @@ void AppLayerListSupportedProtocols(void)
         printf("%s\n", al_proto_table[i].name);
     }
 
-    AppLayerProbingParserInfo *pinfo = alp_proto_ctx.probing_parsers_info;
-    while (pinfo != NULL) {
-        if (temp_alprotos_buf[pinfo->al_proto] == 1) {
-            pinfo = pinfo->next;
-            continue;
+    AppLayerProbingParser *pp = alp_proto_ctx.probing_parsers;
+    while (pp != NULL) {
+        AppLayerProbingParserPort *pp_port = pp->port;
+        while (pp_port != NULL) {
+            AppLayerProbingParserElement *pp_pe = pp_port->toserver;
+            while (pp_pe != NULL) {
+                if (temp_alprotos_buf[pp_pe->al_proto] == 1) {
+                    pp_pe = pp_pe->next;
+                    continue;
+                }
+
+                printf("%s\n", pp_pe->al_proto_name);
+                pp_pe = pp_pe->next;
+            }
+
+            pp_pe = pp_port->toclient;
+            while (pp_pe != NULL) {
+                if (temp_alprotos_buf[pp_pe->al_proto] == 1) {
+                    pp_pe = pp_pe->next;;
+                    continue;
+                }
+
+                printf("%s\n", pp_pe->al_proto_name);
+                pp_pe = pp_pe->next;
+            }
+
+            pp_port = pp_port->next;
         }
-
-        printf("%s\n", pinfo->al_proto_name);
-        temp_alprotos_buf[pinfo->al_proto] = 1;
-        pinfo = pinfo->next;
+        pp = pp->next;
     }
-
-    printf("=====\n");
-
 
     return;
 }
@@ -1366,16 +1411,35 @@ void RegisterAppLayerParsers(void)
     RegisterSMTPParsers();
 
     /** IMAP */
-    //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_IMAP, "|2A 20|OK|20|", 5, 0, STREAM_TOCLIENT);
-    AlpProtoAdd(&alp_proto_ctx, "imap", IPPROTO_TCP, ALPROTO_IMAP, "1|20|capability", 12, 0, STREAM_TOSERVER);
+    if (AppLayerProtoDetectionEnabled("imap")) {
+        //AlpProtoAdd(&alp_proto_ctx, "imap", IPPROTO_TCP, ALPROTO_IMAP, "|2A 20|OK|20|", 5, 0, STREAM_TOCLIENT);
+        AlpProtoAdd(&alp_proto_ctx, "imap", IPPROTO_TCP, ALPROTO_IMAP, "1|20|capability", 12, 0, STREAM_TOSERVER);
+    } else {
+        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
+                  "imap");
+        return;
+    }
 
     /** MSN Messenger */
-    //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_MSN, "MSNP", 10, 6, STREAM_TOCLIENT);
-    AlpProtoAdd(&alp_proto_ctx, "msn", IPPROTO_TCP, ALPROTO_MSN, "MSNP", 10, 6, STREAM_TOSERVER);
+    if (AppLayerProtoDetectionEnabled("msn")) {
+        AlpProtoAdd(&alp_proto_ctx, "msn", IPPROTO_TCP, ALPROTO_MSN, "MSNP", 10, 6, STREAM_TOSERVER);
+    } else {
+        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
+                  "msn");
+        return;
+    }
 
     /** Jabber */
-    //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOCLIENT);
-    //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOSERVER);
+    //if (AppLayerProtoDetectionEnabled("jabber")) {
+    //AlpProtoAdd(&alp_proto_ctx, "jabber", IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOCLIENT);
+    //AlpProtoAdd(&alp_proto_ctx, "jabber", IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOSERVER);
+    //} else {
+    //SCLogInfo("Protocol detection disabled for %s protocol and as a "
+    //"consequence the conf param \"app-layer.protocols.%s."
+    //"parser-enabled\" will now be ignored.", "jabber", "jabber");
+    //    return;
+    //}
+
 
     return;
 }
@@ -1488,6 +1552,178 @@ void AppLayerParsersInitPostProcess(void)
     }
 }
 
+/*************************App Layer Conf Options Parsing***********************/
+/**
+ * \brief Given a protocol name, checks if the parser is enabled in the
+ *        conf file.
+ *
+ * \param al_proto Name of the app layer protocol.
+ *
+ * \retval 1 If enabled.
+ * \retval 0 If disabled.
+ */
+int AppLayerParserEnabled(const char *al_proto)
+{
+    int enabled = 1;
+
+    char param[100];
+    int r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
+                     al_proto, ".enabled");
+    if (r < 0) {
+        SCLogError(SC_ERR_FATAL, "snprintf failure.");
+        exit(EXIT_FAILURE);
+    } else if (r > (int)sizeof(param)) {
+        SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
+        exit(EXIT_FAILURE);
+    }
+
+    ConfNode *node = ConfGetNode(param);
+    if (node == NULL) {
+        SCLogInfo("Entry for %s not found.", param);
+        return enabled;
+    } else {
+        if (strcasecmp(node->val, "yes") == 0) {
+            enabled = 1;
+        } else if (strcasecmp(node->val, "no") == 0) {
+            enabled = 0;
+        } else if (strcasecmp(node->val, "detection-only") == 0) {
+            enabled = 0;
+        } else {
+            SCLogError(SC_ERR_FATAL, "Invalid value found for %s.", param);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    return enabled;
+}
+
+/**
+ * \brief Given a protocol name, checks if proto detection is enabled in the
+ *        conf file.
+ *
+ * \param al_proto Name of the app layer protocol.
+ *
+ * \retval 1 If enabled.
+ * \retval 0 If disabled.
+ */
+int AppLayerProtoDetectionEnabled(const char *al_proto)
+{
+    int enabled = 1;
+
+    char param[100];
+    int r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
+                     al_proto, ".enabled");
+    if (r < 0) {
+        SCLogError(SC_ERR_FATAL, "snprintf failure.");
+        exit(EXIT_FAILURE);
+    } else if (r > (int)sizeof(param)) {
+        SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
+        exit(EXIT_FAILURE);
+    }
+
+    ConfNode *node = ConfGetNode(param);
+    if (node == NULL) {
+        SCLogInfo("Entry for %s not found.", param);
+        return enabled;
+    } else {
+        if (strcasecmp(node->val, "yes") == 0) {
+            enabled = 1;
+        } else if (strcasecmp(node->val, "no") == 0) {
+            enabled = 0;
+        } else if (strcasecmp(node->val, "detection-only") == 0) {
+            enabled = 1;
+        } else {
+            SCLogError(SC_ERR_FATAL, "Invalid value found for %s.", param);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    return enabled;
+}
+
+void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_proto,
+                                     uint16_t min_depth, uint16_t max_depth,
+                                     uint16_t (*ProbingParser)(uint8_t *input, uint32_t input_len, uint32_t *offset))
+{
+    char param[100];
+    int r;
+    ConfNode *node;
+    ConfNode *proto_node = NULL;
+    ConfNode *port_node = NULL;
+
+    r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
+                 al_proto_name, ".detection-ports");
+    if (r < 0) {
+        SCLogError(SC_ERR_FATAL, "snprintf failure.");
+        exit(EXIT_FAILURE);
+    } else if (r > (int)sizeof(param)) {
+        SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
+        exit(EXIT_FAILURE);
+    }
+    node = ConfGetNode(param);
+    if (node == NULL) {
+        SCLogDebug("Entry for %s not found.", param);
+        return;
+    }
+
+    /* for each proto */
+    TAILQ_FOREACH(proto_node, &node->head, next) {
+        DetectProto dp;
+        int ip_proto = DetectProtoParse(&dp, proto_node->name);
+        if (ip_proto <= 0) {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                       "%s.%s", param, proto_node->name);
+            exit(EXIT_FAILURE);
+        }
+
+        /* toserver */
+        r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
+                     al_proto_name, ".detection-ports.", proto_node->name, ".toserver");
+        if (r < 0) {
+            SCLogError(SC_ERR_FATAL, "snprintf failure.");
+            exit(EXIT_FAILURE);
+        } else if (r > (int)sizeof(param)) {
+            SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
+            exit(EXIT_FAILURE);
+        }
+        port_node = ConfGetNode(param);
+        if (port_node != NULL && port_node->val != NULL) {
+            AppLayerRegisterProbingParser(&alp_proto_ctx,
+                                          ip_proto,
+                                          port_node->val,
+                                          (char *)al_proto_name,
+                                          al_proto,
+                                          min_depth, max_depth,
+                                          STREAM_TOSERVER,
+                                          ProbingParser);
+        }
+
+        /* toclient */
+        r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
+                     al_proto_name, ".detection-ports.", proto_node->name, ".toclient");
+        if (r < 0) {
+            SCLogError(SC_ERR_FATAL, "snprintf failure.");
+            exit(EXIT_FAILURE);
+        } else if (r > (int)sizeof(param)) {
+            SCLogError(SC_ERR_FATAL, "buffer not big enough to write param.");
+            exit(EXIT_FAILURE);
+        }
+        port_node = ConfGetNode(param);
+        if (port_node != NULL && port_node->val != NULL) {
+            AppLayerRegisterProbingParser(&alp_proto_ctx,
+                                          ip_proto,
+                                          port_node->val,
+                                          (char *)al_proto_name,
+                                          al_proto,
+                                          min_depth, max_depth,
+                                          STREAM_TOCLIENT,
+                                          ProbingParser);
+
+        }
+    }
+
+    return;
+}
 /********************************Probing Parsers*******************************/
 
 
@@ -1503,38 +1739,109 @@ static uint32_t AppLayerProbingParserGetMask(uint16_t al_proto)
     }
 }
 
-static AppLayerProbingParserElement *
-AppLayerCreateAppLayerProbingParserElement(const char *al_proto_name,
-                                           uint16_t ip_proto,
-                                           uint16_t al_proto,
-                                           uint16_t min_depth,
-                                           uint16_t max_depth,
-                                           uint16_t port,
-                                           uint8_t priority,
-                                           uint8_t top,
-                                           uint16_t (*AppLayerProbingParser)
-                                           (uint8_t *input, uint32_t input_len))
+static inline AppLayerProbingParserElement *AllocAppLayerProbingParserElement(void)
 {
-    AppLayerProbingParserElement *pe = SCMalloc(sizeof(AppLayerProbingParserElement));
-    if (unlikely(pe == NULL)) {
-        return NULL;
+    AppLayerProbingParserElement *p = SCMalloc(sizeof(AppLayerProbingParserElement));
+    if (p == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    memset(p, 0, sizeof(AppLayerProbingParserElement));
+
+    return p;
+}
+
+
+static inline void DeAllocAppLayerProbingParserElement(AppLayerProbingParserElement *p)
+{
+    SCFree(p->al_proto_name);
+    SCFree(p);
+    return;
+}
+
+static inline AppLayerProbingParserPort *AllocAppLayerProbingParserPort(void)
+{
+    AppLayerProbingParserPort *p = SCMalloc(sizeof(AppLayerProbingParserPort));
+    if (p == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    memset(p, 0, sizeof(AppLayerProbingParserPort));
+
+    return p;
+}
+
+static inline void DeAllocAppLayerProbingParserPort(AppLayerProbingParserPort *p)
+{
+    AppLayerProbingParserElement *e;
+
+    e = p->toserver;
+    while (e != NULL) {
+        AppLayerProbingParserElement *e_next = e->next;
+        DeAllocAppLayerProbingParserElement(e);
+        e = e_next;
     }
 
-    pe->al_proto_name = al_proto_name;
-    pe->ip_proto = ip_proto;
+    e = p->toclient;
+    while (e != NULL) {
+        AppLayerProbingParserElement *e_next = e->next;
+        DeAllocAppLayerProbingParserElement(e);
+        e = e_next;
+    }
+
+    SCFree(p);
+
+    return;
+}
+
+static inline AppLayerProbingParser *AllocAppLayerProbingParser(void)
+{
+    AppLayerProbingParser *p = SCMalloc(sizeof(AppLayerProbingParser));
+    if (p == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    memset(p, 0, sizeof(AppLayerProbingParser));
+
+    return p;
+}
+
+static inline void DeAllocAppLayerProbingParser(AppLayerProbingParser *p)
+{
+    AppLayerProbingParserPort *pt = p->port;
+    while (pt != NULL) {
+        AppLayerProbingParserPort *pt_next = pt->next;
+        DeAllocAppLayerProbingParserPort(pt);
+        pt = pt_next;
+    }
+
+    SCFree(p);
+
+    return;
+}
+
+static AppLayerProbingParserElement *
+AppLayerCreateAppLayerProbingParserElement(const char *al_proto_name,
+                                           uint16_t al_proto,
+                                           uint16_t port,
+                                           uint16_t min_depth,
+                                           uint16_t max_depth,
+                                           uint16_t (*AppLayerProbingParser)
+                                           (uint8_t *input, uint32_t input_len, uint32_t *offset))
+{
+    AppLayerProbingParserElement *pe = AllocAppLayerProbingParserElement();
+
+    pe->al_proto_name = SCStrdup(al_proto_name);
+    if (pe->al_proto_name == NULL)
+        exit(EXIT_FAILURE);
     pe->al_proto = al_proto;
+    pe->port = port;
     pe->al_proto_mask = AppLayerProbingParserGetMask(al_proto);
     pe->min_depth = min_depth;
     pe->max_depth = max_depth;
-    pe->port = port;
-    pe->priority = priority;
-    pe->top = top;
     pe->ProbingParser = AppLayerProbingParser;
     pe->next = NULL;
 
-    if (max_depth != 0 && min_depth > max_depth) {
+    if (max_depth != 0 && min_depth >= max_depth) {
         SCLogError(SC_ERR_ALPARSER, "Invalid arguments sent to "
-                   "register the probing parser.  min_depth > max_depth");
+                   "register the probing parser.  min_depth >= max_depth");
         goto error;
     }
     if (al_proto <= ALPROTO_UNKNOWN || al_proto >= ALPROTO_MAX) {
@@ -1550,454 +1857,435 @@ AppLayerCreateAppLayerProbingParserElement(const char *al_proto_name,
 
     return pe;
  error:
-    SCFree(pe);
+    DeAllocAppLayerProbingParserElement(pe);
     return NULL;
 }
 
 static AppLayerProbingParserElement *
-AppLayerDuplicateAppLayerProbingParserElement(AppLayerProbingParserElement *pe)
+DuplicateAppLayerProbingParserElement(AppLayerProbingParserElement *pe)
 {
-    AppLayerProbingParserElement *new_pe = SCMalloc(sizeof(AppLayerProbingParserElement));
+    AppLayerProbingParserElement *new_pe = AllocAppLayerProbingParserElement();
     if (unlikely(new_pe == NULL)) {
         return NULL;
     }
 
-    new_pe->al_proto_name = pe->al_proto_name;
-    new_pe->ip_proto = pe->ip_proto;
+    new_pe->al_proto_name = SCStrdup(pe->al_proto_name);
+    if (new_pe->al_proto_name == NULL)
+        exit(EXIT_FAILURE);
     new_pe->al_proto = pe->al_proto;
+    new_pe->port = pe->port;
     new_pe->al_proto_mask = pe->al_proto_mask;
     new_pe->min_depth = pe->min_depth;
     new_pe->max_depth = pe->max_depth;
-    new_pe->port = pe->port;
-    new_pe->priority = pe->priority;
-    new_pe->top = pe->top;
     new_pe->ProbingParser = pe->ProbingParser;
     new_pe->next = NULL;
 
     return new_pe;
 }
 
-static void
-AppLayerFreeAppLayerProbingParserElement(AppLayerProbingParserElement *pe)
-{
-    SCFree(pe);
-
-    return;
-}
-
-static void
-AppLayerInsertNewProbingParserSingleElement(AppLayerProbingParser *pp,
-                                            AppLayerProbingParser **probing_parsers,
-                                            AppLayerProbingParserElement *new_pe,
-                                            uint8_t flags)
-{
-    if (pp == NULL) {
-        AppLayerProbingParser *new_pp = SCMalloc(sizeof(AppLayerProbingParser));
-        if (unlikely(new_pp == NULL))
-            return;
-        memset(new_pp, 0, sizeof(AppLayerProbingParser));
-
-        new_pp->port = new_pe->port;
-
-        if (probing_parsers[0] == NULL) {
-            probing_parsers[0] = new_pp;
-        } else {
-            AppLayerProbingParser *pp = probing_parsers[0];
-            if (pp->port == 0) {
-                new_pp->next = probing_parsers[0];
-                probing_parsers[0] = new_pp;
-            } else {
-                /* port 0 based pp is always the last one.  Hence the
-                 * premature exit condition if port is 0 */
-                while (pp->next != NULL && pp->next->port != 0) {
-                    pp = pp->next;
-                }
-                new_pp->next = pp->next;
-                pp->next = new_pp;
-            }
-        }
-
-        pp = new_pp;
-    }
-
-    AppLayerProbingParserElement *pe = NULL;
-    if (flags & STREAM_TOSERVER) {
-        pe = pp->toserver;
-    } else {
-        pe = pp->toclient;
-    }
-
-    if (pe == NULL) {
-        if (flags & STREAM_TOSERVER) {
-            pp->toserver = new_pe;
-            pp->toserver_max_depth = new_pe->max_depth;
-        } else {
-            pp->toclient = new_pe;
-            pp->toclient_max_depth = new_pe->max_depth;
-        }
-    } else {
-        uint8_t break_priority;
-        if (new_pe->top) {
-            break_priority = new_pe->priority;
-        } else {
-            break_priority = new_pe->priority + 1;
-        }
-
-        AppLayerProbingParserElement *prev_pe = pe;
-        while (pe != NULL) {
-            if (pe->priority < break_priority) {
-                prev_pe = pe;
-                pe = pe->next;
-                continue;
-            }
-            break;
-        }
-        if (prev_pe == pe) {
-            if (flags & STREAM_TOSERVER) {
-                new_pe->next = pp->toserver;
-                pp->toserver = new_pe;
-            } else {
-                new_pe->next = pp->toclient;
-                pp->toclient = new_pe;
-            }
-        } else {
-            new_pe->next = prev_pe->next;
-            prev_pe->next = new_pe;
-        }
-
-        if (flags & STREAM_TOSERVER) {
-            if (new_pe->max_depth == 0) {
-                pp->toserver_max_depth = 0;
-            } else {
-                if (pp->toserver_max_depth != 0 &&
-                    pp->toserver_max_depth < new_pe->max_depth) {
-                    pp->toserver_max_depth = new_pe->max_depth;
-                }
-            }
-        } else {
-            if (new_pe->max_depth == 0) {
-                pp->toclient_max_depth = 0;
-            } else {
-                if (pp->toclient_max_depth != 0 &&
-                    pp->toclient_max_depth < new_pe->max_depth) {
-                    pp->toclient_max_depth = new_pe->max_depth;
-                }
-            }
-        } /* else - if (flags & STREAM_TOSERVER) */
-
-    } /* else - if (pe == NULL) */
-
-    if (flags & STREAM_TOSERVER)
-        pp->toserver_al_proto_mask |= new_pe->al_proto_mask;
-    else
-        pp->toclient_al_proto_mask |= new_pe->al_proto_mask;
-
-    return;
-}
-
-static void AppLayerInsertNewProbingParserElement(AppLayerProbingParser **probing_parsers,
-                                                  AppLayerProbingParserElement *new_pe,
-                                                  uint8_t flags)
-{
-    AppLayerProbingParser *pp = probing_parsers[0];
-
-    if (new_pe->port != 0) {
-        AppLayerProbingParser *zero_pp = NULL;
-        while (pp != NULL) {
-            if (pp->port == new_pe->port) {
-                break;
-            }
-            if (pp->port == 0)
-                zero_pp = pp;
-            pp = pp->next;
-        }
-        AppLayerInsertNewProbingParserSingleElement(pp, probing_parsers, new_pe,
-                                                    flags);
-        if (zero_pp != NULL) {
-            pp = probing_parsers[0];
-            while (pp != NULL) {
-                if (pp->port == new_pe->port)
-                    break;
-                pp = pp->next;
-            }
-            BUG_ON(pp == NULL);
-            AppLayerProbingParserElement *temp_pe;
-            if (flags & STREAM_TOSERVER) {
-                temp_pe = zero_pp->toserver;
-            } else {
-                temp_pe = zero_pp->toclient;
-            }
-            while (temp_pe != NULL) {
-                AppLayerProbingParserElement *dup_pe =
-                    AppLayerDuplicateAppLayerProbingParserElement(temp_pe);
-                AppLayerInsertNewProbingParserSingleElement(pp, probing_parsers, dup_pe,
-                                                            flags);
-                temp_pe = temp_pe->next;
-            }
-        }
-
-    } else {
-        int zero_port_present = 0;
-        while (pp != NULL) {
-            AppLayerProbingParserElement *dup_pe =
-                AppLayerDuplicateAppLayerProbingParserElement(new_pe);
-
-            AppLayerInsertNewProbingParserSingleElement(pp, probing_parsers, dup_pe,
-                                                        flags);
-            if (pp->port == 0)
-                zero_port_present = 1;
-            pp = pp->next;
-        }
-
-        if (zero_port_present == 0) {
-            AppLayerInsertNewProbingParserSingleElement(NULL, probing_parsers, new_pe,
-                                                        flags);
-        } else {
-            SCFree(new_pe);
-        }
-    }
-
-    return;
-}
-
 void AppLayerPrintProbingParsers(AppLayerProbingParser *pp)
 {
-    AppLayerProbingParserElement *pe = NULL;
+    AppLayerProbingParserPort *pp_port = NULL;
+    AppLayerProbingParserElement *pp_pe = NULL;
 
     printf("\n");
-    while (pp != NULL) {
-        printf("Port: %"PRIu16 "\n", pp->port);
-        printf("    to_server: max-depth: %"PRIu16 ", "
-               "mask - %"PRIu32"\n", pp->toserver_max_depth,
-               pp->toserver_al_proto_mask);
-        pe = pp->toserver;
-        while (pe != NULL) {
-            printf("        name: %s\n", pe->al_proto_name);
 
-            if (pe->al_proto == ALPROTO_HTTP)
-                printf("        alproto: ALPROTO_HTTP\n");
-            else if (pe->al_proto == ALPROTO_FTP)
-                printf("        alproto: ALPROTO_FTP\n");
-            else if (pe->al_proto == ALPROTO_SMTP)
-                printf("        alproto: ALPROTO_SMTP\n");
-            else if (pe->al_proto == ALPROTO_TLS)
-                printf("        alproto: ALPROTO_TLS\n");
-            else if (pe->al_proto == ALPROTO_SSH)
-                printf("        alproto: ALPROTO_SSH\n");
-            else if (pe->al_proto == ALPROTO_IMAP)
-                printf("        alproto: ALPROTO_IMAP\n");
-            else if (pe->al_proto == ALPROTO_MSN)
-                printf("        alproto: ALPROTO_MSN\n");
-            else if (pe->al_proto == ALPROTO_JABBER)
-                printf("        alproto: ALPROTO_JABBER\n");
-            else if (pe->al_proto == ALPROTO_SMB)
-                printf("        alproto: ALPROTO_SMB\n");
-            else if (pe->al_proto == ALPROTO_SMB2)
-                printf("        alproto: ALPROTO_SMB2\n");
-            else if (pe->al_proto == ALPROTO_DCERPC)
-                printf("        alproto: ALPROTO_DCERPC\n");
-            else if (pe->al_proto == ALPROTO_DCERPC_UDP)
-                printf("        alproto: ALPROTO_DCERPC_UDP\n");
-            else if (pe->al_proto == ALPROTO_IRC)
-                printf("        alproto: ALPROTO_IRC\n");
-            else
-                printf("impossible\n");
+    for ( ; pp != NULL; pp = pp->next) {
+        /* print ip protocol */
+        if (pp->ip_proto == IPPROTO_TCP)
+            printf("IPProto: TCP\n");
+        else if (pp->ip_proto == IPPROTO_UDP)
+            printf("IPProto: UDP\n");
+        else
+            printf("IPProto: %"PRIu16"\n", pp->ip_proto);
 
-            printf("        port: %"PRIu16 "\n", pe->port);
+        pp_port = pp->port;
+        for ( ; pp_port != NULL; pp_port = pp_port->next) {
+            if (pp_port->toserver == NULL)
+                goto AppLayerPrintProbingParsers_jump_toclient;
+            printf("    Port: %"PRIu16 "\n", pp_port->port);
 
-            if (pe->priority == APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-                printf("        priority: HIGH\n");
-            else if (pe->priority == APP_LAYER_PROBING_PARSER_PRIORITY_MEDIUM)
-                printf("        priority: MEDIUM\n");
-            else if (pe->priority == APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-                printf("        priority: LOW\n");
-            else
-                printf("        priority: impossible\n");
+            printf("        To_Server: (max-depth: %"PRIu16 ", "
+                   "mask - %"PRIu32")\n",
+                   pp_port->toserver_max_depth,
+                   pp_port->toserver_al_proto_mask);
+            pp_pe = pp_port->toserver;
+            for ( ; pp_pe != NULL; pp_pe = pp_pe->next) {
+                printf("            name: %s\n", pp_pe->al_proto_name);
 
-            printf("        top: %"PRIu8 "\n", pe->top);
+                if (pp_pe->al_proto == ALPROTO_HTTP)
+                    printf("            alproto: ALPROTO_HTTP\n");
+                else if (pp_pe->al_proto == ALPROTO_FTP)
+                    printf("            alproto: ALPROTO_FTP\n");
+                else if (pp_pe->al_proto == ALPROTO_SMTP)
+                    printf("            alproto: ALPROTO_SMTP\n");
+                else if (pp_pe->al_proto == ALPROTO_TLS)
+                    printf("            alproto: ALPROTO_TLS\n");
+                else if (pp_pe->al_proto == ALPROTO_SSH)
+                    printf("            alproto: ALPROTO_SSH\n");
+                else if (pp_pe->al_proto == ALPROTO_IMAP)
+                    printf("            alproto: ALPROTO_IMAP\n");
+                else if (pp_pe->al_proto == ALPROTO_MSN)
+                    printf("            alproto: ALPROTO_MSN\n");
+                else if (pp_pe->al_proto == ALPROTO_JABBER)
+                    printf("            alproto: ALPROTO_JABBER\n");
+                else if (pp_pe->al_proto == ALPROTO_SMB)
+                    printf("            alproto: ALPROTO_SMB\n");
+                else if (pp_pe->al_proto == ALPROTO_SMB2)
+                    printf("            alproto: ALPROTO_SMB2\n");
+                else if (pp_pe->al_proto == ALPROTO_DCERPC)
+                    printf("            alproto: ALPROTO_DCERPC\n");
+                else if (pp_pe->al_proto == ALPROTO_DCERPC_UDP)
+                    printf("            alproto: ALPROTO_DCERPC_UDP\n");
+                else if (pp_pe->al_proto == ALPROTO_IRC)
+                    printf("            alproto: ALPROTO_IRC\n");
+                else
+                    printf("impossible\n");
 
-            printf("        min_depth: %"PRIu32 "\n", pe->min_depth);
-            printf("        max_depth: %"PRIu32 "\n", pe->max_depth);
-            printf("        mask: %"PRIu32 "\n", pe->al_proto_mask);
+                printf("            port: %"PRIu16 "\n", pp_pe->port);
+                printf("            mask: %"PRIu32 "\n", pp_pe->al_proto_mask);
+                printf("            min_depth: %"PRIu32 "\n", pp_pe->min_depth);
+                printf("            max_depth: %"PRIu32 "\n", pp_pe->max_depth);
 
-            printf("\n");
-            pe = pe->next;
+                printf("\n");
+            }
+
+        AppLayerPrintProbingParsers_jump_toclient:
+            if (pp_port->toclient == NULL) {
+                continue;
+            }
+
+            printf("        To_Client: (max-depth: %"PRIu16 ", "
+                   "mask - %"PRIu32")\n",
+                   pp_port->toclient_max_depth,
+                   pp_port->toclient_al_proto_mask);
+            pp_pe = pp_port->toclient;
+            for ( ; pp_pe != NULL; pp_pe = pp_pe->next) {
+                printf("            name: %s\n", pp_pe->al_proto_name);
+
+                if (pp_pe->al_proto == ALPROTO_HTTP)
+                    printf("            alproto: ALPROTO_HTTP\n");
+                else if (pp_pe->al_proto == ALPROTO_FTP)
+                    printf("            alproto: ALPROTO_FTP\n");
+                else if (pp_pe->al_proto == ALPROTO_SMTP)
+                    printf("            alproto: ALPROTO_SMTP\n");
+                else if (pp_pe->al_proto == ALPROTO_TLS)
+                    printf("            alproto: ALPROTO_TLS\n");
+                else if (pp_pe->al_proto == ALPROTO_SSH)
+                    printf("            alproto: ALPROTO_SSH\n");
+                else if (pp_pe->al_proto == ALPROTO_IMAP)
+                    printf("            alproto: ALPROTO_IMAP\n");
+                else if (pp_pe->al_proto == ALPROTO_MSN)
+                    printf("            alproto: ALPROTO_MSN\n");
+                else if (pp_pe->al_proto == ALPROTO_JABBER)
+                    printf("            alproto: ALPROTO_JABBER\n");
+                else if (pp_pe->al_proto == ALPROTO_SMB)
+                    printf("            alproto: ALPROTO_SMB\n");
+                else if (pp_pe->al_proto == ALPROTO_SMB2)
+                    printf("            alproto: ALPROTO_SMB2\n");
+                else if (pp_pe->al_proto == ALPROTO_DCERPC)
+                    printf("            alproto: ALPROTO_DCERPC\n");
+                else if (pp_pe->al_proto == ALPROTO_DCERPC_UDP)
+                    printf("            alproto: ALPROTO_DCERPC_UDP\n");
+                else if (pp_pe->al_proto == ALPROTO_IRC)
+                    printf("            alproto: ALPROTO_IRC\n");
+                else
+                    printf("impossible\n");
+
+                printf("            port: %"PRIu16 "\n", pp_pe->port);
+                printf("            mask: %"PRIu32 "\n", pp_pe->al_proto_mask);
+                printf("            min_depth: %"PRIu32 "\n", pp_pe->min_depth);
+                printf("            max_depth: %"PRIu32 "\n", pp_pe->max_depth);
+
+                printf("\n");
+            }
         }
-        pp = pp->next;
     }
 
     return;
 }
 
-int AppLayerProbingParserInfoAdd(AlpProtoDetectCtx *ctx,
-                                 const char *al_proto_name,
-                                 uint16_t ip_proto,
-                                 uint16_t al_proto,
-                                 uint16_t (*ProbingParser)
-                                 (uint8_t *input, uint32_t input_len))
+static inline void AppendAppLayerProbingParserElement(AppLayerProbingParserElement **head_pe,
+                                                      AppLayerProbingParserElement *new_pe)
 {
-    AppLayerProbingParserInfo *new_ppi = NULL;
-
-    AppLayerProbingParserInfo *ppi = ctx->probing_parsers_info;
-    while (ppi != NULL) {
-        if (strcmp(ppi->al_proto_name, al_proto_name) == 0)
-            break;
-        ppi = ppi->next;
+    if (*head_pe == NULL) {
+        *head_pe = new_pe;
+        return;
     }
 
-    if (ppi == NULL) {
-        new_ppi = SCMalloc(sizeof(AppLayerProbingParserInfo));
-        if (unlikely(new_ppi == NULL)) {
-            return -1;
-        }
-        memset(new_ppi, 0, sizeof(AppLayerProbingParserInfo));
-        new_ppi->al_proto_name = al_proto_name;
-        new_ppi->ip_proto = ip_proto;
-        new_ppi->al_proto = al_proto;
-        new_ppi->ProbingParser = ProbingParser;
-
-        if (ctx->probing_parsers_info == NULL) {
-            ctx->probing_parsers_info = new_ppi;
+    if ((*head_pe)->port == 0) {
+        if (new_pe->port != 0) {
+            new_pe->next = *head_pe;
+            *head_pe = new_pe;
         } else {
-            new_ppi->next = ctx->probing_parsers_info;
-            ctx->probing_parsers_info = new_ppi;
+            AppLayerProbingParserElement *temp_pe = *head_pe;
+            while (temp_pe->next != NULL)
+                temp_pe = temp_pe->next;
+            temp_pe->next = new_pe;
         }
-        return 0;
+    } else {
+        AppLayerProbingParserElement *temp_pe = *head_pe;
+        if (new_pe->port == 0) {
+            while (temp_pe->next != NULL)
+                temp_pe = temp_pe->next;
+            temp_pe->next = new_pe;
+        } else {
+            while (temp_pe->next != NULL && temp_pe->next->port != 0)
+                temp_pe = temp_pe->next;
+            new_pe->next = temp_pe->next;
+            temp_pe->next = new_pe;
+        }
     }
 
-    if (ppi->ip_proto != ip_proto) {
-        SCLogError(SC_ERR_ALPARSER, "New probing parser \"%s\" being registered "
-                   "already exists in the database of registered parsers, "
-                   "except that the new one registers with a different ip_proto"
-                   " %"PRIu16" compared to the existing entry of %"PRIu16,
-                   ppi->al_proto_name, ppi->ip_proto, ip_proto);
-        return -1;
-    }
-    if (ppi->al_proto != al_proto) {
-        SCLogError(SC_ERR_ALPARSER, "New probing parser \"%s\" being registered "
-                   "already exists in the database of registered parsers, "
-                   "except that the new one registers with a different alproto "
-                   "%"PRIu16" compared to the existing entry of %"PRIu16,
-                   ppi->al_proto_name, ppi->al_proto, al_proto);
-        return -1;
-    }
-    if (ppi->ProbingParser != ProbingParser) {
-        SCLogError(SC_ERR_ALPARSER, "New probing parser \"%s\" being registered "
-                   "already exists in the database of registered parsers, "
-                   "except that the new one registers with a differnt "
-                   "ProbingParser function compared to the existing entry "
-                   "in the database", ppi->al_proto_name);
-        return -1;
-    }
-
-    return 0;
+    return;
 }
 
-void AppLayerRegisterProbingParser(AlpProtoDetectCtx *ctx,
-                                   uint16_t port,
-                                   uint16_t ip_proto,
-                                   const char *al_proto_name,
-                                   uint16_t al_proto,
-                                   uint16_t min_depth,
-                                   uint16_t max_depth,
-                                   uint8_t flags,
-                                   uint8_t priority,
-                                   uint8_t top,
-                                   uint16_t (*ProbingParser)
-                                   (uint8_t *input, uint32_t input_len))
+static inline void AppendAppLayerProbingParser(AppLayerProbingParser **head_pp,
+                                               AppLayerProbingParser *new_pp)
 {
-    AppLayerProbingParser **probing_parsers = &ctx->probing_parsers;
-    AppLayerProbingParserElement *pe = NULL;
-    AppLayerProbingParserElement *new_pe = NULL;
-    AppLayerProbingParser *pp = NULL;
-
-    /* Add info about this probing parser to our database.  Also detects any
-     * duplicate existance of this parser but with conflicting parameters */
-    if (AppLayerProbingParserInfoAdd(ctx, al_proto_name, ip_proto, al_proto,
-                                     ProbingParser) < 0) {
-        goto error;
+    if (*head_pp == NULL) {
+        *head_pp = new_pp;
+        return;
     }
 
-    /* \todo introduce parsing port range here */
+    AppLayerProbingParser *temp_pp = *head_pp;
+    while (temp_pp->next != NULL)
+        temp_pp = temp_pp->next;
+    temp_pp->next = new_pp;
 
+    return;
+}
+
+static inline void AppendAppLayerProbingParserPort(AppLayerProbingParserPort **head_port,
+                                                   AppLayerProbingParserPort *new_port)
+{
+    if (*head_port == NULL) {
+        *head_port = new_port;
+        return;
+    }
+
+    if ((*head_port)->port == 0) {
+        new_port->next = *head_port;
+        *head_port = new_port;
+    } else {
+        AppLayerProbingParserPort *temp_port = *head_port;
+        while (temp_port->next != NULL && temp_port->next->port != 0) {
+            temp_port = temp_port->next;
+        }
+        new_port->next = temp_port->next;
+        temp_port->next = new_port;
+    }
+
+    return;
+}
+
+static inline void AppLayerInsertNewProbingParser(AppLayerProbingParser **pp,
+                                                  uint16_t ip_proto,
+                                                  uint16_t port,
+                                                  char *al_proto_name, uint16_t al_proto,
+                                                  uint16_t min_depth, uint16_t max_depth,
+                                                  uint8_t flags,
+                                                  uint16_t (*ProbingParser)(uint8_t *input, uint32_t input_len, uint32_t *offset))
+{
+    /* get the top level ipproto pp */
+    AppLayerProbingParser *curr_pp = *pp;
+    while (curr_pp != NULL) {
+        if (curr_pp->ip_proto == ip_proto)
+            break;
+        curr_pp = curr_pp->next;
+    }
+    if (curr_pp == NULL) {
+        AppLayerProbingParser *new_pp = AllocAppLayerProbingParser();
+        new_pp->ip_proto = ip_proto;
+        AppendAppLayerProbingParser(pp, new_pp);
+        curr_pp = new_pp;
+    }
+
+    /* get the top level port pp */
+    AppLayerProbingParserPort *curr_port = curr_pp->port;
+    while (curr_port != NULL) {
+        if (curr_port->port == port)
+            break;
+        curr_port = curr_port->next;
+    }
+    if (curr_port == NULL) {
+        AppLayerProbingParserPort *new_port = AllocAppLayerProbingParserPort();
+        new_port->port = port;
+        AppendAppLayerProbingParserPort(&curr_pp->port, new_port);
+        curr_port = new_port;
+        if (flags & STREAM_TOSERVER) {
+            curr_port->toserver_max_depth = max_depth;
+        } else {
+            curr_port->toclient_max_depth = max_depth;
+        } /* else - if (flags & STREAM_TOSERVER) */
+
+        AppLayerProbingParserPort *zero_port;
+
+        zero_port = curr_pp->port;
+        while (zero_port != NULL && zero_port->port != 0) {
+            zero_port = zero_port->next;
+        }
+        if (zero_port != NULL) {
+            AppLayerProbingParserElement *zero_pe;
+
+            zero_pe = zero_port->toserver;
+            for ( ; zero_pe != NULL; zero_pe = zero_pe->next) {
+                if (curr_port->toserver == NULL)
+                    curr_port->toserver_max_depth = zero_pe->max_depth;
+                if (zero_pe->max_depth == 0)
+                    curr_port->toserver_max_depth = zero_pe->max_depth;
+                if (curr_port->toserver_max_depth != 0 &&
+                    curr_port->toserver_max_depth < zero_pe->max_depth) {
+                    curr_port->toserver_max_depth = zero_pe->max_depth;
+                }
+
+                AppLayerProbingParserElement *dup_pe =
+                    DuplicateAppLayerProbingParserElement(zero_pe);
+                AppendAppLayerProbingParserElement(&curr_port->toserver, dup_pe);
+                curr_port->toserver_al_proto_mask |= dup_pe->al_proto_mask;
+            }
+
+            zero_pe = zero_port->toclient;
+            for ( ; zero_pe != NULL; zero_pe = zero_pe->next) {
+                if (curr_port->toclient == NULL)
+                    curr_port->toclient_max_depth = zero_pe->max_depth;
+                if (zero_pe->max_depth == 0)
+                    curr_port->toclient_max_depth = zero_pe->max_depth;
+                if (curr_port->toclient_max_depth != 0 &&
+                    curr_port->toclient_max_depth < zero_pe->max_depth) {
+                    curr_port->toclient_max_depth = zero_pe->max_depth;
+                }
+
+                AppLayerProbingParserElement *dup_pe =
+                    DuplicateAppLayerProbingParserElement(zero_pe);
+                AppendAppLayerProbingParserElement(&curr_port->toclient, dup_pe);
+                curr_port->toclient_al_proto_mask |= dup_pe->al_proto_mask;
+            }
+        } /* if (zero_port != NULL) */
+    } /* if (curr_port == NULL) */
+
+    /* insert the pe_pp */
+    AppLayerProbingParserElement *curr_pe;
+    if (flags & STREAM_TOSERVER)
+        curr_pe = curr_port->toserver;
+    else
+        curr_pe = curr_port->toclient;
+    while (curr_pe != NULL) {
+        if (curr_pe->al_proto == al_proto) {
+            SCLogError(SC_ERR_ALPARSER, "Duplicate pp registered");
+            goto error;
+        }
+        curr_pe = curr_pe->next;
+    }
     /* Get a new parser element */
-    new_pe = AppLayerCreateAppLayerProbingParserElement(al_proto_name, ip_proto,
-                                                   al_proto, min_depth,
-                                                   max_depth, port,
-                                                   priority, top,
+    AppLayerProbingParserElement *new_pe =
+        AppLayerCreateAppLayerProbingParserElement(al_proto_name,
+                                                   al_proto,
+                                                   curr_port->port,
+                                                   min_depth, max_depth,
                                                    ProbingParser);
     if (new_pe == NULL)
         goto error;
-
-    pp = AppLayerGetProbingParsers(probing_parsers[0], ip_proto, port);
-    if (pp != NULL) {
-        if (flags & STREAM_TOSERVER) {
-            pe = pp->toserver;
-        } else {
-            pe = pp->toclient;
+    curr_pe = new_pe;
+    AppLayerProbingParserElement **head_pe;
+    if (flags & STREAM_TOSERVER) {
+        if (curr_port->toserver == NULL)
+            curr_port->toserver_max_depth = new_pe->max_depth;
+        if (new_pe->max_depth == 0)
+            curr_port->toserver_max_depth = new_pe->max_depth;
+        if (curr_port->toserver_max_depth != 0 &&
+            curr_port->toserver_max_depth < new_pe->max_depth) {
+            curr_port->toserver_max_depth = new_pe->max_depth;
         }
+        curr_port->toserver_al_proto_mask |= new_pe->al_proto_mask;
+        head_pe = &curr_port->toserver;
+    } else {
+        if (curr_port->toclient == NULL)
+            curr_port->toclient_max_depth = new_pe->max_depth;
+        if (new_pe->max_depth == 0)
+            curr_port->toclient_max_depth = new_pe->max_depth;
+        if (curr_port->toclient_max_depth != 0 &&
+            curr_port->toclient_max_depth < new_pe->max_depth) {
+            curr_port->toclient_max_depth = new_pe->max_depth;
+        }
+        curr_port->toclient_al_proto_mask |= new_pe->al_proto_mask;
+        head_pe = &curr_port->toclient;
     }
+    AppendAppLayerProbingParserElement(head_pe, new_pe);
 
-    /* check if this parser has already been registered for this port + dir */
-    if (pe != NULL) {
-        AppLayerProbingParserElement *tmp_pe = pe;
-        while (tmp_pe != NULL) {
-            if (pe->al_proto == al_proto ||
-                strcmp(pe->al_proto_name, al_proto_name) == 0) {
-                /* looks like we have it registered for this port + dir */
-                SCLogWarning(SC_ERR_ALPARSER, "App layer probing parser already "
-                             "registered for this port, direction");
-                goto error;
+    if (curr_port->port == 0) {
+        AppLayerProbingParserPort *temp_port = curr_pp->port;
+        while (temp_port != NULL && temp_port->port != 0) {
+            if (flags & STREAM_TOSERVER) {
+                if (temp_port->toserver == NULL)
+                    temp_port->toserver_max_depth = curr_pe->max_depth;
+                if (curr_pe->max_depth == 0)
+                    temp_port->toserver_max_depth = curr_pe->max_depth;
+                if (temp_port->toserver_max_depth != 0 &&
+                    temp_port->toserver_max_depth < curr_pe->max_depth) {
+                    temp_port->toserver_max_depth = curr_pe->max_depth;
+                }
+                AppendAppLayerProbingParserElement(&temp_port->toserver,
+                                                   DuplicateAppLayerProbingParserElement(curr_pe));
+                temp_port->toserver_al_proto_mask |= curr_pe->al_proto_mask;
+            } else {
+                if (temp_port->toclient == NULL)
+                    temp_port->toclient_max_depth = curr_pe->max_depth;
+                if (curr_pe->max_depth == 0)
+                    temp_port->toclient_max_depth = curr_pe->max_depth;
+                if (temp_port->toclient_max_depth != 0 &&
+                    temp_port->toclient_max_depth < curr_pe->max_depth) {
+                    temp_port->toclient_max_depth = curr_pe->max_depth;
+                }
+                AppendAppLayerProbingParserElement(&temp_port->toclient,
+                                                   DuplicateAppLayerProbingParserElement(curr_pe));
+                temp_port->toclient_al_proto_mask |= curr_pe->al_proto_mask;
             }
-            tmp_pe = tmp_pe->next;
-        }
-    }
+            temp_port = temp_port->next;
+        } /* while */
+    } /* if */
 
-    AppLayerInsertNewProbingParserElement(probing_parsers, new_pe, flags);
-
-    return;
  error:
-    if (new_pe != NULL)
-        SCFree(new_pe);
     return;
 }
 
-void AppLayerFreeProbingParsersInfo(AppLayerProbingParserInfo *probing_parsers_info)
+void AppLayerRegisterProbingParser(AlpProtoDetectCtx *ctx,
+                                   uint16_t ip_proto,
+                                   char *portstr,
+                                   char *al_proto_name, uint16_t al_proto,
+                                   uint16_t min_depth, uint16_t max_depth,
+                                   uint8_t flags,
+                                   uint16_t (*ProbingParser)(uint8_t *input, uint32_t input_len, uint32_t *offset))
 {
-    AppLayerProbingParserInfo *ppi = probing_parsers_info;
-    AppLayerProbingParserInfo *next_ppi = NULL;
-
-    while (ppi != NULL) {
-        next_ppi = ppi->next;
-        SCFree(ppi);
-        ppi = next_ppi;
+    DetectPort *head = NULL;
+    DetectPortParse(&head, portstr);
+    DetectPort *temp_dp = head;
+    while (temp_dp != NULL) {
+        uint32_t port = temp_dp->port;
+        if (port == 0 && temp_dp->port2 != 0)
+            port++;
+        for ( ; port <= temp_dp->port2; port++) {
+            AppLayerInsertNewProbingParser(&ctx->probing_parsers,
+                                           ip_proto,
+                                           port,
+                                           al_proto_name, al_proto,
+                                           min_depth, max_depth,
+                                           flags,
+                                           ProbingParser);
+        }
+        temp_dp = temp_dp->next;
     }
+    DetectPortCleanupList(head);
 
     return;
 }
 
-void AppLayerFreeProbingParsers(AppLayerProbingParser *probing_parsers)
+void AppLayerFreeProbingParsers(AppLayerProbingParser *pp)
 {
-    while (probing_parsers != NULL) {
-        AppLayerProbingParserElement *pe;
-        AppLayerProbingParserElement *next_pe;
+    if (pp == NULL)
+        return;
 
-        pe = probing_parsers->toserver;
-        while (pe != NULL) {
-            next_pe = pe->next;
-            AppLayerFreeAppLayerProbingParserElement(pe);
-            pe = next_pe;
-        }
-
-        pe = probing_parsers->toclient;
-        while (pe != NULL) {
-            next_pe = pe->next;
-            AppLayerFreeAppLayerProbingParserElement(pe);
-            pe = next_pe;
-        }
-
-        probing_parsers = probing_parsers->next;
-    }
+    DeAllocAppLayerProbingParser(pp);
 
     return;
 }
@@ -2128,3754 +2416,513 @@ end:
     return result;
 }
 
-uint16_t ProbingParserDummyForTesting(uint8_t *input, uint32_t input_len)
+typedef struct AppLayerPPTestDataElement_ {
+    char *al_proto_name;
+    uint16_t al_proto;
+    uint16_t port;
+    uint32_t al_proto_mask;
+    uint32_t min_depth;
+    uint32_t max_depth;
+} AppLayerPPTestDataElement;
+
+typedef struct AppLayerPPTestDataPort_ {
+    uint16_t port;
+    uint32_t toserver_al_proto_mask;
+    uint32_t toclient_al_proto_mask;
+    uint16_t toserver_max_depth;
+    uint16_t toclient_max_depth;
+
+    AppLayerPPTestDataElement *toserver_element;
+    AppLayerPPTestDataElement *toclient_element;
+    int ts_no_of_element;
+    int tc_no_of_element;
+} AppLayerPPTestDataPort;
+
+
+typedef struct AppLayerPPTestDataIPProto_ {
+    uint16_t ip_proto;
+
+    AppLayerPPTestDataPort *port;
+    int no_of_port;
+} AppLayerPPTestDataIPProto;
+
+int AppLayerPPTestData(AppLayerProbingParser *pp,
+                       AppLayerPPTestDataIPProto *ip_proto, int no_of_ip_proto)
+{
+    int result = 0;
+    int i, j, k;
+    int dir = 0;
+
+    for (i = 0; i < no_of_ip_proto; i++, pp = pp->next) {
+        if (pp->ip_proto != ip_proto[i].ip_proto)
+            goto end;
+
+        AppLayerProbingParserPort *pp_port = pp->port;
+        for (k = 0; k < ip_proto[i].no_of_port; k++, pp_port = pp_port->next) {
+            if (pp_port->port != ip_proto[i].port[k].port)
+                goto end;
+            if (pp_port->toserver_al_proto_mask != ip_proto[i].port[k].toserver_al_proto_mask)
+                goto end;
+            if (pp_port->toclient_al_proto_mask != ip_proto[i].port[k].toclient_al_proto_mask)
+                goto end;
+            if (pp_port->toserver_max_depth != ip_proto[i].port[k].toserver_max_depth)
+                goto end;
+            if (pp_port->toclient_max_depth != ip_proto[i].port[k].toclient_max_depth)
+                goto end;
+
+            AppLayerProbingParserElement *pp_element = pp_port->toserver;
+            dir = 0;
+            for (j = 0 ; j < ip_proto[i].port[k].ts_no_of_element;
+                 j++, pp_element = pp_element->next) {
+
+                if ((strlen(pp_element->al_proto_name) !=
+                     strlen(ip_proto[i].port[k].toserver_element[j].al_proto_name)) ||
+                    strcasecmp(pp_element->al_proto_name,
+                               ip_proto[i].port[k].toserver_element[j].al_proto_name) != 0) {
+                    goto end;
+                }
+                if (pp_element->al_proto != ip_proto[i].port[k].toserver_element[j].al_proto) {
+                    goto end;
+                }
+                if (pp_element->port != ip_proto[i].port[k].toserver_element[j].port) {
+                    goto end;
+                }
+                if (pp_element->al_proto_mask != ip_proto[i].port[k].toserver_element[j].al_proto_mask) {
+                    goto end;
+                }
+                if (pp_element->min_depth != ip_proto[i].port[k].toserver_element[j].min_depth) {
+                    goto end;
+                }
+                if (pp_element->max_depth != ip_proto[i].port[k].toserver_element[j].max_depth) {
+                    goto end;
+                }
+            } /* for */
+            if (pp_element != NULL)
+                goto end;
+
+            pp_element = pp_port->toclient;
+            dir = 1;
+            for (j = 0 ; j < ip_proto[i].port[k].tc_no_of_element; j++, pp_element = pp_element->next) {
+                if ((strlen(pp_element->al_proto_name) !=
+                     strlen(ip_proto[i].port[k].toclient_element[j].al_proto_name)) ||
+                    strcasecmp(pp_element->al_proto_name,
+                               ip_proto[i].port[k].toclient_element[j].al_proto_name) != 0) {
+                    goto end;
+                }
+                if (pp_element->al_proto != ip_proto[i].port[k].toclient_element[j].al_proto) {
+                    goto end;
+                }
+                if (pp_element->port != ip_proto[i].port[k].toclient_element[j].port) {
+                    goto end;
+                }
+                if (pp_element->al_proto_mask != ip_proto[i].port[k].toclient_element[j].al_proto_mask) {
+                    goto end;
+                }
+                if (pp_element->min_depth != ip_proto[i].port[k].toclient_element[j].min_depth) {
+                    goto end;
+                }
+                if (pp_element->max_depth != ip_proto[i].port[k].toclient_element[j].max_depth) {
+                    goto end;
+                }
+            } /* for */
+            if (pp_element != NULL)
+                goto end;
+        }
+        if (pp_port != NULL)
+            goto end;
+    }
+    if (pp != NULL)
+        goto end;
+
+    result = 1;
+ end:
+#if DEBUG
+    printf("i = %d, k = %d, j = %d(%s)\n", i, k, j, (dir == 0) ? "ts" : "tc");
+#endif
+    return result;
+}
+
+uint16_t ProbingParserDummyForTesting(uint8_t *input, uint32_t input_len, uint32_t *offset)
 {
     return 0;
 }
+
 static int AppLayerProbingParserTest01(void)
 {
-    AlpProtoDetectCtx ctx;
-    AlpProtoInit(&ctx);
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "http",
-                                  ALPROTO_HTTP,
-                                  5, 5,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  ProbingParserDummyForTesting);
-    if (ctx.probing_parsers == NULL)
-        return 0;
-
-    AlpProtoTestDestroy(&ctx);
-    return 1;
-}
-
-static int AppLayerProbingParserTest02(void)
-{
     int result = 0;
-    AppLayerProbingParser *pp;
-    AppLayerProbingParserElement *pe;
 
     AlpProtoDetectCtx ctx;
     AlpProtoInit(&ctx);
 
     AppLayerRegisterProbingParser(&ctx,
-                                  80,
                                   IPPROTO_TCP,
+                                  "80",
                                   "http",
                                   ALPROTO_HTTP,
                                   5, 8,
                                   STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    if (pp->toserver_al_proto_mask != 1 << ALPROTO_HTTP)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_HTTP)
-        goto end;
-
     AppLayerRegisterProbingParser(&ctx,
-                                  80,
                                   IPPROTO_TCP,
+                                  "80",
                                   "smb",
                                   ALPROTO_SMB,
-                                  5, 5,
+                                  5, 6,
                                   STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    if (pp->toserver_al_proto_mask != (1 << ALPROTO_HTTP |
-                                       1 << ALPROTO_SMB)) {
-        goto end;
-    }
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_SMB) {
-        goto end;
-    }
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_HTTP) {
-        goto end;
-    }
+    AppLayerRegisterProbingParser(&ctx,
+                                  IPPROTO_TCP,
+                                  "80",
+                                  "ftp",
+                                  ALPROTO_FTP,
+                                  7, 10,
+                                  STREAM_TOSERVER,
+                                  ProbingParserDummyForTesting);
 
     AppLayerRegisterProbingParser(&ctx,
-                                  80,
                                   IPPROTO_TCP,
+                                  "81",
                                   "dcerpc",
                                   ALPROTO_DCERPC,
                                   9, 10,
                                   STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 10)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next == NULL)
-        goto end;
-    if (pp->toserver->next->next->next != NULL)
-        goto end;
-    if (pp->toserver_al_proto_mask != (1 << ALPROTO_HTTP |
-                                       1 << ALPROTO_SMB |
-                                       1 << ALPROTO_DCERPC)) {
-        goto end;
-    }
-
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 9)
-        goto end;
-    if (pe->max_depth != 10)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_DCERPC) {
-        goto end;
-    }
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_SMB) {
-        goto end;
-    }
-    /* third one */
-    pe = pp->toserver->next->next;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_HTTP) {
-        goto end;
-    }
-
-    result = 1;
-
- end:
-    AlpProtoTestDestroy(&ctx);
-    return result;
-}
-
-static int AppLayerProbingParserTest03(void)
-{
-    int result = 0;
-    AppLayerProbingParser *pp;
-    AppLayerProbingParserElement *pe;
-
-    AlpProtoDetectCtx ctx;
-    AlpProtoInit(&ctx);
-
     AppLayerRegisterProbingParser(&ctx,
-                                  80,
                                   IPPROTO_TCP,
-                                  "http",
-                                  ALPROTO_HTTP,
-                                  5, 8,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 0,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    if (pp->toserver_al_proto_mask != (1 << ALPROTO_HTTP)) {
-        goto end;
-    }
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_HTTP) {
-        goto end;
-    }
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "smb",
-                                  ALPROTO_SMB,
-                                  5, 5,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 0,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    if (pp->toserver_al_proto_mask != (1 << ALPROTO_HTTP |
-                                       1 << ALPROTO_SMB)) {
-        goto end;
-    }
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_HTTP) {
-        goto end;
-    }
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_SMB) {
-        goto end;
-    }
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "dcerpc",
-                                  ALPROTO_DCERPC,
-                                  9, 10,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 0,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 10)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next == NULL)
-        goto end;
-    if (pp->toserver->next->next->next != NULL)
-        goto end;
-    if (pp->toserver_al_proto_mask != (1 << ALPROTO_HTTP |
-                                       1 << ALPROTO_DCERPC |
-                                       1 << ALPROTO_SMB)) {
-        goto end;
-    }
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_HTTP) {
-        goto end;
-    }
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_SMB) {
-        goto end;
-    }
-    /* third one */
-    pe = pp->toserver->next->next;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 9)
-        goto end;
-    if (pe->max_depth != 10)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_DCERPC) {
-        goto end;
-    }
-
-    result = 1;
-
- end:
-    AlpProtoTestDestroy(&ctx);
-    return result;
-}
-
-static int AppLayerProbingParserTest04(void)
-{
-    int result = 0;
-    AppLayerProbingParser *pp;
-    AppLayerProbingParserElement *pe;
-
-    AlpProtoDetectCtx ctx;
-    AlpProtoInit(&ctx);
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "http",
-                                  ALPROTO_HTTP,
-                                  5, 8,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    if (pp->toserver_al_proto_mask != (1 << ALPROTO_HTTP)) {
-        goto end;
-    }
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_HTTP) {
-        goto end;
-    }
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "smb",
-                                  ALPROTO_SMB,
-                                  5, 5,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    if (pp->toserver_al_proto_mask != (1 << ALPROTO_HTTP |
-                                       1 << ALPROTO_SMB)) {
-        goto end;
-    }
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_SMB) {
-        goto end;
-    }
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_HTTP) {
-        goto end;
-    }
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "dcerpc",
-                                  ALPROTO_DCERPC,
-                                  9, 10,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 0,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 10)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next == NULL)
-        goto end;
-    if (pp->toserver->next->next->next != NULL)
-        goto end;
-    if (pp->toserver_al_proto_mask != (1 << ALPROTO_HTTP |
-                                       1 << ALPROTO_DCERPC |
-                                       1 << ALPROTO_SMB)) {
-        goto end;
-    }
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_SMB) {
-        goto end;
-    }
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_HTTP) {
-        goto end;
-    }
-    /* third one */
-    pe = pp->toserver->next->next;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 9)
-        goto end;
-    if (pe->max_depth != 10)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    if (pe->al_proto_mask != 1 << ALPROTO_DCERPC) {
-        goto end;
-    }
-
-    result = 1;
-
- end:
-    AlpProtoTestDestroy(&ctx);
-    return result;
-}
-
-static int AppLayerProbingParserTest05(void)
-{
-    int result = 0;
-    AppLayerProbingParser *pp;
-    AppLayerProbingParserElement *pe;
-
-    AlpProtoDetectCtx ctx;
-    AlpProtoInit(&ctx);
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "http",
-                                  ALPROTO_HTTP,
-                                  5, 8,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "smb",
-                                  ALPROTO_SMB,
-                                  5, 5,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "dcerpc",
-                                  ALPROTO_DCERPC,
-                                  9, 10,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 10)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next == NULL)
-        goto end;
-    if (pp->toserver->next->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 9)
-        goto end;
-    if (pe->max_depth != 10)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* third one */
-    pe = pp->toserver->next->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    result = 1;
-
- end:
-    AlpProtoTestDestroy(&ctx);
-    return result;
-}
-
-static int AppLayerProbingParserTest06(void)
-{
-    int result = 0;
-    AppLayerProbingParser *pp;
-    AppLayerProbingParserElement *pe;
-
-    AlpProtoDetectCtx ctx;
-    AlpProtoInit(&ctx);
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "http",
-                                  ALPROTO_HTTP,
-                                  5, 8,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "smb",
-                                  ALPROTO_SMB,
-                                  5, 5,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "dcerpc",
-                                  ALPROTO_DCERPC,
-                                  9, 10,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 0,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 10)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next == NULL)
-        goto end;
-    if (pp->toserver->next->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* third one */
-    pe = pp->toserver->next->next;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 9)
-        goto end;
-    if (pe->max_depth != 10)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    result = 1;
-
- end:
-    AlpProtoTestDestroy(&ctx);
-    return result;
-}
-
-static int AppLayerProbingParserTest07(void)
-{
-    int result = 0;
-    AppLayerProbingParser *pp;
-    AppLayerProbingParserElement *pe;
-
-    AlpProtoDetectCtx ctx;
-    AlpProtoInit(&ctx);
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "http",
-                                  ALPROTO_HTTP,
-                                  5, 8,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "smb",
-                                  ALPROTO_SMB,
-                                  5, 5,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "dcerpc",
-                                  ALPROTO_DCERPC,
-                                  9, 10,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 10)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next == NULL)
-        goto end;
-    if (pp->toserver->next->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 9)
-        goto end;
-    if (pe->max_depth != 10)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* third one */
-    pe = pp->toserver->next->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    result = 1;
-
- end:
-    AlpProtoTestDestroy(&ctx);
-    return result;
-}
-
-static int AppLayerProbingParserTest08(void)
-{
-    int result = 0;
-    AppLayerProbingParser *pp;
-    AppLayerProbingParserElement *pe;
-
-    AlpProtoDetectCtx ctx;
-    AlpProtoInit(&ctx);
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "http",
-                                  ALPROTO_HTTP,
-                                  5, 8,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "smb",
-                                  ALPROTO_SMB,
-                                  5, 5,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "dcerpc",
-                                  ALPROTO_DCERPC,
-                                  9, 10,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 0,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 10)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next == NULL)
-        goto end;
-    if (pp->toserver->next->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 9)
-        goto end;
-    if (pe->max_depth != 10)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* third one */
-    pe = pp->toserver->next->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    result = 1;
-
- end:
-    AlpProtoTestDestroy(&ctx);
-    return result;
-}
-
-static int AppLayerProbingParserTest09(void)
-{
-    int result = 0;
-    AppLayerProbingParser *pp;
-    AppLayerProbingParserElement *pe;
-
-    AlpProtoDetectCtx ctx;
-    AlpProtoInit(&ctx);
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "http",
-                                  ALPROTO_HTTP,
-                                  5, 8,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "smb",
-                                  ALPROTO_SMB,
-                                  5, 5,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "dcerpc",
-                                  ALPROTO_DCERPC,
-                                  9, 10,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 10)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next == NULL)
-        goto end;
-    if (pp->toserver->next->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 9)
-        goto end;
-    if (pe->max_depth != 10)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* third one */
-    pe = pp->toserver->next->next;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    result = 1;
-
- end:
-    AlpProtoTestDestroy(&ctx);
-    return result;
-}
-
-static int AppLayerProbingParserTest10(void)
-{
-    int result = 0;
-    AppLayerProbingParser *pp;
-    AppLayerProbingParserElement *pe;
-
-    AlpProtoDetectCtx ctx;
-    AlpProtoInit(&ctx);
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "http",
-                                  ALPROTO_HTTP,
-                                  5, 8,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "smb",
-                                  ALPROTO_SMB,
-                                  5, 5,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "dcerpc",
-                                  ALPROTO_DCERPC,
-                                  9, 10,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 0,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 10)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next == NULL)
-        goto end;
-    if (pp->toserver->next->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* third one */
-    pe = pp->toserver->next->next;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 9)
-        goto end;
-    if (pe->max_depth != 10)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    result = 1;
-
- end:
-    AlpProtoTestDestroy(&ctx);
-    return result;
-}
-
-static int AppLayerProbingParserTest11(void)
-{
-    int result = 0;
-    AppLayerProbingParser *pp;
-    AppLayerProbingParserElement *pe;
-
-    AlpProtoDetectCtx ctx;
-    AlpProtoInit(&ctx);
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "http",
-                                  ALPROTO_HTTP,
-                                  5, 8,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "smb",
-                                  ALPROTO_SMB,
-                                  5, 5,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  81,
-                                  IPPROTO_TCP,
-                                  "dcerpc",
-                                  ALPROTO_DCERPC,
-                                  9, 10,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    /* first pp */
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next == NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second pp */
-    if (pp->next->next != NULL)
-        goto end;
-    if (pp->next->toclient != NULL)
-        goto end;
-    if (pp->next->port != 81)
-        goto end;
-    if (pp->next->toserver_max_depth != 10)
-        goto end;
-    if (pp->next->toclient_max_depth != 0)
-        goto end;
-    if (pp->next->toserver == NULL)
-        goto end;
-    if (pp->next->toserver->next != NULL)
-        goto end;
-    /* second pp - first one */
-    pe = pp->next->toserver;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 81)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 9)
-        goto end;
-    if (pe->max_depth != 10)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  81,
-                                  IPPROTO_TCP,
+                                  "81",
                                   "ftp",
                                   ALPROTO_FTP,
                                   7, 15,
                                   STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    /* first pp */
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next == NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second pp */
-    if (pp->next->next != NULL)
-        goto end;
-    if (pp->next->toclient != NULL)
-        goto end;
-    if (pp->next->port != 81)
-        goto end;
-    if (pp->next->toserver_max_depth != 15)
-        goto end;
-    if (pp->next->toclient_max_depth != 0)
-        goto end;
-    if (pp->next->toserver == NULL)
-        goto end;
-    if (pp->next->toserver->next == NULL)
-        goto end;
-    if (pp->next->toserver->next->next != NULL)
-        goto end;
-    /* second pp - first one */
-    pe = pp->next->toserver;
-    if (strcmp(pe->al_proto_name, "ftp") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_FTP)
-        goto end;
-    if (pe->port != 81)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 7)
-        goto end;
-    if (pe->max_depth != 15)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second pp - second one */
-    pe = pp->next->toserver->next;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 81)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 9)
-        goto end;
-    if (pe->max_depth != 10)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    result = 1;
-
- end:
-    AlpProtoTestDestroy(&ctx);
-    return result;
-}
-
-static int AppLayerProbingParserTest12(void)
-{
-    int result = 0;
-    AppLayerProbingParser *pp;
-    AppLayerProbingParserElement *pe;
-
-    AlpProtoDetectCtx ctx;
-    AlpProtoInit(&ctx);
 
     AppLayerRegisterProbingParser(&ctx,
-                                  80,
                                   IPPROTO_TCP,
-                                  "http",
-                                  ALPROTO_HTTP,
-                                  5, 8,
+                                  "0",
+                                  "smtp",
+                                  ALPROTO_SMTP,
+                                  12, 0,
                                   STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
+    AppLayerRegisterProbingParser(&ctx,
+                                  IPPROTO_TCP,
+                                  "0",
+                                  "tls",
+                                  ALPROTO_TLS,
+                                  12, 18,
+                                  STREAM_TOSERVER,
+                                  ProbingParserDummyForTesting);
+
 
     AppLayerRegisterProbingParser(&ctx,
-                                  81,
                                   IPPROTO_TCP,
+                                  "85",
                                   "dcerpc",
                                   ALPROTO_DCERPC,
                                   9, 10,
                                   STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    /* first pp */
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next == NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second pp */
-    if (pp->next->next != NULL)
-        goto end;
-    if (pp->next->toclient != NULL)
-        goto end;
-    if (pp->next->port != 81)
-        goto end;
-    if (pp->next->toserver_max_depth != 10)
-        goto end;
-    if (pp->next->toclient_max_depth != 0)
-        goto end;
-    if (pp->next->toserver == NULL)
-        goto end;
-    if (pp->next->toserver->next != NULL)
-        goto end;
-    /* second pp - first one */
-    pe = pp->next->toserver;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 81)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 9)
-        goto end;
-    if (pe->max_depth != 10)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
     AppLayerRegisterProbingParser(&ctx,
-                                  80,
                                   IPPROTO_TCP,
-                                  "smb",
-                                  ALPROTO_SMB,
-                                  5, 5,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next == NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second pp */
-    if (pp->next->next != NULL)
-        goto end;
-    if (pp->next->toclient != NULL)
-        goto end;
-    if (pp->next->port != 81)
-        goto end;
-    if (pp->next->toserver_max_depth != 10)
-        goto end;
-    if (pp->next->toclient_max_depth != 0)
-        goto end;
-    if (pp->next->toserver == NULL)
-        goto end;
-    if (pp->next->toserver->next != NULL)
-        goto end;
-    /* second pp - first one */
-    pe = pp->next->toserver;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 81)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 9)
-        goto end;
-    if (pe->max_depth != 10)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  81,
-                                  IPPROTO_TCP,
+                                  "85",
                                   "ftp",
                                   ALPROTO_FTP,
                                   7, 15,
                                   STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    /* first pp */
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next == NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second pp */
-    if (pp->next->next != NULL)
-        goto end;
-    if (pp->next->toclient != NULL)
-        goto end;
-    if (pp->next->port != 81)
-        goto end;
-    if (pp->next->toserver_max_depth != 15)
-        goto end;
-    if (pp->next->toclient_max_depth != 0)
-        goto end;
-    if (pp->next->toserver == NULL)
-        goto end;
-    if (pp->next->toserver->next == NULL)
-        goto end;
-    if (pp->next->toserver->next->next != NULL)
-        goto end;
-    /* second pp - first one */
-    pe = pp->next->toserver;
-    if (strcmp(pe->al_proto_name, "ftp") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_FTP)
-        goto end;
-    if (pe->port != 81)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 7)
-        goto end;
-    if (pe->max_depth != 15)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second pp - second one */
-    pe = pp->next->toserver->next;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 81)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 9)
-        goto end;
-    if (pe->max_depth != 10)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    result = 1;
-
- end:
-    AlpProtoTestDestroy(&ctx);
-    return result;
-}
-
-static int AppLayerProbingParserTest13(void)
-{
-    int result = 0;
-    AppLayerProbingParser *pp;
-    AppLayerProbingParserElement *pe;
-
-    AlpProtoDetectCtx ctx;
-    AlpProtoInit(&ctx);
 
     AppLayerRegisterProbingParser(&ctx,
-                                  80,
                                   IPPROTO_TCP,
-                                  "http",
-                                  ALPROTO_HTTP,
-                                  5, 8,
+                                  "0",
+                                  "irc",
+                                  ALPROTO_IRC,
+                                  12, 25,
                                   STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
+    AppLayerRegisterProbingParser(&ctx,
+                                  IPPROTO_TCP,
+                                  "0",
+                                  "jabber",
+                                  ALPROTO_JABBER,
+                                  12, 23,
+                                  STREAM_TOSERVER,
+                                  ProbingParserDummyForTesting);
 
     AppLayerRegisterProbingParser(&ctx,
-                                  81,
+                                  IPPROTO_UDP,
+                                  "85",
+                                  "imap",
+                                  ALPROTO_IMAP,
+                                  12, 23,
+                                  STREAM_TOSERVER,
+                                  ProbingParserDummyForTesting);
+
+    /* toclient */
+    AppLayerRegisterProbingParser(&ctx,
                                   IPPROTO_TCP,
+                                  "0",
+                                  "jabber",
+                                  ALPROTO_JABBER,
+                                  12, 23,
+                                  STREAM_TOCLIENT,
+                                  ProbingParserDummyForTesting);
+    AppLayerRegisterProbingParser(&ctx,
+                                  IPPROTO_TCP,
+                                  "0",
+                                  "irc",
+                                  ALPROTO_IRC,
+                                  12, 14,
+                                  STREAM_TOCLIENT,
+                                  ProbingParserDummyForTesting);
+
+
+    AppLayerRegisterProbingParser(&ctx,
+                                  IPPROTO_TCP,
+                                  "85",
                                   "dcerpc",
                                   ALPROTO_DCERPC,
                                   9, 10,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
+                                  STREAM_TOCLIENT,
                                   ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    /* first pp */
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next == NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second pp */
-    if (pp->next->next != NULL)
-        goto end;
-    if (pp->next->toclient != NULL)
-        goto end;
-    if (pp->next->port != 81)
-        goto end;
-    if (pp->next->toserver_max_depth != 10)
-        goto end;
-    if (pp->next->toclient_max_depth != 0)
-        goto end;
-    if (pp->next->toserver == NULL)
-        goto end;
-    if (pp->next->toserver->next != NULL)
-        goto end;
-    /* second pp - first one */
-    pe = pp->next->toserver;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 81)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 9)
-        goto end;
-    if (pe->max_depth != 10)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
     AppLayerRegisterProbingParser(&ctx,
-                                  80,
                                   IPPROTO_TCP,
-                                  "smb",
-                                  ALPROTO_SMB,
-                                  5, 5,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 0,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next == NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second pp */
-    if (pp->next->next != NULL)
-        goto end;
-    if (pp->next->toclient != NULL)
-        goto end;
-    if (pp->next->port != 81)
-        goto end;
-    if (pp->next->toserver_max_depth != 10)
-        goto end;
-    if (pp->next->toclient_max_depth != 0)
-        goto end;
-    if (pp->next->toserver == NULL)
-        goto end;
-    if (pp->next->toserver->next != NULL)
-        goto end;
-    /* second pp - first one */
-    pe = pp->next->toserver;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 81)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 9)
-        goto end;
-    if (pe->max_depth != 10)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  81,
-                                  IPPROTO_TCP,
+                                  "81",
                                   "ftp",
                                   ALPROTO_FTP,
                                   7, 15,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
+                                  STREAM_TOCLIENT,
                                   ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    /* first pp */
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next == NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 5)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second pp */
-    if (pp->next->next != NULL)
-        goto end;
-    if (pp->next->toclient != NULL)
-        goto end;
-    if (pp->next->port != 81)
-        goto end;
-    if (pp->next->toserver_max_depth != 15)
-        goto end;
-    if (pp->next->toclient_max_depth != 0)
-        goto end;
-    if (pp->next->toserver == NULL)
-        goto end;
-    if (pp->next->toserver->next == NULL)
-        goto end;
-    if (pp->next->toserver->next->next != NULL)
-        goto end;
-    /* second pp - first one */
-    pe = pp->next->toserver;
-    if (strcmp(pe->al_proto_name, "ftp") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_FTP)
-        goto end;
-    if (pe->port != 81)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 7)
-        goto end;
-    if (pe->max_depth != 15)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second pp - second one */
-    pe = pp->next->toserver->next;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 81)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_LOW)
-        goto end;
-    if (pe->min_depth != 9)
-        goto end;
-    if (pe->max_depth != 10)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerPrintProbingParsers(ctx.probing_parsers);
-
-    result = 1;
-
- end:
-    AlpProtoTestDestroy(&ctx);
-    return result;
-}
-
-static int AppLayerProbingParserTest14(void)
-{
-    int result = 0;
-    AppLayerProbingParser *pp;
-    AppLayerProbingParserElement *pe;
-
-    AlpProtoDetectCtx ctx;
-    AlpProtoInit(&ctx);
-
     AppLayerRegisterProbingParser(&ctx,
-                                  80,
                                   IPPROTO_TCP,
+                                  "0",
+                                  "tls",
+                                  ALPROTO_TLS,
+                                  12, 18,
+                                  STREAM_TOCLIENT,
+                                  ProbingParserDummyForTesting);
+    AppLayerRegisterProbingParser(&ctx,
+                                  IPPROTO_TCP,
+                                  "80",
                                   "http",
                                   ALPROTO_HTTP,
                                   5, 8,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
+                                  STREAM_TOCLIENT,
                                   ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
     AppLayerRegisterProbingParser(&ctx,
-                                  80,
                                   IPPROTO_TCP,
-                                  "smb",
-                                  ALPROTO_SMB,
-                                  5, 15,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 0,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 15)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 15)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  0,
-                                  IPPROTO_TCP,
+                                  "81",
                                   "dcerpc",
                                   ALPROTO_DCERPC,
-                                  5, 25,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 0,
+                                  9, 10,
+                                  STREAM_TOCLIENT,
                                   ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next == NULL)
-        goto end;
-    if (pp->next->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 25)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next == NULL)
-        goto end;
-    if (pp->toserver->next->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 15)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    pe = pp->toserver->next->next;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 0)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 25)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second probing parser */
-    pp = pp->next;
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 0)
-        goto end;
-    if (pp->toserver_max_depth != 25)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 0)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 25)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
     AppLayerRegisterProbingParser(&ctx,
-                                  81,
                                   IPPROTO_TCP,
-                                  "ftp",
-                                  ALPROTO_FTP,
-                                  7, 50,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next == NULL)
-        goto end;
-    if (pp->next->next == NULL)
-        goto end;
-    if (pp->next->next->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 25)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next == NULL)
-        goto end;
-    if (pp->toserver->next->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 15)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    pe = pp->toserver->next->next;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 0)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 25)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    /* second probing parser */
-    pp = pp->next;
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next == NULL)
-        goto end;
-    if (pp->next->next != NULL)
-        goto end;
-    if (pp->port != 81)
-        goto end;
-    if (pp->toserver_max_depth != 50)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "ftp") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_FTP)
-        goto end;
-    if (pe->port != 81)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 7)
-        goto end;
-    if (pe->max_depth != 50)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 0)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 25)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    /* third probing parser */
-    pp = pp->next;
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 0)
-        goto end;
-    if (pp->toserver_max_depth != 25)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 0)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 25)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerPrintProbingParsers(ctx.probing_parsers);
-
-    result = 1;
-
- end:
-    AlpProtoTestDestroy(&ctx);
-    return result;
-}
-
-static int AppLayerProbingParserTest15(void)
-{
-    int result = 0;
-    AppLayerProbingParser *pp;
-    AppLayerProbingParserElement *pe;
-
-    AlpProtoDetectCtx ctx;
-    AlpProtoInit(&ctx);
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "http",
-                                  ALPROTO_HTTP,
-                                  5, 8,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 8)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  80,
-                                  IPPROTO_TCP,
-                                  "smb",
-                                  ALPROTO_SMB,
-                                  5, 15,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 0,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 15)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 15)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  0,
-                                  IPPROTO_TCP,
-                                  "dcerpc",
-                                  ALPROTO_DCERPC,
-                                  5, 25,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 0,
-                                  ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
-        goto end;
-    }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next == NULL)
-        goto end;
-    if (pp->next->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 25)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next == NULL)
-        goto end;
-    if (pp->toserver->next->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 15)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    pe = pp->toserver->next->next;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 0)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 25)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second probing parser */
-    pp = pp->next;
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 0)
-        goto end;
-    if (pp->toserver_max_depth != 25)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 0)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 25)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerRegisterProbingParser(&ctx,
-                                  81,
-                                  IPPROTO_TCP,
+                                  "90",
                                   "ftp",
                                   ALPROTO_FTP,
                                   7, 15,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
+                                  STREAM_TOCLIENT,
                                   ProbingParserDummyForTesting);
-    pp = ctx.probing_parsers;
-    if (ctx.probing_parsers == NULL) {
+    AppLayerRegisterProbingParser(&ctx,
+                                  IPPROTO_TCP,
+                                  "80",
+                                  "smb",
+                                  ALPROTO_SMB,
+                                  5, 6,
+                                  STREAM_TOCLIENT,
+                                  ProbingParserDummyForTesting);
+    AppLayerRegisterProbingParser(&ctx,
+                                  IPPROTO_UDP,
+                                  "85",
+                                  "imap",
+                                  ALPROTO_IMAP,
+                                  12, 23,
+                                  STREAM_TOCLIENT,
+                                  ProbingParserDummyForTesting);
+    AppLayerRegisterProbingParser(&ctx,
+                                  IPPROTO_TCP,
+                                  "0",
+                                  "smtp",
+                                  ALPROTO_SMTP,
+                                  12, 17,
+                                  STREAM_TOCLIENT,
+                                  ProbingParserDummyForTesting);
+    AppLayerRegisterProbingParser(&ctx,
+                                  IPPROTO_TCP,
+                                  "80",
+                                  "ftp",
+                                  ALPROTO_FTP,
+                                  7, 10,
+                                  STREAM_TOCLIENT,
+                                  ProbingParserDummyForTesting);
+
+    //AppLayerPrintProbingParsers(ctx.probing_parsers);
+
+    AppLayerPPTestDataElement element_ts_80[] =
+        { { "http", ALPROTO_HTTP, 80, 1 << ALPROTO_HTTP, 5, 8 },
+          { "smb", ALPROTO_SMB, 80, 1 << ALPROTO_SMB, 5, 6 },
+          { "ftp", ALPROTO_FTP, 80, 1 << ALPROTO_FTP, 7, 10 },
+          { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 0 },
+          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
+          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 25 },
+          { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
+        };
+    AppLayerPPTestDataElement element_tc_80[] =
+        { { "http", ALPROTO_HTTP, 80, 1 << ALPROTO_HTTP, 5, 8 },
+          { "smb", ALPROTO_SMB, 80, 1 << ALPROTO_SMB, 5, 6 },
+          { "ftp", ALPROTO_FTP, 80, 1 << ALPROTO_FTP, 7, 10 },
+          { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
+          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 14 },
+          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
+          { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 17 }
+        };
+
+    AppLayerPPTestDataElement element_ts_81[] =
+        { { "dcerpc", ALPROTO_DCERPC, 81, 1 << ALPROTO_DCERPC, 9, 10 },
+          { "ftp", ALPROTO_FTP, 81, 1 << ALPROTO_FTP, 7, 15 },
+          { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 0 },
+          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
+          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 25 },
+          { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
+        };
+    AppLayerPPTestDataElement element_tc_81[] =
+        { { "ftp", ALPROTO_FTP, 81, 1 << ALPROTO_FTP, 7, 15 },
+          { "dcerpc", ALPROTO_DCERPC, 81, 1 << ALPROTO_DCERPC, 9, 10 },
+          { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
+          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 14 },
+          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
+          { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 17 }
+        };
+
+    AppLayerPPTestDataElement element_ts_85[] =
+        { { "dcerpc", ALPROTO_DCERPC, 85, 1 << ALPROTO_DCERPC, 9, 10 },
+          { "ftp", ALPROTO_FTP, 85, 1 << ALPROTO_FTP, 7, 15 },
+          { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 0 },
+          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
+          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 25 },
+          { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
+        };
+    AppLayerPPTestDataElement element_tc_85[] =
+        { { "dcerpc", ALPROTO_DCERPC, 85, 1 << ALPROTO_DCERPC, 9, 10 },
+          { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
+          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 14 },
+          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
+          { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 17 }
+        };
+
+    AppLayerPPTestDataElement element_ts_90[] =
+        { { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 0 },
+          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
+          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 25 },
+          { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
+        };
+    AppLayerPPTestDataElement element_tc_90[] =
+        { { "ftp", ALPROTO_FTP, 90, 1 << ALPROTO_FTP, 7, 15 },
+          { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
+          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 14 },
+          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
+          { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 17 }
+        };
+
+    AppLayerPPTestDataElement element_ts_0[] =
+        { { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 0 },
+          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
+          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 25 },
+          { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
+        };
+    AppLayerPPTestDataElement element_tc_0[] =
+        { { "jabber", ALPROTO_JABBER, 0, 1 << ALPROTO_JABBER, 12, 23 },
+          { "irc", ALPROTO_IRC, 0, 1 << ALPROTO_IRC, 12, 14 },
+          { "tls", ALPROTO_TLS, 0, 1 << ALPROTO_TLS, 12, 18 },
+          { "smtp", ALPROTO_SMTP, 0, 1 << ALPROTO_SMTP, 12, 17 }
+        };
+
+
+    AppLayerPPTestDataElement element_ts_85_udp[] =
+        { { "imap", ALPROTO_IMAP, 85, 1 << ALPROTO_IMAP, 12, 23 },
+        };
+    AppLayerPPTestDataElement element_tc_85_udp[] =
+        { { "imap", ALPROTO_IMAP, 85, 1 << ALPROTO_IMAP, 12, 23 },
+        };
+
+    AppLayerPPTestDataPort ports_tcp[] =
+        { { 80,
+            ((1 << ALPROTO_HTTP) | (1 << ALPROTO_SMB) | (1 << ALPROTO_FTP) |
+             (1 << ALPROTO_SMTP) | (1 << ALPROTO_TLS) | (1 << ALPROTO_IRC) | (1 << ALPROTO_JABBER)),
+            ((1 << ALPROTO_HTTP) | (1 << ALPROTO_SMB) | (1 << ALPROTO_FTP) |
+             (1 << ALPROTO_JABBER) | (1 << ALPROTO_IRC) | (1 << ALPROTO_TLS) | (1 << ALPROTO_SMTP)),
+            0, 23,
+            element_ts_80, element_tc_80,
+            sizeof(element_ts_80) / sizeof(AppLayerPPTestDataElement),
+            sizeof(element_tc_80) / sizeof(AppLayerPPTestDataElement),
+            },
+          { 81,
+            ((1 << ALPROTO_DCERPC) | (1 << ALPROTO_FTP) |
+             (1 << ALPROTO_SMTP) | (1 << ALPROTO_TLS) | (1 << ALPROTO_IRC) | (1 << ALPROTO_JABBER)),
+            ((1 << ALPROTO_FTP) | (1 << ALPROTO_DCERPC) |
+             (1 << ALPROTO_JABBER) | (1 << ALPROTO_IRC) | (1 << ALPROTO_TLS) | (1 << ALPROTO_SMTP)),
+            0, 23,
+            element_ts_81, element_tc_81,
+            sizeof(element_ts_81) / sizeof(AppLayerPPTestDataElement),
+            sizeof(element_tc_81) / sizeof(AppLayerPPTestDataElement),
+          },
+          { 85,
+            ((1 << ALPROTO_DCERPC) | (1 << ALPROTO_FTP) |
+             (1 << ALPROTO_SMTP) | (1 << ALPROTO_TLS) | (1 << ALPROTO_IRC) | (1 << ALPROTO_JABBER)),
+            ((1 << ALPROTO_DCERPC) |
+             (1 << ALPROTO_JABBER) | (1 << ALPROTO_IRC) | (1 << ALPROTO_TLS) | (1 << ALPROTO_SMTP)),
+            0, 23,
+            element_ts_85, element_tc_85,
+            sizeof(element_ts_85) / sizeof(AppLayerPPTestDataElement),
+            sizeof(element_tc_85) / sizeof(AppLayerPPTestDataElement)
+          },
+          { 90,
+            ((1 << ALPROTO_SMTP) | (1 << ALPROTO_TLS) | (1 << ALPROTO_IRC) | (1 << ALPROTO_JABBER)),
+            ((1 << ALPROTO_FTP) |
+             (1 << ALPROTO_JABBER) | (1 << ALPROTO_IRC) | (1 << ALPROTO_TLS) | (1 << ALPROTO_SMTP)),
+            0, 23,
+            element_ts_90, element_tc_90,
+            sizeof(element_ts_90) / sizeof(AppLayerPPTestDataElement),
+            sizeof(element_tc_90) / sizeof(AppLayerPPTestDataElement)
+          },
+          { 0,
+            ((1 << ALPROTO_SMTP) | (1 << ALPROTO_TLS) | (1 << ALPROTO_IRC) | (1 << ALPROTO_JABBER)),
+            ((1 << ALPROTO_JABBER) | (1 << ALPROTO_IRC) | (1 << ALPROTO_TLS) | (1 << ALPROTO_SMTP)),
+            0, 23,
+            element_ts_0, element_tc_0,
+            sizeof(element_ts_0) / sizeof(AppLayerPPTestDataElement),
+            sizeof(element_tc_0) / sizeof(AppLayerPPTestDataElement)
+          }
+        };
+
+    AppLayerPPTestDataPort ports_udp[] =
+        { { 85,
+            (1 << ALPROTO_IMAP),
+            (1 << ALPROTO_IMAP),
+            23, 23,
+            element_ts_85_udp, element_tc_85_udp,
+            sizeof(element_ts_85_udp) / sizeof(AppLayerPPTestDataElement),
+            sizeof(element_tc_85_udp) / sizeof(AppLayerPPTestDataElement),
+            },
+        };
+
+    AppLayerPPTestDataIPProto ip_proto[] =
+        { { IPPROTO_TCP,
+            ports_tcp,
+            sizeof(ports_tcp) / sizeof(AppLayerPPTestDataPort),
+            },
+          { IPPROTO_UDP,
+            ports_udp,
+            sizeof(ports_udp) / sizeof(AppLayerPPTestDataPort),
+          },
+        };
+
+
+    if (AppLayerPPTestData(ctx.probing_parsers, ip_proto,
+                           sizeof(ip_proto) / sizeof(AppLayerPPTestDataIPProto)) == 0) {
         goto end;
     }
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next == NULL)
-        goto end;
-    if (pp->next->next == NULL)
-        goto end;
-    if (pp->next->next->next != NULL)
-        goto end;
-    if (pp->port != 80)
-        goto end;
-    if (pp->toserver_max_depth != 25)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next == NULL)
-        goto end;
-    if (pp->toserver->next->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "http") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_HTTP)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 8)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "smb") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_SMB)
-        goto end;
-    if (pe->port != 80)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 15)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    pe = pp->toserver->next->next;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 0)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 25)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    /* second probing parser */
-    pp = pp->next;
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next == NULL)
-        goto end;
-    if (pp->next->next != NULL)
-        goto end;
-    if (pp->port != 81)
-        goto end;
-    if (pp->toserver_max_depth != 25)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next == NULL)
-        goto end;
-    if (pp->toserver->next->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "ftp") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_FTP)
-        goto end;
-    if (pe->port != 81)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 7)
-        goto end;
-    if (pe->max_depth != 15)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-    /* second one */
-    pe = pp->toserver->next;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 0)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 25)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    /* third probing parser */
-    pp = pp->next;
-    if (pp->toclient != NULL)
-        goto end;
-    if (pp->next != NULL)
-        goto end;
-    if (pp->port != 0)
-        goto end;
-    if (pp->toserver_max_depth != 25)
-        goto end;
-    if (pp->toclient_max_depth != 0)
-        goto end;
-    if (pp->toserver == NULL)
-        goto end;
-    if (pp->toserver->next != NULL)
-        goto end;
-    /* first one */
-    pe = pp->toserver;
-    if (strcmp(pe->al_proto_name, "dcerpc") != 0)
-        goto end;
-    if (pe->al_proto != ALPROTO_DCERPC)
-        goto end;
-    if (pe->port != 0)
-        goto end;
-    if (pe->priority != APP_LAYER_PROBING_PARSER_PRIORITY_HIGH)
-        goto end;
-    if (pe->min_depth != 5)
-        goto end;
-    if (pe->max_depth != 25)
-        goto end;
-    if (pe->ProbingParser != ProbingParserDummyForTesting)
-        goto end;
-
-    AppLayerPrintProbingParsers(ctx.probing_parsers);
 
     result = 1;
 
@@ -5891,21 +2938,8 @@ void AppLayerParserRegisterTests(void)
 #ifdef UNITTESTS
     UtRegisterTest("AppLayerParserTest01", AppLayerParserTest01, 1);
     UtRegisterTest("AppLayerParserTest02", AppLayerParserTest02, 1);
+
     UtRegisterTest("AppLayerProbingParserTest01", AppLayerProbingParserTest01, 1);
-    UtRegisterTest("AppLayerProbingParserTest02", AppLayerProbingParserTest02, 1);
-    UtRegisterTest("AppLayerProbingParserTest03", AppLayerProbingParserTest03, 1);
-    UtRegisterTest("AppLayerProbingParserTest04", AppLayerProbingParserTest04, 1);
-    UtRegisterTest("AppLayerProbingParserTest05", AppLayerProbingParserTest05, 1);
-    UtRegisterTest("AppLayerProbingParserTest06", AppLayerProbingParserTest06, 1);
-    UtRegisterTest("AppLayerProbingParserTest07", AppLayerProbingParserTest07, 1);
-    UtRegisterTest("AppLayerProbingParserTest08", AppLayerProbingParserTest08, 1);
-    UtRegisterTest("AppLayerProbingParserTest09", AppLayerProbingParserTest09, 1);
-    UtRegisterTest("AppLayerProbingParserTest10", AppLayerProbingParserTest10, 1);
-    UtRegisterTest("AppLayerProbingParserTest11", AppLayerProbingParserTest11, 1);
-    UtRegisterTest("AppLayerProbingParserTest12", AppLayerProbingParserTest12, 1);
-    UtRegisterTest("AppLayerProbingParserTest13", AppLayerProbingParserTest13, 1);
-    UtRegisterTest("AppLayerProbingParserTest14", AppLayerProbingParserTest14, 1);
-    UtRegisterTest("AppLayerProbingParserTest15", AppLayerProbingParserTest15, 1);
 #endif /* UNITTESTS */
 
     return;

@@ -509,20 +509,47 @@ int SigParseProto(Signature *s, const char *protostr) {
             }
             SCReturnInt(0);
         }
-        AppLayerProbingParserInfo *ppi =
-            AppLayerGetProbingParserInfo(alp_proto_ctx.probing_parsers_info,
-                                         protostr);
-        if (ppi != NULL) {
-            /* indicate that the signature is app-layer */
-            s->flags |= SIG_FLAG_APPLAYER;
-            s->alproto = ppi->al_proto;
-            s->proto.proto[ppi->ip_proto / 8] |= 1 << (ppi->ip_proto % 8);
-            SCReturnInt(0);
+
+        AppLayerProbingParser *pp = alp_proto_ctx.probing_parsers;
+        while (pp != NULL) {
+            AppLayerProbingParserPort *pp_port = pp->port;
+            while (pp_port != NULL) {
+                AppLayerProbingParserElement *pp_pe = pp_port->toserver;
+                while (pp_pe != NULL) {
+                    if (strcasecmp(pp_pe->al_proto_name, protostr) == 0) {
+                        s->flags |= SIG_FLAG_APPLAYER;
+                        s->alproto = pp_pe->al_proto;
+                        s->proto.proto[pp->ip_proto / 8] |= 1 << (pp->ip_proto % 8);
+                    }
+
+                    pp_pe = pp_pe->next;
+                }
+
+                pp_pe = pp_port->toclient;
+                while (pp_pe != NULL) {
+                    if (strcasecmp(pp_pe->al_proto_name, protostr) == 0) {
+                        s->flags |= SIG_FLAG_APPLAYER;
+                        s->alproto = pp_pe->al_proto;
+                        s->proto.proto[pp->ip_proto / 8] |= 1 << (pp->ip_proto % 8);
+                    }
+
+                    pp_pe = pp_pe->next;
+                }
+
+                pp_port = pp_port->next;
+            }
+            pp = pp->next;
         }
 
-        SCLogError(SC_ERR_UNKNOWN_PROTOCOL, "protocol \"%s\" cannot be used "
-                "in a signature", protostr);
-        SCReturnInt(-1);
+        if (s->alproto == ALPROTO_UNKNOWN) {
+            SCLogError(SC_ERR_UNKNOWN_PROTOCOL, "protocol \"%s\" cannot be used "
+                       "in a signature.  Either detection for this protocol "
+                       "supported yet OR detection has been disabled for "
+                       "protocol through the yaml option "
+                       "app-layer.protocols.%s.detection-enabled", protostr,
+                       protostr);
+            SCReturnInt(-1);
+        }
     }
 
     /* if any of these flags are set they are set in a mutually exclusive
@@ -981,6 +1008,168 @@ static void SigBuildAddressMatchArray(Signature *s) {
 }
 
 /**
+ * \internal
+ * \brief Validate the port range specified with the PP port range.
+ *        Also modify it if necessary.
+ *
+ * \param s   Pointer to the signature.
+ * \param dir Direction.  0 for toserver, 1 for toclient
+ *
+ * \retval 1 If signature is valid, 0 if invalid.
+ */
+static inline int SigValidateSigPortRangeWithPPPortRange(Signature *s, int dir)
+{
+
+    /* Check if we have a PM set */
+    if (dir == 0) {
+        for (uint32_t i = 0; i < alp_proto_ctx.toserver.id; i++) {
+            if (s->alproto == alp_proto_ctx.toserver.map[i]) {
+                return 1;
+            }
+        }
+    } else {
+        for (uint32_t i = 0; i < alp_proto_ctx.toclient.id; i++) {
+            if (s->alproto == alp_proto_ctx.toclient.map[i]) {
+                return 1;
+            }
+        }
+    }
+
+    for (int i = 1; i < 256; i++) {
+        if (s->proto.proto[i / 8] & (1 << (i % 8))) {
+            AppLayerProbingParser *pp;
+
+            pp = alp_proto_ctx.probing_parsers;
+            while (pp != NULL && pp->ip_proto != i) {
+                pp = pp->next;
+            }
+            if (pp == NULL) {
+                continue;
+            }
+
+            AppLayerProbingParserPort *pp_port;
+
+            /* check 0 port */
+            int pe_present = 0;
+            pp_port = pp->port;
+            while (pp_port != NULL && pp_port->port != 0) {
+                AppLayerProbingParserElement *pp_pe;
+
+                if (dir == 0) {
+                    pp_pe = pp_port->toserver;
+                } else {
+                    pp_pe = pp_port->toclient;
+                }
+                while (pe_present == 0 && pp_pe != NULL) {
+                    if (pp_pe->al_proto != s->alproto) {
+                        pe_present = 1;
+                        break;
+                    }
+                    pp_pe = pp_pe->next;
+                }
+
+                pp_port = pp_port->next;
+            }
+            if (pe_present == 0)
+                continue;
+            if (pp_port != NULL) {
+                AppLayerProbingParserElement *pp_pe;
+
+                if (dir == 0) {
+                    pp_pe = pp_port->toserver;
+                } else {
+                    pp_pe = pp_port->toclient;
+                }
+                while (pp_pe != NULL && pp_pe->al_proto != s->alproto)
+                    pp_pe = pp_pe->next;
+                if (pp_pe != NULL)
+                    return 1;
+            }
+
+            uint32_t sig_flags = 0;
+            if (dir == 0) {
+                sig_flags = SIG_FLAG_DP_ANY;
+            } else {
+                sig_flags = SIG_FLAG_SP_ANY;
+            }
+
+            if (!(s->flags & sig_flags)) {
+                /* validate range */
+                pp_port = pp->port;
+                for (pp_port = pp->port;
+                     pp_port != NULL && pp_port->port != 0;
+                     pp_port = pp_port->next) {
+
+                    AppLayerProbingParserElement *pp_pe;
+
+                    if (dir == 0) {
+                        pp_pe = pp_port->toserver;
+                    } else {
+                        pp_pe = pp_port->toclient;
+                    }
+                    while (pp_pe != NULL && pp_pe->al_proto != s->alproto)
+                        pp_pe = pp_pe->next;
+                    if (pp_pe == NULL)
+                        continue;
+                    DetectPort *ap;
+                    if (dir == 0)
+                        ap = s->dp;
+                    else
+                        ap = s->sp;
+                    while (ap != NULL) {
+                        if ((pp_port->port >= ap->port) && (pp_port->port <= ap->port2))
+                            break;
+                        ap = ap->next;
+                    }
+                    if (ap == NULL) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature has a destination "
+                                   "port range that doesn't include the probing parser "
+                                   "port range for this alproto.");
+                        return 0;
+                    }
+                } /* for */
+            }
+
+            if (dir == 0) {
+                s->flags &= ~SIG_FLAG_DP_ANY;
+                DetectPortCleanupList(s->dp);
+                s->dp = NULL;
+            } else {
+                s->flags &= ~SIG_FLAG_SP_ANY;
+                DetectPortCleanupList(s->sp);
+                s->sp = NULL;
+            }
+
+            ;
+            for (pp_port = pp->port; pp_port != NULL && pp_port->port != 0;
+                 pp_port = pp_port->next) {
+                AppLayerProbingParserElement *pp_pe;
+
+                if (dir == 0) {
+                    pp_pe = pp_port->toserver;
+                } else {
+                    pp_pe = pp_port->toclient;
+                }
+                while (pp_pe != NULL && pp_pe->al_proto != s->alproto)
+                    pp_pe = pp_pe->next;
+                if (pp_pe == NULL)
+                    continue;
+
+                char tmp[6];
+                sprintf(tmp, "%d", pp_port->port);
+                if (dir == 0)
+                    DetectPortParse(&s->dp, tmp);
+                else
+                    DetectPortParse(&s->sp, tmp);
+            }
+
+        } /* if (s->proto.proto[i / 8] & (1 << (i % 8))) */
+    } /* for (int i = 0; i < 65536; i++) */
+
+    return 1;
+}
+
+/**
  *  \internal
  *  \brief validate a just parsed signature for internal inconsistencies
  *
@@ -1049,6 +1238,69 @@ static int SigValidate(Signature *s) {
             SCReturnInt(0);
         }
 #endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
+    }
+
+    if (s->alproto != ALPROTO_UNKNOWN) {
+        if (al_proto_table[s->alproto].to_server == 0 &&
+            al_proto_table[s->alproto].to_client == 0) {
+            const char *proto_name = NULL;
+            switch (s->alproto) {
+                case ALPROTO_HTTP:
+                    proto_name = "http";
+                    break;
+                case ALPROTO_FTP:
+                    proto_name = "ftp";
+                    break;
+                case ALPROTO_SMTP:
+                    proto_name = "smtp";
+                    break;
+                case ALPROTO_TLS:
+                    proto_name = "tls";
+                    break;
+                case ALPROTO_SSH:
+                    proto_name = "ssh";
+                    break;
+                case ALPROTO_IMAP:
+                    proto_name = "imap";
+                    break;
+                case ALPROTO_MSN:
+                    proto_name = "msn";
+                    break;
+                case ALPROTO_JABBER:
+                    proto_name = "jabber";
+                    break;
+                case ALPROTO_SMB:
+                    proto_name = "smb";
+                    break;
+                case ALPROTO_SMB2:
+                    proto_name = "smb2";
+                    break;
+                case ALPROTO_DCERPC:
+                    proto_name = "dcerpc";
+                    break;
+                case ALPROTO_DCERPC_UDP:
+                    proto_name = "dcerpcudp";
+                    break;
+                case ALPROTO_IRC:
+                    proto_name = "irc";
+                    break;
+                default:
+                    BUG_ON(1);
+            }
+            SCLogInfo("Signature uses options that need the app layer parser "
+                      "for \"%s\", but the parser's disabled for the "
+                      "protocol.  Please check if you have disabled "
+                      "it either through the option "
+                      "\"app-layer.protocols.%s.detection-enabled\" "
+                      "OR through \"app-layer.protocols.%s.parser-enabled\".",
+                      proto_name, proto_name, proto_name);
+            SCReturnInt(0);
+        }
+
+        if (SigValidateSigPortRangeWithPPPortRange(s, 0 /* toserver */) == 0)
+            return 0;
+        if (SigValidateSigPortRangeWithPPPortRange(s, 1 /* toclient */) == 0)
+            return 0;
     }
 
     if (s->alproto == ALPROTO_DCERPC) {
