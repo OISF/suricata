@@ -1116,7 +1116,8 @@ static int SigValidate(Signature *s) {
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
-                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH]);
+                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
+                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
         if (pm != NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature has"
                 " replace keyword linked with a modified content"
@@ -1136,7 +1137,8 @@ static int SigValidate(Signature *s) {
                 s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH] ||
                 s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH] ||
                 s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH] ||
-                s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH])
+                s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH] ||
+                s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH])
         {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature combines packet "
                     "specific matches (like dsize, flags, ttl) with stream / "
@@ -1286,6 +1288,8 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
     if (sig->sm_lists[DETECT_SM_LIST_HUADMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_HHHDMATCH])
+        sig->flags |= SIG_FLAG_STATE_MATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_HRHHDMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
 
     if (!(sig->init_flags & SIG_FLAG_INIT_FLOW)) {

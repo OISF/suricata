@@ -54,6 +54,7 @@
 #include "detect-engine-hscd.h"
 #include "detect-engine-hua.h"
 #include "detect-engine-hhhd.h"
+#include "detect-engine-hrhhd.h"
 #include "detect-engine-file.h"
 
 #include "detect-engine.h"
@@ -207,6 +208,12 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_HHHD_MATCH,
           0,
           DetectEngineInspectHttpHH },
+        { ALPROTO_HTTP,
+          DETECT_SM_LIST_HRHHDMATCH,
+          DE_STATE_FLAG_HRHHD_INSPECT,
+          DE_STATE_FLAG_HRHHD_MATCH,
+          0,
+          DetectEngineInspectHttpHRH },
     };
 
     struct tmp_t data_toclient[] = {
