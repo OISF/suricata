@@ -124,8 +124,8 @@ static DetectReference *DetectReferenceParse(char *rawstr, DetectEngineCtx *de_c
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr),
                     0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 2) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, "
-                   "ret %" PRId32 ", string %s", ret, rawstr);
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Unable to parse \"reference\" "
+                   "keyword argument - \"%s\".   Invalid argument.", rawstr);
         goto error;
     }
 
