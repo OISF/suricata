@@ -393,6 +393,13 @@ DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr)
                     }
                     pd->flags |= DETECT_PCRE_HTTP_HOST;
                     break;
+                case 'Z':
+                    if (pd->flags & DETECT_PCRE_RAWBYTES) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'Z' inconsistent with 'B'");
+                        goto error;
+                    }
+                    pd->flags |= DETECT_PCRE_HTTP_RAW_HOST;
+                    break;
                 case 'H': /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAW_HEADER) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'H' inconsistent with 'D'");
@@ -645,7 +652,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                  (pd->flags & DETECT_PCRE_HTTP_SERVER_BODY) ||
                  (pd->flags & DETECT_PCRE_HTTP_RAW_URI) ||
                  (pd->flags & DETECT_PCRE_HTTP_USER_AGENT) ||
-                 (pd->flags & DETECT_PCRE_HTTP_HOST) ) {
+                 (pd->flags & DETECT_PCRE_HTTP_HOST) ||
+                 (pd->flags & DETECT_PCRE_HTTP_RAW_HOST) ) {
                 SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option. "
                            "DCERPC rule has pcre keyword with http related modifier.");
                 goto error;
@@ -709,6 +717,17 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         s->alproto = ALPROTO_HTTP;
 
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HHHDMATCH);
+    } else if (pd->flags & DETECT_PCRE_HTTP_RAW_HOST) {
+        SCLogDebug("Raw Host inspection modifier set on pcre");
+        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
+            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains "
+                       "conflicting keywords.");
+            goto error;
+        }
+        s->flags |= SIG_FLAG_APPLAYER;
+        s->alproto = ALPROTO_HTTP;
+
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRHHDMATCH);
     } else if (pd->flags & DETECT_PCRE_METHOD) {
         //sm->type = DETECT_PCRE_HTTPMETHOD;
 
@@ -943,7 +962,7 @@ static int DetectPcreParseTest02 (void) {
 static int DetectPcreParseTest03 (void) {
     int result = 1;
     DetectPcreData *pd = NULL;
-    char *teststring = "/blah/UZi";
+    char *teststring = "/blah/UNi";
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
         return 0;

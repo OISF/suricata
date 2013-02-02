@@ -68,6 +68,7 @@
 #include "detect-engine-hscd.h"
 #include "detect-engine-hua.h"
 #include "detect-engine-hhhd.h"
+#include "detect-engine-hrhhd.h"
 #include "detect-engine-dcepayload.h"
 #include "detect-engine-file.h"
 
