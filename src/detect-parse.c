@@ -1098,6 +1098,10 @@ static void SigBuildAddressMatchArray(Signature *s) {
 static inline int SigHasValidPortRangeAgainstPP(Signature *s, int dir,
                                                AppLayerProbingParser *pp)
 {
+    DetectPort *tmp_ap;
+    uint32_t tmp_port;
+    uint16_t u;
+    AppLayerProbingParserPort *pp_port;
     DetectPort *ap;
     if (dir == 0) {
         if (s->flags & SIG_FLAG_DP_ANY)
@@ -1115,7 +1119,7 @@ static inline int SigHasValidPortRangeAgainstPP(Signature *s, int dir,
     memset(sig_port_range, 0, sizeof(sig_port_range));
 
     /* validate range */
-    for (AppLayerProbingParserPort *pp_port = pp->port;
+    for (pp_port = pp->port;
          pp_port != NULL && pp_port->port != 0;
          pp_port = pp_port->next) {
 
@@ -1133,23 +1137,20 @@ static inline int SigHasValidPortRangeAgainstPP(Signature *s, int dir,
         pp_port_range[pp_port->port / 8] |= 1 << (pp_port->port % 8);
     } /* for */
 
-    for (DetectPort *tmp_ap = ap; tmp_ap != NULL; tmp_ap = tmp_ap->next) {
-        for (uint32_t tmp_port = tmp_ap->port; tmp_port <= tmp_ap->port2; tmp_port++) {
+    for (tmp_ap = ap; tmp_ap != NULL; tmp_ap = tmp_ap->next) {
+        for (tmp_port = tmp_ap->port; tmp_port <= tmp_ap->port2; tmp_port++) {
             sig_port_range[tmp_port / 8] |= 1 << (tmp_port % 8);
         }
     }
 
-    int pp_extra = 0;
-    int sig_extra = 0;
-
-    for (uint16_t i = 0; i < (65536 / 8); i++) {
-        uint8_t and_port = pp_port_range[i] & sig_port_range[i];
-        if (and_port == sig_port_range[i] && and_port == pp_port_range[i]) {
+    /* if we a port range that is specific to sig port range but isn't
+     * covered by the pp port range, it's an invalid sig */
+    for (u = 0; u < (65536 / 8); u++) {
+        uint8_t and_port = pp_port_range[u] & sig_port_range[u];
+        if (and_port == sig_port_range[u] && and_port == pp_port_range[u]) {
             ;
-        } else if (and_port == sig_port_range[i]) {
-            pp_extra++;
-        } else if (and_port == pp_port_range[i]) {
-            sig_extra++;
+        } else if (and_port == sig_port_range[u]) {
+            ;
         } else {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature requires detection "
                        "on some ports that are not covered for detection.  "
@@ -1158,27 +1159,15 @@ static inline int SigHasValidPortRangeAgainstPP(Signature *s, int dir,
         }
     }
 
-    if (sig_extra != 0 && pp_extra == 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature requires detection "
-                   "on some ports that are not covered for detection.  "
-                   "Invalidating signature.");
-        return 3;
-    } else if (sig_extra == 0 && pp_extra != 0) {
-        return 1;
-    } else if (sig_extra == 0 && pp_extra == 0) {
-        return 1;
-    } else {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature requires detection "
-                   "on some ports that are not covered for detection.  "
-                   "Invalidating signature.");
-        return 3;
-    }
+    return 1;
 }
 
 
 static inline void SigInsertPPPortRangeIntoSig(Signature *s, int dir,
                                                AppLayerProbingParser *pp)
 {
+    AppLayerProbingParserPort *pp_port;
+
     if (dir == 0) {
         s->flags &= ~SIG_FLAG_DP_ANY;
         DetectPortCleanupList(s->dp);
@@ -1189,7 +1178,7 @@ static inline void SigInsertPPPortRangeIntoSig(Signature *s, int dir,
         s->sp = NULL;
     }
 
-    for (AppLayerProbingParserPort *pp_port = pp->port;
+    for (pp_port = pp->port;
          pp_port != NULL && pp_port->port != 0;
          pp_port = pp_port->next) {
         AppLayerProbingParserElement *pp_pe;
@@ -1221,15 +1210,17 @@ static inline void SigInsertPPPortRangeIntoSig(Signature *s, int dir,
  */
 static inline int SigPMParserIsSet(Signature *s, int dir)
 {
+    uint32_t u;
+
     if (dir == 0) {
-        for (uint32_t i = 0; i < alp_proto_ctx.toserver.id; i++) {
-            if (s->alproto == alp_proto_ctx.toserver.map[i]) {
+        for (u = 0; u < alp_proto_ctx.toserver.id; u++) {
+            if (s->alproto == alp_proto_ctx.toserver.map[u]) {
                 return 1;
             }
         }
     } else {
-        for (uint32_t i = 0; i < alp_proto_ctx.toclient.id; i++) {
-            if (s->alproto == alp_proto_ctx.toclient.map[i]) {
+        for (u = 0; u < alp_proto_ctx.toclient.id; u++) {
+            if (s->alproto == alp_proto_ctx.toclient.map[u]) {
                 return 1;
             }
         }
@@ -1250,73 +1241,76 @@ static inline int SigPMParserIsSet(Signature *s, int dir)
  */
 static inline int SigValidateSigPortRangeWithPPPortRange(Signature *s, int dir)
 {
+    int i;
+
     if (SigPMParserIsSet(s, dir))
         return 1;
 
-    for (int i = 1; i < 256; i++) {
+    for (i = 1; i < 256; i++) {
         if (!(s->proto.proto[i / 8] & (1 << (i % 8)))) {
             continue;
         }
-            /* check if we have a pp set against this ipproto */
-            AppLayerProbingParser *pp;
 
-            pp = alp_proto_ctx.probing_parsers;
-            while (pp != NULL && pp->ip_proto != i) {
-                pp = pp->next;
+        /* check if we have a pp set against this ipproto */
+        AppLayerProbingParser *pp;
+
+        pp = alp_proto_ctx.probing_parsers;
+        while (pp != NULL && pp->ip_proto != i) {
+            pp = pp->next;
+        }
+        if (pp == NULL) {
+            continue;
+        }
+
+        /* we have a pp against this ipproto */
+
+        AppLayerProbingParserPort *pp_port;
+
+        /* check if we have a 0(any) port set against the
+         * signature's alproto */
+        int pe_present = 0;
+        pp_port = pp->port;
+        while (pp_port != NULL && pp_port->port != 0) {
+            AppLayerProbingParserElement *pp_pe;
+
+            if (dir == 0) {
+                pp_pe = pp_port->toserver;
+            } else {
+                pp_pe = pp_port->toclient;
             }
-            if (pp == NULL) {
-                continue;
-            }
-
-            /* we have a pp against this ipproto */
-
-            AppLayerProbingParserPort *pp_port;
-
-            /* check if we have a 0(any) port set against the
-             * signature's alproto */
-            int pe_present = 0;
-            pp_port = pp->port;
-            while (pp_port != NULL && pp_port->port != 0) {
-                AppLayerProbingParserElement *pp_pe;
-
-                if (dir == 0) {
-                    pp_pe = pp_port->toserver;
-                } else {
-                    pp_pe = pp_port->toclient;
+            while (pe_present == 0 && pp_pe != NULL) {
+                if (pp_pe->al_proto == s->alproto) {
+                    pe_present = 1;
+                    break;
                 }
-                while (pe_present == 0 && pp_pe != NULL) {
-                    if (pp_pe->al_proto == s->alproto) {
-                        pe_present = 1;
-                        break;
-                    }
-                    pp_pe = pp_pe->next;
-                }
-
-                pp_port = pp_port->next;
-            }
-            if (pe_present == 0)
-                continue;
-            if (pp_port != NULL) {
-                AppLayerProbingParserElement *pp_pe;
-
-                if (dir == 0) {
-                    pp_pe = pp_port->toserver;
-                } else {
-                    pp_pe = pp_port->toclient;
-                }
-                while (pp_pe != NULL && pp_pe->al_proto != s->alproto)
-                    pp_pe = pp_pe->next;
-                if (pp_pe != NULL)
-                    return 1;
+                pp_pe = pp_pe->next;
             }
 
-            int retval = SigHasValidPortRangeAgainstPP(s, dir, pp);
-            if (retval == 1)
+            pp_port = pp_port->next;
+        }
+        if (pe_present == 0)
+            continue;
+        if (pp_port != NULL) {
+            AppLayerProbingParserElement *pp_pe;
+
+            if (dir == 0) {
+                pp_pe = pp_port->toserver;
+            } else {
+                pp_pe = pp_port->toclient;
+            }
+            while (pp_pe != NULL && pp_pe->al_proto != s->alproto)
+                pp_pe = pp_pe->next;
+            if (pp_pe != NULL)
                 return 1;
-            else if (retval == 3)
-                return 0;
-            SigInsertPPPortRangeIntoSig(s, dir, pp);
-    } /* for (int i = 0; i < 65536; i++) */
+        }
+
+        int retval = SigHasValidPortRangeAgainstPP(s, dir, pp);
+        if (retval == 1)
+            return 1;
+        else if (retval == 3)
+            return 0;
+        SigInsertPPPortRangeIntoSig(s, dir, pp);
+    } /* for */
 
     return 1;
 }
