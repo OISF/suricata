@@ -24,7 +24,7 @@
 #ifndef __APP_LAYER_PROTOS_H__
 #define __APP_LAYER_PROTOS_H__
 
-enum {
+typedef enum AppProto {
     ALPROTO_UNKNOWN = 0,
     ALPROTO_HTTP,
     ALPROTO_FTP,
@@ -47,9 +47,9 @@ enum {
 #endif /* UNITESTS */
     /* keep last */
     ALPROTO_MAX,
-};
+} AppProto;
 
-const char *TmModuleAlprotoToString(int proto);
+const char *TmModuleAlprotoToString(AppProto proto);
 
 #endif /* __APP_LAYER_PROTOS_H__ */
 
