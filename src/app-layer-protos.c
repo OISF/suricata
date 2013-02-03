@@ -34,23 +34,52 @@
  */
 const char *TmModuleAlprotoToString(int proto)
 {
-    switch (proto) {
-        CASE_CODE (ALPROTO_UNKNOWN);
-        CASE_CODE (ALPROTO_HTTP);
-        CASE_CODE (ALPROTO_FTP);
-        CASE_CODE (ALPROTO_SMTP);
-        CASE_CODE (ALPROTO_TLS);
-        CASE_CODE (ALPROTO_SSH);
-        CASE_CODE (ALPROTO_IMAP);
-        CASE_CODE (ALPROTO_MSN);
-        CASE_CODE (ALPROTO_JABBER);
-        CASE_CODE (ALPROTO_SMB);
-        CASE_CODE (ALPROTO_SMB2);
-        CASE_CODE (ALPROTO_DCERPC);
-        CASE_CODE (ALPROTO_DCERPC_UDP);
+    const char *proto_name = NULL;
 
+    switch (proto) {
+        case ALPROTO_HTTP:
+            proto_name = "http";
+            break;
+        case ALPROTO_FTP:
+            proto_name = "ftp";
+            break;
+        case ALPROTO_SMTP:
+            proto_name = "smtp";
+            break;
+        case ALPROTO_TLS:
+            proto_name = "tls";
+            break;
+        case ALPROTO_SSH:
+            proto_name = "ssh";
+            break;
+        case ALPROTO_IMAP:
+            proto_name = "imap";
+            break;
+        case ALPROTO_MSN:
+            proto_name = "msn";
+            break;
+        case ALPROTO_JABBER:
+            proto_name = "jabber";
+            break;
+        case ALPROTO_SMB:
+            proto_name = "smb";
+            break;
+        case ALPROTO_SMB2:
+            proto_name = "smb2";
+            break;
+        case ALPROTO_DCERPC:
+            proto_name = "dcerpc";
+            break;
+        case ALPROTO_DCERPC_UDP:
+            proto_name = "dcerpcudp";
+            break;
+        case ALPROTO_IRC:
+            proto_name = "irc";
+            break;
         default:
-            return "ALPROTO_UNDEFINED";
+            BUG_ON(1);
     }
+
+    return proto_name;
 }
 

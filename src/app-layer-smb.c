@@ -1398,14 +1398,9 @@ void RegisterSMBParsers(void) {
         /** SMB */
         AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOSERVER);
 
-        AppLayerRegisterProbingParser(&alp_proto_ctx,
-                                      IPPROTO_TCP,
-                                      "139",
-                                      "smb",
-                                      ALPROTO_SMB,
-                                      SMB_PROBING_PARSER_MIN_DEPTH, 0,
-                                      STREAM_TOSERVER,
-                                      SMBProbingParser);
+        AppLayerParseProbingParserPorts(proto_name, ALPROTO_SMB,
+                                        SMB_PROBING_PARSER_MIN_DEPTH, 0,
+                                        SMBProbingParser);
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",
                   proto_name);
