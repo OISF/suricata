@@ -64,6 +64,7 @@ detect-bytetest.c detect-bytetest.h \
 detect.c detect.h \
 detect-classtype.c detect-classtype.h \
 detect-content.c detect-content.h \
+detect-content-len.c detect-content-len.h \
 detect-csum.c detect-csum.h \
 detect-dce-iface.c detect-dce-iface.h \
 detect-dce-opnum.c detect-dce-opnum.h \

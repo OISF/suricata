@@ -108,19 +108,13 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
         SCReturnInt(-1);
     }
 
-    SigMatch *sm =  SigMatchGetLastSMFromLists(s, 2,
-                                               DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+    SigMatch *sm =  SigMatchGetLastSMFromLists(s, 4,
+                                               DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                               DETECT_CONTENT_LEN, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
     if (sm == NULL) {
         SCLogError(SC_ERR_HTTP_METHOD_NEEDS_PRECEEDING_CONTENT, "http_method "
-                "modifies preceding \"content\", but none was found");
-        SCReturnInt(-1);
-    }
-
-    cd = (DetectContentData *)sm->ctx;
-
-    if (cd->flags & DETECT_CONTENT_RAWBYTES) {
-        SCLogError(SC_ERR_HTTP_METHOD_INCOMPATIBLE_WITH_RAWBYTES, "http_method "
-                "cannot be used with \"rawbytes\"");
+                   "modifies preceding \"content\" or \"content_len\", "
+                   "but none was found");
         SCReturnInt(-1);
     }
 
@@ -130,43 +124,52 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
         goto error;
     }
 
-    if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
-        SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
-                                                   DETECT_CONTENT, sm->prev,
-                                                   DETECT_PCRE, sm->prev);
-        if (pm != NULL) {
-            /* pm is never NULL.  So no NULL check */
-            if (pm->type == DETECT_CONTENT) {
-                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
-                tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
-            } else {
-                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
-                tmp_pd->flags &= ~DETECT_PCRE_RELATIVE_NEXT;
-            }
-        } /* if (pm != NULL) */
+    if (sm->type == DETECT_CONTENT) {
+        cd = (DetectContentData *)sm->ctx;
 
-        /* please note.  reassigning pm */
-        pm = SigMatchGetLastSMFromLists(s, 4,
-                                        DETECT_CONTENT,
-                                        s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                        DETECT_PCRE,
-                                        s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]);
-        if (pm == NULL) {
-            SCLogError(SC_ERR_HTTP_METHOD_RELATIVE_MISSING, "http_method with "
-                    "a distance or within requires preceding http_method "
-                    "content, but none was found");
-            goto error;
+        if (cd->flags & DETECT_CONTENT_RAWBYTES) {
+            SCLogError(SC_ERR_HTTP_METHOD_INCOMPATIBLE_WITH_RAWBYTES, "http_method "
+                       "cannot be used with \"rawbytes\"");
+            SCReturnInt(-1);
         }
-        if (pm->type == DETECT_PCRE) {
-            DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
-            tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
-        } else {
-            DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
-            tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+
+        if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
+            SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
+                                                       DETECT_CONTENT, sm->prev,
+                                                       DETECT_PCRE, sm->prev);
+            if (pm != NULL) {
+                /* pm is never NULL.  So no NULL check */
+                if (pm->type == DETECT_CONTENT) {
+                    DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                    tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
+                } else {
+                    DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                    tmp_pd->flags &= ~DETECT_PCRE_RELATIVE_NEXT;
+                }
+            } /* if (pm != NULL) */
+
+            /* please note.  reassigning pm */
+            pm = SigMatchGetLastSMFromLists(s, 4,
+                                            DETECT_CONTENT,
+                                            s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                                            DETECT_PCRE,
+                                            s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]);
+            if (pm == NULL) {
+                SCLogError(SC_ERR_HTTP_METHOD_RELATIVE_MISSING, "http_method with "
+                           "a distance or within requires preceding http_method "
+                           "content, but none was found");
+                goto error;
+            }
+            if (pm->type == DETECT_PCRE) {
+                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
+            } else {
+                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+            }
         }
+        cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_HMDMATCH);
     }
-    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_HMDMATCH);
-    sm->type = DETECT_CONTENT;
 
     /* transfer the sm from the pmatch list to hmdmatch list */
     SigMatchTransferSigMatchAcrossLists(sm,

@@ -123,21 +123,13 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
         return -1;
     }
 
-    sm =  SigMatchGetLastSMFromLists(s, 2,
-                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+    sm =  SigMatchGetLastSMFromLists(s, 4,
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                     DETECT_CONTENT_LEN, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
     if (sm == NULL) {
         SCLogWarning(SC_ERR_HTTP_COOKIE_NEEDS_PRECEEDING_CONTENT, "http_cookie "
                 "found inside the rule, without a content context.  Please use a "
-                "content keyword before using http_cookie");
-        return -1;
-    }
-
-    cd = (DetectContentData *)sm->ctx;
-
-    /* http_cookie should not be used with the rawbytes rule */
-    if (cd->flags & DETECT_CONTENT_RAWBYTES) {
-        SCLogError(SC_ERR_HTTP_COOKIE_INCOMPATIBLE_WITH_RAWBYTES, "http_cookie "
-                "rule can not be used with the rawbytes rule keyword");
+                "content or conten_len keyword before using http_cookie");
         return -1;
     }
 
@@ -147,43 +139,53 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
         goto error;
     }
 
-    if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
-        SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
-                                                   DETECT_CONTENT, sm->prev,
-                                                   DETECT_PCRE, sm->prev);
-        if (pm != NULL) {
-            /* pm is never NULL.  So no NULL check */
-            if (pm->type == DETECT_CONTENT) {
-                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
-                tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
-            } else {
-                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
-                tmp_pd->flags &= ~DETECT_PCRE_RELATIVE_NEXT;
-            }
-        } /* if (pm != NULL) */
+    if (sm->type == DETECT_CONTENT) {
+        cd = (DetectContentData *)sm->ctx;
 
-        /* please note.  reassigning pm */
-        pm = SigMatchGetLastSMFromLists(s, 4,
-                                        DETECT_CONTENT,
-                                        s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                                        DETECT_PCRE,
-                                        s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]);
-        if (pm == NULL) {
-            SCLogError(SC_ERR_HTTP_COOKIE_RELATIVE_MISSING, "http_cookie with "
-                    "a distance or within requires preceding http_cookie "
-                    "content, but none was found");
-            goto error;
+        /* http_cookie should not be used with the rawbytes rule */
+        if (cd->flags & DETECT_CONTENT_RAWBYTES) {
+            SCLogError(SC_ERR_HTTP_COOKIE_INCOMPATIBLE_WITH_RAWBYTES, "http_cookie "
+                       "rule can not be used with the rawbytes rule keyword");
+            return -1;
         }
-        if (pm->type == DETECT_PCRE) {
-            DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
-            tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
-        } else {
-            DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
-            tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+
+        if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
+            SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
+                                                       DETECT_CONTENT, sm->prev,
+                                                       DETECT_PCRE, sm->prev);
+            if (pm != NULL) {
+                /* pm is never NULL.  So no NULL check */
+                if (pm->type == DETECT_CONTENT) {
+                    DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                    tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
+                } else {
+                    DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                    tmp_pd->flags &= ~DETECT_PCRE_RELATIVE_NEXT;
+                }
+            } /* if (pm != NULL) */
+
+            /* please note.  reassigning pm */
+            pm = SigMatchGetLastSMFromLists(s, 4,
+                                            DETECT_CONTENT,
+                                            s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                                            DETECT_PCRE,
+                                            s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]);
+            if (pm == NULL) {
+                SCLogError(SC_ERR_HTTP_COOKIE_RELATIVE_MISSING, "http_cookie with "
+                           "a distance or within requires preceding http_cookie "
+                           "content, but none was found");
+                goto error;
+            }
+            if (pm->type == DETECT_PCRE) {
+                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
+            } else {
+                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+            }
         }
+        cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_HCDMATCH);
     }
-    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_HCDMATCH);
-    sm->type = DETECT_CONTENT;
 
     /* transfer the sm from the pmatch list to hcdmatch list */
     SigMatchTransferSigMatchAcrossLists(sm,
