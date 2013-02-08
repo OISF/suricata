@@ -1014,6 +1014,17 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
             }
         }
     }
+    
+    if (conf != NULL) {
+        const char *sensor_id_s = NULL;
+        sensor_id_s = ConfNodeLookupChildValue(conf, "sensor-id");
+        if (sensor_id_s != NULL) {
+            if (ByteExtractStringUint32(&sensor_id, 10, 0, sensor_id_s) == -1) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "Failed to initialize unified2 output, invalid sensor-id: %s", sensor_id_s);
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
 
     if (conf != NULL) {
         const char *sensor_id_s = NULL;
