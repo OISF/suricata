@@ -353,7 +353,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             }
             return 0;
         }
-        pm = SigMatchGetLastSMFromLists(s, 56,
+        pm = SigMatchGetLastSMFromLists(s, 66,
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
@@ -366,6 +366,8 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
+                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
+                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH],
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
@@ -376,6 +378,8 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
+                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
+                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH],
                 DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                 DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                 DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
@@ -389,7 +393,8 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                        "http_client_body, http_header, http_raw_header, "
                        "http_method, http_cookie, http_raw_uri, "
                        "http_stat_msg, http_stat_code, byte_test, "
-                       "byte_extract, byte_jump or http_user_agent keyword");
+                       "byte_extract, byte_jump, http_user_agent, "
+                       "http_host or http_raw_host keyword");
             goto error;
         } else {
             int list_type = SigMatchListSMBelongsTo(s, pm);
