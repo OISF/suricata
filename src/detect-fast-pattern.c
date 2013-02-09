@@ -2076,6 +2076,11 @@ int DetectFastPatternTest53(void)
     return result;
 }
 
+
+/*    content fast_pattern tests ^ */
+/* uricontent fast_pattern tests v */
+
+
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
@@ -3125,6 +3130,11 @@ int DetectFastPatternTest92(void)
     DetectEngineCtxFree(de_ctx);
     return result;
 }
+
+
+/* uricontent fast_pattern tests ^ */
+/*   http_uri fast_pattern tests v */
+
 
 int DetectFastPatternTest93(void)
 {
@@ -4238,6 +4248,11 @@ int DetectFastPatternTest133(void)
     return result;
 }
 
+
+/*         http_uri fast_pattern tests ^ */
+/* http_client_body fast_pattern tests v */
+
+
 int DetectFastPatternTest134(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -5337,6 +5352,11 @@ int DetectFastPatternTest174(void)
     return result;
 }
 
+
+/* http_client_body fast_pattern tests ^ */
+/*          content fast_pattern tests v */
+
+
 int DetectFastPatternTest175(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -5425,7 +5445,9 @@ int DetectFastPatternTest178(void)
     return result;
 }
 
-/*****http_header tests v ******/
+/*     content fast_pattern tests ^ */
+/* http_header fast_pattern tests v */
+
 
 int DetectFastPatternTest179(void)
 {
@@ -6528,7 +6550,10 @@ int DetectFastPatternTest219(void)
     return result;
 }
 
-/********* http_raw_header tests v *****/
+
+/*     http_header fast_pattern tests ^ */
+/* http_raw_header fast_pattern tests v */
+
 
 int DetectFastPatternTest220(void)
 {
@@ -7630,6 +7655,11 @@ int DetectFastPatternTest260(void)
     DetectEngineCtxFree(de_ctx);
     return result;
 }
+
+
+/* http_raw_header fast_pattern tests ^ */
+/*     http_method fast_pattern tests v */
+
 
 int DetectFastPatternTest261(void)
 {
@@ -8733,16 +8763,8 @@ int DetectFastPatternTest301(void)
 }
 
 
-
-
-
-
-
-
-
-
-
-
+/* http_method fast_pattern tests ^ */
+/* http_cookie fast_pattern tests v */
 
 
 int DetectFastPatternTest302(void)
@@ -9847,23 +9869,8 @@ int DetectFastPatternTest342(void)
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* http_cookie fast_pattern tests ^ */
+/* http_raw_uri fast_pattern tests v */
 
 
 int DetectFastPatternTest343(void)
@@ -11026,22 +11033,8 @@ int DetectFastPatternTest383(void)
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* http_raw_uri fast_pattern tests ^ */
+/* http_stat_msg fast_pattern tests v */
 
 
 int DetectFastPatternTest384(void)
@@ -12208,6 +12201,11 @@ int DetectFastPatternTest424(void)
     return result;
 }
 
+
+/* http_stat_msg fast_pattern tests ^ */
+/* http_stat_code fast_pattern tests v */
+
+
 int DetectFastPatternTest425(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -13372,6 +13370,11 @@ int DetectFastPatternTest465(void)
     DetectEngineCtxFree(de_ctx);
     return result;
 }
+
+
+/* http_stat_code fast_pattern tests ^ */
+/* http_server_body fast_pattern tests v */
+
 
 int DetectFastPatternTest466(void)
 {
@@ -14538,28 +14541,8 @@ int DetectFastPatternTest506(void)
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* http_server_body fast_pattern tests ^ */
+/* file_data fast_pattern tests v */
 
 
 int DetectFastPatternTest507(void)
@@ -15727,20 +15710,8 @@ int DetectFastPatternTest547(void)
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* file_data fast_pattern tests ^ */
+/* http_user_agent fast_pattern tests v */
 
 
 int DetectFastPatternTest548(void)
@@ -15775,6 +15746,7 @@ int DetectFastPatternTest548(void)
     DetectEngineCtxFree(de_ctx);
     return result;
 }
+
 
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
@@ -16908,14 +16880,8 @@ int DetectFastPatternTest588(void)
 }
 
 
-
-
-
-
-
-
-
-
+/* http_user_agent fast_pattern tests ^ */
+/* http_host fast_pattern tests v */
 
 
 int DetectFastPatternTest589(void)
@@ -18106,21 +18072,8 @@ int DetectFastPatternTest629(void)
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* http_host fast_pattern tests ^ */
+/* http_rawhost fast_pattern tests v */
 
 
 int DetectFastPatternTest630(void)
