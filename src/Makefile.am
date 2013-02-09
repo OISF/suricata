@@ -85,6 +85,7 @@ detect-engine-file.c detect-engine-file.h \
 detect-engine-hcbd.c detect-engine-hcbd.h \
 detect-engine-hcd.c detect-engine-hcd.h \
 detect-engine-hhd.c detect-engine-hhd.h \
+detect-engine-hhhd.c detect-engine-hhhd.h \
 detect-engine-hmd.c detect-engine-hmd.h \
 detect-engine-hrhd.c detect-engine-hrhd.h \
 detect-engine-hrhhd.c detect-engine-hrhhd.h \
@@ -93,7 +94,6 @@ detect-engine-hsbd.c detect-engine-hsbd.h \
 detect-engine-hscd.c detect-engine-hscd.h \
 detect-engine-hsmd.c detect-engine-hsmd.h \
 detect-engine-hua.c detect-engine-hua.h \
-detect-engine-hhhd.c detect-engine-hhhd.h \
 detect-engine-iponly.c detect-engine-iponly.h \
 detect-engine-mpm.c detect-engine-mpm.h \
 detect-engine-payload.c detect-engine-payload.h \

@@ -67,7 +67,7 @@ void DetectHttpHHFree(void *);
 void DetectHttpHHRegister(void)
 {
     sigmatch_table[DETECT_AL_HTTP_HOST].name = "http_host";
-    sigmatch_table[DETECT_AL_HTTP_HOST].desc = "content modifier to match only on the HTTP host header";
+    sigmatch_table[DETECT_AL_HTTP_HOST].desc = "content modifier to match only on the HTTP hostname";
     sigmatch_table[DETECT_AL_HTTP_HOST].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_HOST].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_HOST].Setup = DetectHttpHHSetup;
