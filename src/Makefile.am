@@ -393,3 +393,6 @@ if BUILD_UNITTESTS
 check-am:
 	$(top_builddir)/src/suricata -u
 endif
+
+distclean-local:
+	-rm -rf $(top_builddir)/src/build-info.h
