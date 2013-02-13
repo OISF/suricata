@@ -168,7 +168,7 @@ uint32_t getCookieValue(char *rawcookies, uint32_t rawcookies_len, char *cookien
     while (p < rawcookies + rawcookies_len) {
         if (cv == NULL && *p == '=') {
             cv = p + 1; 
-        } else if (cv != NULL && (*p == ' ' || p == rawcookies + rawcookies_len - 1) ) {
+        } else if (cv != NULL && (*p == ';' || p == rawcookies + rawcookies_len - 1) ) {
             /* Found end of cookie */
             if (strlen(cookiename) == (unsigned int) (cv-cn-1) && 
                         strncmp(cookiename, cn, cv-cn-1) == 0) {
@@ -208,9 +208,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
         switch (httplog_ctx->cf_nodes[i]->type){
             case LOG_HTTP_CF_LITERAL:
             /* LITERAL */
-                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
-                        aft->buffer->size, (uint8_t *)httplog_ctx->cf_nodes[i]->data,
-                        strlen(httplog_ctx->cf_nodes[i]->data));
+                MemBufferWriteString(aft->buffer, httplog_ctx->cf_nodes[i]->data);
                 break;
             case LOG_HTTP_CF_TIMESTAMP:
             /* TIMESTAMP */
@@ -339,24 +337,6 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                     PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
                                     aft->buffer->size, (uint8_t *)bstr_ptr(tx->response_status),
                                     bstr_len(tx->response_status));
-                    /* Redirect? */
-                    if (tx->response_headers != NULL &&
-                            tx->response_status_number > 300 &&
-                            tx->response_status_number < 303)
-                    {
-                        htp_header_t *h_location = table_getc(tx->response_headers, "location");
-                        if (h_location != NULL) {
-                            MemBufferWriteString(aft->buffer, "(");
-                            datalen = httplog_ctx->cf_nodes[i]->maxlen;
-                            if (datalen == 0 || datalen > bstr_len(h_location->value)) {
-                                datalen = bstr_len(h_location->value);
-                            }
-                            PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
-                                        aft->buffer->size, (uint8_t *)bstr_ptr(h_location->value),
-                                        datalen);
-                            MemBufferWriteString(aft->buffer, ")");
-                        }
-                    }
                 } else {
                     MemBufferWriteString(aft->buffer, LOG_HTTP_CF_NONE);
                 }
