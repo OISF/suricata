@@ -106,7 +106,6 @@ TmEcode NoPfringSupportExit(ThreadVars *tv, void *initdata, void **data)
 static SCMutex pfring_bpf_set_filter_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /* XXX replace with user configurable options */
-#define LIBPFRING_SNAPLEN     1518
 #define LIBPFRING_PROMISC     1
 #define LIBPFRING_REENTRANT   0
 #define LIBPFRING_WAIT_FOR_INCOMING 1

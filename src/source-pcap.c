@@ -399,17 +399,8 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    /* set Snaplen, Promisc, and Timeout. Must be called before pcap_activate */
-    int pcap_set_snaplen_r = pcap_set_snaplen(ptv->pcap_handle,LIBPCAP_SNAPLEN);
-    //printf("ReceivePcapThreadInit: pcap_set_snaplen(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_snaplen_r);
-    if (pcap_set_snaplen_r != 0) {
-        SCLogError(SC_ERR_PCAP_SET_SNAPLEN, "Couldn't set snaplen, error: %s", pcap_geterr(ptv->pcap_handle));
-        SCFree(ptv);
-        pcapconfig->DerefFunc(pcapconfig);
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-
-    int pcap_set_promisc_r = pcap_set_promisc(ptv->pcap_handle,LIBPCAP_PROMISC);
+    /* set Promisc, and Timeout. Must be called before pcap_activate */
+    int pcap_set_promisc_r = pcap_set_promisc(ptv->pcap_handle, pcapconfig->promisc);
     //printf("ReceivePcapThreadInit: pcap_set_promisc(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_promisc_r);
     if (pcap_set_promisc_r != 0) {
         SCLogError(SC_ERR_PCAP_SET_PROMISC, "Couldn't set promisc mode, error %s", pcap_geterr(ptv->pcap_handle));
