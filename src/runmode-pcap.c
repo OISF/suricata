@@ -93,6 +93,7 @@ void *ParsePcapConfig(const char *iface)
     char *tmpbpf;
     char *tmpctype;
     intmax_t value;
+    int promisc = 0;
 
     if (unlikely(aconf == NULL)) {
         return NULL;
@@ -207,6 +208,13 @@ void *ParsePcapConfig(const char *iface)
         } else {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid value for checksum-checks for %s", aconf->iface);
         }
+    }
+
+    aconf->promisc = LIBPCAP_PROMISC;
+    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "promisc", &promisc) != 1) {
+        SCLogDebug("could not get promisc or none specified");
+    } else {
+        aconf->promisc = promisc;
     }
 
     return aconf;
