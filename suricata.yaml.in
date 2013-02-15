@@ -711,6 +711,9 @@ pcap:
     #threads: 16
     # set to no to disable promiscuous mode:
     #promisc: no
+    # set snaplen, if not set it defaults to MTU if MTU can be known
+    # via ioctl call and to full capture if not.
+    #snaplen: 1518
   # Put default values here
   - interface: default
     #checksum-checks: auto
