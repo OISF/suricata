@@ -39,6 +39,7 @@
 #include "util-device.h"
 #include "util-optimize.h"
 #include "util-checksum.h"
+#include "util-ioctl.h"
 #include "tmqh-packetpool.h"
 
 extern uint8_t suricata_ctl_flags;
@@ -353,6 +354,7 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
 TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCEnter();
     PcapIfaceConfig *pcapconfig = initdata;
+    int mtu;
 
     if (initdata == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "initdata == NULL");
@@ -399,14 +401,18 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    /* set Snaplen, Promisc, and Timeout. Must be called before pcap_activate */
-    int pcap_set_snaplen_r = pcap_set_snaplen(ptv->pcap_handle,LIBPCAP_SNAPLEN);
-    //printf("ReceivePcapThreadInit: pcap_set_snaplen(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_snaplen_r);
-    if (pcap_set_snaplen_r != 0) {
-        SCLogError(SC_ERR_PCAP_SET_SNAPLEN, "Couldn't set snaplen, error: %s", pcap_geterr(ptv->pcap_handle));
-        SCFree(ptv);
-        pcapconfig->DerefFunc(pcapconfig);
-        SCReturnInt(TM_ECODE_FAILED);
+    /* We only set snaplen if we can get the MTU */
+    mtu = GetIfaceMTU(pcapconfig->iface);
+    if (mtu > 0) {
+        /* set Snaplen, Promisc, and Timeout. Must be called before pcap_activate */
+        int pcap_set_snaplen_r = pcap_set_snaplen(ptv->pcap_handle, mtu);
+        //printf("ReceivePcapThreadInit: pcap_set_snaplen(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_snaplen_r);
+        if (pcap_set_snaplen_r != 0) {
+            SCLogError(SC_ERR_PCAP_SET_SNAPLEN, "Couldn't set snaplen, error: %s", pcap_geterr(ptv->pcap_handle));
+            SCFree(ptv);
+            pcapconfig->DerefFunc(pcapconfig);
+            SCReturnInt(TM_ECODE_FAILED);
+        }
     }
 
     int pcap_set_promisc_r = pcap_set_promisc(ptv->pcap_handle,LIBPCAP_PROMISC);
