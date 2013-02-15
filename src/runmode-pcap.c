@@ -94,6 +94,7 @@ void *ParsePcapConfig(const char *iface)
     char *tmpctype;
     intmax_t value;
     int promisc = 0;
+    intmax_t snaplen = 0;
 
     if (unlikely(aconf == NULL)) {
         return NULL;
@@ -216,6 +217,14 @@ void *ParsePcapConfig(const char *iface)
     } else {
         aconf->promisc = promisc;
     }
+
+    aconf->snaplen = 0;
+    if (ConfGetChildValueIntWithDefault(if_root, if_default, "snaplen", &snaplen) != 1) {
+        SCLogDebug("could not get snaplen or none specified");
+    } else {
+        aconf->snaplen = snaplen;
+    }
+
 
     return aconf;
 }

@@ -51,6 +51,8 @@ typedef struct PcapIfaceConfig_
     int threads;
     /* socket buffer size */
     int buffer_size;
+    /* snapshot length */
+    int snaplen;
     /* promiscuous value */
     int promisc;
     /* BPF filter */
