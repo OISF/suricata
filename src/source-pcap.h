@@ -53,6 +53,8 @@ typedef struct PcapIfaceConfig_
     int threads;
     /* socket buffer size */
     int buffer_size;
+    /* promiscuous value */
+    int promisc;
     /* BPF filter */
     char *bpf_filter;
     ChecksumValidationMode checksum_mode;

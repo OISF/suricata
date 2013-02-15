@@ -709,6 +709,8 @@ pcap:
     # rings. In this case, set up the threads variable to N to start N threads
     # listening on the same interface.
     #threads: 16
+    # set to no to disable promiscuous mode:
+    #promisc: no
   # Put default values here
   - interface: default
     #checksum-checks: auto
