@@ -1013,6 +1013,15 @@ AC_INIT(configure.ac)
             echo
             exit 1
         fi
+        PKG_CHECK_MODULES(LIBHTPMAXVERSION, htp <= 0.3.0,[libhtp_maxver_found="yes"],[libhtp_maxver_found="no"])
+        if test "$libhtp_maxver_found" = "no"; then
+            echo
+            echo "   ERROR! libhtp 0.3.x was found but only 0.2.x is supported"
+            echo
+            exit 1
+        fi
+
+
 
         AC_CHECK_LIB([htp], [htp_config_register_request_uri_normalize],AC_DEFINE_UNQUOTED([HAVE_HTP_URI_NORMALIZE_HOOK],[1],[Found htp_config_register_request_uri_normalize function in libhtp]) ,,[-lhtp])
         # check for htp_tx_get_response_headers_raw
