@@ -27,13 +27,17 @@
  *
  * \author Eric Leblond <eric@regit.org>
  *
- * Decode Teredo Tunneling protocol
+ * Decode Teredo Tunneling protocol.
+ *
+ * This implementation is based upon RFC 4380: http://www.ietf.org/rfc/rfc4380.txt
  */
 
 #include "suricata-common.h"
 #include "decode.h"
 #include "decode-ipv6.h"
 #include "util-debug.h"
+
+#define TEREDO_ORIG_INDICATION_LENGTH    8
 
 /**
  * \brief Function to decode Teredo packets
@@ -50,14 +54,15 @@ int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
         return 0;
 
     /* Teredo encapsulate IPv6 in UDP and can add some custom message
-     * part before the IPv6 packet. Here we iter on the messages to get
-     * on the IPv6 packet. */
-    while (start[0] == 0x0) {
+     * part before the IPv6 packet. In our case, we just want to get
+     * over an ORIGIN indication. So we just make one offset if needed. */
+    if (start[0] == 0x0) {
         switch (start[1]) {
             /* origin indication: compatible with tunnel */
             case 0x0:
-                if (len >= 8 + (pkt - start) + IPV6_HEADER_LEN)
-                    start += 8;
+                /* offset is coherent with len and presence of an IPv6 header */
+                if (len >= TEREDO_ORIG_INDICATION_LENGTH + IPV6_HEADER_LEN)
+                    start += TEREDO_ORIG_INDICATION_LENGTH;
                 else
                     return 0;
                 break;
