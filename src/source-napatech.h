@@ -32,6 +32,7 @@ void TmModuleNapatechDecodeRegister (void);
 struct NapatechStreamDevConf
 {
     int stream_id;
+    intmax_t hba;
 };
 
 #ifdef HAVE_NAPATECH
