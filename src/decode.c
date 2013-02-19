@@ -52,6 +52,7 @@
 #include "conf.h"
 #include "decode.h"
 #include "util-debug.h"
+#include "util-device.h"
 #include "util-mem.h"
 #include "app-layer-detect-proto.h"
 #include "tm-threads.h"
@@ -87,6 +88,27 @@ void PacketFree(Packet *p)
 {
     PACKET_CLEANUP(p);
     SCFree(p);
+}
+
+/**
+ * \brief Finalize decoding of a packet
+ *
+ * This function needs to be call at the end of decode
+ * functions when decoding has been succesful.
+ *
+ */
+
+void PacketDecodeFinalize(DecodeThreadVars *dtv, Packet *p)
+{
+
+    if (p->livedev && (p->flags & PKT_IS_INVALID))
+        SC_ATOMIC_ADD(p->livedev->invalid_pkts, 1);
+
+#ifdef __SC_CUDA_SUPPORT__
+    if (dtv->cuda_vars.mpm_is_cuda)
+        CudaBufferPacket(&dtv->cuda_vars, p);
+#endif
+
 }
 
 /**

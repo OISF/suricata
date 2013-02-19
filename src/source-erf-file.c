@@ -292,6 +292,8 @@ DecodeErfFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueu
 
     DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
 
+    PacketDecodeFinalize(dtv, p);
+
     SCReturnInt(TM_ECODE_OK);
 }
 
