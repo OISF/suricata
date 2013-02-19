@@ -879,6 +879,11 @@ void AddressDebugPrint(Address *);
     } \
 } while(0)
 
+#define ENGINE_SET_INVALID_EVENT(p, e) do { \
+    p->flags |= PKT_IS_INVALID; \
+    ENGINE_SET_EVENT(p, e); \
+} while(0)
+
 #define ENGINE_ISSET_EVENT(p, e) ({ \
     int r = 0; \
     uint8_t u; \
@@ -952,6 +957,8 @@ void AddressDebugPrint(Address *);
 
 #define PKT_HOST_SRC_LOOKED_UP          (1<<17)
 #define PKT_HOST_DST_LOOKED_UP          (1<<18)
+
+#define PKT_IS_INVALID                  (1<<19)
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) ((p)->flags & PKT_PSEUDO_STREAM_END)
