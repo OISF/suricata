@@ -43,19 +43,19 @@
 static int DecodeUDPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 {
     if (unlikely(len < UDP_HEADER_LEN)) {
-        ENGINE_SET_EVENT(p, UDP_HLEN_TOO_SMALL);
+        ENGINE_SET_INVALID_EVENT(p, UDP_HLEN_TOO_SMALL);
         return -1;
     }
 
     p->udph = (UDPHdr *)pkt;
 
     if (unlikely(len < UDP_GET_LEN(p))) {
-        ENGINE_SET_EVENT(p, UDP_PKT_TOO_SMALL);
+        ENGINE_SET_INVALID_EVENT(p, UDP_PKT_TOO_SMALL);
         return -1;
     }
 
     if (unlikely(len != UDP_GET_LEN(p))) {
-        ENGINE_SET_EVENT(p, UDP_HLEN_INVALID);
+        ENGINE_SET_INVALID_EVENT(p, UDP_HLEN_INVALID);
         return -1;
     }
 

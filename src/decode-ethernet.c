@@ -43,7 +43,7 @@ int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pk
     SCPerfCounterIncr(dtv->counter_eth, tv->sc_perf_pca);
 
     if (unlikely(len < ETHERNET_HEADER_LEN)) {
-        ENGINE_SET_EVENT(p,ETHERNET_PKT_TOO_SMALL);
+        ENGINE_SET_INVALID_EVENT(p, ETHERNET_PKT_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
 

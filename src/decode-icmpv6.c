@@ -61,7 +61,7 @@ void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
     /** Check the sizes, the header must fit at least */
     if (len < IPV6_HEADER_LEN) {
         SCLogDebug("ICMPV6_IPV6_TRUNC_PKT");
-        ENGINE_SET_EVENT(p, ICMPV6_IPV6_TRUNC_PKT);
+        ENGINE_SET_INVALID_EVENT(p, ICMPV6_IPV6_TRUNC_PKT);
         return;
     }
 
@@ -72,7 +72,7 @@ void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
     {
         SCLogDebug("ICMPv6 contains Unknown IPV6 version "
                 "ICMPV6_IPV6_UNKNOWN_VER");
-        ENGINE_SET_EVENT(p, ICMPV6_IPV6_UNKNOWN_VER);
+        ENGINE_SET_INVALID_EVENT(p, ICMPV6_IPV6_UNKNOWN_VER);
         return;
     }
 
@@ -172,7 +172,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     if (len < ICMPV6_HEADER_LEN) {
         SCLogDebug("ICMPV6_PKT_TOO_SMALL");
-        ENGINE_SET_EVENT(p, ICMPV6_PKT_TOO_SMALL);
+        ENGINE_SET_INVALID_EVENT(p, ICMPV6_PKT_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
 
