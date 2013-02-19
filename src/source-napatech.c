@@ -372,6 +372,9 @@ TmEcode NapatechDecode(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
                     p->datalink);
             break;
     }
+
+    PacketDecodeFinalize(tv, dtv, p);
+
     SCReturnInt(TM_ECODE_OK);
 }
 

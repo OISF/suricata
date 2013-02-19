@@ -563,10 +563,7 @@ TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pac
 
     DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
 
-#ifdef __SC_CUDA_SUPPORT__
-    if (dtv->cuda_vars.mpm_is_cuda)
-        CudaBufferPacket(&dtv->cuda_vars, p);
-#endif
+    PacketDecodeFinalize(tv, dtv, p);
 
     return TM_ECODE_OK;
 }

@@ -992,7 +992,9 @@ TmEcode DecodeMpipe(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 
     /* call the decoder */
     DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
- 
+
+    PacketDecodeFinalize(tv, dtv, p);
+
     SCReturnInt(TM_ECODE_OK);
 }
 

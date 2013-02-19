@@ -90,6 +90,27 @@ void PacketFree(Packet *p)
 }
 
 /**
+ * \brief Finalize decoding of a packet
+ *
+ * This function needs to be call at the end of decode
+ * functions when decoding has been succesful.
+ *
+ */
+
+void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
+{
+
+    if (p->flags & PKT_IS_INVALID)
+        SCPerfCounterIncr(dtv->counter_invalid, tv->sc_perf_pca);
+
+#ifdef __SC_CUDA_SUPPORT__
+    if (dtv->cuda_vars.mpm_is_cuda)
+        CudaBufferPacket(&dtv->cuda_vars, p);
+#endif
+
+}
+
+/**
  * \brief Get a malloced packet.
  *
  * \retval p packet, NULL on error
@@ -337,6 +358,9 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
                                                                 "NULL", "1s");
 #endif
     dtv->counter_bytes = SCPerfTVRegisterCounter("decoder.bytes", tv,
+                                                 SC_PERF_TYPE_UINT64, "NULL");
+
+    dtv->counter_invalid = SCPerfTVRegisterCounter("decoder.invalid", tv,
                                                  SC_PERF_TYPE_UINT64, "NULL");
 #if 0
     dtv->counter_bytes_per_sec = SCPerfTVRegisterIntervalCounter("decoder.bytes_per_sec",

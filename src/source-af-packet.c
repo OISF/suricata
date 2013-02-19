@@ -1688,10 +1688,7 @@ TmEcode DecodeAFP(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
             break;
     }
 
-#ifdef __SC_CUDA_SUPPORT__
-    if (dtv->cuda_vars.mpm_is_cuda)
-        CudaBufferPacket(&dtv->cuda_vars, p);
-#endif
+    PacketDecodeFinalize(tv, dtv, p);
 
     SCReturnInt(TM_ECODE_OK);
 }

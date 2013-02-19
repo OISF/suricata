@@ -617,6 +617,8 @@ TmEcode DecodeErfDag(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             break;
     }
 
+    PacketDecodeFinalize(tv, dtv, p);
+
     SCReturnInt(TM_ECODE_OK);
 }
 

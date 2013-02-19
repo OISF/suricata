@@ -461,6 +461,8 @@ TmEcode DecodeIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
        SCReturnInt(TM_ECODE_FAILED);
     }
 
+    PacketDecodeFinalize(tv, dtv, p);
+
     SCReturnInt(TM_ECODE_OK);
 }
 

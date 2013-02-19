@@ -369,10 +369,7 @@ TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     BUG_ON(p->pkt_src != PKT_SRC_WIRE && p->pkt_src != PKT_SRC_FFR_V2);
 #endif
 
-#ifdef __SC_CUDA_SUPPORT__
-    if (dtv->cuda_vars.mpm_is_cuda)
-        CudaBufferPacket(&dtv->cuda_vars, p);
-#endif
+    PacketDecodeFinalize(tv, dtv, p);
 
     SCReturnInt(TM_ECODE_OK);
 }

@@ -585,6 +585,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_pkts;
     uint16_t counter_pkts_per_sec;
     uint16_t counter_bytes;
+    uint16_t counter_invalid;
     uint16_t counter_bytes_per_sec;
     uint16_t counter_mbit_per_sec;
     uint16_t counter_ipv4;
@@ -818,6 +819,7 @@ Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
 void PacketDefragPktSetupParent(Packet *parent);
 Packet *PacketGetFromQueueOrAlloc(void);
 Packet *PacketGetFromAlloc(void);
+void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p);
 void PacketFree(Packet *p);
 void PacketFreeOrRelease(Packet *p);
 int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen);
@@ -871,6 +873,13 @@ void AddressDebugPrint(Address *);
         (p)->events.cnt++; \
     } \
 } while(0)
+
+#define ENGINE_SET_INVALID_EVENT(p, e) do { \
+    p->flags |= PKT_IS_INVALID; \
+    ENGINE_SET_EVENT(p, e); \
+} while(0)
+
+
 
 #define ENGINE_ISSET_EVENT(p, e) ({ \
     int r = 0; \
@@ -947,6 +956,7 @@ void AddressDebugPrint(Address *);
 #define PKT_HOST_DST_LOOKED_UP          (1<<18)
 
 #define PKT_IS_FRAGMENT                 (1<<19)     /**< Packet is a fragment */
+#define PKT_IS_INVALID                  (1<<20)
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) ((p)->flags & PKT_PSEUDO_STREAM_END)
