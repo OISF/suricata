@@ -46,6 +46,8 @@
 #include "util-print.h"
 #include "util-profiling.h"
 
+#include "util-device.h"
+
 /* Generic validation
  *
  * [--type--][--len---]
@@ -602,6 +604,9 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
             }
             break;
     }
+
+    if ((p->flags & PKT_IS_INVALID) && p->livedev)
+        SC_ATOMIC_ADD(p->livedev->invalid_pkts, 1);
 
     return;
 }

@@ -44,6 +44,8 @@
 #include "util-profiling.h"
 #include "host.h"
 
+#include "util-device.h"
+
 #define IPV6_EXTHDRS     ip6eh.ip6_exthdrs
 #define IPV6_EH_CNT      ip6eh.ip6_exthdrs_cnt
 
@@ -634,6 +636,10 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
             IPV6_EXTHDR_GET_DH2_HDRLEN(p), IPV6_EXTHDR_GET_DH2_NH(p));
     }
 #endif
+
+    if ((p->flags & PKT_IS_INVALID) && p->livedev)
+        SC_ATOMIC_ADD(p->livedev->invalid_pkts, 1);
+
     return;
 }
 
