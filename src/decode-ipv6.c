@@ -55,7 +55,7 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
 {
 
     if (unlikely(plen < IPV4_HEADER_LEN)) {
-        ENGINE_SET_EVENT(p, IPV4_IN_IPV6_PKT_TOO_SMALL);
+        ENGINE_SET_INVALID_EVENT(p, IPV4_IN_IPV6_PKT_TOO_SMALL);
         return;
     }
     if (IP_GET_RAW_VER(pkt) == 4) {
@@ -83,7 +83,7 @@ static int DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint
 {
 
     if (unlikely(plen < IPV6_HEADER_LEN)) {
-        ENGINE_SET_EVENT(p, IPV6_IN_IPV6_PKT_TOO_SMALL);
+        ENGINE_SET_INVALID_EVENT(p, IPV6_IN_IPV6_PKT_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
     if (IP_GET_RAW_VER(pkt) == 6) {
@@ -506,7 +506,7 @@ static int DecodeIPV6Packet (ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
 
     if (unlikely(IP_GET_RAW_VER(pkt) != 6)) {
         SCLogDebug("wrong ip version %" PRIu8 "",IP_GET_RAW_VER(pkt));
-        ENGINE_SET_EVENT(p,IPV6_WRONG_IP_VER);
+        ENGINE_SET_INVALID_EVENT(p, IPV6_WRONG_IP_VER);
         return -1;
     }
 
@@ -514,7 +514,7 @@ static int DecodeIPV6Packet (ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
 
     if (unlikely(len < (IPV6_HEADER_LEN + IPV6_GET_PLEN(p))))
     {
-        ENGINE_SET_EVENT(p,IPV6_TRUNC_PKT);
+        ENGINE_SET_INVALID_EVENT(p, IPV6_TRUNC_PKT);
         return -1;
     }
 

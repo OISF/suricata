@@ -52,7 +52,7 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8
     SCPerfCounterIncr(dtv->counter_pppoe, tv->sc_perf_pca);
 
     if (len < PPPOE_DISCOVERY_HEADER_MIN_LEN) {
-        ENGINE_SET_EVENT(p, PPPOE_PKT_TOO_SMALL);
+        ENGINE_SET_INVALID_EVENT(p, PPPOE_PKT_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
 
@@ -75,7 +75,7 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8
             break;
         default:
             SCLogDebug("unknown PPPOE code: 0x%0"PRIX8"", p->pppoedh->pppoe_code);
-            ENGINE_SET_EVENT(p,PPPOE_WRONG_CODE);
+            ENGINE_SET_INVALID_EVENT(p, PPPOE_WRONG_CODE);
             return TM_ECODE_OK;
     }
 
@@ -92,7 +92,7 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8
 
     if (pppoe_length > packet_length) {
         SCLogDebug("malformed PPPOE tags");
-        ENGINE_SET_EVENT(p,PPPOE_MALFORMED_TAGS);
+        ENGINE_SET_INVALID_EVENT(p, PPPOE_MALFORMED_TAGS);
         return TM_ECODE_OK;
     }
 
@@ -131,7 +131,7 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t
     SCPerfCounterIncr(dtv->counter_pppoe, tv->sc_perf_pca);
 
     if (len < PPPOE_SESSION_HEADER_LEN) {
-        ENGINE_SET_EVENT(p, PPPOE_PKT_TOO_SMALL);
+        ENGINE_SET_INVALID_EVENT(p, PPPOE_PKT_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
 
@@ -183,7 +183,7 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t
             case PPP_VJ_UCOMP:
 
                 if(len < (PPPOE_SESSION_HEADER_LEN + IPV4_HEADER_LEN))    {
-                    ENGINE_SET_EVENT(p,PPPVJU_PKT_TOO_SMALL);
+                    ENGINE_SET_INVALID_EVENT(p, PPPVJU_PKT_TOO_SMALL);
                     return TM_ECODE_OK;
                 }
 
@@ -194,7 +194,7 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t
 
             case PPP_IP:
                 if(len < (PPPOE_SESSION_HEADER_LEN + IPV4_HEADER_LEN))    {
-                    ENGINE_SET_EVENT(p,PPPIPV4_PKT_TOO_SMALL);
+                    ENGINE_SET_INVALID_EVENT(p, PPPIPV4_PKT_TOO_SMALL);
                     return TM_ECODE_OK;
                 }
 
@@ -204,7 +204,7 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t
             /* PPP IPv6 was not tested */
             case PPP_IPV6:
                 if(len < (PPPOE_SESSION_HEADER_LEN + IPV6_HEADER_LEN))    {
-                    ENGINE_SET_EVENT(p,PPPIPV6_PKT_TOO_SMALL);
+                    ENGINE_SET_INVALID_EVENT(p, PPPIPV6_PKT_TOO_SMALL);
                     return TM_ECODE_OK;
                 }
 
@@ -213,7 +213,7 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t
 
             default:
                 SCLogDebug("unknown PPP protocol: %" PRIx32 "",ntohs(p->ppph->protocol));
-                ENGINE_SET_EVENT(p,PPP_WRONG_TYPE);
+                ENGINE_SET_INVALID_EVENT(p, PPP_WRONG_TYPE);
                 return TM_ECODE_OK;
         }
     }
