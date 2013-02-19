@@ -1038,3 +1038,16 @@ profiling:
 
 coredump:
   max-dump: unlimited
+
+napatech:
+    # The Host Buffer Allowance for all streams
+    # (-1 = OFF, 1 - 100 = percentage of the host buffer that can be held back)
+    hba: -1
+
+    # use_all_streams set to "yes" will query the Napatech service for all configured
+    # streams and listen on all of them. When set to "no" the streams config array
+    # will be used.
+    use-all-streams: yes
+
+    # The streams to listen on
+    streams: [1, 2, 3]

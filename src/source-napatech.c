@@ -83,6 +83,7 @@ typedef struct NapatechThreadVars_ {
     ThreadVars *tv;
     NtNetStreamRx_t rx_stream;
     uint64_t stream_id;
+    int hba;
     uint64_t pkts;
     uint64_t drops;
     uint64_t bytes;
@@ -164,6 +165,7 @@ TmEcode NapatechStreamThreadInit(ThreadVars *tv, void *initdata, void **data)
     memset(ntv, 0, sizeof (NapatechThreadVars));
     ntv->stream_id = stream_id;
     ntv->tv = tv;
+    ntv->hba = conf->hba;
 
     SCLogInfo("Started processing packets from NAPATECH  Stream: %lu", ntv->stream_id);
 
@@ -189,7 +191,7 @@ TmEcode NapatechStreamLoop(ThreadVars *tv, void *data, void *slot)
 
     SCLogInfo("Opening NAPATECH Stream: %lu for processing", ntv->stream_id);
 
-    if ((status = NT_NetRxOpen(&(ntv->rx_stream), "SuricataStream", NT_NET_INTERFACE_PACKET, ntv->stream_id, -1)) != NT_SUCCESS) {
+    if ((status = NT_NetRxOpen(&(ntv->rx_stream), "SuricataStream", NT_NET_INTERFACE_PACKET, ntv->stream_id, ntv->hba)) != NT_SUCCESS) {
         NT_ExplainError(status, errbuf, sizeof(errbuf));
         SCLogError(SC_ERR_NAPATECH_OPEN_FAILED, "Failed to open NAPATECH Stream: %lu - %s", ntv->stream_id, errbuf);
         SCFree(ntv);

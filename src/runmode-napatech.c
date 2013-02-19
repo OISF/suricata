@@ -21,7 +21,6 @@
  *  \author nPulse Technologies, LLC.
  *  \author Matt Keeler <mk@npulsetech.com>
  */
-
 #include "suricata-common.h"
 #include "tm-threads.h"
 #include "conf.h"
@@ -89,36 +88,73 @@ int NapatechRegisterDeviceStreams()
     int status;
     int i;
     char live_dev_buf[9];
+    int use_all_streams;
+    ConfNode *ntstreams;
+    ConfNode *stream_id;
 
-    if ((status = NT_InfoOpen(&info_stream, "Test")) != NT_SUCCESS)
+    if (ConfGetBool("napatech.use-all-streams", &use_all_streams) == 0)
     {
-        NT_ExplainError(status, error_buf, sizeof(error_buf) -1);
-        SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "NT_InfoOpen failed: %s", error_buf);
-        return -1;
+        SCLogError(SC_ERR_RUNMODE, "Failed retrieving napatech.use-all-streams from Conf");
+        exit(EXIT_FAILURE);
     }
 
-
-    info.cmd = NT_INFO_CMD_READ_STREAM;
-    if ((status = NT_InfoRead(info_stream, &info)) != NT_SUCCESS)
+    if (use_all_streams)
     {
-        NT_ExplainError(status, error_buf, sizeof(error_buf) -1);
-        SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "NT_InfoRead failed: %s", error_buf);
-        return -1;
+        SCLogInfo("Using All Napatech Streams");
+        // When using the default streams we need to query the service for a list of all configured
+        if ((status = NT_InfoOpen(&info_stream, "SuricataStreamInfo")) != NT_SUCCESS)
+        {
+            NT_ExplainError(status, error_buf, sizeof(error_buf) -1);
+            SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "NT_InfoOpen failed: %s", error_buf);
+            return -1;
+        }
+
+        info.cmd = NT_INFO_CMD_READ_STREAM;
+        if ((status = NT_InfoRead(info_stream, &info)) != NT_SUCCESS)
+        {
+            NT_ExplainError(status, error_buf, sizeof(error_buf) -1);
+            SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "NT_InfoRead failed: %s", error_buf);
+            return -1;
+        }
+
+        num_configured_streams = info.u.stream.data.count;
+        for (i = 0; i < num_configured_streams; i++)
+        {
+            // The Stream IDs do not have to be sequential
+            snprintf(live_dev_buf, sizeof(live_dev_buf), "nt%d", info.u.stream.data.streamIDList[i]);
+            LiveRegisterDevice(live_dev_buf);
+        }
+
+        if ((status = NT_InfoClose(info_stream)) != NT_SUCCESS)
+        {
+            NT_ExplainError(status, error_buf, sizeof(error_buf) -1);
+            SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "NT_InfoClose failed: %s", error_buf);
+            return -1;
+        }
     }
-
-    num_configured_streams = info.u.stream.data.count;
-    for (i = 0; i < num_configured_streams; i++)
+    else
     {
-        // The Stream IDs do not have to be sequential
-        snprintf(live_dev_buf, sizeof(live_dev_buf), "nt%d", info.u.stream.data.streamIDList[i]);
-        LiveRegisterDevice(live_dev_buf);
-    }
+        SCLogInfo("Using Selected Napatech Streams");
+        // When not using the default streams we need to parse the array of streams from the conf
+        if ((ntstreams = ConfGetNode("napatech.streams")) == NULL)
+        {
+            SCLogError(SC_ERR_RUNMODE, "Failed retrieving napatech.streams from Conf");
+            exit(EXIT_FAILURE);
+        }
 
-    if ((status = NT_InfoClose(info_stream)) != NT_SUCCESS)
-    {
-        NT_ExplainError(status, error_buf, sizeof(error_buf) -1);
-        SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "NT_InfoClose failed: %s", error_buf);
-        return -1;
+        // Loop through all stream numbers in the array and register the devices
+        TAILQ_FOREACH(stream_id, &ntstreams->head, next)
+        {
+            if (stream_id == NULL)
+            {
+                SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "Couldn't Parse Stream Configuration");
+                exit(EXIT_FAILURE);
+            }
+            num_configured_streams++;
+
+            snprintf(live_dev_buf, sizeof(live_dev_buf), "nt%d", atoi(stream_id->val));
+            LiveRegisterDevice(live_dev_buf);
+        }
     }
     return 0;
 }
@@ -137,6 +173,12 @@ void *NapatechConfigParser(const char *device) {
 
     // device+5 is a pointer to the beginning of the stream id after the constant nt portion
     conf->stream_id = atoi(device+2);
+
+    // Set the host buffer allowance for this stream
+    // Right now we just look at the global default - there is no per-stream hba configuration
+    if (ConfGetInt("napatech.hba", &conf->hba) == 0)
+        conf->hba = -1;
+
     return (void *) conf;
 }
 
