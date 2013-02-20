@@ -823,8 +823,13 @@ static int HTPCallbackRequestUriNormalizeQuery(htp_connp_t *c)
 
     /* uri normalize the query string as well */
     if (c->in_tx->parsed_uri->query != NULL) {
+#ifdef HAVE_HTP_DECODE_QUERY_INPLACE
+        htp_decode_query_inplace(c->cfg, c->in_tx,
+                c->in_tx->parsed_uri->query);
+#else
         htp_decode_path_inplace(c->cfg, c->in_tx,
                 c->in_tx->parsed_uri->query);
+#endif /* HAVE_HTP_DECODE_QUERY_INPLACE */
     }
     SCReturnInt(HOOK_OK);
 }
@@ -2152,6 +2157,9 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                  * our query string callback also the query string) to lowercase.
                  * Signatures do not expect this, so override it. */
                 htp_config_set_path_case_insensitive(cfg_prec->cfg, 0);
+#ifdef HAVE_HTP_DECODE_QUERY_INPLACE
+                htp_config_set_query_case_insensitive(cfg_prec->cfg, 0);
+#endif
             } else {
                 SCLogWarning(SC_ERR_UNKNOWN_VALUE, "LIBHTP Unknown personality "
                              "\"%s\", ignoring", p->val);
@@ -4442,6 +4450,210 @@ end:
     return result;
 }
 
+/** \test Test http:// in query profile IDS
+ */
+static int HTPParserDecodingTest04(void)
+{
+    int result = 0;
+    Flow *f = NULL;
+    uint8_t httpbuf1[] =
+        "GET /abc/def?a=http://www.abc.com/ HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+
+    HtpState *htp_state =  NULL;
+    int r = 0;
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: IDS\n\
+    double-decode-path: yes\n\
+    double-decode-query: yes\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    HtpConfigCreateBackup();
+    ConfYamlLoadString(input, strlen(input));
+    HTPConfigure();
+    char *addr = "4.3.2.1";
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", addr, 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    uint32_t u;
+    for (u = 0; u < httplen1; u++) {
+        uint8_t flags = 0;
+
+        if (u == 0) flags = STREAM_TOSERVER|STREAM_START;
+        else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
+        else flags = STREAM_TOSERVER;
+
+        r = AppLayerParse(NULL, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        if (r != 0) {
+            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
+                    " 0: ", u, r);
+            result = 0;
+            goto end;
+        }
+    }
+
+    htp_state = f->alstate;
+    if (htp_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    uint8_t ref1[] = "/abc/def?a=http://www.abc.com/";
+    size_t reflen = sizeof(ref1) - 1;
+
+    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    if (tx != NULL && tx->request_uri_normalized != NULL) {
+        if (reflen != bstr_size(tx->request_uri_normalized)) {
+            printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
+                (uintmax_t)reflen,
+                (uintmax_t)bstr_size(tx->request_uri_normalized));
+            goto end;
+        }
+
+        if (memcmp(bstr_ptr(tx->request_uri_normalized), ref1,
+                    bstr_size(tx->request_uri_normalized)) != 0)
+        {
+            printf("normalized uri \"");
+            PrintRawUriFp(stdout, (uint8_t *)bstr_ptr(tx->request_uri_normalized), bstr_size(tx->request_uri_normalized));
+            printf("\" != \"");
+            PrintRawUriFp(stdout, ref1, reflen);
+            printf("\": ");
+            goto end;
+        }
+    }
+
+    result = 1;
+
+end:
+    HTPFreeConfig();
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
+
+    StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
+    UTHFreeFlow(f);
+    return result;
+}
+
+/** \test Test \ char in query profile IDS. Bug 739
+ */
+static int HTPParserDecodingTest05(void)
+{
+    int result = 0;
+    Flow *f = NULL;
+    uint8_t httpbuf1[] =
+        "GET /index?id=\\\"<script>alert(document.cookie)</script> HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+
+    HtpState *htp_state =  NULL;
+    int r = 0;
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: IDS\n\
+    double-decode-path: yes\n\
+    double-decode-query: yes\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    HtpConfigCreateBackup();
+    ConfYamlLoadString(input, strlen(input));
+    HTPConfigure();
+    char *addr = "4.3.2.1";
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", addr, 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    uint32_t u;
+    for (u = 0; u < httplen1; u++) {
+        uint8_t flags = 0;
+
+        if (u == 0) flags = STREAM_TOSERVER|STREAM_START;
+        else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
+        else flags = STREAM_TOSERVER;
+
+        r = AppLayerParse(NULL, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        if (r != 0) {
+            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
+                    " 0: ", u, r);
+            result = 0;
+            goto end;
+        }
+    }
+
+    htp_state = f->alstate;
+    if (htp_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    uint8_t ref1[] = "/index?id=\\\"<script>alert(document.cookie)</script>";
+    size_t reflen = sizeof(ref1) - 1;
+
+    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    if (tx != NULL && tx->request_uri_normalized != NULL) {
+        if (reflen != bstr_size(tx->request_uri_normalized)) {
+            printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
+                (uintmax_t)reflen,
+                (uintmax_t)bstr_size(tx->request_uri_normalized));
+            goto end;
+        }
+
+        if (memcmp(bstr_ptr(tx->request_uri_normalized), ref1,
+                    bstr_size(tx->request_uri_normalized)) != 0)
+        {
+            printf("normalized uri \"");
+            PrintRawUriFp(stdout, (uint8_t *)bstr_ptr(tx->request_uri_normalized), bstr_size(tx->request_uri_normalized));
+            printf("\" != \"");
+            PrintRawUriFp(stdout, ref1, reflen);
+            printf("\": ");
+            goto end;
+        }
+    }
+
+    result = 1;
+
+end:
+    HTPFreeConfig();
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
+
+    StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
+    UTHFreeFlow(f);
+    return result;
+}
+
 /** \test BG box crash -- chunks are messed up. Observed for real. */
 static int HTPBodyReassemblyTest01(void)
 {
@@ -4599,6 +4811,8 @@ void HTPParserRegisterTests(void) {
     UtRegisterTest("HTPParserDecodingTest01", HTPParserDecodingTest01, 1);
     UtRegisterTest("HTPParserDecodingTest02", HTPParserDecodingTest02, 1);
     UtRegisterTest("HTPParserDecodingTest03", HTPParserDecodingTest03, 1);
+    UtRegisterTest("HTPParserDecodingTest04", HTPParserDecodingTest04, 1);
+    UtRegisterTest("HTPParserDecodingTest05", HTPParserDecodingTest05, 1);
 
     UtRegisterTest("HTPBodyReassemblyTest01", HTPBodyReassemblyTest01, 1);
 
