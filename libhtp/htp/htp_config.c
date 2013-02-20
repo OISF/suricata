@@ -463,6 +463,18 @@ void htp_config_set_path_backslash_separators(htp_cfg_t *cfg, int backslash_sepa
 }
 
 /**
+ * Configures whether backslash characters are treated as query segment separators. They
+ * are not on Unix systems, but are on Windows systems. If this setting is enabled, a query
+ * such as "/one\two/three" will be converted to "/one/two/three".
+ *
+ * @param cfg
+ * @param backslash_separators
+ */
+void htp_config_set_query_backslash_separators(htp_cfg_t *cfg, int backslash_separators) {
+    cfg->query_backslash_separators = backslash_separators;
+}
+
+/**
  * Configures filesystem sensitivity. This setting affects
  * how URL paths are normalized. There are no path modifications by default, but
  * on a case-insensitive systems path will be converted to lowercase.
@@ -472,6 +484,18 @@ void htp_config_set_path_backslash_separators(htp_cfg_t *cfg, int backslash_sepa
  */
 void htp_config_set_path_case_insensitive(htp_cfg_t *cfg, int case_insensitive) {
     cfg->path_case_insensitive = case_insensitive;
+}
+
+/**
+ * Configures filesystem sensitivity. This setting affects
+ * how URL querys are normalized. There are no query modifications by default, but
+ * on a case-insensitive systems query will be converted to lowercase.
+ *
+ * @param cfg
+ * @param case_insensitive
+ */
+void htp_config_set_query_case_insensitive(htp_cfg_t *cfg, int case_insensitive) {
+    cfg->query_case_insensitive = case_insensitive;
 }
 
 /**
@@ -489,6 +513,20 @@ void htp_config_set_path_compress_separators(htp_cfg_t *cfg, int compress_separa
 }
 
 /**
+ * Configures whether consecutive query segment separators will be compressed. When
+ * enabled, a query such as "/one//two" will be normalized to "/one/two". The backslash_separators
+ * and decode_separators parameters are used before compression takes place. For example, if
+ * backshasl_deparators and decode_separators are both enabled, the query "/one\\/two\/%5cthree/%2f//four"
+ * will be converted to "/one/two/three/four".
+ *
+ * @param cfg
+ * @param compress_separators
+ */
+void htp_config_set_query_compress_separators(htp_cfg_t *cfg, int compress_separators) {
+    cfg->query_compress_separators = compress_separators;
+}
+
+/**
  * This parameter is used to predict how a server will react when control
  * characters are present in a request path, but does not affect path
  * normalization.
@@ -500,6 +538,20 @@ void htp_config_set_path_compress_separators(htp_cfg_t *cfg, int compress_separa
  */
 void htp_config_set_path_control_char_handling(htp_cfg_t *cfg, int control_char_handling) {
     cfg->path_control_char_handling = control_char_handling;
+}
+
+/**
+ * This parameter is used to predict how a server will react when control
+ * characters are present in a request query, but does not affect query
+ * normalization.
+ *
+ * @param cfg
+ * @param control_char_handling Use NONE with servers that ignore control characters in
+ *                              request query, and STATUS_400 with servers that respond
+ *                              with 400.
+ */
+void htp_config_set_query_control_char_handling(htp_cfg_t *cfg, int control_char_handling) {
+    cfg->query_control_char_handling = control_char_handling;
 }
 
 /**
@@ -529,6 +581,19 @@ void htp_config_set_path_decode_separators(htp_cfg_t *cfg, int decode_separators
 }
 
 /**
+ * Configures whether encoded query segment separators will be decoded. Apache does
+ * not do this, but IIS does. If enabled, a query such as "/one%2ftwo" will be normalized
+ * to "/one/two". If the backslash_separators option is also enabled, encoded backslash
+ * characters will be converted too (and subseqently normalized to forward slashes).
+ *
+ * @param cfg
+ * @param decode_separators
+ */
+void htp_config_set_query_decode_separators(htp_cfg_t *cfg, int decode_separators) {
+    cfg->query_decode_separators = decode_separators;
+}
+
+/**
  * Configures whether %u-encoded sequences in path will be decoded. Such sequences
  * will be treated as invalid URL encoding if decoding is not desireable. 
  *
@@ -537,6 +602,17 @@ void htp_config_set_path_decode_separators(htp_cfg_t *cfg, int decode_separators
  */
 void htp_config_set_path_decode_u_encoding(htp_cfg_t *cfg, int decode_u_encoding) {
     cfg->path_decode_u_encoding = decode_u_encoding;
+}
+
+/**
+ * Configures whether %u-encoded sequences in query will be decoded. Such sequences
+ * will be treated as invalid URL encoding if decoding is not desireable.
+ *
+ * @param cfg
+ * @param decode_u_encoding
+ */
+void htp_config_set_query_decode_u_encoding(htp_cfg_t *cfg, int decode_u_encoding) {
+    cfg->query_decode_u_encoding = decode_u_encoding;
 }
 
 /**
@@ -551,6 +627,17 @@ void htp_config_set_path_invalid_encoding_handling(htp_cfg_t *cfg, int invalid_e
     cfg->path_invalid_encoding_handling = invalid_encoding_handling;
 }
 
+/**
+ * Configures how server reacts to invalid encoding in query.
+ *
+ * @param cfg
+ * @param invalid_encoding_handling The available options are: URL_DECODER_PRESERVE_PERCENT,
+ *                                  URL_DECODER_REMOVE_PERCENT, URL_DECODER_DECODE_INVALID
+ *                                  and URL_DECODER_STATUS_400.
+ */
+void htp_config_set_query_invalid_encoding_handling(htp_cfg_t *cfg, int invalid_encoding_handling) {
+    cfg->query_invalid_encoding_handling = invalid_encoding_handling;
+}
 
 
 /**
@@ -578,6 +665,18 @@ void htp_config_set_path_nul_encoded_handling(htp_cfg_t *cfg, int nul_encoded_ha
 }
 
 /**
+ * Configures how server reacts to encoded NUL bytes. Some servers will terminate
+ * query at NUL, while some will respond with 400 or 404. When the termination option
+ * is not used, the NUL byte will remain in the query.
+ *
+ * @param cfg
+ * @param nul_encoded_handling Possible values: TERMINATE, STATUS_400, STATUS_404
+ */
+void htp_config_set_query_nul_encoded_handling(htp_cfg_t *cfg, int nul_encoded_handling) {
+    cfg->query_nul_encoded_handling = nul_encoded_handling;
+}
+
+/**
  * Configures how server reacts to raw NUL bytes. Some servers will terminate
  * path at NUL, while some will respond with 400 or 404. When the termination option
  * is not used, the NUL byte will remain in the path.
@@ -587,6 +686,18 @@ void htp_config_set_path_nul_encoded_handling(htp_cfg_t *cfg, int nul_encoded_ha
  */
 void htp_config_set_path_nul_raw_handling(htp_cfg_t *cfg, int nul_raw_handling) {
     cfg->path_nul_raw_handling = nul_raw_handling;
+}
+
+/**
+ * Configures how server reacts to raw NUL bytes. Some servers will terminate
+ * query at NUL, while some will respond with 400 or 404. When the termination option
+ * is not used, the NUL byte will remain in the query.
+ *
+ * @param cfg
+ * @param nul_raw_handling Possible values: TERMINATE, STATUS_400, STATUS_404
+ */
+void htp_config_set_query_nul_raw_handling(htp_cfg_t *cfg, int nul_raw_handling) {
+    cfg->query_nul_raw_handling = nul_raw_handling;
 }
 
 /**
@@ -651,6 +762,10 @@ int htp_config_set_server_personality(htp_cfg_t *cfg, int personality) {
             cfg->path_backslash_separators = YES;
             cfg->path_decode_separators = YES;
             cfg->path_compress_separators = YES;
+
+//            cfg->query_backslash_separators = YES;
+            cfg->query_decode_separators = YES;
+//            cfg->query_compress_separators = YES;
             break;
 
         case HTP_SERVER_IDS:
@@ -666,6 +781,12 @@ int htp_config_set_server_personality(htp_cfg_t *cfg, int personality) {
             cfg->path_decode_u_encoding = YES;
             cfg->path_unicode_mapping = BESTFIT;
             cfg->path_convert_utf8 = YES;
+
+//            cfg->query_backslash_separators = YES;
+            cfg->query_case_insensitive = YES;
+            cfg->query_decode_separators = YES;
+//            cfg->query_compress_separators = YES;
+            cfg->query_decode_u_encoding = YES;
             break;
 
         case HTP_SERVER_APACHE :
@@ -680,6 +801,12 @@ int htp_config_set_server_personality(htp_cfg_t *cfg, int personality) {
             cfg->path_compress_separators = YES;
             cfg->path_invalid_encoding_handling = URL_DECODER_STATUS_400;            
             cfg->path_control_char_handling = NONE;
+
+//            cfg->query_backslash_separators = NO;
+            cfg->query_decode_separators = NO;
+//            cfg->query_compress_separators = YES;
+            cfg->query_invalid_encoding_handling = URL_DECODER_STATUS_400;
+            cfg->query_control_char_handling = NONE;
             break;
 
         case HTP_SERVER_IIS_5_1:
@@ -695,6 +822,14 @@ int htp_config_set_server_personality(htp_cfg_t *cfg, int personality) {
             cfg->path_decode_u_encoding = YES;
             cfg->path_unicode_mapping = BESTFIT;
             cfg->path_control_char_handling = NONE;
+
+//            cfg->query_backslash_separators = YES;
+            cfg->query_decode_separators = NO;
+//            cfg->query_compress_separators = YES;
+            cfg->query_invalid_encoding_handling = URL_DECODER_PRESERVE_PERCENT;
+            cfg->query_decode_u_encoding = YES;
+//            cfg->query_unicode_mapping = BESTFIT;
+            cfg->query_control_char_handling = NONE;
             break;
 
         case HTP_SERVER_IIS_6_0:
@@ -710,6 +845,14 @@ int htp_config_set_server_personality(htp_cfg_t *cfg, int personality) {
             cfg->path_decode_u_encoding = YES;
             cfg->path_unicode_mapping = STATUS_400;
             cfg->path_control_char_handling = STATUS_400;
+
+//            cfg->query_backslash_separators = YES;
+            cfg->query_decode_separators = YES;
+//            cfg->query_compress_separators = YES;
+            cfg->query_invalid_encoding_handling = URL_DECODER_STATUS_400;
+            cfg->query_decode_u_encoding = YES;
+//            cfg->query_unicode_mapping = STATUS_400;
+            cfg->query_control_char_handling = STATUS_400;
             break;
 
         case HTP_SERVER_IIS_7_0:
@@ -724,6 +867,12 @@ int htp_config_set_server_personality(htp_cfg_t *cfg, int personality) {
             cfg->path_compress_separators = YES;
             cfg->path_invalid_encoding_handling = URL_DECODER_STATUS_400;
             cfg->path_control_char_handling = STATUS_400;
+
+//            cfg->query_backslash_separators = YES;
+            cfg->query_decode_separators = YES;
+//            cfg->query_compress_separators = YES;
+            cfg->query_invalid_encoding_handling = URL_DECODER_STATUS_400;
+            cfg->query_control_char_handling = STATUS_400;
             break;
             
         default:

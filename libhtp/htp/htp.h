@@ -323,18 +323,22 @@ struct htp_cfg_t {
 
     /** Should we treat backslash characters as path segment separators? */
     int path_backslash_separators;
+    int query_backslash_separators;
     
     /** Should we treat paths as case insensitive? */
     int path_case_insensitive;
+    int query_case_insensitive;
 
     /** Should we compress multiple path segment separators into one? */
     int path_compress_separators;
+    int query_compress_separators;
 
     /** This parameter is used to predict how a server will react when control
      *  characters are present in a request path, but does not affect path
      *  normalization.
      */
     int path_control_char_handling;
+    int query_control_char_handling;
 
     /** Should the parser convert UTF-8 into a single-byte stream, using
      *  best-fit?
@@ -343,23 +347,28 @@ struct htp_cfg_t {
 
     /** Should we URL-decode encoded path segment separators? */
     int path_decode_separators;
+    int query_decode_separators;
 
     /** Should we decode %u-encoded characters? */
     int path_decode_u_encoding;
+    int query_decode_u_encoding;
 
     /** How do handle invalid encodings: URL_DECODER_LEAVE_PERCENT,
      *  URL_DECODER_REMOVE_PERCENT or URL_DECODER_DECODE_INVALID.
      */
     int path_invalid_encoding_handling;
+    int query_invalid_encoding_handling;
 
     /** Controls how invalid UTF-8 characters are handled. */
     int path_invalid_utf8_handling;
 
     /** Controls how encoded NUL bytes are handled. */
     int path_nul_encoded_handling;
+    int query_nul_encoded_handling;
 
     /** Controls how raw NUL bytes are handled. */
     int path_nul_raw_handling;
+    int query_nul_raw_handling;
 
     /** The replacement character used when there is no best-fit mapping. */
     unsigned char path_replacement_char;
@@ -1001,16 +1010,25 @@ void htp_config_register_log(htp_cfg_t *cfg, int (*callback_fn)(htp_log_t *));
 
 void htp_config_set_bestfit_map(htp_cfg_t *cfg, unsigned char *map);
 void htp_config_set_path_backslash_separators(htp_cfg_t *cfg, int backslash_separators);
+void htp_config_set_query_backslash_separators(htp_cfg_t *cfg, int backslash_separators);
 void htp_config_set_path_case_insensitive(htp_cfg_t *cfg, int path_case_insensitive);
+void htp_config_set_query_case_insensitive(htp_cfg_t *cfg, int case_insensitive);
 void htp_config_set_path_compress_separators(htp_cfg_t *cfg, int compress_separators);
+void htp_config_set_query_compress_separators(htp_cfg_t *cfg, int compress_separators);
 void htp_config_set_path_control_char_handling(htp_cfg_t *cfg, int control_char_handling);
+void htp_config_set_query_control_char_handling(htp_cfg_t *cfg, int control_char_handling);
 void htp_config_set_path_convert_utf8(htp_cfg_t *cfg, int convert_utf8);
 void htp_config_set_path_decode_separators(htp_cfg_t *cfg, int backslash_separators);
+void htp_config_set_query_decode_separators(htp_cfg_t *cfg, int decode_separators);
 void htp_config_set_path_decode_u_encoding(htp_cfg_t *cfg, int decode_u_encoding);
+void htp_config_set_query_decode_u_encoding(htp_cfg_t *cfg, int decode_u_encoding);
 void htp_config_set_path_invalid_encoding_handling(htp_cfg_t *cfg, int invalid_encoding_handling);
+void htp_config_set_query_invalid_encoding_handling(htp_cfg_t *cfg, int invalid_encoding_handling);
 void htp_config_set_path_invalid_utf8_handling(htp_cfg_t *cfg, int invalid_utf8_handling);
 void htp_config_set_path_nul_encoded_handling(htp_cfg_t *cfg, int nul_encoded_handling);
+void htp_config_set_query_nul_encoded_handling(htp_cfg_t *cfg, int nul_encoded_handling);
 void htp_config_set_path_nul_raw_handling(htp_cfg_t *cfg, int nul_raw_handling);
+void htp_config_set_query_nul_raw_handling(htp_cfg_t *cfg, int nul_raw_handling);
 void htp_config_set_path_replacement_char(htp_cfg_t *cfg, int replacement_char);
 void htp_config_set_path_unicode_mapping(htp_cfg_t *cfg, int unicode_mapping);
 
@@ -1116,6 +1134,7 @@ bstr *htp_normalize_hostname_inplace(bstr *input);
 void htp_replace_hostname(htp_connp_t *connp, htp_uri_t *parsed_uri, bstr *hostname);
 
 int htp_decode_path_inplace(htp_cfg_t *cfg, htp_tx_t *tx, bstr *path);
+int htp_decode_query_inplace(htp_cfg_t *cfg, htp_tx_t *tx, bstr *path);
 
 void htp_uriencoding_normalize_inplace(bstr *s);
 

@@ -919,6 +919,277 @@ int decode_u_encoding(htp_cfg_t *cfg, htp_tx_t *tx, unsigned char *data) {
 }
 
 /**
+ * Decode a request query according to the settings in the
+ * provided configuration structure.
+ *
+ * @param cfg
+ * @param tx
+ * @param query
+ */
+int htp_decode_query_inplace(htp_cfg_t *cfg, htp_tx_t *tx, bstr *query) {
+    if (query == NULL)
+        return -1;
+
+    unsigned char *data = (unsigned char *) bstr_ptr(query);
+    if (data == NULL) {
+        return -1;
+    }
+    size_t len = bstr_len(query);
+
+    // TODO I don't like this function. It's too complex.
+
+    size_t rpos = 0;
+    size_t wpos = 0;
+    int previous_was_separator = 0;
+
+    while (rpos < len) {
+        int c = data[rpos];
+
+        // Decode encoded characters
+        if (c == '%') {
+            if (rpos + 2 < len) {
+                int handled = 0;
+
+                if (cfg->query_decode_u_encoding) {
+                    // Check for the %u encoding
+                    if ((data[rpos + 1] == 'u') || (data[rpos + 1] == 'U')) {
+                        handled = 1;
+
+                        if (cfg->query_decode_u_encoding == STATUS_400) {
+                            tx->response_status_expected_number = 400;
+                        }
+
+                        if (rpos + 5 < len) {
+                            if (isxdigit(data[rpos + 2]) && (isxdigit(data[rpos + 3]))
+                                && isxdigit(data[rpos + 4]) && (isxdigit(data[rpos + 5]))) {
+                                // Decode a valid %u encoding
+                                c = decode_u_encoding(cfg, tx, &data[rpos + 2]);
+                                rpos += 6;
+
+                                if (c == 0) {
+                                    tx->flags |= HTP_PATH_ENCODED_NUL;
+
+                                    if (cfg->query_nul_encoded_handling == STATUS_400) {
+                                        tx->response_status_expected_number = 400;
+                                    } else if (cfg->query_nul_encoded_handling == STATUS_404) {
+                                        tx->response_status_expected_number = 404;
+                                    }
+                                }
+                            } else {
+                                // Invalid %u encoding
+                                tx->flags |= HTP_PATH_INVALID_ENCODING;
+
+                                switch (cfg->query_invalid_encoding_handling) {
+                                    case URL_DECODER_REMOVE_PERCENT:
+                                        // Do not place anything in output; eat
+                                        // the percent character
+                                        rpos++;
+                                        continue;
+                                        break;
+                                    case URL_DECODER_PRESERVE_PERCENT:
+                                        // Leave the percent character in output
+                                        rpos++;
+                                        break;
+                                    case URL_DECODER_DECODE_INVALID:
+                                        // Decode invalid %u encoding
+                                        c = decode_u_encoding(cfg, tx, &data[rpos + 2]);
+                                        rpos += 6;
+                                        break;
+                                    case URL_DECODER_STATUS_400:
+                                        // Set expected status to 400
+                                        tx->response_status_expected_number = 400;
+
+                                        // Decode invalid %u encoding
+                                        c = decode_u_encoding(cfg, tx, &data[rpos + 2]);
+                                        rpos += 6;
+                                        break;
+                                        break;
+                                    default:
+                                        // Unknown setting
+                                        return -1;
+                                        break;
+                                }
+                            }
+                        } else {
+                            // Invalid %u encoding (not enough data)
+                            tx->flags |= HTP_PATH_INVALID_ENCODING;
+
+                            if (cfg->query_invalid_encoding_handling == URL_DECODER_REMOVE_PERCENT) {
+                                // Remove the percent character from output
+                                rpos++;
+                                continue;
+                            } else {
+                                rpos++;
+                            }
+                        }
+                    }
+                }
+
+                // Handle standard URL encoding
+                if (!handled) {
+                    if ((isxdigit(data[rpos + 1])) && (isxdigit(data[rpos + 2]))) {
+                        c = x2c(&data[rpos + 1]);
+
+                        if (c == 0) {
+                            tx->flags |= HTP_PATH_ENCODED_NUL;
+
+                            switch (cfg->query_nul_encoded_handling) {
+                                case TERMINATE:
+                                    bstr_len_adjust(query, wpos);
+                                    return 1;
+                                    break;
+                                case STATUS_400:
+                                    tx->response_status_expected_number = 400;
+                                    break;
+                                case STATUS_404:
+                                    tx->response_status_expected_number = 404;
+                                    break;
+                            }
+                        }
+
+                        if ((c == '/') || ((cfg->query_backslash_separators) && (c == '\\'))) {
+                            tx->flags |= HTP_PATH_ENCODED_SEPARATOR;
+
+                            switch (cfg->query_decode_separators) {
+                                case STATUS_404:
+                                    tx->response_status_expected_number = 404;
+                                    // Fall-through
+                                case NO:
+                                    // Leave encoded
+                                    c = '%';
+                                    rpos++;
+                                    break;
+                                case YES:
+                                    // Decode
+                                    rpos += 3;
+                                    break;
+                            }
+                        } else {
+                            // Decode
+                            rpos += 3;
+                        }
+                    } else {
+                        // Invalid encoding
+                        tx->flags |= HTP_PATH_INVALID_ENCODING;
+
+                        switch (cfg->query_invalid_encoding_handling) {
+                            case URL_DECODER_REMOVE_PERCENT:
+                                // Do not place anything in output; eat
+                                // the percent character
+                                rpos++;
+                                continue;
+                                break;
+                            case URL_DECODER_PRESERVE_PERCENT:
+                                // Leave the percent character in output
+                                rpos++;
+                                break;
+                            case URL_DECODER_DECODE_INVALID:
+                                // Decode
+                                c = x2c(&data[rpos + 1]);
+                                rpos += 3;
+                                // Note: What if an invalid encoding decodes into a path
+                                //       separator? This is theoretical at the moment, because
+                                //       the only platform we know doesn't convert separators is
+                                //       Apache, who will also respond with 400 if invalid encoding
+                                //       is encountered. Thus no check for a separator here.
+                                break;
+                            case URL_DECODER_STATUS_400:
+                                // Backend will reject request with 400, which means
+                                // that it does not matter what we do.
+                                tx->response_status_expected_number = 400;
+
+                                // Preserve the percent character
+                                rpos++;
+                                break;
+                            default:
+                                // Unknown setting
+                                return -1;
+                                break;
+                        }
+                    }
+                }
+            } else {
+                // Invalid encoding (not enough data)
+                tx->flags |= HTP_PATH_INVALID_ENCODING;
+
+                if (cfg->query_invalid_encoding_handling == URL_DECODER_REMOVE_PERCENT) {
+                    // Do not place the percent character in output
+                    rpos++;
+                    continue;
+                } else {
+                    rpos++;
+                }
+            }
+        } else {
+            // One non-encoded character
+
+            // Is it a NUL byte?
+            if (c == 0) {
+                switch (cfg->query_nul_raw_handling) {
+                    case TERMINATE:
+                        // Terminate path with a raw NUL byte
+                        bstr_len_adjust(query, wpos);
+                        return 1;
+                        break;
+                    case STATUS_400:
+                        // Leave the NUL byte, but set the expected status
+                        tx->response_status_expected_number = 400;
+                        break;
+                    case STATUS_404:
+                        // Leave the NUL byte, but set the expected status
+                        tx->response_status_expected_number = 404;
+                        break;
+                }
+            }
+
+            rpos++;
+        }
+
+        // Place the character into output
+
+        // Check for control characters
+        if (c < 0x20) {
+            if (cfg->query_control_char_handling == STATUS_400) {
+                tx->response_status_expected_number = 400;
+            }
+        }
+
+        // Convert backslashes to forward slashes, if necessary
+        if ((c == '\\') && (cfg->query_backslash_separators)) {
+            c = '/';
+        }
+
+        // Lowercase characters, if necessary
+        if (cfg->query_case_insensitive) {
+            c = tolower(c);
+        }
+
+        // If we're compressing separators then we need
+        // to track if the previous character was a separator
+        if (cfg->query_compress_separators) {
+            if (c == '/') {
+                if (!previous_was_separator) {
+                    data[wpos++] = c;
+                    previous_was_separator = 1;
+                } else {
+                    // Do nothing; we don't want
+                    // another separator in output
+                }
+            } else {
+                data[wpos++] = c;
+                previous_was_separator = 0;
+            }
+        } else {
+            data[wpos++] = c;
+        }
+    }
+
+    bstr_len_adjust(query, wpos);
+
+    return 1;
+}
+
+/**
  * Decode a request path according to the settings in the
  * provided configuration structure.
  *
