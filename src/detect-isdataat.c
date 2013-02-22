@@ -388,14 +388,22 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                 DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
                 DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_UMATCH]);
         if (pm == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "isdataat relative seen "
-                       "without a previous content uricontent, "
-                       "http_client_body, http_header, http_raw_header, "
-                       "http_method, http_cookie, http_raw_uri, "
-                       "http_stat_msg, http_stat_code, byte_test, "
-                       "byte_extract, byte_jump, http_user_agent, "
-                       "http_host or http_raw_host keyword");
-            goto error;
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
+            if (offset != NULL) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(offset, s,
+                                                   SigMatchListSMBelongsTo(s, sm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in isdataat - %s\n", offset);
+                    goto error;
+                }
+                DetectIsdataatData *isdd = sm->ctx;
+                isdd->dataat = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                isdd->flags |= ISDATAAT_OFFSET_BE;
+                SCFree(offset);
+            }
+            SCReturnInt(0);
         } else {
             int list_type = SigMatchListSMBelongsTo(s, pm);
             if (list_type == -1) {

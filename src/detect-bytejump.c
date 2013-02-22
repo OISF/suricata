@@ -644,9 +644,7 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
                        "since this is an alproto sig.");
             return 0;
         } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content "
-                       "or uricontent or pcre option");
-            return -1;
+            return 0;
         }
     }
 
