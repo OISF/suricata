@@ -1052,35 +1052,6 @@ static int SigValidate(Signature *s) {
 #endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
     }
 
-    if (s->alproto == ALPROTO_DCERPC) {
-        /* \todo We haven't covered dce rpc cases now.  They need special
-         * treatment, since they do allow distance, within without a
-         * previous content, but with respect to the stub buffer */
-        ;
-    } else {
-        SigMatch *sm;
-        for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT) {
-                DetectContentData *cd = (DetectContentData *)sm->ctx;
-                if ((cd->flags & DETECT_CONTENT_DISTANCE) ||
-                    (cd->flags & DETECT_CONTENT_WITHIN)) {
-                    SigMatch *pm = SigMatchGetLastSMFromLists(s, 4,
-                                                              DETECT_PCRE, sm->prev,
-                                                              DETECT_BYTEJUMP, sm->prev);
-                    if (pm == NULL) {
-                        SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "within needs two "
-                                   "preceding content or uricontent options");
-                        SCReturnInt(0);
-                    } else {
-                        break;
-                    }
-                } else {
-                    break;
-                }
-            }
-        }
-    }
-
     if (s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL) {
         for (SigMatch *sm = s->sm_lists[DETECT_SM_LIST_HHHDMATCH];
              sm != NULL; sm = sm->next) {

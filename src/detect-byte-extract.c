@@ -641,9 +641,8 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
                                            DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
                                            DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
             if (pm == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content "
-                           "or uricontent or pcre option");
-                return -1;
+                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
+                return 0;
             }
             int list = SigMatchListSMBelongsTo(s, pm);
             if (list == DETECT_SM_LIST_UMATCH)

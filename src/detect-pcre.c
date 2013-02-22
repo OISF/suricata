@@ -846,9 +846,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                 pd->flags &= ~DETECT_PCRE_RELATIVE;
                 SCReturnInt(0);
             } else {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content "
-                        "or uricontent or pcre option");
-                SCReturnInt(-1);
+                SCReturnInt(0);
             }
         }
     }
@@ -1655,10 +1653,10 @@ int DetectPcreParseTest23(void)
                                "content:\"GET\"; "
                                "http_cookie; pcre:\"/abc/RM\"; sid:1;)");
 
-    if (de_ctx->sig_list == NULL) {
+    if (de_ctx->sig_list != NULL) {
         result = 1;
     } else {
-        printf("sig parse should have failed: ");
+        printf("sig parse shouldn't have failed: ");
     }
 
  end:
