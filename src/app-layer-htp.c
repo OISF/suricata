@@ -72,6 +72,10 @@
 
 #include "util-memcmp.h"
 
+#ifndef HAVE_HTP_SET_PATH_DECODE_U_ENCODING
+void htp_config_set_path_decode_u_encoding(htp_cfg_t *cfg, int decode_u_encoding);
+#endif
+
 //#define PRINT
 
 /** Fast lookup tree (radix) for the various HTP configurations */
