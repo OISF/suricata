@@ -402,6 +402,20 @@ static int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, char *cont
 
         /* enable http request body callback in the http app layer parser */
         AppLayerHtpEnableResponseBodyCallback();
+    } else if (s->init_flags & SIG_FLAG_INIT_DCE_STUB_DATA) {
+        cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_DMATCH);
+        sm->type = DETECT_CONTENT;
+
+        /* transfer the sm from the pmatch list to hsbdmatch list */
+        SigMatchTransferSigMatchAcrossLists(sm,
+                &s->sm_lists[DETECT_SM_LIST_PMATCH],
+                &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                &s->sm_lists[DETECT_SM_LIST_DMATCH],
+                &s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
+
+        /* flag the signature to indicate that we scan the app layer data */
+        s->flags |= SIG_FLAG_APPLAYER;
+        s->alproto = ALPROTO_DCERPC;
     }
 
     return 0;

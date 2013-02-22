@@ -561,51 +561,32 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
                        "DCERPC rule holds an invalid modifier for bytejump.");
             goto error;
         }
+        s->alproto = ALPROTO_DCERPC;
     }
 
-    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA ||
+        s->init_flags & SIG_FLAG_INIT_DCE_STUB_DATA) {
+        int sm_list;
+        if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+            AppLayerHtpEnableResponseBodyCallback();
+            sm_list = DETECT_SM_LIST_HSBDMATCH;
+        } else {
+            sm_list = DETECT_SM_LIST_DMATCH;
+        }
+
         if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
             SigMatch *prev_sm = NULL;
             prev_sm = SigMatchGetLastSMFromLists(s, 8,
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                    DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                    DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                    DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]);
+                                                 DETECT_CONTENT, s->sm_lists_tail[sm_list],
+                                                 DETECT_BYTETEST, s->sm_lists_tail[sm_list],
+                                                 DETECT_BYTEJUMP, s->sm_lists_tail[sm_list],
+                                                 DETECT_PCRE, s->sm_lists_tail[sm_list]);
             if (prev_sm == NULL) {
                 data->flags &= ~DETECT_BYTEJUMP_RELATIVE;
             }
-
-            s->flags |= SIG_FLAG_APPLAYER;
-            AppLayerHtpEnableResponseBodyCallback();
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
-        } else {
-            s->flags |= SIG_FLAG_APPLAYER;
-            AppLayerHtpEnableResponseBodyCallback();
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
         }
-    } else if (s->alproto == ALPROTO_DCERPC &&
-        (data->flags & DETECT_BYTEJUMP_RELATIVE)) {
-        SigMatch *pm = NULL;
-        SigMatch *dm = NULL;
-
-        pm = SigMatchGetLastSMFromLists(s, 6,
-                                        DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                        DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
-        dm = SigMatchGetLastSMFromLists(s, 6,
-                                        DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                                        DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
-
-        if (pm == NULL) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
-        } else if (dm == NULL) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
-        } else if (pm->idx > dm->idx) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
-        } else {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
-        }
+        s->flags |= SIG_FLAG_APPLAYER;
+        SigMatchAppendSMToList(s, sm, sm_list);
     } else {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
     }
@@ -639,13 +620,7 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
                                          DETECT_BYTEJUMP, sm->prev,
                                          DETECT_PCRE, sm->prev);
     if (prev_sm == NULL) {
-        if (s->alproto == ALPROTO_DCERPC) {
-            SCLogDebug("No preceding content or pcre keyword.  Possible "
-                       "since this is an alproto sig.");
-            return 0;
-        } else {
-            return 0;
-        }
+        return 0;
     }
 
     DetectContentData *cd = NULL;

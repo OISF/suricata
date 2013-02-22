@@ -571,60 +571,42 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 
     /* check bytetest modifiers against the signature alproto.  In case they conflict
      * chuck out invalid signature */
-    if ((data->endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE) &&
-        (s->alproto != ALPROTO_DCERPC)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Non dce alproto sig has "
-                   "bytetest with dce enabled");
-        goto error;
+    if ((data->endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE)) {
+        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Non dce alproto sig has "
+                       "bytetest with dce enabled");
+            goto error;
+        }
+        s->alproto = ALPROTO_DCERPC;
     }
 
-    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA ||
+        s->init_flags & SIG_FLAG_INIT_DCE_STUB_DATA) {
+        int sm_list;
+        if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+            AppLayerHtpEnableResponseBodyCallback();
+            sm_list = DETECT_SM_LIST_HSBDMATCH;
+        } else {
+            sm_list = DETECT_SM_LIST_DMATCH;
+        }
+
         if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
             SigMatch *prev_sm = NULL;
             prev_sm = SigMatchGetLastSMFromLists(s, 8,
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                    DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                    DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                    DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]);
+                                                 DETECT_CONTENT, s->sm_lists_tail[sm_list],
+                                                 DETECT_BYTETEST, s->sm_lists_tail[sm_list],
+                                                 DETECT_BYTEJUMP, s->sm_lists_tail[sm_list],
+                                                 DETECT_PCRE, s->sm_lists_tail[sm_list]);
             if (prev_sm == NULL) {
                 data->flags &= ~DETECT_BYTE_EXTRACT_FLAG_RELATIVE;
             }
-
-            s->flags |= SIG_FLAG_APPLAYER;
-            AppLayerHtpEnableResponseBodyCallback();
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
-        } else {
-            s->flags |= SIG_FLAG_APPLAYER;
-            AppLayerHtpEnableResponseBodyCallback();
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
         }
-    } else if (s->alproto == ALPROTO_DCERPC &&
-        (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE)) {
-        SigMatch *pm = NULL;
-        SigMatch *dm = NULL;
-
-        pm = SigMatchGetLastSMFromLists(s, 6,
-                                        DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                        DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
-        dm = SigMatchGetLastSMFromLists(s, 6,
-                                        DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                                        DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
-
-        if (pm == NULL) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
-        } else if (dm == NULL) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
-        } else if (pm->idx > dm->idx) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
-        } else {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
-        }
+        s->flags |= SIG_FLAG_APPLAYER;
+        SigMatchAppendSMToList(s, sm, sm_list);
     } else {
         if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
             SigMatch *pm =
-                SigMatchGetLastSMFromLists(s, 30,
+                SigMatchGetLastSMFromLists(s, 20,
                                            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                            DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                            DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
@@ -634,21 +616,13 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
                                            DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                            DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                            DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                           DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                           DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                                           DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                                           DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                                           DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                                           DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
+                                           DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
             if (pm == NULL) {
                 SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
                 return 0;
             }
             int list = SigMatchListSMBelongsTo(s, pm);
-            if (list == DETECT_SM_LIST_UMATCH)
-                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
-            else
-                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
+            SigMatchAppendSMToList(s, sm, list);
         } else {
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
         }
@@ -667,17 +641,8 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
                                          DETECT_CONTENT, sm->prev,
                                          DETECT_BYTEJUMP, sm->prev,
                                          DETECT_PCRE, sm->prev);
-    if (prev_sm == NULL) {
-        if (s->alproto == ALPROTO_DCERPC) {
-            SCLogDebug("No preceding content or pcre keyword.  Possible "
-                       "since this is a dce alproto sig.");
-            return 0;
-        } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content "
-                       "or uricontent or pcre option");
-            return -1;
-        }
-    }
+    if (prev_sm == NULL)
+        return 0;
 
     DetectContentData *cd = NULL;
     DetectPcreData *pe = NULL;

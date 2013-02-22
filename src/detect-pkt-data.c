@@ -73,7 +73,7 @@ void DetectPktDataRegister(void) {
 static int DetectPktDataSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     SCEnter();
-    s->init_flags &= (~SIG_FLAG_INIT_FILE_DATA);
+    s->init_flags &= (~SIG_FLAG_INIT_FILE_DATA & ~SIG_FLAG_INIT_DCE_STUB_DATA);
 
     return 0;
 }
