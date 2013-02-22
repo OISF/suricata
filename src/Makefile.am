@@ -17,6 +17,9 @@ app-layer.c app-layer.h \
 app-layer-dcerpc.c app-layer-dcerpc.h \
 app-layer-dcerpc-udp.c app-layer-dcerpc-udp.h \
 app-layer-detect-proto.c app-layer-detect-proto.h \
+app-layer-dns-common.c app-layer-dns-common.h \
+app-layer-dns-tcp.c app-layer-dns-tcp.h \
+app-layer-dns-udp.c app-layer-dns-udp.h \
 app-layer-ftp.c app-layer-ftp.h \
 app-layer-htp-body.c app-layer-htp-body.h \
 app-layer-htp.c app-layer-htp.h \
@@ -193,6 +196,7 @@ flow-var.c flow-var.h \
 host.c host.h \
 host-queue.c host-queue.h \
 host-timeout.c host-timeout.h \
+log-dnslog.c log-dnslog.h \
 log-droplog.c log-droplog.h \
 log-file.c log-file.h \
 log-filestore.c log-filestore.h \

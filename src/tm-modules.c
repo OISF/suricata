@@ -98,6 +98,9 @@ int TmModuleGetIDForTM(TmModule *tm)
     for (i = 0; i < TMM_SIZE; i++) {
         t = &tmm_modules[i];
 
+        if (t->name == NULL)
+            continue;
+
         if (strcmp(t->name, tm->name) == 0)
             return i;
     }
@@ -242,6 +245,7 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_ALERTSYSLOG4);
         CASE_CODE (TMM_ALERTSYSLOG6);
         CASE_CODE (TMM_RESPONDREJECT);
+        CASE_CODE (TMM_LOGDNSLOG);
         CASE_CODE (TMM_LOGHTTPLOG);
         CASE_CODE (TMM_LOGHTTPLOG4);
         CASE_CODE (TMM_LOGHTTPLOG6);

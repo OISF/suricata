@@ -104,6 +104,13 @@ outputs:
       #extended: yes # Log extended information like fingerprint
       certs-log-dir: certs # directory to store the certificates files
 
+  # a line based log of DNS requests and/or replies (no alerts)
+  - dns-log:
+      enabled: yes
+      filename: dns.log
+      append: yes
+      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
+
   # a line based log to used with pcap file study.
   # this module is dedicated to offline pcap parsing (empty output
   # if used with another kind of input). It can interoperate with

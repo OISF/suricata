@@ -52,6 +52,8 @@
 #include "app-layer-ssl.h"
 #include "app-layer-ssh.h"
 #include "app-layer-smtp.h"
+#include "app-layer-dns-udp.h"
+#include "app-layer-dns-tcp.h"
 
 #include "util-spm.h"
 
@@ -1256,6 +1258,8 @@ void RegisterAppLayerParsers(void)
     RegisterFTPParsers();
     RegisterSSHParsers();
     RegisterSMTPParsers();
+    RegisterDNSUDPParsers();
+    RegisterDNSTCPParsers();
 
     /** IMAP */
     //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_IMAP, "|2A 20|OK|20|", 5, 0, STREAM_TOCLIENT);
