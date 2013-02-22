@@ -793,38 +793,20 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
 
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSCDMATCH);
     } else {
-        if (s->alproto == ALPROTO_DCERPC && (pd->flags & DETECT_PCRE_RELATIVE)) {
-            SigMatch *pm = NULL;
-            SigMatch *dm = NULL;
+        if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+            SCLogDebug("adding to http server body list because of file data");
+            s->flags |= SIG_FLAG_APPLAYER;
+            AppLayerHtpEnableResponseBodyCallback();
 
-            pm = SigMatchGetLastSMFromLists(s, 6,
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                    DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                    DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
-            dm = SigMatchGetLastSMFromLists(s, 6,
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                    DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                    DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
+        } else if (s->init_flags & SIG_FLAG_INIT_DCE_STUB_DATA) {
+            SCLogDebug("adding to dmatch list because of dce_stub_data");
+            s->flags |= SIG_FLAG_APPLAYER;
+            AppLayerHtpEnableResponseBodyCallback();
 
-            if (pm == NULL) {
-                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
-            } else if (dm == NULL) {
-                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
-            } else if (pm->idx > dm->idx) {
-                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
-            } else {
-                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
-            }
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
         } else {
-            if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
-                SCLogDebug("adding to http server body list because of file data");
-                s->flags |= SIG_FLAG_APPLAYER;
-                AppLayerHtpEnableResponseBodyCallback();
-
-                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
-            } else {
-                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
-            }
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
         }
     }
 
@@ -836,19 +818,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                                          DETECT_CONTENT, sm->prev,
                                          DETECT_PCRE, sm->prev);
     if (prev_sm == NULL) {
-        if (s->alproto == ALPROTO_DCERPC) {
-            SCLogDebug("No preceding content or pcre keyword.  Possible "
-                       "since this is an alproto sig.");
-            SCReturnInt(0);
-        } else {
-            if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
-                SCLogDebug("removing relative flag as we are relative to file_data");
-                pd->flags &= ~DETECT_PCRE_RELATIVE;
-                SCReturnInt(0);
-            } else {
-                SCReturnInt(0);
-            }
-        }
+        pd->flags &= ~DETECT_PCRE_RELATIVE;
+        SCReturnInt(0);
     }
 
     DetectContentData *cd = NULL;
@@ -1172,7 +1143,7 @@ int DetectPcreParseTest11(void)
     result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_PCRE);
     data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
     if (data->flags & DETECT_PCRE_RAWBYTES ||
-        !(data->flags & DETECT_PCRE_RELATIVE) ||
+        data->flags & DETECT_PCRE_RELATIVE ||
         data->flags & DETECT_PCRE_URI) {
         result = 0;
         goto end;
@@ -1195,7 +1166,7 @@ int DetectPcreParseTest11(void)
     result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_PCRE);
     data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
     if (data->flags & DETECT_PCRE_RAWBYTES ||
-        !(data->flags & DETECT_PCRE_RELATIVE) ||
+        data->flags & DETECT_PCRE_RELATIVE ||
         data->flags & DETECT_PCRE_URI) {
         result = 0;
         goto end;
@@ -1218,7 +1189,7 @@ int DetectPcreParseTest11(void)
     result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_PCRE);
     data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
     if (!(data->flags & DETECT_PCRE_RAWBYTES) ||
-        !(data->flags & DETECT_PCRE_RELATIVE) ||
+        data->flags & DETECT_PCRE_RELATIVE ||
         data->flags & DETECT_PCRE_URI) {
         result = 0;
         goto end;

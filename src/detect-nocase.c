@@ -76,8 +76,9 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
     }
 
     /* Search for the first previous SigMatch that supports nocase */
-    SigMatch *pm = SigMatchGetLastSMFromLists(s, 28,
+    SigMatch *pm = SigMatchGetLastSMFromLists(s, 30,
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
@@ -96,7 +97,8 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
                    "content, uricontent, http_client_body, http_server_body, "
                    "http_header, http_method, http_uri, http_cookie, "
                    "http_raw_uri, http_stat_msg, http_stat_code, "
-                   "http_user_agent, http_host or http_raw_host option");
+                   "http_user_agent, http_host or http_raw_host option or "
+                   "file_data/dce_stub_data sticky buffer option");
         SCReturnInt(-1);
     }
 

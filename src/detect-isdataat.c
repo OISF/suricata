@@ -250,8 +250,6 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
 {
     DetectIsdataatData *idad = NULL;
     SigMatch *sm = NULL;
-    SigMatch *dm = NULL;
-    SigMatch *pm = NULL;
     SigMatch *prev_pm = NULL;
     char *offset = NULL;
 
@@ -266,74 +264,36 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
     sm->type = DETECT_ISDATAAT;
     sm->ctx = (void *)idad;
 
-    if (s->alproto == ALPROTO_DCERPC &&
-        (idad->flags & ISDATAAT_RELATIVE)) {
-
-        pm = SigMatchGetLastSMFromLists(s, 6,
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
-        dm = SigMatchGetLastSMFromLists(s, 6,
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
-
-        if (pm == NULL) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
-        } else if (dm == NULL) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
-        } else if (pm->idx > dm->idx) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
+    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA || s->init_flags & SIG_FLAG_INIT_DCE_STUB_DATA) {
+        int sm_list;
+        if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+            AppLayerHtpEnableResponseBodyCallback();
+            sm_list = DETECT_SM_LIST_HSBDMATCH;
         } else {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
+            sm_list = DETECT_SM_LIST_DMATCH;
         }
-        prev_pm = SigMatchGetLastSMFromLists(s, 6,
-                DETECT_CONTENT, sm->prev,
-                DETECT_BYTEJUMP, sm->prev,
-                DETECT_PCRE, sm->prev);
-        if (prev_pm == NULL) {
-            SCLogDebug("No preceding content or pcre keyword.  Possible "
-                       "since this is a dce alproto sig.");
-            if (offset != NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
-                           "seen in isdataat - %s", offset);
-                goto error;
-            }
-            return 0;
-        }
-    } else if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+
         if (idad->flags & ISDATAAT_RELATIVE) {
-            pm = SigMatchGetLastSMFromLists(s, 10,
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                    DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                    DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                    DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                    DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]);
-            if (pm == NULL) {
-                idad->flags &= ~ISDATAAT_RELATIVE;
-            }
-
             s->flags |= SIG_FLAG_APPLAYER;
-            AppLayerHtpEnableResponseBodyCallback();
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
-        } else {
-            s->flags |= SIG_FLAG_APPLAYER;
-            AppLayerHtpEnableResponseBodyCallback();
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
-        }
-
-        if (pm == NULL) {
-            SCLogDebug("No preceding content or pcre keyword.  Possible "
+            SigMatchAppendSMToList(s, sm, sm_list);
+            prev_pm = SigMatchGetLastSMFromLists(s, 10,
+                                                 DETECT_CONTENT, s->sm_lists_tail[sm_list],
+                                                 DETECT_PCRE, s->sm_lists_tail[sm_list],
+                                                 DETECT_BYTEJUMP, s->sm_lists_tail[sm_list],
+                                                 DETECT_BYTE_EXTRACT, s->sm_lists_tail[sm_list],
+                                                 DETECT_BYTETEST, s->sm_lists_tail[sm_list]);
+            if (prev_pm == NULL) {
+                SCLogDebug("No preceding content or pcre keyword.  Possible "
                        "since this is a file_data sig.");
-            if (offset != NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
-                           "seen in isdataat - %s", offset);
-                goto error;
+                if (offset != NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in isdataat - %s", offset);
+                    goto error;
+                }
+                idad->flags &= ~ISDATAAT_RELATIVE;
+                return 0;
             }
-            return 0;
         }
-
-        prev_pm = pm;
     } else {
         if (!(idad->flags & ISDATAAT_RELATIVE)) {
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
@@ -353,7 +313,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             }
             return 0;
         }
-        pm = SigMatchGetLastSMFromLists(s, 66,
+        prev_pm = SigMatchGetLastSMFromLists(s, 66,
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
@@ -387,7 +347,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                 DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                 DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
                 DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_UMATCH]);
-        if (pm == NULL) {
+        if (prev_pm == NULL) {
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
             if (offset != NULL) {
                 SigMatch *bed_sm =
@@ -405,15 +365,13 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             }
             SCReturnInt(0);
         } else {
-            int list_type = SigMatchListSMBelongsTo(s, pm);
+            int list_type = SigMatchListSMBelongsTo(s, prev_pm);
             if (list_type == -1) {
                 goto error;
             }
 
             SigMatchAppendSMToList(s, sm, list_type);
-        } /* else - if (pm == NULL) */
-
-        prev_pm = pm;
+        } /* else - if (prev_pm == NULL) */
     }
 
     if (offset != NULL) {
@@ -556,7 +514,7 @@ int DetectIsdataatTestParse04(void)
     s->alproto = ALPROTO_DCERPC;
     /* failure since we have no preceding content/pcre/bytejump */
     result &= (DetectIsdataatSetup(NULL, s, "30,relative") == 0);
-    result &= (s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
     SigFree(s);
 

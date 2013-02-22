@@ -70,55 +70,35 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
         dubbed = 1;
     }
 
-    switch (s->alproto) {
-        case ALPROTO_DCERPC:
-            /* add to the latest content keyword from either dmatch or pmatch */
-            pm =  SigMatchGetLastSMFromLists(s, 4,
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
-            if (pm == NULL) {
-                SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "
-                           "preceding content option for dcerpc sig");
-                if (dubbed)
-                    SCFree(str);
-                return -1;
-            }
-
-            break;
-
-        default:
-            pm =  SigMatchGetLastSMFromLists(s, 28,
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
-            if (pm == NULL) {
-                SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "
-                        "preceding content, uricontent option, http_client_body, "
-                        "http_server_body, http_header option, http_raw_header option, "
-                        "http_method option, http_cookie, http_raw_uri, "
-                        "http_stat_msg, http_stat_code, http_user_agent, "
-                        "http_host or http_raw_host option");
-                if (dubbed)
-                    SCFree(str);
-                return -1;
-            }
-
-            break;
+    pm =  SigMatchGetLastSMFromLists(s, 30,
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
+    if (pm == NULL) {
+        SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "
+                   "preceding content, uricontent option, http_client_body, "
+                   "http_server_body, http_header option, http_raw_header option, "
+                   "http_method option, http_cookie, http_raw_uri, "
+                   "http_stat_msg, http_stat_code, http_user_agent, "
+                   "http_host, http_raw_host or "
+                   "file_data/dce_stub_data sticky buffer options");
+        if (dubbed)
+            SCFree(str);
+        return -1;
     }
 
-    /* i swear we will clean this up :).  Use a single version for all.  Using
-     * separate versions for all now, to avoiding breaking any code */
     switch (pm->type) {
         case DETECT_CONTENT:
             cd = (DetectContentData *)pm->ctx;
