@@ -34,6 +34,7 @@
 #include "util-debug.h"
 #include "util-privs.h"
 #include "util-signal.h"
+#include "unix-manager.h"
 
 /** \todo Get the default log directory from some global resource. */
 #define SC_PERF_DEFAULT_LOG_FILENAME "stats.log"
@@ -1195,6 +1196,201 @@ static int SCPerfOutputCounterFileIface()
 
     return 1;
 }
+
+#ifdef BUILD_UNIX_SOCKET
+/**
+ * \brief The file output interface for the Perf Counter api
+ */
+TmEcode SCPerfOutputCounterSocket(json_t *cmd,
+                               json_t *answer, void *data)
+{
+    ThreadVars *tv = NULL;
+    SCPerfClubTMInst *pctmi = NULL;
+    SCPerfCounter *pc = NULL;
+    SCPerfCounter **pc_heads = NULL;
+
+    uint64_t ui64_temp = 0;
+    uint64_t ui64_result = 0;
+
+    double double_temp = 0;
+    double double_result = 0;
+
+    uint32_t u = 0;
+    int flag = 0;
+
+    if (sc_perf_op_ctx == NULL) {
+        json_object_set_new(answer, "message",
+                json_string("No performance counter context"));
+        return TM_ECODE_FAILED;
+    }
+
+    if (sc_perf_op_ctx->club_tm == 0) {
+        json_t *tm_array;
+
+        tm_array = json_object();
+        if (tm_array == NULL) {
+            json_object_set_new(answer, "message",
+                    json_string("internal error at json object creation"));
+            return TM_ECODE_FAILED;
+        }
+
+
+        for (u = 0; u < TVT_MAX; u++) {
+            tv = tv_root[u];
+            //if (pc_heads == NULL || pc_heads[u] == NULL)
+            //    continue;
+
+
+            while (tv != NULL) {
+                SCMutexLock(&tv->sc_perf_pctx.m);
+                pc = tv->sc_perf_pctx.head;
+                json_t *jdata;
+                int filled = 0;
+                jdata = json_object();
+                if (jdata == NULL) {
+                    json_decref(tm_array);
+                    json_object_set_new(answer, "message",
+                            json_string("internal error at json object creation"));
+                    return TM_ECODE_FAILED;
+                }
+
+                while (pc != NULL) {
+                    if (pc->disp == 0 || pc->value == NULL) {
+                        pc = pc->next;
+                        continue;
+                    }
+
+                    switch (pc->value->type) {
+                        case SC_PERF_TYPE_UINT64:
+                            SCPerfOutputCalculateCounterValue(pc,
+                                    &ui64_temp);
+                            json_object_set_new(jdata, pc->name->cname, json_integer(ui64_temp));
+                            filled = 1;
+                            break;
+                        case SC_PERF_TYPE_DOUBLE:
+                            SCPerfOutputCalculateCounterValue(pc,
+                                    &double_temp);
+                            json_object_set_new(jdata, pc->name->cname, json_real(double_temp));
+                            filled = 1;
+                            break;
+                    }
+                    pc = pc->next;
+                }
+
+                SCMutexUnlock(&tv->sc_perf_pctx.m);
+                if (filled == 1) {
+                    json_object_set_new(tm_array, pc->name->tm_name, jdata);
+                }
+                tv = tv->next;
+            }
+        }
+
+        json_object_set_new(answer, "message", tm_array);
+        return TM_ECODE_OK;
+    }
+
+    json_t *tm_array;
+
+    tm_array = json_object();
+    if (tm_array == NULL) {
+        json_object_set_new(answer, "message",
+                json_string("internal error at json object creation"));
+        return TM_ECODE_FAILED;
+    }
+
+    pctmi = sc_perf_op_ctx->pctmi;
+    while (pctmi != NULL) {
+        json_t *jdata;
+        int filled = 0;
+        jdata = json_object();
+        if (jdata == NULL) {
+            json_decref(tm_array);
+            json_object_set_new(answer, "message",
+                    json_string("internal error at json object creation"));
+            return TM_ECODE_FAILED;
+        }
+        if ((pc_heads = SCMalloc(pctmi->size * sizeof(SCPerfCounter *))) == NULL) {
+            json_decref(tm_array);
+            json_object_set_new(answer, "message",
+                    json_string("internal memory error"));
+            return TM_ECODE_FAILED;
+        }
+        memset(pc_heads, 0, pctmi->size * sizeof(SCPerfCounter *));
+
+        for (u = 0; u < pctmi->size; u++) {
+            pc_heads[u] = pctmi->head[u]->head;
+
+            SCMutexLock(&pctmi->head[u]->m);
+
+            while(pc_heads[u] != NULL && strcmp(pctmi->tm_name, pc_heads[u]->name->tm_name)) {
+                pc_heads[u] = pc_heads[u]->next;
+            }
+        }
+
+        flag = 1;
+        while(flag) {
+            ui64_result = 0;
+            double_result = 0;
+            if (pc_heads[0] == NULL)
+                break;
+            pc = pc_heads[0];
+
+            for (u = 0; u < pctmi->size; u++) {
+                switch (pc->value->type) {
+                    case SC_PERF_TYPE_UINT64:
+                        SCPerfOutputCalculateCounterValue(pc_heads[u], &ui64_temp);
+                        ui64_result += ui64_temp;
+
+                        break;
+                    case SC_PERF_TYPE_DOUBLE:
+                        SCPerfOutputCalculateCounterValue(pc_heads[u], &double_temp);
+                        double_result += double_temp;
+
+                        break;
+                }
+
+                if (pc_heads[u] != NULL)
+                    pc_heads[u] = pc_heads[u]->next;
+
+                if (pc_heads[u] == NULL ||
+                    (pc_heads[0] != NULL &&
+                        strcmp(pctmi->tm_name, pc_heads[0]->name->tm_name))) {
+                    flag = 0;
+                }
+            }
+
+            if (pc->disp == 0 || pc->value == NULL)
+                continue;
+
+            switch (pc->value->type) {
+                case SC_PERF_TYPE_UINT64:
+                    filled = 1;
+                    json_object_set_new(jdata, pc->name->cname, json_integer(ui64_result));
+                    break;
+                case SC_PERF_TYPE_DOUBLE:
+                    filled = 1;
+                    json_object_set_new(jdata, pc->name->cname, json_real(double_result));
+                    break;
+            }
+        }
+
+        for (u = 0; u < pctmi->size; u++)
+            SCMutexUnlock(&pctmi->head[u]->m);
+        if (filled == 1) {
+            json_object_set_new(tm_array, pctmi->tm_name, jdata);
+        }
+        pctmi = pctmi->next;
+
+        SCFree(pc_heads);
+
+    }
+
+    json_object_set_new(answer, "message", tm_array);
+
+    return TM_ECODE_OK;
+}
+
+#endif /* BUILD_UNIX_SOCKET */
 
 /**
  * \brief Initializes the perf counter api.  Things are hard coded currently.
