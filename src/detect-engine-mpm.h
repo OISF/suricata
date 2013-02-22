@@ -49,6 +49,8 @@ uint32_t HttpRawUriPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, u
 uint32_t HttpStatMsgPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
 uint32_t HttpStatCodePatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
 uint32_t HttpUAPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
+uint32_t HttpHHPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
+uint32_t HttpHRHPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
 
 void PacketPatternCleanup(ThreadVars *, DetectEngineThreadCtx *);
 void StreamPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx, StreamMsg *smsg);

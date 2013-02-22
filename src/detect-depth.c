@@ -87,7 +87,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
             break;
 
         default:
-            pm =  SigMatchGetLastSMFromLists(s, 24,
+            pm =  SigMatchGetLastSMFromLists(s, 28,
                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
@@ -99,13 +99,16 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]);
+                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
+                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
+                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
             if (pm == NULL) {
                 SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "
                         "preceding content, uricontent option, http_client_body, "
                         "http_server_body, http_header option, http_raw_header option, "
                         "http_method option, http_cookie, http_raw_uri, "
-                        "http_stat_msg, http_stat_code or http_user_agent option");
+                        "http_stat_msg, http_stat_code, http_user_agent, "
+                        "http_host or http_raw_host option");
                 if (dubbed)
                     SCFree(str);
                 return -1;

@@ -107,6 +107,10 @@ enum {
     DETECT_SM_LIST_HSCDMATCH,
     /* list for http_user_agent keyword and the ones relative to it */
     DETECT_SM_LIST_HUADMATCH,
+    /* list for http_host keyword and the ones relative to it */
+    DETECT_SM_LIST_HHHDMATCH,
+    /* list for http_raw_host keyword and the ones relative to it */
+    DETECT_SM_LIST_HRHHDMATCH,
 
     DETECT_SM_LIST_FILEMATCH,
 
@@ -670,6 +674,8 @@ typedef struct DetectEngineCtx_ {
     int32_t sgh_mpm_context_hsmd;
     int32_t sgh_mpm_context_hscd;
     int32_t sgh_mpm_context_huad;
+    int32_t sgh_mpm_context_hhhd;
+    int32_t sgh_mpm_context_hrhhd;
     int32_t sgh_mpm_context_app_proto_detect;
 
     /* the max local id used amongst all sigs */
@@ -884,8 +890,10 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_MPM_HSMD         (1 << 16)
 #define SIG_GROUP_HEAD_MPM_HSCD         (1 << 17)
 #define SIG_GROUP_HEAD_MPM_HUAD         (1 << 18)
-#define SIG_GROUP_HEAD_HAVEFILEMD5      (1 << 19)
-#define SIG_GROUP_HEAD_HAVEFILESIZE     (1 << 20)
+#define SIG_GROUP_HEAD_MPM_HHHD         (1 << 19)
+#define SIG_GROUP_HEAD_MPM_HRHHD        (1 << 20)
+#define SIG_GROUP_HEAD_HAVEFILEMD5      (1 << 21)
+#define SIG_GROUP_HEAD_HAVEFILESIZE     (1 << 22)
 
 typedef struct SigGroupHeadInitData_ {
     /* list of content containers
@@ -944,6 +952,8 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_hsmd_ctx_ts;
     MpmCtx *mpm_hscd_ctx_ts;
     MpmCtx *mpm_huad_ctx_ts;
+    MpmCtx *mpm_hhhd_ctx_ts;
+    MpmCtx *mpm_hrhhd_ctx_ts;
 
     MpmCtx *mpm_proto_tcp_ctx_tc;
     MpmCtx *mpm_proto_udp_ctx_tc;
@@ -959,6 +969,8 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_hsmd_ctx_tc;
     MpmCtx *mpm_hscd_ctx_tc;
     MpmCtx *mpm_huad_ctx_tc;
+    MpmCtx *mpm_hhhd_ctx_tc;
+    MpmCtx *mpm_hrhhd_ctx_tc;
 
     uint16_t mpm_uricontent_maxlen;
 
@@ -1069,6 +1081,8 @@ enum {
     DETECT_AL_HTTP_STAT_MSG,
     DETECT_AL_HTTP_STAT_CODE,
     DETECT_AL_HTTP_USER_AGENT,
+    DETECT_AL_HTTP_HOST,
+    DETECT_AL_HTTP_RAW_HOST,
     DETECT_AL_SSH_PROTOVERSION,
     DETECT_AL_SSH_SOFTWAREVERSION,
     DETECT_AL_SSL_VERSION,

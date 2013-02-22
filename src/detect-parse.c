@@ -33,6 +33,7 @@
 #include "detect-engine-mpm.h"
 
 #include "detect-content.h"
+#include "detect-pcre.h"
 #include "detect-uricontent.h"
 #include "detect-reference.h"
 #include "detect-ipproto.h"
@@ -1080,8 +1081,30 @@ static int SigValidate(Signature *s) {
         }
     }
 
+    if (s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL) {
+        for (SigMatch *sm = s->sm_lists[DETECT_SM_LIST_HHHDMATCH];
+             sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_CONTENT) {
+                DetectContentData *cd = (DetectContentData *)sm->ctx;
+                if (!(cd->flags & DETECT_CONTENT_NOCASE)) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "http_host keyword "
+                               "requires the \"nocase\" modifier to be set.");
+                    SCReturnInt(0);
+                }
+            } else if (sm->type == DETECT_PCRE) {
+                DetectPcreData *pd = (DetectPcreData *)sm->ctx;
+                if (!(pd->flags & DETECT_PCRE_CASELESS)) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre http_host "
+                               "modifier requires the nocase modifier "
+                               "\"i\"to be set");
+                    SCReturnInt(0);
+                }
+            }
+        }
+    }
+
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
-        SigMatch *pm =  SigMatchGetLastSMFromLists(s, 14,
+        SigMatch *pm =  SigMatchGetLastSMFromLists(s, 24,
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
@@ -1092,7 +1115,9 @@ static int SigValidate(Signature *s) {
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]);
+                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
+                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
+                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
         if (pm != NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature has"
                 " replace keyword linked with a modified content"
@@ -1111,7 +1136,9 @@ static int SigValidate(Signature *s) {
                 s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH] ||
                 s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH] ||
                 s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH] ||
-                s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH])
+                s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH] ||
+                s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH] ||
+                s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH])
         {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature combines packet "
                     "specific matches (like dsize, flags, ttl) with stream / "
@@ -1259,6 +1286,10 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
     if (sig->sm_lists[DETECT_SM_LIST_HSCDMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_HUADMATCH])
+        sig->flags |= SIG_FLAG_STATE_MATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_HHHDMATCH])
+        sig->flags |= SIG_FLAG_STATE_MATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_HRHHDMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
 
     if (!(sig->init_flags & SIG_FLAG_INIT_FLOW)) {
