@@ -83,6 +83,7 @@ typedef struct PcapThreadVars_
 
     /* pcap buffer size */
     int pcap_buffer_size;
+    int pcap_snaplen;
 
     ChecksumValidationMode checksum_mode;
 
@@ -182,7 +183,7 @@ static int PcapTryReopen(PcapThreadVars *ptv)
     ptv->pcap_state = PCAP_STATE_DOWN;
     pcap_close(ptv->pcap_handle);
 
-    ptv->pcap_handle = pcap_open_live((char *)ptv->iface, LIBPCAP_SNAPLEN,
+    ptv->pcap_handle = pcap_open_live((char *)ptv->iface, ptv->pcap_snaplen,
             LIBPCAP_PROMISC, LIBPCAP_COPYWAIT, errbuf);
     if (ptv->pcap_handle == NULL) {
         SCLogError(SC_ERR_PCAP_OPEN_LIVE, "Problem creating pcap handler for live mode, error %s", errbuf);
@@ -354,7 +355,6 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
 TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCEnter();
     PcapIfaceConfig *pcapconfig = initdata;
-    int snaplen;
 
     if (initdata == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "initdata == NULL");
@@ -403,20 +403,21 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     if (pcapconfig->snaplen == 0) {
         /* We set snaplen if we can get the MTU */
-        snaplen = GetIfaceMTU(pcapconfig->iface);
+        ptv->pcap_snaplen = GetIfaceMTU(pcapconfig->iface);
     } else {
-        snaplen = pcapconfig->snaplen;
+        ptv->pcap_snaplen = pcapconfig->snaplen;
     }
-    if (snaplen > 0) {
+    if (ptv->pcap_snaplen > 0) {
         /* set Snaplen. Must be called before pcap_activate */
-        int pcap_set_snaplen_r = pcap_set_snaplen(ptv->pcap_handle, snaplen);
+        int pcap_set_snaplen_r = pcap_set_snaplen(ptv->pcap_handle, ptv->pcap_snaplen);
         if (pcap_set_snaplen_r != 0) {
             SCLogError(SC_ERR_PCAP_SET_SNAPLEN, "Couldn't set snaplen, error: %s", pcap_geterr(ptv->pcap_handle));
             SCFree(ptv);
             pcapconfig->DerefFunc(pcapconfig);
             SCReturnInt(TM_ECODE_FAILED);
         }
-        SCLogInfo("Set snaplen to %d for '%s'", snaplen, pcapconfig->iface);
+        SCLogInfo("Set snaplen to %d for '%s'", ptv->pcap_snaplen,
+                  pcapconfig->iface);
     }
 
     /* set Promisc, and Timeout. Must be called before pcap_activate */
@@ -547,8 +548,19 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
     strlcpy(ptv->iface, pcapconfig->iface, PCAP_IFACE_NAME_LENGTH);
 
+    if (pcapconfig->snaplen == 0) {
+        /* We try to set snaplen from MTU value */
+        ptv->pcap_snaplen = GetIfaceMTU(pcapconfig->iface);
+        /* be conservative with old pcap lib to mimic old tcpdump behavior
+           when MTU was not available. */
+        if (ptv->pcap_snaplen <= 0)
+            ptv->pcap_snaplen = LIBPCAP_SNAPLEN;
+    } else {
+        ptv->pcap_snaplen = pcapconfig->snaplen;
+    }
+
     char errbuf[PCAP_ERRBUF_SIZE] = "";
-    ptv->pcap_handle = pcap_open_live(ptv->iface, LIBPCAP_SNAPLEN,
+    ptv->pcap_handle = pcap_open_live(ptv->iface, ptv->pcap_snaplen,
                                         LIBPCAP_PROMISC, LIBPCAP_COPYWAIT, errbuf);
     if (ptv->pcap_handle == NULL) {
         SCLogError(SC_ERR_PCAP_OPEN_LIVE, "Problem creating pcap handler for live mode, error %s", errbuf);
