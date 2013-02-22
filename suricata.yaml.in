@@ -903,85 +903,126 @@ pcre:
   match-limit: 3500
   match-limit-recursion: 1500
 
-###########################################################################
-# Configure libhtp.
-#
-#
-# default-config:           Used when no server-config matches
-#   personality:            List of personalities used by default
-#   request-body-limit:     Limit reassembly of request body for inspection
-#                           by http_client_body & pcre /P option.
-#   response-body-limit:    Limit reassembly of response body for inspection
-#                           by file_data, http_server_body & pcre /Q option.
-#   double-decode-path:     Double decode path section of the URI
-#   double-decode-query:    Double decode query section of the URI
-#
-# server-config:            List of server configurations to use if address matches
-#   address:                List of ip addresses or networks for this block
-#   personalitiy:           List of personalities used by this block
-#   request-body-limit:     Limit reassembly of request body for inspection
-#                           by http_client_body & pcre /P option.
-#   response-body-limit:    Limit reassembly of response body for inspection
-#                           by file_data, http_server_body & pcre /Q option.
-#   double-decode-path:     Double decode path section of the URI
-#   double-decode-query:    Double decode query section of the URI
-#
-# Currently Available Personalities:
-#   Minimal
-#   Generic
-#   IDS (default)
-#   IIS_4_0
-#   IIS_5_0
-#   IIS_5_1
-#   IIS_6_0
-#   IIS_7_0
-#   IIS_7_5
-#   Apache
-#   Apache_2_2
-###########################################################################
-libhtp:
+# Holds details on the app-layer. The protocols section details each protocol.
+# Under each protocol, the default value for detection-enabled and "
+# parsed-enabled is yes, unless specified otherwise.
+# Each protocol covers enabling/disabling parsers for all ipprotos
+# the app-layer protocol runs on.  For example "dcerpc" refers to the tcp
+# version of the protocol as well as the udp version of the protocol.
+# The option "enabled" takes 3 values - "yes", "no", "detection-only".
+# "yes" enables both detection and the parser, "no" disables both, and
+# "detection-only" enables detection only(parser disabled).
+app-layer:
+  protocols:
+    tls:
+      enabled: yes
+      detection-ports:
+        tcp:
+          toserver: 443
 
-   default-config:
-     personality: IDS
+      #no-reassemble: yes
+    dcerpc:
+      enabled: yes
+    ftp:
+      enabled: yes
+    ssh:
+      enabled: yes
+    smtp:
+      enabled: yes
+    imap:
+      enabled: detection-only
+    msn:
+      enabled: detection-only
+    smb:
+      enabled: yes
+      detection-ports:
+        tcp:
+          toserver: 139
+    # smb2 detection is disabled internally inside the engine.
+    #smb2:
+    #  enabled: yes
+    http:
+      enabled: yes
 
-     # Can be specified in kb, mb, gb.  Just a number indicates
-     # it's in bytes.
-     request-body-limit: 3072
-     response-body-limit: 3072
+      ###########################################################################
+      # Configure libhtp.
+      #
+      #
+      # default-config:           Used when no server-config matches
+      #   personality:            List of personalities used by default
+      #   request-body-limit:     Limit reassembly of request body for inspection
+      #                           by http_client_body & pcre /P option.
+      #   response-body-limit:    Limit reassembly of response body for inspection
+      #                           by file_data, http_server_body & pcre /Q option.
+      #   double-decode-path:     Double decode path section of the URI
+      #   double-decode-query:    Double decode query section of the URI
+      #
+      # server-config:            List of server configurations to use if address matches
+      #   address:                List of ip addresses or networks for this block
+      #   personalitiy:           List of personalities used by this block
+      #   request-body-limit:     Limit reassembly of request body for inspection
+      #                           by http_client_body & pcre /P option.
+      #   response-body-limit:    Limit reassembly of response body for inspection
+      #                           by file_data, http_server_body & pcre /Q option.
+      #   double-decode-path:     Double decode path section of the URI
+      #   double-decode-query:    Double decode query section of the URI
+      #
+      # Currently Available Personalities:
+      #   Minimal
+      #   Generic
+      #   IDS (default)
+      #   IIS_4_0
+      #   IIS_5_0
+      #   IIS_5_1
+      #   IIS_6_0
+      #   IIS_7_0
+      #   IIS_7_5
+      #   Apache
+      #   Apache_2_2
+      ###########################################################################
+      libhtp:
 
-     # inspection limits
-     request-body-minimal-inspect-size: 32kb
-     request-body-inspect-window: 4kb
-     response-body-minimal-inspect-size: 32kb
-     response-body-inspect-window: 4kb
+         default-config:
+           personality: IDS
 
-     # decoding
-     double-decode-path: no
-     double-decode-query: no
+           # Can be specified in kb, mb, gb.  Just a number indicates
+           # it's in bytes.
+           request-body-limit: 3072
+           response-body-limit: 3072
 
-   server-config:
+           # inspection limits
+           request-body-minimal-inspect-size: 32kb
+           request-body-inspect-window: 4kb
+           response-body-minimal-inspect-size: 32kb
+           response-body-inspect-window: 4kb
 
-     - apache:
-         address: [192.168.1.0/24, 127.0.0.0/8, "::1"]
-         personality: Apache_2_2
-         # Can be specified in kb, mb, gb.  Just a number indicates
-         # it's in bytes.
-         request-body-limit: 4096
-         response-body-limit: 4096
-         double-decode-path: no
-         double-decode-query: no
+           # decoding
+           double-decode-path: no
+           double-decode-query: no
 
-     - iis7:
-         address:
-           - 192.168.0.0/24
-           - 192.168.10.0/24
-         personality: IIS_7_0
-         # Can be specified in kb, mb, gb.  Just a number indicates
-         # it's in bytes.
-         request-body-limit: 4096
-         response-body-limit: 4096
-         double-decode-path: no
-         double-decode-query: no
+         server-config:
+
+           - apache:
+               address: [192.168.1.0/24, 127.0.0.0/8, "::1"]
+               personality: Apache_2_2
+               # Can be specified in kb, mb, gb.  Just a number indicates
+               # it's in bytes.
+               request-body-limit: 4096
+               response-body-limit: 4096
+               double-decode-path: no
+               double-decode-query: no
+
+           - iis7:
+               address:
+                 - 192.168.0.0/24
+                 - 192.168.10.0/24
+               personality: IIS_7_0
+               # Can be specified in kb, mb, gb.  Just a number indicates
+               # it's in bytes.
+               request-body-limit: 4096
+               response-body-limit: 4096
+               double-decode-path: no
+               double-decode-query: no
 
 # Profiling settings. Only effective if Suricata has been built with the
 # the --enable-profiling configure flag.
