@@ -917,7 +917,7 @@ void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode)
 /**
  * \brief Used to kill unix manager thread(s).
  *
- * \todo Kinda hackish since it uses the tv name to identify flow manager
+ * \todo Kinda hackish since it uses the tv name to identify unix manager
  *       thread.  We need an all weather identification scheme.
  */
 void UnixSocketKillSocketThread(void)
@@ -926,8 +926,8 @@ void UnixSocketKillSocketThread(void)
 
     SCMutexLock(&tv_root_lock);
 
-    /* flow manager thread(s) is/are a part of mgmt threads */
-    tv = tv_root[TVT_MGMT];
+    /* unix manager thread(s) is/are a part of command threads */
+    tv = tv_root[TVT_CMD];
 
     while (tv != NULL) {
         if (strcasecmp(tv->name, "UnixManagerThread") == 0) {
