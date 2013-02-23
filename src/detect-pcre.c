@@ -620,253 +620,155 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     SCEnter();
     DetectPcreData *pd = NULL;
     SigMatch *sm = NULL;
-    SigMatch *prev_sm = NULL;
+    int ret = -1;
 
     pd = DetectPcreParse(de_ctx, regexstr);
     if (pd == NULL)
         goto error;
-
-    if ((pd->flags & DETECT_PCRE_HTTP_CLIENT_BODY) && (s->init_flags & SIG_FLAG_INIT_FLOW)
-        && (s->flags & SIG_FLAG_TOCLIENT) && !(s->flags & SIG_FLAG_TOSERVER)) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Can't use pcre /P with flow:from_server or flow:to_client");
-        goto error;
-    }
-    if (((pd->flags & DETECT_PCRE_URI) || (pd->flags & DETECT_PCRE_HTTP_RAW_URI))
-        && (s->init_flags & SIG_FLAG_INIT_FLOW) && (s->flags & SIG_FLAG_TOCLIENT) && !(s->flags & SIG_FLAG_TOSERVER)) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Can't use pcre /U or /I with flow:from_server or flow:to_client");
-        goto error;
-    }
-
-    /* check pcre modifiers against the signature alproto.  In case they conflict
-     * chuck out invalid signature */
-    switch (s->alproto) {
-        case ALPROTO_DCERPC:
-            if ( (pd->flags & DETECT_PCRE_URI) ||
-                 (pd->flags & DETECT_PCRE_METHOD) ||
-                 (pd->flags & DETECT_PCRE_HEADER) ||
-                 (pd->flags & DETECT_PCRE_RAW_HEADER) ||
-                 (pd->flags & DETECT_PCRE_COOKIE) ||
-                 (pd->flags & DETECT_PCRE_HTTP_STAT_MSG) ||
-                 (pd->flags & DETECT_PCRE_HTTP_STAT_CODE) ||
-                 (pd->flags & DETECT_PCRE_HTTP_CLIENT_BODY) ||
-                 (pd->flags & DETECT_PCRE_HTTP_SERVER_BODY) ||
-                 (pd->flags & DETECT_PCRE_HTTP_RAW_URI) ||
-                 (pd->flags & DETECT_PCRE_HTTP_USER_AGENT) ||
-                 (pd->flags & DETECT_PCRE_HTTP_HOST) ||
-                 (pd->flags & DETECT_PCRE_HTTP_RAW_HOST) ) {
-                SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option. "
-                           "DCERPC rule has pcre keyword with http related modifier.");
-                goto error;
-            }
-            break;
-
-        default:
-            break;
-    }
-
     pd = DetectPcreParseCapture(regexstr, de_ctx, pd);
     if (pd == NULL)
         goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    if ((pd->flags & DETECT_PCRE_URI) ||
+        (pd->flags & DETECT_PCRE_METHOD) ||
+        (pd->flags & DETECT_PCRE_HEADER) ||
+        (pd->flags & DETECT_PCRE_RAW_HEADER) ||
+        (pd->flags & DETECT_PCRE_COOKIE) ||
+        (pd->flags & DETECT_PCRE_HTTP_STAT_MSG) ||
+        (pd->flags & DETECT_PCRE_HTTP_STAT_CODE) ||
+        (pd->flags & DETECT_PCRE_HTTP_CLIENT_BODY) ||
+        (pd->flags & DETECT_PCRE_HTTP_SERVER_BODY) ||
+        (pd->flags & DETECT_PCRE_HTTP_RAW_URI) ||
+        (pd->flags & DETECT_PCRE_HTTP_USER_AGENT) ||
+        (pd->flags & DETECT_PCRE_HTTP_HOST) ||
+        (pd->flags & DETECT_PCRE_HTTP_RAW_HOST)) {
+        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
+            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option.  "
+                       "Conflicting alprotos detected for this rule.  Http "
+                       "pcre modifier found along with a different protocol "
+                       "for the rule.");
+            goto error;
+        }
+        if (s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre found with http "
+                       "modifier set, with file_data/dce_stub_data sticky "
+                       "option set.");
+            goto error;
+        }
+    }
 
-    sm->type = DETECT_PCRE;
-    sm->ctx = (void *)pd;
-
-    if (pd->flags & DETECT_PCRE_HEADER) {
+    int sm_list;
+    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+        SCLogDebug("adding to http server body list because of file data");
+        s->flags |= SIG_FLAG_APPLAYER;
+        AppLayerHtpEnableResponseBodyCallback();
+        sm_list = DETECT_SM_LIST_HSBDMATCH;
+    } else if (s->init_flags & SIG_FLAG_INIT_DCE_STUB_DATA) {
+        SCLogDebug("adding to dmatch list because of dce_stub_data");
+        s->flags |= SIG_FLAG_APPLAYER;
+        sm_list = DETECT_SM_LIST_DMATCH;
+    } else if (pd->flags & DETECT_PCRE_URI) {
+        s->flags |= SIG_FLAG_APPLAYER;
+        s->alproto = ALPROTO_HTTP;
+        sm_list = DETECT_SM_LIST_UMATCH;
+    } else if (pd->flags & DETECT_PCRE_HTTP_RAW_URI) {
+        s->flags |= SIG_FLAG_APPLAYER;
+        s->alproto = ALPROTO_HTTP;
+        sm_list = DETECT_SM_LIST_HRUDMATCH;
+    } else if (pd->flags & DETECT_PCRE_HEADER) {
         SCLogDebug("Header inspection modifier set");
         s->flags |= SIG_FLAG_APPLAYER;
         s->alproto = ALPROTO_HTTP;
-
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HHDMATCH);
+        sm_list = DETECT_SM_LIST_HHDMATCH;
     } else if (pd->flags & DETECT_PCRE_RAW_HEADER) {
         SCLogDebug("Raw header inspection modifier set");
         s->flags |= SIG_FLAG_APPLAYER;
         s->alproto = ALPROTO_HTTP;
-
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRHDMATCH);
-    } else if (pd->flags & DETECT_PCRE_COOKIE) {
-        //sm->type = DETECT_PCRE_HTTPCOOKIE;
-
-        SCLogDebug("Cookie inspection modifier set");
-        s->flags |= SIG_FLAG_APPLAYER;
-        s->alproto = ALPROTO_HTTP;
-
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
-    } else if (pd->flags & DETECT_PCRE_HTTP_USER_AGENT) {
-        SCLogDebug("User-Agent inspection modifier set on pcre");
-        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains "
-                       "conflicting keywords.");
-            goto error;
-        }
-        s->flags |= SIG_FLAG_APPLAYER;
-        s->alproto = ALPROTO_HTTP;
-
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HUADMATCH);
-    } else if (pd->flags & DETECT_PCRE_HTTP_HOST) {
-        SCLogDebug("Host inspection modifier set on pcre");
-        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains "
-                       "conflicting keywords.");
-            goto error;
-        }
-        s->flags |= SIG_FLAG_APPLAYER;
-        s->alproto = ALPROTO_HTTP;
-
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HHHDMATCH);
-    } else if (pd->flags & DETECT_PCRE_HTTP_RAW_HOST) {
-        SCLogDebug("Raw Host inspection modifier set on pcre");
-        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains "
-                       "conflicting keywords.");
-            goto error;
-        }
-        s->flags |= SIG_FLAG_APPLAYER;
-        s->alproto = ALPROTO_HTTP;
-
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRHHDMATCH);
-    } else if (pd->flags & DETECT_PCRE_METHOD) {
-        //sm->type = DETECT_PCRE_HTTPMETHOD;
-
-        SCLogDebug("Method inspection modifier set");
-        s->flags |= SIG_FLAG_APPLAYER;
-        s->alproto = ALPROTO_HTTP;
-
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HMDMATCH);
+        sm_list = DETECT_SM_LIST_HRHDMATCH;
     } else if (pd->flags & DETECT_PCRE_HTTP_CLIENT_BODY) {
         SCLogDebug("Request body inspection modifier set");
         s->flags |= SIG_FLAG_APPLAYER;
         s->alproto = ALPROTO_HTTP;
         AppLayerHtpEnableRequestBodyCallback();
-
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCBDMATCH);
+        sm_list = DETECT_SM_LIST_HCBDMATCH;
     } else if (pd->flags & DETECT_PCRE_HTTP_SERVER_BODY) {
         SCLogDebug("Response body inspection modifier set");
         s->flags |= SIG_FLAG_APPLAYER;
         s->alproto = ALPROTO_HTTP;
+        sm_list = DETECT_SM_LIST_HSBDMATCH;
         AppLayerHtpEnableResponseBodyCallback();
-
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
-    } else if (pd->flags & DETECT_PCRE_URI) {
+    } else if (pd->flags & DETECT_PCRE_HTTP_HOST) {
+        SCLogDebug("Host inspection modifier set on pcre");
         s->flags |= SIG_FLAG_APPLAYER;
-
-        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting"
-                       " keywords.");
-            goto error;
-        }
-
         s->alproto = ALPROTO_HTTP;
-
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
-    } else if (pd->flags & DETECT_PCRE_HTTP_RAW_URI) {
+        sm_list = DETECT_SM_LIST_HHHDMATCH;
+    } else if (pd->flags & DETECT_PCRE_HTTP_RAW_HOST) {
+        SCLogDebug("Raw Host inspection modifier set on pcre");
         s->flags |= SIG_FLAG_APPLAYER;
-        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting"
-                       " keywords.");
-            goto error;
-        }
         s->alproto = ALPROTO_HTTP;
-
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRUDMATCH);
+        sm_list = DETECT_SM_LIST_HRHHDMATCH;
     } else if (pd->flags & DETECT_PCRE_HTTP_STAT_MSG) {
         s->flags |= SIG_FLAG_APPLAYER;
-        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting"
-                       " keywords.");
-            goto error;
-        }
         s->alproto = ALPROTO_HTTP;
-
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSMDMATCH);
+        sm_list = DETECT_SM_LIST_HSMDMATCH;
     } else if (pd->flags & DETECT_PCRE_HTTP_STAT_CODE) {
         s->flags |= SIG_FLAG_APPLAYER;
-        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting"
-                       " keywords.");
-            goto error;
-        }
         s->alproto = ALPROTO_HTTP;
-
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSCDMATCH);
+        sm_list = DETECT_SM_LIST_HSCDMATCH;
+    } else if (pd->flags & DETECT_PCRE_COOKIE) {
+        SCLogDebug("Cookie inspection modifier set");
+        s->flags |= SIG_FLAG_APPLAYER;
+        s->alproto = ALPROTO_HTTP;
+        sm_list = DETECT_SM_LIST_HCDMATCH;
+    } else if (pd->flags & DETECT_PCRE_METHOD) {
+        SCLogDebug("Method inspection modifier set");
+        s->flags |= SIG_FLAG_APPLAYER;
+        s->alproto = ALPROTO_HTTP;
+        sm_list = DETECT_SM_LIST_HMDMATCH;
+    } else if (pd->flags & DETECT_PCRE_HTTP_USER_AGENT) {
+        SCLogDebug("User-Agent inspection modifier set on pcre");
+        s->flags |= SIG_FLAG_APPLAYER;
+        s->alproto = ALPROTO_HTTP;
+        sm_list = DETECT_SM_LIST_HUADMATCH;
     } else {
-        if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
-            SCLogDebug("adding to http server body list because of file data");
-            s->flags |= SIG_FLAG_APPLAYER;
-            AppLayerHtpEnableResponseBodyCallback();
-
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
-        } else if (s->init_flags & SIG_FLAG_INIT_DCE_STUB_DATA) {
-            SCLogDebug("adding to dmatch list because of dce_stub_data");
-            s->flags |= SIG_FLAG_APPLAYER;
-            AppLayerHtpEnableResponseBodyCallback();
-
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
-        } else {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
-        }
+        sm_list = DETECT_SM_LIST_PMATCH;
     }
 
-    if (!(pd->flags & DETECT_PCRE_RELATIVE)) {
-        SCReturnInt(0);
+    sm = SigMatchAlloc();
+    if (sm == NULL)
+        goto error;
+    sm->type = DETECT_PCRE;
+    sm->ctx = (void *)pd;
+    SigMatchAppendSMToList(s, sm, sm_list);
+
+    if (!(pd->flags & DETECT_PCRE_RELATIVE))
+        goto okay;
+
+    SigMatch *prev_pm = SigMatchGetLastSMFromLists(s, 4,
+                                                   DETECT_CONTENT, sm->prev,
+                                                   DETECT_PCRE, sm->prev);
+    if (prev_pm == NULL)
+        goto okay;
+    if (prev_pm->type == DETECT_CONTENT) {
+        DetectContentData *cd = (DetectContentData *)prev_pm->ctx;
+        cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+    } else if (prev_pm->type == DETECT_PCRE) {
+        DetectPcreData *pd = (DetectPcreData *)prev_pm->ctx;
+        pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
     }
 
-    prev_sm = SigMatchGetLastSMFromLists(s, 4,
-                                         DETECT_CONTENT, sm->prev,
-                                         DETECT_PCRE, sm->prev);
-    if (prev_sm == NULL) {
-        pd->flags &= ~DETECT_PCRE_RELATIVE;
-        SCReturnInt(0);
-    }
-
-    DetectContentData *cd = NULL;
-    DetectPcreData *pe = NULL;
-
-    switch (prev_sm->type) {
-        case DETECT_CONTENT:
-            /* Set the relative next flag on the prev sigmatch */
-            cd = (DetectContentData *)prev_sm->ctx;
-            if (cd == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "content not setup properly");
-                SCReturnInt(-1);
-            }
-            cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-
-            break;
-
-        case DETECT_PCRE:
-            pe = (DetectPcreData *) prev_sm->ctx;
-            if (pe == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre not setup properly");
-                SCReturnInt(-1);
-            }
-            pe->flags |= DETECT_PCRE_RELATIVE_NEXT;
-
-            break;
-
-        default:
-            /* this will never hit */
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "prev sigmatch has unknown type: %"PRIu16,
-                    prev_sm->type);
-            SCReturnInt(-1);
-            break;
-    } /* switch (prev_sm->type) */
-
-    SCReturnInt(0);
-
-error:
-    if (pd != NULL)
-        DetectPcreFree(pd);
-    if (sm != NULL)
-        SCFree(sm);
-
-    SCReturnInt(-1);
+ okay:
+    ret = 0;
+    SCReturnInt(ret);
+ error:
+    DetectPcreFree(pd);
+    SCReturnInt(ret);
 }
 
 void DetectPcreFree(void *ptr) {
+    if (ptr == NULL)
+        return;
+
     DetectPcreData *pd = (DetectPcreData *)ptr;
 
     if (pd->capname != NULL)
@@ -1143,7 +1045,7 @@ int DetectPcreParseTest11(void)
     result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_PCRE);
     data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
     if (data->flags & DETECT_PCRE_RAWBYTES ||
-        data->flags & DETECT_PCRE_RELATIVE ||
+        !(data->flags & DETECT_PCRE_RELATIVE) ||
         data->flags & DETECT_PCRE_URI) {
         result = 0;
         goto end;
@@ -1166,7 +1068,7 @@ int DetectPcreParseTest11(void)
     result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_PCRE);
     data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
     if (data->flags & DETECT_PCRE_RAWBYTES ||
-        data->flags & DETECT_PCRE_RELATIVE ||
+        !(data->flags & DETECT_PCRE_RELATIVE) ||
         data->flags & DETECT_PCRE_URI) {
         result = 0;
         goto end;
@@ -1189,7 +1091,7 @@ int DetectPcreParseTest11(void)
     result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_PCRE);
     data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
     if (!(data->flags & DETECT_PCRE_RAWBYTES) ||
-        data->flags & DETECT_PCRE_RELATIVE ||
+        !(data->flags & DETECT_PCRE_RELATIVE) ||
         data->flags & DETECT_PCRE_URI) {
         result = 0;
         goto end;
@@ -1252,7 +1154,7 @@ static int DetectPcreParseTest12(void)
 
     data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->ctx;
     if (data->flags & DETECT_PCRE_RAWBYTES ||
-        data->flags & DETECT_PCRE_RELATIVE ||
+        !(data->flags & DETECT_PCRE_RELATIVE) ||
         data->flags & DETECT_PCRE_URI) {
         printf("flags not right: ");
         goto end;

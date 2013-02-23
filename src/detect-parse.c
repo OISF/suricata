@@ -1034,6 +1034,26 @@ static int SigValidate(Signature *s) {
         }
     }
 
+    uint32_t sig_flags = 0;
+    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL) {
+        sig_flags |= SIG_FLAG_TOSERVER;
+    }
+    if (s->sm_lists[DETECT_SM_LIST_HSBDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
+        sig_flags |= SIG_FLAG_TOCLIENT;
+    }
+    if ((sig_flags & (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE,"You seem to have mixed keywords "
+                   "that require inspection in both directions.  Atm we only "
+                   "support keywords in one direction within a rule.");
+        SCReturnInt(0);
+    }
+
     if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL) {
         if ((s->flags & (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,"http_raw_header signature "
