@@ -59,33 +59,40 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
     char *str = depthstr;
     char dubbed = 0;
     SigMatch *pm = NULL;
-    DetectContentData *cd = NULL;
+    int ret = -1;
 
     /* strip "'s */
     if (depthstr[0] == '\"' && depthstr[strlen(depthstr) - 1] == '\"') {
         str = SCStrdup(depthstr + 1);
         if (unlikely(str == NULL))
-            goto error;
+            goto end;
         str[strlen(depthstr) - 2] = '\0';
         dubbed = 1;
     }
 
-    pm =  SigMatchGetLastSMFromLists(s, 30,
-                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
-                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
-                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
-                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
+    /* retrive the sm to apply the depth against */
+    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA || s->init_flags & SIG_FLAG_INIT_DCE_STUB_DATA) {
+        if (s->init_flags & SIG_FLAG_INIT_FILE_DATA)
+            pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]);
+        else
+            pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
+    } else {
+        pm =  SigMatchGetLastSMFromLists(s, 28,
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
+    }
     if (pm == NULL) {
         SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "
                    "preceding content, uricontent option, http_client_body, "
@@ -94,91 +101,58 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                    "http_stat_msg, http_stat_code, http_user_agent, "
                    "http_host, http_raw_host or "
                    "file_data/dce_stub_data sticky buffer options");
-        if (dubbed)
-            SCFree(str);
-        return -1;
+        goto end;
     }
 
-    switch (pm->type) {
-        case DETECT_CONTENT:
-            cd = (DetectContentData *)pm->ctx;
-            if (cd == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
-                if (dubbed) SCFree(str);
-                return -1;
-            }
+    /* verify other conditions. */
+    DetectContentData *cd = (DetectContentData *)pm->ctx;
 
-            if (cd->flags & DETECT_CONTENT_NEGATED) {
-                if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
-                               "negated keyword set along with a fast_pattern");
-                    goto error;
-                }
-            } else {
-                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
-                               "keyword set along with a fast_pattern:only;");
-                    goto error;
-                }
-            }
-
-            if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a relative keyword "
-                               "with a non-relative keyword for the same content." );
-                goto error;
-            }
-
-            if (cd->flags & DETECT_CONTENT_DEPTH) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple depths for the same content.");
-                goto error;
-            }
-
-            if (str[0] != '-' && isalpha((unsigned char)str[0])) {
-                SigMatch *bed_sm =
-                    DetectByteExtractRetrieveSMVar(str, s,
-                                                   SigMatchListSMBelongsTo(s, pm));
-                if (bed_sm == NULL) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_extract var "
-                               "seen in depth - %s\n", str);
-                    goto error;
-                }
-                cd->depth = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-                cd->flags |= DETECT_CONTENT_DEPTH_BE;
-            } else {
-                int depth = atoi(str);
-                if (depth < 0) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Negative depth "
-                               "not allowed - %d.", depth);
-                    goto error;
-                }
-                if (depth < cd->content_len) {
-                    uint32_t content_len = cd->content_len;
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "depth - %"PRIu16
-                               " smaller than content length - %"PRIu32,
-                               cd->depth, content_len);
-                    goto error;
-                }
-                cd->depth = depth;
-                /* Now update the real limit, as depth is relative to the offset */
-                cd->depth += cd->offset;
-            }
-
-            cd->flags |= DETECT_CONTENT_DEPTH;
-
-            break;
-
-        default:
-            SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceding "
-                    "content (or uricontent) option");
-            goto error;
+    if (cd->flags & DETECT_CONTENT_DEPTH) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple depths for the same content.");
+        goto end;
     }
+    if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a relative "
+                   "keyword like within/distance with a absolute "
+                   "relative keyword like depth/offset for the same "
+                   "content." );
+        goto end;
+    }
+    if (cd->flags & DETECT_CONTENT_NEGATED && cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
+                   "negated keyword set along with a fast_pattern");
+        goto end;
+    }
+    if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
+                   "keyword set along with a fast_pattern:only;");
+        goto end;
+    }
+    if (str[0] != '-' && isalpha((unsigned char)str[0])) {
+        SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(str, s, SigMatchListSMBelongsTo(s, pm));
+        if (bed_sm == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_extract var "
+                       "seen in depth - %s\n", str);
+            goto end;
+        }
+        cd->depth = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+        cd->flags |= DETECT_CONTENT_DEPTH_BE;
+    } else {
+        cd->depth = (uint32_t)atoi(str);
+        if (cd->depth < cd->content_len) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "depth - %"PRIu16
+                       " smaller than content length - %"PRIu32,
+                       cd->depth, cd->content_len);
+            goto end;
+        }
+        /* Now update the real limit, as depth is relative to the offset */
+        cd->depth += cd->offset;
+    }
+    cd->flags |= DETECT_CONTENT_DEPTH;
 
+    ret = 0;
+ end:
     if (dubbed)
         SCFree(str);
-    return 0;
-
-error:
-    if (dubbed)
-        SCFree(str);
-    return -1;
+    return ret;
 }

@@ -214,8 +214,8 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
     SigMatch *sm = NULL;
 
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting"
-                " keywords.");
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains "
+                   "conflicting keywords.");
         goto error;
     }
 
@@ -223,8 +223,6 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
     if (cd == NULL)
         goto error;
 
-    /* Okay so far so good, lets get this into a SigMatch
-     * and put it in the Signature. */
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
@@ -232,13 +230,12 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
     sm->type = DETECT_CONTENT;
     sm->ctx = (void *)cd;
 
-    cd->id = DetectUricontentGetId(de_ctx->mpm_pattern_id_store, cd);
-
     /* Flagged the signature as to inspect the app layer data */
     s->flags |= SIG_FLAG_APPLAYER;
 
     s->alproto = ALPROTO_HTTP;
 
+    cd->id = DetectUricontentGetId(de_ctx->mpm_pattern_id_store, cd);
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
 
     SCReturnInt(0);
@@ -611,7 +608,7 @@ int DetectUriSigTest01(void)
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
                                    "\" Test uricontent\"; "
-                                  "uricontent:\"me\"; sid:1;)");
+                                   "content:\"me\"; uricontent:\"me\"; sid:1;)");
     if (s == NULL) {
         goto end;
     }

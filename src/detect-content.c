@@ -46,7 +46,7 @@
 #include "util-unittest-helper.h"
 
 int DetectContentMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-static int DetectContentSetup (DetectEngineCtx *, Signature *, char *);
+int DetectContentSetup(DetectEngineCtx *, Signature *, char *);
 void DetectContentRegisterTests(void);
 
 void DetectContentRegister (void) {
@@ -365,66 +365,43 @@ void DetectContentPrintAll(SigMatch *sm)
  * \retval -1 if error
  * \retval 0 if all was ok
  */
-static int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
+int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
 {
     DetectContentData *cd = NULL;
     SigMatch *sm = NULL;
 
     cd = DetectContentParse(contentstr);
-    if (cd == NULL) goto error;
+    if (cd == NULL)
+        goto error;
+    DetectContentPrint(cd);
+
+    int sm_list;
+    if (s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) {
+        if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+            AppLayerHtpEnableResponseBodyCallback();
+            s->alproto = ALPROTO_HTTP;
+            sm_list = DETECT_SM_LIST_HSBDMATCH;
+        } else {
+            sm_list = DETECT_SM_LIST_DMATCH;
+        }
+
+        s->flags |= SIG_FLAG_APPLAYER;
+    } else {
+        sm_list = DETECT_SM_LIST_PMATCH;
+    }
 
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
-
-    sm->type = DETECT_CONTENT;
     sm->ctx = (void *)cd;
-    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_PMATCH);
-
-    DetectContentPrint(cd);
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
-
-    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
-        cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_HSBDMATCH);
-        sm->type = DETECT_CONTENT;
-
-        /* transfer the sm from the pmatch list to hsbdmatch list */
-        SigMatchTransferSigMatchAcrossLists(sm,
-                &s->sm_lists[DETECT_SM_LIST_PMATCH],
-                &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                &s->sm_lists[DETECT_SM_LIST_HSBDMATCH],
-                &s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]);
-
-        /* flag the signature to indicate that we scan the app layer data */
-        s->flags |= SIG_FLAG_APPLAYER;
-        s->alproto = ALPROTO_HTTP;
-
-        /* enable http request body callback in the http app layer parser */
-        AppLayerHtpEnableResponseBodyCallback();
-    } else if (s->init_flags & SIG_FLAG_INIT_DCE_STUB_DATA) {
-        cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_DMATCH);
-        sm->type = DETECT_CONTENT;
-
-        /* transfer the sm from the pmatch list to hsbdmatch list */
-        SigMatchTransferSigMatchAcrossLists(sm,
-                &s->sm_lists[DETECT_SM_LIST_PMATCH],
-                &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                &s->sm_lists[DETECT_SM_LIST_DMATCH],
-                &s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
-
-        /* flag the signature to indicate that we scan the app layer data */
-        s->flags |= SIG_FLAG_APPLAYER;
-        s->alproto = ALPROTO_DCERPC;
-    }
+    sm->type = DETECT_CONTENT;
+    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, s, sm_list);
+    SigMatchAppendSMToList(s, sm, sm_list);
 
     return 0;
 
 error:
-    if (cd != NULL)
-        DetectContentFree(cd);
-    if (sm != NULL)
-        SCFree(sm);
+    DetectContentFree(cd);
     return -1;
 }
 

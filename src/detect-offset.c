@@ -39,7 +39,7 @@
 
 #include "util-debug.h"
 
-static int DetectOffsetSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectOffsetSetup(DetectEngineCtx *, Signature *, char *);
 
 void DetectOffsetRegister (void) {
     sigmatch_table[DETECT_OFFSET].name = "offset";
@@ -58,121 +58,103 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
     char *str = offsetstr;
     char dubbed = 0;
     SigMatch *pm = NULL;
+    int ret = -1;
 
     /* strip "'s */
-    if (offsetstr[0] == '\"' && offsetstr[strlen(offsetstr)-1] == '\"') {
+   if (offsetstr[0] == '\"' && offsetstr[strlen(offsetstr)-1] == '\"') {
         str = SCStrdup(offsetstr+1);
         if (unlikely(str == NULL))
-            goto error;
-        str[strlen(offsetstr)-2] = '\0';
+            goto end;
+        str[strlen(offsetstr) - 2] = '\0';
         dubbed = 1;
     }
 
-    pm = SigMatchGetLastSMFromLists(s, 30,
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
+    /* retrive the sm to apply the depth against */
+    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA || s->init_flags & SIG_FLAG_INIT_DCE_STUB_DATA) {
+        if (s->init_flags & SIG_FLAG_INIT_FILE_DATA)
+            pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]);
+        else
+            pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
+    } else {
+        pm =  SigMatchGetLastSMFromLists(s, 28,
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
+    }
     if (pm == NULL) {
         SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs "
                    "preceding content, uricontent option, http_client_body, "
-                   "http_header, http_raw_header, http_method, "
-                   "http_cookie, http_raw_uri, http_stat_msg, "
-                   "http_stat_code, http_user_agent or "
-                   "file_data/dce_stub_data sticky buffers");
-        if (dubbed)
-            SCFree(str);
-        return -1;
+                   "http_server_body, http_header option, http_raw_header option, "
+                   "http_method option, http_cookie, http_raw_uri, "
+                   "http_stat_msg, http_stat_code, http_user_agent or "
+                   "file_data/dce_stub_data sticky buffer options");
+        goto end;
     }
 
-    DetectContentData *cd = NULL;
-    switch (pm->type) {
-        case DETECT_CONTENT:
-            cd = (DetectContentData *)pm->ctx;
-            if (cd == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
-                if (dubbed)
-                    SCFree(str);
-                return -1;
-            }
 
-            if (cd->flags & DETECT_CONTENT_NEGATED) {
-                if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
-                               "negated keyword set along with a fast_pattern");
-                    goto error;
-                }
-            } else {
-                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
-                               "keyword set along with a fast_pattern:only;");
-                    goto error;
-                }
-            }
+    /* verify other conditions */
+    DetectContentData *cd = (DetectContentData *)pm->ctx;
 
-            if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a relative keyword "
-                               "with a non-relative keyword for the same content." );
-                goto error;
-            }
-
-            if (cd->flags & DETECT_CONTENT_OFFSET) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple offsets for the same content. ");
-                goto error;
-            }
-
-            if (str[0] != '-' && isalpha((unsigned char)str[0])) {
-                SigMatch *bed_sm =
-                    DetectByteExtractRetrieveSMVar(str, s,
-                                                   SigMatchListSMBelongsTo(s, pm));
-                if (bed_sm == NULL) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_extract var "
-                               "seen in offset - %s\n", str);
-                    goto error;
-                }
-                cd->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-                cd->flags |= DETECT_CONTENT_OFFSET_BE;
-            } else {
-                cd->offset = (uint32_t)atoi(str);
-                if (cd->depth != 0) {
-                    if (cd->depth < cd->content_len) {
-                        SCLogDebug("depth increased to %"PRIu32" to match pattern len",
-                                   cd->content_len);
-                        cd->depth = cd->content_len;
-                    }
-                    /* Updating the depth as is relative to the offset */
-                    cd->depth += cd->offset;
-                }
-            }
-
-            cd->flags |= DETECT_CONTENT_OFFSET;
-
-            break;
-
-        default:
-            SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs a preceding"
-                    " content keyword");
-            goto error;
+    if (cd->flags & DETECT_CONTENT_OFFSET) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple offsets for the same content. ");
+        goto end;
     }
+    if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a relative "
+                   "keyword like within/distance with a absolute "
+                   "relative keyword like depth/offset for the same "
+                   "content." );
+        goto end;
+    }
+    if (cd->flags & DETECT_CONTENT_NEGATED && cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
+                   "negated keyword set along with a fast_pattern");
+        goto end;
+    }
+    if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
+                   "keyword set along with a fast_pattern:only;");
+        goto end;
+    }
+    if (str[0] != '-' && isalpha((unsigned char)str[0])) {
+        SigMatch *bed_sm =
+            DetectByteExtractRetrieveSMVar(str, s, SigMatchListSMBelongsTo(s, pm));
+        if (bed_sm == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_extract var "
+                       "seen in offset - %s\n", str);
+            goto end;
+        }
+        cd->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+        cd->flags |= DETECT_CONTENT_OFFSET_BE;
+    } else {
+        cd->offset = (uint32_t)atoi(str);
+        if (cd->depth != 0) {
+            if (cd->depth < cd->content_len) {
+                SCLogDebug("depth increased to %"PRIu32" to match pattern len",
+                           cd->content_len);
+                cd->depth = cd->content_len;
+            }
+            /* Updating the depth as is relative to the offset */
+            cd->depth += cd->offset;
+        }
+    }
+    cd->flags |= DETECT_CONTENT_OFFSET;
 
+    ret = 0;
+ end:
     if (dubbed)
         SCFree(str);
-    return 0;
-
-error:
-    if (dubbed)
-        SCFree(str);
-    return -1;
+    return ret;
 }
 

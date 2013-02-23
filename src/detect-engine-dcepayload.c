@@ -8174,7 +8174,7 @@ int DcePayloadParseTest31(void)
         bd->flags & DETECT_BYTEJUMP_LITTLE ||
         bd->flags & DETECT_BYTEJUMP_BIG ||
         bd->flags & DETECT_BYTEJUMP_STRING ||
-        bd->flags & DETECT_BYTEJUMP_RELATIVE ||
+        !(bd->flags & DETECT_BYTEJUMP_RELATIVE) ||
         bd->flags & DETECT_BYTEJUMP_ALIGN ||
         bd->flags & DETECT_BYTEJUMP_DCE ) {
         result = 0;
@@ -8321,7 +8321,7 @@ int DcePayloadParseTest32(void)
         bd->flags & DETECT_BYTEJUMP_LITTLE ||
         bd->flags & DETECT_BYTEJUMP_BIG ||
         bd->flags & DETECT_BYTEJUMP_STRING ||
-        bd->flags & DETECT_BYTEJUMP_RELATIVE ||
+        !(bd->flags & DETECT_BYTEJUMP_RELATIVE) ||
         bd->flags & DETECT_BYTEJUMP_ALIGN ||
         bd->flags & DETECT_BYTEJUMP_DCE ) {
         result = 0;
@@ -8465,7 +8465,7 @@ int DcePayloadParseTest33(void)
     }
     pd = (DetectPcreData *)sm->ctx;
     if ( pd->flags & DETECT_PCRE_RAWBYTES ||
-         pd->flags & DETECT_PCRE_RELATIVE) {
+         !(pd->flags & DETECT_PCRE_RELATIVE)) {
         result = 0;
         printf("one failed\n");
         goto end;
@@ -8608,7 +8608,7 @@ int DcePayloadParseTest34(void)
     }
     pd = (DetectPcreData *)sm->ctx;
     if ( pd->flags & DETECT_PCRE_RAWBYTES ||
-         pd->flags & DETECT_PCRE_RELATIVE) {
+         !(pd->flags & DETECT_PCRE_RELATIVE)) {
         result = 0;
         goto end;
     }
@@ -8731,7 +8731,7 @@ int DcePayloadParseTest35(void)
     if (bd->flags & DETECT_BYTETEST_LITTLE ||
         bd->flags & DETECT_BYTETEST_BIG ||
         bd->flags & DETECT_BYTETEST_STRING ||
-        bd->flags & DETECT_BYTETEST_RELATIVE ||
+        !(bd->flags & DETECT_BYTEJUMP_RELATIVE) ||
         !(bd->flags & DETECT_BYTETEST_DCE) ) {
         result = 0;
         printf("one failed\n");
@@ -8817,7 +8817,7 @@ int DcePayloadParseTest36(void)
     }
     isd = (DetectIsdataatData *)sm->ctx;
     if ( isd->flags & ISDATAAT_RAWBYTES ||
-         isd->flags & ISDATAAT_RELATIVE) {
+         !(isd->flags & ISDATAAT_RELATIVE)) {
         result = 0;
         goto end;
     }
@@ -8925,7 +8925,7 @@ int DcePayloadParseTest37(void)
         bjd->flags & DETECT_BYTEJUMP_LITTLE ||
         bjd->flags & DETECT_BYTEJUMP_BIG ||
         bjd->flags & DETECT_BYTEJUMP_STRING ||
-        bjd->flags & DETECT_BYTEJUMP_RELATIVE ||
+        !(bjd->flags & DETECT_BYTEJUMP_RELATIVE) ||
         !(bjd->flags & DETECT_BYTEJUMP_ALIGN) ||
         !(bjd->flags & DETECT_BYTEJUMP_DCE) ) {
         result = 0;
@@ -9031,7 +9031,7 @@ int DcePayloadParseTest38(void)
     }
     pd = (DetectPcreData *)sm->ctx;
     if ( pd->flags & DETECT_PCRE_RAWBYTES ||
-         pd->flags & DETECT_PCRE_RELATIVE) {
+         !(pd->flags & DETECT_PCRE_RELATIVE)) {
         result = 0;
         printf("one failed\n");
         goto end;
@@ -9685,7 +9685,7 @@ int DcePayloadParseTest44(void)
     }
     isd = (DetectIsdataatData *)sm->ctx;
     if ( isd->flags & ISDATAAT_RAWBYTES ||
-         isd->flags & ISDATAAT_RELATIVE) {
+         !(isd->flags & ISDATAAT_RELATIVE)) {
         result = 0;
         goto end;
     }
@@ -9814,7 +9814,7 @@ int DcePayloadParseTest45(void)
         bjd->flags & DETECT_BYTEJUMP_LITTLE ||
         bjd->flags & DETECT_BYTEJUMP_BIG ||
         bjd->flags & DETECT_BYTEJUMP_STRING ||
-        bjd->flags & DETECT_BYTEJUMP_RELATIVE ||
+        !(bjd->flags & DETECT_BYTEJUMP_RELATIVE) ||
         !(bjd->flags & DETECT_BYTEJUMP_ALIGN) ||
         !(bjd->flags & DETECT_BYTEJUMP_DCE) ) {
         result = 0;
@@ -9925,7 +9925,7 @@ int DcePayloadParseTest46(void)
     if (btd->flags & DETECT_BYTETEST_LITTLE ||
         btd->flags & DETECT_BYTETEST_BIG ||
         btd->flags & DETECT_BYTETEST_STRING ||
-        btd->flags & DETECT_BYTETEST_RELATIVE ||
+        !(btd->flags & DETECT_BYTETEST_RELATIVE) ||
         !(btd->flags & DETECT_BYTETEST_DCE) ) {
         result = 0;
         printf("one failed\n");

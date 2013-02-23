@@ -95,84 +95,72 @@ void DetectHttpHHRegister(void)
  */
 int DetectHttpHHSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
-    DetectContentData *cd = NULL;
     SigMatch *sm = NULL;
+    int ret = -1;
 
     if (arg != NULL && strcmp(arg, "") != 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "http_host not supplied with args");
-        goto error;
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "http_host shouldn't be supplied "
+                   "with an argument");
+        goto end;
+    }
+
+    if (s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "\"http_host\" keyword seen "
+                   "with a sticky buffer still set.  Reset sticky buffer "
+                   "with pkt_data before using the modifier.");
+        goto end;
+    }
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains a non http "
+                   "alproto set");
+        goto end;
     }
 
     sm = SigMatchGetLastSMFromLists(s, 2,
                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
-    /* if we still can't find any previous content keywords, it's an invalid
-     * rule */
     if (sm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "\"http_host\" keyword "
                    "found inside the rule without a content context.  "
                    "Please use a \"content\" keyword before using the "
                    "\"http_host\" keyword");
-        goto error;
+        goto end;
     }
-
-    cd = (DetectContentData *)sm->ctx;
-
-    /* http_host should not be used with the rawbytes rule */
+    DetectContentData *cd = (DetectContentData *)sm->ctx;
     if (cd->flags & DETECT_CONTENT_RAWBYTES) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "http_host rule can not "
-                   "be used with the rawbytes rule keyword");
-        goto error;
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "http_host "
+                "rule can not be used with the rawbytes rule keyword");
+        goto end;
     }
-
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains a non http "
-                   "alproto set");
-        goto error;
-    }
-
-    if (s->flags & SIG_FLAG_TOCLIENT) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "http_host can not be used "
-                   "with flow:to_client or flow:from_server. ");
-        goto error;
-    }
-
-    if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
+    if (cd->flags & (DETECT_CONTENT_WITHIN | DETECT_CONTENT_DISTANCE)) {
         SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
                                                    DETECT_CONTENT, sm->prev,
                                                    DETECT_PCRE, sm->prev);
-        /* pm can be NULL now.  To accomodate parsing sigs like -
-         * content:one; http_modifier; content:two; distance:0; http_modifier */
         if (pm != NULL) {
             if (pm->type == DETECT_CONTENT) {
                 DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
                 tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
             } else {
                 DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
-                tmp_pd->flags &= ~ DETECT_PCRE_RELATIVE_NEXT;
+                tmp_pd->flags &= ~DETECT_PCRE_RELATIVE_NEXT;
             }
+        }
 
-        } /* if (pm != NULL) */
-
-        /* reassigning pm */
         pm = SigMatchGetLastSMFromLists(s, 4,
                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
                                         DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH]);
-        if (pm == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "http_host seen with a "
-                       "distance or within without a previous http_host "
-                       "content.  Invalidating signature.");
-            goto error;
-        }
-        if (pm->type == DETECT_PCRE) {
-            DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
-            tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
-        } else {
-            DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
-            tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+        if (pm != NULL) {
+            if (pm->type == DETECT_CONTENT) {
+                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+            } else {
+                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
+            }
         }
     }
-    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_HHHDMATCH);
-    sm->type = DETECT_CONTENT;
+    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, s, DETECT_SM_LIST_HHHDMATCH);
+    s->flags |= SIG_FLAG_APPLAYER;
+    s->alproto = ALPROTO_HTTP;
 
     /* transfer the sm from the pmatch list to hhhdmatch list */
     SigMatchTransferSigMatchAcrossLists(sm,
@@ -181,14 +169,9 @@ int DetectHttpHHSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
                                         &s->sm_lists[DETECT_SM_LIST_HHHDMATCH],
                                         &s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH]);
 
-    /* flag the signature to indicate that we scan the app layer data */
-    s->flags |= SIG_FLAG_APPLAYER;
-    s->alproto = ALPROTO_HTTP;
-
-    return 0;
-
-error:
-    return -1;
+    ret = 0;
+ end:
+    return ret;
 }
 
 /**
@@ -2089,8 +2072,8 @@ int DetectHttpHHTest31(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(content:\"one\"; within:5; http_host; nocase; sid:1;)");
-    if (de_ctx->sig_list != NULL) {
-        printf("de_ctx->sig_list != NULL\n");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
         goto end;
     }
 

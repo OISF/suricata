@@ -3050,7 +3050,7 @@ uint32_t DetectUricontentGetId(MpmPatternIdStore *ht, DetectContentData *co) {
  *
  * \retval id Pattern id.
  */
-uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_list)
+uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, Signature *s, uint8_t sm_list)
 {
     SCEnter();
 
@@ -3076,58 +3076,64 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_list)
 
     r = HashTableLookup(ht->hash, (void *)e, sizeof(MpmPatternIdTableElmt));
     if (r == NULL) {
-        /* we don't have a duplicate with this pattern + id type.  If the id is
-         * for content, then it is the first entry for such a
-         * pattern + id combination.  Let us create an entry for it */
-        if (sm_list == DETECT_SM_LIST_PMATCH) {
+        if (s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) {
+            BUG_ON((sm_list != DETECT_SM_LIST_HSBDMATCH) & (sm_list != DETECT_SM_LIST_DMATCH));
             e->id = ht->max_id;
             ht->max_id++;
             id = e->id;
-
             int ret = HashTableAdd(ht->hash, e, sizeof(MpmPatternIdTableElmt));
             BUG_ON(ret != 0);
-
             e = NULL;
-
-            /* the id type is not content or uricontent.  It would be one of
-             * those http_ modifiers against content then */
         } else {
-            /* we know that this is one of those http_ modifiers against content.
-             * So we would have seen a content before coming across this http_
-             * modifier.  Let's retrieve this content entry that has already
-             * been registered. */
-            e->sm_list = DETECT_SM_LIST_PMATCH;
-            MpmPatternIdTableElmt *tmp_r = HashTableLookup(ht->hash, (void *)e, sizeof(MpmPatternIdTableElmt));
-            if (tmp_r == NULL) {
-                SCLogError(SC_ERR_FATAL, "How can this happen?  We have to have "
-                           "a content of type DETECT_CONTENT already registered "
-                           "at this point.  Impossible");
-                exit(EXIT_FAILURE);
-            }
-
-            /* we have retrieved the content, and the content registered was the
-             * first entry made(dup_count is 1) for that content.  Let us just
-             * reset the sm_type to the http_ keyword's sm_type */
-            if (tmp_r->dup_count == 1) {
-                tmp_r->sm_list = sm_list;
-                id = tmp_r->id;
-
-                /* interestingly we have more than one entry for this content.
-                 * Out of these tmp_r->dup_count entries, one would be for the content
-                 * entry made for this http_ modifier.  Erase this entry and make
-                 * a separate entry for the http_ modifier(of course with a new id) */
-            } else {
-                tmp_r->dup_count--;
-                /* reset the sm_type, since we changed it to DETECT_CONTENT prev */
-                e->sm_list = sm_list;
+            /* we don't have a duplicate with this pattern + id type.  If the id is
+             * for content, then it is the first entry for such a
+             * pattern + id combination.  Let us create an entry for it */
+            if (sm_list == DETECT_SM_LIST_PMATCH) {
                 e->id = ht->max_id;
                 ht->max_id++;
                 id = e->id;
-
                 int ret = HashTableAdd(ht->hash, e, sizeof(MpmPatternIdTableElmt));
                 BUG_ON(ret != 0);
-
                 e = NULL;
+
+                /* the id type is not content or uricontent.  It would be one of
+                 * those http_ modifiers against content then */
+            } else {
+                /* we know that this is one of those http_ modifiers against content.
+                 * So we would have seen a content before coming across this http_
+                 * modifier.  Let's retrieve this content entry that has already
+                 * been registered. */
+                e->sm_list = DETECT_SM_LIST_PMATCH;
+                MpmPatternIdTableElmt *tmp_r = HashTableLookup(ht->hash, (void *)e, sizeof(MpmPatternIdTableElmt));
+                if (tmp_r == NULL) {
+                    SCLogError(SC_ERR_FATAL, "How can this happen?  We have to have "
+                               "a content of type DETECT_CONTENT already registered "
+                               "at this point.  Impossible");
+                    exit(EXIT_FAILURE);
+                }
+
+                /* we have retrieved the content, and the content registered was the
+                 * first entry made(dup_count is 1) for that content.  Let us just
+                 * reset the sm_type to the http_ keyword's sm_type */
+                if (tmp_r->dup_count == 1) {
+                    tmp_r->sm_list = sm_list;
+                    id = tmp_r->id;
+
+                    /* interestingly we have more than one entry for this content.
+                     * Out of these tmp_r->dup_count entries, one would be for the content
+                     * entry made for this http_ modifier.  Erase this entry and make
+                     * a separate entry for the http_ modifier(of course with a new id) */
+                } else {
+                    tmp_r->dup_count--;
+                    /* reset the sm_type, since we changed it to DETECT_CONTENT prev */
+                    e->sm_list = sm_list;
+                    e->id = ht->max_id;
+                    ht->max_id++;
+                    id = e->id;
+                    int ret = HashTableAdd(ht->hash, e, sizeof(MpmPatternIdTableElmt));
+                    BUG_ON(ret != 0);
+                    e = NULL;
+                }
             }
         }
 
@@ -3135,7 +3141,9 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_list)
     } else {
         /* oh cool!  It is a duplicate for content, uricontent types.  Update the
          * dup_count and get out */
-        if (sm_list == DETECT_SM_LIST_PMATCH) {
+        if ((s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) ||
+            sm_list == DETECT_SM_LIST_PMATCH) {
+            /* we have a duplicate */
             r->dup_count++;
             id = r->id;
             goto end;
