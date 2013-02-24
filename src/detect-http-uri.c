@@ -87,7 +87,7 @@ void DetectHttpUriRegister (void) {
  * \retval -1 On failure
  */
 
-int DetectHttpUriSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+int DetectHttpUriSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     SigMatch *sm = NULL;
     int ret = -1;

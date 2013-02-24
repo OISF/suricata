@@ -28,6 +28,7 @@
 #include "decode.h"
 #include "detect.h"
 #include "detect-content.h"
+#include "detect-http-uri.h"
 #include "detect-uricontent.h"
 #include "detect-engine-mpm.h"
 #include "detect-parse.h"
@@ -156,7 +157,7 @@ void DetectUricontentPrint(DetectContentData *cd)
  *          the rule set.
  * \param   contentstr  Pointer to the string which has been defined in the rule
  */
-DetectContentData *DoDetectUricontentSetup (char *contentstr)
+DetectContentData *DoDetectUricontentSetup(char *contentstr)
 {
     DetectContentData *cd = NULL;
     char *str = NULL;
@@ -206,45 +207,18 @@ DetectContentData *DoDetectUricontentSetup (char *contentstr)
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
+int DetectUricontentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
 {
     SCEnter();
 
-    DetectContentData *cd = NULL;
-    SigMatch *sm = NULL;
-
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains "
-                   "conflicting keywords.");
-        goto error;
-    }
-
-    cd = DoDetectUricontentSetup(contentstr);
-    if (cd == NULL)
+    if (DetectContentSetup(de_ctx, s, contentstr) < 0)
         goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (DetectHttpUriSetup(de_ctx, s, NULL) < 0)
         goto error;
-
-    sm->type = DETECT_CONTENT;
-    sm->ctx = (void *)cd;
-
-    /* Flagged the signature as to inspect the app layer data */
-    s->flags |= SIG_FLAG_APPLAYER;
-
-    s->alproto = ALPROTO_HTTP;
-
-    cd->id = DetectUricontentGetId(de_ctx->mpm_pattern_id_store, cd);
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
 
     SCReturnInt(0);
-
 error:
-    if (cd != NULL)
-        SCFree(cd);
-    if (sm != NULL)
-        SCFree(sm);
     SCReturnInt(-1);
 }
 

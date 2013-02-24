@@ -27,6 +27,7 @@
 /* prototypes */
 void DetectHttpUriRegister (void);
 
+int DetectHttpUriSetup(DetectEngineCtx *de_ctx, Signature *s, char *str);
 int DetectHttpUriDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
         SigMatch *sm, Flow *f, uint8_t flags, void *state);
 
