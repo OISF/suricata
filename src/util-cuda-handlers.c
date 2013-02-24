@@ -473,7 +473,7 @@ int SCCudaHlGetCudaModule(CUmodule *p_module, const char *ptx_image, int handle)
     if (unlikely(image == NULL)) {
         exit(EXIT_FAILURE);
     }
-    memset(image, 0x0, sizeof(image));
+    memset(image, 0x0, strlen(ptx_image)+15);
 
     int major = INT_MAX;
     int minor = INT_MAX;
