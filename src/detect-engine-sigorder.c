@@ -63,7 +63,7 @@
  *                anything
  */
 static void SCSigRegisterSignatureOrderingFunc(DetectEngineCtx *de_ctx,
-                                               void (*FuncPtr)(DetectEngineCtx *de_ctx, SCSigSignatureWrapper *))
+                                               int (*SWCompare)(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2))
 {
     SCSigOrderFunc *curr = NULL;
     SCSigOrderFunc *prev = NULL;
@@ -73,7 +73,7 @@ static void SCSigRegisterSignatureOrderingFunc(DetectEngineCtx *de_ctx,
     prev = curr;
     while (curr != NULL) {
         prev = curr;
-        if (curr->FuncPtr == FuncPtr)
+        if (curr->SWCompare == SWCompare)
             break;
 
         curr = curr->next;
@@ -88,7 +88,7 @@ static void SCSigRegisterSignatureOrderingFunc(DetectEngineCtx *de_ctx,
     }
     memset(temp, 0, sizeof(SCSigOrderFunc));
 
-    temp->FuncPtr = FuncPtr;
+    temp->SWCompare = SWCompare;
 
     if (prev == NULL)
         de_ctx->sc_sig_order_funcs = temp;
@@ -341,15 +341,9 @@ static inline void SCSigProcessUserDataForPktvar(SCSigSignatureWrapper *sw)
     return;
 }
 
-/**
- * \brief Orders an incoming Signature based on its action
- *
- * \param de_ctx Pointer to the detection engine context from which the
- *               signatures have to be ordered.
- * \param sw     The new signature that has to be ordered based on its action
- */
-static void SCSigOrderByAction(DetectEngineCtx *de_ctx,
-                               SCSigSignatureWrapper *sw)
+static void SCSigOrder(DetectEngineCtx *de_ctx,
+                       SCSigSignatureWrapper *sw,
+                       int (*SWCompare)(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2))
 {
     SCSigSignatureWrapper *min = NULL;
     SCSigSignatureWrapper *max = NULL;
@@ -375,7 +369,7 @@ static void SCSigOrderByAction(DetectEngineCtx *de_ctx,
     while (min != max) {
         prev = min;
         /* the sorting logic */
-        if (ActionOrderVal(sw->sig->action) >= ActionOrderVal(min->sig->action)) {
+        if (SWCompare(sw, min) <= 0) {
             min = min->next;
             continue;
         }
@@ -413,7 +407,7 @@ static void SCSigOrderByAction(DetectEngineCtx *de_ctx,
 
         if (min == NULL) {
             if (prev != NULL)
-               prev->next = sw;
+                prev->next = sw;
             sw->prev = prev;
             sw->next = NULL;
         } else {
@@ -428,7 +422,7 @@ static void SCSigOrderByAction(DetectEngineCtx *de_ctx,
     /* set the min signature for this keyword, for the next ordering function */
     min = sw;
     while (min != NULL && min != sw->min) {
-        if (min->sig->action != sw->sig->action)
+        if (SWCompare(sw, min) != 0)
             break;
 
         min = min->prev;
@@ -438,7 +432,7 @@ static void SCSigOrderByAction(DetectEngineCtx *de_ctx,
     /* set the max signature for this keyword + 1, for the next ordering func */
     max = sw;
     while (max != NULL && max != sw->max) {
-        if (max->sig->action != sw->sig->action)
+        if (SWCompare(max, sw) != 0)
             break;
 
         max = max->next;
@@ -446,6 +440,19 @@ static void SCSigOrderByAction(DetectEngineCtx *de_ctx,
     sw->max = max;
 
     return;
+}
+
+/**
+ * \brief Orders an incoming Signature based on its action
+ *
+ * \param de_ctx Pointer to the detection engine context from which the
+ *               signatures have to be ordered.
+ * \param sw     The new signature that has to be ordered based on its action
+ */
+static int SCSigOrderByActionCompare(SCSigSignatureWrapper *sw1,
+                                     SCSigSignatureWrapper *sw2)
+{
+    return ActionOrderVal(sw2->sig->action) - ActionOrderVal(sw1->sig->action);
 }
 
 /**
@@ -455,108 +462,11 @@ static void SCSigOrderByAction(DetectEngineCtx *de_ctx,
  *               signatures have to be ordered.
  * \param sw     The new signature that has to be ordered based on its flowbits
  */
-static void SCSigOrderByFlowbits(DetectEngineCtx *de_ctx,
-                                 SCSigSignatureWrapper *sw)
+static int SCSigOrderByFlowbitsCompare(SCSigSignatureWrapper *sw1,
+                                       SCSigSignatureWrapper *sw2)
 {
-    SCSigSignatureWrapper *min = NULL;
-    SCSigSignatureWrapper *max = NULL;
-    SCSigSignatureWrapper *prev = NULL;
-
-    if (sw == NULL)
-        return;
-
-    if (de_ctx->sc_sig_sig_wrapper == NULL) {
-        de_ctx->sc_sig_sig_wrapper = sw;
-        sw->min = NULL;
-        sw->max = NULL;
-        return;
-    }
-
-    min = sw->min;
-    max = sw->max;
-    if (min == NULL)
-        min = de_ctx->sc_sig_sig_wrapper;
-    else
-        min = min->next;
-
-    while (min != NULL && min != max) {
-        prev = min;
-        /* the sorting logic */
-        if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWBITS])) <=
-             *((int *)(min->user[SC_RADIX_USER_DATA_FLOWBITS])) ) {
-            min = min->next;
-            continue;
-        }
-
-        if (min->prev == sw)
-            break;
-
-        if (sw->next != NULL)
-            sw->next->prev = sw->prev;
-        if (sw->prev != NULL)
-            sw->prev->next = sw->next;
-        if (de_ctx->sc_sig_sig_wrapper == sw)
-            de_ctx->sc_sig_sig_wrapper = sw->next;
-
-        sw->next = min;
-        sw->prev = min->prev;
-
-        if (min->prev != NULL)
-            min->prev->next = sw;
-        else
-            de_ctx->sc_sig_sig_wrapper = sw;
-
-        min->prev = sw;
-
-        break;
-    }
-
-    if (min == max && prev != sw) {
-        if (sw->next != NULL) {
-            sw->next->prev = sw->prev;
-        }
-        if (sw->prev != NULL) {
-            sw->prev->next = sw->next;
-        }
-
-        if (min == NULL) {
-            if (prev != NULL)
-                prev->next = sw;
-            sw->prev = prev;
-            sw->next = NULL;
-        } else {
-            sw->prev = min->prev;
-            sw->next = min;
-            if (min->prev != NULL)
-                min->prev->next = sw;
-            min->prev = sw;
-        }
-    }
-
-    /* set the min signature for this keyword, for the next ordering function */
-    min = sw;
-    while (min != NULL && min != sw->min) {
-        if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWBITS])) !=
-             *((int *)(min->user[SC_RADIX_USER_DATA_FLOWBITS])) )
-            break;
-
-        min = min->prev;
-    }
-    sw->min = min;
-
-    /* set the max signature for this keyword + 1, for the next ordering func */
-    max = sw;
-    while (max!= NULL && max != sw->max) {
-        if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWBITS])) !=
-             *((int *)(max->user[SC_RADIX_USER_DATA_FLOWBITS])) )
-            break;
-
-        max = max->next;
-    }
-    sw->max = max;
-
-    return;
-
+    return *((int *)sw1->user[SC_RADIX_USER_DATA_FLOWBITS]) -
+        *((int *)sw2->user[SC_RADIX_USER_DATA_FLOWBITS]);
 }
 
 /**
@@ -566,107 +476,11 @@ static void SCSigOrderByFlowbits(DetectEngineCtx *de_ctx,
  *               signatures have to be ordered.
  * \param sw     The new signature that has to be ordered based on its flowvar
  */
-static void SCSigOrderByFlowvar(DetectEngineCtx *de_ctx,
-                                SCSigSignatureWrapper *sw)
+static int SCSigOrderByFlowvarCompare(SCSigSignatureWrapper *sw1,
+                                      SCSigSignatureWrapper *sw2)
 {
-    SCSigSignatureWrapper *min = NULL;
-    SCSigSignatureWrapper *max = NULL;
-    SCSigSignatureWrapper *prev = NULL;
-
-    if (sw == NULL)
-        return;
-
-    if (de_ctx->sc_sig_sig_wrapper == NULL) {
-        de_ctx->sc_sig_sig_wrapper = sw;
-        sw->min = NULL;
-        sw->max = NULL;
-        return;
-    }
-
-    min = sw->min;
-    max = sw->max;
-    if (min == NULL)
-        min = de_ctx->sc_sig_sig_wrapper;
-    else
-        min = min->next;
-
-    while (min != max) {
-        prev = min;
-        /* the sorting logic */
-        if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWVAR])) <=
-             *((int *)(min->user[SC_RADIX_USER_DATA_FLOWVAR])) ) {
-            min = min->next;
-            continue;
-        }
-
-        if (min->prev == sw)
-            break;
-
-        if (sw->next != NULL)
-            sw->next->prev = sw->prev;
-        if (sw->prev != NULL)
-            sw->prev->next = sw->next;
-        if (de_ctx->sc_sig_sig_wrapper == sw)
-            de_ctx->sc_sig_sig_wrapper = sw->next;
-
-        sw->next = min;
-        sw->prev = min->prev;
-
-        if (min->prev != NULL)
-            min->prev->next = sw;
-        else
-            de_ctx->sc_sig_sig_wrapper = sw;
-
-        min->prev = sw;
-
-        break;
-    }
-
-    if (min == max && prev != sw) {
-        if (sw->next != NULL) {
-            sw->next->prev = sw->prev;
-        }
-        if (sw->prev != NULL) {
-            sw->prev->next = sw->next;
-        }
-
-        if (min == NULL) {
-            if (prev != NULL)
-                prev->next = sw;
-            sw->prev = prev;
-            sw->next = NULL;
-        } else {
-            sw->prev = min->prev;
-            sw->next = min;
-            if (min->prev != NULL)
-                min->prev->next = sw;
-            min->prev = sw;
-        }
-    }
-
-    /* set the min signature for this keyword, for the next ordering function */
-    min = sw;
-    while (min != NULL && min != sw->min) {
-        if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWVAR])) !=
-             *((int *)(min->user[SC_RADIX_USER_DATA_FLOWVAR])) )
-            break;
-
-        min = min->prev;
-    }
-    sw->min = min;
-
-    /* set the max signature for this keyword + 1, for the next ordering func */
-    max = sw;
-    while (max != NULL && max != sw->max) {
-        if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWVAR])) !=
-             *((int *)(max->user[SC_RADIX_USER_DATA_FLOWVAR])) )
-            break;
-
-        max = max->next;
-    }
-    sw->max = max;
-
-    return;
+    return *((int *)sw1->user[SC_RADIX_USER_DATA_FLOWVAR]) -
+        *((int *)sw2->user[SC_RADIX_USER_DATA_FLOWVAR]);
 }
 
 /**
@@ -676,209 +490,18 @@ static void SCSigOrderByFlowvar(DetectEngineCtx *de_ctx,
  *               signatures have to be ordered.
  * \param sw     The new signature that has to be ordered based on its pktvar
  */
-static void SCSigOrderByPktvar(DetectEngineCtx *de_ctx,
-                               SCSigSignatureWrapper *sw)
+static int SCSigOrderByPktvarCompare(SCSigSignatureWrapper *sw1,
+                                     SCSigSignatureWrapper *sw2)
 {
-    SCSigSignatureWrapper *min = NULL;
-    SCSigSignatureWrapper *max = NULL;
-    SCSigSignatureWrapper *prev = NULL;
-
-    if (sw == NULL)
-        return;
-
-    if (de_ctx->sc_sig_sig_wrapper == NULL) {
-        de_ctx->sc_sig_sig_wrapper = sw;
-        sw->min = NULL;
-        sw->max = NULL;
-        return;
-    }
-
-    min = sw->min;
-    max = sw->max;
-    if (min == NULL)
-        min = de_ctx->sc_sig_sig_wrapper;
-    else
-        min = min->next;
-    while (min != NULL && min != max) {
-        prev = min;
-        /* the sorting logic */
-        if ( *((int *)(sw->user[SC_RADIX_USER_DATA_PKTVAR])) <=
-             *((int *)(min->user[SC_RADIX_USER_DATA_PKTVAR])) ) {
-            min = min->next;
-            continue;
-        }
-
-        if (min->prev == sw)
-            break;
-
-        if (sw->next != NULL)
-            sw->next->prev = sw->prev;
-        if (sw->prev != NULL)
-            sw->prev->next = sw->next;
-        if (de_ctx->sc_sig_sig_wrapper == sw)
-            de_ctx->sc_sig_sig_wrapper = sw->next;
-
-        sw->next = min;
-        sw->prev = min->prev;
-
-        if (min->prev != NULL)
-            min->prev->next = sw;
-        else
-            de_ctx->sc_sig_sig_wrapper = sw;
-
-        min->prev = sw;
-
-        break;
-    }
-
-    if (min == max && prev != sw) {
-        if (sw->next != NULL) {
-            sw->next->prev = sw->prev;
-        }
-        if (sw->prev != NULL) {
-            sw->prev->next = sw->next;
-        }
-
-        if (min == NULL) {
-            if (prev != NULL)
-                prev->next = sw;
-            sw->prev = prev;
-            sw->next = NULL;
-        } else {
-            sw->prev = min->prev;
-            sw->next = min;
-            if (min->prev != NULL)
-                min->prev->next = sw;
-            min->prev = sw;
-        }
-    }
-
-    /* set the min signature for this keyword, for the next ordering function */
-    min = sw;
-    while (min != NULL && min != sw->min) {
-        if ( *((int *)(sw->user[SC_RADIX_USER_DATA_PKTVAR])) !=
-             *((int *)(min->user[SC_RADIX_USER_DATA_PKTVAR])) )
-            break;
-
-        min = min->prev;
-    }
-    sw->min = min;
-
-    /* set the max signature for this keyword + 1, for the next ordering func */
-    max = sw;
-    while (max != NULL && max != sw->max) {
-        if ( *((int *)(sw->user[SC_RADIX_USER_DATA_PKTVAR])) !=
-             *((int *)(max->user[SC_RADIX_USER_DATA_PKTVAR])) )
-            break;
-
-        max = max->next;
-    }
-    sw->max = max;
-
-    return;
+    return *((int *)sw1->user[SC_RADIX_USER_DATA_PKTVAR]) -
+        *((int *)sw2->user[SC_RADIX_USER_DATA_PKTVAR]);
 }
 
-static void SCSigOrderByFlowint(DetectEngineCtx *de_ctx,
-                                SCSigSignatureWrapper *sw)
+static int SCSigOrderByFlowintCompare(SCSigSignatureWrapper *sw1,
+                                      SCSigSignatureWrapper *sw2)
 {
-    SCSigSignatureWrapper *min = NULL;
-    SCSigSignatureWrapper *max = NULL;
-    SCSigSignatureWrapper *prev = NULL;
-
-    if (sw == NULL)
-        return;
-
-    if (de_ctx->sc_sig_sig_wrapper == NULL) {
-        de_ctx->sc_sig_sig_wrapper = sw;
-        sw->min = NULL;
-        sw->max = NULL;
-        return;
-    }
-
-    min = sw->min;
-    max = sw->max;
-    if (min == NULL)
-        min = de_ctx->sc_sig_sig_wrapper;
-    else
-        min = min->next;
-
-    while (min != max) {
-        prev = min;
-        /* the sorting logic */
-        if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWINT])) <=
-             *((int *)(min->user[SC_RADIX_USER_DATA_FLOWINT])) ) {
-            min = min->next;
-            continue;
-        }
-
-        if (min->prev == sw)
-            break;
-
-        if (sw->next != NULL)
-            sw->next->prev = sw->prev;
-        if (sw->prev != NULL)
-            sw->prev->next = sw->next;
-        if (de_ctx->sc_sig_sig_wrapper == sw)
-            de_ctx->sc_sig_sig_wrapper = sw->next;
-
-        sw->next = min;
-        sw->prev = min->prev;
-
-        if (min->prev != NULL)
-            min->prev->next = sw;
-        else
-            de_ctx->sc_sig_sig_wrapper = sw;
-
-        min->prev = sw;
-
-        break;
-    }
-
-    if (min == max && prev != sw) {
-        if (sw->next != NULL) {
-            sw->next->prev = sw->prev;
-        }
-        if (sw->prev != NULL) {
-            sw->prev->next = sw->next;
-        }
-
-        if (min == NULL) {
-            if (prev != NULL)
-                prev->next = sw;
-            sw->prev = prev;
-            sw->next = NULL;
-        } else {
-            sw->prev = min->prev;
-            sw->next = min;
-            if (min->prev != NULL)
-                min->prev->next = sw;
-            min->prev = sw;
-        }
-    }
-
-    /* set the min signature for this keyword, for the next ordering function */
-    min = sw;
-    while (min != NULL && min != sw->min) {
-        if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWINT])) !=
-             *((int *)(min->user[SC_RADIX_USER_DATA_FLOWINT])) )
-            break;
-
-        min = min->prev;
-    }
-    sw->min = min;
-
-    /* set the max signature for this keyword + 1, for the next ordering func */
-    max = sw;
-    while (max != NULL && max != sw->max) {
-        if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWINT])) !=
-             *((int *)(max->user[SC_RADIX_USER_DATA_FLOWINT])) )
-            break;
-
-        max = max->next;
-    }
-    sw->max = max;
-
-    return;
+    return *((int *)sw1->user[SC_RADIX_USER_DATA_FLOWINT]) -
+        *((int *)sw2->user[SC_RADIX_USER_DATA_FLOWINT]);
 }
 
 /**
@@ -888,104 +511,10 @@ static void SCSigOrderByFlowint(DetectEngineCtx *de_ctx,
  *               signatures have to be ordered.
  * \param sw     The new signature that has to be ordered based on its priority
  */
-static void SCSigOrderByPriority(DetectEngineCtx *de_ctx,
-                                 SCSigSignatureWrapper *sw)
+static int SCSigOrderByPriorityCompare(SCSigSignatureWrapper *sw1,
+                                       SCSigSignatureWrapper *sw2)
 {
-    SCSigSignatureWrapper *min = NULL;
-    SCSigSignatureWrapper *max = NULL;
-    SCSigSignatureWrapper *prev = NULL;
-
-    if (sw == NULL)
-        return;
-
-    if (de_ctx->sc_sig_sig_wrapper == NULL) {
-        de_ctx->sc_sig_sig_wrapper = sw;
-        sw->min = NULL;
-        sw->max = NULL;
-        return;
-    }
-
-    min = sw->min;
-    max = sw->max;
-    if (min == NULL)
-        min = de_ctx->sc_sig_sig_wrapper;
-    else
-        min = min->next;
-
-    while (min != max) {
-        prev = min;
-        /* the sorting logic */
-        if (sw->sig->prio <= min->sig->prio) {
-            min = min->next;
-            continue;
-        }
-
-        if (min->prev == sw)
-            break;
-
-        if (sw->next != NULL)
-            sw->next->prev = sw->prev;
-        if (sw->prev != NULL)
-            sw->prev->next = sw->next;
-        if (de_ctx->sc_sig_sig_wrapper == sw)
-            de_ctx->sc_sig_sig_wrapper = sw->next;
-
-        sw->next = min;
-        sw->prev = min->prev;
-
-        if (min->prev != NULL)
-            min->prev->next = sw;
-        else
-            de_ctx->sc_sig_sig_wrapper = sw;
-
-        min->prev = sw;
-
-        break;
-    }
-
-    if (min == max && prev != sw) {
-        if (sw->next != NULL) {
-            sw->next->prev = sw->prev;
-        }
-        if (sw->prev != NULL) {
-            sw->prev->next = sw->next;
-        }
-
-        if (min == NULL) {
-            if (prev != NULL)
-                prev->next = sw;
-            sw->prev = prev;
-            sw->next = NULL;
-        } else {
-            sw->prev = min->prev;
-            sw->next = min;
-            if (min->prev != NULL)
-                min->prev->next = sw;
-            min->prev = sw;
-        }
-    }
-
-    /* set the min signature for this keyword, for the next ordering function */
-    min = sw;
-    while (min != NULL && min != sw->min) {
-        if (min->sig->prio != sw->sig->prio)
-            break;
-
-        min = min->prev;
-    }
-    sw->min = min;
-
-    /* set the max signature for this keyword + 1, for the next ordering func */
-    max = sw;
-    while (max != NULL && max != sw->max) {
-        if (max->sig->prio != sw->sig->prio)
-            break;
-
-        max = max->next;
-    }
-    sw->max = max;
-
-    return;
+    return sw1->sig->prio - sw2->sig->prio;
 }
 
 /**
@@ -1051,7 +580,7 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         sigw = SCSigAllocSignatureWrapper(sig);
         funcs = de_ctx->sc_sig_order_funcs;
         while (funcs != NULL) {
-            funcs->FuncPtr(de_ctx, sigw);
+            SCSigOrder(de_ctx, sigw, funcs->SWCompare);
 
             funcs = funcs->next;
         }
@@ -1100,12 +629,12 @@ void SCSigRegisterSignatureOrderingFuncs(DetectEngineCtx *de_ctx)
 {
     SCLogDebug("registering signature ordering functions");
 
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowint);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowintCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
 
     return;
 }
@@ -1151,7 +680,7 @@ void SCSigSignatureOrderingModuleCleanup(DetectEngineCtx *de_ctx)
     return;
 }
 
-/* -------------------------------------Unittests-----------------------------*/
+/**********Unittests**********/
 
 DetectEngineCtx *DetectEngineCtxInit(void);
 Signature *SigInit(DetectEngineCtx *, char *);
@@ -1169,17 +698,17 @@ static int SCSigTestSignatureOrdering01(void)
     if (de_ctx == NULL)
         goto end;
 
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
 
     temp = de_ctx->sc_sig_order_funcs;
     while (temp != NULL) {
@@ -1302,11 +831,11 @@ static int SCSigTestSignatureOrdering02(void)
     prevsig->next = sig;
     prevsig = sig;
 
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
 
     result = 1;
@@ -1470,11 +999,11 @@ static int SCSigTestSignatureOrdering03(void)
     prevsig->next = sig;
     prevsig = sig;
 
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
 
     result = 1;
@@ -1597,11 +1126,11 @@ static int SCSigTestSignatureOrdering04(void)
     prevsig->next = sig;
     prevsig = sig;
 
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
 
     result = 1;
@@ -1711,11 +1240,11 @@ static int SCSigTestSignatureOrdering05(void)
     prevsig = sig;
 
 
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
 
     result = 1;
@@ -1822,11 +1351,11 @@ static int SCSigTestSignatureOrdering06(void)
     prevsig->next = sig;
     prevsig = sig;
 
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
 
 
@@ -1932,11 +1461,11 @@ static int SCSigTestSignatureOrdering07(void)
     prevsig->next = sig;
     prevsig = sig;
 
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
 
     result = 1;
@@ -2052,11 +1581,11 @@ static int SCSigTestSignatureOrdering08(void)
     prevsig->next = sig;
     prevsig = sig;
 
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
 
     result = 1;
@@ -2179,11 +1708,11 @@ static int SCSigTestSignatureOrdering09(void)
     prevsig->next = sig;
     prevsig = sig;
 
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
 
     result = 1;
@@ -2303,11 +1832,11 @@ static int SCSigTestSignatureOrdering10(void)
     prevsig->next = sig;
     prevsig = sig;
 
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
 
     result = 1;
@@ -2380,11 +1909,11 @@ static int SCSigTestSignatureOrdering11(void)
     }
     prevsig->next = sig;
 
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
-    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
     SCSigOrderSignatures(de_ctx);
 
     result = 1;

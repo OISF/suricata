@@ -66,7 +66,7 @@ typedef struct SCSigSignatureWrapper_ {
  */
 typedef struct SCSigOrderFunc_ {
     /* Pointer to the Signature Ordering function */
-    void (*FuncPtr)(DetectEngineCtx *, SCSigSignatureWrapper *);
+    int (*SWCompare)(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2);
 
     struct SCSigOrderFunc_ *next;
 } SCSigOrderFunc;
