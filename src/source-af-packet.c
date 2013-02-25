@@ -838,6 +838,8 @@ int AFPReadFromRing(AFPThreadVars *ptv)
 next_frame:
         if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
             ptv->frame_offset = 0;
+            /* Get out of loop to be sure we will reach maintenance tasks */
+            SCReturnInt(AFP_READ_OK);
         }
     }
 
