@@ -583,6 +583,115 @@ TmEcode UnixManagerShutdownCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
+TmEcode UnixManagerVersionCommand(json_t *cmd,
+                                   json_t *server_msg, void *data)
+{
+    SCEnter();
+    json_object_set_new(server_msg, "message", json_string(
+#ifdef REVISION
+                        PROG_VER  xstr(REVISION)
+#elif defined RELEASE
+                        PROG_VER " RELEASE"
+#else
+                        PROG_VER
+#endif
+                        ));
+    SCReturnInt(TM_ECODE_OK);
+}
+
+TmEcode UnixManagerUptimeCommand(json_t *cmd,
+                                   json_t *server_msg, void *data)
+{
+    SCEnter();
+    int uptime;
+    UnixCommand *ucmd = (UnixCommand *)data;
+
+    uptime = time(NULL) - ucmd->start_timestamp;
+    json_object_set_new(server_msg, "message", json_integer(uptime));
+    SCReturnInt(TM_ECODE_OK);
+}
+
+TmEcode UnixManagerRunningModeCommand(json_t *cmd,
+                                   json_t *server_msg, void *data)
+{
+    SCEnter();
+    json_object_set_new(server_msg, "message", json_string(RunmodeGetActive()));
+    SCReturnInt(TM_ECODE_OK);
+}
+
+TmEcode UnixManagerCaptureModeCommand(json_t *cmd,
+                                   json_t *server_msg, void *data)
+{
+    SCEnter();
+    json_object_set_new(server_msg, "message", json_string(RunModeGetMainMode()));
+    SCReturnInt(TM_ECODE_OK);
+}
+
+TmEcode UnixManagerConfGetCommand(json_t *cmd,
+                                   json_t *server_msg, void *data)
+{
+    SCEnter();
+
+    char *confval = NULL;
+    char *variable = NULL;
+
+    json_t *jarg = json_object_get(cmd, "variable");
+    if(!json_is_string(jarg)) {
+        SCLogInfo("error: variable is not a string");
+        json_object_set_new(server_msg, "message", json_string("variable is not a string"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    variable = (char *)json_string_value(jarg);
+    if (ConfGet(variable, &confval) != 1) {
+        json_object_set_new(server_msg, "message", json_string("Unable to get value"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    if (confval) {
+        json_object_set_new(server_msg, "message", json_string(confval));
+        SCReturnInt(TM_ECODE_OK);
+    }
+
+    json_object_set_new(server_msg, "message", json_string("No string value"));
+    SCReturnInt(TM_ECODE_FAILED);
+}
+
+TmEcode UnixManagerListCommand(json_t *cmd,
+                               json_t *answer, void *data)
+{
+    SCEnter();
+    json_t *jdata;
+    json_t *jarray;
+    Command *lcmd = NULL;
+    UnixCommand *gcmd = (UnixCommand *) data;
+    int i = 0;
+
+    jdata = json_object();
+    if (jdata == NULL) {
+        json_object_set_new(answer, "message",
+                            json_string("internal error at json object creation"));
+        return TM_ECODE_FAILED;
+    }
+    jarray = json_array();
+    if (jarray == NULL) {
+        json_object_set_new(answer, "message",
+                            json_string("internal error at json object creation"));
+        return TM_ECODE_FAILED;
+    }
+
+    TAILQ_FOREACH(lcmd, &gcmd->commands, next) {
+        json_array_append(jarray, json_string(lcmd->name));
+        i++;
+    }
+
+    json_object_set_new(jdata, "count", json_integer(i));
+    json_object_set_new(jdata, "commands", jarray);
+    json_object_set_new(answer, "message", jdata);
+    SCReturnInt(TM_ECODE_OK);
+}
+
+
 #if 0
 TmEcode UnixManagerReloadRules(json_t *cmd,
                                    json_t *server_msg, void *data)
@@ -735,6 +844,14 @@ void *UnixManagerThread(void *td)
 
     /* Init Unix socket */
     UnixManagerRegisterCommand("shutdown", UnixManagerShutdownCommand, NULL, 0);
+    UnixManagerRegisterCommand("command-list", UnixManagerListCommand, &command, 0);
+    UnixManagerRegisterCommand("help", UnixManagerListCommand, &command, 0);
+    UnixManagerRegisterCommand("version", UnixManagerVersionCommand, &command, 0);
+    UnixManagerRegisterCommand("uptime", UnixManagerUptimeCommand, &command, 0);
+    UnixManagerRegisterCommand("running-mode", UnixManagerRunningModeCommand, &command, 0);
+    UnixManagerRegisterCommand("capture-mode", UnixManagerCaptureModeCommand, &command, 0);
+    UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("dump-counters", SCPerfOutputCounterSocket, NULL, 0);
 #if 0
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
 #endif
@@ -800,7 +917,7 @@ void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode)
 /**
  * \brief Used to kill unix manager thread(s).
  *
- * \todo Kinda hackish since it uses the tv name to identify flow manager
+ * \todo Kinda hackish since it uses the tv name to identify unix manager
  *       thread.  We need an all weather identification scheme.
  */
 void UnixSocketKillSocketThread(void)
@@ -809,8 +926,8 @@ void UnixSocketKillSocketThread(void)
 
     SCMutexLock(&tv_root_lock);
 
-    /* flow manager thread(s) is/are a part of mgmt threads */
-    tv = tv_root[TVT_MGMT];
+    /* unix manager thread(s) is/are a part of command threads */
+    tv = tv_root[TVT_CMD];
 
     while (tv != NULL) {
         if (strcasecmp(tv->name, "UnixManagerThread") == 0) {

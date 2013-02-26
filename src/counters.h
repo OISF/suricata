@@ -269,4 +269,10 @@ void SCPerfCounterAddDouble(uint16_t, SCPerfCounterArray *, double);
         }                                                               \
     } while (0)
 
+#ifdef BUILD_UNIX_SOCKET
+#include <jansson.h>
+TmEcode SCPerfOutputCounterSocket(json_t *cmd,
+                               json_t *answer, void *data);
+#endif
+
 #endif /* __COUNTERS_H__ */

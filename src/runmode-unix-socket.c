@@ -58,6 +58,7 @@ typedef struct PcapCommand_ {
     DetectEngineCtx *de_ctx;
     TAILQ_HEAD(, PcapFiles_) files;
     int running;
+    char *currentfile;
 } PcapCommand;
 
 const char *RunModeUnixSocketGetDefaultMode(void)
@@ -118,6 +119,20 @@ static TmEcode UnixSocketPcapFilesNumber(json_t *cmd, json_t* answer, void *data
     json_object_set_new(answer, "message", json_integer(i));
     return TM_ECODE_OK;
 }
+
+static TmEcode UnixSocketPcapCurrent(json_t *cmd, json_t* answer, void *data)
+{
+    PcapCommand *this = (PcapCommand *) data;
+
+    if (this->currentfile) {
+        json_object_set_new(answer, "message", json_string(this->currentfile));
+    } else {
+        json_object_set_new(answer, "message", json_string("None"));
+    }
+    return TM_ECODE_OK;
+}
+
+
 
 static void PcapFilesFree(PcapFiles *cfile)
 {
@@ -268,6 +283,10 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         }
         unix_manager_file_task_failed = 0;
         this->running = 0;
+        if (this->currentfile) {
+            SCFree(this->currentfile);
+        }
+        this->currentfile = NULL;
         TmThreadKillThreadsFamily(TVT_MGMT);
         TmThreadClearThreadsFamily(TVT_MGMT);
         TmThreadDisableThreadsWithTMS(TM_FLAG_RECEIVE_TM | TM_FLAG_DECODE_TM);
@@ -301,6 +320,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
                 return TM_ECODE_FAILED;
             }
         }
+        this->currentfile = SCStrdup(cfile->filename);
         PcapFilesFree(cfile);
         SCPerfInitCounterApi();
         DefragInit();
@@ -359,6 +379,7 @@ int RunModeUnixSocketSingle(DetectEngineCtx *de_ctx)
     }
     pcapcmd->de_ctx = de_ctx;
     TAILQ_INIT(&pcapcmd->files);
+    pcapcmd->currentfile = NULL;
 
     UnixManagerThreadSpawn(de_ctx, 1);
 
@@ -367,6 +388,7 @@ int RunModeUnixSocketSingle(DetectEngineCtx *de_ctx)
     UnixManagerRegisterCommand("pcap-file", UnixSocketAddPcapFile, pcapcmd, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("pcap-file-number", UnixSocketPcapFilesNumber, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-file-list", UnixSocketPcapFilesList, pcapcmd, 0);
+    UnixManagerRegisterCommand("pcap-current", UnixSocketPcapCurrent, pcapcmd, 0);
 
     UnixManagerRegisterBackgroundTask(UnixSocketPcapFilesCheck, pcapcmd);
 #endif
