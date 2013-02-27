@@ -1046,7 +1046,7 @@ static int SMBParseHeader(Flow *f, void *smb_state,
 
 static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                     uint8_t *input, uint32_t input_len,
-                    void *local_data, AppLayerParserResult *output)
+                    void *local_data, AppLayerParserResult *output, uint8_t dir)
 {
     SCEnter();
 
@@ -1061,11 +1061,15 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
         SCReturnInt(0);
     }
 
+    if (sstate->bytesprocessed != 0 && sstate->data_needed_for_dir != dir) {
+        SCReturnInt(-1);
+    }
+
     while (input_len) {
         /* till we clear corner cases */
         if (counter++ == 30) {
             SCLogDebug("Somehow seem to be stuck inside the smb "
-                    "parser for quite sometime.  Let's get out of here.");
+                       "parser for quite sometime.  Let's get out of here.");
             sstate->bytesprocessed = 0;
             SCReturnInt(0);
         }
@@ -1255,8 +1259,24 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
 
     pstate->parse_field = 0;
 
+    sstate->data_needed_for_dir = dir;
     SCReturnInt(1);
 }
+
+static int SMBParseRequest(Flow *f, void *smb_state, AppLayerParserState *pstate,
+                           uint8_t *input, uint32_t input_len,
+                           void *local_data, AppLayerParserResult *output)
+{
+    return SMBParse(f, smb_state, pstate, input, input_len, local_data, output, 0);
+}
+
+static int SMBParseResponse(Flow *f, void *smb_state, AppLayerParserState *pstate,
+                            uint8_t *input, uint32_t input_len,
+                            void *local_data, AppLayerParserResult *output)
+{
+    return SMBParse(f, smb_state, pstate, input, input_len, local_data, output, 1);
+}
+
 
 /**
  * \brief determines if the SMB command is an ANDX command
@@ -1400,8 +1420,8 @@ void RegisterSMBParsers(void) {
     /** SMB2 */
     AlpProtoAdd(&alp_proto_ctx, "smb2", IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
 
-    AppLayerRegisterProto(proto_name, ALPROTO_SMB, STREAM_TOSERVER, SMBParse);
-    AppLayerRegisterProto(proto_name, ALPROTO_SMB, STREAM_TOCLIENT, SMBParse);
+    AppLayerRegisterProto(proto_name, ALPROTO_SMB, STREAM_TOSERVER, SMBParseRequest);
+    AppLayerRegisterProto(proto_name, ALPROTO_SMB, STREAM_TOCLIENT, SMBParseResponse);
     AppLayerRegisterStateFuncs(ALPROTO_SMB, SMBStateAlloc, SMBStateFree);
     AppLayerRegisterTransactionIdFuncs(ALPROTO_SMB,
             SMBUpdateTransactionId, NULL);
@@ -2376,6 +2396,90 @@ end:
     return result;
 }
 
+/**
+ * \test Test to temporarily to show the direction demaraction issue in the
+ *       smb parser.
+ */
+int SMBParserTest10(void)
+{
+    int result = 0;
+    Flow f;
+    uint8_t smbbuf1[] = {
+        /* partial request */
+       0x00, 0x00, 0x00, 0x85, 0xff, 0x53, 0x4d, 0x42,
+       0x72, 0x00, 0x00, 0x00, 0x00, 0x18, 0x53, 0xc8,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xfe,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x62, 0x00, 0x02,
+       0x50, 0x43, 0x20, 0x4e, 0x45, 0x54, 0x57, 0x4f,
+       0x52, 0x4b, 0x20, 0x50, 0x52, 0x4f, 0x47, 0x52,
+       0x41, 0x4d, 0x20, 0x31, 0x2e, 0x30, 0x00, 0x02,
+       0x4c, 0x41, 0x4e, 0x4d, 0x41, 0x4e, 0x31, 0x2e,
+       0x30, 0x00, 0x02, 0x57, 0x69, 0x6e, 0x64, 0x6f,
+       0x77, 0x73, 0x20, 0x66, 0x6f, 0x72, 0x20, 0x57,
+       0x6f, 0x72, 0x6b, 0x67, 0x72, 0x6f, 0x75, 0x70,
+       0x73, 0x20, 0x33, 0x2e, 0x31, 0x61, 0x00, 0x02,
+       0x4c, 0x4d, 0x31, 0x2e, 0x32, 0x58, 0x30, 0x30,
+       0x32, 0x00, 0x02, 0x4c, 0x41, 0x4e, 0x4d, 0x41,
+    };
+    //0x4e, 0x32, 0x2e, 0x31, 0x00, 0x02, 0x4e, 0x54,
+    //0x20, 0x4c, 0x4d, 0x20, 0x30, 0x2e, 0x31, 0x32,
+    //0x00
+
+    uint8_t smbbuf2[] = {
+        /* response */
+        0x00, 0x00, 0x00, 0x55, 0xff, 0x53, 0x4d, 0x42,
+        0x72, 0x00, 0x00, 0x00, 0x00, 0x98, 0x53, 0xc8,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xfe,
+        0x00, 0x00, 0x00, 0x00, 0x11, 0x05, 0x00, 0x03,
+        0x32, 0x00, 0x01, 0x00, 0x04, 0x41, 0x00, 0x00,
+        0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0xfd, 0xf3, 0x00, 0x80, 0x20, 0x03, 0x1a, 0x2d,
+        0x77, 0x98, 0xc5, 0x01, 0xa4, 0x01, 0x00, 0x10,
+        0x00, 0xb7, 0xeb, 0x0b, 0x05, 0x21, 0x22, 0x50,
+        0x42, 0x8c, 0x38, 0x2a, 0x7f, 0xc5, 0x6a, 0x7c,
+        0x0c
+    };
+    uint32_t smblen1 = sizeof(smbbuf1);
+    uint32_t smblen2 = sizeof(smbbuf2);
+    TcpSession ssn;
+    int r = 0;
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER | STREAM_START, smbbuf1, smblen1);
+    if (r != 0) {
+        printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    SMBState *smb_state = f.alstate;
+    if (smb_state == NULL) {
+        printf("no smb state: ");
+        goto end;
+    }
+
+    if (smb_state->bytesprocessed == 0) {
+        printf("request - smb parser bytesprocessed should not be 0.\n");
+        goto end;
+    }
+
+    r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOCLIENT, smbbuf2, smblen2);
+    if (r == 0) {
+        printf("smb parser didn't return fail\n");
+        goto end;
+    }
+
+    result = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    return result;
+}
+
 #endif
 
 void SMBParserRegisterTests(void) {
@@ -2389,6 +2493,7 @@ void SMBParserRegisterTests(void) {
     UtRegisterTest("SMBParserTest07", SMBParserTest07, 1);
     UtRegisterTest("SMBParserTest08", SMBParserTest08, 1);
     UtRegisterTest("SMBParserTest09", SMBParserTest09, 1);
+    UtRegisterTest("SMBParserTest10", SMBParserTest10, 1);
 #endif
 }
 
