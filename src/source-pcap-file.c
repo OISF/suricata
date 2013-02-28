@@ -288,7 +288,14 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
             SCLogError(SC_ERR_UNIMPLEMENTED, "datalink type %" PRId32 " not "
                       "(yet) supported in module PcapFile.\n", pcap_g.datalink);
             SCFree(ptv);
-            SCReturnInt(TM_ECODE_FAILED);
+            if (! RunModeUnixSocketIsActive()) {
+                SCReturnInt(TM_ECODE_FAILED);
+            } else {
+                pcap_close(pcap_g.pcap_handle);
+                pcap_g.pcap_handle = NULL;
+                UnixSocketPcapFile(TM_ECODE_DONE);
+                SCReturnInt(TM_ECODE_DONE);
+            }
     }
 
     ptv->tv = tv;
