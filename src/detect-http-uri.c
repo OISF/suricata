@@ -89,86 +89,9 @@ void DetectHttpUriRegister (void) {
 
 int DetectHttpUriSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    SigMatch *sm = NULL;
-    int ret = -1;
-
-    if (str != NULL && strcmp(str, "") != 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "http_uri shouldn't be supplied with "
-                   "an argument");
-        goto end;
-    }
-
-    if (s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "\"http_uri\" keyword seen "
-                   "with a sticky buffer still set.  Reset sticky buffer "
-                   "with pkt_data before using the modifier.");
-        goto end;
-    }
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains a non http "
-                   "alproto set");
-        goto end;
-    }
-    s->flags &= ~SIG_FLAG_TOCLIENT;
-    s->flags |= SIG_FLAG_TOSERVER;
-
-    sm = SigMatchGetLastSMFromLists(s, 2,
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
-    if (sm == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "\"http_uri\" keyword "
-                   "found inside the rule without a content context.  "
-                   "Please use a \"content\" keyword before using the "
-                   "\"http_uri\" keyword");
-        goto end;
-    }
-    DetectContentData *cd = (DetectContentData *)sm->ctx;
-    if (cd->flags & DETECT_CONTENT_RAWBYTES) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "http_uri rule can not "
-                   "be used with the rawbytes rule keyword");
-        goto end;
-    }
-    if (cd->flags & (DETECT_CONTENT_WITHIN | DETECT_CONTENT_DISTANCE)) {
-        SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
-                                                   DETECT_CONTENT, sm->prev,
-                                                   DETECT_PCRE, sm->prev);
-        if (pm != NULL) {
-            if (pm->type == DETECT_CONTENT) {
-                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
-                tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
-            } else {
-                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
-                tmp_pd->flags &= ~DETECT_PCRE_RELATIVE_NEXT;
-            }
-        }
-
-        pm = SigMatchGetLastSMFromLists(s, 4,
-                                        DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH]);
-        if (pm != NULL) {
-            if (pm->type == DETECT_CONTENT) {
-                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
-                tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-            } else {
-                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
-                tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
-            }
-        }
-    }
-    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, s, DETECT_SM_LIST_UMATCH);
-    s->flags |= SIG_FLAG_APPLAYER;
-    s->alproto = ALPROTO_HTTP;
-
-    /* transfer the sm from the pmatch list to umatch list */
-    SigMatchTransferSigMatchAcrossLists(sm,
-                                        &s->sm_lists[DETECT_SM_LIST_PMATCH],
-                                        &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                        &s->sm_lists[DETECT_SM_LIST_UMATCH],
-                                        &s->sm_lists_tail[DETECT_SM_LIST_UMATCH]);
-
-    ret = 0;
-
- end:
-    return ret;
+    return DetectEngineContentModifierBufferSetup(de_ctx, s, str,
+                                                  DETECT_AL_HTTP_URI,
+                                                  DETECT_SM_LIST_UMATCH);
 }
 
 

@@ -96,6 +96,96 @@ typedef struct SigDuplWrapper_ {
 #define OPTION_PARTS 3
 #define OPTION_PCRE "^\\s*([A-z_0-9-\\.]+)(?:\\s*\\:\\s*(.*)(?<!\\\\))?\\s*;\\s*(?:\\s*(.*))?\\s*$"
 
+int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg,
+                                           uint8_t sm_type, uint8_t sm_list)
+{
+    SigMatch *sm = NULL;
+    int ret = -1;
+
+    if (arg != NULL && strcmp(arg, "") != 0) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "%s shouldn't be supplied "
+                   "with an argument", sigmatch_table[sm_type].name);
+        goto end;
+    }
+
+    if (s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "\"%s\" keyword seen "
+                   "with a sticky buffer still set.  Reset sticky buffer "
+                   "with pkt_data before using the modifier.",
+                   sigmatch_table[sm_type].name);
+        goto end;
+    }
+    /* for now let's hardcode it as http */
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains a non http "
+                   "alproto set");
+        goto end;
+    }
+
+    sm = SigMatchGetLastSMFromLists(s, 2,
+                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+    if (sm == NULL) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "\"%s\" keyword "
+                   "found inside the rule without a content context.  "
+                   "Please use a \"content\" keyword before using the "
+                   "\"%s\" keyword", sigmatch_table[sm_type].name,
+                   sigmatch_table[sm_type].name);
+        goto end;
+    }
+    DetectContentData *cd = (DetectContentData *)sm->ctx;
+    if (cd->flags & DETECT_CONTENT_RAWBYTES) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "%s rule can not "
+                   "be used with the rawbytes rule keyword",
+                   sigmatch_table[sm_type].name);
+        goto end;
+    }
+    if (cd->flags & (DETECT_CONTENT_WITHIN | DETECT_CONTENT_DISTANCE)) {
+        SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
+                                                   DETECT_CONTENT, sm->prev,
+                                                   DETECT_PCRE, sm->prev);
+        if (pm != NULL) {
+            if (pm->type == DETECT_CONTENT) {
+                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
+            } else {
+                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                tmp_pd->flags &= ~DETECT_PCRE_RELATIVE_NEXT;
+            }
+        }
+
+        pm = SigMatchGetLastSMFromLists(s, 4,
+                                        DETECT_CONTENT, s->sm_lists_tail[sm_list],
+                                        DETECT_PCRE, s->sm_lists_tail[sm_list]);
+        if (pm != NULL) {
+            if (pm->type == DETECT_CONTENT) {
+                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+            } else {
+                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
+            }
+        }
+    }
+    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, s, sm_list);
+    s->flags |= SIG_FLAG_APPLAYER;
+    s->alproto = ALPROTO_HTTP;
+    if (sm_type == DETECT_AL_HTTP_CLIENT_BODY)
+        AppLayerHtpEnableRequestBodyCallback();
+    else if (sm_type == DETECT_AL_HTTP_SERVER_BODY)
+        AppLayerHtpEnableResponseBodyCallback();
+
+    /* transfer the sm from the pmatch list to hcbdmatch list */
+    SigMatchTransferSigMatchAcrossLists(sm,
+                                        &s->sm_lists[DETECT_SM_LIST_PMATCH],
+                                        &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                        &s->sm_lists[sm_list],
+                                        &s->sm_lists_tail[sm_list]);
+
+    ret = 0;
+ end:
+    return ret;
+}
+
 uint32_t DbgGetSrcPortAnyCnt(void) {
     return dbg_srcportany_cnt;
 }

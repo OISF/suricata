@@ -62,5 +62,7 @@ void DetectParseDupSigHashFree(DetectEngineCtx *);
 
 int DetectParseContentString (char *, uint8_t **, uint16_t *, uint32_t *);
 
+int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg,
+                                           uint8_t sm_type, uint8_t sm_list);
 #endif /* __DETECT_PARSE_H__ */
 
