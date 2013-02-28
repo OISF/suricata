@@ -100,7 +100,9 @@ static int DetectHttpStatCodeSetup(DetectEngineCtx *de_ctx, Signature *s, char *
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_STAT_CODE,
-                                                  DETECT_SM_LIST_HSCDMATCH);
+                                                  DETECT_SM_LIST_HSCDMATCH,
+                                                  ALPROTO_HTTP,
+                                                  NULL);
 }
 
 #ifdef UNITTESTS

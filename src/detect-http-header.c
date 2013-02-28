@@ -117,7 +117,9 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_HEADER,
-                                                  DETECT_SM_LIST_HHDMATCH);
+                                                  DETECT_SM_LIST_HHDMATCH,
+                                                  ALPROTO_HTTP,
+                                                  NULL);
 }
 
 /************************************Unittests*********************************/

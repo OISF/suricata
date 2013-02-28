@@ -111,7 +111,9 @@ static int DetectHttpCookieSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, str,
                                                   DETECT_AL_HTTP_COOKIE,
-                                                  DETECT_SM_LIST_HCDMATCH);
+                                                  DETECT_SM_LIST_HCDMATCH,
+                                                  ALPROTO_HTTP,
+                                                  NULL);
 }
 
 /******************************** UNITESTS **********************************/

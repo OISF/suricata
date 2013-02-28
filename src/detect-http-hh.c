@@ -97,7 +97,9 @@ int DetectHttpHHSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_HOST,
-                                                  DETECT_SM_LIST_HHHDMATCH);
+                                                  DETECT_SM_LIST_HHHDMATCH,
+                                                  ALPROTO_HTTP,
+                                                  NULL);
 }
 
 /**

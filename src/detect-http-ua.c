@@ -98,7 +98,9 @@ int DetectHttpUASetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_USER_AGENT,
-                                                  DETECT_SM_LIST_HUADMATCH);
+                                                  DETECT_SM_LIST_HUADMATCH,
+                                                  ALPROTO_HTTP,
+                                                  NULL);
 }
 
 /**

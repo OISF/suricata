@@ -90,7 +90,9 @@ static int DetectHttpRawUriSetup(DetectEngineCtx *de_ctx, Signature *s, char *ar
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_RAW_URI,
-                                                  DETECT_SM_LIST_HRUDMATCH);
+                                                  DETECT_SM_LIST_HRUDMATCH,
+                                                  ALPROTO_HTTP,
+                                                  NULL);
 }
 
 

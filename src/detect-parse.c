@@ -97,7 +97,8 @@ typedef struct SigDuplWrapper_ {
 #define OPTION_PCRE "^\\s*([A-z_0-9-\\.]+)(?:\\s*\\:\\s*(.*)(?<!\\\\))?\\s*;\\s*(?:\\s*(.*))?\\s*$"
 
 int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg,
-                                           uint8_t sm_type, uint8_t sm_list)
+                                           uint8_t sm_type, uint8_t sm_list,
+                                           uint16_t alproto,  void (*CustomCallback)(Signature *s))
 {
     SigMatch *sm = NULL;
     int ret = -1;
@@ -116,9 +117,9 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
         goto end;
     }
     /* for now let's hardcode it as http */
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains a non http "
-                   "alproto set");
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting "
+                   "alprotos set");
         goto end;
     }
 
@@ -167,12 +168,10 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
         }
     }
     cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, s, sm_list);
+    if (CustomCallback != NULL)
+        CustomCallback(s);
+    s->alproto = alproto;
     s->flags |= SIG_FLAG_APPLAYER;
-    s->alproto = ALPROTO_HTTP;
-    if (sm_type == DETECT_AL_HTTP_CLIENT_BODY)
-        AppLayerHtpEnableRequestBodyCallback();
-    else if (sm_type == DETECT_AL_HTTP_SERVER_BODY)
-        AppLayerHtpEnableResponseBodyCallback();
 
     /* transfer the sm from the pmatch list to hcbdmatch list */
     SigMatchTransferSigMatchAcrossLists(sm,

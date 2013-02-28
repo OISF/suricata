@@ -96,7 +96,9 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, str,
                                                   DETECT_AL_HTTP_METHOD,
-                                                  DETECT_SM_LIST_HMDMATCH);
+                                                  DETECT_SM_LIST_HMDMATCH,
+                                                  ALPROTO_HTTP,
+                                                  NULL);
 }
 
 /**

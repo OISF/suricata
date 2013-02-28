@@ -91,7 +91,9 @@ int DetectHttpUriSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, str,
                                                   DETECT_AL_HTTP_URI,
-                                                  DETECT_SM_LIST_UMATCH);
+                                                  DETECT_SM_LIST_UMATCH,
+                                                  ALPROTO_HTTP,
+                                                  NULL);
 }
 
 

@@ -80,6 +80,14 @@ void DetectHttpServerBodyRegister(void)
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].flags |= SIGMATCH_PAYLOAD ;
 }
 
+static void DetectHttpServerBodySetupCallback(Signature *s)
+{
+    s->flags |= SIG_FLAG_APPLAYER;
+    AppLayerHtpEnableResponseBodyCallback();
+
+    return;
+}
+
 /**
  * \brief The setup function for the http_server_body keyword for a signature.
  *
@@ -97,7 +105,9 @@ int DetectHttpServerBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_SERVER_BODY,
-                                                  DETECT_SM_LIST_HSBDMATCH);
+                                                  DETECT_SM_LIST_HSBDMATCH,
+                                                  ALPROTO_HTTP,
+                                                  DetectHttpServerBodySetupCallback);
 }
 
 /**

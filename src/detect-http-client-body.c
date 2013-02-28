@@ -79,6 +79,12 @@ void DetectHttpClientBodyRegister(void)
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].flags |= SIGMATCH_PAYLOAD ;
 }
 
+static void DetectHttpClientBodySetupCallback(Signature *s)
+{
+    AppLayerHtpEnableRequestBodyCallback();
+    return;
+}
+
 /**
  * \brief The setup function for the http_client_body keyword for a signature.
  *
@@ -96,7 +102,9 @@ int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_CLIENT_BODY,
-                                                  DETECT_SM_LIST_HCBDMATCH);
+                                                  DETECT_SM_LIST_HCBDMATCH,
+                                                  ALPROTO_HTTP,
+                                                  DetectHttpClientBodySetupCallback);
 }
 
 /**
