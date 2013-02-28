@@ -78,15 +78,14 @@ struct SCSigSignatureWrapper_;
 
 /* holds the values for different possible lists in struct Signature.
  * These codes are access points to particular lists in the array
- * Signature->sm_lists[DETECT_SM_LIST_MAX] */
+ * Signature->sm_lists[DETECT_SM_LIST_MAX]. */
 enum {
     DETECT_SM_LIST_MATCH = 0,
     DETECT_SM_LIST_PMATCH,
     /* list for http_uri keyword and the ones relative to it */
     DETECT_SM_LIST_UMATCH,
-    DETECT_SM_LIST_AMATCH,
-    DETECT_SM_LIST_DMATCH,
-    DETECT_SM_LIST_TMATCH,
+    /* list for http_raw_uri keyword and the ones relative to it */
+    DETECT_SM_LIST_HRUDMATCH,
     /* list for http_client_body keyword and the ones relative to it */
     DETECT_SM_LIST_HCBDMATCH,
     /* list for http_server_body keyword and the ones relative to it */
@@ -95,22 +94,24 @@ enum {
     DETECT_SM_LIST_HHDMATCH,
     /* list for http_raw_header keyword and the ones relative to it */
     DETECT_SM_LIST_HRHDMATCH,
-    /* list for http_method keyword and the ones relative to it */
-    DETECT_SM_LIST_HMDMATCH,
-    /* list for http_cookie keyword and the ones relative to it */
-    DETECT_SM_LIST_HCDMATCH,
-    /* list for http_raw_uri keyword and the ones relative to it */
-    DETECT_SM_LIST_HRUDMATCH,
     /* list for http_stat_msg keyword and the ones relative to it */
     DETECT_SM_LIST_HSMDMATCH,
     /* list for http_stat_code keyword and the ones relative to it */
     DETECT_SM_LIST_HSCDMATCH,
-    /* list for http_user_agent keyword and the ones relative to it */
-    DETECT_SM_LIST_HUADMATCH,
     /* list for http_host keyword and the ones relative to it */
     DETECT_SM_LIST_HHHDMATCH,
     /* list for http_raw_host keyword and the ones relative to it */
     DETECT_SM_LIST_HRHHDMATCH,
+    /* list for http_method keyword and the ones relative to it */
+    DETECT_SM_LIST_HMDMATCH,
+    /* list for http_cookie keyword and the ones relative to it */
+    DETECT_SM_LIST_HCDMATCH,
+    /* list for http_user_agent keyword and the ones relative to it */
+    DETECT_SM_LIST_HUADMATCH,
+
+    DETECT_SM_LIST_AMATCH,
+    DETECT_SM_LIST_DMATCH,
+    DETECT_SM_LIST_TMATCH,
 
     DETECT_SM_LIST_FILEMATCH,
 
