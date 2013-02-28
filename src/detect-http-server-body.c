@@ -95,9 +95,19 @@ void DetectHttpServerBodyRegister(void)
  */
 int DetectHttpServerBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
+    void CustomCallback(Signature *s)
+    {
+        s->flags |= SIG_FLAG_APPLAYER;
+        AppLayerHtpEnableResponseBodyCallback();
+
+        return;
+    }
+
     return DetectEngineContentModifiedBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_SERVER_BODY,
-                                                  DETECT_SM_LIST_HSBDMATCH);
+                                                  DETECT_SM_LIST_HSBDMATCH,
+                                                  ALPROTO_HTTP,
+                                                  CustomCallback);
 }
 
 /**
