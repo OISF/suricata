@@ -4381,7 +4381,33 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
  *
  * \retval 0 Always
  */
-int SigGroupBuild (DetectEngineCtx *de_ctx) {
+int SigGroupBuild(DetectEngineCtx *de_ctx)
+{
+    Signature *s = NULL;
+    SigMatch *sm = NULL;
+    int list_id;
+
+    for (s = de_ctx->sig_list; s != NULL; s = s->next) {
+        s->mpm_sm = RetrieveFPForSigV2(s);
+        if (s->mpm_sm != NULL) {
+            DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
+            cd->id = DetectPatternGetIdV2(de_ctx->mpm_pattern_id_store, cd, s, SigMatchListSMBelongsTo(s, s->mpm_sm));
+        }
+    }
+    de_ctx->max_fp_id = de_ctx->mpm_pattern_id_store->max_id;
+    for (s = de_ctx->sig_list; s != NULL; s = s->next) {
+        for (list_id = 0 ; list_id < DETECT_SM_LIST_MAX; list_id++) {
+            for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
+                if (sm == s->mpm_sm)
+                    continue;
+                if (sm->type != DETECT_CONTENT)
+                    continue;
+                DetectContentData *cd = (DetectContentData *)sm->ctx;
+                cd->id = DetectPatternGetIdV2(de_ctx->mpm_pattern_id_store, cd, s, SigMatchListSMBelongsTo(s, sm));
+            }
+        }
+    }
+
     /* if we are using single sgh_mpm_context then let us init the standard mpm
      * contexts using the mpm_ctx factory */
     if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {

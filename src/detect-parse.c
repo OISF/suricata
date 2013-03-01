@@ -167,7 +167,6 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
             }
         }
     }
-    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, s, sm_list);
     if (CustomCallback != NULL)
         CustomCallback(s);
     s->alproto = alproto;
@@ -1079,7 +1078,7 @@ static void SigBuildAddressMatchArray(Signature *s) {
  *  \retval 0 invalid
  *  \retval 1 valid
  */
-static int SigValidate(Signature *s) {
+int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
     SCEnter();
 
     if ((s->flags & SIG_FLAG_REQUIRE_PACKET) &&
@@ -1258,8 +1257,6 @@ static int SigValidate(Signature *s) {
     }
 #endif
 
-    s->mpm_sm = RetrieveFPForSigV2(s);
-
     SCReturnInt(1);
 }
 
@@ -1386,7 +1383,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
     SigBuildAddressMatchArray(sig);
 
     /* validate signature, SigValidate will report the error reason */
-    if (SigValidate(sig) == 0) {
+    if (SigValidate(de_ctx, sig) == 0) {
         goto error;
     }
 

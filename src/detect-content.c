@@ -395,7 +395,6 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
         goto error;
     sm->ctx = (void *)cd;
     sm->type = DETECT_CONTENT;
-    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, s, sm_list);
     SigMatchAppendSMToList(s, sm, sm_list);
 
     return 0;
