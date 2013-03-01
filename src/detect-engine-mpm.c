@@ -1997,7 +1997,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
         Signature *s = sgh->match_array[sig];
         if (s == NULL)
             continue;
-        PopulateMpmAddPatternToMpm(de_ctx, sgh, s, RetrieveFPForSigV2(s));
+        PopulateMpmAddPatternToMpm(de_ctx, sgh, s, s->mpm_sm);
     } /* for (sig = 0; sig < sgh->sig_cnt; sig++) */
 
     return 0;
