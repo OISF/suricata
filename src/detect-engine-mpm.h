@@ -82,6 +82,7 @@ int SignatureHasPacketContent(Signature *);
 int SignatureHasStreamContent(Signature *);
 
 SigMatch *RetrieveFPForSig(Signature *s);
+SigMatch *RetrieveFPForSigV2(Signature *s);
 
 #endif /* __DETECT_ENGINE_MPM_H__ */
 
