@@ -1258,6 +1258,8 @@ static int SigValidate(Signature *s) {
     }
 #endif
 
+    s->mpm_sm = RetrieveFPForSigV2(s);
+
     SCReturnInt(1);
 }
 
