@@ -3300,3 +3300,48 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, Signature *s, uint
 
     SCReturnUInt(id);
 }
+
+uint32_t DetectPatternGetIdV2(MpmPatternIdStore *ht, void *ctx, Signature *s, uint8_t sm_list)
+{
+    SCEnter();
+
+    MpmPatternIdTableElmt *e = NULL;
+    MpmPatternIdTableElmt *r = NULL;
+    PatIntId id = 0;
+
+    e = SCMalloc(sizeof(MpmPatternIdTableElmt));
+    if (unlikely(e == NULL)) {
+        exit(EXIT_FAILURE);
+    }
+
+    DetectContentData *cd = ctx;
+    e->pattern = SCMalloc(cd->content_len);
+    if (e->pattern == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    memcpy(e->pattern, cd->content, cd->content_len);
+    e->pattern_len = cd->content_len;
+    e->dup_count = 1;
+    e->sm_list = sm_list;
+    e->id = 0;
+
+    r = HashTableLookup(ht->hash, (void *)e, sizeof(MpmPatternIdTableElmt));
+    if (r == NULL) {
+        e->id = ht->max_id;
+        ht->max_id++;
+        id = e->id;
+        int ret = HashTableAdd(ht->hash, e, sizeof(MpmPatternIdTableElmt));
+        BUG_ON(ret != 0);
+        e = NULL;
+
+        /* we do seem to have an entry for this already */
+    } else {
+        r->dup_count++;
+        id = r->id;
+    }
+
+    if (e != NULL)
+        MpmPatternIdTableElmtFree(e);
+
+    SCReturnUInt(id);
+}
