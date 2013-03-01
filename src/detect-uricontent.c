@@ -55,6 +55,7 @@
 #include "util-binsearch.h"
 #include "util-spm.h"
 #include "util-spm-bm.h"
+#include "conf.h"
 
 /* prototypes */
 static int DetectUricontentSetup (DetectEngineCtx *, Signature *, char *);
@@ -210,6 +211,25 @@ DetectContentData *DoDetectUricontentSetup(char *contentstr)
 int DetectUricontentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
 {
     SCEnter();
+
+    char *legacy = NULL;
+    if (ConfGet("legacy.uricontent", &legacy) == 1) {
+        if (strcasecmp("disabled", legacy) == 0) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "uriconent deprecated.  To "
+                       "use a rule with \"uricontent\", either set the "
+                       "option - \"legacy.uricontent\" in the conf to "
+                       "\"enabled\" OR replace uricontent with "
+                       "\'content:%s; http_uri;\'.", contentstr);
+            goto error;
+        } else if (strcasecmp("enabled", legacy) == 0) {
+            ;
+        } else {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid value found "
+                       "for legacy.uriconent - \"%s\".  Valid values are "
+                       "\"enabled\" OR \"disabled\".", legacy);
+            goto error;
+        }
+    }
 
     if (DetectContentSetup(de_ctx, s, contentstr) < 0)
         goto error;
