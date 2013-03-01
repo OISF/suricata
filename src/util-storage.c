@@ -94,7 +94,7 @@ int StorageRegister(const StorageEnum type, const char *name, const unsigned int
         return -1;
 
     if (type >= STORAGE_MAX || name == NULL || strlen(name) == 0 ||
-            size == 0 || Init == NULL || Free == NULL)
+            size == 0 || (size != sizeof(void *) && Init == NULL) || Free == NULL)
         return -1;
 
     StorageList *list = storage_list;
@@ -206,6 +206,28 @@ void *StorageGetById(const Storage *storage, const StorageEnum type, const int i
     return storage[id];
 }
 
+int StorageSetById(Storage *storage, const StorageEnum type, const int id, void *ptr) {
+    SCLogDebug("storage %p id %d", storage, id);
+    if (storage == NULL)
+        return -1;
+    storage[id] = ptr;
+    return 0;
+}
+
+void *StorageAllocByIdPrealloc(Storage *storage, StorageEnum type, int id) {
+    SCLogDebug("storage %p id %d", storage, id);
+
+    StorageMapping *map = &storage_map[type][id];
+    if (storage[id] == NULL && map->Init != NULL) {
+        storage[id] = map->Init(map->size);
+        if (storage[id] == NULL) {
+            return NULL;
+        }
+    }
+
+    return storage[id];
+}
+
 void *StorageAllocById(Storage **storage, StorageEnum type, int id) {
     SCLogDebug("storage %p id %d", storage, id);
 
@@ -219,7 +241,7 @@ void *StorageAllocById(Storage **storage, StorageEnum type, int id) {
     }
     SCLogDebug("store %p", store);
 
-    if (store[id] == NULL) {
+    if (store[id] == NULL && map->Init != NULL) {
         store[id] = map->Init(map->size);
         if (store[id] == NULL) {
             SCFree(store);
@@ -284,7 +306,7 @@ static void *StorageTestInit(unsigned int size) {
     void *x = SCMalloc(size);
     return x;
 }
-void StorageTestFree(void *x) {
+static void StorageTestFree(void *x) {
     if (x)
         SCFree(x);
 }
@@ -403,7 +425,7 @@ static int StorageTest03(void) {
         goto error;
     }
 
-    id = StorageRegister(STORAGE_HOST, "test1", 8, NULL, StorageTestFree);
+    id = StorageRegister(STORAGE_HOST, "test1", 6, NULL, StorageTestFree);
     if (id != -1) {
         printf("duplicate registration should have failed (2): ");
         goto error;
