@@ -52,6 +52,8 @@ void DetectIcmpIdFree(void *);
  */
 void DetectIcmpIdRegister (void) {
     sigmatch_table[DETECT_ICMP_ID].name = "icmp_id";
+    sigmatch_table[DETECT_ICMP_ID].desc = "check for a ICMP id";
+    sigmatch_table[DETECT_ICMP_ID].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#icmp_id";
     sigmatch_table[DETECT_ICMP_ID].Match = DetectIcmpIdMatch;
     sigmatch_table[DETECT_ICMP_ID].Setup = DetectIcmpIdSetup;
     sigmatch_table[DETECT_ICMP_ID].Free = DetectIcmpIdFree;
