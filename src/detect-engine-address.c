@@ -2257,7 +2257,7 @@ int AddressTestParse36(void)
     DetectAddress *dd = DetectAddressParseSingle("ffff::/16");
 
     if (dd) {
-        if (dd->ip.addr_data32[0] != 0x0000FFFF || dd->ip.addr_data32[1] != 0x00000000 ||
+        if (dd->ip.addr_data32[0] != ntohl(0xFFFF0000) || dd->ip.addr_data32[1] != 0x00000000 ||
             dd->ip.addr_data32[2] != 0x00000000 || dd->ip.addr_data32[3] != 0x00000000 ||
 
             dd->ip2.addr_data32[0] != 0xFFFFFFFF || dd->ip2.addr_data32[1] != 0xFFFFFFFF ||
