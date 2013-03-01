@@ -297,6 +297,9 @@ af-packet:
     #threads: 2
     #use-mmap: yes
 
+legacy:
+  uricontent: enabled
+
 # You can specify a threshold config file by setting "threshold-file"
 # to the path of the threshold config file:
 # threshold-file: /etc/suricata/threshold.config
