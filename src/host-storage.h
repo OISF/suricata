@@ -32,11 +32,14 @@
 unsigned int HostStorageSize(void);
 
 void *HostGetStorageById(Host *h, int id);
+int HostSetStorageById(Host *h, int id, void *ptr);
 void *HostAllocStorageById(Host *h, int id);
 
 void HostFreeStorageById(Host *h, int id);
 void HostFreeStorage(Host *h);
 
 void RegisterHostStorageTests(void);
+
+int HostStorageRegister(const char *name, const unsigned int size, void *(*Init)(unsigned int), void (*Free)(void *));
 
 #endif /* __HOST_STORAGE_H__ */

@@ -45,6 +45,8 @@ unsigned int StorageGetCnt(const StorageEnum type);
 unsigned int StorageGetSize(const StorageEnum type);
 
 void *StorageGetById(const Storage *storage, const StorageEnum type, const int id);
+int StorageSetById(Storage *storage, const StorageEnum type, const int id, void *ptr);
+void *StorageAllocByIdPrealloc(Storage *storage, StorageEnum type, int id);
 void *StorageAllocById(Storage **storage, const StorageEnum type, const int id);
 void StorageFreeById(Storage *storage, const StorageEnum type, const int id);
 void StorageFreeAll(Storage *storage, const StorageEnum type);
