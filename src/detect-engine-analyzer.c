@@ -99,6 +99,35 @@ void EngineAnalysisFP(Signature *s, char *line)
     else if (list_type == DETECT_SM_LIST_HUADMATCH)
         fprintf(fp_engine_analysis_FD, "http user agent content\n");
 
+    int flags_set = 0;
+    fprintf(fp_engine_analysis_FD, "        Flags:");
+    if (fp_cd->flags & DETECT_CONTENT_OFFSET) {
+        fprintf(fp_engine_analysis_FD, " Offset");
+        flags_set = 1;
+    } if (fp_cd->flags & DETECT_CONTENT_DEPTH) {
+        fprintf(fp_engine_analysis_FD, " Depth");
+        flags_set = 1;
+    }
+    if (fp_cd->flags & DETECT_CONTENT_WITHIN) {
+        fprintf(fp_engine_analysis_FD, " Within");
+        flags_set = 1;
+    }
+    if (fp_cd->flags & DETECT_CONTENT_DISTANCE) {
+        fprintf(fp_engine_analysis_FD, " Distance");
+        flags_set = 1;
+    }
+    if (fp_cd->flags & DETECT_CONTENT_NOCASE) {
+        fprintf(fp_engine_analysis_FD, " Nocase");
+        flags_set = 1;
+    }
+    if (fp_cd->flags & DETECT_CONTENT_NEGATED) {
+        fprintf(fp_engine_analysis_FD, " Negated");
+        flags_set = 1;
+    }
+    if (flags_set == 0)
+        fprintf(fp_engine_analysis_FD, " None");
+    fprintf(fp_engine_analysis_FD, "\n");
+
     fprintf(fp_engine_analysis_FD, "        Fast pattern set: %s\n", fast_pattern_set ? "yes" : "no");
     fprintf(fp_engine_analysis_FD, "        Fast pattern only set: %s\n",
             fast_pattern_only_set ? "yes" : "no");
@@ -108,8 +137,6 @@ void EngineAnalysisFP(Signature *s, char *line)
         fprintf(fp_engine_analysis_FD, "        Fast pattern offset, length: %u, %u\n",
                 fp_cd->fp_chop_offset, fp_cd->fp_chop_len);
     }
-    fprintf(fp_engine_analysis_FD, "        Content negated: %s\n",
-            (fp_cd->flags & DETECT_CONTENT_NEGATED) ? "yes" : "no");
 
     uint16_t patlen = fp_cd->content_len;
     uint8_t *pat = SCMalloc(fp_cd->content_len + 1);
