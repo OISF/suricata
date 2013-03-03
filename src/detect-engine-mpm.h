@@ -85,5 +85,7 @@ int SignatureHasStreamContent(Signature *);
 SigMatch *RetrieveFPForSig(Signature *s);
 SigMatch *RetrieveFPForSigV2(Signature *s);
 
+void DetectFigureFPAndId(DetectEngineCtx *de_ctx);
+
 #endif /* __DETECT_ENGINE_MPM_H__ */
 
