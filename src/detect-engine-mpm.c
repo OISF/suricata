@@ -3345,3 +3345,73 @@ uint32_t DetectPatternGetIdV2(MpmPatternIdStore *ht, void *ctx, Signature *s, ui
 
     SCReturnUInt(id);
 }
+
+void DetectFigureFPAndId(DetectEngineCtx *de_ctx)
+{
+    typedef struct DetectFigureFPAndId_t_ {
+        PatIntId id;
+        uint16_t content_len;
+        uint32_t flags;
+        int sm_list;
+
+        uint8_t *content;
+    } DetectFigureFPAndId_t;
+
+    uint32_t struct_total_size = 0;
+    uint32_t content_total_size = 0;
+    Signature *s = NULL;
+
+    for (s = de_ctx->sig_list; s != NULL; s = s->next) {
+        s->mpm_sm = RetrieveFPForSigV2(s);
+        if (s->mpm_sm != NULL) {
+            DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
+            struct_total_size += sizeof(DetectFigureFPAndId_t);
+            content_total_size += cd->content_len;
+        }
+    }
+
+    /* array hash buffer - i've run out of ideas to name it */
+    uint8_t *ahb = SCMalloc(sizeof(uint8_t) * (struct_total_size + content_total_size));
+    if (ahb == NULL)
+        exit(EXIT_FAILURE);
+
+    PatIntId max_id = 0;
+    DetectFigureFPAndId_t *struct_offset = (DetectFigureFPAndId_t *)ahb;
+    uint8_t *content_offset = ahb + struct_total_size;
+    for (s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if (s->mpm_sm != NULL) {
+            int sm_list = SigMatchListSMBelongsTo(s, s->mpm_sm);
+            BUG_ON(sm_list == -1);
+            DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
+            DetectFigureFPAndId_t *dup = (DetectFigureFPAndId_t *)ahb;
+            for (; dup != struct_offset; dup++) {
+                if (dup->content_len != cd->content_len ||
+                    dup->sm_list != sm_list ||
+                    SCMemcmp(dup->content, cd->content, dup->content_len) != 0) {
+                    continue;
+                }
+
+                break;
+            }
+            if (dup != struct_offset) {
+                cd->id = dup->id;
+                continue;
+            }
+
+            struct_offset->id = max_id++;
+            cd->id = struct_offset->id;
+            struct_offset->content_len = cd->content_len;
+            struct_offset->sm_list = sm_list;
+            struct_offset->content = content_offset;
+            content_offset += cd->content_len;
+            memcpy(struct_offset->content, cd->content, cd->content_len);
+
+            struct_offset++;
+        } /* if (s->mpm_sm != NULL) */
+    } /* for */
+
+    de_ctx->max_fp_id = max_id;
+
+    SCFree(ahb);
+    return;
+}
