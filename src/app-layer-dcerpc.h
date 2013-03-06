@@ -33,6 +33,7 @@
 
 typedef struct DCERPCState_ {
     DCERPC dcerpc;
+    uint8_t data_needed_for_dir;
 } DCERPCState;
 
 void RegisterDCERPCParsers(void);
