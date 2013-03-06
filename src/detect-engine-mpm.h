@@ -76,7 +76,7 @@ void MpmPatternIdTableFreeHash(MpmPatternIdStore *);
 uint32_t MpmPatternIdStoreGetMaxId(MpmPatternIdStore *);
 uint32_t DetectContentGetId(MpmPatternIdStore *, DetectContentData *);
 uint32_t DetectUricontentGetId(MpmPatternIdStore *, DetectContentData *);
-uint32_t DetectPatternGetId(MpmPatternIdStore *, void *, uint8_t);
+uint32_t DetectPatternGetId(MpmPatternIdStore *, void *, Signature *s, uint8_t);
 
 int SignatureHasPacketContent(Signature *);
 int SignatureHasStreamContent(Signature *);

@@ -1034,6 +1034,26 @@ static int SigValidate(Signature *s) {
         }
     }
 
+    uint32_t sig_flags = 0;
+    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL) {
+        sig_flags |= SIG_FLAG_TOSERVER;
+    }
+    if (s->sm_lists[DETECT_SM_LIST_HSBDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
+        sig_flags |= SIG_FLAG_TOCLIENT;
+    }
+    if ((sig_flags & (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE,"You seem to have mixed keywords "
+                   "that require inspection in both directions.  Atm we only "
+                   "support keywords in one direction within a rule.");
+        SCReturnInt(0);
+    }
+
     if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL) {
         if ((s->flags & (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,"http_raw_header signature "
@@ -1050,35 +1070,6 @@ static int SigValidate(Signature *s) {
             SCReturnInt(0);
         }
 #endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
-    }
-
-    if (s->alproto == ALPROTO_DCERPC) {
-        /* \todo We haven't covered dce rpc cases now.  They need special
-         * treatment, since they do allow distance, within without a
-         * previous content, but with respect to the stub buffer */
-        ;
-    } else {
-        SigMatch *sm;
-        for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT) {
-                DetectContentData *cd = (DetectContentData *)sm->ctx;
-                if ((cd->flags & DETECT_CONTENT_DISTANCE) ||
-                    (cd->flags & DETECT_CONTENT_WITHIN)) {
-                    SigMatch *pm = SigMatchGetLastSMFromLists(s, 4,
-                                                              DETECT_PCRE, sm->prev,
-                                                              DETECT_BYTEJUMP, sm->prev);
-                    if (pm == NULL) {
-                        SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "within needs two "
-                                   "preceding content or uricontent options");
-                        SCReturnInt(0);
-                    } else {
-                        break;
-                    }
-                } else {
-                    break;
-                }
-            }
-        }
     }
 
     if (s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL) {

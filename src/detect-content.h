@@ -93,6 +93,7 @@ DetectContentData *DetectContentParse (char *contentstr);
 int DetectContentDataParse(char *keyword, char *contentstr, char** pstr, uint16_t *plen, int *flags);
 DetectContentData *DetectContentParseEncloseQuotes(char *);
 
+int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentstr);
 void DetectContentPrint(DetectContentData *);
 
 void DetectContentFree(void *);

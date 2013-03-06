@@ -6007,7 +6007,11 @@ int DcePayloadTest13(void)
     int i = 0;
 
     char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; sid:1;)";
+        "(dce_stub_data; content:\"|00 02|\"; sid:1;)";
+    char *sig2 = "alert tcp any any -> any any "
+        "(dce_stub_data; content:\"|00 75|\"; sid:2;)";
+    char *sig3 = "alert tcp any any -> any any "
+        "(dce_stub_data; content:\"|00 18|\"; sid:3;)";
 
     Signature *s;
 
@@ -6042,8 +6046,13 @@ int DcePayloadTest13(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig1);
-    s = de_ctx->sig_list;
+    s = de_ctx->sig_list = SigInit(de_ctx, sig1);
+    if (s == NULL)
+        goto end;
+    s = de_ctx->sig_list->next = SigInit(de_ctx, sig2);
+    if (s == NULL)
+        goto end;
+    s = de_ctx->sig_list->next->next = SigInit(de_ctx, sig3);
     if (s == NULL)
         goto end;
 
@@ -6058,14 +6067,14 @@ int DcePayloadTest13(void)
     }
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p[0]);
-    if (!(PacketAlertCheck(p[0], 1))) {
+    if (!PacketAlertCheck(p[0], 1) || PacketAlertCheck(p[0], 2) || PacketAlertCheck(p[0], 3)) {
         printf("sid 1 didn't match but should have for packet 0: ");
         goto end;
     }
 
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p[6]);
-    if ((PacketAlertCheck(p[6], 1))) {
+    if (PacketAlertCheck(p[6], 1) || PacketAlertCheck(p[6], 2) || PacketAlertCheck(p[6], 3)) {
         printf("sid 1 matched but shouldn't have for packet 6: ");
         goto end;
     }
@@ -6078,7 +6087,7 @@ int DcePayloadTest13(void)
     }
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p[1]);
-    if ((PacketAlertCheck(p[1], 1))) {
+    if (PacketAlertCheck(p[1], 1) || PacketAlertCheck(p[1], 2) || PacketAlertCheck(p[1], 3)) {
         printf("sid 1 matched but shouldn't have for packet 1: ");
         goto end;
     }
@@ -6094,14 +6103,14 @@ int DcePayloadTest13(void)
      * the detection engine state for the flow has been reset because of a
      * fresh transaction */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p[2]);
-    if (!(PacketAlertCheck(p[2], 1))) {
+    if (PacketAlertCheck(p[2], 1) || !PacketAlertCheck(p[2], 2) || PacketAlertCheck(p[2], 3)) {
         printf("sid 1 didn't match but should have for packet 2: ");
         goto end;
     }
 
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p[7]);
-    if ((PacketAlertCheck(p[7], 1))) {
+    if (PacketAlertCheck(p[7], 1) || PacketAlertCheck(p[7], 2) || PacketAlertCheck(p[7], 3)) {
         printf("sid 1 matched but shouldn't have for packet 7: ");
         goto end;
     }
@@ -6114,7 +6123,7 @@ int DcePayloadTest13(void)
     }
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p[3]);
-    if ((PacketAlertCheck(p[3], 1))) {
+    if (PacketAlertCheck(p[3], 1) || PacketAlertCheck(p[3], 2) || PacketAlertCheck(p[3], 3)) {
         printf("sid 1 matched but shouldn't have for packet 3: ");
         goto end;
     }
@@ -6130,7 +6139,7 @@ int DcePayloadTest13(void)
      * the detection engine state for the flow has been reset because of a
      * fresh transaction */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p[4]);
-    if (!(PacketAlertCheck(p[4], 1))) {
+    if (PacketAlertCheck(p[4], 1) || PacketAlertCheck(p[4], 2) || !PacketAlertCheck(p[4], 3)) {
         printf("sid 1 didn't match but should have for packet 4: ");
         goto end;
     }
@@ -6143,7 +6152,7 @@ int DcePayloadTest13(void)
     }
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p[5]);
-    if ((PacketAlertCheck(p[5], 1))) {
+    if (PacketAlertCheck(p[5], 1) || PacketAlertCheck(p[5], 2) || PacketAlertCheck(p[5], 3)) {
         printf("sid 1 matched but shouldn't have for packet 5: ");
         goto end;
     }
@@ -6247,7 +6256,9 @@ int DcePayloadTest14(void)
     int i = 0;
 
     char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; sid:1;)";
+        "(dce_stub_data; content:\"|7f 01|\"; sid:1;)";
+    char *sig2 = "alert tcp any any -> any any "
+        "(dce_stub_data; content:\"|3f 00|\"; sid:2;)";
 
     Signature *s;
 
@@ -6279,8 +6290,10 @@ int DcePayloadTest14(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig1);
-    s = de_ctx->sig_list;
+    s = de_ctx->sig_list = SigInit(de_ctx, sig1);
+    if (s == NULL)
+        goto end;
+    s = de_ctx->sig_list->next = SigInit(de_ctx, sig2);
     if (s == NULL)
         goto end;
 
@@ -6296,14 +6309,14 @@ int DcePayloadTest14(void)
     }
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p[0]);
-    if (!(PacketAlertCheck(p[0], 1))) {
+    if (!PacketAlertCheck(p[0], 1) || PacketAlertCheck(p[0], 2)) {
         printf("sid 1 didn't match but should have for packet 0: ");
         goto end;
     }
 
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p[1]);
-    if ((PacketAlertCheck(p[1], 1))) {
+    if (PacketAlertCheck(p[1], 1) || PacketAlertCheck(p[1], 2)) {
         printf("sid 1 matched but shouldn't have for packet 1: ");
         goto end;
     }
@@ -6317,7 +6330,7 @@ int DcePayloadTest14(void)
     }
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p[2]);
-    if ((PacketAlertCheck(p[2], 1))) {
+    if (PacketAlertCheck(p[2], 1) || PacketAlertCheck(p[2], 2)) {
         printf("sid 1 matched but shouldn't have for packet 2: ");
         goto end;
     }
@@ -6331,7 +6344,7 @@ int DcePayloadTest14(void)
     }
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p[3]);
-    if ((PacketAlertCheck(p[3], 1))) {
+    if (PacketAlertCheck(p[3], 1) || PacketAlertCheck(p[3], 2)) {
         printf("sid 1 matched but shouldn't have for packet 3: ");
         goto end;
     }
@@ -6347,7 +6360,7 @@ int DcePayloadTest14(void)
     }
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p[4]);
-    if (!(PacketAlertCheck(p[4], 1))) {
+    if (PacketAlertCheck(p[4], 1) || !PacketAlertCheck(p[4], 2)) {
         printf("sid 1 didn't match but should have for packet 4: ");
         goto end;
     }
@@ -6361,7 +6374,7 @@ int DcePayloadTest14(void)
     }
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p[5]);
-    if ((PacketAlertCheck(p[5], 1))) {
+    if (PacketAlertCheck(p[5], 1) || PacketAlertCheck(p[5], 2)) {
         printf("sid 1 matched but shouldn't have for packet 5: ");
         goto end;
     }
@@ -7460,6 +7473,7 @@ int DcePayloadParseTest26(void)
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
                                    "dce_stub_data; "
+                                   "pkt_data; "
                                    "content:\"one\"; "
                                    "content:\"two\"; "
                                    "content:\"three\"; within:5; "
@@ -7714,6 +7728,7 @@ int DcePayloadParseTest28(void)
                                    "dce_stub_data; "
                                    "content:\"one\"; distance:10; within:5; "
                                    "content:\"two\"; within:5;"
+                                   "pkt_data; "
                                    "content:\"three\";"
                                    "content:\"four\";"
                                    "sid:1;)");
@@ -7839,6 +7854,7 @@ int DcePayloadParseTest29(void)
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
                                    "dce_stub_data; "
+                                   "pkt_data; "
                                    "pcre:/boom/; "
                                    "content:\"one\"; distance:10; within:5; "
                                    "content:\"two\"; within:5;"
@@ -7980,6 +7996,7 @@ int DcePayloadParseTest30(void)
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
                                    "dce_stub_data; "
+                                   "pkt_data; "
                                    "byte_jump:2,5; "
                                    "content:\"one\"; distance:10; within:5; "
                                    "content:\"two\"; within:5;"
@@ -8129,6 +8146,7 @@ int DcePayloadParseTest31(void)
                                    "byte_jump:2,5,relative; "
                                    "content:\"one\"; distance:10; within:5; "
                                    "content:\"two\"; within:5;"
+                                   "pkt_data; "
                                    "content:\"three\";"
                                    "content:\"four\";"
                                    "sid:1;)");
@@ -8275,6 +8293,7 @@ int DcePayloadParseTest32(void)
                                    "byte_jump:2,5,relative; "
                                    "content:\"one\"; distance:10; within:5; "
                                    "content:\"two\"; within:5;"
+                                   "pkt_data; "
                                    "content:\"three\";"
                                    "content:\"four\"; within:4; "
                                    "sid:1;)");
@@ -8421,6 +8440,7 @@ int DcePayloadParseTest33(void)
                                    "pcre:/boom/R; "
                                    "content:\"one\"; distance:10; within:5; "
                                    "content:\"two\"; within:5;"
+                                   "pkt_data; "
                                    "content:\"three\";"
                                    "content:\"four\"; distance:5;"
                                    "sid:1;)");
@@ -8564,6 +8584,7 @@ int DcePayloadParseTest34(void)
                                    "pcre:/boom/R; "
                                    "byte_jump:1,2,relative,align,dce; "
                                    "content:\"one\"; within:4; distance:8; "
+                                   "pkt_data; "
                                    "content:\"two\"; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -8684,6 +8705,7 @@ int DcePayloadParseTest35(void)
                                    "dce_iface:12345678-1234-1234-1234-123456789012; "
                                    "dce_opnum:10; dce_stub_data; "
                                    "byte_test:1,=,0,0,relative,dce; "
+                                   "pkt_data; "
                                    "content:\"one\"; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -8709,7 +8731,7 @@ int DcePayloadParseTest35(void)
     if (bd->flags & DETECT_BYTETEST_LITTLE ||
         bd->flags & DETECT_BYTETEST_BIG ||
         bd->flags & DETECT_BYTETEST_STRING ||
-        !(bd->flags & DETECT_BYTETEST_RELATIVE) ||
+        !(bd->flags & DETECT_BYTEJUMP_RELATIVE) ||
         !(bd->flags & DETECT_BYTETEST_DCE) ) {
         result = 0;
         printf("one failed\n");
@@ -8771,6 +8793,7 @@ int DcePayloadParseTest36(void)
                                    "dce_opnum:10; dce_stub_data; "
                                    "isdataat:10,relative; "
                                    "content:\"one\"; within:4; distance:8; "
+                                   "pkt_data; "
                                    "content:\"two\"; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -8875,6 +8898,7 @@ int DcePayloadParseTest37(void)
                                    "dce_opnum:10; dce_stub_data; "
                                    "byte_jump:1,2,relative,align,dce; "
                                    "byte_test:1,=,2,0,relative,dce; "
+                                   "pkt_data; "
                                    "content:\"one\"; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -8983,6 +9007,7 @@ int DcePayloadParseTest38(void)
                                    "pcre:/boom/R; "
                                    "byte_jump:1,2,relative,align,dce; "
                                    "byte_test:1,=,2,0,relative,dce; "
+                                   "pkt_data; "
                                    "content:\"one\"; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -9006,7 +9031,7 @@ int DcePayloadParseTest38(void)
     }
     pd = (DetectPcreData *)sm->ctx;
     if ( pd->flags & DETECT_PCRE_RAWBYTES ||
-         !(pd->flags & DETECT_PCRE_RELATIVE) ) {
+         !(pd->flags & DETECT_PCRE_RELATIVE)) {
         result = 0;
         printf("one failed\n");
         goto end;
@@ -9187,6 +9212,7 @@ int DcePayloadParseTest40(void)
                                    "content:\"one\"; within:10; "
                                    "content:\"two\"; distance:20; within:30; "
                                    "byte_test:1,=,2,0,relative,dce; "
+                                   "pkt_data; "
                                    "content:\"three\"; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -9314,6 +9340,7 @@ int DcePayloadParseTest41(void)
                                    "dce_iface:12345678-1234-1234-1234-123456789012; "
                                    "dce_opnum:10; dce_stub_data; "
                                    "content:\"one\"; within:10; "
+                                   "pkt_data; "
                                    "content:\"two\"; "
                                    "byte_test:1,=,2,0,relative,dce; "
                                    "content:\"three\"; "
@@ -9634,6 +9661,7 @@ int DcePayloadParseTest44(void)
                                    "dce_opnum:10; dce_stub_data; "
                                    "isdataat:10,relative; "
                                    "content:\"one\"; within:4; distance:8; "
+                                   "pkt_data; "
                                    "content:\"two\"; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -9759,6 +9787,7 @@ int DcePayloadParseTest45(void)
                                    "content:\"one\"; "
                                    "dce_opnum:10; dce_stub_data; "
                                    "byte_jump:1,2,relative,align,dce; "
+                                   "pkt_data; "
                                    "content:\"two\"; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -9870,6 +9899,7 @@ int DcePayloadParseTest46(void)
                                    "content:\"one\"; "
                                    "dce_opnum:10; dce_stub_data; "
                                    "byte_test:1,=,2,0,relative,dce; "
+                                   "pkt_data; "
                                    "content:\"two\"; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
