@@ -1280,7 +1280,7 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
 
                 SCMutexUnlock(&tv->sc_perf_pctx.m);
                 if (filled == 1) {
-                    json_object_set_new(tm_array, pc->name->tm_name, jdata);
+                    json_object_set_new(tm_array, tv->name, jdata);
                 }
                 tv = tv->next;
             }
