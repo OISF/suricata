@@ -514,7 +514,7 @@ int DetectUDPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     DetectCsumData *cd = (DetectCsumData *)m->ctx;
 
-    if (p->ip4h == NULL || p->udph == NULL || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p))
+    if (p->ip4h == NULL || p->udph == NULL || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p) || p->udph->uh_sum == 0)
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {
