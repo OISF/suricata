@@ -85,6 +85,7 @@ typedef struct SMBState_ {
     SMBAndX andx;
     DCERPC dcerpc;
     uint8_t dcerpc_present;
+    uint8_t data_needed_for_dir;
 } SMBState;
 
 #define SMB_FLAGS_SERVER_TO_REDIR 0x80
