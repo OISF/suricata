@@ -298,6 +298,8 @@ static int SRepLoadFile(char *filename) {
 
     while(fgets(line, (int)sizeof(line), fp) != NULL) {
         size_t len = strlen(line);
+        if (len == 0)
+            continue;
 
         /* ignore comments and empty lines */
         if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
@@ -307,7 +309,10 @@ static int SRepLoadFile(char *filename) {
 
         /* Check if we have a trailing newline, and remove it */
         len = strlen(line);
-        if (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
+        if (len == 0)
+            continue;
+
+        if (line[len - 1] == '\n' || line[len - 1] == '\r') {
             line[len - 1] = '\0';
         }
 
