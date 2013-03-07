@@ -521,6 +521,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
                 if (detect_tvs[i]->inq != NULL) {
                     Packet *p = PacketGetFromAlloc();
                     if (p != NULL) {
+                        p->flags |= PKT_PSEUDO_STREAM_END;
                         PacketQueue *q = &trans_q[detect_tvs[i]->inq->id];
                         SCMutexLock(&q->mutex_q);
 
