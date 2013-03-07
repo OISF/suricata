@@ -1,3 +1,16 @@
+1.3.6 -- 2013-03-07
+
+- fix decoder event rules not checked in all cases (#671)
+- checksum detection for icmpv6 was fixed (#673)
+- crash in HTTP server body inspection code fixed (#675)
+- fixed a icmpv6 payload bug (#676)
+- IP-only rule ip_proto not matching for some protocols was addressed (#690)
+- fixed malformed yaml crashing suricata (#702)
+- parsing ipv6 address/subnet parsing in thresholding was fixed by Jamie Strandboge (#717)
+- crash in tls parser was fixed (#759)
+- fixed UDPv4 packets without checksum being detected as invalid (#762)
+- fixed DCE/SMB parsers getting confused in some fragmented cases (#763)
+
 1.3.5 -- 2012-12-06
 
 - Flow engine memory leak fixed by Ludovico Cavedon (#651)
