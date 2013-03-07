@@ -3,7 +3,7 @@
 AC_INIT(configure.ac)
 
     AC_CONFIG_HEADERS([config.h])
-    AM_INIT_AUTOMAKE(suricata, 1.4dev)
+    AM_INIT_AUTOMAKE(suricata, 2.0dev)
 
     AC_LANG_C
     AC_PROG_CC_C99
