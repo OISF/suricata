@@ -108,6 +108,7 @@ static int SRepCatSplitLine(char *line, uint8_t *cat, char *shortname, size_t sh
     char *ptrs[2] = {NULL,NULL};
     int i = 0;
     int idx = 0;
+    char *origline = line;
 
     while (i < (int)line_len) {
         if (line[i] == ',' || line[i] == '\n' || line[i] == '\0' || i == (int)(line_len - 1)) {
@@ -119,6 +120,8 @@ static int SRepCatSplitLine(char *line, uint8_t *cat, char *shortname, size_t sh
             line += (i+1);
             i = 0;
 
+            if (line >= origline + line_len)
+                break;
             if (strlen(line) == 0)
                 break;
             if (idx == 2)
@@ -155,6 +158,7 @@ static int SRepSplitLine(char *line, uint32_t *ip, uint8_t *cat, uint8_t *value)
     char *ptrs[3] = {NULL,NULL,NULL};
     int i = 0;
     int idx = 0;
+    char *origline = line;
 
     while (i < (int)line_len) {
         if (line[i] == ',' || line[i] == '\n' || line[i] == '\0' || i == (int)(line_len - 1)) {
@@ -166,6 +170,8 @@ static int SRepSplitLine(char *line, uint32_t *ip, uint8_t *cat, uint8_t *value)
             line += (i+1);
             i = 0;
 
+            if (line >= origline + line_len)
+                break;
             if (strlen(line) == 0)
                 break;
             if (idx == 3)
