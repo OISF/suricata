@@ -1209,6 +1209,14 @@ AC_INIT(configure.ac)
 
   # libnspr
     enable_nspr="no"
+
+    # Try pkg-config first:
+    PKG_CHECK_MODULES([libnspr], nspr,, [with_pkgconfig_nspr=no])
+    if test "$with_pkgconfig_nspr" != "no"; then
+        CPPFLAGS="${CPPFLAGS} ${libnspr_CFLAGS}"
+        LIBS="${LIBS} ${libnspr_LIBS}"
+    fi
+
     AC_ARG_WITH(libnspr_includes,
             [  --with-libnspr-includes=DIR  libnspr include directory],
             [with_libnspr_includes="$withval"],[with_libnspr_includes=no])
