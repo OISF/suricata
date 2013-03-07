@@ -154,7 +154,8 @@ typedef enum NFQMode_ {
     NFQ_ROUTE_MODE,
 } NFQMode;
 
-#define NFQ_FLAG_FAIL_OPEN  (1 << 0)
+#define NFQ_FLAG_FAIL_OPEN      (1 << 0)
+#define NFQ_FLAG_FAIL_ACCEPT    (1 << 1)
 
 typedef struct NFQCnf_ {
     NFQMode mode;
@@ -239,6 +240,12 @@ void NFQInitConfig(char quiet)
         SCLogError(SC_ERR_NFQ_NOSUPPORT,
                    "nfq.fail-open set but NFQ library has no support for it.");
 #endif
+    }
+
+    (void)ConfGetBool("nfq.fail-accept", (int *)&boolval);
+    if (boolval) {
+        SCLogInfo("Enabling fail-accept on queue");
+        nfq_config.flags |= NFQ_FLAG_FAIL_ACCEPT;
     }
 
     if ((ConfGetInt("nfq.repeat-mark", &value)) == 1) {
@@ -402,6 +409,13 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     if (ntv->slot) {
         if (TmThreadsSlotProcessPkt(tv, ntv->slot, p) != TM_ECODE_OK) {
             TmqhOutputPacketpool(ntv->tv, p);
+            /* Force verdict of packet */
+            if (nfq_config.flags & NFQ_FLAG_FAIL_ACCEPT) {
+                p->action &= ~ACTION_DROP;
+            } else {
+                p->action |= ACTION_DROP;
+            }
+            NFQSetVerdict(p);
             return -1;
         }
     } else {
