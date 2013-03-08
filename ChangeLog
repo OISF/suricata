@@ -1,3 +1,43 @@
+1.4.1 -- 2013-03-08
+
+- GeoIP keyword, allowing matching on Maxmind's database, contributed by Ignacio Sanchez (#559)
+- Introduce http_host and http_raw_host keywords (#733, #743)
+- Add python module for interacting with unix socket (#767)
+- Add new unix socket commands: fetching config, counters, basic runtime info (#764, #765)
+- Big Napatech support update by Matt Keeler
+- Configurable sensor id in unified2 output, contributed by Jake Gionet (#667)
+- FreeBSD IPFW fixes by Nikolay Denev
+- Add "default" interface setting to capture configuration in yaml (#679)
+- Make sure "snaplen" can be set by the user (#680)
+- Improve HTTP URI query string normalization (#739)
+- Improved error reporting in MD5 loading (#693)
+- Improve reference.config parser error reporting (#737)
+- Improve build info output to include all configure options (#738)
+- Segfault in TLS parsing reported by Charles Smutz (#725)
+- Fix crash in teredo decoding, reported by Rmkml (#736)
+- fixed UDPv4 packets without checksum being detected as invalid (#760)
+- fixed DCE/SMB parsers getting confused in some fragmented cases (#764)
+- parsing ipv6 address/subnet parsing in thresholding was fixed by Jamie Strandboge (#697)
+- FN: IP-only rule ip_proto not matching for some protocols (#689)
+- Fix build failure with other libhtp installs (#688)
+- Fix malformed yaml loading leading to a crash (#694)
+- Various Mac OS X fixes (#700, #701, #703)
+- Fix for autotools on Mac OS X by Jason Ish (#704)
+- Fix AF_PACKET under high load not updating stats (#706)
+
+1.3.6 -- 2013-03-07
+
+- fix decoder event rules not checked in all cases (#671)
+- checksum detection for icmpv6 was fixed (#673)
+- crash in HTTP server body inspection code fixed (#675)
+- fixed a icmpv6 payload bug (#676)
+- IP-only rule ip_proto not matching for some protocols was addressed (#690)
+- fixed malformed yaml crashing suricata (#702)
+- parsing ipv6 address/subnet parsing in thresholding was fixed by Jamie Strandboge (#717)
+- crash in tls parser was fixed (#759)
+- fixed UDPv4 packets without checksum being detected as invalid (#762)
+- fixed DCE/SMB parsers getting confused in some fragmented cases (#763)
+
 1.4 2012-12-13
 
 - Decoder event matching fixed (#672)
