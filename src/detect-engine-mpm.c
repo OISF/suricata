@@ -1862,6 +1862,124 @@ SigMatch *RetrieveFPForSig(Signature *s)
     return mpm_sm;
 }
 
+SigMatch *RetrieveFPForSigV2(Signature *s)
+{
+    if (s->mpm_sm != NULL)
+        return s->mpm_sm;
+
+
+    SigMatch *mpm_sm = NULL;
+
+    int nn_sm_list[DETECT_SM_LIST_MAX];
+    int n_sm_list[DETECT_SM_LIST_MAX];
+    memset(nn_sm_list, 0, sizeof(nn_sm_list));
+    memset(n_sm_list, 0, sizeof(n_sm_list));
+    int count_nn_sm_list = 0;
+    int count_n_sm_list = 0;
+
+    for (int list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
+        if (!FastPatternSupportEnabledForSigMatchList(list_id))
+            continue;
+
+        for (SigMatch *sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
+
+            DetectContentData *cd = (DetectContentData *)sm->ctx;
+            if ((cd->flags & DETECT_CONTENT_FAST_PATTERN))
+                return sm;
+            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                n_sm_list[list_id] = 1;
+                count_n_sm_list++;
+            } else {
+                nn_sm_list[list_id] = 1;
+                count_nn_sm_list++;
+            }
+        } /* for */
+    } /* for */
+
+    int *curr_sm_list = NULL;
+    int skip_negated_content = 1;
+    if (count_nn_sm_list > 0) {
+        curr_sm_list = nn_sm_list;
+    } else if (count_n_sm_list > 0) {
+        curr_sm_list = n_sm_list;
+        skip_negated_content = 0;
+    } else {
+        return NULL;
+    }
+
+    int final_sm_list[DETECT_SM_LIST_MAX];
+    int count_final_sm_list = 0;
+
+    SCFPSupportSMList *tmp = sm_fp_support_smlist_list;
+    while (tmp != NULL) {
+        for (int priority = tmp->priority;
+             tmp != NULL && priority == tmp->priority;
+             tmp = tmp->next) {
+
+            if (curr_sm_list[tmp->list_id] == 0)
+                continue;
+            final_sm_list[count_final_sm_list++] = tmp->list_id;
+        }
+        if (count_final_sm_list != 0)
+            break;
+    }
+
+    BUG_ON(count_final_sm_list == 0);
+
+    int max_len = 0;
+    for (int i = 0; i < count_final_sm_list; i++) {
+        for (SigMatch *sm = s->sm_lists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
+
+            DetectContentData *cd = (DetectContentData *)sm->ctx;
+            /* skip_negated_content is only set if there's absolutely no
+             * non-negated content present in the sig */
+            if ((cd->flags & DETECT_CONTENT_NEGATED) && skip_negated_content)
+                continue;
+            if (max_len < cd->content_len)
+                max_len = cd->content_len;
+        }
+    }
+
+    for (int i = 0; i < count_final_sm_list; i++) {
+        for (SigMatch *sm = s->sm_lists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
+
+            DetectContentData *cd = (DetectContentData *)sm->ctx;
+            /* skip_negated_content is only set if there's absolutely no
+             * non-negated content present in the sig */
+            if ((cd->flags & DETECT_CONTENT_NEGATED) && skip_negated_content)
+                continue;
+            if (cd->content_len != max_len)
+                continue;
+
+            if (mpm_sm == NULL) {
+                mpm_sm = sm;
+            } else {
+                DetectContentData *data1 = (DetectContentData *)sm->ctx;
+                DetectContentData *data2 = (DetectContentData *)mpm_sm->ctx;
+                uint32_t ls = PatternStrength(data1->content, data1->content_len);
+                uint32_t ss = PatternStrength(data2->content, data2->content_len);
+                if (ls > ss) {
+                    mpm_sm = sm;
+                } else if (ls == ss) {
+                    /* if 2 patterns are of equal strength, we pick the longest */
+                    if (data1->content_len > data2->content_len)
+                        mpm_sm = sm;
+                } else {
+                    SCLogDebug("sticking with mpm_sm");
+                }
+            } /* else - if */
+        } /* for */
+    } /* for */
+
+    return mpm_sm;
+}
+
 /**
  * \internal
  * \brief Setup the mpm content.
@@ -1879,7 +1997,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
         Signature *s = sgh->match_array[sig];
         if (s == NULL)
             continue;
-        PopulateMpmAddPatternToMpm(de_ctx, sgh, s, RetrieveFPForSig(s));
+        PopulateMpmAddPatternToMpm(de_ctx, sgh, s, s->mpm_sm);
     } /* for (sig = 0; sig < sgh->sig_cnt; sig++) */
 
     return 0;
@@ -3050,7 +3168,7 @@ uint32_t DetectUricontentGetId(MpmPatternIdStore *ht, DetectContentData *co) {
  *
  * \retval id Pattern id.
  */
-uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_list)
+uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, Signature *s, uint8_t sm_list)
 {
     SCEnter();
 
@@ -3076,58 +3194,64 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_list)
 
     r = HashTableLookup(ht->hash, (void *)e, sizeof(MpmPatternIdTableElmt));
     if (r == NULL) {
-        /* we don't have a duplicate with this pattern + id type.  If the id is
-         * for content, then it is the first entry for such a
-         * pattern + id combination.  Let us create an entry for it */
-        if (sm_list == DETECT_SM_LIST_PMATCH) {
+        if (s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) {
+            BUG_ON((sm_list != DETECT_SM_LIST_HSBDMATCH) & (sm_list != DETECT_SM_LIST_DMATCH));
             e->id = ht->max_id;
             ht->max_id++;
             id = e->id;
-
             int ret = HashTableAdd(ht->hash, e, sizeof(MpmPatternIdTableElmt));
             BUG_ON(ret != 0);
-
             e = NULL;
-
-            /* the id type is not content or uricontent.  It would be one of
-             * those http_ modifiers against content then */
         } else {
-            /* we know that this is one of those http_ modifiers against content.
-             * So we would have seen a content before coming across this http_
-             * modifier.  Let's retrieve this content entry that has already
-             * been registered. */
-            e->sm_list = DETECT_SM_LIST_PMATCH;
-            MpmPatternIdTableElmt *tmp_r = HashTableLookup(ht->hash, (void *)e, sizeof(MpmPatternIdTableElmt));
-            if (tmp_r == NULL) {
-                SCLogError(SC_ERR_FATAL, "How can this happen?  We have to have "
-                           "a content of type DETECT_CONTENT already registered "
-                           "at this point.  Impossible");
-                exit(EXIT_FAILURE);
-            }
-
-            /* we have retrieved the content, and the content registered was the
-             * first entry made(dup_count is 1) for that content.  Let us just
-             * reset the sm_type to the http_ keyword's sm_type */
-            if (tmp_r->dup_count == 1) {
-                tmp_r->sm_list = sm_list;
-                id = tmp_r->id;
-
-                /* interestingly we have more than one entry for this content.
-                 * Out of these tmp_r->dup_count entries, one would be for the content
-                 * entry made for this http_ modifier.  Erase this entry and make
-                 * a separate entry for the http_ modifier(of course with a new id) */
-            } else {
-                tmp_r->dup_count--;
-                /* reset the sm_type, since we changed it to DETECT_CONTENT prev */
-                e->sm_list = sm_list;
+            /* we don't have a duplicate with this pattern + id type.  If the id is
+             * for content, then it is the first entry for such a
+             * pattern + id combination.  Let us create an entry for it */
+            if (sm_list == DETECT_SM_LIST_PMATCH) {
                 e->id = ht->max_id;
                 ht->max_id++;
                 id = e->id;
-
                 int ret = HashTableAdd(ht->hash, e, sizeof(MpmPatternIdTableElmt));
                 BUG_ON(ret != 0);
-
                 e = NULL;
+
+                /* the id type is not content or uricontent.  It would be one of
+                 * those http_ modifiers against content then */
+            } else {
+                /* we know that this is one of those http_ modifiers against content.
+                 * So we would have seen a content before coming across this http_
+                 * modifier.  Let's retrieve this content entry that has already
+                 * been registered. */
+                e->sm_list = DETECT_SM_LIST_PMATCH;
+                MpmPatternIdTableElmt *tmp_r = HashTableLookup(ht->hash, (void *)e, sizeof(MpmPatternIdTableElmt));
+                if (tmp_r == NULL) {
+                    SCLogError(SC_ERR_FATAL, "How can this happen?  We have to have "
+                               "a content of type DETECT_CONTENT already registered "
+                               "at this point.  Impossible");
+                    exit(EXIT_FAILURE);
+                }
+
+                /* we have retrieved the content, and the content registered was the
+                 * first entry made(dup_count is 1) for that content.  Let us just
+                 * reset the sm_type to the http_ keyword's sm_type */
+                if (tmp_r->dup_count == 1) {
+                    tmp_r->sm_list = sm_list;
+                    id = tmp_r->id;
+
+                    /* interestingly we have more than one entry for this content.
+                     * Out of these tmp_r->dup_count entries, one would be for the content
+                     * entry made for this http_ modifier.  Erase this entry and make
+                     * a separate entry for the http_ modifier(of course with a new id) */
+                } else {
+                    tmp_r->dup_count--;
+                    /* reset the sm_type, since we changed it to DETECT_CONTENT prev */
+                    e->sm_list = sm_list;
+                    e->id = ht->max_id;
+                    ht->max_id++;
+                    id = e->id;
+                    int ret = HashTableAdd(ht->hash, e, sizeof(MpmPatternIdTableElmt));
+                    BUG_ON(ret != 0);
+                    e = NULL;
+                }
             }
         }
 
@@ -3135,7 +3259,9 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_list)
     } else {
         /* oh cool!  It is a duplicate for content, uricontent types.  Update the
          * dup_count and get out */
-        if (sm_list == DETECT_SM_LIST_PMATCH) {
+        if ((s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) ||
+            sm_list == DETECT_SM_LIST_PMATCH) {
+            /* we have a duplicate */
             r->dup_count++;
             id = r->id;
             goto end;
@@ -3173,4 +3299,117 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_list)
         MpmPatternIdTableElmtFree(e);
 
     SCReturnUInt(id);
+}
+
+uint32_t DetectPatternGetIdV2(MpmPatternIdStore *ht, void *ctx, Signature *s, uint8_t sm_list)
+{
+    SCEnter();
+
+    MpmPatternIdTableElmt *e = NULL;
+    MpmPatternIdTableElmt *r = NULL;
+    PatIntId id = 0;
+
+    e = SCMalloc(sizeof(MpmPatternIdTableElmt));
+    if (unlikely(e == NULL)) {
+        exit(EXIT_FAILURE);
+    }
+
+    DetectContentData *cd = ctx;
+    e->pattern = SCMalloc(cd->content_len);
+    if (e->pattern == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    memcpy(e->pattern, cd->content, cd->content_len);
+    e->pattern_len = cd->content_len;
+    e->dup_count = 1;
+    e->sm_list = sm_list;
+    e->id = 0;
+
+    r = HashTableLookup(ht->hash, (void *)e, sizeof(MpmPatternIdTableElmt));
+    if (r == NULL) {
+        e->id = ht->max_id;
+        ht->max_id++;
+        id = e->id;
+        int ret = HashTableAdd(ht->hash, e, sizeof(MpmPatternIdTableElmt));
+        BUG_ON(ret != 0);
+        e = NULL;
+
+        /* we do seem to have an entry for this already */
+    } else {
+        r->dup_count++;
+        id = r->id;
+    }
+
+    if (e != NULL)
+        MpmPatternIdTableElmtFree(e);
+
+    SCReturnUInt(id);
+}
+
+void DetectFigureFPAndId(DetectEngineCtx *de_ctx)
+{
+    typedef struct DetectFigureFPAndId_t_ {
+        PatIntId id;
+        uint16_t content_len;
+        uint32_t flags;
+        int sm_list;
+
+        uint8_t *content;
+    } DetectFigureFPAndId_t;
+
+    uint32_t struct_total_size = 0;
+    uint32_t content_total_size = 0;
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        s->mpm_sm = RetrieveFPForSigV2(s);
+        if (s->mpm_sm != NULL) {
+            DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
+            struct_total_size += sizeof(DetectFigureFPAndId_t);
+            content_total_size += cd->content_len;
+        }
+    }
+
+    /* array hash buffer - i've run out of ideas to name it */
+    uint8_t *ahb = SCMalloc(sizeof(uint8_t) * (struct_total_size + content_total_size));
+    if (ahb == NULL)
+        exit(EXIT_FAILURE);
+
+    PatIntId max_id = 0;
+    DetectFigureFPAndId_t *struct_offset = (DetectFigureFPAndId_t *)ahb;
+    uint8_t *content_offset = ahb + struct_total_size;
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if (s->mpm_sm != NULL) {
+            int sm_list = SigMatchListSMBelongsTo(s, s->mpm_sm);
+            BUG_ON(sm_list == -1);
+            DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
+            DetectFigureFPAndId_t *dup = (DetectFigureFPAndId_t *)ahb;
+            for (; dup != struct_offset; dup++) {
+                if (dup->content_len != cd->content_len ||
+                    dup->sm_list != sm_list ||
+                    SCMemcmp(dup->content, cd->content, dup->content_len) != 0) {
+                    continue;
+                }
+
+                break;
+            }
+            if (dup != struct_offset) {
+                cd->id = dup->id;
+                continue;
+            }
+
+            struct_offset->id = max_id++;
+            cd->id = struct_offset->id;
+            struct_offset->content_len = cd->content_len;
+            struct_offset->sm_list = sm_list;
+            struct_offset->content = content_offset;
+            content_offset += cd->content_len;
+            memcpy(struct_offset->content, cd->content, cd->content_len);
+
+            struct_offset++;
+        } /* if (s->mpm_sm != NULL) */
+    } /* for */
+
+    de_ctx->max_fp_id = max_id;
+
+    SCFree(ahb);
+    return;
 }

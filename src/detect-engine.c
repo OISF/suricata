@@ -1068,10 +1068,12 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     PatternMatchThreadPrepare(&det_ctx->mtcu, de_ctx->mpm_matcher, DetectUricontentMaxId(de_ctx));
 
     //PmqSetup(&det_ctx->pmq, DetectEngineGetMaxSigId(de_ctx), DetectContentMaxId(de_ctx));
-    PmqSetup(&det_ctx->pmq, 0, DetectContentMaxId(de_ctx));
+    PmqSetup(&det_ctx->pmq, 0, de_ctx->max_fp_id);
+    //PmqSetup(&det_ctx->pmq, 0, DetectContentMaxId(de_ctx));
     int i;
     for (i = 0; i < 256; i++) {
-        PmqSetup(&det_ctx->smsg_pmq[i], 0, DetectContentMaxId(de_ctx));
+        //PmqSetup(&det_ctx->smsg_pmq[i], 0, DetectContentMaxId(de_ctx));
+        PmqSetup(&det_ctx->smsg_pmq[i], 0, de_ctx->max_fp_id);
     }
 
     /* IP-ONLY */

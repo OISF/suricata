@@ -49,7 +49,8 @@
 static int DetectDistanceSetup(DetectEngineCtx *, Signature *, char *);
 void DetectDistanceRegisterTests(void);
 
-void DetectDistanceRegister (void) {
+void DetectDistanceRegister(void)
+{
     sigmatch_table[DETECT_DISTANCE].name = "distance";
     sigmatch_table[DETECT_DISTANCE].desc = "indicates a relation between this content keyword and the content preceding it";
     sigmatch_table[DETECT_DISTANCE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Payload_keywords#Distance";
@@ -67,260 +68,114 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
     char *str = distancestr;
     char dubbed = 0;
     SigMatch *pm = NULL;
+    int ret = -1;
 
     /* strip "'s */
     if (distancestr[0] == '\"' && distancestr[strlen(distancestr) - 1] == '\"') {
         str = SCStrdup(distancestr + 1);
         if (unlikely(str == NULL))
-            goto error;
+            goto end;
         str[strlen(distancestr) - 2] = '\0';
         dubbed = 1;
     }
 
-    /* if we still haven't found that the sig is related to DCERPC,
-     * it's a direct entry into Signature->sm_lists[DETECT_SM_LIST_PMATCH] */
-    if (s->alproto == ALPROTO_DCERPC) {
-        SigMatch *dcem = NULL;
-        SigMatch *dm = NULL;
-        SigMatch *pm1 = NULL;
-
-        SigMatch *pm1_ots = NULL;
-        SigMatch *pm2_ots = NULL;
-
-        dcem = SigMatchGetLastSMFromLists(s, 6,
-                DETECT_DCE_IFACE, s->sm_lists_tail[DETECT_SM_LIST_AMATCH],
-                DETECT_DCE_OPNUM, s->sm_lists_tail[DETECT_SM_LIST_AMATCH],
-                DETECT_DCE_STUB_DATA, s->sm_lists_tail[DETECT_SM_LIST_AMATCH]);
-
-        pm1_ots = SigMatchGetLastSMFromLists(s, 6,
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
-        if (pm1_ots != NULL && pm1_ots->prev != NULL) {
-            pm2_ots = SigMatchGetLastSMFromLists(s, 6,
-                    DETECT_CONTENT, pm1_ots->prev,
-                    DETECT_PCRE, pm1_ots->prev,
-                    DETECT_BYTEJUMP, pm1_ots->prev);
-        }
-
-        dm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
-        pm1 = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
-
-        if (dm == NULL && pm1 == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid signature.  within "
-                       "needs a preceding content keyword");
-            goto error;
-        }
-
-        if (dm == NULL) {
-            if (pm2_ots == NULL) {
-                if (pm1->idx > dcem->idx) {
-                    /* transfer pm1 to dmatch list and within is against this */
-                    SigMatchTransferSigMatchAcrossLists(pm1,
-                            &s->sm_lists[DETECT_SM_LIST_PMATCH],
-                            &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                            &s->sm_lists[DETECT_SM_LIST_DMATCH],
-                            &s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
-                    pm = pm1;
-                } else {
-                    /* within is against pm1 and we continue this way */
-                    pm = pm1;
-                }
-            } else if (pm2_ots->idx > dcem->idx) {
-                /* within is against pm1, pm = pm1; */
-                pm = pm1;
-            } else if (pm1->idx > dcem->idx) {
-                /* transfer pm1 to dmatch list and within is against this */
-                SigMatchTransferSigMatchAcrossLists(pm1,
-                        &s->sm_lists[DETECT_SM_LIST_PMATCH],
-                        &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                        &s->sm_lists[DETECT_SM_LIST_DMATCH],
-                        &s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
-                pm = pm1;
-            } else {
-                /* within is against pm1 and we continue this way */
-                pm = pm1;
-            }
-        } else {
-            if (pm1 == NULL) {
-                /* within is against dm and continue this way */
-                pm = dm;
-            } else if (dm->idx > pm1->idx) {
-                /* within is against dm */
-                pm = dm;
-            } else if (pm2_ots == NULL || pm2_ots->idx < dcem->idx) {
-                /* trasnfer pm1 to dmatch list and pm = pm1 */
-                SigMatchTransferSigMatchAcrossLists(pm1,
-                        &s->sm_lists[DETECT_SM_LIST_PMATCH],
-                        &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                        &s->sm_lists[DETECT_SM_LIST_DMATCH],
-                        &s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
-                pm = pm1;
-            } else {
-                /* within is against pm1, pm = pm1 */
-                pm = pm1;
-            }
-        }
+    /* retrive the sm to apply the depth against */
+    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA || s->init_flags & SIG_FLAG_INIT_DCE_STUB_DATA) {
+        if (s->init_flags & SIG_FLAG_INIT_FILE_DATA)
+            pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]);
+        else
+            pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
     } else {
-        pm = SigMatchGetLastSMFromLists(s, 28,
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
-        if (pm == NULL) {
-            SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs "
-                       "preceding content, uricontent option, http_client_body, "
-                       "http_server_body, http_header, http_raw_header, http_method, "
-                       "http_cookie, http_raw_uri, http_stat_msg, http_stat_code, "
-                       "http_user_agent, http_host or http_raw_host option");
-            if (dubbed)
-                SCFree(str);
-            return -1;
+        pm =  SigMatchGetLastSMFromLists(s, 28,
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
+    }
+    if (pm == NULL) {
+        SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "distance needs "
+                   "preceding content, uricontent option, http_client_body, "
+                   "http_server_body, http_header option, http_raw_header option, "
+                   "http_method option, http_cookie, http_raw_uri, "
+                   "http_stat_msg, http_stat_code, http_user_agent or "
+                   "file_data/dce_stub_data sticky buffer option");
+        goto end;
+    }
+
+    /* verify other conditions */
+    DetectContentData *cd = (DetectContentData *)pm->ctx;
+    if (cd->flags & DETECT_CONTENT_DISTANCE) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple distances for the same content.");
+        goto end;
+    }
+    if ((cd->flags & DETECT_CONTENT_DEPTH) || (cd->flags & DETECT_CONTENT_OFFSET)) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a relative "
+                   "keyword like within/distance with a absolute "
+                   "relative keyword like depth/offset for the same "
+                   "content." );
+        goto end;
+    }
+    if (cd->flags & DETECT_CONTENT_NEGATED && cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
+                   "negated keyword set along with a fast_pattern");
+        goto end;
+    }
+    if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
+                   "keyword set along with a fast_pattern:only;");
+        goto end;
+    }
+    if (str[0] != '-' && isalpha((unsigned char)str[0])) {
+        SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(str, s, SigMatchListSMBelongsTo(s, pm));
+        if (bed_sm == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_extract var "
+                       "seen in distance - %s\n", str);
+            goto end;
         }
+        cd->distance = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+        cd->flags |= DETECT_CONTENT_DISTANCE_BE;
+    } else {
+        cd->distance = strtol(str, NULL, 10);
+    }
+    cd->flags |= DETECT_CONTENT_DISTANCE;
+
+    SigMatch *prev_pm = SigMatchGetLastSMFromLists(s, 4,
+                                                   DETECT_CONTENT, pm->prev,
+                                                   DETECT_PCRE, pm->prev);
+    if (prev_pm == NULL) {
+        ret = 0;
+        goto end;
+    }
+    if (prev_pm->type == DETECT_CONTENT) {
+        DetectContentData *cd = (DetectContentData *)prev_pm->ctx;
+        if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "previous keyword "
+                       "has a fast_pattern:only; set. Can't "
+                       "have relative keywords around a fast_pattern "
+                       "only content");
+            goto end;
+        }
+        cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+    } else if (prev_pm->type == DETECT_PCRE) {
+        DetectPcreData *pd = (DetectPcreData *)prev_pm->ctx;
+        pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
     }
 
-    DetectContentData *cd = NULL;
-    DetectPcreData *pe = NULL;
-
-    switch (pm->type) {
-        case DETECT_CONTENT:
-            cd = (DetectContentData *)pm->ctx;
-            if (cd == NULL) {
-                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two "
-                "preceding content or uricontent options");
-                goto error;
-            }
-
-            if (cd->flags & DETECT_CONTENT_NEGATED) {
-                if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
-                               "negated keyword set along with a fast_pattern");
-                    goto error;
-                }
-            } else {
-                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
-                               "keyword set along with a fast_pattern:only;");
-                    goto error;
-                }
-            }
-
-            if ((cd->flags & DETECT_CONTENT_DEPTH) || (cd->flags & DETECT_CONTENT_OFFSET)) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a relative keyword "
-                               "with a non-relative keyword for the same content." );
-                goto error;
-            }
-
-            if (cd->flags & DETECT_CONTENT_DISTANCE) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple distances with the same content. ");
-                goto error;
-            }
-
-            if (str[0] != '-' && isalpha((unsigned char)str[0])) {
-                SigMatch *bed_sm =
-                    DetectByteExtractRetrieveSMVar(str, s,
-                                                   SigMatchListSMBelongsTo(s, pm));
-                if (bed_sm == NULL) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_extract var "
-                               "seen in distance - %s\n", str);
-                    goto error;
-                }
-                cd->distance = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-                cd->flags |= DETECT_CONTENT_DISTANCE_BE;
-            } else {
-                cd->distance = strtol(str, NULL, 10);
-            }
-
-            cd->flags |= DETECT_CONTENT_DISTANCE;
-
-            pm = SigMatchGetLastSMFromLists(s, 6,
-                                            DETECT_CONTENT, pm->prev,
-                                            DETECT_PCRE, pm->prev,
-                                            DETECT_BYTEJUMP, pm->prev);
-            if (pm == NULL) {
-                if (s->alproto == ALPROTO_DCERPC) {
-                    SCLogDebug("content relative without a previous content based "
-                               "keyword.  Holds good only in the case of DCERPC "
-                               "alproto like now.");
-                } else {
-                    //SCLogError(SC_ERR_INVALID_SIGNATURE, "No related "
-                    //"previous-previous content or pcre keyword");
-                    //goto error;
-                    ;
-                }
-            } else {
-                switch (pm->type) {
-                    case DETECT_CONTENT:
-                        /* Set the relative next flag on the prev sigmatch */
-                        cd = (DetectContentData *)pm->ctx;
-                        if (cd == NULL) {
-                            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown previous-"
-                                       "previous keyword!");
-                            goto error;
-                        }
-                        cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-
-                        if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                            SCLogError(SC_ERR_INVALID_SIGNATURE, "previous keyword "
-                                       "has a fast_pattern:only; set. Can't have "
-                                       "relative keywords around a fast_pattern "
-                                       "only content");
-                            goto error;
-                        }
-
-                        break;
-
-                    case DETECT_PCRE:
-                        pe = (DetectPcreData *) pm->ctx;
-                        if (pe == NULL) {
-                            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown previous-"
-                                       "previous keyword!");
-                            goto error;
-                        }
-                        pe->flags |= DETECT_PCRE_RELATIVE_NEXT;
-
-                        break;
-
-                    case DETECT_BYTEJUMP:
-                        SCLogDebug("no setting relative_next for bytejump.  We "
-                                   "have no use for it");
-
-                        break;
-
-                    default:
-                        /* this will never hit */
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown previous-"
-                                       "previous keyword!");
-                        break;
-                }
-            }
-
-            break;
-
-        default:
-            SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two "
-                       "preceding content or uricontent options");
-            goto error;
-    }
-
+    ret = 0;
+ end:
     if (dubbed)
         SCFree(str);
-    return 0;
-
-error:
-    if (dubbed)
-        SCFree(str);
-    return -1;
+    return ret;
 }
 
 #ifdef UNITTESTS

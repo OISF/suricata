@@ -337,7 +337,7 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
         (*sigs_tot)++;
         if (sig != NULL) {
             if (rule_engine_analysis_set || fp_engine_analysis_set) {
-                sig->mpm_sm = RetrieveFPForSig(sig);
+                sig->mpm_sm = RetrieveFPForSigV2(sig);
                 if (fp_engine_analysis_set) {
                     EngineAnalysisFP(sig, line);
                 }
@@ -4381,7 +4381,10 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
  *
  * \retval 0 Always
  */
-int SigGroupBuild (DetectEngineCtx *de_ctx) {
+int SigGroupBuild(DetectEngineCtx *de_ctx)
+{
+    DetectFigureFPAndId(de_ctx);
+
     /* if we are using single sgh_mpm_context then let us init the standard mpm
      * contexts using the mpm_ctx factory */
     if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
