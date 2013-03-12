@@ -114,7 +114,7 @@ void DetectHttpRawHeaderFree(void *ptr)
  */
 int DetectHttpRawHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
-    return DetectEngineContentModifiedBufferSetup(de_ctx, s, arg,
+    return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_RAW_HEADER,
                                                   DETECT_SM_LIST_HRHDMATCH,
                                                   ALPROTO_HTTP,

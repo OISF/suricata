@@ -98,7 +98,7 @@ void DetectHttpStatMsgRegister (void) {
 
 static int DetectHttpStatMsgSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
-    return DetectEngineContentModifiedBufferSetup(de_ctx, s, arg,
+    return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_STAT_MSG,
                                                   DETECT_SM_LIST_HSMDMATCH,
                                                   ALPROTO_HTTP,

@@ -3346,7 +3346,16 @@ uint32_t DetectPatternGetIdV2(MpmPatternIdStore *ht, void *ctx, Signature *s, ui
     SCReturnUInt(id);
 }
 
-void DetectFigureFPAndId(DetectEngineCtx *de_ctx)
+/**
+ * \brief Figured out the FP and their respective content ids for all the
+ *        sigs in the engine.
+ *
+ * \param de_ctx Detection engine context.
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int DetectFigureFPAndId(DetectEngineCtx *de_ctx)
 {
     typedef struct DetectFigureFPAndId_t_ {
         PatIntId id;
@@ -3371,7 +3380,7 @@ void DetectFigureFPAndId(DetectEngineCtx *de_ctx)
     /* array hash buffer - i've run out of ideas to name it */
     uint8_t *ahb = SCMalloc(sizeof(uint8_t) * (struct_total_size + content_total_size));
     if (ahb == NULL)
-        exit(EXIT_FAILURE);
+        return -1;
 
     PatIntId max_id = 0;
     DetectFigureFPAndId_t *struct_offset = (DetectFigureFPAndId_t *)ahb;
@@ -3411,5 +3420,5 @@ void DetectFigureFPAndId(DetectEngineCtx *de_ctx)
     de_ctx->max_fp_id = max_id;
 
     SCFree(ahb);
-    return;
+    return 0;
 }

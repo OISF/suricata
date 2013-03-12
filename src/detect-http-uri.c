@@ -89,7 +89,7 @@ void DetectHttpUriRegister (void) {
 
 int DetectHttpUriSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    return DetectEngineContentModifiedBufferSetup(de_ctx, s, str,
+    return DetectEngineContentModifierBufferSetup(de_ctx, s, str,
                                                   DETECT_AL_HTTP_URI,
                                                   DETECT_SM_LIST_UMATCH,
                                                   ALPROTO_HTTP,
