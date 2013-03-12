@@ -76,12 +76,25 @@ void MpmPatternIdTableFreeHash(MpmPatternIdStore *);
 uint32_t MpmPatternIdStoreGetMaxId(MpmPatternIdStore *);
 uint32_t DetectContentGetId(MpmPatternIdStore *, DetectContentData *);
 uint32_t DetectUricontentGetId(MpmPatternIdStore *, DetectContentData *);
-uint32_t DetectPatternGetId(MpmPatternIdStore *, void *, uint8_t);
+uint32_t DetectPatternGetId(MpmPatternIdStore *, void *, Signature *s, uint8_t);
+uint32_t DetectPatternGetIdV2(MpmPatternIdStore *ht, void *ctx, Signature *s, uint8_t sm_list);
 
 int SignatureHasPacketContent(Signature *);
 int SignatureHasStreamContent(Signature *);
 
 SigMatch *RetrieveFPForSig(Signature *s);
+SigMatch *RetrieveFPForSigV2(Signature *s);
+
+/**
+ * \brief Figured out the FP and their respective content ids for all the
+ *        sigs in the engine.
+ *
+ * \param de_ctx Detection engine context.
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int DetectFigureFPAndId(DetectEngineCtx *de_ctx);
 
 #endif /* __DETECT_ENGINE_MPM_H__ */
 

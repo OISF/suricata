@@ -331,14 +331,18 @@ static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, char *urile
     DetectUrilenData *urilend = NULL;
     SigMatch *sm = NULL;
 
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains a non http "
+                   "alproto set");
+        goto error;
+    }
+
     urilend = DetectUrilenParse(urilenstr);
     if (urilend == NULL)
         goto error;
-
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
-
     sm->type = DETECT_AL_URILEN;
     sm->ctx = (void *)urilend;
 
@@ -349,12 +353,12 @@ static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, char *urile
 
     /* Flagged the signature as to inspect the app layer data */
     s->flags |= SIG_FLAG_APPLAYER;
+    s->alproto = ALPROTO_HTTP;
 
     SCReturnInt(0);
 
 error:
-    if (urilend != NULL) DetectUrilenFree(urilend);
-    if (sm != NULL) SCFree(sm);
+    DetectUrilenFree(urilend);
     SCReturnInt(-1);
 }
 
@@ -365,6 +369,9 @@ error:
  */
 void DetectUrilenFree(void *ptr)
 {
+    if (ptr != NULL)
+        return;
+
     DetectUrilenData *urilend = (DetectUrilenData *)ptr;
     SCFree(urilend);
 }

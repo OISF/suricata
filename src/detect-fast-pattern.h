@@ -27,7 +27,8 @@
 typedef struct SCFPSupportSMList_ {
     /* the list id.  Have a look at Signature->sm_lists[] */
     int list_id;
-    /* the next memeber in the list */
+    int priority;
+
     struct SCFPSupportSMList_ *next;
 } SCFPSupportSMList;
 
