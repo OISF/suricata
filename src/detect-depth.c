@@ -165,14 +165,20 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                 cd->depth = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
                 cd->flags |= DETECT_CONTENT_DEPTH_BE;
             } else {
-                cd->depth = (uint32_t)atoi(str);
-                if (cd->depth < cd->content_len) {
+                int depth = atoi(str);
+                if (depth < 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Negative depth "
+                               "not allowed - %d.", depth);
+                    goto error;
+                }
+                if (depth < cd->content_len) {
                     uint32_t content_len = cd->content_len;
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "depth - %"PRIu16
                                " smaller than content length - %"PRIu32,
                                cd->depth, content_len);
                     goto error;
                 }
+                cd->depth = depth;
                 /* Now update the real limit, as depth is relative to the offset */
                 cd->depth += cd->offset;
             }
