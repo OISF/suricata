@@ -76,6 +76,9 @@ void SCProtoNameInit()
             } else {
                 known_proto[proto] = SCStrdup(name);
             }
+            int proto_len = strlen(known_proto[proto]);
+            if (proto_len > 0 && known_proto[proto][proto_len - 1] == '\n')
+                known_proto[proto][proto_len - 1] = '\0';
         }
         fclose(fp);
     }
