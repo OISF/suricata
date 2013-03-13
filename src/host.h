@@ -65,8 +65,7 @@ typedef struct Host_ {
     /** use cnt, reference counter */
     SC_ATOMIC_DECLARE(unsigned short, use_cnt);
 
-    /** pointers to tag and threshold storage */
-    void *tag;
+    /** pointers to threshold and iprep storage */
     void *threshold;
     void *iprep;
     /** storage api handle */
