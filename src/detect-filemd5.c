@@ -208,6 +208,8 @@ static int DetectFileMd5Match (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 static DetectFileMd5Data *DetectFileMd5Parse (char *str)
 {
     DetectFileMd5Data *filemd5 = NULL;
+    FILE *fp = NULL;
+    char *filename = NULL;
 
     /* We have a correct filemd5 option */
     filemd5 = SCMalloc(sizeof(DetectFileMd5Data));
@@ -227,16 +229,16 @@ static DetectFileMd5Data *DetectFileMd5Parse (char *str)
     }
 
     /* get full filename */
-    char *filename = DetectLoadCompleteSigPath(str);
+    filename = DetectLoadCompleteSigPath(str);
     if (filename == NULL) {
         goto error;
     }
 
     char line[8192] = "";
-    FILE *fp = fopen(filename, "r");
+    fp = fopen(filename, "r");
     if (fp == NULL) {
         SCLogError(SC_ERR_OPENING_RULE_FILE, "opening md5 file %s: %s", filename, strerror(errno));
-        return NULL;
+        goto error;
     }
 
     int line_no = 0;
@@ -272,11 +274,16 @@ static DetectFileMd5Data *DetectFileMd5Parse (char *str)
     }
     SCLogInfo("MD5 hash size %u bytes%s", ROHashMemorySize(filemd5->hash), filemd5->negated ? ", negated match" : "");
 
+    SCFree(filename);
     return filemd5;
 
 error:
     if (filemd5 != NULL)
         DetectFileMd5Free(filemd5);
+    if (fp != NULL)
+        fclose(fp);
+    if (filename != NULL)
+        SCFree(filename);
     return NULL;
 }
 
