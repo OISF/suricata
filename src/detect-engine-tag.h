@@ -54,6 +54,9 @@ void TagRestartCtx(void);
 
 int TagTimeoutCheck(Host *, struct timeval *);
 
+void DetectTagForceCleanup(Host *);
+int TagHostHasTag(Host *host);
+
 #endif /* __DETECT_ENGINE_TAG_H__ */
 
 
