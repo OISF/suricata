@@ -37,6 +37,7 @@
 #include "host-queue.h"
 
 #include "detect-tag.h"
+#include "detect-engine-tag.h"
 #include "detect-engine-threshold.h"
 
 #include "util-hash-lookup3.h"
@@ -104,10 +105,6 @@ error:
 }
 
 void HostClearMemory(Host *h) {
-    if (h->tag != NULL) {
-        DetectTagDataListFree(h->tag);
-        h->tag = NULL;
-    }
     if (h->threshold != NULL) {
         ThresholdListFree(h->threshold);
         h->threshold = NULL;
@@ -309,10 +306,8 @@ void HostCleanup(void)
             while (h) {
                 if ((SC_ATOMIC_GET(h->use_cnt) > 0) && (h->iprep != NULL)) {
                     /* iprep is attached to host only clear tag and threshold */
-                    if (h->tag != NULL) {
-                        DetectTagDataListFree(h->tag);
-                        h->tag = NULL;
-                    }
+                    DetectTagForceCleanup(h);
+
                     if (h->threshold != NULL) {
                         ThresholdListFree(h->threshold);
                         h->threshold = NULL;

@@ -33,13 +33,17 @@
 #include "detect-engine-tag.h"
 #include "detect-tag.h"
 #include "host.h"
+#include "host-storage.h"
 
 SC_ATOMIC_DECLARE(unsigned int, num_tags);  /**< Atomic counter, to know if we
                                                  have tagged hosts/sessions,
                                                  to avoid locking */
+static int tag_id = 0;                      /**< Host storage id for tags */
 
 void TagInitCtx(void) {
     SC_ATOMIC_INIT(num_tags);
+
+    tag_id = HostStorageRegister("tag", sizeof(void *), NULL, DetectTagDataListFree);
 }
 
 /**
@@ -61,6 +65,18 @@ void TagDestroyCtx(void)
 void TagRestartCtx() {
     TagDestroyCtx();
     TagInitCtx();
+}
+
+int TagHostHasTag(Host *host) {
+    return HostGetStorageById(host, tag_id) ? 1 : 0;
+}
+
+void DetectTagForceCleanup(Host *host) {
+    void *tag = HostGetStorageById(host, tag_id);
+    if (tag != NULL) {
+        DetectTagDataListFree(tag);
+        HostSetStorageById(host, tag_id, NULL);
+    }
 }
 
 static DetectTagDataEntry *DetectTagDataCopy(DetectTagDataEntry *dtd) {
@@ -173,11 +189,12 @@ int TagHashAddTag(DetectTagDataEntry *tde, Packet *p)
         return -1;
     }
 
-    if (host->tag == NULL) {
+    void *tag = HostGetStorageById(host, tag_id);
+    if (tag == NULL) {
         /* get a new tde as the one we have is on the stack */
         DetectTagDataEntry *new_tde = DetectTagDataCopy(tde);
         if (new_tde != NULL) {
-            host->tag = new_tde;
+            HostSetStorageById(host, tag_id, new_tde);
             (void) SC_ATOMIC_ADD(num_tags, 1);
         }
     } else {
@@ -186,7 +203,7 @@ int TagHashAddTag(DetectTagDataEntry *tde, Packet *p)
         /* First iterate installed entries searching a duplicated sid/gid */
         DetectTagDataEntry *iter = NULL;
 
-        for (iter = host->tag; iter != NULL; iter = iter->next) {
+        for (iter = tag; iter != NULL; iter = iter->next) {
             num_tags++;
             if (iter->sid == tde->sid && iter->gid == tde->gid) {
                 iter->cnt_match++;
@@ -210,8 +227,8 @@ int TagHashAddTag(DetectTagDataEntry *tde, Packet *p)
             if (new_tde != NULL) {
                 (void) SC_ATOMIC_ADD(num_tags, 1);
 
-                new_tde->next = host->tag;
-                host->tag = new_tde;
+                new_tde->next = tag;
+                HostSetStorageById(host, tag_id, new_tde);
             }
         } else if (num_tags == DETECT_TAG_MAX_TAGS) {
             SCLogDebug("Max tags for sessions reached (%"PRIu16")", num_tags);
@@ -342,7 +359,7 @@ void TagHandlePacketHost(Host *host, Packet *p) {
     DetectTagDataEntry *iter;
     uint8_t flag_added = 0;
 
-    iter = host->tag;
+    iter = HostGetStorageById(host, tag_id);
     prev = NULL;
     while (iter != NULL) {
         /* update counters */
@@ -378,7 +395,7 @@ void TagHandlePacketHost(Host *host, Packet *p) {
                             iter = iter->next;
                             SCFree(tde);
                             (void) SC_ATOMIC_SUB(num_tags, 1);
-                            host->tag = iter;
+                            HostSetStorageById(host, tag_id, iter);
                             continue;
                         }
                     } else if (flag_added == 0) {
@@ -403,7 +420,7 @@ void TagHandlePacketHost(Host *host, Packet *p) {
                             iter = iter->next;
                             SCFree(tde);
                             (void) SC_ATOMIC_SUB(num_tags, 1);
-                            host->tag = iter;
+                            HostSetStorageById(host, tag_id, iter);
                             continue;
                         }
                     } else if (flag_added == 0) {
@@ -430,7 +447,7 @@ void TagHandlePacketHost(Host *host, Packet *p) {
                             iter = iter->next;
                             SCFree(tde);
                             (void) SC_ATOMIC_SUB(num_tags, 1);
-                            host->tag = iter;
+                            HostSetStorageById(host, tag_id, iter);
                             continue;
                         }
                     } else if (flag_added == 0) {
@@ -474,14 +491,14 @@ void TagHandlePacket(DetectEngineCtx *de_ctx,
 
     Host *src = HostLookupHostFromHash(&p->src);
     if (src) {
-        if (src->tag != NULL) {
+        if (TagHostHasTag(src)) {
             TagHandlePacketHost(src,p);
         }
         HostRelease(src);
     }
     Host *dst = HostLookupHostFromHash(&p->dst);
     if (dst) {
-        if (dst->tag != NULL) {
+        if (TagHostHasTag(dst)) {
             TagHandlePacketHost(dst,p);
         }
         HostRelease(dst);
@@ -504,10 +521,9 @@ int TagTimeoutCheck(Host *host, struct timeval *tv)
     DetectTagDataEntry *prev = NULL;
     int retval = 1;
 
-    if (host->tag == NULL)
+    tmp = HostGetStorageById(host, tag_id);
+    if (tmp == NULL)
         return 1;
-
-    tmp = host->tag;
 
     prev = NULL;
     while (tmp != NULL) {
@@ -529,7 +545,7 @@ int TagTimeoutCheck(Host *host, struct timeval *tv)
             SCFree(tde);
             (void) SC_ATOMIC_SUB(num_tags, 1);
         } else {
-            host->tag = tmp->next;
+            HostSetStorageById(host, tag_id, tmp->next);
 
             tde = tmp;
             tmp = tde->next;
