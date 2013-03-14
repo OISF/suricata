@@ -200,6 +200,9 @@ unsigned int StorageGetSize(StorageEnum type) {
 }
 
 void *StorageGetById(const Storage *storage, const StorageEnum type, const int id) {
+#ifdef DEBUG
+    BUG_ON(!storage_registraton_closed);
+#endif
     SCLogDebug("storage %p id %d", storage, id);
     if (storage == NULL)
         return NULL;
@@ -207,6 +210,9 @@ void *StorageGetById(const Storage *storage, const StorageEnum type, const int i
 }
 
 int StorageSetById(Storage *storage, const StorageEnum type, const int id, void *ptr) {
+#ifdef DEBUG
+    BUG_ON(!storage_registraton_closed);
+#endif
     SCLogDebug("storage %p id %d", storage, id);
     if (storage == NULL)
         return -1;
@@ -215,6 +221,9 @@ int StorageSetById(Storage *storage, const StorageEnum type, const int id, void 
 }
 
 void *StorageAllocByIdPrealloc(Storage *storage, StorageEnum type, int id) {
+#ifdef DEBUG
+    BUG_ON(!storage_registraton_closed);
+#endif
     SCLogDebug("storage %p id %d", storage, id);
 
     StorageMapping *map = &storage_map[type][id];
@@ -229,6 +238,9 @@ void *StorageAllocByIdPrealloc(Storage *storage, StorageEnum type, int id) {
 }
 
 void *StorageAllocById(Storage **storage, StorageEnum type, int id) {
+#ifdef DEBUG
+    BUG_ON(!storage_registraton_closed);
+#endif
     SCLogDebug("storage %p id %d", storage, id);
 
     StorageMapping *map = &storage_map[type][id];
@@ -255,6 +267,9 @@ void *StorageAllocById(Storage **storage, StorageEnum type, int id) {
 }
 
 void StorageFreeById(Storage *storage, StorageEnum type, int id) {
+#ifdef DEBUG
+    BUG_ON(!storage_registraton_closed);
+#endif
     SCLogDebug("storage %p id %d", storage, id);
 
     StorageMapping *map = &storage_map[type][id];
@@ -272,6 +287,10 @@ void StorageFreeAll(Storage *storage, StorageEnum type) {
     if (*storage == NULL)
         return;
 
+#ifdef DEBUG
+    BUG_ON(!storage_registraton_closed);
+#endif
+
     Storage *store = storage;
     int i;
     for (i = 0; i < storage_max_id[type]; i++) {
@@ -286,6 +305,10 @@ void StorageFreeAll(Storage *storage, StorageEnum type) {
 void StorageFree(Storage **storage, StorageEnum type) {
     if (*storage == NULL)
         return;
+
+#ifdef DEBUG
+    BUG_ON(!storage_registraton_closed);
+#endif
 
     Storage *store = *storage;
     int i;
