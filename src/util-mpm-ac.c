@@ -555,6 +555,27 @@ static inline void SCACCreateGotoTable(MpmCtx *mpm_ctx)
     return;
 }
 
+static inline void SCACDetermineLevel1Gap(MpmCtx *mpm_ctx)
+{
+    SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+    uint32_t i = 0;
+
+    int map[256];
+    memset(map, 0, sizeof(map));
+
+    for (i = 0; i < mpm_ctx->pattern_cnt; i++)
+        map[ctx->parray[i]->ci[0]] = 1;
+
+    for (i = 0; i < 256; i++) {
+        if (map[i] == 0)
+            continue;
+        int32_t newstate = SCACInitNewState(mpm_ctx);
+        ctx->goto_table[0][i] = newstate;
+    }
+
+    return;
+}
+
 static inline int SCACStateQueueIsEmpty(StateQueue *q)
 {
     if (q->top == q->bot)
@@ -914,6 +935,8 @@ static inline void SCACPrepareStateTable(MpmCtx *mpm_ctx)
 
     /* create the 0th state in the goto table and output_table */
     SCACInitNewState(mpm_ctx);
+
+    SCACDetermineLevel1Gap(mpm_ctx);
 
     /* create the goto table */
     SCACCreateGotoTable(mpm_ctx);
