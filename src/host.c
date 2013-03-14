@@ -105,10 +105,6 @@ error:
 }
 
 void HostClearMemory(Host *h) {
-    if (h->threshold != NULL) {
-        ThresholdListFree(h->threshold);
-        h->threshold = NULL;
-    }
     if (h->iprep != NULL) {
         SCFree(h->iprep);
         h->iprep = NULL;
@@ -307,11 +303,7 @@ void HostCleanup(void)
                 if ((SC_ATOMIC_GET(h->use_cnt) > 0) && (h->iprep != NULL)) {
                     /* iprep is attached to host only clear tag and threshold */
                     DetectTagForceCleanup(h);
-
-                    if (h->threshold != NULL) {
-                        ThresholdListFree(h->threshold);
-                        h->threshold = NULL;
-                    }
+                    DetectThresholdForceCleanup(h);
                     h = h->hnext;
                 } else {
                     Host *n = h->hnext;

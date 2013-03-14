@@ -65,7 +65,7 @@ static int HostHostTimedOut(Host *h, struct timeval *ts) {
     if (TagHostHasTag(h) && TagTimeoutCheck(h, ts) == 0) {
         tags = 1;
     }
-    if (h->threshold && ThresholdTimeoutCheck(h, ts) == 0) {
+    if (ThresholdHostHasThreshold(h) && ThresholdTimeoutCheck(h, ts) == 0) {
         thresholds = 1;
     }
 
