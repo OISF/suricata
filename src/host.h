@@ -65,9 +65,9 @@ typedef struct Host_ {
     /** use cnt, reference counter */
     SC_ATOMIC_DECLARE(unsigned short, use_cnt);
 
-    /** pointers to threshold and iprep storage */
-    void *threshold;
+    /** pointers to iprep storage */
     void *iprep;
+
     /** storage api handle */
     Storage *storage;
 

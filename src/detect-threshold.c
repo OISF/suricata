@@ -24,6 +24,7 @@
  * \file
  *
  * \author Breno Silva <breno.silva@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  *
  * Implements the threshold keyword.
  *
@@ -36,6 +37,7 @@
 #include "decode.h"
 
 #include "host.h"
+#include "host-storage.h"
 
 #include "detect.h"
 #include "detect-parse.h"
@@ -45,6 +47,7 @@
 #include "stream-tcp.h"
 
 #include "detect-threshold.h"
+#include "detect-engine-threshold.h"
 #include "detect-parse.h"
 #include "detect-engine-address.h"
 
@@ -623,10 +626,9 @@ static int DetectThresholdTestSig3(void) {
         goto cleanup;
     }
 
-    lookup_tsh = (DetectThresholdEntry *)host->threshold;
-    if (lookup_tsh == NULL) {
+    if (!(ThresholdHostHasThreshold(host))) {
         HostRelease(host);
-        printf("lookup_tsh is NULL: ");
+        printf("host has no threshold: ");
         goto cleanup;
     }
     HostRelease(host);
@@ -645,7 +647,7 @@ static int DetectThresholdTestSig3(void) {
     }
     HostRelease(host);
 
-    lookup_tsh = (DetectThresholdEntry *)host->threshold;
+    lookup_tsh = HostGetStorageById(host, ThresholdHostStorageId());
     if (lookup_tsh == NULL) {
         HostRelease(host);
         printf("lookup_tsh is NULL: ");
