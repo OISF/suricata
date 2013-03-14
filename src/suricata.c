@@ -1535,6 +1535,7 @@ int main(int argc, char **argv)
     }
     TmqhSetup();
 
+    StorageInit();
     CIDRInit();
     SigParsePrepare();
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
@@ -1652,6 +1653,7 @@ int main(int argc, char **argv)
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Disabled);
     }
 
+    StorageFinalize();
 #ifdef UNITTESTS
 
     if (run_mode == RUNMODE_UNITTEST) {
