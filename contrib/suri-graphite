@@ -23,6 +23,7 @@ import argparse
 parser = argparse.ArgumentParser(prog='suri-graphite', description='Export suricata stats to Graphite')
 parser.add_argument('-H', '--host', default='localhost', help='Host running Graphite')
 parser.add_argument('-P', '--port', default=2003, help='Port of Graphite data socket')
+parser.add_argument('-O', '--oneshot', action='store_const', const=True, help='Send one update and exit', default=False)
 parser.add_argument('-D', '--delay', default=10, help='Delay between data dump')
 parser.add_argument('-r', '--root', default='suricata.perf', help='Prefix of data name in Graphite')
 parser.add_argument('socket', help='suricata socket file to connect to',
@@ -45,4 +46,6 @@ while 1:
             sck.send("%s.%s.%s %s %d\n" % (args.root, thread , counter, res[thread][counter], tnow))
             if args.verbose:
                 print "%s.%s.%s %s %d\n" % (args.root, thread , counter, res[thread][counter], tnow)
+    if args.oneshot:
+        break
     time.sleep(float(args.delay))
