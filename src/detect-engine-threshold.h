@@ -30,7 +30,6 @@
 
 int ThresholdHostStorageId(void);
 int ThresholdHostHasThreshold(Host *);
-void DetectThresholdForceCleanup(Host *);
 
 DetectThresholdData *SigGetThresholdType(Signature *, Packet *);
 DetectThresholdData *SigGetThresholdTypeIter(Signature *, Packet *, SigMatch **);

@@ -301,9 +301,8 @@ void HostCleanup(void)
             HRLOCK_LOCK(hb);
             while (h) {
                 if ((SC_ATOMIC_GET(h->use_cnt) > 0) && (h->iprep != NULL)) {
-                    /* iprep is attached to host only clear tag and threshold */
-                    DetectTagForceCleanup(h);
-                    DetectThresholdForceCleanup(h);
+                    /* iprep is attached to host only clear local storage */
+                    HostFreeStorage(h);
                     h = h->hnext;
                 } else {
                     Host *n = h->hnext;
