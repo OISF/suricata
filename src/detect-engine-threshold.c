@@ -80,15 +80,6 @@ int ThresholdHostHasThreshold(Host *host) {
     return HostGetStorageById(host, threshold_id) ? 1 : 0;
 }
 
-void DetectThresholdForceCleanup(Host *host) {
-    void *t = HostGetStorageById(host, threshold_id);
-    if (t != NULL) {
-        ThresholdListFree(t);
-        HostSetStorageById(host, threshold_id, NULL);
-    }
-
-}
-
 /**
  * \brief Return next DetectThresholdData for signature
  *
