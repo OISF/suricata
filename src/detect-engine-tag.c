@@ -71,14 +71,6 @@ int TagHostHasTag(Host *host) {
     return HostGetStorageById(host, tag_id) ? 1 : 0;
 }
 
-void DetectTagForceCleanup(Host *host) {
-    void *tag = HostGetStorageById(host, tag_id);
-    if (tag != NULL) {
-        DetectTagDataListFree(tag);
-        HostSetStorageById(host, tag_id, NULL);
-    }
-}
-
 static DetectTagDataEntry *DetectTagDataCopy(DetectTagDataEntry *dtd) {
     DetectTagDataEntry *tde = SCMalloc(sizeof(DetectTagDataEntry));
     if (unlikely(tde == NULL)) {
