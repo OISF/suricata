@@ -592,9 +592,11 @@ flow-timeouts:
 #     toserver-chunk-size: 2560 # inspect raw stream in chunks of at least
 #                               # this size.  Can be specified in kb, mb,
 #                               # gb.  Just a number indicates it's in bytes.
+#                               # The max acceptable size is 4024 bytes.
 #     toclient-chunk-size: 2560 # inspect raw stream in chunks of at least
 #                               # this size.  Can be specified in kb, mb,
 #                               # gb.  Just a number indicates it's in bytes.
+#                               # The max acceptable size is 4024 bytes.
 
 stream:
   memcap: 32mb
