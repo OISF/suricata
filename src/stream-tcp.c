@@ -3268,9 +3268,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
                 SCReturnInt(-1);
             }
 
-            StreamTcpPacketSetState(p, ssn, TCP_LAST_ACK);
-            ssn->client.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
-            SCLogDebug("ssn %p: state changed to TCP_LAST_ACK", ssn);
+            /* don't update to LAST_ACK here as we want a toclient FIN for that */
 
             ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
