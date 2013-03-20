@@ -341,9 +341,6 @@ typedef struct Flow_
      *  has been set. */
     struct SigGroupHead_ *sgh_toserver;
 
-    /** List of tags of this flow (from "tag" keyword of type "session") */
-    void *tag_list;
-
     /* pointer to the var list */
     GenericVar *flowvar;
 
