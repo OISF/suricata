@@ -337,7 +337,7 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
         (*sigs_tot)++;
         if (sig != NULL) {
             if (rule_engine_analysis_set || fp_engine_analysis_set) {
-                sig->mpm_sm = RetrieveFPForSig(sig);
+                sig->mpm_sm = RetrieveFPForSigV2(sig);
                 if (fp_engine_analysis_set) {
                     EngineAnalysisFP(sig, line);
                 }
@@ -473,7 +473,8 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     }
 
     /* Setup the signature group lookup structure and pattern matchers */
-    SigGroupBuild(de_ctx);
+    if (SigGroupBuild(de_ctx) < 0)
+        goto end;
 
     ret = 0;
 
@@ -4379,9 +4380,14 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
  * \param de_ctx Pointer to the Detection Engine Context whose Signatures have
  *               to be processed
  *
- * \retval 0 Always
+ * \retval  0 On Success.
+ * \retval -1 On failure.
  */
-int SigGroupBuild (DetectEngineCtx *de_ctx) {
+int SigGroupBuild(DetectEngineCtx *de_ctx)
+{
+    if (DetectSetFastPatternAndItsId(de_ctx) < 0)
+        return -1;
+
     /* if we are using single sgh_mpm_context then let us init the standard mpm
      * contexts using the mpm_ctx factory */
     if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {

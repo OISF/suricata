@@ -61,7 +61,7 @@ void DetectDceStubDataRegister(void)
     sigmatch_table[DETECT_DCE_STUB_DATA].name = "dce_stub_data";
     sigmatch_table[DETECT_DCE_STUB_DATA].alproto = ALPROTO_DCERPC;
     sigmatch_table[DETECT_DCE_STUB_DATA].Match = NULL;
-    sigmatch_table[DETECT_DCE_STUB_DATA].AppLayerMatch = DetectDceStubDataMatch;
+    sigmatch_table[DETECT_DCE_STUB_DATA].AppLayerMatch = NULL;
     sigmatch_table[DETECT_DCE_STUB_DATA].Setup = DetectDceStubDataSetup;
     sigmatch_table[DETECT_DCE_STUB_DATA].Free  = NULL;
     sigmatch_table[DETECT_DCE_STUB_DATA].RegisterTests = DetectDceStubDataRegisterTests;
@@ -69,42 +69,6 @@ void DetectDceStubDataRegister(void)
     sigmatch_table[DETECT_DCE_STUB_DATA].flags |= SIGMATCH_PAYLOAD;
 
     return;
-}
-
-/**
- * \brief App layer match function for the "dce_stub_data" keyword.
- *
- * \todo Check the need for passing a pointer to hold the address of the stub_data.
- *
- * \param t       Pointer to the ThreadVars instance.
- * \param det_ctx Pointer to the DetectEngineThreadCtx.
- * \param f       Pointer to the flow.
- * \param flags   Pointer to the flags indicating the flow direction.
- * \param state   Pointer to the app layer state data.
- * \param s       Pointer to the Signature instance.
- * \param m       Pointer to the SigMatch.
- *
- * \retval 1 On Match.
- * \retval 0 On no match.
- */
-int DetectDceStubDataMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
-                           uint8_t flags, void *state, Signature *s, SigMatch *m)
-{
-    SCEnter();
-
-    DCERPCState *dcerpc_state = (DCERPCState *)state;
-    if (dcerpc_state == NULL) {
-        SCLogDebug("No DCERPCState for the flow");
-        SCReturnInt(0);
-    }
-
-    if (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL ||
-        dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer != NULL)
-    {
-        SCReturnInt(1);
-    } else {
-        SCReturnInt(0);
-    }
 }
 
 /**
@@ -121,30 +85,18 @@ int DetectDceStubDataMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
 
 static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
-    SigMatch *sm = NULL;
-
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_DCE_STUB_DATA;
-    sm->ctx = NULL;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
-
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
+                   "rule contains conflicting keywords.");
         goto error;
     }
 
+    s->init_flags |= SIG_FLAG_INIT_DCE_STUB_DATA;
     s->alproto = ALPROTO_DCERPC;
-    /* Flagged the signature as to inspect the app layer data */
     s->flags |= SIG_FLAG_APPLAYER;
     return 0;
 
  error:
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 }
 
@@ -161,7 +113,7 @@ static int DetectDceStubDataTestParse01(void)
 
     result = (DetectDceStubDataSetup(NULL, &s, NULL) == 0);
 
-    if (s.sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
+    if (s.sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
         result = 1;
     } else {
         result = 0;
@@ -658,7 +610,7 @@ static int DetectDceStubDataTestParse02(void)
     s = de_ctx->sig_list = SigInit(de_ctx,
                                    "alert tcp any any -> any any "
                                    "(msg:\"DCERPC\"; "
-                                   "dce_stub_data; "
+                                   "dce_stub_data; content:\"|42 42 42 42|\";"
                                    "sid:1;)");
     if (s == NULL)
         goto end;
@@ -1199,7 +1151,7 @@ static int DetectDceStubDataTestParse03(void)
     s = de_ctx->sig_list = SigInit(de_ctx,
                                    "alert tcp any any -> any any "
                                    "(msg:\"DCERPC\"; "
-                                   "dce_stub_data; "
+                                   "dce_stub_data; content:\"|42 42 42 42|\";"
                                    "sid:1;)");
     if (s == NULL)
         goto end;
@@ -1391,7 +1343,15 @@ static int DetectDceStubDataTestParse04(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"DCERPC\"; dce_stub_data; sid:1;)");
+            "(msg:\"DCERPC\"; dce_stub_data; content:\"|00 02|\"; sid:1;)");
+    if (s == NULL)
+        goto end;
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+            "(msg:\"DCERPC\"; dce_stub_data; content:\"|00 75|\"; sid:2;)");
+    if (s == NULL)
+        goto end;
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+            "(msg:\"DCERPC\"; dce_stub_data; content:\"|00 18|\"; sid:3;)");
     if (s == NULL)
         goto end;
 
@@ -1437,7 +1397,7 @@ static int DetectDceStubDataTestParse04(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1))
+    if (!PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
         goto end;
 
     /* response1 */
@@ -1453,7 +1413,7 @@ static int DetectDceStubDataTestParse04(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1))
+    if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
         goto end;
 
     /* request2 */
@@ -1469,7 +1429,7 @@ static int DetectDceStubDataTestParse04(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1))
+    if (PacketAlertCheck(p, 1) || !PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
         goto end;
 
     /* response2 */
@@ -1485,7 +1445,7 @@ static int DetectDceStubDataTestParse04(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1))
+    if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
         goto end;
 
     /* request3 */
@@ -1501,7 +1461,7 @@ static int DetectDceStubDataTestParse04(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1))
+    if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || !PacketAlertCheck(p, 3))
         goto end;
 
     /* response3 */
@@ -1517,7 +1477,7 @@ static int DetectDceStubDataTestParse04(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1))
+    if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
         goto end;
 
     result = 1;
@@ -1658,8 +1618,22 @@ static int DetectDceStubDataTestParse05(void)
     s = de_ctx->sig_list = SigInit(de_ctx,
                                    "alert tcp any any -> any any "
                                    "(msg:\"DCERPC\"; "
-                                   "dce_stub_data;"
+                                   "dce_stub_data; content:\"|00 02|\"; "
                                    "sid:1;)");
+    if (s == NULL)
+        goto end;
+    s = de_ctx->sig_list->next = SigInit(de_ctx,
+                                   "alert tcp any any -> any any "
+                                   "(msg:\"DCERPC\"; "
+                                   "dce_stub_data; content:\"|00 75|\"; "
+                                   "sid:2;)");
+    if (s == NULL)
+        goto end;
+    s = de_ctx->sig_list->next->next = SigInit(de_ctx,
+                                   "alert tcp any any -> any any "
+                                   "(msg:\"DCERPC\"; "
+                                   "dce_stub_data; content:\"|00 18|\"; "
+                                   "sid:3;)");
     if (s == NULL)
         goto end;
 
@@ -1685,7 +1659,7 @@ static int DetectDceStubDataTestParse05(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1))
+    if (!PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
         goto end;
 
     /* response1 */
@@ -1701,7 +1675,7 @@ static int DetectDceStubDataTestParse05(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1))
+    if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
         goto end;
 
     /* request2 */
@@ -1717,7 +1691,7 @@ static int DetectDceStubDataTestParse05(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1))
+    if (PacketAlertCheck(p, 1) || !PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
         goto end;
 
     /* response2 */
@@ -1733,7 +1707,7 @@ static int DetectDceStubDataTestParse05(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1))
+    if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
         goto end;
 
     /* request3 */
@@ -1749,7 +1723,7 @@ static int DetectDceStubDataTestParse05(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1))
+    if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || !PacketAlertCheck(p, 3))
         goto end;
 
     /* response3 */

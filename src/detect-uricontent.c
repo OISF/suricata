@@ -28,6 +28,7 @@
 #include "decode.h"
 #include "detect.h"
 #include "detect-content.h"
+#include "detect-http-uri.h"
 #include "detect-uricontent.h"
 #include "detect-engine-mpm.h"
 #include "detect-parse.h"
@@ -54,6 +55,7 @@
 #include "util-binsearch.h"
 #include "util-spm.h"
 #include "util-spm-bm.h"
+#include "conf.h"
 
 /* prototypes */
 static int DetectUricontentSetup (DetectEngineCtx *, Signature *, char *);
@@ -156,7 +158,7 @@ void DetectUricontentPrint(DetectContentData *cd)
  *          the rule set.
  * \param   contentstr  Pointer to the string which has been defined in the rule
  */
-DetectContentData *DoDetectUricontentSetup (char *contentstr)
+DetectContentData *DoDetectUricontentSetup(char *contentstr)
 {
     DetectContentData *cd = NULL;
     char *str = NULL;
@@ -206,48 +208,37 @@ DetectContentData *DoDetectUricontentSetup (char *contentstr)
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
+int DetectUricontentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
 {
     SCEnter();
 
-    DetectContentData *cd = NULL;
-    SigMatch *sm = NULL;
-
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting"
-                " keywords.");
-        goto error;
+    char *legacy = NULL;
+    if (ConfGet("legacy.uricontent", &legacy) == 1) {
+        if (strcasecmp("disabled", legacy) == 0) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "uriconent deprecated.  To "
+                       "use a rule with \"uricontent\", either set the "
+                       "option - \"legacy.uricontent\" in the conf to "
+                       "\"enabled\" OR replace uricontent with "
+                       "\'content:%s; http_uri;\'.", contentstr);
+            goto error;
+        } else if (strcasecmp("enabled", legacy) == 0) {
+            ;
+        } else {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid value found "
+                       "for legacy.uriconent - \"%s\".  Valid values are "
+                       "\"enabled\" OR \"disabled\".", legacy);
+            goto error;
+        }
     }
 
-    cd = DoDetectUricontentSetup(contentstr);
-    if (cd == NULL)
+    if (DetectContentSetup(de_ctx, s, contentstr) < 0)
         goto error;
 
-    /* Okay so far so good, lets get this into a SigMatch
-     * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (DetectHttpUriSetup(de_ctx, s, NULL) < 0)
         goto error;
-
-    sm->type = DETECT_CONTENT;
-    sm->ctx = (void *)cd;
-
-    cd->id = DetectUricontentGetId(de_ctx->mpm_pattern_id_store, cd);
-
-    /* Flagged the signature as to inspect the app layer data */
-    s->flags |= SIG_FLAG_APPLAYER;
-
-    s->alproto = ALPROTO_HTTP;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
 
     SCReturnInt(0);
-
 error:
-    if (cd != NULL)
-        SCFree(cd);
-    if (sm != NULL)
-        SCFree(sm);
     SCReturnInt(-1);
 }
 
@@ -611,7 +602,7 @@ int DetectUriSigTest01(void)
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
                                    "\" Test uricontent\"; "
-                                  "uricontent:\"me\"; sid:1;)");
+                                   "content:\"me\"; uricontent:\"me\"; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -1944,222 +1935,6 @@ int DetectUriContentParseTest24(void)
     return result;
 }
 
-int DetectUricontentSigTest08(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; content:\"one\"; http_uri; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("de_ctx->sig_list == NULL\n");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL\n");
-        goto end;
-    }
-
-    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
-    if (cd->id == ud->id)
-        goto end;
-
-    result = 1;
-
- end:
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
-int DetectUricontentSigTest09(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(uricontent:\"one\"; content:\"one\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("de_ctx->sig_list == NULL\n");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL\n");
-        goto end;
-    }
-
-    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
-    if (cd->id == ud->id)
-        goto end;
-
-    result = 1;
-
- end:
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
-int DetectUricontentSigTest10(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(uricontent:\"one\"; content:\"one\"; content:\"one\"; http_uri; "
-                               "content:\"two\"; content:\"one\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("de_ctx->sig_list == NULL\n");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL\n");
-        goto end;
-    }
-
-    DetectContentData *cd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->prev->ctx;
-    DetectContentData *cd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
-    DetectContentData *cd3 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *ud1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
-    DetectContentData *ud2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
-    if (cd1->id != 1 || cd2->id != 2 || cd3->id != 1 || ud1->id != 0 || ud2->id != 0)
-        goto end;
-
-    result = 1;
-
- end:
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
-int DetectUricontentSigTest11(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_uri; content:\"one\"; uricontent:\"one\"; "
-                               "content:\"two\"; content:\"one\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("de_ctx->sig_list == NULL\n");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL\n");
-        goto end;
-    }
-
-    DetectContentData *cd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->prev->ctx;
-    DetectContentData *cd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
-    DetectContentData *cd3 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *ud1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
-    DetectContentData *ud2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
-    if (cd1->id != 1 || cd2->id != 2 || cd3->id != 1 || ud1->id != 0 || ud2->id != 0)
-        goto end;
-
-    result = 1;
-
- end:
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
-int DetectUricontentSigTest12(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_uri; content:\"one\"; uricontent:\"one\"; "
-                               "content:\"two\"; content:\"one\"; http_uri; content:\"one\"; "
-                               "uricontent:\"one\"; uricontent: \"two\"; "
-                               "content:\"one\"; content:\"three\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("de_ctx->sig_list == NULL\n");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL\n");
-        goto end;
-    }
-
-    DetectContentData *cd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->prev->prev->prev->ctx;
-    DetectContentData *cd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->prev->prev->ctx;
-    DetectContentData *cd3 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->prev->ctx;
-    DetectContentData *cd4 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
-    DetectContentData *cd5 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *ud1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->prev->prev->prev->ctx;
-    DetectContentData *ud2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->prev->prev->ctx;
-    DetectContentData *ud3 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->prev->ctx;
-    DetectContentData *ud4 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
-    DetectContentData *ud5 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
-    if (cd1->id != 1 || cd2->id != 2 || cd3->id != 1 || cd4->id != 1 || cd5->id != 4 ||
-        ud1->id != 0 || ud2->id != 0 || ud3->id != 0 || ud4->id != 0 || ud5->id != 3) {
-        goto end;
-    }
-
-    result = 1;
-
- end:
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
 #endif /* UNITTESTS */
 
 void HttpUriRegisterTests(void) {
@@ -2194,11 +1969,5 @@ void HttpUriRegisterTests(void) {
     UtRegisterTest("DetectUriContentParseTest22", DetectUriContentParseTest22, 1);
     UtRegisterTest("DetectUriContentParseTest23", DetectUriContentParseTest23, 1);
     UtRegisterTest("DetectUriContentParseTest24", DetectUriContentParseTest24, 1);
-
-    UtRegisterTest("DetectUricontentSigTest08", DetectUricontentSigTest08, 1);
-    UtRegisterTest("DetectUricontentSigTest09", DetectUricontentSigTest09, 1);
-    UtRegisterTest("DetectUricontentSigTest10", DetectUricontentSigTest10, 1);
-    UtRegisterTest("DetectUricontentSigTest11", DetectUricontentSigTest11, 1);
-    UtRegisterTest("DetectUricontentSigTest12", DetectUricontentSigTest12, 1);
 #endif /* UNITTESTS */
 }

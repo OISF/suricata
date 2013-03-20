@@ -421,6 +421,13 @@ static void *DetectEngineLiveRuleSwap(void *arg)
         SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
         if (de_ctx->failure_fatal)
             exit(EXIT_FAILURE);
+        DetectEngineCtxFree(de_ctx);
+        SCLogError(SC_ERR_LIVE_RULE_SWAP,  "Failure encountered while "
+                   "loading new ruleset with live swap.");
+        SCLogInfo("===== Live rule swap DONE =====");
+        TmThreadsSetFlag(tv_local, THV_CLOSED);
+        pthread_exit(NULL);
+        return NULL;
     }
 
     SCThresholdConfInitContext(de_ctx, NULL);
@@ -1068,10 +1075,12 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     PatternMatchThreadPrepare(&det_ctx->mtcu, de_ctx->mpm_matcher, DetectUricontentMaxId(de_ctx));
 
     //PmqSetup(&det_ctx->pmq, DetectEngineGetMaxSigId(de_ctx), DetectContentMaxId(de_ctx));
-    PmqSetup(&det_ctx->pmq, 0, DetectContentMaxId(de_ctx));
+    PmqSetup(&det_ctx->pmq, 0, de_ctx->max_fp_id);
+    //PmqSetup(&det_ctx->pmq, 0, DetectContentMaxId(de_ctx));
     int i;
     for (i = 0; i < 256; i++) {
-        PmqSetup(&det_ctx->smsg_pmq[i], 0, DetectContentMaxId(de_ctx));
+        //PmqSetup(&det_ctx->smsg_pmq[i], 0, DetectContentMaxId(de_ctx));
+        PmqSetup(&det_ctx->smsg_pmq[i], 0, de_ctx->max_fp_id);
     }
 
     /* IP-ONLY */

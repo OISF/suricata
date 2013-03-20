@@ -96,6 +96,94 @@ typedef struct SigDuplWrapper_ {
 #define OPTION_PARTS 3
 #define OPTION_PCRE "^\\s*([A-z_0-9-\\.]+)(?:\\s*\\:\\s*(.*)(?<!\\\\))?\\s*;\\s*(?:\\s*(.*))?\\s*$"
 
+int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg,
+                                           uint8_t sm_type, uint8_t sm_list,
+                                           uint16_t alproto,  void (*CustomCallback)(Signature *s))
+{
+    SigMatch *sm = NULL;
+    int ret = -1;
+
+    if (arg != NULL && strcmp(arg, "") != 0) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "%s shouldn't be supplied "
+                   "with an argument", sigmatch_table[sm_type].name);
+        goto end;
+    }
+
+    if (s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "\"%s\" keyword seen "
+                   "with a sticky buffer still set.  Reset sticky buffer "
+                   "with pkt_data before using the modifier.",
+                   sigmatch_table[sm_type].name);
+        goto end;
+    }
+    /* for now let's hardcode it as http */
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting "
+                   "alprotos set");
+        goto end;
+    }
+
+    sm = SigMatchGetLastSMFromLists(s, 2,
+                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+    if (sm == NULL) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "\"%s\" keyword "
+                   "found inside the rule without a content context.  "
+                   "Please use a \"content\" keyword before using the "
+                   "\"%s\" keyword", sigmatch_table[sm_type].name,
+                   sigmatch_table[sm_type].name);
+        goto end;
+    }
+    DetectContentData *cd = (DetectContentData *)sm->ctx;
+    if (cd->flags & DETECT_CONTENT_RAWBYTES) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "%s rule can not "
+                   "be used with the rawbytes rule keyword",
+                   sigmatch_table[sm_type].name);
+        goto end;
+    }
+    if (cd->flags & (DETECT_CONTENT_WITHIN | DETECT_CONTENT_DISTANCE)) {
+        SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
+                                                   DETECT_CONTENT, sm->prev,
+                                                   DETECT_PCRE, sm->prev);
+        if (pm != NULL) {
+            if (pm->type == DETECT_CONTENT) {
+                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
+            } else {
+                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                tmp_pd->flags &= ~DETECT_PCRE_RELATIVE_NEXT;
+            }
+        }
+
+        pm = SigMatchGetLastSMFromLists(s, 4,
+                                        DETECT_CONTENT, s->sm_lists_tail[sm_list],
+                                        DETECT_PCRE, s->sm_lists_tail[sm_list]);
+        if (pm != NULL) {
+            if (pm->type == DETECT_CONTENT) {
+                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+            } else {
+                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
+            }
+        }
+    }
+    if (CustomCallback != NULL)
+        CustomCallback(s);
+    s->alproto = alproto;
+    s->flags |= SIG_FLAG_APPLAYER;
+
+    /* transfer the sm from the pmatch list to hcbdmatch list */
+    SigMatchTransferSigMatchAcrossLists(sm,
+                                        &s->sm_lists[DETECT_SM_LIST_PMATCH],
+                                        &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                        &s->sm_lists[sm_list],
+                                        &s->sm_lists_tail[sm_list]);
+
+    ret = 0;
+ end:
+    return ret;
+}
+
 uint32_t DbgGetSrcPortAnyCnt(void) {
     return dbg_srcportany_cnt;
 }
@@ -990,7 +1078,7 @@ static void SigBuildAddressMatchArray(Signature *s) {
  *  \retval 0 invalid
  *  \retval 1 valid
  */
-static int SigValidate(Signature *s) {
+int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
     SCEnter();
 
     if ((s->flags & SIG_FLAG_REQUIRE_PACKET) &&
@@ -1034,6 +1122,26 @@ static int SigValidate(Signature *s) {
         }
     }
 
+    uint32_t sig_flags = 0;
+    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL) {
+        sig_flags |= SIG_FLAG_TOSERVER;
+    }
+    if (s->sm_lists[DETECT_SM_LIST_HSBDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
+        sig_flags |= SIG_FLAG_TOCLIENT;
+    }
+    if ((sig_flags & (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE,"You seem to have mixed keywords "
+                   "that require inspection in both directions.  Atm we only "
+                   "support keywords in one direction within a rule.");
+        SCReturnInt(0);
+    }
+
     if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL) {
         if ((s->flags & (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,"http_raw_header signature "
@@ -1050,35 +1158,6 @@ static int SigValidate(Signature *s) {
             SCReturnInt(0);
         }
 #endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
-    }
-
-    if (s->alproto == ALPROTO_DCERPC) {
-        /* \todo We haven't covered dce rpc cases now.  They need special
-         * treatment, since they do allow distance, within without a
-         * previous content, but with respect to the stub buffer */
-        ;
-    } else {
-        SigMatch *sm;
-        for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT) {
-                DetectContentData *cd = (DetectContentData *)sm->ctx;
-                if ((cd->flags & DETECT_CONTENT_DISTANCE) ||
-                    (cd->flags & DETECT_CONTENT_WITHIN)) {
-                    SigMatch *pm = SigMatchGetLastSMFromLists(s, 4,
-                                                              DETECT_PCRE, sm->prev,
-                                                              DETECT_BYTEJUMP, sm->prev);
-                    if (pm == NULL) {
-                        SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "within needs two "
-                                   "preceding content or uricontent options");
-                        SCReturnInt(0);
-                    } else {
-                        break;
-                    }
-                } else {
-                    break;
-                }
-            }
-        }
     }
 
     if (s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL) {
@@ -1304,7 +1383,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
     SigBuildAddressMatchArray(sig);
 
     /* validate signature, SigValidate will report the error reason */
-    if (SigValidate(sig) == 0) {
+    if (SigValidate(de_ctx, sig) == 0) {
         goto error;
     }
 

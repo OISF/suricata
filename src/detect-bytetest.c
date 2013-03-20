@@ -448,193 +448,227 @@ error:
 
 int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
 {
-    DetectBytetestData *data = NULL;
     SigMatch *sm = NULL;
+    SigMatch *prev_pm = NULL;
+    DetectBytetestData *data = NULL;
     char *value = NULL;
     char *offset = NULL;
+    int ret = -1;
 
     data = DetectBytetestParse(optstr, &value, &offset);
     if (data == NULL)
         goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    int sm_list;
+    if (s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) {
+        if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+            if (data->flags & DETECT_BYTETEST_DCE) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "dce bytetest specified "
+                           "with file_data option set.");
+                goto error;
+            }
+            AppLayerHtpEnableResponseBodyCallback();
+            sm_list = DETECT_SM_LIST_HSBDMATCH;
+        } else {
+            sm_list = DETECT_SM_LIST_DMATCH;
+        }
+        s->flags |= SIG_FLAG_APPLAYER;
+        if (data->flags & DETECT_BYTETEST_RELATIVE) {
+            prev_pm = SigMatchGetLastSMFromLists(s, 4,
+                                                 DETECT_CONTENT, s->sm_lists_tail[sm_list],
+                                                 DETECT_PCRE, s->sm_lists_tail[sm_list]);
+        }
 
-    sm->type = DETECT_BYTETEST;
-    sm->ctx = (void *)data;
+    } else if (data->flags & DETECT_BYTETEST_DCE) {
+        if (data->flags & DETECT_BYTETEST_RELATIVE) {
+            prev_pm = SigMatchGetLastSMFromLists(s, 12,
+                                                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                                 DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                                 DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                                 DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                                 DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+            if (prev_pm == NULL) {
+                sm_list = DETECT_SM_LIST_PMATCH;
+            } else {
+                sm_list = SigMatchListSMBelongsTo(s, prev_pm);
+            }
+        } else {
+            sm_list = DETECT_SM_LIST_PMATCH;
+        }
 
-    /* check bytetest modifiers against the signature alproto.  In case they conflict
-     * chuck out invalid signature */
-    if (data-> flags & DETECT_BYTETEST_DCE) {
-        if (s->alproto != ALPROTO_DCERPC) {
+        s->alproto = ALPROTO_DCERPC;
+        s->flags |= SIG_FLAG_APPLAYER;
+
+    } else if (data->flags & DETECT_BYTETEST_RELATIVE) {
+        prev_pm = SigMatchGetLastSMFromLists(s, 168,
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH],
+
+                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
+                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
+                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
+                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
+                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
+                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH],
+
+                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
+                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
+                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
+                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
+                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
+                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH],
+
+                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
+                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
+                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
+                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
+                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
+                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH],
+
+                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
+                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
+                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
+                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
+                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
+                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH],
+
+                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
+                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
+                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
+                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
+                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
+                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
+        if (prev_pm == NULL) {
+            sm_list = DETECT_SM_LIST_PMATCH;
+        } else {
+            sm_list = SigMatchListSMBelongsTo(s, prev_pm);
+        }
+
+    } else {
+        sm_list = DETECT_SM_LIST_PMATCH;
+    }
+
+    if (data->flags & DETECT_BYTETEST_DCE) {
+        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Non dce alproto sig has "
                        "bytetest with dce enabled");
             goto error;
         }
-        if ( (data->flags & DETECT_BYTETEST_STRING) ||
-             (data->flags & DETECT_BYTETEST_LITTLE) ||
-             (data->flags & DETECT_BYTETEST_BIG) ||
-             (data->base == DETECT_BYTETEST_BASE_DEC) ||
-             (data->base == DETECT_BYTETEST_BASE_HEX) ||
-             (data->base == DETECT_BYTETEST_BASE_OCT) ) {
+        if ((data->flags & DETECT_BYTETEST_STRING) ||
+            (data->flags & DETECT_BYTETEST_LITTLE) ||
+            (data->flags & DETECT_BYTETEST_BIG) ||
+            (data->base == DETECT_BYTETEST_BASE_DEC) ||
+            (data->base == DETECT_BYTETEST_BASE_HEX) ||
+            (data->base == DETECT_BYTETEST_BASE_OCT) ) {
             SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option. "
-                       "a byte_test keyword with dce holds other invalid modifiers.");
+                       "A byte_test keyword with dce holds other invalid modifiers.");
             goto error;
         }
     }
 
-
-    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
-        if (data->flags & DETECT_BYTETEST_RELATIVE) {
-            SigMatch *prev_sm = NULL;
-            prev_sm = SigMatchGetLastSMFromLists(s, 8,
-                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                    DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                    DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                    DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]);
-            if (prev_sm == NULL) {
-                data->flags &= ~DETECT_BYTETEST_RELATIVE;
-            }
-
-            s->flags |= SIG_FLAG_APPLAYER;
-            AppLayerHtpEnableResponseBodyCallback();
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
-        } else {
-            s->flags |= SIG_FLAG_APPLAYER;
-            AppLayerHtpEnableResponseBodyCallback();
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
-        }
-    } else if (s->alproto == ALPROTO_DCERPC &&
-        (data->flags & DETECT_BYTETEST_RELATIVE)) {
-        SigMatch *pm = NULL;
-        SigMatch *dm = NULL;
-
-        pm = SigMatchGetLastSMFromLists(s, 6,
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
-        dm = SigMatchGetLastSMFromLists(s, 6,
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
-
-        if (pm == NULL) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
-        } else if (dm == NULL) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
-        } else if (pm->idx > dm->idx) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
-        } else {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
-        }
-    } else {
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
-    }
-
     if (value != NULL) {
-        SigMatch *bed_sm =
-            DetectByteExtractRetrieveSMVar(value, s,
-                                           SigMatchListSMBelongsTo(s, sm));
+        SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(value, s, sm_list);
         if (bed_sm == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
                        "seen in byte_test - %s\n", value);
             goto error;
         }
-        DetectBytetestData *btd = sm->ctx;
-        btd->value = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        btd->flags |= DETECT_BYTETEST_VALUE_BE;
+        data->value = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+        data->flags |= DETECT_BYTETEST_VALUE_BE;
         SCFree(value);
     }
 
     if (offset != NULL) {
-        SigMatch *bed_sm =
-            DetectByteExtractRetrieveSMVar(offset, s,
-                                           SigMatchListSMBelongsTo(s, sm));
+        SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(offset, s, sm_list);
         if (bed_sm == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
                        "seen in byte_test - %s\n", offset);
             goto error;
         }
-        DetectBytetestData *btd = sm->ctx;
-        btd->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        btd->flags |= DETECT_BYTETEST_OFFSET_BE;
+        data->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+        data->flags |= DETECT_BYTETEST_OFFSET_BE;
         SCFree(offset);
     }
 
-    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
-        return 0;
+    sm = SigMatchAlloc();
+    if (sm == NULL)
+        goto error;
+    sm->type = DETECT_BYTETEST;
+    sm->ctx = (void *)data;
+    SigMatchAppendSMToList(s, sm, sm_list);
+
+    if (!(data->flags & DETECT_BYTETEST_RELATIVE))
+        goto okay;
+
+    if (prev_pm == NULL)
+        goto okay;
+    if (prev_pm->type == DETECT_CONTENT) {
+        DetectContentData *cd = (DetectContentData *)prev_pm->ctx;
+        cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+    } else if (prev_pm->type == DETECT_PCRE) {
+        DetectPcreData *pd = (DetectPcreData *)prev_pm->ctx;
+        pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
     }
 
-    if ( !(data->flags & DETECT_BYTETEST_RELATIVE)) {
-        return 0;
-    }
-
-    SigMatch *prev_sm = NULL;
-    prev_sm = SigMatchGetLastSMFromLists(s, 6,
-                                         DETECT_CONTENT, sm->prev,
-                                         DETECT_BYTEJUMP, sm->prev,
-                                         DETECT_PCRE, sm->prev);
-    if (prev_sm == NULL) {
-        if (s->alproto == ALPROTO_DCERPC) {
-            SCLogDebug("No preceding content or pcre keyword.  Possible "
-                       "since this is an alproto sig.");
-            return 0;
-        } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content "
-                       "or uricontent or pcre option");
-            return -1;
-        }
-    }
-
-    DetectContentData *cd = NULL;
-    DetectPcreData *pe = NULL;
-
-    switch (prev_sm->type) {
-        case DETECT_CONTENT:
-            /* Set the relative next flag on the prev sigmatch */
-            cd = (DetectContentData *)prev_sm->ctx;
-            if (cd == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                           "previous keyword!");
-                return -1;
-            }
-            cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-
-            break;
-
-        case DETECT_PCRE:
-            pe = (DetectPcreData *)prev_sm->ctx;
-            if (pe == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                           "previous keyword!");
-                return -1;
-            }
-            pe->flags |= DETECT_PCRE_RELATIVE_NEXT;
-
-            break;
-
-        case DETECT_BYTEJUMP:
-            SCLogDebug("No setting relative_next for bytejump.  We "
-                       "have no use for it");
-
-            break;
-
-        default:
-            /* this will never hit */
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                       "previous keyword!");
-            return -1;
-    } /* switch */
-
-    return 0;
-
-error:
-    //if (data != NULL)
-    //    DetectBytetestFree(data);
-    //if (sm != NULL)
-    //    SCFree(sm);
-    return -1;
+ okay:
+    ret = 0;
+    return ret;
+ error:
+    DetectBytetestFree(data);
+    return ret;
 }
 
 /**
@@ -644,6 +678,9 @@ error:
  */
 void DetectBytetestFree(void *ptr)
 {
+    if (ptr == NULL)
+        return;
+
     DetectBytetestData *data = (DetectBytetestData *)ptr;
     SCFree(data);
 }
