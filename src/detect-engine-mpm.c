@@ -3346,17 +3346,26 @@ uint32_t DetectPatternGetIdV2(MpmPatternIdStore *ht, void *ctx, Signature *s, ui
     SCReturnUInt(id);
 }
 
-void DetectFigureFPAndId(DetectEngineCtx *de_ctx)
+typedef struct DetectFPAndItsId_ {
+    PatIntId id;
+    uint16_t content_len;
+    uint32_t flags;
+    int sm_list;
+
+    uint8_t *content;
+} DetectFPAndItsId;
+
+/**
+ * \brief Figured out the FP and their respective content ids for all the
+ *        sigs in the engine.
+ *
+ * \param de_ctx Detection engine context.
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
 {
-    typedef struct DetectFigureFPAndId_t_ {
-        PatIntId id;
-        uint16_t content_len;
-        uint32_t flags;
-        int sm_list;
-
-        uint8_t *content;
-    } DetectFigureFPAndId_t;
-
     uint32_t struct_total_size = 0;
     uint32_t content_total_size = 0;
     Signature *s = NULL;
@@ -3365,7 +3374,7 @@ void DetectFigureFPAndId(DetectEngineCtx *de_ctx)
         s->mpm_sm = RetrieveFPForSigV2(s);
         if (s->mpm_sm != NULL) {
             DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
-            struct_total_size += sizeof(DetectFigureFPAndId_t);
+            struct_total_size += sizeof(DetectFPAndItsId);
             content_total_size += cd->content_len;
         }
     }
@@ -3373,17 +3382,17 @@ void DetectFigureFPAndId(DetectEngineCtx *de_ctx)
     /* array hash buffer - i've run out of ideas to name it */
     uint8_t *ahb = SCMalloc(sizeof(uint8_t) * (struct_total_size + content_total_size));
     if (ahb == NULL)
-        exit(EXIT_FAILURE);
+        return -1;
 
     PatIntId max_id = 0;
-    DetectFigureFPAndId_t *struct_offset = (DetectFigureFPAndId_t *)ahb;
+    DetectFPAndItsId *struct_offset = (DetectFPAndItsId *)ahb;
     uint8_t *content_offset = ahb + struct_total_size;
     for (s = de_ctx->sig_list; s != NULL; s = s->next) {
         if (s->mpm_sm != NULL) {
             int sm_list = SigMatchListSMBelongsTo(s, s->mpm_sm);
             BUG_ON(sm_list == -1);
             DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
-            DetectFigureFPAndId_t *dup = (DetectFigureFPAndId_t *)ahb;
+            DetectFPAndItsId *dup = (DetectFPAndItsId *)ahb;
             for (; dup != struct_offset; dup++) {
                 if (dup->content_len != cd->content_len ||
                     dup->sm_list != sm_list ||
@@ -3413,5 +3422,5 @@ void DetectFigureFPAndId(DetectEngineCtx *de_ctx)
     de_ctx->max_fp_id = max_id;
 
     SCFree(ahb);
-    return;
+    return 0;
 }
