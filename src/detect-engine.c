@@ -421,6 +421,13 @@ static void *DetectEngineLiveRuleSwap(void *arg)
         SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
         if (de_ctx->failure_fatal)
             exit(EXIT_FAILURE);
+        DetectEngineCtxFree(de_ctx);
+        SCLogError(SC_ERR_LIVE_RULE_SWAP,  "Failure encountered while "
+                   "loading new ruleset with live swap.");
+        SCLogInfo("===== Live rule swap DONE =====");
+        TmThreadsSetFlag(tv_local, THV_CLOSED);
+        pthread_exit(NULL);
+        return NULL;
     }
 
     SCThresholdConfInitContext(de_ctx, NULL);
