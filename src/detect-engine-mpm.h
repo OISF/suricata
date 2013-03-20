@@ -85,7 +85,16 @@ int SignatureHasStreamContent(Signature *);
 SigMatch *RetrieveFPForSig(Signature *s);
 SigMatch *RetrieveFPForSigV2(Signature *s);
 
-void DetectFigureFPAndId(DetectEngineCtx *de_ctx);
+/**
+ * \brief Figured out the FP and their respective content ids for all the
+ *        sigs in the engine.
+ *
+ * \param de_ctx Detection engine context.
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx);
 
 #endif /* __DETECT_ENGINE_MPM_H__ */
 

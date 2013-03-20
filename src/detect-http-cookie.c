@@ -109,7 +109,7 @@ void DetectHttpCookieFree(void *ptr)
 
 static int DetectHttpCookieSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    return DetectEngineContentModifiedBufferSetup(de_ctx, s, str,
+    return DetectEngineContentModifierBufferSetup(de_ctx, s, str,
                                                   DETECT_AL_HTTP_COOKIE,
                                                   DETECT_SM_LIST_HCDMATCH,
                                                   ALPROTO_HTTP,

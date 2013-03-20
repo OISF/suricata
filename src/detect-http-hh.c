@@ -95,7 +95,7 @@ void DetectHttpHHRegister(void)
  */
 int DetectHttpHHSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
-    return DetectEngineContentModifiedBufferSetup(de_ctx, s, arg,
+    return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_HOST,
                                                   DETECT_SM_LIST_HHHDMATCH,
                                                   ALPROTO_HTTP,

@@ -96,7 +96,7 @@ typedef struct SigDuplWrapper_ {
 #define OPTION_PARTS 3
 #define OPTION_PCRE "^\\s*([A-z_0-9-\\.]+)(?:\\s*\\:\\s*(.*)(?<!\\\\))?\\s*;\\s*(?:\\s*(.*))?\\s*$"
 
-int DetectEngineContentModifiedBufferSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg,
+int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg,
                                            uint8_t sm_type, uint8_t sm_list,
                                            uint16_t alproto,  void (*CustomCallback)(Signature *s))
 {
