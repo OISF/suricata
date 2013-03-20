@@ -1749,18 +1749,19 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
 
 SigMatch *RetrieveFPForSig(Signature *s)
 {
-    SigMatch *mpm_sm = NULL;
+    SigMatch *mpm_sm = NULL, *sm = NULL;
     uint8_t has_non_negated_non_stream_pattern = 0;
 
     if (s->mpm_sm != NULL)
         return s->mpm_sm;
 
-    for (int list_id = 0 ; list_id < DETECT_SM_LIST_MAX; list_id++) {
+    int list_id;
+    for (list_id = 0 ; list_id < DETECT_SM_LIST_MAX; list_id++) {
         /* we have no keywords that support fp in this Signature sm list */
         if (!FastPatternSupportEnabledForSigMatchList(list_id))
             continue;
 
-        for (SigMatch *sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
+        for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
             /* this keyword isn't registered for fp support */
             if (sm->type != DETECT_CONTENT)
                 continue;
@@ -1781,7 +1782,7 @@ SigMatch *RetrieveFPForSig(Signature *s)
     int max_len = 0;
     int max_len_negated = 0;
     int max_len_non_negated = 0;
-    for (int list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
+    for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
         if (!FastPatternSupportEnabledForSigMatchList(list_id))
             continue;
 
@@ -1793,7 +1794,7 @@ SigMatch *RetrieveFPForSig(Signature *s)
             continue;
         }
 
-        for (SigMatch *sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
+        for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
@@ -1817,7 +1818,7 @@ SigMatch *RetrieveFPForSig(Signature *s)
         skip_negated_content = 1;
     }
 
-    for (int list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
+    for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
         if (!FastPatternSupportEnabledForSigMatchList(list_id))
             continue;
 
@@ -1829,7 +1830,7 @@ SigMatch *RetrieveFPForSig(Signature *s)
             continue;
         }
 
-        for (SigMatch *sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
+        for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
@@ -1868,20 +1869,20 @@ SigMatch *RetrieveFPForSigV2(Signature *s)
         return s->mpm_sm;
 
 
-    SigMatch *mpm_sm = NULL;
-
+    SigMatch *mpm_sm = NULL, *sm = NULL;
     int nn_sm_list[DETECT_SM_LIST_MAX];
     int n_sm_list[DETECT_SM_LIST_MAX];
     memset(nn_sm_list, 0, sizeof(nn_sm_list));
     memset(n_sm_list, 0, sizeof(n_sm_list));
     int count_nn_sm_list = 0;
     int count_n_sm_list = 0;
+    int list_id;
 
-    for (int list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
+    for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
         if (!FastPatternSupportEnabledForSigMatchList(list_id))
             continue;
 
-        for (SigMatch *sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
+        for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
@@ -1911,10 +1912,11 @@ SigMatch *RetrieveFPForSigV2(Signature *s)
 
     int final_sm_list[DETECT_SM_LIST_MAX];
     int count_final_sm_list = 0;
+    int priority;
 
     SCFPSupportSMList *tmp = sm_fp_support_smlist_list;
     while (tmp != NULL) {
-        for (int priority = tmp->priority;
+        for (priority = tmp->priority;
              tmp != NULL && priority == tmp->priority;
              tmp = tmp->next) {
 
@@ -1929,8 +1931,9 @@ SigMatch *RetrieveFPForSigV2(Signature *s)
     BUG_ON(count_final_sm_list == 0);
 
     int max_len = 0;
-    for (int i = 0; i < count_final_sm_list; i++) {
-        for (SigMatch *sm = s->sm_lists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
+    int i;
+    for (i = 0; i < count_final_sm_list; i++) {
+        for (sm = s->sm_lists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
@@ -1944,8 +1947,8 @@ SigMatch *RetrieveFPForSigV2(Signature *s)
         }
     }
 
-    for (int i = 0; i < count_final_sm_list; i++) {
-        for (SigMatch *sm = s->sm_lists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
+    for (i = 0; i < count_final_sm_list; i++) {
+        for (sm = s->sm_lists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
@@ -1993,7 +1996,8 @@ SigMatch *RetrieveFPForSigV2(Signature *s)
 static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                                           SigGroupHead *sgh)
 {
-    for (uint32_t sig = 0; sig < sgh->sig_cnt; sig++) {
+    uint32_t sig = 0;
+    for (sig = 0; sig < sgh->sig_cnt; sig++) {
         Signature *s = sgh->match_array[sig];
         if (s == NULL)
             continue;
