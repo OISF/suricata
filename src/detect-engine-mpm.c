@@ -2355,13 +2355,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_hhhd_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_hhhd_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_hhhd_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_hhhd_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     }
 
     if (has_co_hrhhd) {
@@ -2377,13 +2372,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_hrhhd_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_hrhhd_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_hrhhd_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_hrhhd_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     }
 
     if (has_co_packet ||
