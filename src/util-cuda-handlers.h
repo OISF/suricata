@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -16,104 +16,36 @@
  */
 
 /**
- * \file Provides cuda utility functions.
+ * \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-/* macros decides if cuda is enabled for the platform or not */
-#ifdef __SC_CUDA_SUPPORT__
+#ifndef __UTIL_CUDA_HANDLERS__H__
+#define __UTIL_CUDA_HANDLERS__H__
 
-#include <cuda.h>
+#include "conf.h"
+#include "util-cuda.h"
 
-#ifndef __UTIL_MPM_CUDA_HANDLERS_H__
-#define __UTIL_MPM_CUDA_HANDLERS_H__
+/************************conf file profile section**********************/
 
-typedef enum {
-    SC_CUDA_HL_MTYPE_RULE_NONE = -1,
-    SC_CUDA_HL_MTYPE_RULE_CONTENTS = 0,
-    SC_CUDA_HL_MTYPE_RULE_URICONTENTS,
-    SC_CUDA_HL_MTYPE_APP_LAYER,
-    SC_CUDA_HL_MTYPE_RULE_CUSTOM,
-    SC_CUDA_HL_MTYPE_MAX,
-} SCCudaHlModuleType;
+void CudaHL_AddCudaProfileFromConf(const char *name,
+                                   void *(*Callback)(ConfNode *node),
+                                   void (*Free)(void *));
+void *CudaHL_GetCudaProfile(const char *name);
+void CudaHL_FreeProfiles(void);
 
-typedef struct SCCudaHlModuleDevicePointer_ {
-    /* device pointer name.  This is a primary key.  For the same module you
-     * can't register different device pointers */
-    char *name;
-    CUdeviceptr d_ptr;
+/*******************cuda context related data section*******************/
 
-    struct SCCudaHlModuleDevicePointer_ *next;
-} SCCudaHlModuleDevicePointer;
+#define CUDAHL_MODULE_DATA_TYPE_MEMORY_HOST 0
+#define CUDAHL_MODULE_DATA_TYPE_MEMORY_DEVICE 1
+#define CUDAHL_MODULE_DATA_TYPE_MTSBA 2
 
-typedef struct SCCudaHlModuleCUmodule_ {
-    /* Handle for this CUmodule.  This has to be first obtained from the
-     * call to SCCudaHlGetCudaModule() or SCCudaHlGetCudaModuleFromFile() */
-    int cuda_module_handle;
+CUcontext CudaHL_Module_GetContext(const char *module_name, int device_id);
+void CudaHL_Module_StoreData(const char *module_name,
+                             const char *data_name, void *data_ptr);
+void *CudaHL_Module_GetData(const char *module_name, const char *data_name);
+int CudaHL_GetCudaModule(CUmodule *p_module, const char *ptx_image);
 
-    CUmodule cuda_module;
-    SCCudaHlModuleDevicePointer *device_ptrs;
+#endif /* __UTIL_CUDA_HANDLERS__H__ */
 
-    struct SCCudaHlModuleCUmodule_ *next;
-} SCCudaHlModuleCUmodule;
-
-typedef struct SCCudaHlModuleData_ {
-    /* The unique module handle.  This has to be first obtained from the
-     * call to SCCudaHlGetUniqueHandle() */
-    const char *name;
-    int handle;
-
-    CUcontext cuda_context;
-    SCCudaHlModuleCUmodule *cuda_modules;
-    void *(*SCCudaHlDispFunc)(void *);
-
-    struct SCCudaHlModuleData_ *next;
-} SCCudaHlModuleData;
-
-/**
- * \brief Used to hold the cuda configuration from our conf yaml file
- */
-typedef struct SCCudaHlCudaProfile_ {
-    /* profile name.  Should be unique */
-    char *name;
-    /* the data associated with this profile */
-    void *data;
-
-    struct SCCudaHlCudaProfile_ *next;
-} SCCudaHlCudaProfile;
-
-void SCCudaHlGetYamlConf(void);
-void *SCCudaHlGetProfile(char *);
-void SCCudaHlCleanProfiles(void);
-void SCCudaHlBackupRegisteredProfiles(void);
-void SCCudaHlRestoreBackupRegisteredProfiles(void);
-
-int SCCudaHlGetCudaContext(CUcontext *, char *, int);
-int SCCudaHlGetCudaModule(CUmodule *, const char *, int);
-int SCCudaHlGetCudaModuleFromFile(CUmodule *, const char *, int);
-int SCCudaHlGetCudaDevicePtr(CUdeviceptr *, const char *, size_t, void *, int, int);
-int SCCudaHlFreeCudaDevicePtr(const char *, int, int);
-int SCCudaHlRegisterDispatcherFunc(void *(*SCCudaHlDispFunc)(void *), int);
-
-SCCudaHlModuleData *SCCudaHlGetModuleData(uint8_t);
-const char *SCCudaHlGetModuleName(int);
-int SCCudaHlGetModuleHandle(const char *);
-
-int SCCudaHlRegisterModule(const char *);
-int SCCudaHlDeRegisterModule(const char *);
-void SCCudaHlDeRegisterAllRegisteredModules(void);
-
-int SCCudaHlPushCudaContextFromModule(const char *);
-
-int SCCudaHlTestEnvCudaContextInit(void);
-int SCCudaHlTestEnvCudaContextDeInit(void);
-
-void SCCudaHlProcessPacketWithDispatcher(Packet *, DetectEngineThreadCtx *,
-                                         void *);
-void SCCudaHlProcessUriWithDispatcher(uint8_t *, uint16_t, DetectEngineThreadCtx *,
-                                      void *);
-
-#endif /* __UTIL_CUDA_HANDLERS__ */
-
-#endif /* __SC_CUDA_SUPPORT__ */

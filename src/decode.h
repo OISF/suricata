@@ -28,8 +28,11 @@
 #define COUNTERS
 
 #include "suricata-common.h"
-
 #include "threadvars.h"
+
+#ifdef __SC_CUDA_SUPPORT__
+#include "util-mtsba.h"
+#endif /* __SC_CUDA_SUPPORT__ */
 
 typedef enum {
     CHECKSUM_VALIDATION_DISABLE,
@@ -76,10 +79,6 @@ enum {
 #include "detect-reference.h"
 
 #include "app-layer-protos.h"
-
-#ifdef __SC_CUDA_SUPPORT__
-#define CUDA_MAX_PAYLOAD_SIZE 1500
-#endif
 
 /* forward declaration */
 struct DetectionEngineThreadCtx_;
@@ -488,28 +487,16 @@ typedef struct Packet_
                            * It should always point to the lowest
                            * packet in a encapsulated packet */
 
-    /* required for cuda support */
-#ifdef __SC_CUDA_SUPPORT__
-    /* indicates if the cuda mpm would be conducted or a normal cpu mpm would
-     * be conduced on this packet.  If it is set to 0, the cpu mpm; else cuda mpm */
-    uint8_t cuda_mpm_enabled;
-    /* indicates if the cuda mpm has finished running the mpm and processed the
-     * results for this packet, assuming if cuda_mpm_enabled has been set for this
-     * packet */
-    uint16_t cuda_done;
-    /* used by the detect thread and the cuda mpm dispatcher thread.  The detect
-     * thread would wait on this cond var, if the cuda mpm dispatcher thread
-     * still hasn't processed the packet.  The dispatcher would use this cond
-     * to inform the detect thread(in case it is waiting on this packet), once
-     * the dispatcher is done processing the packet results */
-    SCMutex cuda_mutex;
-    SCCondT cuda_cond;
-    /* the extra 1 in the 1481, is to hold the no_of_matches from the mpm run */
-    uint16_t mpm_offsets[CUDA_MAX_PAYLOAD_SIZE + 1];
-#endif
-
 #ifdef PROFILING
     PktProfiling profile;
+#endif
+#ifdef __SC_CUDA_SUPPORT__
+    uint8_t cuda_mpm_enabled;
+    uint8_t cuda_done;
+    uint16_t cuda_gpu_matches;
+    SCMutex cuda_mutex;
+    SCCondT cuda_cond;
+    uint32_t cuda_results[(UTIL_MPM_CUDA_DATA_BUFFER_SIZE_MAX_LIMIT_DEFAULT * 2) + 1];
 #endif
 } Packet;
 
@@ -594,6 +581,23 @@ typedef struct DecodeThreadVars_
     uint16_t counter_defrag_ipv6_reassembled;
     uint16_t counter_defrag_ipv6_timeouts;
     uint16_t counter_defrag_max_hit;
+
+#ifdef __SC_CUDA_SUPPORT__
+    MTSBA_Data *cuda_ac_mtsba;
+
+    MpmCtx *mpm_proto_other_ctx;
+
+    MpmCtx *mpm_proto_tcp_ctx_ts;
+    MpmCtx *mpm_proto_udp_ctx_ts;
+
+    MpmCtx *mpm_proto_tcp_ctx_tc;
+    MpmCtx *mpm_proto_udp_ctx_tc;
+
+    uint16_t data_buffer_size_max_limit;
+    uint16_t data_buffer_size_min_limit;
+
+    uint8_t mpm_is_cuda;
+#endif
 } DecodeThreadVars;
 
 /**
@@ -610,21 +614,24 @@ typedef struct DecodeThreadVars_
 /**
  *  \brief Initialize a packet structure for use.
  */
-#ifndef __SC_CUDA_SUPPORT__
-#define PACKET_INITIALIZE(p) { \
-    memset((p), 0x00, SIZE_OF_PACKET); \
-    SCMutexInit(&(p)->tunnel_mutex, NULL); \
-    PACKET_RESET_CHECKSUMS((p)); \
-    (p)->pkt = ((uint8_t *)(p)) + sizeof(Packet); \
-    (p)->livedev = NULL; \
-}
+#ifdef __SC_CUDA_SUPPORT__
+#include "util-cuda-handlers.h"
+#include "util-mpm.h"
+
+#define PACKET_INITIALIZE(p) do {                                       \
+        memset((p), 0x00, SIZE_OF_PACKET);                              \
+        SCMutexInit(&(p)->tunnel_mutex, NULL);                          \
+        PACKET_RESET_CHECKSUMS((p));                                    \
+        (p)->pkt = ((uint8_t *)(p)) + sizeof(Packet);                   \
+        (p)->livedev = NULL;                                            \
+        SCMutexInit(&(p)->cuda_mutex, NULL);                            \
+        SCCondInit(&(p)->cuda_cond, NULL);                              \
+    } while (0)
 #else
-#define PACKET_INITIALIZE(p) { \
+#define PACKET_INITIALIZE(p) {         \
     memset((p), 0x00, SIZE_OF_PACKET); \
     SCMutexInit(&(p)->tunnel_mutex, NULL); \
     PACKET_RESET_CHECKSUMS((p)); \
-    SCMutexInit(&(p)->cuda_mutex, NULL); \
-    SCCondInit(&(p)->cuda_cond, NULL); \
     (p)->pkt = ((uint8_t *)(p)) + sizeof(Packet); \
     (p)->livedev = NULL; \
 }
@@ -701,39 +708,17 @@ typedef struct DecodeThreadVars_
         PACKET_PROFILING_RESET((p));            \
     } while (0)
 
-#ifndef __SC_CUDA_SUPPORT__
 #define PACKET_RECYCLE(p) PACKET_DO_RECYCLE((p))
-#else
-#define PACKET_RECYCLE(p) do {                  \
-    PACKET_DO_RECYCLE((p));                     \
-    SCMutexDestroy(&(p)->cuda_mutex);           \
-    SCCondDestroy(&(p)->cuda_cond);             \
-    SCMutexInit(&(p)->cuda_mutex, NULL);        \
-    SCCondInit(&(p)->cuda_cond, NULL);          \
-    PACKET_RESET_CHECKSUMS((p));                \
-} while(0)
-#endif
 
 /**
  *  \brief Cleanup a packet so that we can free it. No memset needed..
  */
-#ifndef __SC_CUDA_SUPPORT__
 #define PACKET_CLEANUP(p) do {                  \
         if ((p)->pktvar != NULL) {              \
             PktVarFree((p)->pktvar);            \
         }                                       \
         SCMutexDestroy(&(p)->tunnel_mutex);     \
     } while (0)
-#else
-#define PACKET_CLEANUP(p) do {                  \
-    if ((p)->pktvar != NULL) {                  \
-        PktVarFree((p)->pktvar);                \
-    }                                           \
-    SCMutexDestroy(&(p)->tunnel_mutex);         \
-    SCMutexDestroy(&(p)->cuda_mutex);           \
-    SCCondDestroy(&(p)->cuda_cond);             \
-} while(0)
-#endif
 
 
 /* macro's for setting the action
