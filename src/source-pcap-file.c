@@ -342,6 +342,91 @@ TmEcode ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data) {
     SCReturnInt(TM_ECODE_OK);
 }
 
+#ifdef __SC_CUDA_SUPPORT__
+
+static inline void DecodePcapFileBufferPacket(DecodeThreadVars *dtv, Packet *p)
+{
+    if (p->cuda_mpm_enabled) {
+        while (!p->cuda_done) {
+            SCMutexLock(&p->cuda_mutex);
+            if (p->cuda_done) {
+                SCMutexUnlock(&p->cuda_mutex);
+                break;
+            } else {
+                SCCondWait(&p->cuda_cond, &p->cuda_mutex);
+                SCMutexUnlock(&p->cuda_mutex);
+            }
+        }
+    }
+    p->cuda_done = 0;
+
+    if (p->payload_len == 0 ||
+        (p->flags & (PKT_NOPAYLOAD_INSPECTION & PKT_NOPACKET_INSPECTION)) ||
+        (p->pkt_src != PKT_SRC_WIRE) ||
+        (p->flags & PKT_ALLOC) ||
+        (dtv->data_buffer_size_min_limit != 0 && p->payload_len < dtv->data_buffer_size_min_limit) ||
+        (p->payload_len > dtv->data_buffer_size_max_limit && dtv->data_buffer_size_max_limit != 0) ) {
+        p->cuda_mpm_enabled = 0;
+        return;
+    }
+
+    MpmCtx *mpm_ctx = NULL;
+    if (p->proto == IPPROTO_TCP) {
+        if (p->flowflags & FLOW_PKT_TOSERVER)
+            mpm_ctx = dtv->mpm_proto_tcp_ctx_ts;
+        else
+            mpm_ctx = dtv->mpm_proto_tcp_ctx_tc;
+    } else if (p->proto == IPPROTO_UDP) {
+        if (p->flowflags & FLOW_PKT_TOSERVER)
+            mpm_ctx = dtv->mpm_proto_udp_ctx_ts;
+        else
+            mpm_ctx = dtv->mpm_proto_udp_ctx_tc;
+    } else {
+        mpm_ctx = dtv->mpm_proto_other_ctx;
+    }
+    if (mpm_ctx == NULL || mpm_ctx->pattern_cnt == 0) {
+        p->cuda_mpm_enabled = 0;
+        return;
+    }
+
+#if defined(__x86_64) || defined(_X86_64_) || defined(ia_64) || defined(__x86_64__) || defined(__ia64__)
+    MTSBA_Slice *slice = MTSBA_GetSlice(dtv->cuda_ac_mtsba,
+                                        p->payload_len + sizeof(uint64_t) + sizeof(CUdeviceptr),
+                                        (void *)p);
+    if (slice == NULL) {
+        SCLogError(SC_ERR_FATAL, "Error retrieving slice.  Please report "
+                   "this to dev.");
+        p->cuda_mpm_enabled = 0;
+        return;
+    }
+    *((uint64_t *)(slice->buffer + slice->start_offset)) = p->payload_len;
+    *((CUdeviceptr *)(slice->buffer + slice->start_offset + sizeof(uint64_t))) = ((SCACCtx *)(mpm_ctx->ctx))->state_table_u32_cuda;
+    memcpy(slice->buffer + slice->start_offset + sizeof(uint64_t) + sizeof(CUdeviceptr), p->payload, p->payload_len);
+#else
+    MTSBA_Slice *slice = MTSBA_GetSlice(dtv->cuda_ac_mtsba,
+                                        p->payload_len + sizeof(uint32_t) + sizeof(CUdeviceptr),
+                                        (void *)p);
+    if (slice == NULL) {
+        SCLogError(SC_ERR_FATAL, "Error retrieving slice.  Please report "
+                   "this to dev.");
+        p->cuda_mpm_enabled = 0;
+        return;
+    }
+    *((uint32_t *)(slice->buffer + slice->start_offset)) = p->payload_len;
+    *((CUdeviceptr *)(slice->buffer + slice->start_offset + sizeof(uint32_t))) = ((SCACCtx *)(mpm_ctx->ctx))->state_table_u32_cuda;
+    memcpy(slice->buffer + slice->start_offset + sizeof(uint32_t) + sizeof(CUdeviceptr), p->payload, p->payload_len);
+#endif
+    p->cuda_mpm_enabled = 1;
+    SC_ATOMIC_SET(slice->done, 1);
+
+    SCLogDebug("cuda ac buffering packet %p, payload_len - %"PRIu16" and deviceptr - %"PRIu64"\n",
+               p, p->payload_len, (unsigned long)((SCACCtx *)(mpm_ctx->ctx))->state_table_u32_cuda);
+
+    return;
+}
+
+#endif /* __SC_CUDA_SUPPORT__ */
+
 double prev_signaled_ts = 0;
 
 TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
@@ -377,94 +462,40 @@ TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     pcap_g.Decoder(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
 
 #ifdef __SC_CUDA_SUPPORT__
-    if (p->cuda_mpm_enabled) {
-        while (!p->cuda_done) {
-            SCMutexLock(&p->cuda_mutex);
-            if (p->cuda_done) {
-                SCMutexUnlock(&p->cuda_mutex);
-                break;
-            } else {
-                SCCondWait(&p->cuda_cond, &p->cuda_mutex);
-                SCMutexUnlock(&p->cuda_mutex);
-            }
-        }
-    }
-    p->cuda_done = 0;
-
-    if (!(dtv->mpm_is_cuda &&
-          p->payload_len > 0 &&
-          !(p->flags & (PKT_NOPAYLOAD_INSPECTION & PKT_NOPACKET_INSPECTION)) &&
-          (p->pkt_src == PKT_SRC_WIRE) &&
-          !(p->flags & PKT_ALLOC)  &&
-          (dtv->data_buffer_size_min_limit == 0 || p->payload_len > dtv->data_buffer_size_min_limit) &&
-          (p->payload_len < dtv->data_buffer_size_max_limit || dtv->data_buffer_size_max_limit == 0)) ) {
-        p->cuda_mpm_enabled = 0;
-        goto DecodePcapFile_cuda_next;
-    }
-
-    MpmCtx *mpm_ctx = NULL;
-    if (p->proto == IPPROTO_TCP) {
-        if (p->flowflags & FLOW_PKT_TOSERVER) {
-            mpm_ctx = dtv->mpm_proto_tcp_ctx_ts;
-        } else {
-            mpm_ctx = dtv->mpm_proto_tcp_ctx_tc;
-        }
-    } else if (p->proto == IPPROTO_UDP) {
-        if (p->flowflags & FLOW_PKT_TOSERVER) {
-            mpm_ctx = dtv->mpm_proto_udp_ctx_ts;
-        } else {
-            mpm_ctx = dtv->mpm_proto_udp_ctx_tc;
-        }
-    } else {
-        mpm_ctx = dtv->mpm_proto_other_ctx;
-    }
-    if (mpm_ctx == NULL || mpm_ctx->pattern_cnt == 0) {
-        p->cuda_mpm_enabled = 0;
-        goto DecodePcapFile_cuda_next;
-    }
-
-#if defined(__x86_64) || defined(_X86_64_) || defined(ia_64) || defined(__x86_64__) || defined(__ia64__)
-    MTSBA_Slice *slice = MTSBA_GetSlice(dtv->cuda_ac_mtsba,
-                                        p->payload_len + sizeof(uint64_t) + sizeof(CUdeviceptr),
-                                        (void *)p);
-    if (slice == NULL) {
-        SCLogError(SC_ERR_FATAL, "Error retrieving slice.  Please report "
-                   "this to dev.");
-        p->cuda_mpm_enabled = 0;
-        goto DecodePcapFile_cuda_next;
-    }
-    *((uint64_t *)(slice->buffer + slice->start_offset)) = p->payload_len;
-    *((CUdeviceptr *)(slice->buffer + slice->start_offset + sizeof(uint64_t))) = ((SCACCtx *)(mpm_ctx->ctx))->state_table_u32_cuda;
-    memcpy(slice->buffer + slice->start_offset + sizeof(uint64_t) + sizeof(CUdeviceptr), p->payload, p->payload_len);
-#else
-    MTSBA_Slice *slice = MTSBA_GetSlice(dtv->cuda_ac_mtsba,
-                                        p->payload_len + sizeof(uint32_t) + sizeof(CUdeviceptr),
-                                        (void *)p);
-    if (slice == NULL) {
-        SCLogError(SC_ERR_FATAL, "Error retrieving slice.  Please report "
-                   "this to dev.");
-        p->cuda_mpm_enabled = 0;
-        goto DecodePcapFile_cuda_next;
-    }
-    *((uint32_t *)(slice->buffer + slice->start_offset)) = p->payload_len;
-    *((CUdeviceptr *)(slice->buffer + slice->start_offset + sizeof(uint32_t))) = ((SCACCtx *)(mpm_ctx->ctx))->state_table_u32_cuda;
-    memcpy(slice->buffer + slice->start_offset + sizeof(uint32_t) + sizeof(CUdeviceptr), p->payload, p->payload_len);
+    if (dtv->mpm_is_cuda)
+        DecodePcapFileBufferPacket(dtv, p);
 #endif
-    p->cuda_mpm_enabled = 1;
-    SC_ATOMIC_SET(slice->done, 1);
-
-#if 0
-    SCLogDebug("cuda ac buffering packet %p, payload_len - %"PRIu16" and deviceptr - %"PRIu64"\n",
-               p, p->payload_len, (unsigned long)((SCACCtx *)(mpm_ctx->ctx))->state_table_u32_cuda);
-#endif
-
- DecodePcapFile_cuda_next:
-
-#endif /* __SC_CUDA_SUPPORT__ */
-
 
     SCReturnInt(TM_ECODE_OK);
 }
+
+#ifdef __SC_CUDA_SUPPORT__
+
+static int DecodePcapFileThreadInitCuda(DecodeThreadVars *dtv)
+{
+    if (PatternMatchDefaultMatcher() != MPM_AC_CUDA)
+        return 0;
+
+    MpmCudaConf *conf = CudaHL_GetCudaProfile("mpm");
+    if (conf == NULL) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error obtaining cuda mpm profile.");
+        return -1;
+    }
+
+    dtv->mpm_is_cuda = 1;
+    dtv->cuda_ac_mtsba = CudaHL_Module_GetData(MPM_AC_CUDA_MODULE_NAME, MPM_AC_CUDA_MODULE_MTSBA_NAME);
+    dtv->data_buffer_size_max_limit = conf->data_buffer_size_max_limit;
+    dtv->data_buffer_size_min_limit = conf->data_buffer_size_min_limit;
+    dtv->mpm_proto_tcp_ctx_ts = MpmFactoryGetMpmCtxForProfile(cuda_de_ctx, cuda_de_ctx->sgh_mpm_context_proto_tcp_packet, 0);
+    dtv->mpm_proto_tcp_ctx_tc = MpmFactoryGetMpmCtxForProfile(cuda_de_ctx, cuda_de_ctx->sgh_mpm_context_proto_tcp_packet, 1);
+    dtv->mpm_proto_udp_ctx_ts = MpmFactoryGetMpmCtxForProfile(cuda_de_ctx, cuda_de_ctx->sgh_mpm_context_proto_udp_packet, 0);
+    dtv->mpm_proto_udp_ctx_tc = MpmFactoryGetMpmCtxForProfile(cuda_de_ctx, cuda_de_ctx->sgh_mpm_context_proto_udp_packet, 1);
+    dtv->mpm_proto_other_ctx = MpmFactoryGetMpmCtxForProfile(cuda_de_ctx, cuda_de_ctx->sgh_mpm_context_proto_other_packet, 0);
+
+    return 0;
+}
+
+#endif /* __SC_CUDA_SUPPORT__ */
 
 TmEcode DecodePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
@@ -478,29 +509,9 @@ TmEcode DecodePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
     DecodeRegisterPerfCounters(dtv, tv);
 
 #ifdef __SC_CUDA_SUPPORT__
-
-    if (PatternMatchDefaultMatcher() != MPM_AC_CUDA)
-        goto DecodePcapFileThreadInit_cuda_next;
-
-    MpmCudaConf *conf = CudaHL_GetCudaProfile("mpm");
-    if (conf == NULL) {
-        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error obtaining cuda mpm profile.");
-        exit(EXIT_FAILURE);
-    }
-
-    dtv->mpm_is_cuda = 1;
-    dtv->cuda_ac_mtsba = CudaHL_Module_GetData(MPM_AC_CUDA_MODULE_NAME, MPM_AC_CUDA_MODULE_MTSBA_NAME);
-    dtv->data_buffer_size_max_limit = conf->data_buffer_size_max_limit;
-    dtv->data_buffer_size_min_limit = conf->data_buffer_size_min_limit;
-    dtv->mpm_proto_tcp_ctx_ts = MpmFactoryGetMpmCtxForProfile(cuda_de_ctx, cuda_de_ctx->sgh_mpm_context_proto_tcp_packet, 0);
-    dtv->mpm_proto_tcp_ctx_tc = MpmFactoryGetMpmCtxForProfile(cuda_de_ctx, cuda_de_ctx->sgh_mpm_context_proto_tcp_packet, 1);
-    dtv->mpm_proto_udp_ctx_ts = MpmFactoryGetMpmCtxForProfile(cuda_de_ctx, cuda_de_ctx->sgh_mpm_context_proto_udp_packet, 0);
-    dtv->mpm_proto_udp_ctx_tc = MpmFactoryGetMpmCtxForProfile(cuda_de_ctx, cuda_de_ctx->sgh_mpm_context_proto_udp_packet, 1);
-    dtv->mpm_proto_other_ctx = MpmFactoryGetMpmCtxForProfile(cuda_de_ctx, cuda_de_ctx->sgh_mpm_context_proto_other_packet, 0);
-
- DecodePcapFileThreadInit_cuda_next:
-
-#endif /* __SC_CUDA_SUPPORT__ */
+    if (DecodePcapFileThreadInitCuda(dtv) < 0)
+        SCReturnInt(TM_ECODE_FAILED);
+#endif
 
     *data = (void *)dtv;
 
