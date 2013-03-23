@@ -256,6 +256,7 @@ util-coredump-config.c util-coredump-config.h \
 util-cpu.c util-cpu.h \
 util-crypt.c util-crypt.h \
 util-cuda.c util-cuda.h \
+util-cuda-buffer.c util-cuda-buffer.h \
 util-daemon.c util-daemon.h \
 util-debug.c util-debug.h \
 util-debug-filters.c util-debug-filters.h \
