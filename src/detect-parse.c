@@ -596,6 +596,17 @@ int SigParseProto(Signature *s, const char *protostr) {
                 }
                 als = als->next;
             }
+            /** VJ since our dns parser uses only pp, this is required to set
+             *  ipprotos */
+            AppLayerProbingParserInfo *ppi =
+                AppLayerGetProbingParserInfo(alp_proto_ctx.probing_parsers_info,
+                        protostr);
+            if (ppi != NULL) {
+                /* indicate that the signature is app-layer */
+                s->flags |= SIG_FLAG_APPLAYER;
+                s->alproto = ppi->al_proto;
+                s->proto.proto[ppi->ip_proto / 8] |= 1 << (ppi->ip_proto % 8);
+            }
             SCReturnInt(0);
         }
         AppLayerProbingParserInfo *ppi =
@@ -762,8 +773,17 @@ static int SigParseBasics(Signature *s, char *sigstr, char ***result, uint8_t ad
         goto error;
 
     /* Parse Proto */
-    if (SigParseProto(s, arr[CONFIG_PROTO]) < 0)
-        goto error;
+    if (strcasecmp(arr[CONFIG_PROTO], "dns") == 0) {
+        /** XXX HACK */
+        if (SigParseProto(s, "dnstcp") < 0)
+            goto error;
+        if (SigParseProto(s, "dnsudp") < 0)
+            goto error;
+
+    } else {
+        if (SigParseProto(s, arr[CONFIG_PROTO]) < 0)
+            goto error;
+    }
 
     if (strcmp(arr[CONFIG_DIREC], "<-") == 0) {
         SCLogError(SC_ERR_INVALID_DIRECTION, "\"<-\" is not a valid direction modifier, \"->\" and \"<>\" are supported.");

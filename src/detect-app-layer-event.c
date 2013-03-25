@@ -115,14 +115,22 @@ static DetectAppLayerEventData *DetectAppLayerEventParse(const char *arg)
     char buffer[50] = "";
     strlcpy(buffer, arg, p_idx - arg + 1); /* + 1 for trailing \0 */
 
-    //int module_id = DecoderEventModuleGetModuleId(buffer);
-    //uint16_t alproto = AppLayerGetProtoByName(buffer);
+    /** XXX HACK to support "dns" we use this trick */
+    if (strcasecmp(buffer, "dns") == 0)
+        strlcpy(buffer, "dnsudp", sizeof(buffer));
+
     uint16_t alproto = AppLayerDecoderEventsModuleGetAlproto(buffer);
-    if (alproto == ALPROTO_UNKNOWN)
+    if (alproto == ALPROTO_UNKNOWN) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword supplied "
+                   "with unknown protocol \"%s\"", buffer);
         return NULL;
+    }
     int event_id = AppLayerDecoderEventsModuleGetEventId(alproto, p_idx + 1);
-    if (event_id == -1)
+    if (event_id == -1) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword protocol "
+                   "\"%s\" don't have event \"%s\" registered", buffer, p_idx + 1);
         return NULL;
+    }
 
     DetectAppLayerEventData *aled = SCMalloc(sizeof(DetectAppLayerEventData));
     if (unlikely(aled == NULL))

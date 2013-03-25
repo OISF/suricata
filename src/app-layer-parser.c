@@ -635,6 +635,13 @@ int AppLayerRegisterProto(char *name, uint8_t proto, uint8_t flags,
         exit(EXIT_FAILURE);
     }
 
+    /* register name here as well so pp only protocols will work */
+    if (al_proto_table[proto].name != NULL) {
+        BUG_ON(strcmp(al_proto_table[proto].name, name) != 0);
+    } else {
+        al_proto_table[proto].name = name;
+    }
+
     al_parser_table[al_max_parsers].name = name;
     al_parser_table[al_max_parsers].AppLayerParser = AppLayerParser;
 
