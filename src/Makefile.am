@@ -257,6 +257,7 @@ util-cpu.c util-cpu.h \
 util-crypt.c util-crypt.h \
 util-cuda.c util-cuda.h \
 util-cuda-buffer.c util-cuda-buffer.h \
+util-cuda-handlers.c util-cuda-handlers.h \
 util-daemon.c util-daemon.h \
 util-debug.c util-debug.h \
 util-debug-filters.c util-debug-filters.h \
@@ -325,7 +326,7 @@ win32-misc.c win32-misc.h \
 win32-service.c win32-service.h \
 win32-syslog.h
 
-EXTRA_DIST = util-mpm-b2g-cuda-kernel.cu ptxdump.py
+EXTRA_DIST = util-mpm-ac-cuda-kernel.cu ptxdump.py
 
 # set the include path found by configure
 INCLUDES= $(all_includes)
@@ -345,7 +346,7 @@ BUILT_SOURCES = cuda-ptxdump.h
 suricata_SOURCES += cuda-ptxdump.h
 
 suricata_CUDA_KERNELS = \
-util-mpm-b2g-cuda-kernel.cu
+util-mpm-ac-cuda-kernel.cu
 
 NVCCFLAGS=-O2
 
@@ -355,7 +356,8 @@ SUFFIXES = \
 .ptx_sm_12 \
 .ptx_sm_13 \
 .ptx_sm_20 \
-.ptx_sm_21
+.ptx_sm_21 \
+.ptx_sm_30
 
 PTXS =  $(suricata_CUDA_KERNELS:.cu=.ptx_sm_10)
 PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_11)
@@ -363,6 +365,7 @@ PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_12)
 PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_13)
 PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_20)
 PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_21)
+PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_30)
 
 .cu.ptx_sm_10:
 	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_10 -ptx $<
@@ -381,6 +384,9 @@ PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_21)
 
 .cu.ptx_sm_21:
 	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_21 -ptx $<
+
+.cu.ptx_sm_30:
+	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_30 -ptx $<
 
 cuda-ptxdump.h: $(PTXS)
 	$(PYTHON) ptxdump.py cuda-ptxdump $(PTXS)

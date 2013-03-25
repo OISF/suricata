@@ -22,8 +22,15 @@
  *
  */
 
+#ifndef __UTIL_MPM_AC__H__
+#define __UTIL_MPM_AC__H__
+
 #define SC_AC_STATE_TYPE_U16 uint16_t
 #define SC_AC_STATE_TYPE_U32 uint32_t
+
+#ifdef __SC_CUDA_SUPPORT__
+#include "util-cuda.h"
+#endif /* __SC_CUDA_SUPPORT__ */
 
 typedef struct SCACPattern_ {
     /* length of the pattern */
@@ -79,6 +86,11 @@ typedef struct SCACCtx_ {
     /* the size of each state */
     uint16_t single_state_size;
     uint16_t max_pat_id;
+
+#ifdef __SC_CUDA_SUPPORT__
+    CUdeviceptr state_table_u16_cuda;
+    CUdeviceptr state_table_u32_cuda;
+#endif /* __SC_CUDA_SUPPORT__ */
 } SCACCtx;
 
 typedef struct SCACThreadCtx_ {
@@ -89,3 +101,24 @@ typedef struct SCACThreadCtx_ {
 } SCACThreadCtx;
 
 void MpmACRegister(void);
+
+
+#ifdef __SC_CUDA_SUPPORT__
+
+#define MPM_AC_CUDA_MODULE_NAME "ac_cuda"
+#define MPM_AC_CUDA_MODULE_CUDA_BUFFER_NAME "ac_cuda_cb"
+
+
+void MpmACCudaRegister(void);
+void SCACConstructBoth16and32StateTables(void);
+int MpmCudaBufferSetup(void);
+int MpmCudaBufferDeSetup(void);
+void SCACCudaStartDispatcher(void);
+void SCACCudaKillDispatcher(void);
+uint32_t  SCACCudaPacketResultsProcessing(Packet *p, MpmCtx *mpm_ctx,
+                                          PatternMatcherQueue *pmq);
+
+#endif /* __SC_CUDA_SUPPORT__ */
+
+
+#endif /* __UTIL_MPM_AC__H__ */
