@@ -155,7 +155,7 @@ void CudaBufferCullCompletedSlices(CudaBufferData *cb_data,
             SCLogDebug("CudaBuffer waiting on an item to finish");
             if (buffer_reset) {
                 while (!SC_ATOMIC_GET(slice_temp->done))
-                    ;
+                    usleep(1);
             } else {
                 break;
             }
