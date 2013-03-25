@@ -116,7 +116,8 @@ void CudaBufferReportCulledConsumption(CudaBufferData *cb_data,
  * \param cb_data Pointer to the CudaBufferData instance.
  */
 void CudaBufferCullCompletedSlices(CudaBufferData *cb_data,
-                                   CudaBufferCulledInfo *culled_info)
+                                   CudaBufferCulledInfo *culled_info,
+                                   uint32_t size_limit)
 {
     culled_info->no_of_items = 0;
     culled_info->d_buffer_reset = 0;
@@ -125,12 +126,15 @@ void CudaBufferCullCompletedSlices(CudaBufferData *cb_data,
     SCMutexLock(&cb_data->m);
 
     int buffer_reset = 0;
+    uint32_t d_buffer_write_temp = 0;
+    uint32_t op_buffer_write_temp = 0;
 
     if ((cb_data->d_buffer_write >=
          (cb_data->d_buffer_len * CUDA_BUFFER_BUFFER_ROTATION_LIMIT)) &&
         (cb_data->d_buffer_read != 0))
     {
         SCLogDebug("d_buffer reset");
+        d_buffer_write_temp = cb_data->d_buffer_write;
         cb_data->d_buffer_write = 0;
         buffer_reset = 1;
         culled_info->d_buffer_reset = 1;
@@ -142,6 +146,7 @@ void CudaBufferCullCompletedSlices(CudaBufferData *cb_data,
         (cb_data->op_buffer_read != 0))
     {
         SCLogDebug("op_buffer reset");
+        op_buffer_write_temp = cb_data->op_buffer_write;
         cb_data->op_buffer_write = 0;
         buffer_reset = 1;
         culled_info->op_buffer_reset = 1;
@@ -149,6 +154,7 @@ void CudaBufferCullCompletedSlices(CudaBufferData *cb_data,
 
     CudaBufferSlice *slice_temp = cb_data->slice_head;
     CudaBufferSlice *max_culled_slice = NULL;
+    uint32_t curr_size = 0;
 
     while (slice_temp != NULL) {
         if (!SC_ATOMIC_GET(slice_temp->done)) {
@@ -161,7 +167,18 @@ void CudaBufferCullCompletedSlices(CudaBufferData *cb_data,
             }
         }
 
+        if (curr_size + (slice_temp->end_offset - slice_temp->start_offset + 1) > size_limit) {
+            if (buffer_reset) {
+                cb_data->op_buffer_write = op_buffer_write_temp;
+                cb_data->d_buffer_write = d_buffer_write_temp;
+                culled_info->d_buffer_reset = 0;
+                culled_info->op_buffer_reset = 0;
+            }
+            break;
+        }
+
         max_culled_slice = slice_temp;
+        curr_size += (slice_temp->end_offset - slice_temp->start_offset + 1);
 
         slice_temp = slice_temp->next;
     }
@@ -579,7 +596,7 @@ int CudaBufferTest01(void)
     }
     CudaBufferCulledInfo culled_info;
     memset(&culled_info, 0, sizeof(CudaBufferCulledInfo));
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (data->slice_head != NULL || data->slice_tail != NULL) {
         printf("failure 17\n");
         result = 0;
@@ -644,7 +661,7 @@ int CudaBufferTest02(void)
     CudaBufferCulledInfo culled_info;
     memset(&culled_info, 0, sizeof(CudaBufferCulledInfo));
 
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (culled_info.no_of_items != 0) {
         printf("failure 5\n");
         goto end;
@@ -668,7 +685,7 @@ int CudaBufferTest02(void)
 
     SC_ATOMIC_SET(slice2->done, 1);
 
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (culled_info.no_of_items != 0) {
         printf("failure 9\n");
         goto end;
@@ -692,7 +709,7 @@ int CudaBufferTest02(void)
 
     SC_ATOMIC_SET(slice1->done, 1);
 
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (culled_info.no_of_items != 2) {
         printf("failure 13\n");
         goto end;
@@ -747,7 +764,7 @@ int CudaBufferTest02(void)
         goto end;
     }
 
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (culled_info.no_of_items != 0) {
         printf("failure 22\n");
         goto end;
@@ -796,7 +813,7 @@ int CudaBufferTest02(void)
     }
 
     /* culling */
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (culled_info.no_of_items != 1) {
         printf("failure 30\n");
         goto end;
@@ -833,7 +850,7 @@ int CudaBufferTest02(void)
         SC_ATOMIC_SET(slice_temp->done, 1);
         slice_temp = slice_temp->next;
     }
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (data->slice_head != NULL || data->slice_tail != NULL) {
         printf("failure 35\n");
         result = 0;
@@ -877,7 +894,7 @@ int CudaBufferTest03(void)
     CudaBufferCulledInfo culled_info;
     memset(&culled_info, 0, sizeof(CudaBufferCulledInfo));
 
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (culled_info.no_of_items != 0) {
         printf("failure 1\n");
         goto end;
@@ -919,7 +936,7 @@ int CudaBufferTest03(void)
         SC_ATOMIC_SET(slice_temp->done, 1);
         slice_temp = slice_temp->next;
     }
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (data->slice_head != NULL || data->slice_tail != NULL) {
         printf("failure 7\n");
         result = 0;
@@ -971,7 +988,7 @@ int CudaBufferTest04(void)
         printf("failure 1\n");
         goto end;
     }
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (culled_info.no_of_items != 1) {
         printf("failure 2\n");
         goto end;
@@ -992,7 +1009,7 @@ int CudaBufferTest04(void)
 
     SC_ATOMIC_SET(slice2->done, 1);
     SC_ATOMIC_SET(slice3->done, 1);
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (culled_info.no_of_items != 2) {
         printf("failure 5\n");
         goto end;
@@ -1016,7 +1033,7 @@ int CudaBufferTest04(void)
         SC_ATOMIC_SET(slice_temp->done, 1);
         slice_temp = slice_temp->next;
     }
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (data->slice_head != NULL || data->slice_tail != NULL) {
         printf("failure 8\n");
         goto end;
@@ -1029,7 +1046,7 @@ int CudaBufferTest04(void)
         SC_ATOMIC_SET(slice_temp->done, 1);
         slice_temp = slice_temp->next;
     }
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (data->slice_head != NULL || data->slice_tail != NULL) {
         printf("failure 9\n");
         result = 0;
@@ -1075,13 +1092,13 @@ int CudaBufferTest05(void)
     CudaBufferCulledInfo culled_info;
     memset(&culled_info, 0, sizeof(CudaBufferCulledInfo));
 
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     CudaBufferReportCulledConsumption(data, &culled_info);
 
     SC_ATOMIC_SET(slice2->done, 1);
     SC_ATOMIC_SET(slice3->done, 1);
 
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     CudaBufferReportCulledConsumption(data, &culled_info);
     slice1 = CudaBufferGetSlice(data, 16, NULL);
     if (slice1 == NULL) {
@@ -1106,7 +1123,7 @@ int CudaBufferTest05(void)
         SC_ATOMIC_SET(slice_temp->done, 1);
         slice_temp = slice_temp->next;
     }
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (data->slice_head != NULL || data->slice_tail != NULL) {
         printf("failure 4\n");
         result = 0;
@@ -1212,7 +1229,7 @@ int CudaBufferTest06(void)
     }
 
     /* culling */
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (data->d_buffer_write != 56 || data->d_buffer_read != 0 ||
         data->op_buffer_write != 7 || data->op_buffer_read != 0 ||
         data->no_of_items != 7) {
@@ -1227,7 +1244,7 @@ int CudaBufferTest06(void)
         goto end;
     }
 
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (data->d_buffer_write != 0 || data->d_buffer_read != 56 ||
         data->op_buffer_write != 7 || data->op_buffer_read != 7 ||
         data->no_of_items != 7) {
@@ -1284,7 +1301,7 @@ int CudaBufferTest06(void)
         goto end;
     }
 
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (data->d_buffer_write != 40 || data->d_buffer_read != 0 ||
         data->op_buffer_write != 12 || data->op_buffer_read != 7 ||
         data->no_of_items != 12) {
@@ -1307,7 +1324,7 @@ int CudaBufferTest06(void)
         SC_ATOMIC_SET(slice_temp->done, 1);
         slice_temp = slice_temp->next;
     }
-    CudaBufferCullCompletedSlices(data, &culled_info);
+    CudaBufferCullCompletedSlices(data, &culled_info, UTIL_MPM_CUDA_GPU_TRANSFER_SIZE);
     if (data->slice_head != NULL || data->slice_tail != NULL) {
         printf("failure 13\n");
         result = 0;

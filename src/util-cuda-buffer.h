@@ -97,7 +97,7 @@ typedef struct CudaBufferData_ {
 void CudaBufferReportCulledConsumption(CudaBufferData *cb_data,
                                        CudaBufferCulledInfo *culled_info);
 void CudaBufferCullCompletedSlices(CudaBufferData *cb_data,
-                                   CudaBufferCulledInfo *culled_info);
+                                   CudaBufferCulledInfo *culled_info, uint32_t size_limit);
 CudaBufferSlice *CudaBufferGetSlice(CudaBufferData *data, uint32_t len, void *p);
 void CudaBufferDeRegister(CudaBufferData *cb_data);
 CudaBufferData *CudaBufferRegisterNew(uint8_t *d_buffer, uint32_t d_buffer_len,

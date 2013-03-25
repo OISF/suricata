@@ -1534,7 +1534,7 @@ static void *SCACCudaDispatcher(void *arg)
         usleep(sleep_interval_ms);
 
         /**************** 1 SEND ****************/
-        CudaBufferCullCompletedSlices(cb_data, &cb_culled_info);
+        CudaBufferCullCompletedSlices(cb_data, &cb_culled_info, conf->gpu_transfer_size);
         if (cb_culled_info.no_of_items == 0)
             continue;
 #if 0
