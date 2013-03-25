@@ -46,7 +46,7 @@ typedef struct SCCudaDevice_ {
     CUdevprop prop;
 
     /* device total memory */
-    unsigned int bytes;
+    size_t bytes;
 
     /* device attributes.  We could have used a fixed int array table to hold
      * the attributes, but it is better we specify it exclusively this way,
@@ -79,125 +79,244 @@ typedef struct SCCudaDevices_ {
     SCCudaDevice **devices;
 } SCCudaDevices;
 
-int SCCudaArray3DCreate(CUarray *, const CUDA_ARRAY3D_DESCRIPTOR *);
-int SCCudaArray3DGetDescriptor(CUDA_ARRAY3D_DESCRIPTOR *, CUarray);
-int SCCudaArrayCreate(CUarray *, const CUDA_ARRAY_DESCRIPTOR *);
-int SCCudaArrayDestroy(CUarray);
-int SCCudaArrayGetDescriptor(CUDA_ARRAY_DESCRIPTOR *, CUarray);
-int SCCudaMemAlloc(CUdeviceptr *dptr, unsigned int);
-int SCCudaMemAllocHost(void **, unsigned int);
-int SCCudaMemAllocPitch(CUdeviceptr *, unsigned int *, unsigned int,
-                        unsigned int, unsigned int);
-int SCCudaMemcpy2D(const CUDA_MEMCPY2D *);
-int SCCudaMemcpy2DAsync(const CUDA_MEMCPY2D *, CUstream);
-int SCCudaMemcpy2DUnaligned(const CUDA_MEMCPY2D *);
-int SCCudaMemcpy3D(const CUDA_MEMCPY3D *);
-int SCCudaMemcpy3DAsync(const CUDA_MEMCPY3D *, CUstream);
-int SCCudaMemcpyAtoA(CUarray, unsigned int, CUarray, unsigned int, unsigned int);
-int SCCudaMemcpyAtoD(CUdeviceptr, CUarray, unsigned int, unsigned int);
-int SCCudaMemcpyAtoH(void *, CUarray, unsigned int, unsigned int);
-int SCCudaMemcpyAtoHAsync(void *, CUarray, unsigned int, unsigned int,
-                          CUstream);
-int SCCudaMemcpyDtoA(CUarray, unsigned int, CUdeviceptr, unsigned int);
-int SCCudaMemcpyDtoD(CUdeviceptr, CUdeviceptr, unsigned int byte_count);
-int SCCudaMemcpyDtoH(void *, CUdeviceptr, unsigned int);
-int SCCudaMemcpyDtoHAsync(void *, CUdeviceptr, unsigned int, CUstream);
-int SCCudaMemcpyHtoA(CUarray, unsigned int, const void *, unsigned int);
-int SCCudaMemcpyHtoAAsync(CUarray, unsigned int, const void *,
-                          unsigned int, CUstream);
-int SCCudaMemcpyHtoD(CUdeviceptr, const void *, unsigned int);
-int SCCudaMemcpyHtoDAsync(CUdeviceptr, const void *, unsigned int,
-                          CUstream);
-int SCCudaMemFree(CUdeviceptr);
-int SCCudaMemFreeHost(void *);
-int SCCudaMemGetAddressRange(CUdeviceptr *, unsigned int *, CUdeviceptr);
-int SCCudaMemGetInfo(unsigned int *, unsigned int *);
-int SCCudaMemHostAlloc(void **, size_t, unsigned int);
-int SCCudaMemHostGetDevicePointer(CUdeviceptr *, void *, unsigned int);
-int SCCudaMemHostGetFlags(unsigned int *, void *);
-int SCCudaMemsetD16(CUdeviceptr, unsigned short, unsigned int);
-int SCCudaMemsetD2D16(CUdeviceptr, unsigned int, unsigned short,
-                      unsigned int, unsigned int);
-int SCCudaMemsetD2D32(CUdeviceptr, unsigned int, unsigned int, unsigned int,
-                      unsigned int);
-int SCCudaMemsetD2D8(CUdeviceptr, unsigned int, unsigned char, unsigned int,
-                     unsigned int);
-int SCCudaMemsetD32(CUdeviceptr, unsigned int, unsigned int);
-int SCCudaMemsetD8(CUdeviceptr, unsigned char, unsigned int);
 
-int SCCudaTexRefCreate(CUtexref *);
-int SCCudaTexRefDestroy(CUtexref);
-int SCCudaTexRefGetAddress(CUdeviceptr *, CUtexref);
-int SCCudaTexRefGetAddressMode(CUaddress_mode *, CUtexref, int);
-int SCCudaTexRefGetArray(CUarray *, CUtexref);
-int SCCudaTexRefGetFilterMode(CUfilter_mode *, CUtexref);
-int SCCudaTexRefGetFlags(unsigned int *, CUtexref);
-int SCCudaTexRefGetFormat(CUarray_format *, int *, CUtexref);
-int SCCudaTexRefSetAddress(unsigned int *, CUtexref, CUdeviceptr,
-                           unsigned int);
-int SCCudaTexRefSetAddress2D(CUtexref, const CUDA_ARRAY_DESCRIPTOR *,
-                             CUdeviceptr, unsigned int);
-int SCCudaTexRefSetAddressMode(CUtexref, int, CUaddress_mode);
-int SCCudaTexRefSetArray(CUtexref, CUarray, unsigned int);
-int SCCudaTexRefSetFilterMode(CUtexref, CUfilter_mode);
-int SCCudaTexRefSetFlags(CUtexref, unsigned int);
-int SCCudaTexRefSetFormat(CUtexref, CUarray_format, int);
+/**************************Cuda_Initialization_API**************************/
+int SCCudaInit(unsigned int flags);
 
-int SCCudaFuncGetAttribute(int *, CUfunction_attribute, CUfunction);
-int SCCudaFuncSetBlockShape(CUfunction, int, int, int);
-int SCCudaFuncSetSharedSize(CUfunction, unsigned int);
-int SCCudaLaunch(CUfunction);
-int SCCudaLaunchGrid(CUfunction, int, int);
-int SCCudaLaunchGridAsync(CUfunction, int, int, CUstream);
-int SCCudaParamSetf(CUfunction, int, float);
-int SCCudaParamSeti(CUfunction, int, unsigned int);
-int SCCudaParamSetSize(CUfunction, unsigned int);
-int SCCudaParamSetTexRef(CUfunction, int, CUtexref);
-int SCCudaParamSetv(CUfunction, int, void *, unsigned int);
+/***************************Version_Management_API***************************/
+int SCCudaDriverGetVersion(int *driver_version);
 
-int SCCudaEventCreate(CUevent *, unsigned int);
-int SCCudaEventDestroy(CUevent);
-int SCCudaEventElapsedTime(float *, CUevent, CUevent);
-int SCCudaEventQuery(CUevent);
-int SCCudaEventRecord(CUevent, CUstream);
-int SCCudaEventSynchronize(CUevent);
-
-int SCCudaStreamCreate(CUstream *, unsigned int);
-int SCCudaStreamDestroy(CUstream);
-int SCCudaStreamQuery(CUstream);
-int SCCudaStreamSynchronize(CUstream);
-
-int SCCudaModuleGetFunction(CUfunction *, CUmodule, const char *);
-int SCCudaModuleGetGlobal(CUdeviceptr *, unsigned int *, CUmodule, const char *);
-int SCCudaModuleGetTexRef(CUtexref *, CUmodule, const char *);
-int SCCudaModuleLoad(CUmodule *, const char *);
-int SCCudaModuleLoadData(CUmodule *, const char *);
-int SCCudaModuleLoadDataEx(CUmodule *, const char *, unsigned int,
-                           CUjit_option *, void **);
-int SCCudaModuleLoadFatBinary(CUmodule *, const void *);
-int SCCudaModuleUnload(CUmodule);
-
-
-int SCCudaCtxAttach(CUcontext *, unsigned int);
-int SCCudaCtxCreate(CUcontext *, unsigned int, CUdevice);
-int SCCudaCtxDestroy(CUcontext);
-int SCCudaCtxDetach(CUcontext);
-int SCCudaCtxGetDevice(CUdevice *);
-int SCCudaCtxPopCurrent(CUcontext *);
-int SCCudaCtxPushCurrent(CUcontext);
-int SCCudaCtxSynchronize(void);
-
-int SCCudaDriverGetVersion(int *);
+/***************************Device_Management_API****************************/
+int SCCudaDeviceComputeCapability(int *major, int *minor, CUdevice dev);
+int SCCudaDeviceGet(CUdevice *device, int ordinal);
+int SCCudaDeviceGetAttribute(int *pi, CUdevice_attribute attrib,
+                             CUdevice dev);
+int SCCudaDeviceGetCount(int *count);
+int SCCudaDeviceGetName(char *name, int len, CUdevice dev);
+int SCCudaDeviceGetProperties(CUdevprop *prop, CUdevice dev);
+int SCCudaDeviceTotalMem(size_t *bytes, CUdevice dev);
 
 void SCCudaPrintDeviceList(SCCudaDevices *);
 void SCCudaPrintBasicDeviceInfo(SCCudaDevices *);
 SCCudaDevices *SCCudaGetDeviceList(void);
 
+/***************************Context_Management_API***************************/
+int SCCudaCtxCreate(CUcontext *pctx, unsigned int flags, CUdevice dev);
+int SCCudaCtxDestroy(CUcontext ctx);
+int SCCudaCtxGetApiVersion(CUcontext ctx, unsigned int *version);
+int SCCudaCtxGetCacheConfig(CUfunc_cache *pconfig);
+int SCCudaCtxGetCurrent(CUcontext *pctx);
+int SCCudaCtxGetDevice(CUdevice *device);
+int SCCudaCtxGetLimit(size_t *pvalue, CUlimit limit);
+int SCCudaCtxPopCurrent(CUcontext *pctx);
+int SCCudaCtxPushCurrent(CUcontext ctx);
+int SCCudaCtxSetCacheConfig(CUfunc_cache config);
+int SCCudaCtxSetCurrent(CUcontext ctx);
+int SCCudaCtxSetLimit(CUlimit limit, size_t value);
+int SCCudaCtxSynchronize(void);
+int SCCudaCtxAttach(CUcontext *pctx, unsigned int flags);
+int SCCudaCtxDetach(CUcontext ctx);
+
+/***************************Module_Management_API****************************/
+int SCCudaModuleGetFunction(CUfunction *hfunc, CUmodule hmod,
+                            const char *name);
+int SCCudaModuleGetGlobal(CUdeviceptr *dptr, size_t *bytes, CUmodule hmod,
+                          const char *name);
+int SCCudaModuleGetSurfRef(CUsurfref *p_surf_ref, CUmodule hmod,
+                           const char *name);
+int SCCudaModuleGetTexRef(CUtexref *p_tex_ref, CUmodule hmod,
+                          const char *name);
+int SCCudaModuleLoad(CUmodule *module, const char *fname);
+int SCCudaModuleLoadData(CUmodule *module, const void *image);
+int SCCudaModuleLoadDataEx(CUmodule *module, const void *image,
+                           unsigned int num_options, CUjit_option *options,
+                           void **option_values);
+int SCCudaModuleLoadFatBinary(CUmodule *module, const void *fat_cubin);
+int SCCudaModuleUnload(CUmodule hmod);
+
+/**************************Memory_Management_API*****************************/
+int SCCudaArray3DCreate(CUarray *p_handle,
+                        const CUDA_ARRAY3D_DESCRIPTOR *p_allocate_array);
+int SCCudaArray3DGetDescriptor(CUDA_ARRAY3D_DESCRIPTOR *p_array_descriptor,
+                               CUarray h_array);
+int SCCudaArrayCreate(CUarray *p_handle,
+                      const CUDA_ARRAY_DESCRIPTOR *p_allocate_array);
+int SCCudaArrayDestroy(CUarray h_array);
+int SCCudaArrayGetDescriptor(CUDA_ARRAY_DESCRIPTOR *p_array_descriptor,
+                             CUarray h_array);
+int SCCudaDeviceGetByPCIBusId(CUdevice *dev, char *pci_bus_id);
+int SCCudaDeviceGetPCIBusId(char *pci_bus_id, int len, CUdevice dev);
+int SCCudaIpcCloseMemHandle(CUdeviceptr dptr);
+int SCCudaIpcGetEventHandle(CUipcEventHandle *p_handle, CUevent event);
+int SCCudaIpcGetMemHandle(CUipcMemHandle *p_handle, CUdeviceptr dptr);
+int SCCudaIpcOpenEventHandle(CUevent *ph_event, CUipcEventHandle handle);
+int SCCudaIpcOpenMemHandle(CUdeviceptr *pdptr, CUipcMemHandle handle,
+                           unsigned int flags);
+int SCCudaMemAlloc(CUdeviceptr *dptr, size_t byte_size);
+int SCCudaMemAllocHost(void **pp, size_t byte_size);
+int SCCudaMemAllocPitch(CUdeviceptr *dptr, size_t *p_pitch,
+                        size_t width_in_bytes,
+                        size_t height,
+                        unsigned int element_size_bytes);
+int SCCudaMemcpy(CUdeviceptr dst, CUdeviceptr src, size_t byte_count);
+int SCCudaMemcpy2D(const CUDA_MEMCPY2D *p_copy);
+int SCCudaMemcpy2DAsync(const CUDA_MEMCPY2D *p_copy, CUstream h_stream);
+int SCCudaMemcpy2DUnaligned(const CUDA_MEMCPY2D *p_copy);
+int SCCudaMemcpy3D(const CUDA_MEMCPY3D *p_copy);
+int SCCudaMemcpy3DAsync(const CUDA_MEMCPY3D *p_copy, CUstream h_stream);
+int SCCudaMemcpy3DPeer(const CUDA_MEMCPY3D_PEER *p_copy);
+int SCCudaMemcpy3DPeerAsync(const CUDA_MEMCPY3D_PEER *p_copy,
+                            CUstream h_stream);
+int SCCudaMemcpyAsync(CUdeviceptr dst, CUdeviceptr src, size_t byte_count,
+                      CUstream h_stream);
+int SCCudaMemcpyAtoA(CUarray dst_array, size_t dst_offset,
+                     CUarray src_array, size_t src_offset,
+                     size_t byte_count);
+int SCCudaMemcpyAtoD(CUdeviceptr dst_device, CUarray src_array,
+                     size_t src_offset, size_t byte_count);
+int SCCudaMemcpyAtoH(void *dst_host, CUarray src_array, size_t src_offset,
+                     size_t byte_count);
+int SCCudaMemcpyAtoHAsync(void *dst_host, CUarray src_array,
+                          size_t src_offset, size_t byte_count,
+                          CUstream h_stream);
+int SCCudaMemcpyDtoA(CUarray dst_array, size_t dst_offset,
+                     CUdeviceptr src_device, size_t byte_count);
+int SCCudaMemcpyDtoD(CUdeviceptr dst_device, CUdeviceptr src_device,
+                     size_t byte_count);
+int SCCudaMemcpyDtoDAsync(CUdeviceptr dst_device, CUdeviceptr src_device,
+                          size_t byte_count, CUstream h_stream);
+int SCCudaMemcpyDtoH(void *dst_host, CUdeviceptr src_device,
+                     size_t byte_count);
+int SCCudaMemcpyDtoHAsync(void *dst_host, CUdeviceptr src_device,
+                          size_t byte_count, CUstream h_stream);
+int SCCudaMemcpyHtoA(CUarray dst_array, size_t dst_offset,
+                     const void *src_host, size_t byte_count);
+int SCCudaMemcpyHtoAAsync(CUarray dst_array, size_t dst_offset,
+                          const void *src_host, size_t byte_count,
+                          CUstream h_stream);
+int SCCudaMemcpyHtoD(CUdeviceptr dst_device, const void *src_host,
+                     size_t byte_count);
+int SCCudaMemcpyHtoDAsync(CUdeviceptr dst_device, const void *src_host,
+                          size_t byte_count, CUstream h_stream);
+int SCCudaMemcpyPeer(CUdeviceptr dst_device, CUcontext dst_context,
+                     CUdeviceptr src_device, CUcontext src_context,
+                     size_t byte_count);
+int SCCudaMemcpyPeerAsync(CUdeviceptr dst_device, CUcontext dst_context,
+                          CUdeviceptr src_device, CUcontext src_context,
+                          size_t byte_count, CUstream h_stream);
+int SCCudaMemFree(CUdeviceptr dptr);
+int SCCudaMemFreeHost(void *p);
+int SCCudaMemGetAddressRange(CUdeviceptr *pbase, size_t *psize,
+                             CUdeviceptr dptr);
+int SCCudaMemGetInfo(size_t *free, size_t *total);
+int SCCudaMemHostAlloc(void **pp, size_t byte_size, unsigned int flags);
+int SCCudaMemHostGetDevicePointer(CUdeviceptr *pdptr, void *p,
+                                  unsigned int flags);
+int SCCudaMemHostGetFlags(unsigned int *p_flags, void *p);
+int SCCudaMemHostRegister(void *p, size_t byte_size, unsigned int flags);
+int SCCudaMemHostUnregister(void *p);
+int SCCudaMemsetD16(CUdeviceptr dst_device, unsigned short us, size_t n);
+int SCCudaMemsetD16Async(CUdeviceptr dst_device, unsigned short us,
+                         size_t n, CUstream h_stream);
+int SCCudaMemsetD2D16(CUdeviceptr dst_device, size_t dst_pitch,
+                      unsigned short us, size_t width,
+                      size_t height);
+int SCCudaMemsetD2D16Async(CUdeviceptr dst_device, size_t dst_pitch,
+                           unsigned short us, size_t width,
+                           size_t height, CUstream h_stream);
+int SCCudaMemsetD2D32(CUdeviceptr dst_device, size_t dst_pitch,
+                      unsigned int ui, size_t width, size_t height);
+int SCCudaMemsetD2D32Async(CUdeviceptr dst_device, size_t dst_pitch,
+                           unsigned int ui, size_t width, size_t height,
+                           CUstream h_stream);
+int SCCudaMemsetD2D8(CUdeviceptr dst_device, size_t dst_pitch,
+                     unsigned char uc, size_t width, size_t height);
+int SCCudaMemsetD2D8Async(CUdeviceptr dst_device, size_t dst_pitch,
+                          unsigned char uc, size_t width, size_t height,
+                          CUstream h_stream);
+int SCCudaMemsetD32(CUdeviceptr dst_device, unsigned int ui, size_t n);
+int SCCudaMemsetD32Async(CUdeviceptr dst_device, unsigned int ui,
+                         size_t n, CUstream h_stream);
+int SCCudaMemsetD8(CUdeviceptr dst_device, unsigned char uc, size_t n);
+int SCCudaMemsetD8Async(CUdeviceptr dst_device, unsigned char uc,
+                        size_t n, CUstream h_stream);
+
+/***************************Unified_Addressing_API****************************/
+
+int SCCudaPointerGetAttribute(void *data, CUpointer_attribute attribute,
+                              CUdeviceptr ptr);
+
+/***************************Stream_Management_API****************************/
+int SCCudaStreamCreate(CUstream *ph_stream, unsigned int flags);
+int SCCudaStreamDestroy(CUstream h_stream);
+int SCCudaStreamQuery(CUstream h_stream);
+int SCCudaStreamSynchronize(CUstream h_stream);
+int SCCudaStreamWaitEvent(CUstream h_stream, CUevent h_event,
+                          unsigned int flags);
+
+/***************************Event_Management_API*****************************/
+int SCCudaEventCreate(CUevent *ph_event, unsigned int flags);
+int SCCudaEventDestroy(CUevent h_event);
+int SCCudaEventElapsedTime(float *p_milli_seconds, CUevent h_start,
+                           CUevent h_end);
+int SCCudaEventQuery(CUevent h_event);
+int SCCudaEventRecord(CUevent h_event, CUstream h_stream);
+int SCCudaEventSynchronize(CUevent h_event);
+
+/***********************Execution_Control_Management_API***********************/
+int SCCudaFuncGetAttribute(int *pi, CUfunction_attribute attrib,
+                           CUfunction hfunc);
+int SCCudaFuncSetCacheConfig(CUfunction hfunc, CUfunc_cache config);
+int SCCudaLaunchKernel(CUfunction f, unsigned int grid_dim_x,
+                       unsigned int grid_dim_y, unsigned int grid_dim_z,
+                       unsigned int block_dim_x, unsigned int block_dim_y,
+                       unsigned int block_dim_z, unsigned int shared_mem_bytes,
+                       CUstream h_stream, void **kernel_params, void **extra);
+int SCCudaFuncSetBlockShape(CUfunction hfunc, int x, int y, int z);
+int SCCudaFuncSetSharedSize(CUfunction hfunc, unsigned int bytes);
+int SCCudaLaunch(CUfunction f);
+int SCCudaLaunchGrid(CUfunction f, int grid_width, int grid_height);
+int SCCudaLaunchGridAsync(CUfunction f, int grid_width, int grid_height,
+                          CUstream h_stream);
+int SCCudaParamSetf(CUfunction h_func, int offset, float value);
+int SCCudaParamSeti(CUfunction h_func, int offset, unsigned int value);
+int SCCudaParamSetSize(CUfunction h_func, unsigned int num_bytes);
+int SCCudaParamSetTexRef(CUfunction h_func, int tex_unit, CUtexref h_tex_ref);
+int SCCudaParamSetv(CUfunction h_func, int offset, void *ptr,
+                    unsigned int num_bytes);
+
+/*********************Texture_Reference_Management_API***********************/
+int SCCudaTexRefCreate(CUtexref *p_tex_ref);
+int SCCudaTexRefDestroy(CUtexref h_tex_ref);
+int SCCudaTexRefGetAddress(CUdeviceptr *pdptr, CUtexref h_tex_ref);
+int SCCudaTexRefGetAddressMode(CUaddress_mode *pam, CUtexref h_tex_ref,
+                               int dim);
+int SCCudaTexRefGetArray(CUarray *ph_array, CUtexref h_tex_ref);
+int SCCudaTexRefGetFilterMode(CUfilter_mode *pfm, CUtexref h_tex_ref);
+int SCCudaTexRefGetFlags(unsigned int *p_flags, CUtexref h_tex_ref);
+int SCCudaTexRefGetFormat(CUarray_format *p_format, int *p_num_channels,
+                          CUtexref h_tex_ref);
+int SCCudaTexRefSetAddress(size_t *byte_offset, CUtexref h_tex_ref,
+                           CUdeviceptr dptr, unsigned int bytes);
+int SCCudaTexRefSetAddress2D(CUtexref h_tex_ref,
+                             const CUDA_ARRAY_DESCRIPTOR *desc,
+                             CUdeviceptr dptr, unsigned int pitch);
+int SCCudaTexRefSetAddressMode(CUtexref h_tex_ref, int dim, CUaddress_mode am);
+int SCCudaTexRefSetArray(CUtexref h_tex_ref, CUarray h_array,
+                         unsigned int flags);
+int SCCudaTexRefSetFilterMode(CUtexref h_tex_ref, CUfilter_mode fm);
+int SCCudaTexRefSetFlags(CUtexref h_tex_ref, unsigned int flags);
+int SCCudaTexRefSetFormat(CUtexref h_tex_ref, CUarray_format fmt,
+                          int num_packed_components);
+
+/************************Cuda_Env_Initialization_API*************************/
 int SCCudaInitCudaEnvironment(void);
 
+/********************************Cuda_Utility********************************/
 void SCCudaListCards(void);
-int SCCudaIsCudaDeviceIdValid(int);
+int SCCudaIsCudaDeviceIdValid(int cuda_device_id);
 
+/********************************Unittests***********************************/
 void SCCudaRegisterTests(void);
 
 #endif /* __SC_CUDA_SUPPORT__ */

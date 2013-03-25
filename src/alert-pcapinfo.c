@@ -53,8 +53,6 @@
 #include "output.h"
 #include "alert-pcapinfo.h"
 
-#include "util-mpm-b2g-cuda.h"
-#include "util-cuda-handlers.h"
 #include "util-privs.h"
 #include "util-print.h"
 #include "util-proto-name.h"
