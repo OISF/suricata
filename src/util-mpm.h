@@ -65,6 +65,9 @@ enum {
 
     /* aho-corasick */
     MPM_AC,
+#ifdef __SC_CUDA_SUPPORT__
+    MPM_AC_CUDA,
+#endif
     /* aho-corasick-goto-failure state based */
     MPM_AC_GFBS,
     MPM_AC_BS,
@@ -81,6 +84,7 @@ typedef struct MpmThreadCtx_ {
 
     uint32_t memory_cnt;
     uint32_t memory_size;
+
 } MpmThreadCtx;
 
 /** \brief helper structure for the pattern matcher engine. The Pattern Matcher
@@ -175,6 +179,40 @@ typedef struct MpmTableElmt_ {
 } MpmTableElmt;
 
 MpmTableElmt mpm_table[MPM_TABLE_SIZE];
+
+/* macros decides if cuda is enabled for the platform or not */
+#ifdef __SC_CUDA_SUPPORT__
+
+/* the min size limit of a payload(or any other data) to be buffered */
+#define UTIL_MPM_CUDA_DATA_BUFFER_SIZE_MIN_LIMIT_DEFAULT 0
+/* the max size limit of a payload(or any other data) to be buffered */
+#define UTIL_MPM_CUDA_DATA_BUFFER_SIZE_MAX_LIMIT_DEFAULT 1500
+/* Default value for data buffer used by cuda mpm engine for CudaBuffer reg */
+#define UTIL_MPM_CUDA_CUDA_BUFFER_DBUFFER_SIZE_DEFAULT 500 * 1024 * 1024
+/* Default value for the max data chunk that would be sent to gpu */
+#define UTIL_MPM_CUDA_GPU_TRANSFER_SIZE 50 * 1024 * 1024
+/* Default value for offset/pointer buffer to be used by cuda mpm
+ * engine for CudaBuffer reg */
+#define UTIL_MPM_CUDA_CUDA_BUFFER_OPBUFFER_ITEMS_DEFAULT 500000
+#define UTIL_MPM_CUDA_BATCHING_TIMEOUT_DEFAULT 2000
+#define UTIL_MPM_CUDA_CUDA_STREAMS_DEFAULT 2
+#define UTIL_MPM_CUDA_DEVICE_ID_DEFAULT 0
+
+/**
+ * \brief Cuda configuration for "mpm" profile.  We can further extend this
+ *        to have conf for specific mpms.  For now its common for all mpms.
+ */
+typedef struct MpmCudaConf_ {
+    uint16_t data_buffer_size_min_limit;
+    uint16_t data_buffer_size_max_limit;
+    uint32_t cb_buffer_size;
+    uint32_t gpu_transfer_size;
+    int batching_timeout;
+    int device_id;
+    int cuda_streams;
+} MpmCudaConf;
+
+#endif /* __SC_CUDA_SUPPORT__ */
 
 struct DetectEngineCtx_;
 

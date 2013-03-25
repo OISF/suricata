@@ -49,12 +49,22 @@
 #include "suricata.h"
 
 #include "detect.h"
-#include "util-mpm-ac.h"
 
 #include "conf.h"
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-memcmp.h"
+#include "util-mpm-ac.h"
+
+#ifdef __SC_CUDA_SUPPORT__
+
+#include "util-mpm.h"
+#include "tm-threads.h"
+#include "util-mpm.h"
+#include "detect-engine-mpm.h"
+#include "util-cuda.h"
+#include "util-cuda-handlers.h"
+#endif /* __SC_CUDA_SUPPORT__ */
 
 void SCACInitCtx(MpmCtx *, int);
 void SCACInitThreadCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
@@ -78,6 +88,8 @@ void SCACRegisterTests(void);
 
 #define STATE_QUEUE_CONTAINER_SIZE 65536
 
+static int construct_both_16_and_32_state_tables = 0;
+
 /**
  * \brief Helper structure used by AC during state table creation
  */
@@ -86,31 +98,6 @@ typedef struct StateQueue_ {
     int top;
     int bot;
 } StateQueue;
-
-/**
- * \brief Register the aho-corasick mpm.
- */
-void MpmACRegister(void)
-{
-    mpm_table[MPM_AC].name = "ac";
-    /* don't need this.  isn't that awesome?  no more chopping and blah blah */
-    mpm_table[MPM_AC].max_pattern_length = 0;
-
-    mpm_table[MPM_AC].InitCtx = SCACInitCtx;
-    mpm_table[MPM_AC].InitThreadCtx = SCACInitThreadCtx;
-    mpm_table[MPM_AC].DestroyCtx = SCACDestroyCtx;
-    mpm_table[MPM_AC].DestroyThreadCtx = SCACDestroyThreadCtx;
-    mpm_table[MPM_AC].AddPattern = SCACAddPatternCS;
-    mpm_table[MPM_AC].AddPatternNocase = SCACAddPatternCI;
-    mpm_table[MPM_AC].Prepare = SCACPreparePatterns;
-    mpm_table[MPM_AC].Search = SCACSearch;
-    mpm_table[MPM_AC].Cleanup = NULL;
-    mpm_table[MPM_AC].PrintCtx = SCACPrintInfo;
-    mpm_table[MPM_AC].PrintThreadCtx = SCACPrintSearchStats;
-    mpm_table[MPM_AC].RegisterUnittests = SCACRegisterTests;
-
-    return;
-}
 
 /**
  * \internal
@@ -759,7 +746,7 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
     int ascii_code = 0;
     int32_t r_state = 0;
 
-    if (ctx->state_count < 32767) {
+    if ((ctx->state_count < 32767) || construct_both_16_and_32_state_tables) {
         ctx->state_table_u16 = SCMalloc(ctx->state_count *
                                         sizeof(SC_AC_STATE_TYPE_U16) * 256);
         if (ctx->state_table_u16 == NULL) {
@@ -797,7 +784,9 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
                 }
             }
         }
-    } else {
+    }
+
+    if (!(ctx->state_count < 32767) || construct_both_16_and_32_state_tables) {
         /* create space for the state table.  We could have used the existing goto
          * table, but since we have it set to hold 32 bit state values, we will create
          * a new state table here of type SC_AC_STATE_TYPE(current set to uint16_t) */
@@ -850,7 +839,7 @@ static inline void SCACClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
     uint32_t state = 0;
     uint32_t temp_state = 0;
 
-    if (ctx->state_count < 32767) {
+    if ((ctx->state_count < 32767) || construct_both_16_and_32_state_tables) {
         for (state = 0; state < ctx->state_count; state++) {
             for (ascii_code = 0; ascii_code < 256; ascii_code++) {
                 temp_state = ctx->state_table_u16[state & 0x7FFF][ascii_code];
@@ -858,7 +847,9 @@ static inline void SCACClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
                     ctx->state_table_u16[state & 0x7FFF][ascii_code] |= (1 << 15);
             }
         }
-    } else {
+    }
+
+    if (!(ctx->state_count < 32767) || construct_both_16_and_32_state_tables) {
         for (state = 0; state < ctx->state_count; state++) {
             for (ascii_code = 0; ascii_code < 256; ascii_code++) {
                 temp_state = ctx->state_table_u32[state & 0x00FFFFFF][ascii_code];
@@ -1032,6 +1023,25 @@ int SCACPreparePatterns(MpmCtx *mpm_ctx)
     /* prepare the state table required by AC */
     SCACPrepareStateTable(mpm_ctx);
 
+#ifdef __SC_CUDA_SUPPORT__
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        int r = SCCudaMemAlloc(&ctx->state_table_u32_cuda,
+                               ctx->state_count * sizeof(unsigned int) * 256);
+        if (r < 0) {
+            SCLogError(SC_ERR_AC_CUDA_ERROR, "SCCudaMemAlloc failure.");
+            exit(EXIT_FAILURE);
+        }
+
+        r = SCCudaMemcpyHtoD(ctx->state_table_u32_cuda,
+                             ctx->state_table_u32,
+                             ctx->state_count * sizeof(unsigned int) * 256);
+        if (r < 0) {
+            SCLogError(SC_ERR_AC_CUDA_ERROR, "SCCudaMemcpyHtoD failure.");
+            exit(EXIT_FAILURE);
+        }
+    }
+#endif
+
     /* free all the stored patterns.  Should save us a good 100-200 mbs */
     for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
         if (ctx->parray[i] != NULL) {
@@ -1166,7 +1176,8 @@ void SCACDestroyCtx(MpmCtx *mpm_ctx)
         mpm_ctx->memory_cnt++;
         mpm_ctx->memory_size -= (ctx->state_count *
                                  sizeof(SC_AC_STATE_TYPE_U16) * 256);
-    } else if (ctx->state_table_u32 != NULL) {
+    }
+    if (ctx->state_table_u32 != NULL) {
         SCFree(ctx->state_table_u32);
         ctx->state_table_u32 = NULL;
 
@@ -1393,6 +1404,533 @@ void SCACPrintInfo(MpmCtx *mpm_ctx)
 
     return;
 }
+
+/****************************Cuda side of things****************************/
+
+#ifdef __SC_CUDA_SUPPORT__
+/* \todos
+ * - Use texture memory - Can we fit all the arrays into a 3d texture.
+ *   Texture memory definitely offers slightly better performance even
+ *   on gpus that offer cache for global memory.
+ * - Packetpool - modify to support > 65k max pending packets.  We are
+ *   hitting packetpool limit currently even with 65k packets.
+ * - Use streams.  We have tried overlapping parsing results from the
+ *   previous call with invoking the next call.
+ * - Offer higher priority to decode threads.
+ * - Modify pcap file mode to support reading from multiple pcap files
+ *   and hence we will have multiple receive threads.
+ * - Split state table into many small pieces and have multiple threads
+ *   run each small state table on the same payload.
+ * - Used a config peference of l1 over shared memory with no noticeable
+ *   perf increase.  Explore it in detail over cards/architectures.
+ * - Constant memory performance sucked.  Explore it in detail.
+ * - Currently all our state tables are small.  Implement 16 bit state
+ *   tables on priority.
+ * - Introduce profiling.
+ * - Retrieve sgh before buffer packet.
+ * - Buffer smsgs too.
+ */
+
+void SCACConstructBoth16and32StateTables(void)
+{
+    construct_both_16_and_32_state_tables = 1;
+
+    return;
+}
+
+/* \todo Reduce offset buffer size.  Probably a 100,000 entry would be sufficient. */
+static void *SCACCudaDispatcher(void *arg)
+{
+#define BLOCK_SIZE 32
+
+    int r = 0;
+    ThreadVars *tv = (ThreadVars *)arg;
+    MpmCudaConf *conf = CudaHandlerGetCudaProfile("mpm");
+    uint32_t sleep_interval_ms = conf->batching_timeout;
+
+    SCLogInfo("AC Cuda Mpm Dispatcher using a timeout of "
+              "\"%"PRIu32"\" micro-seconds", sleep_interval_ms);
+
+    CudaBufferData *cb_data =
+        CudaHandlerModuleGetData(MPM_AC_CUDA_MODULE_NAME,
+                                 MPM_AC_CUDA_MODULE_CUDA_BUFFER_NAME);
+
+    CUcontext cuda_context =
+        CudaHandlerModuleGetContext(MPM_AC_CUDA_MODULE_NAME, conf->device_id);
+    if (cuda_context == 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "context is NULL.");
+        exit(EXIT_FAILURE);
+    }
+    r = SCCudaCtxPushCurrent(cuda_context);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "context push failed.");
+        exit(EXIT_FAILURE);
+    }
+    CUmodule cuda_module = 0;
+    if (CudaHandlerGetCudaModule(&cuda_module, "util-mpm-ac-cuda-kernel") < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error retrieving cuda module.");
+        exit(EXIT_FAILURE);
+    }
+    CUfunction kernel = 0;
+#if __WORDSIZE==64
+    if (SCCudaModuleGetFunction(&kernel, cuda_module, "SCACCudaSearch64") == -1) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error retrieving kernel");
+        exit(EXIT_FAILURE);
+    }
+#else
+    if (SCCudaModuleGetFunction(&kernel, cuda_module, "SCACCudaSearch32") == -1) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error retrieving kernel");
+        exit(EXIT_FAILURE);
+    }
+#endif
+
+    uint8_t g_u8_lowercasetable[256];
+    for (uint8_t c = 0; c < 255; c++)
+        g_u8_lowercasetable[c] = tolower((uint8_t)c);
+    CUdeviceptr cuda_g_u8_lowercasetable_d = 0;
+    CUdeviceptr cuda_packets_buffer_d = 0;
+    CUdeviceptr cuda_offset_buffer_d = 0;
+    CUdeviceptr cuda_results_buffer_d = 0;
+    uint32_t *cuda_results_buffer_h = NULL;
+    r = SCCudaMemAlloc(&cuda_g_u8_lowercasetable_d, sizeof(g_u8_lowercasetable));
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "SCCudaMemAlloc failure.");
+        exit(EXIT_FAILURE);
+    }
+    r = SCCudaMemcpyHtoD(cuda_g_u8_lowercasetable_d, g_u8_lowercasetable, sizeof(g_u8_lowercasetable));
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "SCCudaMemcpyHtoD failure.");
+        exit(EXIT_FAILURE);
+    }
+    r = SCCudaMemAlloc(&cuda_packets_buffer_d, conf->gpu_transfer_size);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "SCCudaMemAlloc failure.");
+        exit(EXIT_FAILURE);
+    }
+    r = SCCudaMemAlloc(&cuda_offset_buffer_d, conf->gpu_transfer_size * 4);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "SCCudaMemAlloc failure.");
+        exit(EXIT_FAILURE);
+    }
+    r = SCCudaMemAlloc(&cuda_results_buffer_d, conf->gpu_transfer_size * 8);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "SCCudaMemAlloc failure.");
+        exit(EXIT_FAILURE);
+    }
+    r = SCCudaMemAllocHost((void **)&cuda_results_buffer_h, conf->gpu_transfer_size * 8);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "SCCudaMemAlloc failure.");
+        exit(EXIT_FAILURE);
+    }
+
+    CudaBufferCulledInfo cb_culled_info;
+    memset(&cb_culled_info, 0, sizeof(cb_culled_info));
+
+    TmThreadsSetFlag(tv, THV_INIT_DONE);
+    while (1) {
+        if (TmThreadsCheckFlag(tv, THV_KILL))
+            break;
+
+        usleep(sleep_interval_ms);
+
+        /**************** 1 SEND ****************/
+        CudaBufferCullCompletedSlices(cb_data, &cb_culled_info);
+        if (cb_culled_info.no_of_items == 0)
+            continue;
+#if 0
+        SCLogInfo("1 - cb_culled_info.no_of_items-%"PRIu32" "
+                  "cb_culled_info.buffer_len - %"PRIu32" "
+                  "cb_culled_info.average size - %f "
+                  "cb_culled_info.d_buffer_start_offset - %"PRIu32" "
+                  "cb_culled_info.op_buffer_start_offset - %"PRIu32" "
+                  "cb_data.no_of_items - %"PRIu32"  "
+                  "cb_data.d_buffer_read - %"PRIu32" "
+                  "cb_data.d_buffer_write - %"PRIu32" "
+                  "cb_data.op_buffer_read - %"PRIu32" "
+                  "cb_data.op_buffer_write - %"PRIu32"\n",
+                  cb_culled_info.no_of_items,
+                  cb_culled_info.d_buffer_len,
+                  cb_culled_info.d_buffer_len / (float)cb_culled_info.no_of_items,
+                  cb_culled_info.d_buffer_start_offset,
+                  cb_culled_info.op_buffer_start_offset,
+                  cb_data->no_of_items,
+                  cb_data->d_buffer_read,
+                  cb_data->d_buffer_write,
+                  cb_data->op_buffer_read,
+                  cb_data->op_buffer_write);
+#endif
+        r = SCCudaMemcpyHtoD(cuda_packets_buffer_d, (cb_data->d_buffer + cb_culled_info.d_buffer_start_offset), cb_culled_info.d_buffer_len);
+        if (r < 0) {
+            SCLogError(SC_ERR_AC_CUDA_ERROR, "SCCudaMemcpyHtoD failure.");
+            exit(EXIT_FAILURE);
+        }
+        r = SCCudaMemcpyHtoD(cuda_offset_buffer_d, (cb_data->o_buffer + cb_culled_info.op_buffer_start_offset), sizeof(uint32_t) * cb_culled_info.no_of_items);
+        if (r < 0) {
+            SCLogError(SC_ERR_AC_CUDA_ERROR, "SCCudaMemcpyHtoD failure.");
+            exit(EXIT_FAILURE);
+        }
+        void *args[] = { &cuda_packets_buffer_d,
+                         &cb_culled_info.d_buffer_start_offset,
+                         &cuda_offset_buffer_d,
+                         &cuda_results_buffer_d,
+                         &cb_culled_info.no_of_items,
+                         &cuda_g_u8_lowercasetable_d };
+        r = SCCudaLaunchKernel(kernel,
+                               (cb_culled_info.no_of_items / BLOCK_SIZE) + 1, 1, 1,
+                               BLOCK_SIZE, 1, 1,
+                               0, 0,
+                               args, NULL);
+        if (r < 0) {
+            SCLogError(SC_ERR_AC_CUDA_ERROR, "SCCudaLaunchKernel failure.");
+            exit(EXIT_FAILURE);
+        }
+        r = SCCudaMemcpyDtoH(cuda_results_buffer_h, cuda_results_buffer_d, sizeof(uint32_t) * (cb_culled_info.d_buffer_len * 2));
+        if (r < 0) {
+            SCLogError(SC_ERR_AC_CUDA_ERROR, "SCCudaMemcpyDtoH failure.");
+            exit(EXIT_FAILURE);
+        }
+
+
+
+        /**************** 1 SYNCHRO ****************/
+        r = SCCudaCtxSynchronize();
+        if (r < 0) {
+            SCLogError(SC_ERR_AC_CUDA_ERROR, "SCCudaCtxSynchronize failure.");
+            exit(EXIT_FAILURE);
+        }
+
+        /************* 1 Parse Results ************/
+        uint32_t i_op_start_offset = cb_culled_info.op_buffer_start_offset;
+        uint32_t no_of_items = cb_culled_info.no_of_items;
+        uint32_t *o_buffer = cb_data->o_buffer;
+        uint32_t d_buffer_start_offset = cb_culled_info.d_buffer_start_offset;
+        for (uint32_t i = 0; i < no_of_items; i++, i_op_start_offset++) {
+            Packet *p = (Packet *)cb_data->p_buffer[i_op_start_offset];
+
+            p->cuda_gpu_matches =
+                cuda_results_buffer_h[((o_buffer[i_op_start_offset] - d_buffer_start_offset) * 2)];
+            if (p->cuda_gpu_matches != 0) {
+                memcpy(p->cuda_results,
+                       cuda_results_buffer_h +
+                       ((o_buffer[i_op_start_offset] - d_buffer_start_offset) * 2),
+                       (cuda_results_buffer_h[((o_buffer[i_op_start_offset] -
+                                                d_buffer_start_offset) * 2)] * sizeof(uint32_t)) + 4);
+            }
+
+            SCMutexLock(&p->cuda_mutex);
+            p->cuda_done = 1;
+            SCMutexUnlock(&p->cuda_mutex);
+            SCCondSignal(&p->cuda_cond);
+        }
+        if (no_of_items != 0)
+            CudaBufferReportCulledConsumption(cb_data, &cb_culled_info);
+    } /* while (1) */
+
+    r = SCCudaModuleUnload(cuda_module);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error unloading cuda module.");
+        exit(EXIT_FAILURE);
+    }
+    r = SCCudaMemFree(cuda_packets_buffer_d);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error freeing cuda device memory.");
+        exit(EXIT_FAILURE);
+    }
+    r = SCCudaMemFree(cuda_offset_buffer_d);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error freeing cuda device memory.");
+        exit(EXIT_FAILURE);
+    }
+    r = SCCudaMemFree(cuda_results_buffer_d);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error freeing cuda device memory.");
+        exit(EXIT_FAILURE);
+    }
+    r = SCCudaMemFreeHost(cuda_results_buffer_h);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error freeing cuda host memory.");
+        exit(EXIT_FAILURE);
+    }
+
+    TmThreadsSetFlag(tv, THV_RUNNING_DONE);
+    TmThreadWaitForFlag(tv, THV_DEINIT);
+    TmThreadsSetFlag(tv, THV_CLOSED);
+
+    return NULL;
+
+#undef BLOCK_SIZE
+}
+
+uint32_t SCACCudaPacketResultsProcessing(Packet *p, MpmCtx *mpm_ctx,
+                                          PatternMatcherQueue *pmq)
+{
+    uint32_t u = 0;
+
+    while (!p->cuda_done) {
+        SCMutexLock(&p->cuda_mutex);
+        if (p->cuda_done) {
+            SCMutexUnlock(&p->cuda_mutex);
+            break;
+        } else {
+            SCCondWait(&p->cuda_cond, &p->cuda_mutex);
+            SCMutexUnlock(&p->cuda_mutex);
+        }
+    } /* while */
+    p->cuda_done = 0;
+    p->cuda_mpm_enabled = 0;
+
+    uint32_t cuda_matches = p->cuda_gpu_matches;
+    if (cuda_matches == 0)
+        return 0;
+
+    uint32_t matches = 0;
+    uint32_t *results = p->cuda_results + 1;
+    uint8_t *buf = p->payload;
+    SCACCtx *ctx = mpm_ctx->ctx;
+    SCACOutputTable *output_table = ctx->output_table;
+    SCACPatternList *pid_pat_list = ctx->pid_pat_list;
+
+    for (u = 0; u < cuda_matches; u += 2) {
+        uint32_t offset = results[u];
+        uint32_t state = results[u + 1];
+        /* we should technically be doing state & 0x00FFFFFF, but we don't
+         * since the cuda kernel does that for us */
+        uint32_t no_of_entries = output_table[state].no_of_entries;
+        /* we should technically be doing state & 0x00FFFFFF, but we don't
+         * since the cuda kernel does that for us */
+        uint32_t *pids = output_table[state].pids;
+        uint32_t k;
+        /* note that this is not a verbatim copy from SCACSearch().  We
+         * don't copy the pattern id into the pattern_id_array.  That's
+         * the only change */
+        for (k = 0; k < no_of_entries; k++) {
+            if (pids[k] & 0xFFFF0000) {
+                if (SCMemcmp(pid_pat_list[pids[k] & 0x0000FFFF].cs,
+                             buf + offset - pid_pat_list[pids[k] & 0x0000FFFF].patlen + 1,
+                             pid_pat_list[pids[k] & 0x0000FFFF].patlen) != 0) {
+                    /* inside loop */
+                    if (pid_pat_list[pids[k] & 0x0000FFFF].case_state != 3) {
+                        continue;
+                    }
+                }
+                if (pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] & (1 << ((pids[k] & 0x0000FFFF) % 8))) {
+                    ;
+                } else {
+                    pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] |= (1 << ((pids[k] & 0x0000FFFF) % 8));
+                }
+                matches++;
+            } else {
+                if (pmq->pattern_id_bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
+                    ;
+                } else {
+                    pmq->pattern_id_bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
+                }
+                matches++;
+            }
+        }
+    }
+
+    return matches;
+}
+
+void SCACCudaStartDispatcher(void)
+{
+    /* create the threads */
+    ThreadVars *tv = TmThreadCreate("Cuda_Mpm_AC_Dispatcher",
+                                    NULL, NULL,
+                                    NULL, NULL,
+                                    "custom", SCACCudaDispatcher, 0);
+    if (tv == NULL) {
+        SCLogError(SC_ERR_THREAD_CREATE, "Error creating a thread for "
+                   "ac cuda dispatcher.  Killing engine.");
+        exit(EXIT_FAILURE);
+    }
+    if (TmThreadSpawn(tv) != 0) {
+        SCLogError(SC_ERR_THREAD_SPAWN, "Failed to spawn thread for "
+                   "ac cuda dispatcher.  Killing engine.");
+        exit(EXIT_FAILURE);
+    }
+
+    return;
+}
+
+int MpmCudaBufferSetup(void)
+{
+    int r = 0;
+    MpmCudaConf *conf = CudaHandlerGetCudaProfile("mpm");
+    if (conf == NULL) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error obtaining cuda mpm profile.");
+        return -1;
+    }
+
+    CUcontext cuda_context = CudaHandlerModuleGetContext(MPM_AC_CUDA_MODULE_NAME, conf->device_id);
+    if (cuda_context == 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error retrieving cuda context.");
+        return -1;
+    }
+    r = SCCudaCtxPushCurrent(cuda_context);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error pushing cuda context.");
+        return -1;
+    }
+
+    uint8_t *d_buffer = NULL;
+    uint32_t *o_buffer = NULL;
+    void **p_buffer = NULL;
+
+    r = SCCudaMemAllocHost((void *)&d_buffer, conf->cb_buffer_size);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Cuda alloc host failure.");
+        return -1;
+    }
+    SCLogInfo("Allocated a cuda d_buffer - %"PRIu32" bytes", conf->cb_buffer_size);
+    r = SCCudaMemAllocHost((void *)&o_buffer, sizeof(uint32_t) * UTIL_MPM_CUDA_CUDA_BUFFER_OPBUFFER_ITEMS_DEFAULT);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Cuda alloc host failue.");
+        return -1;
+    }
+    r = SCCudaMemAllocHost((void *)&p_buffer, sizeof(void *) * UTIL_MPM_CUDA_CUDA_BUFFER_OPBUFFER_ITEMS_DEFAULT);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Cuda alloc host failure.");
+        return -1;
+    }
+
+    r = SCCudaCtxPopCurrent(NULL);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "cuda context pop failure.");
+        return -1;
+    }
+
+    CudaBufferData *cb = CudaBufferRegisterNew(d_buffer, conf->cb_buffer_size, o_buffer, p_buffer, UTIL_MPM_CUDA_CUDA_BUFFER_OPBUFFER_ITEMS_DEFAULT);
+    if (cb == NULL) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error registering new cb instance.");
+        return -1;
+    }
+    CudaHandlerModuleStoreData(MPM_AC_CUDA_MODULE_NAME, MPM_AC_CUDA_MODULE_CUDA_BUFFER_NAME, cb);
+
+    return 0;
+}
+
+int MpmCudaBufferDeSetup(void)
+{
+    int r = 0;
+    MpmCudaConf *conf = CudaHandlerGetCudaProfile("mpm");
+    if (conf == NULL) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error obtaining cuda mpm profile.");
+        return -1;
+    }
+
+    CudaBufferData *cb_data = CudaHandlerModuleGetData(MPM_AC_CUDA_MODULE_NAME, MPM_AC_CUDA_MODULE_CUDA_BUFFER_NAME);
+    BUG_ON(cb_data == NULL);
+
+    CUcontext cuda_context = CudaHandlerModuleGetContext(MPM_AC_CUDA_MODULE_NAME, conf->device_id);
+    if (cuda_context == 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error retrieving cuda context.");
+        return -1;
+    }
+    r = SCCudaCtxPushCurrent(cuda_context);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error pushing cuda context.");
+        return -1;
+    }
+
+    r = SCCudaMemFreeHost(cb_data->d_buffer);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error freeing cuda host memory.");
+        return -1;
+    }
+    r = SCCudaMemFreeHost(cb_data->o_buffer);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error freeing cuda host memory.");
+        return -1;
+    }
+    r = SCCudaMemFreeHost(cb_data->p_buffer);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error freeing cuda host memory.");
+        return -1;
+    }
+
+    r = SCCudaCtxPopCurrent(NULL);
+    if (r < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "cuda context pop failure.");
+        return -1;
+    }
+
+    CudaBufferDeRegister(cb_data);
+
+    return 0;
+}
+
+#endif /* __SC_CUDA_SUPPORT */
+
+/************************** Mpm Registration ***************************/
+
+/**
+ * \brief Register the aho-corasick mpm.
+ */
+void MpmACRegister(void)
+{
+    mpm_table[MPM_AC].name = "ac";
+    /* don't need this.  isn't that awesome?  no more chopping and blah blah */
+    mpm_table[MPM_AC].max_pattern_length = 0;
+
+    mpm_table[MPM_AC].InitCtx = SCACInitCtx;
+    mpm_table[MPM_AC].InitThreadCtx = SCACInitThreadCtx;
+    mpm_table[MPM_AC].DestroyCtx = SCACDestroyCtx;
+    mpm_table[MPM_AC].DestroyThreadCtx = SCACDestroyThreadCtx;
+    mpm_table[MPM_AC].AddPattern = SCACAddPatternCS;
+    mpm_table[MPM_AC].AddPatternNocase = SCACAddPatternCI;
+    mpm_table[MPM_AC].Prepare = SCACPreparePatterns;
+    mpm_table[MPM_AC].Search = SCACSearch;
+    mpm_table[MPM_AC].Cleanup = NULL;
+    mpm_table[MPM_AC].PrintCtx = SCACPrintInfo;
+    mpm_table[MPM_AC].PrintThreadCtx = SCACPrintSearchStats;
+    mpm_table[MPM_AC].RegisterUnittests = SCACRegisterTests;
+
+    return;
+}
+
+#ifdef __SC_CUDA_SUPPORT__
+
+/**
+ * \brief Register the aho-corasick cuda mpm.
+ */
+void MpmACCudaRegister(void)
+{
+    mpm_table[MPM_AC_CUDA].name = "ac-cuda";
+    /* don't need this.  isn't that awesome?  no more chopping and blah blah */
+    mpm_table[MPM_AC_CUDA].max_pattern_length = 0;
+
+    mpm_table[MPM_AC_CUDA].InitCtx = SCACInitCtx;
+    mpm_table[MPM_AC_CUDA].InitThreadCtx = SCACInitThreadCtx;
+    mpm_table[MPM_AC_CUDA].DestroyCtx = SCACDestroyCtx;
+    mpm_table[MPM_AC_CUDA].DestroyThreadCtx = SCACDestroyThreadCtx;
+    mpm_table[MPM_AC_CUDA].AddPattern = SCACAddPatternCS;
+    mpm_table[MPM_AC_CUDA].AddPatternNocase = SCACAddPatternCI;
+    mpm_table[MPM_AC_CUDA].Prepare = SCACPreparePatterns;
+    mpm_table[MPM_AC_CUDA].Search = SCACSearch;
+    mpm_table[MPM_AC_CUDA].Cleanup = NULL;
+    mpm_table[MPM_AC_CUDA].PrintCtx = SCACPrintInfo;
+    mpm_table[MPM_AC_CUDA].PrintThreadCtx = SCACPrintSearchStats;
+    mpm_table[MPM_AC_CUDA].RegisterUnittests = SCACRegisterTests;
+
+    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA) {
+        MpmCudaConf *conf = CudaHandlerGetCudaProfile("mpm");
+        if (conf == NULL) {
+            SCLogError(SC_ERR_AC_CUDA_ERROR, "Error obtaining cuda mpm profile.");
+            exit(EXIT_FAILURE);
+        }
+
+        if (MpmCudaBufferSetup() < 0) {
+            SCLogError(SC_ERR_AC_CUDA_ERROR, "Error setting up env for ac cuda");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    return;
+}
+
+#endif /* __SC_CUDA_SUPPORT__ */
 
 /*************************************Unittests********************************/
 

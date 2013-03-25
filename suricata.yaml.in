@@ -404,34 +404,33 @@ threading:
 # Cuda configuration.
 cuda:
   # The "mpm" profile.  On not specifying any of these parameters, the engine's
-  # internal default values are used, which are same as the ones specified here.
-  - mpm:
-      # Threshold limit for no of packets buffered to the GPU.  Once we hit this
-      # limit, we pass the buffer to the gpu.
-      packet-buffer-limit: 2400
-      # The maximum length for a packet that we would buffer to the gpu.
-      # Anything over this is MPM'ed on the CPU.  All entries > 0 are valid.
-      # Can be specified in kb, mb, gb.  Just a number indicates it's in bytes.
-      packet-size-limit: 1500
-      # No of packet buffers we initialize.  All entries > 0 are valid.
-      packet-buffers: 10
-      # The timeout limit for batching of packets in secs.  If we don't fill the
-      # buffer within this timeout limit, we pass the currently filled buffer to the gpu.
-      # All entries > 0 are valid.
-      batching-timeout: 1
-      # Specifies whether to use page-locked memory whereever possible.  Accepted values
-      # are "enabled" and "disabled".
-      page-locked: enabled
-      # The device to use for the mpm.  Currently we don't support load balancing
-      # on multiple gpus.  In case you have multiple devices on your system, you
-      # can specify the device to use, using this conf.  By default we hold 0, to
-      # specify the first device cuda sees.  To find out device-id associated with
-      # the card(s) on the system run "suricata --list-cuda-cards".
-      device-id: 0
-      # No of Cuda streams used for asynchronous processing. All values > 0 are valid.
-      # For this option you need a device with Compute Capability > 1.0 and
-      # page-locked enabled to have any effect.
-      cuda-streams: 2
+  # internal default values are used, which are same as the ones specified in
+  # in the default conf file.
+  mpm:
+    # The minimum length required to buffer data to the gpu.
+    # Anything below this is MPM'ed on the CPU.
+    # Can be specified in kb, mb, gb.  Just a number indicates it's in bytes.
+    # A value of 0 indicates there's no limit.
+    data-buffer-size-min-limit: 0
+    # The maximum length for data that we would buffer to the gpu.
+    # Anything over this is MPM'ed on the CPU.
+    # Can be specified in kb, mb, gb.  Just a number indicates it's in bytes.
+    data-buffer-size-max-limit: 1500
+    # The ring buffer size used by the CudaBuffer API to buffer data.
+    cudabuffer-buffer-size: 500mb
+    # The max chunk size that can be sent to the gpu in a single go.
+    gpu-transfer-size: 50mb
+    # The timeout limit for batching of packets in microseconds.
+    batching-timeout: 2000
+    # The device to use for the mpm.  Currently we don't support load balancing
+    # on multiple gpus.  In case you have multiple devices on your system, you
+    # can specify the device to use, using this conf.  By default we hold 0, to
+    # specify the first device cuda sees.  To find out device-id associated with
+    # the card(s) on the system run "suricata --list-cuda-cards".
+    device-id: 0
+    # No of Cuda streams used for asynchronous processing. All values > 0 are valid.
+    # For this option you need a device with Compute Capability > 1.0.
+    cuda-streams: 2
 
 # Select the multi pattern algorithm you want to run for scan/search the
 # in the engine. The supported algorithms are b2g, b2gc, b2gm, b3g, wumanber,
