@@ -45,6 +45,9 @@
 #include "conf-yaml-loader.h"
 #include "queue.h"
 #include "util-unittest.h"
+#ifdef __SC_CUDA_SUPPORT__
+#include "util-cuda-handlers.h"
+#endif
 
 /**
  * \brief Register a new Mpm Context.
@@ -265,6 +268,118 @@ void MpmFactoryDeRegisterAllMpmCtxProfiles(DetectEngineCtx *de_ctx)
     return;
 }
 
+#ifdef __SC_CUDA_SUPPORT__
+
+static void MpmCudaConfFree(void *conf)
+{
+    SCFree(conf);
+    return;
+}
+
+static void *MpmCudaConfParse(ConfNode *node)
+{
+    const char *value;
+
+    MpmCudaConf *conf = SCMalloc(sizeof(MpmCudaConf));
+    if (conf == NULL)
+        exit(EXIT_FAILURE);
+    memset(conf, 0, sizeof(conf));
+
+    if (node != NULL)
+        value = ConfNodeLookupChildValue(node, "data-buffer-size-min-limit");
+    else
+        value = NULL;
+    if (value == NULL) {
+        /* default */
+        conf->data_buffer_size_min_limit = UTIL_MPM_CUDA_DATA_BUFFER_SIZE_MIN_LIMIT_DEFAULT;
+    } else if (ParseSizeStringU16(value, &conf->data_buffer_size_min_limit) < 0) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for %s."
+                   "data-buffer-size-min-limit - \"%s\"", node->name, value);
+        exit(EXIT_FAILURE);
+    }
+
+    if (node != NULL)
+        value = ConfNodeLookupChildValue(node, "data-buffer-size-max-limit");
+    else
+        value = NULL;
+    if (value == NULL) {
+        /* default */
+        conf->data_buffer_size_max_limit = UTIL_MPM_CUDA_DATA_BUFFER_SIZE_MAX_LIMIT_DEFAULT;
+    } else if (ParseSizeStringU16(value, &conf->data_buffer_size_max_limit) < 0) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for %s."
+                   "data-buffer-size-max-limit - \"%s\"", node->name, value);
+        exit(EXIT_FAILURE);
+    }
+
+    if (node != NULL)
+        value = ConfNodeLookupChildValue(node, "cudabuffer-buffer-size");
+    else
+        value = NULL;
+    if (value == NULL) {
+        /* default */
+        conf->cb_buffer_size = UTIL_MPM_CUDA_CUDA_BUFFER_DBUFFER_SIZE_DEFAULT;
+    } else if (ParseSizeStringU32(value, &conf->cb_buffer_size) < 0) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for %s."
+                   "cb-buffer-size - \"%s\"", node->name, value);
+        exit(EXIT_FAILURE);
+    }
+
+    if (node != NULL)
+        value = ConfNodeLookupChildValue(node, "gpu-transfer-size");
+    else
+        value = NULL;
+    if (value == NULL) {
+        /* default */
+        conf->gpu_transfer_size = UTIL_MPM_CUDA_GPU_TRANSFER_SIZE;
+    } else if (ParseSizeStringU32(value, &conf->gpu_transfer_size) < 0) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for %s."
+                   "gpu-transfer-size - \"%s\"", node->name, value);
+        exit(EXIT_FAILURE);
+    }
+
+    if (node != NULL)
+        value = ConfNodeLookupChildValue(node, "batching-timeout");
+    else
+        value = NULL;
+    if (value == NULL) {
+        /* default */
+        conf->batching_timeout = UTIL_MPM_CUDA_BATCHING_TIMEOUT_DEFAULT;
+    } else if ((conf->batching_timeout = atoi(value)) < 0) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for %s."
+                   "batching-timeout - \"%s\"", node->name, value);
+        exit(EXIT_FAILURE);
+    }
+
+    if (node != NULL)
+        value = ConfNodeLookupChildValue(node, "device-id");
+    else
+        value = NULL;
+    if (value == NULL) {
+        /* default */
+        conf->device_id = UTIL_MPM_CUDA_DEVICE_ID_DEFAULT;
+    } else if ((conf->device_id = atoi(value)) < 0) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for %s."
+                   "device-id - \"%s\"", node->name, value);
+        exit(EXIT_FAILURE);
+    }
+
+    if (node != NULL)
+        value = ConfNodeLookupChildValue(node, "cuda-streams");
+    else
+        value = NULL;
+    if (value == NULL) {
+        /* default */
+        conf->cuda_streams = UTIL_MPM_CUDA_CUDA_STREAMS_DEFAULT;
+    } else if ((conf->cuda_streams = atoi(value)) < 0) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for %s."
+                   "cuda-streams - \"%s\"", node->name, value);
+        exit(EXIT_FAILURE);
+    }
+
+    return conf;
+}
+#endif
+
 /**
  *  \brief Setup a pmq
  *
@@ -447,6 +562,10 @@ void MpmTableSetup(void) {
     MpmB2gcRegister();
     MpmB2gmRegister();
     MpmACRegister();
+#ifdef __SC_CUDA_SUPPORT__
+    CudaHandlerAddCudaProfileFromConf("mpm", MpmCudaConfParse, MpmCudaConfFree);
+    MpmACCudaRegister();
+#endif /* __SC_CUDA_SUPPORT__ */
     MpmACBSRegister();
     MpmACGfbsRegister();
 }

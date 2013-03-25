@@ -53,6 +53,9 @@
 #include "util-debug.h"
 #include "util-print.h"
 #include "util-memcmp.h"
+#ifdef __SC_CUDA_SUPPORT__
+#include "util-mpm-ac.h"
+#endif
 
 /** \todo make it possible to use multiple pattern matcher algorithms next to
           eachother. */
@@ -221,11 +224,23 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
     if (mpm_ctx == NULL)
         SCReturnInt(0);
 
+#ifdef __SC_CUDA_SUPPORT__
+    if (p->cuda_mpm_enabled && p->pkt_src == PKT_SRC_WIRE) {
+        ret = SCACCudaPacketResultsProcessing(p, mpm_ctx, &det_ctx->pmq);
+    } else {
+        ret = mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                                                  &det_ctx->mtc,
+                                                  &det_ctx->pmq,
+                                                  p->payload,
+                                                  p->payload_len);
+    }
+#else
     ret = mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
                                               &det_ctx->mtc,
                                               &det_ctx->pmq,
                                               p->payload,
                                               p->payload_len);
+#endif
 
     SCReturnInt(ret);
 }

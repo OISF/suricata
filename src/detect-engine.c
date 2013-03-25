@@ -845,7 +845,11 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
         /* for now, since we still haven't implemented any intelligence into
          * understanding the patterns and distributing mpm_ctx across sgh */
         if (de_ctx->mpm_matcher == MPM_AC || de_ctx->mpm_matcher == MPM_AC_GFBS ||
+#ifdef __SC_CUDA_SUPPORT__
+            de_ctx->mpm_matcher == MPM_AC_BS || de_ctx->mpm_matcher == MPM_AC_CUDA) {
+#else
             de_ctx->mpm_matcher == MPM_AC_BS) {
+#endif
             de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
         } else {
             de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
@@ -854,6 +858,15 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
         if (strcmp(sgh_mpm_context, "single") == 0) {
             de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
         } else if (strcmp(sgh_mpm_context, "full") == 0) {
+#ifdef __SC_CUDA_SUPPORT__
+            if (de_ctx->mpm_matcher == MPM_AC_CUDA) {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "You can't use "
+                           "the cuda version of our mpm ac, i.e. \"ac-cuda\" "
+                           "along with \"full\" \"sgh-mpm-context\".  "
+                           "Allowed values are \"single\" and \"auto\".");
+                exit(EXIT_FAILURE);
+            }
+#endif
             de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
         } else {
            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "You have supplied an "

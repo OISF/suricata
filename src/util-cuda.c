@@ -2346,7 +2346,7 @@ int SCCudaMemAllocHost(void **pp, size_t byte_size)
     }
 
     result = cuMemAllocHost(pp, byte_size);
-    if (SCCudaHandleRetValue(result, SC_CUDA_CU_MEM_ALLOC) == -1)
+    if (SCCudaHandleRetValue(result, SC_CUDA_CU_MEM_ALLOC_HOST) == -1)
         goto error;
 
     return 0;
