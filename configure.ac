@@ -563,6 +563,10 @@ AC_INIT(configure.ac)
 
     enable_jansson="no"
     enable_unixsocket="no"
+
+    AC_ARG_ENABLE(unix-socket,
+           AS_HELP_STRING([--enable-unix-socket], [Enable unix socket [default=test]]),[enable_unixsocket="$enableval"],[enable_unixsocket=test])
+
     AC_CHECK_HEADER(jansson.h,JANSSON="yes",JANSSON="no")
     if test "$JANSSON" = "yes"; then
         if test "$with_libjansson_libraries" != "no"; then
@@ -575,8 +579,11 @@ AC_INIT(configure.ac)
             echo
             echo "   Jansson >= 2.2 is required for features like unix socket"
             echo "   Go get it from your distribution of from:"
-	        echo "     http://www.digip.org/jansson/"
+            echo "     http://www.digip.org/jansson/"
             echo
+	    if test "x$enable_unixsocket" = "xyes"; then
+                exit 1
+            fi
             enable_unixsocket="no"
             enable_jansson="no"
         else
@@ -586,10 +593,22 @@ AC_INIT(configure.ac)
                 *-*-cygwin)
                 ;;
                 *)
-                enable_unixsocket="yes"
+		if test "x$enable_unixsocket" = "xtest"; then
+                    enable_unixsocket="yes"
+		fi
                 ;;
             esac
         fi
+    else
+        if test "x$enable_unixsocket" = "xyes"; then
+            echo
+            echo "   Jansson >= 2.2 is required for features like unix socket"
+            echo "   Go get it from your distribution of from:"
+            echo "     http://www.digip.org/jansson/"
+            echo
+            exit 1
+        fi
+        enable_unixsocket="no"
     fi
 
     AS_IF([test "x$enable_unixsocket" = "xyes"], [AC_DEFINE([BUILD_UNIX_SOCKET], [1], [Unix socket support enabled])])
