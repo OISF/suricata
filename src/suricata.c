@@ -404,7 +404,7 @@ static void SetBpfString(int optind, char *argv[]) {
 
     if(strlen(bpf_filter) > 0) {
         if (ConfSet("bpf-filter", bpf_filter, 0) != 1) {
-            fprintf(stderr, "ERROR: Failed to set bpf filter.\n");
+            SCLogError(SC_ERR_FATAL, "Failed to set bpf filter.");
             exit(EXIT_FAILURE);
         }
     }
