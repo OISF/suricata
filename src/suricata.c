@@ -381,6 +381,13 @@ static void SetBpfString(int optind, char *argv[]) {
     if (bpf_len == 0)
         return;
 
+    if (IS_ENGINE_MODE_IPS(engine_mode)) {
+        SCLogError(SC_ERR_NOT_SUPPORTED,
+                   "BPF filter not available in IPS mode."
+                   " Use firewall filtering if possible.");
+        exit(EXIT_FAILURE);
+    }
+
     bpf_filter = SCMalloc(bpf_len);
     if (unlikely(bpf_filter == NULL))
         return;
