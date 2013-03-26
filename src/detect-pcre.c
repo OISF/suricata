@@ -470,6 +470,9 @@ DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr)
         }
     }
 
+    if (re[0] == '^')
+        pd->flags |= DETECT_PCRE_MATCH_FROM_START_OF_LINE;
+
     //printf("DetectPcreParse: \"%s\"\n", re);
 
     /* Try to compile as if all (...) groups had been meant as (?:...),

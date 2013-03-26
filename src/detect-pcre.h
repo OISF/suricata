@@ -52,6 +52,8 @@
 #define DETECT_PCRE_NEGATE              0x80000
 #define DETECT_PCRE_CASELESS           0x100000
 
+#define DETECT_PCRE_MATCH_FROM_START_OF_LINE 0x200000
+
 typedef struct DetectPcreData_ {
     /* pcre options */
     pcre *re;
