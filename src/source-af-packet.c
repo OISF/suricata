@@ -1545,7 +1545,13 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (ptv->copy_mode != AFP_COPY_MODE_NONE) {
         strlcpy(ptv->out_iface, afpconfig->out_iface, AFP_IFACE_NAME_LENGTH);
         ptv->out_iface[AFP_IFACE_NAME_LENGTH - 1]= '\0';
+        /* Warn about BPF filter consequence */
+        if (ptv->bpf_filter) {
+            SCLogWarning(SC_WARN_UNCOMMON, "Enabling a BPF filter in IPS mode result"
+                      " in dropping all non matching packets.");
+        }
     }
+
 
     if (AFPPeersListAdd(ptv) == TM_ECODE_FAILED) {
         SCFree(ptv);
