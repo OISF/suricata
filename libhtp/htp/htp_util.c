@@ -534,22 +534,53 @@ int htp_parse_uri(bstr *input, htp_uri_t **uri) {
                 hostname_len = pos - start;
             }
 
-            // Still parsing authority; is there a port provided?
-            m = memchr(hostname_start, ':', hostname_len);
-            if (m != NULL) {
-                size_t port_len = hostname_len - (m - hostname_start) - 1;
-                hostname_len = hostname_len - port_len - 1;
+            // Parsing authority without credentials.
+            if ((hostname_len > 0) && (hostname_start[0] == '[')) {
+                // IPv6 address.
 
-                // Port string
-                (*uri)->port = bstr_memdup(m + 1, port_len);
+                m = memchr(hostname_start, ']', hostname_len);
+                if (m == NULL) {
+                    // Invalid IPv6 address; use the entire string as hostname.
+                    (*uri)->hostname = bstr_memdup(hostname_start, hostname_len);
+                    if ((*uri)->hostname == NULL) return HTP_ERROR;
+                } else {
+                    (*uri)->hostname = bstr_memdup(hostname_start, m - hostname_start + 1);
+                    if ((*uri)->hostname == NULL) return HTP_ERROR;
 
-                // We deliberately don't want to try to convert the port
-                // string as a number. That will be done later, during
-                // the normalization and validation process.
+                    // Is there a port?
+                    hostname_len = hostname_len - (m - hostname_start + 1);
+                    hostname_start = m + 1;
+
+                    m = memchr(hostname_start, ':', hostname_len);
+                    if (m != NULL) {
+                        size_t port_len = hostname_len - (m - hostname_start) - 1;
+                        hostname_len = hostname_len - port_len - 1;
+
+                        // Port string
+                        (*uri)->port = bstr_memdup(m + 1, port_len);
+                        if ((*uri)->port == NULL) return HTP_ERROR;
+                    }
+                }
+            } else {
+                // Not IPv6 address.
+
+                // Still parsing authority; is there a port provided?
+                m = memchr(hostname_start, ':', hostname_len);
+                if (m != NULL) {
+                    size_t port_len = hostname_len - (m - hostname_start) - 1;
+                    hostname_len = hostname_len - port_len - 1;
+
+                    // Port string
+                    (*uri)->port = bstr_memdup(m + 1, port_len);
+
+                    // We deliberately don't want to try to convert the port
+                    // string as a number. That will be done later, during
+                    // the normalization and validation process.
+                }
+
+                // Hostname
+                (*uri)->hostname = bstr_memdup(hostname_start, hostname_len);
             }
-
-            // Hostname
-            (*uri)->hostname = bstr_memdup(hostname_start, hostname_len);
         }
 
     // Path
@@ -1594,30 +1625,73 @@ bstr *htp_normalize_hostname_inplace(bstr *hostname) {
 void htp_replace_hostname(htp_connp_t *connp, htp_uri_t *parsed_uri, bstr *hostname) {
     if (hostname == NULL)
         return;
-    int colon = bstr_chr(hostname, ':');
-    if (colon == -1) {
-        // Hostname alone
-        parsed_uri->hostname = bstr_strdup(hostname);
-        htp_normalize_hostname_inplace(parsed_uri->hostname);
-    } else {
-        // Hostname
-        parsed_uri->hostname = bstr_strdup_ex(hostname, 0, colon);
-        // TODO Handle whitespace around hostname
-        htp_normalize_hostname_inplace(parsed_uri->hostname);
 
-        // Port
-        int port = htp_parse_positive_integer_whitespace((unsigned char *) bstr_ptr(hostname) + colon + 1,
-            bstr_len(hostname) - colon - 1, 10);
-        if (port < 0) {
-            // Failed to parse port
-            htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0, "Invalid server port information in request");
-        } else if ((port > 0) && (port < 65536)) {
-            // Valid port
-            if (port != connp->conn->local_port) {
-                // Port is different from the TCP port
-                htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0, "Request server port number differs from the actual TCP port");
-            } else {
-                parsed_uri->port_number = port;
+    char *hostname_start = bstr_ptr(hostname);
+    size_t hostname_len = bstr_len(hostname);
+
+    if (hostname_len == 0)
+        return;
+
+    if (hostname_start[0] == '[') {
+        // IPv6 address.
+
+        char *m = memchr(hostname_start, ']', hostname_len);
+        if (m == NULL) {
+            // Invalid IPv6 address; use the entire string as hostname.
+            parsed_uri->hostname = bstr_memdup(hostname_start, hostname_len);
+        } else {
+            parsed_uri->hostname = bstr_memdup(hostname_start, m - hostname_start + 1);
+            // TODO Handle whitespace around hostname
+            htp_normalize_hostname_inplace(parsed_uri->hostname);
+
+            // Is there a port?
+            hostname_len = hostname_len - (m - hostname_start + 1);
+            hostname_start = m + 1;
+
+            m = memchr(hostname_start, ':', hostname_len);
+            if (m != NULL) {
+                size_t port_len = hostname_len - (m - hostname_start) - 1;
+
+                int port = htp_parse_positive_integer_whitespace((unsigned char *)m + 1, port_len, 10);
+                if (port < 0) {
+                    // Failed to parse port
+                    htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0, "Invalid server port information in request");
+                } else if ((port > 0) && (port < 65536)) {
+                    // Valid port
+                    if (port != connp->conn->local_port) {
+                        // Port is different from the TCP port
+                        htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0, "Request server port number differs from the actual TCP port");
+                    } else {
+                        parsed_uri->port_number = port;
+                    }
+                }
+            }
+        }
+    } else {
+        int colon = bstr_chr(hostname, ':');
+        if (colon == -1) {
+            // Hostname alone
+            parsed_uri->hostname = bstr_strdup(hostname);
+            htp_normalize_hostname_inplace(parsed_uri->hostname);
+        } else {
+            // Hostname
+            parsed_uri->hostname = bstr_strdup_ex(hostname, 0, colon);
+            // TODO Handle whitespace around hostname
+            htp_normalize_hostname_inplace(parsed_uri->hostname);
+
+            // Port
+            int port = htp_parse_positive_integer_whitespace((unsigned char *) bstr_ptr(hostname) + colon + 1, bstr_len(hostname) - colon - 1, 10);
+            if (port < 0) {
+                // Failed to parse port
+                htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0, "Invalid server port information in request");
+            } else if ((port > 0) && (port < 65536)) {
+                // Valid port
+                if (port != connp->conn->local_port) {
+                    // Port is different from the TCP port
+                    htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0, "Request server port number differs from the actual TCP port");
+                } else {
+                    parsed_uri->port_number = port;
+                }
             }
         }
     }
