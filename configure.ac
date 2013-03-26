@@ -1188,7 +1188,7 @@ AC_INIT(configure.ac)
 
   # Check for DAG support.
     AC_ARG_ENABLE(dag,
-	        [  --enable-dag  Enable DAG capture],
+	        AS_HELP_STRING([--enable-dag],[Enable DAG capture]),
 	        [ enable_dag=yes ],
 	        [ enable_dag=no])
     AC_ARG_WITH(dag_includes,
@@ -1346,7 +1346,7 @@ AC_INIT(configure.ac)
 
   # Napatech - Using the 3GD API
     AC_ARG_ENABLE(napatech,
-                [  --enable-napatech   Enabled Napatech Devices],
+                AS_HELP_STRING([--enable-napatech],[Enabled Napatech Devices]),
                 [ enable_napatech=yes ],
                 [ enable_napatech=no])
     AC_ARG_WITH(napatech_includes,
@@ -1379,7 +1379,7 @@ AC_INIT(configure.ac)
 
   # libluajit
     AC_ARG_ENABLE(luajit,
-	        [  --enable-luajit  Enable Luajit support],
+	        AS_HELP_STRING([--enable-luajit],[Enable Luajit support]),
 	        [ enable_luajit="yes"],
 	        [ enable_luajit="no"])
     AC_ARG_WITH(libluajit_includes,
@@ -1442,7 +1442,7 @@ AC_INIT(configure.ac)
 
   # libgeoip
     AC_ARG_ENABLE(geoip,
-	        [  --enable-geoip  Enable GeoIP support],
+	        AS_HELP_STRING([--enable-geoip],[Enable GeoIP support]),
 	        [ enable_geoip="yes"],
 	        [ enable_geoip="no"])
     AC_ARG_WITH(libgeoip_includes,
