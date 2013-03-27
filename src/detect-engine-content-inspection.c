@@ -354,7 +354,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
             r = DetectPcrePayloadMatch(det_ctx, s, sm, p, f,
                                        buffer, buffer_len);
             if (r == 0) {
-                det_ctx->discontinue_matching = 1;
+                if (!(pe->flags & DETECT_PCRE_RELATIVE) || !(pe->flags & DETECT_PCRE_ANCHORED))
+                    det_ctx->discontinue_matching = 1;
                 SCReturnInt(0);
             }
 

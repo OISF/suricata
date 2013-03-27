@@ -511,6 +511,27 @@ DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr)
     }
 #endif /*PCRE_HAVE_JIT*/
 
+    unsigned long int anchored_opts = 0;
+    ret = pcre_fullinfo(pd->re, pd->sd, PCRE_INFO_OPTIONS, (void *)&anchored_opts);
+    if (ret != 0) {
+        const char *f = NULL;
+        if (ret == PCRE_ERROR_NULL) {
+            f = "PCRE_ERROR_NULL";
+        } else if (ret == PCRE_ERROR_BADMAGIC) {
+            f = "PCRE_ERROR_BADMAGIC";
+        } else if (ret == PCRE_ERROR_BADOPTION) {
+            f = "PCRE_ERROR_BADOPTION";
+        } else {
+            BUG_ON(1);
+        }
+
+        SCLogError(SC_ERR_PCRE_FULL_INFO, "Failed to retrieve anchored info "
+                   "from pcre - %s", f);
+        goto error;
+    }
+    if ((anchored_opts & PCRE_ANCHORED) && !(anchored_opts & PCRE_MULTILINE))
+        pd->flags |= DETECT_PCRE_ANCHORED;
+
     if(pd->sd == NULL)
         pd->sd = (pcre_extra *) SCCalloc(1,sizeof(pcre_extra));
 
