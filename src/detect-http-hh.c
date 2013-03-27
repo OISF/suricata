@@ -233,7 +233,7 @@ static int DetectHttpHHTest01(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing http_host\"; "
-                               "content:\"one\"; http_host; nocase; sid:1;)");
+                               "content:\"one\"; http_host; sid:1;)");
     if (de_ctx->sig_list != NULL) {
         result = 1;
     } else {
@@ -264,7 +264,7 @@ static int DetectHttpHHTest02(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing http_host\"; "
-                               "content:\"one\"; http_host; nocase; sid:1;)");
+                               "content:\"one\"; http_host; sid:1;)");
     if (de_ctx->sig_list != NULL)
         result = 1;
 
@@ -347,7 +347,7 @@ static int DetectHttpHHTest05(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing http_host\"; "
-                               "content:\"one\"; http_host; nocase; sid:1;)");
+                               "content:\"one\"; http_host; sid:1;)");
     if (de_ctx->sig_list != NULL)
         result = 1;
 
@@ -407,7 +407,7 @@ static int DetectHttpHHTest06(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http host test\"; "
-                               "content:\"message\"; http_host; nocase; "
+                               "content:\"message\"; http_host; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -507,7 +507,7 @@ static int DetectHttpHHTest07(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http host test\"; "
-                               "content:\"message\"; http_host; nocase; "
+                               "content:\"message\"; http_host; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -621,7 +621,7 @@ static int DetectHttpHHTest08(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http host test\"; "
-                               "content:\"message\"; http_host; nocase; "
+                               "content:\"message\"; http_host; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -742,7 +742,7 @@ static int DetectHttpHHTest09(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http host test\"; "
-                               "content:\"body1This\"; http_host; nocase; "
+                               "content:\"body1this\"; http_host; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -862,7 +862,7 @@ static int DetectHttpHHTest10(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http host test\"; "
-                               "content:\"body1this\"; http_host; nocase;"
+                               "content:\"body1this\"; http_host; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -971,7 +971,7 @@ static int DetectHttpHHTest11(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http host test\"; "
-                               "content:!\"message\"; http_host; nocase; "
+                               "content:!\"message\"; http_host; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1063,7 +1063,7 @@ static int DetectHttpHHTest12(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http host test\"; "
-                               "content:!\"message\"; http_host; nocase; "
+                               "content:!\"message\"; http_host; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1157,7 +1157,7 @@ static int DetectHttpHHTest13(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http host test\"; "
-                               "content:\"abcdefghijklmnopqrstuvwxyz0123456789\"; http_host; nocase; "
+                               "content:\"abcdefghijklmnopqrstuvwxyz0123456789\"; http_host; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1253,12 +1253,12 @@ static int DetectHttpHHTest14(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"POST\"; http_method; content:\"dummy1\"; http_cookie; content:\"Body one\"; http_host; nocase; sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"POST\"; http_method; content:\"dummy1\"; http_cookie; content:\"body one\"; http_host; sid:1; rev:1;)");
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"dummy2\"; http_cookie; content:\"Body two\"; http_host; nocase; sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"dummy2\"; http_cookie; content:\"body two\"; http_host; sid:2; rev:1;)");
     if (s == NULL) {
         printf("sig2 parse failed: ");
         goto end;
@@ -1642,8 +1642,8 @@ int DetectHttpHHTest22(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; content:\"two\"; http_host; nocase; "
-                               "content:\"three\"; distance:10; http_host; nocase; content:\"four\"; sid:1;)");
+                               "(content:\"one\"; content:\"two\"; http_host; "
+                               "content:\"three\"; distance:10; http_host; content:\"four\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1665,9 +1665,9 @@ int DetectHttpHHTest22(void)
     DetectContentData *hhhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH]->ctx;
     if (cd1->flags != 0 || memcmp(cd1->content, "one", cd1->content_len) != 0 ||
         cd2->flags != 0 || memcmp(cd2->content, "four", cd2->content_len) != 0 ||
-        hhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_NOCASE) ||
+        hhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT) ||
         memcmp(hhhd1->content, "two", hhhd1->content_len) != 0 ||
-        hhhd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_NOCASE) ||
+        hhhd2->flags != (DETECT_CONTENT_DISTANCE) ||
         memcmp(hhhd2->content, "three", hhhd1->content_len) != 0) {
         goto end;
     }
@@ -1697,8 +1697,8 @@ int DetectHttpHHTest23(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_host; nocase; pcre:/two/; "
-                               "content:\"three\"; distance:10; http_host; nocase; content:\"four\"; sid:1;)");
+                               "(content:\"one\"; http_host; pcre:/two/; "
+                               "content:\"three\"; distance:10; http_host; content:\"four\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1720,9 +1720,9 @@ int DetectHttpHHTest23(void)
     DetectContentData *hhhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH]->ctx;
     if (pd1->flags != 0 ||
         cd2->flags != 0 || memcmp(cd2->content, "four", cd2->content_len) != 0 ||
-        hhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_NOCASE) ||
+        hhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT) ||
         memcmp(hhhd1->content, "one", hhhd1->content_len) != 0 ||
-        hhhd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_NOCASE) ||
+        hhhd2->flags != (DETECT_CONTENT_DISTANCE) ||
         memcmp(hhhd2->content, "three", hhhd1->content_len) != 0) {
         goto end;
     }
@@ -1751,8 +1751,8 @@ int DetectHttpHHTest24(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_host; nocase; pcre:/two/; "
-                               "content:\"three\"; distance:10; within:15; http_host; nocase; content:\"four\"; sid:1;)");
+                               "(content:\"one\"; http_host; pcre:/two/; "
+                               "content:\"three\"; distance:10; within:15; http_host; content:\"four\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1774,9 +1774,9 @@ int DetectHttpHHTest24(void)
     DetectContentData *hhhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH]->ctx;
     if (pd1->flags != 0 ||
         cd2->flags != 0 || memcmp(cd2->content, "four", cd2->content_len) != 0 ||
-        hhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_NOCASE) ||
+        hhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT) ||
         memcmp(hhhd1->content, "one", hhhd1->content_len) != 0 ||
-        hhhd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN | DETECT_CONTENT_NOCASE) ||
+        hhhd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN) ||
         memcmp(hhhd2->content, "three", hhhd1->content_len) != 0) {
         goto end;
     }
@@ -1805,8 +1805,8 @@ int DetectHttpHHTest25(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_host; nocase; pcre:/two/; "
-                               "content:\"three\"; distance:10; http_host; nocase; "
+                               "(content:\"one\"; http_host; pcre:/two/; "
+                               "content:\"three\"; distance:10; http_host; "
                                "content:\"four\"; distance:10; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
@@ -1830,9 +1830,9 @@ int DetectHttpHHTest25(void)
     if (pd1->flags != DETECT_PCRE_RELATIVE_NEXT ||
         cd2->flags != DETECT_CONTENT_DISTANCE ||
         memcmp(cd2->content, "four", cd2->content_len) != 0 ||
-        hhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_NOCASE) ||
+        hhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT) ||
         memcmp(hhhd1->content, "one", hhhd1->content_len) != 0 ||
-        hhhd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_NOCASE) ||
+        hhhd2->flags != (DETECT_CONTENT_DISTANCE) ||
         memcmp(hhhd2->content, "three", hhhd1->content_len) != 0) {
         goto end;
     }
@@ -1861,8 +1861,8 @@ int DetectHttpHHTest26(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; offset:10; http_host; nocase; pcre:/two/; "
-                               "content:\"three\"; distance:10; http_host; nocase; within:10; "
+                               "(content:\"one\"; offset:10; http_host; pcre:/two/; "
+                               "content:\"three\"; distance:10; http_host; within:10; "
                                "content:\"four\"; distance:10; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
@@ -1886,9 +1886,9 @@ int DetectHttpHHTest26(void)
     if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
         cd2->flags != DETECT_CONTENT_DISTANCE ||
         memcmp(cd2->content, "four", cd2->content_len) != 0 ||
-        hhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_OFFSET | DETECT_CONTENT_NOCASE) ||
+        hhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_OFFSET) ||
         memcmp(hhhd1->content, "one", hhhd1->content_len) != 0 ||
-        hhhd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN | DETECT_CONTENT_NOCASE) ||
+        hhhd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN) ||
         memcmp(hhhd2->content, "three", hhhd1->content_len) != 0) {
         printf ("failed: http_host incorrect flags");
         goto end;
@@ -1918,8 +1918,8 @@ int DetectHttpHHTest27(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; offset:10; http_host; nocase; pcre:/two/; "
-                               "content:\"three\"; distance:10; http_host; nocase; within:10; "
+                               "(content:\"one\"; offset:10; http_host; pcre:/two/; "
+                               "content:\"three\"; distance:10; http_host; within:10; "
                                "content:\"four\"; distance:10; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
@@ -1944,8 +1944,8 @@ int DetectHttpHHTest28(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_host; nocase; pcre:/two/; "
-                               "content:\"three\"; http_host; nocase; depth:10; "
+                               "(content:\"one\"; http_host; pcre:/two/; "
+                               "content:\"three\"; http_host; depth:10; "
                                "content:\"four\"; distance:10; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
@@ -1969,9 +1969,9 @@ int DetectHttpHHTest28(void)
     if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
         cd2->flags != DETECT_CONTENT_DISTANCE ||
         memcmp(cd2->content, "four", cd2->content_len) != 0 ||
-        hhhd1->flags != (DETECT_CONTENT_NOCASE) ||
+        hhhd1->flags != (0) ||
         memcmp(hhhd1->content, "one", hhhd1->content_len) != 0 ||
-        hhhd2->flags != (DETECT_CONTENT_DEPTH | DETECT_CONTENT_NOCASE) ||
+        hhhd2->flags != (DETECT_CONTENT_DEPTH) ||
         memcmp(hhhd2->content, "three", hhhd1->content_len) != 0) {
         goto end;
     }
@@ -2000,8 +2000,8 @@ int DetectHttpHHTest29(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_host; nocase; "
-                               "content:\"two\"; distance:0; http_host; nocase; sid:1;)");
+                               "(content:\"one\"; http_host; "
+                               "content:\"two\"; distance:0; http_host; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2019,9 +2019,9 @@ int DetectHttpHHTest29(void)
 
     DetectContentData *hhhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH]->prev->ctx;
     DetectContentData *hhhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH]->ctx;
-    if (hhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_NOCASE) ||
+    if (hhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT) ||
         memcmp(hhhd1->content, "one", hhhd1->content_len) != 0 ||
-        hhhd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_NOCASE) ||
+        hhhd2->flags != (DETECT_CONTENT_DISTANCE) ||
         memcmp(hhhd2->content, "two", hhhd1->content_len) != 0) {
         goto end;
     }
@@ -2044,8 +2044,8 @@ int DetectHttpHHTest30(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_host; nocase; "
-                               "content:\"two\"; within:5; http_host; nocase; sid:1;)");
+                               "(content:\"one\"; http_host; "
+                               "content:\"two\"; within:5; http_host; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2063,9 +2063,9 @@ int DetectHttpHHTest30(void)
 
     DetectContentData *hhhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH]->prev->ctx;
     DetectContentData *hhhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH]->ctx;
-    if (hhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_NOCASE) ||
+    if (hhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT) ||
         memcmp(hhhd1->content, "one", hhhd1->content_len) != 0 ||
-        hhhd2->flags != (DETECT_CONTENT_WITHIN | DETECT_CONTENT_NOCASE) ||
+        hhhd2->flags != (DETECT_CONTENT_WITHIN) ||
         memcmp(hhhd2->content, "two", hhhd1->content_len) != 0) {
         goto end;
     }
@@ -2088,7 +2088,7 @@ int DetectHttpHHTest31(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; within:5; http_host; nocase; sid:1;)");
+                               "(content:\"one\"; within:5; http_host; sid:1;)");
     if (de_ctx->sig_list != NULL) {
         printf("de_ctx->sig_list != NULL\n");
         goto end;
@@ -2112,7 +2112,7 @@ int DetectHttpHHTest32(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_host; nocase; within:5; sid:1;)");
+                               "(content:\"one\"; http_host; within:5; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list != NULL\n");
         goto end;
@@ -2160,8 +2160,8 @@ int DetectHttpHHTest34(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(pcre:/one/Wi; "
-                               "content:\"two\"; within:5; http_host; nocase; sid:1;)");
+                               "(pcre:/one/W; "
+                               "content:\"two\"; within:5; http_host; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2187,8 +2187,8 @@ int DetectHttpHHTest34(void)
 
     DetectPcreData *pd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH]->prev->ctx;
     DetectContentData *hhhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH]->ctx;
-    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT | DETECT_PCRE_HTTP_HOST | DETECT_PCRE_CASELESS) ||
-        hhhd2->flags != (DETECT_CONTENT_WITHIN | DETECT_CONTENT_NOCASE) ||
+    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT | DETECT_PCRE_HTTP_HOST) ||
+        hhhd2->flags != (DETECT_CONTENT_WITHIN) ||
         memcmp(hhhd2->content, "two", hhhd2->content_len) != 0) {
         goto end;
     }
@@ -2211,8 +2211,8 @@ int DetectHttpHHTest35(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"two\"; http_host; nocase; "
-                               "pcre:/one/WRi; sid:1;)");
+                               "(content:\"two\"; http_host; "
+                               "pcre:/one/WR; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2238,8 +2238,8 @@ int DetectHttpHHTest35(void)
 
     DetectContentData *hhhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH]->prev->ctx;
     DetectPcreData *pd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH]->ctx;
-    if (pd2->flags != (DETECT_PCRE_RELATIVE | DETECT_PCRE_HTTP_HOST | DETECT_PCRE_CASELESS) ||
-        hhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_NOCASE) ||
+    if (pd2->flags != (DETECT_PCRE_RELATIVE | DETECT_PCRE_HTTP_HOST) ||
+        hhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT) ||
         memcmp(hhhd1->content, "two", hhhd1->content_len) != 0) {
         goto end;
     }
@@ -2262,8 +2262,8 @@ int DetectHttpHHTest36(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(pcre:/one/Wi; "
-                               "content:\"two\"; distance:5; http_host; nocase; sid:1;)");
+                               "(pcre:/one/W; "
+                               "content:\"two\"; distance:5; http_host; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2289,8 +2289,8 @@ int DetectHttpHHTest36(void)
 
     DetectPcreData *pd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH]->prev->ctx;
     DetectContentData *hhhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH]->ctx;
-    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT | DETECT_PCRE_HTTP_HOST | DETECT_PCRE_CASELESS) ||
-        hhhd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_NOCASE) ||
+    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT | DETECT_PCRE_HTTP_HOST) ||
+        hhhd2->flags != (DETECT_CONTENT_DISTANCE) ||
         memcmp(hhhd2->content, "two", hhhd2->content_len) != 0) {
         goto end;
     }
