@@ -52,6 +52,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-debug.h"
+#include "util-memcmp.h"
 #include "string.h"
 #include "detect-parse.h"
 #include "detect-engine-iponly.h"
@@ -1165,19 +1166,27 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
              sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
-                if (!(cd->flags & DETECT_CONTENT_NOCASE)) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "http_host keyword "
-                               "requires the \"nocase\" modifier to be set.");
-                    SCReturnInt(0);
-                }
-            } else if (sm->type == DETECT_PCRE) {
-                DetectPcreData *pd = (DetectPcreData *)sm->ctx;
-                if (!(pd->flags & DETECT_PCRE_CASELESS)) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre http_host "
-                               "modifier requires the nocase modifier "
-                               "\"i\"to be set");
-                    SCReturnInt(0);
-                }
+                if (cd->flags & DETECT_CONTENT_NOCASE) {
+                    SCLogWarning(SC_ERR_INVALID_SIGNATURE, "http_host keyword "
+                                 "specified along with \"nocase\". "
+                                 "Since the hostname buffer we match against "
+                                 "is actually lowercase.  So having a "
+                                 "nocase is redundant.");
+                } else {
+                    uint8_t u = 0;
+                    for (u = 0; u < cd->content_len; u++) {
+                        if (isupper(cd->content[u]))
+                            break;
+                    }
+                    if (u != cd->content_len) {
+                        SCLogWarning(SC_ERR_INVALID_SIGNATURE, "A pattern with "
+                                     "uppercase chars detected for http_host.  "
+                                     "Since the hostname buffer we match against "
+                                     "is lowercase only, please specify a "
+                                     "lowercase pattern.");
+                        SCReturnInt(0);
+                    }
+                } /* else */
             }
         }
     }
