@@ -452,6 +452,12 @@ void StreamTcpInitConfig(char quiet)
         SCLogInfo("stream.reassembly \"depth\": %"PRIu32"", stream_config.reassembly_depth);
     }
 
+    int randomize = 0;
+    if ((ConfGetBool("stream.reassembly.randomize-chunk-size", &randomize)) == 0) {
+        /* randomize by default if value not set */
+        randomize = 1;
+    }
+
     char *temp_stream_reassembly_toserver_chunk_size_str;
     if (ConfGet("stream.reassembly.toserver-chunk-size",
                 &temp_stream_reassembly_toserver_chunk_size_str) == 1) {
@@ -466,6 +472,12 @@ void StreamTcpInitConfig(char quiet)
     } else {
         stream_config.reassembly_toserver_chunk_size =
             STREAMTCP_DEFAULT_TOSERVER_CHUNK_SIZE;
+    }
+
+    if (randomize) {
+        stream_config.reassembly_toserver_chunk_size +=
+            (int) (stream_config.reassembly_toserver_chunk_size *
+                    (random() - RAND_MAX / 2) / (10.0 * RAND_MAX));
     }
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER,
             stream_config.reassembly_toserver_chunk_size);
@@ -485,6 +497,13 @@ void StreamTcpInitConfig(char quiet)
         stream_config.reassembly_toclient_chunk_size =
             STREAMTCP_DEFAULT_TOCLIENT_CHUNK_SIZE;
     }
+
+    if (randomize) {
+        stream_config.reassembly_toclient_chunk_size +=
+            (int) (stream_config.reassembly_toclient_chunk_size *
+                    (random() - RAND_MAX / 2) / (10.0 * RAND_MAX));
+    }
+
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT,
             stream_config.reassembly_toclient_chunk_size);
 
