@@ -120,10 +120,14 @@ static uint8_t *DetectEngineHHDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
         index = (tx_id - det_ctx->hhd_start_tx_id);
     }
 
-    table_t *headers;
+    htp_table_t *headers;
     if (flags & STREAM_TOSERVER) {
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) <= HTP_REQUEST_HEADERS)
+            goto end;
         headers = tx->request_headers;
     } else {
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 1) <= HTP_RESPONSE_HEADERS)
+            goto end;
         headers = tx->response_headers;
     }
     if (headers == NULL)
@@ -132,9 +136,11 @@ static uint8_t *DetectEngineHHDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
     htp_header_t *h = NULL;
     headers_buffer = det_ctx->hhd_buffers[index];
     size_t headers_buffer_len = 0;
+    size_t i = 0;
 
-    table_iterator_reset(headers);
-    while (table_iterator_next(headers, (void **)&h) != NULL) {
+    size_t no_of_headers = htp_table_size(headers);
+    for (; i < no_of_headers; i++) {
+        h = htp_table_get_index(headers, i, NULL);
         size_t size1 = bstr_size(h->name);
         size_t size2 = bstr_size(h->value);
 
@@ -231,10 +237,10 @@ int DetectEngineInspectHttpHeader(ThreadVars *tv,
 
  end:
     if (flags & STREAM_TOSERVER) {
-        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_REQ_HEADERS)
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > HTP_REQUEST_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     } else {
-        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 1) > TX_PROGRESS_RES_HEADERS)
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 1) > HTP_RESPONSE_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     }
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;

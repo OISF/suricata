@@ -63,12 +63,12 @@ int DetectEngineRunHttpHHMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
 {
     uint32_t cnt = 0;
     htp_tx_t *tx = (htp_tx_t *)txv;
-    if (tx->parsed_uri == NULL || tx->parsed_uri->hostname == NULL)
+    if (tx->request_hostname == NULL)
         goto end;
-    uint8_t *hname = (uint8_t *)bstr_ptr(tx->parsed_uri->hostname);
+    uint8_t *hname = (uint8_t *)bstr_ptr(tx->request_hostname);
     if (hname == NULL)
         goto end;
-    uint32_t hname_len = bstr_len(tx->parsed_uri->hostname);
+    uint32_t hname_len = bstr_len(tx->request_hostname);
 
     cnt += HttpHHPatternSearch(det_ctx, hname, hname_len, flags);
 
@@ -97,12 +97,12 @@ int DetectEngineInspectHttpHH(ThreadVars *tv,
                               void *txv, uint64_t tx_id)
 {
     htp_tx_t *tx = (htp_tx_t *)txv;
-    if (tx->parsed_uri == NULL || tx->parsed_uri->hostname == NULL)
+    if (tx->parsed_uri == NULL || tx->request_hostname == NULL)
         goto end;
-    uint8_t *hname = (uint8_t *)bstr_ptr(tx->parsed_uri->hostname);
+    uint8_t *hname = (uint8_t *)bstr_ptr(tx->request_hostname);
     if (hname == NULL)
         goto end;
-    uint32_t hname_len = bstr_len(tx->parsed_uri->hostname);
+    uint32_t hname_len = bstr_len(tx->request_hostname);
 
     det_ctx->buffer_offset = 0;
     det_ctx->discontinue_matching = 0;
@@ -116,7 +116,7 @@ int DetectEngineInspectHttpHH(ThreadVars *tv,
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
  end:
-    if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_REQ_HEADERS)
+    if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > HTP_REQUEST_HEADERS)
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     else
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;

@@ -63,28 +63,31 @@ int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     SCEnter();
 
     uint32_t cnt = 0;
-    bstr *raw_headers;
     htp_tx_t *tx = (htp_tx_t *)txv;
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    if (tx_ud == NULL)
+        SCReturnInt(cnt);
+
     if (flags & STREAM_TOSERVER) {
-        raw_headers = htp_tx_get_request_headers_raw(tx);
-        if (raw_headers != NULL) {
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, txv, 0) <= HTP_REQUEST_HEADERS)
+            SCReturnInt(cnt);
+
+        if (tx_ud->request_headers_raw != NULL) {
             cnt = HttpRawHeaderPatternSearch(det_ctx,
-                                             (uint8_t *)bstr_ptr(raw_headers),
-                                             bstr_len(raw_headers), flags);
-        } else {
-            SCLogDebug("no raw headers");
+                                             tx_ud->request_headers_raw,
+                                             tx_ud->request_headers_raw_len,
+                                             flags);
         }
     } else {
-#ifdef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
-        raw_headers = htp_tx_get_response_headers_raw(tx);
-        if (raw_headers != NULL) {
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, txv, 1) <= HTP_RESPONSE_HEADERS)
+            SCReturnInt(cnt);
+
+        if (tx_ud->response_headers_raw != NULL) {
             cnt += HttpRawHeaderPatternSearch(det_ctx,
-                                              (uint8_t *)bstr_ptr(raw_headers),
-                                              bstr_len(raw_headers), flags);
-        } else {
-            SCLogDebug("no raw headers");
+                                              tx_ud->response_headers_raw,
+                                              tx_ud->response_headers_raw_len,
+                                              flags);
         }
-#endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
     }
 
     SCReturnInt(cnt);
@@ -110,17 +113,29 @@ int DetectEngineInspectHttpRawHeader(ThreadVars *tv,
                                      void *alstate,
                                      void *txv, uint64_t tx_id)
 {
-    htp_tx_t *tx = (htp_tx_t *)txv;
-    bstr *raw_headers = NULL;
+    HtpTxUserData *tx_ud = NULL;
+    uint8_t *headers_raw = NULL;
+    uint32_t headers_raw_len = 0;
+
     if (flags & STREAM_TOSERVER) {
-        raw_headers = htp_tx_get_request_headers_raw(tx);
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, txv, 0) <= HTP_REQUEST_HEADERS)
+            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    } else {
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, txv, 1) <= HTP_RESPONSE_HEADERS)
+            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
-#ifdef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
-    else {
-        raw_headers = htp_tx_get_response_headers_raw(tx);
+
+    tx_ud = htp_tx_get_user_data(txv);
+    if (tx_ud == NULL)
+        goto end;
+    if (flags & STREAM_TOSERVER) {
+        headers_raw = tx_ud->request_headers_raw;
+        headers_raw_len = tx_ud->request_headers_raw_len;
+    } else {
+        headers_raw = tx_ud->response_headers_raw;
+        headers_raw_len = tx_ud->response_headers_raw_len;
     }
-#endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
-    if (raw_headers == NULL)
+    if (headers_raw == NULL)
         goto end;
 
     det_ctx->buffer_offset = 0;
@@ -128,8 +143,8 @@ int DetectEngineInspectHttpRawHeader(ThreadVars *tv,
     det_ctx->inspection_recursion_counter = 0;
     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HRHDMATCH],
                                           f,
-                                          (uint8_t *)bstr_ptr(raw_headers),
-                                          bstr_len(raw_headers),
+                                          headers_raw,
+                                          headers_raw_len,
                                           0,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HRHD, NULL);
     if (r == 1)
@@ -137,10 +152,10 @@ int DetectEngineInspectHttpRawHeader(ThreadVars *tv,
 
  end:
     if (flags & STREAM_TOSERVER) {
-        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_REQ_HEADERS)
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, txv, 0) > HTP_REQUEST_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     } else {
-        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 1) > TX_PROGRESS_RES_HEADERS)
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, txv, 1) > HTP_RESPONSE_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     }
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
@@ -2725,7 +2740,6 @@ end:
 
 static int DetectEngineHttpRawHeaderTest28(void)
 {
-#ifdef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
     TcpSession ssn;
     Packet *p1 = NULL;
     Packet *p2 = NULL;
@@ -2841,9 +2855,6 @@ end:
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
     return result;
-#else
-    return 1;
-#endif
 }
 
 static int DetectEngineHttpRawHeaderTest29(void)

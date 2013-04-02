@@ -66,11 +66,11 @@ int DetectEngineRunHttpHRHMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     uint8_t *hname = NULL;
     uint32_t hname_len = 0;
 
-    if (tx->parsed_uri_incomplete == NULL || tx->parsed_uri_incomplete->hostname == NULL) {
+    if (tx->parsed_uri == NULL || tx->parsed_uri->hostname == NULL) {
         if (tx->request_headers == NULL)
             goto end;
         htp_header_t *h = NULL;
-        h = (htp_header_t *)table_getc(tx->request_headers, "Host");
+        h = (htp_header_t *)htp_table_get_c(tx->request_headers, "Host");
         if (h != NULL) {
             SCLogDebug("HTTP host header not present in this request");
             hname = (uint8_t *)bstr_ptr(h->value);
@@ -79,9 +79,9 @@ int DetectEngineRunHttpHRHMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
             goto end;
         }
     } else {
-        hname = (uint8_t *)bstr_ptr(tx->parsed_uri_incomplete->hostname);
+        hname = (uint8_t *)bstr_ptr(tx->parsed_uri->hostname);
         if (hname != NULL)
-            hname_len = bstr_len(tx->parsed_uri_incomplete->hostname);
+            hname_len = bstr_len(tx->parsed_uri->hostname);
         else
             goto end;
     }
@@ -115,9 +115,9 @@ int DetectEngineInspectHttpHRH(ThreadVars *tv,
     uint8_t *hname;
     uint32_t hname_len;
     htp_tx_t *tx = (htp_tx_t *)txv;
-    if (tx->parsed_uri_incomplete == NULL || tx->parsed_uri_incomplete->hostname == NULL) {
+    if (tx->parsed_uri == NULL || tx->parsed_uri->hostname == NULL) {
         htp_header_t *h = NULL;
-        h = (htp_header_t *)table_getc(tx->request_headers, "Host");
+        h = (htp_header_t *)htp_table_get_c(tx->request_headers, "Host");
         if (h == NULL) {
             SCLogDebug("HTTP host header not present in this request");
             goto end;
@@ -125,10 +125,10 @@ int DetectEngineInspectHttpHRH(ThreadVars *tv,
         hname = (uint8_t *)bstr_ptr(h->value);
         hname_len = bstr_len(h->value);
     } else {
-        hname = (uint8_t *)bstr_ptr(tx->parsed_uri_incomplete->hostname);
+        hname = (uint8_t *)bstr_ptr(tx->parsed_uri->hostname);
         if (hname == NULL)
             goto end;
-        hname_len = bstr_len(tx->parsed_uri_incomplete->hostname);
+        hname_len = bstr_len(tx->parsed_uri->hostname);
     }
 
     det_ctx->buffer_offset = 0;
@@ -143,7 +143,7 @@ int DetectEngineInspectHttpHRH(ThreadVars *tv,
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
  end:
-    if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_REQ_HEADERS)
+    if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > HTP_REQUEST_HEADERS)
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     else
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
