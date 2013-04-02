@@ -974,7 +974,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                 tx_progress = AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0);
 
                 if (p->flowflags & FLOW_PKT_TOSERVER) {
-                    if (tx_progress > TX_PROGRESS_REQ_LINE) {
+                    if (tx_progress > HTP_REQUEST_LINE) {
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_URI) {
                             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_URI);
                             DetectUricontentInspectMpm(det_ctx, p->flow, alstate, flags, tx, idx);
@@ -992,7 +992,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                         }
                     }
 
-                    if (tx_progress >= TX_PROGRESS_REQ_HEADERS) {
+                    if (tx_progress >= HTP_REQUEST_HEADERS) {
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HHHD) {
                             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HHHD);
                             DetectEngineRunHttpHHMpm(det_ctx, p->flow, alstate, flags, tx, idx);
@@ -1025,7 +1025,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                         }
                     }
 
-                    if (tx_progress >= TX_PROGRESS_REQ_BODY) {
+                    if (tx_progress >= HTP_REQUEST_BODY) {
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HCBD) {
                             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HCBD);
                             DetectEngineRunHttpClientBodyMpm(de_ctx, det_ctx, p->flow, alstate, flags, tx, idx);
@@ -1035,7 +1035,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                 } else { /* implied FLOW_PKT_TOCLIENT */
                     tx_progress = AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 1);
 
-                    if (tx_progress > TX_PROGRESS_RES_LINE) {
+                    if (tx_progress > HTP_RESPONSE_LINE) {
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSMD) {
                             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSMD);
                             DetectEngineRunHttpStatMsgMpm(det_ctx, p->flow, alstate, flags, tx, idx);
@@ -1048,7 +1048,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                         }
                     }
 
-                    if (tx_progress >= TX_PROGRESS_RES_HEADERS) {
+                    if (tx_progress >= HTP_RESPONSE_HEADERS) {
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HHD) {
                             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HHD);
                             DetectEngineRunHttpHeaderMpm(det_ctx, p->flow, alstate, flags, tx, idx);
@@ -1066,7 +1066,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                         }
                     }
 
-                    if (tx_progress >= TX_PROGRESS_RES_BODY) {
+                    if (tx_progress >= HTP_RESPONSE_BODY) {
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSBD) {
                             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSBD);
                             DetectEngineRunHttpServerBodyMpm(de_ctx, det_ctx, p->flow, alstate, flags, tx, idx);
