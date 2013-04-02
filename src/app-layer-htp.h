@@ -190,8 +190,17 @@ typedef struct HtpBody_ {
   * the tx user data */
 typedef struct HtpTxUserData_ {
     /* Body of the request (if any) */
+    uint8_t request_body_init;
+    uint8_t response_body_init;
     HtpBody request_body;
     HtpBody response_body;
+
+    bstr *request_uri_normalized;
+
+    uint8_t *request_headers_raw;
+    uint8_t *response_headers_raw;
+    uint32_t request_headers_raw_len;
+    uint32_t response_headers_raw_len;
 
     /** Holds the boundary identificator string if any (used on
      *  multipart/form-data only)
@@ -211,8 +220,10 @@ typedef struct HtpTxUserData_ {
 
 typedef struct HtpState_ {
 
-    htp_connp_t *connp;     /**< Connection parser structure for
-                                 each connection */
+    /* Connection parser structure for each connection */
+    htp_connp_t *connp;
+    /* Connection structure for each connection */
+    htp_conn_t *conn;
     Flow *f;                /**< Needed to retrieve the original flow when usin HTPLib callbacks */
     uint64_t transaction_cnt;
     uint64_t store_tx_id;

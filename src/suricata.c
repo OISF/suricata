@@ -625,9 +625,6 @@ void SCPrintBuildInfo(void) {
 #ifdef HAVE_HTP_URI_NORMALIZE_HOOK
     strlcat(features, "HAVE_HTP_URI_NORMALIZE_HOOK ", sizeof(features));
 #endif
-#ifdef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
-    strlcat(features, "HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW ", sizeof(features));
-#endif
 #ifdef PCRE_HAVE_JIT
     strlcat(features, "PCRE_JIT ", sizeof(features));
 #endif
@@ -700,7 +697,7 @@ void SCPrintBuildInfo(void) {
     printf("L1 cache line size (CLS)=%d\n", CLS);
 #endif
 
-    printf("compiled with libhtp %s, linked against %s\n", HTP_BASE_VERSION_TEXT, htp_get_version());
+    printf("compiled with libhtp %s, linked against %s\n", HTP_VERSION_STRING, HTP_VERSION_STRING);
 
 #include "build-info.h"
 }
@@ -1289,11 +1286,6 @@ int main(int argc, char **argv)
         SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
 #endif
     }
-
-#ifndef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
-    SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "libhtp < 0.2.7 detected. Keyword "
-        "http_raw_header will not be able to inspect response headers.");
-#endif
 
     SetBpfString(optind, argv);
 

@@ -105,9 +105,13 @@ static void LogFileMetaGetUri(FILE *fp, Packet *p, File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, ff->txid);
-        if (tx != NULL && tx->request_uri_normalized != NULL) {
-            PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(tx->request_uri_normalized),
-                    bstr_len(tx->request_uri_normalized));
+        if (tx != NULL) {
+            HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+            if (tx_ud->request_uri_normalized != NULL) {
+                PrintRawJsonFp(fp,
+                               bstr_ptr(tx_ud->request_uri_normalized),
+                               bstr_len(tx_ud->request_uri_normalized));
+            }
             return;
         }
     }
@@ -120,18 +124,13 @@ static void LogFileMetaGetHost(FILE *fp, Packet *p, File *ff) {
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL) {
-            table_t *headers;
-            headers = tx->request_headers;
             htp_header_t *h = NULL;
-
-            table_iterator_reset(headers);
-            while (table_iterator_next(headers, (void **)&h) != NULL) {
-                if (bstr_len(h->name) >= 4 &&
-                        SCMemcmpLowercase((uint8_t *)"host", (uint8_t *)bstr_ptr(h->name), bstr_len(h->name)) == 0) {
-                    PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(h->value),
-                        bstr_len(h->value));
-                    return;
-                }
+            h = (htp_header_t *)htp_table_get_c(tx->request_headers,
+                                                "Host");
+            if (h != NULL) {
+                PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(h->value),
+                               bstr_len(h->value));
+                return;
             }
         }
     }
@@ -144,18 +143,13 @@ static void LogFileMetaGetReferer(FILE *fp, Packet *p, File *ff) {
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL) {
-            table_t *headers;
-            headers = tx->request_headers;
             htp_header_t *h = NULL;
-
-            table_iterator_reset(headers);
-            while (table_iterator_next(headers, (void **)&h) != NULL) {
-                if (bstr_len(h->name) >= 7 &&
-                        SCMemcmpLowercase((uint8_t *)"referer", (uint8_t *)bstr_ptr(h->name), bstr_len(h->name)) == 0) {
-                    PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(h->value),
-                        bstr_len(h->value));
-                    return;
-                }
+            h = (htp_header_t *)htp_table_get_c(tx->request_headers,
+                                                "Referer");
+            if (h != NULL) {
+                PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(h->value),
+                               bstr_len(h->value));
+                return;
             }
         }
     }
@@ -168,18 +162,13 @@ static void LogFileMetaGetUserAgent(FILE *fp, Packet *p, File *ff) {
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL) {
-            table_t *headers;
-            headers = tx->request_headers;
             htp_header_t *h = NULL;
-
-            table_iterator_reset(headers);
-            while (table_iterator_next(headers, (void **)&h) != NULL) {
-                if (bstr_len(h->name) >= 10 &&
-                        SCMemcmpLowercase((uint8_t *)"user-agent", (uint8_t *)bstr_ptr(h->name), bstr_len(h->name)) == 0) {
-                    PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(h->value),
-                        bstr_len(h->value));
-                    return;
-                }
+            h = (htp_header_t *)htp_table_get_c(tx->request_headers,
+                                                "User-Agent");
+            if (h != NULL) {
+                PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(h->value),
+                               bstr_len(h->value));
+                return;
             }
         }
     }
