@@ -3092,6 +3092,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
         if (s->mpm_sm != NULL) {
             int sm_list = SigMatchListSMBelongsTo(s, s->mpm_sm);
             BUG_ON(sm_list == -1);
+
             DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
             DetectFPAndItsId *dup = (DetectFPAndItsId *)ahb;
             for (; dup != struct_offset; dup++) {
@@ -3123,5 +3124,6 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
     de_ctx->max_fp_id = max_id;
 
     SCFree(ahb);
+
     return 0;
 }
