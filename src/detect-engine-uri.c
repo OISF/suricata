@@ -68,10 +68,10 @@ int DetectEngineInspectPacketUris(ThreadVars *tv,
                                   void *alstate,
                                   void *txv, uint64_t tx_id)
 {
-    htp_tx_t *tx = (htp_tx_t *)txv;
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(txv);
 
-    if (tx->request_uri_normalized == NULL) {
-        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_REQ_LINE)
+    if (tx_ud == NULL || tx_ud->request_uri_normalized == NULL) {
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, txv, 0) > HTP_REQUEST_LINE)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
         else
             return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
@@ -82,16 +82,16 @@ int DetectEngineInspectPacketUris(ThreadVars *tv,
     det_ctx->inspection_recursion_counter = 0;
 
 #if 0
-    PrintRawDataFp(stdout, (uint8_t *)bstr_ptr(tx->request_uri_normalized),
-                   bstr_len(tx->request_uri_normalized));
+    PrintRawDataFp(stdout, (uint8_t *)bstr_ptr(tx_ud->request_uri_normalized),
+                   bstr_len(tx_ud->request_uri_normalized));
 #endif
 
     /* Inspect all the uricontents fetched on each
      * transaction at the app layer */
     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_UMATCH],
                                           f,
-                                          (uint8_t *)bstr_ptr(tx->request_uri_normalized),
-                                          bstr_len(tx->request_uri_normalized),
+                                          bstr_ptr(tx_ud->request_uri_normalized),
+                                          bstr_len(tx_ud->request_uri_normalized),
                                           0,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_URI, NULL);
     if (r == 1) {

@@ -66,15 +66,15 @@ int DetectEngineRunHttpCookieMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
 
     htp_header_t *h = NULL;
     if (flags & STREAM_TOSERVER) {
-        h = (htp_header_t *)table_getc(tx->request_headers,
-                                       "Cookie");
+        h = (htp_header_t *)htp_table_get_c(tx->request_headers,
+                                            "Cookie");
         if (h == NULL) {
             SCLogDebug("HTTP cookie header not present in this request");
             goto end;
         }
     } else {
-        h = (htp_header_t *)table_getc(tx->response_headers,
-                                       "Set-Cookie");
+        h = (htp_header_t *)htp_table_get_c(tx->response_headers,
+                                            "Set-Cookie");
         if (h == NULL) {
             SCLogDebug("HTTP Set-Cookie header not present in this request");
             goto end;
@@ -111,15 +111,15 @@ int DetectEngineInspectHttpCookie(ThreadVars *tv,
     htp_tx_t *tx = (htp_tx_t *)txv;
     htp_header_t *h = NULL;
     if (flags & STREAM_TOSERVER) {
-        h = (htp_header_t *)table_getc(tx->request_headers,
-                                       "Cookie");
+        h = (htp_header_t *)htp_table_get_c(tx->request_headers,
+                                            "Cookie");
         if (h == NULL) {
             SCLogDebug("HTTP cookie header not present in this request");
             goto end;
         }
     } else {
-        h = (htp_header_t *)table_getc(tx->response_headers,
-                                       "Set-Cookie");
+        h = (htp_header_t *)htp_table_get_c(tx->response_headers,
+                                            "Set-Cookie");
         if (h == NULL) {
             SCLogDebug("HTTP Set-Cookie header not present in this request");
             goto end;
@@ -140,10 +140,10 @@ int DetectEngineInspectHttpCookie(ThreadVars *tv,
 
  end:
     if (flags & STREAM_TOSERVER) {
-        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_REQ_HEADERS)
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > HTP_REQUEST_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     } else {
-        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 1) > TX_PROGRESS_RES_HEADERS)
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 1) > HTP_RESPONSE_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     }
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
