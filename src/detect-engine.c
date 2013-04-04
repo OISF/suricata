@@ -811,6 +811,10 @@ DetectEngineCtx *DetectEngineCtxInit(void) {
     /* init iprep... ignore errors for now */
     (void)SRepInit(de_ctx);
 
+#ifdef PROFILING
+    SCProfilingKeywordInitCounters(de_ctx);
+#endif
+
     return de_ctx;
 error:
     return NULL;
@@ -835,6 +839,10 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
     if (de_ctx->profile_ctx != NULL) {
         SCProfilingRuleDestroyCtx(de_ctx->profile_ctx);
         de_ctx->profile_ctx = NULL;
+    }
+    if (de_ctx->profile_keyword_ctx != NULL) {
+        SCProfilingKeywordDestroyCtx(de_ctx->profile_keyword_ctx);
+        de_ctx->profile_keyword_ctx = NULL;
     }
 #endif
 
@@ -1204,6 +1212,7 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
     DetectEngineThreadCtxInitKeywords(de_ctx, det_ctx);
 #ifdef PROFILING
     SCProfilingRuleThreadSetup(de_ctx->profile_ctx, det_ctx);
+    SCProfilingKeywordThreadSetup(de_ctx->profile_keyword_ctx, det_ctx);
 #endif
     SC_ATOMIC_INIT(det_ctx->so_far_used_by_detect);
 
@@ -1309,6 +1318,7 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data) {
 
 #ifdef PROFILING
     SCProfilingRuleThreadCleanup(det_ctx);
+    SCProfilingKeywordThreadCleanup(det_ctx);
 #endif
 
     DetectEngineIPOnlyThreadDeinit(&det_ctx->io_ctx);

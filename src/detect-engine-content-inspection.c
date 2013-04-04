@@ -52,6 +52,7 @@
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
+#include "util-profiling.h"
 
 /**
  * \brief Run the actual payload match functions
@@ -100,15 +101,18 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                                   uint8_t inspection_mode, void *data)
 {
     SCEnter();
+    KEYWORD_PROFILING_START;
 
     det_ctx->inspection_recursion_counter++;
 
     if (det_ctx->inspection_recursion_counter == de_ctx->inspection_recursion_limit) {
         det_ctx->discontinue_matching = 1;
+        KEYWORD_PROFILING_END(det_ctx, sm->type, 0);
         SCReturnInt(0);
     }
 
     if (sm == NULL || buffer_len == 0) {
+        KEYWORD_PROFILING_END(det_ctx, sm->type, 0);
         SCReturnInt(0);
     }
 
@@ -316,6 +320,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 }
 
                 SCLogDebug("content %"PRIu32, cd->id);
+                KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
 
                 /* see if the next buffer keywords match. If not, we will
                  * search for another occurence of this content and see
@@ -387,6 +392,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 SCLogDebug("no relative match coming up, so this is a match");
                 goto match;
             }
+            KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
 
             /* save it, in case we need to do a pcre match once again */
             prev_offset = det_ctx->pcre_match_start_offset;
@@ -546,15 +552,18 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
     }
 
 no_match:
+    KEYWORD_PROFILING_END(det_ctx, sm->type, 0);
     SCReturnInt(0);
 
 match:
     /* this sigmatch matched, inspect the next one. If it was the last,
      * the buffer portion of the signature matched. */
     if (sm->next != NULL) {
+        KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
         int r = DetectEngineContentInspection(de_ctx, det_ctx, s, sm->next, f, buffer, buffer_len, stream_start_offset, inspection_mode, data);
         SCReturnInt(r);
     } else {
+        KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
         SCReturnInt(1);
     }
 }

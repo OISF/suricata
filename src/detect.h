@@ -730,6 +730,7 @@ typedef struct DetectEngineCtx_ {
 
 #ifdef PROFILING
     struct SCProfileDetectCtx_ *profile_ctx;
+    struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx;
 #endif
 } DetectEngineCtx;
 
@@ -861,6 +862,7 @@ typedef struct DetectionEngineThreadCtx_ {
 #ifdef PROFILING
     struct SCProfileData_ *rule_perf_data;
     int rule_perf_data_size;
+    struct SCProfileKeywordData_ *keyword_perf_data;
 #endif
 } DetectEngineThreadCtx;
 

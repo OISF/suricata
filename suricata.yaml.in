@@ -1133,6 +1133,12 @@ profiling:
     # Limit the number of items printed at exit.
     limit: 100
 
+  # per keyword profiling
+  keywords:
+    enabled: yes
+    filename: keyword_perf.log
+    append: yes
+
   # packet profiling
   packets:
 
