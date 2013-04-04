@@ -57,6 +57,30 @@ void SCProfilingAddPacket(Packet *);
         profiling_rules_entered--; \
     }
 
+extern int profiling_keyword_enabled;
+extern __thread int profiling_keyword_entered;
+
+#define KEYWORD_PROFILING_START \
+    uint64_t profile_keyword_start_ = 0; \
+    uint64_t profile_keyword_end_ = 0; \
+    if (profiling_keyword_enabled) { \
+        if (profiling_keyword_entered > 0) { \
+            SCLogError(SC_ERR_FATAL, "Re-entered profiling, exiting."); \
+            abort(); \
+        } \
+        profiling_keyword_entered++; \
+        profile_keyword_start_ = UtilCpuGetTicks(); \
+    }
+
+/* we allow this macro to be called if profiling_keyword_entered == 0,
+ * so that we don't have to refactor some of the detection code. */
+#define KEYWORD_PROFILING_END(ctx, type, m) \
+    if (profiling_keyword_enabled && profiling_keyword_entered) { \
+        profile_keyword_end_ = UtilCpuGetTicks(); \
+        SCProfilingKeywordUpdateCounter((ctx),(type),(profile_keyword_end_ - profile_keyword_start_),(m)); \
+        profiling_keyword_entered--; \
+    }
+
 #define PACKET_PROFILING_START(p)                                   \
     if (profiling_packets_enabled) {                                \
         (p)->profile.ticks_start = UtilCpuGetTicks();               \
@@ -200,9 +224,15 @@ void SCProfilingRulesGlobalInit(void);
 void SCProfilingRuleDestroyCtx(struct SCProfileDetectCtx_ *);
 void SCProfilingRuleInitCounters(DetectEngineCtx *);
 void SCProfilingRuleUpdateCounter(DetectEngineThreadCtx *, uint16_t, uint64_t, int);
-
 void SCProfilingRuleThreadSetup(struct SCProfileDetectCtx_ *, DetectEngineThreadCtx *);
 void SCProfilingRuleThreadCleanup(DetectEngineThreadCtx *);
+
+void SCProfilingKeywordsGlobalInit(void);
+void SCProfilingKeywordDestroyCtx(struct SCProfileKeywordDetectCtx_ *);
+void SCProfilingKeywordInitCounters(DetectEngineCtx *);
+void SCProfilingKeywordUpdateCounter(DetectEngineThreadCtx *det_ctx, int id, uint64_t ticks, int match);
+void SCProfilingKeywordThreadSetup(struct SCProfileKeywordDetectCtx_ *, DetectEngineThreadCtx *);
+void SCProfilingKeywordThreadCleanup(DetectEngineThreadCtx *);
 
 void SCProfilingInit(void);
 void SCProfilingDestroy(void);
@@ -213,6 +243,9 @@ void SCProfilingDump(void);
 
 #define RULE_PROFILING_START
 #define RULE_PROFILING_END(a,b,c)
+
+#define KEYWORD_PROFILING_START
+#define KEYWORD_PROFILING_END(a,b,c)
 
 #define PACKET_PROFILING_START(p)
 #define PACKET_PROFILING_END(p)
