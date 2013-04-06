@@ -906,6 +906,83 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
     return 0;
 }
 
+/** \internal
+ *  \brief Update SSN after receiving a valid SYN/ACK
+ */
+static void StreamTcp3whsSynAckUpdate(TcpSession *ssn, Packet *p) {
+    if (ssn->state != TCP_SYN_RECV) {
+        /* update state */
+        StreamTcpPacketSetState(p, ssn, TCP_SYN_RECV);
+        SCLogDebug("ssn %p: =~ ssn state is now TCP_SYN_RECV", ssn);
+    }
+    /* sequence number & window */
+    ssn->server.isn = TCP_GET_SEQ(p);
+    STREAMTCP_SET_RA_BASE_SEQ(&ssn->server, ssn->server.isn);
+    ssn->server.next_seq = ssn->server.isn + 1;
+
+    ssn->client.window = TCP_GET_WINDOW(p);
+    SCLogDebug("ssn %p: window %" PRIu32 "", ssn, ssn->server.window);
+
+    /* Set the timestamp values used to validate the timestamp of
+     * received packets.*/
+    if ((p->tcpvars.ts != NULL) &&
+            (ssn->client.flags & STREAMTCP_STREAM_FLAG_TIMESTAMP))
+    {
+        ssn->server.last_ts = TCP_GET_TSVAL(p);
+        SCLogDebug("ssn %p: ssn->server.last_ts %" PRIu32" "
+                "ssn->client.last_ts %" PRIu32"", ssn,
+                ssn->server.last_ts, ssn->client.last_ts);
+        ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
+        ssn->server.last_pkt_ts = p->ts.tv_sec;
+        if (ssn->server.last_ts == 0)
+            ssn->server.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
+    } else {
+        ssn->client.last_ts = 0;
+        ssn->server.last_ts = 0;
+        ssn->client.flags &= ~STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
+    }
+
+    ssn->client.last_ack = TCP_GET_ACK(p);
+    ssn->server.last_ack = ssn->server.isn + 1;
+
+    /** check for the presense of the ws ptr to determine if we
+     *  support wscale at all */
+    if ((ssn->flags & STREAMTCP_FLAG_SERVER_WSCALE) &&
+            (p->tcpvars.ws != NULL))
+    {
+        ssn->client.wscale = TCP_GET_WSCALE(p);
+    } else {
+        ssn->client.wscale = 0;
+    }
+
+    if ((ssn->flags & STREAMTCP_FLAG_CLIENT_SACKOK) &&
+            TCP_GET_SACKOK(p) == 1) {
+        ssn->flags |= STREAMTCP_FLAG_SACKOK;
+        SCLogDebug("ssn %p: SACK permitted for session", ssn);
+    }
+
+    ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
+    ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
+    SCLogDebug("ssn %p: ssn->server.next_win %" PRIu32 "", ssn,
+            ssn->server.next_win);
+    SCLogDebug("ssn %p: ssn->client.next_win %" PRIu32 "", ssn,
+            ssn->client.next_win);
+    SCLogDebug("ssn %p: ssn->server.isn %" PRIu32 ", "
+            "ssn->server.next_seq %" PRIu32 ", "
+            "ssn->server.last_ack %" PRIu32 " "
+            "(ssn->client.last_ack %" PRIu32 ")", ssn,
+            ssn->server.isn, ssn->server.next_seq,
+            ssn->server.last_ack, ssn->client.last_ack);
+
+    /* unset the 4WHS flag as we received this SYN/ACK as part of a
+     * (so far) valid 3WHS */
+    if (ssn->flags & STREAMTCP_FLAG_4WHS)
+        SCLogDebug("ssn %p: STREAMTCP_FLAG_4WHS unset, normal SYN/ACK"
+                " so considering 3WHS", ssn);
+
+    ssn->flags &=~ STREAMTCP_FLAG_4WHS;
+}
+
 /**
  *  \brief  Function to handle the TCP_SYN_SENT state. The function handles
  *          SYN, SYN/ACK, RST packets and correspondingly changes the connection
@@ -1065,76 +1142,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
             return -1;
         }
 
-        /* update state */
-        StreamTcpPacketSetState(p, ssn, TCP_SYN_RECV);
-        SCLogDebug("ssn %p: =~ ssn state is now TCP_SYN_RECV", ssn);
-
-        /* sequence number & window */
-        ssn->server.isn = TCP_GET_SEQ(p);
-        STREAMTCP_SET_RA_BASE_SEQ(&ssn->server, ssn->server.isn);
-        ssn->server.next_seq = ssn->server.isn + 1;
-
-        ssn->client.window = TCP_GET_WINDOW(p);
-        SCLogDebug("ssn %p: window %" PRIu32 "", ssn, ssn->server.window);
-
-        /* Set the timestamp values used to validate the timestamp of
-         * received packets.*/
-        if ((p->tcpvars.ts != NULL) &&
-                (ssn->client.flags & STREAMTCP_STREAM_FLAG_TIMESTAMP))
-        {
-            ssn->server.last_ts = TCP_GET_TSVAL(p);
-            SCLogDebug("ssn %p: ssn->server.last_ts %" PRIu32" "
-                    "ssn->client.last_ts %" PRIu32"", ssn,
-                    ssn->server.last_ts, ssn->client.last_ts);
-            ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
-            ssn->server.last_pkt_ts = p->ts.tv_sec;
-            if (ssn->server.last_ts == 0)
-                ssn->server.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
-        } else {
-            ssn->client.last_ts = 0;
-            ssn->server.last_ts = 0;
-            ssn->client.flags &= ~STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
-        }
-
-        ssn->client.last_ack = TCP_GET_ACK(p);
-        ssn->server.last_ack = ssn->server.isn + 1;
-
-        /** check for the presense of the ws ptr to determine if we
-         *  support wscale at all */
-        if ((ssn->flags & STREAMTCP_FLAG_SERVER_WSCALE) &&
-                (p->tcpvars.ws != NULL))
-        {
-            ssn->client.wscale = TCP_GET_WSCALE(p);
-        } else {
-            ssn->client.wscale = 0;
-        }
-
-        if ((ssn->flags & STREAMTCP_FLAG_CLIENT_SACKOK) &&
-                TCP_GET_SACKOK(p) == 1) {
-            ssn->flags |= STREAMTCP_FLAG_SACKOK;
-            SCLogDebug("ssn %p: SACK permitted for session", ssn);
-        }
-
-        ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
-        ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
-        SCLogDebug("ssn %p: ssn->server.next_win %" PRIu32 "", ssn,
-                ssn->server.next_win);
-        SCLogDebug("ssn %p: ssn->client.next_win %" PRIu32 "", ssn,
-                ssn->client.next_win);
-        SCLogDebug("ssn %p: ssn->server.isn %" PRIu32 ", "
-                "ssn->server.next_seq %" PRIu32 ", "
-                "ssn->server.last_ack %" PRIu32 " "
-                "(ssn->client.last_ack %" PRIu32 ")", ssn,
-                ssn->server.isn, ssn->server.next_seq,
-                ssn->server.last_ack, ssn->client.last_ack);
-
-        /* unset the 4WHS flag as we received this SYN/ACK as part of a
-         * (so far) valid 3WHS */
-        if (ssn->flags & STREAMTCP_FLAG_4WHS)
-            SCLogDebug("ssn %p: STREAMTCP_FLAG_4WHS unset, normal SYN/ACK"
-                    " so considering 3WHS", ssn);
-
-        ssn->flags &=~ STREAMTCP_FLAG_4WHS;
+        StreamTcp3whsSynAckUpdate(ssn, p);
 
     } else if (p->tcph->th_flags & TH_SYN) {
         SCLogDebug("ssn %p: SYN packet on state SYN_SENT... resent", ssn);
