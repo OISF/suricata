@@ -805,7 +805,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
                 ssn->client.flags |= STREAMTCP_FLAG_ZERO_TIMESTAMP;
 
             ssn->client.last_pkt_ts = p->ts.tv_sec;
-            ssn->client.flags |= STREAMTCP_FLAG_TIMESTAMP;
+            ssn->client.flags |= STREAMTCP_STREAM_FLAG_TIMESTAMP;
         }
 
         ssn->server.window = TCP_GET_WINDOW(p);
@@ -996,14 +996,13 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
 
             /* Set the timestamp values used to validate the timestamp of
              * received packets. */
-            if ((p->tcpvars.ts != NULL) && (ssn->server.flags &
-                        STREAMTCP_FLAG_TIMESTAMP))
+            if ((p->tcpvars.ts != NULL) &&
+                    (ssn->server.flags & STREAMTCP_STREAM_FLAG_TIMESTAMP))
             {
                 ssn->client.last_ts = TCP_GET_TSVAL(p);
                 SCLogDebug("ssn %p: 4WHS ssn->client.last_ts %" PRIu32" "
                         "ssn->server.last_ts %" PRIu32"", ssn,
                         ssn->client.last_ts, ssn->server.last_ts);
-                ssn->server.flags &= ~STREAMTCP_FLAG_TIMESTAMP;
                 ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
                 ssn->client.last_pkt_ts = p->ts.tv_sec;
                 if (ssn->client.last_ts == 0)
@@ -1011,7 +1010,6 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
             } else {
                 ssn->server.last_ts = 0;
                 ssn->client.last_ts = 0;
-                ssn->server.flags &= ~STREAMTCP_FLAG_TIMESTAMP;
                 ssn->server.flags &= ~STREAMTCP_FLAG_ZERO_TIMESTAMP;
             }
 
@@ -1082,13 +1080,12 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
         /* Set the timestamp values used to validate the timestamp of
          * received packets.*/
         if ((p->tcpvars.ts != NULL) &&
-                (ssn->client.flags & STREAMTCP_FLAG_TIMESTAMP))
+                (ssn->client.flags & STREAMTCP_STREAM_FLAG_TIMESTAMP))
         {
             ssn->server.last_ts = TCP_GET_TSVAL(p);
             SCLogDebug("ssn %p: ssn->server.last_ts %" PRIu32" "
                     "ssn->client.last_ts %" PRIu32"", ssn,
                     ssn->server.last_ts, ssn->client.last_ts);
-            ssn->client.flags &= ~STREAMTCP_FLAG_TIMESTAMP;
             ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
             ssn->server.last_pkt_ts = p->ts.tv_sec;
             if (ssn->server.last_ts == 0)
@@ -1096,7 +1093,6 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
         } else {
             ssn->client.last_ts = 0;
             ssn->server.last_ts = 0;
-            ssn->client.flags &= ~STREAMTCP_FLAG_TIMESTAMP;
             ssn->client.flags &= ~STREAMTCP_FLAG_ZERO_TIMESTAMP;
         }
 
@@ -1176,7 +1172,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                 if (ssn->server.last_ts == 0)
                     ssn->server.flags |= STREAMTCP_FLAG_ZERO_TIMESTAMP;
                 ssn->server.last_pkt_ts = p->ts.tv_sec;
-                ssn->server.flags |= STREAMTCP_FLAG_TIMESTAMP;
+                ssn->server.flags |= STREAMTCP_STREAM_FLAG_TIMESTAMP;
             }
 
             ssn->server.window = TCP_GET_WINDOW(p);
@@ -1255,14 +1251,13 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
         /* Set the timestamp values used to validate the timestamp of
          * received packets.*/
         if (p->tcpvars.ts != NULL &&
-                (ssn->client.flags & STREAMTCP_FLAG_TIMESTAMP))
+                (ssn->client.flags & STREAMTCP_STREAM_FLAG_TIMESTAMP))
         {
             ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
-            ssn->client.flags &= ~STREAMTCP_FLAG_TIMESTAMP;
+            ssn->client.flags &= ~STREAMTCP_STREAM_FLAG_TIMESTAMP;
             ssn->client.last_pkt_ts = p->ts.tv_sec;
         } else {
             ssn->client.last_ts = 0;
-            ssn->client.flags &= ~STREAMTCP_FLAG_TIMESTAMP;
             ssn->client.flags &= ~STREAMTCP_FLAG_ZERO_TIMESTAMP;
         }
 
@@ -1374,13 +1369,14 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
         }
 
         /* Check if the SYN/ACK packet SEQ the earlier
-         * received SYN packet. */
+         * received SYN/ACK packet. */
         if (!(SEQ_EQ(TCP_GET_SEQ(p), ssn->server.isn))) {
             SCLogDebug("ssn %p: SEQ mismatch, packet SEQ %" PRIu32 " != "
-                    "%" PRIu32 " from stream", ssn, TCP_GET_ACK(p),
-                    ssn->client.isn + 1);
+                    "%" PRIu32 " from stream", ssn, TCP_GET_SEQ(p),
+                    ssn->client.isn);
 
             StreamTcpSetEvent(p, STREAM_3WHS_SYNACK_RESEND_WITH_DIFF_SEQ);
+
             return -1;
         }
 

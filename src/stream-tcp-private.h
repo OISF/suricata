@@ -139,6 +139,9 @@ enum
 #define STREAMTCP_STREAM_FLAG_DEPTH_REACHED     0x08
 /** Stream has sent a FIN/RST */
 #define STREAMTCP_STREAM_FLAG_CLOSE_INITIATED   0x10
+/** Stream supports TIMESTAMP -- used to set ssn STREAMTCP_FLAG_TIMESTAMP
+ *  flag. */
+#define STREAMTCP_STREAM_FLAG_TIMESTAMP         0x20
 
 /*
  * Per SEGMENT flags
