@@ -99,8 +99,9 @@ enum
 #define STREAMTCP_FLAG_TIMESTAMP                    0x0008
 /** Server supports wscale (even though it can be 0) */
 #define STREAMTCP_FLAG_SERVER_WSCALE                0x0010
-/** Flag to indicate the zero value of timestamp */
-#define STREAMTCP_FLAG_ZERO_TIMESTAMP               0x0020
+
+/** vacancy at 0x0008 */
+
 /** Flag to indicate that the session is handling asynchronous stream.*/
 #define STREAMTCP_FLAG_ASYNC                        0x0040
 /** Flag to indicate we're dealing with 4WHS: SYN, SYN, SYN/ACK, ACK
@@ -142,6 +143,8 @@ enum
 /** Stream supports TIMESTAMP -- used to set ssn STREAMTCP_FLAG_TIMESTAMP
  *  flag. */
 #define STREAMTCP_STREAM_FLAG_TIMESTAMP         0x20
+/** Flag to indicate the zero value of timestamp */
+#define STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP    0x40
 
 /*
  * Per SEGMENT flags

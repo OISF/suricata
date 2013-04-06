@@ -759,9 +759,9 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
             ssn->server.last_pkt_ts = p->ts.tv_sec;
             if (ssn->server.last_ts == 0)
-                ssn->server.flags |= STREAMTCP_FLAG_ZERO_TIMESTAMP;
+                ssn->server.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
             if (ssn->client.last_ts == 0)
-                ssn->client.flags |= STREAMTCP_FLAG_ZERO_TIMESTAMP;
+                ssn->client.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
 
         } else {
             ssn->server.last_ts = 0;
@@ -802,7 +802,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
                     ssn->client.last_ts);
 
             if (ssn->client.last_ts == 0)
-                ssn->client.flags |= STREAMTCP_FLAG_ZERO_TIMESTAMP;
+                ssn->client.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
 
             ssn->client.last_pkt_ts = p->ts.tv_sec;
             ssn->client.flags |= STREAMTCP_STREAM_FLAG_TIMESTAMP;
@@ -885,9 +885,9 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
             ssn->client.last_pkt_ts = p->ts.tv_sec;
             if (ssn->server.last_ts == 0)
-                ssn->server.flags |= STREAMTCP_FLAG_ZERO_TIMESTAMP;
+                ssn->server.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
             if (ssn->client.last_ts == 0)
-                ssn->client.flags |= STREAMTCP_FLAG_ZERO_TIMESTAMP;
+                ssn->client.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
 
         } else {
             ssn->server.last_ts = 0;
@@ -1006,11 +1006,11 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                 ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
                 ssn->client.last_pkt_ts = p->ts.tv_sec;
                 if (ssn->client.last_ts == 0)
-                    ssn->client.flags |= STREAMTCP_FLAG_ZERO_TIMESTAMP;
+                    ssn->client.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
             } else {
                 ssn->server.last_ts = 0;
                 ssn->client.last_ts = 0;
-                ssn->server.flags &= ~STREAMTCP_FLAG_ZERO_TIMESTAMP;
+                ssn->server.flags &= ~STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
             }
 
             ssn->server.last_ack = TCP_GET_ACK(p);
@@ -1089,11 +1089,11 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
             ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
             ssn->server.last_pkt_ts = p->ts.tv_sec;
             if (ssn->server.last_ts == 0)
-                ssn->server.flags |= STREAMTCP_FLAG_ZERO_TIMESTAMP;
+                ssn->server.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
         } else {
             ssn->client.last_ts = 0;
             ssn->server.last_ts = 0;
-            ssn->client.flags &= ~STREAMTCP_FLAG_ZERO_TIMESTAMP;
+            ssn->client.flags &= ~STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
         }
 
         ssn->client.last_ack = TCP_GET_ACK(p);
@@ -1170,7 +1170,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                         p->tcpvars.ts, ssn->server.last_ts);
 
                 if (ssn->server.last_ts == 0)
-                    ssn->server.flags |= STREAMTCP_FLAG_ZERO_TIMESTAMP;
+                    ssn->server.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
                 ssn->server.last_pkt_ts = p->ts.tv_sec;
                 ssn->server.flags |= STREAMTCP_STREAM_FLAG_TIMESTAMP;
             }
@@ -1258,7 +1258,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
             ssn->client.last_pkt_ts = p->ts.tv_sec;
         } else {
             ssn->client.last_ts = 0;
-            ssn->client.flags &= ~STREAMTCP_FLAG_ZERO_TIMESTAMP;
+            ssn->client.flags &= ~STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
         }
 
         if (ssn->flags & STREAMTCP_FLAG_CLIENT_SACKOK) {
@@ -4413,7 +4413,7 @@ static int StreamTcpValidateTimestamp (TcpSession *ssn, Packet *p)
         uint32_t last_pkt_ts = sender_stream->last_pkt_ts;
         uint32_t last_ts = sender_stream->last_ts;
 
-        if (sender_stream->flags & STREAMTCP_FLAG_ZERO_TIMESTAMP) {
+        if (sender_stream->flags & STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP) {
             /* The 3whs used the timestamp with 0 value. */
             switch (receiver_stream->os_policy) {
                 case OS_POLICY_LINUX:
@@ -4553,7 +4553,7 @@ static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
     if (p->tcpvars.ts != NULL) {
         uint32_t ts = TCP_GET_TSVAL(p);
 
-        if (sender_stream->flags & STREAMTCP_FLAG_ZERO_TIMESTAMP) {
+        if (sender_stream->flags & STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP) {
             /* The 3whs used the timestamp with 0 value. */
             switch (receiver_stream->os_policy) {
                 case OS_POLICY_LINUX:
@@ -4567,7 +4567,7 @@ static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
                 case OS_POLICY_OLD_LINUX:
                 case OS_POLICY_WINDOWS:
                 case OS_POLICY_VISTA:
-                    sender_stream->flags &= ~STREAMTCP_FLAG_ZERO_TIMESTAMP;
+                    sender_stream->flags &= ~STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
                     if (SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p))) {
                         sender_stream->last_ts = ts;
                         check_ts = 0; /*next packet will be checked for validity
