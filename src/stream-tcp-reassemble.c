@@ -1801,32 +1801,6 @@ static int StreamTcpReassembleRawCheckLimit(TcpSession *ssn, TcpStream *stream,
     SCReturnInt(1);
 }
 
-/** \brief  Pause the reassembling for the given stream direction for given TCP
- *          session.
- *
- * \param ssn TCP Session to set the flag in
- * \param direction direction to set the flag in: 1 toserver, 0 toclient
- */
-
-void StreamTcpReassemblePause (TcpSession *ssn, char direction)
-{
-    direction ? (ssn->client.flags |= STREAMTCP_STREAM_FLAG_PAUSE_REASSEMBLY) :
-                (ssn->server.flags |= STREAMTCP_STREAM_FLAG_PAUSE_REASSEMBLY);
-}
-
-/** \brief  Unpause the reassembling for the given stream direction for given TCP
- *          session.
- *
- * \param ssn TCP Session to set the flag in
- * \param direction direction to set the flag in: 1 toserver, 0 toclient
- */
-
-void StreamTcpReassembleUnPause (TcpSession *ssn, char direction)
-{
-    direction ? (ssn->client.flags &= ~STREAMTCP_STREAM_FLAG_PAUSE_REASSEMBLY) :
-                (ssn->server.flags &= ~STREAMTCP_STREAM_FLAG_PAUSE_REASSEMBLY);
-}
-
 static void StreamTcpRemoveSegmentFromStream(TcpStream *stream, TcpSegment *seg) {
     if (seg->prev == NULL) {
         stream->seg_list = seg->next;
@@ -1890,13 +1864,6 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
             SCLogDebug("no segments in the list to reassemble");
         }
 
-        SCReturnInt(0);
-    }
-
-    /* check if reassembling has been paused for the moment or not */
-    if (stream->flags & STREAMTCP_STREAM_FLAG_PAUSE_REASSEMBLY) {
-        SCLogDebug("reassembling has been paused for this stream, so no"
-                " reassembling at the moment");
         SCReturnInt(0);
     }
 
@@ -2207,13 +2174,6 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
 {
     SCEnter();
     SCLogDebug("start p %p, seq %"PRIu32, p, TCP_GET_SEQ(p));
-
-    /* check if reassembling has been paused for the moment or not */
-    if (stream->flags & STREAMTCP_STREAM_FLAG_PAUSE_REASSEMBLY) {
-        SCLogDebug("reassembling has been paused for this stream, so no"
-                " reassembling at the moment");
-        SCReturnInt(0);
-    }
 
     if (stream->seg_list == NULL) {
         SCReturnInt(0);
@@ -2650,13 +2610,6 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
     }
 
 
-    /* check if reassembling has been paused for the moment or not */
-    if (stream->flags & STREAMTCP_STREAM_FLAG_PAUSE_REASSEMBLY) {
-        SCLogDebug("reassembling has been paused for this stream, so no"
-                " reassembling at the moment");
-        SCReturnInt(0);
-    }
-
     if (stream->flags & STREAMTCP_STREAM_FLAG_GAP) {
         SCReturnInt(0);
     }
@@ -3019,12 +2972,6 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
         SCReturnInt(0);
     }
 
-    /* check if reassembling has been paused for the moment or not */
-    if (stream->flags & STREAMTCP_STREAM_FLAG_PAUSE_REASSEMBLY) {
-        SCLogDebug("reassembling has been paused for this stream, so no"
-                " reassembling at the moment");
-        SCReturnInt(0);
-    }
 #if 0
     if (ssn->state <= TCP_ESTABLISHED &&
             !(ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)) {
@@ -6866,162 +6813,6 @@ end:
 }
 
 /**
- *  \test   Test to make sure that Pause/Unpause API is working.
- *
- *  \retval On success it returns 1 and on failure 0.
- */
-
-static int StreamTcpReassembleTest42 (void) {
-    int ret = 0;
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
-    Flow *f = NULL;
-    TCPHdr tcph;
-    TcpSession ssn;
-
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
-    memset(&tcph, 0, sizeof (TCPHdr));
-    memset(&ssn, 0, sizeof(TcpSession));
-    ThreadVars tv;
-    memset(&tv, 0, sizeof (ThreadVars));
-
-    StreamTcpInitConfig(TRUE);
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-
-    uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\n";
-    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
-
-    uint8_t httpbuf2[] = "HTTP/1.0 200 OK\r\nServer: VictorServer/1.0\r\n\r\n";
-    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
-
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 50);
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 50);
-
-    ssn.server.ra_raw_base_seq = ssn.server.ra_app_base_seq = 9;
-    ssn.server.isn = 9;
-    ssn.server.last_ack = 60;
-    ssn.client.ra_raw_base_seq = ssn.client.ra_app_base_seq = 9;
-    ssn.client.isn = 9;
-    ssn.client.last_ack = 60;
-
-    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
-    if (f == NULL)
-        goto end;
-    f->protoctx = &ssn;
-    p->flow = f;
-
-    tcph.th_win = htons(5480);
-    tcph.th_seq = htonl(10);
-    tcph.th_ack = htonl(20);
-    tcph.th_flags = TH_ACK|TH_PUSH;
-    p->tcph = &tcph;
-    p->flowflags = FLOW_PKT_TOCLIENT;
-
-    p->payload = httpbuf2;
-    p->payload_len = httplen2;
-    ssn.state = TCP_ESTABLISHED;
-
-    TcpStream *s = NULL;
-    s = &ssn.server;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (1): ");
-        goto end;
-    }
-
-    /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len > 0) {
-        printf("there shouldn't be any stream smsgs in the queue (2): ");
-        goto end;
-    }
-
-    /* pause the reassembling */
-    StreamTcpReassemblePause(&ssn, 1);
-
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload = httpbuf1;
-    p->payload_len = httplen1;
-    tcph.th_seq = htonl(10);
-    tcph.th_ack = htonl(55);
-    s = &ssn.client;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (3): ");
-        goto end;
-    }
-
-    /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len == 0) {
-        printf("there should be stream smsgs in the queue (4): ");
-        goto end;
-    }
-
-    if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
-        printf("failed in processing stream smsgs: ");
-        goto end;
-    }
-
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload = httpbuf2;
-    p->payload_len = httplen2;
-    tcph.th_seq = htonl(55);
-    tcph.th_ack = htonl(53);
-    s = &ssn.server;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (5): ");
-        goto end;
-    }
-
-    /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len > 0) {
-        printf("there shouldn't be any stream smsgs in the queue, as we have"
-                " paused the reassembling (6): ");
-        goto end;
-    }
-
-    /* Unpause the reassembling */
-    StreamTcpReassembleUnPause(&ssn, 1);
-
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload = httpbuf2;
-    p->payload_len = httplen2;
-    tcph.th_seq = htonl(100);
-    tcph.th_ack = htonl(53);
-    s = &ssn.server;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (7): ");
-        goto end;
-    }
-
-    /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len == 0) {
-        printf("there should be a stream smsgs in the queue, as reassembling has"
-                " been unpaused now (8): ");
-        goto end;
-    /* Process stream smsgs we may have in queue */
-    } else if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
-        printf("failed in processing stream smsgs (9): ");
-        goto end;
-    }
-
-    ret = 1;
-end:
-    StreamTcpReassembleFreeThreadCtx(ra_ctx);
-    StreamTcpFreeConfig(TRUE);
-    SCFree(p);
-    UTHFreeFlow(f);
-    return ret;
-}
-
-/**
- *  \test   Test to make sure that Pause/Unpause API is working.
- *
  *  \retval On success it returns 1 and on failure 0.
  */
 
@@ -8931,7 +8722,6 @@ void StreamTcpReassembleRegisterTests(void) {
     UtRegisterTest("StreamTcpReassembleTest39 -- app proto test", StreamTcpReassembleTest39, 1);
     UtRegisterTest("StreamTcpReassembleTest40 -- app proto test", StreamTcpReassembleTest40, 1);
     UtRegisterTest("StreamTcpReassembleTest41 -- app proto test", StreamTcpReassembleTest41, 1);
-    UtRegisterTest("StreamTcpReassembleTest42 -- pause/unpause reassembly test", StreamTcpReassembleTest42, 1);
     UtRegisterTest("StreamTcpReassembleTest43 -- min smsg size test", StreamTcpReassembleTest43, 1);
     UtRegisterTest("StreamTcpReassembleTest44 -- Memcap Test", StreamTcpReassembleTest44, 1);
     UtRegisterTest("StreamTcpReassembleTest45 -- Depth Test", StreamTcpReassembleTest45, 1);

@@ -134,8 +134,9 @@ enum
 #define STREAMTCP_STREAM_FLAG_GAP               0x01
 /** Flag to avoid stream reassembly/app layer inspection for the stream */
 #define STREAMTCP_STREAM_FLAG_NOREASSEMBLY      0x02
-/** Flag to pause stream reassembly / app layer inspection for the stream.*/
-#define STREAMTCP_STREAM_FLAG_PAUSE_REASSEMBLY  0x04
+
+/** vacancy at 0x04 */
+
 /** Stream has reached it's reassembly depth, all further packets are ignored */
 #define STREAMTCP_STREAM_FLAG_DEPTH_REACHED     0x08
 /** Stream has sent a FIN/RST */
