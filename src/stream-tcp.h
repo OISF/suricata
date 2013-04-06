@@ -65,6 +65,7 @@ typedef struct TcpStreamCnf_ {
      */
     uint32_t reassembly_inline_window;
     uint8_t flags;
+    uint8_t max_synack_queued;
 } TcpStreamCnf;
 
 typedef struct StreamTcpThread_ {

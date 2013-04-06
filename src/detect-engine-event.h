@@ -133,6 +133,7 @@ struct DetectEngineEvents_ {
     { "stream.3whs_synack_resend_with_diff_seq", STREAM_3WHS_SYNACK_RESEND_WITH_DIFF_SEQ, },
     { "stream.3whs_synack_toserver_on_syn_recv", STREAM_3WHS_SYNACK_TOSERVER_ON_SYN_RECV, },
     { "stream.3whs_synack_with_wrong_ack", STREAM_3WHS_SYNACK_WITH_WRONG_ACK, },
+    { "stream.3whs_synack_flood", STREAM_3WHS_SYNACK_FLOOD, },
     { "stream.3whs_syn_resend_diff_seq_on_syn_recv", STREAM_3WHS_SYN_RESEND_DIFF_SEQ_ON_SYN_RECV, },
     { "stream.3whs_syn_toclient_on_syn_recv", STREAM_3WHS_SYN_TOCLIENT_ON_SYN_RECV, },
     { "stream.3whs_wrong_seq_wrong_ack", STREAM_3WHS_WRONG_SEQ_WRONG_ACK, },
