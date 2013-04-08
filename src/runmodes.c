@@ -479,7 +479,7 @@ void SetupOutputs(ThreadVars *tv)
 float threading_detect_ratio = 1;
 
 /**
- * Initialize the output modules.
+ * Initialize multithreading settings.
  */
 void RunModeInitialize(void)
 {
