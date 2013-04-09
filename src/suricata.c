@@ -1874,13 +1874,7 @@ int main(int argc, char **argv)
         /* Spawn the flow manager thread */
         FlowManagerThreadSpawn();
         StreamTcpInitConfig(STREAM_VERBOSE);
-    }
 
-    /* Spawn the L7 App Detect thread */
-    //AppLayerDetectProtoThreadSpawn();
-
-    /* Spawn the perf counter threads.  Let these be the last one spawned */
-    if (run_mode != RUNMODE_UNIX_SOCKET) {
         SCPerfSpawnThreads();
     }
 
