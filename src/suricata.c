@@ -163,6 +163,7 @@
 #include "util-profiling.h"
 #include "util-magic.h"
 #include "util-signal.h"
+#include "util-streaming-parser.h"
 
 #include "util-coredump-config.h"
 
@@ -1715,6 +1716,7 @@ int main(int argc, char **argv)
         DetectProtoTests();
         DetectPortTests();
         SCAtomicRegisterTests();
+        StreamingParserRegisterUnittets();
         if (list_unittests) {
             UtListTests(regex_arg);
         }
