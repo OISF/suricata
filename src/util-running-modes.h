@@ -26,6 +26,9 @@
 
 int SuriListKeywords(const char *keyword_info);
 int SuriListAppLayerProtocols();
+#ifdef __SC_CUDA_SUPPORT__
+int SuriListCudaCards();
+#endif
 
 
 #endif /* __UTIL_RUNNING_MODES_H__ */
