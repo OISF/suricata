@@ -21,7 +21,9 @@
  */
 
 #include "suricata-common.h"
+#include "config.h"
 #include "app-layer-detect-proto.h"
+#include "util-cuda.h"
 
 int SuriListKeywords(const char *keyword_info)
 {
@@ -37,3 +39,12 @@ int SuriListAppLayerProtocols()
     AppLayerListSupportedProtocols();
     exit(EXIT_SUCCESS);
 }
+
+#ifdef __SC_CUDA_SUPPORT__
+int SuriListCudaCards()
+{
+    SCCudaInitCudaEnvironment();
+    SCCudaListCards();
+    exit(EXIT_SUCCESS);
+}
+#endif
