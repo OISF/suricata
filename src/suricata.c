@@ -805,6 +805,67 @@ static int IsRuleReloadSet(int quiet)
     return rule_reload;
 }
 
+static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
+{
+    SCEnter();
+
+    /* run the selected runmode */
+    if (run_mode == RUNMODE_PCAP_DEV) {
+        if (strlen(pcap_dev) == 0) {
+            int ret = LiveBuildDeviceList("pcap");
+            if (ret == 0) {
+                SCLogError(SC_ERR_INITIALIZATION, "No interface found in config for pcap");
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+        }
+#ifdef HAVE_MPIPE
+    } else if (run_mode == RUNMODE_TILERA_MPIPE) {
+        if (strlen(pcap_dev)) {
+            if (ConfSet("mpipe.single_mpipe_dev", pcap_dev, 0) != 1) {
+                fprintf(stderr, "ERROR: Failed to set mpipe.single_mpipe_dev\n");
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+        } else {
+            int ret = LiveBuildDeviceList("mpipe.inputs");
+            if (ret == 0) {
+                fprintf(stderr, "ERROR: No interface found in config for mpipe\n");
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+        }
+#endif
+#ifdef HAVE_PFRING
+    } else if (run_mode == RUNMODE_PFRING) {
+        /* FIXME add backward compat support */
+        /* iface has been set on command line */
+        if (strlen(pcap_dev)) {
+            if (ConfSet("pfring.live-interface", pcap_dev, 0) != 1) {
+                SCLogError(SC_ERR_INITIALIZATION, "Failed to set pfring.live-interface");
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+        } else {
+            /* not an error condition if we have a 1.0 config */
+            LiveBuildDeviceList("pfring");
+        }
+#endif /* HAVE_PFRING */
+    } else if (run_mode == RUNMODE_AFP_DEV) {
+        /* iface has been set on command line */
+        if (strlen(pcap_dev)) {
+            if (ConfSet("af-packet.live-interface", pcap_dev, 0) != 1) {
+                SCLogError(SC_ERR_INITIALIZATION, "Failed to set af-packet.live-interface");
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+        } else {
+            int ret = LiveBuildDeviceList("af-packet");
+            if (ret == 0) {
+                SCLogError(SC_ERR_INITIALIZATION, "No interface found in config for af-packet");
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+        }
+    }
+
+    SCReturnInt(TM_ECODE_OK);
+}
+
 int main(int argc, char **argv)
 {
     int opt;
@@ -1785,58 +1846,8 @@ int main(int argc, char **argv)
         RunModeInitializeOutputs();
     }
 
-    /* run the selected runmode */
-    if (run_mode == RUNMODE_PCAP_DEV) {
-        if (strlen(pcap_dev) == 0) {
-            int ret = LiveBuildDeviceList("pcap");
-            if (ret == 0) {
-                fprintf(stderr, "ERROR: No interface found in config for pcap\n");
-                exit(EXIT_FAILURE);
-            }
-        }
-#ifdef HAVE_MPIPE
-    } else if (run_mode == RUNMODE_TILERA_MPIPE) {
-        if (strlen(pcap_dev)) {
-            if (ConfSet("mpipe.single_mpipe_dev", pcap_dev, 0) != 1) {
-                fprintf(stderr, "ERROR: Failed to set mpipe.single_mpipe_dev\n");
-                exit(EXIT_FAILURE);
-            }
-        } else {
-            int ret = LiveBuildDeviceList("mpipe.inputs");
-            if (ret == 0) {
-                fprintf(stderr, "ERROR: No interface found in config for mpipe\n");
-                exit(EXIT_FAILURE);
-            }
-        }
-#endif
-#ifdef HAVE_PFRING
-    } else if (run_mode == RUNMODE_PFRING) {
-        /* FIXME add backward compat support */
-        /* iface has been set on command line */
-        if (strlen(pcap_dev)) {
-            if (ConfSet("pfring.live-interface", pcap_dev, 0) != 1) {
-                fprintf(stderr, "ERROR: Failed to set pfring.live-interface\n");
-                exit(EXIT_FAILURE);
-            }
-        } else {
-            /* not an error condition if we have a 1.0 config */
-            LiveBuildDeviceList("pfring");
-        }
-#endif /* HAVE_PFRING */
-    } else if (run_mode == RUNMODE_AFP_DEV) {
-        /* iface has been set on command line */
-        if (strlen(pcap_dev)) {
-            if (ConfSet("af-packet.live-interface", pcap_dev, 0) != 1) {
-                fprintf(stderr, "ERROR: Failed to set af-packet.live-interface\n");
-                exit(EXIT_FAILURE);
-            }
-        } else {
-            int ret = LiveBuildDeviceList("af-packet");
-            if (ret == 0) {
-                fprintf(stderr, "ERROR: No interface found in config for af-packet\n");
-                exit(EXIT_FAILURE);
-            }
-        }
+    if (ParseInterfacesList(run_mode, pcap_dev) != TM_ECODE_OK) {
+            exit(EXIT_FAILURE);
     }
 
     if(conf_test == 1){
