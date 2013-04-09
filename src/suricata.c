@@ -163,6 +163,7 @@
 #include "util-profiling.h"
 #include "util-magic.h"
 #include "util-signal.h"
+#include "util-streaming-parser.h"
 
 #include "util-coredump-config.h"
 
@@ -1711,6 +1712,7 @@ int main(int argc, char **argv)
 #ifdef __SC_CUDA_SUPPORT__
         CudaBufferRegisterUnittests();
 #endif
+        StreamingParserRegisterUnittets();
         if (list_unittests) {
             UtListTests(regex_arg);
         }
