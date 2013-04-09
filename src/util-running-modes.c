@@ -24,6 +24,7 @@
 #include "config.h"
 #include "app-layer-detect-proto.h"
 #include "util-cuda.h"
+#include "util-unittest.h"
 
 int SuriListKeywords(const char *keyword_info)
 {

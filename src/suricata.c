@@ -46,12 +46,6 @@
 
 #include "util-atomic.h"
 #include "util-spm.h"
-#include "util-hash.h"
-#include "util-hashlist.h"
-#include "util-bloomfilter.h"
-#include "util-bloomfilter-counting.h"
-#include "util-pool.h"
-#include "util-byte.h"
 #include "util-cpu.h"
 #include "util-action.h"
 #include "util-pidfile.h"
@@ -60,31 +54,13 @@
 #include "util-misc.h"
 #include "util-running-modes.h"
 
-#include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-parse.h"
+#include "detect-fast-pattern.h"
+#include "detect-engine-tag.h"
 #include "detect-engine-address.h"
-#include "detect-engine-proto.h"
 #include "detect-engine-port.h"
 #include "detect-engine-mpm.h"
-#include "detect-engine-sigorder.h"
-#include "detect-engine-payload.h"
-#include "detect-engine-dcepayload.h"
-#include "detect-engine-uri.h"
-#include "detect-engine-hcbd.h"
-#include "detect-engine-hsbd.h"
-#include "detect-engine-hhd.h"
-#include "detect-engine-hrhd.h"
-#include "detect-engine-hmd.h"
-#include "detect-engine-hcd.h"
-#include "detect-engine-hrud.h"
-#include "detect-engine-hsmd.h"
-#include "detect-engine-hscd.h"
-#include "detect-engine-hua.h"
-#include "detect-engine-hhhd.h"
-#include "detect-engine-hrhhd.h"
-#include "detect-engine-state.h"
-#include "detect-engine-tag.h"
-#include "detect-fast-pattern.h"
 
 #include "tm-queuehandlers.h"
 #include "tm-queues.h"
@@ -141,16 +117,7 @@
 #include "host.h"
 #include "unix-manager.h"
 
-#include "app-layer-detect-proto.h"
-#include "app-layer-parser.h"
-#include "app-layer-smb.h"
-#include "app-layer-dcerpc.h"
-#include "app-layer-dcerpc-udp.h"
 #include "app-layer-htp.h"
-#include "app-layer-ftp.h"
-#include "app-layer-ssl.h"
-#include "app-layer-ssh.h"
-#include "app-layer-smtp.h"
 
 #include "util-radix-tree.h"
 #include "util-host-os-info.h"
@@ -171,12 +138,12 @@
 #include "defrag.h"
 
 #include "runmodes.h"
+#include "runmode-unittests.h"
 
 #include "util-cuda.h"
 #include "util-decode-asn1.h"
 #include "util-debug.h"
 #include "util-error.h"
-#include "detect-engine-siggroup.h"
 #include "util-daemon.h"
 #include "reputation.h"
 
@@ -185,11 +152,7 @@
 
 #include "tmqh-packetpool.h"
 
-#include "util-ringbuffer.h"
-#include "util-mem.h"
-#include "util-memcmp.h"
 #include "util-proto-name.h"
-#include "util-spm-bm.h"
 #ifdef __SC_CUDA_SUPPORT__
 #include "util-cuda-buffer.h"
 #include "util-mpm-ac.h"
@@ -714,6 +677,87 @@ int coverage_unittests;
 int g_ut_modules;
 int g_ut_covered;
 
+void RegisterAllModules()
+{
+    /* nfq */
+    TmModuleReceiveNFQRegister();
+    TmModuleVerdictNFQRegister();
+    TmModuleDecodeNFQRegister();
+    /* ipfw */
+    TmModuleReceiveIPFWRegister();
+    TmModuleVerdictIPFWRegister();
+    TmModuleDecodeIPFWRegister();
+    /* pcap live */
+    TmModuleReceivePcapRegister();
+    TmModuleDecodePcapRegister();
+    /* pcap file */
+    TmModuleReceivePcapFileRegister();
+    TmModuleDecodePcapFileRegister();
+#ifdef HAVE_MPIPE
+    /* mpipe */
+    TmModuleReceiveMpipeRegister();
+    TmModuleDecodeMpipeRegister();
+#endif
+    /* af-packet */
+    TmModuleReceiveAFPRegister();
+    TmModuleDecodeAFPRegister();
+    /* pfring */
+    TmModuleReceivePfringRegister();
+    TmModuleDecodePfringRegister();
+    /* dag file */
+    TmModuleReceiveErfFileRegister();
+    TmModuleDecodeErfFileRegister();
+    /* dag live */
+    TmModuleReceiveErfDagRegister();
+    TmModuleDecodeErfDagRegister();
+    /* napatech */
+    TmModuleNapatechStreamRegister();
+    TmModuleNapatechDecodeRegister();
+
+    /* stream engine */
+    TmModuleStreamTcpRegister();
+    /* detection */
+    TmModuleDetectRegister();
+    /* respond-reject */
+    TmModuleRespondRejectRegister();
+
+    /* fast log */
+    TmModuleAlertFastLogRegister();
+    TmModuleAlertFastLogIPv4Register();
+    TmModuleAlertFastLogIPv6Register();
+    /* debug log */
+    TmModuleAlertDebugLogRegister();
+    /* prelue log */
+    TmModuleAlertPreludeRegister();
+    /* syslog log */
+    TmModuleAlertSyslogRegister();
+    TmModuleAlertSyslogIPv4Register();
+    TmModuleAlertSyslogIPv6Register();
+    /* unified2 log */
+    TmModuleUnified2AlertRegister();
+    /* pcap info log */
+    TmModuleAlertPcapInfoRegister();
+    /* drop log */
+    TmModuleLogDropLogRegister();
+    /* http log */
+    TmModuleLogHttpLogRegister();
+    TmModuleLogHttpLogIPv4Register();
+    TmModuleLogHttpLogIPv6Register();
+    TmModuleLogTlsLogRegister();
+    TmModuleLogTlsLogIPv4Register();
+    TmModuleLogTlsLogIPv6Register();
+    /* pcap log */
+    TmModulePcapLogRegister();
+    /* file log */
+    TmModuleLogFileLogRegister();
+    TmModuleLogFilestoreRegister();
+    /* dns log */
+    TmModuleLogDnsLogRegister();
+    /* cuda */
+    TmModuleDebugList();
+
+}
+
 int main(int argc, char **argv)
 {
     int opt;
@@ -722,9 +766,7 @@ int main(int argc, char **argv)
     int sig_file_exclusive = FALSE;
     int conf_test = 0;
     char *pid_filename = NULL;
-#ifdef UNITTESTS
     char *regex_arg = NULL;
-#endif
     int dump_config = 0;
     int list_app_layer_protocols = 0;
     int list_unittests = 0;
@@ -1332,6 +1374,10 @@ int main(int argc, char **argv)
     }
 #endif
 
+    if (run_mode == RUNMODE_UNITTEST) {
+        return SuriRunUnittests(list_unittests, regex_arg);
+    }
+
 #ifdef REVISION
     SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
 #elif defined RELEASE
@@ -1359,20 +1405,12 @@ int main(int argc, char **argv)
     TimeInit();
     SupportFastPatternForSigMatchTypes();
 
-    if (run_mode != RUNMODE_UNITTEST) {
-        if (conf_filename == NULL)
-            conf_filename = DEFAULT_CONF_FILE;
-    }
+    if (conf_filename == NULL)
+        conf_filename = DEFAULT_CONF_FILE;
 
     /** \todo we need an api for these */
     /* Load yaml configuration file if provided. */
     if (conf_filename != NULL) {
-#ifdef UNITTESTS
-        if (run_mode == RUNMODE_UNITTEST) {
-            SCLogError(SC_ERR_CMD_LINE, "should not use a configuration file with unittests");
-            exit(EXIT_FAILURE);
-        }
-#endif
         if (ConfYamlLoadFile(conf_filename) != 0) {
             /* Error already displayed. */
             exit(EXIT_FAILURE);
@@ -1557,83 +1595,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-
-    /* nfq */
-    TmModuleReceiveNFQRegister();
-    TmModuleVerdictNFQRegister();
-    TmModuleDecodeNFQRegister();
-    /* ipfw */
-    TmModuleReceiveIPFWRegister();
-    TmModuleVerdictIPFWRegister();
-    TmModuleDecodeIPFWRegister();
-    /* pcap live */
-    TmModuleReceivePcapRegister();
-    TmModuleDecodePcapRegister();
-    /* pcap file */
-    TmModuleReceivePcapFileRegister();
-    TmModuleDecodePcapFileRegister();
-#ifdef HAVE_MPIPE
-    /* mpipe */
-    TmModuleReceiveMpipeRegister();
-    TmModuleDecodeMpipeRegister();
-#endif
-    /* af-packet */
-    TmModuleReceiveAFPRegister();
-    TmModuleDecodeAFPRegister();
-    /* pfring */
-    TmModuleReceivePfringRegister();
-    TmModuleDecodePfringRegister();
-    /* dag file */
-    TmModuleReceiveErfFileRegister();
-    TmModuleDecodeErfFileRegister();
-    /* dag live */
-    TmModuleReceiveErfDagRegister();
-    TmModuleDecodeErfDagRegister();
-    /* napatech */
-    TmModuleNapatechStreamRegister();
-    TmModuleNapatechDecodeRegister();
-
-    /* stream engine */
-    TmModuleStreamTcpRegister();
-    /* detection */
-    TmModuleDetectRegister();
-    /* respond-reject */
-    TmModuleRespondRejectRegister();
-
-    /* fast log */
-    TmModuleAlertFastLogRegister();
-    TmModuleAlertFastLogIPv4Register();
-    TmModuleAlertFastLogIPv6Register();
-    /* debug log */
-    TmModuleAlertDebugLogRegister();
-    /* prelue log */
-    TmModuleAlertPreludeRegister();
-    /* syslog log */
-    TmModuleAlertSyslogRegister();
-    TmModuleAlertSyslogIPv4Register();
-    TmModuleAlertSyslogIPv6Register();
-    /* unified2 log */
-    TmModuleUnified2AlertRegister();
-    /* pcap info log */
-    TmModuleAlertPcapInfoRegister();
-    /* drop log */
-    TmModuleLogDropLogRegister();
-    /* http log */
-    TmModuleLogHttpLogRegister();
-    TmModuleLogHttpLogIPv4Register();
-    TmModuleLogHttpLogIPv6Register();
-    TmModuleLogTlsLogRegister();
-    TmModuleLogTlsLogIPv4Register();
-    TmModuleLogTlsLogIPv6Register();
-    /* pcap log */
-    TmModulePcapLogRegister();
-    /* file log */
-    TmModuleLogFileLogRegister();
-    TmModuleLogFilestoreRegister();
-    /* dns log */
-    TmModuleLogDnsLogRegister();
-    /* cuda */
-    TmModuleDebugList();
+    RegisterAllModules();
 
     AppLayerHtpNeedFileInspection();
 
@@ -1649,126 +1611,6 @@ int main(int argc, char **argv)
     }
 
     StorageFinalize();
-#ifdef UNITTESTS
-
-    if (run_mode == RUNMODE_UNITTEST) {
-#ifdef DBG_MEM_ALLOC
-        SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
-#endif
-        /* test and initialize the unittesting subsystem */
-        if(regex_arg == NULL && !coverage_unittests){
-            regex_arg = ".*";
-            UtRunSelftest(regex_arg); /* inits and cleans up again */
-        }
-
-        AppLayerHtpEnableRequestBodyCallback();
-        AppLayerHtpNeedFileInspection();
-
-        UtInitialize();
-        UTHRegisterTests();
-        SCReputationRegisterTests();
-        TmModuleRegisterTests();
-        SigTableRegisterTests();
-        HashTableRegisterTests();
-        HashListTableRegisterTests();
-        BloomFilterRegisterTests();
-        BloomFilterCountingRegisterTests();
-        PoolRegisterTests();
-        ByteRegisterTests();
-        MpmRegisterTests();
-        FlowBitRegisterTests();
-        SCPerfRegisterTests();
-
-        DecodePPPRegisterTests();
-        DecodeVLANRegisterTests();
-        DecodeRawRegisterTests();
-        DecodePPPOERegisterTests();
-        DecodeICMPV4RegisterTests();
-        DecodeICMPV6RegisterTests();
-        DecodeIPV4RegisterTests();
-        DecodeIPV6RegisterTests();
-        DecodeTCPRegisterTests();
-        DecodeUDPV4RegisterTests();
-        DecodeGRERegisterTests();
-        DecodeAsn1RegisterTests();
-
-        AlpDetectRegisterTests();
-        ConfRegisterTests();
-        ConfYamlRegisterTests();
-        TmqhFlowRegisterTests();
-        FlowRegisterTests();
-        SCSigRegisterSignatureOrderingTests();
-        SCRadixRegisterTests();
-        DefragRegisterTests();
-        SigGroupHeadRegisterTests();
-        SCHInfoRegisterTests();
-        SCRuleVarsRegisterTests();
-        AppLayerParserRegisterTests();
-        ThreadMacrosRegisterTests();
-        UtilSpmSearchRegistertests();
-        UtilActionRegisterTests();
-        SCClassConfRegisterTests();
-        SCThresholdConfRegisterTests();
-        SCRConfRegisterTests();
-#ifdef __SC_CUDA_SUPPORT__
-        SCCudaRegisterTests();
-#endif
-        PayloadRegisterTests();
-        DcePayloadRegisterTests();
-        UriRegisterTests();
-#ifdef PROFILING
-        SCProfilingRegisterTests();
-#endif
-        DeStateRegisterTests();
-        DetectRingBufferRegisterTests();
-        MemcmpRegisterTests();
-        DetectEngineHttpClientBodyRegisterTests();
-        DetectEngineHttpServerBodyRegisterTests();
-        DetectEngineHttpHeaderRegisterTests();
-        DetectEngineHttpRawHeaderRegisterTests();
-        DetectEngineHttpMethodRegisterTests();
-        DetectEngineHttpCookieRegisterTests();
-        DetectEngineHttpRawUriRegisterTests();
-        DetectEngineHttpStatMsgRegisterTests();
-        DetectEngineHttpStatCodeRegisterTests();
-        DetectEngineHttpUARegisterTests();
-        DetectEngineHttpHHRegisterTests();
-        DetectEngineHttpHRHRegisterTests();
-        DetectEngineRegisterTests();
-        SCLogRegisterTests();
-        MagicRegisterTests();
-        UtilMiscRegisterTests();
-        DetectAddressTests();
-        DetectProtoTests();
-        DetectPortTests();
-        SCAtomicRegisterTests();
-#ifdef __SC_CUDA_SUPPORT__
-        CudaBufferRegisterUnittests();
-#endif
-        StorageRegisterTests();
-        RegisterHostStorageTests();
-
-        if (list_unittests) {
-            UtListTests(regex_arg);
-        } else if (coverage_unittests) {
-            /* nothing */
-            SCLogInfo("%d out of %d code modules have unittests (%.0f%%)",
-                    g_ut_covered, g_ut_modules, (float)((float)g_ut_covered/(float)g_ut_modules)*100);
-        } else {
-            uint32_t failed = UtRunTests(regex_arg);
-            UtCleanup();
-            if (failed) {
-                exit(EXIT_FAILURE);
-            }
-        }
-
-#ifdef DBG_MEM_ALLOC
-        SCLogInfo("Total memory used (without SCFree()): %"PRIdMAX, (intmax_t)global_mem);
-#endif
-
-        exit(EXIT_SUCCESS);
-    }
-#endif /* UNITTESTS */
 
     TmModuleRunInit();
 
