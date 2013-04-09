@@ -163,8 +163,7 @@ void SCProfilingRulesGlobalInit(void) {
             if (filename != NULL) {
 
                 char *log_dir;
-                if (ConfGet("default-log-dir", &log_dir) != 1)
-                    log_dir = DEFAULT_LOG_DIR;
+                log_dir = GetLogDirectory();
 
                 profiling_file_name = SCMalloc(PATH_MAX);
                 if (unlikely(profiling_file_name == NULL)) {
