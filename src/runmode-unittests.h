@@ -20,14 +20,10 @@
  *  \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __UTIL_RUNNING_MODES_H__
-#define __UTIL_RUNNING_MODES_H__
 
+#ifndef __UTIL_RUNMODE_UNITTESTS_H__
+#define __UTIL_RUNMODE_UNITTESTS_H__
 
-int SuriListKeywords(const char *keyword_info);
-int SuriListAppLayerProtocols();
-#ifdef __SC_CUDA_SUPPORT__
-int SuriListCudaCards();
-#endif
+int SuriRunUnittests(int list_unittests, char *regex_arg);
 
-#endif /* __UTIL_RUNNING_MODES_H__ */
+#endif /* __UTIL_RUNMODE_UNITTESTS_H__ */
