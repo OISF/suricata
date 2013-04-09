@@ -595,6 +595,9 @@ flow-timeouts:
 #     toclient-chunk-size: 2560 # inspect raw stream in chunks of at least
 #                               # this size.  Can be specified in kb, mb,
 #                               # gb.  Just a number indicates it's in bytes.
+#     randomize-chunk-size: yes # Take a random value for chunk size around the specified value.
+#                               # This lower the risk of some evasion technics but could lead
+#                               # detection change between runs. It is set to 'yes' by default.
 
 stream:
   memcap: 32mb
@@ -605,6 +608,7 @@ stream:
     depth: 1mb                  # reassemble 1mb into a stream
     toserver-chunk-size: 2560
     toclient-chunk-size: 2560
+    randomize-chunk-size: yes
 
 # Host table:
 #
