@@ -52,7 +52,8 @@ void FlowFreeStorageById(Flow *f, int id) {
 }
 
 void FlowFreeStorage(Flow *f) {
-    StorageFreeAll((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW);
+    if (FlowStorageSize() > 0)
+        StorageFreeAll((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW);
 }
 
 int FlowStorageRegister(const char *name, const unsigned int size, void *(*Init)(unsigned int), void (*Free)(void *)) {
