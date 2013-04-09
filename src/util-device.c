@@ -141,6 +141,8 @@ int LiveBuildDeviceList(char * runmode)
             ConfNode *subchild;
             TAILQ_FOREACH(subchild, &child->head, next) {
                 if ((!strcmp(subchild->name, "interface"))) {
+                    if (!strcmp(subchild->val, "default"))
+                        break;
                     SCLogInfo("Adding interface %s from config file",
                               subchild->val);
                     LiveRegisterDevice(subchild->val);
