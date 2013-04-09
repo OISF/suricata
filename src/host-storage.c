@@ -48,7 +48,8 @@ void HostFreeStorageById(Host *h, int id) {
 }
 
 void HostFreeStorage(Host *h) {
-    StorageFreeAll((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST);
+    if (HostStorageSize() > 0)
+        StorageFreeAll((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST);
 }
 
 int HostStorageRegister(const char *name, const unsigned int size, void *(*Init)(unsigned int), void (*Free)(void *)) {
