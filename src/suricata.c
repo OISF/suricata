@@ -758,6 +758,68 @@ void RegisterAllModules()
 
 }
 
+TmEcode LoadYamlConfig(char *conf_filename) {
+    SCEnter();
+
+    if (conf_filename == NULL)
+        SCReturnInt(TM_ECODE_OK);
+
+    if (ConfYamlLoadFile(conf_filename) != 0) {
+        /* Error already displayed. */
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    ConfNode *file;
+    ConfNode *includes = ConfGetNode("include");
+    if (includes != NULL) {
+        TAILQ_FOREACH(file, &includes->head, next) {
+            char *ifile = ConfLoadCompleteIncludePath(file->val);
+            SCLogInfo("Including: %s", ifile);
+
+            if (ConfYamlLoadFile(ifile) != 0) {
+                /* Error already displayed. */
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+        }
+    }
+
+    SCReturnInt(TM_ECODE_OK);
+}
+
+static int IsRuleReloadSet(int quiet)
+{
+    int rule_reload;
+
+    ConfNode *denode = NULL;
+    ConfNode *decnf = ConfGetNode("detect-engine");
+    if (decnf != NULL) {
+        TAILQ_FOREACH(denode, &decnf->head, next) {
+            if (strcmp(denode->val, "rule-reload") == 0) {
+                (void)ConfGetChildValueBool(denode, "rule-reload", &rule_reload);
+                if (!quiet)
+                    SCLogInfo("Live rule reloads %s",
+                              rule_reload ? "enabled" : "disabled");
+            }
+        }
+    }
+    return rule_reload;
+}
+
+static TmEcode CheckLogDirectory(char *log_dir)
+{
+    SCEnter();
+#ifdef OS_WIN32
+    struct _stat buf;
+    if (_stat(log_dir, &buf) != 0) {
+#else
+    struct stat buf;
+    if (stat(log_dir, &buf) != 0) {
+#endif /* OS_WIN32 */
+            SCReturn(TM_ECODE_FAILED);
+    }
+    SCReturn(TM_ECODE_OK);
+}
+
 int main(int argc, char **argv)
 {
     int opt;
@@ -788,11 +850,6 @@ int main(int argc, char **argv)
     int delayed_detect = 0;
 
     char *log_dir;
-#ifdef OS_WIN32
-    struct _stat buf;
-#else
-    struct stat buf;
-#endif /* OS_WIN32 */
 
     sc_set_caps = FALSE;
 
@@ -1241,7 +1298,7 @@ int main(int argc, char **argv)
                 fprintf(stderr, "ERROR: Failed to set log directory.\n");
                 exit(EXIT_FAILURE);
             }
-            if (stat(optarg, &buf) != 0) {
+            if (CheckLogDirectory(optarg) != TM_ECODE_OK) {
                 SCLogError(SC_ERR_LOGDIR_CMDLINE, "The logging directory \"%s\""
                         " supplied at the commandline (-l %s) doesn't "
                         "exist. Shutting down the engine.", optarg, optarg);
@@ -1410,36 +1467,8 @@ int main(int argc, char **argv)
 
     /** \todo we need an api for these */
     /* Load yaml configuration file if provided. */
-    if (conf_filename != NULL) {
-        if (ConfYamlLoadFile(conf_filename) != 0) {
-            /* Error already displayed. */
-            exit(EXIT_FAILURE);
-        }
-
-        ConfNode *file;
-        ConfNode *includes = ConfGetNode("include");
-        if (includes != NULL) {
-            TAILQ_FOREACH(file, &includes->head, next) {
-                char *ifile = ConfLoadCompleteIncludePath(file->val);
-                SCLogInfo("Including: %s", ifile);
-
-                if (ConfYamlLoadFile(ifile) != 0) {
-                    /* Error already displayed. */
-                    exit(EXIT_FAILURE);
-                }
-            }
-        }
-
-        ConfNode *denode = NULL;
-        ConfNode *decnf = ConfGetNode("detect-engine");
-        if (decnf != NULL) {
-            TAILQ_FOREACH(denode, &decnf->head, next) {
-                if (strcmp(denode->val, "rule-reload") == 0) {
-                    (void)ConfGetChildValueBool(denode, "rule-reload", &rule_reload);
-                    SCLogInfo("Live rule reloads %s", rule_reload ? "enabled" : "disabled");
-                }
-            }
-        }
+    if (LoadYamlConfig(conf_filename) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
     }
 
     /* load the pattern matchers */
@@ -1447,6 +1476,8 @@ int main(int argc, char **argv)
 #ifdef __SC_CUDA_SUPPORT__
     MpmCudaEnvironmentSetup();
 #endif
+
+    rule_reload = IsRuleReloadSet(FALSE);
 
     AppLayerDetectProtoThreadInit();
     AppLayerParsersInitPostProcess();
@@ -1469,11 +1500,7 @@ int main(int argc, char **argv)
 #endif /* OS_WIN32 */
     }
 
-#ifdef OS_WIN32
-    if (_stat(log_dir, &buf) != 0) {
-#else
-    if (stat(log_dir, &buf) != 0) {
-#endif /* OS_WIN32 */
+    if (CheckLogDirectory(log_dir) != TM_ECODE_OK) {
         SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
                 "supplied by %s (default-log-dir) doesn't exist. "
                 "Shutting down the engine", log_dir, conf_filename);
