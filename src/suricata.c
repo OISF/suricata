@@ -1326,6 +1326,12 @@ int main(int argc, char **argv)
         return SuriListAppLayerProtocols();
     }
 
+#ifdef __SC_CUDA_SUPPORT__
+    if (list_cuda_cards) {
+        return SuriListCudaCards();
+    }
+#endif
+
 #ifdef REVISION
     SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
 #elif defined RELEASE
@@ -1341,10 +1347,6 @@ int main(int argc, char **argv)
 #ifdef __SC_CUDA_SUPPORT__
     /* Init the CUDA environment */
     SCCudaInitCudaEnvironment();
-    if (list_cuda_cards) {
-        SCCudaListCards();
-        exit(EXIT_SUCCESS);
-    }
     CudaBufferInit();
 #endif
 
