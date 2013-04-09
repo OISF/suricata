@@ -805,21 +805,6 @@ static int IsRuleReloadSet(int quiet)
     return rule_reload;
 }
 
-static TmEcode CheckLogDirectory(char *log_dir)
-{
-    SCEnter();
-#ifdef OS_WIN32
-    struct _stat buf;
-    if (_stat(log_dir, &buf) != 0) {
-#else
-    struct stat buf;
-    if (stat(log_dir, &buf) != 0) {
-#endif /* OS_WIN32 */
-            SCReturn(TM_ECODE_FAILED);
-    }
-    SCReturn(TM_ECODE_OK);
-}
-
 int main(int argc, char **argv)
 {
     int opt;
@@ -1294,8 +1279,8 @@ int main(int argc, char **argv)
             }
             break;
         case 'l':
-            if (ConfSet("default-log-dir", optarg, 0) != 1) {
-                fprintf(stderr, "ERROR: Failed to set log directory.\n");
+            if (SetLogDirectory(optarg) != TM_ECODE_OK) {
+                SCLogError(SC_ERR_FATAL, "Failed to set log directory.\n");
                 exit(EXIT_FAILURE);
             }
             if (CheckLogDirectory(optarg) != TM_ECODE_OK) {
@@ -1489,16 +1474,7 @@ int main(int argc, char **argv)
 
     /* Check for the existance of the default logging directory which we pick
      * from suricata.yaml.  If not found, shut the engine down */
-    if (ConfGet("default-log-dir", &log_dir) != 1) {
-#ifdef OS_WIN32
-        log_dir = _getcwd(NULL, 0);
-        if (log_dir == NULL) {
-            log_dir = DEFAULT_LOG_DIR;
-        }
-#else
-        log_dir = DEFAULT_LOG_DIR;
-#endif /* OS_WIN32 */
-    }
+    log_dir = GetLogDirectory();
 
     if (CheckLogDirectory(log_dir) != TM_ECODE_OK) {
         SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
