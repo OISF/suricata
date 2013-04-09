@@ -58,6 +58,7 @@
 #include "util-ioctl.h"
 #include "util-device.h"
 #include "util-misc.h"
+#include "util-running-modes.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -1317,20 +1318,25 @@ int main(int argc, char **argv)
         }
     }
 
-    if (!list_keywords && !list_app_layer_protocols) {
-#ifdef REVISION
-        SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
-#elif defined RELEASE
-        SCLogInfo("This is %s version %s RELEASE", PROG_NAME, PROG_VER);
-#else
-        SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
-#endif
+    if (list_keywords) {
+        return SuriListKeywords(keyword_info);
     }
+
+    if (list_app_layer_protocols) {
+        return SuriListAppLayerProtocols();
+    }
+
+#ifdef REVISION
+    SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
+#elif defined RELEASE
+    SCLogInfo("This is %s version %s RELEASE", PROG_NAME, PROG_VER);
+#else
+    SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
+#endif
 
     SetBpfString(optind, argv);
 
-    if (!list_keywords && !list_app_layer_protocols)
-        UtilCpuPrintSummary();
+    UtilCpuPrintSummary();
 
 #ifdef __SC_CUDA_SUPPORT__
     /* Init the CUDA environment */
@@ -1351,9 +1357,7 @@ int main(int argc, char **argv)
     TimeInit();
     SupportFastPatternForSigMatchTypes();
 
-    if (run_mode != RUNMODE_UNITTEST &&
-            !list_keywords &&
-            !list_app_layer_protocols) {
+    if (run_mode != RUNMODE_UNITTEST) {
         if (conf_filename == NULL)
             conf_filename = DEFAULT_CONF_FILE;
     }
@@ -1405,10 +1409,6 @@ int main(int argc, char **argv)
 #endif
 
     AppLayerDetectProtoThreadInit();
-    if (list_app_layer_protocols) {
-        AppLayerListSupportedProtocols();
-        exit(EXIT_SUCCESS);
-    }
     AppLayerParsersInitPostProcess();
 
     if (dump_config) {
@@ -1429,17 +1429,15 @@ int main(int argc, char **argv)
 #endif /* OS_WIN32 */
     }
 
-    if (!list_keywords && !list_app_layer_protocols) {
 #ifdef OS_WIN32
-        if (_stat(log_dir, &buf) != 0) {
+    if (_stat(log_dir, &buf) != 0) {
 #else
-        if (stat(log_dir, &buf) != 0) {
+    if (stat(log_dir, &buf) != 0) {
 #endif /* OS_WIN32 */
-            SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
-                        "supplied by %s (default-log-dir) doesn't exist. "
-                        "Shutting down the engine", log_dir, conf_filename);
-            exit(EXIT_FAILURE);
-        }
+        SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
+                "supplied by %s (default-log-dir) doesn't exist. "
+                "Shutting down the engine", log_dir, conf_filename);
+        exit(EXIT_FAILURE);
     }
 
     /* Pull the max pending packets from the config, if not found fall
@@ -1493,13 +1491,12 @@ int main(int argc, char **argv)
 
     /* Load the Host-OS lookup. */
     SCHInfoLoadFromConfig();
-    if (!list_keywords && !list_app_layer_protocols &&
-        (run_mode != RUNMODE_UNIX_SOCKET)) {
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
         DefragInit();
     }
 
     if (run_mode == RUNMODE_UNKNOWN) {
-        if (!engine_analysis && !list_keywords && !conf_test) {
+        if (!engine_analysis && !conf_test) {
             usage(argv[0]);
             exit(EXIT_FAILURE);
         }
@@ -1529,10 +1526,6 @@ int main(int argc, char **argv)
 
     /* hardcoded initialization code */
     SigTableSetup(); /* load the rule keywords */
-    if (list_keywords) {
-        SigTableList(keyword_info);
-        exit(EXIT_FAILURE);
-    }
     TmqhSetup();
 
     StorageInit();
