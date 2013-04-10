@@ -1052,17 +1052,11 @@ static void DetectEngineThreadCtxDeinitKeywords(DetectEngineCtx *de_ctx, DetectE
     }
 }
 
-TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
-    DetectEngineCtx *de_ctx = (DetectEngineCtx *)initdata;
-    if (de_ctx == NULL)
-        return TM_ECODE_FAILED;
-
-    DetectEngineThreadCtx *det_ctx = SCMalloc(sizeof(DetectEngineThreadCtx));
-    if (unlikely(det_ctx == NULL))
-        return TM_ECODE_FAILED;
-    memset(det_ctx, 0, sizeof(DetectEngineThreadCtx));
-
-    det_ctx->de_ctx = de_ctx;
+/** \internal
+ *  \brief Helper for DetectThread setup functions
+ */
+static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx) {
+    int i;
 
     /** \todo we still depend on the global mpm_ctx here
      *
@@ -1075,7 +1069,6 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     PatternMatchThreadPrepare(&det_ctx->mtcu, de_ctx->mpm_matcher, DetectUricontentMaxId(de_ctx));
 
     PmqSetup(&det_ctx->pmq, 0, de_ctx->max_fp_id);
-    int i;
     for (i = 0; i < 256; i++) {
         PmqSetup(&det_ctx->smsg_pmq[i], 0, de_ctx->max_fp_id);
     }
@@ -1102,16 +1095,7 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
                det_ctx->match_array_len * sizeof(Signature *));
     }
 
-    /** alert counter setup */
-    det_ctx->counter_alerts = SCPerfTVRegisterCounter("detect.alert", tv,
-                                                      SC_PERF_TYPE_UINT64, "NULL");
-    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
-    SCPerfAddToClubbedTMTable((tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
-                              &tv->sc_perf_pctx);
-
-    /* this detection engine context belongs to this thread instance */
-    det_ctx->tv = tv;
-
+    /* byte_extract storage */
     det_ctx->bj_values = SCMalloc(sizeof(*det_ctx->bj_values) *
                                   (de_ctx->byte_extract_max_local_id + 1));
     if (det_ctx->bj_values == NULL) {
@@ -1122,9 +1106,36 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
 #ifdef PROFILING
     SCProfilingRuleThreadSetup(de_ctx->profile_ctx, det_ctx);
 #endif
-
     SC_ATOMIC_INIT(det_ctx->so_far_used_by_detect);
 
+    return TM_ECODE_OK;
+}
+
+TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
+{
+    DetectEngineCtx *de_ctx = (DetectEngineCtx *)initdata;
+    if (de_ctx == NULL)
+        return TM_ECODE_FAILED;
+
+    DetectEngineThreadCtx *det_ctx = SCMalloc(sizeof(DetectEngineThreadCtx));
+    if (unlikely(det_ctx == NULL))
+        return TM_ECODE_FAILED;
+    memset(det_ctx, 0, sizeof(DetectEngineThreadCtx));
+
+    det_ctx->tv = tv;
+    det_ctx->de_ctx = de_ctx;
+
+    if (ThreadCtxDoInit(de_ctx, det_ctx) != TM_ECODE_OK)
+        return TM_ECODE_FAILED;
+
+    /** alert counter setup */
+    det_ctx->counter_alerts = SCPerfTVRegisterCounter("detect.alert", tv,
+                                                      SC_PERF_TYPE_UINT64, "NULL");
+    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
+    SCPerfAddToClubbedTMTable((tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
+                              &tv->sc_perf_pctx);
+
+    /* pass thread data back to caller */
     *data = (void *)det_ctx;
 
     return TM_ECODE_OK;
@@ -1148,67 +1159,18 @@ static TmEcode DetectEngineThreadCtxInitForLiveRuleSwap(ThreadVars *tv, void *in
         return TM_ECODE_FAILED;
     memset(det_ctx, 0, sizeof(DetectEngineThreadCtx));
 
+    det_ctx->tv = tv;
     det_ctx->de_ctx = de_ctx;
 
-    /** \todo we still depend on the global mpm_ctx here
-     *
-     * Initialize the thread pattern match ctx with the max size
-     * of the content and uricontent id's so our match lookup
-     * table is always big enough
-     */
-    PatternMatchThreadPrepare(&det_ctx->mtc, de_ctx->mpm_matcher, DetectContentMaxId(de_ctx));
-    PatternMatchThreadPrepare(&det_ctx->mtcs, de_ctx->mpm_matcher, DetectContentMaxId(de_ctx));
-    PatternMatchThreadPrepare(&det_ctx->mtcu, de_ctx->mpm_matcher, DetectUricontentMaxId(de_ctx));
-
-    PmqSetup(&det_ctx->pmq, 0, de_ctx->max_fp_id);
-    int i;
-    for (i = 0; i < 256; i++) {
-        PmqSetup(&det_ctx->smsg_pmq[i], 0, de_ctx->max_fp_id);
-    }
-
-    /* IP-ONLY */
-    DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);
-
-    /* DeState */
-    if (de_ctx->sig_array_len > 0) {
-        det_ctx->de_state_sig_array_len = de_ctx->sig_array_len;
-        det_ctx->de_state_sig_array = SCMalloc(det_ctx->de_state_sig_array_len * sizeof(uint8_t));
-        if (det_ctx->de_state_sig_array == NULL) {
-            return TM_ECODE_FAILED;
-        }
-        memset(det_ctx->de_state_sig_array, 0,
-               det_ctx->de_state_sig_array_len * sizeof(uint8_t));
-
-        det_ctx->match_array_len = de_ctx->sig_array_len;
-        det_ctx->match_array = SCMalloc(det_ctx->match_array_len * sizeof(Signature *));
-        if (det_ctx->match_array == NULL) {
-            return TM_ECODE_FAILED;
-        }
-        memset(det_ctx->match_array, 0,
-               det_ctx->match_array_len * sizeof(Signature *));
-    }
+    if (ThreadCtxDoInit(de_ctx, det_ctx) != TM_ECODE_OK)
+        return TM_ECODE_FAILED;
 
     /** alert counter setup */
     det_ctx->counter_alerts = SCPerfTVRegisterCounter("detect.alert", tv,
                                                       SC_PERF_TYPE_UINT64, "NULL");
-    //tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
-    //SCPerfAddToClubbedTMTable((tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name, &tv->sc_perf_pctx);
+    /* no counter creation here */
 
-    /* this detection engine context belongs to this thread instance */
-    det_ctx->tv = tv;
-
-    det_ctx->bj_values = SCMalloc(sizeof(*det_ctx->bj_values) * (de_ctx->byte_extract_max_local_id + 1));
-    if (det_ctx->bj_values == NULL) {
-        return TM_ECODE_FAILED;
-    }
-
-    DetectEngineThreadCtxInitKeywords(de_ctx, det_ctx);
-#ifdef PROFILING
-    SCProfilingRuleThreadSetup(de_ctx->profile_ctx, det_ctx);
-#endif
-
-    SC_ATOMIC_INIT(det_ctx->so_far_used_by_detect);
-
+    /* pass thread data back to caller */
     *data = (void *)det_ctx;
 
     return TM_ECODE_OK;
