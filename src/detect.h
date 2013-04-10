@@ -413,6 +413,11 @@ typedef struct Signature_ {
 
     /** classification id **/
     uint8_t class;
+
+#ifdef PROFILING
+    uint16_t profiling_id;
+#endif
+
     uint32_t gid; /**< generator id */
 
     /** netblocks and hosts specified at the sid, in CIDR format */
@@ -422,26 +427,19 @@ typedef struct Signature_ {
 
     int prio;
 
-    char *msg;
-
-    /** classification message */
-    char *class_msg;
-
-    /** Reference */
-    DetectReference *references;
-
-    /* Be careful, this pointer is only valid while parsing the sig,
-     * to warn the user about any possible problem */
-    char *sig_str;
-
-#ifdef PROFILING
-    uint16_t profiling_id;
-#endif
-
     /* holds all sm lists */
     struct SigMatch_ *sm_lists[DETECT_SM_LIST_MAX];
     /* holds all sm lists' tails */
     struct SigMatch_ *sm_lists_tail[DETECT_SM_LIST_MAX];
+
+    SigMatch *filestore_sm;
+
+    char *msg;
+
+    /** classification message */
+    char *class_msg;
+    /** Reference */
+    DetectReference *references;
 
     /** address settings for this signature */
     DetectAddressHead src, dst;
@@ -450,15 +448,17 @@ typedef struct Signature_ {
     uint32_t init_flags;
     /** number of sigmatches in the match and pmatch list */
     uint16_t sm_cnt;
-
+    /* used at init to determine max dsize */
     SigMatch *dsize_sm;
-    SigMatch *filestore_sm;
     /* the fast pattern added from this signature */
     SigMatch *mpm_sm;
     /* helper for init phase */
     uint16_t mpm_content_maxlen;
     uint16_t mpm_uricontent_maxlen;
 
+    /* Be careful, this pointer is only valid while parsing the sig,
+     * to warn the user about any possible problem */
+    char *sig_str;
 
     /** ptr to the next sig in the list */
     struct Signature_ *next;
