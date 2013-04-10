@@ -1069,7 +1069,7 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
     PatternMatchThreadPrepare(&det_ctx->mtcu, de_ctx->mpm_matcher, DetectUricontentMaxId(de_ctx));
 
     PmqSetup(&det_ctx->pmq, 0, de_ctx->max_fp_id);
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < DETECT_SMSG_PMQ_NUM; i++) {
         PmqSetup(&det_ctx->smsg_pmq[i], 0, de_ctx->max_fp_id);
     }
 
@@ -1196,7 +1196,7 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data) {
 
     PmqFree(&det_ctx->pmq);
     int i;
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < DETECT_SMSG_PMQ_NUM; i++) {
         PmqFree(&det_ctx->smsg_pmq[i]);
     }
 
