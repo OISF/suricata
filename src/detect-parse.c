@@ -52,7 +52,6 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-debug.h"
-#include "util-memcmp.h"
 #include "string.h"
 #include "detect-parse.h"
 #include "detect-engine-iponly.h"
@@ -992,6 +991,9 @@ static void SigBuildAddressMatchArray(Signature *s) {
  *  \retval 1 valid
  */
 static int SigValidate(Signature *s) {
+    uint32_t u = 0;
+    SigMatch *sm, *pm;
+
     SCEnter();
 
     if ((s->flags & SIG_FLAG_REQUIRE_PACKET) &&
@@ -1001,7 +1003,6 @@ static int SigValidate(Signature *s) {
         SCReturnInt(0);
     }
 
-    SigMatch *sm;
     for (sm = s->sm_lists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_FLOW) {
             DetectFlowData *fd = (DetectFlowData *)sm->ctx;
@@ -1083,7 +1084,7 @@ static int SigValidate(Signature *s) {
     }
 
     if (s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL) {
-        for (SigMatch *sm = s->sm_lists[DETECT_SM_LIST_HHHDMATCH];
+        for (sm = s->sm_lists[DETECT_SM_LIST_HHHDMATCH];
              sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
@@ -1094,7 +1095,6 @@ static int SigValidate(Signature *s) {
                                  "is actually lowercase.  So having a "
                                  "nocase is redundant.");
                 } else {
-                    uint8_t u = 0;
                     for (u = 0; u < cd->content_len; u++) {
                         if (isupper(cd->content[u]))
                             break;
@@ -1107,13 +1107,13 @@ static int SigValidate(Signature *s) {
                                      "lowercase pattern.");
                         SCReturnInt(0);
                     }
-                } /* else */
+                }
             }
         }
     }
 
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
-        SigMatch *pm =  SigMatchGetLastSMFromLists(s, 24,
+        pm =  SigMatchGetLastSMFromLists(s, 24,
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
@@ -1161,7 +1161,7 @@ static int SigValidate(Signature *s) {
     if (s->proto.proto[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8))) {
         if (!(s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM))) {
             s->flags |= SIG_FLAG_REQUIRE_STREAM;
-            SigMatch *sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+            sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
             while (sm != NULL) {
                 if (sm->type == DETECT_CONTENT &&
                         (((DetectContentData *)(sm->ctx))->flags &
@@ -1178,7 +1178,6 @@ static int SigValidate(Signature *s) {
     int i;
     for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
         if (s->sm_lists[i] != NULL) {
-            SigMatch *sm;
             for (sm = s->sm_lists[i]; sm != NULL; sm = sm->next) {
                 BUG_ON(sm == sm->prev);
                 BUG_ON(sm == sm->next);
