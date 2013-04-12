@@ -270,6 +270,8 @@ DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr)
     uint16_t slen = strlen(regexstr);
     uint16_t pos = 0;
     uint8_t negate = 0;
+    uint16_t re_len = 0;
+    uint32_t u = 0;
 
     while (pos < slen && isspace((unsigned char)regexstr[pos])) {
         pos++;
@@ -470,7 +472,21 @@ DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr)
         }
     }
 
-    //printf("DetectPcreParse: \"%s\"\n", re);
+    SCLogDebug("DetectPcreParse: \"%s\"", re);
+
+    if (pd->flags & DETECT_PCRE_HTTP_HOST) {
+        re_len = strlen(re);
+        for (u = 0; u < re_len; u++) {
+            if (isupper(re[u])) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre http_host "
+                           "specified has an uppercase char.  "
+                           "Since the hostname buffer we match against "
+                           "is actually lowercase, please specify an "
+                           "all lowercase based pcre.");
+                goto error;
+            }
+        }
+    }
 
     /* Try to compile as if all (...) groups had been meant as (?:...),
      * which is the common case in most rules.
