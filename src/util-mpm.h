@@ -122,6 +122,8 @@ typedef struct MpmCtx_ {
 
     uint32_t memory_cnt;
     uint32_t memory_size;
+
+    uint32_t anoop_total_called;
 } MpmCtx;
 
 /* if we want to retrieve an unique mpm context from the mpm context factory
