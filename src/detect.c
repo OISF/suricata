@@ -2394,6 +2394,9 @@ static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
     de_ctx->sgh_mpm_context_hcbd =
         MpmFactoryRegisterMpmCtxProfile(de_ctx, "hcbd",
                                         MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
+    de_ctx->sgh_mpm_context_hsbd =
+        MpmFactoryRegisterMpmCtxProfile(de_ctx, "hsbd",
+                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
     de_ctx->sgh_mpm_context_hhd =
         MpmFactoryRegisterMpmCtxProfile(de_ctx, "hhd",
                                         MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
@@ -4511,6 +4514,16 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
             mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
         //printf("hcbd- %d\n", mpm_ctx->pattern_cnt);
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hsbd, 0);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hsbd, 1);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+        //printf("hsbd- %d\n", mpm_ctx->pattern_cnt);
 
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hhd, 0);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
