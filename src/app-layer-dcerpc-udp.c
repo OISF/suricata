@@ -720,15 +720,27 @@ static void DCERPCUDPStateFree(void *s) {
 void RegisterDCERPCUDPParsers(void) {
     char *proto_name = "dcerpcudp";
 
-    /** DCERPC */
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_UDP, ALPROTO_DCERPC_UDP, "|04 00|", 2, 0, STREAM_TOSERVER);
+    /* common name dcerpc used for tcp and udp versions of the protocol. */
+    if (AppLayerProtoDetectionEnabled("dcerpc")) {
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_UDP, ALPROTO_DCERPC_UDP, "|04 00|", 2, 0, STREAM_TOSERVER);
+    } else {
+        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
+                  "dcerpc");
+        return;
+    }
 
-	AppLayerRegisterProto(proto_name, ALPROTO_DCERPC_UDP, STREAM_TOSERVER,
-			DCERPCUDPParse);
-	AppLayerRegisterProto(proto_name, ALPROTO_DCERPC_UDP, STREAM_TOCLIENT,
-			DCERPCUDPParse);
-	AppLayerRegisterStateFuncs(ALPROTO_DCERPC_UDP, DCERPCUDPStateAlloc,
-			DCERPCUDPStateFree);
+
+    if (AppLayerParserEnabled("dcerpc")) {
+        AppLayerRegisterProto(proto_name, ALPROTO_DCERPC_UDP, STREAM_TOSERVER,
+                              DCERPCUDPParse);
+        AppLayerRegisterProto(proto_name, ALPROTO_DCERPC_UDP, STREAM_TOCLIENT,
+                              DCERPCUDPParse);
+        AppLayerRegisterStateFuncs(ALPROTO_DCERPC_UDP, DCERPCUDPStateAlloc,
+                                   DCERPCUDPStateFree);
+    } else {
+        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
+                  "still on.", "dcerpc");
+    }
 }
 
 /* UNITTESTS */

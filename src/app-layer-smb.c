@@ -1370,7 +1370,7 @@ void SMBUpdateTransactionId(void *state, uint16_t *id) {
 
 #define SMB_PROBING_PARSER_MIN_DEPTH 8
 
-static uint16_t SMBProbingParser(uint8_t *input, uint32_t ilen)
+static uint16_t SMBProbingParser(uint8_t *input, uint32_t ilen, uint32_t *offset)
 {
     int32_t len;
     int32_t input_len = ilen;
@@ -1414,27 +1414,29 @@ static uint16_t SMBProbingParser(uint8_t *input, uint32_t ilen)
 void RegisterSMBParsers(void) {
     char *proto_name = "smb";
 
-    /** SMB */
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOSERVER);
+    if (AppLayerProtoDetectionEnabled(proto_name)) {
+        /** SMB */
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOSERVER);
 
-    /** SMB2 */
-    AlpProtoAdd(&alp_proto_ctx, "smb2", IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
+        AppLayerParseProbingParserPorts(proto_name, ALPROTO_SMB,
+                                        SMB_PROBING_PARSER_MIN_DEPTH, 0,
+                                        SMBProbingParser);
+    } else {
+        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
+                  proto_name);
+        return;
+    }
 
-    AppLayerRegisterProto(proto_name, ALPROTO_SMB, STREAM_TOSERVER, SMBParseRequest);
-    AppLayerRegisterProto(proto_name, ALPROTO_SMB, STREAM_TOCLIENT, SMBParseResponse);
-    AppLayerRegisterStateFuncs(ALPROTO_SMB, SMBStateAlloc, SMBStateFree);
-    AppLayerRegisterTransactionIdFuncs(ALPROTO_SMB,
-            SMBUpdateTransactionId, NULL);
-
-    AppLayerRegisterProbingParser(&alp_proto_ctx,
-                                  139,
-                                  IPPROTO_TCP,
-                                  "smb",
-                                  ALPROTO_SMB,
-                                  SMB_PROBING_PARSER_MIN_DEPTH, 0,
-                                  STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  SMBProbingParser);
+    if (AppLayerParserEnabled(proto_name)) {
+        AppLayerRegisterProto(proto_name, ALPROTO_SMB, STREAM_TOSERVER, SMBParseRequest);
+        AppLayerRegisterProto(proto_name, ALPROTO_SMB, STREAM_TOCLIENT, SMBParseResponse);
+        AppLayerRegisterStateFuncs(ALPROTO_SMB, SMBStateAlloc, SMBStateFree);
+        AppLayerRegisterTransactionIdFuncs(ALPROTO_SMB,
+                                           SMBUpdateTransactionId, NULL);
+    } else {
+        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
+                  "still on.", proto_name);
+    }
 
     return;
 }
@@ -2031,13 +2033,12 @@ int SMBParserTest05(void)
     AlpProtoAdd(&ctx, "smb2", IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
 
     AppLayerRegisterProbingParser(&ctx,
-                                  f.dp,
                                   IPPROTO_TCP,
+                                  "139",
                                   "smb",
                                   ALPROTO_SMB,
                                   SMB_PROBING_PARSER_MIN_DEPTH, 0,
                                   STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   SMBProbingParser);
 
 
@@ -2115,13 +2116,12 @@ int SMBParserTest06(void)
     AlpProtoAdd(&ctx, "smb2", IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
 
     AppLayerRegisterProbingParser(&ctx,
-                                  f.dp,
                                   IPPROTO_TCP,
+                                  "139",
                                   "smb",
                                   ALPROTO_SMB,
                                   SMB_PROBING_PARSER_MIN_DEPTH, 0,
                                   STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   SMBProbingParser);
 
 
