@@ -468,6 +468,11 @@ typedef struct DetectReplaceList_ {
     struct DetectReplaceList_ *next;
 } DetectReplaceList;
 
+/** only execute flowvar storage if rule matched */
+#define DETECT_FLOWVAR_TYPE_POSTMATCH   1
+/** execute flowvar storage even if rule doesn't match (for luajit) */
+#define DETECT_FLOWVAR_TYPE_ALWAYS      2
+
 /** list for flowvar store candidates, to be stored from
  *  post-match function */
 typedef struct DetectFlowvarList_ {
@@ -475,6 +480,7 @@ typedef struct DetectFlowvarList_ {
     uint16_t len;                       /**< data len */
     uint8_t *buffer;                    /**< alloc'd buffer, may be freed by
                                              post-match, post-non-match */
+    int type;                           /**< type of store candidate POSTMATCH or ALWAYS */
     struct DetectFlowvarList_ *next;
 } DetectFlowvarList;
 

@@ -57,6 +57,8 @@
 #include "detect-engine-state.h"
 #include "detect-engine-dcepayload.h"
 
+#include "detect-flowvar.h"
+
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -615,6 +617,8 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     p->action |= s->action;
                 }
             }
+
+            DetectFlowvarProcessList(det_ctx, f);
         }
     }
 

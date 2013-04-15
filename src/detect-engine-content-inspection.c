@@ -498,7 +498,14 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 #ifdef HAVE_LUAJIT
     }
     else if (sm->type == DETECT_LUAJIT) {
-        if (DetectLuajitMatchBuffer(det_ctx, s, sm, buffer, buffer_len, det_ctx->buffer_offset) != 1) {
+        /* for flowvar gets and sets we need to know the flow's lock status */
+        int need_flow_lock = 0;
+        if (inspection_mode <= DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM)
+            need_flow_lock = 1;
+
+        if (DetectLuajitMatchBuffer(det_ctx, s, sm, buffer, buffer_len,
+                    det_ctx->buffer_offset, f, need_flow_lock) != 1)
+        {
             SCReturnInt(0);
         }
         goto match;

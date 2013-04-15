@@ -226,8 +226,11 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
             /* regex matched and we're not negated,
              * considering it a match */
 
+            SCLogDebug("ret %d capidx %u", ret, pe->capidx);
+
             /* see if we need to do substring capturing. */
             if (ret > 1 && pe->capidx != 0) {
+                SCLogDebug("capturing");
                 const char *str_ptr;
                 ret = pcre_get_substring((char *)ptr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
                 if (ret) {
@@ -240,7 +243,8 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
                             /* store max 64k. Errors are ignored */
                             capture_len = (ret < 0xffff) ? (uint16_t)ret : 0xffff;
                             (void)DetectFlowvarStoreMatch(det_ctx, pe->capidx,
-                                    (uint8_t *)str_ptr, capture_len);
+                                    (uint8_t *)str_ptr, capture_len,
+                                    DETECT_FLOWVAR_TYPE_POSTMATCH);
                         }
                     }
                 }
@@ -589,12 +593,13 @@ DetectPcreData *DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, 
     int ov[MAX_SUBSTRINGS];
     const char *capture_str_ptr = NULL, *type_str_ptr = NULL;
 
-    if(pd == NULL)
+    if (pd == NULL)
         goto error;
 
-    if(de_ctx == NULL)
+    if (de_ctx == NULL)
         goto error;
-    //printf("DetectPcreParseCapture: \'%s\'\n", regexstr);
+
+    SCLogDebug("\'%s\'", regexstr);
 
     ret = pcre_exec(parse_capture_regex, parse_capture_regex_study, regexstr, strlen(regexstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret > 1) {
@@ -609,8 +614,8 @@ DetectPcreData *DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, 
             goto error;
         }
     }
-    //printf("DetectPcreParseCapture: type \'%s\'\n", type_str_ptr ? type_str_ptr : "NULL");
-    //printf("DetectPcreParseCapture: capture \'%s\'\n", capture_str_ptr ? capture_str_ptr : "NULL");
+    SCLogDebug("type \'%s\'", type_str_ptr ? type_str_ptr : "NULL");
+    SCLogDebug("capture \'%s\'", capture_str_ptr ? capture_str_ptr : "NULL");
 
     if (capture_str_ptr != NULL) {
         pd->capname = SCStrdup((char *)capture_str_ptr);
@@ -621,6 +626,7 @@ DetectPcreData *DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, 
             pd->flags |= DETECT_PCRE_CAPTURE_PKT;
         } else if (strcmp(type_str_ptr,"flow") == 0) {
             pd->flags |= DETECT_PCRE_CAPTURE_FLOW;
+            SCLogDebug("flow capture");
         }
         if (capture_str_ptr != NULL) {
             if (pd->flags & DETECT_PCRE_CAPTURE_PKT)
@@ -629,17 +635,20 @@ DetectPcreData *DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, 
                 pd->capidx = VariableNameGetIdx(de_ctx, (char *)capture_str_ptr, DETECT_FLOWVAR);
         }
     }
-    //printf("DetectPcreParseCapture: pd->capname %s\n", pd->capname ? pd->capname : "NULL");
+    SCLogDebug("pd->capname %s", pd->capname ? pd->capname : "NULL");
 
-    if (type_str_ptr != NULL) pcre_free((char *)type_str_ptr);
-    if (capture_str_ptr != NULL) pcre_free((char *)capture_str_ptr);
+    if (type_str_ptr != NULL)
+        pcre_free((char *)type_str_ptr);
+    if (capture_str_ptr != NULL)
+        pcre_free((char *)capture_str_ptr);
     return pd;
 
 error:
-    if (pd != NULL && pd->capname != NULL) SCFree(pd->capname);
-    if (pd) SCFree(pd);
+    if (pd != NULL && pd->capname != NULL)
+        SCFree(pd->capname);
+    if (pd)
+        SCFree(pd);
     return NULL;
-
 }
 
 static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexstr)

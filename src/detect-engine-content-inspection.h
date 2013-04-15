@@ -24,9 +24,15 @@
 #ifndef __DETECT_ENGINE_CONTENT_INSPECTION_H__
 #define __DETECT_ENGINE_CONTENT_INSPECTION_H__
 
+/** \warning make sure to add new entries to the proper position
+ *           wrt flow lock status
+ */
 enum {
+    /* called with flow unlocked */
     DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD = 0,
     DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM,
+
+    /* called with flow locked */
     DETECT_ENGINE_CONTENT_INSPECTION_MODE_DCE,
     DETECT_ENGINE_CONTENT_INSPECTION_MODE_URI,
     DETECT_ENGINE_CONTENT_INSPECTION_MODE_HRUD,

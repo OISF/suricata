@@ -34,9 +34,11 @@
 #include "flow.h"
 #include "flow-var.h"
 #include "detect-flowvar.h"
+
 #include "util-spm.h"
 #include "util-var-name.h"
 #include "util-debug.h"
+#include "util-print.h"
 
 #define PARSE_REGEX         "(.*),(.*)"
 static pcre *parse_regex;
@@ -209,7 +211,9 @@ error:
 
 
 /** \brief Store flowvar in det_ctx so we can exec it post-match */
-int DetectFlowvarStoreMatch(DetectEngineThreadCtx *det_ctx, uint16_t idx, uint8_t *buffer, uint16_t len) {
+int DetectFlowvarStoreMatch(DetectEngineThreadCtx *det_ctx, uint16_t idx,
+        uint8_t *buffer, uint16_t len, int type)
+{
     DetectFlowvarList *fs = det_ctx->flowvarlist;
 
     /* first check if we have had a previous match for this idx */
@@ -234,6 +238,7 @@ int DetectFlowvarStoreMatch(DetectEngineThreadCtx *det_ctx, uint16_t idx, uint8_
     }
 
     fs->len = len;
+    fs->type = type;
     fs->buffer = buffer;
     return 0;
 }
@@ -286,6 +291,9 @@ static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx
     fs = det_ctx->flowvarlist;
     while (fs != NULL) {
         if (fd->idx == fs->idx) {
+            SCLogDebug("adding to the flow %u:", fs->idx);
+            //PrintRawDataFp(stdout, fs->buffer, fs->len);
+
             FlowVarAddStr(p->flow, fs->idx, fs->buffer, fs->len);
             /* memory at fs->buffer is now the responsibility of
              * the flowvar code. */
@@ -307,14 +315,30 @@ static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx
     return 1;
 }
 
-/** \brief Clean flowvar candidate list in det_ctx */
-void DetectFlowvarCleanupList(DetectEngineThreadCtx *det_ctx) {
+/** \brief Handle flowvar candidate list in det_ctx:
+ *         - clean up the list
+ *         - enforce storage for type ALWAYS (luajit) */
+void DetectFlowvarProcessList(DetectEngineThreadCtx *det_ctx, Flow *f) {
     DetectFlowvarList *fs, *next;
+
+    SCLogDebug("det_ctx->flowvarlist %p", det_ctx->flowvarlist);
+
     if (det_ctx->flowvarlist != NULL) {
         fs = det_ctx->flowvarlist;
         while (fs != NULL) {
             next = fs->next;
-            SCFree(fs->buffer);
+
+            if (fs->type == DETECT_FLOWVAR_TYPE_ALWAYS) {
+                BUG_ON(f == NULL);
+                SCLogDebug("adding to the flow %u:", fs->idx);
+                //PrintRawDataFp(stdout, fs->buffer, fs->len);
+
+                FlowVarAddStr(f, fs->idx, fs->buffer, fs->len);
+                /* memory at fs->buffer is now the responsibility of
+                 * the flowvar code. */
+            } else {
+                SCFree(fs->buffer);
+            }
             SCFree(fs);
             fs = next;
         }

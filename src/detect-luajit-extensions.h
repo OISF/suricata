@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,23 +21,15 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_FLOWVAR_H__
-#define __DETECT_FLOWVAR_H__
+#ifndef __DETECT_LUAJIT_EXT_H__
+#define __DETECT_LUAJIT_EXT_H__
 
-typedef struct DetectFlowvarData_ {
-    char *name;
-    uint16_t idx;
-    uint8_t *content;
-    uint8_t content_len;
-    uint8_t flags;
-} DetectFlowvarData;
+#ifdef HAVE_LUAJIT
+int LuajitRegisterExtensions(lua_State *);
 
-/* prototypes */
-void DetectFlowvarRegister (void);
+void LuajitExtensionsMatchSetup(lua_State *lua_state,
+        DetectLuajitData *, DetectEngineThreadCtx *det_ctx,
+        Flow *f, int need_flow_lock);
 
-int DetectFlowvarPostMatchSetup(Signature *s, uint16_t idx);
-int DetectFlowvarStoreMatch(DetectEngineThreadCtx *, uint16_t, uint8_t *, uint16_t, int);
-void DetectFlowvarProcessList(DetectEngineThreadCtx *det_ctx, Flow *);
-
-#endif /* __DETECT_FLOWVAR_H__ */
-
+#endif /* HAVE_LUAJIT */
+#endif

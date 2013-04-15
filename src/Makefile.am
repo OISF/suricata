@@ -147,6 +147,7 @@ detect-isdataat.c detect-isdataat.h \
 detect-itype.c detect-itype.h \
 detect-l3proto.c detect-l3proto.h \
 detect-luajit.c detect-luajit.h \
+detect-luajit-extensions.c detect-luajit-extensions.h \
 detect-mark.c detect-mark.h \
 detect-metadata.c detect-metadata.h \
 detect-msg.c detect-msg.h \

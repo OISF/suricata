@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -53,9 +53,11 @@
 #include "stream-tcp.h"
 
 #include "detect-luajit.h"
+#include "detect-luajit-extensions.h"
 
 #include "queue.h"
 #include "util-cpu.h"
+#include "util-var-name.h"
 
 #ifndef HAVE_LUAJIT
 
@@ -241,7 +243,10 @@ void LuaDumpStack(lua_State *state) {
     }
 }
 
-int DetectLuajitMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm, uint8_t *buffer, uint32_t buffer_len, uint32_t offset) {
+int DetectLuajitMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm,
+        uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
+        Flow *f, int need_flow_lock)
+{
     SCEnter();
     int ret = 0;
 
@@ -256,6 +261,10 @@ int DetectLuajitMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMat
     if (tluajit == NULL)
         SCReturnInt(0);
 
+    /* setup extension data for use in lua c functions */
+    LuajitExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx, f, need_flow_lock);
+
+    /* prepare data to pass to script */
     lua_getglobal(tluajit->luastate, "match");
     lua_newtable(tluajit->luastate); /* stack at -1 */
 
@@ -347,6 +356,9 @@ static int DetectLuajitMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     DetectLuajitThreadData *tluajit = (DetectLuajitThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, luajit->thread_ctx_id);
     if (tluajit == NULL)
         SCReturnInt(0);
+
+    /* setup extension data for use in lua c functions */
+    LuajitExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx, p->flow, /* flow not locked */0);
 
     if ((tluajit->flags & DATATYPE_PAYLOAD) && p->payload_len == 0)
         SCReturnInt(0);
@@ -456,7 +468,14 @@ static int DetectLuajitMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     SCReturnInt(ret);
 }
 
+#ifdef UNITTESTS
+/* if this ptr is set the luajit setup functions will use this buffer as the
+ * lua script instead of calling luaL_loadfile on the filename supplied. */
+static const char *ut_script = NULL;
+#endif
+
 static void *DetectLuajitThreadInit(void *data) {
+    int status;
     DetectLuajitData *luajit = (DetectLuajitData *)data;
     BUG_ON(luajit == NULL);
 
@@ -478,11 +497,26 @@ static void *DetectLuajitThreadInit(void *data) {
 
     luaL_openlibs(t->luastate);
 
-    int status = luaL_loadfile(t->luastate, luajit->filename);
-    if (status) {
-        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't load file: %s", lua_tostring(t->luastate, -1));
-        goto error;
+    LuajitRegisterExtensions(t->luastate);
+
+    /* hackish, needed to allow unittests to pass buffers as scripts instead of files */
+#ifdef UNITTESTS
+    if (ut_script != NULL) {
+        status = luaL_loadbuffer(t->luastate, ut_script, strlen(ut_script), "unittest");
+        if (status) {
+            SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't load file: %s", lua_tostring(t->luastate, -1));
+            goto error;
+        }
+    } else {
+#endif
+        status = luaL_loadfile(t->luastate, luajit->filename);
+        if (status) {
+            SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't load file: %s", lua_tostring(t->luastate, -1));
+            goto error;
+        }
+#ifdef UNITTESTS
     }
+#endif
 
     /* prime the script (or something) */
     if (lua_pcall(t->luastate, 0, 0, 0) != 0) {
@@ -546,17 +580,32 @@ error:
     return NULL;
 }
 
-static int DetectLuaSetupPrime(DetectLuajitData *ld) {
+static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuajitData *ld) {
+    int status;
+
     lua_State *luastate = luaL_newstate();
     if (luastate == NULL)
         goto error;
     luaL_openlibs(luastate);
 
-    int status = luaL_loadfile(luastate, ld->filename);
-    if (status) {
-        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
-        goto error;
+    /* hackish, needed to allow unittests to pass buffers as scripts instead of files */
+#ifdef UNITTESTS
+    if (ut_script != NULL) {
+        status = luaL_loadbuffer(luastate, ut_script, strlen(ut_script), "unittest");
+        if (status) {
+            SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
+            goto error;
+        }
+    } else {
+#endif
+        status = luaL_loadfile(luastate, ld->filename);
+        if (status) {
+            SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
+            goto error;
+        }
+#ifdef UNITTESTS
     }
+#endif
 
     /* prime the script (or something) */
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
@@ -598,10 +647,38 @@ static int DetectLuaSetupPrime(DetectLuajitData *ld) {
     lua_pushnil(luastate);
     const char *k, *v;
     while (lua_next(luastate, -2)) {
+        k = lua_tostring(luastate, -2);
+        if (k == NULL)
+            continue;
+
+        /* handle flowvar separately as it has a table as value */
+        if (strcmp(k, "flowvar") == 0) {
+            if (lua_istable(luastate, -1)) {
+                lua_pushnil(luastate);
+                while (lua_next(luastate, -2) != 0) {
+                    /* value at -1, key is at -2 which we ignore */
+                    const char *value = lua_tostring(luastate, -1);
+                    SCLogDebug("value %s", value);
+                    /* removes 'value'; keeps 'key' for next iteration */
+                    lua_pop(luastate, 1);
+
+                    if (ld->flowvars == DETECT_LUAJIT_MAX_FLOWVARS) {
+                        SCLogError(SC_ERR_LUAJIT_ERROR, "too many flowvars registered");
+                        goto error;
+                    }
+
+                    uint16_t idx = VariableNameGetIdx(de_ctx, (char *)value, DETECT_FLOWVAR);
+                    ld->flowvar[ld->flowvars++] = idx;
+                    SCLogDebug("script uses flowvar %u with script id %u", idx, ld->flowvars - 1);
+                }
+            }
+            lua_pop(luastate, 1);
+            continue;
+        }
+
         v = lua_tostring(luastate, -1);
         lua_pop(luastate, 1);
-        k = lua_tostring(luastate, -1);
-        if (!k || !v)
+        if (v == NULL)
             continue;
 
         SCLogDebug("k='%s', v='%s'", k, v);
@@ -704,7 +781,7 @@ static int DetectLuajitSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     if (luajit == NULL)
         goto error;
 
-    if (DetectLuaSetupPrime(luajit) == -1) {
+    if (DetectLuaSetupPrime(de_ctx, luajit) == -1) {
         goto error;
     }
 
@@ -783,14 +860,454 @@ static void DetectLuajitFree(void *ptr) {
 }
 
 #ifdef UNITTESTS
+/** \test http buffer */
 static int LuajitMatchTest01(void) {
-    return 1;
+    const char script[] =
+        "function init (args)\n"
+        "   local needs = {}\n"
+        "   needs[\"http.request_headers\"] = tostring(true)\n"
+        "   needs[\"flowvar\"] = {\"cnt\"}\n"
+        "   return needs\n"
+        "end\n"
+        "\n"
+        "function match(args)\n"
+        "   a = ScFlowvarGet(0)\n"
+        "   if a then\n"
+        "       a = tostring(tonumber(a)+1)\n"
+        "       print (a)\n"
+        "       ScFlowvarSet(0, a, #a)\n"
+        "   else\n"
+        "       a = tostring(1)\n"
+        "       print (a)\n"
+        "       ScFlowvarSet(0, a, #a)\n"
+        "   end\n"
+        "   \n"
+        "   print (\"pre check: \" .. (a))\n"
+        "   if tonumber(a) == 2 then\n"
+        "       print \"match\"\n"
+        "       return 1\n"
+        "   end\n"
+        "   return 0\n"
+        "end\n"
+        "return 0\n";
+    char sig[] = "alert http any any -> any any (flow:to_server; luajit:unittest; sid:1;)";
+    int result = 0;
+    uint8_t httpbuf1[] =
+        "POST / HTTP/1.1\r\n"
+        "Host: www.emergingthreats.net\r\n"
+        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13\r\n"
+        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9;q=0.8\r\n";
+    uint8_t httpbuf2[] =
+        "Accept-Language: es-es,es;q=0.8,en-us;q=0.5,en;q=0.3\r\n"
+        "Accept-Encoding: gzip,deflate\r\n"
+        "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n"
+        "Date: Tue, 22 Sep 2009 19:24:48 GMT\r\n"
+        "Server: Apache\r\n"
+        "Content-Length: 500\r\n"
+        "\r\n"
+        "<!DOCTYPE html PUBLIC";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    Flow f;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ut_script = script;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.flags |= FLOW_IPV4;
+    f.alproto = ALPROTO_HTTP;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+
+    StreamTcpInitConfig(TRUE);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, sig);
+    if (s == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    HtpState *http_state = f.alstate;
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect for p1 */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if ((PacketAlertCheck(p1, 1))) {
+        printf("sid 1 didn't match on p1 but should have: ");
+        goto end;
+    }
+
+    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
+    if (r != 0) {
+        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    /* do detect for p2 */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    if (!(PacketAlertCheck(p2, 1))) {
+        printf("sid 1 didn't match on p2 but should have: ");
+        goto end;
+    }
+
+    FlowVar *fv = FlowVarGet(&f, 1);
+    if (fv == NULL) {
+        printf("no flowvar: ");
+        goto end;
+    }
+
+    if (fv->data.fv_str.value_len != 1) {
+        printf("%u != %u: ", fv->data.fv_str.value_len, 1);
+        goto end;
+    }
+
+    if (memcmp(fv->data.fv_str.value, "2", 1) != 0) {
+        PrintRawDataFp(stdout, fv->data.fv_str.value, fv->data.fv_str.value_len);
+
+        printf("buffer mismatch: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    return result;
+}
+
+/** \test payload buffer */
+static int LuajitMatchTest02(void) {
+    const char script[] =
+        "function init (args)\n"
+        "   local needs = {}\n"
+        "   needs[\"payload\"] = tostring(true)\n"
+        "   needs[\"flowvar\"] = {\"cnt\"}\n"
+        "   return needs\n"
+        "end\n"
+        "\n"
+        "function match(args)\n"
+        "   a = ScFlowvarGet(0)\n"
+        "   if a then\n"
+        "       a = tostring(tonumber(a)+1)\n"
+        "       print (a)\n"
+        "       ScFlowvarSet(0, a, #a)\n"
+        "   else\n"
+        "       a = tostring(1)\n"
+        "       print (a)\n"
+        "       ScFlowvarSet(0, a, #a)\n"
+        "   end\n"
+        "   \n"
+        "   print (\"pre check: \" .. (a))\n"
+        "   if tonumber(a) == 2 then\n"
+        "       print \"match\"\n"
+        "       return 1\n"
+        "   end\n"
+        "   return 0\n"
+        "end\n"
+        "return 0\n";
+    char sig[] = "alert tcp any any -> any any (flow:to_server; luajit:unittest; sid:1;)";
+    int result = 0;
+    uint8_t httpbuf1[] =
+        "POST / HTTP/1.1\r\n"
+        "Host: www.emergingthreats.net\r\n"
+        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13\r\n"
+        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9;q=0.8\r\n";
+    uint8_t httpbuf2[] =
+        "Accept-Language: es-es,es;q=0.8,en-us;q=0.5,en;q=0.3\r\n"
+        "Accept-Encoding: gzip,deflate\r\n"
+        "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n"
+        "Date: Tue, 22 Sep 2009 19:24:48 GMT\r\n"
+        "Server: Apache\r\n"
+        "Content-Length: 500\r\n"
+        "\r\n"
+        "<!DOCTYPE html PUBLIC";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    Flow f;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ut_script = script;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(httpbuf1, httplen1, IPPROTO_TCP);
+    p2 = UTHBuildPacket(httpbuf2, httplen2, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.flags |= FLOW_IPV4;
+    f.alproto = ALPROTO_HTTP;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+
+    StreamTcpInitConfig(TRUE);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, sig);
+    if (s == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    /* do detect for p1 */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if ((PacketAlertCheck(p1, 1))) {
+        printf("sid 1 didn't match on p1 but should have: ");
+        goto end;
+    }
+
+    /* do detect for p2 */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    if (!(PacketAlertCheck(p2, 1))) {
+        printf("sid 1 didn't match on p2 but should have: ");
+        goto end;
+    }
+
+    FlowVar *fv = FlowVarGet(&f, 1);
+    if (fv == NULL) {
+        printf("no flowvar: ");
+        goto end;
+    }
+
+    if (fv->data.fv_str.value_len != 1) {
+        printf("%u != %u: ", fv->data.fv_str.value_len, 1);
+        goto end;
+    }
+
+    if (memcmp(fv->data.fv_str.value, "2", 1) != 0) {
+        PrintRawDataFp(stdout, fv->data.fv_str.value, fv->data.fv_str.value_len);
+
+        printf("buffer mismatch: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    return result;
+}
+
+/** \test packet buffer */
+static int LuajitMatchTest03(void) {
+    const char script[] =
+        "function init (args)\n"
+        "   local needs = {}\n"
+        "   needs[\"packet\"] = tostring(true)\n"
+        "   needs[\"flowvar\"] = {\"cnt\"}\n"
+        "   return needs\n"
+        "end\n"
+        "\n"
+        "function match(args)\n"
+        "   a = ScFlowvarGet(0)\n"
+        "   if a then\n"
+        "       a = tostring(tonumber(a)+1)\n"
+        "       print (a)\n"
+        "       ScFlowvarSet(0, a, #a)\n"
+        "   else\n"
+        "       a = tostring(1)\n"
+        "       print (a)\n"
+        "       ScFlowvarSet(0, a, #a)\n"
+        "   end\n"
+        "   \n"
+        "   print (\"pre check: \" .. (a))\n"
+        "   if tonumber(a) == 2 then\n"
+        "       print \"match\"\n"
+        "       return 1\n"
+        "   end\n"
+        "   return 0\n"
+        "end\n"
+        "return 0\n";
+    char sig[] = "alert tcp any any -> any any (flow:to_server; luajit:unittest; sid:1;)";
+    int result = 0;
+    uint8_t httpbuf1[] =
+        "POST / HTTP/1.1\r\n"
+        "Host: www.emergingthreats.net\r\n"
+        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13\r\n"
+        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9;q=0.8\r\n";
+    uint8_t httpbuf2[] =
+        "Accept-Language: es-es,es;q=0.8,en-us;q=0.5,en;q=0.3\r\n"
+        "Accept-Encoding: gzip,deflate\r\n"
+        "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n"
+        "Date: Tue, 22 Sep 2009 19:24:48 GMT\r\n"
+        "Server: Apache\r\n"
+        "Content-Length: 500\r\n"
+        "\r\n"
+        "<!DOCTYPE html PUBLIC";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    Flow f;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ut_script = script;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(httpbuf1, httplen1, IPPROTO_TCP);
+    p2 = UTHBuildPacket(httpbuf2, httplen2, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.flags |= FLOW_IPV4;
+    f.alproto = ALPROTO_HTTP;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+
+    StreamTcpInitConfig(TRUE);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, sig);
+    if (s == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    /* do detect for p1 */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if ((PacketAlertCheck(p1, 1))) {
+        printf("sid 1 didn't match on p1 but should have: ");
+        goto end;
+    }
+
+    /* do detect for p2 */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    if (!(PacketAlertCheck(p2, 1))) {
+        printf("sid 1 didn't match on p2 but should have: ");
+        goto end;
+    }
+
+    FlowVar *fv = FlowVarGet(&f, 1);
+    if (fv == NULL) {
+        printf("no flowvar: ");
+        goto end;
+    }
+
+    if (fv->data.fv_str.value_len != 1) {
+        printf("%u != %u: ", fv->data.fv_str.value_len, 1);
+        goto end;
+    }
+
+    if (memcmp(fv->data.fv_str.value, "2", 1) != 0) {
+        PrintRawDataFp(stdout, fv->data.fv_str.value, fv->data.fv_str.value_len);
+
+        printf("buffer mismatch: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    return result;
 }
 #endif
 
 void DetectLuajitRegisterTests(void) {
 #ifdef UNITTESTS
     UtRegisterTest("LuajitMatchTest01", LuajitMatchTest01, 1);
+    UtRegisterTest("LuajitMatchTest02", LuajitMatchTest02, 1);
+    UtRegisterTest("LuajitMatchTest03", LuajitMatchTest03, 1);
 #endif
 }
 

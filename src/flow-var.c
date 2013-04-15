@@ -34,7 +34,8 @@
 
 /* puts a new value into a flowvar */
 void FlowVarUpdateStr(FlowVar *fv, uint8_t *value, uint16_t size) {
-    if (fv->data.fv_str.value) SCFree(fv->data.fv_str.value);
+    if (fv->data.fv_str.value)
+        SCFree(fv->data.fv_str.value);
     fv->data.fv_str.value = value;
     fv->data.fv_str.value_len = size;
 }
