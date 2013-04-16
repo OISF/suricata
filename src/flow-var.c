@@ -47,7 +47,7 @@ void FlowVarUpdateInt(FlowVar *fv, uint32_t value) {
 /* get the flowvar with name 'name' from the flow
  *
  * name is a normal string*/
-FlowVar *FlowVarGet(Flow *f, uint8_t idx) {
+FlowVar *FlowVarGet(Flow *f, uint16_t idx) {
     GenericVar *gv = f->flowvar;
 
     for ( ; gv != NULL; gv = gv->next) {
@@ -59,9 +59,7 @@ FlowVar *FlowVarGet(Flow *f, uint8_t idx) {
 }
 
 /* add a flowvar to the flow, or update it */
-void FlowVarAddStr(Flow *f, uint8_t idx, uint8_t *value, uint16_t size) {
-    //printf("Adding flow var \"%s\" with value(%" PRId32 ") \"%s\"\n", name, size, value);
-
+void FlowVarAddStr(Flow *f, uint16_t idx, uint8_t *value, uint16_t size) {
     FLOWLOCK_WRLOCK(f);
 
     FlowVar *fv = FlowVarGet(f, idx);
@@ -87,9 +85,7 @@ out:
 }
 
 /* add a flowvar to the flow, or update it */
-void FlowVarAddInt(Flow *f, uint8_t idx, uint32_t value) {
-    //printf("Adding flow var \"%s\" with value(%" PRId32 ") \"%s\"\n", name, size, value);
-
+void FlowVarAddInt(Flow *f, uint16_t idx, uint32_t value) {
     FLOWLOCK_WRLOCK(f);
 
     FlowVar *fv = FlowVarGet(f, idx);
@@ -118,14 +114,14 @@ void FlowVarFree(FlowVar *fv) {
         return;
 
     if (fv->datatype == FLOWVAR_TYPE_STR) {
-            if (fv->data.fv_str.value != NULL)
-                SCFree(fv->data.fv_str.value);
+        if (fv->data.fv_str.value != NULL)
+            SCFree(fv->data.fv_str.value);
     }
     SCFree(fv);
 }
 
 void FlowVarPrint(GenericVar *gv) {
-    uint16_t i;
+    uint16_t u;
 
     if (!SCLogDebugEnabled())
         return;
@@ -137,16 +133,16 @@ void FlowVarPrint(GenericVar *gv) {
         FlowVar *fv = (FlowVar *)gv;
 
         if (fv->datatype == FLOWVAR_TYPE_STR) {
-            SCLogDebug("Name idx \"%" PRIu32 "\", Value \"", fv->idx);
-            for (i = 0; i < fv->data.fv_str.value_len; i++) {
-                if (isprint(fv->data.fv_str.value[i]))
-                    SCLogDebug("%c", fv->data.fv_str.value[i]);
+            SCLogDebug("Name idx \"%" PRIu16 "\", Value \"", fv->idx);
+            for (u = 0; u < fv->data.fv_str.value_len; u++) {
+                if (isprint(fv->data.fv_str.value[u]))
+                    SCLogDebug("%c", fv->data.fv_str.value[u]);
                 else
-                    SCLogDebug("\\%02X", fv->data.fv_str.value[i]);
+                    SCLogDebug("\\%02X", fv->data.fv_str.value[u]);
             }
-            SCLogDebug("\", Len \"%" PRIu32 "\"\n", fv->data.fv_str.value_len);
+            SCLogDebug("\", Len \"%" PRIu16 "\"\n", fv->data.fv_str.value_len);
         } else if (fv->datatype == FLOWVAR_TYPE_INT) {
-            SCLogDebug("Name idx \"%" PRIu32 "\", Value \"%" PRIu32 "\"", fv->idx,
+            SCLogDebug("Name idx \"%" PRIu16 "\", Value \"%" PRIu16 "\"", fv->idx,
                     fv->data.fv_int.value);
         } else {
             SCLogDebug("Unknown data type at flowvars\n");
