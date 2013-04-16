@@ -34,6 +34,7 @@
 #include "flow-util.h"
 
 #include "detect-pcre.h"
+#include "detect-flowvar.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -186,6 +187,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
     int ov[MAX_SUBSTRINGS];
     uint8_t *ptr = NULL;
     uint16_t len = 0;
+    uint16_t capture_len = 0;
 
     DetectPcreData *pe = (DetectPcreData *)sm->ctx;
 
@@ -234,8 +236,10 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
                         }
                     } else if (pe->flags & DETECT_PCRE_CAPTURE_FLOW) {
                         if (f != NULL) {
-                            /* flow will be locked be FlowVarAddStr */
-                            FlowVarAddStr(f, pe->capidx, (uint8_t *)str_ptr, ret);
+                            /* store max 64k. Errors are ignored */
+                            capture_len = (ret < 0xffff) ? (uint16_t)ret : 0xffff;
+                            (void)DetectFlowvarStoreMatch(det_ctx, pe->capidx,
+                                    (uint8_t *)str_ptr, capture_len);
                         }
                     }
                 }
@@ -779,6 +783,11 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     } else if (prev_pm->type == DETECT_PCRE) {
         DetectPcreData *pd = (DetectPcreData *)prev_pm->ctx;
         pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
+    }
+
+    if (pd->capidx != 0) {
+        if (DetectFlowvarPostMatchSetup(s, pd->capidx) < 0)
+            goto error;
     }
 
  okay:

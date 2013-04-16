@@ -44,6 +44,7 @@ static pcre_extra *parse_regex_study;
 
 int DetectFlowvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 static int DetectFlowvarSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm);
 
 void DetectFlowvarRegister (void) {
     sigmatch_table[DETECT_FLOWVAR].name = "flowvar";
@@ -51,6 +52,13 @@ void DetectFlowvarRegister (void) {
     sigmatch_table[DETECT_FLOWVAR].Setup = DetectFlowvarSetup;
     sigmatch_table[DETECT_FLOWVAR].Free  = NULL;
     sigmatch_table[DETECT_FLOWVAR].RegisterTests  = NULL;
+
+    /* post-match for flowvar storage */
+    sigmatch_table[DETECT_FLOWVAR_POSTMATCH].name = "__flowvar__postmatch__";
+    sigmatch_table[DETECT_FLOWVAR_POSTMATCH].Match = DetectFlowvarPostMatch;
+    sigmatch_table[DETECT_FLOWVAR_POSTMATCH].Setup = NULL;
+    sigmatch_table[DETECT_FLOWVAR_POSTMATCH].Free  = NULL;
+    sigmatch_table[DETECT_FLOWVAR_POSTMATCH].RegisterTests  = NULL;
 
     const char *eb;
     int eo;
@@ -248,4 +256,117 @@ error:
     return -1;
 }
 
+
+/** \brief Store flowvar in det_ctx so we can exec it post-match */
+int DetectFlowvarStoreMatch(DetectEngineThreadCtx *det_ctx, uint16_t idx, uint8_t *buffer, uint16_t len) {
+    DetectFlowvarList *fs = det_ctx->flowvarlist;
+
+    /* first check if we have had a previous match for this idx */
+    for ( ; fs != NULL; fs = fs->next) {
+        if (fs->idx == idx) {
+            /* we're replacing the older store */
+            SCFree(fs->buffer);
+            fs->buffer = NULL;
+            break;
+        }
+    }
+
+    if (fs == NULL) {
+        fs = SCMalloc(sizeof(*fs));
+        if (unlikely(fs == NULL))
+            return -1;
+
+        fs->idx = idx;
+
+        fs->next = det_ctx->flowvarlist;
+        det_ctx->flowvarlist = fs;
+    }
+
+    fs->len = len;
+    fs->buffer = buffer;
+    return 0;
+}
+
+/** \brief Setup a post-match for flowvar storage
+ *  We're piggyback riding the DetectFlowvarData struct
+ */
+int DetectFlowvarPostMatchSetup(Signature *s, uint16_t idx) {
+    SigMatch *sm = NULL;
+    DetectFlowvarData *fv = NULL;
+
+    fv = SCMalloc(sizeof(DetectFlowvarData));
+    if (unlikely(fv == NULL))
+        goto error;
+    memset(fv, 0x00, sizeof(*fv));
+
+    /* we only need the idx */
+    fv->idx = idx;
+
+    sm = SigMatchAlloc();
+    if (sm == NULL)
+        goto error;
+
+    sm->type = DETECT_FLOWVAR_POSTMATCH;
+    sm->ctx = (void *)fv;
+
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
+    return 0;
+error:
+    return -1;
+}
+
+/** \internal
+ *  \brief post-match func to store flowvars in the flow
+ *  \param sm sigmatch containing the idx to store
+ *  \retval 1 or -1 in case of error
+ */
+static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm) {
+    DetectFlowvarList *fs, *prev;
+    DetectFlowvarData *fd;
+
+    if (det_ctx->flowvarlist == NULL || p->flow == NULL)
+        return 1;
+
+    fd = (DetectFlowvarData *)sm->ctx;
+
+    prev = NULL;
+    fs = det_ctx->flowvarlist;
+    while (fs != NULL) {
+        if (fd->idx == fs->idx) {
+            FlowVarAddStr(p->flow, fs->idx, fs->buffer, fs->len);
+            /* memory at fs->buffer is now the responsibility of
+             * the flowvar code. */
+
+            if (fs == det_ctx->flowvarlist) {
+                det_ctx->flowvarlist = fs->next;
+                SCFree(fs);
+                fs = det_ctx->flowvarlist;
+            } else {
+                prev->next = fs->next;
+                SCFree(fs);
+                fs = prev->next;
+            }
+        } else {
+            prev = fs;
+            fs = fs->next;
+        }
+    }
+    return 1;
+}
+
+/** \brief Clean flowvar candidate list in det_ctx */
+void DetectFlowvarCleanupList(DetectEngineThreadCtx *det_ctx) {
+    DetectFlowvarList *fs, *next;
+    if (det_ctx->flowvarlist != NULL) {
+        fs = det_ctx->flowvarlist;
+        while (fs != NULL) {
+            next = fs->next;
+            SCFree(fs->buffer);
+            SCFree(fs);
+            fs = next;
+        }
+
+        det_ctx->flowvarlist = NULL;
+    }
+}
 
