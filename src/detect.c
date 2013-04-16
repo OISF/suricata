@@ -1615,6 +1615,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             p->action |= s->action;
         }
 next:
+        DetectFlowvarCleanupList(det_ctx);
         DetectReplaceFree(det_ctx->replist);
         det_ctx->replist = NULL;
         RULE_PROFILING_END(det_ctx, s, smatch);
