@@ -3444,6 +3444,379 @@ end:
     return result;
 }
 
+/**
+ * \test flowvar capture on http buffer
+ */
+static int DetectPcreFlowvarCapture01(void) {
+    int result = 0;
+    uint8_t uabuf1[] =
+        "Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13";
+    uint32_t ualen1 = sizeof(uabuf1) - 1; /* minus the \0 */
+    uint8_t httpbuf1[] =
+        "GET / HTTP/1.1\r\n"
+        "Host: www.emergingthreats.net\r\n"
+        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13\r\n"
+        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9;q=0.8\r\n"
+        "Accept-Language: es-es,es;q=0.8,en-us;q=0.5,en;q=0.3\r\n"
+        "Accept-Encoding: gzip,deflate\r\n"
+        "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n"
+        "Date: Tue, 22 Sep 2009 19:24:48 GMT\r\n"
+        "Server: Apache\r\n"
+        "\r\n"
+        "<!DOCTYPE html PUBLIC\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Flow f;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.flags |= FLOW_IPV4;
+    f.alproto = ALPROTO_HTTP;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+
+    StreamTcpInitConfig(TRUE);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"User-Agent: \"; http_header; pcre:\"/(?P<flow_ua>.*)\\r\\n/HR\"; sid:1;)");
+    if (s == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL ||
+        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next == NULL ||
+        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->type != DETECT_PCRE) {
+        goto end;
+    }
+    DetectPcreData *pd = s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->ctx;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    HtpState *http_state = f.alstate;
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect for p1 */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if (!(PacketAlertCheck(p1, 1))) {
+        printf("sid 1 didn't match on p1 but should have: ");
+        goto end;
+    }
+
+    FlowVar *fv = FlowVarGet(&f, pd->capidx);
+    if (fv == NULL) {
+        printf("no flowvar: ");
+        goto end;
+    }
+
+    if (fv->data.fv_str.value_len != ualen1) {
+        printf("%u != %u: ", fv->data.fv_str.value_len, ualen1);
+        goto end;
+    }
+
+    if (memcmp(fv->data.fv_str.value, uabuf1, ualen1) != 0) {
+        PrintRawDataFp(stdout, fv->data.fv_str.value, fv->data.fv_str.value_len);
+        PrintRawDataFp(stdout, uabuf1, ualen1);
+
+        printf("buffer mismatch: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    return result;
+}
+
+/**
+ * \test flowvar capture on http buffer, capture overwrite
+ */
+static int DetectPcreFlowvarCapture02(void) {
+    int result = 0;
+    uint8_t uabuf1[] =
+        "Apache";
+    uint32_t ualen1 = sizeof(uabuf1) - 1; /* minus the \0 */
+    uint8_t httpbuf1[] =
+        "GET / HTTP/1.1\r\n"
+        "Host: www.emergingthreats.net\r\n"
+        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13\r\n"
+        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9;q=0.8\r\n"
+        "Accept-Language: es-es,es;q=0.8,en-us;q=0.5,en;q=0.3\r\n"
+        "Accept-Encoding: gzip,deflate\r\n"
+        "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n"
+        "Date: Tue, 22 Sep 2009 19:24:48 GMT\r\n"
+        "Server: Apache\r\n"
+        "\r\n"
+        "<!DOCTYPE html PUBLIC\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Flow f;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.flags |= FLOW_IPV4;
+    f.alproto = ALPROTO_HTTP;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+
+    StreamTcpInitConfig(TRUE);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"User-Agent: \"; http_header; pcre:\"/(?P<flow_ua>.*)\\r\\n/HR\"; priority:1; sid:1;)");
+    if (s == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL ||
+        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next == NULL ||
+        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->type != DETECT_PCRE) {
+        goto end;
+    }
+    DetectPcreData *pd1 = s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->ctx;
+
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"Server: \"; http_header; pcre:\"/(?P<flow_ua>.*)\\r\\n/HR\"; priority:3; sid:2;)");
+    if (s == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL ||
+        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next == NULL ||
+        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->type != DETECT_PCRE) {
+        goto end;
+    }
+    DetectPcreData *pd2 = s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->ctx;
+
+    if (pd1->capidx != pd2->capidx) {
+        printf("capidx mismatch, %u != %u: ", pd1->capidx, pd2->capidx);
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    HtpState *http_state = f.alstate;
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect for p1 */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if (!(PacketAlertCheck(p1, 1))) {
+        printf("sid 1 didn't match on p1 but should have: ");
+        goto end;
+    }
+
+    FlowVar *fv = FlowVarGet(&f, pd1->capidx);
+    if (fv == NULL) {
+        printf("no flowvar: ");
+        goto end;
+    }
+
+    if (fv->data.fv_str.value_len != ualen1) {
+        PrintRawDataFp(stdout, fv->data.fv_str.value, fv->data.fv_str.value_len);
+        PrintRawDataFp(stdout, uabuf1, ualen1);
+        printf("%u != %u: ", fv->data.fv_str.value_len, ualen1);
+        goto end;
+    }
+
+    if (memcmp(fv->data.fv_str.value, uabuf1, ualen1) != 0) {
+        PrintRawDataFp(stdout, fv->data.fv_str.value, fv->data.fv_str.value_len);
+        PrintRawDataFp(stdout, uabuf1, ualen1);
+
+        printf("buffer mismatch: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    return result;
+}
+
+/**
+ * \test flowvar capture on http buffer, capture overwrite + no matching sigs, so flowvars should not be set.
+ */
+static int DetectPcreFlowvarCapture03(void) {
+    int result = 0;
+    uint8_t httpbuf1[] =
+        "GET / HTTP/1.1\r\n"
+        "Host: www.emergingthreats.net\r\n"
+        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13\r\n"
+        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9;q=0.8\r\n"
+        "Accept-Language: es-es,es;q=0.8,en-us;q=0.5,en;q=0.3\r\n"
+        "Accept-Encoding: gzip,deflate\r\n"
+        "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n"
+        "Date: Tue, 22 Sep 2009 19:24:48 GMT\r\n"
+        "Server: Apache\r\n"
+        "\r\n"
+        "<!DOCTYPE html PUBLIC\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Flow f;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.flags |= FLOW_IPV4;
+    f.alproto = ALPROTO_HTTP;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+
+    StreamTcpInitConfig(TRUE);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"User-Agent: \"; http_header; pcre:\"/(?P<flow_ua>.*)\\r\\n/HR\"; content:\"xyz\"; http_header; priority:1; sid:1;)");
+    if (s == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL ||
+        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next == NULL ||
+        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->type != DETECT_PCRE) {
+        goto end;
+    }
+    DetectPcreData *pd1 = s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->ctx;
+
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"Server: \"; http_header; pcre:\"/(?P<flow_ua>.*)\\r\\n/HR\"; content:\"xyz\"; http_header; priority:3; sid:2;)");
+    if (s == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL ||
+        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next == NULL ||
+        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->type != DETECT_PCRE) {
+        goto end;
+    }
+    DetectPcreData *pd2 = s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->ctx;
+
+    if (pd1->capidx != pd2->capidx) {
+        printf("capidx mismatch, %u != %u: ", pd1->capidx, pd2->capidx);
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    HtpState *http_state = f.alstate;
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect for p1 */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if (PacketAlertCheck(p1, 1)) {
+        printf("sid 1 matched on p1 but shouldn't have: ");
+        goto end;
+    }
+
+    FlowVar *fv = FlowVarGet(&f, pd1->capidx);
+    if (fv != NULL) {
+        printf("flowvar, shouldn't have one: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -3504,6 +3877,11 @@ void DetectPcreRegisterTests(void) {
     UtRegisterTest("DetectPcreTxBodyChunksTest01", DetectPcreTxBodyChunksTest01, 1);
     UtRegisterTest("DetectPcreTxBodyChunksTest02 -- modifier P, body chunks per tx", DetectPcreTxBodyChunksTest02, 1);
     UtRegisterTest("DetectPcreTxBodyChunksTest03 -- modifier P, body chunks per tx", DetectPcreTxBodyChunksTest03, 1);
+
+    UtRegisterTest("DetectPcreFlowvarCapture01 -- capture for http_header", DetectPcreFlowvarCapture01, 1);
+    UtRegisterTest("DetectPcreFlowvarCapture02 -- capture for http_header", DetectPcreFlowvarCapture02, 1);
+    UtRegisterTest("DetectPcreFlowvarCapture03 -- capture for http_header", DetectPcreFlowvarCapture03, 1);
+
 #endif /* UNITTESTS */
 }
 
