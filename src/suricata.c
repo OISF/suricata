@@ -880,84 +880,99 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
     SCReturnInt(TM_ECODE_OK);
 }
 
-int main(int argc, char **argv)
+typedef enum {
+    SC_RUN_NOT_DEFINED,
+    SC_RUN_LIST_KEYWORDS,
+    SC_RUN_LIST_APP_LAYERS,
+    SC_RUN_LIST_CUDA_CARDS,
+    SC_RUN_LIST_RUNMODES,
+    SC_RUN_PRINT_VERSION,
+    SC_RUN_PRINT_BUILDINFO,
+    SC_RUN_PRINT_USAGE,
+    SC_RUN_DUMP_CONFIG,
+    SC_RUN_CONF_TEST,
+    SC_RUN_LIST_UNITTEST,
+    SC_RUN_UNITTEST,
+#ifdef OS_WIN32
+    SC_RUN_INSTALL_SERVICE,
+    SC_RUN_REMOVE_SERVICE,
+    SC_RUN_CHANGE_SERVICE_PARAMS,
+#endif
+} SuriRunningMode;
+
+struct SuriInstance {
+    SuriRunningMode running_mode;
+
+    char pcap_dev[128];
+    char *sig_file;
+    int sig_file_exclusive;
+    char *pid_filename;
+    char *regex_arg;
+
+    char *keyword_info;
+    char *runmode_custom_mode;
+#ifndef OS_WIN32
+    char *user_name;
+    char *group_name;
+    uint8_t do_setuid;
+    uint8_t do_setgid;
+    uint32_t userid;
+    uint32_t groupid;
+#endif /* OS_WIN32 */
+    int delayed_detect;
+    int daemon;
+
+    char *log_dir;
+};
+
+static void SuriInstanceInit(struct SuriInstance *suri)
+{
+    suri->running_mode = 0;
+
+    memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
+    suri->sig_file = NULL;
+    suri->sig_file_exclusive = FALSE;
+    suri->pid_filename = NULL;
+    suri->regex_arg = NULL;
+
+    suri->keyword_info = NULL;
+    suri->runmode_custom_mode = NULL;
+#ifndef OS_WIN32
+    suri->user_name = NULL;
+    suri->group_name = NULL;
+    suri->do_setuid = FALSE;
+    suri->do_setgid = FALSE;
+    suri->userid = 0;
+    suri->groupid = 0;
+#endif /* OS_WIN32 */
+    suri->delayed_detect = 0;
+    suri->daemon = 0;
+}
+
+static TmEcode SuriPrintVersion()
+{
+#ifdef REVISION
+    printf("This is %s version %s (rev %s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
+#elif defined RELEASE
+    printf("This is %s version %s RELEASE\n", PROG_NAME, PROG_VER);
+#else
+    printf("This is %s version %s\n", PROG_NAME, PROG_VER);
+#endif
+    return TM_ECODE_OK;
+}
+
+static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *suri)
 {
     int opt;
-    char pcap_dev[128];
-    char *sig_file = NULL;
-    int sig_file_exclusive = FALSE;
-    int conf_test = 0;
-    char *pid_filename = NULL;
-    char *regex_arg = NULL;
+
     int dump_config = 0;
     int list_app_layer_protocols = 0;
     int list_unittests = 0;
     int list_cuda_cards = 0;
     int list_runmodes = 0;
     int list_keywords = 0;
-    const char *keyword_info = NULL;
-    const char *runmode_custom_mode = NULL;
-    int daemon = 0;
-#ifndef OS_WIN32
-    char *user_name = NULL;
-    char *group_name = NULL;
-    uint8_t do_setuid = FALSE;
-    uint8_t do_setgid = FALSE;
-    uint32_t userid = 0;
-    uint32_t groupid = 0;
-#endif /* OS_WIN32 */
     int build_info = 0;
-    int delayed_detect = 0;
-
-    char *log_dir;
-
-    sc_set_caps = FALSE;
-
-    SC_ATOMIC_INIT(engine_stage);
-
-    /* initialize the logging subsys */
-    SCLogInitLogModule(NULL);
-
-    if (SCSetThreadName("Suricata-Main") < 0) {
-        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
-    }
-
-    RunModeRegisterRunModes();
-
-    /* By default use IDS mode, but if nfq or ipfw
-     * are specified, IPS mode will overwrite this */
-    SET_ENGINE_MODE_IDS(engine_mode);
-
-    memset(pcap_dev, 0, sizeof(pcap_dev));
-
-#ifdef OS_WIN32
-	/* service initialization */
-	if (SCRunningAsService()) {
-		char path[MAX_PATH];
-		char *p = NULL;
-		strlcpy(path, argv[0], MAX_PATH);
-		if ((p = strrchr(path, '\\'))) {
-			*p = '\0';
-		}
-		if (!SetCurrentDirectory(path)) {
-			SCLogError(SC_ERR_FATAL, "Can't set current directory to: %s", path);
-			return -1;
-		}
-		SCLogInfo("Current directory is set to: %s", path);
-		daemon = 1;
-		SCServiceInit(argc, argv);
-	}
-
-	/* Windows socket subsystem initialization */
-	WSADATA wsaData;
-	if (0 != WSAStartup(MAKEWORD(2, 2), &wsaData)) {
-		SCLogError(SC_ERR_FATAL, "Can't initialize Windows sockets: %d", WSAGetLastError());
-		exit(EXIT_FAILURE);
-	}
-#endif /* OS_WIN32 */
-
-    /* Initialize the configuration module. */
-    ConfInit();
+    int conf_test = 0;
 
 #ifdef UNITTESTS
     coverage_unittests = 0;
@@ -1028,31 +1043,31 @@ int main(int argc, char **argv)
 #else
                 SCLogError(SC_ERR_NO_PF_RING,"PF_RING not enabled. Make sure "
                         "to pass --enable-pfring to configure when building.");
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
 #endif /* HAVE_PFRING */
             }
             else if(strcmp((long_opts[option_index]).name , "pfring-cluster-id") == 0){
 #ifdef HAVE_PFRING
                 if (ConfSet("pfring.cluster-id", optarg, 0) != 1) {
                     fprintf(stderr, "ERROR: Failed to set pfring.cluster-id.\n");
-                    exit(EXIT_FAILURE);
+                    return TM_ECODE_FAILED;
                 }
 #else
                 SCLogError(SC_ERR_NO_PF_RING,"PF_RING not enabled. Make sure "
                         "to pass --enable-pfring to configure when building.");
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
 #endif /* HAVE_PFRING */
             }
             else if(strcmp((long_opts[option_index]).name , "pfring-cluster-type") == 0){
 #ifdef HAVE_PFRING
                 if (ConfSet("pfring.cluster-type", optarg, 0) != 1) {
                     fprintf(stderr, "ERROR: Failed to set pfring.cluster-type.\n");
-                    exit(EXIT_FAILURE);
+                    return TM_ECODE_FAILED;
                 }
 #else
                 SCLogError(SC_ERR_NO_PF_RING,"PF_RING not enabled. Make sure "
                         "to pass --enable-pfring to configure when building.");
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
 #endif /* HAVE_PFRING */
             }
             else if (strcmp((long_opts[option_index]).name , "af-packet") == 0){
@@ -1061,10 +1076,10 @@ int main(int argc, char **argv)
                     run_mode = RUNMODE_AFP_DEV;
                     if (optarg) {
                         LiveRegisterDevice(optarg);
-                        memset(pcap_dev, 0, sizeof(pcap_dev));
-                        strlcpy(pcap_dev, optarg,
-                                ((strlen(optarg) < sizeof(pcap_dev)) ?
-                                 (strlen(optarg) + 1) : sizeof(pcap_dev)));
+                        memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
+                        strlcpy(suri->pcap_dev, optarg,
+                                ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
+                                 (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
                     }
                 } else if (run_mode == RUNMODE_AFP_DEV) {
                     SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
@@ -1079,29 +1094,29 @@ int main(int argc, char **argv)
                     SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                             "has been specified");
                     usage(argv[0]);
-                    exit(EXIT_FAILURE);
+                    return TM_ECODE_FAILED;
                 }
 #else
                 SCLogError(SC_ERR_NO_AF_PACKET,"AF_PACKET not enabled. On Linux "
                         "host, make sure to pass --enable-af-packet to "
                         "configure when building.");
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
 #endif
             } else if (strcmp((long_opts[option_index]).name , "pcap") == 0) {
                 if (run_mode == RUNMODE_UNKNOWN) {
                     run_mode = RUNMODE_PCAP_DEV;
                     if (optarg) {
                         LiveRegisterDevice(optarg);
-                        memset(pcap_dev, 0, sizeof(pcap_dev));
-                        strlcpy(pcap_dev, optarg,
-                                ((strlen(optarg) < sizeof(pcap_dev)) ?
-                                 (strlen(optarg) + 1) : sizeof(pcap_dev)));
+                        memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
+                        strlcpy(suri->pcap_dev, optarg,
+                                ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
+                                 (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
                     }
                 } else if (run_mode == RUNMODE_PCAP_DEV) {
 #ifdef OS_WIN32
                     SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
                             "support is not (yet) supported on Windows.");
-                    exit(EXIT_FAILURE);
+                    return TM_ECODE_FAILED;
 #else
                     SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
                             "multiple pcap devices to get packets is experimental.");
@@ -1111,12 +1126,12 @@ int main(int argc, char **argv)
                     SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                             "has been specified");
                     usage(argv[0]);
-                    exit(EXIT_FAILURE);
+                    return TM_ECODE_FAILED;
                 }
             } else if(strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
                 if (ConfSet("engine.init-failure-fatal", "1", 0) != 1) {
                     fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
-                    exit(EXIT_FAILURE);
+                    return TM_ECODE_FAILED;
                 }
 #ifdef BUILD_UNIX_SOCKET
             } else if (strcmp((long_opts[option_index]).name , "unix-socket") == 0) {
@@ -1125,7 +1140,7 @@ int main(int argc, char **argv)
                     if (optarg) {
                         if (ConfSet("unix-command.filename", optarg, 0) != 1) {
                             fprintf(stderr, "ERROR: Failed to set unix-command.filename.\n");
-                            exit(EXIT_FAILURE);
+                            return TM_ECODE_FAILED;
                         }
 
                     }
@@ -1133,7 +1148,7 @@ int main(int argc, char **argv)
                     SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                             "has been specified");
                     usage(argv[0]);
-                    exit(EXIT_FAILURE);
+                    return TM_ECODE_FAILED;
                 }
 #endif
             }
@@ -1146,90 +1161,81 @@ int main(int argc, char **argv)
                 run_mode = RUNMODE_UNITTEST;
 #else
                 fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
 #endif /* UNITTESTS */
             } else if(strcmp((long_opts[option_index]).name, "list-cuda-cards") == 0) {
 #ifndef __SC_CUDA_SUPPORT__
                 fprintf(stderr, "ERROR: Cuda not enabled. Make sure to pass "
                         "--enable-cuda to configure when building.\n");
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
 #endif /* UNITTESTS */
             } else if (strcmp((long_opts[option_index]).name, "list-runmodes") == 0) {
-                RunModeListRunmodes();
-                exit(EXIT_SUCCESS);
+                suri->running_mode = SC_RUN_LIST_RUNMODES;
+                return TM_ECODE_OK;
             } else if (strcmp((long_opts[option_index]).name, "list-keywords") == 0) {
                 if (optarg) {
                     if (strcmp("short",optarg)) {
-                        keyword_info = optarg;
+                        suri->keyword_info = optarg;
                     }
                 }
             } else if (strcmp((long_opts[option_index]).name, "runmode") == 0) {
-                runmode_custom_mode = optarg;
+                suri->runmode_custom_mode = optarg;
             } else if(strcmp((long_opts[option_index]).name, "engine-analysis") == 0) {
                 // do nothing for now
             }
 #ifdef OS_WIN32
             else if(strcmp((long_opts[option_index]).name, "service-install") == 0) {
-				if (SCServiceInstall(argc, argv)) {
-					exit(EXIT_FAILURE);
-				}
-				SCLogInfo("Suricata service has been successfuly installed.");
-				exit(EXIT_SUCCESS);
+                suri->running_mode = SC_RUN_INSTALL_SERVICE;
+                return TM_ECODE_OK;
             }
             else if(strcmp((long_opts[option_index]).name, "service-remove") == 0) {
-				if (SCServiceRemove(argc, argv)) {
-					exit(EXIT_FAILURE);
-				}
-				SCLogInfo("Suricata service has been successfuly removed.");
-				exit(EXIT_SUCCESS);
+                suri->running_mode = SC_RUN_REMOVE_SERVICE;
+                return TM_ECODE_OK;
             }
             else if(strcmp((long_opts[option_index]).name, "service-change-params") == 0) {
-				if (SCServiceChangeParams(argc, argv)) {
-					exit(EXIT_FAILURE);
-				}
-				SCLogInfo("Suricata service startup parameters has been successfuly changed.");
-				exit(EXIT_SUCCESS);
+                suri->running_mode = SC_RUN_CHANGE_SERVICE_PARAMS;
+                return TM_ECODE_OK;
             }
 #endif /* OS_WIN32 */
             else if(strcmp((long_opts[option_index]).name, "pidfile") == 0) {
-                pid_filename = optarg;
+                suri->pid_filename = optarg;
             }
             else if(strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
 #ifdef UNITTESTS
                 if (ConfSet("unittests.failure-fatal", "1", 0) != 1) {
                     fprintf(stderr, "ERROR: Failed to set unittests failure-fatal.\n");
-                    exit(EXIT_FAILURE);
+                    return TM_ECODE_FAILED;
                 }
 #else
                 fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
 #endif /* UNITTESTS */
             }
             else if(strcmp((long_opts[option_index]).name, "user") == 0) {
 #ifndef HAVE_LIBCAP_NG
                 SCLogError(SC_ERR_LIBCAP_NG_REQUIRED, "libcap-ng is required to"
                         " drop privileges, but it was not compiled into Suricata.");
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
 #else
-                user_name = optarg;
-                do_setuid = TRUE;
+                suri->user_name = optarg;
+                suri->do_setuid = TRUE;
 #endif /* HAVE_LIBCAP_NG */
             }
             else if(strcmp((long_opts[option_index]).name, "group") == 0) {
 #ifndef HAVE_LIBCAP_NG
                 SCLogError(SC_ERR_LIBCAP_NG_REQUIRED, "libcap-ng is required to"
                         " drop privileges, but it was not compiled into Suricata.");
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
 #else
-                group_name = optarg;
-                do_setgid = TRUE;
+                suri->group_name = optarg;
+                suri->do_setgid = TRUE;
 #endif /* HAVE_LIBCAP_NG */
             }
             else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
                 run_mode = RUNMODE_ERF_FILE;
                 if (ConfSet("erf-file.file", optarg, 0) != 1) {
                     fprintf(stderr, "ERROR: Failed to set erf-file.file\n");
-                    exit(EXIT_FAILURE);
+                    return TM_ECODE_FAILED;
                 }
             }
             else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
@@ -1241,13 +1247,13 @@ int main(int argc, char **argv)
                     SCLogError(SC_ERR_MULTIPLE_RUN_MODE,
                         "more than one run mode has been specified");
                     usage(argv[0]);
-                    exit(EXIT_FAILURE);
+                    return TM_ECODE_FAILED;
                 }
                 LiveRegisterDevice(optarg);
 #else
                 SCLogError(SC_ERR_DAG_REQUIRED, "libdag and a DAG card are required"
 						" to receieve packets using --dag.");
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
 #endif /* HAVE_DAG */
 		}
         else if (strcmp((long_opts[option_index]).name, "napatech") == 0) {
@@ -1256,14 +1262,14 @@ int main(int argc, char **argv)
 #else
             SCLogError(SC_ERR_NAPATECH_REQUIRED, "libntapi and a Napatech adapter are required"
                                                  " to capture packets using --napatech.");
-            exit(EXIT_FAILURE);
+            return TM_ECODE_FAILED;
 #endif /* HAVE_NAPATECH */
 			}
             else if(strcmp((long_opts[option_index]).name, "pcap-buffer-size") == 0) {
 #ifdef HAVE_PCAP_SET_BUFF
                 if (ConfSet("pcap.buffer-size", optarg, 0) != 1) {
                     fprintf(stderr, "ERROR: Failed to set pcap-buffer-size.\n");
-                    exit(EXIT_FAILURE);
+                    return TM_ECODE_FAILED;
                 }
 #else
                 SCLogError(SC_ERR_NO_PCAP_SET_BUFFER_SIZE, "The version of libpcap you have"
@@ -1271,8 +1277,8 @@ int main(int argc, char **argv)
 #endif /* HAVE_PCAP_SET_BUFF */
             }
             else if(strcmp((long_opts[option_index]).name, "build-info") == 0) {
-                SCPrintBuildInfo();
-                exit(EXIT_SUCCESS);
+                suri->running_mode = SC_RUN_PRINT_BUILDINFO;
+                return TM_ECODE_OK;
             }
 #ifdef HAVE_MPIPE
             else if(strcmp((long_opts[option_index]).name , "mpipe") == 0) {
@@ -1302,67 +1308,66 @@ int main(int argc, char **argv)
             conf_test = 1;
             if (ConfSet("engine.init-failure-fatal", "1", 0) != 1) {
                 fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
             }
             break;
 #ifndef OS_WIN32
         case 'D':
-            daemon = 1;
+            suri->daemon = 1;
             break;
 #endif /* OS_WIN32 */
         case 'h':
-            usage(argv[0]);
-            exit(EXIT_SUCCESS);
-            break;
+            suri->running_mode = SC_RUN_PRINT_USAGE;
+            return TM_ECODE_OK;
         case 'i':
-            memset(pcap_dev, 0, sizeof(pcap_dev));
+            memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
 
             /* some windows shells require escaping of the \ in \Device. Otherwise
              * the backslashes are stripped. We put them back here. */
             if (strlen(optarg) > 9 && strncmp(optarg, "DeviceNPF", 9) == 0) {
-                snprintf(pcap_dev, sizeof(pcap_dev), "\\Device\\NPF%s", optarg+9);
+                snprintf(suri->pcap_dev, sizeof(suri->pcap_dev), "\\Device\\NPF%s", optarg+9);
             } else {
-                strlcpy(pcap_dev, optarg, ((strlen(optarg) < sizeof(pcap_dev)) ? (strlen(optarg)+1) : (sizeof(pcap_dev))));
-                PcapTranslateIPToDevice(pcap_dev, sizeof(pcap_dev));
+                strlcpy(suri->pcap_dev, optarg, ((strlen(optarg) < sizeof(suri->pcap_dev)) ? (strlen(optarg)+1) : (sizeof(suri->pcap_dev))));
+                PcapTranslateIPToDevice(suri->pcap_dev, sizeof(suri->pcap_dev));
             }
 
-            if (strcmp(pcap_dev, optarg) != 0) {
-                SCLogInfo("translated %s to pcap device %s", optarg, pcap_dev);
-            } else if (strlen(pcap_dev) > 0 && isdigit((unsigned char)pcap_dev[0])) {
+            if (strcmp(suri->pcap_dev, optarg) != 0) {
+                SCLogInfo("translated %s to pcap device %s", optarg, suri->pcap_dev);
+            } else if (strlen(suri->pcap_dev) > 0 && isdigit((unsigned char)suri->pcap_dev[0])) {
                 SCLogError(SC_ERR_PCAP_TRANSLATE, "failed to find a pcap device for IP %s", optarg);
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
             }
 
             if (run_mode == RUNMODE_UNKNOWN) {
                 run_mode = RUNMODE_PCAP_DEV;
-                LiveRegisterDevice(pcap_dev);
+                LiveRegisterDevice(suri->pcap_dev);
             } else if (run_mode == RUNMODE_PCAP_DEV) {
 #ifdef OS_WIN32
                 SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
                         "support is not (yet) supported on Windows.");
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
 #else
                 SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
                         "multiple pcap devices to get packets is experimental.");
-                LiveRegisterDevice(pcap_dev);
+                LiveRegisterDevice(suri->pcap_dev);
 #endif
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                                                      "has been specified");
                 usage(argv[0]);
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
             }
             break;
         case 'l':
             if (SetLogDirectory(optarg) != TM_ECODE_OK) {
                 SCLogError(SC_ERR_FATAL, "Failed to set log directory.\n");
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
             }
             if (CheckLogDirectory(optarg) != TM_ECODE_OK) {
                 SCLogError(SC_ERR_LOGDIR_CMDLINE, "The logging directory \"%s\""
                         " supplied at the commandline (-l %s) doesn't "
                         "exist. Shutting down the engine.", optarg, optarg);
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
             }
             break;
         case 'q':
@@ -1371,19 +1376,19 @@ int main(int argc, char **argv)
                 run_mode = RUNMODE_NFQ;
                 SET_ENGINE_MODE_IPS(engine_mode);
                 if (NFQRegisterQueue(optarg) == -1)
-                    exit(EXIT_FAILURE);
+                    return TM_ECODE_FAILED;
             } else if (run_mode == RUNMODE_NFQ) {
                 if (NFQRegisterQueue(optarg) == -1)
-                    exit(EXIT_FAILURE);
+                    return TM_ECODE_FAILED;
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                                                      "has been specified");
                 usage(argv[0]);
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
             }
 #else
             SCLogError(SC_ERR_NFQ_NOSUPPORT,"NFQUEUE not enabled. Make sure to pass --enable-nfqueue to configure when building.");
-            exit(EXIT_FAILURE);
+            return TM_ECODE_FAILED;
 #endif /* NFQ */
             break;
         case 'd':
@@ -1392,19 +1397,19 @@ int main(int argc, char **argv)
                 run_mode = RUNMODE_IPFW;
                 SET_ENGINE_MODE_IPS(engine_mode);
                 if (IPFWRegisterQueue(optarg) == -1)
-                    exit(EXIT_FAILURE);
+                    return TM_ECODE_FAILED;
             } else if (run_mode == RUNMODE_IPFW) {
                 if (IPFWRegisterQueue(optarg) == -1)
-                    exit(EXIT_FAILURE);
+                    return TM_ECODE_FAILED;
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                                                      "has been specified");
                 usage(argv[0]);
-                exit(EXIT_SUCCESS);
+                return TM_ECODE_FAILED;
             }
 #else
             SCLogError(SC_ERR_IPFW_NOSUPPORT,"IPFW not enabled. Make sure to pass --enable-ipfw to configure when building.");
-            exit(EXIT_FAILURE);
+            return TM_ECODE_FAILED;
 #endif /* IPFW */
             break;
         case 'r':
@@ -1414,85 +1419,185 @@ int main(int argc, char **argv)
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                                                      "has been specified");
                 usage(argv[0]);
-                exit(EXIT_SUCCESS);
+                return TM_ECODE_FAILED;
             }
             if (ConfSet("pcap-file.file", optarg, 0) != 1) {
                 fprintf(stderr, "ERROR: Failed to set pcap-file.file\n");
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
             }
             break;
         case 's':
-            if (sig_file != NULL) {
+            if (suri->sig_file != NULL) {
                 SCLogError(SC_ERR_CMD_LINE, "can't have multiple -s options or mix -s and -S.");
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
             }
-            sig_file = optarg;
+            suri->sig_file = optarg;
             break;
         case 'S':
-            if (sig_file != NULL) {
+            if (suri->sig_file != NULL) {
                 SCLogError(SC_ERR_CMD_LINE, "can't have multiple -S options or mix -s and -S.");
-                exit(EXIT_FAILURE);
+                return TM_ECODE_FAILED;
             }
-            sig_file = optarg;
-            sig_file_exclusive = TRUE;
+            suri->sig_file = optarg;
+            suri->sig_file_exclusive = TRUE;
             break;
         case 'u':
 #ifdef UNITTESTS
             if (run_mode == RUNMODE_UNKNOWN) {
                 run_mode = RUNMODE_UNITTEST;
+                suri->running_mode = SC_RUN_UNITTEST;
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode has"
                                                      " been specified");
                 usage(argv[0]);
-                exit(EXIT_SUCCESS);
+                return TM_ECODE_FAILED;
             }
 #else
             fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
-            exit(EXIT_FAILURE);
+            return TM_ECODE_FAILED;
 #endif /* UNITTESTS */
             break;
         case 'U':
 #ifdef UNITTESTS
-            regex_arg = optarg;
+            suri->regex_arg = optarg;
 
-            if(strlen(regex_arg) == 0)
-            regex_arg = NULL;
+            if(strlen(suri->regex_arg) == 0)
+                suri->regex_arg = NULL;
 #endif
             break;
         case 'V':
-#ifdef REVISION
-            printf("This is %s version %s (rev %s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
-#elif defined RELEASE
-            printf("This is %s version %s RELEASE\n", PROG_NAME, PROG_VER);
-#else
-            printf("This is %s version %s\n", PROG_NAME, PROG_VER);
-#endif
-            exit(EXIT_SUCCESS);
+            suri->running_mode = SC_RUN_PRINT_VERSION;
+            return TM_ECODE_OK;
         case 'F':
             SetBpfStringFromFile(optarg);
             break;
         default:
             usage(argv[0]);
-            exit(EXIT_FAILURE);
+            return TM_ECODE_FAILED;
         }
     }
 
-    if (list_keywords) {
-        return ListKeywords(keyword_info);
+    if (list_app_layer_protocols)
+        suri->running_mode = SC_RUN_LIST_APP_LAYERS;
+    if (list_cuda_cards)
+        suri->running_mode = SC_RUN_LIST_CUDA_CARDS;
+    if (list_keywords)
+        suri->running_mode = SC_RUN_LIST_KEYWORDS;
+    if (list_unittests)
+        suri->running_mode = SC_RUN_LIST_UNITTEST;
+    if (dump_config)
+        suri->running_mode = SC_RUN_DUMP_CONFIG;
+    if (conf_test)
+        suri->running_mode = SC_RUN_CONF_TEST;
+
+    return TM_ECODE_OK;
+}
+
+int main(int argc, char **argv)
+{
+    struct SuriInstance suri;
+
+    SuriInstanceInit(&suri);
+
+    sc_set_caps = FALSE;
+
+    SC_ATOMIC_INIT(engine_stage);
+
+    /* initialize the logging subsys */
+    SCLogInitLogModule(NULL);
+
+    if (SCSetThreadName("Suricata-Main") < 0) {
+        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
 
-    if (list_app_layer_protocols) {
-        return ListAppLayerProtocols();
+    RunModeRegisterRunModes();
+
+    /* By default use IDS mode, but if nfq or ipfw
+     * are specified, IPS mode will overwrite this */
+    SET_ENGINE_MODE_IDS(engine_mode);
+
+
+#ifdef OS_WIN32
+	/* service initialization */
+	if (SCRunningAsService()) {
+		char path[MAX_PATH];
+		char *p = NULL;
+		strlcpy(path, argv[0], MAX_PATH);
+		if ((p = strrchr(path, '\\'))) {
+			*p = '\0';
+		}
+		if (!SetCurrentDirectory(path)) {
+			SCLogError(SC_ERR_FATAL, "Can't set current directory to: %s", path);
+			return -1;
+		}
+		SCLogInfo("Current directory is set to: %s", path);
+		daemon = 1;
+		SCServiceInit(argc, argv);
+	}
+
+	/* Windows socket subsystem initialization */
+	WSADATA wsaData;
+	if (0 != WSAStartup(MAKEWORD(2, 2), &wsaData)) {
+		SCLogError(SC_ERR_FATAL, "Can't initialize Windows sockets: %d", WSAGetLastError());
+		exit(EXIT_FAILURE);
+	}
+#endif /* OS_WIN32 */
+
+    /* Initialize the configuration module. */
+    ConfInit();
+
+    if (SuriParseCommandLine(argc, argv, &suri) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
     }
 
+    switch(suri.running_mode) {
+        case SC_RUN_LIST_KEYWORDS:
+            return ListKeywords(suri.keyword_info);
+        case SC_RUN_LIST_APP_LAYERS:
+            return ListAppLayerProtocols();
+        case SC_RUN_PRINT_VERSION:
+            return SuriPrintVersion();
+        case SC_RUN_PRINT_BUILDINFO:
+            SCPrintBuildInfo();
+            return TM_ECODE_OK;
+        case SC_RUN_PRINT_USAGE:
+            usage(argv[0]);
+            return TM_ECODE_OK;
 #ifdef __SC_CUDA_SUPPORT__
-    if (list_cuda_cards) {
-        return ListCudaCards();
-    }
+        case SC_RUN_LIST_CUDA_CARDS:
+            return ListCudaCards();
 #endif
-
-    if (run_mode == RUNMODE_UNITTEST) {
-        return RunUnittests(list_unittests, regex_arg);
+        case SC_RUN_LIST_RUNMODES:
+            RunModeListRunmodes();
+            return TM_ECODE_OK;
+        /* FIXME not sexy here */
+        case SC_RUN_LIST_UNITTEST:
+            return RunUnittests(1, suri.regex_arg);
+        case SC_RUN_UNITTEST:
+            return RunUnittests(0, suri.regex_arg);
+#ifdef OS_WIN32
+        case SC_RUN_INSTALL_SERVICE:
+            if (SCServiceInstall(argc, argv)) {
+                return TM_ECODE_FAILED;
+            }
+            SCLogInfo("Suricata service has been successfuly installed.");
+            exit(EXIT_SUCCESS);
+        case SC_RUN_REMOVE_SERVICE:
+            if (SCServiceRemove(argc, argv)) {
+                return TM_ECODE_FAILED;
+            }
+            SCLogInfo("Suricata service has been successfuly removed.");
+            exit(EXIT_SUCCESS);
+        case SC_RUN_CHANGE_SERVICE_PARAMS:
+            if (SCServiceChangeParams(argc, argv)) {
+                return TM_ECODE_FAILED;
+            }
+            SCLogInfo("Suricata service startup parameters has been successfuly changed.");
+            exit(EXIT_SUCCESS);
+#endif /* OS_WIN32 */
+        default:
+            /* simply continue for other running mode */
+            break;
     }
 
 #ifdef REVISION
@@ -1513,7 +1618,7 @@ int main(int argc, char **argv)
     CudaBufferInit();
 #endif
 
-    if (!CheckValidDaemonModes(daemon, run_mode)) {
+    if (!CheckValidDaemonModes(suri.daemon, run_mode)) {
         exit(EXIT_FAILURE);
     }
 
@@ -1542,19 +1647,19 @@ int main(int argc, char **argv)
     AppLayerDetectProtoThreadInit();
     AppLayerParsersInitPostProcess();
 
-    if (dump_config) {
+    if (suri.running_mode == SC_RUN_DUMP_CONFIG) {
         ConfDump();
         exit(EXIT_SUCCESS);
     }
 
     /* Check for the existance of the default logging directory which we pick
      * from suricata.yaml.  If not found, shut the engine down */
-    log_dir = GetLogDirectory();
+    suri.log_dir = GetLogDirectory();
 
-    if (CheckLogDirectory(log_dir) != TM_ECODE_OK) {
+    if (CheckLogDirectory(suri.log_dir) != TM_ECODE_OK) {
         SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
                 "supplied by %s (default-log-dir) doesn't exist. "
-                "Shutting down the engine", log_dir, conf_filename);
+                "Shutting down the engine", suri.log_dir, conf_filename);
         exit(EXIT_FAILURE);
     }
 
@@ -1581,7 +1686,7 @@ int main(int argc, char **argv)
             case RUNMODE_PFRING:
                 /* FIXME this don't work effficiently in multiinterface */
                 /* find payload for interface and use it */
-                default_packet_size = GetIfaceMaxPacketSize(pcap_dev);
+                default_packet_size = GetIfaceMaxPacketSize(suri.pcap_dev);
                 if (default_packet_size)
                     break;
             default:
@@ -1605,7 +1710,7 @@ int main(int argc, char **argv)
 
     /* Since our config is now loaded we can finish configurating the
      * logging module. */
-    SCLogLoadConfig(daemon);
+    SCLogLoadConfig(suri.daemon);
 
     /* Load the Host-OS lookup. */
     SCHInfoLoadFromConfig();
@@ -1614,7 +1719,7 @@ int main(int argc, char **argv)
     }
 
     if (run_mode == RUNMODE_UNKNOWN) {
-        if (!engine_analysis && !conf_test) {
+        if (!engine_analysis && !(suri.running_mode == SC_RUN_CONF_TEST)) {
             usage(argv[0]);
             exit(EXIT_FAILURE);
         }
@@ -1671,7 +1776,7 @@ int main(int argc, char **argv)
     DetectEngineRegisterAppInspectionEngines();
 
     if (rule_reload) {
-        if (sig_file == NULL)
+        if (suri.sig_file == NULL)
             UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
         else
             UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
@@ -1683,21 +1788,21 @@ int main(int argc, char **argv)
 
     TmModuleRunInit();
 
-    if (daemon == 1) {
-        if (pid_filename == NULL) {
-            if (ConfGet("pid-file", &pid_filename) == 1) {
-                SCLogInfo("Use pid file %s from config file.", pid_filename);
+    if (suri.daemon == 1) {
+        if (suri.pid_filename == NULL) {
+            if (ConfGet("pid-file", &suri.pid_filename) == 1) {
+                SCLogInfo("Use pid file %s from config file.", suri.pid_filename);
            } else {
-                pid_filename = DEFAULT_PID_FILENAME;
+                suri.pid_filename = DEFAULT_PID_FILENAME;
            }
         }
-        if (SCPidfileTestRunning(pid_filename) != 0) {
-            pid_filename = NULL;
+        if (SCPidfileTestRunning(suri.pid_filename) != 0) {
+            suri.pid_filename = NULL;
             exit(EXIT_FAILURE);
         }
         Daemonize();
-        if (SCPidfileCreate(pid_filename) != 0) {
-            pid_filename = NULL;
+        if (SCPidfileCreate(suri.pid_filename) != 0) {
+            suri.pid_filename = NULL;
 #if 1
             SCLogError(SC_ERR_PIDFILE_DAEMON,
                        "Unable to create PID file, concurrent run of"
@@ -1710,10 +1815,10 @@ int main(int argc, char **argv)
 #endif
         }
     } else {
-        if (pid_filename != NULL) {
+        if (suri.pid_filename != NULL) {
             SCLogError(SC_ERR_PIDFILE_DAEMON, "The pidfile file option applies "
                     "only to the daemon modes");
-            pid_filename = NULL;
+            suri.pid_filename = NULL;
             exit(EXIT_FAILURE);
         }
     }
@@ -1736,28 +1841,28 @@ int main(int argc, char **argv)
 
     /* Try to get user/group to run suricata as if
        command line as not decide of that */
-    if (do_setuid == FALSE && do_setgid == FALSE) {
+    if (suri.do_setuid == FALSE && suri.do_setgid == FALSE) {
         char *id;
         if (ConfGet("run-as.user", &id) == 1) {
-            do_setuid = TRUE;
-            user_name = id;
+            suri.do_setuid = TRUE;
+            suri.user_name = id;
         }
         if (ConfGet("run-as.group", &id) == 1) {
-            do_setgid = TRUE;
-            group_name = id;
+            suri.do_setgid = TRUE;
+            suri.group_name = id;
         }
     }
     /* Get the suricata user ID to given user ID */
-    if (do_setuid == TRUE) {
-        if (SCGetUserID(user_name, group_name, &userid, &groupid) != 0) {
+    if (suri.do_setuid == TRUE) {
+        if (SCGetUserID(suri.user_name, suri.group_name, &suri.userid, &suri.groupid) != 0) {
             SCLogError(SC_ERR_UID_FAILED, "failed in getting user ID");
             exit(EXIT_FAILURE);
         }
 
         sc_set_caps = TRUE;
     /* Get the suricata group ID to given group ID */
-    } else if (do_setgid == TRUE) {
-        if (SCGetGroupID(group_name, &groupid) != 0) {
+    } else if (suri.do_setgid == TRUE) {
+        if (SCGetGroupID(suri.group_name, &suri.groupid) != 0) {
             SCLogError(SC_ERR_GID_FAILED, "failed in getting group ID");
             exit(EXIT_FAILURE);
         }
@@ -1797,28 +1902,28 @@ int main(int argc, char **argv)
     if ((run_mode == RUNMODE_PCAP_FILE) ||
         (run_mode == RUNMODE_ERF_FILE) ||
         engine_analysis) {
-        delayed_detect = 0;
+        suri.delayed_detect = 0;
     } else {
         ConfNode *denode = NULL;
         ConfNode *decnf = ConfGetNode("detect-engine");
         if (decnf != NULL) {
             TAILQ_FOREACH(denode, &decnf->head, next) {
                 if (strcmp(denode->val, "delayed-detect") == 0) {
-                    (void)ConfGetChildValueBool(denode, "delayed-detect", &delayed_detect);
+                    (void)ConfGetChildValueBool(denode, "delayed-detect", &suri.delayed_detect);
                 }
             }
         }
     }
-    de_ctx->delayed_detect = delayed_detect;
+    de_ctx->delayed_detect = suri.delayed_detect;
 
-    SCLogInfo("Delayed detect %s", delayed_detect ? "enabled" : "disabled");
-    if (delayed_detect) {
+    SCLogInfo("Delayed detect %s", suri.delayed_detect ? "enabled" : "disabled");
+    if (suri.delayed_detect) {
         SCLogInfo("Packets will start being processed before signatures are active.");
     }
 
-    if (!delayed_detect) {
-        if (SigLoadSignatures(de_ctx, sig_file, sig_file_exclusive) < 0) {
-            if (sig_file == NULL) {
+    if (!suri.delayed_detect) {
+        if (SigLoadSignatures(de_ctx, suri.sig_file, suri.sig_file_exclusive) < 0) {
+            if (suri.sig_file == NULL) {
                 SCLogError(SC_ERR_OPENING_FILE, "Signature file has not been provided");
             } else {
                 SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
@@ -1833,7 +1938,7 @@ int main(int argc, char **argv)
 
     /* registering singal handlers we use.  We register usr2 here, so that one
      * can't call it during the first sig load phase */
-    if (sig_file == NULL && rule_reload == 1)
+    if (suri.sig_file == NULL && rule_reload == 1)
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
 
     SCThresholdConfInitContext(de_ctx,NULL);
@@ -1845,22 +1950,22 @@ int main(int argc, char **argv)
     memset(&start_time, 0, sizeof(start_time));
     gettimeofday(&start_time, NULL);
 
-    SCDropMainThreadCaps(userid, groupid);
+    SCDropMainThreadCaps(suri.userid, suri.groupid);
 
     if (run_mode != RUNMODE_UNIX_SOCKET) {
         RunModeInitializeOutputs();
     }
 
-    if (ParseInterfacesList(run_mode, pcap_dev) != TM_ECODE_OK) {
+    if (ParseInterfacesList(run_mode, suri.pcap_dev) != TM_ECODE_OK) {
             exit(EXIT_FAILURE);
     }
 
-    if(conf_test == 1){
+    if(suri.running_mode == SC_RUN_CONF_TEST){
         SCLogInfo("Configuration provided was successfully loaded. Exiting.");
         exit(EXIT_SUCCESS);
     }
 
-    RunModeDispatch(run_mode, runmode_custom_mode, de_ctx);
+    RunModeDispatch(run_mode, suri.runmode_custom_mode, de_ctx);
 
     /* In Unix socket runmode, Flow manager is started on demand */
     if (run_mode != RUNMODE_UNIX_SOCKET) {
@@ -1903,9 +2008,9 @@ int main(int argc, char **argv)
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();
 
-    if (delayed_detect) {
-        if (SigLoadSignatures(de_ctx, sig_file, sig_file_exclusive) < 0) {
-            if (sig_file == NULL) {
+    if (suri.delayed_detect) {
+        if (SigLoadSignatures(de_ctx, suri.sig_file, suri.sig_file_exclusive) < 0) {
+            if (suri.sig_file == NULL) {
                 SCLogError(SC_ERR_OPENING_FILE, "Signature file has not been provided");
             } else {
                 SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
@@ -2004,7 +2109,7 @@ int main(int argc, char **argv)
 #endif
 #endif
 
-    SCPidfileRemove(pid_filename);
+    SCPidfileRemove(suri.pid_filename);
 
     AppLayerHtpPrintStats();
 
