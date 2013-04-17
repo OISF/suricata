@@ -45,19 +45,20 @@ static pcre_extra *parse_regex_study;
 int DetectFlowvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 static int DetectFlowvarSetup (DetectEngineCtx *, Signature *, char *);
 static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm);
+static void DetectFlowvarDataFree(void *ptr);
 
 void DetectFlowvarRegister (void) {
     sigmatch_table[DETECT_FLOWVAR].name = "flowvar";
     sigmatch_table[DETECT_FLOWVAR].Match = DetectFlowvarMatch;
     sigmatch_table[DETECT_FLOWVAR].Setup = DetectFlowvarSetup;
-    sigmatch_table[DETECT_FLOWVAR].Free  = NULL;
+    sigmatch_table[DETECT_FLOWVAR].Free  = DetectFlowvarDataFree;
     sigmatch_table[DETECT_FLOWVAR].RegisterTests  = NULL;
 
     /* post-match for flowvar storage */
     sigmatch_table[DETECT_FLOWVAR_POSTMATCH].name = "__flowvar__postmatch__";
     sigmatch_table[DETECT_FLOWVAR_POSTMATCH].Match = DetectFlowvarPostMatch;
     sigmatch_table[DETECT_FLOWVAR_POSTMATCH].Setup = NULL;
-    sigmatch_table[DETECT_FLOWVAR_POSTMATCH].Free  = NULL;
+    sigmatch_table[DETECT_FLOWVAR_POSTMATCH].Free  = DetectFlowvarDataFree;
     sigmatch_table[DETECT_FLOWVAR_POSTMATCH].RegisterTests  = NULL;
 
     const char *eb;
@@ -82,6 +83,25 @@ void DetectFlowvarRegister (void) {
 
 error:
     return;
+}
+
+/**
+ * \brief this function will SCFree memory associated with DetectFlowvarData
+ *
+ * \param cd pointer to DetectCotentData
+ */
+static void DetectFlowvarDataFree(void *ptr) {
+    if (ptr == NULL)
+        SCReturn;
+
+    DetectFlowvarData *fd = (DetectFlowvarData *)ptr;
+
+    if (fd->name)
+        SCFree(fd->name);
+    if (fd->content)
+        SCFree(fd->content);
+
+    SCFree(fd);
 }
 
 /*
