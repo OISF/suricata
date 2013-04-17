@@ -576,8 +576,8 @@ flow-timeouts:
 #                               # Warning: locally generated trafic can be
 #                               # generated without checksum due to hardware offload
 #                               # of checksum. You can control the handling of checksum
-#				# on a per-interface basis via the 'checksum-checks'
-#				# option
+#                               # on a per-interface basis via the 'checksum-checks'
+#                               # option
 #   max-sessions: 262144        # 256k concurrent sessions
 #   prealloc-sessions: 32768    # 32k sessions prealloc'd
 #   midstream: false            # don't allow midstream session pickups
