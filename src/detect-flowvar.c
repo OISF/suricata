@@ -323,7 +323,7 @@ int DetectFlowvarPostMatchSetup(Signature *s, uint16_t idx) {
     fv->idx = idx;
 
     sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (unlikely(sm == NULL))
         goto error;
 
     sm->type = DETECT_FLOWVAR_POSTMATCH;
@@ -332,6 +332,8 @@ int DetectFlowvarPostMatchSetup(Signature *s, uint16_t idx) {
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
     return 0;
 error:
+    if (fv != NULL)
+        DetectFlowvarDataFree(fv);
     return -1;
 }
 
