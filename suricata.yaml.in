@@ -598,6 +598,13 @@ flow-timeouts:
 #                               # this size.  Can be specified in kb, mb,
 #                               # gb.  Just a number indicates it's in bytes.
 #                               # The max acceptable size is 4024 bytes.
+#     randomize-chunk-size: yes # Take a random value for chunk size around the specified value.
+#                               # This lower the risk of some evasion technics but could lead
+#                               # detection change between runs. It is set to 'yes' by default.
+#     randomize-chunk-range: 10 # If randomize-chunk-size is active, the value of chunk-size is
+#                               # a random value between (1 - randomize-chunk-range/100)*randomize-chunk-size
+#                               # and (1 + randomize-chunk-range/100)*randomize-chunk-size. Default value
+#                               # of randomize-chunk-range is 10.
 
 stream:
   memcap: 32mb
@@ -608,6 +615,8 @@ stream:
     depth: 1mb                  # reassemble 1mb into a stream
     toserver-chunk-size: 2560
     toclient-chunk-size: 2560
+    randomize-chunk-size: yes
+    #randomize-chunk-range: 10
 
 # Host table:
 #

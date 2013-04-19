@@ -331,6 +331,7 @@ void StreamTcpSessionPoolCleanup(void *s)
 void StreamTcpInitConfig(char quiet)
 {
     intmax_t value = 0;
+    uint16_t rdrange = 10;
 
     SCLogDebug("Initializing Stream");
 
@@ -477,6 +478,33 @@ void StreamTcpInitConfig(char quiet)
         SCLogInfo("stream.reassembly \"depth\": %"PRIu32"", stream_config.reassembly_depth);
     }
 
+    int randomize = 0;
+    if ((ConfGetBool("stream.reassembly.randomize-chunk-size", &randomize)) == 0) {
+        /* randomize by default if value not set */
+        randomize = 1;
+    }
+
+    if (randomize) {
+        char *temp_rdrange;
+        if (ConfGet("stream.reassembly.randomize-chunk-range",
+                    &temp_rdrange) == 1) {
+            if (ParseSizeStringU16(temp_rdrange, &rdrange) < 0) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
+                        "stream.reassembly.randomize-chunk-range "
+                        "from conf file - %s.  Killing engine",
+                        temp_rdrange);
+                exit(EXIT_FAILURE);
+            } else if (rdrange >= 100) {
+                SCLogError(SC_ERR_INVALID_VALUE,
+                           "stream.reassembly.randomize-chunk-range "
+                           "must be lower than 100");
+                exit(EXIT_FAILURE);
+            }
+        }
+        /* set a "random" seed */
+        srandom(time(0));
+    }
+
     char *temp_stream_reassembly_toserver_chunk_size_str;
     if (ConfGet("stream.reassembly.toserver-chunk-size",
                 &temp_stream_reassembly_toserver_chunk_size_str) == 1) {
@@ -491,6 +519,12 @@ void StreamTcpInitConfig(char quiet)
     } else {
         stream_config.reassembly_toserver_chunk_size =
             STREAMTCP_DEFAULT_TOSERVER_CHUNK_SIZE;
+    }
+
+    if (randomize) {
+        stream_config.reassembly_toserver_chunk_size +=
+            (int) (stream_config.reassembly_toserver_chunk_size *
+                   (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
     }
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER,
             stream_config.reassembly_toserver_chunk_size);
@@ -510,6 +544,13 @@ void StreamTcpInitConfig(char quiet)
         stream_config.reassembly_toclient_chunk_size =
             STREAMTCP_DEFAULT_TOCLIENT_CHUNK_SIZE;
     }
+
+    if (randomize) {
+        stream_config.reassembly_toclient_chunk_size +=
+            (int) (stream_config.reassembly_toclient_chunk_size *
+                   (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+    }
+
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT,
             stream_config.reassembly_toclient_chunk_size);
 
