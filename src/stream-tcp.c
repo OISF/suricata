@@ -3675,7 +3675,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
  *  \param  stt     Strean Thread module registered to handle the stream handling
  */
 
-static int StreamTcpPakcetStateLastAck(ThreadVars *tv, Packet *p,
+static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
                         StreamTcpThread *stt, TcpSession *ssn, PacketQueue *pq)
 {
     if (ssn == NULL)
@@ -4062,7 +4062,7 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                 }
                 break;
             case TCP_LAST_ACK:
-                if(StreamTcpPakcetStateLastAck(tv, p, stt, ssn, &stt->pseudo_queue)) {
+                if(StreamTcpPacketStateLastAck(tv, p, stt, ssn, &stt->pseudo_queue)) {
                     goto error;
                 }
                 break;
