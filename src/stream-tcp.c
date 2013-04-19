@@ -3970,6 +3970,165 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
     return 0;
 }
 
+/**
+ *  \retval 1 packet is a keep alive pkt
+ *  \retval 0 packet is not a keep alive pkt
+ */
+static int StreamTcpPacketIsKeepAlive(TcpSession *ssn, Packet *p) {
+    TcpStream *stream = NULL, *ostream = NULL;
+    uint32_t seq;
+    uint32_t ack;
+
+    if (p->flags & PKT_PSEUDO_STREAM_END)
+        return 0;
+
+    /*
+       rfc 1122:
+       An implementation SHOULD send a keep-alive segment with no
+       data; however, it MAY be configurable to send a keep-alive
+       segment containing one garbage octet, for compatibility with
+       erroneous TCP implementations.
+     */
+    if (p->payload_len > 1)
+        return 0;
+
+    if ((p->tcph->th_flags & (TH_SYN|TH_FIN|TH_RST)) != 0) {
+        return 0;
+    }
+
+    if (PKT_IS_TOSERVER(p)) {
+        stream = &ssn->client;
+        ostream = &ssn->server;
+    } else {
+        stream = &ssn->server;
+        ostream = &ssn->client;
+    }
+
+    seq = TCP_GET_SEQ(p);
+    ack = TCP_GET_ACK(p);
+
+    if (ack == ostream->last_ack && seq == (stream->next_seq - 1)) {
+        SCLogDebug("packet is TCP keep-alive: %"PRIu64, p->pcap_cnt);
+        stream->flags |= STREAMTCP_STREAM_FLAG_KEEPALIVE;
+        return 1;
+    }
+    SCLogDebug("seq %u (%u), ack %u (%u)", seq,  (stream->next_seq - 1), ack, ostream->last_ack);
+    return 0;
+}
+
+/**
+ *  \retval 1 packet is a keep alive ACK pkt
+ *  \retval 0 packet is not a keep alive ACK pkt
+ */
+static int StreamTcpPacketIsKeepAliveACK(TcpSession *ssn, Packet *p) {
+    TcpStream *stream = NULL, *ostream = NULL;
+    uint32_t seq;
+    uint32_t ack;
+    uint32_t pkt_win;
+
+    if (p->flags & PKT_PSEUDO_STREAM_END)
+        return 0;
+    /* should get a normal ACK to a Keep Alive */
+    if (p->payload_len > 0)
+        return 0;
+
+    if ((p->tcph->th_flags & (TH_SYN|TH_FIN|TH_RST)) != 0)
+        return 0;
+
+    if (TCP_GET_WINDOW(p) == 0)
+        return 0;
+
+    if (PKT_IS_TOSERVER(p)) {
+        stream = &ssn->client;
+        ostream = &ssn->server;
+    } else {
+        stream = &ssn->server;
+        ostream = &ssn->client;
+    }
+
+    seq = TCP_GET_SEQ(p);
+    ack = TCP_GET_ACK(p);
+
+    pkt_win = TCP_GET_WINDOW(p) << ostream->wscale;
+    if (pkt_win != ostream->window)
+        return 0;
+
+    if ((ostream->flags & STREAMTCP_STREAM_FLAG_KEEPALIVE) && ack == ostream->last_ack && seq == stream->next_seq) {
+        SCLogDebug("packet is TCP keep-aliveACK: %"PRIu64, p->pcap_cnt);
+        ostream->flags &= ~STREAMTCP_STREAM_FLAG_KEEPALIVE;
+        return 1;
+    }
+    SCLogDebug("seq %u (%u), ack %u (%u) FLAG_KEEPALIVE: %s", seq, stream->next_seq, ack, ostream->last_ack,
+            ostream->flags & STREAMTCP_STREAM_FLAG_KEEPALIVE ? "set" : "not set");
+    return 0;
+}
+
+static void StreamTcpClearKeepAliveFlag(TcpSession *ssn, Packet *p) {
+    TcpStream *stream = NULL;
+
+    if (p->flags & PKT_PSEUDO_STREAM_END)
+        return;
+
+    if (PKT_IS_TOSERVER(p)) {
+        stream = &ssn->client;
+    } else {
+        stream = &ssn->server;
+    }
+
+    if (stream->flags & STREAMTCP_STREAM_FLAG_KEEPALIVE) {
+        stream->flags &= ~STREAMTCP_STREAM_FLAG_KEEPALIVE;
+        SCLogDebug("FLAG_KEEPALIVE cleared");
+    }
+}
+
+/**
+ *  \retval 1 packet is a window update pkt
+ *  \retval 0 packet is not a window update pkt
+ */
+static int StreamTcpPacketIsWindowUpdate(TcpSession *ssn, Packet *p) {
+    TcpStream *stream = NULL, *ostream = NULL;
+    uint32_t seq;
+    uint32_t ack;
+    uint32_t pkt_win;
+
+    if (p->flags & PKT_PSEUDO_STREAM_END)
+        return 0;
+
+    if (ssn->state < TCP_ESTABLISHED)
+        return 0;
+
+    if (p->payload_len > 0)
+        return 0;
+
+    if ((p->tcph->th_flags & (TH_SYN|TH_FIN|TH_RST)) != 0)
+        return 0;
+
+    if (TCP_GET_WINDOW(p) == 0)
+        return 0;
+
+    if (PKT_IS_TOSERVER(p)) {
+        stream = &ssn->client;
+        ostream = &ssn->server;
+    } else {
+        stream = &ssn->server;
+        ostream = &ssn->client;
+    }
+
+    seq = TCP_GET_SEQ(p);
+    ack = TCP_GET_ACK(p);
+
+    pkt_win = TCP_GET_WINDOW(p) << ostream->wscale;
+    if (pkt_win == ostream->window)
+        return 0;
+
+    if (ack == ostream->last_ack && seq == stream->next_seq) {
+        SCLogDebug("packet is TCP window update: %"PRIu64, p->pcap_cnt);
+        return 1;
+    }
+    SCLogDebug("seq %u (%u), ack %u (%u)", seq, stream->next_seq, ack, ostream->last_ack);
+    return 0;
+}
+
 /* flow is and stays locked */
 static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                             PacketQueue *pq)
@@ -4024,6 +4183,16 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
            SYN packet and picked up midstream session. */
         if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK)
             StreamTcpPacketSwitchDir(ssn, p);
+
+        StreamTcpPacketIsWindowUpdate(ssn, p);
+        if (StreamTcpPacketIsKeepAlive(ssn, p) == 1) {
+            goto skip;
+        }
+        if (StreamTcpPacketIsKeepAliveACK(ssn, p) == 1) {
+            StreamTcpClearKeepAliveFlag(ssn, p);
+            goto skip;
+        }
+        StreamTcpClearKeepAliveFlag(ssn, p);
 
         switch (ssn->state) {
             case TCP_SYN_SENT:
@@ -4121,6 +4290,7 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                 SCLogDebug("packet received on default state");
                 break;
         }
+    skip:
 
         if (ssn->state >= TCP_ESTABLISHED) {
             p->flags |= PKT_STREAM_EST;
