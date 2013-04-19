@@ -140,9 +140,9 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr;
-    char *contentstr = NULL;
+    uint8_t *content = NULL;
     uint16_t contentlen = 0;
-    int contentflags = 0;
+    uint32_t contentflags = 0;
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 3) {
@@ -164,7 +164,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
     }
     varcontent = (char *)str_ptr;
 
-    res = DetectContentDataParse("flowvar", varcontent, &contentstr, &contentlen, &contentflags);
+    res = DetectContentDataParse("flowvar", varcontent, &content, &contentlen, &contentflags);
     if (res == -1)
         goto error;
 
@@ -176,7 +176,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
     if (unlikely(fd->content == NULL))
         goto error;
 
-    memcpy(fd->content, contentstr, contentlen);;
+    memcpy(fd->content, content, contentlen);
     fd->content_len = contentlen;
     fd->flags = contentflags;
 
@@ -194,7 +194,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
-    SCFree(contentstr);
+    SCFree(content);
     return 0;
 
 error:
@@ -202,8 +202,8 @@ error:
         DetectFlowvarDataFree(fd);
     if (sm != NULL)
         SCFree(sm);
-    if (contentstr != NULL)
-        SCFree(contentstr);
+    if (content != NULL)
+        SCFree(content);
     return -1;
 }
 

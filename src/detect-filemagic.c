@@ -265,7 +265,7 @@ static DetectFilemagicData *DetectFilemagicParse (char *str)
 
     memset(filemagic, 0x00, sizeof(DetectFilemagicData));
 
-    if (DetectContentDataParse ("filemagic", str, (char **)&filemagic->name, &filemagic->len, (int *)&filemagic->flags) == -1) {
+    if (DetectContentDataParse ("filemagic", str, &filemagic->name, &filemagic->len, &filemagic->flags) == -1) {
         goto error;
     }
 

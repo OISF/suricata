@@ -151,7 +151,7 @@ static DetectFilenameData *DetectFilenameParse (char *str)
 
     memset(filename, 0x00, sizeof(DetectFilenameData));
 
-    if (DetectContentDataParse ("filename", str, (char **)&filename->name, &filename->len, (int *)&filename->flags) == -1) {
+    if (DetectContentDataParse ("filename", str, &filename->name, &filename->len, &filename->flags) == -1) {
         goto error;
     }
 

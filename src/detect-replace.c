@@ -70,13 +70,13 @@ void DetectReplaceRegister (void) {
 
 int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *replacestr)
 {
-    char *str = NULL;
+    uint8_t *content = NULL;
     uint16_t len = 0;
-    int flags;
+    uint32_t flags = 0;
     SigMatch *pm = NULL;
     DetectContentData *ud = NULL;
 
-    int ret = DetectContentDataParse("replace", replacestr, &str, &len, &flags);
+    int ret = DetectContentDataParse("replace", replacestr, &content, &len, &flags);
     if (ret == -1)
         goto error;
 
@@ -104,7 +104,7 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *replacestr)
     if (pm == NULL) {
         SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "replace needs"
                 "preceding content option for raw sig");
-        SCFree(str);
+        SCFree(content);
         return -1;
     }
 
@@ -112,7 +112,7 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *replacestr)
     ud = (DetectContentData *)pm->ctx;
     if (ud == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
-        SCFree(str);
+        SCFree(content);
         return -1;
     }
     if (ud->flags & DETECT_CONTENT_NEGATED) {
@@ -130,19 +130,19 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *replacestr)
     if (ud->replace == NULL) {
         goto error;
     }
-    memcpy(ud->replace, str, len);
+    memcpy(ud->replace, content, len);
     ud->replace_len = len;
     ud->flags |= DETECT_CONTENT_REPLACE;
     /* want packet matching only won't be able to replace data with
      * a flow.
      */
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
-    SCFree(str);
+    SCFree(content);
 
     return 0;
 
 error:
-    SCFree(str);
+    SCFree(content);
     return -1;
 }
 

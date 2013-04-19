@@ -146,7 +146,7 @@ static DetectFileextData *DetectFileextParse (char *str)
 
     memset(fileext, 0x00, sizeof(DetectFileextData));
 
-    if (DetectContentDataParse("fileext", str, (char **)&fileext->ext, &fileext->len, (int *)&fileext->flags) == -1) {
+    if (DetectContentDataParse("fileext", str, &fileext->ext, &fileext->len, &fileext->flags) == -1) {
         goto error;
     }
 
