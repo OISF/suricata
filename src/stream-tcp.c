@@ -480,8 +480,10 @@ void StreamTcpInitConfig(char quiet)
 
     int randomize = 0;
     if ((ConfGetBool("stream.reassembly.randomize-chunk-size", &randomize)) == 0) {
-        /* randomize by default if value not set */
-        randomize = 1;
+        /* randomize by default if value not set
+         * In ut mode we disable, to get predictible test results */
+        if (!(RunmodeIsUnittests()))
+            randomize = 1;
     }
 
     if (randomize) {
