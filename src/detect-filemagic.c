@@ -333,7 +333,7 @@ static void *DetectFilemagicThreadInit(void *data) {
         SCLogError(SC_ERR_MAGIC_LOAD, "magic_load failed: %s", magic_error(t->ctx));
         goto error;
     }
-SCLogInfo("returning %p", t);
+
     return (void *)t;
 
 error:
