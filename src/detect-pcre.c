@@ -288,12 +288,10 @@ DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr)
 
     ret = pcre_exec(parse_regex, parse_regex_study, regexstr + pos, slen-pos,
                     0, 0, ov, MAX_SUBSTRINGS);
-    if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_MATCH, "parse error");
+    if (ret <= 0) {
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre parse error: %s", regexstr);
         goto error;
-    }
-
-    if (ret > 1) {
+    } else {
         const char *str_ptr;
         res = pcre_get_substring((char *)regexstr + pos, ov, MAX_SUBSTRINGS,
                                  1, &str_ptr);
