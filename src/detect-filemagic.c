@@ -265,7 +265,7 @@ static DetectFilemagicData *DetectFilemagicParse (char *str)
 
     memset(filemagic, 0x00, sizeof(DetectFilemagicData));
 
-    if (DetectParseContentString (str, &filemagic->name, &filemagic->len, &filemagic->flags) == -1) {
+    if (DetectContentDataParse ("filemagic", str, (char **)&filemagic->name, &filemagic->len, (int *)&filemagic->flags) == -1) {
         goto error;
     }
 
@@ -433,7 +433,7 @@ static void DetectFilemagicFree(void *ptr) {
  * \test DetectFilemagicTestParse01
  */
 int DetectFilemagicTestParse01 (void) {
-    DetectFilemagicData *dnd = DetectFilemagicParse("secret.pdf");
+    DetectFilemagicData *dnd = DetectFilemagicParse("\"secret.pdf\"");
     if (dnd != NULL) {
         DetectFilemagicFree(dnd);
         return 1;
@@ -465,7 +465,7 @@ int DetectFilemagicTestParse02 (void) {
 int DetectFilemagicTestParse03 (void) {
     int result = 0;
 
-    DetectFilemagicData *dnd = DetectFilemagicParse("cmd.exe");
+    DetectFilemagicData *dnd = DetectFilemagicParse("\"cmd.exe\"");
     if (dnd != NULL) {
         if (dnd->len == 7 && memcmp(dnd->name, "cmd.exe", 7) == 0) {
             result = 1;
