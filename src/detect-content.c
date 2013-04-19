@@ -66,6 +66,17 @@ uint32_t DetectContentMaxId(DetectEngineCtx *de_ctx) {
     return MpmPatternIdStoreGetMaxId(de_ctx->mpm_pattern_id_store);
 }
 
+/**
+ *  \brief Parse a content string, ie "abc|DE|fgh"
+ *
+ *  \param content_str null terminated string containing the content
+ *  \param result result pointer to pass the fully parsed byte array
+ *  \param result_len size of the resulted data
+ *  \param flags flags to be set by this parsing function
+ *
+ *  \retval -1 error
+ *  \retval 0 ok
+ */
 int DetectContentDataParse(char *keyword, char *contentstr, char** pstr, uint16_t *plen, int *flags)
 {
     char *str = NULL;
