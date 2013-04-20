@@ -122,6 +122,7 @@ typedef struct DNSAnswerEntry_ {
 
 /** \brief DNS Transaction, request/reply with same TX id. */
 typedef struct DNSTransaction_ {
+    uint16_t tx_num;                                /**< internal: id */
     uint16_t tx_id;                                 /**< transaction id */
     uint16_t replied;                               /**< bool indicating request is
                                                          replied to. */
@@ -138,7 +139,7 @@ typedef struct DNSTransaction_ {
 typedef struct DNSState_ {
     TAILQ_HEAD(, DNSTransaction_) tx_list;  /**< transaction list */
     DNSTransaction *curr;                   /**< ptr to current tx */
-    uint16_t transaction_cnt;
+    uint16_t transaction_max;
     uint16_t transaction_done;
 
     /* used by TCP only */

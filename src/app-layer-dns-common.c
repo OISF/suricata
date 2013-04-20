@@ -221,8 +221,12 @@ void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16
         tx = DNSTransactionAlloc(tx_id);
         if (tx == NULL)
             return;
+        dns_state->transaction_max++;
+        SCLogDebug("dns_state->transaction_max updated to %u", dns_state->transaction_max);
         TAILQ_INSERT_TAIL(&dns_state->tx_list, tx, next);
         dns_state->curr = tx;
+        tx->tx_num = dns_state->transaction_max;
+        SCLogDebug("new tx %u with internal id %u", tx->tx_id, tx->tx_num);
     }
 
     DNSQueryEntry *q = SCMalloc(sizeof(DNSQueryEntry) + fqdn_len);
@@ -249,10 +253,9 @@ void DNSStoreAnswerInState(DNSState *dns_state, const int rtype, const uint8_t *
             return;
         TAILQ_INSERT_TAIL(&dns_state->tx_list, tx, next);
         dns_state->curr = tx;
-    }
+        tx->tx_num = dns_state->transaction_max;
 
-    dns_state->transaction_cnt++;
-    SCLogDebug("dns_state->transaction_cnt %u", dns_state->transaction_cnt);
+    }
 
     DNSAnswerEntry *q = SCMalloc(sizeof(DNSAnswerEntry) + fqdn_len + data_len);
     if (q == NULL)
