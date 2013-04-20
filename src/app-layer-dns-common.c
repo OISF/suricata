@@ -74,13 +74,23 @@ void DNSStateFree(void *s) {
 }
 
 void *DNSGetTx(void *alstate, uint64_t tx_id) {
-    /* todo */
+    DNSState *dns_state = (DNSState *)alstate;
+    DNSTransaction *tx = NULL;
+
+    TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
+        SCLogDebug("tx->tx_num %u, tx_id %"PRIu64, tx->tx_num, tx_id);
+        if ((tx_id+1) != tx->tx_num)
+            continue;
+
+        return tx;
+    }
+
     return NULL;
 }
 
 uint64_t DNSGetTxCnt(void *alstate) {
     DNSState *dns_state = (DNSState *)alstate;
-    return (uint64_t)dns_state->transaction_cnt;
+    return (uint64_t)dns_state->transaction_max;
 }
 
 int DNSGetAlstateProgress(void *tx, uint8_t direction) {

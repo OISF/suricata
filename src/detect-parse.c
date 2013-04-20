@@ -779,7 +779,7 @@ static int SigParseBasics(Signature *s, char *sigstr, char ***result, uint8_t ad
             goto error;
         if (SigParseProto(s, "dnsudp") < 0)
             goto error;
-
+        s->alproto = ALPROTO_DNS;
     } else {
         if (SigParseProto(s, arr[CONFIG_PROTO]) < 0)
             goto error;
@@ -1401,6 +1401,8 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
     if (sig->sm_lists[DETECT_SM_LIST_HHHDMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_HRHHDMATCH])
+        sig->flags |= SIG_FLAG_STATE_MATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_DNSQUERY_MATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
 
     if (!(sig->init_flags & SIG_FLAG_INIT_FLOW)) {

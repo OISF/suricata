@@ -56,6 +56,7 @@
 #include "detect-engine-hhhd.h"
 #include "detect-engine-hrhhd.h"
 #include "detect-engine-file.h"
+#include "detect-engine-dns.h"
 
 #include "detect-engine.h"
 #include "detect-engine-state.h"
@@ -214,6 +215,13 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_HRHHD_INSPECT,
           0,
           DetectEngineInspectHttpHRH },
+        /* DNS */
+        { ALPROTO_DNS,
+          DETECT_SM_LIST_DNSQUERY_MATCH,
+          DE_STATE_FLAG_DNSQUERY_INSPECT,
+          DE_STATE_FLAG_DNSQUERY_INSPECT,
+          0,
+          DetectEngineInspectDnsQueryName },
     };
 
     struct tmp_t data_toclient[] = {

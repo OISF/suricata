@@ -158,13 +158,17 @@ int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     sm->ctx = (void *)data;
 
     if (s->alproto != ALPROTO_UNKNOWN) {
-        if (s->alproto != ((DetectAppLayerEventData *)sm->ctx)->alproto) {
+        if (s->alproto == ALPROTO_DNS &&
+                (data->alproto == ALPROTO_DNS_UDP || data->alproto == ALPROTO_DNS_TCP))
+        {
+            SCLogDebug("DNS app layer event");
+        } else if (s->alproto != data->alproto) {
             SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains "
                        "conflicting keywords needing different alprotos");
             goto error;
         }
     } else {
-        s->alproto = ((DetectAppLayerEventData *)sm->ctx)->alproto;
+        s->alproto = data->alproto;
     }
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);

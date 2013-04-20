@@ -74,6 +74,7 @@
 #define DE_STATE_FLAG_FILE_TS_INSPECT     (1 << 14)
 #define DE_STATE_FLAG_FULL_INSPECT        (1 << 15)
 #define DE_STATE_FLAG_SIG_CANT_MATCH      (1 << 16)
+#define DE_STATE_FLAG_DNSQUERY_INSPECT    (1 << 17)
 
 /* state flags */
 #define DETECT_ENGINE_STATE_FLAG_FILE_STORE_DISABLED 0x0001

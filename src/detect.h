@@ -115,6 +115,8 @@ enum {
 
     DETECT_SM_LIST_FILEMATCH,
 
+    DETECT_SM_LIST_DNSQUERY_MATCH,
+
     /* list for post match actions: flowbit set, flowint increment, etc */
     DETECT_SM_LIST_POSTMATCH,
 
@@ -1121,6 +1123,8 @@ enum {
     DETECT_L3PROTO,
     DETECT_LUAJIT,
     DETECT_IPREP,
+
+    DETECT_AL_DNS_QUERY,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,

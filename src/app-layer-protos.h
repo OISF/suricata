@@ -39,8 +39,11 @@ enum {
     ALPROTO_DCERPC,
     ALPROTO_DCERPC_UDP,
     ALPROTO_IRC,
+
+    ALPROTO_DNS,
     ALPROTO_DNS_UDP,
     ALPROTO_DNS_TCP,
+
     /* used by the probing parser when alproto detection fails
      * permanently for that particular stream */
     ALPROTO_FAILED,

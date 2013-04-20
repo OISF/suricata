@@ -69,6 +69,7 @@
 #include "app-layer-smb.h"
 #include "app-layer-dcerpc-common.h"
 #include "app-layer-dcerpc.h"
+#include "app-layer-dns-common.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -265,14 +266,16 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     if (AppLayerAlprotoSupportsTxs(alproto)) {
         FLOWLOCK_WRLOCK(f);
 
-        htp_state = (HtpState *)alstate;
-        if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-            FLOWLOCK_UNLOCK(f);
-            goto end;
+        if (alproto == ALPROTO_HTTP) {
+            htp_state = (HtpState *)alstate;
+            if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
+                FLOWLOCK_UNLOCK(f);
+                goto end;
+            }
         }
 
         tx_id = AppLayerTransactionGetInspectId(f, flags);
-        total_txs = AppLayerGetTxCnt(alproto, htp_state);
+        total_txs = AppLayerGetTxCnt(alproto, alstate);
         for (; tx_id < total_txs; tx_id++) {
             total_matches = 0;
             tx = AppLayerGetTx(alproto, alstate, tx_id);
@@ -526,11 +529,13 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             if (alproto_supports_txs) {
                 FLOWLOCK_WRLOCK(f);
 
-                htp_state = (HtpState *)alstate;
-                if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-                    FLOWLOCK_UNLOCK(f);
-                    RULE_PROFILING_END(det_ctx, s, match);
-                    goto end;
+                if (alproto == ALPROTO_HTTP) {
+                    htp_state = (HtpState *)alstate;
+                    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
+                        FLOWLOCK_UNLOCK(f);
+                        RULE_PROFILING_END(det_ctx, s, match);
+                        goto end;
+                    }
                 }
 
                 engine = app_inspection_engine[alproto][(flags & STREAM_TOSERVER) ? 0 : 1];
