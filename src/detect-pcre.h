@@ -52,6 +52,8 @@
 #define DETECT_PCRE_NEGATE              0x80000
 #define DETECT_PCRE_CASELESS           0x100000
 
+#define DETECT_PCRE_DNS_QUERY          0x200000
+
 typedef struct DetectPcreData_ {
     /* pcre options */
     pcre *re;

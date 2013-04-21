@@ -738,6 +738,102 @@ end:
     UTHFreePacket(p4);
     return result;
 }
+
+/** \test simple google.com query matching, pcre */
+static int DetectDnsQueryTest06(void) {
+    /* google.com */
+    uint8_t buf[] = {   0x10, 0x32, 0x01, 0x00, 0x00, 0x01,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C,
+                        0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,
+                        0x00, 0x10, 0x00, 0x01, };
+    int result = 0;
+    Flow f;
+    DNSState *dns_state = NULL;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+
+    p = UTHBuildPacket(buf, sizeof(buf), IPPROTO_UDP);
+
+    FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_IPV4;
+    f.proto = IPPROTO_UDP;
+
+    p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    f.alproto = ALPROTO_DNS_UDP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_AC;
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
+                                      "(msg:\"Test dns_query option\"; "
+                                      "content:\"google\"; nocase; dns_query; "
+                                      "pcre:\"/google\\.com$/iF\"; sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
+                                      "(msg:\"Test dns_query option\"; "
+                                      "content:\"google\"; nocase; dns_query; "
+                                      "pcre:\"/^\\.[a-z]{2,3}$/iRF\"; sid:2;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(NULL, &f, ALPROTO_DNS_UDP, STREAM_TOSERVER, buf, sizeof(buf));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    dns_state = f.alstate;
+    if (dns_state == NULL) {
+        printf("no dns state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    if (!(PacketAlertCheck(p, 1))) {
+        printf("sig 1 didn't alert, but it should have: ");
+        goto end;
+    }
+    if (!(PacketAlertCheck(p, 2))) {
+        printf("sig 2 didn't alert, but it should have: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p);
+    return result;
+}
+
 #endif
 
 static void DetectDnsQueryRegisterTests(void) {
@@ -747,5 +843,6 @@ static void DetectDnsQueryRegisterTests(void) {
     UtRegisterTest("DetectDnsQueryTest03 -- tcp", DetectDnsQueryTest03, 1);
     UtRegisterTest("DetectDnsQueryTest04 -- tcp splicing", DetectDnsQueryTest04, 1);
     UtRegisterTest("DetectDnsQueryTest05 -- tcp splicing/multi tx", DetectDnsQueryTest05, 1);
+    UtRegisterTest("DetectDnsQueryTest06 -- pcre", DetectDnsQueryTest06, 1);
 #endif
 }

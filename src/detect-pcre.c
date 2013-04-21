@@ -471,6 +471,10 @@ DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr)
                     /* snort's option */
                     pd->flags |= DETECT_PCRE_HTTP_STAT_CODE;
                     break;
+                case 'F':
+                    /* suricata extension (dns query name) */
+                    pd->flags |= DETECT_PCRE_DNS_QUERY;
+                    break;
                 default:
                     SCLogError(SC_ERR_UNKNOWN_REGEX_MOD, "unknown regex modifier '%c'", *op);
                     goto error;
@@ -693,6 +697,22 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         }
     }
 
+    if (pd->flags & DETECT_PCRE_DNS_QUERY) {
+        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DNS) {
+            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option.  "
+                       "Conflicting alprotos detected for this rule. Dns "
+                       "pcre modifier found along with a different protocol "
+                       "for the rule.");
+            goto error;
+        }
+        if (s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre found with dns "
+                       "modifier set, with file_data/dce_stub_data sticky "
+                       "option set.");
+            goto error;
+        }
+    }
+
     int sm_list;
     if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
         SCLogDebug("adding to http server body list because of file data");
@@ -766,6 +786,11 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         s->flags |= SIG_FLAG_APPLAYER;
         s->alproto = ALPROTO_HTTP;
         sm_list = DETECT_SM_LIST_HUADMATCH;
+    } else if (pd->flags & DETECT_PCRE_DNS_QUERY) {
+        SCLogDebug("DNS query inspection modifier set on pcre");
+        s->flags |= SIG_FLAG_APPLAYER;
+        s->alproto = ALPROTO_DNS;
+        sm_list = DETECT_SM_LIST_DNSQUERY_MATCH;
     } else {
         sm_list = DETECT_SM_LIST_PMATCH;
     }
@@ -1624,6 +1649,35 @@ int DetectPcreParseTest25(void)
                                "alert tcp any any -> any any "
                                "(msg:\"Testing inconsistent pcre modifiers\"; "
                                "pcre:\"/abc/DH\"; sid:1;)");
+
+    if (de_ctx->sig_list == NULL) {
+        result = 1;
+    } else {
+        printf("sig parse should have failed: ");
+    }
+
+ end:
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/** \test Check a signature with inconsistent pcre modifiers  */
+static int DetectPcreParseTest26(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any "
+                               "(msg:\"Testing inconsistent pcre modifiers\"; "
+                               "pcre:\"/abc/F\"; sid:1;)");
 
     if (de_ctx->sig_list == NULL) {
         result = 1;
@@ -3860,6 +3914,7 @@ void DetectPcreRegisterTests(void) {
     UtRegisterTest("DetectPcreParseTest23", DetectPcreParseTest23, 1);
     UtRegisterTest("DetectPcreParseTest24", DetectPcreParseTest24, 1);
     UtRegisterTest("DetectPcreParseTest25", DetectPcreParseTest25, 1);
+    UtRegisterTest("DetectPcreParseTest26", DetectPcreParseTest26, 1);
 
     UtRegisterTest("DetectPcreTestSig01B2g -- pcre test", DetectPcreTestSig01B2g, 1);
     UtRegisterTest("DetectPcreTestSig01B3g -- pcre test", DetectPcreTestSig01B3g, 1);
