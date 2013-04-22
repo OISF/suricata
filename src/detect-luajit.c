@@ -674,6 +674,28 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuajitData *ld) {
             }
             lua_pop(luastate, 1);
             continue;
+        } else if (strcmp(k, "flowint") == 0) {
+            if (lua_istable(luastate, -1)) {
+                lua_pushnil(luastate);
+                while (lua_next(luastate, -2) != 0) {
+                    /* value at -1, key is at -2 which we ignore */
+                    const char *value = lua_tostring(luastate, -1);
+                    SCLogDebug("value %s", value);
+                    /* removes 'value'; keeps 'key' for next iteration */
+                    lua_pop(luastate, 1);
+
+                    if (ld->flowints == DETECT_LUAJIT_MAX_FLOWINTS) {
+                        SCLogError(SC_ERR_LUAJIT_ERROR, "too many flowints registered");
+                        goto error;
+                    }
+
+                    uint16_t idx = VariableNameGetIdx(de_ctx, (char *)value, DETECT_FLOWINT);
+                    ld->flowint[ld->flowints++] = idx;
+                    SCLogDebug("script uses flowint %u with script id %u", idx, ld->flowints - 1);
+                }
+            }
+            lua_pop(luastate, 1);
+            continue;
         }
 
         v = lua_tostring(luastate, -1);
@@ -1301,6 +1323,158 @@ end:
     UTHFreePackets(&p2, 1);
     return result;
 }
+
+/** \test http buffer, flowints */
+static int LuajitMatchTest04(void) {
+    const char script[] =
+        "function init (args)\n"
+        "   local needs = {}\n"
+        "   needs[\"http.request_headers\"] = tostring(true)\n"
+        "   needs[\"flowint\"] = {\"cnt\"}\n"
+        "   return needs\n"
+        "end\n"
+        "\n"
+        "function match(args)\n"
+        "   print \"inspecting\""
+        "   a = ScFlowintGet(0)\n"
+        "   if a then\n"
+        "       ScFlowintSet(0, a + 1)\n"
+        "   else\n"
+        "       ScFlowintSet(0, 1)\n"
+        "   end\n"
+        "   \n"
+        "   a = ScFlowintGet(0)\n"
+        "   if a == 2 then\n"
+        "       print \"match\"\n"
+        "       return 1\n"
+        "   end\n"
+        "   return 0\n"
+        "end\n"
+        "return 0\n";
+    char sig[] = "alert http any any -> any any (flow:to_server; luajit:unittest; sid:1;)";
+    int result = 0;
+    uint8_t httpbuf1[] =
+        "POST / HTTP/1.1\r\n"
+        "Host: www.emergingthreats.net\r\n"
+        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13\r\n"
+        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9;q=0.8\r\n";
+    uint8_t httpbuf2[] =
+        "Accept-Language: es-es,es;q=0.8,en-us;q=0.5,en;q=0.3\r\n"
+        "Accept-Encoding: gzip,deflate\r\n"
+        "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n"
+        "Date: Tue, 22 Sep 2009 19:24:48 GMT\r\n"
+        "Server: Apache\r\n"
+        "Content-Length: 500\r\n"
+        "\r\n"
+        "<!DOCTYPE html PUBLIC";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    Flow f;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ut_script = script;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.flags |= FLOW_IPV4;
+    f.alproto = ALPROTO_HTTP;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+
+    StreamTcpInitConfig(TRUE);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, sig);
+    if (s == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    HtpState *http_state = f.alstate;
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect for p1 */
+    SCLogInfo("p1");
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if (PacketAlertCheck(p1, 1)) {
+        printf("sid 1 matched on p1 but should not have: ");
+        goto end;
+    }
+
+    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
+    if (r != 0) {
+        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    /* do detect for p2 */
+    SCLogInfo("p2");
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    if (!(PacketAlertCheck(p2, 1))) {
+        printf("sid 1 didn't match on p2 but should have: ");
+        goto end;
+    }
+
+    FlowVar *fv = FlowVarGet(&f, 1);
+    if (fv == NULL) {
+        printf("no flowvar: ");
+        goto end;
+    }
+
+    if (fv->data.fv_int.value != 2) {
+        printf("%u != %u: ", fv->data.fv_int.value, 2);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    return result;
+}
+
 #endif
 
 void DetectLuajitRegisterTests(void) {
@@ -1308,6 +1482,7 @@ void DetectLuajitRegisterTests(void) {
     UtRegisterTest("LuajitMatchTest01", LuajitMatchTest01, 1);
     UtRegisterTest("LuajitMatchTest02", LuajitMatchTest02, 1);
     UtRegisterTest("LuajitMatchTest03", LuajitMatchTest03, 1);
+    UtRegisterTest("LuajitMatchTest04", LuajitMatchTest04, 1);
 #endif
 }
 

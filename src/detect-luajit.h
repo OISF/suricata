@@ -37,6 +37,7 @@ typedef struct DetectLuajitThreadData {
 } DetectLuajitThreadData;
 
 #define DETECT_LUAJIT_MAX_FLOWVARS  15
+#define DETECT_LUAJIT_MAX_FLOWINTS  15
 
 typedef struct DetectLuajitData {
     int thread_ctx_id;
@@ -45,6 +46,8 @@ typedef struct DetectLuajitData {
     uint32_t flags;
     int alproto;
     char *buffername; /* buffer name in case of a single buffer */
+    uint16_t flowint[DETECT_LUAJIT_MAX_FLOWINTS];
+    uint16_t flowints;
     uint16_t flowvar[DETECT_LUAJIT_MAX_FLOWVARS];
     uint16_t flowvars;
 } DetectLuajitData;

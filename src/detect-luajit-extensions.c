@@ -266,6 +266,180 @@ int LuajitSetFlowvar(lua_State *luastate) {
     return 0;
 }
 
+static int LuajitGetFlowint(lua_State *luastate) {
+    uint16_t idx;
+    int id;
+    Flow *f;
+    FlowVar *fv;
+    DetectLuajitData *ld;
+    int need_flow_lock = 0;
+    uint32_t number;
+
+    /* need luajit data for id -> idx conversion */
+    lua_pushlightuserdata(luastate, (void *)&luaext_key_ld);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    ld = lua_touserdata(luastate, -1);
+    SCLogDebug("ld %p", ld);
+    if (ld == NULL) {
+        lua_pushnil(luastate);
+        lua_pushstring(luastate, "internal error: no ld");
+        return 2;
+    }
+
+    /* need flow */
+    lua_pushlightuserdata(luastate, (void *)&luaext_key_flow);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    f = lua_touserdata(luastate, -1);
+    SCLogDebug("f %p", f);
+    if (f == NULL) {
+        lua_pushnil(luastate);
+        lua_pushstring(luastate, "no flow");
+        return 2;
+    }
+
+    /* need flow lock hint */
+    lua_pushlightuserdata(luastate, (void *)&luaext_key_need_flow_lock);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    need_flow_lock = lua_toboolean(luastate, -1);
+
+    /* need flowvar idx */
+    if (!lua_isnumber(luastate, 1)) {
+        SCLogDebug("1st arg not a number");
+        lua_pushnil(luastate);
+        lua_pushstring(luastate, "1st arg not a number");
+        return 2;
+    }
+    id = lua_tonumber(luastate, 1);
+    if (id < 0 || id >= DETECT_LUAJIT_MAX_FLOWINTS) {
+        SCLogDebug("id %d", id);
+        lua_pushnil(luastate);
+        lua_pushstring(luastate, "flowvar id out of range");
+        return 2;
+    }
+    idx = ld->flowint[id];
+    if (idx == 0) {
+        SCLogDebug("idx %u", idx);
+        lua_pushnil(luastate);
+        lua_pushstring(luastate, "flowvar id uninitialized");
+        return 2;
+    }
+
+    /* lookup var */
+    if (need_flow_lock)
+        FLOWLOCK_RDLOCK(f);
+
+    fv = FlowVarGet(f, idx);
+    if (fv == NULL) {
+        SCLogDebug("fv NULL");
+        if (need_flow_lock)
+            FLOWLOCK_UNLOCK(f);
+
+        lua_pushnil(luastate);
+        lua_pushstring(luastate, "no flow var");
+        return 2;
+    }
+    number = fv->data.fv_int.value;
+
+    if (need_flow_lock)
+        FLOWLOCK_UNLOCK(f);
+
+    /* return value through luastate, as a luastring */
+    lua_pushnumber(luastate, (lua_Number)number);
+    SCLogDebug("retrieved flow:%p idx:%u value:%u", f, idx, number);
+
+    return 1;
+
+}
+
+int LuajitSetFlowint(lua_State *luastate) {
+    uint16_t idx;
+    int id;
+    Flow *f;
+    DetectEngineThreadCtx *det_ctx;
+    DetectLuajitData *ld;
+    int need_flow_lock = 0;
+    uint32_t number;
+    lua_Number luanumber;
+
+    /* need luajit data for id -> idx conversion */
+    lua_pushlightuserdata(luastate, (void *)&luaext_key_ld);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    ld = lua_touserdata(luastate, -1);
+    SCLogDebug("ld %p", ld);
+    if (ld == NULL) {
+        lua_pushnil(luastate);
+        lua_pushstring(luastate, "internal error: no ld");
+        return 2;
+    }
+
+    /* need det_ctx */
+    lua_pushlightuserdata(luastate, (void *)&luaext_key_det_ctx);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    det_ctx = lua_touserdata(luastate, -1);
+    SCLogDebug("det_ctx %p", det_ctx);
+    if (det_ctx == NULL) {
+        lua_pushnil(luastate);
+        lua_pushstring(luastate, "internal error: no det_ctx");
+        return 2;
+    }
+
+    /* need flow */
+    lua_pushlightuserdata(luastate, (void *)&luaext_key_flow);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    f = lua_touserdata(luastate, -1);
+    SCLogDebug("f %p", f);
+    if (f == NULL) {
+        lua_pushnil(luastate);
+        lua_pushstring(luastate, "no flow");
+        return 2;
+    }
+    /* need flow lock hint */
+    lua_pushlightuserdata(luastate, (void *)&luaext_key_need_flow_lock);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    need_flow_lock = lua_toboolean(luastate, -1);
+
+    /* need flowvar idx */
+    if (!lua_isnumber(luastate, 1)) {
+        lua_pushnil(luastate);
+        lua_pushstring(luastate, "1st arg not a number");
+        return 2;
+    }
+    id = lua_tonumber(luastate, 1);
+    if (id < 0 || id >= DETECT_LUAJIT_MAX_FLOWVARS) {
+        lua_pushnil(luastate);
+        lua_pushstring(luastate, "flowvar id out of range");
+        return 2;
+    }
+
+    if (!lua_isnumber(luastate, 2)) {
+        lua_pushnil(luastate);
+        lua_pushstring(luastate, "2nd arg not a number");
+        return 2;
+    }
+    luanumber = lua_tonumber(luastate, 2);
+    if (luanumber < 0 || id > (double)UINT_MAX) {
+        lua_pushnil(luastate);
+        lua_pushstring(luastate, "value out of range, value must be unsigned 32bit int");
+        return 2;
+    }
+    number = (uint32_t)luanumber;
+
+    idx = ld->flowint[id];
+    if (idx == 0) {
+        lua_pushnil(luastate);
+        lua_pushstring(luastate, "flowint id uninitialized");
+        return 2;
+    }
+
+    if (need_flow_lock)
+        FlowVarAddInt(f, idx, number);
+    else
+        FlowVarAddIntNoLock(f, idx, number);
+
+    SCLogDebug("stored flow:%p idx:%u value:%u", f, idx, number);
+    return 0;
+}
+
 void LuajitExtensionsMatchSetup(lua_State *lua_state, DetectLuajitData *ld, DetectEngineThreadCtx *det_ctx, Flow *f, int need_flow_lock) {
     SCLogDebug("det_ctx %p, f %p", det_ctx, f);
 
@@ -299,6 +473,12 @@ int LuajitRegisterExtensions(lua_State *lua_state) {
 
     lua_pushcfunction(lua_state, LuajitSetFlowvar);
     lua_setglobal(lua_state, "ScFlowvarSet");
+
+    lua_pushcfunction(lua_state, LuajitGetFlowint);
+    lua_setglobal(lua_state, "ScFlowintGet");
+
+    lua_pushcfunction(lua_state, LuajitSetFlowint);
+    lua_setglobal(lua_state, "ScFlowintSet");
     return 0;
 }
 
