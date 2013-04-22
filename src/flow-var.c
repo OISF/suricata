@@ -33,7 +33,7 @@
 #include "util-debug.h"
 
 /* puts a new value into a flowvar */
-void FlowVarUpdateStr(FlowVar *fv, uint8_t *value, uint16_t size) {
+static void FlowVarUpdateStr(FlowVar *fv, uint8_t *value, uint16_t size) {
     if (fv->data.fv_str.value)
         SCFree(fv->data.fv_str.value);
     fv->data.fv_str.value = value;
@@ -41,7 +41,7 @@ void FlowVarUpdateStr(FlowVar *fv, uint8_t *value, uint16_t size) {
 }
 
 /* puts a new value into a flowvar */
-void FlowVarUpdateInt(FlowVar *fv, uint32_t value) {
+static void FlowVarUpdateInt(FlowVar *fv, uint32_t value) {
     fv->data.fv_int.value = value;
 }
 
