@@ -719,7 +719,7 @@ TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
     if ( ret < 0 )
         goto err;
 
-    if (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH) {
+    if (PKT_IS_TCP(p) && (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH)) {
         uint8_t flag;
         if (p->flowflags & FLOW_PKT_TOSERVER) {
             flag = FLOW_PKT_TOCLIENT;
