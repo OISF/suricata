@@ -61,7 +61,9 @@ typedef struct FlowVar_ {
 
 /** Flowvar Interface API */
 
+void FlowVarAddStrNoLock(Flow *, uint16_t, uint8_t *, uint16_t);
 void FlowVarAddStr(Flow *, uint16_t, uint8_t *, uint16_t);
+void FlowVarAddIntNoLock(Flow *, uint16_t, uint32_t);
 void FlowVarAddInt(Flow *, uint16_t, uint32_t);
 FlowVar *FlowVarGet(Flow *, uint16_t);
 void FlowVarFree(FlowVar *);

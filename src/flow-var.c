@@ -45,9 +45,10 @@ static void FlowVarUpdateInt(FlowVar *fv, uint32_t value) {
     fv->data.fv_int.value = value;
 }
 
-/* get the flowvar with name 'name' from the flow
- *
- * name is a normal string*/
+/** \brief get the flowvar with index 'idx' from the flow
+ *  \note flow is not locked by this function, caller is
+ *        responsible
+ */
 FlowVar *FlowVarGet(Flow *f, uint16_t idx) {
     GenericVar *gv = f->flowvar;
 
@@ -60,14 +61,12 @@ FlowVar *FlowVarGet(Flow *f, uint16_t idx) {
 }
 
 /* add a flowvar to the flow, or update it */
-void FlowVarAddStr(Flow *f, uint16_t idx, uint8_t *value, uint16_t size) {
-    FLOWLOCK_WRLOCK(f);
-
+void FlowVarAddStrNoLock(Flow *f, uint16_t idx, uint8_t *value, uint16_t size) {
     FlowVar *fv = FlowVarGet(f, idx);
     if (fv == NULL) {
         fv = SCMalloc(sizeof(FlowVar));
         if (unlikely(fv == NULL))
-            goto out;
+            return;
 
         fv->type = DETECT_FLOWVAR;
         fv->datatype = FLOWVAR_TYPE_STR;
@@ -80,20 +79,22 @@ void FlowVarAddStr(Flow *f, uint16_t idx, uint8_t *value, uint16_t size) {
     } else {
         FlowVarUpdateStr(fv, value, size);
     }
+}
 
-out:
+/* add a flowvar to the flow, or update it */
+void FlowVarAddStr(Flow *f, uint16_t idx, uint8_t *value, uint16_t size) {
+    FLOWLOCK_WRLOCK(f);
+    FlowVarAddStrNoLock(f, idx, value, size);
     FLOWLOCK_UNLOCK(f);
 }
 
 /* add a flowvar to the flow, or update it */
-void FlowVarAddInt(Flow *f, uint16_t idx, uint32_t value) {
-    FLOWLOCK_WRLOCK(f);
-
+void FlowVarAddIntNoLock(Flow *f, uint16_t idx, uint32_t value) {
     FlowVar *fv = FlowVarGet(f, idx);
     if (fv == NULL) {
         fv = SCMalloc(sizeof(FlowVar));
         if (unlikely(fv == NULL))
-            goto out;
+            return;
 
         fv->type = DETECT_FLOWVAR;
         fv->datatype = FLOWVAR_TYPE_INT;
@@ -105,8 +106,12 @@ void FlowVarAddInt(Flow *f, uint16_t idx, uint32_t value) {
     } else {
         FlowVarUpdateInt(fv, value);
     }
+}
 
-out:
+/* add a flowvar to the flow, or update it */
+void FlowVarAddInt(Flow *f, uint16_t idx, uint32_t value) {
+    FLOWLOCK_WRLOCK(f);
+    FlowVarAddIntNoLock(f, idx, value);
     FLOWLOCK_UNLOCK(f);
 }
 
@@ -143,7 +148,7 @@ void FlowVarPrint(GenericVar *gv) {
             }
             SCLogDebug("\", Len \"%" PRIu16 "\"\n", fv->data.fv_str.value_len);
         } else if (fv->datatype == FLOWVAR_TYPE_INT) {
-            SCLogDebug("Name idx \"%" PRIu16 "\", Value \"%" PRIu16 "\"", fv->idx,
+            SCLogDebug("Name idx \"%" PRIu16 "\", Value \"%" PRIu32 "\"", fv->idx,
                     fv->data.fv_int.value);
         } else {
             SCLogDebug("Unknown data type at flowvars\n");
