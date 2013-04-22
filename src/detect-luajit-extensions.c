@@ -165,6 +165,7 @@ int LuajitSetFlowvar(lua_State *luastate) {
     uint8_t *buffer;
     DetectEngineThreadCtx *det_ctx;
     DetectLuajitData *ld;
+    int need_flow_lock = 0;
 
     /* need luajit data for id -> idx conversion */
     lua_pushlightuserdata(luastate, (void *)&luaext_key_ld);
@@ -198,6 +199,11 @@ int LuajitSetFlowvar(lua_State *luastate) {
         lua_pushstring(luastate, "no flow");
         return 2;
     }
+
+    /* need flow lock hint */
+    lua_pushlightuserdata(luastate, (void *)&luaext_key_need_flow_lock);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    need_flow_lock = lua_toboolean(luastate, -1);
 
     /* need flowvar idx */
     if (!lua_isnumber(luastate, 1)) {
@@ -252,15 +258,11 @@ int LuajitSetFlowvar(lua_State *luastate) {
     memcpy(buffer, str, len);
     buffer[len] = '\0';
 
-    if (DetectFlowvarStoreMatch(det_ctx, idx, buffer, len,
-                DETECT_FLOWVAR_TYPE_ALWAYS) < 0) {
-        SCLogInfo("store failed");
-        SCFree(buffer);
+    if (need_flow_lock)
+        FlowVarAddStr(f, idx, buffer, len);
+    else
+        FlowVarAddStrNoLock(f, idx, buffer, len);
 
-        lua_pushnil(luastate);
-        lua_pushstring(luastate, "store failed");
-        return 2;
-    }
     //SCLogInfo("stored:");
     //PrintRawDataFp(stdout,buffer,len);
     return 0;
