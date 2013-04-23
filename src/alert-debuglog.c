@@ -320,7 +320,7 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             /* This is an app layer or stream alert */
             int ret;
             uint8_t flag;
-            if ((! PKT_IS_TCP(p)) || p->flow == NULL ||
+            if (!(PKT_IS_TCP(p)) || p->flow == NULL ||
                     p->flow->protoctx == NULL) {
                 return TM_ECODE_OK;
             }
