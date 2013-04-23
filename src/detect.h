@@ -271,6 +271,9 @@ typedef struct DetectPort_ {
 
 #define SIG_FLAG_TLSSTORE               (1<<21)
 
+#define SIG_FLAG_MPM_DNS                (1<<22)
+#define SIG_FLAG_MPM_DNS_NEG            (1<<23)
+
 /* signature init flags */
 #define SIG_FLAG_INIT_DEONLY         1  /**< decode event only signature */
 #define SIG_FLAG_INIT_PACKET         (1<<1)  /**< signature has matches against a packet (as opposed to app layer) */
@@ -689,6 +692,7 @@ typedef struct DetectEngineCtx_ {
     int32_t sgh_mpm_context_hhhd;
     int32_t sgh_mpm_context_hrhhd;
     int32_t sgh_mpm_context_app_proto_detect;
+    int32_t sgh_mpm_context_dnsquery;
 
     /* the max local id used amongst all sigs */
     int32_t byte_extract_max_local_id;
@@ -905,6 +909,7 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_HAVEFILEMAGIC    (1 << 20)
 #define SIG_GROUP_HEAD_HAVEFILEMD5      (1 << 21)
 #define SIG_GROUP_HEAD_HAVEFILESIZE     (1 << 22)
+#define SIG_GROUP_HEAD_MPM_DNSQUERY     (1 << 23)
 
 typedef struct SigGroupHeadInitData_ {
     /* list of content containers
@@ -965,6 +970,7 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_huad_ctx_ts;
     MpmCtx *mpm_hhhd_ctx_ts;
     MpmCtx *mpm_hrhhd_ctx_ts;
+    MpmCtx *mpm_dnsquery_ctx_ts;
 
     MpmCtx *mpm_proto_tcp_ctx_tc;
     MpmCtx *mpm_proto_udp_ctx_tc;

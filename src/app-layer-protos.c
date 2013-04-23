@@ -49,6 +49,7 @@ const char *TmModuleAlprotoToString(int proto)
         CASE_CODE (ALPROTO_DCERPC);
         CASE_CODE (ALPROTO_DCERPC_UDP);
 
+        CASE_CODE (ALPROTO_DNS);
         CASE_CODE (ALPROTO_DNS_UDP);
         CASE_CODE (ALPROTO_DNS_TCP);
 

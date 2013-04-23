@@ -275,7 +275,10 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         }
 
         tx_id = AppLayerTransactionGetInspectId(f, flags);
+        SCLogDebug("tx_id %"PRIu64, tx_id);
         total_txs = AppLayerGetTxCnt(alproto, alstate);
+        SCLogDebug("total_txs %"PRIu64, total_txs);
+
         for (; tx_id < total_txs; tx_id++) {
             total_matches = 0;
             tx = AppLayerGetTx(alproto, alstate, tx_id);

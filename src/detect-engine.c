@@ -222,6 +222,22 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_DNSQUERY_INSPECT,
           0,
           DetectEngineInspectDnsQueryName },
+        /* specifically for UDP, register again
+         * allows us to use the alproto w/o translation
+         * in the detection engine */
+        { ALPROTO_DNS_UDP,
+          DETECT_SM_LIST_DNSQUERY_MATCH,
+          DE_STATE_FLAG_DNSQUERY_INSPECT,
+          DE_STATE_FLAG_DNSQUERY_INSPECT,
+          0,
+          DetectEngineInspectDnsQueryName },
+        /* dito for TCP */
+        { ALPROTO_DNS_TCP,
+          DETECT_SM_LIST_DNSQUERY_MATCH,
+          DE_STATE_FLAG_DNSQUERY_INSPECT,
+          DE_STATE_FLAG_DNSQUERY_INSPECT,
+          0,
+          DetectEngineInspectDnsQueryName },
     };
 
     struct tmp_t data_toclient[] = {

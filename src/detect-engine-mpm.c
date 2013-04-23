@@ -689,6 +689,36 @@ uint32_t HttpHRHPatternSearch(DetectEngineThreadCtx *det_ctx,
     SCReturnUInt(ret);
 }
 
+/**
+ * \brief DNS query match -- searches for one pattern per signature.
+ *
+ * \param det_ctx   Detection engine thread ctx.
+ * \param hrh       Buffer to inspect.
+ * \param hrh_len   buffer length.
+ * \param flags     Flags
+ *
+ *  \retval ret Number of matches.
+ */
+uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx,
+                              uint8_t *buffer, uint32_t buffer_len,
+                              uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret;
+
+    if (flags & STREAM_TOSERVER) {
+        if (det_ctx->sgh->mpm_dnsquery_ctx_ts == NULL)
+            SCReturnUInt(0);
+
+        ret = mpm_table[det_ctx->sgh->mpm_dnsquery_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_dnsquery_ctx_ts, &det_ctx->mtcu,
+                   &det_ctx->pmq, buffer, buffer_len);
+    }
+
+    SCReturnUInt(ret);
+}
+
 /** \brief Pattern match -- searches for only one pattern per signature.
  *
  *  \param det_ctx detection engine thread ctx
@@ -1109,6 +1139,15 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
         }
     }
 
+    /* dns query */
+    if (sh->mpm_dnsquery_ctx_ts != NULL) {
+        if (!sh->mpm_dnsquery_ctx_ts->global) {
+            mpm_table[sh->mpm_dnsquery_ctx_ts->mpm_type].DestroyCtx(sh->mpm_dnsquery_ctx_ts);
+            SCFree(sh->mpm_dnsquery_ctx_ts);
+        }
+        sh->mpm_dnsquery_ctx_ts = NULL;
+    }
+
     return;
 }
 
@@ -1510,6 +1549,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
         case DETECT_SM_LIST_HUADMATCH:
         case DETECT_SM_LIST_HHHDMATCH:
         case DETECT_SM_LIST_HRHHDMATCH:
+        case DETECT_SM_LIST_DNSQUERY_MATCH:
         {
             MpmCtx *mpm_ctx_ts = NULL;
             MpmCtx *mpm_ctx_tc = NULL;
@@ -1635,6 +1675,15 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 sig_flags |= SIG_FLAG_MPM_HTTP;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
                     sig_flags |= SIG_FLAG_MPM_HTTP_NEG;
+            } else if (sm_list == DETECT_SM_LIST_DNSQUERY_MATCH) {
+                if (s->flags & SIG_FLAG_TOSERVER)
+                    mpm_ctx_ts = sgh->mpm_dnsquery_ctx_ts;
+                if (s->flags & SIG_FLAG_TOCLIENT)
+                    mpm_ctx_tc = NULL;
+                sgh_flags = SIG_GROUP_HEAD_MPM_DNSQUERY;
+                sig_flags |= SIG_FLAG_MPM_DNS;
+                if (cd->flags & DETECT_CONTENT_NEGATED)
+                    sig_flags |= SIG_FLAG_MPM_DNS_NEG;
             }
 
             if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
@@ -2028,6 +2077,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     uint32_t has_co_hrhhd = 0;
     //uint32_t cnt = 0;
     uint32_t sig = 0;
+    /* sgh has at least one sig with dns_query */
+    int has_co_dnsquery = 0;
 
     /* see if this head has content and/or uricontent */
     for (sig = 0; sig < sh->sig_cnt; sig++) {
@@ -2092,6 +2143,10 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
         if (s->sm_lists[DETECT_SM_LIST_HRHHDMATCH] != NULL) {
             has_co_hrhhd = 1;
+        }
+
+        if (s->sm_lists[DETECT_SM_LIST_DNSQUERY_MATCH] != NULL) {
+            has_co_dnsquery = 1;
         }
     }
 
@@ -2376,6 +2431,24 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         MpmInitCtx(sh->mpm_hrhhd_ctx_tc, de_ctx->mpm_matcher, -1);
     }
 
+    if (has_co_dnsquery) {
+        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
+            sh->mpm_dnsquery_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_dnsquery, 0);
+        } else {
+            sh->mpm_dnsquery_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
+        }
+        if (sh->mpm_dnsquery_ctx_ts == NULL) {
+            SCLogDebug("sh->mpm_hrhhd_ctx == NULL. This should never happen");
+            exit(EXIT_FAILURE);
+        }
+
+#ifndef __SC_CUDA_SUPPORT__
+        MpmInitCtx(sh->mpm_dnsquery_ctx_ts, de_ctx->mpm_matcher, -1);
+#else
+        MpmInitCtx(sh->mpm_dnsquery_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
+#endif
+    }
+
     if (has_co_packet ||
         has_co_stream ||
         has_co_uri ||
@@ -2390,7 +2463,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         has_co_hrud ||
         has_co_huad ||
         has_co_hhhd ||
-        has_co_hrhhd) {
+        has_co_hrhhd ||
+        has_co_dnsquery) {
 
         PatternMatchPreparePopulateMpm(de_ctx, sh);
 
@@ -2779,6 +2853,17 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                  }
              }
          }
+         if (sh->mpm_dnsquery_ctx_ts != NULL) {
+             if (sh->mpm_dnsquery_ctx_ts->pattern_cnt == 0) {
+                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_dnsquery_ctx_ts);
+                 sh->mpm_dnsquery_ctx_ts = NULL;
+             } else {
+                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                     if (mpm_table[sh->mpm_dnsquery_ctx_ts->mpm_type].Prepare != NULL)
+                         mpm_table[sh->mpm_dnsquery_ctx_ts->mpm_type].Prepare(sh->mpm_dnsquery_ctx_ts);
+                 }
+             }
+         }
         //} /* if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) */
     } else {
         MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_proto_other_ctx);
@@ -2814,6 +2899,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         sh->mpm_hhhd_ctx_ts = NULL;
         MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hrhhd_ctx_ts);
         sh->mpm_hrhhd_ctx_ts = NULL;
+        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_dnsquery_ctx_ts);
+        sh->mpm_dnsquery_ctx_ts = NULL;
 
         MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_proto_tcp_ctx_tc);
         sh->mpm_proto_tcp_ctx_tc = NULL;

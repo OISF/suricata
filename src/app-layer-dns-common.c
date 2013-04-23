@@ -78,10 +78,11 @@ void *DNSGetTx(void *alstate, uint64_t tx_id) {
     DNSTransaction *tx = NULL;
 
     TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
-        SCLogDebug("tx->tx_num %u, tx_id %"PRIu64, tx->tx_num, tx_id);
+        SCLogDebug("tx->tx_num %u, tx_id %"PRIu64, tx->tx_num, (tx_id+1));
         if ((tx_id+1) != tx->tx_num)
             continue;
 
+        SCLogDebug("returning tx %p", tx);
         return tx;
     }
 

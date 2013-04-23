@@ -70,6 +70,8 @@ int DetectEngineInspectDnsQueryName(ThreadVars *tv,
     uint16_t buffer_len;
     int r = 0;
 
+    SCLogDebug("start");
+
     TAILQ_FOREACH(query, &tx->query_list, next) {
         SCLogDebug("tx %p query %p", tx, query);
         det_ctx->discontinue_matching = 0;

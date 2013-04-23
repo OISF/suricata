@@ -134,6 +134,8 @@ void SupportFastPatternForSigMatchTypes(void)
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HSCDMATCH, 3);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HSMDMATCH, 3);
 
+    SupportFastPatternForSigMatchList(DETECT_SM_LIST_DNSQUERY_MATCH, 2);
+
 #if 0
     SCFPSupportSMList *tmp = sm_fp_support_smlist_list;
     while (tmp != NULL) {
@@ -221,14 +223,16 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH] == NULL &&
         s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH] == NULL &&
         s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH] == NULL) {
+        s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH] == NULL &&
+        s->sm_lists_tail[DETECT_SM_LIST_DNSQUERY_MATCH] == NULL) {
         SCLogWarning(SC_WARN_COMPATIBILITY, "fast_pattern found inside the "
                      "rule, without a preceding content based keyword.  "
                      "Currently we provide fast_pattern support for content, "
                      "uricontent, http_client_body, http_server_body, http_header, "
                      "http_raw_header, http_method, http_cookie, "
                      "http_raw_uri, http_stat_msg, http_stat_code, "
-                     "http_user_agent, http_host or http_raw_host option");
+                     "http_user_agent, http_host, http_raw_host or "
+                     "dns_query option");
         return -1;
     }
 
@@ -246,7 +250,8 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
+            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH],
+            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DNSQUERY_MATCH]);
     if (pm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
                    "the rule, without a content context. Please use a "
