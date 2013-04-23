@@ -259,8 +259,8 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_MPM_PACKET_NEG         (1<<12)
 #define SIG_FLAG_MPM_STREAM             (1<<13)
 #define SIG_FLAG_MPM_STREAM_NEG         (1<<14)
-#define SIG_FLAG_MPM_HTTP               (1<<15)
-#define SIG_FLAG_MPM_HTTP_NEG           (1<<16)
+#define SIG_FLAG_MPM_APPLAYER           (1<<15)
+#define SIG_FLAG_MPM_APPLAYER_NEG       (1<<16)
 
 #define SIG_FLAG_REQUIRE_FLOWVAR        (1<<17) /**< signature can only match if a flowbit, flowvar or flowint is available. */
 
@@ -270,9 +270,6 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_TOCLIENT               (1<<20)
 
 #define SIG_FLAG_TLSSTORE               (1<<21)
-
-#define SIG_FLAG_MPM_DNS                (1<<22)
-#define SIG_FLAG_MPM_DNS_NEG            (1<<23)
 
 /* signature init flags */
 #define SIG_FLAG_INIT_DEONLY         1  /**< decode event only signature */

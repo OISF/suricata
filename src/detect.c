@@ -528,7 +528,7 @@ static inline int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThre
     }
 
     /* check for a pattern match of the one pattern in this sig. */
-    if (likely(s->flags & (SIG_FLAG_MPM_PACKET|SIG_FLAG_MPM_STREAM|SIG_FLAG_MPM_HTTP|SIG_FLAG_MPM_DNS)))
+    if (likely(s->flags & (SIG_FLAG_MPM_PACKET|SIG_FLAG_MPM_STREAM|SIG_FLAG_MPM_APPLAYER)))
     {
         /* filter out sigs that want pattern matches, but
          * have no matches */
@@ -543,12 +543,8 @@ static inline int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThre
                 if (!(s->flags & SIG_FLAG_MPM_STREAM_NEG)) {
                     return 0;
                 }
-            } else if (s->flags & SIG_FLAG_MPM_HTTP) {
-                if (!(s->flags & SIG_FLAG_MPM_HTTP_NEG)) {
-                    return 0;
-                }
-            } else if (s->flags & SIG_FLAG_MPM_DNS) {
-                if (!(s->flags & SIG_FLAG_MPM_DNS_NEG)) {
+            } else if (s->flags & SIG_FLAG_MPM_APPLAYER) {
+                if (!(s->flags & SIG_FLAG_MPM_APPLAYER_NEG)) {
                     return 0;
                 }
             }
