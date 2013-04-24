@@ -366,6 +366,13 @@ static inline int AppLayerDecoderEventsIsEventSet(AppLayerDecoderEvents *devents
     return 0;
 }
 
+#define AppLayerDecoderEventsResetEvents(devents)           \
+    do {                                                    \
+        if ((devents) != NULL) {                            \
+            (devents)->cnt = 0;                             \
+        }                                                   \
+    } while (0)
+
 #define AppLayerDecoderEventsFreeEvents(devents)            \
     do {                                                    \
         if ((devents) != NULL) {                            \

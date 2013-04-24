@@ -1028,16 +1028,12 @@ static int DetectDnsQueryTest07(void) {
         printf("(p3) sig 2 didn't alert, but it should have: ");
         goto end;
     }
-    /* VJ currently we when we reset de_state we reset AMATCH too,
-     * this resets app-layer-event matching as well. However, we
-     * are not clearing/reseting app events, so we match over and
-     * over again */
-#if 0
+    /** \todo should not alert, bug #839
     if (PacketAlertCheck(p3, 3)) {
-        printf("(p3) sig 3 did alerted, but it should not have: ");
+        printf("(p3) sig 3 did alert, but it should not have: ");
         goto end;
     }
-#endif
+    */
     result = 1;
 
 end:
