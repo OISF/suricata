@@ -869,6 +869,192 @@ end:
     return result;
 }
 
+/** \test multi tx google.(com|net) query matching +
+ *        app layer event */
+static int DetectDnsQueryTest07(void) {
+    /* google.com */
+    uint8_t buf1[] = {  0x10, 0x32, 0x01, 0x00, 0x00, 0x01,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C,
+                        0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,
+                        0x00, 0x01, 0x00, 0x01, };
+
+    uint8_t buf2[] = {  0x10, 0x32,                             /* tx id */
+                        0x81, 0x80|0x40,                        /* flags: resp, recursion desired, recusion available */
+                        0x00, 0x01,                             /* 1 query */
+                        0x00, 0x01,                             /* 1 answer */
+                        0x00, 0x00, 0x00, 0x00,                 /* no auth rr, additional rr */
+                        /* query record */
+                        0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C,     /* name */
+                        0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,     /* name cont */
+                        0x00, 0x01, 0x00, 0x01,                 /* type a, class in */
+                        /* answer */
+                        0xc0, 0x0c,                             /* ref to name in query above */
+                        0x00, 0x01, 0x00, 0x01,                 /* type a, class in */
+                        0x00, 0x01, 0x40, 0xef,                 /* ttl */
+                        0x00, 0x04,                             /* data len */
+                        0x01, 0x02, 0x03, 0x04 };               /* addr */
+
+    /* google.net */
+    uint8_t buf3[] = {  0x11, 0x33, 0x01, 0x00, 0x00, 0x01,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C,
+                        0x65, 0x03, 0x6E, 0x65, 0x74, 0x00,
+                        0x00, 0x10, 0x00, 0x01, };
+    int result = 0;
+    Flow f;
+    DNSState *dns_state = NULL;
+    Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+
+    p1 = UTHBuildPacket(buf1, sizeof(buf1), IPPROTO_UDP);
+    p2 = UTHBuildPacket(buf2, sizeof(buf2), IPPROTO_UDP);
+    p3 = UTHBuildPacket(buf3, sizeof(buf3), IPPROTO_UDP);
+
+    FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_IPV4;
+    f.proto = IPPROTO_UDP;
+    f.alproto = ALPROTO_DNS_UDP;
+
+    p1->flow = &f;
+    p1->flags |= PKT_HAS_FLOW;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->pcap_cnt = 1;
+
+    p2->flow = &f;
+    p2->flags |= PKT_HAS_FLOW;
+    p2->flowflags |= FLOW_PKT_TOCLIENT;
+    p2->pcap_cnt = 2;
+
+    p3->flow = &f;
+    p3->flags |= PKT_HAS_FLOW;
+    p3->flowflags |= FLOW_PKT_TOSERVER;
+    p3->pcap_cnt = 3;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_AC;
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
+                                   "(msg:\"Test dns_query option\"; "
+                                   "content:\"google.com\"; nocase; dns_query; sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
+                                   "(msg:\"Test dns_query option\"; "
+                                   "content:\"google.net\"; nocase; dns_query; sid:2;)");
+    if (s == NULL) {
+        goto end;
+    }
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
+                                   "(msg:\"Test Z flag event\"; "
+                                   "app-layer-event:dns.z_flag_set; sid:3;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(NULL, &f, ALPROTO_DNS_UDP, STREAM_TOSERVER, buf1, sizeof(buf1));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    dns_state = f.alstate;
+    if (dns_state == NULL) {
+        printf("no dns state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p1);
+
+    if (!(PacketAlertCheck(p1, 1))) {
+        printf("(p1) sig 1 didn't alert, but it should have: ");
+        goto end;
+    }
+    if (PacketAlertCheck(p1, 2)) {
+        printf("(p1) sig 2 did alert, but it should not have: ");
+        goto end;
+    }
+
+    r = AppLayerParse(NULL, &f, ALPROTO_DNS_UDP, STREAM_TOCLIENT, buf2, sizeof(buf2));
+    if (r != -1) {
+        printf("toserver client 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p2);
+
+    if (PacketAlertCheck(p2, 1)) {
+        printf("(p2) sig 1 alerted, but it should not have: ");
+        goto end;
+    }
+    if (PacketAlertCheck(p2, 2)) {
+        printf("(p2) sig 2 alerted, but it should not have: ");
+        goto end;
+    }
+    if (!(PacketAlertCheck(p2, 3))) {
+        printf("(p2) sig 3 didn't alert, but it should have: ");
+        goto end;
+    }
+
+    r = AppLayerParse(NULL, &f, ALPROTO_DNS_UDP, STREAM_TOSERVER, buf3, sizeof(buf3));
+    if (r != 0) {
+        printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p3);
+
+    if (PacketAlertCheck(p3, 1)) {
+        printf("(p3) sig 1 alerted, but it should not have: ");
+        goto end;
+    }
+    if (!(PacketAlertCheck(p3, 2))) {
+        printf("(p3) sig 2 didn't alert, but it should have: ");
+        goto end;
+    }
+    /* VJ currently we when we reset de_state we reset AMATCH too,
+     * this resets app-layer-event matching as well. However, we
+     * are not clearing/reseting app events, so we match over and
+     * over again */
+#if 0
+    if (PacketAlertCheck(p3, 3)) {
+        printf("(p3) sig 3 did alerted, but it should not have: ");
+        goto end;
+    }
+#endif
+    result = 1;
+
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p1);
+    UTHFreePacket(p2);
+    UTHFreePacket(p3);
+    return result;
+}
+
 #endif
 
 static void DetectDnsQueryRegisterTests(void) {
@@ -879,5 +1065,6 @@ static void DetectDnsQueryRegisterTests(void) {
     UtRegisterTest("DetectDnsQueryTest04 -- tcp splicing", DetectDnsQueryTest04, 1);
     UtRegisterTest("DetectDnsQueryTest05 -- tcp splicing/multi tx", DetectDnsQueryTest05, 1);
     UtRegisterTest("DetectDnsQueryTest06 -- pcre", DetectDnsQueryTest06, 1);
+    UtRegisterTest("DetectDnsQueryTest07 -- app layer event", DetectDnsQueryTest07, 1);
 #endif
 }
