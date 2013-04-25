@@ -1426,7 +1426,7 @@ int main(int argc, char **argv)
             case RUNMODE_PFRING:
                 /* FIXME this don't work effficiently in multiinterface */
                 /* find payload for interface and use it */
-                default_packet_size = GetIfaceMaxPayloadSize(pcap_dev);
+                default_packet_size = GetIfaceMaxPacketSize(pcap_dev);
                 if (default_packet_size)
                     break;
             default:

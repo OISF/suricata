@@ -97,7 +97,7 @@ int GetIfaceMTU(char *pcap_dev)
 }
 
 /**
- * \brief output max payload size for a link
+ * \brief output max packet size for a link
  *
  * This does a best effort to find the maximum packet size
  * for the link. In case of uncertainty, it will output a
@@ -106,7 +106,7 @@ int GetIfaceMTU(char *pcap_dev)
  * \param Name of a network interface
  * \retval 0 in case of error
  */
-int GetIfaceMaxPayloadSize(char *pcap_dev)
+int GetIfaceMaxPacketSize(char *pcap_dev)
 {
     int ll_header = GetIfaceMaxHWHeaderLength(pcap_dev);
     int mtu = GetIfaceMTU(pcap_dev);
