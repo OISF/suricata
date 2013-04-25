@@ -415,7 +415,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     if (pcapconfig->snaplen == 0) {
         /* We set snaplen if we can get the MTU */
-        ptv->pcap_snaplen = GetIfaceMTU(pcapconfig->iface);
+        ptv->pcap_snaplen = GetIfaceMaxPayloadSize(pcapconfig->iface);
     } else {
         ptv->pcap_snaplen = pcapconfig->snaplen;
     }
@@ -562,7 +562,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     if (pcapconfig->snaplen == 0) {
         /* We try to set snaplen from MTU value */
-        ptv->pcap_snaplen = GetIfaceMTU(pcapconfig->iface);
+        ptv->pcap_snaplen = GetIfaceMaxPayloadSize(pcapconfig->iface);
         /* be conservative with old pcap lib to mimic old tcpdump behavior
            when MTU was not available. */
         if (ptv->pcap_snaplen <= 0)
