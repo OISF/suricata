@@ -132,6 +132,8 @@ typedef struct DNSTransaction_ {
     TAILQ_HEAD(, DNSAnswerEntry_) answer_list;      /**< list for answers */
     TAILQ_HEAD(, DNSAnswerEntry_) authority_list;   /**< list for authority records */
 
+    AppLayerDecoderEvents *decoder_events;          /**< per tx events */
+
     TAILQ_ENTRY(DNSTransaction_) next;
 } DNSTransaction;
 
@@ -162,11 +164,13 @@ DNSTransaction *DNSTransactionAlloc(const uint16_t tx_id);
 void DNSTransactionFree(DNSTransaction *tx);
 DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16_t tx_id);
 
+void DNSSetEvent(DNSState *s, uint8_t e);
 void *DNSStateAlloc(void);
 void DNSStateFree(void *s);
+AppLayerDecoderEvents *DNSGetEvents(void *state, uint64_t id);
 
-int DNSValidateRequestHeader(Flow *f, const DNSHeader *dns_header);
-int DNSValidateResponseHeader(Flow *f, const DNSHeader *dns_header);
+int DNSValidateRequestHeader(DNSState *, const DNSHeader *dns_header);
+int DNSValidateResponseHeader(DNSState *, const DNSHeader *dns_header);
 
 void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16_t fqdn_len,
         const uint16_t type, const uint16_t class, const uint16_t tx_id);

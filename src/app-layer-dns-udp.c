@@ -71,7 +71,7 @@ static int DNSUDPRequestParse(Flow *f, void *dstate,
     DNSHeader *dns_header = (DNSHeader *)input;
     SCLogDebug("DNS %p", dns_header);
 
-    if (DNSValidateRequestHeader(f, dns_header) < 0)
+    if (DNSValidateRequestHeader(dns_state, dns_header) < 0)
         goto bad_data;
 
     uint16_t q;
@@ -183,12 +183,7 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
             break;
         }
     }
-    if (!found) {
-        SCLogDebug("DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE");
-        AppLayerDecoderEventsSetEvent(f, DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE);
-    }
-
-    if (DNSValidateResponseHeader(f, dns_header) < 0)
+    if (DNSValidateResponseHeader(dns_state, dns_header) < 0)
         goto bad_data;
 
     uint16_t q;
@@ -272,11 +267,16 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
         }
     }
 
+    if (!found) {
+        SCLogDebug("DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE");
+        DNSSetEvent(dns_state, DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE);
+    }
+
 	SCReturnInt(1);
 
 bad_data:
 insufficient_data:
-    AppLayerDecoderEventsSetEvent(f, DNS_DECODER_EVENT_MALFORMED_DATA);
+    DNSSetEvent(dns_state, DNS_DECODER_EVENT_MALFORMED_DATA);
     SCReturnInt(-1);
 }
 
@@ -345,6 +345,7 @@ void RegisterDNSUDPParsers(void) {
 			DNSStateFree);
     AppLayerRegisterTransactionIdFuncs(ALPROTO_DNS_UDP,
             DNSStateUpdateTransactionId, DNSStateTransactionFree);
+    AppLayerRegisterGetEventsFunc(ALPROTO_DNS_UDP, DNSGetEvents);
 
     AppLayerRegisterGetTx(ALPROTO_DNS_UDP,
             DNSGetTx);
