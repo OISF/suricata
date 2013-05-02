@@ -73,16 +73,36 @@ int DetectAppLayerEventMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                              SigMatch *m)
 {
     SCEnter();
+    AppLayerDecoderEvents *decoder_events = NULL;
     int r = 0;
-
+    uint64_t tx_id = 0, max_id;
     DetectAppLayerEventData *aled = (DetectAppLayerEventData *)m->ctx;
 
     FLOWLOCK_RDLOCK(f);
 
-    AppLayerDecoderEvents *decoder_events = AppLayerGetDecoderEventsForFlow(f);
-    if (decoder_events != NULL &&
-            AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
-        r = 1;
+    /* inspect TX events first if we need to */
+    if (AppLayerProtoIsTxEventAware(f->alproto)) {
+        SCLogDebug("proto is AppLayerProtoIsTxEventAware true");
+
+        tx_id = AppLayerTransactionGetInspectId(f, flags);
+        max_id = AppLayerGetTxCnt(f->alproto, f->alstate);
+
+        for ( ; tx_id < max_id; tx_id++) {
+            decoder_events = AppLayerGetEventsFromFlowByTx(f, tx_id);
+            if (decoder_events != NULL &&
+                    AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
+                r = 1;
+                break;
+            }
+        }
+    }
+
+    if (r == 0) {
+        decoder_events = AppLayerGetDecoderEventsForFlow(f);
+        if (decoder_events != NULL &&
+                AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
+            r = 1;
+        }
     }
 
     FLOWLOCK_UNLOCK(f);

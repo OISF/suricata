@@ -313,6 +313,42 @@ static inline int AppLayerDecoderEventsIsEventSet(int module_id,
 /**
  * \brief Set an app layer decoder event.
  *
+ * \param sevents Pointer to a DecoderEvents pointer head.  If
+ *                the head points to a DecoderEvents instance, a
+ *                new instance would be created and the pointer head would
+ *                would be updated with this new instance
+ * \param event   The event to be stored.
+ */
+#define AppLayerDecoderEventsSetEventRaw(sevents, event)                \
+    do {                                                                \
+        AppLayerDecoderEvents *devents = (sevents);                     \
+        if (devents == NULL) {                                          \
+            AppLayerDecoderEvents *new_devents =                        \
+                SCMalloc(sizeof(AppLayerDecoderEvents));                \
+            if (new_devents == NULL)                                    \
+                break;                                                  \
+            memset(new_devents, 0, sizeof(AppLayerDecoderEvents));      \
+            (sevents) = devents = new_devents;                          \
+        }                                                               \
+        if (devents->cnt == devents->events_buffer_size) {              \
+            devents->events = SCRealloc(devents->events,                \
+                                       (devents->cnt +                  \
+                                        DECODER_EVENTS_BUFFER_STEPS) *  \
+                                        sizeof(uint8_t));               \
+            if (devents->events == NULL) {                              \
+                devents->events_buffer_size = 0;                        \
+                devents->cnt = 0;                                       \
+                (sevents) = NULL;                                       \
+                break;                                                  \
+            }                                                           \
+            devents->events_buffer_size += DECODER_EVENTS_BUFFER_STEPS; \
+        }                                                               \
+        devents->events[devents->cnt++] = (event);                      \
+    } while (0)
+
+/**
+ * \brief Set an app layer decoder event.
+ *
  * \param devents_head Pointer to a DecoderEvents pointer head.  If
  *                     the head points to a DecoderEvents instance, a
  *                     new instance would be created and the pointer head would

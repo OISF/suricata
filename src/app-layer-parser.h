@@ -58,6 +58,7 @@ typedef struct AppLayerProto_ {
     /** truncate state after a gap/depth event */
     void (*Truncate)(void *, uint8_t);
     FileContainer *(*StateGetFiles)(void *, uint8_t);
+    AppLayerDecoderEvents *(*StateGetEvents)(void *, uint64_t);
 
     int (*StateGetAlstateProgress)(void *alstate, uint8_t direction);
     uint64_t (*StateGetTxCnt)(void *alstate);
@@ -258,6 +259,8 @@ void AppLayerRegisterLocalStorageFunc(uint16_t proto,
 void *AppLayerGetProtocolParserLocalStorage(uint16_t);
 void AppLayerRegisterGetFilesFunc(uint16_t proto,
         FileContainer *(*StateGetFile)(void *, uint8_t));
+void AppLayerRegisterGetEventsFunc(uint16_t proto,
+        AppLayerDecoderEvents *(*StateGetEvents)(void *, uint64_t));
 void AppLayerRegisterLogger(uint16_t proto);
 uint16_t AppLayerGetProtoByName(const char *);
 const char *AppLayerGetProtoString(int proto);
@@ -332,6 +335,9 @@ void AppLayerPrintProbingParsers(AppLayerProbingParser *);
 
 void AppLayerListSupportedProtocols(void);
 AppLayerDecoderEvents *AppLayerGetDecoderEventsForFlow(Flow *);
+AppLayerDecoderEvents *AppLayerGetEventsFromFlowByTx(Flow *f, uint64_t tx_id);
+int AppLayerProtoIsTxEventAware(uint16_t alproto);
+int AppLayerFlowHasDecoderEvents(Flow *f, uint8_t flags);
 
 /***** Alproto param retrieval ******/
 
