@@ -203,7 +203,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
  *
  *  \note flow should be locked when this function's called.
  */
-int DetectFileInspectHttp(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags, void *alstate, int tx_id) {
+int DetectFileInspectHttp(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags, void *alstate, uint64_t tx_id) {
     int r = 0;
     FileContainer *ffc;
     HtpState *htp_state = (HtpState *)alstate;

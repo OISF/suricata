@@ -60,7 +60,7 @@ typedef struct FileData_ {
 
 typedef struct File_ {
     uint16_t flags;
-    uint16_t txid;                  /**< tx this file is part of */
+    uint64_t txid;                  /**< tx this file is part of */
     unsigned int file_id;
     uint8_t *name;
     uint16_t name_len;

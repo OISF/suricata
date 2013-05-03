@@ -707,6 +707,8 @@ typedef struct DetectEngineCtx_ {
 #ifdef PROFILING
     struct SCProfileDetectCtx_ *profile_ctx;
 #endif
+
+    int alert_cnt_de_state;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
@@ -823,7 +825,7 @@ typedef struct DetectionEngineThreadCtx_ {
      * function to finalize the store. */
     struct {
         uint16_t file_id;
-        uint16_t tx_id;
+        uint64_t tx_id;
     } filestore[DETECT_FILESTORE_MAX];
 
     DetectEngineCtx *de_ctx;
@@ -876,27 +878,28 @@ typedef struct SigTableElmt_ {
 
 } SigTableElmt;
 
-#define SIG_GROUP_HEAD_MPM_COPY         (1)
-#define SIG_GROUP_HEAD_MPM_URI_COPY     (1 << 1)
-#define SIG_GROUP_HEAD_MPM_STREAM_COPY  (1 << 2)
-#define SIG_GROUP_HEAD_FREE             (1 << 3)
-#define SIG_GROUP_HEAD_MPM_PACKET       (1 << 4)
-#define SIG_GROUP_HEAD_MPM_STREAM       (1 << 5)
-#define SIG_GROUP_HEAD_MPM_URI          (1 << 6)
-#define SIG_GROUP_HEAD_MPM_HCBD         (1 << 7)
-#define SIG_GROUP_HEAD_MPM_HHD          (1 << 8)
-#define SIG_GROUP_HEAD_MPM_HRHD         (1 << 9)
-#define SIG_GROUP_HEAD_MPM_HMD          (1 << 10)
-#define SIG_GROUP_HEAD_MPM_HCD          (1 << 11)
-#define SIG_GROUP_HEAD_MPM_HRUD         (1 << 12)
-#define SIG_GROUP_HEAD_REFERENCED       (1 << 13) /**< sgh is being referenced by others, don't clear */
-#define SIG_GROUP_HEAD_HAVEFILEMAGIC    (1 << 14)
-#define SIG_GROUP_HEAD_MPM_HSBD         (1 << 15)
-#define SIG_GROUP_HEAD_MPM_HSMD         (1 << 16)
-#define SIG_GROUP_HEAD_MPM_HSCD         (1 << 17)
-#define SIG_GROUP_HEAD_MPM_HUAD         (1 << 18)
-#define SIG_GROUP_HEAD_MPM_HHHD         (1 << 19)
-#define SIG_GROUP_HEAD_MPM_HRHHD        (1 << 20)
+#define SIG_GROUP_HEAD_MPM_URI          (1)
+#define SIG_GROUP_HEAD_MPM_HCBD         (1 << 1)
+#define SIG_GROUP_HEAD_MPM_HHD          (1 << 2)
+#define SIG_GROUP_HEAD_MPM_HRHD         (1 << 3)
+#define SIG_GROUP_HEAD_MPM_HMD          (1 << 4)
+#define SIG_GROUP_HEAD_MPM_HCD          (1 << 5)
+#define SIG_GROUP_HEAD_MPM_HRUD         (1 << 6)
+#define SIG_GROUP_HEAD_MPM_HSBD         (1 << 7)
+#define SIG_GROUP_HEAD_MPM_HSMD         (1 << 8)
+#define SIG_GROUP_HEAD_MPM_HSCD         (1 << 9)
+#define SIG_GROUP_HEAD_MPM_HUAD         (1 << 10)
+#define SIG_GROUP_HEAD_MPM_HHHD         (1 << 11)
+#define SIG_GROUP_HEAD_MPM_HRHHD        (1 << 12)
+
+#define SIG_GROUP_HEAD_MPM_COPY         (1 << 13)
+#define SIG_GROUP_HEAD_MPM_URI_COPY     (1 << 14)
+#define SIG_GROUP_HEAD_MPM_STREAM_COPY  (1 << 15)
+#define SIG_GROUP_HEAD_FREE             (1 << 16)
+#define SIG_GROUP_HEAD_MPM_PACKET       (1 << 17)
+#define SIG_GROUP_HEAD_MPM_STREAM       (1 << 18)
+#define SIG_GROUP_HEAD_REFERENCED       (1 << 19) /**< sgh is being referenced by others, don't clear */
+#define SIG_GROUP_HEAD_HAVEFILEMAGIC    (1 << 20)
 #define SIG_GROUP_HEAD_HAVEFILEMD5      (1 << 21)
 #define SIG_GROUP_HEAD_HAVEFILESIZE     (1 << 22)
 
@@ -1157,6 +1160,10 @@ int SignatureIsFilesizeInspecting(Signature *);
 
 int DetectRegisterThreadCtxFuncs(DetectEngineCtx *, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int);
 void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *, int);
+
+int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
+                                   DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
+                                   Signature *s);
 
 #endif /* __DETECT_H__ */
 

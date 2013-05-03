@@ -380,14 +380,14 @@ static int DetectLuajitMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         FLOWLOCK_RDLOCK(p->flow);
         HtpState *htp_state = p->flow->alstate;
         if (htp_state != NULL && htp_state->connp != NULL && htp_state->connp->conn != NULL) {
-            int idx = AppLayerTransactionGetInspectId(p->flow);
+            uint64_t idx = AppLayerTransactionGetInspectId(p->flow, flags);
             if (idx != -1) {
                 htp_tx_t *tx = NULL;
 
-                int size = (int)list_size(htp_state->connp->conn->transactions);
+                uint64_t total_txs= AppLayerGetNoOfTxs(ALPROTO_HTTP, htp_state);
                 for ( ; idx < size; idx++)
                 {
-                    tx = list_get(htp_state->connp->conn->transactions, idx);
+                    tx = AppLayerGetTx(http_state, idx);
                     if (tx == NULL)
                         continue;
 

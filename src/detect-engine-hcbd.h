@@ -27,14 +27,14 @@
 
 #include "app-layer-htp.h"
 
-int DetectEngineRunHttpClientBodyMpm(DetectEngineCtx *,
-                                     DetectEngineThreadCtx *, Flow *f,
-                                     HtpState *, uint8_t);
+int DetectEngineRunHttpClientBodyMpm(DetectEngineCtx *de_ctx,
+                                     DetectEngineThreadCtx *det_ctx, Flow *f,
+                                     HtpState *htp_state, uint8_t flags, uint64_t idx);
 int DetectEngineInspectHttpClientBody(ThreadVars *tv,
-                                      DetectEngineCtx *,
-                                      DetectEngineThreadCtx *,
-                                      Signature *, Flow *,
-                                      uint8_t, void *, int);
+                                      DetectEngineCtx *de_ctx,
+                                      DetectEngineThreadCtx *det_ctx,
+                                      Signature *s, Flow *f, uint8_t flags,
+                                      void *alstate, uint64_t tx_id);
 void DetectEngineCleanHCBDBuffers(DetectEngineThreadCtx *);
 
 void DetectEngineHttpClientBodyRegisterTests(void);
