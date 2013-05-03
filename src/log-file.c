@@ -104,7 +104,7 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
 static void LogFileMetaGetUri(FILE *fp, Packet *p, File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
-        htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, ff->txid);
+        htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL && tx->request_uri_normalized != NULL) {
             PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(tx->request_uri_normalized),
                     bstr_len(tx->request_uri_normalized));
@@ -118,7 +118,7 @@ static void LogFileMetaGetUri(FILE *fp, Packet *p, File *ff) {
 static void LogFileMetaGetHost(FILE *fp, Packet *p, File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
-        htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, ff->txid);
+        htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL) {
             table_t *headers;
             headers = tx->request_headers;
@@ -142,7 +142,7 @@ static void LogFileMetaGetHost(FILE *fp, Packet *p, File *ff) {
 static void LogFileMetaGetReferer(FILE *fp, Packet *p, File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
-        htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, ff->txid);
+        htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL) {
             table_t *headers;
             headers = tx->request_headers;
@@ -166,7 +166,7 @@ static void LogFileMetaGetReferer(FILE *fp, Packet *p, File *ff) {
 static void LogFileMetaGetUserAgent(FILE *fp, Packet *p, File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
-        htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, ff->txid);
+        htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL) {
             table_t *headers;
             headers = tx->request_headers;
