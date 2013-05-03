@@ -1984,10 +1984,10 @@ char *htp_connp_out_state_as_string(htp_connp_t *connp) {
 /**
  *
  */
-char *htp_tx_progress_as_string(htp_tx_t *tx) {
+char *htp_tx_progress_as_string(htp_tx_t *tx, int direction) {
     if (tx == NULL) return "NULL";
 
-    switch (tx->progress) {
+    switch ((direction == 0) ? tx->progress[0] : tx->progress[1]) {
         case TX_PROGRESS_NEW:
             return "NEW";
         case TX_PROGRESS_REQ_LINE:
@@ -2171,7 +2171,7 @@ bstr *htp_tx_generate_request_headers_raw(htp_tx_t *tx) {
  */
 bstr *htp_tx_get_request_headers_raw(htp_tx_t *tx) {
     // Check that we are not called too early
-    if (tx->progress < TX_PROGRESS_REQ_HEADERS) return NULL;
+    if (tx->progress[0] < TX_PROGRESS_REQ_HEADERS) return NULL;
 
     if (tx->request_headers_raw == NULL) {
         tx->request_headers_raw = htp_tx_generate_request_headers_raw(tx);
@@ -2241,7 +2241,7 @@ bstr *htp_tx_generate_response_headers_raw(htp_tx_t *tx) {
  */
 bstr *htp_tx_get_response_headers_raw(htp_tx_t *tx) {
     // Check that we are not called too early
-    if (tx->progress < TX_PROGRESS_RES_HEADERS) return NULL;
+    if (tx->progress[1] < TX_PROGRESS_RES_HEADERS) return NULL;
 
     if (tx->response_headers_raw == NULL) {
         tx->response_headers_raw = htp_tx_generate_response_headers_raw(tx);
