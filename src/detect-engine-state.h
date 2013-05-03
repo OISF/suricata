@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -28,6 +28,7 @@
  *        state for the detection engine.
  *
  * \author Victor Julien <victor@inliniac.net>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
 /* On DeState and locking.
@@ -47,112 +48,164 @@
 #ifndef __DETECT_ENGINE_STATE_H__
 #define __DETECT_ENGINE_STATE_H__
 
+#define DETECT_ENGINE_INSPECT_SIG_NO_MATCH 0
+#define DETECT_ENGINE_INSPECT_SIG_MATCH 1
+#define DETECT_ENGINE_INSPECT_SIG_CANT_MATCH 2
+#define DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE 3
+
 /** number of DeStateStoreItem's in one DeStateStore object */
 #define DE_STATE_CHUNK_SIZE             15
 
-/* per stored sig flags */
-#define DE_STATE_FLAG_PAYLOAD_MATCH     1 /**< payload part of the sig matched */
-#define DE_STATE_FLAG_URI_MATCH         1 << 1 /**< uri part of the sig matched */
-#define DE_STATE_FLAG_DCE_MATCH         1 << 2 /**< dce payload inspection part matched */
-#define DE_STATE_FLAG_HCBD_MATCH        1 << 3 /**< hcbd payload inspection part matched */
-#define DE_STATE_FLAG_HSBD_MATCH        1 << 4 /**< hcbd payload inspection part matched */
-#define DE_STATE_FLAG_HHD_MATCH         1 << 5 /**< hhd payload inspection part matched */
-#define DE_STATE_FLAG_HRHD_MATCH        1 << 6 /**< hrhd payload inspection part matched */
-#define DE_STATE_FLAG_HMD_MATCH         1 << 7 /**< hmd payload inspection part matched */
-#define DE_STATE_FLAG_HCD_MATCH         1 << 8 /**< hcd payload inspection part matched */
-#define DE_STATE_FLAG_HRUD_MATCH        1 << 9 /**< hrud payload inspection part matched */
-#define DE_STATE_FLAG_FILE_TC_MATCH     1 << 10
-#define DE_STATE_FLAG_FILE_TS_MATCH     1 << 11
-#define DE_STATE_FLAG_FULL_MATCH        1 << 12 /**< sig already fully matched */
-#define DE_STATE_FLAG_SIG_CANT_MATCH    1 << 13 /**< signature has no chance of matching */
-#define DE_STATE_FLAG_HSMD_MATCH        1 << 14 /**< hsmd payload inspection part matched */
-#define DE_STATE_FLAG_HSCD_MATCH        1 << 15 /**< hscd payload inspection part matched */
-#define DE_STATE_FLAG_HUAD_MATCH        1 << 16 /**< huad payload inspection part matched */
-#define DE_STATE_FLAG_HHHD_MATCH        1 << 17 /**< hhhd payload inspection part matched */
-#define DE_STATE_FLAG_HRHHD_MATCH       1 << 18 /**< hrhhd payload inspection part matched */
-
-#define DE_STATE_FLAG_URI_INSPECT       DE_STATE_FLAG_URI_MATCH     /**< uri part of the sig inspected */
-#define DE_STATE_FLAG_DCE_INSPECT       DE_STATE_FLAG_DCE_MATCH     /**< dce payload inspection part inspected */
-#define DE_STATE_FLAG_HCBD_INSPECT      DE_STATE_FLAG_HCBD_MATCH    /**< hcbd payload inspection part inspected */
-#define DE_STATE_FLAG_HSBD_INSPECT      DE_STATE_FLAG_HSBD_MATCH    /**< hsbd payload inspection part inspected */
-#define DE_STATE_FLAG_HHD_INSPECT       DE_STATE_FLAG_HHD_MATCH     /**< hhd payload inspection part inspected */
-#define DE_STATE_FLAG_HRHD_INSPECT      DE_STATE_FLAG_HRHD_MATCH    /**< hrhd payload inspection part inspected */
-#define DE_STATE_FLAG_HMD_INSPECT       DE_STATE_FLAG_HMD_MATCH     /**< hmd payload inspection part inspected */
-#define DE_STATE_FLAG_HCD_INSPECT       DE_STATE_FLAG_HCD_MATCH     /**< hcd payload inspection part inspected */
-#define DE_STATE_FLAG_HRUD_INSPECT      DE_STATE_FLAG_HRUD_MATCH    /**< hrud payload inspection part inspected */
-#define DE_STATE_FLAG_FILE_TC_INSPECT   DE_STATE_FLAG_FILE_TC_MATCH
-#define DE_STATE_FLAG_FILE_TS_INSPECT   DE_STATE_FLAG_FILE_TS_MATCH
-#define DE_STATE_FLAG_HSMD_INSPECT      DE_STATE_FLAG_HSMD_MATCH    /**< hsmd payload inspection part inspected */
-#define DE_STATE_FLAG_HSCD_INSPECT      DE_STATE_FLAG_HSCD_MATCH    /**< hscd payload inspection part inspected */
-#define DE_STATE_FLAG_HUAD_INSPECT      DE_STATE_FLAG_HUAD_MATCH    /**< huad payload inspection part inspected */
-#define DE_STATE_FLAG_HHHD_INSPECT      DE_STATE_FLAG_HHHD_MATCH    /**< hhhd payload inspection part inspected */
-#define DE_STATE_FLAG_HRHHD_INSPECT     DE_STATE_FLAG_HRHHD_MATCH   /**< hrhhd payload inspection part inspected */
+/* per sig flags */
+#define DE_STATE_FLAG_URI_INSPECT         (1)
+#define DE_STATE_FLAG_HRUD_INSPECT        (1 << 1)
+#define DE_STATE_FLAG_HCBD_INSPECT        (1 << 2)
+#define DE_STATE_FLAG_HSBD_INSPECT        (1 << 3)
+#define DE_STATE_FLAG_HHD_INSPECT         (1 << 4)
+#define DE_STATE_FLAG_HRHD_INSPECT        (1 << 5)
+#define DE_STATE_FLAG_HHHD_INSPECT        (1 << 6)
+#define DE_STATE_FLAG_HRHHD_INSPECT       (1 << 7)
+#define DE_STATE_FLAG_HUAD_INSPECT        (1 << 8)
+#define DE_STATE_FLAG_HMD_INSPECT         (1 << 9)
+#define DE_STATE_FLAG_HCD_INSPECT         (1 << 10)
+#define DE_STATE_FLAG_HSMD_INSPECT        (1 << 11)
+#define DE_STATE_FLAG_HSCD_INSPECT        (1 << 12)
+#define DE_STATE_FLAG_FILE_TC_INSPECT     (1 << 13)
+#define DE_STATE_FLAG_FILE_TS_INSPECT     (1 << 14)
+#define DE_STATE_FLAG_FULL_INSPECT        (1 << 15)
+#define DE_STATE_FLAG_SIG_CANT_MATCH      (1 << 16)
 
 /* state flags */
-#define DE_STATE_FILE_STORE_DISABLED    0x0001
-#define DE_STATE_FILE_TC_NEW            0x0002
-#define DE_STATE_FILE_TS_NEW            0x0004
+#define DETECT_ENGINE_STATE_FLAG_FILE_STORE_DISABLED 0x0001
+#define DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW         0x0002
+#define DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW         0x0004
 
-/** per signature detection engine state */
+/* We have 2 possible state values to be used by ContinueDetection() while
+ * trying to figure if we have fresh state to install or not.
+ *
+ * For tx based alprotos, we don't need to indicate the below values on a
+ * per sig basis, but for non-tx based alprotos we do, since we might have
+ * new alstate coming in, and some sigs might have already matchced in
+ * de_state and ContinueDetection needs to inform the detection filter that
+ * it no longer needs to inspect this sig, since ContinueDetection would
+ * handle it.
+ *
+ * Wrt tx based alprotos, if we have a new tx available apart from the one
+ * currently being inspected(and also added to de_state), we continue with
+ * the HAS_NEW_STATE flag, while if we don't have a new tx, we set
+ * NO_NEW_STATE, to avoid getting the sig reinspected for the already
+ * inspected tx. */
 typedef enum {
-    DE_STATE_MATCH_NOSTATE = 0, /**< no state for this sig*/
-    DE_STATE_MATCH_FULL,        /**< sig already fully matched */
-    DE_STATE_MATCH_PARTIAL,     /**< partial state match */
-    DE_STATE_MATCH_NEW,         /**< new (full) match this run */
-    DE_STATE_MATCH_NOMATCH,     /**< not a match */
+    DE_STATE_MATCH_HAS_NEW_STATE = 0,
+    DE_STATE_MATCH_NO_NEW_STATE,
 } DeStateMatchResult;
 
-/** \brief State storage for a single signature */
 typedef struct DeStateStoreItem_ {
-    SigIntId sid;   /**< Signature internal id to store the state for (16 or
-                     *   32 bit depending on how SigIntId is defined). */
-    uint32_t flags; /**< flags */
-    SigMatch *nm;   /**< next sig match to try, or null if done */
+    SigMatch *nm;
+    uint32_t flags;
+    SigIntId sid;
 } DeStateStoreItem;
 
-/** \brief State store "chunk" for x number of signature */
 typedef struct DeStateStore_ {
-    DeStateStoreItem store[DE_STATE_CHUNK_SIZE];    /**< array of storage objects */
-    struct DeStateStore_ *next;                     /**< ptr to the next array */
+    DeStateStoreItem store[DE_STATE_CHUNK_SIZE];
+    struct DeStateStore_ *next;
 } DeStateStore;
 
-/** \brief State store main object */
+typedef struct DetectEngineStateDirection_ {
+    DeStateStore *head;
+    DeStateStore *tail;
+    SigIntId cnt;
+    uint16_t filestore_cnt;
+    uint8_t alversion;
+    uint8_t flags;
+} DetectEngineStateDirection;
+
 typedef struct DetectEngineState_ {
-    DeStateStore *head;             /**< signature state storage */
-    DeStateStore *tail;             /**< tail item of the storage list */
-    SigIntId cnt;                   /**< number of sigs in the storage */
-    uint16_t toclient_version;      /**< app layer state "version" inspected
-                                     *   last in to client direction */
-    uint16_t toserver_version;      /**< app layer state "version" inspected
-                                     *   last in to server direction */
-    uint16_t toclient_filestore_cnt;/**< number of sigs with filestore that
-                                     *   cannot match in to client direction. */
-    uint16_t toserver_filestore_cnt;/**< number of sigs with filestore that
-                                     *   cannot match in to server direction. */
-    uint16_t flags;
+    DetectEngineStateDirection dir_state[2];
 } DetectEngineState;
 
-void DeStateRegisterTests(void);
-
-DeStateStore *DeStateStoreAlloc(void);
-void DeStateStoreFree(DeStateStore *);
-void DetectEngineStateReset(DetectEngineState *state);
-
+/**
+ * \brief Alloc a DetectEngineState object.
+ *
+ * \retval Alloc'd instance of DetectEngineState.
+ */
 DetectEngineState *DetectEngineStateAlloc(void);
-void DetectEngineStateFree(DetectEngineState *);
 
-int DeStateFlowHasState(Flow *, uint8_t, uint16_t);
+/**
+ * \brief Frees a DetectEngineState object.
+ *
+ * \param state DetectEngineState instance to free.
+ */
+void DetectEngineStateFree(DetectEngineState *state);
 
-int DeStateDetectStartDetection(ThreadVars *, DetectEngineCtx *,
-        DetectEngineThreadCtx *, Signature *, Flow *, uint8_t, void *,
-        uint16_t, uint16_t);
+/**
+ * \brief Check if a flow already contains(newly updated as well) de state.
+ *
+ * \param f Pointer to the flow.
+ * \param alversino The alversion to check against de_state's.
+ * \param direction Direction to check.  0 - ts, 1 - tc.
+ *
+ * \retval 1 Has state.
+ * \retval 0 Has no state.
+ */
+int DeStateFlowHasInspectableState(Flow *f, uint16_t alversion, uint8_t direction);
 
-int DeStateDetectContinueDetection(ThreadVars *, DetectEngineCtx *,
-        DetectEngineThreadCtx *, Flow *, uint8_t, void *, uint16_t,
-        uint16_t);
+/**
+ * \brief Match app layer sig list against app state and store relevant match
+ *        information.
+ *
+ * \param tv Pointer to the threadvars.
+ * \param de_ctx DetectEngineCtx instance.
+ * \param det_ctx DetectEngineThreadCtx instance.
+ * \param s Pointer to the signature.
+ * \param f Pointer to the flow.
+ * \param flags Flags.
+ * \param alstate App state.
+ * \param alproto App protocol.
+ * \param alversion Current app layer version.
+ *
+ * \retval >= 0 An integer value indicating the no of matches.
+ */
+int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
+                                DetectEngineThreadCtx *det_ctx,
+                                Signature *s, Flow *f, uint8_t flags,
+                                void *alstate, uint16_t alproto,
+                                uint16_t alversion);
 
-const char *DeStateMatchResultToString(DeStateMatchResult);
-int DeStateUpdateInspectTransactionId(Flow *, char);
+/**
+ * \brief Continue DeState detection of the signatures stored in the state.
+ *
+ * \param tv Pointer to the threadvars.
+ * \param de_ctx DetectEngineCtx instance.
+ * \param det_ctx DetectEngineThreadCtx instance.
+ * \param f Pointer to the flow.
+ * \param flags Flags.
+ * \param alstate App state.
+ * \param alproto App protocol.
+ * \param alversion Current app layer version.
+ */
+void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
+                                    DetectEngineThreadCtx *det_ctx,
+                                    Packet *p, Flow *f, uint8_t flags, void *alstate,
+                                    uint16_t alproto, uint16_t alversion);
+
+/**
+ *  \brief Update the inspect id.
+ *
+ *  \param f Flow(unlocked).
+ *  \param direction 0 for to server, 1 for toclient.
+ */
+void DeStateUpdateInspectTransactionId(Flow *f, uint8_t direction);
+
+/**
+ * \brief Reset a DetectEngineState state.
+ *
+ * \param state     Pointer to the state(LOCKED).
+ * \param direction Direction flags - STREAM_TOSERVER or STREAM_TOCLIENT.
+ */
+void DetectEngineStateReset(DetectEngineState *state, uint8_t direction);
+
+void DeStateRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_STATE_H__ */
 

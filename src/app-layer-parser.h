@@ -59,6 +59,10 @@ typedef struct AppLayerProto_ {
     void (*Truncate)(void *, uint8_t);
     FileContainer *(*StateGetFiles)(void *, uint8_t);
 
+    int (*StateGetAlstateProgress)(void *alstate, uint8_t direction);
+    uint64_t (*StateGetTxCnt)(void *alstate);
+    void *(*StateGetTx)(void *alstate, uint64_t tx_id);
+    int (*StateGetAlstateProgressCompletionStatus)(uint8_t direction);
 } AppLayerProto;
 
 /** flags for the result elmts */
@@ -114,19 +118,13 @@ typedef struct AppLayerParserStateStore_ {
     /** flags related to the id's */
     uint8_t id_flags;
 
-    /** the highest id of inspected state's (i.e. http transactions), updated by
-     *  the stateful detection engine code */
-    uint16_t inspect_id;
-    /** the highest id of logged state's (i.e. http transactions), updated by
-     *  a logging module throught the app layer API */
-    uint16_t logged_id;
-    /** the higest id of available state's, updated by the app layer parser */
-    uint16_t avail_id;
-    /** the base id signifies the id number of the oldest id we have in our
-     *  state. As transactions may be cleaned up before the entire state is
-     *  freed, id's may "disappear". */
-    uint16_t base_id;
-
+    /* Indicates the current transaction that is being indicated.  We have
+     * a var per direction. */
+    uint64_t inspect_id[2];
+    /* Indicates the current transaction being logged.  Unlike inspect_id,
+     * we don't need a var per direction since we don't log a transaction
+     * unless we have the entire transaction. */
+    uint64_t log_id;
     uint16_t version;       /**< state version, incremented for each update,
                              *   can wrap around */
 
@@ -264,6 +262,14 @@ void AppLayerRegisterLogger(uint16_t proto);
 uint16_t AppLayerGetProtoByName(const char *);
 const char *AppLayerGetProtoString(int proto);
 void AppLayerRegisterTruncateFunc(uint16_t proto, void (*Truncate)(void *, uint8_t));
+void AppLayerRegisterGetAlstateProgressFunc(uint16_t alproto,
+                                            int (*StateGetAlstateProgress)(void *alstate, uint8_t direction));
+void AppLayerRegisterGetTxCnt(uint16_t alproto,
+                              uint64_t (*StateGetTxCnt)(void *alstate));
+void AppLayerRegisterGetTx(uint16_t alproto,
+                           void *(*StateGetTx)(void *alstate, uint64_t tx_id));
+void AppLayerRegisterGetAlstateProgressCompletionStatus(uint16_t alproto,
+    int (*StateProgressCompletionStatus)(uint8_t direction));
 
 int AppLayerParse(void *, Flow *, uint8_t,
                   uint8_t, uint8_t *, uint32_t);
@@ -277,27 +283,128 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *, AppLayerParserState *,
                              uint32_t, uint32_t *);
 
 
-/* transaction handling */
-int AppLayerTransactionUpdateInspectId(Flow *, char);
-void AppLayerTransactionUpdateLoggedId(Flow *);
-int AppLayerTransactionGetLoggableId(Flow *f);
-int AppLayerTransactionGetLoggedId(Flow *f);
-int AppLayerTransactionGetBaseId(Flow *f);
-int AppLayerTransactionGetInspectId(Flow *f);
-uint16_t AppLayerTransactionGetAvailId(Flow *f);
+/***** transaction handling *****/
+
+/**
+ * \brief Update the current log id.  Does one step increments currently.
+ *
+ * \param f Flow.
+ */
+void AppLayerTransactionUpdateLogId(Flow *f);
+
+/**
+ * \brief Get the current log id.
+ *
+ * \param f Flow.
+ */
+uint64_t AppLayerTransactionGetLogId(Flow *f);
+
+/**
+ * \brief Updates the inspection id for the alstate.
+ *
+ * \param f         Pointer to the flow(LOCKED).
+ * \param direction Direction.  0 - toserver, 1 - toclient.
+ */
+void AppLayerTransactionUpdateInspectId(Flow *f, uint8_t direction);
+
+/**
+ * \brief Get the current tx id to be inspected.
+ *
+ * \param f     Flow.
+ * \param flags Flags.
+ *
+ * \retval A positive integer value.
+ */
+uint64_t AppLayerTransactionGetInspectId(Flow *f, uint8_t flags);
+
+
 
 void AppLayerSetEOF(Flow *);
 
-/* cleanup */
+
+
+/***** cleanup *****/
+
 void AppLayerParserCleanupState(Flow *);
 void AppLayerFreeProbingParsers(AppLayerProbingParser *);
 void AppLayerFreeProbingParsersInfo(AppLayerProbingParserInfo *);
 void AppLayerPrintProbingParsers(AppLayerProbingParser *);
 
-uint16_t AppLayerGetStateVersion(Flow *f);
 void AppLayerListSupportedProtocols(void);
-FileContainer *AppLayerGetFilesFromFlow(Flow *, uint8_t);
 AppLayerDecoderEvents *AppLayerGetDecoderEventsForFlow(Flow *);
+
+/***** Alproto param retrieval ******/
+
+/**
+ * \brief get the version of the state in a direction
+ *
+ * \param f Flow(LOCKED).
+ * \param direction STREAM_TOSERVER or STREAM_TOCLIENT
+ */
+uint16_t AppLayerGetStateVersion(Flow *f);
+
+FileContainer *AppLayerGetFilesFromFlow(Flow *, uint8_t);
+
+/**
+ * \brief Get the state progress.
+ *
+ *        This is a generic wrapper to each ALPROTO.  The value returned
+ *        needs to be interpreted by the caller, based on the ALPROTO_*
+ *        the caller supplies.
+ *
+ *        The state can be anything based on what the ALPROTO handler
+ *        expects.  We have given a return value of int, although a range
+ *        of -128 to 127 (int8_t) should be more than sufficient.
+ *
+ * \param alproto The app protocol.
+ * \param state   App state.
+ * \param dir     Directin. 0 - ts, 1 - tc.
+ *
+ * \retval An integer value indicating the current progress of "state".
+ */
+int AppLayerGetAlstateProgress(uint16_t alproto, void *state, uint8_t direction);
+
+/**
+ * \brief Get the no of txs.
+ *
+ * \param alproto The app protocol.
+ * \param alstate App state.
+ *
+ * \retval A positive integer value indicating the no of txs.
+ */
+uint64_t AppLayerGetTxCnt(uint16_t alproto, void *alstate);
+
+/**
+ * \brief Get a tx referenced by the id.
+ *
+ * \param alproto The app protocol
+ * \param alstate App state.
+ * \param tx_id   The transaction id.
+ *
+ * \retval Tx instance.
+ */
+void *AppLayerGetTx(uint16_t alproto, void *alstate, uint64_t tx_id);
+
+/**
+ * \brief Get the state value for the following alproto, that corresponds to
+ *        COMPLETE or DONE.
+ *
+ * \param alproto   The app protocol.
+ * \param direction The direction.  0 - ts, 1 - tc.
+ *
+ * \retval An integer value indicating the state value.
+ */
+int AppLayerGetAlstateProgressCompletionStatus(uint16_t alproto, uint8_t direction);
+
+/**
+ * \brief Informs if the alproto supports transactions or not.
+ *
+ * \param alproto   The app protocol.
+ * \param direction The direction.  0 - ts, 1 - tc.
+ *
+ * \retval 1 If true; 0 If false.
+ */
+int AppLayerAlprotoSupportsTxs(uint16_t alproto);
 
 void AppLayerTriggerRawStreamReassembly(Flow *);
 

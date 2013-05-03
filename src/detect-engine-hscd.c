@@ -58,45 +58,21 @@
  * \retval cnt Number of matches reported by the mpm algo.
  */
 int DetectEngineRunHttpStatCodeMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                   HtpState *htp_state, uint8_t flags)
+                                   HtpState *htp_state, uint8_t flags,
+                                   void *txv, uint64_t idx)
 {
     SCEnter();
 
     uint32_t cnt = 0;
-
-    if (htp_state == NULL) {
-        SCLogDebug("no HTTP state");
-        SCReturnInt(0);
-    }
-
-    /* locking the flow, we will inspect the htp state */
-    FLOWLOCK_RDLOCK(f);
-
-    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-        SCLogDebug("HTP state has no conn(p)");
+    htp_tx_t *tx = (htp_tx_t *)txv;
+    if (tx->response_status == NULL)
         goto end;
-    }
 
-    int idx = AppLayerTransactionGetInspectId(f);
-    if (idx == -1) {
-        goto end;
-    }
-    htp_tx_t *tx = NULL;
-
-    int size = (int)list_size(htp_state->connp->conn->transactions);
-    for ( ; idx < size; idx++)
-    {
-        tx = list_get(htp_state->connp->conn->transactions, idx);
-        if (tx == NULL || tx->response_status == NULL)
-            continue;
-
-        cnt += HttpStatCodePatternSearch(det_ctx,
-                                        (uint8_t *)bstr_ptr(tx->response_status),
-                                         bstr_len(tx->response_status), flags);
-    }
+    cnt = HttpStatCodePatternSearch(det_ctx,
+                                     (uint8_t *)bstr_ptr(tx->response_status),
+                                     bstr_len(tx->response_status), flags);
 
 end:
-    FLOWLOCK_UNLOCK(f);
     SCReturnInt(cnt);
 }
 
@@ -117,12 +93,16 @@ int DetectEngineInspectHttpStatCode(ThreadVars *tv,
                                     DetectEngineCtx *de_ctx,
                                     DetectEngineThreadCtx *det_ctx,
                                     Signature *s, Flow *f, uint8_t flags,
-                                    void *alstate, int tx_id)
+                                    void *alstate,
+                                    void *txv, uint64_t tx_id)
 {
-    HtpState *htp_state = (HtpState *)alstate;
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, tx_id);
-    if (tx == NULL || tx->response_status == NULL)
-        return 0;
+    htp_tx_t *tx = (htp_tx_t *)txv;
+    if (tx->response_status == NULL) {
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_RES_LINE)
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+        else
+            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    }
 
     det_ctx->discontinue_matching = 0;
     det_ctx->buffer_offset = 0;
@@ -134,9 +114,9 @@ int DetectEngineInspectHttpStatCode(ThreadVars *tv,
                                           bstr_len(tx->response_status),
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HSCD, NULL);
     if (r == 1)
-        return 1;
-
-    return 0;
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+    else
+        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
 }
 
 /***********************************Unittests**********************************/

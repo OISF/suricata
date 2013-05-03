@@ -1442,7 +1442,7 @@ static int DetectHttpServerBodyTest14(void) {
         goto end;
     }
 
-    if (list_size(htp_state->connp->conn->transactions) != 2) {
+    if (AppLayerGetTxCnt(ALPROTO_HTTP, htp_state) != 2) {
         printf("The http app layer doesn't have 2 transactions, but it should: ");
         goto end;
     }
@@ -1590,7 +1590,7 @@ static int DetectHttpServerBodyTest15(void) {
         goto end;
     }
 
-    if (list_size(htp_state->connp->conn->transactions) != 2) {
+    if (AppLayerGetTxCnt(ALPROTO_HTTP, htp_state) != 2) {
         printf("The http app layer doesn't have 2 transactions, but it should: ");
         goto end;
     }
@@ -3414,7 +3414,7 @@ static int DetectHttpServerBodyFileDataTest09(void) {
         goto end;
     }
 
-    if (list_size(htp_state->connp->conn->transactions) != 2) {
+    if (AppLayerGetTxCnt(ALPROTO_HTTP, htp_state) != 2) {
         printf("The http app layer doesn't have 2 transactions, but it should: ");
         goto end;
     }
@@ -3558,7 +3558,7 @@ static int DetectHttpServerBodyFileDataTest10(void) {
         goto end;
     }
 
-    if (list_size(htp_state->connp->conn->transactions) != 2) {
+    if (AppLayerGetTxCnt(ALPROTO_HTTP, htp_state) != 2) {
         printf("The http app layer doesn't have 2 transactions, but it should: ");
         goto end;
     }

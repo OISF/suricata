@@ -25,11 +25,15 @@
 
 #include "app-layer-htp.h"
 
-int DetectEngineRunHttpStatMsgMpm(DetectEngineThreadCtx *,
-                                  Flow *f, HtpState *, uint8_t);
+int DetectEngineRunHttpStatMsgMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
+                                  HtpState *htp_state, uint8_t flags,
+                                  void *tx, uint64_t idx);
 int DetectEngineInspectHttpStatMsg(ThreadVars *tv,
-                                   DetectEngineCtx *, DetectEngineThreadCtx *,
-                                   Signature *, Flow *, uint8_t, void *, int tx_id);
+                                   DetectEngineCtx *de_ctx,
+                                   DetectEngineThreadCtx *det_ctx,
+                                   Signature *s, Flow *f, uint8_t flags,
+                                   void *alstate,
+                                   void *tx, uint64_t tx_id);
 void DetectEngineHttpStatMsgRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HSMD_H__ */

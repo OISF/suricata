@@ -244,42 +244,21 @@ static inline int DoDetectAppLayerUricontentMatch (DetectEngineThreadCtx *det_ct
  *  \todo what should we return? Just the fact that we matched?
  */
 uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                    HtpState *htp_state, uint8_t flags)
+                                    HtpState *htp_state, uint8_t flags,
+                                    void *txv, uint64_t idx)
 {
     SCEnter();
 
+    htp_tx_t *tx = (htp_tx_t *)txv;
     uint32_t cnt = 0;
-    int idx = 0;
-    htp_tx_t *tx = NULL;
-
-    /* locking the flow, we will inspect the htp state */
-    FLOWLOCK_RDLOCK(f);
-
-    if (htp_state == NULL || htp_state->connp == NULL) {
-        SCLogDebug("no HTTP state / no connp");
-        FLOWLOCK_UNLOCK(f);
-        SCReturnUInt(0U);
-    }
-
-    idx = AppLayerTransactionGetInspectId(f);
-    if (idx == -1) {
+    if (tx->request_uri_normalized == NULL)
         goto end;
-    }
+    cnt = DoDetectAppLayerUricontentMatch(det_ctx, (uint8_t *)
+                                          bstr_ptr(tx->request_uri_normalized),
+                                          bstr_len(tx->request_uri_normalized),
+                                          flags);
 
-    int size = (int)list_size(htp_state->connp->conn->transactions);
-    for (; idx < size; idx++)
-    {
-        tx = list_get(htp_state->connp->conn->transactions, idx);
-        if (tx == NULL || tx->request_uri_normalized == NULL)
-            continue;
-
-        cnt += DoDetectAppLayerUricontentMatch(det_ctx, (uint8_t *)
-                                               bstr_ptr(tx->request_uri_normalized),
-                                               bstr_len(tx->request_uri_normalized),
-                                               flags);
-    }
 end:
-    FLOWLOCK_UNLOCK(f);
     SCReturnUInt(cnt);
 }
 
@@ -323,7 +302,7 @@ static int HTTPUriTest01(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, 0);
 
     if (tx->request_method_number != M_GET ||
             tx->request_protocol_number != HTTP_1_1)
@@ -383,7 +362,7 @@ static int HTTPUriTest02(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, 0);
 
     if (tx->request_method_number != M_GET ||
             tx->request_protocol_number != HTTP_1_1)
@@ -445,7 +424,7 @@ static int HTTPUriTest03(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, 0);
 
     if (tx->request_method_number != M_UNKNOWN ||
             tx->request_protocol_number != HTTP_1_1)
@@ -508,7 +487,7 @@ static int HTTPUriTest04(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, 0);
 
     if (tx->request_method_number != M_GET ||
             tx->request_protocol_number != HTTP_1_1)
@@ -794,7 +773,7 @@ static int DetectUriSigTest03(void) {
     if ((PacketAlertCheck(p, 1))) {
         printf("sig 1 alerted, but it should not (chunk 2): ");
         goto end;
-    } else if (PacketAlertCheck(p, 2)) {
+    } else if (!PacketAlertCheck(p, 2)) {
         printf("sig 2 alerted, but it should not (chunk 2): ");
         goto end;
     } else if (!(PacketAlertCheck(p, 3))) {
