@@ -25,8 +25,11 @@
 #define __DETECT_ENGINE_URICONTENT_H__
 
 int DetectEngineInspectPacketUris(ThreadVars *tv,
-                                  DetectEngineCtx *, DetectEngineThreadCtx *,
-                                  Signature *, Flow *, uint8_t, void *, int);
+                                  DetectEngineCtx *de_ctx,
+                                  DetectEngineThreadCtx *det_ctx,
+                                  Signature *s, Flow *f, uint8_t flags,
+                                  void *alstate,
+                                  void *tx, uint64_t tx_id);
 void UriRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_URICONTENT_H__ */

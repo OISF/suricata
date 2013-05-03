@@ -58,62 +58,37 @@
 #include "detect-engine-hrhhd.h"
 
 int DetectEngineRunHttpHRHMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                              HtpState *htp_state, uint8_t flags)
+                              HtpState *htp_state, uint8_t flags,
+                              void *txv, uint64_t idx)
 {
-    htp_tx_t *tx = NULL;
     uint32_t cnt = 0;
-    int idx;
+    htp_tx_t *tx = (htp_tx_t *)txv;
+    uint8_t *hname = NULL;
+    uint32_t hname_len = 0;
 
-    /* we need to lock because the buffers are not actually true buffers
-     * but are ones that point to a buffer given by libhtp */
-    FLOWLOCK_RDLOCK(f);
-
-    if (htp_state == NULL) {
-        SCLogDebug("no HTTP state");
-        goto end;
-    }
-
-    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-        SCLogDebug("HTP state has no conn(p)");
-        goto end;
-    }
-
-    idx = AppLayerTransactionGetInspectId(f);
-    if (idx == -1) {
-        goto end;
-    }
-
-    int size = (int)list_size(htp_state->connp->conn->transactions);
-    for (; idx < size; idx++) {
-
-        uint8_t *hname;
-        uint32_t hname_len;
-
-        tx = list_get(htp_state->connp->conn->transactions, idx);
-        if (tx == NULL)
-            continue;
-
-        if (tx->parsed_uri_incomplete == NULL || tx->parsed_uri_incomplete->hostname == NULL) {
-            htp_header_t *h = NULL;
-            h = (htp_header_t *)table_getc(tx->request_headers, "Host");
-            if (h == NULL) {
-                SCLogDebug("HTTP host header not present in this request");
-                continue;
-            }
+    if (tx->parsed_uri_incomplete == NULL || tx->parsed_uri_incomplete->hostname == NULL) {
+        if (tx->request_headers == NULL)
+            goto end;
+        htp_header_t *h = NULL;
+        h = (htp_header_t *)table_getc(tx->request_headers, "Host");
+        if (h != NULL) {
+            SCLogDebug("HTTP host header not present in this request");
             hname = (uint8_t *)bstr_ptr(h->value);
             hname_len = bstr_len(h->value);
         } else {
-            hname = (uint8_t *)bstr_ptr(tx->parsed_uri_incomplete->hostname);
-            if (hname == NULL)
-                continue;
-            hname_len = bstr_len(tx->parsed_uri_incomplete->hostname);
+            goto end;
         }
-
-        cnt += HttpHRHPatternSearch(det_ctx, hname, hname_len, flags);
+    } else {
+        hname = (uint8_t *)bstr_ptr(tx->parsed_uri_incomplete->hostname);
+        if (hname != NULL)
+            hname_len = bstr_len(tx->parsed_uri_incomplete->hostname);
+        else
+            goto end;
     }
 
+    cnt = HttpHRHPatternSearch(det_ctx, hname, hname_len, flags);
+
  end:
-    FLOWLOCK_UNLOCK(f);
     return cnt;
 }
 
@@ -134,28 +109,25 @@ int DetectEngineInspectHttpHRH(ThreadVars *tv,
                                DetectEngineCtx *de_ctx,
                                DetectEngineThreadCtx *det_ctx,
                                Signature *s, Flow *f, uint8_t flags,
-                               void *alstate, int tx_id)
+                               void *alstate,
+                               void *txv, uint64_t tx_id)
 {
-    HtpState *htp_state = (HtpState *)alstate;
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, tx_id);
     uint8_t *hname;
     uint32_t hname_len;
-
-    if (tx == NULL)
-        return 0;
+    htp_tx_t *tx = (htp_tx_t *)txv;
     if (tx->parsed_uri_incomplete == NULL || tx->parsed_uri_incomplete->hostname == NULL) {
         htp_header_t *h = NULL;
         h = (htp_header_t *)table_getc(tx->request_headers, "Host");
         if (h == NULL) {
             SCLogDebug("HTTP host header not present in this request");
-            return 0;
+            goto end;
         }
         hname = (uint8_t *)bstr_ptr(h->value);
         hname_len = bstr_len(h->value);
     } else {
         hname = (uint8_t *)bstr_ptr(tx->parsed_uri_incomplete->hostname);
         if (hname == NULL)
-            return 0;
+            goto end;
         hname_len = bstr_len(tx->parsed_uri_incomplete->hostname);
     }
 
@@ -167,9 +139,13 @@ int DetectEngineInspectHttpHRH(ThreadVars *tv,
                                           hname, hname_len,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HRHHD, NULL);
     if (r == 1)
-        return 1;
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
-    return 0;
+ end:
+    if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_REQ_HEADERS)
+        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    else
+        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
 /***********************************Unittests**********************************/

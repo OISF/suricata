@@ -57,46 +57,24 @@
 
 
 int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                    HtpState *htp_state, uint8_t flags)
+                                    HtpState *htp_state, uint8_t flags,
+                                    void *txv, uint64_t idx)
 {
     SCEnter();
-    htp_tx_t *tx = NULL;
+
     uint32_t cnt = 0;
-    int idx;
-
-    /* we need to lock because the buffers are not actually true buffers
-     * but are ones that point to a buffer given by libhtp */
-    FLOWLOCK_RDLOCK(f);
-
-    if (htp_state == NULL) {
-        SCLogDebug("no HTTP state");
-        goto end;
-    }
-
-    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-        SCLogDebug("HTP state has no conn(p)");
-        goto end;
-    }
-
-    idx = AppLayerTransactionGetInspectId(f);
-    if (idx == -1) {
-        goto end;
-    }
-    int size = (int)list_size(htp_state->connp->conn->transactions);
-    for (; idx < size; idx++) {
-
-        tx = list_get(htp_state->connp->conn->transactions, idx);
-        if (tx == NULL)
-            continue;
-
-        bstr *raw_headers = htp_tx_get_request_headers_raw(tx);
+    bstr *raw_headers;
+    htp_tx_t *tx = (htp_tx_t *)txv;
+    if (flags & STREAM_TOSERVER) {
+        raw_headers = htp_tx_get_request_headers_raw(tx);
         if (raw_headers != NULL) {
-            cnt += HttpRawHeaderPatternSearch(det_ctx,
-                                              (uint8_t *)bstr_ptr(raw_headers),
-                                              bstr_len(raw_headers), flags);
+            cnt = HttpRawHeaderPatternSearch(det_ctx,
+                                             (uint8_t *)bstr_ptr(raw_headers),
+                                             bstr_len(raw_headers), flags);
         } else {
             SCLogDebug("no raw headers");
         }
+    } else {
 #ifdef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
         raw_headers = htp_tx_get_response_headers_raw(tx);
         if (raw_headers != NULL) {
@@ -109,8 +87,6 @@ int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
 #endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
     }
 
-end:
-    FLOWLOCK_UNLOCK(f);
     SCReturnInt(cnt);
 }
 
@@ -131,13 +107,10 @@ int DetectEngineInspectHttpRawHeader(ThreadVars *tv,
                                      DetectEngineCtx *de_ctx,
                                      DetectEngineThreadCtx *det_ctx,
                                      Signature *s, Flow *f, uint8_t flags,
-                                     void *alstate, int tx_id)
+                                     void *alstate,
+                                     void *txv, uint64_t tx_id)
 {
-    HtpState *htp_state = (HtpState *)alstate;
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, tx_id);
-    if (tx == NULL)
-        return 0;
-
+    htp_tx_t *tx = (htp_tx_t *)txv;
     bstr *raw_headers = NULL;
     if (flags & STREAM_TOSERVER) {
         raw_headers = htp_tx_get_request_headers_raw(tx);
@@ -148,7 +121,7 @@ int DetectEngineInspectHttpRawHeader(ThreadVars *tv,
     }
 #endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
     if (raw_headers == NULL)
-        return 0;
+        goto end;
 
     det_ctx->buffer_offset = 0;
     det_ctx->discontinue_matching = 0;
@@ -159,9 +132,17 @@ int DetectEngineInspectHttpRawHeader(ThreadVars *tv,
                                           bstr_len(raw_headers),
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HRHD, NULL);
     if (r == 1)
-        return 1;
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
-    return 0;
+ end:
+    if (flags & STREAM_TOSERVER) {
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_REQ_HEADERS)
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    } else {
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 1) > TX_PROGRESS_RES_HEADERS)
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    }
+    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
 /***********************************Unittests**********************************/

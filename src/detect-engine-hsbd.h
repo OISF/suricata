@@ -29,12 +29,14 @@
 
 int DetectEngineRunHttpServerBodyMpm(DetectEngineCtx *de_ctx,
                                      DetectEngineThreadCtx *det_ctx, Flow *f,
-                                     HtpState *htp_state, uint8_t flags);
+                                     HtpState *htp_state, uint8_t flags,
+                                     void *tx, uint64_t idx);
 int DetectEngineInspectHttpServerBody(ThreadVars *tv,
                                       DetectEngineCtx *de_ctx,
                                       DetectEngineThreadCtx *det_ctx,
                                       Signature *s, Flow *f, uint8_t flags,
-                                      void *alstate, int tx_id);
+                                      void *alstate,
+                                      void *tx, uint64_t tx_id);
 void DetectEngineCleanHSBDBuffers(DetectEngineThreadCtx *det_ctx);
 
 void DetectEngineHttpServerBodyRegisterTests(void);

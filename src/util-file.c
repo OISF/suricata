@@ -359,8 +359,8 @@ int FileStore(File *ff) {
  *  \param ff The file to store
  *  \param txid the tx id
  */
-int FileSetTx(File *ff, uint16_t txid) {
-    SCLogDebug("ff %p txid %"PRIu16, ff, txid);
+int FileSetTx(File *ff, uint64_t txid) {
+    SCLogDebug("ff %p txid %"PRIu64, ff, txid);
     if (ff != NULL)
         ff->txid = txid;
     SCReturnInt(0);
@@ -783,7 +783,7 @@ void FileDisableStoringForFile(File *ff) {
  *  \param direction flow direction
  *  \param tx_id transaction id
  */
-void FileDisableStoringForTransaction(Flow *f, uint8_t direction, uint16_t tx_id) {
+void FileDisableStoringForTransaction(Flow *f, uint8_t direction, uint64_t tx_id) {
     File *ptr = NULL;
 
     DEBUG_ASSERT_FLOW_LOCKED(f);
