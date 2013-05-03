@@ -46,37 +46,45 @@
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
 
-/** \brief Do the content inspection & validation for a signature
+/**
+ * \brief Do the content inspection & validation for a signature
  *
- *  \param de_ctx Detection engine context
- *  \param det_ctx Detection engine thread context
- *  \param s Signature to inspect
- *  \param sm SigMatch to inspect
- *  \param f Flow
- *  \param flags app layer flags
- *  \param state App layer state
+ * \param de_ctx Detection engine context
+ * \param det_ctx Detection engine thread context
+ * \param s Signature to inspect
+ * \param sm SigMatch to inspect
+ * \param f Flow
+ * \param flags app layer flags
+ * \param state App layer state
  *
- *  \retval 0 no match
- *  \retval 1 match
+ * \retval 0 no match.
+ * \retval 1 match.
+ * \retval 2 Sig can't match.
  */
 int DetectEngineInspectPacketUris(ThreadVars *tv,
                                   DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
                                   Signature *s, Flow *f, uint8_t flags,
-                                  void *alstate, int tx_id)
+                                  void *alstate,
+                                  void *txv, uint64_t tx_id)
 {
-    HtpState *htp_state = (HtpState *)alstate;
+    htp_tx_t *tx = (htp_tx_t *)txv;
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, tx_id);
-    if (tx == NULL || tx->request_uri_normalized == NULL)
-        return 0;
+    if (tx->request_uri_normalized == NULL) {
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_REQ_LINE)
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+        else
+            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    }
 
     det_ctx->discontinue_matching = 0;
     det_ctx->buffer_offset = 0;
     det_ctx->inspection_recursion_counter = 0;
 
-    //PrintRawDataFp(stdout, (uint8_t *)bstr_ptr(tx->request_uri_normalized),
-    //        bstr_len(tx->request_uri_normalized));
+#if 0
+    PrintRawDataFp(stdout, (uint8_t *)bstr_ptr(tx->request_uri_normalized),
+                   bstr_len(tx->request_uri_normalized));
+#endif
 
     /* Inspect all the uricontents fetched on each
      * transaction at the app layer */
@@ -86,10 +94,10 @@ int DetectEngineInspectPacketUris(ThreadVars *tv,
                                           bstr_len(tx->request_uri_normalized),
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_URI, NULL);
     if (r == 1) {
-        return 1;
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+    } else {
+        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     }
-
-    return 0;
 }
 
 /***********************************Unittests**********************************/
@@ -170,7 +178,7 @@ static int UriTestSig01(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state);
+    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
@@ -283,7 +291,7 @@ static int UriTestSig02(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state);
+    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
@@ -396,7 +404,7 @@ static int UriTestSig03(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state);
+    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
@@ -509,7 +517,7 @@ static int UriTestSig04(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state);
+    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
@@ -622,7 +630,7 @@ static int UriTestSig05(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state);
+    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
@@ -735,7 +743,7 @@ static int UriTestSig06(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state);
+    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
@@ -848,7 +856,7 @@ static int UriTestSig07(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state);
+    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
@@ -961,7 +969,7 @@ static int UriTestSig08(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state);
+    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
@@ -1074,7 +1082,7 @@ static int UriTestSig09(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state);
+    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
@@ -1187,7 +1195,7 @@ static int UriTestSig10(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state);
+    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
@@ -1301,7 +1309,7 @@ static int UriTestSig11(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state);
+    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
@@ -1415,7 +1423,7 @@ static int UriTestSig12(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state);
+    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
@@ -1528,7 +1536,7 @@ static int UriTestSig13(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state);
+    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
@@ -1642,7 +1650,7 @@ static int UriTestSig14(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state);
+    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
@@ -1756,7 +1764,7 @@ static int UriTestSig15(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state);
+    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
@@ -1869,7 +1877,7 @@ static int UriTestSig16(void)
     }
     p->alerts.cnt = 0;
 
-    DetectEngineStateReset(f.de_state);
+    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
     p->payload = http_buf2;
     p->payload_len = http_buf2_len;
 

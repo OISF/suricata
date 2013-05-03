@@ -35,10 +35,16 @@ typedef struct DetectEngineAppInspectionEngine_ {
     uint32_t inspect_flags;
     uint32_t match_flags;
 
+    /* \retval 0 No match.  Don't discontinue matching yet.  We need more data.
+     *         1 Match.
+     *         2 Sig can't match.
+     *         3 Special value used by filestore sigs to indicate disabling
+     *           filestore for the tx.
+     */
     int (*Callback)(ThreadVars *tv,
                     DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                     Signature *sig, Flow *f, uint8_t flags, void *alstate,
-                    int32_t tx_id);
+                    void *tx, uint64_t tx_id);
 
     struct DetectEngineAppInspectionEngine_ *next;
 } DetectEngineAppInspectionEngine;
@@ -82,6 +88,6 @@ void DetectEngineRegisterAppInspectionEngine(uint16_t alproto,
                                                              DetectEngineThreadCtx *det_ctx,
                                                              Signature *sig, Flow *f,
                                                              uint8_t flags, void *alstate,
-                                                             int32_t tx_id),
+                                                             void *tx, uint64_t tx_id),
                                              DetectEngineAppInspectionEngine *list[][2]);
 #endif /* __DETECT_ENGINE_H__ */

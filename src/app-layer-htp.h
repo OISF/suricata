@@ -214,13 +214,13 @@ typedef struct HtpState_ {
     htp_connp_t *connp;     /**< Connection parser structure for
                                  each connection */
     Flow *f;                /**< Needed to retrieve the original flow when usin HTPLib callbacks */
-    uint16_t flags;
-    uint16_t transaction_cnt;
-    uint16_t transaction_done;
-    uint16_t store_tx_id;
+    uint64_t transaction_cnt;
+    uint64_t transaction_done;
+    uint64_t store_tx_id;
     FileContainer *files_ts;
     FileContainer *files_tc;
     struct HTPCfgRec_ *cfg;
+    uint16_t flags;
 } HtpState;
 
 /** part of the engine needs the request body (e.g. http_client_body keyword) */

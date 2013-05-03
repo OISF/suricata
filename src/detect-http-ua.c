@@ -1272,7 +1272,7 @@ static int DetectHttpUATest14(void)
         goto end;
     }
 
-    if (list_size(htp_state->connp->conn->transactions) != 2) {
+    if (AppLayerGetTxCnt(ALPROTO_HTTP, htp_state) != 2) {
         printf("The http app layer doesn't have 2 transactions, but it should: ");
         goto end;
     }

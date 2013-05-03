@@ -60,7 +60,7 @@ typedef struct FileData_ {
 
 typedef struct File_ {
     uint16_t flags;
-    uint16_t txid;                  /**< tx this file is part of */
+    uint64_t txid;                  /**< tx this file is part of */
     unsigned int file_id;
     uint8_t *name;
     uint16_t name_len;
@@ -147,7 +147,7 @@ int FileStore(File *);
  *  \param ff The file to store
  *  \param txid the tx id
  */
-int FileSetTx(File *, uint16_t txid);
+int FileSetTx(File *, uint64_t txid);
 
 /**
  *  \brief disable file storage for a flow
@@ -164,7 +164,7 @@ void FileDisableFilesize(Flow *f, uint8_t direction);
  *  \param f flow
  *  \param tx_id transaction id
  */
-void FileDisableStoringForTransaction(struct Flow_ *, uint8_t, uint16_t);
+void FileDisableStoringForTransaction(Flow *f, uint8_t direction, uint64_t tx_id);
 
 void FlowFileDisableStoringForTransaction(struct Flow_ *f, uint16_t tx_id);
 void FilePrune(FileContainer *ffc);

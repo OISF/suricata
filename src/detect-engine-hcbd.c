@@ -78,7 +78,9 @@ static inline int HCBDCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size)
     return 0;
 }
 
-static uint8_t *DetectEngineHCBDGetBufferForTX(int tx_id,
+/**
+ */
+static uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
                                                DetectEngineCtx *de_ctx,
                                                DetectEngineThreadCtx *det_ctx,
                                                Flow *f, HtpState *htp_state,
@@ -91,7 +93,7 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(int tx_id,
 
     if (det_ctx->hcbd_buffers_list_len == 0) {
         if (HCBDCreateSpace(det_ctx, 1) < 0)
-            goto end;
+            goto end; /* let's consider it as stage not done for now */
         index = 0;
 
         if (det_ctx->hcbd_buffers_list_len == 0) {
@@ -106,7 +108,7 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(int tx_id,
             }
         } else {
             if (HCBDCreateSpace(det_ctx, (tx_id - det_ctx->hcbd_start_tx_id) + 1) < 0)
-                goto end;
+                goto end; /* let's consider it as stage not done for now */
 
             if (det_ctx->hcbd_buffers_list_len == 0) {
                 det_ctx->hcbd_start_tx_id = tx_id;
@@ -114,12 +116,6 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(int tx_id,
             det_ctx->hcbd_buffers_list_len++;
         }
         index = (tx_id - det_ctx->hcbd_start_tx_id);
-    }
-
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, tx_id);
-    if (tx == NULL) {
-        SCLogDebug("no tx");
-        goto end;
     }
 
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
@@ -155,7 +151,7 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(int tx_id,
      * when they come */
     if (htud->request_body.content_len == 0) {
         if ((htud->request_body.content_len_so_far > 0) &&
-            tx->progress != TX_PROGRESS_REQ_BODY) {
+            tx->progress[0] != TX_PROGRESS_REQ_BODY) {
             /* final length of the body */
             htud->tsflags |= HTP_REQ_BODY_COMPLETE;
         }
@@ -228,44 +224,22 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(int tx_id,
 
 int DetectEngineRunHttpClientBodyMpm(DetectEngineCtx *de_ctx,
                                      DetectEngineThreadCtx *det_ctx, Flow *f,
-                                     HtpState *htp_state, uint8_t flags)
+                                     HtpState *htp_state, uint8_t flags,
+                                     void *tx, uint64_t idx)
 {
     uint32_t cnt = 0;
-
-    if (htp_state == NULL) {
-        SCLogDebug("no HTTP state");
-        goto end;
-    }
-
-    FLOWLOCK_WRLOCK(f);
-
-    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-        SCLogDebug("HTP state has no conn(p)");
-        goto end;
-    }
-
-    /* get the transaction id */
-    int idx = AppLayerTransactionGetInspectId(f);
-    /* error!  get out of here */
-    if (idx == -1)
+    uint32_t buffer_len = 0;
+    uint8_t *buffer = DetectEngineHCBDGetBufferForTX(tx, idx,
+                                                     de_ctx, det_ctx,
+                                                     f, htp_state,
+                                                     flags,
+                                                     &buffer_len);
+    if (buffer_len == 0)
         goto end;
 
-    int size = (int)list_size(htp_state->connp->conn->transactions);
-    for (; idx < size; idx++) {
-        uint32_t buffer_len = 0;
-        uint8_t *buffer = DetectEngineHCBDGetBufferForTX(idx,
-                                                         de_ctx, det_ctx,
-                                                         f, htp_state,
-                                                         flags,
-                                                         &buffer_len);
-        if (buffer_len == 0)
-            continue;
-
-        cnt += HttpClientBodyPatternSearch(det_ctx, buffer, buffer_len, flags);
-    }
+    cnt = HttpClientBodyPatternSearch(det_ctx, buffer, buffer_len, flags);
 
  end:
-    FLOWLOCK_UNLOCK(f);
     return cnt;
 }
 
@@ -273,18 +247,17 @@ int DetectEngineInspectHttpClientBody(ThreadVars *tv,
                                       DetectEngineCtx *de_ctx,
                                       DetectEngineThreadCtx *det_ctx,
                                       Signature *s, Flow *f, uint8_t flags,
-                                      void *alstate, int tx_id)
+                                      void *alstate, void *tx, uint64_t tx_id)
 {
     HtpState *htp_state = (HtpState *)alstate;
-
     uint32_t buffer_len = 0;
-    uint8_t *buffer = DetectEngineHCBDGetBufferForTX(tx_id,
+    uint8_t *buffer = DetectEngineHCBDGetBufferForTX(tx, tx_id,
                                                      de_ctx, det_ctx,
                                                      f, htp_state,
                                                      flags,
                                                      &buffer_len);
     if (buffer_len == 0)
-        return 0;
+        goto end;
 
     det_ctx->buffer_offset = 0;
     det_ctx->discontinue_matching = 0;
@@ -295,9 +268,14 @@ int DetectEngineInspectHttpClientBody(ThreadVars *tv,
                                           buffer_len,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HCBD, NULL);
     if (r == 1)
-        return 1;
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
-    return 0;
+
+ end:
+    if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_REQ_BODY)
+        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    else
+        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
 void DetectEngineCleanHCBDBuffers(DetectEngineThreadCtx *det_ctx)
