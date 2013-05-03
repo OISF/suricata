@@ -143,7 +143,7 @@ void DetectEngineRegisterAppInspectionEngines(void)
                         DetectEngineThreadCtx *det_ctx,
                         Signature *sig, Flow *f,
                         uint8_t flags, void *alstate,
-                        int32_t tx_id);
+                        void *tx, uint64_t tx_id);
 
     };
 
@@ -151,67 +151,67 @@ void DetectEngineRegisterAppInspectionEngines(void)
         { ALPROTO_HTTP,
           DETECT_SM_LIST_UMATCH,
           DE_STATE_FLAG_URI_INSPECT,
-          DE_STATE_FLAG_URI_MATCH,
+          DE_STATE_FLAG_URI_INSPECT,
           0,
           DetectEngineInspectPacketUris },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HCBDMATCH,
           DE_STATE_FLAG_HCBD_INSPECT,
-          DE_STATE_FLAG_HCBD_MATCH,
+          DE_STATE_FLAG_HCBD_INSPECT,
           0,
           DetectEngineInspectHttpClientBody },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HHDMATCH,
           DE_STATE_FLAG_HHD_INSPECT,
-          DE_STATE_FLAG_HHD_MATCH,
+          DE_STATE_FLAG_HHD_INSPECT,
           0,
           DetectEngineInspectHttpHeader },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HRHDMATCH,
           DE_STATE_FLAG_HRHD_INSPECT,
-          DE_STATE_FLAG_HRHD_MATCH,
+          DE_STATE_FLAG_HRHD_INSPECT,
           0,
           DetectEngineInspectHttpRawHeader },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HMDMATCH,
           DE_STATE_FLAG_HMD_INSPECT,
-          DE_STATE_FLAG_HMD_MATCH,
+          DE_STATE_FLAG_HMD_INSPECT,
           0,
           DetectEngineInspectHttpMethod },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HCDMATCH,
           DE_STATE_FLAG_HCD_INSPECT,
-          DE_STATE_FLAG_HCD_MATCH,
+          DE_STATE_FLAG_HCD_INSPECT,
           0,
           DetectEngineInspectHttpCookie },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HRUDMATCH,
           DE_STATE_FLAG_HRUD_INSPECT,
-          DE_STATE_FLAG_HRUD_MATCH,
+          DE_STATE_FLAG_HRUD_INSPECT,
           0,
           DetectEngineInspectHttpRawUri },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_FILEMATCH,
           DE_STATE_FLAG_FILE_TS_INSPECT,
-          DE_STATE_FLAG_FILE_TS_MATCH,
+          DE_STATE_FLAG_FILE_TS_INSPECT,
           0,
           DetectFileInspectHttp },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HUADMATCH,
           DE_STATE_FLAG_HUAD_INSPECT,
-          DE_STATE_FLAG_HUAD_MATCH,
+          DE_STATE_FLAG_HUAD_INSPECT,
           0,
           DetectEngineInspectHttpUA },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HHHDMATCH,
           DE_STATE_FLAG_HHHD_INSPECT,
-          DE_STATE_FLAG_HHHD_MATCH,
+          DE_STATE_FLAG_HHHD_INSPECT,
           0,
           DetectEngineInspectHttpHH },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HRHHDMATCH,
           DE_STATE_FLAG_HRHHD_INSPECT,
-          DE_STATE_FLAG_HRHHD_MATCH,
+          DE_STATE_FLAG_HRHHD_INSPECT,
           0,
           DetectEngineInspectHttpHRH },
     };
@@ -220,43 +220,43 @@ void DetectEngineRegisterAppInspectionEngines(void)
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HSBDMATCH,
           DE_STATE_FLAG_HSBD_INSPECT,
-          DE_STATE_FLAG_HSBD_MATCH,
+          DE_STATE_FLAG_HSBD_INSPECT,
           1,
           DetectEngineInspectHttpServerBody },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HHDMATCH,
           DE_STATE_FLAG_HHD_INSPECT,
-          DE_STATE_FLAG_HHD_MATCH,
+          DE_STATE_FLAG_HHD_INSPECT,
           1,
           DetectEngineInspectHttpHeader },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HRHDMATCH,
           DE_STATE_FLAG_HRHD_INSPECT,
-          DE_STATE_FLAG_HRHD_MATCH,
+          DE_STATE_FLAG_HRHD_INSPECT,
           1,
           DetectEngineInspectHttpRawHeader },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HCDMATCH,
           DE_STATE_FLAG_HCD_INSPECT,
-          DE_STATE_FLAG_HCD_MATCH,
+          DE_STATE_FLAG_HCD_INSPECT,
           1,
           DetectEngineInspectHttpCookie },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_FILEMATCH,
           DE_STATE_FLAG_FILE_TC_INSPECT,
-          DE_STATE_FLAG_FILE_TC_MATCH,
+          DE_STATE_FLAG_FILE_TC_INSPECT,
           1,
           DetectFileInspectHttp },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HSMDMATCH,
           DE_STATE_FLAG_HSMD_INSPECT,
-          DE_STATE_FLAG_HSMD_MATCH,
+          DE_STATE_FLAG_HSMD_INSPECT,
           1,
           DetectEngineInspectHttpStatMsg },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HSCDMATCH,
           DE_STATE_FLAG_HSCD_INSPECT,
-          DE_STATE_FLAG_HSCD_MATCH,
+          DE_STATE_FLAG_HSCD_INSPECT,
           1,
           DetectEngineInspectHttpStatCode }
     };
@@ -329,7 +329,7 @@ void DetectEngineRegisterAppInspectionEngine(uint16_t alproto,
                                                              DetectEngineThreadCtx *det_ctx,
                                                              Signature *sig, Flow *f,
                                                              uint8_t flags, void *alstate,
-                                                             int32_t tx_id),
+                                                             void *tx, uint64_t tx_id),
                                              DetectEngineAppInspectionEngine *list[][2])
 {
     if ((list == NULL) ||
@@ -1480,7 +1480,7 @@ int DummyTestAppInspectionEngine01(ThreadVars *tv,
                                    Flow *f,
                                    uint8_t flags,
                                    void *alstate,
-                                   int32_t tx_id)
+                                   void *tx, uint64_t tx_id)
 {
     return 0;
 }
@@ -1492,7 +1492,7 @@ int DummyTestAppInspectionEngine02(ThreadVars *tv,
                                    Flow *f,
                                    uint8_t flags,
                                    void *alstate,
-                                   int32_t tx_id)
+                                   void *tx, uint64_t tx_id)
 {
     return 0;
 }
@@ -1508,7 +1508,7 @@ int DetectEngineTest05(void)
                                             0 /* STREAM_TOSERVER */,
                                             DETECT_SM_LIST_UMATCH,
                                             DE_STATE_FLAG_URI_INSPECT,
-                                            DE_STATE_FLAG_URI_MATCH,
+                                            DE_STATE_FLAG_URI_INSPECT,
                                             DummyTestAppInspectionEngine01,
                                             engine_list);
 
@@ -1528,7 +1528,7 @@ int DetectEngineTest05(void)
                     engine->dir != dir ||
                     engine->sm_list != DETECT_SM_LIST_UMATCH ||
                     engine->inspect_flags != DE_STATE_FLAG_URI_INSPECT ||
-                    engine->match_flags != DE_STATE_FLAG_URI_MATCH ||
+                    engine->match_flags != DE_STATE_FLAG_URI_INSPECT ||
                     engine->Callback != DummyTestAppInspectionEngine01) {
                     printf("failed for http and dir(0-toserver)\n");
                     goto end;
@@ -1567,14 +1567,14 @@ int DetectEngineTest06(void)
                                             0 /* STREAM_TOSERVER */,
                                             DETECT_SM_LIST_UMATCH,
                                             DE_STATE_FLAG_URI_INSPECT,
-                                            DE_STATE_FLAG_URI_MATCH,
+                                            DE_STATE_FLAG_URI_INSPECT,
                                             DummyTestAppInspectionEngine01,
                                             engine_list);
     DetectEngineRegisterAppInspectionEngine(ALPROTO_HTTP,
                                             1 /* STREAM_TOCLIENT */,
                                             DETECT_SM_LIST_UMATCH,
                                             DE_STATE_FLAG_URI_INSPECT,
-                                            DE_STATE_FLAG_URI_MATCH,
+                                            DE_STATE_FLAG_URI_INSPECT,
                                             DummyTestAppInspectionEngine02,
                                             engine_list);
 
@@ -1594,7 +1594,7 @@ int DetectEngineTest06(void)
                     engine->dir != dir ||
                     engine->sm_list != DETECT_SM_LIST_UMATCH ||
                     engine->inspect_flags != DE_STATE_FLAG_URI_INSPECT ||
-                    engine->match_flags != DE_STATE_FLAG_URI_MATCH ||
+                    engine->match_flags != DE_STATE_FLAG_URI_INSPECT ||
                     engine->Callback != DummyTestAppInspectionEngine01) {
                     printf("failed for http and dir(0-toserver)\n");
                     goto end;
@@ -1613,7 +1613,7 @@ int DetectEngineTest06(void)
                     engine->dir != dir ||
                     engine->sm_list != DETECT_SM_LIST_UMATCH ||
                     engine->inspect_flags != DE_STATE_FLAG_URI_INSPECT ||
-                    engine->match_flags != DE_STATE_FLAG_URI_MATCH ||
+                    engine->match_flags != DE_STATE_FLAG_URI_INSPECT ||
                     engine->Callback != DummyTestAppInspectionEngine02) {
                     printf("failed for http and dir(0-toclient)\n");
                     goto end;
@@ -1651,74 +1651,74 @@ int DetectEngineTest07(void)
                         DetectEngineThreadCtx *det_ctx,
                         Signature *sig, Flow *f,
                         uint8_t flags, void *alstate,
-                        int32_t tx_id);
+                        void *tx, uint64_t tx_id);
 
     };
 
     struct test_data_t data[] = {
         { DETECT_SM_LIST_UMATCH,
           DE_STATE_FLAG_URI_INSPECT,
-          DE_STATE_FLAG_URI_MATCH,
+          DE_STATE_FLAG_URI_INSPECT,
           0,
           DummyTestAppInspectionEngine01 },
         { DETECT_SM_LIST_HCBDMATCH,
           DE_STATE_FLAG_HCBD_INSPECT,
-          DE_STATE_FLAG_HCBD_MATCH,
+          DE_STATE_FLAG_HCBD_INSPECT,
           0,
           DummyTestAppInspectionEngine02 },
         { DETECT_SM_LIST_HSBDMATCH,
           DE_STATE_FLAG_HSBD_INSPECT,
-          DE_STATE_FLAG_HSBD_MATCH,
+          DE_STATE_FLAG_HSBD_INSPECT,
           1,
           DummyTestAppInspectionEngine02 },
         { DETECT_SM_LIST_HHDMATCH,
           DE_STATE_FLAG_HHD_INSPECT,
-          DE_STATE_FLAG_HHD_MATCH,
+          DE_STATE_FLAG_HHD_INSPECT,
           0,
           DummyTestAppInspectionEngine01 },
         { DETECT_SM_LIST_HRHDMATCH,
           DE_STATE_FLAG_HRHD_INSPECT,
-          DE_STATE_FLAG_HRHD_MATCH,
+          DE_STATE_FLAG_HRHD_INSPECT,
           0,
           DummyTestAppInspectionEngine01 },
         { DETECT_SM_LIST_HMDMATCH,
           DE_STATE_FLAG_HMD_INSPECT,
-          DE_STATE_FLAG_HMD_MATCH,
+          DE_STATE_FLAG_HMD_INSPECT,
           0,
           DummyTestAppInspectionEngine02 },
         { DETECT_SM_LIST_HCDMATCH,
           DE_STATE_FLAG_HCD_INSPECT,
-          DE_STATE_FLAG_HCD_MATCH,
+          DE_STATE_FLAG_HCD_INSPECT,
           0,
           DummyTestAppInspectionEngine01 },
         { DETECT_SM_LIST_HRUDMATCH,
           DE_STATE_FLAG_HRUD_INSPECT,
-          DE_STATE_FLAG_HRUD_MATCH,
+          DE_STATE_FLAG_HRUD_INSPECT,
           0,
           DummyTestAppInspectionEngine01 },
         { DETECT_SM_LIST_FILEMATCH,
           DE_STATE_FLAG_FILE_TS_INSPECT,
-          DE_STATE_FLAG_FILE_TS_MATCH,
+          DE_STATE_FLAG_FILE_TS_INSPECT,
           0,
           DummyTestAppInspectionEngine02 },
         { DETECT_SM_LIST_FILEMATCH,
           DE_STATE_FLAG_FILE_TC_INSPECT,
-          DE_STATE_FLAG_FILE_TC_MATCH,
+          DE_STATE_FLAG_FILE_TC_INSPECT,
           1,
           DummyTestAppInspectionEngine02 },
         { DETECT_SM_LIST_HSMDMATCH,
           DE_STATE_FLAG_HSMD_INSPECT,
-          DE_STATE_FLAG_HSMD_MATCH,
+          DE_STATE_FLAG_HSMD_INSPECT,
           0,
           DummyTestAppInspectionEngine01 },
         { DETECT_SM_LIST_HSCDMATCH,
           DE_STATE_FLAG_HSCD_INSPECT,
-          DE_STATE_FLAG_HSCD_MATCH,
+          DE_STATE_FLAG_HSCD_INSPECT,
           0,
           DummyTestAppInspectionEngine01 },
         { DETECT_SM_LIST_HUADMATCH,
           DE_STATE_FLAG_HUAD_INSPECT,
-          DE_STATE_FLAG_HUAD_MATCH,
+          DE_STATE_FLAG_HUAD_INSPECT,
           0,
           DummyTestAppInspectionEngine02 },
     };

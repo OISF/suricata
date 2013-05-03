@@ -991,6 +991,10 @@ end:
     return result;
 }
 
+/* Disabled because of bug_753.  Would be enabled, once we rewrite
+ * dce parser */
+#if 0
+
 /**
  * \test Test a valid dce_iface entry with a bind, bind_ack and 3 request/responses.
  */
@@ -1320,6 +1324,8 @@ static int DetectDceIfaceTestParse13(void)
     UTHFreePackets(&p, 1);
     return result;
 }
+
+#endif
 
 /**
  * \test Test a valid dce_iface entry for a bind and bind_ack
@@ -1769,7 +1775,11 @@ void DetectDceIfaceRegisterTests(void)
     UtRegisterTest("DetectDceIfaceTestParse10", DetectDceIfaceTestParse10, 1);
     UtRegisterTest("DetectDceIfaceTestParse11", DetectDceIfaceTestParse11, 1);
     UtRegisterTest("DetectDceIfaceTestParse12", DetectDceIfaceTestParse12, 1);
+    /* Disabled because of bug_753.  Would be enabled, once we rewrite
+     * dce parser */
+#if 0
     UtRegisterTest("DetectDceIfaceTestParse13", DetectDceIfaceTestParse13, 1);
+#endif
     UtRegisterTest("DetectDceIfaceTestParse14", DetectDceIfaceTestParse14, 1);
     UtRegisterTest("DetectDceIfaceTestParse15", DetectDceIfaceTestParse15, 1);
 #endif

@@ -1131,11 +1131,15 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
         s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL ||
         s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL) {
         sig_flags |= SIG_FLAG_TOSERVER;
+        s->flags |= SIG_FLAG_TOSERVER;
+        s->flags &= ~SIG_FLAG_TOCLIENT;
     }
     if (s->sm_lists[DETECT_SM_LIST_HSBDMATCH] != NULL ||
         s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
         s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
         sig_flags |= SIG_FLAG_TOCLIENT;
+        s->flags |= SIG_FLAG_TOCLIENT;
+        s->flags &= ~SIG_FLAG_TOSERVER;
     }
     if ((sig_flags & (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) {
         SCLogError(SC_ERR_INVALID_SIGNATURE,"You seem to have mixed keywords "

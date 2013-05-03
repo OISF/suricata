@@ -767,6 +767,7 @@ static int DetectSslStateTest07(void)
     }
 
     /* do detect */
+    p->alerts.cnt = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (!PacketAlertCheck(p, 1))
@@ -786,6 +787,7 @@ static int DetectSslStateTest07(void)
     }
 
     /* do detect */
+    p->alerts.cnt = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1))
@@ -806,6 +808,7 @@ static int DetectSslStateTest07(void)
     }
 
     /* do detect */
+    p->alerts.cnt = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1))
@@ -826,6 +829,7 @@ static int DetectSslStateTest07(void)
     }
 
     /* do detect */
+    p->alerts.cnt = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1))
@@ -846,6 +850,7 @@ static int DetectSslStateTest07(void)
     }
 
     /* do detect */
+    p->alerts.cnt = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1))
