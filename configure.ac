@@ -710,6 +710,7 @@ AC_INIT(configure.ac)
         AC_COMPILE_IFELSE(
             [AC_LANG_PROGRAM(
                 [
+                #include <stdio.h>
                 #include <libnetfilter_queue/libnetfilter_queue.h>
                 ],
                 [
