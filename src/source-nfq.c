@@ -258,15 +258,14 @@ void NFQInitConfig(char quiet)
     if ((ConfGetInt("nfq.batchcount", &value)) == 1) {
 #ifdef HAVE_NFQ_SET_VERDICT_BATCH
         if (value > 255) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "nfq.batchcount cannot exceed 255.");
+            SCLogWarning(SC_ERR_INVALID_ARGUMENT, "nfq.batchcount cannot exceed 255.");
             value = 255;
         }
         if (value > 1)
             nfq_config.batchcount = (uint8_t) (value - 1);
 #else
-        SCLogError(SC_ERR_NFQ_NOSUPPORT,
+        SCLogWarning(SC_ERR_NFQ_NOSUPPORT,
                    "nfq.%s set but NFQ library has no support for it.", "batchcount");
-        exit(EXIT_FAILURE);
 #endif
     }
 
