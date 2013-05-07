@@ -79,7 +79,7 @@ typedef struct RunModeOutput_ {
 TAILQ_HEAD(, RunModeOutput_) RunModeOutputs =
     TAILQ_HEAD_INITIALIZER(RunModeOutputs);
 
-static RunModes runmodes[RUNMODE_MAX];
+static RunModes runmodes[RUNMODE_USER_MAX];
 
 static char *active_runmode;
 
@@ -214,7 +214,7 @@ void RunModeListRunmodes(void)
            "-----------------------\n");
     int i = RUNMODE_UNKNOWN + 1;
     int j = 0;
-    for ( ; i < RUNMODE_MAX; i++) {
+    for ( ; i < RUNMODE_USER_MAX; i++) {
         int mode_displayed = 0;
         for (j = 0; j < runmodes[i].no_of_runmodes; j++) {
             if (mode_displayed == 1) {
