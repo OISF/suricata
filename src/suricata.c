@@ -185,10 +185,6 @@ uint8_t suricata_ctl_flags = 0;
 /** Run mode selected */
 int run_mode = RUNMODE_UNKNOWN;
 
-/** engine_analysis.  disabled(0) by default, unless enabled by the user by
-  * running the engine with --engine-analysis */
-int engine_analysis = 0;
-
 /** Engine mode: inline (ENGINE_MODE_IPS) or just
   * detection mode (ENGINE_MODE_IDS by default) */
 uint8_t engine_mode = ENGINE_MODE_IDS;
@@ -953,6 +949,7 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
     int list_keywords = 0;
     int build_info = 0;
     int conf_test = 0;
+    int engine_analysis = 0;
 
 #ifdef UNITTESTS
     coverage_unittests = 0;
@@ -1467,6 +1464,8 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
         suri->run_mode = RUNMODE_DUMP_CONFIG;
     if (conf_test)
         suri->run_mode = RUNMODE_CONF_TEST;
+    if (engine_analysis)
+        suri->run_mode = RUNMODE_ENGINE_ANALYSIS;
 
     return TM_ECODE_OK;
 }
@@ -1699,18 +1698,16 @@ int main(int argc, char **argv)
 
     /* Load the Host-OS lookup. */
     SCHInfoLoadFromConfig();
-    if (run_mode != RUNMODE_UNIX_SOCKET) {
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         DefragInit();
     }
 
-    if (run_mode == RUNMODE_UNKNOWN) {
-        if (!engine_analysis && !(suri.run_mode == RUNMODE_CONF_TEST)) {
-            usage(argv[0]);
-            exit(EXIT_FAILURE);
-        }
+    if (suri.run_mode == RUNMODE_UNKNOWN) {
+        usage(argv[0]);
+        exit(EXIT_FAILURE);
     }
 
-    if (engine_analysis) {
+    if (suri.run_mode == RUNMODE_ENGINE_ANALYSIS) {
         SCLogInfo("== Carrying out Engine Analysis ==");
         char *temp = NULL;
         if (ConfGet("engine-analysis", &temp) == 0) {
@@ -1884,9 +1881,9 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
 
     /* In offline mode delayed init of detect is a bad idea */
-    if ((run_mode == RUNMODE_PCAP_FILE) ||
-        (run_mode == RUNMODE_ERF_FILE) ||
-        engine_analysis) {
+    if ((suri.run_mode == RUNMODE_PCAP_FILE) ||
+        (suri.run_mode == RUNMODE_ERF_FILE) ||
+        (suri.run_mode == RUNMODE_ENGINE_ANALYSIS)) {
         suri.delayed_detect = 0;
     } else {
         ConfNode *denode = NULL;
@@ -1916,7 +1913,7 @@ int main(int argc, char **argv)
             if (de_ctx->failure_fatal)
                 exit(EXIT_FAILURE);
         }
-        if (engine_analysis) {
+        if (suri.run_mode == RUNMODE_ENGINE_ANALYSIS) {
             exit(EXIT_SUCCESS);
         }
     }
