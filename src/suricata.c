@@ -1500,6 +1500,68 @@ static int SuriWindowsInitService(int argc, char **argv)
 }
 #endif /* OS_WIN32 */
 
+
+int SuriStartInternalRunMode(struct SuriInstance *suri, int argc, char **argv)
+{
+    /* Treat internal running mode */
+    switch(suri->run_mode) {
+        case RUNMODE_LIST_KEYWORDS:
+            ListKeywords(suri->keyword_info);
+            return TM_ECODE_DONE;
+        case RUNMODE_LIST_APP_LAYERS:
+            ListAppLayerProtocols();
+            return TM_ECODE_DONE;
+        case RUNMODE_PRINT_VERSION:
+            SuriPrintVersion();
+            return TM_ECODE_DONE;
+        case RUNMODE_PRINT_BUILDINFO:
+            SCPrintBuildInfo();
+            return TM_ECODE_DONE;
+        case RUNMODE_PRINT_USAGE:
+            usage(argv[0]);
+            return TM_ECODE_DONE;
+#ifdef __SC_CUDA_SUPPORT__
+        case RUNMODE_LIST_CUDA_CARDS:
+            return ListCudaCards();
+#endif
+        case RUNMODE_LIST_RUNMODES:
+            RunModeListRunmodes();
+            return TM_ECODE_DONE;
+        case RUNMODE_LIST_UNITTEST:
+            {
+                int ret = RunUnittests(1, suri->regex_arg);
+                if (ret == TM_ECODE_OK)
+                    return TM_ECODE_DONE;
+                else
+                    return ret;
+            }
+#ifdef OS_WIN32
+        case RUNMODE_INSTALL_SERVICE:
+            if (SCServiceInstall(argc, argv)) {
+                return TM_ECODE_FAILED;
+            }
+            SCLogInfo("Suricata service has been successfuly installed.");
+            return TM_ECODE_DONE;
+        case RUNMODE_REMOVE_SERVICE:
+            if (SCServiceRemove(argc, argv)) {
+                return TM_ECODE_FAILED;
+            }
+            SCLogInfo("Suricata service has been successfuly removed.");
+            return TM_ECODE_DONE;
+        case RUNMODE_CHANGE_SERVICE_PARAMS:
+            if (SCServiceChangeParams(argc, argv)) {
+                return TM_ECODE_FAILED;
+            }
+            SCLogInfo("Suricata service startup parameters has been successfuly changed.");
+            return TM_ECODE_DONE;
+#endif /* OS_WIN32 */
+        default:
+            /* simply continue for other running mode */
+            break;
+    }
+    return TM_ECODE_OK;
+}
+
 int main(int argc, char **argv)
 {
     struct SuriInstance suri;
@@ -1538,55 +1600,11 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    /* Treat internal running mode */
-    switch(suri.running_mode) {
-        case SC_RUN_LIST_KEYWORDS:
-            return ListKeywords(suri.keyword_info);
-        case SC_RUN_LIST_APP_LAYERS:
-            return ListAppLayerProtocols();
-        case SC_RUN_PRINT_VERSION:
-            return SuriPrintVersion();
-        case RUNMODE_PRINT_BUILDINFO:
-            SCPrintBuildInfo();
-            return TM_ECODE_OK;
-        case RUNMODE_PRINT_USAGE:
-            usage(argv[0]);
-            return TM_ECODE_OK;
-#ifdef __SC_CUDA_SUPPORT__
-        case SC_RUN_LIST_CUDA_CARDS:
-            return ListCudaCards();
-#endif
-        case RUNMODE_LIST_RUNMODES:
-            RunModeListRunmodes();
-            return TM_ECODE_OK;
-        /* FIXME not sexy here */
-        case SC_RUN_LIST_UNITTEST:
-            return RunUnittests(1, suri.regex_arg);
-        case SC_RUN_UNITTEST:
-            return RunUnittests(0, suri.regex_arg);
-#ifdef OS_WIN32
-        case RUNMODE_INSTALL_SERVICE:
-            if (SCServiceInstall(argc, argv)) {
-                return TM_ECODE_FAILED;
-            }
-            SCLogInfo("Suricata service has been successfuly installed.");
+    switch (SuriStartInternalRunMode(&suri, argc, argv)) {
+        case TM_ECODE_DONE:
             exit(EXIT_SUCCESS);
-        case RUNMODE_REMOVE_SERVICE:
-            if (SCServiceRemove(argc, argv)) {
-                return TM_ECODE_FAILED;
-            }
-            SCLogInfo("Suricata service has been successfuly removed.");
-            exit(EXIT_SUCCESS);
-        case RUNMODE_CHANGE_SERVICE_PARAMS:
-            if (SCServiceChangeParams(argc, argv)) {
-                return TM_ECODE_FAILED;
-            }
-            SCLogInfo("Suricata service startup parameters has been successfuly changed.");
-            exit(EXIT_SUCCESS);
-#endif /* OS_WIN32 */
-        default:
-            /* simply continue for other running mode */
-            break;
+        case TM_ECODE_FAILED:
+            exit(EXIT_FAILURE);
     }
 
     /* Set the global run mode */
@@ -1598,7 +1616,7 @@ int main(int argc, char **argv)
     }
 
     if (suri.run_mode == RUNMODE_UNITTEST)
-        return SuriRunUnittests(0, suri.regex_arg);
+        return RunUnittests(0, suri.regex_arg);
 
 #ifdef REVISION
     SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
