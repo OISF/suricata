@@ -880,28 +880,8 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
     SCReturnInt(TM_ECODE_OK);
 }
 
-typedef enum {
-    SC_RUN_NOT_DEFINED,
-    SC_RUN_LIST_KEYWORDS,
-    SC_RUN_LIST_APP_LAYERS,
-    SC_RUN_LIST_CUDA_CARDS,
-    SC_RUN_LIST_RUNMODES,
-    SC_RUN_PRINT_VERSION,
-    SC_RUN_PRINT_BUILDINFO,
-    SC_RUN_PRINT_USAGE,
-    SC_RUN_DUMP_CONFIG,
-    SC_RUN_CONF_TEST,
-    SC_RUN_LIST_UNITTEST,
-    SC_RUN_UNITTEST,
-#ifdef OS_WIN32
-    SC_RUN_INSTALL_SERVICE,
-    SC_RUN_REMOVE_SERVICE,
-    SC_RUN_CHANGE_SERVICE_PARAMS,
-#endif
-} SuriRunningMode;
-
 struct SuriInstance {
-    SuriRunningMode running_mode;
+    int running_mode;
 
     char pcap_dev[128];
     char *sig_file;
@@ -1170,7 +1150,7 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
                 return TM_ECODE_FAILED;
 #endif /* UNITTESTS */
             } else if (strcmp((long_opts[option_index]).name, "list-runmodes") == 0) {
-                suri->running_mode = SC_RUN_LIST_RUNMODES;
+                suri->running_mode = RUNMODE_LIST_RUNMODES;
                 return TM_ECODE_OK;
             } else if (strcmp((long_opts[option_index]).name, "list-keywords") == 0) {
                 if (optarg) {
@@ -1185,15 +1165,15 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
             }
 #ifdef OS_WIN32
             else if(strcmp((long_opts[option_index]).name, "service-install") == 0) {
-                suri->running_mode = SC_RUN_INSTALL_SERVICE;
+                suri->running_mode = RUNMODE_INSTALL_SERVICE;
                 return TM_ECODE_OK;
             }
             else if(strcmp((long_opts[option_index]).name, "service-remove") == 0) {
-                suri->running_mode = SC_RUN_REMOVE_SERVICE;
+                suri->running_mode = RUNMODE_REMOVE_SERVICE;
                 return TM_ECODE_OK;
             }
             else if(strcmp((long_opts[option_index]).name, "service-change-params") == 0) {
-                suri->running_mode = SC_RUN_CHANGE_SERVICE_PARAMS;
+                suri->running_mode = RUNMODE_CHANGE_SERVICE_PARAMS;
                 return TM_ECODE_OK;
             }
 #endif /* OS_WIN32 */
@@ -1277,7 +1257,7 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
 #endif /* HAVE_PCAP_SET_BUFF */
             }
             else if(strcmp((long_opts[option_index]).name, "build-info") == 0) {
-                suri->running_mode = SC_RUN_PRINT_BUILDINFO;
+                suri->running_mode = RUNMODE_PRINT_BUILDINFO;
                 return TM_ECODE_OK;
             }
 #ifdef HAVE_MPIPE
@@ -1317,7 +1297,7 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
             break;
 #endif /* OS_WIN32 */
         case 'h':
-            suri->running_mode = SC_RUN_PRINT_USAGE;
+            suri->running_mode = RUNMODE_PRINT_USAGE;
             return TM_ECODE_OK;
         case 'i':
             memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
@@ -1445,7 +1425,7 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
 #ifdef UNITTESTS
             if (run_mode == RUNMODE_UNKNOWN) {
                 run_mode = RUNMODE_UNITTEST;
-                suri->running_mode = SC_RUN_UNITTEST;
+                suri->running_mode = RUNMODE_UNITTEST;
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode has"
                                                      " been specified");
@@ -1466,7 +1446,7 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
 #endif
             break;
         case 'V':
-            suri->running_mode = SC_RUN_PRINT_VERSION;
+            suri->running_mode = RUNMODE_PRINT_VERSION;
             return TM_ECODE_OK;
         case 'F':
             SetBpfStringFromFile(optarg);
@@ -1478,17 +1458,17 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
     }
 
     if (list_app_layer_protocols)
-        suri->running_mode = SC_RUN_LIST_APP_LAYERS;
+        suri->running_mode = RUNMODE_LIST_APP_LAYERS;
     if (list_cuda_cards)
-        suri->running_mode = SC_RUN_LIST_CUDA_CARDS;
+        suri->running_mode = RUNMODE_LIST_CUDA_CARDS;
     if (list_keywords)
-        suri->running_mode = SC_RUN_LIST_KEYWORDS;
+        suri->running_mode = RUNMODE_LIST_KEYWORDS;
     if (list_unittests)
-        suri->running_mode = SC_RUN_LIST_UNITTEST;
+        suri->running_mode = RUNMODE_LIST_UNITTEST;
     if (dump_config)
-        suri->running_mode = SC_RUN_DUMP_CONFIG;
+        suri->running_mode = RUNMODE_DUMP_CONFIG;
     if (conf_test)
-        suri->running_mode = SC_RUN_CONF_TEST;
+        suri->running_mode = RUNMODE_CONF_TEST;
 
     return TM_ECODE_OK;
 }
@@ -1557,17 +1537,17 @@ int main(int argc, char **argv)
             return ListAppLayerProtocols();
         case SC_RUN_PRINT_VERSION:
             return SuriPrintVersion();
-        case SC_RUN_PRINT_BUILDINFO:
+        case RUNMODE_PRINT_BUILDINFO:
             SCPrintBuildInfo();
             return TM_ECODE_OK;
-        case SC_RUN_PRINT_USAGE:
+        case RUNMODE_PRINT_USAGE:
             usage(argv[0]);
             return TM_ECODE_OK;
 #ifdef __SC_CUDA_SUPPORT__
         case SC_RUN_LIST_CUDA_CARDS:
             return ListCudaCards();
 #endif
-        case SC_RUN_LIST_RUNMODES:
+        case RUNMODE_LIST_RUNMODES:
             RunModeListRunmodes();
             return TM_ECODE_OK;
         /* FIXME not sexy here */
@@ -1576,19 +1556,19 @@ int main(int argc, char **argv)
         case SC_RUN_UNITTEST:
             return RunUnittests(0, suri.regex_arg);
 #ifdef OS_WIN32
-        case SC_RUN_INSTALL_SERVICE:
+        case RUNMODE_INSTALL_SERVICE:
             if (SCServiceInstall(argc, argv)) {
                 return TM_ECODE_FAILED;
             }
             SCLogInfo("Suricata service has been successfuly installed.");
             exit(EXIT_SUCCESS);
-        case SC_RUN_REMOVE_SERVICE:
+        case RUNMODE_REMOVE_SERVICE:
             if (SCServiceRemove(argc, argv)) {
                 return TM_ECODE_FAILED;
             }
             SCLogInfo("Suricata service has been successfuly removed.");
             exit(EXIT_SUCCESS);
-        case SC_RUN_CHANGE_SERVICE_PARAMS:
+        case RUNMODE_CHANGE_SERVICE_PARAMS:
             if (SCServiceChangeParams(argc, argv)) {
                 return TM_ECODE_FAILED;
             }
@@ -1647,7 +1627,7 @@ int main(int argc, char **argv)
     AppLayerDetectProtoThreadInit();
     AppLayerParsersInitPostProcess();
 
-    if (suri.running_mode == SC_RUN_DUMP_CONFIG) {
+    if (suri.running_mode == RUNMODE_DUMP_CONFIG) {
         ConfDump();
         exit(EXIT_SUCCESS);
     }
@@ -1719,7 +1699,7 @@ int main(int argc, char **argv)
     }
 
     if (run_mode == RUNMODE_UNKNOWN) {
-        if (!engine_analysis && !(suri.running_mode == SC_RUN_CONF_TEST)) {
+        if (!engine_analysis && !(suri.running_mode == RUNMODE_CONF_TEST)) {
             usage(argv[0]);
             exit(EXIT_FAILURE);
         }
@@ -1960,7 +1940,7 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
     }
 
-    if(suri.running_mode == SC_RUN_CONF_TEST){
+    if(suri.running_mode == RUNMODE_CONF_TEST){
         SCLogInfo("Configuration provided was successfully loaded. Exiting.");
         exit(EXIT_SUCCESS);
     }
