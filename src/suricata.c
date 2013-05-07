@@ -838,7 +838,7 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
 }
 
 struct SuriInstance {
-    int running_mode;
+    int run_mode;
 
     char pcap_dev[128];
     char *sig_file;
@@ -864,7 +864,7 @@ struct SuriInstance {
 
 static void SuriInstanceInit(struct SuriInstance *suri)
 {
-    suri->running_mode = 0;
+    suri->run_mode = RUNMODE_UNKNOWN;
 
     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
     suri->sig_file = NULL;
@@ -959,7 +959,7 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
             if (strcmp((long_opts[option_index]).name , "pfring") == 0 ||
                 strcmp((long_opts[option_index]).name , "pfring-int") == 0) {
 #ifdef HAVE_PFRING
-                run_mode = RUNMODE_PFRING;
+                suri->run_mode = RUNMODE_PFRING;
                 if (optarg != NULL) {
                     memset(pcap_dev, 0, sizeof(pcap_dev));
                     strlcpy(pcap_dev, optarg,
@@ -999,8 +999,8 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
             }
             else if (strcmp((long_opts[option_index]).name , "af-packet") == 0){
 #ifdef HAVE_AF_PACKET
-                if (run_mode == RUNMODE_UNKNOWN) {
-                    run_mode = RUNMODE_AFP_DEV;
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_AFP_DEV;
                     if (optarg) {
                         LiveRegisterDevice(optarg);
                         memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
@@ -1008,7 +1008,7 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
                                 ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
                                  (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
                     }
-                } else if (run_mode == RUNMODE_AFP_DEV) {
+                } else if (suri->run_mode == RUNMODE_AFP_DEV) {
                     SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
                             "multiple devices to get packets is experimental.");
                     if (optarg) {
@@ -1030,8 +1030,8 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
                 return TM_ECODE_FAILED;
 #endif
             } else if (strcmp((long_opts[option_index]).name , "pcap") == 0) {
-                if (run_mode == RUNMODE_UNKNOWN) {
-                    run_mode = RUNMODE_PCAP_DEV;
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_PCAP_DEV;
                     if (optarg) {
                         LiveRegisterDevice(optarg);
                         memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
@@ -1039,7 +1039,7 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
                                 ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
                                  (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
                     }
-                } else if (run_mode == RUNMODE_PCAP_DEV) {
+                } else if (suri->run_mode == RUNMODE_PCAP_DEV) {
 #ifdef OS_WIN32
                     SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
                             "support is not (yet) supported on Windows.");
@@ -1062,8 +1062,8 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
                 }
 #ifdef BUILD_UNIX_SOCKET
             } else if (strcmp((long_opts[option_index]).name , "unix-socket") == 0) {
-                if (run_mode == RUNMODE_UNKNOWN) {
-                    run_mode = RUNMODE_UNIX_SOCKET;
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_UNIX_SOCKET;
                     if (optarg) {
                         if (ConfSet("unix-command.filename", optarg, 0) != 1) {
                             fprintf(stderr, "ERROR: Failed to set unix-command.filename.\n");
@@ -1084,8 +1084,7 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
             }
             else if(strcmp((long_opts[option_index]).name, "list-unittests") == 0) {
 #ifdef UNITTESTS
-                /* Set run_mode to unit tests. */
-                run_mode = RUNMODE_UNITTEST;
+                suri->run_mode = RUNMODE_LIST_UNITTEST;
 #else
                 fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
                 return TM_ECODE_FAILED;
@@ -1097,7 +1096,7 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
                 return TM_ECODE_FAILED;
 #endif /* UNITTESTS */
             } else if (strcmp((long_opts[option_index]).name, "list-runmodes") == 0) {
-                suri->running_mode = RUNMODE_LIST_RUNMODES;
+                suri->run_mode = RUNMODE_LIST_RUNMODES;
                 return TM_ECODE_OK;
             } else if (strcmp((long_opts[option_index]).name, "list-keywords") == 0) {
                 if (optarg) {
@@ -1112,15 +1111,15 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
             }
 #ifdef OS_WIN32
             else if(strcmp((long_opts[option_index]).name, "service-install") == 0) {
-                suri->running_mode = RUNMODE_INSTALL_SERVICE;
+                suri->run_mode = RUNMODE_INSTALL_SERVICE;
                 return TM_ECODE_OK;
             }
             else if(strcmp((long_opts[option_index]).name, "service-remove") == 0) {
-                suri->running_mode = RUNMODE_REMOVE_SERVICE;
+                suri->run_mode = RUNMODE_REMOVE_SERVICE;
                 return TM_ECODE_OK;
             }
             else if(strcmp((long_opts[option_index]).name, "service-change-params") == 0) {
-                suri->running_mode = RUNMODE_CHANGE_SERVICE_PARAMS;
+                suri->run_mode = RUNMODE_CHANGE_SERVICE_PARAMS;
                 return TM_ECODE_OK;
             }
 #endif /* OS_WIN32 */
@@ -1159,7 +1158,7 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
 #endif /* HAVE_LIBCAP_NG */
             }
             else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
-                run_mode = RUNMODE_ERF_FILE;
+                suri->run_mode = RUNMODE_ERF_FILE;
                 if (ConfSet("erf-file.file", optarg, 0) != 1) {
                     fprintf(stderr, "ERROR: Failed to set erf-file.file\n");
                     return TM_ECODE_FAILED;
@@ -1167,10 +1166,10 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
             }
             else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
 #ifdef HAVE_DAG
-                if (run_mode == RUNMODE_UNKNOWN) {
-                    run_mode = RUNMODE_DAG;
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_DAG;
                 }
-                else if (run_mode != RUNMODE_DAG) {
+                else if (suri->run_mode != RUNMODE_DAG) {
                     SCLogError(SC_ERR_MULTIPLE_RUN_MODE,
                         "more than one run mode has been specified");
                     usage(argv[0]);
@@ -1185,7 +1184,7 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
 		}
         else if (strcmp((long_opts[option_index]).name, "napatech") == 0) {
 #ifdef HAVE_NAPATECH
-            run_mode = RUNMODE_NAPATECH;
+            suri->run_mode = RUNMODE_NAPATECH;
 #else
             SCLogError(SC_ERR_NAPATECH_REQUIRED, "libntapi and a Napatech adapter are required"
                                                  " to capture packets using --napatech.");
@@ -1204,7 +1203,7 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
 #endif /* HAVE_PCAP_SET_BUFF */
             }
             else if(strcmp((long_opts[option_index]).name, "build-info") == 0) {
-                suri->running_mode = RUNMODE_PRINT_BUILDINFO;
+                suri->run_mode = RUNMODE_PRINT_BUILDINFO;
                 return TM_ECODE_OK;
             }
             break;
@@ -1225,7 +1224,7 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
             break;
 #endif /* OS_WIN32 */
         case 'h':
-            suri->running_mode = RUNMODE_PRINT_USAGE;
+            suri->run_mode = RUNMODE_PRINT_USAGE;
             return TM_ECODE_OK;
         case 'i':
             memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
@@ -1246,10 +1245,10 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
                 return TM_ECODE_FAILED;
             }
 
-            if (run_mode == RUNMODE_UNKNOWN) {
-                run_mode = RUNMODE_PCAP_DEV;
+            if (suri->run_mode == RUNMODE_UNKNOWN) {
+                suri->run_mode = RUNMODE_PCAP_DEV;
                 LiveRegisterDevice(suri->pcap_dev);
-            } else if (run_mode == RUNMODE_PCAP_DEV) {
+            } else if (suri->run_mode == RUNMODE_PCAP_DEV) {
 #ifdef OS_WIN32
                 SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
                         "support is not (yet) supported on Windows.");
@@ -1280,12 +1279,12 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
             break;
         case 'q':
 #ifdef NFQ
-            if (run_mode == RUNMODE_UNKNOWN) {
-                run_mode = RUNMODE_NFQ;
+            if (suri->run_mode == RUNMODE_UNKNOWN) {
+                suri->run_mode = RUNMODE_NFQ;
                 SET_ENGINE_MODE_IPS(engine_mode);
                 if (NFQRegisterQueue(optarg) == -1)
                     return TM_ECODE_FAILED;
-            } else if (run_mode == RUNMODE_NFQ) {
+            } else if (suri->run_mode == RUNMODE_NFQ) {
                 if (NFQRegisterQueue(optarg) == -1)
                     return TM_ECODE_FAILED;
             } else {
@@ -1301,12 +1300,12 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
             break;
         case 'd':
 #ifdef IPFW
-            if (run_mode == RUNMODE_UNKNOWN) {
-                run_mode = RUNMODE_IPFW;
+            if (suri->run_mode == RUNMODE_UNKNOWN) {
+                suri->run_mode = RUNMODE_IPFW;
                 SET_ENGINE_MODE_IPS(engine_mode);
                 if (IPFWRegisterQueue(optarg) == -1)
                     return TM_ECODE_FAILED;
-            } else if (run_mode == RUNMODE_IPFW) {
+            } else if (suri->run_mode == RUNMODE_IPFW) {
                 if (IPFWRegisterQueue(optarg) == -1)
                     return TM_ECODE_FAILED;
             } else {
@@ -1321,8 +1320,8 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
 #endif /* IPFW */
             break;
         case 'r':
-            if (run_mode == RUNMODE_UNKNOWN) {
-                run_mode = RUNMODE_PCAP_FILE;
+            if (suri->run_mode == RUNMODE_UNKNOWN) {
+                suri->run_mode = RUNMODE_PCAP_FILE;
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                                                      "has been specified");
@@ -1351,9 +1350,8 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
             break;
         case 'u':
 #ifdef UNITTESTS
-            if (run_mode == RUNMODE_UNKNOWN) {
-                run_mode = RUNMODE_UNITTEST;
-                suri->running_mode = RUNMODE_UNITTEST;
+            if (suri->run_mode == RUNMODE_UNKNOWN) {
+                suri->run_mode = RUNMODE_UNITTEST;
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode has"
                                                      " been specified");
@@ -1374,7 +1372,7 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
 #endif
             break;
         case 'V':
-            suri->running_mode = RUNMODE_PRINT_VERSION;
+            suri->run_mode = RUNMODE_PRINT_VERSION;
             return TM_ECODE_OK;
         case 'F':
             SetBpfStringFromFile(optarg);
@@ -1386,17 +1384,17 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
     }
 
     if (list_app_layer_protocols)
-        suri->running_mode = RUNMODE_LIST_APP_LAYERS;
+        suri->run_mode = RUNMODE_LIST_APP_LAYERS;
     if (list_cuda_cards)
-        suri->running_mode = RUNMODE_LIST_CUDA_CARDS;
+        suri->run_mode = RUNMODE_LIST_CUDA_CARDS;
     if (list_keywords)
-        suri->running_mode = RUNMODE_LIST_KEYWORDS;
+        suri->run_mode = RUNMODE_LIST_KEYWORDS;
     if (list_unittests)
-        suri->running_mode = RUNMODE_LIST_UNITTEST;
+        suri->run_mode = RUNMODE_LIST_UNITTEST;
     if (dump_config)
-        suri->running_mode = RUNMODE_DUMP_CONFIG;
+        suri->run_mode = RUNMODE_DUMP_CONFIG;
     if (conf_test)
-        suri->running_mode = RUNMODE_CONF_TEST;
+        suri->run_mode = RUNMODE_CONF_TEST;
 
     return TM_ECODE_OK;
 }
@@ -1458,7 +1456,8 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    switch(suri.running_mode) {
+    /* Treat internal running mode */
+    switch(suri.run_mode) {
         case RUNMODE_LIST_KEYWORDS:
             return SuriListKeywords(suri.keyword_info);
         case RUNMODE_LIST_APP_LAYERS:
@@ -1478,11 +1477,8 @@ int main(int argc, char **argv)
         case RUNMODE_LIST_RUNMODES:
             RunModeListRunmodes();
             return TM_ECODE_OK;
-        /* FIXME not sexy here */
         case RUNMODE_LIST_UNITTEST:
             return SuriRunUnittests(1, suri.regex_arg);
-        case RUNMODE_UNITTEST:
-            return SuriRunUnittests(0, suri.regex_arg);
 #ifdef OS_WIN32
         case RUNMODE_INSTALL_SERVICE:
             if (SCServiceInstall(argc, argv)) {
@@ -1508,6 +1504,12 @@ int main(int argc, char **argv)
             break;
     }
 
+    /* Set the global run mode */
+    run_mode = suri.run_mode;
+
+    if (suri.run_mode == RUNMODE_UNITTEST)
+        return SuriRunUnittests(0, suri.regex_arg);
+
 #ifdef REVISION
     SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
 #elif defined RELEASE
@@ -1531,7 +1533,7 @@ int main(int argc, char **argv)
     CudaBufferInit();
 #endif
 
-    if (!CheckValidDaemonModes(suri.daemon, run_mode)) {
+    if (!CheckValidDaemonModes(suri.daemon, suri.run_mode)) {
         exit(EXIT_FAILURE);
     }
 
@@ -1557,7 +1559,7 @@ int main(int argc, char **argv)
     AppLayerDetectProtoThreadInit();
     AppLayerParsersInitPostProcess();
 
-    if (suri.running_mode == RUNMODE_DUMP_CONFIG) {
+    if (suri.run_mode == RUNMODE_DUMP_CONFIG) {
         ConfDump();
         exit(EXIT_SUCCESS);
     }
@@ -1590,7 +1592,7 @@ int main(int argc, char **argv)
      * back on a sane default. */
     char *temp_default_packet_size;
     if ((ConfGet("default-packet-size", &temp_default_packet_size)) != 1) {
-        switch (run_mode) {
+        switch (suri.run_mode) {
             case RUNMODE_PCAP_DEV:
             case RUNMODE_AFP_DEV:
             case RUNMODE_PFRING:
@@ -1614,7 +1616,7 @@ int main(int argc, char **argv)
     SCLogDebug("Default packet size set to %"PRIu32, default_packet_size);
 
 #ifdef NFQ
-    if (run_mode == RUNMODE_NFQ)
+    if (suri.run_mode == RUNMODE_NFQ)
         NFQInitConfig(FALSE);
 #endif
 
@@ -1629,7 +1631,7 @@ int main(int argc, char **argv)
     }
 
     if (run_mode == RUNMODE_UNKNOWN) {
-        if (!engine_analysis && !(suri.running_mode == RUNMODE_CONF_TEST)) {
+        if (!engine_analysis && !(suri.run_mode == RUNMODE_CONF_TEST)) {
             usage(argv[0]);
             exit(EXIT_FAILURE);
         }
@@ -1876,7 +1878,7 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
     }
 
-    if(suri.running_mode == RUNMODE_CONF_TEST){
+    if(suri.run_mode == RUNMODE_CONF_TEST){
         SCLogInfo("Configuration provided was successfully loaded. Exiting.");
         exit(EXIT_SUCCESS);
     }
