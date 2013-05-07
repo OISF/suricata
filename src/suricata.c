@@ -1507,6 +1507,11 @@ int main(int argc, char **argv)
 
     /* Set the global run mode */
     run_mode = suri.run_mode;
+    /* run_mode should be set here */
+    if (suri.run_mode == RUNMODE_UNKNOWN) {
+        usage(argv[0]);
+        exit(EXIT_FAILURE);
+    }
 
     if (suri.run_mode == RUNMODE_UNITTEST)
         return SuriRunUnittests(0, suri.regex_arg);
@@ -1633,11 +1638,6 @@ int main(int argc, char **argv)
     SCHInfoLoadFromConfig();
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         DefragInit();
-    }
-
-    if (suri.run_mode == RUNMODE_UNKNOWN) {
-        usage(argv[0]);
-        exit(EXIT_FAILURE);
     }
 
     if (suri.run_mode == RUNMODE_ENGINE_ANALYSIS) {
