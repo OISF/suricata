@@ -1482,6 +1482,12 @@ AC_INIT(configure.ac)
         fi
     fi
 
+# get cache line size
+    AC_PATH_PROG(HAVE_GETCONF_CMD, getconf, "no")
+    if test "$HAVE_GETCONF_CMD" != "no"; then
+        CLS=$(getconf LEVEL1_DCACHE_LINESIZE)
+        AC_DEFINE_UNQUOTED([CLS],[${CLS}],[L1 cache line size])
+    fi
 
 # get revision
     if test -f ./revision; then

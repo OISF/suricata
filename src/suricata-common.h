@@ -40,6 +40,11 @@
 #include <config.h>
 #endif
 
+#ifndef CLS
+#warning "L1 cache line size not detected during build. Assuming 64 bytes."
+#define CLS 64
+#endif
+
 #if HAVE_STDIO_H
 #include <stdio.h>
 #endif
