@@ -1470,6 +1470,36 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
     return TM_ECODE_OK;
 }
 
+#ifdef OS_WIN32
+static int SuriWindowsInitService(int argc, char **argv)
+{
+    if (SCRunningAsService()) {
+        char path[MAX_PATH];
+        char *p = NULL;
+        strlcpy(path, argv[0], MAX_PATH);
+        if ((p = strrchr(path, '\\'))) {
+            *p = '\0';
+        }
+        if (!SetCurrentDirectory(path)) {
+            SCLogError(SC_ERR_FATAL, "Can't set current directory to: %s", path);
+            return -1;
+        }
+        SCLogInfo("Current directory is set to: %s", path);
+        daemon = 1;
+        SCServiceInit(argc, argv);
+    }
+
+    /* Windows socket subsystem initialization */
+    WSADATA wsaData;
+    if (0 != WSAStartup(MAKEWORD(2, 2), &wsaData)) {
+        SCLogError(SC_ERR_FATAL, "Can't initialize Windows sockets: %d", WSAGetLastError());
+        return -1;
+    }
+
+    return 0;
+}
+#endif /* OS_WIN32 */
+
 int main(int argc, char **argv)
 {
     struct SuriInstance suri;
@@ -1495,29 +1525,10 @@ int main(int argc, char **argv)
 
 
 #ifdef OS_WIN32
-	/* service initialization */
-	if (SCRunningAsService()) {
-		char path[MAX_PATH];
-		char *p = NULL;
-		strlcpy(path, argv[0], MAX_PATH);
-		if ((p = strrchr(path, '\\'))) {
-			*p = '\0';
-		}
-		if (!SetCurrentDirectory(path)) {
-			SCLogError(SC_ERR_FATAL, "Can't set current directory to: %s", path);
-			return -1;
-		}
-		SCLogInfo("Current directory is set to: %s", path);
-		daemon = 1;
-		SCServiceInit(argc, argv);
-	}
-
-	/* Windows socket subsystem initialization */
-	WSADATA wsaData;
-	if (0 != WSAStartup(MAKEWORD(2, 2), &wsaData)) {
-		SCLogError(SC_ERR_FATAL, "Can't initialize Windows sockets: %d", WSAGetLastError());
-		exit(EXIT_FAILURE);
-	}
+    /* service initialization */
+    if (SuriWindowsInit(argc, argv) != 0) {
+        exit(EXIT_FAILURE);
+    }
 #endif /* OS_WIN32 */
 
     /* Initialize the configuration module. */
