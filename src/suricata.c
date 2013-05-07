@@ -1728,7 +1728,7 @@ int main(int argc, char **argv)
     CIDRInit();
     SigParsePrepare();
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
-    if (run_mode != RUNMODE_UNIX_SOCKET) {
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         SCPerfInitCounterApi();
     }
 #ifdef PROFILING
@@ -1855,7 +1855,7 @@ int main(int argc, char **argv)
 
     PacketPoolInit(max_pending_packets);
     HostInitConfig(HOST_VERBOSE);
-    if (run_mode != RUNMODE_UNIX_SOCKET) {
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         FlowInitConfig(FLOW_VERBOSE);
     }
 
@@ -1934,11 +1934,11 @@ int main(int argc, char **argv)
 
     SCDropMainThreadCaps(suri.userid, suri.groupid);
 
-    if (run_mode != RUNMODE_UNIX_SOCKET) {
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         RunModeInitializeOutputs();
     }
 
-    if (ParseInterfacesList(run_mode, suri.pcap_dev) != TM_ECODE_OK) {
+    if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {
             exit(EXIT_FAILURE);
     }
 
@@ -1947,10 +1947,10 @@ int main(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
 
-    RunModeDispatch(run_mode, suri.runmode_custom_mode, de_ctx);
+    RunModeDispatch(suri.run_mode, suri.runmode_custom_mode, de_ctx);
 
     /* In Unix socket runmode, Flow manager is started on demand */
-    if (run_mode != RUNMODE_UNIX_SOCKET) {
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         /* Spawn the unix socket manager thread */
         int unix_socket = 0;
         if (ConfGetBool("unix-command.enabled", &unix_socket) != 1)
@@ -2030,7 +2030,7 @@ int main(int argc, char **argv)
 
     UnixSocketKillSocketThread();
 
-    if (run_mode != RUNMODE_UNIX_SOCKET) {
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         /* First we need to kill the flow manager thread */
         FlowKillFlowManagerThread();
     }
@@ -2038,7 +2038,7 @@ int main(int argc, char **argv)
     /* Disable packet acquire thread first */
     TmThreadDisableThreadsWithTMS(TM_FLAG_RECEIVE_TM | TM_FLAG_DECODE_TM);
 
-    if (run_mode != RUNMODE_UNIX_SOCKET) {
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         FlowForceReassembly();
     }
 
@@ -2068,13 +2068,13 @@ int main(int argc, char **argv)
     }
 
     DetectEngineCtx *global_de_ctx = DetectEngineGetGlobalDeCtx();
-    if (run_mode != RUNMODE_UNIX_SOCKET) {
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         BUG_ON(global_de_ctx == NULL);
     }
 
     TmThreadKillThreads();
 
-    if (run_mode != RUNMODE_UNIX_SOCKET) {
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         SCPerfReleaseResources();
         FlowShutdown();
         StreamTcpFreeConfig(STREAM_VERBOSE);
@@ -2106,7 +2106,7 @@ int main(int argc, char **argv)
     OutputDeregisterAll();
     TimeDeinit();
     SCProtoNameDeInit();
-    if (run_mode != RUNMODE_UNIX_SOCKET) {
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         DefragDestroy();
     }
     PacketPoolDestroy();
