@@ -66,11 +66,11 @@ typedef struct ThreadVars_ {
         when it encounters certain conditions like failures */
     uint8_t aof;
 
-    /** the type of thread as defined in tm-threads.h (TVT_PPT, TVT_MGMT) */
-    uint8_t type;
-
     /** no of times the thread has been restarted on failure */
     uint8_t restarted;
+
+    /** local id */
+    int id;
 
     /** queue's */
     Tmq *inq;
@@ -88,6 +88,10 @@ typedef struct ThreadVars_ {
     struct TmSlot_ *tm_slots;
 
     uint8_t thread_setup_flags;
+
+    /** the type of thread as defined in tm-threads.h (TVT_PPT, TVT_MGMT) */
+    uint8_t type;
+
     uint16_t cpu_affinity; /** cpu or core number to set affinity to */
     int thread_priority; /** priority (real time) for this thread. Look at threads.h */
 

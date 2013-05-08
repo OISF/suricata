@@ -83,6 +83,10 @@ SCMutex tv_root_lock = PTHREAD_MUTEX_INITIALIZER;
  * thread encounters a failure.  Defaults to restart the failed thread */
 uint8_t tv_aof = THV_RESTART_THREAD;
 
+/** Counter for number of threadvar structs, so the number of threads we
+ *  have. */
+int g_threadvars_cnt = 0;
+
 /**
  * \brief Check if a thread flag is set.
  *
@@ -1354,6 +1358,7 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
     SC_ATOMIC_INIT(tv->flags);
     SCMutexInit(&tv->sc_perf_pctx.m, NULL);
 
+    tv->id = g_threadvars_cnt++;
     tv->name = name;
     /* default state for every newly created thread */
     TmThreadsSetFlag(tv, THV_PAUSE);
@@ -1886,7 +1891,6 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
     TmThreadWaitForFlag(tv, THV_INIT_DONE | THV_RUNNING_DONE);
 
     TmThreadAppend(tv, tv->type);
-
     return TM_ECODE_OK;
 }
 
