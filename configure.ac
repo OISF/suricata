@@ -1488,7 +1488,11 @@ AC_INIT(configure.ac)
         CLS=$(getconf LEVEL1_DCACHE_LINESIZE)
         if test "$CLS" != ""; then
             AC_DEFINE_UNQUOTED([CLS],[${CLS}],[L1 cache line size])
+        else
+            AC_DEFINE_UNQUOTED([CLS],[64],[L1 cache line size])
         fi
+    else
+        AC_DEFINE_UNQUOTED([CLS],[64],[L1 cache line size])
     fi
 
 # get revision
