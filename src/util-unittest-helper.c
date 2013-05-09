@@ -34,6 +34,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-sigorder.h"
 
 #include "util-debug.h"
 #include "util-time.h"
@@ -685,6 +686,9 @@ int UTHMatchPackets(DetectEngineCtx *de_ctx, Packet **p, int num_packets) {
 
     //de_ctx->flags |= DE_QUIET;
 
+    SCSigRegisterSignatureOrderingFuncs(de_ctx);
+    SCSigOrderSignatures(de_ctx);
+    SCSigSignatureOrderingModuleCleanup(de_ctx);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
