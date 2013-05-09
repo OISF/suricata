@@ -462,16 +462,6 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     SCSigOrderSignatures(de_ctx);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
 
-    Signature *s = de_ctx->sig_list;
-
-    /* Assign the unique order id of signatures after sorting,
-     * so the IP Only engine process them in order too */
-    SigIntId sig_id = 0;
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
     /* Setup the signature group lookup structure and pattern matchers */
     if (SigGroupBuild(de_ctx) < 0)
         goto end;
@@ -4408,6 +4398,22 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
  */
 int SigGroupBuild(DetectEngineCtx *de_ctx)
 {
+    Signature *s = de_ctx->sig_list;
+
+    /* Assign the unique order id of signatures after sorting,
+     * so the IP Only engine process them in order too.  Also
+     * reset the old signums and assign new signums.  We would
+     * have experienced Sig reordering by now, hence the new
+     * signums. */
+    SigIntId sig_id = 0;
+    de_ctx->signum = 0;
+    while (s != NULL) {
+        s->num = de_ctx->signum++;
+        s->order_id = sig_id++;
+
+        s = s->next;
+    }
+
     if (DetectSetFastPatternAndItsId(de_ctx) < 0)
         return -1;
 
