@@ -3565,7 +3565,7 @@ end:
 static int DetectPcreFlowvarCapture02(void) {
     int result = 0;
     uint8_t uabuf1[] =
-        "Apache";
+        "Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13";
     uint32_t ualen1 = sizeof(uabuf1) - 1; /* minus the \0 */
     uint8_t httpbuf1[] =
         "GET / HTTP/1.1\r\n"
