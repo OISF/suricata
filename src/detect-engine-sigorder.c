@@ -31,25 +31,31 @@
 #include "detect-pcre.h"
 
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 #include "util-debug.h"
 #include "util-action.h"
 #include "action-globals.h"
+#include "flow-util.h"
 
-#define DETECT_FLOWVAR_NOT_USED   1
-#define DETECT_FLOWVAR_TYPE_READ  2
-#define DETECT_FLOWVAR_TYPE_SET   3
+#define DETECT_FLOWVAR_NOT_USED      1
+#define DETECT_FLOWVAR_TYPE_READ     2
+#define DETECT_FLOWVAR_TYPE_SET_READ 3
+#define DETECT_FLOWVAR_TYPE_SET      4
 
-#define DETECT_PKTVAR_NOT_USED   1
-#define DETECT_PKTVAR_TYPE_READ  2
-#define DETECT_PKTVAR_TYPE_SET   3
+#define DETECT_PKTVAR_NOT_USED      1
+#define DETECT_PKTVAR_TYPE_READ     2
+#define DETECT_PKTVAR_TYPE_SET_READ 3
+#define DETECT_PKTVAR_TYPE_SET      4
 
-#define DETECT_FLOWBITS_NOT_USED  1
-#define DETECT_FLOWBITS_TYPE_READ 2
-#define DETECT_FLOWBITS_TYPE_SET  3
+#define DETECT_FLOWBITS_NOT_USED      1
+#define DETECT_FLOWBITS_TYPE_READ     2
+#define DETECT_FLOWBITS_TYPE_SET_READ 3
+#define DETECT_FLOWBITS_TYPE_SET      4
 
-#define DETECT_FLOWINT_NOT_USED  1
-#define DETECT_FLOWINT_TYPE_READ 2
-#define DETECT_FLOWINT_TYPE_SET  3
+#define DETECT_FLOWINT_NOT_USED      1
+#define DETECT_FLOWINT_TYPE_READ     2
+#define DETECT_FLOWINT_TYPE_SET_READ 3
+#define DETECT_FLOWINT_TYPE_SET      4
 
 
 /**
@@ -114,16 +120,21 @@ static void SCSigRegisterSignatureOrderingFunc(DetectEngineCtx *de_ctx,
  */
 static inline int SCSigGetFlowbitsType(Signature *sig)
 {
-    SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
     DetectFlowbitsData *fb = NULL;
-    int flowbits = DETECT_FLOWBITS_CMD_MAX;
     int flowbits_user_type = DETECT_FLOWBITS_NOT_USED;
+    int read = 0;
+    int write = 0;
+    SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
 
     while (sm != NULL) {
         if (sm->type == DETECT_FLOWBITS) {
             fb = (DetectFlowbitsData *)sm->ctx;
-            if (flowbits > fb->cmd)
-                flowbits = fb->cmd;
+            if (fb->cmd == DETECT_FLOWBITS_CMD_ISNOTSET ||
+                fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
+                read++;
+            } else {
+                BUG_ON(1);
+            }
         }
 
         sm = sm->next;
@@ -133,21 +144,24 @@ static inline int SCSigGetFlowbitsType(Signature *sig)
     while (sm != NULL) {
         if (sm->type == DETECT_FLOWBITS) {
             fb = (DetectFlowbitsData *)sm->ctx;
-            if (flowbits > fb->cmd)
-                flowbits = fb->cmd;
+            if (fb->cmd == DETECT_FLOWBITS_CMD_SET ||
+                fb->cmd == DETECT_FLOWBITS_CMD_UNSET ||
+                fb->cmd == DETECT_FLOWBITS_CMD_TOGGLE) {
+                write++;
+            } else {
+                BUG_ON(1);
+            }
         }
 
         sm = sm->next;
     }
 
-    if (flowbits == DETECT_FLOWBITS_CMD_SET ||
-        flowbits == DETECT_FLOWBITS_CMD_UNSET ||
-        flowbits == DETECT_FLOWBITS_CMD_TOGGLE) {
-        flowbits_user_type = DETECT_FLOWBITS_TYPE_SET;
-    } else if (flowbits == DETECT_FLOWBITS_CMD_ISNOTSET ||
-               flowbits == DETECT_FLOWBITS_CMD_ISSET ||
-               flowbits == DETECT_FLOWBITS_CMD_NOALERT) {
+    if (read == 1 && write == 0) {
         flowbits_user_type = DETECT_FLOWBITS_TYPE_READ;
+    } else if (read == 0 && write == 1) {
+        flowbits_user_type = DETECT_FLOWBITS_TYPE_SET;
+    } else if (read == 1 && write == 1) {
+        flowbits_user_type = DETECT_FLOWBITS_TYPE_SET_READ;
     }
 
     SCLogDebug("Sig %s typeval %d", sig->msg, flowbits_user_type);
@@ -157,16 +171,26 @@ static inline int SCSigGetFlowbitsType(Signature *sig)
 
 static inline int SCSigGetFlowintType(Signature *sig)
 {
-    SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
     DetectFlowintData *fi = NULL;
-    int modifier = FLOWINT_MODIFIER_UNKNOWN;
     int flowint_user_type = DETECT_FLOWINT_NOT_USED;
+    int read = 0;
+    int write = 0;
+    SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
 
     while (sm != NULL) {
         if (sm->type == DETECT_FLOWINT) {
             fi = (DetectFlowintData *)sm->ctx;
-            if (modifier > fi->modifier)
-                modifier = fi->modifier;
+            if (fi->modifier == FLOWINT_MODIFIER_LT ||
+                fi->modifier == FLOWINT_MODIFIER_LE ||
+                fi->modifier == FLOWINT_MODIFIER_EQ ||
+                fi->modifier == FLOWINT_MODIFIER_NE ||
+                fi->modifier == FLOWINT_MODIFIER_GE ||
+                fi->modifier == FLOWINT_MODIFIER_GT ||
+                fi->modifier == FLOWINT_MODIFIER_ISSET) {
+                read++;
+            } else {
+                BUG_ON(1);
+            }
         }
 
         sm = sm->next;
@@ -176,25 +200,24 @@ static inline int SCSigGetFlowintType(Signature *sig)
     while (sm != NULL) {
         if (sm->type == DETECT_FLOWINT) {
             fi = (DetectFlowintData *)sm->ctx;
-            if (modifier > fi->modifier)
-                modifier = fi->modifier;
+            if (fi->modifier == FLOWINT_MODIFIER_SET ||
+                fi->modifier == FLOWINT_MODIFIER_ADD ||
+                fi->modifier == FLOWINT_MODIFIER_SUB) {
+                write++;
+            } else {
+                BUG_ON(1);
+            }
         }
 
         sm = sm->next;
     }
 
-    if (modifier == FLOWINT_MODIFIER_SET ||
-        modifier == FLOWINT_MODIFIER_ADD ||
-        modifier == FLOWINT_MODIFIER_SUB) {
-        flowint_user_type = DETECT_FLOWINT_TYPE_SET;
-    } else if (modifier == FLOWINT_MODIFIER_LT ||
-               modifier == FLOWINT_MODIFIER_LE ||
-               modifier == FLOWINT_MODIFIER_EQ ||
-               modifier == FLOWINT_MODIFIER_NE ||
-               modifier == FLOWINT_MODIFIER_GE ||
-               modifier == FLOWINT_MODIFIER_GT ||
-               modifier == FLOWINT_MODIFIER_ISSET) {
+    if (read == 1 && write == 0) {
         flowint_user_type = DETECT_FLOWINT_TYPE_READ;
+    } else if (read == 0 && write == 1) {
+        flowint_user_type = DETECT_FLOWINT_TYPE_SET;
+    } else if (read == 1 && write == 1) {
+        flowint_user_type = DETECT_FLOWINT_TYPE_SET_READ;
     }
 
     SCLogDebug("Sig %s typeval %d", sig->msg, flowint_user_type);
@@ -218,15 +241,16 @@ static inline int SCSigGetFlowintType(Signature *sig)
  */
 static inline int SCSigGetFlowvarType(Signature *sig)
 {
-    SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_PMATCH];
     DetectPcreData *pd = NULL;
     int type = DETECT_FLOWVAR_NOT_USED;
+    int read = 0;
+    int write = 0;
+    SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_PMATCH];
 
     while (sm != NULL) {
         pd = (DetectPcreData *)sm->ctx;
         if (sm->type == DETECT_PCRE && (pd->flags & DETECT_PCRE_CAPTURE_FLOW)) {
-            type = DETECT_FLOWVAR_TYPE_SET;
-            return type;
+            write++;
         }
 
         sm = sm->next;
@@ -235,13 +259,19 @@ static inline int SCSigGetFlowvarType(Signature *sig)
     sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
     pd = NULL;
     while (sm != NULL) {
-        //pd = (DetectPcreData *)sm->ctx;
         if (sm->type == DETECT_FLOWVAR) {
-            type = DETECT_FLOWVAR_TYPE_READ;
-            return type;
+            read++;
         }
 
         sm = sm->next;
+    }
+
+    if (read == 1 && write == 0) {
+        type = DETECT_FLOWVAR_TYPE_READ;
+    } else if (read == 0 && write == 1) {
+        type = DETECT_FLOWVAR_TYPE_SET;
+    } else if (read == 1 && write == 1) {
+        type = DETECT_FLOWVAR_TYPE_SET_READ;
     }
 
     return type;
@@ -263,15 +293,16 @@ static inline int SCSigGetFlowvarType(Signature *sig)
  */
 static inline int SCSigGetPktvarType(Signature *sig)
 {
-    SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_PMATCH];
     DetectPcreData *pd = NULL;
     int type = DETECT_PKTVAR_NOT_USED;
+    int read = 0;
+    int write = 0;
+    SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_PMATCH];
 
     while (sm != NULL) {
         pd = (DetectPcreData *)sm->ctx;
         if (sm->type == DETECT_PCRE && (pd->flags & DETECT_PCRE_CAPTURE_PKT)) {
-            type = DETECT_PKTVAR_TYPE_SET;
-            return type;
+            write++;
         }
 
         sm = sm->next;
@@ -280,13 +311,19 @@ static inline int SCSigGetPktvarType(Signature *sig)
     sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
     pd = NULL;
     while (sm != NULL) {
-        //pd = (DetectPcreData *)sm->ctx;
         if (sm->type == DETECT_PKTVAR) {
-            type = DETECT_PKTVAR_TYPE_READ;
-            return type;
+            read++;
         }
 
         sm = sm->next;
+    }
+
+    if (read == 1 && write == 0) {
+        type = DETECT_PKTVAR_TYPE_READ;
+    } else if (read == 0 && write == 1) {
+        type = DETECT_PKTVAR_TYPE_SET;
+    } else if (read == 1 && write == 1) {
+        type = DETECT_PKTVAR_TYPE_SET_READ;
     }
 
     return type;
@@ -689,7 +726,7 @@ void DetectEngineCtxFree(DetectEngineCtx *);
 
 #ifdef UNITTESTS
 
-static int SCSigTestSignatureOrdering01(void)
+static int SCSigOrderingTest01(void)
 {
     SCSigOrderFunc *temp = NULL;
     int i = 0;
@@ -723,7 +760,7 @@ static int SCSigTestSignatureOrdering01(void)
     return 0;
 }
 
-static int SCSigTestSignatureOrdering02(void)
+static int SCSigOrderingTest02(void)
 {
     int result = 0;
     Signature *prevsig = NULL, *sig = NULL;
@@ -891,7 +928,7 @@ end:
     return result;
 }
 
-static int SCSigTestSignatureOrdering03(void)
+static int SCSigOrderingTest03(void)
 {
     int result = 0;
     Signature *prevsig = NULL, *sig = NULL;
@@ -1054,7 +1091,7 @@ end:
     return result;
 }
 
-static int SCSigTestSignatureOrdering04(void)
+static int SCSigOrderingTest04(void)
 {
     int result = 0;
     Signature *prevsig = NULL, *sig = NULL;
@@ -1175,7 +1212,7 @@ end:
     return result;
 }
 
-static int SCSigTestSignatureOrdering05(void)
+static int SCSigOrderingTest05(void)
 {
     int result = 0;
     Signature *prevsig = NULL, *sig = NULL;
@@ -1286,7 +1323,7 @@ end:
     return result;
 }
 
-static int SCSigTestSignatureOrdering06(void)
+static int SCSigOrderingTest06(void)
 {
     int result = 0;
     Signature *prevsig = NULL, *sig = NULL;
@@ -1396,7 +1433,7 @@ end:
     return result;
 }
 
-static int SCSigTestSignatureOrdering07(void)
+static int SCSigOrderingTest07(void)
 {
     int result = 0;
     Signature *prevsig = NULL, *sig = NULL;
@@ -1508,7 +1545,7 @@ end:
  * \test Order with a different Action priority
  * (as specified from config)
  */
-static int SCSigTestSignatureOrdering08(void)
+static int SCSigOrderingTest08(void)
 {
 #ifdef HAVE_LIBNET11
     int result = 0;
@@ -1636,7 +1673,7 @@ end:
  * \test Order with a different Action priority
  * (as specified from config)
  */
-static int SCSigTestSignatureOrdering09(void)
+static int SCSigOrderingTest09(void)
 {
     int result = 0;
     Signature *prevsig = NULL, *sig = NULL;
@@ -1760,7 +1797,7 @@ end:
  * \test Order with a different Action priority
  * (as specified from config)
  */
-static int SCSigTestSignatureOrdering10(void)
+static int SCSigOrderingTest10(void)
 {
     int result = 0;
     Signature *prevsig = NULL, *sig = NULL;
@@ -1880,7 +1917,7 @@ end:
     return result;
 }
 
-static int SCSigTestSignatureOrdering11(void)
+static int SCSigOrderingTest11(void)
 {
     int result = 0;
     Signature *prevsig = NULL, *sig = NULL;
@@ -1942,23 +1979,86 @@ end:
     return result;
 }
 
+static int SCSigOrderingTest12(void)
+{
+    Signature *sig = NULL;
+    Packet *p = NULL;
+    uint8_t buf[] = "test message";
+    int result = 0;
+    Flow f;
+
+    FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_IPV4;
+    f.alproto = ALPROTO_UNKNOWN;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    char *sigs[2];
+    sigs[0] = "alert tcp any any -> any any (content:\"test\"; dsize:>0; flowbits:isset,one; flowbits:set,two; sid:1;)";
+    sigs[1] = "alert tcp any any -> any any (content:\"test\"; dsize:>0; flowbits:set,one; sid:2;)";
+    UTHAppendSigs(de_ctx, sigs, 2);
+
+    sig = de_ctx->sig_list;
+    if (sig == NULL)
+        goto end;
+    if (sig->next == NULL)
+        goto end;
+    if (sig->next->next != NULL)
+        goto end;
+    //if (de_ctx->signum != 2)
+    //    goto end;
+
+    FlowInitConfig(FLOW_QUIET);
+    p = UTHBuildPacket(buf, sizeof(buf), IPPROTO_TCP);
+    if (p == NULL) {
+        printf("Error building packet.");
+        goto end;
+    }
+    p->flow = &f;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+
+    UTHMatchPackets(de_ctx, &p, 1);
+
+    uint32_t sids[2] = {1, 2};
+    uint32_t results[2] = {1, 1};
+    result = UTHCheckPacketMatchResults(p, sids, results, 2);
+
+end:
+    if (p != NULL)
+        SCFree(p);
+    if (de_ctx != NULL) {
+        SigCleanSignatures(de_ctx);
+        SigGroupCleanup(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+    FlowShutdown();
+
+    return result;
+}
+
 #endif
 
 void SCSigRegisterSignatureOrderingTests(void)
 {
 
 #ifdef UNITTESTS
-    UtRegisterTest("SCSigTestSignatureOrdering01", SCSigTestSignatureOrdering01, 1);
-    UtRegisterTest("SCSigTestSignatureOrdering02", SCSigTestSignatureOrdering02, 1);
-    UtRegisterTest("SCSigTestSignatureOrdering03", SCSigTestSignatureOrdering03, 1);
-    UtRegisterTest("SCSigTestSignatureOrdering04", SCSigTestSignatureOrdering04, 1);
-    UtRegisterTest("SCSigTestSignatureOrdering05", SCSigTestSignatureOrdering05, 1);
-    UtRegisterTest("SCSigTestSignatureOrdering06", SCSigTestSignatureOrdering06, 1);
-    UtRegisterTest("SCSigTestSignatureOrdering07", SCSigTestSignatureOrdering07, 1);
-    UtRegisterTest("SCSigTestSignatureOrdering08", SCSigTestSignatureOrdering08, 1);
-    UtRegisterTest("SCSigTestSignatureOrdering09", SCSigTestSignatureOrdering09, 1);
-    UtRegisterTest("SCSigTestSignatureOrdering10", SCSigTestSignatureOrdering10, 1);
-    UtRegisterTest("SCSigTestSignatureOrdering11", SCSigTestSignatureOrdering11, 1);
+    UtRegisterTest("SCSigOrderingTest01", SCSigOrderingTest01, 1);
+    UtRegisterTest("SCSigOrderingTest02", SCSigOrderingTest02, 1);
+    UtRegisterTest("SCSigOrderingTest03", SCSigOrderingTest03, 1);
+    UtRegisterTest("SCSigOrderingTest04", SCSigOrderingTest04, 1);
+    UtRegisterTest("SCSigOrderingTest05", SCSigOrderingTest05, 1);
+    UtRegisterTest("SCSigOrderingTest06", SCSigOrderingTest06, 1);
+    UtRegisterTest("SCSigOrderingTest07", SCSigOrderingTest07, 1);
+    UtRegisterTest("SCSigOrderingTest08", SCSigOrderingTest08, 1);
+    UtRegisterTest("SCSigOrderingTest09", SCSigOrderingTest09, 1);
+    UtRegisterTest("SCSigOrderingTest10", SCSigOrderingTest10, 1);
+    UtRegisterTest("SCSigOrderingTest11", SCSigOrderingTest11, 1);
+    UtRegisterTest("SCSigOrderingTest12", SCSigOrderingTest12, 1);
 #endif
 
     return;
