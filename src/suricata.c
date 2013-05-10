@@ -174,8 +174,6 @@ SC_ATOMIC_DECLARE(unsigned int, engine_stage);
 /* Max packets processed simultaniously. */
 #define DEFAULT_MAX_PENDING_PACKETS 1024
 
-int rule_reload = 0;
-
 /** suricata engine control flags */
 uint8_t suricata_ctl_flags = 0;
 
@@ -870,6 +868,7 @@ struct SuriInstance {
     uint32_t groupid;
 #endif /* OS_WIN32 */
     int delayed_detect;
+    int rule_reload;
     int daemon;
 
     char *log_dir;
@@ -1604,7 +1603,7 @@ int main(int argc, char **argv)
     /* load the pattern matchers */
     MpmTableSetup();
 
-    rule_reload = IsRuleReloadSet(FALSE);
+    suri.rule_reload = IsRuleReloadSet(FALSE);
 
     AppLayerDetectProtoThreadInit();
     AppLayerParsersInitPostProcess();
@@ -1729,7 +1728,7 @@ int main(int argc, char **argv)
 
     DetectEngineRegisterAppInspectionEngines();
 
-    if (rule_reload) {
+    if (suri.rule_reload) {
         if (suri.sig_file == NULL)
             UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
         else
@@ -1890,8 +1889,12 @@ int main(int argc, char **argv)
 
     /* registering singal handlers we use.  We register usr2 here, so that one
      * can't call it during the first sig load phase */
-    if (suri.sig_file == NULL && rule_reload == 1)
+    if (suri.sig_file == NULL && suri.rule_reload == 1)
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
+
+#ifdef __SC_CUDA_SUPPORT__
+    SCCudaPBSetUpQueuesAndBuffers();
+#endif /* __SC_CUDA_SUPPORT__ */
 
     SCThresholdConfInitContext(de_ctx,NULL);
     SCAsn1LoadConfig();
@@ -2019,7 +2022,7 @@ int main(int argc, char **argv)
         (((1000000 + end_time.tv_usec - start_time.tv_usec) / 1000) - 1000);
     SCLogInfo("time elapsed %.3fs", (float)milliseconds/(float)1000);
 
-    if (rule_reload == 1) {
+    if (suri.rule_reload == 1) {
         /* Disable detect threads first.  This is required by live rule swap */
         TmThreadDisableThreadsWithTMS(TM_FLAG_RECEIVE_TM | TM_FLAG_DECODE_TM |
                                       TM_FLAG_STREAM_TM | TM_FLAG_DETECT_TM);
