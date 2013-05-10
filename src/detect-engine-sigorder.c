@@ -133,7 +133,9 @@ static inline int SCSigGetFlowbitsType(Signature *sig)
                 fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
                 read++;
             } else {
+#ifdef DEBUG
                 BUG_ON(1);
+#endif
             }
         }
 
@@ -149,7 +151,9 @@ static inline int SCSigGetFlowbitsType(Signature *sig)
                 fb->cmd == DETECT_FLOWBITS_CMD_TOGGLE) {
                 write++;
             } else {
+#ifdef DEBUG
                 BUG_ON(1);
+#endif
             }
         }
 
@@ -189,7 +193,9 @@ static inline int SCSigGetFlowintType(Signature *sig)
                 fi->modifier == FLOWINT_MODIFIER_ISSET) {
                 read++;
             } else {
+#ifdef DEBUG
                 BUG_ON(1);
+#endif
             }
         }
 
@@ -205,7 +211,9 @@ static inline int SCSigGetFlowintType(Signature *sig)
                 fi->modifier == FLOWINT_MODIFIER_SUB) {
                 write++;
             } else {
+#ifdef DEBUG
                 BUG_ON(1);
+#endif
             }
         }
 
@@ -1990,6 +1998,7 @@ static int SCSigOrderingTest12(void)
     FLOW_INITIALIZE(&f);
     f.flags |= FLOW_IPV4;
     f.alproto = ALPROTO_UNKNOWN;
+    f.proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2008,8 +2017,8 @@ static int SCSigOrderingTest12(void)
         goto end;
     if (sig->next->next != NULL)
         goto end;
-    //if (de_ctx->signum != 2)
-    //    goto end;
+    if (de_ctx->signum != 2)
+        goto end;
 
     FlowInitConfig(FLOW_QUIET);
     p = UTHBuildPacket(buf, sizeof(buf), IPPROTO_TCP);
