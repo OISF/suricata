@@ -1618,13 +1618,7 @@ int main(int argc, char **argv)
     if (suri.run_mode == RUNMODE_UNITTEST)
         return RunUnittests(0, suri.regex_arg);
 
-#ifdef REVISION
-    SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
-#elif defined RELEASE
-    SCLogInfo("This is %s version %s RELEASE", PROG_NAME, PROG_VER);
-#else
-    SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
-#endif
+    SuriPrintVersion();
 
     SetBpfString(optind, argv);
 
