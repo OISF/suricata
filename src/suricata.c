@@ -1548,13 +1548,7 @@ int main(int argc, char **argv)
     if (suri.run_mode == RUNMODE_UNITTEST)
         return SuriRunUnittests(0, suri.regex_arg);
 
-#ifdef REVISION
-    SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
-#elif defined RELEASE
-    SCLogInfo("This is %s version %s RELEASE", PROG_NAME, PROG_VER);
-#else
-    SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
-#endif
+    SuriPrintVersion();
 
 #ifndef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
     SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "libhtp < 0.2.7 detected. Keyword "
