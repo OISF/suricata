@@ -342,7 +342,7 @@ void EngineDone(void) {
     suricata_ctl_flags |= SURICATA_DONE;
 }
 
-static void SetBpfString(int optind, char *argv[]) {
+static int SetBpfString(int optind, char *argv[]) {
     char *bpf_filter = NULL;
     uint32_t bpf_len = 0;
     int tmpindex = 0;
@@ -355,18 +355,18 @@ static void SetBpfString(int optind, char *argv[]) {
     }
 
     if (bpf_len == 0)
-        return;
+        return TM_ECODE_OK;
 
     if (IS_ENGINE_MODE_IPS(engine_mode)) {
         SCLogError(SC_ERR_NOT_SUPPORTED,
                    "BPF filter not available in IPS mode."
                    " Use firewall filtering if possible.");
-        exit(EXIT_FAILURE);
+        return TM_ECODE_FAILED;
     }
 
     bpf_filter = SCMalloc(bpf_len);
     if (unlikely(bpf_filter == NULL))
-        return;
+        return TM_ECODE_OK;
     memset(bpf_filter, 0x00, bpf_len);
 
     tmpindex = optind;
@@ -381,11 +381,14 @@ static void SetBpfString(int optind, char *argv[]) {
     if(strlen(bpf_filter) > 0) {
         if (ConfSet("bpf-filter", bpf_filter, 0) != 1) {
             SCLogError(SC_ERR_FATAL, "Failed to set bpf filter.");
-            exit(EXIT_FAILURE);
+            return TM_ECODE_FAILED;
         }
     }
     SCFree(bpf_filter);
+
+    return TM_ECODE_OK;
 }
+
 static void SetBpfStringFromFile(char *filename) {
     char *bpf_filter = NULL;
     char *bpf_comment_tmp = NULL;
@@ -950,6 +953,7 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
     int build_info = 0;
     int conf_test = 0;
     int engine_analysis = 0;
+    int ret = TM_ECODE_OK;
 
 #ifdef UNITTESTS
     coverage_unittests = 0;
@@ -1467,6 +1471,10 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
     if (engine_analysis)
         suri->run_mode = RUNMODE_ENGINE_ANALYSIS;
 
+    ret = SetBpfString(optind, argv);
+    if (ret != TM_ECODE_OK)
+        return ret;
+
     return TM_ECODE_OK;
 }
 
@@ -1620,7 +1628,10 @@ int main(int argc, char **argv)
 
     SuriPrintVersion();
 
-    SetBpfString(optind, argv);
+#ifndef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
+    SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "libhtp < 0.2.7 detected. Keyword "
+        "http_raw_header will not be able to inspect response headers.");
+#endif
 
     UtilCpuPrintSummary();
 
