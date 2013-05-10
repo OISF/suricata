@@ -289,6 +289,20 @@ uint8_t print_mem_flag = 1;
 #endif
 #endif
 
+void CreateLowercaseTable()
+{
+    /* create table for O(1) lowercase conversion lookup.  It was removed, but
+     * we still need it for cuda.  So resintalling it back into the codebase */
+    uint8_t c = 0;
+    memset(g_u8_lowercasetable, 0x00, sizeof(g_u8_lowercasetable));
+    for ( ; c < 255; c++) {
+        if (c >= 'A' && c <= 'Z')
+            g_u8_lowercasetable[c] = (c + ('a' - 'A'));
+        else
+            g_u8_lowercasetable[c] = c;
+    }
+}
+
 void GlobalInits()
 {
     memset(trans_q, 0, sizeof(trans_q));
@@ -1617,16 +1631,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /* create table for O(1) lowercase conversion lookup.  It was removed, but
-     * we still need it for cuda.  So resintalling it back into the codebase */
-    uint8_t c = 0;
-    memset(g_u8_lowercasetable, 0x00, sizeof(g_u8_lowercasetable));
-    for ( ; c < 255; c++) {
-        if (c >= 'A' && c <= 'Z')
-            g_u8_lowercasetable[c] = (c + ('a' - 'A'));
-        else
-            g_u8_lowercasetable[c] = c;
-    }
+    CreateLowercaseTable();
 
     /* hardcoded initialization code */
     SigTableSetup(); /* load the rule keywords */
