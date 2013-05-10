@@ -2145,6 +2145,49 @@ int main(int argc, char **argv)
 
     AppLayerHtpPrintStats();
 
+
+
+
+    void PrintTotalValues(MpmCtx *mpm_ctx, char *mpm_type) {
+        if (mpm_ctx == NULL)
+            return;
+        printf("%p - %s - %"PRIu32"\n", mpm_ctx, mpm_type, mpm_ctx->anoop_total_called);
+    }
+
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 0), "packet_ts");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 1), "packet_tc");
+
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_uri, 0), "uri_ts");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_uri, 1), "uri_tc");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcbd, 0), "hcbd_ts");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcbd, 1), "hcbd_tc");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hsbd, 0), "hsbd_ts");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hsbd, 1), "hsbd_tc");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hhd, 0), "hhd_ts");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hhd, 1), "hhd_tc");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrhd, 0), "hrhd_ts");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrhd, 1), "hrhd_tc");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hmd, 0), "hmd_ts");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hmd, 1), "hmd_tc");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcd, 0), "hcd_ts");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcd, 1), "hcd_tc");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrud, 0), "hrud_ts");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrud, 1), "hrud_tc");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hsmd, 0), "hsmd_ts");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hsmd, 1), "hsmd_tc");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hscd, 0), "hscd_ts");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hscd, 1), "hscd_tc");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_huad, 0), "huad_ts");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_huad, 1), "huad_tc");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hhhd, 0), "hhhd_ts");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hhhd, 1), "hhhd_tc");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrhhd, 0), "hrhhd_ts");
+    PrintTotalValues(MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrhhd, 1), "hrhhd_tc");
+
+
+
+
+
     if (global_de_ctx) {
         DetectEngineCtxFree(global_de_ctx);
     }

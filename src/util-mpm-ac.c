@@ -1220,6 +1220,9 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     int i = 0;
     int matches = 0;
 
+    if (buflen != 0)
+        mpm_ctx->anoop_total_called++;
+
     /* \todo tried loop unrolling with register var, with no perf increase.  Need
      * to dig deeper */
     /* \todo Change it for stateful MPM.  Supply the state using mpm_thread_ctx */
