@@ -343,7 +343,7 @@ static int HTPFileParserTest01(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(http_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, http_state, 0);
     if (tx == NULL) {
         goto end;
     }
@@ -440,7 +440,7 @@ static int HTPFileParserTest02(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(http_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, http_state, 0);
     if (tx == NULL) {
         goto end;
     }
@@ -563,7 +563,7 @@ static int HTPFileParserTest03(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(http_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, http_state, 0);
     if (tx == NULL) {
         goto end;
     }
@@ -691,7 +691,7 @@ static int HTPFileParserTest04(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(http_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, http_state, 0);
     if (tx == NULL) {
         goto end;
     }
@@ -773,7 +773,7 @@ static int HTPFileParserTest05(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(http_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, http_state, 0);
     if (tx == NULL) {
         goto end;
     }
@@ -887,7 +887,7 @@ static int HTPFileParserTest06(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(http_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, http_state, 0);
     if (tx == NULL) {
         goto end;
     }
@@ -990,7 +990,7 @@ static int HTPFileParserTest07(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(http_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, http_state, 0);
     if (tx == NULL) {
         goto end;
     }
@@ -1394,7 +1394,7 @@ static int HTPFileParserTest11(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(http_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, http_state, 0);
     if (tx == NULL) {
         goto end;
     }

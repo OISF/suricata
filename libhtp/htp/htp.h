@@ -934,7 +934,7 @@ struct htp_tx_t {
     unsigned int flags;
 
     /** Transaction progress. Look for the TX_PROGRESS_* constants for more information. */
-    unsigned int progress;
+    unsigned int progress[2];
 };
 
 /** This structure is used to pass transaction data to callbacks. */
@@ -1156,7 +1156,7 @@ void fprint_raw_data(FILE *stream, const char *name, unsigned char *data, size_t
 
 char *htp_connp_in_state_as_string(htp_connp_t *connp);
 char *htp_connp_out_state_as_string(htp_connp_t *connp);
-char *htp_tx_progress_as_string(htp_tx_t *tx);
+char *htp_tx_progress_as_string(htp_tx_t *tx, int direction);
 
 bstr *htp_unparse_uri_noencode(htp_uri_t *uri);
 

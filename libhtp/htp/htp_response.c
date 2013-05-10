@@ -149,7 +149,7 @@ int htp_connp_RES_BODY_CHUNKED_LENGTH(htp_connp_t *connp) {
             } else if (connp->out_chunked_length == 0) {
                 // End of data
                 connp->out_state = htp_connp_RES_HEADERS;
-                connp->out_tx->progress = TX_PROGRESS_RES_TRAILER;
+                connp->out_tx->progress[1] = TX_PROGRESS_RES_TRAILER;
             } else {
                 // Invalid chunk length
                 htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0,
@@ -201,7 +201,7 @@ int htp_connp_RES_BODY_IDENTITY(htp_connp_t *connp) {
             // end of the response body (and the end of the transaction).
             if ((connp->out_content_length == -1) && (connp->out_status == STREAM_STATE_CLOSED)) {
                 connp->out_state = htp_connp_RES_IDLE;
-                connp->out_tx->progress = TX_PROGRESS_DONE;
+                connp->out_tx->progress[1] = TX_PROGRESS_DONE;
 
                 return HTP_OK;
             } else {
@@ -237,7 +237,7 @@ int htp_connp_RES_BODY_IDENTITY(htp_connp_t *connp) {
 
                     // Done
                     connp->out_state = htp_connp_RES_IDLE;
-                    connp->out_tx->progress = TX_PROGRESS_DONE;
+                    connp->out_tx->progress[1] = TX_PROGRESS_DONE;
 
                     return HTP_OK;
                 }
@@ -270,7 +270,7 @@ int htp_connp_RES_BODY_DETERMINE(htp_connp_t *connp) {
     {
         connp->out_status = STREAM_STATE_TUNNEL;
         connp->out_state = htp_connp_RES_IDLE;
-        connp->out_tx->progress = TX_PROGRESS_DONE;
+        connp->out_tx->progress[1] = TX_PROGRESS_DONE;
 
         return HTP_OK;
     }
@@ -287,7 +287,7 @@ int htp_connp_RES_BODY_DETERMINE(htp_connp_t *connp) {
         table_clear(connp->out_tx->response_headers);
 
         connp->out_state = htp_connp_RES_LINE;
-        connp->out_tx->progress = TX_PROGRESS_RES_LINE;
+        connp->out_tx->progress[1] = TX_PROGRESS_RES_LINE;
         connp->out_tx->seen_100continue++;
 
         return HTP_OK;
@@ -347,7 +347,7 @@ int htp_connp_RES_BODY_DETERMINE(htp_connp_t *connp) {
             }
 
             connp->out_state = htp_connp_RES_BODY_CHUNKED_LENGTH;
-            connp->out_tx->progress = TX_PROGRESS_RES_BODY;
+            connp->out_tx->progress[1] = TX_PROGRESS_RES_BODY;
         }// 3. If a Content-Length header field (section 14.14) is present, its
             //   value in bytes represents the length of the message-body.
         else if (cl != NULL) {
@@ -371,10 +371,10 @@ int htp_connp_RES_BODY_DETERMINE(htp_connp_t *connp) {
 
                 if (connp->out_content_length != 0) {
                     connp->out_state = htp_connp_RES_BODY_IDENTITY;
-                    connp->out_tx->progress = TX_PROGRESS_RES_BODY;
+                    connp->out_tx->progress[1] = TX_PROGRESS_RES_BODY;
                 } else {
                     connp->out_state = htp_connp_RES_IDLE;
-                    connp->out_tx->progress = TX_PROGRESS_DONE;
+                    connp->out_tx->progress[1] = TX_PROGRESS_DONE;
                 }
             }
         } else {
@@ -399,7 +399,7 @@ int htp_connp_RES_BODY_DETERMINE(htp_connp_t *connp) {
             //   cannot be used to indicate the end of a request body, since that
             //   would leave no possibility for the server to send back a response.)
             connp->out_state = htp_connp_RES_BODY_IDENTITY;
-            connp->out_tx->progress = TX_PROGRESS_RES_BODY;
+            connp->out_tx->progress[1] = TX_PROGRESS_RES_BODY;
         }
     }
 
@@ -472,7 +472,7 @@ int htp_connp_RES_HEADERS(htp_connp_t *connp) {
                 connp->out_header_line = NULL;                
 
                 // We've seen all response headers
-                if (connp->out_tx->progress == TX_PROGRESS_RES_HEADERS) {
+                if (connp->out_tx->progress[1] == TX_PROGRESS_RES_HEADERS) {
                     // Determine if this response has a body
                     connp->out_state = htp_connp_RES_BODY_DETERMINE;
                 } else {
@@ -636,7 +636,7 @@ int htp_connp_RES_LINE(htp_connp_t *connp) {
 
             // Move on to the next phase.
             connp->out_state = htp_connp_RES_HEADERS;
-            connp->out_tx->progress = TX_PROGRESS_RES_HEADERS;
+            connp->out_tx->progress[1] = TX_PROGRESS_RES_HEADERS;
 
             return HTP_OK;
         }
@@ -666,7 +666,7 @@ int htp_connp_RES_IDLE(htp_connp_t * connp) {
             connp->out_decompressor = NULL;
         }
 
-        connp->out_tx->progress = TX_PROGRESS_DONE;
+        connp->out_tx->progress[1] = TX_PROGRESS_DONE;
 
         // Run hook RESPONSE
         int rc = hook_run_all(connp->cfg->hook_response, connp);
@@ -722,10 +722,10 @@ int htp_connp_RES_IDLE(htp_connp_t * connp) {
     if (connp->out_tx->protocol_is_simple) {
         connp->out_tx->response_transfer_coding = IDENTITY;
         connp->out_state = htp_connp_RES_BODY_IDENTITY;
-        connp->out_tx->progress = TX_PROGRESS_RES_BODY;
+        connp->out_tx->progress[1] = TX_PROGRESS_RES_BODY;
     } else {
         connp->out_state = htp_connp_RES_LINE;
-        connp->out_tx->progress = TX_PROGRESS_RES_LINE;
+        connp->out_tx->progress[1] = TX_PROGRESS_RES_LINE;
     }
 
     return HTP_OK;
@@ -796,7 +796,7 @@ int htp_connp_res_data(htp_connp_t *connp, htp_time_t timestamp, unsigned char *
         #ifdef HTP_DEBUG
         fprintf(stderr, "htp_connp_res_data: out state=%s, progress=%s\n",
             htp_connp_out_state_as_string(connp),
-            htp_tx_progress_as_string(connp->out_tx));
+            htp_tx_progress_as_string(connp->out_tx, 1));
         #endif
         // Return if there's been an error
         // or if we've run out of data. We are relying
