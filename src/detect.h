@@ -385,8 +385,6 @@ typedef struct Signature_ {
         uint32_t hdr_copy3;
     };
 
-    SigIntId order_id;
-
     /** inline -- action */
     uint8_t action;
     uint8_t file_flags;

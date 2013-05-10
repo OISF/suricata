@@ -38,6 +38,7 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-sigorder.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 
@@ -3773,6 +3774,9 @@ static int DetectPcreFlowvarCapture02(void) {
         goto end;
     }
 
+    SCSigRegisterSignatureOrderingFuncs(de_ctx);
+    SCSigOrderSignatures(de_ctx);
+    SCSigSignatureOrderingModuleCleanup(de_ctx);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
