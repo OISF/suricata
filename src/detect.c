@@ -4405,11 +4405,9 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
      * reset the old signums and assign new signums.  We would
      * have experienced Sig reordering by now, hence the new
      * signums. */
-    SigIntId sig_id = 0;
     de_ctx->signum = 0;
     while (s != NULL) {
         s->num = de_ctx->signum++;
-        s->order_id = sig_id++;
 
         s = s->next;
     }
