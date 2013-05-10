@@ -1507,6 +1507,89 @@ static int SuriWindowsInitService(int argc, char **argv)
 }
 #endif /* OS_WIN32 */
 
+static int SuriMayDaemonize(struct SuriInstance *suri)
+{
+    if (suri->daemon == 1) {
+        if (suri->pid_filename == NULL) {
+            if (ConfGet("pid-file", &suri->pid_filename) == 1) {
+                SCLogInfo("Use pid file %s from config file.", suri->pid_filename);
+            } else {
+                suri->pid_filename = DEFAULT_PID_FILENAME;
+            }
+        }
+        if (SCPidfileTestRunning(suri->pid_filename) != 0) {
+            suri->pid_filename = NULL;
+            return TM_ECODE_FAILED;
+        }
+        Daemonize();
+        if (SCPidfileCreate(suri->pid_filename) != 0) {
+            suri->pid_filename = NULL;
+            SCLogError(SC_ERR_PIDFILE_DAEMON,
+                    "Unable to create PID file, concurrent run of"
+                    " Suricata can occur.");
+            SCLogError(SC_ERR_PIDFILE_DAEMON,
+                    "PID file creation WILL be mandatory for daemon mode"
+                    " in future version");
+        }
+    } else {
+        if (suri->pid_filename != NULL) {
+            SCLogError(SC_ERR_PIDFILE_DAEMON, "The pidfile file option applies "
+                    "only to the daemon modes");
+            suri->pid_filename = NULL;
+            return TM_ECODE_FAILED;
+        }
+    }
+
+    return TM_ECODE_OK;
+}
+
+static int SuriInitSignalHandler(struct SuriInstance *suri)
+{
+    /* registering signals we use */
+    UtilSignalHandlerSetup(SIGINT, SignalHandlerSigint);
+    UtilSignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
+    UtilSignalHandlerSetup(SIGPIPE, SIG_IGN);
+    UtilSignalHandlerSetup(SIGSYS, SIG_IGN);
+
+#ifndef OS_WIN32
+    /* SIGHUP is not implemented on WIN32 */
+    //UtilSignalHandlerSetup(SIGHUP, SignalHandlerSighup);
+
+    /* Try to get user/group to run suricata as if
+       command line as not decide of that */
+    if (suri->do_setuid == FALSE && suri->do_setgid == FALSE) {
+        char *id;
+        if (ConfGet("run-as.user", &id) == 1) {
+            suri->do_setuid = TRUE;
+            suri->user_name = id;
+        }
+        if (ConfGet("run-as.group", &id) == 1) {
+            suri->do_setgid = TRUE;
+            suri->group_name = id;
+        }
+    }
+    /* Get the suricata user ID to given user ID */
+    if (suri->do_setuid == TRUE) {
+        if (SCGetUserID(suri->user_name, suri->group_name,
+                        &suri->userid, &suri->groupid) != 0) {
+            SCLogError(SC_ERR_UID_FAILED, "failed in getting user ID");
+            return TM_ECODE_FAILED;
+        }
+
+        sc_set_caps = TRUE;
+    /* Get the suricata group ID to given group ID */
+    } else if (suri->do_setgid == TRUE) {
+        if (SCGetGroupID(suri->group_name, &suri->groupid) != 0) {
+            SCLogError(SC_ERR_GID_FAILED, "failed in getting group ID");
+            return TM_ECODE_FAILED;
+        }
+
+        sc_set_caps = TRUE;
+    }
+#endif /* OS_WIN32 */
+
+    return TM_ECODE_OK;
+}
 
 int SuriStartInternalRunMode(struct SuriInstance *suri, int argc, char **argv)
 {
@@ -1803,88 +1886,17 @@ int main(int argc, char **argv)
 
     TmModuleRunInit();
 
-    if (suri.daemon == 1) {
-        if (suri.pid_filename == NULL) {
-            if (ConfGet("pid-file", &suri.pid_filename) == 1) {
-                SCLogInfo("Use pid file %s from config file.", suri.pid_filename);
-           } else {
-                suri.pid_filename = DEFAULT_PID_FILENAME;
-           }
-        }
-        if (SCPidfileTestRunning(suri.pid_filename) != 0) {
-            suri.pid_filename = NULL;
+    if (SuriMayDaemonize(&suri) != TM_ECODE_OK)
             exit(EXIT_FAILURE);
-        }
-        Daemonize();
-        if (SCPidfileCreate(suri.pid_filename) != 0) {
-            suri.pid_filename = NULL;
-#if 1
-            SCLogError(SC_ERR_PIDFILE_DAEMON,
-                       "Unable to create PID file, concurrent run of"
-                       " Suricata can occur.");
-            SCLogError(SC_ERR_PIDFILE_DAEMON,
-                       "PID file creation WILL be mandatory for daemon mode"
-                       " in future version");
-#else
+
+    if (SuriInitSignalHandler(&suri) != TM_ECODE_OK)
             exit(EXIT_FAILURE);
-#endif
-        }
-    } else {
-        if (suri.pid_filename != NULL) {
-            SCLogError(SC_ERR_PIDFILE_DAEMON, "The pidfile file option applies "
-                    "only to the daemon modes");
-            suri.pid_filename = NULL;
-            exit(EXIT_FAILURE);
-        }
-    }
 
 #ifdef HAVE_NSS
     /* init NSS for md5 */
     PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
     NSS_NoDB_Init(NULL);
 #endif
-
-    /* registering signals we use */
-    UtilSignalHandlerSetup(SIGINT, SignalHandlerSigint);
-    UtilSignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
-    UtilSignalHandlerSetup(SIGPIPE, SIG_IGN);
-    UtilSignalHandlerSetup(SIGSYS, SIG_IGN);
-
-#ifndef OS_WIN32
-	/* SIGHUP is not implemnetd on WIN32 */
-    //UtilSignalHandlerSetup(SIGHUP, SignalHandlerSighup);
-
-    /* Try to get user/group to run suricata as if
-       command line as not decide of that */
-    if (suri.do_setuid == FALSE && suri.do_setgid == FALSE) {
-        char *id;
-        if (ConfGet("run-as.user", &id) == 1) {
-            suri.do_setuid = TRUE;
-            suri.user_name = id;
-        }
-        if (ConfGet("run-as.group", &id) == 1) {
-            suri.do_setgid = TRUE;
-            suri.group_name = id;
-        }
-    }
-    /* Get the suricata user ID to given user ID */
-    if (suri.do_setuid == TRUE) {
-        if (SCGetUserID(suri.user_name, suri.group_name, &suri.userid, &suri.groupid) != 0) {
-            SCLogError(SC_ERR_UID_FAILED, "failed in getting user ID");
-            exit(EXIT_FAILURE);
-        }
-
-        sc_set_caps = TRUE;
-    /* Get the suricata group ID to given group ID */
-    } else if (suri.do_setgid == TRUE) {
-        if (SCGetGroupID(suri.group_name, &suri.groupid) != 0) {
-            SCLogError(SC_ERR_GID_FAILED, "failed in getting group ID");
-            exit(EXIT_FAILURE);
-        }
-
-        sc_set_caps = TRUE;
-    }
-#endif /* OS_WIN32 */
 
     PacketPoolInit(max_pending_packets);
     HostInitConfig(HOST_VERBOSE);
