@@ -300,6 +300,7 @@ util-optimize.h \
 util-path.c util-path.h \
 util-pidfile.c util-pidfile.h \
 util-pool.c util-pool.h \
+util-pool-thread.c util-pool-thread.h \
 util-print.c util-print.h \
 util-privs.c util-privs.h \
 util-profiling.c util-profiling.h \
