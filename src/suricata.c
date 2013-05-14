@@ -1652,6 +1652,20 @@ int SuriStartInternalRunMode(struct SuriInstance *suri, int argc, char **argv)
     return TM_ECODE_OK;
 }
 
+static int SuriLoadSignatures(DetectEngineCtx *de_ctx,struct SuriInstance *suri)
+{
+    if (SigLoadSignatures(de_ctx, suri->sig_file, suri->sig_file_exclusive) < 0) {
+        if (suri->sig_file == NULL) {
+            SCLogError(SC_ERR_OPENING_FILE, "Signature file has not been provided");
+        } else {
+            SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
+        }
+        if (de_ctx->failure_fatal)
+            return TM_ECODE_FAILED;
+    }
+    return TM_ECODE_OK;
+}
+
 int main(int argc, char **argv)
 {
     struct SuriInstance suri;
@@ -1949,15 +1963,8 @@ int main(int argc, char **argv)
     }
 
     if (!suri.delayed_detect) {
-        if (SigLoadSignatures(de_ctx, suri.sig_file, suri.sig_file_exclusive) < 0) {
-            if (suri.sig_file == NULL) {
-                SCLogError(SC_ERR_OPENING_FILE, "Signature file has not been provided");
-            } else {
-                SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
-            }
-            if (de_ctx->failure_fatal)
-                exit(EXIT_FAILURE);
-        }
+        if (SuriLoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
+            exit(EXIT_FAILURE);
         if (suri.run_mode == RUNMODE_ENGINE_ANALYSIS) {
             exit(EXIT_SUCCESS);
         }
@@ -2036,15 +2043,8 @@ int main(int argc, char **argv)
     TmThreadContinueThreads();
 
     if (suri.delayed_detect) {
-        if (SigLoadSignatures(de_ctx, suri.sig_file, suri.sig_file_exclusive) < 0) {
-            if (suri.sig_file == NULL) {
-                SCLogError(SC_ERR_OPENING_FILE, "Signature file has not been provided");
-            } else {
-                SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
-            }
-            if (de_ctx->failure_fatal)
-                exit(EXIT_FAILURE);
-        }
+        if (SuriLoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
+            exit(EXIT_FAILURE);
         TmThreadActivateDummySlot();
         SCLogInfo("Signature(s) loaded, Detect thread(s) activated.");
     }
