@@ -612,7 +612,6 @@ typedef struct DecodeThreadVars_
  */
 #ifndef __SC_CUDA_SUPPORT__
 #define PACKET_INITIALIZE(p) { \
-    memset((p), 0x00, SIZE_OF_PACKET); \
     SCMutexInit(&(p)->tunnel_mutex, NULL); \
     PACKET_RESET_CHECKSUMS((p)); \
     (p)->pkt = ((uint8_t *)(p)) + sizeof(Packet); \
@@ -620,7 +619,6 @@ typedef struct DecodeThreadVars_
 }
 #else
 #define PACKET_INITIALIZE(p) { \
-    memset((p), 0x00, SIZE_OF_PACKET); \
     SCMutexInit(&(p)->tunnel_mutex, NULL); \
     PACKET_RESET_CHECKSUMS((p)); \
     SCMutexInit(&(p)->cuda_mutex, NULL); \

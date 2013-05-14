@@ -1557,6 +1557,7 @@ int DecodeIPV4DefragTest01(void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
+    memset(p, 0, SIZE_OF_PACKET);
 
     PACKET_INITIALIZE(p);
     FlowInitConfig(FLOW_QUIET);
@@ -1695,6 +1696,7 @@ int DecodeIPV4DefragTest02(void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
+    memset(p, 0, SIZE_OF_PACKET);
 
     PACKET_INITIALIZE(p);
     FlowInitConfig(FLOW_QUIET);
@@ -1824,6 +1826,7 @@ int DecodeIPV4DefragTest03(void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
+    memset(p, 0, SIZE_OF_PACKET);
 
     PACKET_INITIALIZE(p);
     FlowInitConfig(FLOW_QUIET);

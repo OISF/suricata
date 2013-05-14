@@ -89,6 +89,7 @@ Packet *PacketGetFromAlloc(void)
         return NULL;
     }
 
+    memset(p, 0, SIZE_OF_PACKET);
     PACKET_INITIALIZE(p);
     p->flags |= PKT_ALLOC;
 

@@ -122,6 +122,7 @@ void PacketPoolInit(intmax_t max_pending_packets) {
             SCLogError(SC_ERR_FATAL, "Fatal error encountered while allocating a packet. Exiting...");
             exit(EXIT_FAILURE);
         }
+        memset(p, 0, SIZE_OF_PACKET);
         PACKET_INITIALIZE(p);
 
         PacketPoolStorePacket(p);
