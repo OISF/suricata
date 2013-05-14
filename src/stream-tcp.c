@@ -9085,6 +9085,7 @@ static int StreamTcpTest40(void) {
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
+    memset(p, 0, SIZE_OF_PACKET);
     PACKET_INITIALIZE(p);
 
     SET_PKT_LEN(p, sizeof(raw_vlan));
@@ -9144,6 +9145,7 @@ static int StreamTcpTest41(void) {
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
+    memset(p, 0, SIZE_OF_PACKET);
     PACKET_INITIALIZE(p);
 
     if (PacketCopyData(p, raw_ip, sizeof(raw_ip)) == -1) {
