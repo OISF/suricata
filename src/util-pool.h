@@ -45,16 +45,16 @@ typedef struct Pool_ {
     uint32_t preallocated;
     uint32_t allocated;
 
+    uint32_t alloc_list_size;
     PoolBucket *alloc_list;
     PoolBucket *alloc_list_tail;
-    uint32_t alloc_list_size;
 
     PoolBucket *empty_list;
     uint32_t empty_list_size;
 
-    PoolBucket *pb_buffer;
-    void *data_buffer;
     int data_buffer_size;
+    void *data_buffer;
+    PoolBucket *pb_buffer;
 
     void *(*Alloc)();
     int (*Init)(void *, void *);
