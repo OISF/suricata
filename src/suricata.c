@@ -1670,6 +1670,33 @@ int SuriStartInternalRunMode(struct SuriInstance *suri, int argc, char **argv)
     return TM_ECODE_OK;
 }
 
+static void SuriSetupDelayedDetect(DetectEngineCtx *de_ctx, struct SuriInstance *suri)
+{
+    /* In offline mode delayed init of detect is a bad idea */
+    if ((suri->run_mode == RUNMODE_PCAP_FILE) ||
+        (suri->run_mode == RUNMODE_ERF_FILE) ||
+        (suri->run_mode == RUNMODE_ENGINE_ANALYSIS)) {
+        suri->delayed_detect = 0;
+    } else {
+        ConfNode *denode = NULL;
+        ConfNode *decnf = ConfGetNode("detect-engine");
+        if (decnf != NULL) {
+            TAILQ_FOREACH(denode, &decnf->head, next) {
+                if (strcmp(denode->val, "delayed-detect") == 0) {
+                    (void)ConfGetChildValueBool(denode, "delayed-detect", &suri->delayed_detect);
+                }
+            }
+        }
+    }
+    de_ctx->delayed_detect = suri->delayed_detect;
+
+    SCLogInfo("Delayed detect %s", suri->delayed_detect ? "enabled" : "disabled");
+    if (suri->delayed_detect) {
+        SCLogInfo("Packets will start being processed before signatures are active.");
+    }
+
+}
+
 static int SuriLoadSignatures(DetectEngineCtx *de_ctx,struct SuriInstance *suri)
 {
     if (SigLoadSignatures(de_ctx, suri->sig_file, suri->sig_file_exclusive) < 0) {
@@ -1957,28 +1984,7 @@ int main(int argc, char **argv)
     if (MagicInit() != 0)
         exit(EXIT_FAILURE);
 
-    /* In offline mode delayed init of detect is a bad idea */
-    if ((suri.run_mode == RUNMODE_PCAP_FILE) ||
-        (suri.run_mode == RUNMODE_ERF_FILE) ||
-        (suri.run_mode == RUNMODE_ENGINE_ANALYSIS)) {
-        suri.delayed_detect = 0;
-    } else {
-        ConfNode *denode = NULL;
-        ConfNode *decnf = ConfGetNode("detect-engine");
-        if (decnf != NULL) {
-            TAILQ_FOREACH(denode, &decnf->head, next) {
-                if (strcmp(denode->val, "delayed-detect") == 0) {
-                    (void)ConfGetChildValueBool(denode, "delayed-detect", &suri.delayed_detect);
-                }
-            }
-        }
-    }
-    de_ctx->delayed_detect = suri.delayed_detect;
-
-    SCLogInfo("Delayed detect %s", suri.delayed_detect ? "enabled" : "disabled");
-    if (suri.delayed_detect) {
-        SCLogInfo("Packets will start being processed before signatures are active.");
-    }
+    SuriSetupDelayedDetect(de_ctx, &suri);
 
     if (!suri.delayed_detect) {
         if (SuriLoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
