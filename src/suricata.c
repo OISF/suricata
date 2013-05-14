@@ -900,6 +900,8 @@ struct SuriInstance {
     int rule_reload;
     int daemon;
 
+    struct timeval start_time;
+
     char *log_dir;
 };
 
@@ -937,6 +939,22 @@ static TmEcode SuriPrintVersion()
     printf("This is %s version %s\n", PROG_NAME, PROG_VER);
 #endif
     return TM_ECODE_OK;
+}
+
+static void SuriSetStartTime(struct SuriInstance *suri)
+{
+    memset(&suri->start_time, 0, sizeof(suri->start_time));
+    gettimeofday(&suri->start_time, NULL);
+}
+
+static void SuriPrintElapsedTime(struct SuriInstance *suri)
+{
+    struct timeval end_time;
+    memset(&end_time, 0, sizeof(end_time));
+    gettimeofday(&end_time, NULL);
+    uint64_t milliseconds = ((end_time.tv_sec - suri->start_time.tv_sec) * 1000) +
+        (((1000000 + end_time.tv_usec - suri->start_time.tv_usec) / 1000) - 1000);
+    SCLogInfo("time elapsed %.3fs", (float)milliseconds/(float)1000);
 }
 
 static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *suri)
@@ -1980,9 +1998,7 @@ int main(int argc, char **argv)
 
     CoredumpLoadConfig();
 
-    struct timeval start_time;
-    memset(&start_time, 0, sizeof(start_time));
-    gettimeofday(&start_time, NULL);
+    SuriSetStartTime(&suri);
 
     SCDropMainThreadCaps(suri.userid, suri.groupid);
 
@@ -2087,12 +2103,7 @@ int main(int argc, char **argv)
         FlowForceReassembly();
     }
 
-    struct timeval end_time;
-    memset(&end_time, 0, sizeof(end_time));
-    gettimeofday(&end_time, NULL);
-    uint64_t milliseconds = ((end_time.tv_sec - start_time.tv_sec) * 1000) +
-        (((1000000 + end_time.tv_usec - start_time.tv_usec) / 1000) - 1000);
-    SCLogInfo("time elapsed %.3fs", (float)milliseconds/(float)1000);
+    SuriPrintElapsedTime(&suri);
 
     if (suri.rule_reload == 1) {
         /* Disable detect threads first.  This is required by live rule swap */
