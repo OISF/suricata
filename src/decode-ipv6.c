@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -736,13 +736,13 @@ static int DecodeIPV6FragTest01 (void)   {
         0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
         0x20, 0x20, 0x20, 0x20,
     };
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
-    return 0;
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+        return 0;
+    Packet *p2 = PacketGetFromAlloc();
     if (unlikely(p2 == NULL)) {
-    SCFree(p1);
-    return 0;
+        SCFree(p1);
+        return 0;
     }
     ThreadVars tv;
     DecodeThreadVars dtv;
@@ -754,14 +754,7 @@ static int DecodeIPV6FragTest01 (void)   {
 
     memset(&pq, 0, sizeof(PacketQueue));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
-    memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-
-    PACKET_INITIALIZE(p1);
-    PACKET_INITIALIZE(p2);
 
     PacketCopyData(p1, raw_frag1, sizeof(raw_frag1));
     PacketCopyData(p2, raw_frag2, sizeof(raw_frag2));
@@ -813,9 +806,9 @@ static int DecodeIPV6RouteTest01 (void)   {
         0x00, 0x00, 0x00, 0x00, 0x50, 0x02, 0x20, 0x00,
         0xfa, 0x87, 0x00, 0x00,
     };
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
-    return 0;
+        return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
     int result = 0;
@@ -825,11 +818,7 @@ static int DecodeIPV6RouteTest01 (void)   {
 
     memset(&pq, 0, sizeof(PacketQueue));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-
-    PACKET_INITIALIZE(p1);
 
     PacketCopyData(p1, raw_pkt1, sizeof(raw_pkt1));
 

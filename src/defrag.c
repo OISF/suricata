@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -913,11 +913,9 @@ BuildTestPacket(uint16_t id, uint16_t off, int mf, const char content,
     uint8_t *pcontent;
     IPV4Hdr ip4h;
 
-    p = SCCalloc(1, sizeof(*p) + default_packet_size);
+    p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return NULL;
-
-    PACKET_INITIALIZE(p);
 
     gettimeofday(&p->ts, NULL);
     //p->ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
@@ -985,11 +983,9 @@ IPV6BuildTestPacket(uint32_t id, uint16_t off, int mf, const char content,
     uint8_t *pcontent;
     IPV6Hdr ip6h;
 
-    p = SCCalloc(1, sizeof(*p) + default_packet_size);
+    p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return NULL;
-
-    PACKET_INITIALIZE(p);
 
     gettimeofday(&p->ts, NULL);
 

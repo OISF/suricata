@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1141,7 +1141,7 @@ static int Unified2Test01 (void)   {
         0x05, 0xb4, 0x04, 0x02, 0x08, 0x0a, 0x00, 0x1c,
         0x28, 0x81, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03,
         0x03, 0x06};
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     int ret;
@@ -1149,11 +1149,8 @@ static int Unified2Test01 (void)   {
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
-    memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     memset(&s, 0, sizeof(Signature));
-
-    PACKET_INITIALIZE(p);
 
     p->alerts.cnt++;
     p->alerts.alerts[p->alerts.cnt-1].s = &s;
@@ -1230,7 +1227,7 @@ static int Unified2Test02 (void)   {
         0x00, 0x00, 0x02, 0x04, 0x05, 0xa0, 0x04, 0x02,
         0x08, 0x0a, 0x00, 0x0a, 0x22, 0xa8, 0x00, 0x00,
         0x00, 0x00, 0x01, 0x03, 0x03, 0x05 };
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     int ret;
@@ -1238,11 +1235,8 @@ static int Unified2Test02 (void)   {
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
-    memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     memset(&s, 0, sizeof(Signature));
-
-    PACKET_INITIALIZE(p);
 
     p->alerts.cnt++;
     p->alerts.alerts[p->alerts.cnt-1].s = &s;
@@ -1325,7 +1319,7 @@ static int Unified2Test03 (void) {
         0x69, 0x6e, 0x67, 0x2e, 0x66, 0x72, 0x65, 0x65,
         0x6e, 0x6f, 0x64, 0x65, 0x2e, 0x6e, 0x65, 0x74,
         0x0d, 0x0a};
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     int ret;
@@ -1333,11 +1327,8 @@ static int Unified2Test03 (void) {
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
-    memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     memset(&s, 0, sizeof(Signature));
-
-    PACKET_INITIALIZE(p);
 
     p->alerts.cnt++;
     p->alerts.alerts[p->alerts.cnt-1].s = &s;
@@ -1414,7 +1405,7 @@ static int Unified2Test04 (void)   {
         0xea, 0x37, 0x00, 0x17, 0x6d, 0x0b, 0xba, 0xc3,
         0x00, 0x00, 0x00, 0x00, 0x60, 0x02, 0x10, 0x20,
         0xdd, 0xe1, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4};
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     int ret;
@@ -1422,11 +1413,8 @@ static int Unified2Test04 (void)   {
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
-    memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     memset(&s, 0, sizeof(Signature));
-
-    PACKET_INITIALIZE(p);
 
     p->alerts.cnt++;
     p->alerts.alerts[p->alerts.cnt-1].s = &s;
@@ -1501,7 +1489,7 @@ static int Unified2Test05 (void)   {
         0x05, 0xb4, 0x04, 0x02, 0x08, 0x0a, 0x00, 0x1c,
         0x28, 0x81, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03,
         0x03, 0x06};
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     int ret;
@@ -1509,11 +1497,8 @@ static int Unified2Test05 (void)   {
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
-    memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     memset(&s, 0, sizeof(Signature));
-
-    PACKET_INITIALIZE(p);
 
     p->alerts.cnt++;
     p->alerts.alerts[p->alerts.cnt-1].s = &s;
