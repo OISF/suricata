@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -404,7 +404,7 @@ static int FragBitsTestParse03 (void) {
         0x0b ,0xc0 ,0x9f ,0x00 ,0x01 ,0x00 ,0x01 ,0x00,
         0x00 ,0x0e ,0x10 ,0x00 ,0x04 ,0x81 ,0x6f ,0x0b,
         0x51};
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -414,8 +414,6 @@ static int FragBitsTestParse03 (void) {
     DetectFragBitsData *de = NULL;
     SigMatch *sm = NULL;
 
-    memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
@@ -501,7 +499,7 @@ static int FragBitsTestParse04 (void) {
         0x0b ,0xc0 ,0x9f ,0x00 ,0x01 ,0x00 ,0x01 ,0x00,
         0x00 ,0x0e ,0x10 ,0x00 ,0x04 ,0x81 ,0x6f ,0x0b,
         0x51};
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -512,8 +510,6 @@ static int FragBitsTestParse04 (void) {
     SigMatch *sm = NULL;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     AlpProtoFinalize2Thread(&dtv.udp_dp_ctx);

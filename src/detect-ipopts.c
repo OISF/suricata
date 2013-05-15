@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -270,7 +270,7 @@ int IpOptsTestParse02 (void) {
  *  \retval 0 on failure
  */
 int IpOptsTestParse03 (void) {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -280,8 +280,6 @@ int IpOptsTestParse03 (void) {
     IPV4Hdr ip4h;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
     p->ip4h = &ip4h;
@@ -322,7 +320,7 @@ error:
  *  \retval 0 on failure
  */
 int IpOptsTestParse04 (void) {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -332,8 +330,6 @@ int IpOptsTestParse04 (void) {
     IPV4Hdr ip4h;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
     p->ip4h = &ip4h;

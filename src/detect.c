@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -5915,7 +5915,7 @@ static int SigTest15Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "CONNECT 213.92.8.7:31204 HTTP/1.1";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars th_v;
@@ -5923,8 +5923,6 @@ static int SigTest15Real (int mpm_type) {
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload = buf;
@@ -6123,7 +6121,7 @@ static int SigTest18Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars th_v;
@@ -6131,8 +6129,6 @@ static int SigTest18Real (int mpm_type) {
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload = buf;
@@ -6187,7 +6183,7 @@ int SigTest19Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars th_v;
@@ -6195,8 +6191,6 @@ int SigTest19Real (int mpm_type) {
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->src.addr_data32[0] = UTHSetIPv4Address("192.168.0.1");
     p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
@@ -6258,7 +6252,7 @@ static int SigTest20Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars th_v;
@@ -6266,8 +6260,6 @@ static int SigTest20Real (int mpm_type) {
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->src.addr_data32[0] = UTHSetIPv4Address("192.168.0.1");
     p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
@@ -6600,10 +6592,10 @@ int SigTest24IPV4Keyword(void)
         0x40, 0x01, 0xb7, 0x52, 0xc0, 0xa8, 0x01, 0x03,
         0xc0, 0xa8, 0x01, 0x06};
 
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p2 = PacketGetFromAlloc();
     if (unlikely(p2 == NULL)) {
         SCFree(p1);
         return 0;
@@ -6617,10 +6609,6 @@ int SigTest24IPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
-    memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
     p1->ip4vars.comp_csum = -1;
     p2->ip4vars.comp_csum = -1;
 
@@ -6706,10 +6694,10 @@ int SigTest25NegativeIPV4Keyword(void)
         0x40, 0x01, 0xb7, 0x52, 0xc0, 0xa8, 0x01, 0x03,
         0xc0, 0xa8, 0x01, 0x06};
 
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p2 = PacketGetFromAlloc();
     if (unlikely(p2 == NULL)) {
         SCFree(p1);
         return 0;
@@ -6723,10 +6711,6 @@ int SigTest25NegativeIPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
-    memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
     p1->ip4vars.comp_csum = -1;
     p2->ip4vars.comp_csum = -1;
 
@@ -6818,11 +6802,11 @@ int SigTest26TCPV4Keyword(void)
         0x04, 0x02, 0x08, 0x0a, 0x6e, 0x18, 0x78, 0x73,
         0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 0x03};
 
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
 
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p2 = PacketGetFromAlloc();
     if (unlikely(p2 == NULL)) {
         SCFree(p1);
         return 0;
@@ -6833,10 +6817,6 @@ int SigTest26TCPV4Keyword(void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
-    memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     PacketCopyData(p1, raw_ipv4, sizeof(raw_ipv4));
     PacketCopyDataOffset(p1, GET_PKT_LEN(p1), valid_raw_tcp, sizeof(valid_raw_tcp));
@@ -6934,10 +6914,10 @@ static int SigTest27NegativeTCPV4Keyword(void)
         0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 0x03};
 
 
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p2 = PacketGetFromAlloc();
     if (unlikely(p2 == NULL)) {
         SCFree(p1);
         return 0;
@@ -6947,10 +6927,6 @@ static int SigTest27NegativeTCPV4Keyword(void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
-    memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     PacketCopyData(p1, raw_ipv4, sizeof(raw_ipv4));
     PacketCopyDataOffset(p1, GET_PKT_LEN(p1), valid_raw_tcp, sizeof(valid_raw_tcp));
@@ -7062,10 +7038,10 @@ int SigTest28TCPV6Keyword(void)
         0x01, 0x01, 0x08, 0x0a, 0x00, 0x08, 0xca, 0x5a,
         0x00, 0x01, 0x69, 0x28};
 
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p2 = PacketGetFromAlloc();
     if (unlikely(p2 == NULL)) {
         SCFree(p1);
         return 0;
@@ -7075,10 +7051,6 @@ int SigTest28TCPV6Keyword(void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
-    memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     p1->tcpvars.comp_csum = -1;
     p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -7192,10 +7164,10 @@ int SigTest29NegativeTCPV6Keyword(void)
         0x01, 0x01, 0x08, 0x0a, 0x00, 0x08, 0xca, 0x5a,
         0x00, 0x01, 0x69, 0x28};
 
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p2 = PacketGetFromAlloc();
     if (unlikely(p2 == NULL)) {
         SCFree(p1);
         return 0;
@@ -7205,10 +7177,6 @@ int SigTest29NegativeTCPV6Keyword(void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
-    memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     p1->tcpvars.comp_csum = -1;
     p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -7317,10 +7285,10 @@ int SigTest30UDPV4Keyword(void)
         0x61, 0x64, 0x01, 0x6c, 0x06, 0x67, 0x6f, 0x6f,
         0x67, 0x6c, 0x65, 0xc0, 0x27};
 
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p2 = PacketGetFromAlloc();
     if (unlikely(p2 == NULL)) {
         SCFree(p1);
         return 0;
@@ -7333,10 +7301,6 @@ int SigTest30UDPV4Keyword(void)
                     "\r\n\r\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
-    memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     p1->udpvars.comp_csum = -1;
     p1->ip4h = (IPV4Hdr *)raw_ipv4;
@@ -7442,10 +7406,10 @@ int SigTest31NegativeUDPV4Keyword(void)
         0x61, 0x64, 0x01, 0x6c, 0x06, 0x67, 0x6f, 0x6f,
         0x67, 0x6c, 0x65, 0xc0, 0x27};
 
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p2 = PacketGetFromAlloc();
     if (unlikely(p2 == NULL)) {
         SCFree(p1);
         return 0;
@@ -7458,10 +7422,6 @@ int SigTest31NegativeUDPV4Keyword(void)
                     "\r\n\r\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
-    memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     p1->udpvars.comp_csum = -1;
     p1->ip4h = (IPV4Hdr *)raw_ipv4;
@@ -7561,10 +7521,10 @@ int SigTest32UDPV6Keyword(void)
         0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0x57, 0xb0,
         0x09, 0x01};
 
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p2 = PacketGetFromAlloc();
     if (unlikely(p2 == NULL)) {
         SCFree(p1);
         return 0;
@@ -7577,10 +7537,6 @@ int SigTest32UDPV6Keyword(void)
                     "\r\n\r\n";
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
-    memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     p1->udpvars.comp_csum = -1;
     p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -7678,10 +7634,10 @@ int SigTest33NegativeUDPV6Keyword(void)
         0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0x57, 0xb0,
         0x09, 0x01};
 
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p2 = PacketGetFromAlloc();
     if (unlikely(p2 == NULL)) {
         SCFree(p1);
         return 0;
@@ -7694,10 +7650,6 @@ int SigTest33NegativeUDPV6Keyword(void)
                     "\r\n\r\n";
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
-    memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     p1->udpvars.comp_csum = -1;
     p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -7797,10 +7749,10 @@ int SigTest34ICMPV4Keyword(void)
         0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33,
         0x34, 0x35, 0x36, 0x38};
 
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p2 = PacketGetFromAlloc();
     if (unlikely(p2 == NULL)) {
         SCFree(p1);
         return 0;
@@ -7814,10 +7766,6 @@ int SigTest34ICMPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
-    memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     p1->icmpv4vars.comp_csum = -1;
     p1->ip4h = (IPV4Hdr *)(valid_raw_ipv4);
@@ -7919,10 +7867,10 @@ int SigTest35NegativeICMPV4Keyword(void)
         0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33,
         0x34, 0x35, 0x36, 0x38};
 
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p2 = PacketGetFromAlloc();
     if (unlikely(p2 == NULL)) {
         SCFree(p1);
         return 0;
@@ -7936,10 +7884,6 @@ int SigTest35NegativeICMPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
-    memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     p1->icmpv4vars.comp_csum = -1;
     p1->ip4h = (IPV4Hdr *)(valid_raw_ipv4);
@@ -8052,10 +7996,10 @@ int SigTest36ICMPV6Keyword(void)
         0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0xf5, 0xed,
         0x08, 0x01};
 
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p2 = PacketGetFromAlloc();
     if (unlikely(p2 == NULL)) {
         SCFree(p1);
         return 0;
@@ -8069,10 +8013,6 @@ int SigTest36ICMPV6Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
-    memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     p1->icmpv6vars.comp_csum = -1;
     p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -8182,10 +8122,10 @@ int SigTest37NegativeICMPV6Keyword(void)
         0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0xf5, 0xed,
         0x08, 0x01};
 
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p2 = PacketGetFromAlloc();
     if (unlikely(p2 == NULL)) {
         SCFree(p1);
         return 0;
@@ -8199,10 +8139,6 @@ int SigTest37NegativeICMPV6Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
-    memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     p1->icmpv6vars.comp_csum = -1;
     p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -8276,7 +8212,7 @@ end:
 
 int SigTest38Real(int mpm_type)
 {
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
     ThreadVars th_v;
@@ -8317,8 +8253,6 @@ int SigTest38Real(int mpm_type)
     uint16_t buflen = sizeof(buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
 
     /* Copy raw data into packet */
     if (PacketCopyData(p1, raw_eth, ethlen) == -1) {
@@ -8419,7 +8353,7 @@ static int SigTest38Wm (void) {
 
 int SigTest39Real(int mpm_type)
 {
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
     ThreadVars th_v;
@@ -8460,8 +8394,6 @@ int SigTest39Real(int mpm_type)
     uint16_t buflen = sizeof(buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
 
     /* Copy raw data into packet */
     if (PacketCopyData(p1, raw_eth, ethlen) == -1) {
@@ -8608,7 +8540,7 @@ int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type) {
 	,0x65,0x72,0x65,0x3c,0x2f,0x41,0x3e,0x2e,0x0d,0x0a,0x3c,0x2f,0x42,0x4f,0x44,0x59
 	,0x3e,0x3c,0x2f,0x48,0x54,0x4d,0x4c,0x3e,0x0d,0x0a };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     DecodeThreadVars dtv;
@@ -8616,8 +8548,6 @@ int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
 
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
@@ -8726,7 +8656,7 @@ int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type) {
 	,0x65,0x72,0x65,0x3c,0x2f,0x41,0x3e,0x2e,0x0d,0x0a,0x3c,0x2f,0x42,0x4f,0x44,0x59
 	,0x3e,0x3c,0x2f,0x48,0x54,0x4d,0x4c,0x3e,0x0d,0x0a };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     DecodeThreadVars dtv;
@@ -8734,8 +8664,6 @@ int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
 
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
@@ -8846,7 +8774,7 @@ int SigTest40NoPacketInspection01(void) {
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     TCPHdr tcphdr;
     if (unlikely(p == NULL))
     return 0;
@@ -8857,8 +8785,6 @@ int SigTest40NoPacketInspection01(void) {
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&pq, 0, sizeof(pq));
     memset(&f, 0, sizeof(f));
     memset(&tcphdr, 0, sizeof(tcphdr));
@@ -8922,7 +8848,7 @@ int SigTest40NoPayloadInspection02(void) {
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
     return 0;
     ThreadVars th_v;
@@ -8930,8 +8856,6 @@ int SigTest40NoPayloadInspection02(void) {
     int result = 1;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload = buf;
@@ -8984,7 +8908,7 @@ static int SigTestMemory01 (void) {
                     "Host: two.example.org\r\n"
                     "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars th_v;
@@ -8992,8 +8916,6 @@ static int SigTestMemory01 (void) {
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload = buf;
@@ -9454,14 +9376,12 @@ end:
 static int SigTestSgh03 (void) {
     ThreadVars th_v;
     int result = 0;
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload_len = 1;
@@ -9626,14 +9546,12 @@ end:
 static int SigTestSgh04 (void) {
     ThreadVars th_v;
     int result = 0;
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload_len = 1;
@@ -9819,14 +9737,12 @@ end:
 static int SigTestSgh05 (void) {
     ThreadVars th_v;
     int result = 0;
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload_len = 1;
@@ -10369,11 +10285,9 @@ static int SigTestWithinReal01 (int mpm_type) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* packet 1 */
-    p1 = SCMalloc(SIZE_OF_PACKET);
+    p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
-    memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     DecodeEthernet(&th_v, &dtv, p1, rawpkt1, sizeof(rawpkt1), NULL);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     if (!(PacketAlertCheck(p1, 556))) {
@@ -10382,11 +10296,9 @@ static int SigTestWithinReal01 (int mpm_type) {
     }
 
     /* packet 2 */
-    p2 = SCMalloc(SIZE_OF_PACKET);
+    p2 = PacketGetFromAlloc();
     if (unlikely(p2 == NULL))
         return 0;
-    memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
     DecodeEthernet(&th_v, &dtv, p2, rawpkt2, sizeof(rawpkt2), NULL);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
     if (!(PacketAlertCheck(p2, 556))) {
@@ -10395,11 +10307,9 @@ static int SigTestWithinReal01 (int mpm_type) {
     }
 
     /* packet 3 */
-    p3 = SCMalloc(SIZE_OF_PACKET);
+    p3 = PacketGetFromAlloc();
     if (unlikely(p3 == NULL))
         return 0;
-    memset(p3, 0, SIZE_OF_PACKET);
-    p3->pkt = (uint8_t *)(p3 + 1);
     DecodeEthernet(&th_v, &dtv, p3, rawpkt3, sizeof(rawpkt3), NULL);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
     if (!(PacketAlertCheck(p3, 556))) {
@@ -10408,11 +10318,9 @@ static int SigTestWithinReal01 (int mpm_type) {
     }
 
     /* packet 4 */
-    p4 = SCMalloc(SIZE_OF_PACKET);
+    p4 = PacketGetFromAlloc();
     if (unlikely(p4 == NULL))
         return 0;
-    memset(p4, 0, SIZE_OF_PACKET);
-    p4->pkt = (uint8_t *)(p4 + 1);
     DecodeEthernet(&th_v, &dtv, p4, rawpkt4, sizeof(rawpkt4), NULL);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p4);
     if (!(PacketAlertCheck(p4, 556))) {

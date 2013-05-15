@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -566,7 +566,7 @@ static int FlagsTestParse02 (void) {
  *  \retval 0 on failure
  */
 static int FlagsTestParse03 (void) {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -577,8 +577,6 @@ static int FlagsTestParse03 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -621,7 +619,7 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse04 (void) {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -632,8 +630,6 @@ static int FlagsTestParse04 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -676,7 +672,7 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse05 (void) {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -687,8 +683,6 @@ static int FlagsTestParse05 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -731,7 +725,7 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse06 (void) {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -742,8 +736,6 @@ static int FlagsTestParse06 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -786,7 +778,7 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse07 (void) {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -797,8 +789,6 @@ static int FlagsTestParse07 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -841,7 +831,7 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse08 (void) {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -852,8 +842,6 @@ static int FlagsTestParse08 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -896,7 +884,7 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse09 (void) {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -907,8 +895,6 @@ static int FlagsTestParse09 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -951,7 +937,7 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse10 (void) {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -962,8 +948,6 @@ static int FlagsTestParse10 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -1006,7 +990,7 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse11 (void) {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -1017,8 +1001,6 @@ static int FlagsTestParse11 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -1061,7 +1043,7 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse12 (void) {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -1072,8 +1054,6 @@ static int FlagsTestParse12 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -1147,7 +1127,7 @@ static int FlagsTestParse14(void)
 
 static int FlagsTestParse15(void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -1158,8 +1138,6 @@ static int FlagsTestParse15(void)
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -1201,7 +1179,7 @@ error:
 
 static int FlagsTestParse16(void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -1212,8 +1190,6 @@ static int FlagsTestParse16(void)
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -1258,7 +1234,7 @@ error:
  */
 static int FlagsTestParse17(void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -1269,8 +1245,6 @@ static int FlagsTestParse17(void)
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 

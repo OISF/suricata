@@ -8858,7 +8858,7 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 static int StreamTcpTest37(void) {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     Flow f;
@@ -8870,9 +8870,6 @@ static int StreamTcpTest37(void) {
     int ret = 0;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
-
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset (&f, 0, sizeof(Flow));
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
@@ -8999,11 +8996,9 @@ static int StreamTcpTest38 (void) {
     memset(&tcph, 0, sizeof (TCPHdr));
     memset(&pq,0,sizeof(PacketQueue));
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
 
     p->flow = &f;
     tcph.th_win = htons(5480);
@@ -9115,11 +9110,9 @@ static int StreamTcpTest39 (void) {
     memset(&tcph, 0, sizeof (TCPHdr));
     memset(&pq,0,sizeof(PacketQueue));
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
 
     p->flow = &f;
     tcph.th_win = htons(5480);
@@ -9333,13 +9326,11 @@ static int StreamTcpTest42 (void) {
     StreamTcpThread stt;
     TCPHdr tcph;
     PacketQueue pq;
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     TcpSession *ssn;
 
     if (unlikely(p == NULL))
         return 0;
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
 
     memset(&pq,0,sizeof(PacketQueue));
     memset (&f, 0, sizeof(Flow));
@@ -9423,13 +9414,11 @@ static int StreamTcpTest43 (void) {
     StreamTcpThread stt;
     TCPHdr tcph;
     PacketQueue pq;
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     TcpSession *ssn;
 
     if (unlikely(p == NULL))
         return 0;
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
 
     memset(&pq,0,sizeof(PacketQueue));
     memset (&f, 0, sizeof(Flow));
@@ -9513,13 +9502,11 @@ static int StreamTcpTest44 (void) {
     StreamTcpThread stt;
     TCPHdr tcph;
     PacketQueue pq;
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     TcpSession *ssn;
 
     if (unlikely(p == NULL))
         return 0;
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
 
     memset(&pq,0,sizeof(PacketQueue));
     memset (&f, 0, sizeof(Flow));
@@ -9598,13 +9585,11 @@ static int StreamTcpTest45 (void) {
     StreamTcpThread stt;
     TCPHdr tcph;
     PacketQueue pq;
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     TcpSession *ssn;
 
     if (unlikely(p == NULL))
         return 0;
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
 
     memset(&pq,0,sizeof(PacketQueue));
     memset (&f, 0, sizeof(Flow));

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -387,9 +387,9 @@ static int DetectStreamSizeParseTest03 (void) {
     TcpSession ssn;
     ThreadVars tv;
     DetectEngineThreadCtx dtx;
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
-    return 0;
+        return 0;
     Signature s;
     SigMatch sm;
     TcpStream client;
@@ -399,8 +399,6 @@ static int DetectStreamSizeParseTest03 (void) {
     memset(&ssn, 0, sizeof(TcpSession));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtx, 0, sizeof(DetectEngineThreadCtx));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&s, 0, sizeof(Signature));
     memset(&sm, 0, sizeof(SigMatch));
     memset(&client, 0, sizeof(TcpStream));
@@ -464,9 +462,9 @@ static int DetectStreamSizeParseTest04 (void) {
     TcpSession ssn;
     ThreadVars tv;
     DetectEngineThreadCtx dtx;
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
-    return 0;
+        return 0;
     Signature s;
     SigMatch sm;
     TcpStream client;
@@ -476,8 +474,6 @@ static int DetectStreamSizeParseTest04 (void) {
     memset(&ssn, 0, sizeof(TcpSession));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtx, 0, sizeof(DetectEngineThreadCtx));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&s, 0, sizeof(Signature));
     memset(&sm, 0, sizeof(SigMatch));
     memset(&client, 0, sizeof(TcpStream));

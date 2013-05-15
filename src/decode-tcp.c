@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -301,7 +301,7 @@ static int TCPGetWscaleTest01(void)
                                 0x8a, 0xaf, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
                                 0x04, 0x02, 0x08, 0x0a, 0x00, 0x62, 0x88, 0x28,
                                 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x02};
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     IPV4Hdr ip4h;
@@ -309,8 +309,6 @@ static int TCPGetWscaleTest01(void)
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
@@ -349,7 +347,7 @@ static int TCPGetWscaleTest02(void)
                                 0x8a, 0xaf, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
                                 0x04, 0x02, 0x08, 0x0a, 0x00, 0x62, 0x88, 0x28,
                                 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x0f};
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     IPV4Hdr ip4h;
@@ -357,8 +355,6 @@ static int TCPGetWscaleTest02(void)
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
@@ -395,7 +391,7 @@ static int TCPGetWscaleTest03(void)
                                 0xdd, 0xa3, 0x6f, 0xf8, 0x80, 0x10, 0x05, 0xb4,
                                 0x7c, 0x70, 0x00, 0x00, 0x01, 0x01, 0x08, 0x0a,
                                 0x00, 0x62, 0x88, 0x9e, 0x00, 0x00, 0x00, 0x00};
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     IPV4Hdr ip4h;
@@ -403,8 +399,6 @@ static int TCPGetWscaleTest03(void)
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
@@ -445,7 +439,7 @@ static int TCPGetSackTest01(void)
     static uint8_t raw_tcp_sack[] = {
         0xf1, 0x59, 0x13, 0xfc, 0xf1, 0x59, 0x1f, 0x64,
         0xf1, 0x59, 0x08, 0x94, 0xf1, 0x59, 0x0e, 0x48 };
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     IPV4Hdr ip4h;
@@ -453,8 +447,6 @@ static int TCPGetSackTest01(void)
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 

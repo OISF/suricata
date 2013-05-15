@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -8868,11 +8868,9 @@ static int DetectIPProtoTestSig2(void)
         0x4a, 0xea, 0x7a, 0x8e,
     };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
 
     DecodeThreadVars dtv;
     ThreadVars th_v;
@@ -8956,10 +8954,8 @@ static int DetectIPProtoTestSig3(void)
     };
 
     Packet *p = UTHBuildPacket((uint8_t *)"boom", 4, IPPROTO_TCP);
-    //Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         return 0;
-    //memset(p, 0, SIZE_OF_PACKET);
 
     DecodeThreadVars dtv;
     ThreadVars th_v;

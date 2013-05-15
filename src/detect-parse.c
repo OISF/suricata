@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -2712,7 +2712,7 @@ int SigTestBidirec04 (void) {
         0x6b,0x65,0x65,0x70,0x2d,0x61,0x6c,0x69,
         0x76,0x65,0x0d,0x0a,0x0d,0x0a }; /* end rawpkt1_ether */
 
-    p = SCMalloc(SIZE_OF_PACKET);
+    p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     DecodeThreadVars dtv;
@@ -2720,8 +2720,6 @@ int SigTestBidirec04 (void) {
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
 
     FlowInitConfig(FLOW_QUIET);
     DecodeEthernet(&th_v, &dtv, p, rawpkt1_ether, sizeof(rawpkt1_ether), NULL);
