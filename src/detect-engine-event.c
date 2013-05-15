@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -341,7 +341,7 @@ int EngineEventTestParse05 (void) {
  * \test EngineEventTestParse06 is a test for match function with valid decode-event value
  */
 int EngineEventTestParse06 (void) {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
@@ -349,10 +349,7 @@ int EngineEventTestParse06 (void) {
     DetectEngineEventData *de = NULL;
     SigMatch *sm = NULL;
 
-
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
 
     ENGINE_SET_EVENT(p,PPP_PKT_TOO_SMALL);
 

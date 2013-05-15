@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1323,7 +1323,7 @@ int DetectFlowintTestPacket01Real()
         sizeof(pkt11)
     };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     DecodeThreadVars dtv;
@@ -1364,7 +1364,7 @@ int DetectFlowintTestPacket01Real()
     int i;
     for (i = 0;i < 11;i++) {
         memset(p, 0, SIZE_OF_PACKET);
-        p->pkt = (uint8_t *)(p + 1);
+        PACKET_INITIALIZE(p);
         DecodeEthernet(&th_v, &dtv, p, pkts[i], pktssizes[i], NULL);
 
         SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -1657,7 +1657,7 @@ int DetectFlowintTestPacket02Real()
         sizeof(pkt11)
     };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     DecodeThreadVars dtv;
@@ -1700,7 +1700,7 @@ int DetectFlowintTestPacket02Real()
     /* Decode the packets, and test the matches*/
     for (i = 0;i < 11;i++) {
         memset(p, 0, SIZE_OF_PACKET);
-        p->pkt = (uint8_t *)(p + 1);
+        PACKET_INITIALIZE(p);
         DecodeEthernet(&th_v, &dtv, p, pkts[i], pktssizes[i], NULL);
 
         SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -1995,7 +1995,7 @@ int DetectFlowintTestPacket03Real()
         sizeof(pkt11)
     };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     DecodeThreadVars dtv;
@@ -2032,7 +2032,7 @@ int DetectFlowintTestPacket03Real()
     /* Decode the packets, and test the matches*/
     for (i = 0;i < 11;i++) {
         memset(p, 0, SIZE_OF_PACKET);
-        p->pkt = (uint8_t *)(p + 1);
+        PACKET_INITIALIZE(p);
         DecodeEthernet(&th_v, &dtv, p, pkts[i], pktssizes[i], NULL);
 
         SigMatchSignatures(&th_v, de_ctx, det_ctx, p);

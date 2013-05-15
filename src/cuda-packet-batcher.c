@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010 Open Information Security Foundation.
+ * Copyright (c) 2013 Open Information Security Foundation.
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  *
@@ -1148,9 +1148,9 @@ int SCCudaPBTest01(void)
     int result = 0;
     SCCudaPBThreadCtx *tctx = NULL;
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
-    return 0;
+        return 0;
     DecodeThreadVars dtv;
     ThreadVars tv;
     ThreadVars tv_cuda_PB;
@@ -1194,8 +1194,6 @@ int SCCudaPBTest01(void)
     packets_buffer_len += packets_offset_buffer[(sizeof(strings)/sizeof(char *)) - 1] +
         sizeof(SCCudaPBPacketDataForGPUNonPayload) + strlen(strings[(sizeof(strings)/sizeof(char *)) - 1]);
 
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&tv_cuda_PB, 0, sizeof(ThreadVars));
@@ -1414,7 +1412,7 @@ int SCCudaPBTest02(void)
     const char *string = NULL;
     SCCudaPBThreadCtx *tctx = NULL;
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     DecodeThreadVars dtv;
@@ -1425,9 +1423,6 @@ int SCCudaPBTest02(void)
     SCCudaPBPacketsBuffer *pb = NULL;
     SCDQDataQueue *dq = NULL;
 
-
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&tv_cuda_PB, 0, sizeof(ThreadVars));
