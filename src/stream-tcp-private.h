@@ -25,6 +25,8 @@
 #define __STREAM_TCP_PRIVATE_H__
 
 #include "decode.h"
+#include "util-pool.h"
+#include "util-pool-thread.h"
 
 #define STREAMTCP_QUEUE_FLAG_TS     0x01
 #define STREAMTCP_QUEUE_FLAG_WS     0x02
@@ -200,6 +202,7 @@ enum
 }
 
 typedef struct TcpSession_ {
+    PoolThreadReserved res;
     uint8_t state;
     uint8_t queue_len;                      /**< length of queue list below */
     uint16_t flags;
