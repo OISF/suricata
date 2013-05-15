@@ -313,13 +313,18 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
         SCLogDebug("Detecting AL proto on udp mesg (len %" PRIu32 ")",
                     p->payload_len);
 
+        PACKET_PROFILING_APP_PD_START(dp_ctx);
         f->alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx, f,
                         p->payload, p->payload_len, flags, IPPROTO_UDP);
+        PACKET_PROFILING_APP_PD_END(dp_ctx);
+
         if (f->alproto != ALPROTO_UNKNOWN) {
             f->flags |= FLOW_ALPROTO_DETECT_DONE;
 
+            PACKET_PROFILING_APP_START(dp_ctx, f->alproto);
             r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags,
                               p->payload, p->payload_len);
+            PACKET_PROFILING_APP_END(dp_ctx, f->alproto);
         } else {
             f->flags |= FLOW_ALPROTO_DETECT_DONE;
             SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
@@ -331,8 +336,10 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
         /* if we don't have a data object here we are not getting it
          * a start msg should have gotten us one */
         if (f->alproto != ALPROTO_UNKNOWN) {
+            PACKET_PROFILING_APP_START(dp_ctx, f->alproto);
             r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags,
                               p->payload, p->payload_len);
+            PACKET_PROFILING_APP_END(dp_ctx, f->alproto);
         } else {
             SCLogDebug("udp session has started, but failed to detect alproto "
                        "for l7");
@@ -340,6 +347,7 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
     }
 
     FLOWLOCK_UNLOCK(f);
+    PACKET_PROFILING_APP_STORE(dp_ctx, p);
     SCReturnInt(r);
 }
 

@@ -35,5 +35,9 @@ typedef struct DetectFlowvarData_ {
 /* prototypes */
 void DetectFlowvarRegister (void);
 
+int DetectFlowvarPostMatchSetup(Signature *s, uint16_t idx);
+int DetectFlowvarStoreMatch(DetectEngineThreadCtx *, uint16_t, uint8_t *, uint16_t);
+void DetectFlowvarCleanupList(DetectEngineThreadCtx *det_ctx);
+
 #endif /* __DETECT_FLOWVAR_H__ */
 

@@ -26,6 +26,22 @@
 
 #include "decode.h"
 
+#define STREAMTCP_QUEUE_FLAG_TS     0x01
+#define STREAMTCP_QUEUE_FLAG_WS     0x02
+#define STREAMTCP_QUEUE_FLAG_SACK   0x04
+
+/** currently only SYN/ACK */
+typedef struct TcpStateQueue_ {
+    uint8_t flags;
+    uint8_t wscale;
+    uint16_t win;
+    uint32_t seq;
+    uint32_t ack;
+    uint32_t ts;
+    uint32_t pkt_ts;
+    struct TcpStateQueue_ *next;
+} TcpStateQueue;
+
 typedef struct StreamTcpSackRecord_ {
     uint32_t le;    /**< left edge, host order */
     uint32_t re;    /**< right edge, host order */
@@ -99,8 +115,9 @@ enum
 #define STREAMTCP_FLAG_TIMESTAMP                    0x0008
 /** Server supports wscale (even though it can be 0) */
 #define STREAMTCP_FLAG_SERVER_WSCALE                0x0010
-/** Flag to indicate the zero value of timestamp */
-#define STREAMTCP_FLAG_ZERO_TIMESTAMP               0x0020
+
+/** vacancy at 0x0020 */
+
 /** Flag to indicate that the session is handling asynchronous stream.*/
 #define STREAMTCP_FLAG_ASYNC                        0x0040
 /** Flag to indicate we're dealing with 4WHS: SYN, SYN, SYN/ACK, ACK
@@ -133,12 +150,18 @@ enum
 #define STREAMTCP_STREAM_FLAG_GAP               0x01
 /** Flag to avoid stream reassembly/app layer inspection for the stream */
 #define STREAMTCP_STREAM_FLAG_NOREASSEMBLY      0x02
-/** Flag to pause stream reassembly / app layer inspection for the stream.*/
-#define STREAMTCP_STREAM_FLAG_PAUSE_REASSEMBLY  0x04
+
+/** vacancy at 0x04 */
+
 /** Stream has reached it's reassembly depth, all further packets are ignored */
 #define STREAMTCP_STREAM_FLAG_DEPTH_REACHED     0x08
 /** Stream has sent a FIN/RST */
 #define STREAMTCP_STREAM_FLAG_CLOSE_INITIATED   0x10
+/** Stream supports TIMESTAMP -- used to set ssn STREAMTCP_FLAG_TIMESTAMP
+ *  flag. */
+#define STREAMTCP_STREAM_FLAG_TIMESTAMP         0x20
+/** Flag to indicate the zero value of timestamp */
+#define STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP    0x40
 
 /*
  * Per SEGMENT flags
@@ -179,6 +202,7 @@ enum
 
 typedef struct TcpSession_ {
     uint8_t state;
+    uint8_t queue_len;                      /**< length of queue list below */
     uint16_t flags;
     TcpStream server;
     TcpStream client;
@@ -186,6 +210,8 @@ typedef struct TcpSession_ {
     struct StreamMsg_ *toserver_smsg_tail;  /**< list of stream msgs (for detection inspection) */
     struct StreamMsg_ *toclient_smsg_head;  /**< list of stream msgs (for detection inspection) */
     struct StreamMsg_ *toclient_smsg_tail;  /**< list of stream msgs (for detection inspection) */
+
+    TcpStateQueue *queue;                   /**< list of SYN/ACK candidates */
 } TcpSession;
 
 #endif /* __STREAM_TCP_PRIVATE_H__ */

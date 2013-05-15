@@ -2377,6 +2377,156 @@ end:
     return result;
 }
 
+/**
+ * \brief Creates a dummy threshold file, with all valid options, for testing purposes.
+ *
+ * \retval fd Pointer to file descriptor.
+ */
+static FILE *SCThresholdConfGenerateInvalidDummyFD12()
+{
+    FILE *fd = NULL;
+    const char *buffer =
+        "suppress gen_id 1, sig_id 2200029, track by_dst, ip fe80::/16\n"
+        "suppress gen_id 1, sig_id 2200029, track by_stc, ip fe80::/16\n";
+
+    fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
+    if (fd == NULL)
+        SCLogDebug("Error with SCFmemopen() called by Threshold Config test code");
+
+    return fd;
+}
+
+/**
+ * \test Check if the suppress rule parsing handles errors correctly
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+static int SCThresholdConfTest18(void)
+{
+    Signature *s = NULL;
+    int result = 0;
+    FILE *fd = NULL;
+    SigMatch *sm = NULL;
+    DetectThresholdData *de = NULL;
+
+    HostInitConfig(HOST_QUIET);
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        return result;
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.0.10 any -> 192.168.0.100 any (msg:\"suppress test\"; gid:1; sid:2200029;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    fd = SCThresholdConfGenerateInvalidDummyFD12();
+    SCThresholdConfInitContext(de_ctx,fd);
+    SigGroupBuild(de_ctx);
+
+    if (s->sm_lists[DETECT_SM_LIST_THRESHOLD] == NULL) {
+        printf("no thresholds: ");
+        goto end;
+    }
+    sm = s->sm_lists[DETECT_SM_LIST_THRESHOLD];
+    if (sm == NULL) {
+        printf("no sm: ");
+        goto end;
+    }
+
+    de = (DetectThresholdData *)sm->ctx;
+    if (de == NULL) {
+        printf("no de: ");
+        goto end;
+    }
+    if (!(de->type == TYPE_SUPPRESS && de->track == TRACK_DST)) {
+        printf("de state wrong: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    DetectEngineCtxFree(de_ctx);
+    HostShutdown();
+    return result;
+}
+
+/**
+ * \brief Creates a dummy threshold file, with all valid options, for testing purposes.
+ *
+ * \retval fd Pointer to file descriptor.
+ */
+static FILE *SCThresholdConfGenerateInvalidDummyFD13()
+{
+    FILE *fd = NULL;
+    const char *buffer =
+        "suppress gen_id 1, sig_id 2200029, track by_stc, ip fe80::/16\n"
+        "suppress gen_id 1, sig_id 2200029, track by_dst, ip fe80::/16\n";
+
+    fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
+    if (fd == NULL)
+        SCLogDebug("Error with SCFmemopen() called by Threshold Config test code");
+
+    return fd;
+}
+
+/**
+ * \test Check if the suppress rule parsing handles errors correctly
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+static int SCThresholdConfTest19(void)
+{
+    Signature *s = NULL;
+    int result = 0;
+    FILE *fd = NULL;
+    SigMatch *sm = NULL;
+    DetectThresholdData *de = NULL;
+
+    HostInitConfig(HOST_QUIET);
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        return result;
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.0.10 any -> 192.168.0.100 any (msg:\"suppress test\"; gid:1; sid:2200029;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    fd = SCThresholdConfGenerateInvalidDummyFD13();
+    SCThresholdConfInitContext(de_ctx,fd);
+    SigGroupBuild(de_ctx);
+
+    if (s->sm_lists[DETECT_SM_LIST_THRESHOLD] == NULL) {
+        printf("no thresholds: ");
+        goto end;
+    }
+    sm = s->sm_lists[DETECT_SM_LIST_THRESHOLD];
+    if (sm == NULL) {
+        printf("no sm: ");
+        goto end;
+    }
+
+    de = (DetectThresholdData *)sm->ctx;
+    if (de == NULL) {
+        printf("no de: ");
+        goto end;
+    }
+    if (!(de->type == TYPE_SUPPRESS && de->track == TRACK_DST)) {
+        printf("de state wrong: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    DetectEngineCtxFree(de_ctx);
+    HostShutdown();
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -2402,6 +2552,9 @@ void SCThresholdConfRegisterTests(void)
     UtRegisterTest("SCThresholdConfTest15 - suppress drop", SCThresholdConfTest15, 1);
     UtRegisterTest("SCThresholdConfTest16 - suppress drop", SCThresholdConfTest16, 1);
     UtRegisterTest("SCThresholdConfTest17 - suppress drop", SCThresholdConfTest17, 1);
+
+    UtRegisterTest("SCThresholdConfTest18 - suppress parsing", SCThresholdConfTest18, 1);
+    UtRegisterTest("SCThresholdConfTest19 - suppress parsing", SCThresholdConfTest19, 1);
 #endif /* UNITTESTS */
 }
 

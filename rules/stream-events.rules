@@ -10,6 +10,8 @@ alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYNACK resend 
 alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYNACK resend with different seq"; stream-event:3whs_synack_resend_with_diff_seq; sid:2210005; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYNACK to server on SYN recv"; stream-event:3whs_synack_toserver_on_syn_recv; sid:2210006; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYNACK with wrong ack"; stream-event:3whs_synack_with_wrong_ack; sid:2210007; rev:1;)
+# Excessive SYN/ACKs within a session. Limit is set in stream engine, "stream.max-synack-queued".
+alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake excessive different SYN/ACKs"; stream-event:3whs_synack_flood; sid:2210055; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYN resend different seq on SYN recv"; stream-event:3whs_syn_resend_diff_seq_on_syn_recv; sid:2210008; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYN to client on SYN recv"; stream-event:3whs_syn_toclient_on_syn_recv; sid:2210009; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake wrong seq wrong ack"; stream-event:3whs_wrong_seq_wrong_ack; sid:2210010; rev:1;)
@@ -77,5 +79,5 @@ alert tcp any any -> any any (msg:"SURICATA STREAM Packet is retransmission"; st
 # rule to alert if a stream has excessive retransmissions
 alert tcp any any -> any any (msg:"SURICATA STREAM excessive retransmissions"; flowbits:isnotset,tcp.retransmission.alerted; flowint:tcp.retransmission.count,>=,10; flowbits:set,tcp.retransmission.alerted; classtype:protocol-command-decode; sid:2210054; rev:1;)
 
-# next sid 2210055
+# next sid 2210056
 

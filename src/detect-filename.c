@@ -151,7 +151,7 @@ static DetectFilenameData *DetectFilenameParse (char *str)
 
     memset(filename, 0x00, sizeof(DetectFilenameData));
 
-    if (DetectParseContentString (str, &filename->name, &filename->len, &filename->flags) == -1) {
+    if (DetectContentDataParse ("filename", str, &filename->name, &filename->len, &filename->flags) == -1) {
         goto error;
     }
 
@@ -259,7 +259,7 @@ static void DetectFilenameFree(void *ptr) {
  * \test DetectFilenameTestParse01
  */
 int DetectFilenameTestParse01 (void) {
-    DetectFilenameData *dnd = DetectFilenameParse("secret.pdf");
+    DetectFilenameData *dnd = DetectFilenameParse("\"secret.pdf\"");
     if (dnd != NULL) {
         DetectFilenameFree(dnd);
         return 1;
@@ -291,7 +291,7 @@ int DetectFilenameTestParse02 (void) {
 int DetectFilenameTestParse03 (void) {
     int result = 0;
 
-    DetectFilenameData *dnd = DetectFilenameParse("cmd.exe");
+    DetectFilenameData *dnd = DetectFilenameParse("\"cmd.exe\"");
     if (dnd != NULL) {
         if (dnd->len == 7 && memcmp(dnd->name, "cmd.exe", 7) == 0) {
             result = 1;

@@ -66,7 +66,19 @@ uint32_t DetectContentMaxId(DetectEngineCtx *de_ctx) {
     return MpmPatternIdStoreGetMaxId(de_ctx->mpm_pattern_id_store);
 }
 
-int DetectContentDataParse(char *keyword, char *contentstr, char** pstr, uint16_t *plen, int *flags)
+/**
+ *  \brief Parse a content string, ie "abc|DE|fgh"
+ *
+ *  \param content_str null terminated string containing the content
+ *  \param result result pointer to pass the fully parsed byte array
+ *  \param result_len size of the resulted data
+ *  \param flags flags to be set by this parsing function
+ *
+ *  \retval -1 error
+ *  \retval 0 ok
+ */
+int DetectContentDataParse(const char *keyword, const char *contentstr,
+        uint8_t **pstr, uint16_t *plen, uint32_t *flags)
 {
     char *str = NULL;
     uint16_t len;
@@ -108,10 +120,6 @@ int DetectContentDataParse(char *keyword, char *contentstr, char** pstr, uint16_
         goto error;
 
     SCLogDebug("\"%s\", len %" PRIu32 "", str, len);
-
-    len = strlen(str);
-    if (len == 0)
-        goto error;
 
     //SCLogDebug("DetectContentParse: \"%s\", len %" PRIu32 "", str, len);
     char converted = 0;
@@ -198,7 +206,7 @@ int DetectContentDataParse(char *keyword, char *contentstr, char** pstr, uint16_
     }
 
     *plen = len;
-    *pstr = str;
+    *pstr = (uint8_t *)str;
     return 0;
 
 error:
@@ -213,12 +221,12 @@ error:
 DetectContentData *DetectContentParse (char *contentstr)
 {
     DetectContentData *cd = NULL;
-    char *str = NULL;
-    uint16_t len;
-    int flags;
+    uint8_t *content = NULL;
+    uint16_t len = 0;
+    uint32_t flags = 0;
     int ret;
 
-    ret = DetectContentDataParse("content", contentstr, &str, &len, &flags);
+    ret = DetectContentDataParse("content", contentstr, &content, &len, &flags);
     if (ret == -1) {
         return NULL;
     }
@@ -232,7 +240,7 @@ DetectContentData *DetectContentParse (char *contentstr)
 
     cd = SCMalloc(sizeof(DetectContentData) + len);
     if (unlikely(cd == NULL)) {
-        SCFree(str);
+        SCFree(content);
         exit(EXIT_FAILURE);
     }
 
@@ -242,7 +250,7 @@ DetectContentData *DetectContentParse (char *contentstr)
         cd->flags |= DETECT_CONTENT_NEGATED;
 
     cd->content = (uint8_t *)cd + sizeof(DetectContentData);
-    memcpy(cd->content, str, len);
+    memcpy(cd->content, content, len);
     cd->content_len = len;
 
     /* Prepare Boyer Moore context for searching faster */
@@ -252,7 +260,7 @@ DetectContentData *DetectContentParse (char *contentstr)
     cd->within = 0;
     cd->distance = 0;
 
-    SCFree(str);
+    SCFree(content);
     return cd;
 
 }

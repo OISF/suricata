@@ -734,8 +734,10 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         aun->length = 0;
         aun->offset = 0;
 
-        ret = Unified2PacketTypeAlert(aun, p, phdr->event_id,
-                pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_STREAM_MATCH) ? 1 : 0);
+        /* stream flag based on state match, but only for TCP */
+        int stream = (gphdr.protocol == IPPROTO_TCP) ?
+            (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_STREAM_MATCH) ? 1 : 0) : 0;
+        ret = Unified2PacketTypeAlert(aun, p, phdr->event_id, stream);
         if (ret != 1) {
             SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
             aun->file_ctx->alerts += i;
@@ -875,8 +877,9 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
         /* Write the alert (it doesn't lock inside, since we
          * already locked here for rotation check)
          */
-        ret = Unified2PacketTypeAlert(aun, p, event_id,
-                pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_STREAM_MATCH) ? 1 : 0);
+        int stream = (gphdr.protocol == IPPROTO_TCP) ?
+            (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_STREAM_MATCH) ? 1 : 0) : 0;
+        ret = Unified2PacketTypeAlert(aun, p, event_id, stream);
         if (ret != 1) {
             aun->file_ctx->alerts += i;
             SCMutexUnlock(&aun->file_ctx->fp_mutex);

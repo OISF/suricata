@@ -146,7 +146,7 @@ static DetectFileextData *DetectFileextParse (char *str)
 
     memset(fileext, 0x00, sizeof(DetectFileextData));
 
-    if (DetectParseContentString (str, &fileext->ext, &fileext->len, &fileext->flags) == -1) {
+    if (DetectContentDataParse("fileext", str, &fileext->ext, &fileext->len, &fileext->flags) == -1) {
         goto error;
     }
 
@@ -246,7 +246,7 @@ static void DetectFileextFree(void *ptr) {
  * \test DetectFileextTestParse01
  */
 int DetectFileextTestParse01 (void) {
-    DetectFileextData *dfd = DetectFileextParse("doc");
+    DetectFileextData *dfd = DetectFileextParse("\"doc\"");
     if (dfd != NULL) {
         DetectFileextFree(dfd);
         return 1;

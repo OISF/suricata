@@ -154,50 +154,6 @@ void DetectUricontentPrint(DetectContentData *cd)
 }
 
 /**
- * \brief   Setup the detecturicontent keyword data from the string defined in
- *          the rule set.
- * \param   contentstr  Pointer to the string which has been defined in the rule
- */
-DetectContentData *DoDetectUricontentSetup(char *contentstr)
-{
-    DetectContentData *cd = NULL;
-    char *str = NULL;
-    uint16_t len;
-    int flags;
-    int ret;
-
-    ret = DetectContentDataParse("uricontent", contentstr, &str, &len, &flags);
-    if (ret == -1) {
-        return NULL;
-    }
-
-    cd = SCMalloc(sizeof(DetectContentData) + len);
-    if (unlikely(cd == NULL)) {
-        SCFree(str);
-        exit(EXIT_FAILURE);
-    }
-
-    memset(cd, 0, sizeof(DetectContentData) + len);
-
-    if (flags == DETECT_CONTENT_NEGATED)
-        cd->flags |= DETECT_CONTENT_NEGATED;
-
-    cd->content = (uint8_t *)cd + sizeof(DetectContentData);
-    memcpy(cd->content, str, len);
-    cd->content_len = len;
-
-    /* Prepare Boyer Moore context for searching faster */
-    cd->bm_ctx = BoyerMooreCtxInit(cd->content, cd->content_len);
-    cd->depth = 0;
-    cd->offset = 0;
-    cd->within = 0;
-    cd->distance = 0;
-
-    SCFree(str);
-    return cd;
-}
-
-/**
  * \brief Creates a SigMatch for the uricontent keyword being sent as argument,
  *        and appends it to the Signature(s).
  *

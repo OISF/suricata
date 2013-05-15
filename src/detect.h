@@ -413,6 +413,11 @@ typedef struct Signature_ {
 
     /** classification id **/
     uint8_t class;
+
+#ifdef PROFILING
+    uint16_t profiling_id;
+#endif
+
     uint32_t gid; /**< generator id */
 
     /** netblocks and hosts specified at the sid, in CIDR format */
@@ -422,26 +427,19 @@ typedef struct Signature_ {
 
     int prio;
 
-    char *msg;
-
-    /** classification message */
-    char *class_msg;
-
-    /** Reference */
-    DetectReference *references;
-
-    /* Be careful, this pointer is only valid while parsing the sig,
-     * to warn the user about any possible problem */
-    char *sig_str;
-
-#ifdef PROFILING
-    uint16_t profiling_id;
-#endif
-
     /* holds all sm lists */
     struct SigMatch_ *sm_lists[DETECT_SM_LIST_MAX];
     /* holds all sm lists' tails */
     struct SigMatch_ *sm_lists_tail[DETECT_SM_LIST_MAX];
+
+    SigMatch *filestore_sm;
+
+    char *msg;
+
+    /** classification message */
+    char *class_msg;
+    /** Reference */
+    DetectReference *references;
 
     /** address settings for this signature */
     DetectAddressHead src, dst;
@@ -450,15 +448,17 @@ typedef struct Signature_ {
     uint32_t init_flags;
     /** number of sigmatches in the match and pmatch list */
     uint16_t sm_cnt;
-
+    /* used at init to determine max dsize */
     SigMatch *dsize_sm;
-    SigMatch *filestore_sm;
     /* the fast pattern added from this signature */
     SigMatch *mpm_sm;
     /* helper for init phase */
     uint16_t mpm_content_maxlen;
     uint16_t mpm_uricontent_maxlen;
 
+    /* Be careful, this pointer is only valid while parsing the sig,
+     * to warn the user about any possible problem */
+    char *sig_str;
 
     /** ptr to the next sig in the list */
     struct Signature_ *next;
@@ -469,6 +469,16 @@ typedef struct DetectReplaceList_ {
     uint8_t *found;
     struct DetectReplaceList_ *next;
 } DetectReplaceList;
+
+/** list for flowvar store candidates, to be stored from
+ *  post-match function */
+typedef struct DetectFlowvarList_ {
+    uint16_t idx;                       /**< flowvar name idx */
+    uint16_t len;                       /**< data len */
+    uint8_t *buffer;                    /**< alloc'd buffer, may be freed by
+                                             post-match, post-non-match */
+    struct DetectFlowvarList_ *next;
+} DetectFlowvarList;
 
 typedef struct DetectEngineIPOnlyThreadCtx_ {
     uint8_t *sig_match_array; /* bit array of sig nums */
@@ -734,6 +744,8 @@ typedef struct HttpReassembledBody_ {
 } HttpReassembledBody;
 
 #define DETECT_FILESTORE_MAX 15
+/** \todo review how many we actually need here */
+#define DETECT_SMSG_PMQ_NUM 256
 
 /**
   * Detection engine thread data.
@@ -805,7 +817,7 @@ typedef struct DetectionEngineThreadCtx_ {
     MpmThreadCtx mtcu;  /**< thread ctx for uricontent mpm */
     MpmThreadCtx mtcs;  /**< thread ctx for stream mpm */
     PatternMatcherQueue pmq;
-    PatternMatcherQueue smsg_pmq[256];
+    PatternMatcherQueue smsg_pmq[DETECT_SMSG_PMQ_NUM];
 
     /** ip only rules ctx */
     DetectEngineIPOnlyThreadCtx io_ctx;
@@ -815,6 +827,8 @@ typedef struct DetectionEngineThreadCtx_ {
 
     /* string to replace */
     DetectReplaceList *replist;
+    /* flowvars to store in post match function */
+    DetectFlowvarList *flowvarlist;
 
     /* Array in which the filestore keyword stores file id and tx id. If the
      * full signature matches, these are processed by a post-match filestore
@@ -1037,6 +1051,7 @@ enum {
     DETECT_RPC,
     DETECT_DSIZE,
     DETECT_FLOWVAR,
+    DETECT_FLOWVAR_POSTMATCH,
     DETECT_FLOWINT,
     DETECT_PKTVAR,
     DETECT_NOALERT,
