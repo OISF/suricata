@@ -393,9 +393,7 @@ static TmEcode LogTlsLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQ
         LogTlsLogPem(aft, p, ssl_state, hlog, ipproto);
     }
 
-    int r = AppLayerTransactionGetLoggedId(p->flow);
-
-    if (r != 0) {
+    if (AppLayerTransactionGetLogId(p->flow) != 0) {
         goto end;
     }
 
@@ -416,7 +414,7 @@ static TmEcode LogTlsLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQ
                          timebuf, srcip, sp, dstip, dp,
                          ssl_state->server_connp.cert0_subject, ssl_state->server_connp.cert0_issuerdn);
 
-    AppLayerTransactionUpdateLoggedId(p->flow);
+    AppLayerTransactionUpdateLogId(p->flow);
 
     if (hlog->flags & LOG_TLS_EXTENDED) {
         LogTlsLogExtended(aft, ssl_state);

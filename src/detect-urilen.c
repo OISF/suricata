@@ -48,8 +48,6 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 /*prototypes*/
-int DetectUrilenMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
-                       uint8_t flags, void *state, Signature *s, SigMatch *m);
 static int DetectUrilenSetup (DetectEngineCtx *, Signature *, char *);
 void DetectUrilenFree (void *);
 void DetectUrilenRegisterTests (void);
@@ -93,72 +91,6 @@ error:
     if (parse_regex != NULL) SCFree(parse_regex);
     if (parse_regex_study != NULL) SCFree(parse_regex_study);
     return;
-}
-
-/**
- * \brief   This function is used to match urilen rule option with the HTTP
- *          uricontent.
- *
- * \param t pointer to thread vars
- * \param det_ctx pointer to the pattern matcher thread
- * \param p pointer to the current packet
- * \param m pointer to the sigmatch that we will cast into DetectUrilenData
- *
- * \retval 0 no match
- * \retval 1 match
- */
-int DetectUrilenMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
-                       uint8_t flags, void *state, Signature *s, SigMatch *m)
-{
-    SCEnter();
-    int ret = 0;
-    int idx = 0;
-    DetectUrilenData *urilend = (DetectUrilenData *) m->ctx;
-
-    HtpState *htp_state = (HtpState *)state;
-    if (htp_state == NULL) {
-        SCLogDebug("no HTP state, no need to match further");
-        SCReturnInt(ret);
-    }
-
-    FLOWLOCK_RDLOCK(f);
-    htp_tx_t *tx = NULL;
-
-    idx = AppLayerTransactionGetInspectId(f);
-    if (idx == -1) {
-        goto end;
-    }
-
-    int size = (int)list_size(htp_state->connp->conn->transactions);
-    for (; idx < size; idx++)
-    {
-        tx = list_get(htp_state->connp->conn->transactions, idx);
-        if (tx == NULL || tx->request_uri_normalized == NULL)
-            goto end;
-
-        switch (urilend->mode) {
-            case DETECT_URILEN_EQ:
-                if (bstr_len(tx->request_uri_normalized) == urilend->urilen1)
-                    ret = 1;
-                break;
-            case DETECT_URILEN_LT:
-                if (bstr_len(tx->request_uri_normalized) < urilend->urilen1)
-                    ret = 1;
-                break;
-            case DETECT_URILEN_GT:
-                if (bstr_len(tx->request_uri_normalized) > urilend->urilen1)
-                    ret = 1;
-                break;
-            case DETECT_URILEN_RA:
-                if (bstr_len(tx->request_uri_normalized) > urilend->urilen1 &&
-                        bstr_len(tx->request_uri_normalized) < urilend->urilen2)
-                    ret = 1;
-                break;
-        }
-    }
-end:
-    FLOWLOCK_UNLOCK(f);
-    SCReturnInt(ret);
 }
 
 /**
