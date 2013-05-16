@@ -120,7 +120,7 @@ static uint8_t *DetectEngineHHDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
         index = (tx_id - det_ctx->hhd_start_tx_id);
     }
 
-    table_t *headers;
+    htp_table_t *headers;
     if (flags & STREAM_TOSERVER) {
         headers = tx->request_headers;
     } else {

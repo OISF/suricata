@@ -270,7 +270,7 @@ void HTPStateFree(void *state)
         uint64_t tx_id;
         uint64_t total_txs = HTPStateGetTxCnt(state);
         /* free the list of body chunks */
-        if (s->connp->conn != NULL) {
+        if (s->conn != NULL) {
             for (tx_id = 0; tx_id < total_txs; tx_id++) {
                 htp_tx_t *tx = HTPStateGetTx(s, tx_id);
                 if (tx != NULL) {
@@ -473,16 +473,16 @@ static int HTPHandleErrorGetId(const char *msg) {
  *  \param s state
  */
 static void HTPHandleError(HtpState *s) {
-    if (s == NULL || s->connp == NULL || s->connp->conn == NULL ||
-        s->connp->conn->messages == NULL) {
+    if (s == NULL || s->conn == NULL ||
+        s->conn->messages == NULL) {
         return;
     }
 
-    size_t size = list_size(s->connp->conn->messages);
+    size_t size = htp_list_size(s->conn->messages);
     size_t msg;
 
     for (msg = 0; msg < size; msg++) {
-        htp_log_t *log = list_get(s->connp->conn->messages, msg);
+        htp_log_t *log = htp_list_get(s->conn->messages, msg);
         if (log == NULL)
             continue;
 
@@ -511,16 +511,16 @@ static void HTPHandleError(HtpState *s) {
  *  \param s state
  */
 static void HTPHandleWarning(HtpState *s) {
-    if (s == NULL || s->connp == NULL || s->connp->conn == NULL ||
-        s->connp->conn->messages == NULL) {
+    if (s == NULL || s->conn == NULL ||
+        s->conn->messages == NULL) {
         return;
     }
 
-    size_t size = list_size(s->connp->conn->messages);
+    size_t size = htp_list_size(s->conn->messages);
     size_t msg;
 
     for (msg = 0; msg < size; msg++) {
-        htp_log_t *log = list_get(s->connp->conn->messages, msg);
+        htp_log_t *log = htp_list_get(s->conn->messages, msg);
         if (log == NULL)
             continue;
 
@@ -544,7 +544,7 @@ static void HTPHandleWarning(HtpState *s) {
  *  \param  input_len   Length in bytes of the received data
  *  \param  output      Pointer to the output (not used in this function)
  *
- *  \retval On success returns 1 or on failure returns -1
+ *  \retval On success returns 1 or on failure returns -1.
  */
 static int HTPHandleRequestData(Flow *f, void *htp_state,
                                 AppLayerParserState *pstate,
@@ -565,7 +565,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
      * be used by HTP library.  This is looked up via IP in the radix
      * tree.  Failing that, the default HTP config is used.
      */
-    if (NULL == hstate->connp ) {
+    if (NULL == hstate->conn) {
         HTPCfgRec *htp_cfg_rec = &cfglist;
         htp_cfg_t *htp = cfglist.cfg; /* Default to the global HTP config */
         SCRadixNode *cfgnode = NULL;
@@ -604,6 +604,8 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             goto error;
         }
 
+        hstate->conn = htp_connp_get_connection(hstate->connp);
+
         htp_connp_set_user_data(hstate->connp, (void *)hstate);
         hstate->cfg = htp_cfg_rec;
 
@@ -612,14 +614,6 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
 
     /* the code block above should make sure connp is never NULL here */
     BUG_ON(hstate->connp == NULL);
-
-    if (hstate->connp->in_status == STREAM_STATE_ERROR) {
-        SCLogError(SC_ERR_ALPARSER, "Inbound parser is in error state, no"
-                " need to feed data to libhtp");
-        SCReturnInt(-1);
-    } else if (hstate->connp->in_status == STREAM_STATE_TUNNEL) {
-        SCReturnInt(0);
-    }
 
     /* Unset the body inspection (the callback should
      * reactivate it if necessary) */
@@ -640,7 +634,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
     r = htp_connp_req_data(hstate->connp, &ts, input, input_len);
 
     switch(r) {
-        case STREAM_STATE_ERROR:
+        case HTP_STREAM_ERROR:
             HTPHandleError(hstate);
 
             hstate->flags |= HTP_FLAG_STATE_ERROR;
@@ -648,11 +642,13 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
             ret = -1;
             break;
-        case STREAM_STATE_DATA:
-        case STREAM_STATE_DATA_OTHER:
+        case HTP_STREAM_DATA:
+        case HTP_STREAM_DATA_OTHER:
             HTPHandleWarning(hstate);
 
             hstate->flags |= HTP_FLAG_STATE_DATA;
+            break;
+        case HTP_STREAM_TUNNEL:
             break;
         default:
             HTPHandleWarning(hstate);
@@ -663,11 +659,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
     /* if the TCP connection is closed, then close the HTTP connection */
     if ((pstate->flags & APP_LAYER_PARSER_EOF) &&
         !(hstate->flags & HTP_FLAG_STATE_CLOSED_TS)) {
-        hstate->connp->in_status = STREAM_STATE_CLOSED;
-        // Call the parsers one last time, which will allow them
-        // to process the events that depend on stream closure
-        htp_time_t ts = { f->lastts_sec, 0 };
-        htp_connp_req_data(hstate->connp, &ts, NULL, 0);
+        htp_connp_close(hstate->connp, &ts);
         hstate->flags |= HTP_FLAG_STATE_CLOSED_TS;
         SCLogDebug("stream eof encountered, closing htp handle for ts");
     }
@@ -709,14 +701,6 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
         SCReturnInt(-1);
     }
 
-    if (hstate->connp->out_status == STREAM_STATE_ERROR) {
-        SCLogError(SC_ERR_ALPARSER, "Outbound parser is in error state, no"
-                " need to feed data to libhtp");
-        SCReturnInt(-1);
-    } else if (hstate->connp->out_status == STREAM_STATE_TUNNEL) {
-        SCReturnInt(0);
-    }
-
     /* Unset the body inspection (the callback should
      * reactivate it if necessary) */
     hstate->flags &=~ HTP_FLAG_NEW_BODY_SET;
@@ -724,7 +708,7 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
     htp_time_t ts = { f->lastts_sec, 0 };
     r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
     switch(r) {
-        case STREAM_STATE_ERROR:
+        case HTP_STREAM_ERROR:
             HTPHandleError(hstate);
 
             hstate->flags = HTP_FLAG_STATE_ERROR;
@@ -732,10 +716,12 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
             hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
             ret = -1;
             break;
-        case STREAM_STATE_DATA:
-        case STREAM_STATE_DATA_OTHER:
+        case HTP_STREAM_DATA:
+        case HTP_STREAM_DATA_OTHER:
             HTPHandleWarning(hstate);
             hstate->flags |= HTP_FLAG_STATE_DATA;
+            break;
+        case HTP_STREAM_TUNNEL:
             break;
         default:
             HTPHandleWarning(hstate);
@@ -746,11 +732,7 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
     /* if we the TCP connection is closed, then close the HTTP connection */
     if ((pstate->flags & APP_LAYER_PARSER_EOF) &&
         !(hstate->flags & HTP_FLAG_STATE_CLOSED_TC)) {
-        hstate->connp->out_status = STREAM_STATE_CLOSED;
-        // Call the parsers one last time, which will allow them
-        // to process the events that depend on stream closure
-        htp_time_t ts = { f->lastts_sec, 0 };
-        htp_connp_res_data(hstate->connp, &ts, NULL, 0);
+        htp_connp_close(hstate->connp, &ts);
         hstate->flags |= HTP_FLAG_STATE_CLOSED_TC;
     }
 
@@ -766,31 +748,31 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
  *
  *  \param c HTP connection pointer
  *
- *  \retval HOOK_OK we won't fail
+ *  \retval HTP_OK we won't fail
  *
  *  This functionality requires the uri normalize hook introduced in libhtp
  *  version 0.2.5.
  */
-static int HTPCallbackRequestUriNormalizeQuery(htp_connp_t *c)
+static int HTPCallbackRequestUriNormalizeQuery(htp_tx_t *tx)
 {
     SCEnter();
 
-    if (c == NULL || c->in_tx == NULL || c->in_tx->parsed_uri == NULL)
+    if (tx->parsed_uri == NULL)
     {
-        SCReturnInt(HOOK_OK);
+        SCReturnInt(HTP_OK);
     }
 
     /* uri normalize the query string as well */
-    if (c->in_tx->parsed_uri->query != NULL) {
+    if (tx->parsed_uri->query != NULL) {
 #ifdef HAVE_HTP_DECODE_QUERY_INPLACE
-        htp_decode_query_inplace(c->cfg, c->in_tx,
-                c->in_tx->parsed_uri->query);
+        htp_decode_query_inplace(tx->cfg, tx,
+                                 tx->parsed_uri->query);
 #else
-        htp_decode_path_inplace(c->cfg, c->in_tx,
-                c->in_tx->parsed_uri->query);
+        //htp_decode_path_inplace(tx->cfg, tx,
+        //                        tx->parsed_uri->query);
 #endif /* HAVE_HTP_DECODE_QUERY_INPLACE */
     }
-    SCReturnInt(HOOK_OK);
+    SCReturnInt(HTP_OK);
 }
 
 /**
@@ -799,39 +781,39 @@ static int HTPCallbackRequestUriNormalizeQuery(htp_connp_t *c)
  *
  *  \param c HTP connection pointer
  *
- *  \retval HOOK_OK we won't fail
+ *  \retval HTP_OK we won't fail
  *
  *  This functionality requires the uri normalize hook introduced in libhtp
  *  version 0.2.5.
  */
-static int HTPCallbackRequestUriNormalizePath(htp_connp_t *c)
+static int HTPCallbackRequestUriNormalizePath(htp_tx_t *tx)
 {
     SCEnter();
 
-    if (c == NULL || c->in_tx == NULL || c->in_tx->parsed_uri == NULL)
+    if (tx->parsed_uri == NULL)
     {
-        SCReturnInt(HOOK_OK);
+        SCReturnInt(HTP_OK);
     }
 
     /* uri normalize the path string  */
-    if (c->in_tx->parsed_uri->path != NULL) {
-        htp_decode_path_inplace(c->cfg, c->in_tx,
-                c->in_tx->parsed_uri->path);
+    if (tx->parsed_uri->path != NULL) {
+        //htp_decode_path_inplace(tx->cfg, tx,
+        //                        tx->parsed_uri->path);
 
         /* Handle UTF-8 in path */
-        if (c->cfg->path_convert_utf8) {
-            /* Decode Unicode characters into a single-byte stream, using best-fit mapping */
-            htp_utf8_decode_path_inplace(c->cfg, c->in_tx, c->in_tx->parsed_uri->path);
-        } else {
-            /* Only validate path as a UTF-8 stream */
-            htp_utf8_validate_path(c->in_tx, c->in_tx->parsed_uri->path);
-        }
+        //if (tx->cfg->path_convert_utf8) {
+        //    /* Decode Unicode characters into a single-byte stream, using best-fit mapping */
+        //    //htp_utf8_decode_path_inplace(tx->cfg, tx, tx->parsed_uri->path);
+        //} else {
+        //    /* Only validate path as a UTF-8 stream */
+        //    //htp_utf8_validate_path(tx, tx->parsed_uri->path);
+        //}
 
         /* normalize after decoding */
-        htp_normalize_uri_path_inplace(c->in_tx->parsed_uri->path);
+        //htp_normalize_uri_path_inplace(tx->parsed_uri->path);
     }
 
-    SCReturnInt(HOOK_OK);
+    SCReturnInt(HTP_OK);
 }
 #endif /* HAVE_HTP_URI_NORMALIZE_HOOK */
 
@@ -1019,11 +1001,11 @@ static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
  *  set the HTP_BOUNDARY_SET in the transaction.
  */
 static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, HtpTxUserData *htud) {
-    htp_header_t *cl = table_getc(d->tx->request_headers, "content-length");
-    if (cl != NULL)
-        htud->request_body.content_len = htp_parse_content_length(cl->value);
+    //htp_header_t *cl = htp_table_get_c(d->tx->request_headers, "content-length");
+    //if (cl != NULL)
+    //    htud->request_body.content_len = htp_parse_content_length(cl->value);
 
-    htp_header_t *h = (htp_header_t *)table_getc(d->tx->request_headers,
+    htp_header_t *h = (htp_header_t *)htp_table_get_c(d->tx->request_headers,
             "Content-Type");
     if (h != NULL && bstr_len(h->value) > 0) {
         uint8_t *boundary = NULL;
@@ -1659,7 +1641,7 @@ int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         size_t filename_len = 0;
 
         /* try Content-Disposition header first */
-        htp_header_t *h = (htp_header_t *)table_getc(tx->response_headers,
+        htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->response_headers,
                 "Content-Disposition");
         if (h != NULL && bstr_len(h->value) > 0) {
             /* parse content-disposition */
@@ -1714,14 +1696,14 @@ end:
 /**
  * \brief Function callback to append chunks for Requests
  * \param d pointer to the htp_tx_data_t structure (a chunk from htp lib)
- * \retval int HOOK_OK if all goes well
+ * \retval int HTP_OK if all goes well
  */
 int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 {
     SCEnter();
 
     if (!(SC_ATOMIC_GET(htp_config_flags) & HTP_REQUIRE_REQUEST_BODY))
-        SCReturnInt(HOOK_OK);
+        SCReturnInt(HTP_OK);
 
 #ifdef PRINT
     printf("HTPBODY START: \n");
@@ -1729,9 +1711,9 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     printf("HTPBODY END: \n");
 #endif
 
-    HtpState *hstate = (HtpState *)d->tx->connp->user_data;
+    HtpState *hstate = htp_connp_get_user_data(d->tx->connp);
     if (hstate == NULL) {
-        SCReturnInt(HOOK_ERROR);
+        SCReturnInt(HTP_ERROR);
     }
 
     SCLogDebug("New request body data available at %p -> %p -> %p, bodylen "
@@ -1741,12 +1723,12 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     if (htud == NULL) {
         htud = SCMalloc(sizeof(HtpTxUserData));
         if (unlikely(htud == NULL)) {
-            SCReturnInt(HOOK_OK);
+            SCReturnInt(HTP_OK);
         }
         memset(htud, 0, sizeof(HtpTxUserData));
         htud->operation = HTP_BODY_REQUEST;
 
-        if (d->tx->request_method_number == M_POST) {
+        if (d->tx->request_method_number == HTP_M_POST) {
             SCLogDebug("POST");
             int r = HtpRequestBodySetupMultipart(d, htud);
             if (r == 1) {
@@ -1755,7 +1737,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                 htud->request_body_type = HTP_BODY_REQUEST_POST;
                 SCLogDebug("not multipart");
             }
-        } else if (d->tx->request_method_number == M_PUT) {
+        } else if (d->tx->request_method_number == HTP_M_PUT) {
             if (HtpRequestBodySetupPUT(d, htud) == 0) {
                 htud->request_body_type = HTP_BODY_REQUEST_PUT;
             }
@@ -1831,24 +1813,24 @@ end:
     /* set the new chunk flag */
     hstate->flags |= HTP_FLAG_NEW_BODY_SET;
 
-    SCReturnInt(HOOK_OK);
+    SCReturnInt(HTP_OK);
 }
 
 /**
  * \brief Function callback to append chunks for Responses
  * \param d pointer to the htp_tx_data_t structure (a chunk from htp lib)
- * \retval int HOOK_OK if all goes well
+ * \retval int HTP_OK if all goes well
  */
 int HTPCallbackResponseBodyData(htp_tx_data_t *d)
 {
     SCEnter();
 
     if (!(SC_ATOMIC_GET(htp_config_flags) & HTP_REQUIRE_RESPONSE_BODY))
-        SCReturnInt(HOOK_OK);
+        SCReturnInt(HTP_OK);
 
-    HtpState *hstate = (HtpState *)d->tx->connp->user_data;
+    HtpState *hstate = htp_connp_get_user_data(d->tx->connp);
     if (hstate == NULL) {
-        SCReturnInt(HOOK_ERROR);
+        SCReturnInt(HTP_ERROR);
     }
 
     SCLogDebug("New response body data available at %p -> %p -> %p, bodylen "
@@ -1858,14 +1840,14 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     if (htud == NULL) {
         htud = SCMalloc(sizeof(HtpTxUserData));
         if (unlikely(htud == NULL)) {
-            SCReturnInt(HOOK_OK);
+            SCReturnInt(HTP_OK);
         }
         memset(htud, 0, sizeof(HtpTxUserData));
         htud->operation = HTP_BODY_RESPONSE;
 
-        htp_header_t *cl = table_getc(d->tx->response_headers, "content-length");
-        if (cl != NULL)
-            htud->response_body.content_len = htp_parse_content_length(cl->value);
+        //htp_header_t *cl = htp_table_get_c(d->tx->response_headers, "content-length");
+        //if (cl != NULL)
+        //    htud->response_body.content_len = htp_parse_content_length(cl->value);
 
         /* Set the user data for handling body chunks on this transaction */
         htp_tx_set_user_data(d->tx, htud);
@@ -1907,7 +1889,7 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     /* set the new chunk flag */
     hstate->flags |= HTP_FLAG_NEW_BODY_SET;
 
-    SCReturnInt(HOOK_OK);
+    SCReturnInt(HTP_OK);
 }
 
 /**
@@ -1949,12 +1931,12 @@ void HTPFreeConfig(void)
  *  \param  connp   pointer to the current connection parser which has the htp
  *                  state in it as user data
  */
-static int HTPCallbackRequest(htp_connp_t *connp) {
+static int HTPCallbackRequest(htp_tx_t *tx) {
     SCEnter();
 
-    HtpState *hstate = (HtpState *)connp->user_data;
+    HtpState *hstate = htp_connp_get_user_data(tx->connp);
     if (hstate == NULL) {
-        SCReturnInt(HOOK_ERROR);
+        SCReturnInt(HTP_ERROR);
     }
 
     SCLogDebug("transaction_cnt %"PRIu64", list_size %"PRIu64,
@@ -1962,8 +1944,8 @@ static int HTPCallbackRequest(htp_connp_t *connp) {
 
     SCLogDebug("HTTP request completed");
 
-    if (connp->in_tx != NULL) {
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(connp->in_tx);
+    if (tx != NULL) {
+        HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
         if (htud != NULL) {
             if (htud->tsflags & HTP_FILENAME_SET) {
                 SCLogDebug("closing file that was being stored");
@@ -1976,7 +1958,7 @@ static int HTPCallbackRequest(htp_connp_t *connp) {
     /* request done, do raw reassembly now to inspect state and stream
      * at the same time. */
     AppLayerTriggerRawStreamReassembly(hstate->f);
-    SCReturnInt(HOOK_OK);
+    SCReturnInt(HTP_OK);
 }
 
 /**
@@ -1985,12 +1967,12 @@ static int HTPCallbackRequest(htp_connp_t *connp) {
  *  \param  connp   pointer to the current connection parser which has the htp
  *                  state in it as user data
  */
-static int HTPCallbackResponse(htp_connp_t *connp) {
+static int HTPCallbackResponse(htp_tx_t *tx) {
     SCEnter();
 
-    HtpState *hstate = (HtpState *)connp->user_data;
+    HtpState *hstate = htp_connp_get_user_data(tx->connp);
     if (hstate == NULL) {
-        SCReturnInt(HOOK_ERROR);
+        SCReturnInt(HTP_ERROR);
     }
 
     /* we have one whole transaction now */
@@ -1999,8 +1981,8 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
     /* Unset the body inspection (if any) */
     hstate->flags &=~ HTP_FLAG_NEW_BODY_SET;
 
-    if (connp->out_tx != NULL) {
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(connp->out_tx);
+    if (tx != NULL) {
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud != NULL) {
             if (htud->tcflags & HTP_FILENAME_SET) {
                 SCLogDebug("closing file that was being stored");
@@ -2015,26 +1997,26 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
     for (idx = 0; idx < hstate->transaction_done; idx++) {
         SCLogDebug("idx %"PRIuMAX, (uintmax_t)idx);
 
-        htp_tx_t *tx = HTPStateGetTx(hstate, idx);
-        if (tx == NULL)
+        htp_tx_t *tx_tmp = HTPStateGetTx(hstate, idx);
+        if (tx_tmp == NULL)
             continue;
 
         /* This will remove obsolete body chunks */
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx_tmp);
         if (htud != NULL) {
             HtpBodyFree(&htud->request_body);
             HtpBodyFree(&htud->response_body);
             SCFree(htud);
-            htp_tx_set_user_data(tx, NULL);
+            htp_tx_set_user_data(tx_tmp, NULL);
         }
 
-        htp_tx_destroy(tx);
+        htp_tx_destroy(tx_tmp);
     }
 
     /* response done, do raw reassembly now to inspect state and stream
      * at the same time. */
     AppLayerTriggerRawStreamReassembly(hstate->f);
-    SCReturnInt(HOOK_OK);
+    SCReturnInt(HTP_OK);
 }
 
 static void HTPConfigSetDefaults(HTPCfgRec *cfg_prec)
@@ -2045,8 +2027,8 @@ static void HTPConfigSetDefaults(HTPCfgRec *cfg_prec)
     cfg_prec->request_inspect_window = HTP_CONFIG_DEFAULT_REQUEST_INSPECT_WINDOW;
     cfg_prec->response_inspect_min_size = HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_MIN_SIZE;
     cfg_prec->response_inspect_window = HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_WINDOW;
-    htp_config_register_request(cfg_prec->cfg, HTPCallbackRequest);
-    htp_config_register_response(cfg_prec->cfg, HTPCallbackResponse);
+    htp_config_register_request_complete(cfg_prec->cfg, HTPCallbackRequest);
+    htp_config_register_response_complete(cfg_prec->cfg, HTPCallbackResponse);
 #ifdef HAVE_HTP_URI_NORMALIZE_HOOK
     htp_config_register_request_uri_normalize(cfg_prec->cfg, HTPCallbackRequestUriNormalizeQuery);
 #endif
@@ -2114,7 +2096,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                 /* The IDS personality by default converts the path (and due to
                  * our query string callback also the query string) to lowercase.
                  * Signatures do not expect this, so override it. */
-                htp_config_set_path_case_insensitive(cfg_prec->cfg, 0);
+                htp_config_set_convert_lowercase(cfg_prec->cfg, HTP_DECODER_URL_PATH, 1);
 #ifdef HAVE_HTP_DECODE_QUERY_INPLACE
                 htp_config_set_query_case_insensitive(cfg_prec->cfg, 0);
 #endif
@@ -2189,116 +2171,125 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             } /* if */
 
         } else if (strcasecmp("path-backslash-separators", p->name) == 0) {
-            if (ConfValIsTrue(p->val))
-                htp_config_set_path_backslash_separators(cfg_prec->cfg, 1);
-            else
-                htp_config_set_path_backslash_separators(cfg_prec->cfg, 0);
+            htp_config_set_backslash_convert_slashes(cfg_prec->cfg,
+                                                     HTP_DECODER_URL_PATH,
+                                                     ConfValIsTrue(p->val));
         } else if (strcasecmp("path-compress-separators", p->name) == 0) {
-            if (ConfValIsTrue(p->val))
-                htp_config_set_path_compress_separators(cfg_prec->cfg, 1);
-            else
-                htp_config_set_path_compress_separators(cfg_prec->cfg, 0);
+            htp_config_set_path_separators_compress(cfg_prec->cfg,
+                                                    HTP_DECODER_URL_PATH,
+                                                    ConfValIsTrue(p->val));
         } else if (strcasecmp("path-control-char-handling", p->name) == 0) {
             if (strcasecmp(p->val, "none") == 0) {
-                htp_config_set_path_control_char_handling(cfg_prec->cfg, NONE);
+                htp_config_set_control_chars_unwanted(cfg_prec->cfg,
+                                                      HTP_DECODER_URL_PATH,
+                                                      HTP_UNWANTED_IGNORE);
             } else if (strcasecmp(p->val, "status_400") == 0) {
-                htp_config_set_path_control_char_handling(cfg_prec->cfg,
-                                                          STATUS_400);
+                htp_config_set_control_chars_unwanted(cfg_prec->cfg,
+                                                      HTP_DECODER_URL_PATH,
+                                                      HTP_UNWANTED_400);
+            } else if (strcasecmp(p->val, "status_404") == 0) {
+                htp_config_set_control_chars_unwanted(cfg_prec->cfg,
+                                                      HTP_DECODER_URL_PATH,
+                                                      HTP_UNWANTED_404);
             } else {
                 SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
                            "for libhtp param path-control-char-handling");
             }
         } else if (strcasecmp("path-convert-utf8", p->name) == 0) {
-            if (ConfValIsTrue(p->val))
-                htp_config_set_path_convert_utf8(cfg_prec->cfg, 1);
-            else
-                htp_config_set_path_convert_utf8(cfg_prec->cfg, 0);
+            htp_config_set_utf8_convert_bestfit(cfg_prec->cfg,
+                                                HTP_DECODER_URL_PATH,
+                                                ConfValIsTrue(p->val));
         } else if (strcasecmp("path-decode-separators", p->name) == 0) {
-            if (ConfValIsTrue(p->val))
-                htp_config_set_path_decode_separators(cfg_prec->cfg, 1);
-            else
-                htp_config_set_path_decode_separators(cfg_prec->cfg, 0);
+            htp_config_set_path_separators_decode(cfg_prec->cfg,
+                                                  HTP_DECODER_URL_PATH,
+                                                  ConfValIsTrue(p->val));
         } else if (strcasecmp("path-decode-u-encoding", p->name) == 0) {
-            if (ConfValIsTrue(p->val))
-                htp_config_set_path_decode_u_encoding(cfg_prec->cfg, 1);
-            else
-                htp_config_set_path_decode_u_encoding(cfg_prec->cfg, 0);
+            htp_config_set_u_encoding_decode(cfg_prec->cfg,
+                                             HTP_DECODER_URL_PATH,
+                                             ConfValIsTrue(p->val));
         } else if (strcasecmp("path-invalid-encoding-handling", p->name) == 0) {
+            enum htp_url_encoding_handling_t handling;
             if (strcasecmp(p->val, "preserve_percent") == 0) {
-                htp_config_set_path_invalid_encoding_handling(cfg_prec->cfg,
-                                                              URL_DECODER_PRESERVE_PERCENT);
+                handling = HTP_URL_DECODE_PRESERVE_PERCENT;
             } else if (strcasecmp(p->val, "remove_percent") == 0) {
-                htp_config_set_path_invalid_encoding_handling(cfg_prec->cfg,
-                                                              URL_DECODER_REMOVE_PERCENT);
+                handling = HTP_URL_DECODE_REMOVE_PERCENT;
             } else if (strcasecmp(p->val, "decode_invalid") == 0) {
-                htp_config_set_path_invalid_encoding_handling(cfg_prec->cfg,
-                                                              URL_DECODER_DECODE_INVALID);
-            } else if (strcasecmp(p->val, "status_400") == 0) {
-                htp_config_set_path_invalid_encoding_handling(cfg_prec->cfg,
-                                                              STATUS_400);
+                handling = HTP_URL_DECODE_PROCESS_INVALID;
             } else {
                 SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
                            "for libhtp param path-invalid-encoding-handling");
+                return;
             }
+            htp_config_set_url_encoding_invalid_handling(cfg_prec->cfg,
+                                                         HTP_DECODER_URL_PATH,
+                                                         handling);
         } else if (strcasecmp("path-invalid-utf8-handling", p->name) == 0) {
             if (strcasecmp(p->val, "none") == 0) {
-                htp_config_set_path_invalid_utf8_handling(cfg_prec->cfg, NONE);
+                htp_config_set_utf8_invalid_unwanted(cfg_prec->cfg,
+                                                     HTP_DECODER_URL_PATH,
+                                                     HTP_UNWANTED_IGNORE);
             } else if (strcasecmp(p->val, "status_400") == 0) {
-                htp_config_set_path_invalid_utf8_handling(cfg_prec->cfg,
-                                                          STATUS_400);
+                htp_config_set_utf8_invalid_unwanted(cfg_prec->cfg,
+                                                     HTP_DECODER_URL_PATH,
+                                                     HTP_UNWANTED_400);
+            } else if (strcasecmp(p->val, "status_404") == 0) {
+                htp_config_set_utf8_invalid_unwanted(cfg_prec->cfg,
+                                                     HTP_DECODER_URL_PATH,
+                                                     HTP_UNWANTED_404);
             } else {
                 SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
                            "for libhtp param path-invalid-utf8-handling");
             }
+        } else if (strcasecmp("path-nul-encoded-terminates", p->name) == 0) {
+            htp_config_set_nul_encoded_terminates(cfg_prec->cfg,
+                                                  HTP_DECODER_URL_PATH,
+                                                  ConfValIsTrue(p->val));
         } else if (strcasecmp("path-nul-encoded-handling", p->name) == 0) {
-            if (strcasecmp(p->val, "terminate") == 0) {
-                htp_config_set_path_nul_encoded_handling(cfg_prec->cfg,
-                                                         TERMINATE);
+            if (strcasecmp(p->val, "none") == 0) {
+                htp_config_set_nul_encoded_unwanted(cfg_prec->cfg,
+                                                    HTP_DECODER_URL_PATH,
+                                                    HTP_UNWANTED_IGNORE);
             } else if (strcasecmp(p->val, "status_400") == 0) {
-                htp_config_set_path_nul_encoded_handling(cfg_prec->cfg,
-                                                         STATUS_400);
+                htp_config_set_nul_encoded_unwanted(cfg_prec->cfg,
+                                                    HTP_DECODER_URL_PATH,
+                                                    HTP_UNWANTED_400);
             } else if (strcasecmp(p->val, "status_404") == 0) {
-                htp_config_set_path_nul_encoded_handling(cfg_prec->cfg,
-                                                         STATUS_404);
+                htp_config_set_nul_encoded_unwanted(cfg_prec->cfg,
+                                                    HTP_DECODER_URL_PATH,
+                                                    HTP_UNWANTED_404);
             } else {
                 SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
                            "for libhtp param path-nul-encoded-handling");
             }
+        } else if (strcasecmp("path-nul-raw-terminates", p->name) == 0) {
+            htp_config_set_nul_raw_terminates(cfg_prec->cfg,
+                                              HTP_DECODER_URL_PATH,
+                                              ConfValIsTrue(p->val));
         } else if (strcasecmp("path-nul-raw-handling", p->name) == 0) {
-            if (strcasecmp(p->val, "terminate") == 0) {
-                htp_config_set_path_nul_raw_handling(cfg_prec->cfg,
-                                                     TERMINATE);
+            if (strcasecmp(p->val, "none") == 0) {
+                htp_config_set_nul_raw_unwanted(cfg_prec->cfg,
+                                                HTP_DECODER_URL_PATH,
+                                                HTP_UNWANTED_IGNORE);
             } else if (strcasecmp(p->val, "status_400") == 0) {
-                htp_config_set_path_nul_raw_handling(cfg_prec->cfg,
-                                                     STATUS_400);
+                htp_config_set_nul_raw_unwanted(cfg_prec->cfg,
+                                                HTP_DECODER_URL_PATH,
+                                                HTP_UNWANTED_400);
             } else if (strcasecmp(p->val, "status_404") == 0) {
-                htp_config_set_path_nul_raw_handling(cfg_prec->cfg,
-                                                     STATUS_404);
+                htp_config_set_nul_raw_unwanted(cfg_prec->cfg,
+                                                HTP_DECODER_URL_PATH,
+                                                HTP_UNWANTED_404);
             } else {
                 SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
                            "for libhtp param path-nul-raw-handling");
             }
         } else if (strcasecmp("path-replacement-char", p->name) == 0) {
             if (strlen(p->val) == 1) {
-                htp_config_set_path_replacement_char(cfg_prec->cfg,
-                                                     p->val[0]);
+                htp_config_set_bestfit_replacement_byte(cfg_prec->cfg,
+                                                        HTP_DECODER_URL_PATH,
+                                                        p->val[0]);
             } else {
                 SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
                            "for libhtp param set-path-replacement-char");
-            }
-        } else if (strcasecmp("path-unicode-mapping", p->name) == 0) {
-            if (strcasecmp(p->val, "bestfit") == 0) {
-                htp_config_set_path_unicode_mapping(cfg_prec->cfg,
-                                                    BESTFIT);
-            } else if (strcasecmp(p->val, "status_400") == 0) {
-                htp_config_set_path_unicode_mapping(cfg_prec->cfg,
-                                                    STATUS_400);
-            } else if (strcasecmp(p->val, "status_404") == 0) {
-                htp_config_set_path_unicode_mapping(cfg_prec->cfg,
-                                                    STATUS_404);
-            } else {
-                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
-                           "for libhtp param set-path-unicode-mapping");
             }
         } else {
             SCLogWarning(SC_ERR_UNKNOWN_VALUE, "LIBHTP Ignoring unknown "
@@ -2404,17 +2395,17 @@ static int HTPStateGetAlstateProgress(void *tx, uint8_t direction)
 
 static uint64_t HTPStateGetTxCnt(void *alstate)
 {
-    return (uint64_t)list_size(((htp_tx_t *)alstate)->connp->conn->transactions);
+    return (uint64_t)htp_list_size(((htp_tx_t *)alstate)->conn->transactions);
 }
 
 static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
 {
-    return list_get(((htp_tx_t *)alstate)->connp->conn->transactions, tx_id);
+    return htp_list_get(((htp_tx_t *)alstate)->conn->transactions, tx_id);
 }
 
 static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction)
 {
-    return (direction == 0) ? TX_PROGRESS_WAIT : TX_PROGRESS_DONE;
+    return (direction == 0) ? HTP_REQUEST_COMPLETE : HTP_RESPONSE_COMPLETE;
 }
 
 static void HTPStateTruncate(void *state, uint8_t flags) {

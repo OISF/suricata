@@ -143,7 +143,7 @@ int DetectEngineInspectHttpHRH(ThreadVars *tv,
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
  end:
-    if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_REQ_HEADERS)
+    if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > HTP_REQUEST_HEADERS)
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     else
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;

@@ -157,7 +157,7 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
      * when they come */
     if (htud->request_body.content_len == 0) {
         if ((htud->request_body.content_len_so_far > 0) &&
-            tx->progress[0] != TX_PROGRESS_REQ_BODY) {
+            tx->request_progress != HTP_REQUEST_BODY) {
             /* final length of the body */
             htud->tsflags |= HTP_REQ_BODY_COMPLETE;
         }

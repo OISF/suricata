@@ -137,10 +137,10 @@ int DetectEngineInspectHttpRawHeader(ThreadVars *tv,
 
  end:
     if (flags & STREAM_TOSERVER) {
-        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_REQ_HEADERS)
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > HTP_REQUEST_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     } else {
-        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 1) > TX_PROGRESS_RES_HEADERS)
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 1) > HTP_RESPONSE_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     }
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;

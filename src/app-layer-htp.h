@@ -158,13 +158,13 @@ typedef struct HtpBody_ {
     HtpBodyChunk *last;  /**< Pointer to the last chunk */
 
     /* Holds the length of the htp request body */
-    uint64_t content_len;
+    int64_t content_len;
     /* Holds the length of the htp request body seen so far */
-    uint64_t content_len_so_far;
+    int64_t content_len_so_far;
     /* parser tracker */
     uint64_t body_parsed;
     /* inspection tracker */
-    uint64_t body_inspected;
+    int64_t body_inspected;
 } HtpBody;
 
 #define HTP_REQ_BODY_COMPLETE   0x01    /**< body is complete or limit is reached,
@@ -211,8 +211,10 @@ typedef struct HtpTxUserData_ {
 
 typedef struct HtpState_ {
 
-    htp_connp_t *connp;     /**< Connection parser structure for
-                                 each connection */
+    /* Connection parser structure for each connection */
+    htp_connp_t *connp;
+    /* Connection structure for each connection */
+    htp_conn_t *conn;
     Flow *f;                /**< Needed to retrieve the original flow when usin HTPLib callbacks */
     uint64_t transaction_cnt;
     uint64_t transaction_done;
