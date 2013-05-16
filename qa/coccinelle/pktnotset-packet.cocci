@@ -14,7 +14,11 @@ position zeroed.p1;
 
 memset(p@p1, 0, ...);
 ... when != p
+(
 p->pkt
+|
+PACKET_INITIALIZE(p)
+)
 
 @script:python depends on !isset@
 p1 << zeroed.p1;
