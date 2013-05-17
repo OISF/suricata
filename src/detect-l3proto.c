@@ -1,4 +1,4 @@
-/* Copyright (C) 2012 Open Information Security Foundation
+/* Copyright (C) 2012-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -132,9 +132,9 @@ error:
 
 static int DetectL3protoTestSig1(void) {
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
-    return 0;
+        return 0;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
@@ -142,8 +142,6 @@ static int DetectL3protoTestSig1(void) {
     IPV4Hdr ip4h;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
 
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
@@ -217,9 +215,9 @@ end:
 
 static int DetectL3protoTestSig2(void) {
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
-    return 0;
+        return 0;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
@@ -227,8 +225,6 @@ static int DetectL3protoTestSig2(void) {
     IPV6Hdr ip6h;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
 
     p->src.family = AF_INET6;
     p->dst.family = AF_INET6;
@@ -301,9 +297,9 @@ end:
 
 static int DetectL3protoTestSig3(void) {
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
-    return 0;
+        return 0;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
@@ -311,8 +307,6 @@ static int DetectL3protoTestSig3(void) {
     IPV6Hdr ip6h;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
 
     p->src.family = AF_INET6;
     p->dst.family = AF_INET6;
