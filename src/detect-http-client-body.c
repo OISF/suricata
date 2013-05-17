@@ -1316,7 +1316,7 @@ static int DetectHttpClientBodyTest14(void) {
         goto end;
     }
 
-    if (list_size(htp_state->connp->conn->transactions) != 2) {
+    if (AppLayerGetTxCnt(ALPROTO_HTTP, htp_state) != 2) {
         printf("The http app layer doesn't have 2 transactions, but it should: ");
         goto end;
     }
@@ -1510,13 +1510,13 @@ static int DetectHttpClientBodyTest15(void) {
     }
 
     /* hardcoded check of the transactions and it's client body chunks */
-    if (list_size(htp_state->connp->conn->transactions) != 2) {
+    if (AppLayerGetTxCnt(ALPROTO_HTTP, htp_state) != 2) {
         printf("The http app layer doesn't have 2 transactions, but it should: ");
         goto end;
     }
 
-    htp_tx_t *t1 = list_get(htp_state->connp->conn->transactions, 0);
-    htp_tx_t *t2 = list_get(htp_state->connp->conn->transactions, 1);
+    htp_tx_t *t1 = AppLayerGetTx(ALPROTO_HTTP, htp_state, 0);
+    htp_tx_t *t2 = AppLayerGetTx(ALPROTO_HTTP, htp_state, 1);
 
     HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(t1);
 

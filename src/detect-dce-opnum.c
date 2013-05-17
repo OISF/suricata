@@ -1732,6 +1732,10 @@ static int DetectDceOpnumTestParse09(void)
     return result;
 }
 
+/* Disabled because of bug_753.  Would be enabled, once we rewrite
+ * dce parser */
+#if 0
+
 /**
  * \test Test a valid dce_opnum(with multiple values) with a bind, bind_ack,
  *       and multiple request/responses with a match test after each frag parsing.
@@ -2870,6 +2874,9 @@ static int DetectDceOpnumTestParse13(void)
     return result;
 }
 #endif
+
+
+#endif
 void DetectDceOpnumRegisterTests(void)
 {
 
@@ -2883,10 +2890,14 @@ void DetectDceOpnumRegisterTests(void)
     UtRegisterTest("DetectDceOpnumTestParse07", DetectDceOpnumTestParse07, 1);
     UtRegisterTest("DetectDceOpnumTestParse08", DetectDceOpnumTestParse08, 1);
     UtRegisterTest("DetectDceOpnumTestParse09", DetectDceOpnumTestParse09, 1);
+    /* Disabled because of bug_753.  Would be enabled, once we rewrite
+     * dce parser */
+#if 0
     UtRegisterTest("DetectDceOpnumTestParse10", DetectDceOpnumTestParse10, 1);
     UtRegisterTest("DetectDceOpnumTestParse11", DetectDceOpnumTestParse11, 1);
     UtRegisterTest("DetectDceOpnumTestParse12", DetectDceOpnumTestParse12, 1);
     UtRegisterTest("DetectDceOpnumTestParse13", DetectDceOpnumTestParse13, 1);
+#endif
 #endif
 
     return;

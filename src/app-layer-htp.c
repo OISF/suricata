@@ -147,6 +147,11 @@ SCEnumCharMap http_decoder_event_table[ ] = {
     { NULL,                      -1 },
 };
 
+static void *HTPStateGetTx(void *alstate, uint64_t tx_id);
+static int HTPStateGetAlstateProgress(void *tx, uint8_t direction);
+static uint64_t HTPStateGetTxCnt(void *alstate);
+static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction);
+
 #ifdef DEBUG
 /**
  * \internal
@@ -257,11 +262,12 @@ void HTPStateFree(void *state)
     if (s->connp != NULL) {
         SCLogDebug("freeing HTP state");
 
-        size_t i;
+        uint64_t tx_id;
+        uint64_t total_txs = HTPStateGetTxCnt(state);
         /* free the list of body chunks */
         if (s->connp->conn != NULL) {
-            for (i = 0; i < list_size(s->connp->conn->transactions); i++) {
-                htp_tx_t *tx = (htp_tx_t *)list_get(s->connp->conn->transactions, i);
+            for (tx_id = 0; tx_id < total_txs; tx_id++) {
+                htp_tx_t *tx = HTPStateGetTx(s, tx_id);
                 if (tx != NULL) {
                     HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
                     if (htud != NULL) {
@@ -287,29 +293,6 @@ void HTPStateFree(void *state)
     SCLogDebug("htp memory %"PRIu64" (%"PRIu64")", htp_state_memuse, htp_state_memcnt);
     SCMutexUnlock(&htp_state_mem_lock);
 #endif
-
-    SCReturn;
-}
-
-/**
- *  \brief Update the transaction id based on the http state
- */
-void HTPStateUpdateTransactionId(void *state, uint16_t *id) {
-    SCEnter();
-
-    HtpState *s = (HtpState *)state;
-
-    SCLogDebug("original id %"PRIu16", s->transaction_cnt %"PRIu16,
-            *id, (s->transaction_cnt));
-
-    if ((s->transaction_cnt) > (*id)) {
-        SCLogDebug("original id %"PRIu16", updating with s->transaction_cnt %"PRIu16,
-                *id, (s->transaction_cnt));
-
-        (*id) = (s->transaction_cnt);
-
-        SCLogDebug("updated id %"PRIu16, *id);
-    }
 
     SCReturn;
 }
@@ -764,43 +747,6 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
 
     SCLogDebug("hstate->connp %p", hstate->connp);
     SCReturnInt(ret);
-}
-
-/**
- * \brief get the highest loggable transaction id
- */
-int HtpTransactionGetLoggableId(Flow *f)
-{
-    SCEnter();
-
-    AppLayerParserStateStore *parser_state_store =
-        (AppLayerParserStateStore *)f->alparser;
-
-    if (parser_state_store == NULL) {
-        SCLogDebug("no state store");
-        goto error;
-    }
-
-    int id = 0;
-
-    HtpState *http_state = f->alstate;
-    if (http_state == NULL || http_state->connp == NULL ||
-            http_state->connp->conn == NULL) {
-        SCLogDebug("no (void) http state");
-        goto error;
-    }
-
-    if (parser_state_store->id_flags & APP_LAYER_TRANSACTION_EOF) {
-        SCLogDebug("eof, return current transaction as well");
-        id = (int)(list_size(http_state->connp->conn->transactions));
-    } else {
-        id = (int)(parser_state_store->avail_id - 1);
-    }
-
-    SCReturnInt(id);
-
-error:
-    SCReturnInt(-1);
 }
 
 #ifdef HAVE_HTP_URI_NORMALIZE_HOOK
@@ -2002,9 +1948,8 @@ static int HTPCallbackRequest(htp_connp_t *connp) {
         SCReturnInt(HOOK_ERROR);
     }
 
-    SCLogDebug("transaction_cnt %"PRIu16", list_size %"PRIuMAX,
-               hstate->transaction_cnt,
-               (uintmax_t)list_size(hstate->connp->conn->transactions));
+    SCLogDebug("transaction_cnt %"PRIu64", list_size %"PRIu64,
+               hstate->transaction_cnt, HTPStateGetTxCnt(hstate));
 
     SCLogDebug("HTTP request completed");
 
@@ -2057,11 +2002,11 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
     }
 
     /* remove obsolete transactions */
-    size_t idx;
+    uint64_t idx;
     for (idx = 0; idx < hstate->transaction_done; idx++) {
         SCLogDebug("idx %"PRIuMAX, (uintmax_t)idx);
 
-        htp_tx_t *tx = list_get(hstate->connp->conn->transactions, idx);
+        htp_tx_t *tx = HTPStateGetTx(hstate, idx);
         if (tx == NULL)
             continue;
 
@@ -2440,6 +2385,26 @@ static FileContainer *HTPStateGetFiles(void *state, uint8_t direction) {
     }
 }
 
+static int HTPStateGetAlstateProgress(void *tx, uint8_t direction)
+{
+    return ((htp_tx_t *)tx)->progress[direction];
+}
+
+static uint64_t HTPStateGetTxCnt(void *alstate)
+{
+    return (uint64_t)list_size(((htp_tx_t *)alstate)->connp->conn->transactions);
+}
+
+static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
+{
+    return list_get(((htp_tx_t *)alstate)->connp->conn->transactions, tx_id);
+}
+
+static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction)
+{
+    return (direction == 0) ? TX_PROGRESS_WAIT : TX_PROGRESS_DONE;
+}
+
 static void HTPStateTruncate(void *state, uint8_t flags) {
     FileContainer *fc = HTPStateGetFiles(state, flags);
     if (fc != NULL) {
@@ -2474,8 +2439,13 @@ void RegisterHTPParsers(void)
     AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "CONNECT|09|", 8, 0, STREAM_TOSERVER);
 
     AppLayerRegisterStateFuncs(ALPROTO_HTTP, HTPStateAlloc, HTPStateFree);
-    AppLayerRegisterTransactionIdFuncs(ALPROTO_HTTP, HTPStateUpdateTransactionId, HTPStateTransactionFree);
+    AppLayerRegisterTransactionIdFuncs(ALPROTO_HTTP, NULL, HTPStateTransactionFree);
     AppLayerRegisterGetFilesFunc(ALPROTO_HTTP, HTPStateGetFiles);
+    AppLayerRegisterGetAlstateProgressFunc(ALPROTO_HTTP, HTPStateGetAlstateProgress);
+    AppLayerRegisterGetTxCnt(ALPROTO_HTTP, HTPStateGetTxCnt);
+    AppLayerRegisterGetTx(ALPROTO_HTTP, HTPStateGetTx);
+    AppLayerRegisterGetAlstateProgressCompletionStatus(ALPROTO_HTTP,
+        HTPStateGetAlstateProgressCompletionStatus);
 
     AppLayerDecoderEventsModuleRegister(ALPROTO_HTTP, http_decoder_event_table);
 
@@ -2560,7 +2530,7 @@ int HTPParserTest01(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
 
     htp_header_t *h = NULL;
     table_iterator_reset(tx->request_headers);
@@ -2620,7 +2590,7 @@ int HTPParserTest02(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(http_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(http_state, 0);
 
     htp_header_t *h = NULL;
     table_iterator_reset(tx->request_headers);
@@ -2684,7 +2654,7 @@ int HTPParserTest03(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
 
     htp_header_t *h = NULL;
     table_iterator_reset(tx->request_headers);
@@ -2741,7 +2711,7 @@ int HTPParserTest04(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
 
     htp_header_t *h = NULL;
     table_iterator_reset(tx->request_headers);
@@ -2848,7 +2818,7 @@ int HTPParserTest05(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(http_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(http_state, 0);
 
     htp_header_t *h = NULL;
     table_iterator_reset(tx->request_headers);
@@ -2962,7 +2932,7 @@ int HTPParserTest06(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(http_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(http_state, 0);
 
     htp_header_t *h = NULL;
     table_iterator_reset(tx->request_headers);
@@ -3044,7 +3014,7 @@ int HTPParserTest07(void) {
     uint8_t ref[] = "/awstats.pl?/migratemigrate = |";
     size_t reflen = sizeof(ref) - 1;
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx != NULL && tx->request_uri_normalized != NULL) {
         if (reflen != bstr_size(tx->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -3130,7 +3100,7 @@ libhtp:\n\
         goto end;
     }
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx != NULL && tx->request_uri_normalized != NULL) {
         //printf("uri %s\n", bstr_tocstr(tx->request_uri_normalized));
         PrintRawDataFp(stdout, (uint8_t *)bstr_ptr(tx->request_uri_normalized),
@@ -3206,7 +3176,7 @@ libhtp:\n\
         goto end;
     }
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx != NULL && tx->request_uri_normalized != NULL) {
         //printf("uri %s\n", bstr_tocstr(tx->request_uri_normalized));
         PrintRawDataFp(stdout, (uint8_t *)bstr_ptr(tx->request_uri_normalized),
@@ -3272,7 +3242,7 @@ int HTPParserTest10(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     htp_header_t *h = NULL;
     table_iterator_reset(tx->request_headers);
     table_iterator_next(tx->request_headers, (void **) & h);
@@ -3359,7 +3329,7 @@ static int HTPParserTest11(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx != NULL && tx->request_uri_normalized != NULL) {
         if (4 != bstr_size(tx->request_uri_normalized)) {
             printf("normalized uri len should be 2, is %"PRIuMAX,
@@ -3433,7 +3403,7 @@ static int HTPParserTest12(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx != NULL && tx->request_uri_normalized != NULL) {
         if (7 != bstr_size(tx->request_uri_normalized)) {
             printf("normalized uri len should be 5, is %"PRIuMAX,
@@ -3510,7 +3480,7 @@ int HTPParserTest13(void) {
         goto end;
     }
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     htp_header_t *h = NULL;
     table_iterator_reset(tx->request_headers);
     table_iterator_next(tx->request_headers, (void **) & h);
@@ -4086,7 +4056,7 @@ libhtp:\n\
     uint8_t ref1[] = "/abc%2fdef";
     size_t reflen = sizeof(ref1) - 1;
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx != NULL && tx->request_uri_normalized != NULL) {
         if (reflen != bstr_size(tx->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -4110,7 +4080,7 @@ libhtp:\n\
     uint8_t ref2[] = "/abc/def?ghi%2Fjkl";
     reflen = sizeof(ref2) - 1;
 
-    tx = list_get(htp_state->connp->conn->transactions, 1);
+    tx = HTPStateGetTx(htp_state, 1);
     if (tx != NULL && tx->request_uri_normalized != NULL) {
         if (reflen != bstr_size(tx->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -4133,7 +4103,7 @@ libhtp:\n\
 
     uint8_t ref3[] = "/abc/def?ghi%2Fjkl";
     reflen = sizeof(ref2) - 1;
-    tx = list_get(htp_state->connp->conn->transactions, 2);
+    tx = HTPStateGetTx(htp_state, 2);
     if (tx != NULL && tx->request_uri_normalized != NULL) {
         if (reflen != bstr_size(tx->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -4241,7 +4211,7 @@ libhtp:\n\
     uint8_t ref1[] = "/abc/def";
     size_t reflen = sizeof(ref1) - 1;
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx != NULL && tx->request_uri_normalized != NULL) {
         if (reflen != bstr_size(tx->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -4265,7 +4235,7 @@ libhtp:\n\
     uint8_t ref2[] = "/abc/def?ghi/jkl";
     reflen = sizeof(ref2) - 1;
 
-    tx = list_get(htp_state->connp->conn->transactions, 1);
+    tx = HTPStateGetTx(htp_state, 1);
     if (tx != NULL && tx->request_uri_normalized != NULL) {
         if (reflen != bstr_size(tx->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -4288,7 +4258,7 @@ libhtp:\n\
 
     uint8_t ref3[] = "/abc/def?ghi%2Fjkl";
     reflen = sizeof(ref3) - 1;
-    tx = list_get(htp_state->connp->conn->transactions, 2);
+    tx = HTPStateGetTx(htp_state, 2);
     if (tx != NULL && tx->request_uri_normalized != NULL) {
         if (reflen != bstr_size(tx->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX" (3): ",
@@ -4394,7 +4364,7 @@ libhtp:\n\
     uint8_t ref1[] = "/abc/def";
     size_t reflen = sizeof(ref1) - 1;
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx != NULL && tx->request_uri_normalized != NULL) {
         if (reflen != bstr_size(tx->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -4418,7 +4388,7 @@ libhtp:\n\
     uint8_t ref2[] = "/abc/def?ghi/jkl";
     reflen = sizeof(ref2) - 1;
 
-    tx = list_get(htp_state->connp->conn->transactions, 1);
+    tx = HTPStateGetTx(htp_state, 1);
     if (tx != NULL && tx->request_uri_normalized != NULL) {
         if (reflen != bstr_size(tx->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -4520,7 +4490,7 @@ libhtp:\n\
     uint8_t ref1[] = "/abc/def?a=http://www.abc.com/";
     size_t reflen = sizeof(ref1) - 1;
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx != NULL && tx->request_uri_normalized != NULL) {
         if (reflen != bstr_size(tx->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
@@ -4622,7 +4592,7 @@ libhtp:\n\
     uint8_t ref1[] = "/index?id=\\\"<script>alert(document.cookie)</script>";
     size_t reflen = sizeof(ref1) - 1;
 
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     if (tx != NULL && tx->request_uri_normalized != NULL) {
         if (reflen != bstr_size(tx->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,

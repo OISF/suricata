@@ -82,7 +82,7 @@ static inline int HHDCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size) 
 }
 
 
-static uint8_t *DetectEngineHHDGetBufferForTX(int tx_id,
+static uint8_t *DetectEngineHHDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
                                               DetectEngineCtx *de_ctx,
                                               DetectEngineThreadCtx *det_ctx,
                                               Flow *f, HtpState *htp_state,
@@ -118,12 +118,6 @@ static uint8_t *DetectEngineHHDGetBufferForTX(int tx_id,
             det_ctx->hhd_buffers_list_len++;
         }
         index = (tx_id - det_ctx->hhd_start_tx_id);
-    }
-
-    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, tx_id);
-    if (tx == NULL) {
-        SCLogDebug("no tx");
-        goto end;
     }
 
     table_t *headers;
@@ -187,44 +181,22 @@ static uint8_t *DetectEngineHHDGetBufferForTX(int tx_id,
 }
 
 int DetectEngineRunHttpHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                 HtpState *htp_state, uint8_t flags)
+                                 HtpState *htp_state, uint8_t flags,
+                                 void *tx, uint64_t idx)
 {
     uint32_t cnt = 0;
-
-    if (htp_state == NULL) {
-        SCLogDebug("no HTTP state");
-        goto end;
-    }
-
-    FLOWLOCK_WRLOCK(f);
-
-    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-        SCLogDebug("HTP state has no conn(p)");
-        goto end;
-    }
-
-    /* get the transaction id */
-    int idx = AppLayerTransactionGetInspectId(f);
-    /* error!  get out of here */
-    if (idx == -1)
+    uint32_t buffer_len = 0;
+    uint8_t *buffer = DetectEngineHHDGetBufferForTX(tx, idx,
+                                                    NULL, det_ctx,
+                                                    f, htp_state,
+                                                    flags,
+                                                    &buffer_len);
+    if (buffer_len == 0)
         goto end;
 
-    int size = (int)list_size(htp_state->connp->conn->transactions);
-    for (; idx < size; idx++) {
-        uint32_t buffer_len = 0;
-        uint8_t *buffer = DetectEngineHHDGetBufferForTX(idx,
-                                                        NULL, det_ctx,
-                                                        f, htp_state,
-                                                        flags,
-                                                        &buffer_len);
-        if (buffer_len == 0)
-            continue;
-
-        cnt += HttpHeaderPatternSearch(det_ctx, buffer, buffer_len, flags);
-    }
+    cnt = HttpHeaderPatternSearch(det_ctx, buffer, buffer_len, flags);
 
  end:
-    FLOWLOCK_UNLOCK(f);
     return cnt;
 }
 
@@ -232,17 +204,18 @@ int DetectEngineInspectHttpHeader(ThreadVars *tv,
                                   DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
                                   Signature *s, Flow *f, uint8_t flags,
-                                  void *alstate, int tx_id)
+                                  void *alstate,
+                                  void *tx, uint64_t tx_id)
 {
     HtpState *htp_state = (HtpState *)alstate;
     uint32_t buffer_len = 0;
-    uint8_t *buffer = DetectEngineHHDGetBufferForTX(tx_id,
+    uint8_t *buffer = DetectEngineHHDGetBufferForTX(tx, tx_id,
                                                     de_ctx, det_ctx,
                                                     f, htp_state,
                                                     flags,
                                                     &buffer_len);
     if (buffer_len == 0)
-        return 0;
+        goto end;
 
     det_ctx->buffer_offset = 0;
     det_ctx->discontinue_matching = 0;
@@ -253,9 +226,17 @@ int DetectEngineInspectHttpHeader(ThreadVars *tv,
                                           buffer_len,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HHD, NULL);
     if (r == 1)
-        return 1;
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
-    return 0;
+ end:
+    if (flags & STREAM_TOSERVER) {
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_REQ_HEADERS)
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    } else {
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 1) > TX_PROGRESS_RES_HEADERS)
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    }
+    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
 void DetectEngineCleanHHDBuffers(DetectEngineThreadCtx *det_ctx)
