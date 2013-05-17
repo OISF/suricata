@@ -462,16 +462,6 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     SCSigOrderSignatures(de_ctx);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
 
-    Signature *s = de_ctx->sig_list;
-
-    /* Assign the unique order id of signatures after sorting,
-     * so the IP Only engine process them in order too */
-    SigIntId sig_id = 0;
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
     /* Setup the signature group lookup structure and pattern matchers */
     SigGroupBuild(de_ctx);
 
@@ -4387,7 +4377,22 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
  *
  * \retval 0 Always
  */
-int SigGroupBuild (DetectEngineCtx *de_ctx) {
+int SigGroupBuild (DetectEngineCtx *de_ctx)
+{
+    Signature *s = de_ctx->sig_list;
+
+    /* Assign the unique order id of signatures after sorting,
+     * so the IP Only engine process them in order too.  Also
+     * reset the old signums and assign new signums.  We would
+     * have experienced Sig reordering by now, hence the new
+     * signums. */
+    de_ctx->signum = 0;
+    while (s != NULL) {
+        s->num = de_ctx->signum++;
+
+        s = s->next;
+    }
+
     /* if we are using single sgh_mpm_context then let us init the standard mpm
      * contexts using the mpm_ctx factory */
     if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {

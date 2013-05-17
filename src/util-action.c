@@ -468,17 +468,6 @@ int UtilActionTest08(void)
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
 
-    Signature *s = de_ctx->sig_list;
-    uint16_t sig_id = 0;
-    /* Assing the internal id after sorting, so the IP Only engine
-    * process them in order too */
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
-    de_ctx->signum = sig_id;
-
     res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
 
 cleanup:
@@ -551,17 +540,6 @@ int UtilActionTest09(void)
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
 
-    Signature *s = de_ctx->sig_list;
-    uint16_t sig_id = 0;
-    /* Assing the internal id after sorting, so the IP Only engine
-    * process them in order too */
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
-    de_ctx->signum = sig_id;
-
     res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
 
 cleanup:
@@ -632,17 +610,6 @@ int UtilActionTest10(void)
 
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
-
-    Signature *s = de_ctx->sig_list;
-    uint16_t sig_id = 0;
-    /* Assing the internal id after sorting, so the IP Only engine
-    * process them in order too */
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
-    de_ctx->signum = sig_id;
 
     res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
 
@@ -718,17 +685,6 @@ int UtilActionTest11(void)
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
 
-    Signature *s = de_ctx->sig_list;
-    uint16_t sig_id = 0;
-    /* Assing the internal id after sorting, so the IP Only engine
-    * process them in order too */
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
-    de_ctx->signum = sig_id;
-
     res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
 
 cleanup:
@@ -795,17 +751,6 @@ int UtilActionTest12(void)
 
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
-
-    Signature *s = de_ctx->sig_list;
-    uint16_t sig_id = 0;
-    /* Assing the internal id after sorting, so the IP Only engine
-    * process them in order too */
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
-    de_ctx->signum = sig_id;
 
     res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
 
@@ -876,17 +821,6 @@ int UtilActionTest13(void)
 
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
-
-    Signature *s = de_ctx->sig_list;
-    uint16_t sig_id = 0;
-    /* Assing the internal id after sorting, so the IP Only engine
-    * process them in order too */
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
-    de_ctx->signum = sig_id;
 
     res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
 
@@ -964,17 +898,6 @@ int UtilActionTest14(void)
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
 
-    Signature *s = de_ctx->sig_list;
-    uint16_t sig_id = 0;
-    /* Assing the internal id after sorting, so the IP Only engine
-    * process them in order too */
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
-    de_ctx->signum = sig_id;
-
     res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
 
 cleanup:
@@ -1044,17 +967,6 @@ int UtilActionTest15(void)
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
 
-    Signature *s = de_ctx->sig_list;
-    uint16_t sig_id = 0;
-    /* Assing the internal id after sorting, so the IP Only engine
-    * process them in order too */
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
-    de_ctx->signum = sig_id;
-
     res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
 
 cleanup:
@@ -1119,17 +1031,6 @@ int UtilActionTest16(void)
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
 
-    Signature *s = de_ctx->sig_list;
-    uint16_t sig_id = 0;
-    /* Assing the internal id after sorting, so the IP Only engine
-    * process them in order too */
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
-    de_ctx->signum = sig_id;
-
     res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
 
 cleanup:
@@ -1193,17 +1094,6 @@ int UtilActionTest17(void)
 
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
-
-    Signature *s = de_ctx->sig_list;
-    uint16_t sig_id = 0;
-    /* Assing the internal id after sorting, so the IP Only engine
-    * process them in order too */
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
-    de_ctx->signum = sig_id;
 
     res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
 
@@ -1273,17 +1163,6 @@ int UtilActionTest18(void)
 
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
-
-    Signature *s = de_ctx->sig_list;
-    uint16_t sig_id = 0;
-    /* Assing the internal id after sorting, so the IP Only engine
-    * process them in order too */
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
-    de_ctx->signum = sig_id;
 
     res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
 
@@ -1360,17 +1239,6 @@ int UtilActionTest19(void)
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
 
-    Signature *s = de_ctx->sig_list;
-    uint16_t sig_id = 0;
-    /* Assing the internal id after sorting, so the IP Only engine
-    * process them in order too */
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
-    de_ctx->signum = sig_id;
-
     res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
 
 cleanup:
@@ -1446,17 +1314,6 @@ int UtilActionTest20(void)
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
 
-    Signature *s = de_ctx->sig_list;
-    uint16_t sig_id = 0;
-    /* Assing the internal id after sorting, so the IP Only engine
-    * process them in order too */
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
-    de_ctx->signum = sig_id;
-
     res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
 
 cleanup:
@@ -1525,17 +1382,6 @@ int UtilActionTest21(void)
 
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
-
-    Signature *s = de_ctx->sig_list;
-    uint16_t sig_id = 0;
-    /* Assing the internal id after sorting, so the IP Only engine
-    * process them in order too */
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
-    de_ctx->signum = sig_id;
 
     res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
 
@@ -1612,17 +1458,6 @@ int UtilActionTest22(void)
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
 
-    Signature *s = de_ctx->sig_list;
-    uint16_t sig_id = 0;
-    /* Assing the internal id after sorting, so the IP Only engine
-    * process them in order too */
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
-    de_ctx->signum = sig_id;
-
     res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
 
 cleanup:
@@ -1697,17 +1532,6 @@ int UtilActionTest23(void)
 
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
-
-    Signature *s = de_ctx->sig_list;
-    uint16_t sig_id = 0;
-    /* Assing the internal id after sorting, so the IP Only engine
-    * process them in order too */
-    while (s != NULL) {
-        s->order_id = sig_id++;
-        s = s->next;
-    }
-
-    de_ctx->signum = sig_id;
 
     res = UTHMatchPacketsWithResults(de_ctx, p, 3, sid, (uint32_t *) results, 3);
 
