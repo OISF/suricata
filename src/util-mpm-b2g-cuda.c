@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -2454,11 +2454,9 @@ static int B2gCudaTest01(void)
     pb->packets_offset_buffer[0] = 0;
     pb->packets_payload_offset_buffer[0] = 0;
 
-    p = SCMalloc(SIZE_OF_PACKET);
+    p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         goto end;
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     pb->packets_address_buffer[0] = p;
     p->payload_len = strlen(string);
 
@@ -2595,13 +2593,11 @@ static int B2gCudaTest02(void)
 
     memset(p, 0, sizeof(p));
     for (i = 0; i < no_of_pkts; i++) {
-        p[i] = SCMalloc(SIZE_OF_PACKET);
+        p[i] = PacketGetFromAlloc();
         if (p[i] == NULL) {
             printf("error allocating memory\n");
             exit(EXIT_FAILURE);
         }
-        memset(p[i], 0, SIZE_OF_PACKET);
-        p[i]->pkt = (uint8_t *)(p[i] + 1);
         DecodeEthernet(&tv, &dtv, p[i], raw_eth, sizeof(raw_eth), NULL);
     }
 
@@ -2815,13 +2811,11 @@ static int B2gCudaTest03(void)
 
     FlowInitConfig(FLOW_QUIET);
     for (i = 0; i < no_of_pkts; i++) {
-        p[i] = SCMalloc(SIZE_OF_PACKET);
+        p[i] = PacketGetFromAlloc();
         if (p[i] == NULL) {
             printf("error allocating memory\n");
             exit(EXIT_FAILURE);
         }
-        memset(p[i], 0, SIZE_OF_PACKET);
-        p[i]->pkt = (uint8_t *)(p[i] + 1);
         DecodeEthernet(&tv, &dtv, p[i], raw_eth, sizeof(raw_eth), NULL);
     }
 

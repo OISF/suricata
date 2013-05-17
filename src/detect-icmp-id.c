@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -408,7 +408,7 @@ int DetectIcmpIdMatchTest02 (void) {
         0x51, 0xa6, 0xbb, 0x35, 0x59, 0x8a, 0x5a, 0xe2,
         0x00, 0x14, 0x00, 0x00 };
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     Signature *s = NULL;
@@ -417,8 +417,6 @@ int DetectIcmpIdMatchTest02 (void) {
     DetectEngineThreadCtx *det_ctx = NULL;
     IPV4Hdr ip4h;
 
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(ThreadVars));

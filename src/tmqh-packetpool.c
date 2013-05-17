@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -116,15 +116,11 @@ void PacketPoolInit(intmax_t max_pending_packets) {
     SCLogDebug("preallocating packets... packet size %" PRIuMAX "", (uintmax_t)SIZE_OF_PACKET);
     int i = 0;
     for (i = 0; i < max_pending_packets; i++) {
-        /* XXX pkt alloc function */
-        Packet *p = SCMalloc(SIZE_OF_PACKET);
+        Packet *p = PacketGetFromAlloc();
         if (unlikely(p == NULL)) {
             SCLogError(SC_ERR_FATAL, "Fatal error encountered while allocating a packet. Exiting...");
             exit(EXIT_FAILURE);
         }
-        memset(p, 0, SIZE_OF_PACKET);
-        PACKET_INITIALIZE(p);
-
         PacketPoolStorePacket(p);
     }
     SCLogInfo("preallocated %"PRIiMAX" packets. Total memory %"PRIuMAX"",
