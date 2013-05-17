@@ -1154,7 +1154,9 @@ void AppLayerTransactionUpdateInspectId(Flow *f, uint8_t flags)
 
     ((AppLayerParserStateStore *)f->alparser)->inspect_id[direction] = idx;
     if (tx_updated_by > 0) {
+        SCMutexLock(&f->de_state_m);
         DetectEngineStateReset(f->de_state, flags);
+        SCMutexUnlock(&f->de_state_m);
     }
 
     return;

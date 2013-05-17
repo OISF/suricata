@@ -48,6 +48,7 @@
 #include "util-unittest-helper.h"
 
 #include "app-layer.h"
+#include "app-layer-parser.h"
 
 #include "stream-tcp.h"
 
@@ -380,25 +381,21 @@ static int DetectLuajitMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         FLOWLOCK_RDLOCK(p->flow);
         HtpState *htp_state = p->flow->alstate;
         if (htp_state != NULL && htp_state->connp != NULL && htp_state->connp->conn != NULL) {
-            uint64_t idx = AppLayerTransactionGetInspectId(p->flow, flags);
-            if (idx != -1) {
-                htp_tx_t *tx = NULL;
+            htp_tx_t *tx = NULL;
+            uint64_t idx = AppLayerTransactionGetInspectId(p->flow, 0);
+            uint64_t total_txs= AppLayerGetTxCnt(ALPROTO_HTTP, htp_state);
+            for ( ; idx < total_txs; idx++) {
+                tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, idx);
+                if (tx == NULL)
+                    continue;
 
-                uint64_t total_txs= AppLayerGetNoOfTxs(ALPROTO_HTTP, htp_state);
-                for ( ; idx < size; idx++)
-                {
-                    tx = AppLayerGetTx(http_state, idx);
-                    if (tx == NULL)
-                        continue;
-
-                    if ((tluajit->flags & DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
-                            bstr_len(tx->request_line) > 0) {
-                        lua_pushliteral(tluajit->luastate, "http.request_line"); /* stack at -2 */
-                        lua_pushlstring (tluajit->luastate,
-                                (const char *)bstr_ptr(tx->request_line),
-                                bstr_len(tx->request_line));
-                        lua_settable(tluajit->luastate, -3);
-                    }
+                if ((tluajit->flags & DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
+                    bstr_len(tx->request_line) > 0) {
+                    lua_pushliteral(tluajit->luastate, "http.request_line"); /* stack at -2 */
+                    lua_pushlstring (tluajit->luastate,
+                                     (const char *)bstr_ptr(tx->request_line),
+                                     bstr_len(tx->request_line));
+                    lua_settable(tluajit->luastate, -3);
                 }
             }
         }

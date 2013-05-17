@@ -416,6 +416,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
     DetectEngineStateDirection *dir_state = &f->de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1];
     DeStateStore *store = dir_state->head;
+    void *inspect_tx = NULL;
     uint64_t inspect_tx_id = 0;
     uint64_t total_txs = 0;
     uint8_t alproto_supports_txs = 0;
@@ -423,8 +424,10 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     DeStateResetFileInspection(f, alproto, alstate, flags);
 
     if (AppLayerAlprotoSupportsTxs(alproto)) {
+        FLOWLOCK_RDLOCK(f);
         inspect_tx_id = AppLayerTransactionGetInspectId(f, flags);
         total_txs = AppLayerGetTxCnt(alproto, alstate);
+        FLOWLOCK_UNLOCK(f);
         alproto_supports_txs = 1;
     }
 
@@ -505,11 +508,9 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 }
 
                 engine = app_inspection_engine[alproto][(flags & STREAM_TOSERVER) ? 0 : 1];
-                void *inspect_tx = AppLayerGetTx(alproto, alstate, inspect_tx_id);
-                if (inspect_tx == NULL) {
-                    FLOWLOCK_UNLOCK(f);
-                    goto end;
-                }
+                inspect_tx = AppLayerGetTx(alproto, alstate, inspect_tx_id);
+                if (inspect_tx == NULL)
+                    continue;
                 while (engine != NULL) {
                     if (!(item->flags & engine->inspect_flags) &&
                         s->sm_lists[engine->sm_list] != NULL)
