@@ -377,10 +377,16 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
 {
     SCEnter();
 
+    uint64_t tx_id = 0;
+    uint64_t total_txs = 0;
+    htp_tx_t *tx = NULL;
+    HtpState *htp_state = NULL;
+    int tx_progress = 0;
+    int tx_progress_done_value_ts = 0;
+    int tx_progress_done_value_tc = 0;
     LogHttpLogThread *aft = (LogHttpLogThread *)data;
     LogHttpFileCtx *hlog = aft->httplog_ctx;
     char timebuf[64];
-    size_t idx = 0;
 
     /* no flow, no htp state */
     if (p->flow == NULL) {
@@ -393,33 +399,19 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
     if (proto != ALPROTO_HTTP)
         goto end;
 
-    int r = AppLayerTransactionGetLoggedId(p->flow);
-    if (r < 0) {
-        goto end;
-    }
-    size_t logged = (size_t)r;
-
-    r = HtpTransactionGetLoggableId(p->flow);
-    if (r < 0) {
-        goto end;
-    }
-    size_t loggable = (size_t)r;
-
-    /* nothing to do */
-    if (logged >= loggable) {
-        goto end;
-    }
-
-    HtpState *htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
+    htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
     if (htp_state == NULL) {
         SCLogDebug("no http state, so no request logging");
         goto end;
     }
 
+    total_txs = AppLayerGetTxCnt(ALPROTO_HTTP, htp_state);
+    tx_id = AppLayerTransactionGetLogId(p->flow);
+    tx_progress_done_value_ts = AppLayerGetAlstateProgressCompletionStatus(ALPROTO_HTTP, 0);
+    tx_progress_done_value_tc = AppLayerGetAlstateProgressCompletionStatus(ALPROTO_HTTP, 1);
+
     if (htp_state->connp == NULL || htp_state->connp->conn == NULL)
         goto end;
-
-    htp_tx_t *tx = NULL;
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
@@ -457,12 +449,22 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
         dp = p->sp;
     }
 
-    for (idx = logged; idx < loggable; idx++)
+    for (; tx_id < total_txs; tx_id++)
     {
-        tx = list_get(htp_state->connp->conn->transactions, idx);
+        tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, tx_id);
         if (tx == NULL) {
             SCLogDebug("tx is NULL not logging !!");
             continue;
+        }
+
+        if (!(((AppLayerParserStateStore *)p->flow->alparser)->id_flags & APP_LAYER_TRANSACTION_EOF)) {
+            tx_progress = AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0);
+            if (tx_progress < tx_progress_done_value_ts)
+                break;
+
+            tx_progress = AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 1);
+            if (tx_progress < tx_progress_done_value_tc)
+                break;
         }
 
         SCLogDebug("got a HTTP request and now logging !!");
@@ -525,7 +527,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
         fflush(hlog->file_ctx->fp);
         SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 
-        AppLayerTransactionUpdateLoggedId(p->flow);
+        AppLayerTransactionUpdateLogId(p->flow);
     }
 
 end:

@@ -88,7 +88,7 @@
         (f)->alproto = 0; \
         (f)->de_ctx_id = 0; \
         if ((f)->de_state != NULL) { \
-            DetectEngineStateReset((f)->de_state); \
+            DetectEngineStateReset((f)->de_state, (STREAM_TOSERVER | STREAM_TOCLIENT)); \
         } \
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
