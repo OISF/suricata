@@ -164,24 +164,22 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, u
 
     /* It should be usually the last, so check it before iterating */
     if (p->alerts.cnt == 0 || (p->alerts.cnt > 0 &&
-                               p->alerts.alerts[p->alerts.cnt - 1].order_id < s->order_id)) {
+                               p->alerts.alerts[p->alerts.cnt - 1].num < s->num)) {
         /* We just add it */
         p->alerts.alerts[p->alerts.cnt].num = s->num;
-        p->alerts.alerts[p->alerts.cnt].order_id = s->order_id;
         p->alerts.alerts[p->alerts.cnt].action = s->action;
         p->alerts.alerts[p->alerts.cnt].flags = flags;
         p->alerts.alerts[p->alerts.cnt].s = s;
     } else {
         /* We need to make room for this s->num
          (a bit ugly with memcpy but we are planning changes here)*/
-        for (i = p->alerts.cnt - 1; i >= 0 && p->alerts.alerts[i].order_id > s->order_id; i--) {
+        for (i = p->alerts.cnt - 1; i >= 0 && p->alerts.alerts[i].num > s->num; i--) {
             memcpy(&p->alerts.alerts[i + 1], &p->alerts.alerts[i], sizeof(PacketAlert));
         }
 
         i++; /* The right place to store the alert */
 
         p->alerts.alerts[i].num = s->num;
-        p->alerts.alerts[i].order_id = s->order_id;
         p->alerts.alerts[i].action = s->action;
         p->alerts.alerts[i].flags = flags;
         p->alerts.alerts[i].s = s;
