@@ -96,6 +96,10 @@ void PacketPoolStorePacket(Packet *p) {
         exit(1);
     }
 
+    /* Clear the PKT_ALLOC flag, since that indicates to push back
+     * onto the ring buffer. */
+    p->flags &= ~PKT_ALLOC;
+
     RingBufferMrMwPut(ringbuffer, (void *)p);
     SCLogDebug("buffersize %u", RingBufferSize(ringbuffer));
 }
