@@ -304,8 +304,10 @@ uint64_t AppLayerTransactionGetLogId(Flow *f);
  *
  * \param f         Pointer to the flow(LOCKED).
  * \param direction Direction.  0 - toserver, 1 - toclient.
+ *
+ * \retval 1 If inspect_id was updated, 0 otherwise.
  */
-void AppLayerTransactionUpdateInspectId(Flow *f, uint8_t direction);
+int AppLayerTransactionUpdateInspectId(Flow *f, uint8_t direction);
 
 /**
  * \brief Get the current tx id to be inspected.
