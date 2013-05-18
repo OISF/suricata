@@ -206,17 +206,19 @@ void DetectEngineStateFree(DetectEngineState *state)
     return;
 }
 
-int DeStateFlowHasInspectableState(Flow *f, uint16_t alversion, uint8_t flags)
+int DeStateFlowHasInspectableState(Flow *f, uint16_t alproto, uint16_t alversion, uint8_t flags)
 {
     int r = 0;
 
     SCMutexLock(&f->de_state_m);
     if (f->de_state == NULL || f->de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1].cnt == 0) {
-        if (AppLayerAlprotoSupportsTxs(f->alproto)) {
-            if (AppLayerTransactionGetInspectId(f, flags) >= AppLayerGetTxCnt(f->alproto, f->alstate))
+        if (AppLayerAlprotoSupportsTxs(alproto)) {
+            FLOWLOCK_RDLOCK(f);
+            if (AppLayerTransactionGetInspectId(f, flags) >= AppLayerGetTxCnt(alproto, f->alstate))
                 r = 2;
             else
                 r = 0;
+            FLOWLOCK_UNLOCK(f);
         }
     } else if (!(flags & STREAM_EOF) &&
                f->de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1].alversion == alversion) {
@@ -248,6 +250,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     int match = 0;
     int store_de_state = 0;
     uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
+    uint8_t reset_de_state = 0;
 
     int alert_cnt = 0;
 
@@ -266,7 +269,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         tx_id = AppLayerTransactionGetInspectId(f, flags);
         total_txs = AppLayerGetTxCnt(alproto, htp_state);
         if (((total_txs - tx_id) > 1) && f->de_state != NULL)
-            DetectEngineStateReset(f->de_state, flags);
+            reset_de_state = 1;
         for (; tx_id < total_txs; tx_id++) {
             tx = AppLayerGetTx(alproto, alstate, tx_id);
             if (tx == NULL)
@@ -375,6 +378,8 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             SCMutexUnlock(&f->de_state_m);
             goto end;
         }
+    } else if (reset_de_state) {
+        DetectEngineStateReset(f->de_state, flags);
     }
     if (store_de_state) {
         DeStateSignatureAppend(f->de_state, s, sm, inspect_flags, flags);
@@ -504,13 +509,17 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 htp_state = (HtpState *)alstate;
                 if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
                     FLOWLOCK_UNLOCK(f);
+                    RULE_PROFILING_END(det_ctx, s, match);
                     goto end;
                 }
 
                 engine = app_inspection_engine[alproto][(flags & STREAM_TOSERVER) ? 0 : 1];
                 inspect_tx = AppLayerGetTx(alproto, alstate, inspect_tx_id);
-                if (inspect_tx == NULL)
-                    continue;
+                if (inspect_tx == NULL) {
+                    FLOWLOCK_UNLOCK(f);
+                    RULE_PROFILING_END(det_ctx, s, match);
+                    goto end;
+                }
                 while (engine != NULL) {
                     if (!(item->flags & engine->inspect_flags) &&
                         s->sm_lists[engine->sm_list] != NULL)
@@ -616,9 +625,12 @@ end:
 
 void DeStateUpdateInspectTransactionId(Flow *f, uint8_t direction)
 {
-    FLOWLOCK_WRLOCK(f);
-    AppLayerTransactionUpdateInspectId(f, direction);
-    FLOWLOCK_UNLOCK(f);
+    int inspect_id_updated = AppLayerTransactionUpdateInspectId(f, direction);
+    if (inspect_id_updated) {
+        SCMutexLock(&f->de_state_m);
+        DetectEngineStateReset(f->de_state, direction);
+        SCMutexUnlock(&f->de_state_m);
+    }
 
     SCReturn;
 }
