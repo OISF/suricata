@@ -1130,18 +1130,16 @@ uint64_t AppLayerTransactionGetInspectId(Flow *f, uint8_t flags)
 
 void AppLayerTransactionUpdateInspectId(Flow *f, uint8_t flags)
 {
-    DEBUG_ASSERT_FLOW_LOCKED(f);
-
     uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
 
+    FLOWLOCK_WRLOCK(f);
     uint64_t total_txs = AppLayerGetTxCnt(f->alproto, f->alstate);
     uint64_t idx = AppLayerTransactionGetInspectId(f, flags);
     int state_done_progress = AppLayerGetAlstateProgressCompletionStatus(f->alproto, direction);
     void *tx;
-    int tx_updated_by = 0;
     int state_progress;
 
-    for (; idx < total_txs; idx++, tx_updated_by++) {
+    for (; idx < total_txs; idx++) {
         tx = AppLayerGetTx(f->alproto, f->alstate, idx);
         if (tx == NULL)
             continue;
@@ -1151,13 +1149,8 @@ void AppLayerTransactionUpdateInspectId(Flow *f, uint8_t flags)
         else
             break;
     }
-
     ((AppLayerParserStateStore *)f->alparser)->inspect_id[direction] = idx;
-    if (tx_updated_by > 0) {
-        SCMutexLock(&f->de_state_m);
-        DetectEngineStateReset(f->de_state, flags);
-        SCMutexUnlock(&f->de_state_m);
-    }
+    FLOWLOCK_UNLOCK(f);
 
     return;
 }
