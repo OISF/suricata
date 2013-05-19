@@ -148,7 +148,7 @@ void DetectEngineStateFree(DetectEngineState *state);
  * \retval 1 Has state.
  * \retval 0 Has no state.
  */
-int DeStateFlowHasInspectableState(Flow *f, uint16_t alversion, uint8_t direction);
+int DeStateFlowHasInspectableState(Flow *f, uint16_t alproto, uint16_t alversion, uint8_t flags);
 
 /**
  * \brief Match app layer sig list against app state and store relevant match
