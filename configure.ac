@@ -384,6 +384,16 @@ AC_INIT(configure.ac)
 
 # libraries
 
+    AC_MSG_CHECKING([for Mpipe])
+    AC_COMPILE_IFELSE(
+        [AC_LANG_PROGRAM([[#include <gxio/mpipe.h>]])],
+        [
+        AC_MSG_RESULT([yes])
+        AC_DEFINE([HAVE_MPIPE],[1],[mPIPE support is available])
+        LDFLAGS="$LDFLAGS -lgxio -ltmc"
+        ],
+        [AC_MSG_RESULT([no])])
+
   #libpcre
     AC_ARG_WITH(libpcre_includes,
             [  --with-libpcre-includes=DIR  libpcre include directory],
