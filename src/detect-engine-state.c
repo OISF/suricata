@@ -250,6 +250,10 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     int match = 0;
     int store_de_state = 0;
     uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
+    /* this was introduced later to allow protocols that had both app
+     * keywords with transaction keywords.  Without this we would
+     * assume that we have an alert if engine == NULL */
+    int total_matches = 0;
 
     int alert_cnt = 0;
 
@@ -268,6 +272,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         tx_id = AppLayerTransactionGetInspectId(f, flags);
         total_txs = AppLayerGetTxCnt(alproto, htp_state);
         for (; tx_id < total_txs; tx_id++) {
+            total_matches = 0;
             tx = AppLayerGetTx(alproto, alstate, tx_id);
             if (tx == NULL)
                 continue;
@@ -281,6 +286,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     if (match == 1) {
                         inspect_flags |= engine->inspect_flags;
                         engine = engine->next;
+                        total_matches++;
                         continue;
                     } else if (match == 2) {
                         inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
@@ -297,7 +303,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             /* all the engines seem to be exhausted at this point.  If we
              * didn't have a match in one of the engines we would have
              * broken off and engine wouldn't be NULL.  Hence the alert. */
-            if (engine == NULL)
+            if (engine == NULL && total_matches > 0)
                 alert_cnt++;
 
             if (tx_id == (total_txs - 1)) {
@@ -421,6 +427,10 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     uint64_t total_txs = 0;
     uint8_t alproto_supports_txs = 0;
     uint8_t reset_de_state = 0;
+    /* this was introduced later to allow protocols that had both app
+     * keywords with transaction keywords.  Without this we would
+     * assume that we have an alert if engine == NULL */
+    uint8_t total_matches = 0;
     uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
 
     DeStateResetFileInspection(f, alproto, alstate, flags);
@@ -448,6 +458,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
              store_cnt < DE_STATE_CHUNK_SIZE && state_cnt < dir_state->cnt;
              store_cnt++, state_cnt++)
         {
+            total_matches = 0;
             DeStateStoreItem *item = &store->store[store_cnt];
             Signature *s = de_ctx->sig_array[item->sid];
 
@@ -536,6 +547,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                         if (match == 1) {
                             inspect_flags |= engine->inspect_flags;
                             engine = engine->next;
+                            total_matches++;
                             continue;
                         } else if (match == 2) {
                             inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
@@ -549,7 +561,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     }
                     engine = engine->next;
                 }
-                if (engine == NULL || inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
+                if (total_matches > 0 && (engine == NULL || inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH)) {
                     if (engine == NULL)
                         alert = 1;
                     inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
