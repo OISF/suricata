@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -525,9 +525,9 @@ end:
 
 static int DetectTtlTestSig1(void) {
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
-    return 0;
+        return 0;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
@@ -535,8 +535,6 @@ static int DetectTtlTestSig1(void) {
     IPV4Hdr ip4h;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ip4h, 0, sizeof(ip4h));
 
     p->src.family = AF_INET;

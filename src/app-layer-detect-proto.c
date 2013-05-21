@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -412,11 +412,9 @@ uint16_t AppLayerDetectGetProtoPMParser(AlpProtoDetectCtx *ctx,
                                                 &tdir->pmq, buf,
                                                 searchlen);
 #else
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         goto end;
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
 
     p->cuda_done = 0;
     p->cuda_free_packet = 1;

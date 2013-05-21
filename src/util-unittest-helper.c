@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -79,11 +79,9 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
                            uint16_t sport, uint16_t dport) {
     uint32_t in[4];
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return NULL;
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
 
     TimeSet(&p->ts);
 
@@ -166,11 +164,9 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
                            uint16_t sport, uint16_t dport) {
     struct in_addr in;
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return NULL;
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = ((uint8_t *)p) + sizeof(*p);
 
     struct timeval tv;
     TimeGet(&tv);
@@ -291,13 +287,11 @@ Packet **UTHBuildPacketArrayFromEth(uint8_t *raw_eth[], int *pktsize, int numpkt
 
     int i = 0;
     for (; i < numpkts; i++) {
-        p[i] = SCMalloc(SIZE_OF_PACKET);
+        p[i] = PacketGetFromAlloc();
         if (p[i] == NULL) {
             SCFree(p);
             return NULL;
         }
-        memset(p[i], 0, SIZE_OF_PACKET);
-        p[i]->pkt = (uint8_t *)(p[i] + 1);
         DecodeEthernet(&th_v, &dtv, p[i], raw_eth[i], pktsize[i], NULL);
     }
     return p;
@@ -315,11 +309,9 @@ Packet **UTHBuildPacketArrayFromEth(uint8_t *raw_eth[], int *pktsize, int numpkt
 Packet *UTHBuildPacketFromEth(uint8_t *raw_eth, uint16_t pktsize) {
     DecodeThreadVars dtv;
     ThreadVars th_v;
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return NULL;
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 

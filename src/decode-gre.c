@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -270,15 +270,13 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 static int DecodeGREtest01 (void)   {
 
     uint8_t raw_gre[] = { 0x00 ,0x6e ,0x62 };
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
-    return 0;
+        return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeGRE(&tv, &dtv, p, raw_gre, sizeof(raw_gre), NULL);
@@ -312,15 +310,13 @@ static int DecodeGREtest02 (void)   {
         0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
         0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00 };
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeGRE(&tv, &dtv, p, raw_gre, sizeof(raw_gre), NULL);
@@ -355,15 +351,13 @@ static int DecodeGREtest03 (void)   {
         0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00,
         0x01, 0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00 };
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeGRE(&tv, &dtv, p, raw_gre, sizeof(raw_gre), NULL);
