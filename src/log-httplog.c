@@ -159,8 +159,6 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size)
 }
 
 /* Retrieves the selected cookie value */
-/*  to be used as a workaround until libhtp supported cookie parsing */
-/* Rewrite this!! */
 static uint32_t GetCookieValue(uint8_t *rawcookies, uint32_t rawcookies_len, char *cookiename, 
                                                         uint8_t **cookievalue) {
     uint8_t *p = rawcookies;
@@ -757,8 +755,12 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
                             if (maxlen > 0 && maxlen < LOG_HTTP_NODE_MAXOUTPUTLEN) {
                                 httplog_ctx->cf_nodes[httplog_ctx->cf_n]->maxlen = (uint32_t) maxlen;
                             }
+                        } else {
+                            goto parsererror;
                         }
                         p = np + 1;
+                    } else {
+                        goto parsererror;
                     }
                 }
                 if (*p == '{') { /* Simple format char */
@@ -768,6 +770,8 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
                         n = np-p;
                         strlcpy(httplog_ctx->cf_nodes[httplog_ctx->cf_n]->data, p, n+1);
                         p = np;
+                    } else {
+                        goto parsererror;
                     }
                     p++;
                 } else {
@@ -793,12 +797,7 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
-        for (n = 0;n < httplog_ctx->cf_n;n++) {
-            SCFree(httplog_ctx->cf_nodes[n]);
-        }
-        LogFileFreeCtx(file_ctx);
-        SCFree(httplog_ctx);
-        return NULL;
+        goto parsererror;
     }
 
     output_ctx->data = httplog_ctx;
@@ -807,6 +806,16 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
     SCLogDebug("HTTP log output initialized");
 
     return output_ctx;
+
+parsererror:
+    for (n = 0;n < httplog_ctx->cf_n;n++) {
+        SCFree(httplog_ctx->cf_nodes[n]);
+    }
+    LogFileFreeCtx(file_ctx);
+    SCFree(httplog_ctx);
+    SCLogError(SC_ERR_INVALID_ARGUMENT,"Syntax error in custom http log format string.");
+    return NULL;
+
 }
 
 static void LogHttpLogDeInitCtx(OutputCtx *output_ctx)
