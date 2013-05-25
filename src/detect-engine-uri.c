@@ -84,6 +84,7 @@ int DetectEngineInspectPacketUris(ThreadVars *tv,
                                           f,
                                           (uint8_t *)bstr_ptr(tx->request_uri_normalized),
                                           bstr_len(tx->request_uri_normalized),
+                                          0,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_URI, NULL);
     if (r == 1) {
         return 1;

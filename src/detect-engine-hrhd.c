@@ -157,6 +157,7 @@ int DetectEngineInspectHttpRawHeader(ThreadVars *tv,
                                           f,
                                           (uint8_t *)bstr_ptr(raw_headers),
                                           bstr_len(raw_headers),
+                                          0,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HRHD, NULL);
     if (r == 1)
         return 1;

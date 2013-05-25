@@ -2355,7 +2355,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
     return;
 }
 
-static void HTPConfigure(void)
+void HTPConfigure(void)
 {
     SCEnter();
 
@@ -2494,7 +2494,7 @@ void RegisterHTPParsers(void)
 #ifdef UNITTESTS
 static HTPCfgRec cfglist_backup;
 
-static void HtpConfigCreateBackup(void)
+void HtpConfigCreateBackup(void)
 {
     cfglist_backup.cfg = cfglist.cfg;
     cfglist_backup.next = cfglist.next;
@@ -2503,7 +2503,7 @@ static void HtpConfigCreateBackup(void)
     return;
 }
 
-static void HtpConfigRestoreBackup(void)
+void HtpConfigRestoreBackup(void)
 {
     cfglist.cfg = cfglist_backup.cfg;
     cfglist.next = cfglist_backup.next;

@@ -163,6 +163,7 @@ int DetectEngineInspectHttpCookie(ThreadVars *tv,
                                           f,
                                           (uint8_t *)bstr_ptr(h->value),
                                           bstr_len(h->value),
+                                          0,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HCD, NULL);
     if (r == 1)
         return 1;
