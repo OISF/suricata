@@ -55,6 +55,9 @@
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
 
+#include "conf.h"
+#include "conf-yaml-loader.h"
+
 #define BUFFER_STEP 50
 
 static inline int HCBDCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size)
@@ -83,11 +86,13 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(int tx_id,
                                                DetectEngineThreadCtx *det_ctx,
                                                Flow *f, HtpState *htp_state,
                                                uint8_t flags,
-                                               uint32_t *buffer_len)
+                                               uint32_t *buffer_len,
+                                               uint32_t *stream_start_offset)
 {
     int index = 0;
     uint8_t *buffer = NULL;
     *buffer_len = 0;
+    *stream_start_offset = 0;
 
     if (det_ctx->hcbd_buffers_list_len == 0) {
         if (HCBDCreateSpace(det_ctx, 1) < 0)
@@ -102,6 +107,7 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(int tx_id,
         if ((tx_id - det_ctx->hcbd_start_tx_id) < det_ctx->hcbd_buffers_list_len) {
             if (det_ctx->hcbd[(tx_id - det_ctx->hcbd_start_tx_id)].buffer_len != 0) {
                 *buffer_len = det_ctx->hcbd[(tx_id - det_ctx->hcbd_start_tx_id)].buffer_len;
+                *stream_start_offset = det_ctx->hcbd[(tx_id - det_ctx->hcbd_start_tx_id)].offset;
                 return det_ctx->hcbd[(tx_id - det_ctx->hcbd_start_tx_id)].buffer;
             }
         } else {
@@ -222,6 +228,7 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(int tx_id,
 
     buffer = det_ctx->hcbd[index].buffer;
     *buffer_len = det_ctx->hcbd[index].buffer_len;
+    *stream_start_offset = det_ctx->hcbd[index].offset;
  end:
     return buffer;
 }
@@ -230,6 +237,7 @@ int DetectEngineRunHttpClientBodyMpm(DetectEngineCtx *de_ctx,
                                      DetectEngineThreadCtx *det_ctx, Flow *f,
                                      HtpState *htp_state, uint8_t flags)
 {
+    uint32_t stream_start_offset = 0;
     uint32_t cnt = 0;
 
     if (htp_state == NULL) {
@@ -257,7 +265,8 @@ int DetectEngineRunHttpClientBodyMpm(DetectEngineCtx *de_ctx,
                                                          de_ctx, det_ctx,
                                                          f, htp_state,
                                                          flags,
-                                                         &buffer_len);
+                                                         &buffer_len,
+                                                         &stream_start_offset);
         if (buffer_len == 0)
             continue;
 
@@ -277,12 +286,14 @@ int DetectEngineInspectHttpClientBody(ThreadVars *tv,
 {
     HtpState *htp_state = (HtpState *)alstate;
 
+    uint32_t stream_start_offset = 0;
     uint32_t buffer_len = 0;
     uint8_t *buffer = DetectEngineHCBDGetBufferForTX(tx_id,
                                                      de_ctx, det_ctx,
                                                      f, htp_state,
                                                      flags,
-                                                     &buffer_len);
+                                                     &buffer_len,
+                                                     &stream_start_offset);
     if (buffer_len == 0)
         return 0;
 
@@ -293,6 +304,7 @@ int DetectEngineInspectHttpClientBody(ThreadVars *tv,
                                           f,
                                           buffer,
                                           buffer_len,
+                                          stream_start_offset,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HCBD, NULL);
     if (r == 1)
         return 1;
@@ -3479,6 +3491,148 @@ end:
     return result;
 }
 
+static int DetectEngineHttpClientBodyTest30(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: IDS\n\
+    request-body-limit: 0\n\
+    response-body-limit: 0\n\
+\n\
+    request-body-inspect-window: 0\n\
+    response-body-inspect-window: 0\n\
+    request-body-minimal-inspect-size: 0\n\
+    response-body-minimal-inspect-size: 0\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    HtpConfigCreateBackup();
+
+    ConfYamlLoadString(input, strlen(input));
+    HTPConfigure();
+
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http1_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: 46\r\n"
+        "\r\n"
+        "This is dummy body1";
+    uint8_t http2_buf[] =
+        "bags is dummy message body2";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    uint32_t http2_len = sizeof(http2_buf) - 1;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.flags |= FLOW_IPV4;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http client body test\"; "
+                               "content:\"bags\"; depth:4; http_client_body; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http1_buf, http1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    http_state = f.alstate;
+    if (http_state == NULL) {
+        printf("no http state: \n");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if (PacketAlertCheck(p1, 1)) {
+        printf("sid 1 matched but shouldn't have\n");
+        goto end;
+    }
+
+    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http2_buf, http2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    if (PacketAlertCheck(p2, 1)) {
+        printf("sid 1 matched but shouldn't have\n");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    HtpConfigRestoreBackup();
+    ConfRestoreContextBackup();
+
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DetectEngineHttpClientBodyRegisterTests(void)
@@ -3543,6 +3697,9 @@ void DetectEngineHttpClientBodyRegisterTests(void)
                    DetectEngineHttpClientBodyTest28, 1);
     UtRegisterTest("DetectEngineHttpClientBodyTest29",
                    DetectEngineHttpClientBodyTest29, 1);
+
+    UtRegisterTest("DetectEngineHttpClientBodyTest30",
+                   DetectEngineHttpClientBodyTest30, 1);
 #endif /* UNITTESTS */
 
     return;

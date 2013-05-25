@@ -43,12 +43,11 @@ enum {
     DETECT_ENGINE_CONTENT_INSPECTION_MODE_HRHHD,
 };
 
-int DetectEngineContentInspection(DetectEngineCtx *,
-                                  DetectEngineThreadCtx *,
-                                  Signature *, SigMatch *,
-                                  Flow *,
-                                  uint8_t *, uint32_t,
-                                  uint8_t,
-                                  void *data);
+int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+                                  Signature *s, SigMatch *sm,
+                                  Flow *f,
+                                  uint8_t *buffer, uint32_t buffer_len,
+                                  uint32_t stream_start_offset,
+                                  uint8_t inspection_mode, void *data);
 
 #endif /* __DETECT_ENGINE_CONTENT_INSPECTION_H__ */

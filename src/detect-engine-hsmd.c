@@ -132,6 +132,7 @@ int DetectEngineInspectHttpStatMsg(ThreadVars *tv,
                                           f,
                                           (uint8_t *)bstr_ptr(tx->response_message),
                                           bstr_len(tx->response_message),
+                                          0,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HSMD, NULL);
     if (r == 1)
         return 1;

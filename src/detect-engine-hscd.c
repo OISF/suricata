@@ -132,6 +132,7 @@ int DetectEngineInspectHttpStatCode(ThreadVars *tv,
                                           f,
                                           (uint8_t *)bstr_ptr(tx->response_status),
                                           bstr_len(tx->response_status),
+                                          0,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HSCD, NULL);
     if (r == 1)
         return 1;

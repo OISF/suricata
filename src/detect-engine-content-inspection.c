@@ -78,6 +78,10 @@
  * \param f               Flow (for pcre flowvar storage)
  * \param buffer          Ptr to the buffer to inspect
  * \param buffer_len      Length of the payload
+ * \param stream_start_offset Indicates the start of the current buffer in
+ *                            the whole buffer stream inspected.  This
+ *                            applies if the current buffer is inspected
+ *                            in chunks.
  * \param inspection_mode Refers to the engine inspection mode we are currently
  *                        inspecting.  Can be payload, stream, one of the http
  *                        buffer inspection modes or dce inspection mode.
@@ -92,6 +96,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                                   Signature *s, SigMatch *sm,
                                   Flow *f,
                                   uint8_t *buffer, uint32_t buffer_len,
+                                  uint32_t stream_start_offset,
                                   uint8_t inspection_mode, void *data)
 {
     SCEnter();
@@ -168,6 +173,16 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                         SCLogDebug("cd->within %"PRIi32", det_ctx->buffer_offset %"PRIu32", depth %"PRIu32,
                                    cd->within, prev_buffer_offset, depth);
                     }
+
+                    if (stream_start_offset != 0 && prev_buffer_offset == 0) {
+                        if (depth <= stream_start_offset) {
+                            SCReturnInt(0);
+                        } else if (depth >= (stream_start_offset + buffer_len)) {
+                            ;
+                        } else {
+                            depth = depth - stream_start_offset;
+                        }
+                    }
                 }
 
                 if (cd->flags & DETECT_CONTENT_DEPTH_BE) {
@@ -200,6 +215,16 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 } else {
                     if (cd->depth != 0) {
                         depth = cd->depth;
+                    }
+                }
+
+                if (stream_start_offset != 0 && cd->flags & DETECT_CONTENT_DEPTH) {
+                    if (depth <= stream_start_offset) {
+                        SCReturnInt(0);
+                    } else if (depth >= (stream_start_offset + buffer_len)) {
+                        ;
+                    } else {
+                        depth = depth - stream_start_offset;
                     }
                 }
 
@@ -294,7 +319,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 /* see if the next buffer keywords match. If not, we will
                  * search for another occurence of this content and see
                  * if the others match then until we run out of matches */
-                int r = DetectEngineContentInspection(de_ctx, det_ctx, s, sm->next, f, buffer, buffer_len, inspection_mode, data);
+                int r = DetectEngineContentInspection(de_ctx, det_ctx, s, sm->next, f, buffer, buffer_len, stream_start_offset, inspection_mode, data);
                 if (r == 1) {
                     SCReturnInt(1);
                 }
@@ -369,7 +394,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
              * search for another occurence of this pcre and see
              * if the others match, until we run out of matches */
             r = DetectEngineContentInspection(de_ctx, det_ctx, s, sm->next,
-                                              f, buffer, buffer_len, inspection_mode, data);
+                                              f, buffer, buffer_len, stream_start_offset, inspection_mode, data);
             if (r == 1) {
                 SCReturnInt(1);
             }
@@ -516,7 +541,7 @@ match:
     /* this sigmatch matched, inspect the next one. If it was the last,
      * the buffer portion of the signature matched. */
     if (sm->next != NULL) {
-        int r = DetectEngineContentInspection(de_ctx, det_ctx, s, sm->next, f, buffer, buffer_len, inspection_mode, data);
+        int r = DetectEngineContentInspection(de_ctx, det_ctx, s, sm->next, f, buffer, buffer_len, stream_start_offset, inspection_mode, data);
         SCReturnInt(r);
     } else {
         SCReturnInt(1);
