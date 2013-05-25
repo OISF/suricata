@@ -253,6 +253,11 @@ void AppLayerHtpEnableResponseBodyCallback(void);
 void AppLayerHtpNeedFileInspection(void);
 void AppLayerHtpPrintStats(void);
 
+void HTPConfigure(void);
+
+void HtpConfigCreateBackup(void);
+void HtpConfigRestoreBackup(void);
+
 #endif	/* __APP_LAYER_HTP_H__ */
 
 /**

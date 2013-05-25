@@ -115,6 +115,7 @@ int DetectEngineInspectHttpRawUri(ThreadVars *tv,
                                           f,
                                           (uint8_t *)bstr_ptr(tx->request_uri),
                                           bstr_len(tx->request_uri),
+                                          0,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HRUD, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;

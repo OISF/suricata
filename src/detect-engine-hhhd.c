@@ -110,6 +110,7 @@ int DetectEngineInspectHttpHH(ThreadVars *tv,
     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HHHDMATCH],
                                           f,
                                           hname, hname_len,
+                                          0,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HHHD, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;

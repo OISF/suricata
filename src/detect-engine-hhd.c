@@ -224,6 +224,7 @@ int DetectEngineInspectHttpHeader(ThreadVars *tv,
                                           f,
                                           buffer,
                                           buffer_len,
+                                          0,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HHD, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
