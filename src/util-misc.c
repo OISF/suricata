@@ -70,7 +70,7 @@ static int ParseSizeString(const char *size, double *res)
                    "xxx <- indicates it is just bytes\n"
                    "xxxkb or xxxKb or xxxKB or xxxkB <- indicates kilobytes\n"
                    "xxxmb or xxxMb or xxxMB or xxxmB <- indicates megabytes\n"
-                   "xxxgb or xxxGb or xxxGB or xxxgB <- indicates gigabytes.",
+                   "xxxgb or xxxGb or xxxGB or xxxgB <- indicates gigabytes.\n",
                    size);
         retval = -2;
         goto end;
