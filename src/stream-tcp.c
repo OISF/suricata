@@ -566,6 +566,22 @@ void StreamTcpInitConfig(char quiet)
      * values. */
     FlowSetProtoFreeFunc(IPPROTO_TCP, StreamTcpSessionClear);
     FlowSetFlowStateFunc(IPPROTO_TCP, StreamTcpGetFlowState);
+
+#ifdef UNITTESTS
+    if (RunmodeIsUnittests()) {
+        SCMutexLock(&ssn_pool_mutex);
+        if (ssn_pool == NULL) {
+            ssn_pool = PoolThreadInit(1, /* thread */
+                    0, /* unlimited */
+                    stream_config.prealloc_sessions,
+                    sizeof(TcpSession),
+                    StreamTcpSessionPoolAlloc,
+                    StreamTcpSessionPoolInit, NULL,
+                    StreamTcpSessionPoolCleanup, NULL);
+        }
+        SCMutexUnlock(&ssn_pool_mutex);
+    }
+#endif
 }
 
 void StreamTcpFreeConfig(char quiet)
