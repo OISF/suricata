@@ -1356,11 +1356,11 @@ static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *
             }
             break;
         case 'l':
-            if (SetLogDirectory(optarg) != TM_ECODE_OK) {
+            if (ConfigSetLogDirectory(optarg) != TM_ECODE_OK) {
                 SCLogError(SC_ERR_FATAL, "Failed to set log directory.\n");
                 return TM_ECODE_FAILED;
             }
-            if (CheckLogDirectory(optarg) != TM_ECODE_OK) {
+            if (ConfigCheckLogDirectory(optarg) != TM_ECODE_OK) {
                 SCLogError(SC_ERR_LOGDIR_CMDLINE, "The logging directory \"%s\""
                         " supplied at the commandline (-l %s) doesn't "
                         "exist. Shutting down the engine.", optarg, optarg);
@@ -1818,9 +1818,9 @@ int main(int argc, char **argv)
 
     /* Check for the existance of the default logging directory which we pick
      * from suricata.yaml.  If not found, shut the engine down */
-    suri.log_dir = GetLogDirectory();
+    suri.log_dir = ConfigGetLogDirectory();
 
-    if (CheckLogDirectory(suri.log_dir) != TM_ECODE_OK) {
+    if (ConfigCheckLogDirectory(suri.log_dir) != TM_ECODE_OK) {
         SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
                 "supplied by %s (default-log-dir) doesn't exist. "
                 "Shutting down the engine", suri.log_dir, conf_filename);
