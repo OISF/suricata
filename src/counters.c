@@ -277,7 +277,7 @@ static char *SCPerfGetLogFilename(ConfNode *stats)
     char *log_filename = NULL;
     const char* filename = NULL;
 
-    log_dir = GetLogDirectory();
+    log_dir = ConfigGetLogDirectory();
 
     if ( (log_filename = SCMalloc(PATH_MAX)) == NULL) {
         return NULL;

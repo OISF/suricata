@@ -560,7 +560,7 @@ OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
     }
 
     char *s_default_log_dir = NULL;
-    s_default_log_dir = GetLogDirectory();
+    s_default_log_dir = ConfigGetLogDirectory();
 
     const char *s_base_dir = NULL;
     s_base_dir = ConfNodeLookupChildValue(conf, "certs-log-dir");

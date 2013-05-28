@@ -26,12 +26,12 @@
 #include "config.h"
 #include "conf.h"
 
-TmEcode SetLogDirectory(char *name)
+TmEcode ConfigSetLogDirectory(char *name)
 {
     return ConfSet("default-log-dir", name, 0) ? TM_ECODE_OK : TM_ECODE_FAILED;
 }
 
-char *GetLogDirectory()
+char *ConfigGetLogDirectory()
 {
     char *log_dir = NULL;
 
@@ -49,7 +49,7 @@ char *GetLogDirectory()
     return log_dir;
 }
 
-TmEcode CheckLogDirectory(char *log_dir)
+TmEcode ConfigCheckLogDirectory(char *log_dir)
 {
     SCEnter();
 #ifdef OS_WIN32
