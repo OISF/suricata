@@ -317,6 +317,8 @@ void GlobalInits()
         SCLogInfo("Trans_Q Mutex not initialized correctly");
         exit(EXIT_FAILURE);
     }
+
+    CreateLowercaseTable();
 }
 
 /* XXX hack: make sure threads can stop the engine by calling this
@@ -1890,8 +1892,6 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }
     }
-
-    CreateLowercaseTable();
 
     /* hardcoded initialization code */
     SigTableSetup(); /* load the rule keywords */
