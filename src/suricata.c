@@ -899,6 +899,7 @@ struct SuriInstance {
     int delayed_detect;
     int rule_reload;
     int daemon;
+    int offline;
 
     struct timeval start_time;
 
@@ -927,6 +928,7 @@ static void SuriInstanceInit(struct SuriInstance *suri)
 #endif /* OS_WIN32 */
     suri->delayed_detect = 0;
     suri->daemon = 0;
+    suri->offline = 0;
 }
 
 static TmEcode SuriPrintVersion()
@@ -957,7 +959,7 @@ static void SuriPrintElapsedTime(struct SuriInstance *suri)
     SCLogInfo("time elapsed %.3fs", (float)milliseconds/(float)1000);
 }
 
-static TmEcode SuriParseCommandLine(int argc, char** argv, struct SuriInstance *suri)
+static TmEcode ParseCommandLine(int argc, char** argv, struct SuriInstance *suri)
 {
     int opt;
 
@@ -1609,7 +1611,7 @@ static int SuriInitSignalHandler(struct SuriInstance *suri)
     return TM_ECODE_OK;
 }
 
-int SuriStartInternalRunMode(struct SuriInstance *suri, int argc, char **argv)
+int StartInternalRunMode(struct SuriInstance *suri, int argc, char **argv)
 {
     /* Treat internal running mode */
     switch(suri->run_mode) {
@@ -1670,12 +1672,28 @@ int SuriStartInternalRunMode(struct SuriInstance *suri, int argc, char **argv)
     return TM_ECODE_OK;
 }
 
+static int FinalizeRunMode(struct SuriInstance *suri, char **argv)
+{
+    switch (suri->run_mode) {
+        case RUNMODE_PCAP_FILE:
+        case RUNMODE_ERF_FILE:
+        case RUNMODE_ENGINE_ANALYSIS:
+            suri->offline = 1;
+            break;
+        case RUNMODE_UNKNOWN:
+            usage(argv[0]);
+            return TM_ECODE_FAILED;
+    }
+    /* Set the global run mode */
+    run_mode = suri->run_mode;
+
+    return TM_ECODE_OK;
+}
+
 static void SuriSetupDelayedDetect(DetectEngineCtx *de_ctx, struct SuriInstance *suri)
 {
     /* In offline mode delayed init of detect is a bad idea */
-    if ((suri->run_mode == RUNMODE_PCAP_FILE) ||
-        (suri->run_mode == RUNMODE_ERF_FILE) ||
-        (suri->run_mode == RUNMODE_ENGINE_ANALYSIS)) {
+    if (suri->offline) {
         suri->delayed_detect = 0;
     } else {
         ConfNode *denode = NULL;
@@ -1697,7 +1715,7 @@ static void SuriSetupDelayedDetect(DetectEngineCtx *de_ctx, struct SuriInstance 
 
 }
 
-static int SuriLoadSignatures(DetectEngineCtx *de_ctx,struct SuriInstance *suri)
+static int LoadSignatures(DetectEngineCtx *de_ctx,struct SuriInstance *suri)
 {
     if (SigLoadSignatures(de_ctx, suri->sig_file, suri->sig_file_exclusive) < 0) {
         if (suri->sig_file == NULL) {
@@ -1708,6 +1726,51 @@ static int SuriLoadSignatures(DetectEngineCtx *de_ctx,struct SuriInstance *suri)
         if (de_ctx->failure_fatal)
             return TM_ECODE_FAILED;
     }
+    return TM_ECODE_OK;
+}
+
+static int ConfigGetCaptureValue(struct SuriInstance *suri)
+{
+    /* Pull the max pending packets from the config, if not found fall
+     * back on a sane default. */
+    if (ConfGetInt("max-pending-packets", &max_pending_packets) != 1)
+        max_pending_packets = DEFAULT_MAX_PENDING_PACKETS;
+    if (max_pending_packets >= 65535) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                "Maximum max-pending-packets setting is 65534. "
+                "Please check %s for errors", conf_filename);
+        return TM_ECODE_FAILED;
+    }
+
+    SCLogDebug("Max pending packets set to %"PRIiMAX, max_pending_packets);
+
+    /* Pull the default packet size from the config, if not found fall
+     * back on a sane default. */
+    char *temp_default_packet_size;
+    if ((ConfGet("default-packet-size", &temp_default_packet_size)) != 1) {
+        switch (suri->run_mode) {
+            case RUNMODE_PCAP_DEV:
+            case RUNMODE_AFP_DEV:
+            case RUNMODE_PFRING:
+                /* FIXME this don't work effficiently in multiinterface */
+                /* find payload for interface and use it */
+                default_packet_size = GetIfaceMaxPacketSize(suri->pcap_dev);
+                if (default_packet_size)
+                    break;
+            default:
+                default_packet_size = DEFAULT_PACKET_SIZE;
+        }
+    } else {
+        if (ParseSizeStringU32(temp_default_packet_size, &default_packet_size) < 0) {
+            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing max-pending-packets "
+                       "from conf file - %s.  Killing engine",
+                       temp_default_packet_size);
+            return TM_ECODE_FAILED;
+        }
+    }
+
+    SCLogDebug("Default packet size set to %"PRIu32, default_packet_size);
+
     return TM_ECODE_OK;
 }
 
@@ -1745,22 +1808,18 @@ int main(int argc, char **argv)
     /* Initialize the configuration module. */
     ConfInit();
 
-    if (SuriParseCommandLine(argc, argv, &suri) != TM_ECODE_OK) {
+    if (ParseCommandLine(argc, argv, &suri) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
-    switch (SuriStartInternalRunMode(&suri, argc, argv)) {
+    switch (StartInternalRunMode(&suri, argc, argv)) {
         case TM_ECODE_DONE:
             exit(EXIT_SUCCESS);
         case TM_ECODE_FAILED:
             exit(EXIT_FAILURE);
     }
 
-    /* Set the global run mode */
-    run_mode = suri.run_mode;
-    /* run_mode should be set here */
-    if (suri.run_mode == RUNMODE_UNKNOWN) {
-        usage(argv[0]);
+    if (FinalizeRunMode(&suri, argv) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
@@ -1768,11 +1827,6 @@ int main(int argc, char **argv)
         return RunUnittests(0, suri.regex_arg);
 
     SuriPrintVersion();
-
-#ifndef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
-    SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "libhtp < 0.2.7 detected. Keyword "
-        "http_raw_header will not be able to inspect response headers.");
-#endif
 
     UtilCpuPrintSummary();
 
@@ -1827,45 +1881,9 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    /* Pull the max pending packets from the config, if not found fall
-     * back on a sane default. */
-    if (ConfGetInt("max-pending-packets", &max_pending_packets) != 1)
-        max_pending_packets = DEFAULT_MAX_PENDING_PACKETS;
-    if (max_pending_packets >= 65535) {
-        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                "Maximum max-pending-packets setting is 65534. "
-                "Please check %s for errors", conf_filename);
+    if (ConfigGetCaptureValue(&suri) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
-
-    SCLogDebug("Max pending packets set to %"PRIiMAX, max_pending_packets);
-
-    /* Pull the default packet size from the config, if not found fall
-     * back on a sane default. */
-    char *temp_default_packet_size;
-    if ((ConfGet("default-packet-size", &temp_default_packet_size)) != 1) {
-        switch (suri.run_mode) {
-            case RUNMODE_PCAP_DEV:
-            case RUNMODE_AFP_DEV:
-            case RUNMODE_PFRING:
-                /* FIXME this don't work effficiently in multiinterface */
-                /* find payload for interface and use it */
-                default_packet_size = GetIfaceMaxPacketSize(suri.pcap_dev);
-                if (default_packet_size)
-                    break;
-            default:
-                default_packet_size = DEFAULT_PACKET_SIZE;
-        }
-    } else {
-        if (ParseSizeStringU32(temp_default_packet_size, &default_packet_size) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing max-pending-packets "
-                       "from conf file - %s.  Killing engine",
-                       temp_default_packet_size);
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    SCLogDebug("Default packet size set to %"PRIu32, default_packet_size);
 
 #ifdef NFQ
     if (suri.run_mode == RUNMODE_NFQ)
@@ -1985,7 +2003,7 @@ int main(int argc, char **argv)
     SuriSetupDelayedDetect(de_ctx, &suri);
 
     if (!suri.delayed_detect) {
-        if (SuriLoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
+        if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
             exit(EXIT_FAILURE);
         if (suri.run_mode == RUNMODE_ENGINE_ANALYSIS) {
             exit(EXIT_SUCCESS);
@@ -2063,7 +2081,7 @@ int main(int argc, char **argv)
     TmThreadContinueThreads();
 
     if (suri.delayed_detect) {
-        if (SuriLoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
+        if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
             exit(EXIT_FAILURE);
         TmThreadActivateDummySlot();
         SCLogInfo("Signature(s) loaded, Detect thread(s) activated.");
