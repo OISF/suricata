@@ -815,7 +815,6 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
                 SCReturn(TM_ECODE_FAILED);
             }
         }
-#ifdef HAVE_PFRING
     } else if (run_mode == RUNMODE_PFRING) {
         /* FIXME add backward compat support */
         /* iface has been set on command line */
@@ -828,7 +827,6 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
             /* not an error condition if we have a 1.0 config */
             LiveBuildDeviceList("pfring");
         }
-#endif /* HAVE_PFRING */
     } else if (run_mode == RUNMODE_AFP_DEV) {
         /* iface has been set on command line */
         if (strlen(pcap_dev)) {
