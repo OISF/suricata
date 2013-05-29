@@ -1,3 +1,18 @@
+1.4.2 -- 2013-05-29
+
+- No longer force nocase to be used on http_host
+- Invalidate rule if uppercase content is used for http_host w/o nocase
+- Warn user if bpf is used in af-packet IPS mode
+- Better test for available libjansson version
+- Fixed accuracy issues with relative pcre matching (#784)
+- Improved accuracy of file_data keyword (#788)
+- Invalidate negative depth (#770)
+- Fix http host parsing for IPv6 addresses (#761)
+- Fix fast.log formatting issues (#773)
+- Fixed deadlock in flowvar set code for http buffers (#801)
+- Various signature ordering improvements
+- Minor stream engine fix
+
 1.4.1 -- 2013-03-08
 
 - GeoIP keyword, allowing matching on Maxmind's database, contributed by Ignacio Sanchez (#559)
