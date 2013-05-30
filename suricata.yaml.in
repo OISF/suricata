@@ -206,6 +206,13 @@ outputs:
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
 
+  # alerts output to JSON
+  - json:
+    enabled: yes
+    format: compact  # alternatives 'compact', 'indent'
+    #filename: json.log
+    #output: syslog # alternatives 'file', 'syslog'
+
   # a line based information for dropped packets in IPS mode
   - drop:
       enabled: no
