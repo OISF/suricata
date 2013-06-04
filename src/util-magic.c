@@ -157,26 +157,40 @@ void MagicDeinit(void) {
 #endif
 
 /** \test magic lib calls -- init */
-int MagicInitTest01(void) {
+int MagicInitTest01(void)
+{
+    int result = 0;
     magic_t magic_ctx;
 
     magic_ctx = magic_open(0);
-
-    if (magic_load(magic_ctx, NULL) == -1)
+    if (magic_ctx == NULL) {
+        printf("failure retrieving magic_ctx\n");
         return 0;
+    }
 
+    if (magic_load(magic_ctx, NULL) == -1) {
+        printf("failure magic_load\n");
+        goto end;
+    }
+
+    result = 1;
+ end:
     magic_close(magic_ctx);
-    return 1;
+    return result;
 }
 
 /** \test magic init through api */
-int MagicInitTest02(void) {
+int MagicInitTest02(void)
+{
     if (g_magic_ctx != NULL) {
         printf("g_magic_ctx != NULL at start of the test: ");
         return 0;
     }
 
-    MagicInit();
+    if (MagicInit() < 0) {
+        printf("MagicInit() failure\n");
+        return 0;
+    }
 
     if (g_magic_ctx == NULL) {
         printf("g_magic_ctx == NULL: ");
@@ -194,7 +208,8 @@ int MagicInitTest02(void) {
 }
 
 /** \test magic lib calls -- lookup */
-int MagicDetectTest01(void) {
+int MagicDetectTest01(void)
+{
     magic_t magic_ctx;
     char *result = NULL;
     char buffer[] = { 0x25, 'P', 'D', 'F', '-', '1', '.', '3', 0x0d, 0x0a};
@@ -202,9 +217,15 @@ int MagicDetectTest01(void) {
     int retval = 0;
 
     magic_ctx = magic_open(0);
-
-    if (magic_load(magic_ctx, NULL) == -1)
+    if (magic_ctx == NULL) {
+        printf("failure retrieving magic_ctx\n");
         return 0;
+    }
+
+    if (magic_load(magic_ctx, NULL) == -1) {
+        printf("magic_load failure\n");
+        goto end;
+    }
 
     result = (char *)magic_buffer(magic_ctx, (void *)buffer, buffer_len);
     if (result == NULL || strncmp(result, "PDF document", 12) != 0) {
@@ -219,7 +240,8 @@ end:
 }
 
 /** \test magic lib calls -- lookup */
-int MagicDetectTest02(void) {
+int MagicDetectTest02(void)
+{
     magic_t magic_ctx;
     char *result = NULL;
 
@@ -243,9 +265,15 @@ int MagicDetectTest02(void) {
     int retval = 0;
 
     magic_ctx = magic_open(0);
-
-    if (magic_load(magic_ctx, NULL) == -1)
+    if (magic_ctx == NULL) {
+        printf("failure retrieving magic_ctx\n");
         return 0;
+    }
+
+    if (magic_load(magic_ctx, NULL) == -1) {
+        printf("magic_load failure\n");
+        goto end;
+    }
 
     result = (char *)magic_buffer(magic_ctx, (void *)buffer, buffer_len);
     if (result == NULL || strcmp(result, MICROSOFT_OFFICE_DOC) != 0) {
@@ -292,9 +320,15 @@ int MagicDetectTest03(void) {
     int retval = 0;
 
     magic_ctx = magic_open(0);
-
-    if (magic_load(magic_ctx, NULL) == -1)
+    if (magic_ctx == NULL) {
+        printf("failure retrieving magic_ctx\n");
         return 0;
+    }
+
+    if (magic_load(magic_ctx, NULL) == -1) {
+        printf("magic_load failure\n");
+        goto end;
+    }
 
     result = (char *)magic_buffer(magic_ctx, (void *)buffer, buffer_len);
     if (result == NULL || strcmp(result, "OpenDocument Text") != 0) {
@@ -347,9 +381,15 @@ int MagicDetectTest04(void) {
     int retval = 0;
 
     magic_ctx = magic_open(0);
-
-    if (magic_load(magic_ctx, NULL) == -1)
+    if (magic_ctx == NULL) {
+        printf("failure retrieving magic_ctx\n");
         return 0;
+    }
+
+    if (magic_load(magic_ctx, NULL) == -1) {
+        printf("magic_load failure\n");
+        goto end;
+    }
 
     result = (char *)magic_buffer(magic_ctx, (void *)buffer, buffer_len);
     if (result == NULL || strcmp(result, "OpenOffice.org 1.x Database file") != 0) {
@@ -370,7 +410,10 @@ int MagicDetectTest05(void) {
     size_t buffer_len = sizeof(buffer);
     int retval = 0;
 
-    MagicInit();
+    if (MagicInit() < 0) {
+        printf("MagicInit() failure\n");
+        return 0;
+    }
 
     result = MagicGlobalLookup(buffer, buffer_len);
     if (result == NULL || strncmp(result, "PDF document", 12) != 0) {
@@ -406,7 +449,10 @@ int MagicDetectTest06(void) {
     size_t buffer_len = sizeof(buffer);
     int retval = 0;
 
-    MagicInit();
+    if (MagicInit() < 0) {
+        printf("MagicInit() failure\n");
+        return 0;
+    }
 
     result = MagicGlobalLookup(buffer, buffer_len);
     if (result == NULL || strcmp(result, MICROSOFT_OFFICE_DOC) != 0) {
@@ -451,7 +497,10 @@ int MagicDetectTest07(void) {
     size_t buffer_len = sizeof(buffer);
     int retval = 0;
 
-    MagicInit();
+    if (MagicInit() < 0) {
+        printf("MagicInit() failure\n");
+        return 0;
+    }
 
     result = MagicGlobalLookup(buffer, buffer_len);
     if (result == NULL || strcmp(result, "OpenDocument Text") != 0) {
@@ -501,7 +550,10 @@ int MagicDetectTest08(void) {
     size_t buffer_len = sizeof(buffer);
     int retval = 0;
 
-    MagicInit();
+    if (MagicInit() < 0) {
+        printf("MagicInit() failure\n");
+        return 0;
+    }
 
     result = MagicGlobalLookup(buffer, buffer_len);
     if (result == NULL || strcmp(result, "OpenOffice.org 1.x Database file") != 0) {
@@ -523,7 +575,10 @@ int MagicDetectTest09(void) {
     size_t buffer_len = sizeof(buffer);
     int retval = 0;
 
-    MagicInit();
+    if (MagicInit() < 0) {
+        printf("MagicInit() failure\n");
+        return 0;
+    }
 
     result1 = MagicGlobalLookup(buffer, buffer_len);
     if (result1 == NULL || strncmp(result1, "PDF document", 12) != 0) {
@@ -568,7 +623,10 @@ static int MagicDetectTest10ValgrindError(void) {
     size_t buffer_len = sizeof(buffer);
     int retval = 0;
 
-    MagicInit();
+    if (MagicInit() < 0) {
+        printf("MagicInit() failure\n");
+        return 0;
+    }
 
     result = MagicGlobalLookup(buffer, buffer_len);
     if (result == NULL || strncmp(result, "JPEG", 4) != 0) {
