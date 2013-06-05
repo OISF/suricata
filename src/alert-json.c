@@ -221,9 +221,9 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
                        "pri", pa->s->prio,
                        "proto", proto,
                        "srcip", srcip,
-                       "srcport", p->sp,
+                       "sp", p->sp,
                        "dstip", dstip,
-                       "dstport", p->dp
+                       "dp", p->dp
                       );
 
         if (js == NULL)
@@ -311,9 +311,9 @@ TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
                        "pri", pa->s->prio,
                        "proto", proto,
                        "srcip", srcip,
-                       "srcport", p->sp,
+                       "sp", p->sp,
                        "dstip", dstip,
-                       "dstport", p->dp
+                       "dp", p->dp
                       );
 
         if (js == NULL)
