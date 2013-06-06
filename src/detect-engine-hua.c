@@ -100,8 +100,8 @@ int DetectEngineInspectHttpUA(ThreadVars *tv,
                               void *txv, uint64_t tx_id)
 {
     htp_tx_t *tx = (htp_tx_t *)txv;
-    htp_header_t *h = (htp_header_t *)table_getc(tx->request_headers,
-                                                 "User-Agent");
+    htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
+                                                      "User-Agent");
     if (h == NULL) {
         SCLogDebug("HTTP user agent header not present in this request");
         goto end;

@@ -66,25 +66,25 @@ int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     bstr *raw_headers;
     htp_tx_t *tx = (htp_tx_t *)txv;
     if (flags & STREAM_TOSERVER) {
-        raw_headers = htp_tx_get_request_headers_raw(tx);
-        if (raw_headers != NULL) {
-            cnt = HttpRawHeaderPatternSearch(det_ctx,
-                                             (uint8_t *)bstr_ptr(raw_headers),
-                                             bstr_len(raw_headers), flags);
-        } else {
-            SCLogDebug("no raw headers");
-        }
-    } else {
-#ifdef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
-        raw_headers = htp_tx_get_response_headers_raw(tx);
-        if (raw_headers != NULL) {
-            cnt += HttpRawHeaderPatternSearch(det_ctx,
-                                              (uint8_t *)bstr_ptr(raw_headers),
-                                              bstr_len(raw_headers), flags);
-        } else {
-            SCLogDebug("no raw headers");
-        }
-#endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
+//        raw_headers = htp_tx_get_request_headers_raw(tx);
+//        if (raw_headers != NULL) {
+//            cnt = HttpRawHeaderPatternSearch(det_ctx,
+//                                             (uint8_t *)bstr_ptr(raw_headers),
+//                                             bstr_len(raw_headers), flags);
+//        } else {
+//            SCLogDebug("no raw headers");
+//        }
+//    } else {
+//#ifdef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
+//        raw_headers = htp_tx_get_response_headers_raw(tx);
+//        if (raw_headers != NULL) {
+//            cnt += HttpRawHeaderPatternSearch(det_ctx,
+//                                              (uint8_t *)bstr_ptr(raw_headers),
+//                                              bstr_len(raw_headers), flags);
+//        } else {
+//            SCLogDebug("no raw headers");
+//        }
+//#endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
     }
 
     SCReturnInt(cnt);
@@ -113,11 +113,11 @@ int DetectEngineInspectHttpRawHeader(ThreadVars *tv,
     htp_tx_t *tx = (htp_tx_t *)txv;
     bstr *raw_headers = NULL;
     if (flags & STREAM_TOSERVER) {
-        raw_headers = htp_tx_get_request_headers_raw(tx);
+        //raw_headers = htp_tx_get_request_headers_raw(tx);
     }
 #ifdef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
     else {
-        raw_headers = htp_tx_get_response_headers_raw(tx);
+        //raw_headers = htp_tx_get_response_headers_raw(tx);
     }
 #endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
     if (raw_headers == NULL)

@@ -74,7 +74,7 @@ int DetectEngineRunHttpCookieMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
         }
     } else {
         h = (htp_header_t *)htp_table_get_c(tx->response_headers,
-                                       "Set-Cookie");
+                                            "Set-Cookie");
         if (h == NULL) {
             SCLogDebug("HTTP Set-Cookie header not present in this request");
             goto end;

@@ -283,7 +283,7 @@ int DetectEngineInspectHttpServerBody(ThreadVars *tv,
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
  end:
-    if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_RES_BODY)
+    if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > HTP_RESPONSE_BODY)
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     else
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
