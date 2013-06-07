@@ -266,11 +266,6 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         FLOWLOCK_WRLOCK(f);
 
         htp_state = (HtpState *)alstate;
-        if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-            FLOWLOCK_UNLOCK(f);
-            goto end;
-        }
-
         tx_id = AppLayerTransactionGetInspectId(f, flags);
         total_txs = AppLayerGetTxCnt(alproto, htp_state);
         for (; tx_id < total_txs; tx_id++) {
@@ -527,11 +522,6 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 FLOWLOCK_WRLOCK(f);
 
                 htp_state = (HtpState *)alstate;
-                if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-                    FLOWLOCK_UNLOCK(f);
-                    RULE_PROFILING_END(det_ctx, s, match);
-                    goto end;
-                }
 
                 engine = app_inspection_engine[alproto][(flags & STREAM_TOSERVER) ? 0 : 1];
                 inspect_tx = AppLayerGetTx(alproto, alstate, inspect_tx_id);
