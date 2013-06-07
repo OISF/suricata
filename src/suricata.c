@@ -125,6 +125,7 @@
 #include "source-napatech.h"
 
 #include "source-af-packet.h"
+#include "source-mpipe.h"
 
 #include "respond-reject.h"
 
@@ -228,7 +229,7 @@ int engine_analysis = 0;
 uint8_t engine_mode = ENGINE_MODE_IDS;
 
 /** Maximum packets to simultaneously process. */
-intmax_t max_pending_packets;
+int max_pending_packets;
 
 /** set caps or not */
 int sc_set_caps;
@@ -322,6 +323,8 @@ uint8_t print_mem_flag = 1;
 #endif
 #endif
 #endif
+
+#define min(a,b) (((a)<(b))?(a):(b))
 
 void GlobalInits()
 {
@@ -557,6 +560,9 @@ void usage(const char *progname)
 #endif
 #ifdef BUILD_UNIX_SOCKET
     printf("\t--unix-socket[=<file>]       : use unix socket to control suricata work\n");
+#endif
+#ifdef HAVE_MPIPE
+    printf("\t--mpipe                      : run with tilegx mpipe interface(s)\n");
 #endif
     printf("\n");
     printf("\nTo run the engine with default configuration on "
@@ -825,6 +831,9 @@ int main(int argc, char **argv)
         {"dag", required_argument, 0, 0},
         {"napatech", 0, 0, 0},
         {"build-info", 0, &build_info, 1},
+#ifdef HAVE_MPIPE
+        {"mpipe", optional_argument, 0, 0},
+#endif
         {NULL, 0, NULL, 0}
     };
 
@@ -1096,6 +1105,25 @@ int main(int argc, char **argv)
                 SCPrintBuildInfo();
                 exit(EXIT_SUCCESS);
             }
+#ifdef HAVE_MPIPE
+            else if(strcmp((long_opts[option_index]).name , "mpipe") == 0){
+                if (run_mode == RUNMODE_UNKNOWN) {
+                    run_mode = RUNMODE_TILERA_MPIPE;
+                    if (optarg != NULL) {
+                        memset(pcap_dev, 0, sizeof(pcap_dev));
+                        strlcpy(pcap_dev, optarg,
+                                ((strlen(optarg) < sizeof(pcap_dev)) ?
+                                 (strlen(optarg) + 1) : sizeof(pcap_dev)));
+                        LiveRegisterDevice(optarg);
+                    }
+                } else {
+                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                            "has been specified");
+                    usage(argv[0]);
+                    exit(EXIT_FAILURE);
+                }
+            }
+#endif
             break;
         case 'c':
             conf_filename = optarg;
@@ -1408,8 +1436,11 @@ int main(int argc, char **argv)
 
     /* Pull the max pending packets from the config, if not found fall
      * back on a sane default. */
-    if (ConfGetInt("max-pending-packets", &max_pending_packets) != 1)
+    intmax_t conf_max_pending_packets;
+    if (ConfGetInt("max-pending-packets", &conf_max_pending_packets) != 1)
         max_pending_packets = DEFAULT_MAX_PENDING_PACKETS;
+    else
+        max_pending_packets = conf_max_pending_packets;
     if (max_pending_packets >= 65535) {
         SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
                 "Maximum max-pending-packets setting is 65534. "
@@ -1545,6 +1576,11 @@ int main(int argc, char **argv)
     /* pcap file */
     TmModuleReceivePcapFileRegister();
     TmModuleDecodePcapFileRegister();
+#ifdef HAVE_MPIPE
+    /* mpipe */
+    TmModuleReceiveMpipeRegister();
+    TmModuleDecodeMpipeRegister();
+#endif
     /* af-packet */
     TmModuleReceiveAFPRegister();
     TmModuleDecodeAFPRegister();
@@ -1925,6 +1961,21 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
             }
         }
+#ifdef HAVE_MPIPE
+    } else if (run_mode == RUNMODE_TILERA_MPIPE) {
+        if (strlen(pcap_dev)) {
+            if (ConfSet("mpipe.single_mpipe_dev", pcap_dev, 0) != 1) {
+                fprintf(stderr, "ERROR: Failed to set netio.single_mpipe_dev\n");
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            int ret = LiveBuildDeviceList("mpipe.inputs");
+            if (ret == 0) {
+                fprintf(stderr, "ERROR: No interface found in config for mpipe\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+#endif
 #ifdef HAVE_PFRING
     } else if (run_mode == RUNMODE_PFRING) {
         /* FIXME add backward compat support */

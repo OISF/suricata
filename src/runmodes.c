@@ -118,6 +118,8 @@ static const char *RunModeTranslateModeToName(int runmode)
             return "NAPATECH";
         case RUNMODE_UNITTEST:
             return "UNITTEST";
+	case RUNMODE_TILERA_MPIPE:
+	    return "MPIPE";
         case RUNMODE_AFP_DEV:
             return "AF_PACKET_DEV";
         case RUNMODE_UNIX_SOCKET:
@@ -186,6 +188,7 @@ void RunModeRegisterRunModes(void)
     RunModeIdsPcapRegister();
     RunModeFilePcapRegister();
     RunModeIdsPfringRegister();
+    RunModeIdsTileMpipeRegister();
     RunModeIpsNFQRegister();
     RunModeIpsIPFWRegister();
     RunModeErfFileRegister();
@@ -276,6 +279,9 @@ void RunModeDispatch(int runmode, const char *custom_mode, DetectEngineCtx *de_c
                 break;
             case RUNMODE_DAG:
                 custom_mode = RunModeErfDagGetDefaultMode();
+                break;
+            case RUNMODE_TILERA_MPIPE:
+                custom_mode = RunModeIdsTileMpipeGetDefaultMode();
                 break;
             case RUNMODE_NAPATECH:
                 custom_mode = RunModeNapatechGetDefaultMode();

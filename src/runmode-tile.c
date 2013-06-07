@@ -1,0 +1,301 @@
+/* Copyright (C) 2011-2013 Open Information Security Foundation
+ *
+ * You can copy, redistribute or modify this Program under the terms of
+ * the GNU General Public License version 2 as published by the Free
+ * Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
+ */
+
+/** \file
+ *
+ *  \author Tom DeCanio <decanio.tom@gmail.com>
+ *  \author Tilera Corporation <suricata@tilera.com>
+ *
+ *  Tilera TILE-Gx runmode support
+ */
+
+#include "suricata-common.h"
+#include "tm-threads.h"
+#include "conf.h"
+#include "runmodes.h"
+#include "runmode-tile.h"
+#include "log-httplog.h"
+#include "output.h"
+#include "cuda-packet-batcher.h"
+#include "source-mpipe.h"
+
+#include "alert-fastlog.h"
+#include "alert-prelude.h"
+#include "alert-unified2-alert.h"
+#include "alert-debuglog.h"
+
+#include "util-debug.h"
+#include "util-time.h"
+#include "util-cpu.h"
+#include "util-affinity.h"
+#include "util-device.h"
+
+#ifdef HAVE_MPIPE
+/* Number of configured parallel pipelines. */
+unsigned int TileNumPipelines;
+
+#define COMBINE_RESPOND_REJECT_AND_OUTPUT
+#endif
+
+/*
+ * runmode support for tilegx
+ */
+
+static const char *mpipe_default_mode = "workers";
+
+
+const char *RunModeIdsTileMpipeGetDefaultMode(void)
+{
+    return mpipe_default_mode;
+}
+
+void RunModeIdsTileMpipeRegister(void)
+{
+#ifdef HAVE_MPIPE
+    RunModeRegisterNewRunMode(RUNMODE_TILERA_MPIPE, "workers",
+                              "Workers tilegx mpipe mode, each thread does all"
+                              " tasks from acquisition to logging",
+                              RunModeIdsTileMpipeWorkers);
+    mpipe_default_mode = "workers";
+#endif
+}
+
+#ifdef HAVE_MPIPE
+
+const char *RunModeTileGetPipelineConfig(const char *custom_mode) 
+{
+    if (custom_mode != NULL) {
+        return custom_mode;
+    }
+
+    char *runmode = NULL;
+    if (ConfGet("runmode", &runmode) == 1) {
+        if (strcmp(runmode, "workers") == 0) {
+            return runmode;
+        }
+    }
+}
+
+void *ParseMpipeConfig(const char *iface)
+{
+    ConfNode *if_root;
+    ConfNode *mpipe_node;
+    MpipeIfaceConfig *aconf = SCMalloc(sizeof(*aconf));
+    char *copymodestr;
+    char *out_iface = NULL;
+
+    if (aconf == NULL) {
+        return NULL;
+    }
+
+    if (iface == NULL) {
+        SCFree(aconf);
+        return NULL;
+    }
+
+    strlcpy(aconf->iface, iface, sizeof(aconf->iface));
+
+    /* Find initial node */
+    mpipe_node = ConfGetNode("mpipe.inputs");
+    if (mpipe_node == NULL) {
+        SCLogInfo("Unable to find mpipe config using default value");
+        return aconf;
+    }
+
+    if_root = ConfNodeLookupKeyValue(mpipe_node, "interface", iface);
+    if (if_root == NULL) {
+        SCLogInfo("Unable to find mpipe config for "
+                  "interface %s, using default value",
+                  iface);
+        return aconf;
+    }
+
+    if (ConfGetChildValue(if_root, "copy-iface", &out_iface) == 1) {
+        if (strlen(out_iface) > 0) {
+            aconf->out_iface = out_iface;
+        }
+    }
+    aconf->copy_mode = MPIPE_COPY_MODE_NONE;
+    if (ConfGetChildValue(if_root, "copy-mode", &copymodestr) == 1) {
+        if (aconf->out_iface == NULL) {
+            SCLogInfo("Copy mode activated but no destination"
+                      " iface. Disabling feature");
+        } else if (strlen(copymodestr) <= 0) {
+            aconf->out_iface = NULL;
+        } else if (strcmp(copymodestr, "ips") == 0) {
+            SCLogInfo("MPIPE IPS mode activated %s->%s",
+                      iface,
+                      aconf->out_iface);
+            aconf->copy_mode = MPIPE_COPY_MODE_IPS;
+        } else if (strcmp(copymodestr, "tap") == 0) {
+            SCLogInfo("MPIPE TAP mode activated %s->%s",
+                      iface,
+                      aconf->out_iface);
+            aconf->copy_mode = MPIPE_COPY_MODE_TAP;
+        } else {
+            SCLogInfo("Invalid mode (no in tap, ips)");
+        }
+    }
+    return aconf;
+}
+
+/**
+ * \brief RunModeIdsTileMpipeWorkers set up the following thread packet handlers:
+ *        - Receive thread (from iface pcap)
+ *        - Decode thread
+ *        - Stream thread
+ *        - Detect: If we have only 1 cpu, it will setup one Detect thread
+ *                  If we have more than one, it will setup num_cpus - 1
+ *                  starting from the second cpu available.
+ *        - Respond/Reject thread
+ *        - Outputs thread
+ *        By default the threads will use the first cpu available
+ *        except the Detection threads if we have more than one cpu
+ *
+ * \param de_ctx pointer to the Detection Engine
+ * \param iface pointer to the name of the interface from which we will
+ *              fetch the packets
+ * \retval 0 if all goes well. (If any problem is detected the engine will
+ *           exit())
+ */
+int RunModeIdsTileMpipeWorkers(DetectEngineCtx *de_ctx)
+{
+    SCEnter();
+    char tname[32];
+    char *thread_name;
+    TmModule *tm_module;
+    int pipe;
+    extern TmEcode ReceiveMpipeInit(void); // move this
+
+    RunModeInitialize();
+
+    /* Available cpus */
+    uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
+
+    TimeModeSetLive();
+
+    unsigned int pipe_max = 1;
+    if (ncpus > 1)
+        pipe_max = ncpus - 1;
+
+    intmax_t pipelines;
+
+    if (ConfGetInt("mpipe.threads", &pipelines) == 1) {
+        TileNumPipelines = pipelines;
+    } else {
+        TileNumPipelines = pipe_max;
+    }
+    SCLogInfo("%d Tilera worker threads", TileNumPipelines);
+
+
+    ReceiveMpipeInit();
+
+    char *mpipe_dev = NULL;
+    int nlive = LiveGetDeviceCount();
+    if (nlive > 0) {
+        SCLogInfo("Using %d live device(s).", nlive);
+        /*mpipe_dev = LiveGetDevice(0);*/
+    } else {
+        /*
+         * Attempt to get interface from config file
+         * overrides -i from command line.
+         */
+        if (ConfGet("mpipe.interface", &mpipe_dev) == 0) {
+            if (ConfGet("mpipe.single_mpipe_dev", &mpipe_dev) == 0) {
+	            SCLogError(SC_ERR_RUNMODE, "Failed retrieving "
+                           "mpipe.single_mpipe_dev from Conf");
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+
+    for (pipe = 0; pipe < TileNumPipelines; pipe++) {
+
+        char *mpipe_devc;
+
+        if (nlive > 0) {
+            mpipe_devc = SCStrdup("multi");
+        } else {
+            mpipe_devc = SCStrdup(mpipe_dev);
+        }
+
+        snprintf(tname, sizeof(tname), "Worker%d", pipe+1);
+        thread_name = SCStrdup(tname);
+
+        /* create the threads */
+        ThreadVars *tv_worker =
+             TmThreadCreatePacketHandler(thread_name,
+                                         "packetpool", "packetpool",
+                                         "packetpool", "packetpool", 
+                                         "pktacqloop");
+        if (tv_worker == NULL) {
+            printf("ERROR: TmThreadsCreate failed\n");
+            exit(EXIT_FAILURE);
+        }
+        tm_module = TmModuleGetByName("ReceiveMpipe");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName failed for ReceiveMpipe\n");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_worker, tm_module, (void *)mpipe_devc);
+
+        /* set affinity for worker */
+        //        int pipe_cpu = tmc_cpus_find_nth_cpu(&cpus, pipe);
+        int pipe_cpu = pipe + 1;
+        TmThreadSetCPUAffinity(tv_worker, pipe_cpu);
+
+        tm_module = TmModuleGetByName("DecodeMpipe");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName DecodeMpipe failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_worker,tm_module,NULL);
+
+        tm_module = TmModuleGetByName("StreamTcp");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_worker,tm_module,NULL);
+
+        tm_module = TmModuleGetByName("Detect");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName Detect failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_worker,tm_module,(void *)de_ctx);
+
+        tm_module = TmModuleGetByName("RespondReject");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName for RespondReject failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_worker,tm_module,NULL);
+
+        SetupOutputs(tv_worker);
+
+        if (TmThreadSpawn(tv_worker) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
+        }
+
+    }
+
+    return 0;
+}
+
+#endif

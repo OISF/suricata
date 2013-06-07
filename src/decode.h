@@ -55,6 +55,7 @@ enum {
 #include "source-ipfw.h"
 #include "source-pcap.h"
 #include "source-af-packet.h"
+#include "source-mpipe.h"
 
 #include "action-globals.h"
 
@@ -390,6 +391,10 @@ typedef struct Packet_
 #ifdef AF_PACKET
         AFPPacketVars afp_v;
 #endif
+#ifdef HAVE_MPIPE
+        /* tilegx mpipe stuff */
+        MpipePacketVars mpipe_v;
+#endif
 
         /** libpcap vars: shared by Pcap Live mode and Pcap File mode */
         PcapPacketVars pcap_v;
@@ -511,7 +516,13 @@ typedef struct Packet_
 #ifdef PROFILING
     PktProfiling profile;
 #endif
-} Packet;
+} 
+#ifdef HAVE_MPIPE
+/* mPIPE requires packet buffers to be aligned to 128 byte
+   boundaries. */
+  __attribute__((aligned(128)))
+#endif
+Packet;
 
 #define DEFAULT_PACKET_SIZE (1500 + ETHERNET_HEADER_LEN)
 /* storage: maximum ip packet size + link header */
@@ -639,7 +650,7 @@ typedef struct DecodeThreadVars_
         (p)->dp = 0;                            \
         (p)->proto = 0;                         \
         (p)->recursion_level = 0;               \
-        (p)->flags = (p)->flags & PKT_ALLOC;    \
+        (p)->flags = (p)->flags & (PKT_ALLOC | PKT_MPIPE); \
         (p)->flowflags = 0;                     \
         (p)->pkt_src = 0;                       \
         FlowDeReference(&((p)->flow));          \
@@ -941,6 +952,8 @@ void AddressDebugPrint(Address *);
 
 #define PKT_HOST_SRC_LOOKED_UP          (1<<17)
 #define PKT_HOST_DST_LOOKED_UP          (1<<18)
+#define PKT_MPIPE                       (1<<19)      /**< Packet is an mPIPE buffer. Don't free. */
+
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) ((p)->flags & PKT_PSEUDO_STREAM_END)

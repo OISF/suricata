@@ -53,6 +53,11 @@
 #include "util-error.h"
 #include "util-profiling.h"
 
+#include "conf.h"
+
+#include "runmode-tile.h"
+#include "source-mpipe.h"
+
 static RingBuffer16 *ringbuffer = NULL;
 /**
  * \brief TmqhPacketpoolRegister
@@ -270,8 +275,15 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
             SCFree(p->root);
             p->root = NULL;
         } else {
-            PACKET_RECYCLE(p->root);
-            RingBufferMrMwPut(ringbuffer, (void *)p->root);
+#ifdef HAVE_MPIPE
+            if (p->root->flags & PKT_MPIPE) {
+                MPIPE_FREE_PACKET(p->root);
+            } else
+#endif
+            {
+                PACKET_RECYCLE(p->root);
+                RingBufferMrMwPut(ringbuffer, (void *)p->root);
+            }
         }
 
     }
@@ -297,8 +309,17 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         PACKET_CLEANUP(p);
         SCFree(p);
     } else {
-        PACKET_RECYCLE(p);
-        RingBufferMrMwPut(ringbuffer, (void *)p);
+#ifdef HAVE_MPIPE
+          if (p->flags & PKT_MPIPE) {
+              /* Don't need to recycle packet here, it is done at
+               * beginning of packet processing on for mPipe. */
+              MPIPE_FREE_PACKET(p);
+          } else
+#endif
+          {
+              PACKET_RECYCLE(p);
+              RingBufferMrMwPut(ringbuffer, (void *)p);
+          }
     }
 
     SCReturn;
