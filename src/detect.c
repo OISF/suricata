@@ -744,11 +744,11 @@ static inline void SigMatchSignaturesBuildMatchArrayNoSIMD(DetectEngineThreadCtx
 static void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *det_ctx,
         Packet *p, SignatureMask mask, uint16_t alproto)
 {
-#if defined(__SSE3__)
-    SigMatchSignaturesBuildMatchArraySIMD(det_ctx, p, mask, alproto);
-#else
+    //#if defined(__SSE3__)
+    //SigMatchSignaturesBuildMatchArraySIMD(det_ctx, p, mask, alproto);
+    //#else
     SigMatchSignaturesBuildMatchArrayNoSIMD(det_ctx, p, mask, alproto);
-#endif
+    //#endif
 }
 
 int SigMatchSignaturesRunPostMatch(ThreadVars *tv,

@@ -162,7 +162,7 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
             htud->tsflags |= HTP_REQ_BODY_COMPLETE;
         }
     } else {
-        if (htud->request_body.content_len == tx->request_entity_len) {
+        if (htud->request_body.content_len == (uint64_t)tx->request_entity_len) {
              SCLogDebug("content_len reached");
              htud->tsflags |= HTP_RES_BODY_COMPLETE;
         }

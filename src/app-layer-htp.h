@@ -158,13 +158,13 @@ typedef struct HtpBody_ {
     HtpBodyChunk *last;  /**< Pointer to the last chunk */
 
     /* Holds the length of the htp request body */
-    int64_t content_len;
+    uint64_t content_len;
     /* Holds the length of the htp request body seen so far */
-    int64_t content_len_so_far;
+    uint64_t content_len_so_far;
     /* parser tracker */
     uint64_t body_parsed;
     /* inspection tracker */
-    int64_t body_inspected;
+    uint64_t body_inspected;
 } HtpBody;
 
 #define HTP_REQ_BODY_COMPLETE   0x01    /**< body is complete or limit is reached,
@@ -190,8 +190,18 @@ typedef struct HtpBody_ {
   * the tx user data */
 typedef struct HtpTxUserData_ {
     /* Body of the request (if any) */
+    uint8_t request_body_init;
+    uint8_t response_body_init;
     HtpBody request_body;
     HtpBody response_body;
+
+    bstr *request_uri_normalized;
+
+    uint8_t *request_headers_raw;
+    uint32_t request_headers_raw_len;
+
+    uint8_t *response_headers_raw;
+    uint32_t response_headers_raw_len;
 
     /** Holds the boundary identificator string if any (used on
      *  multipart/form-data only)

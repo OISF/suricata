@@ -1156,6 +1156,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
                     "inspecting response headers.");
             SCReturnInt(0);
         }
+#if 0
 #ifndef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
         if (s->flags & SIG_FLAG_TOCLIENT) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,"http_raw_header signature with "
@@ -1164,6 +1165,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
             SCReturnInt(0);
         }
 #endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
+#endif
     }
 
     if (s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL) {

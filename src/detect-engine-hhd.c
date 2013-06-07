@@ -122,8 +122,12 @@ static uint8_t *DetectEngineHHDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
 
     htp_table_t *headers;
     if (flags & STREAM_TOSERVER) {
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) <= HTP_REQUEST_HEADERS)
+            goto end;
         headers = tx->request_headers;
     } else {
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 1) <= HTP_RESPONSE_HEADERS)
+            goto end;
         headers = tx->response_headers;
     }
     if (headers == NULL)

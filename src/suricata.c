@@ -700,7 +700,7 @@ void SCPrintBuildInfo(void) {
     printf("L1 cache line size (CLS)=%d\n", CLS);
 #endif
 
-    printf("compiled with libhtp %s, linked against %s\n", HTP_BASE_VERSION_TEXT, htp_get_version());
+    printf("compiled with libhtp %s, linked against %s\n", HTP_VERSION_STRING, HTP_VERSION_STRING);
 
 #include "build-info.h"
 }
