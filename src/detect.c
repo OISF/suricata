@@ -1342,7 +1342,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             if (p->flow->flags & FLOW_ACTION_DROP)
             {
                 alert_flags = PACKET_ALERT_FLAG_DROP_FLOW;
-                p->action |= ACTION_DROP;
+                UPDATE_PACKET_ACTION(p, ACTION_DROP);
             }
         }
 
@@ -1626,7 +1626,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 PacketAlertAppend(det_ctx, s, p, alert_flags);
         } else {
             /* apply actions even if not alerting */
-            p->action |= s->action;
+            UPDATE_PACKET_ACTION(p, s->action);
         }
 next:
         DetectFlowvarProcessList(det_ctx, p->flow);
