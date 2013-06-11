@@ -781,6 +781,12 @@ typedef struct DecodeThreadVars_
      ((p)->action = ACTION_PASS)); \
 } while (0)
 
+#define UPDATE_PACKET_ACTION(p, a) do { \
+    ((p)->root ? \
+     ((p)->root->action |= a) : \
+     ((p)->action |= a)); \
+} while (0)
+
 #define TUNNEL_INCR_PKT_RTV(p) do {                                                 \
         SCMutexLock((p)->root ? &(p)->root->tunnel_mutex : &(p)->tunnel_mutex);     \
         ((p)->root ? (p)->root->tunnel_rtv_cnt++ : (p)->tunnel_rtv_cnt++);          \

@@ -1299,7 +1299,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             /* Get the result of the first IPOnlyMatch() */
             if (p->flow->flags & FLOW_ACTION_PASS) {
                 /* if it matched a "pass" rule, we have to let it go */
-                p->action |= ACTION_PASS;
+                UPDATE_PACKET_ACTION(p, ACTION_PASS);
             }
             /* If we have a drop from IP only module,
              * we will drop the rest of the flow packets
@@ -1307,7 +1307,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             if (p->flow->flags & FLOW_ACTION_DROP)
             {
                 alert_flags = PACKET_ALERT_FLAG_DROP_FLOW;
-                p->action |= ACTION_DROP;
+                UPDATE_PACKET_ACTION(p, ACTION_DROP);
             }
         }
 
@@ -1602,7 +1602,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             PacketAlertAppend(det_ctx, s, p, alert_flags);
         } else {
             /* apply actions even if not alerting */
-            p->action |= s->action;
+            UPDATE_PACKET_ACTION(p, s->action);
         }
 next:
         DetectFlowvarCleanupList(det_ctx);
