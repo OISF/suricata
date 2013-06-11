@@ -247,7 +247,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
             }
 
             /* set verdict on packet */
-            p->action |= p->alerts.alerts[i].action;
+            UPDATE_PACKET_ACTION(p, p->alerts.alerts[i].action);
 
             if (p->action & ACTION_PASS) {
                 /* Ok, reset the alert cnt to end in the previous of pass
