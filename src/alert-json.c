@@ -197,7 +197,10 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
         } else {
             snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IPV4_GET_IPPROTO(p));
         }
-        js = json_pack("{"
+        json_error_t error;
+        js = json_pack_ex(
+                       &error, 0,
+                       "{"
                        "ss"
                        "ss"
                        "si"
@@ -216,8 +219,8 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
                        "gid", pa->s->gid,
                        "id", pa->s->id,
                        "rev", pa->s->rev,
-                       "msg", pa->s->msg,
-                       "class", pa->s->class_msg,
+                       "msg", (pa->s->msg) ? pa->s->msg : "",
+                       "class", (pa->s->class_msg) ? pa->s->class_msg : "",
                        "pri", pa->s->prio,
                        "proto", proto,
                        "srcip", srcip,
@@ -226,8 +229,10 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
                        "dp", p->dp
                       );
 
-        if (js == NULL)
-            return TM_ECODE_FAILED;
+        if (js == NULL) {
+            SCLogInfo("json_pack error %s", error.text);
+            return TM_ECODE_OK;
+        }
 
         SCMutexLock(&aft->file_ctx->fp_mutex);
         if (json_out == ALERT_FILE) {
@@ -287,7 +292,10 @@ TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
         } else {
             snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IP_GET_IPPROTO(p));
         }
-        js = json_pack("{"
+        json_error_t error;
+        js = json_pack_ex(
+                       &error, 0,
+                       "{"
                        "ss"
                        "ss"
                        "si"
@@ -306,8 +314,8 @@ TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
                        "gid", pa->s->gid,
                        "id", pa->s->id,
                        "rev", pa->s->rev,
-                       "msg", pa->s->msg,
-                       "class", pa->s->class_msg,
+                       "msg", (pa->s->msg) ? pa->s->msg : "",
+                       "class", (pa->s->class_msg) ? pa->s->class_msg : "",
                        "pri", pa->s->prio,
                        "proto", proto,
                        "srcip", srcip,
@@ -316,8 +324,10 @@ TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
                        "dp", p->dp
                       );
 
-        if (js == NULL)
-            return TM_ECODE_FAILED;
+        if (js == NULL) {
+            SCLogInfo("json_pack error %s", error.text);
+            return TM_ECODE_OK;
+        }
 
         SCMutexLock(&aft->file_ctx->fp_mutex);
         if (json_out == ALERT_FILE) {
@@ -371,7 +381,10 @@ TmEcode AlertJsonDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue
         char buf[(32 * 3) + 1];
         PrintRawLineHexBuf(buf, sizeof(buf), GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
 
-        js = json_pack("{"
+        json_error_t error;
+        js = json_pack_ex(
+                       &error, 0,
+                       "{"
                        "ss"
                        "ss"
                        "si"
@@ -386,14 +399,16 @@ TmEcode AlertJsonDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue
                        "gid", pa->s->gid,
                        "id", pa->s->id,
                        "rev", pa->s->rev,
-                       "msg", pa->s->msg,
-                       "class", pa->s->class_msg,
+                       "msg", (pa->s->msg) ? pa->s->msg : "",
+                       "class", (pa->s->class_msg) ? pa->s->class_msg : "",
                        "pri", pa->s->prio,
                        "pkt", buf
                       );
 
-        if (js == NULL)
-            return TM_ECODE_FAILED;
+        if (js == NULL) {
+            SCLogInfo("json_pack error %s", error.text);
+            return TM_ECODE_OK;
+        }
 
         SCMutexLock(&aft->file_ctx->fp_mutex);
         if (json_out == ALERT_FILE) {
