@@ -129,13 +129,13 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
         ptr = payload + det_ctx->buffer_offset;
         len = payload_len - det_ctx->buffer_offset;
 
-        /* No match if there is no relative base */
-        if (ptr == NULL || len == 0) {
-            SCReturnInt(0);
-        }
-
         ptr += offset;
         len -= offset;
+
+        /* No match if there is no relative base */
+        if (ptr == NULL || len <= 0) {
+            SCReturnInt(0);
+        }
     }
     else {
         ptr = payload + offset;
