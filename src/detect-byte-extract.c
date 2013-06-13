@@ -156,14 +156,13 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, SigMatch *sm,
         ptr = payload + det_ctx->buffer_offset;
         len = payload_len - det_ctx->buffer_offset;
 
-        /* No match if there is no relative base */
-        if (len == 0) {
-            return 0;
-        }
-
         ptr += data->offset;
         len -= data->offset;
 
+        /* No match if there is no relative base */
+        if (len <= 0) {
+            return 0;
+        }
         //PrintRawDataFp(stdout,ptr,len);
     } else {
         SCLogDebug("absolute, data->offset %"PRIu32"", data->offset);
