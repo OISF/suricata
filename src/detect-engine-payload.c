@@ -997,6 +997,75 @@ end:
     return result;
 }
 
+/**
+ * \test Test byte_jump.
+ */
+static int PayloadTestSig32(void)
+{
+    uint8_t *buf = (uint8_t *)"dummy2xxcardmessage";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"crash\"; "
+        "content:\"message\"; byte_jump:2,-14,string,dec,relative; content:\"card\"; within:4; sid:1;)";
+
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0)
+        goto end;
+
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
+/**
+ * \test Test byte_test.
+ */
+static int PayloadTestSig33(void)
+{
+    uint8_t *buf = (uint8_t *)"dummy2xxcardmessage";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"crash\"; "
+        "content:\"message\"; byte_test:1,=,2,-14,string,dec,relative; sid:1;)";
+
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0)
+        goto end;
+
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
+/**
+ * \test Test byte_extract.
+ */
+static int PayloadTestSig34(void)
+{
+    uint8_t *buf = (uint8_t *)"dummy2xxcardmessage";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"crash\"; "
+        "content:\"message\"; byte_extract:1,-14,boom,string,dec,relative; sid:1;)";
+
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0)
+        goto end;
+
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void PayloadRegisterTests(void) {
@@ -1034,6 +1103,9 @@ void PayloadRegisterTests(void) {
 
     UtRegisterTest("PayloadTestSig30", PayloadTestSig30, 1);
     UtRegisterTest("PayloadTestSig31", PayloadTestSig31, 1);
+    UtRegisterTest("PayloadTestSig32", PayloadTestSig32, 1);
+    UtRegisterTest("PayloadTestSig33", PayloadTestSig33, 1);
+    UtRegisterTest("PayloadTestSig34", PayloadTestSig34, 1);
 #endif /* UNITTESTS */
 
     return;
