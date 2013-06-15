@@ -519,6 +519,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
             goto match;
         }
 
+        det_ctx->discontinue_matching = 0;
+
         SCReturnInt(0);
 #ifdef HAVE_LUAJIT
     }
