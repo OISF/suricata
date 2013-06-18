@@ -60,7 +60,8 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 #define CERT_ENC_BUFFER_SIZE 2048
 
 #define LOG_TLS_DEFAULT     0
-#define LOG_TLS_EXTENDED    1
+#define LOG_TLS_EXTENDED    (1 << 0)
+#define LOG_TLS_JSON        (1 << 1)
 
 TmEcode LogTlsLog(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode LogTlsLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
@@ -166,6 +167,47 @@ static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState * state)
             break;
     }
     MemBufferWriteString(aft->buffer, "\n");
+}
+
+#define SSL_VERSION_LENGTH 13
+
+static void LogTlsLogExtendedJSON(LogTlsLogThread *aft, SSLState * state)
+{
+    FILE *fp = aft->tlslog_ctx->file_ctx->fp;
+    char ssl_version[SSL_VERSION_LENGTH + 1];
+
+    fprintf(fp, "\"tls.fingerprint\": \"");
+    PrintRawJsonFp(fp, (uint8_t *)state->server_connp.cert0_fingerprint,
+                   (uint32_t)strlen(state->server_connp.cert0_fingerprint));
+    fprintf(fp, "\", ");
+
+    fprintf(fp, "\"tls.version\": \"");
+    switch (state->server_connp.version) {
+        case TLS_VERSION_UNKNOWN:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "UNDETERMINED");
+            break;
+        case SSL_VERSION_2:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "SSLv2");
+            break;
+        case SSL_VERSION_3:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "SSLv3");
+            break;
+        case TLS_VERSION_10:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLSv1");
+            break;
+        case TLS_VERSION_11:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.1");
+            break;
+        case TLS_VERSION_12:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.2");
+            break;
+        default:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "0x%04x",
+                     state->server_connp.version);
+            break;
+    }
+    PrintRawJsonFp(fp, (uint8_t *)ssl_version, strlen(ssl_version));
+    fprintf(fp, "\"");
 }
 
 static int GetIPInformations(Packet *p, char* srcip, size_t srcip_len,
@@ -435,14 +477,133 @@ end:
 
 }
 
+static TmEcode LogTlsLogIPWrapperJSON(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq, int ipproto)
+{
+    SCEnter();
+    LogTlsLogThread *aft = (LogTlsLogThread *) data;
+    LogTlsFileCtx *hlog = aft->tlslog_ctx;
+    FILE *fp = aft->tlslog_ctx->file_ctx->fp;
+
+    char timebuf[64];
+
+    /* no flow, no tls state */
+    if (p->flow == NULL) {
+        SCReturnInt(TM_ECODE_OK);
+    }
+
+    /* check if we have TLS state or not */
+    FLOWLOCK_WRLOCK(p->flow);
+    uint16_t proto = AppLayerGetProtoFromPacket(p);
+    if (proto != ALPROTO_TLS)
+        goto end;
+
+    SSLState *ssl_state = (SSLState *) AppLayerGetProtoStateFromPacket(p);
+    if (ssl_state == NULL) {
+        SCLogDebug("no tls state, so no request logging");
+        goto end;
+    }
+
+    if (ssl_state->server_connp.cert0_issuerdn == NULL || ssl_state->server_connp.cert0_subject == NULL)
+        goto end;
+
+    if (ssl_state->server_connp.cert_log_flag & SSL_TLS_LOG_PEM) {
+        LogTlsLogPem(aft, p, ssl_state, hlog, ipproto);
+    }
+
+
+    if (AppLayerTransactionGetLogId(p->flow) != 0)
+        goto end;
+
+    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+
+    fprintf(fp, "{ ");
+
+    fprintf(fp, "\"timestamp\": \"");
+    PrintRawJsonFp(fp, (uint8_t *)timebuf, strlen(timebuf));
+    fprintf(fp, "\", ");
+    if (p->pcap_cnt > 0) {
+        fprintf(fp, "\"pcap_pkt_num\": %"PRIu64", ", p->pcap_cnt);
+    }
+
+    fprintf(fp, "\"ipver\": %d, ", ipproto == AF_INET ? 4 : 6);
+
+    char srcip[46], dstip[46];
+    Port sp, dp;
+    switch (ipproto) {
+        case AF_INET:
+            PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+            PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+            break;
+        case AF_INET6:
+            PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+            PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+            break;
+        default:
+            strlcpy(srcip, "<unknown>", sizeof(srcip));
+            strlcpy(dstip, "<unknown>", sizeof(dstip));
+            break;
+    }
+    sp = p->sp;
+    dp = p->dp;
+
+    fprintf(fp, "\"srcip\": \"%s\", ", srcip);
+    fprintf(fp, "\"dstip\": \"%s\", ", dstip);
+    fprintf(fp, "\"protocol\": %" PRIu32 ", ", p->proto);
+    if (PKT_IS_TCP(p) || PKT_IS_UDP(p)) {
+        fprintf(fp, "\"sp\": %" PRIu16 ", ", sp);
+        fprintf(fp, "\"dp\": %" PRIu16 ", ", dp);
+    }
+
+    fprintf(fp, "\"tls.subject\": \"");
+    PrintRawJsonFp(fp, (uint8_t *)ssl_state->server_connp.cert0_subject,
+                   strlen(ssl_state->server_connp.cert0_subject));
+    fprintf(fp, "\", ");
+
+    fprintf(fp, "\"tls.issuerdn\": \"");
+    PrintRawJsonFp(fp, (uint8_t *)ssl_state->server_connp.cert0_issuerdn,
+                   strlen(ssl_state->server_connp.cert0_issuerdn));
+    fprintf(fp, "\"");
+
+
+    if (hlog->flags & LOG_TLS_EXTENDED) {
+        fprintf(fp, ", ");
+        LogTlsLogExtendedJSON(aft, ssl_state);
+    }
+
+    AppLayerTransactionUpdateLogId(p->flow);
+
+    aft->tls_cnt ++;
+
+    SCMutexLock(&hlog->file_ctx->fp_mutex);
+    MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
+    fflush(hlog->file_ctx->fp);
+
+    fprintf(fp, "}\n");
+    fflush(fp);
+    SCMutexUnlock(&hlog->file_ctx->fp_mutex);
+
+end:
+    FLOWLOCK_UNLOCK(p->flow);
+    SCReturnInt(TM_ECODE_OK);
+
+}
+
 TmEcode LogTlsLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
-    return LogTlsLogIPWrapper(tv, p, data, pq, postpq, AF_INET);
+    LogTlsLogThread *aft = (LogTlsLogThread *) data;
+    if (aft->tlslog_ctx->flags & LOG_TLS_JSON)
+        return LogTlsLogIPWrapperJSON(tv, p, data, pq, postpq, AF_INET);
+    else
+        return LogTlsLogIPWrapper(tv, p, data, pq, postpq, AF_INET);
 }
 
 TmEcode LogTlsLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
-    return LogTlsLogIPWrapper(tv, p, data, pq, postpq, AF_INET6);
+    LogTlsLogThread *aft = (LogTlsLogThread *) data;
+    if (aft->tlslog_ctx->flags & LOG_TLS_JSON)
+        return LogTlsLogIPWrapperJSON(tv, p, data, pq, postpq, AF_INET6);
+    else
+        return LogTlsLogIPWrapper(tv, p, data, pq, postpq, AF_INET6);
 }
 
 TmEcode LogTlsLog(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
@@ -574,6 +735,13 @@ OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
     } else {
         if (ConfValIsTrue(extended)) {
             tlslog_ctx->flags |= LOG_TLS_EXTENDED;
+        }
+    }
+
+    const char *json = ConfNodeLookupChildValue(conf, "json");
+    if (json != NULL) {
+        if (ConfValIsTrue(extended)) {
+            tlslog_ctx->flags |= LOG_TLS_JSON;
         }
     }
 
