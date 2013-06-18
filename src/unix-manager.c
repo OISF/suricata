@@ -40,6 +40,13 @@
 #ifdef BUILD_UNIX_SOCKET
 #include <jansson.h>
 
+// MSG_NOSIGNAL does not exists on OS X
+#ifdef OS_DARWIN
+# ifndef MSG_NOSIGNAL
+#   define MSG_NOSIGNAL SO_NOSIGPIPE
+# endif
+#endif
+
 #define SOCKET_PATH LOCAL_STATE_DIR "/run/suricata/"
 #define SOCKET_FILENAME "suricata-command.socket"
 #define SOCKET_TARGET SOCKET_PATH SOCKET_FILENAME
