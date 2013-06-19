@@ -48,8 +48,6 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-classification-config.h"
-#include "util-mpm-b2g-cuda.h"
-#include "util-cuda-handlers.h"
 #include "util-privs.h"
 #include "util-print.h"
 #include "util-proto-name.h"
