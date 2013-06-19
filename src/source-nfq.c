@@ -149,6 +149,8 @@ TmEcode VerdictNFQThreadDeinit(ThreadVars *, void *);
 TmEcode DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode DecodeNFQThreadInit(ThreadVars *, void *, void **);
 
+TmEcode NFQSetVerdict(Packet *p);
+
 typedef enum NFQMode_ {
     NFQ_ACCEPT_MODE,
     NFQ_REPEAT_MODE,
@@ -392,7 +394,13 @@ static inline void NFQMutexInit(NFQQueueVars *nq)
         SCMutexUnlock(&(nq)->mutex_qh); \
 } while (0)
 
-
+/**
+ * \brief Read data from nfq message and setup Packet
+ *
+ * \note
+ * In case of error, this function verdict the packet
+ * to avoid skb to get stuck in kernel.
+ */
 int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
 {
     struct nfq_data *tb = (struct nfq_data *)data;
@@ -427,6 +435,7 @@ int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
     }
     p->nfq_v.ifi  = nfq_get_indev(tb);
     p->nfq_v.ifo  = nfq_get_outdev(tb);
+    p->nfq_v.verdicted = 0;
 
 #ifdef NFQ_GET_PAYLOAD_SIGNED
     ret = nfq_get_payload(tb, &pktdata);
@@ -464,6 +473,15 @@ int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
     return 0;
 }
 
+TmEcode NFQReleaseData(ThreadVars *t, Packet *p)
+{
+    if (unlikely(!p->nfq_v.verdicted)) {
+        PACKET_UPDATE_ACTION(p, ACTION_DROP);
+        NFQSetVerdict(p);
+    }
+    return TM_ECODE_OK;
+}
+
 static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
                        struct nfq_data *nfa, void *data)
 {
@@ -487,10 +505,13 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
         nfq_q->pkts++;
         nfq_q->bytes += GET_PKT_LEN(p);
 #endif /* COUNTERS */
-        /* recycle Packet and leave */
+        /* NFQSetupPkt is issuing a verdict
+           so we only recycle Packet and leave */
         TmqhOutputPacketpool(tv, p);
         return 0;
     }
+
+    p->ReleaseData = NFQReleaseData;
 
 #ifdef COUNTERS
     NFQQueueVars *nfq_q = NFQGetQueue(ntv->nfq_index);
@@ -999,6 +1020,8 @@ TmEcode NFQSetVerdict(Packet *p) {
     /** \todo add a test on validity of the entry NFQQueueVars could have been
      *  wipeout
      */
+
+    p->nfq_v.verdicted = 1;
 
     /* can't verdict a "fake" packet */
     if (p->flags & PKT_PSEUDO_STREAM_END) {
