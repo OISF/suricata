@@ -51,7 +51,7 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     SCPerfCounterIncr(dtv->counter_gre, tv->sc_perf_pca);
 
     if(len < GRE_HDR_LEN)    {
-        ENGINE_SET_EVENT(p,GRE_PKT_TOO_SMALL);
+        ENGINE_SET_INVALID_EVENT(p, GRE_PKT_TOO_SMALL);
         return;
     }
 
@@ -76,12 +76,12 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
              */
 
             if (GRE_FLAG_ISSET_RECUR(p->greh)) {
-                ENGINE_SET_EVENT(p,GRE_VERSION0_RECUR);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION0_RECUR);
                 return;
             }
 
             if (GREV1_FLAG_ISSET_FLAGS(p->greh))   {
-                ENGINE_SET_EVENT(p,GRE_VERSION0_FLAGS);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION0_FLAGS);
                 return;
             }
 
@@ -97,7 +97,7 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                 header_len += GRE_CHKSUM_LEN + GRE_OFFSET_LEN;
 
             if (header_len > len)   {
-                ENGINE_SET_EVENT(p,GRE_VERSION0_HDR_TOO_BIG);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION0_HDR_TOO_BIG);
                 return;
             }
 
@@ -106,7 +106,8 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                 while (1)
                 {
                     if ((header_len + GRE_SRE_HDR_LEN) > len) {
-                        ENGINE_SET_EVENT(p, GRE_VERSION0_MALFORMED_SRE_HDR);
+                        ENGINE_SET_INVALID_EVENT(p,
+                                                 GRE_VERSION0_MALFORMED_SRE_HDR);
                         return;
                     }
 
@@ -119,7 +120,8 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
                     header_len += gsre->sre_length;
                     if (header_len > len) {
-                        ENGINE_SET_EVENT(p, GRE_VERSION0_MALFORMED_SRE_HDR);
+                        ENGINE_SET_INVALID_EVENT(p,
+                                                 GRE_VERSION0_MALFORMED_SRE_HDR);
                         return;
                     }
                 }
@@ -138,37 +140,37 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
              */
 
             if (GRE_FLAG_ISSET_CHKSUM(p->greh))    {
-                ENGINE_SET_EVENT(p,GRE_VERSION1_CHKSUM);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION1_CHKSUM);
                 return;
             }
 
             if (GRE_FLAG_ISSET_ROUTE(p->greh)) {
-                ENGINE_SET_EVENT(p,GRE_VERSION1_ROUTE);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION1_ROUTE);
                 return;
             }
 
             if (GRE_FLAG_ISSET_SSR(p->greh))   {
-                ENGINE_SET_EVENT(p,GRE_VERSION1_SSR);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION1_SSR);
                 return;
             }
 
             if (GRE_FLAG_ISSET_RECUR(p->greh)) {
-                ENGINE_SET_EVENT(p,GRE_VERSION1_RECUR);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION1_RECUR);
                 return;
             }
 
             if (GREV1_FLAG_ISSET_FLAGS(p->greh))   {
-                ENGINE_SET_EVENT(p,GRE_VERSION1_FLAGS);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION1_FLAGS);
                 return;
             }
 
             if (GRE_GET_PROTO(p->greh) != GRE_PROTO_PPP)  {
-                ENGINE_SET_EVENT(p,GRE_VERSION1_WRONG_PROTOCOL);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION1_WRONG_PROTOCOL);
                 return;
             }
 
             if (!(GRE_FLAG_ISSET_KY(p->greh))) {
-                ENGINE_SET_EVENT(p,GRE_VERSION1_NO_KEY);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION1_NO_KEY);
                 return;
             }
 
@@ -183,13 +185,13 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                 header_len += GREV1_ACK_LEN;
 
             if (header_len > len)   {
-                ENGINE_SET_EVENT(p,GRE_VERSION1_HDR_TOO_BIG);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION1_HDR_TOO_BIG);
                 return;
             }
 
             break;
         default:
-            ENGINE_SET_EVENT(p,GRE_WRONG_VERSION);
+            ENGINE_SET_INVALID_EVENT(p, GRE_WRONG_VERSION);
             return;
     }
 

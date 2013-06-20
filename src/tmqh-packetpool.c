@@ -52,6 +52,7 @@
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-profiling.h"
+#include "util-device.h"
 
 static RingBuffer16 *ringbuffer = NULL;
 /**
@@ -165,6 +166,9 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
 
     SCEnter();
     SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, p->flags & PKT_ALLOC ? "true" : "false");
+
+    if ((p->flags & PKT_IS_INVALID) && p->livedev)
+        SC_ATOMIC_ADD(p->livedev->invalid_pkts, 1);
 
     /** \todo make this a callback
      *  Release tcp segments. Done here after alerting can use them. */
