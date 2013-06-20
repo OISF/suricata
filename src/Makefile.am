@@ -338,8 +338,7 @@ win32-syslog.h
 EXTRA_DIST = util-mpm-ac-cuda-kernel.cu ptxdump.py
 
 # set the include path found by configure
-INCLUDES= $(all_includes)
-
+AM_CPPFLAGS = $(all_includes)
 
 # the library search path.
 suricata_LDFLAGS = $(all_libraries)
