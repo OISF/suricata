@@ -258,6 +258,7 @@ util-crypt.c util-crypt.h \
 util-cuda.c util-cuda.h \
 util-cuda-buffer.c util-cuda-buffer.h \
 util-cuda-handlers.c util-cuda-handlers.h \
+util-cuda-vars.c util-cuda-vars.h \
 util-daemon.c util-daemon.h \
 util-debug.c util-debug.h \
 util-debug-filters.c util-debug-filters.h \

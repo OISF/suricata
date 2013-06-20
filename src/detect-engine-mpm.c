@@ -225,7 +225,7 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
         SCReturnInt(0);
 
 #ifdef __SC_CUDA_SUPPORT__
-    if (p->cuda_mpm_enabled && p->pkt_src == PKT_SRC_WIRE) {
+    if (p->cuda_pkt_vars.cuda_mpm_enabled && p->pkt_src == PKT_SRC_WIRE) {
         ret = SCACCudaPacketResultsProcessing(p, mpm_ctx, &det_ctx->pmq);
     } else {
         ret = mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,

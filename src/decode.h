@@ -32,6 +32,7 @@
 
 #ifdef __SC_CUDA_SUPPORT__
 #include "util-cuda-buffer.h"
+#include "util-cuda-vars.h"
 #endif /* __SC_CUDA_SUPPORT__ */
 
 typedef enum {
@@ -491,12 +492,7 @@ typedef struct Packet_
     PktProfiling profile;
 #endif
 #ifdef __SC_CUDA_SUPPORT__
-    uint8_t cuda_mpm_enabled;
-    uint8_t cuda_done;
-    uint16_t cuda_gpu_matches;
-    SCMutex cuda_mutex;
-    SCCondT cuda_cond;
-    uint32_t cuda_results[(UTIL_MPM_CUDA_DATA_BUFFER_SIZE_MAX_LIMIT_DEFAULT * 2) + 1];
+    CudaPacketVars cuda_pkt_vars;
 #endif
 } Packet;
 
@@ -583,21 +579,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_defrag_max_hit;
 
 #ifdef __SC_CUDA_SUPPORT__
-    /* cb - CudaBuffer */
-    CudaBufferData *cuda_ac_cb;
-
-    MpmCtx *mpm_proto_other_ctx;
-
-    MpmCtx *mpm_proto_tcp_ctx_ts;
-    MpmCtx *mpm_proto_udp_ctx_ts;
-
-    MpmCtx *mpm_proto_tcp_ctx_tc;
-    MpmCtx *mpm_proto_udp_ctx_tc;
-
-    uint16_t data_buffer_size_max_limit;
-    uint16_t data_buffer_size_min_limit;
-
-    uint8_t mpm_is_cuda;
+    CudaThreadVars cuda_vars;
 #endif
 } DecodeThreadVars;
 
@@ -625,8 +607,8 @@ typedef struct DecodeThreadVars_
         PACKET_RESET_CHECKSUMS((p));                                    \
         (p)->pkt = ((uint8_t *)(p)) + sizeof(Packet);                   \
         (p)->livedev = NULL;                                            \
-        SCMutexInit(&(p)->cuda_mutex, NULL);                            \
-        SCCondInit(&(p)->cuda_cond, NULL);                              \
+        SCMutexInit(&(p)->cuda_pkt_vars.cuda_mutex, NULL);            \
+        SCCondInit(&(p)->cuda_pkt_vars.cuda_cond, NULL);                \
     } while (0)
 #else
 #define PACKET_INITIALIZE(p) {         \
