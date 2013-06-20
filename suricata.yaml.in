@@ -10,9 +10,9 @@
 # conservative 1024. A higher number will make sure CPU's/CPU cores will be
 # more easily kept busy, but may negatively impact caching.
 #
-# If you are using the CUDA pattern matcher (b2g_cuda below), different rules
-# apply. In that case try something like 4000 or more. This is because the CUDA
-# pattern matcher scans many packets in parallel.
+# If you are using the CUDA pattern matcher (mpm-algo: ac-cuda), different rules
+# apply. In that case try something like 60000 or more. This is because the CUDA
+# pattern matcher buffers and scans as many packets as possible in parallel.
 #max-pending-packets: 1024
 
 # Runmode the engine should use. Please check --list-runmodes to get the available

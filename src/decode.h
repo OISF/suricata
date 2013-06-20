@@ -541,6 +541,26 @@ typedef struct AlpProtoDetectThreadCtx_ {
 #endif
 } AlpProtoDetectThreadCtx;
 
+#ifdef __SC_CUDA_SUPPORT__
+typedef struct DecodeCudaThreadVars_ {
+    /* cb - CudaBuffer */
+    CudaBufferData *cuda_ac_cb;
+
+    MpmCtx *mpm_proto_other_ctx;
+
+    MpmCtx *mpm_proto_tcp_ctx_ts;
+    MpmCtx *mpm_proto_udp_ctx_ts;
+
+    MpmCtx *mpm_proto_tcp_ctx_tc;
+    MpmCtx *mpm_proto_udp_ctx_tc;
+
+    uint16_t data_buffer_size_max_limit;
+    uint16_t data_buffer_size_min_limit;
+
+    uint8_t mpm_is_cuda;
+} DecodeCudaThreadVars;
+#endif
+
 /** \brief Structure to hold thread specific data for all decode modules */
 typedef struct DecodeThreadVars_
 {
@@ -583,21 +603,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_defrag_max_hit;
 
 #ifdef __SC_CUDA_SUPPORT__
-    /* cb - CudaBuffer */
-    CudaBufferData *cuda_ac_cb;
-
-    MpmCtx *mpm_proto_other_ctx;
-
-    MpmCtx *mpm_proto_tcp_ctx_ts;
-    MpmCtx *mpm_proto_udp_ctx_ts;
-
-    MpmCtx *mpm_proto_tcp_ctx_tc;
-    MpmCtx *mpm_proto_udp_ctx_tc;
-
-    uint16_t data_buffer_size_max_limit;
-    uint16_t data_buffer_size_min_limit;
-
-    uint8_t mpm_is_cuda;
+    DecodeCudaThreadVars cuda_vars;
 #endif
 } DecodeThreadVars;
 
