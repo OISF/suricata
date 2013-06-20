@@ -26,9 +26,6 @@
 
 void TmModuleReceivePcapFileRegister (void);
 void TmModuleDecodePcapFileRegister (void);
-#ifdef __SC_CUDA_SUPPORT__
-void DecodePcapFileSetCudaDeCtx(DetectEngineCtx *de_ctx);
-#endif
 
 #endif /* __SOURCE_PCAP_FILE_H__ */
 

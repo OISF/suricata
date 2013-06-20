@@ -1829,7 +1829,7 @@ int main(int argc, char **argv)
     }
 #ifdef __SC_CUDA_SUPPORT__
     if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
-        DecodePcapFileSetCudaDeCtx(de_ctx);
+        CudaVarsSetDeCtx(de_ctx);
 #endif /* __SC_CUDA_SUPPORT__ */
 
     SCClassConfLoadClassficationConfigFile(de_ctx);

@@ -272,7 +272,7 @@ CudaBufferSlice *CudaBufferGetSlice(CudaBufferData *cb_data, uint32_t len, void 
 
     if (cb_data->d_buffer_write < cb_data->d_buffer_read) {
         if (cb_data->d_buffer_write + len >= cb_data->d_buffer_read) {
-            SCLogInfo("d_buffer full");
+            SCLogDebug("d_buffer full");
             SCMutexUnlock(&cb_data->m);
 
             SCMutexLock(&slice_pool_mutex);
@@ -282,7 +282,7 @@ CudaBufferSlice *CudaBufferGetSlice(CudaBufferData *cb_data, uint32_t len, void 
         }
     } else {
         if (cb_data->d_buffer_write + len > cb_data->d_buffer_len) {
-            SCLogInfo("d_buffer limit hit - buffer_len - %"PRIu32,
+            SCLogDebug("d_buffer limit hit - buffer_len - %"PRIu32,
                       cb_data->d_buffer_len);
             SCMutexUnlock(&cb_data->m);
 
@@ -295,7 +295,7 @@ CudaBufferSlice *CudaBufferGetSlice(CudaBufferData *cb_data, uint32_t len, void 
 
     if (cb_data->op_buffer_write < cb_data->op_buffer_read) {
         if (cb_data->op_buffer_write + 1 >= cb_data->op_buffer_read) {
-            SCLogInfo("op_buffer full");
+            SCLogDebug("op_buffer full");
             SCMutexUnlock(&cb_data->m);
 
             SCMutexLock(&slice_pool_mutex);
@@ -305,7 +305,7 @@ CudaBufferSlice *CudaBufferGetSlice(CudaBufferData *cb_data, uint32_t len, void 
         }
     } else {
         if (cb_data->op_buffer_write + 1 > cb_data->op_buffer_len) {
-            SCLogInfo("op_buffer limit hit - buffer_len - %"PRIu32,
+            SCLogDebug("op_buffer limit hit - buffer_len - %"PRIu32,
                       cb_data->op_buffer_len);
             SCMutexUnlock(&cb_data->m);
 
@@ -866,7 +866,7 @@ int CudaBufferTest02(void)
 
 int CudaBufferTest03(void)
 {
-    CudaBufferSlice *slice1, *slice2, *slice3, *slice_temp;
+    CudaBufferSlice *slice, *slice_temp;
     int result = 0;
 
     uint8_t *d_buffer = SCMalloc(sizeof(uint8_t) * 64);
@@ -886,9 +886,9 @@ int CudaBufferTest03(void)
         goto end;
     }
 
-    slice1 = CudaBufferGetSlice(data, 16, NULL);
-    slice2 = CudaBufferGetSlice(data, 16, NULL);
-    slice3 = CudaBufferGetSlice(data, 24, NULL);
+    slice = CudaBufferGetSlice(data, 16, NULL);
+    slice = CudaBufferGetSlice(data, 16, NULL);
+    slice = CudaBufferGetSlice(data, 24, NULL);
 
     /* culling */
     CudaBufferCulledInfo culled_info;

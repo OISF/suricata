@@ -1408,6 +1408,257 @@ void SCACPrintInfo(MpmCtx *mpm_ctx)
 /****************************Cuda side of things****************************/
 
 #ifdef __SC_CUDA_SUPPORT__
+
+/* \todo Technically it's generic to all mpms, but since we use ac only, the
+ *       code internally directly references ac and hence it has found its
+ *       home in this file, instead of util-mpm.c
+ */
+void DetermineCudaStateTableSize(DetectEngineCtx *de_ctx)
+{
+    MpmCtx *mpm_ctx = NULL;
+
+    int ac_16_tables = 0;
+    int ac_32_tables = 0;
+
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 0);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 1);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 0);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 1);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_other_packet, 0);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_uri, 0);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_uri, 1);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcbd, 0);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcbd, 1);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hhd, 0);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hhd, 1);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrhd, 0);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrhd, 1);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hmd, 0);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hmd, 1);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcd, 0);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcd, 1);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrud, 0);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrud, 1);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_stream, 0);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_stream, 1);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hsmd, 0);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hsmd, 1);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hscd, 0);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hscd, 1);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_huad, 0);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+    mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_huad, 1);
+    if (mpm_ctx->mpm_type == MPM_AC_CUDA) {
+        SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        if (ctx->state_count < 32767)
+            ac_16_tables++;
+        else
+            ac_32_tables++;
+    }
+
+    if (ac_16_tables > 0 && ac_32_tables > 0)
+        SCACConstructBoth16and32StateTables();
+
+
+    SCLogDebug("Total mpm ac 16 bit state tables - %d\n", ac_16_tables);
+    SCLogDebug("Total mpm ac 32 bit state tables - %d\n", ac_32_tables);
+
+}
+
 /* \todos
  * - Use texture memory - Can we fit all the arrays into a 3d texture.
  *   Texture memory definitely offers slightly better performance even
@@ -1607,20 +1858,20 @@ static void *SCACCudaDispatcher(void *arg)
         for (uint32_t i = 0; i < no_of_items; i++, i_op_start_offset++) {
             Packet *p = (Packet *)cb_data->p_buffer[i_op_start_offset];
 
-            p->cuda_gpu_matches =
+            p->cuda_pkt_vars.cuda_gpu_matches =
                 cuda_results_buffer_h[((o_buffer[i_op_start_offset] - d_buffer_start_offset) * 2)];
-            if (p->cuda_gpu_matches != 0) {
-                memcpy(p->cuda_results,
+            if (p->cuda_pkt_vars.cuda_gpu_matches != 0) {
+                memcpy(p->cuda_pkt_vars.cuda_results,
                        cuda_results_buffer_h +
                        ((o_buffer[i_op_start_offset] - d_buffer_start_offset) * 2),
                        (cuda_results_buffer_h[((o_buffer[i_op_start_offset] -
                                                 d_buffer_start_offset) * 2)] * sizeof(uint32_t)) + 4);
             }
 
-            SCMutexLock(&p->cuda_mutex);
-            p->cuda_done = 1;
-            SCMutexUnlock(&p->cuda_mutex);
-            SCCondSignal(&p->cuda_cond);
+            SCMutexLock(&p->cuda_pkt_vars.cuda_mutex);
+            p->cuda_pkt_vars.cuda_done = 1;
+            SCMutexUnlock(&p->cuda_pkt_vars.cuda_mutex);
+            SCCondSignal(&p->cuda_pkt_vars.cuda_cond);
         }
         if (no_of_items != 0)
             CudaBufferReportCulledConsumption(cb_data, &cb_culled_info);
@@ -1666,25 +1917,25 @@ uint32_t SCACCudaPacketResultsProcessing(Packet *p, MpmCtx *mpm_ctx,
 {
     uint32_t u = 0;
 
-    while (!p->cuda_done) {
-        SCMutexLock(&p->cuda_mutex);
-        if (p->cuda_done) {
-            SCMutexUnlock(&p->cuda_mutex);
+    while (!p->cuda_pkt_vars.cuda_done) {
+        SCMutexLock(&p->cuda_pkt_vars.cuda_mutex);
+        if (p->cuda_pkt_vars.cuda_done) {
+            SCMutexUnlock(&p->cuda_pkt_vars.cuda_mutex);
             break;
         } else {
-            SCCondWait(&p->cuda_cond, &p->cuda_mutex);
-            SCMutexUnlock(&p->cuda_mutex);
+            SCCondWait(&p->cuda_pkt_vars.cuda_cond, &p->cuda_pkt_vars.cuda_mutex);
+            SCMutexUnlock(&p->cuda_pkt_vars.cuda_mutex);
         }
     } /* while */
-    p->cuda_done = 0;
-    p->cuda_mpm_enabled = 0;
+    p->cuda_pkt_vars.cuda_done = 0;
+    p->cuda_pkt_vars.cuda_mpm_enabled = 0;
 
-    uint32_t cuda_matches = p->cuda_gpu_matches;
+    uint32_t cuda_matches = p->cuda_pkt_vars.cuda_gpu_matches;
     if (cuda_matches == 0)
         return 0;
 
     uint32_t matches = 0;
-    uint32_t *results = p->cuda_results + 1;
+    uint32_t *results = p->cuda_pkt_vars.cuda_results + 1;
     uint8_t *buf = p->payload;
     SCACCtx *ctx = mpm_ctx->ctx;
     SCACOutputTable *output_table = ctx->output_table;
