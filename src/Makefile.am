@@ -340,7 +340,7 @@ win32-syslog.h
 EXTRA_DIST = util-mpm-ac-cuda-kernel.cu ptxdump.py
 
 # set the include path found by configure
-INCLUDES= $(all_includes)
+AM_CPPFLAGS = $(all_includes)
 
 
 # the library search path.
@@ -348,7 +348,7 @@ suricata_LDFLAGS = $(all_libraries)
 
 if BUILD_LIBHTP
 suricata_LDADD = $(top_builddir)/libhtp/htp/libhtp.la
-INCLUDES += -I$(top_srcdir)/libhtp
+AM_CPPFLAGS += -I$(top_srcdir)/libhtp
 endif
 
 # Rules to build CUDA ptx modules
