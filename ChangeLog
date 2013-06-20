@@ -1,3 +1,9 @@
+1.4.3 -- 2013-06-20
+
+- Fix missed detection in bytetest, bytejump and byteextract for negative offset (#828)
+- Fix IPS mode being unable to drop tunneled packets (#826)
+- Fix OS X Unix Socket build (#829)
+
 1.4.2 -- 2013-05-29
 
 - No longer force nocase to be used on http_host
