@@ -32,7 +32,6 @@
 #include "runmode-nfq.h"
 #include "log-httplog.h"
 #include "output.h"
-#include "cuda-packet-batcher.h"
 #include "source-pfring.h"
 
 #include "alert-fastlog.h"

@@ -22,7 +22,6 @@
 #include "runmode-pcap.h"
 #include "log-httplog.h"
 #include "output.h"
-#include "cuda-packet-batcher.h"
 #include "source-pfring.h"
 #include "detect-engine-mpm.h"
 
