@@ -43,6 +43,19 @@
 #include "util-profiling.h"
 #include "runmode-unix-socket.h"
 
+#ifdef __SC_CUDA_SUPPORT__
+
+#include "util-cuda.h"
+#include "util-cuda-buffer.h"
+#include "util-mpm-ac.h"
+#include "util-cuda-handlers.h"
+#include "detect-engine.h"
+#include "detect-engine-mpm.h"
+
+static DetectEngineCtx *cuda_de_ctx = NULL;
+
+#endif /* __SC_CUDA_SUPPORT__ */
+
 extern uint8_t suricata_ctl_flags;
 extern int max_pending_packets;
 
@@ -110,6 +123,15 @@ void TmModuleDecodePcapFileRegister (void) {
     tmm_modules[TMM_DECODEPCAPFILE].cap_flags = 0;
     tmm_modules[TMM_DECODEPCAPFILE].flags = TM_FLAG_DECODE_TM;
 }
+
+#ifdef __SC_CUDA_SUPPORT__
+void DecodePcapFileSetCudaDeCtx(DetectEngineCtx *de_ctx)
+{
+    cuda_de_ctx = de_ctx;
+
+    return;
+}
+#endif
 
 void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     SCEnter();
@@ -351,10 +373,48 @@ TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     TimeSet(&p->ts);
 
     /* call the decoder */
+
     pcap_g.Decoder(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+
+#ifdef DEBUG
+    BUG_ON(p->pkt_src != PKT_SRC_WIRE && p->pkt_src != PKT_SRC_FFR_V2);
+#endif
+
+#ifdef __SC_CUDA_SUPPORT__
+    if (dtv->cuda_vars.mpm_is_cuda)
+        CudaBufferPacket(&dtv->cuda_vars, p);
+#endif
 
     SCReturnInt(TM_ECODE_OK);
 }
+
+#ifdef __SC_CUDA_SUPPORT__
+
+static int DecodePcapFileThreadInitCuda(DecodeThreadVars *dtv)
+{
+    if (PatternMatchDefaultMatcher() != MPM_AC_CUDA)
+        return 0;
+
+    MpmCudaConf *conf = CudaHandlerGetCudaProfile("mpm");
+    if (conf == NULL) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error obtaining cuda mpm profile.");
+        return -1;
+    }
+
+    dtv->cuda_vars.mpm_is_cuda = 1;
+    dtv->cuda_vars.cuda_ac_cb = CudaHandlerModuleGetData(MPM_AC_CUDA_MODULE_NAME, MPM_AC_CUDA_MODULE_CUDA_BUFFER_NAME);
+    dtv->cuda_vars.data_buffer_size_max_limit = conf->data_buffer_size_max_limit;
+    dtv->cuda_vars.data_buffer_size_min_limit = conf->data_buffer_size_min_limit;
+    dtv->cuda_vars.mpm_proto_tcp_ctx_ts = MpmFactoryGetMpmCtxForProfile(cuda_de_ctx, cuda_de_ctx->sgh_mpm_context_proto_tcp_packet, 0);
+    dtv->cuda_vars.mpm_proto_tcp_ctx_tc = MpmFactoryGetMpmCtxForProfile(cuda_de_ctx, cuda_de_ctx->sgh_mpm_context_proto_tcp_packet, 1);
+    dtv->cuda_vars.mpm_proto_udp_ctx_ts = MpmFactoryGetMpmCtxForProfile(cuda_de_ctx, cuda_de_ctx->sgh_mpm_context_proto_udp_packet, 0);
+    dtv->cuda_vars.mpm_proto_udp_ctx_tc = MpmFactoryGetMpmCtxForProfile(cuda_de_ctx, cuda_de_ctx->sgh_mpm_context_proto_udp_packet, 1);
+    dtv->cuda_vars.mpm_proto_other_ctx = MpmFactoryGetMpmCtxForProfile(cuda_de_ctx, cuda_de_ctx->sgh_mpm_context_proto_other_packet, 0);
+
+    return 0;
+}
+
+#endif /* __SC_CUDA_SUPPORT__ */
 
 TmEcode DecodePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
@@ -366,6 +426,11 @@ TmEcode DecodePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
 
     DecodeRegisterPerfCounters(dtv, tv);
+
+#ifdef __SC_CUDA_SUPPORT__
+    if (DecodePcapFileThreadInitCuda(dtv) < 0)
+        SCReturnInt(TM_ECODE_FAILED);
+#endif
 
     *data = (void *)dtv;
 

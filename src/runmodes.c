@@ -46,8 +46,6 @@
 
 #include "output.h"
 
-#include "cuda-packet-batcher.h"
-
 #include "source-pfring.h"
 
 int debuglog_enabled = 0;
@@ -302,6 +300,15 @@ void RunModeDispatch(int runmode, const char *custom_mode, DetectEngineCtx *de_c
             }
         }
     }
+
+#ifdef __SC_CUDA_SUPPORT__
+    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA &&
+        strcasecmp(custom_mode, "autofp") != 0) {
+        SCLogError(SC_ERR_RUNMODE, "When using a cuda mpm, the only runmode we "
+                   "support is autofp.");
+        exit(EXIT_FAILURE);
+    }
+#endif
 
     RunMode *mode = RunModeGetCustomMode(runmode, custom_mode);
     if (mode == NULL) {
