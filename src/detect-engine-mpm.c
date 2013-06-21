@@ -49,21 +49,17 @@
 
 #include "stream.h"
 
-#include "util-cuda-handlers.h"
-#include "util-mpm-b2g-cuda.h"
-
 #include "util-enum.h"
 #include "util-debug.h"
 #include "util-print.h"
 #include "util-memcmp.h"
+#ifdef __SC_CUDA_SUPPORT__
+#include "util-mpm-ac.h"
+#endif
 
 /** \todo make it possible to use multiple pattern matcher algorithms next to
           eachother. */
-#ifdef __SC_CUDA_SUPPORT__
-#define PM   MPM_B2G_CUDA
-#else
 #define PM   MPM_AC
-#endif
 
 #define POPULATE_MPM_AVOID_PACKET_MPM_PATTERNS 0x01
 #define POPULATE_MPM_AVOID_STREAM_MPM_PATTERNS 0x02
@@ -228,28 +224,9 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
     if (mpm_ctx == NULL)
         SCReturnInt(0);
 
-#ifndef __SC_CUDA_SUPPORT__
-    ret = mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                                              &det_ctx->mtc,
-                                              &det_ctx->pmq,
-                                              p->payload,
-                                              p->payload_len);
-#else
-    /* if the user has enabled cuda support, but is not using the cuda mpm
-     * algo, then we shouldn't take the path of the dispatcher.  Call the mpm
-     * directly */
-    if (mpm_ctx->mpm_type != MPM_B2G_CUDA) {
-        ret = mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                                                  &det_ctx->mtc,
-                                                  &det_ctx->pmq,
-                                                  p->payload,
-                                                  p->payload_len);
-        SCReturnInt(ret);
-    }
-
-    if (p->cuda_mpm_enabled) {
-        ret = B2gCudaResultsPostProcessing(p, mpm_ctx, &det_ctx->mtc,
-                                           &det_ctx->pmq);
+#ifdef __SC_CUDA_SUPPORT__
+    if (p->cuda_pkt_vars.cuda_mpm_enabled && p->pkt_src == PKT_SRC_WIRE) {
+        ret = SCACCudaPacketResultsProcessing(p, mpm_ctx, &det_ctx->pmq);
     } else {
         ret = mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
                                                   &det_ctx->mtc,
@@ -257,6 +234,12 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
                                                   p->payload,
                                                   p->payload_len);
     }
+#else
+    ret = mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                                              &det_ctx->mtc,
+                                              &det_ctx->pmq,
+                                              p->payload,
+                                              p->payload_len);
 #endif
 
     SCReturnInt(ret);
@@ -2125,13 +2108,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             SCLogDebug("sh->mpm_proto_tcp_ctx == NULL. This should never happen");
             exit(EXIT_FAILURE);
         }
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_proto_tcp_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_proto_tcp_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_proto_tcp_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_proto_tcp_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
 
         if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
             sh->mpm_proto_udp_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 0);
@@ -2144,13 +2122,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             SCLogDebug("sh->mpm_proto_udp_ctx == NULL. This should never happen");
             exit(EXIT_FAILURE);
         }
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_proto_udp_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_proto_udp_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_proto_udp_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_proto_udp_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
 
         if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
             sh->mpm_proto_other_ctx =
@@ -2163,11 +2136,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             SCLogDebug("sh->mpm_proto_other_ctx == NULL. This should never happen");
             exit(EXIT_FAILURE);
         }
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_proto_other_ctx, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_proto_other_ctx, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     } /* if (has_co_packet) */
 
     if (has_co_stream) {
@@ -2182,14 +2151,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             SCLogDebug("sh->mpm_stream_ctx == NULL. This should never happen");
             exit(EXIT_FAILURE);
         }
-
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_stream_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_stream_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_stream_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_stream_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     }
 
     if (has_co_uri) {
@@ -2205,13 +2168,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_uri_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_uri_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_uri_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_uri_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     }
 
     if (has_co_hcbd) {
@@ -2227,13 +2185,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_hcbd_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_hcbd_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_hcbd_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_hcbd_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     }
 
     if (has_co_hsbd) {
@@ -2249,13 +2202,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_hsbd_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_hsbd_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_hsbd_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_hsbd_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     }
 
     if (has_co_hhd) {
@@ -2271,13 +2219,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_hhd_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_hhd_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_hhd_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_hhd_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     }
 
     if (has_co_hrhd) {
@@ -2293,13 +2236,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_hrhd_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_hrhd_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_hrhd_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_hrhd_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     }
 
     if (has_co_hmd) {
@@ -2315,13 +2253,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_hmd_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_hmd_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_hmd_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_hmd_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     }
 
     if (has_co_hcd) {
@@ -2337,13 +2270,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_hcd_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_hcd_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_hcd_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_hcd_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     }
 
     if (has_co_hrud) {
@@ -2359,13 +2287,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_hrud_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_hrud_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_hrud_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_hrud_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     }
 
     if (has_co_hsmd) {
@@ -2381,13 +2304,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_hsmd_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_hsmd_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_hsmd_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_hsmd_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     }
 
     if (has_co_hscd) {
@@ -2403,13 +2321,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_hscd_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_hscd_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_hscd_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_hscd_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     }
 
     if (has_co_huad) {
@@ -2425,13 +2338,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_huad_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_huad_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_huad_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_huad_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     }
 
     if (has_co_hhhd) {
@@ -2447,13 +2355,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_hhhd_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_hhhd_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_hhhd_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_hhhd_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     }
 
     if (has_co_hrhhd) {
@@ -2469,13 +2372,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_hrhhd_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_hrhhd_ctx_tc, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_hrhhd_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-        MpmInitCtx(sh->mpm_hrhhd_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     }
 
     if (has_co_packet ||

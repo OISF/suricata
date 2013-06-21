@@ -43,6 +43,18 @@
 #include "util-profiling.h"
 #include "runmode-unix-socket.h"
 
+#ifdef __SC_CUDA_SUPPORT__
+
+#include "util-cuda.h"
+#include "util-cuda-buffer.h"
+#include "util-mpm-ac.h"
+#include "util-cuda-handlers.h"
+#include "detect-engine.h"
+#include "detect-engine-mpm.h"
+#include "util-cuda-vars.h"
+
+#endif /* __SC_CUDA_SUPPORT__ */
+
 extern uint8_t suricata_ctl_flags;
 extern int max_pending_packets;
 
@@ -353,6 +365,15 @@ TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     /* call the decoder */
     pcap_g.Decoder(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
 
+#ifdef DEBUG
+    BUG_ON(p->pkt_src != PKT_SRC_WIRE && p->pkt_src != PKT_SRC_FFR_V2);
+#endif
+
+#ifdef __SC_CUDA_SUPPORT__
+    if (dtv->cuda_vars.mpm_is_cuda)
+        CudaBufferPacket(&dtv->cuda_vars, p);
+#endif
+
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -366,6 +387,11 @@ TmEcode DecodePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
 
     DecodeRegisterPerfCounters(dtv, tv);
+
+#ifdef __SC_CUDA_SUPPORT__
+    if (CudaThreadVarsInit(&dtv->cuda_vars) < 0)
+        SCReturnInt(TM_ECODE_FAILED);
+#endif
 
     *data = (void *)dtv;
 
