@@ -1490,6 +1490,18 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
+        /* run the packet match functions */
+        if (s->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+            sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+
+            SCLogDebug("running match functions, sm %p", sm);
+            for ( ; sm != NULL; sm = sm->next) {
+                if (sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm) <= 0) {
+                    goto next;
+                }
+            }
+        }
+
         /* Check the payload keywords. If we are a MPM sig and we've made
          * to here, we've had at least one of the patterns match */
         if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
@@ -1563,18 +1575,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 } else {
                     if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
                         goto next;
-                }
-            }
-        }
-
-        /* run the packet match functions */
-        if (s->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-            sm = s->sm_lists[DETECT_SM_LIST_MATCH];
-
-            SCLogDebug("running match functions, sm %p", sm);
-            for ( ; sm != NULL; sm = sm->next) {
-                if (sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm) <= 0) {
-                    goto next;
                 }
             }
         }
