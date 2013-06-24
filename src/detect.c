@@ -1342,7 +1342,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             if (p->flow->flags & FLOW_ACTION_DROP)
             {
                 alert_flags = PACKET_ALERT_FLAG_DROP_FLOW;
-                PACKET_UPDATE_ACTION(p, ACTION_DROP);
+                PACKET_DROP(p);
             }
         }
 

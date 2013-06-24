@@ -4165,7 +4165,7 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         FlowSetNoPacketInspectionFlag(p->flow);
         DecodeSetNoPacketInspectionFlag(p);
         FlowSetSessionNoApplayerInspectionFlag(p->flow);
-        PACKET_UPDATE_ACTION(p, ACTION_DROP);
+        PACKET_DROP(p);
         /* return the segments to the pool */
         StreamTcpSessionPktFree(p);
         SCReturnInt(0);
@@ -4377,7 +4377,7 @@ error:
     }
 
     if (StreamTcpInlineMode()) {
-        PACKET_UPDATE_ACTION(p, ACTION_DROP);
+        PACKET_DROP(p);
     }
     SCReturnInt(-1);
 }
