@@ -614,7 +614,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 if (!(s->flags & SIG_FLAG_NOALERT)) {
                     PacketAlertAppend(det_ctx, s, p, 0);
                 } else {
-                    UPDATE_PACKET_ACTION(p, s->action);
+                    PACKET_UPDATE_ACTION(p, s->action);
                 }
             }
 

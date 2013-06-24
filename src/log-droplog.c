@@ -212,7 +212,7 @@ TmEcode LogDropLogNetFilter (ThreadVars *tv, Packet *p, void *data, PacketQueue 
     uint16_t proto = 0;
     char timebuf[64];
 
-    if (!(TEST_PACKET_ACTION(p, ACTION_DROP)) || PKT_IS_PSEUDOPKT(p)) {
+    if (!(PACKET_TEST_ACTION(p, ACTION_DROP)) || PKT_IS_PSEUDOPKT(p)) {
         return TM_ECODE_OK;
     }
 
@@ -392,7 +392,7 @@ int LogDropLogTest01()
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt == 1 && (TEST_PACKET_ACTION(p, ACTION_DROP)))
+    if (p->alerts.cnt == 1 && (PACKET_TEST_ACTION(p, ACTION_DROP)))
         result = (strcmp(p->alerts.alerts[0].s->class_msg, "Unknown are we") == 0);
     else
         result = 0;
