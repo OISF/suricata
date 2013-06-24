@@ -384,16 +384,16 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
                         /* Take the action to perform */
                         switch (td->new_action) {
                             case TH_ACTION_ALERT:
-                                ALERT_PACKET(p);
+                                PACKET_ALERT(p);
                                 break;
                             case TH_ACTION_DROP:
-                                DROP_PACKET(p);
+                                PACKET_DROP(p);
                                 break;
                             case TH_ACTION_REJECT:
-                                REJECT_PACKET(p);
+                                PACKET_REJECT(p);
                                 break;
                             case TH_ACTION_PASS:
-                                PASS_PACKET(p);
+                                PACKET_PASS(p);
                                 break;
                             default:
                                 /* Weird, leave the default action */
@@ -413,16 +413,16 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
                             /* Take the action to perform */
                             switch (td->new_action) {
                                 case TH_ACTION_ALERT:
-                                    ALERT_PACKET(p);
+                                    PACKET_ALERT(p);
                                     break;
                                 case TH_ACTION_DROP:
-                                    DROP_PACKET(p);
+                                    PACKET_DROP(p);
                                     break;
                                 case TH_ACTION_REJECT:
-                                    REJECT_PACKET(p);
+                                    PACKET_REJECT(p);
                                     break;
                                 case TH_ACTION_PASS:
-                                    PASS_PACKET(p);
+                                    PACKET_PASS(p);
                                     break;
                                 default:
                                     /* Weird, leave the default action */
@@ -501,16 +501,16 @@ static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p, DetectT
             /* Take the action to perform */
             switch (td->new_action) {
                 case TH_ACTION_ALERT:
-                    ALERT_PACKET(p);
+                    PACKET_ALERT(p);
                     break;
                 case TH_ACTION_DROP:
-                    DROP_PACKET(p);
+                    PACKET_DROP(p);
                     break;
                 case TH_ACTION_REJECT:
-                    REJECT_PACKET(p);
+                    PACKET_REJECT(p);
                     break;
                 case TH_ACTION_PASS:
-                    PASS_PACKET(p);
+                    PACKET_PASS(p);
                     break;
                 default:
                     /* Weird, leave the default action */
@@ -529,16 +529,16 @@ static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p, DetectT
                 /* Take the action to perform */
                 switch (td->new_action) {
                     case TH_ACTION_ALERT:
-                        ALERT_PACKET(p);
+                        PACKET_ALERT(p);
                         break;
                     case TH_ACTION_DROP:
-                        DROP_PACKET(p);
+                        PACKET_DROP(p);
                         break;
                     case TH_ACTION_REJECT:
-                        REJECT_PACKET(p);
+                        PACKET_REJECT(p);
                         break;
                     case TH_ACTION_PASS:
-                        PASS_PACKET(p);
+                        PACKET_PASS(p);
                         break;
                     default:
                         /* Weird, leave the default action */

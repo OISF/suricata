@@ -1342,7 +1342,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             if (p->flow->flags & FLOW_ACTION_DROP)
             {
                 alert_flags = PACKET_ALERT_FLAG_DROP_FLOW;
-                UPDATE_PACKET_ACTION(p, ACTION_DROP);
+                PACKET_UPDATE_ACTION(p, ACTION_DROP);
             }
         }
 
@@ -1626,7 +1626,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 PacketAlertAppend(det_ctx, s, p, alert_flags);
         } else {
             /* apply actions even if not alerting */
-            UPDATE_PACKET_ACTION(p, s->action);
+            PACKET_UPDATE_ACTION(p, s->action);
         }
 next:
         DetectFlowvarProcessList(det_ctx, p->flow);
@@ -1775,7 +1775,7 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
     DEBUG_VALIDATE_PACKET(p);
 
     /* No need to perform any detection on this packet, if the the given flag is set.*/
-    if ((p->flags & PKT_NOPACKET_INSPECTION) || (TEST_PACKET_ACTION(p,
+    if ((p->flags & PKT_NOPACKET_INSPECTION) || (PACKET_TEST_ACTION(p,
                                                                     ACTION_DROP)))
         return 0;
 
@@ -10924,7 +10924,7 @@ static int SigTestDropFlow03(void)
         goto end;
     }
 
-    if ( !(TEST_PACKET_ACTION(p2, ACTION_DROP))) {
+    if ( !(PACKET_TEST_ACTION(p2, ACTION_DROP))) {
         printf("A \"drop\" action should be set from the flow to the packet: ");
         goto end;
     }
@@ -11055,7 +11055,7 @@ static int SigTestDropFlow04(void)
         goto end;
     }
 
-    if (!(TEST_PACKET_ACTION(p1, ACTION_DROP))) {
+    if (!(PACKET_TEST_ACTION(p1, ACTION_DROP))) {
         printf("A \"drop\" action was set from the flow to the packet "
                "which is right, but setting the flag shouldn't disable "
                "inspection on the packet in IDS mode");
@@ -11096,7 +11096,7 @@ static int SigTestDropFlow04(void)
         goto end;
     }
 
-    if (!(TEST_PACKET_ACTION(p2, ACTION_DROP))) {
+    if (!(PACKET_TEST_ACTION(p2, ACTION_DROP))) {
         printf("A \"drop\" action was set from the flow to the packet "
                "which is right, but setting the flag shouldn't disable "
                "inspection on the packet in IDS mode");
