@@ -100,6 +100,7 @@ outputs:
   # a line based log of TLS handshake parameters (no alerts)
   - tls-log:
       enabled: no  # Log TLS connections.
+      #json: yes # Log in JSON format if set to yes
       filename: tls.log # File to store TLS logs.
       #extended: yes # Log extended information like fingerprint
       certs-log-dir: certs # directory to store the certificates files
