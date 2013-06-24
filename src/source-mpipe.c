@@ -212,7 +212,7 @@ void TmModuleDecodeMpipeRegister (void)
     tmm_modules[TMM_DECODEMPIPE].flags = TM_FLAG_DECODE_TM;
 }
 
-void MpipeFreePacket(void *arg) 
+void MpipeFreePacket(void *arg)
 {
     Packet *p = (Packet *)arg;
     int result;
@@ -256,7 +256,7 @@ void MpipeFreePacket(void *arg)
 drop:
         gxio_mpipe_push_buffer(context,
                                p->mpipe_v.idesc.stack_idx,
-                               p->mpipe_v.idesc.va);
+                               (void*)(intptr_t)p->mpipe_v.idesc.va);
     }
 }
 
@@ -278,6 +278,7 @@ Packet *MpipeProcessPacket(MpipeThreadVars *ptv, gxio_mpipe_idesc_t *idesc)
     Packet *p = (Packet *)(pkt - sizeof(Packet) - headroom/*2*/);
 
     PACKET_RECYCLE(p);
+    PKT_SET_SRC(p, PKT_SRC_WIRE);
 
     ptv->bytes += caplen;
     ptv->pkts++;
@@ -356,8 +357,6 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
     int rank = cpu - 1;
     int max_queued = 0;
     char *ctype;
-    uint64_t packets = 0;
-    uint64_t reported_packets = 0;
 
     SCEnter();
 
@@ -403,17 +402,14 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
                     p = MpipeProcessPacket(ptv, idesc);
                     p->mpipe_v.rank = rank;
                     TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p);
-                    // Credit the notification ring now and the bucket when the
-                    // packet is freed.
-                    //--gxio_mpipe_credit(iqueue->context, iqueue->ring, -1, 1);
                 } else {
                     if (idesc->be) {
                       /* Buffer Error - No buffer available, so mPipe
                        * dropped the packet. */
-                      SCPerfCounterIncr(xlate_stack(ptv, idesc->stack_idx), 
+                      SCPerfCounterIncr(xlate_stack(ptv, idesc->stack_idx),
                                         tv->sc_perf_pca);
                     } else {
-                        /* Bad packet. CRC error */
+                      /* Bad packet. CRC error */
                         SCPerfCounterIncr(ptv->mpipe_drop, tv->sc_perf_pca);
                         gxio_mpipe_iqueue_drop(iqueue, idesc);
                     }
@@ -429,11 +425,9 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
     SCReturnInt(TM_ECODE_OK);
 }
 
-#define MAX_CMDS_BATCH 64
-
 TmEcode MpipeRegisterPipeStage(void *td)
 {
-    SCEnter()
+    SCEnter();
 
     SCReturnInt(TM_ECODE_OK);
 }
@@ -517,7 +511,7 @@ static struct {
 
 TmEcode ReceiveMpipeThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
-    SCEnter()
+    SCEnter();
     int cpu = tmc_cpus_get_my_cpu();
     int rank = (cpu-1); // FIXME: Assumes worker CPUs start at 1.
     unsigned int num_buffers;
@@ -706,16 +700,16 @@ TmEcode ReceiveMpipeThreadInit(ThreadVars *tv, void *initdata, void **data)
         /* Count required buffer stacks and normalize weights to sum to 1.0. */
         {
             float total_weight = 0;
-            int stack_count = sizeof(gxio_buffer_sizes) / 
+            int max_stack_count = sizeof(gxio_buffer_sizes) / 
               sizeof(gxio_buffer_sizes[0]);
-            for (unsigned int i = 0; i < stack_count; i++) {
+            for (int i = 0; i < max_stack_count; i++) {
                 if (buffer_scale[i].weight != 0) {
                     ++stack_count;
                     total_weight += buffer_scale[i].weight;
                 }
             }
             /* Convert each weight to a value between 0 and 1. inclusive. */
-            for (unsigned int i = 0; i < stack_count; i++) {
+            for (int i = 0; i < max_stack_count; i++) {
                 if (buffer_scale[i].weight != 0) {
                     buffer_scale[i].weight /= total_weight;
                 }
@@ -913,7 +907,7 @@ void ReceiveMpipeThreadExitStats(ThreadVars *tv, void *data)
 
 TmEcode DecodeMpipeThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
-    SCEnter()
+    SCEnter();
     DecodeThreadVars *dtv = NULL;
 
     dtv = DecodeThreadVarsAlloc(tv);
@@ -932,7 +926,7 @@ TmEcode DecodeMpipeThreadInit(ThreadVars *tv, void *initdata, void **data)
 TmEcode DecodeMpipe(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, 
                     PacketQueue *postq)
 {
-    SCEnter()
+    SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
     /* update counters */
@@ -985,7 +979,7 @@ int MpipeLiveRegisterDevice(char *dev)
  *
  *  \retval cnt the number of registered devices
  */
-int MpipeLiveGetDeviceCount(void) 
+int MpipeLiveGetDeviceCount(void)
 {
     int i = 0;
     MpipeDevice *nd;

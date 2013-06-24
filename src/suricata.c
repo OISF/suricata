@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -323,8 +323,6 @@ uint8_t print_mem_flag = 1;
 #endif
 #endif
 #endif
-
-#define min(a,b) (((a)<(b))?(a):(b))
 
 void GlobalInits()
 {
@@ -1106,11 +1104,11 @@ int main(int argc, char **argv)
                 exit(EXIT_SUCCESS);
             }
 #ifdef HAVE_MPIPE
-            else if(strcmp((long_opts[option_index]).name , "mpipe") == 0){
+            else if(strcmp((long_opts[option_index]).name , "mpipe") == 0) {
                 if (run_mode == RUNMODE_UNKNOWN) {
                     run_mode = RUNMODE_TILERA_MPIPE;
                     if (optarg != NULL) {
-                        memset(pcap_dev, 0, sizeof(pcap_dev));
+                      memset(pcap_dev, 0, sizeof(pcap_dev));
                         strlcpy(pcap_dev, optarg,
                                 ((strlen(optarg) < sizeof(pcap_dev)) ?
                                  (strlen(optarg) + 1) : sizeof(pcap_dev)));
@@ -1965,7 +1963,7 @@ int main(int argc, char **argv)
     } else if (run_mode == RUNMODE_TILERA_MPIPE) {
         if (strlen(pcap_dev)) {
             if (ConfSet("mpipe.single_mpipe_dev", pcap_dev, 0) != 1) {
-                fprintf(stderr, "ERROR: Failed to set netio.single_mpipe_dev\n");
+                fprintf(stderr, "ERROR: Failed to set mpipe.single_mpipe_dev\n");
                 exit(EXIT_FAILURE);
             }
         } else {

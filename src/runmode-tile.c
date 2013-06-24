@@ -47,8 +47,6 @@
 #ifdef HAVE_MPIPE
 /* Number of configured parallel pipelines. */
 unsigned int TileNumPipelines;
-
-#define COMBINE_RESPOND_REJECT_AND_OUTPUT
 #endif
 
 /*
@@ -76,7 +74,7 @@ void RunModeIdsTileMpipeRegister(void)
 
 #ifdef HAVE_MPIPE
 
-const char *RunModeTileGetPipelineConfig(const char *custom_mode) 
+const char *RunModeTileGetPipelineConfig(const char *custom_mode)
 {
     if (custom_mode != NULL) {
         return custom_mode;
@@ -154,17 +152,7 @@ void *ParseMpipeConfig(const char *iface)
 }
 
 /**
- * \brief RunModeIdsTileMpipeWorkers set up the following thread packet handlers:
- *        - Receive thread (from iface pcap)
- *        - Decode thread
- *        - Stream thread
- *        - Detect: If we have only 1 cpu, it will setup one Detect thread
- *                  If we have more than one, it will setup num_cpus - 1
- *                  starting from the second cpu available.
- *        - Respond/Reject thread
- *        - Outputs thread
- *        By default the threads will use the first cpu available
- *        except the Detection threads if we have more than one cpu
+ * \brief RunModeIdsTileMpipeWorkers set up to process all modules in each thread.
  *
  * \param de_ctx pointer to the Detection Engine
  * \param iface pointer to the name of the interface from which we will
@@ -200,7 +188,6 @@ int RunModeIdsTileMpipeWorkers(DetectEngineCtx *de_ctx)
         TileNumPipelines = pipe_max;
     }
     SCLogInfo("%d Tilera worker threads", TileNumPipelines);
-
 
     ReceiveMpipeInit();
 
@@ -263,28 +250,28 @@ int RunModeIdsTileMpipeWorkers(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName DecodeMpipe failed\n");
             exit(EXIT_FAILURE);
         }
-        TmSlotSetFuncAppend(tv_worker,tm_module,NULL);
+        TmSlotSetFuncAppend(tv_worker, tm_module, NULL);
 
         tm_module = TmModuleGetByName("StreamTcp");
         if (tm_module == NULL) {
             printf("ERROR: TmModuleGetByName StreamTcp failed\n");
             exit(EXIT_FAILURE);
         }
-        TmSlotSetFuncAppend(tv_worker,tm_module,NULL);
+        TmSlotSetFuncAppend(tv_worker, tm_module, NULL);
 
         tm_module = TmModuleGetByName("Detect");
         if (tm_module == NULL) {
             printf("ERROR: TmModuleGetByName Detect failed\n");
             exit(EXIT_FAILURE);
         }
-        TmSlotSetFuncAppend(tv_worker,tm_module,(void *)de_ctx);
+        TmSlotSetFuncAppend(tv_worker, tm_module, (void *)de_ctx);
 
         tm_module = TmModuleGetByName("RespondReject");
         if (tm_module == NULL) {
             printf("ERROR: TmModuleGetByName for RespondReject failed\n");
             exit(EXIT_FAILURE);
         }
-        TmSlotSetFuncAppend(tv_worker,tm_module,NULL);
+        TmSlotSetFuncAppend(tv_worker, tm_module, NULL);
 
         SetupOutputs(tv_worker);
 
