@@ -706,47 +706,26 @@ typedef struct DecodeThreadVars_
 /* macro's for setting the action
  * handle the case of a root packet
  * for tunnels */
-#define PACKET_ALERT(p) do { \
+
+#define PACKET_SET_ACTION(p, a) do { \
     ((p)->root ? \
-     ((p)->root->action = ACTION_ALERT) : \
-     ((p)->action = ACTION_ALERT)); \
+     ((p)->root->action = a) : \
+     ((p)->action = a)); \
 } while (0)
 
-#define PACKET_ACCEPT(p) do { \
-    ((p)->root ? \
-     ((p)->root->action = ACTION_ACCEPT) : \
-     ((p)->action = ACTION_ACCEPT)); \
-} while (0)
+#define PACKET_ALERT(p) PACKET_SET_ACTION(p, ACTION_ALERT)
 
-#define PACKET_DROP(p) do { \
-    ((p)->root ? \
-     ((p)->root->action = ACTION_DROP) : \
-     ((p)->action = ACTION_DROP)); \
-} while (0)
+#define PACKET_ACCEPT(p) PACKET_SET_ACTION(p, ACTION_ACCEPT)
 
-#define PACKET_REJECT(p) do { \
-    ((p)->root ? \
-     ((p)->root->action = (ACTION_REJECT|ACTION_DROP)) : \
-     ((p)->action = (ACTION_REJECT|ACTION_DROP))); \
-} while (0)
+#define PACKET_DROP(p) PACKET_SET_ACTION(p, ACTION_DROP)
 
-#define PACKET_REJECT_DST(p) do { \
-    ((p)->root ? \
-     ((p)->root->action = (ACTION_REJECT_DST|ACTION_DROP)) : \
-     ((p)->action = (ACTION_REJECT_DST|ACTION_DROP))); \
-} while (0)
+#define PACKET_REJECT(p) PACKET_SET_ACTION(p, (ACTION_REJECT|ACTION_DROP))
 
-#define PACKET_REJECT_BOTH(p) do { \
-    ((p)->root ? \
-     ((p)->root->action = (ACTION_REJECT_BOTH|ACTION_DROP)) : \
-     ((p)->action = (ACTION_REJECT_BOTH|ACTION_DROP))); \
-} while (0)
+#define PACKET_REJECT_DST(p) PACKET_SET_ACTION(p, (ACTION_REJECT_DST|ACTION_DROP))
 
-#define PACKET_PASS(p) do { \
-    ((p)->root ? \
-     ((p)->root->action = ACTION_PASS) : \
-     ((p)->action = ACTION_PASS)); \
-} while (0)
+#define PACKET_REJECT_BOTH(p) PACKET_SET_ACTION(p, (ACTION_REJECT_BOTH|ACTION_DROP))
+
+#define PACKET_PASS(p) PACKET_SET_ACTION(p, ACTION_PASS)
 
 #define PACKET_TEST_ACTION(p, a) \
     ((p)->root ? \
