@@ -110,7 +110,7 @@ void AlertJsonRegisterTests (void) {
 #define DEFAULT_LOG_FILENAME "json.log"
 #define DEFAULT_ALERT_SYSLOG_FACILITY_STR       "local0"
 #define DEFAULT_ALERT_SYSLOG_FACILITY           LOG_LOCAL0
-#define DEFAULT_ALERT_SYSLOG_LEVEL              LOG_ERR
+#define DEFAULT_ALERT_SYSLOG_LEVEL              LOG_INFO
 #define MODULE_NAME "AlertJSON"
 
 extern uint8_t engine_mode;
