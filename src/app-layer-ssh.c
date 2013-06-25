@@ -229,13 +229,8 @@ static int SSHParseServerRecord(Flow *f, void *ssh_state, AppLayerParserState *p
     if ( !(state->flags & SSH_FLAG_SERVER_VERSION_PARSED)) {
         ret = SSHParseServerVersion(f, ssh_state, pstate, input, input_len, output);
         if (ret < 0) {
-            if (ret <= -1) {
-                SCLogDebug("Invalid version string");
-                SCReturnInt(-1);
-            }
-            SCLogDebug("Version string not parsed yet");
-            pstate->parse_field = 0;
-            SCReturnInt(ret);
+            SCLogDebug("Invalid version string");
+            SCReturnInt(-1);
         } else if (state->flags & SSH_FLAG_SERVER_VERSION_PARSED) {
             SCLogDebug("Version string parsed");
             input += input_len - ret;
@@ -560,13 +555,8 @@ static int SSHParseClientRecord(Flow *f, void *ssh_state, AppLayerParserState *p
     if ( !(state->flags & SSH_FLAG_CLIENT_VERSION_PARSED)) {
         ret = SSHParseClientVersion(f, ssh_state, pstate, input, input_len, output);
         if (ret < 0) {
-            if (ret <= -1) {
-                SCLogDebug("Invalid version string");
-                SCReturnInt(-1);
-            }
-            SCLogDebug("Version string not parsed yet");
-            pstate->parse_field = 0;
-            SCReturnInt(0);
+            SCLogDebug("Invalid version string");
+            SCReturnInt(-1);
         } else if (state->flags & SSH_FLAG_CLIENT_VERSION_PARSED) {
             SCLogDebug("Version string parsed");
             input += input_len - ret;
