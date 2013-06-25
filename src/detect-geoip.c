@@ -292,7 +292,7 @@ static DetectGeoipData *DetectGeoipDataParse (char *str)
 
     /* Initialize the geolocation engine */
     geoipdata->geoengine = InitGeolocationEngine();
-    if (geoipdata==NULL)
+    if (geoipdata->geoengine == NULL)
         goto error;
 
     return geoipdata;
