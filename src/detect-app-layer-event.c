@@ -164,7 +164,13 @@ int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 
     return 0;
 
- error:
+error:
+    if (data)
+        SCFree(data);
+    if (sm) {
+        sm->ctx = NULL;
+        SigMatchFree(sm);
+    }
     return -1;
 }
 
