@@ -215,7 +215,7 @@ static int SRepSplitLine(char *line, uint32_t *ip, uint8_t *cat, uint8_t *value)
 static char srep_cat_table[SREP_MAX_CATS][SREP_SHORTNAME_LEN];
 
 int SRepCatValid(uint8_t cat) {
-    if (cat > SREP_MAX_CATS)
+    if (cat >= SREP_MAX_CATS)
         return 0;
 
     if (strlen(srep_cat_table[cat]) == 0)
