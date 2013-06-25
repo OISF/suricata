@@ -95,7 +95,7 @@ static int DetectAckMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  */
 static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
 {
-    DetectAckData *data;
+    DetectAckData *data = NULL;
     SigMatch *sm = NULL;
 
     data = SCMalloc(sizeof(DetectAckData));
@@ -103,9 +103,8 @@ static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
         goto error;
 
     sm = SigMatchAlloc();
-    if (sm == NULL) {
+    if (sm == NULL)
         goto error;
-    }
 
     sm->type = DETECT_ACK;
 
@@ -120,7 +119,10 @@ static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
     return 0;
 
 error:
-    if (data) SCFree(data);
+    if (data)
+        SCFree(data);
+    if (sm)
+        SigMatchFree(sm);
     return -1;
 
 }
