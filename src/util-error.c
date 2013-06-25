@@ -272,8 +272,6 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_MAGIC_OPEN);
         CASE_CODE (SC_ERR_MAGIC_LOAD);
         CASE_CODE (SC_ERR_CUDA_BUFFER_ERROR);
-        default:
-            return "UNKNOWN_ERROR";
     }
 
     return "UNKNOWN_ERROR";
