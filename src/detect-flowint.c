@@ -394,13 +394,17 @@ static int DetectFlowintSetup(DetectEngineCtx *de_ctx, Signature *s, char *rawst
         case FLOWINT_MODIFIER_NOTSET:
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
             break;
+        default:
+            goto error;
     }
 
     return 0;
 
 error:
-    if (sfd) DetectFlowintFree(sfd);
-    if (sm) SCFree(sm);
+    if (sfd)
+        DetectFlowintFree(sfd);
+    if (sm)
+        SCFree(sm);
     return -1;
 }
 
