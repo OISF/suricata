@@ -283,7 +283,7 @@ static void *MpmCudaConfParse(ConfNode *node)
     MpmCudaConf *conf = SCMalloc(sizeof(MpmCudaConf));
     if (conf == NULL)
         exit(EXIT_FAILURE);
-    memset(conf, 0, sizeof(conf));
+    memset(conf, 0, sizeof(*conf));
 
     if (node != NULL)
         value = ConfNodeLookupChildValue(node, "data-buffer-size-min-limit");
