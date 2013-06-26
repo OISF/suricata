@@ -191,11 +191,16 @@ void CudaBufferCullCompletedSlices(CudaBufferData *cb_data,
             cb_data->slice_tail = NULL;
         }
         max_culled_slice->next = NULL;
-        SCMutexUnlock(&cb_data->m);
     } else {
         SCMutexUnlock(&cb_data->m);
         return;
     }
+
+    culled_info->d_buffer_start_offset = slice_head->start_offset;
+    culled_info->d_buffer_len = (max_culled_slice->end_offset -
+                                 slice_head->start_offset + 1);
+    culled_info->op_buffer_start_offset = cb_data->op_buffer_read;
+    SCMutexUnlock(&cb_data->m);
 
     /* push out the used slices to the the slice_pool */
     SCMutexLock(&slice_pool_mutex);
@@ -211,13 +216,6 @@ void CudaBufferCullCompletedSlices(CudaBufferData *cb_data,
     PoolReturn(slice_pool, slice_temp);
     culled_info->no_of_items++;
     SCMutexUnlock(&slice_pool_mutex);
-
-    SCMutexLock(&cb_data->m);
-    culled_info->d_buffer_start_offset = slice_head->start_offset;
-    culled_info->d_buffer_len = (max_culled_slice->end_offset -
-                                 slice_head->start_offset + 1);
-    culled_info->op_buffer_start_offset = cb_data->op_buffer_read;
-    SCMutexUnlock(&cb_data->m);
 
     return;
 }
