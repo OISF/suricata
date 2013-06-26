@@ -252,10 +252,11 @@ void *ParseAFPConfig(const char *iface)
         /* In hash mode, we also ask for defragmentation needed to
          * compute the hash */
         uint16_t defrag = 0;
+        int conf_val = 0;
         SCLogInfo("Using flow cluster mode for AF_PACKET (iface %s)",
                 aconf->iface);
-        ConfGetChildValueBoolWithDefault(if_root, if_default, "defrag", (int *)&defrag);
-        if (defrag) {
+        ConfGetChildValueBoolWithDefault(if_root, if_default, "defrag", &conf_val);
+        if (conf_val) {
             SCLogInfo("Using defrag kernel functionality for AF_PACKET (iface %s)",
                     aconf->iface);
             defrag = PACKET_FANOUT_FLAG_DEFRAG;
