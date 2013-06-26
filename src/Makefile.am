@@ -344,7 +344,6 @@ endif
 # Rules to build CUDA ptx modules
 if BUILD_CUDA
 BUILT_SOURCES = cuda-ptxdump.h
-suricata_SOURCES += cuda-ptxdump.h
 
 suricata_CUDA_KERNELS = \
 util-mpm-ac-cuda-kernel.cu
