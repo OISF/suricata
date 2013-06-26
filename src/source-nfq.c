@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -601,13 +601,22 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint32_t queue_maxlen)
 	performance */
     opt = 1;
 #ifdef NETLINK_BROADCAST_SEND_ERROR
-    setsockopt(nfq_q->fd, SOL_NETLINK,
-               NETLINK_BROADCAST_SEND_ERROR, &opt, sizeof(int));
+    if (setsockopt(nfq_q->fd, SOL_NETLINK,
+                   NETLINK_BROADCAST_SEND_ERROR, &opt, sizeof(int)) == -1) {
+        SCLogWarning(SC_ERR_NFQ_SETSOCKOPT,
+                     "can't set netlink broadcast error: %s",
+                     strerror(errno));
+    }
 #endif
     /* Don't send error about no buffer space available but drop the
 	packets instead */
 #ifdef NETLINK_NO_ENOBUFS
-    setsockopt(nfq_q->fd, SOL_NETLINK, NETLINK_NO_ENOBUFS, &opt, sizeof(int));
+    if (setsockopt(nfq_q->fd, SOL_NETLINK,
+                   NETLINK_NO_ENOBUFS, &opt, sizeof(int)) == -1) {
+        SCLogWarning(SC_ERR_NFQ_SETSOCKOPT,
+                     "can't set netlink enobufs: %s",
+                     strerror(errno));
+    }
 #endif
 
 #ifdef HAVE_NFQ_SET_QUEUE_FLAGS
