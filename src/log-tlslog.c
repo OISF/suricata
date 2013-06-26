@@ -588,8 +588,7 @@ OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
     return output_ctx;
 
 tlslog_error:
-    if (tlslog_ctx != NULL)
-        SCFree(tlslog_ctx);
+    SCFree(tlslog_ctx);
 filectx_error:
     LogFileFreeCtx(file_ctx);
     return NULL;
