@@ -26,6 +26,7 @@
 
 #include "suricata.h"
 #include "tm-threads.h"
+#include "conf.h"
 
 #define DEFAULT_LOG_MODE_APPEND     "yes"
 #define DEFAULT_LOG_FILETYPE        "regular"

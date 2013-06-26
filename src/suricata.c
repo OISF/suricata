@@ -67,7 +67,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-sigorder.h"
 #include "detect-engine-payload.h"
-#include "detect-engine-dcepayload.h"
+#include "detect-engine-dce.h"
 #include "detect-engine-uri.h"
 #include "detect-engine-hcbd.h"
 #include "detect-engine-hsbd.h"
@@ -107,6 +107,7 @@
 #include "log-pcap.h"
 #include "log-file.h"
 #include "log-filestore.h"
+#include "log-dcerpc.h"
 
 #include "stream-tcp.h"
 
@@ -1594,6 +1595,13 @@ int main(int argc, char **argv)
     /* file log */
     TmModuleLogFileLogRegister();
     TmModuleLogFilestoreRegister();
+    /* dcerpc log */
+    TmModuleLogDCERPCRegister();
+    /* cuda */
+#ifdef __SC_CUDA_SUPPORT__
+    TmModuleCudaMpmB2gRegister();
+    TmModuleCudaPacketBatcherRegister();
+#endif
     TmModuleDebugList();
 
     AppLayerHtpNeedFileInspection();
@@ -1646,7 +1654,7 @@ int main(int argc, char **argv)
         SSHParserRegisterTests();
         SMBParserRegisterTests();
         DCERPCParserRegisterTests();
-        DCERPCUDPParserRegisterTests();
+        //DCERPCUDPParserRegisterTests();
         FTPParserRegisterTests();
         DecodeRawRegisterTests();
         DecodePPPOERegisterTests();
@@ -1680,7 +1688,6 @@ int main(int argc, char **argv)
         SCCudaRegisterTests();
 #endif
         PayloadRegisterTests();
-        DcePayloadRegisterTests();
         UriRegisterTests();
 #ifdef PROFILING
         SCProfilingRegisterTests();
@@ -1700,6 +1707,7 @@ int main(int argc, char **argv)
         DetectEngineHttpUARegisterTests();
         DetectEngineHttpHHRegisterTests();
         DetectEngineHttpHRHRegisterTests();
+        DetectEngineDceRegisterTests();
         DetectEngineRegisterTests();
         SCLogRegisterTests();
         SMTPParserRegisterTests();

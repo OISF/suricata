@@ -469,7 +469,7 @@ int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
             AppLayerHtpEnableResponseBodyCallback();
             sm_list = DETECT_SM_LIST_HSBDMATCH;
         } else {
-            sm_list = DETECT_SM_LIST_DMATCH;
+            sm_list = DETECT_SM_LIST_DCE_STUB_MATCH;
         }
         s->flags |= SIG_FLAG_APPLAYER;
         if (data->flags & DETECT_BYTETEST_RELATIVE) {
@@ -1110,12 +1110,12 @@ int DetectBytetestTestParse20(void)
         goto end;
     }
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_BYTETEST);
-    bd = (DetectBytetestData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->type == DETECT_BYTETEST);
+    bd = (DetectBytetestData *)s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if (!(bd->flags & DETECT_BYTETEST_DCE) &&
         !(bd->flags & DETECT_BYTETEST_RELATIVE) &&
         (bd->flags & DETECT_BYTETEST_STRING) &&
@@ -1137,12 +1137,12 @@ int DetectBytetestTestParse20(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_BYTETEST);
-    bd = (DetectBytetestData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->type == DETECT_BYTETEST);
+    bd = (DetectBytetestData *)s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if (!(bd->flags & DETECT_BYTETEST_DCE) &&
         !(bd->flags & DETECT_BYTETEST_RELATIVE) &&
         (bd->flags & DETECT_BYTETEST_STRING) &&
@@ -1164,12 +1164,12 @@ int DetectBytetestTestParse20(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_BYTETEST);
-    bd = (DetectBytetestData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->type == DETECT_BYTETEST);
+    bd = (DetectBytetestData *)s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if ((bd->flags & DETECT_BYTETEST_DCE) &&
         !(bd->flags & DETECT_BYTETEST_RELATIVE) &&
         (bd->flags & DETECT_BYTETEST_STRING) &&

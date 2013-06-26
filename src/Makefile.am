@@ -78,7 +78,7 @@ detect-engine-alert.c detect-engine-alert.h \
 detect-engine-analyzer.c detect-engine-analyzer.h \
 detect-engine.c detect-engine.h \
 detect-engine-content-inspection.c detect-engine-content-inspection.h \
-detect-engine-dcepayload.c detect-engine-dcepayload.h \
+detect-engine-dce.c detect-engine-dce.h \
 detect-engine-event.c detect-engine-event.h \
 detect-engine-file.c detect-engine-file.h \
 detect-engine-hcbd.c detect-engine-hcbd.h \
@@ -193,6 +193,7 @@ flow-var.c flow-var.h \
 host.c host.h \
 host-queue.c host-queue.h \
 host-timeout.c host-timeout.h \
+log-dcerpc.c log-dcerpc.h \
 log-droplog.c log-droplog.h \
 log-file.c log-file.h \
 log-filestore.c log-filestore.h \

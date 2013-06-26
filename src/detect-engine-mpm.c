@@ -3097,7 +3097,7 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, Signature *s, uint
     r = HashTableLookup(ht->hash, (void *)e, sizeof(MpmPatternIdTableElmt));
     if (r == NULL) {
         if (s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) {
-            BUG_ON((sm_list != DETECT_SM_LIST_HSBDMATCH) & (sm_list != DETECT_SM_LIST_DMATCH));
+            BUG_ON((sm_list != DETECT_SM_LIST_HSBDMATCH) & (sm_list != DETECT_SM_LIST_DCE_STUB_MATCH));
             e->id = ht->max_id;
             ht->max_id++;
             id = e->id;

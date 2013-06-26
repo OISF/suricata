@@ -44,6 +44,7 @@
 #include "detect-luajit.h"
 
 #include "app-layer-dcerpc.h"
+#include "util-streaming-parser.h"
 
 #include "util-spm.h"
 #include "util-spm-bm.h"
@@ -421,11 +422,11 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
         if (flags & DETECT_BYTETEST_DCE) {
-            DCERPCState *dcerpc_state = (DCERPCState *)data;
+            struct DCERPCTx *tx = (struct DCERPCTx *)data;
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            flags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] & 0x10) ?
-                      DETECT_BYTETEST_LITTLE: 0);
+            flags |= (tx->bo[det_ctx->dir] == STREAMING_PARSER_BO_LITTLE_ENDIAN) ?
+                DETECT_BYTETEST_LITTLE: 0;
         }
 
         if (DetectBytetestDoMatch(det_ctx, s, sm, buffer, buffer_len, flags,
@@ -447,11 +448,11 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
         if (flags & DETECT_BYTEJUMP_DCE) {
-            DCERPCState *dcerpc_state = (DCERPCState *)data;
+            struct DCERPCTx *tx = (struct DCERPCTx *)data;
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            flags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] & 0x10) ?
-                      DETECT_BYTEJUMP_LITTLE: 0);
+            flags |= (tx->bo[det_ctx->dir] == STREAMING_PARSER_BO_LITTLE_ENDIAN) ?
+                      DETECT_BYTEJUMP_LITTLE: 0;
         }
 
         if (DetectBytejumpDoMatch(det_ctx, s, sm, buffer, buffer_len,
@@ -471,11 +472,11 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         if ((bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN) &&
             endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE) {
 
-            DCERPCState *dcerpc_state = (DCERPCState *)data;
+            struct DCERPCTx *tx = (struct DCERPCTx *)data;
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            endian |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] == 0x10) ?
-                       DETECT_BYTE_EXTRACT_ENDIAN_LITTLE : DETECT_BYTE_EXTRACT_ENDIAN_BIG);
+            endian |= (tx->bo[det_ctx->dir] == STREAMING_PARSER_BO_LITTLE_ENDIAN) ?
+                DETECT_BYTE_EXTRACT_ENDIAN_LITTLE : DETECT_BYTE_EXTRACT_ENDIAN_BIG;
         }
 
         if (DetectByteExtractDoMatch(det_ctx, sm, s, buffer,

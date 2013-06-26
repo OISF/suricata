@@ -1352,7 +1352,11 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
 
     if (sig->sm_lists[DETECT_SM_LIST_UMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_DMATCH])
+    if (sig->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH])
+        sig->flags |= SIG_FLAG_STATE_MATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH])
+        sig->flags |= SIG_FLAG_STATE_MATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_DCE_OPNUM_MATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_AMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;

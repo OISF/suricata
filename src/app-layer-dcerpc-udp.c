@@ -1,3 +1,5 @@
+#if 0
+
 /*
  * Copyright (c) 2009, 2010 Open Information Security Foundation
  *
@@ -981,4 +983,7 @@ end:
 void DCERPCUDPParserRegisterTests(void) {
 	UtRegisterTest("DCERPCUDPParserTest01", DCERPCUDPParserTest01, 1);
 }
+#endif
+
+
 #endif
