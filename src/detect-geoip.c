@@ -169,6 +169,9 @@ static int DetectGeoipMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     DetectGeoipData *geoipdata = (DetectGeoipData *)m->ctx;
     int matches = 0;
 
+    if (PKT_IS_PSEUDOPKT(p))
+        return 0;
+
     if (PKT_IS_IPV4(p))
     {
         if (geoipdata->flags & ( GEOIP_MATCH_SRC_FLAG | GEOIP_MATCH_BOTH_FLAG ))
