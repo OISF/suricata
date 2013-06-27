@@ -106,7 +106,7 @@ outputs:
 
   # a line based log of DNS requests and/or replies (no alerts)
   - dns-log:
-      enabled: yes
+      enabled: no
       filename: dns.log
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
