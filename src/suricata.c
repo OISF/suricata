@@ -1597,10 +1597,6 @@ int main(int argc, char **argv)
     /* dns log */
     TmModuleLogDnsLogRegister();
     /* cuda */
-#ifdef __SC_CUDA_SUPPORT__
-    TmModuleCudaMpmB2gRegister();
-    TmModuleCudaPacketBatcherRegister();
-#endif
     TmModuleDebugList();
 
     AppLayerHtpNeedFileInspection();

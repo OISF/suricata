@@ -2442,11 +2442,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-#ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_dnsquery_ctx_ts, de_ctx->mpm_matcher, -1);
-#else
-        MpmInitCtx(sh->mpm_dnsquery_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
     }
 
     if (has_co_packet ||
