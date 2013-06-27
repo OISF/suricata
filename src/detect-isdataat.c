@@ -266,7 +266,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             s->alproto = ALPROTO_HTTP;
             sm_list = DETECT_SM_LIST_HSBDMATCH;
         } else {
-            sm_list = DETECT_SM_LIST_DMATCH;
+            sm_list = DETECT_SM_LIST_DCE_STUB_MATCH;
         }
         s->flags |= SIG_FLAG_APPLAYER;
         if (idad->flags & ISDATAAT_RELATIVE) {
@@ -488,14 +488,14 @@ int DetectIsdataatTestParse04(void)
     s->alproto = ALPROTO_DCERPC;
 
     result &= (DetectIsdataatSetup(NULL, s, "30") == 0);
-    result &= (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
     SigFree(s);
 
     s = SigAlloc();
     s->alproto = ALPROTO_DCERPC;
     /* failure since we have no preceding content/pcre/bytejump */
     result &= (DetectIsdataatSetup(NULL, s, "30,relative") == 0);
-    result &= (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
     SigFree(s);
 
@@ -528,12 +528,12 @@ int DetectIsdataatTestParse05(void)
         goto end;
     }
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_ISDATAAT);
-    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->type == DETECT_ISDATAAT);
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if ( !(data->flags & ISDATAAT_RELATIVE) ||
          (data->flags & ISDATAAT_RAWBYTES) ) {
         result = 0;
@@ -551,12 +551,12 @@ int DetectIsdataatTestParse05(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_ISDATAAT);
-    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->type == DETECT_ISDATAAT);
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if ( !(data->flags & ISDATAAT_RELATIVE) ||
          (data->flags & ISDATAAT_RAWBYTES) ) {
         result = 0;
@@ -574,12 +574,12 @@ int DetectIsdataatTestParse05(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_ISDATAAT);
-    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->type == DETECT_ISDATAAT);
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if ( !(data->flags & ISDATAAT_RELATIVE) ||
          !(data->flags & ISDATAAT_RAWBYTES) ) {
         result = 0;
@@ -594,7 +594,7 @@ int DetectIsdataatTestParse05(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] != NULL) {
         result = 0;
         goto end;
     }

@@ -37,6 +37,7 @@ typedef struct DetectDceOpnumData_ {
     DetectDceOpnumRange *range;
 } DetectDceOpnumData;
 
+int DetectDceOpnumMatch(uint16_t opnum, DetectDceOpnumData *dod);
 void DetectDceOpnumRegister(void);
 void DetectDceOpnumRegisterTests(void);
 

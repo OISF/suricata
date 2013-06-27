@@ -104,28 +104,29 @@ static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
 
 #ifdef UNITTESTS
 
-static int DetectDceStubDataTestParse01(void)
+static int DetectDceStubDataTest01(void)
 {
     Signature s;
     int result = 0;
 
     memset(&s, 0, sizeof(Signature));
 
-    result = (DetectDceStubDataSetup(NULL, &s, NULL) == 0);
+    if (DetectDceStubDataSetup(NULL, &s, NULL) != 0)
+        goto end;
 
-    if (s.sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        result = 1;
-    } else {
-        result = 0;
-    }
+    if (!(s.init_flags & SIG_FLAG_INIT_DCE_STUB_DATA))
+        goto end;
 
+    result = 1;
+
+ end:
     return result;
 }
 
 /**
  * \test Test a valid dce_stub_data entry with  bind, bind_ack, request frags.
  */
-static int DetectDceStubDataTestParse02(void)
+static int DetectDceStubDataTest02(void)
 {
     int result = 0;
     Signature *s = NULL;
@@ -135,7 +136,7 @@ static int DetectDceStubDataTestParse02(void)
     TcpSession ssn;
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    DCERPCState *dcerpc_state = NULL;
+    struct DCERPCState *dcerpc_state = NULL;
     int r = 0;
 
     uint8_t dcerpc_bind[] = {
@@ -692,7 +693,7 @@ static int DetectDceStubDataTestParse02(void)
 /**
  * \test Test a valid dce_stub_data with just a request frag.
  */
-static int DetectDceStubDataTestParse03(void)
+static int DetectDceStubDataTest03(void)
 {
     int result = 0;
     Signature *s = NULL;
@@ -702,7 +703,7 @@ static int DetectDceStubDataTestParse03(void)
     TcpSession ssn;
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    DCERPCState *dcerpc_state = NULL;
+    struct DCERPCState *dcerpc_state = NULL;
     int r = 0;
 
     /* todo chop the request frag length and change the
@@ -1196,7 +1197,7 @@ static int DetectDceStubDataTestParse03(void)
     return result;
 }
 
-static int DetectDceStubDataTestParse04(void)
+static int DetectDceStubDataTest04(void)
 {
     int result = 0;
     Signature *s = NULL;
@@ -1206,7 +1207,7 @@ static int DetectDceStubDataTestParse04(void)
     TcpSession ssn;
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    DCERPCState *dcerpc_state = NULL;
+    struct DCERPCState *dcerpc_state = NULL;
     int r = 0;
 
     uint8_t dcerpc_bind[] = {
@@ -1496,7 +1497,7 @@ static int DetectDceStubDataTestParse04(void)
     return result;
 }
 
-static int DetectDceStubDataTestParse05(void)
+static int DetectDceStubDataTest05(void)
 {
     int result = 0;
     Signature *s = NULL;
@@ -1506,7 +1507,7 @@ static int DetectDceStubDataTestParse05(void)
     TcpSession ssn;
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    DCERPCState *dcerpc_state = NULL;
+    struct DCERPCState *dcerpc_state = NULL;
     int r = 0;
 
     uint8_t dcerpc_request1[] = {
@@ -1758,18 +1759,18 @@ static int DetectDceStubDataTestParse05(void)
     return result;
 }
 
-
 #endif
 
 void DetectDceStubDataRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectDceStubDataTestParse01", DetectDceStubDataTestParse01, 1);
-    UtRegisterTest("DetectDceStubDataTestParse02", DetectDceStubDataTestParse02, 1);
-    UtRegisterTest("DetectDceStubDataTestParse03", DetectDceStubDataTestParse03, 1);
-    UtRegisterTest("DetectDceStubDataTestParse04", DetectDceStubDataTestParse04, 1);
-    UtRegisterTest("DetectDceStubDataTestParse05", DetectDceStubDataTestParse05, 1);
+    UtRegisterTest("DetectDceStubDataTest01", DetectDceStubDataTest01, 1);
+    UtRegisterTest("DetectDceStubDataTest02", DetectDceStubDataTest02, 1);
+    UtRegisterTest("DetectDceStubDataTest03", DetectDceStubDataTest03, 1);
+    UtRegisterTest("DetectDceStubDataTest04", DetectDceStubDataTest04, 1);
+    UtRegisterTest("DetectDceStubDataTest05", DetectDceStubDataTest05, 1);
 #endif
 
     return;
 }
+

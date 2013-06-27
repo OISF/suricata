@@ -84,7 +84,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
         if (s->init_flags & SIG_FLAG_INIT_FILE_DATA)
             pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]);
         else
-            pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
+            pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]);
     } else {
         pm =  SigMatchGetLastSMFromLists(s, 28,
                                          DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,15 +18,14 @@
 /**
  * \file
  *
- * \author Victor Julien <victor@inliniac.net>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __DETECT_ENGINE_DCEPAYLOAD_H__
-#define __DETECT_ENGINE_DCEPAYLOAD_H__
+#ifndef __LOG_DCERPC_H__
+#define __LOG_DCERPC_H__
 
-int DetectEngineInspectDcePayload(DetectEngineCtx *, DetectEngineThreadCtx *,
-        Signature *, Flow *, uint8_t, void *);
+void TmModuleLogDCERPCRegister (void);
+void TmModuleLogDCERPCIPv4Register (void);
+void TmModuleLogDCERPCIPv6Register (void);
 
-void DcePayloadRegisterTests(void);
-
-#endif /* __DETECT_ENGINE_DCEPAYLOAD_H__ */
+#endif /* __LOG_DCERPC_H__ */

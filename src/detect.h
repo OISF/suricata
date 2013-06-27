@@ -110,7 +110,9 @@ enum {
     DETECT_SM_LIST_HUADMATCH,
 
     DETECT_SM_LIST_AMATCH,
-    DETECT_SM_LIST_DMATCH,
+    DETECT_SM_LIST_DCE_IFACE_MATCH,
+    DETECT_SM_LIST_DCE_OPNUM_MATCH,
+    DETECT_SM_LIST_DCE_STUB_MATCH,
     DETECT_SM_LIST_TMATCH,
 
     DETECT_SM_LIST_FILEMATCH,
@@ -787,6 +789,8 @@ typedef struct DetectionEngineThreadCtx_ {
 
     /** ID of the transaction currently being inspected. */
     uint64_t tx_id;
+    /* the current direction being inspected, 0 - ts, 1 - tc */
+    uint8_t dir;
 
     SC_ATOMIC_DECLARE(uint16_t, so_far_used_by_detect);
 
