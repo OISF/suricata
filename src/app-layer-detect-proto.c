@@ -71,8 +71,8 @@ AlpProtoDetectCtx alp_proto_ctx;
 void AlpProtoInit(AlpProtoDetectCtx *ctx) {
     memset(ctx, 0x00, sizeof(AlpProtoDetectCtx));
 
-    MpmInitCtx(&ctx->toserver.mpm_ctx, MPM_B2G, -1);
-    MpmInitCtx(&ctx->toclient.mpm_ctx, MPM_B2G, -1);
+    MpmInitCtx(&ctx->toserver.mpm_ctx, MPM_B2G);
+    MpmInitCtx(&ctx->toclient.mpm_ctx, MPM_B2G);
 
     memset(&ctx->toserver.map, 0x00, sizeof(ctx->toserver.map));
     memset(&ctx->toclient.map, 0x00, sizeof(ctx->toclient.map));

@@ -59,7 +59,7 @@
 static uint32_t wm_hash_size = 0;
 static uint32_t wm_bloom_size = 0;
 
-void WmInitCtx (MpmCtx *mpm_ctx, int);
+void WmInitCtx (MpmCtx *mpm_ctx);
 void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, uint32_t);
 void WmDestroyCtx(MpmCtx *mpm_ctx);
 void WmThreadDestroyCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx);
@@ -1301,7 +1301,7 @@ void WmGetConfig()
     }
 }
 
-void WmInitCtx (MpmCtx *mpm_ctx, int module_handle) {
+void WmInitCtx (MpmCtx *mpm_ctx) {
     SCLogDebug("mpm_ctx %p", mpm_ctx);
 
     mpm_ctx->ctx = SCMalloc(sizeof(WmCtx));
@@ -1459,7 +1459,7 @@ int WmTestInitCtx01 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    WmInitCtx(&mpm_ctx, -1);
+    WmInitCtx(&mpm_ctx);
 
     if (mpm_ctx.ctx != NULL)
         result = 1;
@@ -1472,7 +1472,7 @@ int WmTestInitCtx02 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    WmInitCtx(&mpm_ctx, -1);
+    WmInitCtx(&mpm_ctx);
 
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
@@ -1487,7 +1487,7 @@ int WmTestInitCtx03 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
     if (mpm_table[MPM_WUMANBER].Search == WmSearch)
         result = 1;
@@ -1503,7 +1503,7 @@ int WmTestThreadInitCtx01 (void) {
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
 
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     if (mpm_thread_ctx.memory_cnt == 2)
@@ -1526,7 +1526,7 @@ int WmTestThreadInitCtx02 (void) {
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
 
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     WmThreadCtx *tctx = (WmThreadCtx *)mpm_thread_ctx.ctx;
@@ -1548,7 +1548,7 @@ int WmTestInitAddPattern01 (void) {
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
 
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
 
     int ret = WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 1234, 0, 0);
@@ -1566,7 +1566,7 @@ int WmTestInitAddPattern02 (void) {
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
 
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
@@ -1585,7 +1585,7 @@ int WmTestInitAddPattern03 (void) {
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
 
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
@@ -1607,7 +1607,7 @@ int WmTestInitAddPattern04 (void) {
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
 
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
@@ -1629,7 +1629,7 @@ int WmTestInitAddPattern05 (void) {
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
 
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
@@ -1651,7 +1651,7 @@ int WmTestInitAddPattern06 (void) {
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
 
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmThreadInitCtx(&mpm_ctx, &mpm_thread_ctx, 1);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
@@ -1671,7 +1671,7 @@ int WmTestPrepare01 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"a", 1, 0, 0, 0, 0, 0);
@@ -1688,7 +1688,7 @@ int WmTestPrepare02 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
@@ -1705,7 +1705,7 @@ int WmTestPrepare03 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
@@ -1724,7 +1724,7 @@ int WmTestPrepare04 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"a", 1, 0, 0, 0, 0, 0);
@@ -1741,7 +1741,7 @@ int WmTestPrepare05 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
@@ -1758,7 +1758,7 @@ int WmTestPrepare06 (void) {
     int result = 0;
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
     WmPreparePatterns(&mpm_ctx);
@@ -1779,7 +1779,7 @@ int WmTestSearch01 (void) {
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
 
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
@@ -1805,7 +1805,7 @@ int WmTestSearch01Hash12 (void) {
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
 
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
@@ -1833,7 +1833,7 @@ int WmTestSearch01Hash14 (void) {
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
 
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
@@ -1861,7 +1861,7 @@ int WmTestSearch01Hash15 (void) {
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
 
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
@@ -1889,7 +1889,7 @@ int WmTestSearch01Hash16 (void) {
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
 
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
@@ -1916,7 +1916,7 @@ int WmTestSearch02 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
@@ -1938,7 +1938,7 @@ int WmTestSearch03 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
@@ -1961,7 +1961,7 @@ int WmTestSearch04 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"bcde", 4, 0, 0, 0, 0, 0);
@@ -1983,7 +1983,7 @@ int WmTestSearch05 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"efgh", 4, 0, 0, 0, 0, 0);
@@ -2005,7 +2005,7 @@ int WmTestSearch06 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"eFgH", 4, 0, 0, 0, 0, MPM_PATTERN_FLAG_NOCASE);
@@ -2027,7 +2027,7 @@ int WmTestSearch07 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
@@ -2050,7 +2050,7 @@ int WmTestSearch08 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"abcde", 5, 0, 0, 0, 0, 0);
@@ -2073,7 +2073,7 @@ int WmTestSearch09 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"ab", 2, 0, 0, 0, 0, 0);
@@ -2095,7 +2095,7 @@ int WmTestSearch10 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"bc", 2, 0, 0,  0, 0, 0);
     WmAddPattern(&mpm_ctx, (uint8_t *)"gh", 2, 0, 0,  1, 0, 0);
@@ -2118,7 +2118,7 @@ int WmTestSearch11 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"a", 1, 0, 0, 0, 0, 0);
     WmAddPattern(&mpm_ctx, (uint8_t *)"d", 1, 0, 0, 1, 0, 0);
@@ -2142,7 +2142,7 @@ int WmTestSearch12 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0, MPM_PATTERN_FLAG_NOCASE);
@@ -2168,7 +2168,7 @@ int WmTestSearch13 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"a", 1, 0, 0, 0, 0, 0);
@@ -2194,7 +2194,7 @@ int WmTestSearch14 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0, MPM_PATTERN_FLAG_NOCASE);
@@ -2220,7 +2220,7 @@ int WmTestSearch15 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 1, 1, 0, 0, 0);
@@ -2247,7 +2247,7 @@ int WmTestSearch16 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPattern(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 1, 1, 0, 0, 0);
@@ -2274,7 +2274,7 @@ int WmTestSearch17 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2299,7 +2299,7 @@ int WmTestSearch18Hash12 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2324,7 +2324,7 @@ int WmTestSearch18Hash14 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2349,7 +2349,7 @@ int WmTestSearch18Hash15 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2374,7 +2374,7 @@ int WmTestSearch18 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2400,7 +2400,7 @@ int WmTestSearch18Hash16 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2426,7 +2426,7 @@ int WmTestSearch19 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCI(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2451,7 +2451,7 @@ int WmTestSearch19Hash12 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCI(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2477,7 +2477,7 @@ int WmTestSearch19Hash14 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCI(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2503,7 +2503,7 @@ int WmTestSearch19Hash15 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCI(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2529,7 +2529,7 @@ int WmTestSearch19Hash16 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCI(&mpm_ctx, (uint8_t *)"/VideoAccessCodecInstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2555,7 +2555,7 @@ int WmTestSearch20 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2580,7 +2580,7 @@ int WmTestSearch20Hash12 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2605,7 +2605,7 @@ int WmTestSearch20Hash14 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2631,7 +2631,7 @@ int WmTestSearch20Hash15 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2657,7 +2657,7 @@ int WmTestSearch20Hash16 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2683,7 +2683,7 @@ int WmTestSearch21 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2708,7 +2708,7 @@ static int WmTestSearch21Hash12 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2734,7 +2734,7 @@ static int WmTestSearch21Hash14 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2760,7 +2760,7 @@ static int WmTestSearch21Hash15 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2786,7 +2786,7 @@ static int WmTestSearch21Hash16 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"/videoaccesscodecinstall.exe", 28, 0, 0, 0, 0, 0);
@@ -2812,7 +2812,7 @@ static int WmTestSearch22Hash9 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0, 0); /* should match 30 times */
@@ -2845,7 +2845,7 @@ static int WmTestSearch22Hash12 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0, 0); /* should match 30 times */
@@ -2878,7 +2878,7 @@ static int WmTestSearch22Hash14 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0, 0); /* should match 30 times */
@@ -2911,7 +2911,7 @@ static int WmTestSearch22Hash15 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0, 0); /* should match 30 times */
@@ -2944,7 +2944,7 @@ static int WmTestSearch22Hash16 (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     MpmThreadCtx mpm_thread_ctx;
-    MpmInitCtx(&mpm_ctx, MPM_WUMANBER, -1);
+    MpmInitCtx(&mpm_ctx, MPM_WUMANBER);
     WmCtx *ctx = (WmCtx *)mpm_ctx.ctx;
 
     WmAddPatternCS(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0, 0); /* should match 30 times */

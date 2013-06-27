@@ -846,7 +846,7 @@ void PatternMatchDestroy(MpmCtx *mpm_ctx, uint16_t mpm_matcher) {
 
 void PatternMatchPrepare(MpmCtx *mpm_ctx, uint16_t mpm_matcher) {
     SCLogDebug("mpm_ctx %p, mpm_matcher %"PRIu16"", mpm_ctx, mpm_matcher);
-    MpmInitCtx(mpm_ctx, mpm_matcher, -1);
+    MpmInitCtx(mpm_ctx, mpm_matcher);
 }
 
 void PatternMatchThreadPrint(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher) {
@@ -2163,8 +2163,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             SCLogDebug("sh->mpm_proto_tcp_ctx == NULL. This should never happen");
             exit(EXIT_FAILURE);
         }
-        MpmInitCtx(sh->mpm_proto_tcp_ctx_ts, de_ctx->mpm_matcher, -1);
-        MpmInitCtx(sh->mpm_proto_tcp_ctx_tc, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_proto_tcp_ctx_ts, de_ctx->mpm_matcher);
+        MpmInitCtx(sh->mpm_proto_tcp_ctx_tc, de_ctx->mpm_matcher);
 
         if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
             sh->mpm_proto_udp_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 0);
@@ -2177,8 +2177,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             SCLogDebug("sh->mpm_proto_udp_ctx == NULL. This should never happen");
             exit(EXIT_FAILURE);
         }
-        MpmInitCtx(sh->mpm_proto_udp_ctx_ts, de_ctx->mpm_matcher, -1);
-        MpmInitCtx(sh->mpm_proto_udp_ctx_tc, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_proto_udp_ctx_ts, de_ctx->mpm_matcher);
+        MpmInitCtx(sh->mpm_proto_udp_ctx_tc, de_ctx->mpm_matcher);
 
         if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
             sh->mpm_proto_other_ctx =
@@ -2191,7 +2191,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             SCLogDebug("sh->mpm_proto_other_ctx == NULL. This should never happen");
             exit(EXIT_FAILURE);
         }
-        MpmInitCtx(sh->mpm_proto_other_ctx, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_proto_other_ctx, de_ctx->mpm_matcher);
     } /* if (has_co_packet) */
 
     if (has_co_stream) {
@@ -2206,8 +2206,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             SCLogDebug("sh->mpm_stream_ctx == NULL. This should never happen");
             exit(EXIT_FAILURE);
         }
-        MpmInitCtx(sh->mpm_stream_ctx_ts, de_ctx->mpm_matcher, -1);
-        MpmInitCtx(sh->mpm_stream_ctx_tc, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_stream_ctx_ts, de_ctx->mpm_matcher);
+        MpmInitCtx(sh->mpm_stream_ctx_tc, de_ctx->mpm_matcher);
     }
 
     if (has_co_uri) {
@@ -2223,8 +2223,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-        MpmInitCtx(sh->mpm_uri_ctx_ts, de_ctx->mpm_matcher, -1);
-        MpmInitCtx(sh->mpm_uri_ctx_tc, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_uri_ctx_ts, de_ctx->mpm_matcher);
+        MpmInitCtx(sh->mpm_uri_ctx_tc, de_ctx->mpm_matcher);
     }
 
     if (has_co_hcbd) {
@@ -2240,8 +2240,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-        MpmInitCtx(sh->mpm_hcbd_ctx_ts, de_ctx->mpm_matcher, -1);
-        MpmInitCtx(sh->mpm_hcbd_ctx_tc, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_hcbd_ctx_ts, de_ctx->mpm_matcher);
+        MpmInitCtx(sh->mpm_hcbd_ctx_tc, de_ctx->mpm_matcher);
     }
 
     if (has_co_hsbd) {
@@ -2257,8 +2257,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-        MpmInitCtx(sh->mpm_hsbd_ctx_ts, de_ctx->mpm_matcher, -1);
-        MpmInitCtx(sh->mpm_hsbd_ctx_tc, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_hsbd_ctx_ts, de_ctx->mpm_matcher);
+        MpmInitCtx(sh->mpm_hsbd_ctx_tc, de_ctx->mpm_matcher);
     }
 
     if (has_co_hhd) {
@@ -2274,8 +2274,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-        MpmInitCtx(sh->mpm_hhd_ctx_ts, de_ctx->mpm_matcher, -1);
-        MpmInitCtx(sh->mpm_hhd_ctx_tc, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_hhd_ctx_ts, de_ctx->mpm_matcher);
+        MpmInitCtx(sh->mpm_hhd_ctx_tc, de_ctx->mpm_matcher);
     }
 
     if (has_co_hrhd) {
@@ -2291,8 +2291,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-        MpmInitCtx(sh->mpm_hrhd_ctx_ts, de_ctx->mpm_matcher, -1);
-        MpmInitCtx(sh->mpm_hrhd_ctx_tc, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_hrhd_ctx_ts, de_ctx->mpm_matcher);
+        MpmInitCtx(sh->mpm_hrhd_ctx_tc, de_ctx->mpm_matcher);
     }
 
     if (has_co_hmd) {
@@ -2308,8 +2308,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-        MpmInitCtx(sh->mpm_hmd_ctx_ts, de_ctx->mpm_matcher, -1);
-        MpmInitCtx(sh->mpm_hmd_ctx_tc, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_hmd_ctx_ts, de_ctx->mpm_matcher);
+        MpmInitCtx(sh->mpm_hmd_ctx_tc, de_ctx->mpm_matcher);
     }
 
     if (has_co_hcd) {
@@ -2325,8 +2325,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-        MpmInitCtx(sh->mpm_hcd_ctx_ts, de_ctx->mpm_matcher, -1);
-        MpmInitCtx(sh->mpm_hcd_ctx_tc, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_hcd_ctx_ts, de_ctx->mpm_matcher);
+        MpmInitCtx(sh->mpm_hcd_ctx_tc, de_ctx->mpm_matcher);
     }
 
     if (has_co_hrud) {
@@ -2342,8 +2342,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-        MpmInitCtx(sh->mpm_hrud_ctx_ts, de_ctx->mpm_matcher, -1);
-        MpmInitCtx(sh->mpm_hrud_ctx_tc, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_hrud_ctx_ts, de_ctx->mpm_matcher);
+        MpmInitCtx(sh->mpm_hrud_ctx_tc, de_ctx->mpm_matcher);
     }
 
     if (has_co_hsmd) {
@@ -2359,8 +2359,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-        MpmInitCtx(sh->mpm_hsmd_ctx_ts, de_ctx->mpm_matcher, -1);
-        MpmInitCtx(sh->mpm_hsmd_ctx_tc, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_hsmd_ctx_ts, de_ctx->mpm_matcher);
+        MpmInitCtx(sh->mpm_hsmd_ctx_tc, de_ctx->mpm_matcher);
     }
 
     if (has_co_hscd) {
@@ -2376,8 +2376,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-        MpmInitCtx(sh->mpm_hscd_ctx_ts, de_ctx->mpm_matcher, -1);
-        MpmInitCtx(sh->mpm_hscd_ctx_tc, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_hscd_ctx_ts, de_ctx->mpm_matcher);
+        MpmInitCtx(sh->mpm_hscd_ctx_tc, de_ctx->mpm_matcher);
     }
 
     if (has_co_huad) {
@@ -2393,8 +2393,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-        MpmInitCtx(sh->mpm_huad_ctx_ts, de_ctx->mpm_matcher, -1);
-        MpmInitCtx(sh->mpm_huad_ctx_tc, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_huad_ctx_ts, de_ctx->mpm_matcher);
+        MpmInitCtx(sh->mpm_huad_ctx_tc, de_ctx->mpm_matcher);
     }
 
     if (has_co_hhhd) {
@@ -2410,8 +2410,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-        MpmInitCtx(sh->mpm_hhhd_ctx_ts, de_ctx->mpm_matcher, -1);
-        MpmInitCtx(sh->mpm_hhhd_ctx_tc, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_hhhd_ctx_ts, de_ctx->mpm_matcher);
+        MpmInitCtx(sh->mpm_hhhd_ctx_tc, de_ctx->mpm_matcher);
     }
 
     if (has_co_hrhhd) {
@@ -2427,8 +2427,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-        MpmInitCtx(sh->mpm_hrhhd_ctx_ts, de_ctx->mpm_matcher, -1);
-        MpmInitCtx(sh->mpm_hrhhd_ctx_tc, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_hrhhd_ctx_ts, de_ctx->mpm_matcher);
+        MpmInitCtx(sh->mpm_hrhhd_ctx_tc, de_ctx->mpm_matcher);
     }
 
     if (has_co_dnsquery) {
@@ -2442,7 +2442,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             exit(EXIT_FAILURE);
         }
 
-        MpmInitCtx(sh->mpm_dnsquery_ctx_ts, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_dnsquery_ctx_ts, de_ctx->mpm_matcher);
     }
 
     if (has_co_packet ||
