@@ -214,8 +214,21 @@ int DeStateFlowHasInspectableState(Flow *f, uint16_t alproto, uint16_t alversion
     SCMutexLock(&f->de_state_m);
     if (f->de_state == NULL || f->de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1].cnt == 0) {
         if (AppLayerAlprotoSupportsTxs(alproto)) {
+            void *alstate = f->alstate;
+            if (AppLayerStateSupportsNestedProtocol(alproto)) {
+                void *new_alstate = NULL;
+                FLOWLOCK_RDLOCK(f);
+                alproto = AppLayerStateGetNestedState(alproto, alstate, &new_alstate);
+                FLOWLOCK_UNLOCK(f);
+                if (alproto == ALPROTO_UNKNOWN) {
+                    SCMutexUnlock(&f->de_state_m);
+                    return 0;
+                }
+                alstate = new_alstate;
+            }
+
             FLOWLOCK_RDLOCK(f);
-            if (AppLayerTransactionGetInspectId(f, flags) >= AppLayerGetTxCnt(alproto, f->alstate))
+            if (AppLayerTransactionGetInspectId(f, flags) >= AppLayerGetTxCnt(alproto, alstate))
                 r = 2;
             else
                 r = 0;
@@ -264,19 +277,10 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         void *new_alstate = NULL;
         FLOWLOCK_RDLOCK(f);
         alproto = AppLayerStateGetNestedState(alproto, alstate, &new_alstate);
-        if (alproto == ALPROTO_DCERPC)
+        if (alproto != ALPROTO_UNKNOWN)
             alstate = new_alstate;
         FLOWLOCK_UNLOCK(f);
     }
-
-    //if (alproto == ALPROTO_SMB) {
-    //    FLOWLOCK_RDLOCK(f);
-    //    if (((SMBState *)alstate)->dcerpc_present) {
-    //        alstate = (((SMBState *)alstate)->dcerpc);
-    //        alproto = ALPROTO_DCERPC;
-    //    }
-    //    FLOWLOCK_UNLOCK(f);
-    //}
 
     if (AppLayerAlprotoSupportsTxs(alproto)) {
         FLOWLOCK_WRLOCK(f);
@@ -428,7 +432,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         void *new_alstate = NULL;
         FLOWLOCK_RDLOCK(f);
         alproto = AppLayerStateGetNestedState(alproto, alstate, &new_alstate);
-        if (alproto == ALPROTO_DCERPC)
+        if (alproto != ALPROTO_UNKNOWN)
             alstate = new_alstate;
         FLOWLOCK_UNLOCK(f);
     }

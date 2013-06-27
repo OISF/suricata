@@ -1429,6 +1429,11 @@ uint16_t SMBStateGetNestedState(void *alstate, void **new_alstate)
     }
 }
 
+void SBMStateTransactionFree(void *alstate, uint16_t id)
+{
+    return;
+}
+
 void RegisterSMBParsers(void) {
     char *proto_name = "smb";
 
@@ -1442,7 +1447,7 @@ void RegisterSMBParsers(void) {
     AppLayerRegisterProto(proto_name, ALPROTO_SMB, STREAM_TOCLIENT, SMBParseResponse);
     AppLayerRegisterStateFuncs(ALPROTO_SMB, SMBStateAlloc, SMBStateFree);
     AppLayerRegisterTransactionIdFuncs(ALPROTO_SMB,
-            SMBUpdateTransactionId, NULL);
+            SMBUpdateTransactionId, SBMStateTransactionFree);
 
     AppLayerRegisterNestedProtocol(ALPROTO_SMB, SMBStateGetNestedState);
 

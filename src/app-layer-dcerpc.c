@@ -38,6 +38,14 @@ static enum DCERPCStatus DCERPCStatePDUStart(DCERPCState *state);
 static enum DCERPCStatus DCERPCStateParseBindContexts(DCERPCState *state);
 
 
+#define DCERPC_PTYPE_REQUEST             0
+#define DCERPC_PTYPE_RESPONSE            2
+#define DCERPC_PTYPE_BIND               11
+#define DCERPC_PTYPE_BIND_ACK           12
+#define DCERPC_PTYPE_ALTER_CONTEXT      14
+#define DCERPC_PTYPE_ALTER_CONTEXT_RESP 15
+
+
 /*****Utility*****/
 
 static void DCERPCAppendUUID(uint8_t *uuid, uint32_t iv, uint32_t context_id, DCERPCList *l)
@@ -94,6 +102,9 @@ static enum DCERPCStatus DCERPCStateIgnorePDU(DCERPCState *state)
     uint16_t jumped;
     DCERPCConnp *connp = &state->connp[state->curr_direction];
 
+    if (connp->frag_length < connp->pdu_bytes_processed)
+        return DCERPC_ERROR;
+
     retval = StreamingParserJump(connp->spc,
                                  (connp->frag_length - connp->pdu_bytes_processed),
                                  &jumped);
@@ -135,7 +146,10 @@ static enum DCERPCStatus DCERPCStateParseBindContexts(DCERPCState *state)
 
     DCERPCConnp *connp = &state->connp[state->curr_direction];
 
+    /* connp->tmp8[0] has been set by DCERPCStateParseBind, and it indicates
+     * the no of elements.  connp->tmp16[0] is a count variable */
     for (; connp->tmp16[0] < connp->tmp8[0]; connp->tmp16[0]++) {
+        /* the fall throughs from the case statements are intentional */
         switch (connp->in_state_progress) {
             case INTERNAL_STATE_P_CONTEXT_ID:
                 if (StreamingParserGetU16WithBO(connp->spc, &connp->p_context_id, connp->bo) == STREAMING_PARSER_RDATA)
@@ -214,6 +228,8 @@ static enum DCERPCStatus DCERPCStateParseBindContexts(DCERPCState *state)
                 connp->in_state_progress++;
                 connp->pdu_bytes_processed += 2;
             case INTERNAL_STATE_TRANSFER_SYNTAX:
+                /* connp->tmp8[1] has been set a couple of steps above, and
+                 * connp->tmp32[0] is a count */
                 tmp32 = connp->tmp8[1] * 20;
                 retval = StreamingParserJump(connp->spc, (tmp32 - connp->tmp32[0]), &jumped);
                 connp->tmp32[0] += jumped;
@@ -263,6 +279,7 @@ static enum DCERPCStatus DCERPCStateParseBind(DCERPCState *state)
 
     DCERPCConnp *connp = &state->connp[state->curr_direction];
 
+    /* the fall throughs from the case statements are intentional */
     switch (connp->in_state_progress) {
         case INTERNAL_STATE_N_CONTEXT_ELEM:
             if (StreamingParserGetU8(connp->spc, &connp->tmp8[0]) == STREAMING_PARSER_RDATA)
@@ -303,7 +320,10 @@ static enum DCERPCStatus DCERPCStateParseBindAckResults(DCERPCState *state)
 
     DCERPCConnp *connp = &state->connp[state->curr_direction];
 
+    /* connp->tmp8[0] has been set by DCERPCStateParseBindAckResultList, and
+     * it indicates the no of elements.  connp->tmp16[0] is a count variable */
     for (; connp->tmp16[0] < connp->tmp8[0]; connp->tmp16[0]++) {
+        /* the fall throughs from the case statements are intentional */
         switch (connp->in_state_progress) {
             case INTERNAL_STATE_RESULT:
                 if (StreamingParserGetU16WithBO(connp->spc, &tmp16, connp->bo) == STREAMING_PARSER_RDATA)
@@ -313,6 +333,7 @@ static enum DCERPCStatus DCERPCStateParseBindAckResults(DCERPCState *state)
                 UUID *uuid = DCERPCListGetAtIndex(connp->tmp16[0], &state->uuids);
                 if (uuid == NULL)
                     return DCERPC_ERROR;
+                /* a value of 0 indicates accepted */
                 uuid->accepted = (tmp16 == 0);
             case INTERNAL_STATE_REASON:
                 if (StreamingParserGetU16WithBO(connp->spc, &tmp16, connp->bo) == STREAMING_PARSER_RDATA)
@@ -320,6 +341,7 @@ static enum DCERPCStatus DCERPCStateParseBindAckResults(DCERPCState *state)
                 connp->in_state_progress++;
                 connp->pdu_bytes_processed += 2;
             case INTERNAL_STATE_TRANSFER_SYNTAX:
+                /* connp->tmp16[1] is a count variable */
                 retval = StreamingParserJump(connp->spc, (20 - connp->tmp16[1]), &jumped);
                 connp->tmp16[1] += jumped;
                 connp->pdu_bytes_processed += jumped;
@@ -350,6 +372,7 @@ static enum DCERPCStatus DCERPCStateParseBindAckResultList(DCERPCState *state)
 
     DCERPCConnp *connp = &state->connp[state->curr_direction];
 
+    /* the fall throughs from the case statements are intentional */
     switch (connp->in_state_progress) {
         case INTERNAL_STATE_N_RESULTS:
             if (StreamingParserGetU8(connp->spc, &connp->tmp8[0]) == STREAMING_PARSER_RDATA)
@@ -393,6 +416,7 @@ static enum DCERPCStatus DCERPCStateParseBindAck(DCERPCState *state)
 
     DCERPCConnp *connp = &state->connp[state->curr_direction];
 
+    /* the fall throughs from the case statements are intentional */
     switch (connp->in_state_progress) {
         case INTERNAL_STATE_SEC_ADDR_LENGTH:
             if (StreamingParserGetU16WithBO(connp->spc, &connp->tmp16[0], connp->bo) == STREAMING_PARSER_RDATA)
@@ -400,6 +424,7 @@ static enum DCERPCStatus DCERPCStateParseBindAck(DCERPCState *state)
             connp->in_state_progress++;
             connp->pdu_bytes_processed += 2;
         case INTERNAL_STATE_SEC_ADDR_PORT_SPEC:
+            /* connp->tmp16[0] set by previous case */
             retval = StreamingParserJump(connp->spc, (connp->tmp16[0] - connp->tmp32[0]), &jumped);
             connp->tmp32[0] += jumped;
             connp->pdu_bytes_processed += jumped;
@@ -413,6 +438,7 @@ static enum DCERPCStatus DCERPCStateParseBindAck(DCERPCState *state)
             connp->tmp8[0] = tmp32 - connp->pdu_bytes_processed;
             connp->in_state_progress++;
         case INTERNAL_STATE_PAD2_CONSUME:
+            /* connp->tmp8[0] set by previous case */
             retval = StreamingParserJump(connp->spc, (connp->tmp8[0] - connp->tmp16[0]), &jumped);
             connp->tmp16[0] += jumped;
             connp->pdu_bytes_processed += jumped;
@@ -441,6 +467,7 @@ static enum DCERPCStatus DCERPCStateParseBindAndAckCommon(DCERPCState *state)
 
     DCERPCConnp *connp = &state->connp[state->curr_direction];
 
+    /* the fall throughs from the case statements are intentional */
     switch (connp->in_state_progress) {
         case INTERNAL_STATE_MAX_XMIT_FRAG:
             if (StreamingParserGetU16WithBO(connp->spc, &tmp16, connp->bo) == STREAMING_PARSER_RDATA)
@@ -459,7 +486,7 @@ static enum DCERPCStatus DCERPCStateParseBindAndAckCommon(DCERPCState *state)
             connp->pdu_bytes_processed += 4;
     }
 
-    if (connp->ptype == 11 || connp->ptype == 14)
+    if (connp->ptype == DCERPC_PTYPE_BIND || connp->ptype == DCERPC_PTYPE_ALTER_CONTEXT)
         connp->CurrState = DCERPCStateParseBind;
     else
         connp->CurrState = DCERPCStateParseBindAck;
@@ -478,6 +505,8 @@ static enum DCERPCStatus DCERPCStateParseStub(DCERPCState *state)
     uint16_t copied;
     int retval;
 
+    /* connp->tmp16[0] set by DCERPCStateDetermineStub, connp->tmp32[0]
+     * used as a counter */
     retval = StreamingParserGetChunk(connp->spc,
                                      tx->stub[state->curr_direction] + tx->stub_len[state->curr_direction],
                                      connp->tmp16[0] - connp->tmp32[0],
@@ -503,11 +532,10 @@ static enum DCERPCStatus DCERPCStateDetermineStub(DCERPCState *state)
     DCERPCConnp *connp = &state->connp[state->curr_direction];
     DCERPCTx *tx = connp->curr_tx;
 
-    if (connp->auth_length == 0) {
-        connp->tmp16[0] = connp->frag_length - connp->pdu_bytes_processed;
-    } else {
-        connp->tmp16[0] = connp->frag_length - connp->pdu_bytes_processed - connp->auth_length;
-    }
+    if (connp->frag_length < (connp->pdu_bytes_processed + connp->auth_length))
+        return DCERPC_ERROR;
+
+    connp->tmp16[0] = connp->frag_length - connp->pdu_bytes_processed - connp->auth_length;
 
     tx->stub[state->curr_direction] = SCRealloc(tx->stub[state->curr_direction],
                                                 tx->stub_len[state->curr_direction] + connp->tmp16[0]);
@@ -540,6 +568,7 @@ static enum DCERPCStatus DCERPCStateParseRequest(DCERPCState *state)
 
     DCERPCConnp *connp = &state->connp[state->curr_direction];
 
+    /* the fall throughs from the case statements are intentional */
     switch (connp->in_state_progress) {
         case INTERNAL_STATE_ALLOC_HINT:
             if (StreamingParserGetU32WithBO(connp->spc, &tmp32, connp->bo) == STREAMING_PARSER_RDATA)
@@ -583,7 +612,7 @@ static enum DCERPCStatus DCERPCStateParseRequest(DCERPCState *state)
                 connp->pdu_bytes_processed += jumped;
                 if (retval == STREAMING_PARSER_RDATA)
                     return DCERPC_DATA;
-                connp->in_state_progress++;
+                connp->tmp8[0] = 0;
             }
             connp->in_state_progress++;
     }
@@ -611,6 +640,7 @@ static enum DCERPCStatus DCERPCStateParseResponse(DCERPCState *state)
 
     DCERPCConnp *connp = &state->connp[state->curr_direction];
 
+    /* the fall throughs from the case statements are intentional */
     switch (connp->in_state_progress) {
         case INTERNAL_STATE_ALLOC_HINT:
             if (StreamingParserGetU32WithBO(connp->spc, &tmp32, connp->bo) == STREAMING_PARSER_RDATA)
@@ -651,7 +681,10 @@ static enum DCERPCStatus DCERPCStateParsePType(DCERPCState *state)
     enum DCERPCStatus (*CurrState)(DCERPCState *);
     DCERPCTx *tx = NULL;
 
-    if (ptype == 11 || ptype == 12 || ptype == 14 || ptype == 15) {
+    if (ptype == DCERPC_PTYPE_BIND ||
+        ptype == DCERPC_PTYPE_BIND_ACK ||
+        ptype == DCERPC_PTYPE_ALTER_CONTEXT ||
+        ptype == DCERPC_PTYPE_ALTER_CONTEXT_RESP) {
         /* if we have a minor version of 0, we assume no fragmentation.
          * If it's not, the first frag always contains the contexts and
          * the subsequent frags would contain the auth data, in which
@@ -660,13 +693,13 @@ static enum DCERPCStatus DCERPCStateParsePType(DCERPCState *state)
          * \todo We don't have pcaps for the case described above.
          *       Search for corresponding wild traffic or rig one up. */
         if (connp->rpc_vers_minor == 0 || connp->pfc_flags & 0x01) {
-            if (ptype == 11 || ptype == 14)
+            if (ptype == DCERPC_PTYPE_BIND || ptype == DCERPC_PTYPE_ALTER_CONTEXT)
                 DCERPCListReset(&state->uuids, DCERPCFreeUUID);
             CurrState = DCERPCStateParseBindAndAckCommon;
         } else {
             CurrState = DCERPCStateIgnorePDU;
         }
-    } else if (ptype == 0) {
+    } else if (ptype == DCERPC_PTYPE_REQUEST) {
         /* a tx per request(whole request, including fragments) */
         if (connp->pfc_flags & 0x01) {
             tx = SCMalloc(sizeof(*tx));
@@ -690,7 +723,7 @@ static enum DCERPCStatus DCERPCStateParsePType(DCERPCState *state)
         }
         connp->curr_tx = tx;
         CurrState = DCERPCStateParseRequest;
-    } else if (ptype == 2) {
+    } else if (ptype == DCERPC_PTYPE_RESPONSE) {
         tx = state->transactions.tail;
         while (tx != NULL) {
             if (tx->call_id == connp->call_id)
@@ -731,6 +764,7 @@ static enum DCERPCStatus DCERPCStateParseHeader(DCERPCState *state)
     DCERPCConnp *connp = &state->connp[state->curr_direction];
     void *spc = connp->spc;
 
+    /* the fall throughs from the case statements are intentional */
     switch (connp->in_state_progress) {
         case INTERNAL_STATE_PH_RPC_VERS:
             if (StreamingParserJump(spc, 1, &jumped) == STREAMING_PARSER_RDATA)
@@ -837,10 +871,8 @@ int DCERPCParseRequest(Flow *f, void *alstate,
     while (1) {
         enum DCERPCStatus r = state->connp[state->curr_direction].CurrState(state);
         if (r == DCERPC_STOP || r == DCERPC_ERROR) {
-            //printf(">>anoop request: STOP or ERROR - %"PRIu32"\n", state->connp[state->curr_direction].pdu_bytes_processed);
             return -1;
         } else if (r == DCERPC_DATA) {
-            //printf(">>anoop request: DATA - %"PRIu32"\n", state->connp[state->curr_direction].pdu_bytes_processed);
             return 0;
         }
     }
@@ -861,10 +893,8 @@ int DCERPCParseResponse(Flow *f, void *alstate,
     while (1) {
         enum DCERPCStatus r = state->connp[state->curr_direction].CurrState(state);
         if (r == DCERPC_STOP || r == DCERPC_ERROR) {
-            //printf(">>anoop response: STOP or ERROR - %"PRIu32"\n", state->connp[state->curr_direction].pdu_bytes_processed);
             return -1;
         } else if (r == DCERPC_DATA) {
-            //printf(">>anoop response: DATA - %"PRIu32"\n", state->connp[state->curr_direction].pdu_bytes_processed);
             return 0;
         }
     }

@@ -1640,7 +1640,7 @@ next:
 
 end:
     /* see if we need to increment the inspect_id and reset the de_state */
-    if (alstate != NULL && (AppLayerAlprotoSupportsTxs(alproto) || alproto == ALPROTO_SMB)) {
+    if (alstate != NULL && AppLayerAlprotoSupportsTxs(alproto)) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
         DeStateUpdateInspectTransactionId(p->flow, flags);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
