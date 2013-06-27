@@ -555,7 +555,7 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
             AppLayerHtpEnableResponseBodyCallback();
             sm_list = DETECT_SM_LIST_HSBDMATCH;
         } else {
-            sm_list = DETECT_SM_LIST_DMATCH;
+            sm_list = DETECT_SM_LIST_DCE_STUB_MATCH;
         }
         s->flags |= SIG_FLAG_APPLAYER;
         if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {

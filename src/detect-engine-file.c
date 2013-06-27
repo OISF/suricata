@@ -39,7 +39,6 @@
 #include "detect-engine-hmd.h"
 #include "detect-engine-hcd.h"
 #include "detect-engine-hrud.h"
-#include "detect-engine-dcepayload.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"

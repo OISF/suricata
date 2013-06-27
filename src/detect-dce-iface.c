@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -20,7 +20,7 @@
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  *
- * Implements dce_iface keyword.
+ * Implements the dce_iface keyword.
  */
 
 #include "suricata-common.h"
@@ -52,8 +52,6 @@
 static pcre *parse_regex = NULL;
 static pcre_extra *parse_regex_study = NULL;
 
-int DetectDceIfaceMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t,
-                        void *, Signature *, SigMatch *);
 static int DetectDceIfaceSetup(DetectEngineCtx *, Signature *, char *);
 void DetectDceIfaceFree(void *);
 
@@ -69,7 +67,7 @@ void DetectDceIfaceRegister(void)
     sigmatch_table[DETECT_DCE_IFACE].name = "dce_iface";
     sigmatch_table[DETECT_DCE_IFACE].alproto = ALPROTO_DCERPC;
     sigmatch_table[DETECT_DCE_IFACE].Match = NULL;
-    sigmatch_table[DETECT_DCE_IFACE].AppLayerMatch = DetectDceIfaceMatch;
+    sigmatch_table[DETECT_DCE_IFACE].AppLayerMatch = NULL;
     sigmatch_table[DETECT_DCE_IFACE].Setup = DetectDceIfaceSetup;
     sigmatch_table[DETECT_DCE_IFACE].Free  = DetectDceIfaceFree;
     sigmatch_table[DETECT_DCE_IFACE].RegisterTests = DetectDceIfaceRegisterTests;
@@ -151,7 +149,17 @@ static inline DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
         temp_str[1] = pcre_sub_str[i + 1];
 
         hex_value = strtol(temp_str, NULL, 16);
-        did->uuid[j] = hex_value;
+        if (j < 4) {
+            *((uint32_t *)did->uuid) |= hex_value << ((3 - j) * 8);
+        } else if (j < 6) {
+            *((uint16_t *)did->uuid + 2) |= hex_value << ((5 - j) * 8);
+        } else if (j < 8) {
+            *((uint16_t *)did->uuid + 3) |= hex_value << ((7 - j) * 8);
+        } else if (j < 10) {
+            *((uint16_t *)did->uuid + 4) |= hex_value << ((9 - j) * 8);
+        } else {
+            did->uuid[j] = hex_value;
+        }
         i += 2;
         j++;
     }
@@ -230,110 +238,28 @@ static inline DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
     return NULL;
 }
 
-/**
- * \internal
- * \brief Internal function that compares the dce interface version for this
- *        flow, to the signature's interface version specified using the
- *        dce_iface keyword.
- *
- * \param version  The dce interface version for this flow.
- * \param dce_data Pointer to the Signature's dce_iface keyword
- *                 state(DetectDceIfaceData *).
- */
-static inline int DetectDceIfaceMatchIfaceVersion(uint16_t version,
-                                                  DetectDceIfaceData *dce_data)
+int DetectDceIfaceMatchVersion(uint16_t iv, DetectDceIfaceData *did)
 {
-    switch (dce_data->op) {
+    switch (did->op) {
         case DETECT_DCE_IFACE_OP_LT:
-            return (version < dce_data->version);
+            if (!(iv < did->version))
+                return 0;
+            return 1;
         case DETECT_DCE_IFACE_OP_GT:
-            return (version > dce_data->version);
+            if (!(iv > did->version))
+                return 0;
+            return 1;
         case DETECT_DCE_IFACE_OP_EQ:
-            return (version == dce_data->version);
+            if (!(iv == did->version))
+                return 0;
+            return 1;
         case DETECT_DCE_IFACE_OP_NE:
-            return (version != dce_data->version);
+            if (!(iv != did->version))
+                return 0;
+            return 1;
         default:
             return 1;
     }
-}
-
-/**
- * \brief App layer match function for the "dce_iface" keyword.
- *
- * \param t       Pointer to the ThreadVars instance.
- * \param det_ctx Pointer to the DetectEngineThreadCtx.
- * \param f       Pointer to the flow.
- * \param flags   Pointer to the flags indicating the flow direction.
- * \param state   Pointer to the app layer state data.
- * \param s       Pointer to the Signature instance.
- * \param m       Pointer to the SigMatch.
- *
- * \retval 1 On Match.
- * \retval 0 On no match.
- */
-int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
-                        uint8_t flags, void *state, Signature *s, SigMatch *m)
-{
-    SCEnter();
-
-    int ret = 0;
-    DCERPCUuidEntry *item = NULL;
-    int i = 0;
-    DetectDceIfaceData *dce_data = (DetectDceIfaceData *)m->ctx;
-    DCERPCState *dcerpc_state = (DCERPCState *)state;
-    if (dcerpc_state == NULL) {
-        SCLogDebug("No DCERPCState for the flow");
-        SCReturnInt(0);
-    }
-
-    FLOWLOCK_RDLOCK(f);
-
-    /* we still haven't seen a request */
-    if (!dcerpc_state->dcerpc.dcerpcrequest.first_request_seen)
-        goto end;
-
-    if (!(dcerpc_state->dcerpc.dcerpchdr.type == REQUEST))
-        goto end;
-
-    TAILQ_FOREACH(item, &dcerpc_state->dcerpc.dcerpcbindbindack.accepted_uuid_list, next) {
-        SCLogDebug("item %p", item);
-        ret = 1;
-
-        /* if any_frag is not enabled, we need to match only against the first
-         * fragment */
-        if (!dce_data->any_frag && !(item->flags & DCERPC_UUID_ENTRY_FLAG_FF))
-            continue;
-
-        /* if the uuid has been rejected(item->result == 1), we skip to the
-         * next uuid */
-        if (item->result != 0)
-            continue;
-
-        /* check the interface uuid */
-        for (i = 0; i < 16; i++) {
-            if (dce_data->uuid[i] != item->uuid[i]) {
-                ret = 0;
-                break;
-            }
-        }
-        ret &= (item->ctxid == dcerpc_state->dcerpc.dcerpcrequest.ctxid);
-        if (ret == 0)
-            continue;
-
-        /* check the interface version */
-        if (dce_data->op != DETECT_DCE_IFACE_OP_NONE &&
-            !DetectDceIfaceMatchIfaceVersion(item->version, dce_data)) {
-            ret &= 0;
-        }
-
-        /* we have a match.  Time to leave with a match */
-        if (ret == 1)
-            goto end;
-    }
-
-end:
-    FLOWLOCK_UNLOCK(f);
-    SCReturnInt(ret);
 }
 
 /**
@@ -367,7 +293,7 @@ static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     sm->type = DETECT_DCE_IFACE;
     sm->ctx = (void *)did;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DCE_IFACE_MATCH);
 
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
@@ -397,7 +323,7 @@ void DetectDceIfaceFree(void *ptr)
 
 #ifdef UNITTESTS
 
-static int DetectDceIfaceTestParse01(void)
+static int DetectDceIfaceTest01(void)
 {
     SCEnter();
 
@@ -407,40 +333,47 @@ static int DetectDceIfaceTestParse01(void)
 
     int result = 0;
     DetectDceIfaceData *did = NULL;
-    uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
-                           0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC};
     SigMatch *temp = NULL;
-    int i = 0;
 
-    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC") == 0);
+    if (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC") < 0)
+        goto end;
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL) {
         SCReturnInt(0);
     }
 
-    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
+    temp = s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH];
     did = temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
     }
 
-    result &= 1;
-    for (i = 0; i < 16; i++) {
-        if (did->uuid[i] != test_uuid[i]) {
-            result = 0;
-            break;
-        }
+    if (*((uint32_t *)did->uuid) != 0x12345678 ||
+        *((uint16_t *)did->uuid + 2) != 0x1234 ||
+        *((uint16_t *)did->uuid + 3) != 0x1234 ||
+        *((uint16_t *)did->uuid + 4) != 0x1234 ||
+        did->uuid[10] != 0x12 || did->uuid[11] != 0x34 ||
+        did->uuid[12] != 0x56 || did->uuid[13] != 0x78 ||
+        did->uuid[14] != 0x9A || did->uuid[15] != 0xBC) {
+        printf("failure 1\n");
+        goto end;
     }
 
-    result &= (did->version == 0);
-    result &= (did->op == 0);
-    result &= (did->any_frag == 0);
+    if (did->version != 0)
+        goto end;
+    if (did->op != 0)
+        goto end;
+    if (did->any_frag != 0)
+        goto end;
 
+    result = 1;
+
+ end:
     SigFree(s);
     SCReturnInt(result);
 }
 
-static int DetectDceIfaceTestParse02(void)
+static int DetectDceIfaceTest02(void)
 {
     SCEnter();
 
@@ -450,40 +383,47 @@ static int DetectDceIfaceTestParse02(void)
 
     int result = 0;
     DetectDceIfaceData *did = NULL;
-    uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
-                           0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC};
     SigMatch *temp = NULL;
-    int i = 0;
 
-    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,>1") == 0);
+    if (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,>1") < 0)
+        goto end;
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL) {
         SCReturnInt(0);
     }
 
-    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
+    temp = s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH];
     did = temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
     }
 
-    result &= 1;
-    for (i = 0; i < 16; i++) {
-        if (did->uuid[i] != test_uuid[i]) {
-            result = 0;
-            break;
-        }
+    if (*((uint32_t *)did->uuid) != 0x12345678 ||
+        *((uint16_t *)did->uuid + 2) != 0x1234 ||
+        *((uint16_t *)did->uuid + 3) != 0x1234 ||
+        *((uint16_t *)did->uuid + 4) != 0x1234 ||
+        did->uuid[10] != 0x12 || did->uuid[11] != 0x34 ||
+        did->uuid[12] != 0x56 || did->uuid[13] != 0x78 ||
+        did->uuid[14] != 0x9A || did->uuid[15] != 0xBC) {
+        printf("failure 1\n");
+        goto end;
     }
 
-    result &= (did->version == 1);
-    result &= (did->op == DETECT_DCE_IFACE_OP_GT);
-    result &= (did->any_frag == 0);
+    if (did->version != 1)
+        goto end;
+    if (did->op != DETECT_DCE_IFACE_OP_GT)
+        goto end;
+    if (did->any_frag != 0)
+        goto end;
 
+    result = 1;
+
+ end:
     SigFree(s);
     SCReturnInt(result);
 }
 
-static int DetectDceIfaceTestParse03(void)
+static int DetectDceIfaceTest03(void)
 {
     SCEnter();
 
@@ -493,36 +433,43 @@ static int DetectDceIfaceTestParse03(void)
 
     int result = 0;
     DetectDceIfaceData *did = NULL;
-    uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
-                           0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC};
     SigMatch *temp = NULL;
-    int i = 0;
 
-    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,<10") == 0);
+    if (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,<10") < 0)
+        goto end;
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL) {
         SCReturnInt(0);
     }
 
-    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
+    temp = s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH];
     did = temp->ctx;
-    result &= 1;
-    for (i = 0; i < 16; i++) {
-        if (did->uuid[i] != test_uuid[i]) {
-            result = 0;
-            break;
-        }
+    if (*((uint32_t *)did->uuid) != 0x12345678 ||
+        *((uint16_t *)did->uuid + 2) != 0x1234 ||
+        *((uint16_t *)did->uuid + 3) != 0x1234 ||
+        *((uint16_t *)did->uuid + 4) != 0x1234 ||
+        did->uuid[10] != 0x12 || did->uuid[11] != 0x34 ||
+        did->uuid[12] != 0x56 || did->uuid[13] != 0x78 ||
+        did->uuid[14] != 0x9A || did->uuid[15] != 0xBC) {
+        printf("failure 1\n");
+        goto end;
     }
 
-    result &= (did->version == 10);
-    result &= (did->op == DETECT_DCE_IFACE_OP_LT);
-    result &= (did->any_frag == 0);
+    if (did->version != 10)
+        goto end;
+    if (did->op != DETECT_DCE_IFACE_OP_LT)
+        goto end;
+    if (did->any_frag != 0)
+        goto end;
 
+    result = 1;
+
+ end:
     SigFree(s);
     SCReturnInt(result);
 }
 
-static int DetectDceIfaceTestParse04(void)
+static int DetectDceIfaceTest04(void)
 {
     SCEnter();
 
@@ -539,15 +486,13 @@ static int DetectDceIfaceTestParse04(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,!10") == 0);
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        SCReturnInt(0);
-    }
+    if (s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL)
+        goto end;
 
-    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
+    temp = s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH];
     did = temp->ctx;
-    if (did == NULL) {
-        SCReturnInt(0);
-    }
+    if (did == NULL)
+        goto end;
 
     result &= 1;
     for (i = 0; i < 16; i++) {
@@ -561,94 +506,61 @@ static int DetectDceIfaceTestParse04(void)
     result &= (did->op == DETECT_DCE_IFACE_OP_NE);
     result &= (did->any_frag == 0);
 
+    result = 1;
+
+ end:
     SigFree(s);
     SCReturnInt(result);
 }
 
-static int DetectDceIfaceTestParse05(void)
+static int DetectDceIfaceTest05(void)
 {
     SCEnter();
 
     Signature *s = SigAlloc();
     int result = 0;
     DetectDceIfaceData *did = NULL;
-    uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
-                           0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC};
     SigMatch *temp = NULL;
-    int i = 0;
 
-    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,=10") == 0);
+    if (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,=10") < 0)
+        goto end;
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL) {
         SCReturnInt(0);
     }
 
-    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
+    temp = s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH];
     did = temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
     }
 
-    result &= 1;
-    for (i = 0; i < 16; i++) {
-        if (did->uuid[i] != test_uuid[i]) {
-            result = 0;
-            break;
-        }
+    if (*((uint32_t *)did->uuid) != 0x12345678 ||
+        *((uint16_t *)did->uuid + 2) != 0x1234 ||
+        *((uint16_t *)did->uuid + 3) != 0x1234 ||
+        *((uint16_t *)did->uuid + 4) != 0x1234 ||
+        did->uuid[10] != 0x12 || did->uuid[11] != 0x34 ||
+        did->uuid[12] != 0x56 || did->uuid[13] != 0x78 ||
+        did->uuid[14] != 0x9A || did->uuid[15] != 0xBC) {
+        printf("failure 1\n");
+        goto end;
     }
 
-    result &= (did->version == 10);
-    result &= (did->op == DETECT_DCE_IFACE_OP_EQ);
-    result &= (did->any_frag == 0);
+    if (did->version != 10)
+        goto end;
+    if (did->op != DETECT_DCE_IFACE_OP_EQ)
+        goto end;
+    if (did->any_frag != 0)
+        goto end;
 
+    result = 1;
+
+ end:
     SigFree(s);
     SCReturnInt(result);
 }
 
-static int DetectDceIfaceTestParse06(void)
-{
-    SCEnter();
-
-    Signature *s = SigAlloc();
-    if (s == NULL)
-        return 0;
-
-    int result = 0;
-    DetectDceIfaceData *did = NULL;
-    uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
-                           0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC};
-    SigMatch *temp = NULL;
-    int i = 0;
-
-    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,any_frag") == 0);
-
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        SCReturnInt(0);
-    }
-
-    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-    did = temp->ctx;
-    if (did == NULL) {
-        SCReturnInt(0);
-    }
-
-    result &= 1;
-    for (i = 0; i < 16; i++) {
-        if (did->uuid[i] != test_uuid[i]) {
-            result = 0;
-            break;
-        }
-    }
-
-    result &= (did->version == 0);
-    result &= (did->op == 0);
-    result &= (did->any_frag == 1);
-
-    SigFree(s);
-    SCReturnInt(result);
-}
-
-static int DetectDceIfaceTestParse07(void)
+static int DetectDceIfaceTest06(void)
 {
     SCEnter();
 
@@ -658,81 +570,47 @@ static int DetectDceIfaceTestParse07(void)
 
     int result = 0;
     DetectDceIfaceData *did = NULL;
-    uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
-                           0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC};
     SigMatch *temp = NULL;
-    int i = 0;
 
-    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,>1,any_frag") == 0);
+    if (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,any_frag") < 0)
+        goto end;
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL) {
         SCReturnInt(0);
     }
 
-    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
+    temp = s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH];
     did = temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
     }
 
-    result &= 1;
-    for (i = 0; i < 16; i++) {
-        if (did->uuid[i] != test_uuid[i]) {
-            result = 0;
-            break;
-        }
+    if (*((uint32_t *)did->uuid) != 0x12345678 ||
+        *((uint16_t *)did->uuid + 2) != 0x1234 ||
+        *((uint16_t *)did->uuid + 3) != 0x1234 ||
+        *((uint16_t *)did->uuid + 4) != 0x1234 ||
+        did->uuid[10] != 0x12 || did->uuid[11] != 0x34 ||
+        did->uuid[12] != 0x56 || did->uuid[13] != 0x78 ||
+        did->uuid[14] != 0x9A || did->uuid[15] != 0xBC) {
+        printf("failure 1\n");
+        goto end;
     }
 
-    result &= (did->version == 1);
-    result &= (did->op == DETECT_DCE_IFACE_OP_GT);
-    result &= (did->any_frag == 1);
+    if (did->version != 0)
+        goto end;
+    if (did->op != 0)
+        goto end;
+    if (did->any_frag != 1)
+        goto end;
 
+    result = 1;
+
+ end:
     SigFree(s);
     SCReturnInt(result);
 }
 
-static int DetectDceIfaceTestParse08(void)
-{
-    Signature *s = SigAlloc();
-    if (s == NULL)
-        return 0;
-
-    int result = 0;
-    DetectDceIfaceData *did = NULL;
-    uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
-                           0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC};
-    SigMatch *temp = NULL;
-    int i = 0;
-
-    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,<1,any_frag") == 0);
-
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        SCReturnInt(0);
-    }
-
-    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-    did = temp->ctx;
-    if (did == NULL) {
-        SCReturnInt(0);
-    }
-
-    result &= 1;
-    for (i = 0; i < 16; i++) {
-        if (did->uuid[i] != test_uuid[i]) {
-            result = 0;
-            break;
-        }
-    }
-
-    result &= (did->version == 1);
-    result &= (did->op == DETECT_DCE_IFACE_OP_LT);
-    result &= (did->any_frag == 1);
-
-    SigFree(s);
-    SCReturnInt(result);
-}
-
-static int DetectDceIfaceTestParse09(void)
+static int DetectDceIfaceTest07(void)
 {
     SCEnter();
 
@@ -742,36 +620,94 @@ static int DetectDceIfaceTestParse09(void)
 
     int result = 0;
     DetectDceIfaceData *did = NULL;
-    uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
-                           0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC};
     SigMatch *temp = NULL;
-    int i = 0;
 
-    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,=1,any_frag") == 0);
+    if (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,>1,any_frag") < 0)
+        goto end;
 
-    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
+    if (s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL) {
+        SCReturnInt(0);
+    }
+
+    temp = s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH];
     did = temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
     }
 
-    result &= 1;
-    for (i = 0; i < 16; i++) {
-        if (did->uuid[i] != test_uuid[i]) {
-            result = 0;
-            break;
-        }
+    if (*((uint32_t *)did->uuid) != 0x12345678 ||
+        *((uint16_t *)did->uuid + 2) != 0x1234 ||
+        *((uint16_t *)did->uuid + 3) != 0x1234 ||
+        *((uint16_t *)did->uuid + 4) != 0x1234 ||
+        did->uuid[10] != 0x12 || did->uuid[11] != 0x34 ||
+        did->uuid[12] != 0x56 || did->uuid[13] != 0x78 ||
+        did->uuid[14] != 0x9A || did->uuid[15] != 0xBC) {
+        printf("failure 1\n");
+        goto end;
     }
 
-    result &= (did->version == 1);
-    result &= (did->op == DETECT_DCE_IFACE_OP_EQ);
-    result &= (did->any_frag == 1);
+    if (did->version != 1)
+        goto end;
+    if (did->op != DETECT_DCE_IFACE_OP_GT)
+        goto end;
+    if (did->any_frag != 1)
+        goto end;
 
+    result = 1;
+ end:
     SigFree(s);
     SCReturnInt(result);
 }
 
-static int DetectDceIfaceTestParse10(void)
+static int DetectDceIfaceTest08(void)
+{
+    Signature *s = SigAlloc();
+    if (s == NULL)
+        return 0;
+
+    int result = 0;
+    DetectDceIfaceData *did = NULL;
+    SigMatch *temp = NULL;
+
+    if (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,<1,any_frag") < 0)
+        goto end;
+
+    if (s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL) {
+        SCReturnInt(0);
+    }
+
+    temp = s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH];
+    did = temp->ctx;
+    if (did == NULL) {
+        SCReturnInt(0);
+    }
+
+    if (*((uint32_t *)did->uuid) != 0x12345678 ||
+        *((uint16_t *)did->uuid + 2) != 0x1234 ||
+        *((uint16_t *)did->uuid + 3) != 0x1234 ||
+        *((uint16_t *)did->uuid + 4) != 0x1234 ||
+        did->uuid[10] != 0x12 || did->uuid[11] != 0x34 ||
+        did->uuid[12] != 0x56 || did->uuid[13] != 0x78 ||
+        did->uuid[14] != 0x9A || did->uuid[15] != 0xBC) {
+        printf("failure 1\n");
+        goto end;
+    }
+
+    if (did->version != 1)
+        goto end;
+    if (did->op != DETECT_DCE_IFACE_OP_LT)
+        goto end;
+    if (did->any_frag != 1)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigFree(s);
+    SCReturnInt(result);
+}
+
+static int DetectDceIfaceTest09(void)
 {
     SCEnter();
 
@@ -781,40 +717,93 @@ static int DetectDceIfaceTestParse10(void)
 
     int result = 0;
     DetectDceIfaceData *did = NULL;
-    uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
-                           0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC};
     SigMatch *temp = NULL;
-    int i = 0;
 
-    result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,!1,any_frag") == 0);
+    if (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,=1,any_frag") < 0)
+        goto end;
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        SCReturnInt(0);
-    }
-
-    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
+    temp = s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH];
     did = temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
     }
 
-    result &= 1;
-    for (i = 0; i < 16; i++) {
-        if (did->uuid[i] != test_uuid[i]) {
-            result = 0;
-            break;
-        }
+    if (*((uint32_t *)did->uuid) != 0x12345678 ||
+        *((uint16_t *)did->uuid + 2) != 0x1234 ||
+        *((uint16_t *)did->uuid + 3) != 0x1234 ||
+        *((uint16_t *)did->uuid + 4) != 0x1234 ||
+        did->uuid[10] != 0x12 || did->uuid[11] != 0x34 ||
+        did->uuid[12] != 0x56 || did->uuid[13] != 0x78 ||
+        did->uuid[14] != 0x9A || did->uuid[15] != 0xBC) {
+        printf("failure 1\n");
+        goto end;
     }
 
-    result &= (did->version == 1);
-    result &= (did->op == DETECT_DCE_IFACE_OP_NE);
-    result &= (did->any_frag == 1);
+    if (did->version != 1)
+        goto end;
+    if (did->op != DETECT_DCE_IFACE_OP_EQ)
+        goto end;
+    if (did->any_frag != 1)
+        goto end;
 
+    result = 1;
+
+ end:
     SigFree(s);
     SCReturnInt(result);
 }
 
-static int DetectDceIfaceTestParse11(void)
+static int DetectDceIfaceTest10(void)
+{
+    SCEnter();
+
+    Signature *s = SigAlloc();
+    if (s == NULL)
+        return 0;
+
+    int result = 0;
+    DetectDceIfaceData *did = NULL;
+    SigMatch *temp = NULL;
+
+    if (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,!1,any_frag") < 0)
+        goto end;
+
+    if (s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL) {
+        SCReturnInt(0);
+    }
+
+    temp = s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH];
+    did = temp->ctx;
+    if (did == NULL) {
+        SCReturnInt(0);
+    }
+
+    if (*((uint32_t *)did->uuid) != 0x12345678 ||
+        *((uint16_t *)did->uuid + 2) != 0x1234 ||
+        *((uint16_t *)did->uuid + 3) != 0x1234 ||
+        *((uint16_t *)did->uuid + 4) != 0x1234 ||
+        did->uuid[10] != 0x12 || did->uuid[11] != 0x34 ||
+        did->uuid[12] != 0x56 || did->uuid[13] != 0x78 ||
+        did->uuid[14] != 0x9A || did->uuid[15] != 0xBC) {
+        printf("failure 1\n");
+        goto end;
+    }
+
+    if (did->version != 1)
+        goto end;
+    if (did->op != DETECT_DCE_IFACE_OP_NE)
+        goto end;
+    if (did->any_frag != 1)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigFree(s);
+    SCReturnInt(result);
+}
+
+static int DetectDceIfaceTest11(void)
 {
     SCEnter();
 
@@ -841,7 +830,7 @@ static int DetectDceIfaceTestParse11(void)
 /**
  * \test Test a valid dce_iface entry for a bind and bind_ack
  */
-static int DetectDceIfaceTestParse12(void)
+static int DetectDceIfaceTest12(void)
 {
     int result = 0;
     Signature *s = NULL;
@@ -851,7 +840,7 @@ static int DetectDceIfaceTestParse12(void)
     TcpSession ssn;
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    DCERPCState *dcerpc_state = NULL;
+    struct DCERPCState *dcerpc_state = NULL;
     int r = 0;
 
     uint8_t dcerpc_bind[] = {
@@ -940,7 +929,7 @@ static int DetectDceIfaceTestParse12(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1)) {
-        printf("sid 1 didn't match (1): ");
+        printf("sid 1 matched but shouldn't have\n");
         goto end;
     }
 
@@ -961,7 +950,7 @@ static int DetectDceIfaceTestParse12(void)
         goto end;
     }
 
-    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_request,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request,
                       dcerpc_request_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -972,7 +961,7 @@ static int DetectDceIfaceTestParse12(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (!PacketAlertCheck(p, 1)) {
-        printf("sid 1 matched, but shouldn't have: ");
+        printf("sid 1 didn't matched, but should have: ");
         goto end;
     }
 
@@ -991,14 +980,10 @@ end:
     return result;
 }
 
-/* Disabled because of bug_753.  Would be enabled, once we rewrite
- * dce parser */
-#if 0
-
 /**
  * \test Test a valid dce_iface entry with a bind, bind_ack and 3 request/responses.
  */
-static int DetectDceIfaceTestParse13(void)
+static int DetectDceIfaceTest13(void)
 {
     int result = 0;
     Signature *s = NULL;
@@ -1008,7 +993,7 @@ static int DetectDceIfaceTestParse13(void)
     TcpSession ssn;
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    DCERPCState *dcerpc_state = NULL;
+    struct DCERPCState *dcerpc_state = NULL;
     int r = 0;
 
     uint8_t dcerpc_bind[] = {
@@ -1325,12 +1310,10 @@ static int DetectDceIfaceTestParse13(void)
     return result;
 }
 
-#endif
-
 /**
  * \test Test a valid dce_iface entry for a bind and bind_ack
  */
-static int DetectDceIfaceTestParse14(void)
+static int DetectDceIfaceTest14(void)
 {
     int result = 0;
     Signature *s = NULL;
@@ -1340,7 +1323,7 @@ static int DetectDceIfaceTestParse14(void)
     TcpSession ssn;
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    DCERPCState *dcerpc_state = NULL;
+    struct DCERPCState *dcerpc_state = NULL;
     int r = 0;
 
     uint8_t dcerpc_bind[] = {
@@ -1427,8 +1410,10 @@ static int DetectDceIfaceTestParse14(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1))
+    if (PacketAlertCheck(p, 1)) {
+        printf("sig 1 matched but shouldn't have: ");
         goto end;
+    }
 
     r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_bindack,
                       dcerpc_bindack_len);
@@ -1445,7 +1430,7 @@ static int DetectDceIfaceTestParse14(void)
         goto end;
     }
 
-    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_request,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request,
                       dcerpc_request_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -1475,10 +1460,11 @@ static int DetectDceIfaceTestParse14(void)
     return result;
 }
 
+#if 0
 /**
  * \test Test a valid dce_iface entry for a bind and bind_ack
  */
-static int DetectDceIfaceTestParse15(void)
+static int DetectDceIfaceTest15(void)
 {
     int result = 0;
     Signature *s = NULL;
@@ -1488,7 +1474,7 @@ static int DetectDceIfaceTestParse15(void)
     TcpSession ssn;
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    DCERPCState *dcerpc_state = NULL;
+    struct DCERPCState *dcerpc_state = NULL;
     int r = 0;
 
     uint8_t dcerpc_bind[] = {
@@ -1756,6 +1742,7 @@ static int DetectDceIfaceTestParse15(void)
     UTHFreePackets(&p, 1);
     return result;
 }
+#endif /* #if 0 */
 
 #endif
 
@@ -1763,25 +1750,26 @@ void DetectDceIfaceRegisterTests(void)
 {
 
 #ifdef UNITTESTS
-    UtRegisterTest("DetectDceIfaceTestParse01", DetectDceIfaceTestParse01, 1);
-    UtRegisterTest("DetectDceIfaceTestParse02", DetectDceIfaceTestParse02, 1);
-    UtRegisterTest("DetectDceIfaceTestParse03", DetectDceIfaceTestParse03, 1);
-    UtRegisterTest("DetectDceIfaceTestParse04", DetectDceIfaceTestParse04, 1);
-    UtRegisterTest("DetectDceIfaceTestParse05", DetectDceIfaceTestParse05, 1);
-    UtRegisterTest("DetectDceIfaceTestParse06", DetectDceIfaceTestParse06, 1);
-    UtRegisterTest("DetectDceIfaceTestParse07", DetectDceIfaceTestParse07, 1);
-    UtRegisterTest("DetectDceIfaceTestParse08", DetectDceIfaceTestParse08, 1);
-    UtRegisterTest("DetectDceIfaceTestParse09", DetectDceIfaceTestParse09, 1);
-    UtRegisterTest("DetectDceIfaceTestParse10", DetectDceIfaceTestParse10, 1);
-    UtRegisterTest("DetectDceIfaceTestParse11", DetectDceIfaceTestParse11, 1);
-    UtRegisterTest("DetectDceIfaceTestParse12", DetectDceIfaceTestParse12, 1);
-    /* Disabled because of bug_753.  Would be enabled, once we rewrite
-     * dce parser */
+    UtRegisterTest("DetectDceIfaceTest01", DetectDceIfaceTest01, 1);
+    UtRegisterTest("DetectDceIfaceTest02", DetectDceIfaceTest02, 1);
+    UtRegisterTest("DetectDceIfaceTest03", DetectDceIfaceTest03, 1);
+    UtRegisterTest("DetectDceIfaceTest04", DetectDceIfaceTest04, 1);
+    UtRegisterTest("DetectDceIfaceTest05", DetectDceIfaceTest05, 1);
+    UtRegisterTest("DetectDceIfaceTest06", DetectDceIfaceTest06, 1);
+    UtRegisterTest("DetectDceIfaceTest07", DetectDceIfaceTest07, 1);
+    UtRegisterTest("DetectDceIfaceTest08", DetectDceIfaceTest08, 1);
+    UtRegisterTest("DetectDceIfaceTest09", DetectDceIfaceTest09, 1);
+    UtRegisterTest("DetectDceIfaceTest10", DetectDceIfaceTest10, 1);
+    UtRegisterTest("DetectDceIfaceTest11", DetectDceIfaceTest11, 1);
+    UtRegisterTest("DetectDceIfaceTest12", DetectDceIfaceTest12, 1);
+    UtRegisterTest("DetectDceIfaceTest13", DetectDceIfaceTest13, 1);
+    UtRegisterTest("DetectDceIfaceTest14", DetectDceIfaceTest14, 1);
+    /* the reason we disabled this is because we don't support
+     * retaining older uuids in case we immediatley see an
+     * alter context or a bind with an older assoc group id. */
 #if 0
-    UtRegisterTest("DetectDceIfaceTestParse13", DetectDceIfaceTestParse13, 1);
+    UtRegisterTest("DetectDceIfaceTest15", DetectDceIfaceTest15, 1);
 #endif
-    UtRegisterTest("DetectDceIfaceTestParse14", DetectDceIfaceTestParse14, 1);
-    UtRegisterTest("DetectDceIfaceTestParse15", DetectDceIfaceTestParse15, 1);
 #endif
 
     return;

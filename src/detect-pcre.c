@@ -702,7 +702,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     } else if (s->init_flags & SIG_FLAG_INIT_DCE_STUB_DATA) {
         SCLogDebug("adding to dmatch list because of dce_stub_data");
         s->flags |= SIG_FLAG_APPLAYER;
-        sm_list = DETECT_SM_LIST_DMATCH;
+        sm_list = DETECT_SM_LIST_DCE_STUB_MATCH;
     } else if (pd->flags & DETECT_PCRE_URI) {
         s->flags |= SIG_FLAG_APPLAYER;
         s->alproto = ALPROTO_HTTP;
@@ -1038,14 +1038,14 @@ int DetectPcreParseTest10(void)
     s->alproto = ALPROTO_DCERPC;
 
     result &= (DetectPcreSetup(de_ctx, s, "/bamboo/") == 0);
-    result &= (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
     SigFree(s);
 
     s = SigAlloc();
     /* failure since we have no preceding content/pcre/bytejump */
     result &= (DetectPcreSetup(de_ctx, s, "/bamboo/") == 0);
-    result &= (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
  end:
     SigFree(s);
@@ -1079,12 +1079,12 @@ int DetectPcreParseTest11(void)
         goto end;
     }
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_PCRE);
-    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->type == DETECT_PCRE);
+    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if (data->flags & DETECT_PCRE_RAWBYTES ||
         !(data->flags & DETECT_PCRE_RELATIVE) ||
         data->flags & DETECT_PCRE_URI) {
@@ -1102,12 +1102,12 @@ int DetectPcreParseTest11(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_PCRE);
-    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->type == DETECT_PCRE);
+    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if (data->flags & DETECT_PCRE_RAWBYTES ||
         !(data->flags & DETECT_PCRE_RELATIVE) ||
         data->flags & DETECT_PCRE_URI) {
@@ -1125,12 +1125,12 @@ int DetectPcreParseTest11(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_PCRE);
-    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->type == DETECT_PCRE);
+    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if (!(data->flags & DETECT_PCRE_RAWBYTES) ||
         !(data->flags & DETECT_PCRE_RELATIVE) ||
         data->flags & DETECT_PCRE_URI) {
@@ -1146,7 +1146,7 @@ int DetectPcreParseTest11(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] != NULL) {
         result = 0;
         goto end;
     }

@@ -1133,17 +1133,32 @@ void AppLayerTransactionUpdateInspectId(Flow *f, uint8_t flags)
     uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
 
     FLOWLOCK_WRLOCK(f);
-    uint64_t total_txs = AppLayerGetTxCnt(f->alproto, f->alstate);
+
+    uint16_t alproto = f->alproto;
+    void *alstate = f->alstate;
+
+    if (alproto == ALPROTO_SMB) {
+        if (((SMBState *)alstate)->dcerpc_present) {
+            alproto = ALPROTO_DCERPC;
+            alstate = (((SMBState *)alstate)->dcerpc);
+        } else {
+            FLOWLOCK_UNLOCK(f);
+            return;
+        }
+    }
+
+    uint64_t total_txs = AppLayerGetTxCnt(alproto, alstate);
     uint64_t idx = AppLayerTransactionGetInspectId(f, flags);
-    int state_done_progress = AppLayerGetAlstateProgressCompletionStatus(f->alproto, direction);
+    int state_done_progress = AppLayerGetAlstateProgressCompletionStatus(alproto, direction);
     void *tx;
     int state_progress;
 
+
     for (; idx < total_txs; idx++) {
-        tx = AppLayerGetTx(f->alproto, f->alstate, idx);
+        tx = AppLayerGetTx(alproto, alstate, idx);
         if (tx == NULL)
             continue;
-        state_progress = AppLayerGetAlstateProgress(f->alproto, tx, direction);
+        state_progress = AppLayerGetAlstateProgress(alproto, tx, direction);
         if (state_progress >= state_done_progress)
             continue;
         else
@@ -1252,7 +1267,7 @@ void RegisterAppLayerParsers(void)
     RegisterSSLParsers();
     RegisterSMBParsers();
     RegisterDCERPCParsers();
-    RegisterDCERPCUDPParsers();
+    //RegisterDCERPCUDPParsers();
     RegisterFTPParsers();
     RegisterSSHParsers();
     RegisterSMTPParsers();
