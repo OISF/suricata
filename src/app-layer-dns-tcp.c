@@ -134,8 +134,10 @@ static int DNSTCPRequestParseProbe(uint8_t *input, uint32_t input_len)
             SCLogDebug("input buffer too small for DNSQueryTrailer");
             goto insufficient_data;
         }
+#ifdef DEBUG
         DNSQueryTrailer *trailer = (DNSQueryTrailer *)data;
         SCLogDebug("trailer type %04x class %04x", ntohs(trailer->type), ntohs(trailer->class));
+#endif
         data += sizeof(DNSQueryTrailer);
     }
 
