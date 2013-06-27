@@ -139,6 +139,21 @@ int AppLayerAlprotoSupportsTxs(uint16_t alproto)
     return (al_proto_table[alproto].StateTransactionFree != NULL);
 }
 
+int AppLayerStateSupportsNestedProtocol(uint16_t alproto)
+{
+    return (al_proto_table[alproto].StateGetNestedState != NULL);
+}
+
+uint16_t AppLayerStateGetNestedState(uint16_t alproto, void *alstate, void **new_alstate)
+{
+    if (al_proto_table[alproto].StateGetNestedState == NULL) {
+        *new_alstate = NULL;
+        return ALPROTO_UNKNOWN;
+    }
+
+    return al_proto_table[alproto].StateGetNestedState(alstate, new_alstate);
+}
+
 static void AlpResultElmtPoolCleanup(void *e)
 {
     AppLayerParserResultElmt *re = (AppLayerParserResultElmt *)e;
@@ -726,6 +741,15 @@ void AppLayerRegisterGetAlstateProgressCompletionStatus(uint16_t alproto,
         StateGetAlstateProgressCompletionStatus;
 }
 
+void AppLayerRegisterNestedProtocol(uint16_t alproto,
+                                    uint16_t (*StateGetNestedState)(void *alstate, void **new_alstate))
+{
+    al_proto_table[alproto].StateGetNestedState = StateGetNestedState;
+
+    return;
+}
+
+
 /** \brief Indicate to the app layer parser that a logger is active
  *         for this protocol.
  */
@@ -1133,17 +1157,33 @@ void AppLayerTransactionUpdateInspectId(Flow *f, uint8_t flags)
     uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
 
     FLOWLOCK_WRLOCK(f);
-    uint64_t total_txs = AppLayerGetTxCnt(f->alproto, f->alstate);
+
+    uint16_t alproto = f->alproto;
+    void *alstate = f->alstate;
+
+    if (AppLayerStateSupportsNestedProtocol(alproto)) {
+        void *new_alstate = NULL;
+        alproto = AppLayerStateGetNestedState(alproto, alstate, &new_alstate);
+        if (alproto != ALPROTO_DCERPC) {
+            /* \todo event */
+            FLOWLOCK_UNLOCK(f);
+            return;
+        }
+        alstate = new_alstate;
+    }
+
+    uint64_t total_txs = AppLayerGetTxCnt(alproto, alstate);
     uint64_t idx = AppLayerTransactionGetInspectId(f, flags);
-    int state_done_progress = AppLayerGetAlstateProgressCompletionStatus(f->alproto, direction);
+    int state_done_progress = AppLayerGetAlstateProgressCompletionStatus(alproto, direction);
     void *tx;
     int state_progress;
 
+
     for (; idx < total_txs; idx++) {
-        tx = AppLayerGetTx(f->alproto, f->alstate, idx);
+        tx = AppLayerGetTx(alproto, alstate, idx);
         if (tx == NULL)
             continue;
-        state_progress = AppLayerGetAlstateProgress(f->alproto, tx, direction);
+        state_progress = AppLayerGetAlstateProgress(alproto, tx, direction);
         if (state_progress >= state_done_progress)
             continue;
         else
@@ -1252,7 +1292,7 @@ void RegisterAppLayerParsers(void)
     RegisterSSLParsers();
     RegisterSMBParsers();
     RegisterDCERPCParsers();
-    RegisterDCERPCUDPParsers();
+    //RegisterDCERPCUDPParsers();
     RegisterFTPParsers();
     RegisterSSHParsers();
     RegisterSMTPParsers();

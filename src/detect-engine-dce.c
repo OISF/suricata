@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,113 +24,149 @@
 #include "suricata-common.h"
 #include "suricata.h"
 
-#include "decode.h"
+#include "app-layer-dcerpc.h"
+#include "detect-dce-iface.h"
+#include "detect-dce-opnum.h"
 
-#include "detect.h"
 #include "detect-engine.h"
-#include "detect-parse.h"
+#include "detect-engine-state.h"
+#include "detect-engine-content-inspection.h"
 #include "detect-pcre.h"
 #include "detect-isdataat.h"
 #include "detect-bytetest.h"
 #include "detect-bytejump.h"
 #include "detect-byte-extract.h"
-#include "detect-engine-content-inspection.h"
 
-#include "app-layer.h"
-#include "app-layer-dcerpc.h"
+#include "stream.h"
+#include "stream-tcp.h"
+#include "stream-tcp-private.h"
 #include "flow-util.h"
-#include "util-debug.h"
 
+#include "detect-parse.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-/**
- * \brief Do the content inspection & validation for a signature against dce stub.
- *
- * \param de_ctx  Detection engine context.
- * \param det_ctx Detection engine thread context.
- * \param s       Signature to inspect.
- * \param sm      SigMatch to inspect.
- * \param f       Flow.
- * \param flags   App layer flags.
- * \param state   App layer state.
- *
- *  \retval 0 No match.
- *  \retval 1 Match.
- */
-int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx, Signature *s,
-                                  Flow *f, uint8_t flags, void *alstate)
+
+int DetectEngineInspectDceIface(ThreadVars *tv,
+                                DetectEngineCtx *de_ctx,
+                                DetectEngineThreadCtx *det_ctx,
+                                Signature *s, Flow *f, uint8_t flags,
+                                void *alstate,
+                                void *txv, uint64_t tx_id)
 {
-    SCEnter();
-    DCERPCState *dcerpc_state = (DCERPCState *)alstate;
-    uint8_t *dce_stub_data = NULL;
-    uint16_t dce_stub_data_len;
-    int r = 0;
+    SigMatch *sm;
+    DetectDceIfaceData *did;
+    DCERPCTx *tx = (DCERPCTx *)txv;
+    int i;
 
-    if (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL || dcerpc_state == NULL) {
-        SCReturnInt(0);
-    }
+    if (AppLayerGetAlstateProgress(ALPROTO_DCERPC, tx, 0) <= DCERPC_TX_IFACE)
+        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 
-    if (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL &&
-        dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh != 0) {
-        /* the request stub and stub_len */
-        dce_stub_data = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer;
-        dce_stub_data_len = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len;
+    /* though we have a for loop, we can have only 1 iface keyword per sig,
+     * or should we allow multiple iface keywords and let any of those
+     * match.  Currently we follow a scheme where we expect only 1 keyword
+     * per sig. */
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH];
+    for (; sm != NULL; sm = sm->next) {
+        did = (DetectDceIfaceData *)sm->ctx;
 
-        det_ctx->buffer_offset = 0;
-        det_ctx->discontinue_matching = 0;
-        det_ctx->inspection_recursion_counter = 0;
-
-        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH],
-                                          f,
-                                          dce_stub_data,
-                                          dce_stub_data_len,
-                                          0,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_DCE, dcerpc_state);
-        //r = DoInspectDcePayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH], f,
-        //dce_stub_data, dce_stub_data_len, dcerpc_state);
-        if (r == 1) {
-            SCReturnInt(1);
+        /* check the interface uuid */
+        for (i = 0; i < 16; i++) {
+            if (did->uuid[i] != tx->iface.uuid[i])
+                goto end;
         }
+
+        if (!DetectDceIfaceMatchVersion(tx->iface.iv, did))
+            goto end;
     }
 
-    if (dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer != NULL &&
-        dcerpc_state->dcerpc.dcerpcresponse.stub_data_fresh == 0) {
-        /* the response stub and stub_len */
-        dce_stub_data = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer;
-        dce_stub_data_len = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer_len;
+    return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
-        det_ctx->buffer_offset = 0;
-        det_ctx->discontinue_matching = 0;
-        det_ctx->inspection_recursion_counter = 0;
-
-        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH],
-                                          f,
-                                          dce_stub_data,
-                                          dce_stub_data_len,
-                                          0,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_DCE, dcerpc_state);
-        //r = DoInspectDcePayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH], f,
-        //dce_stub_data, dce_stub_data_len, dcerpc_state);
-        if (r == 1) {
-            SCReturnInt(1);
-        }
-    }
-
-    SCReturnInt(0);
+ end:
+    if (AppLayerGetAlstateProgress(ALPROTO_DCERPC, tx, 0) > DCERPC_TX_IFACE)
+        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    else
+        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
-/**************************************Unittests*******************************/
+int DetectEngineInspectDceOpnum(ThreadVars *tv,
+                                DetectEngineCtx *de_ctx,
+                                DetectEngineThreadCtx *det_ctx,
+                                Signature *s, Flow *f, uint8_t flags,
+                                void *alstate,
+                                void *txv, uint64_t tx_id)
+{
+    SigMatch *sm;
+    DetectDceOpnumData *dod;
+    DCERPCTx *tx = (DCERPCTx *)txv;
+
+    if (AppLayerGetAlstateProgress(ALPROTO_DCERPC, tx, 0) <= DCERPC_TX_OPNUM)
+        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_OPNUM_MATCH];
+    for (; sm != NULL; sm = sm->next) {
+        dod = (DetectDceOpnumData *)sm->ctx;
+
+        if (DetectDceOpnumMatch(tx->opnum, dod))
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+    }
+
+    if (AppLayerGetAlstateProgress(ALPROTO_DCERPC, tx, 0) > DCERPC_TX_OPNUM)
+        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    else
+        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+}
+
+int DetectEngineInspectDceStub(ThreadVars *tv,
+                               DetectEngineCtx *de_ctx,
+                               DetectEngineThreadCtx *det_ctx,
+                               Signature *s, Flow *f, uint8_t flags,
+                               void *alstate,
+                               void *txv, uint64_t tx_id)
+{
+    DCERPCTx *tx = (DCERPCTx *)txv;
+    uint8_t *stub;
+    uint16_t stub_len;
+
+    if (flags & STREAM_TOSERVER) {
+        stub = tx->stub[0];
+        stub_len = tx->stub_len[0];
+        det_ctx->dir = 0;
+    } else {
+        stub = tx->stub[1];
+        stub_len = tx->stub_len[1];
+        det_ctx->dir = 1;
+    }
+
+    if (stub_len == 0) {
+        goto end;
+    }
+
+    det_ctx->buffer_offset = 0;
+    det_ctx->discontinue_matching = 0;
+    det_ctx->inspection_recursion_counter = 0;
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH],
+                                          f, stub, stub_len,
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_DCE_STUB, 0, txv);
+    if (r == 1)
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+
+ end:
+    if (AppLayerGetAlstateProgress(ALPROTO_DCERPC, tx, 0) > DCERPC_TX_STUB_BUFFERING)
+        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    else
+        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+}
+
+/**************Unittests*****************/
 
 #ifdef UNITTESTS
 
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest01(void)
+int DetectEngineDceTest01(void)
 {
-#if 0
     int result = 0;
     uint8_t bind[] = {
         0x05, 0x00, 0x0b, 0x03, 0x10, 0x00, 0x00, 0x00,
@@ -1814,17 +1850,13 @@ end:
 
     UTHFreePackets(p, 11);
     return result;
-#else
-    return 1;
-#endif
 }
 
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest02(void)
+int DetectEngineDceTest02(void)
 {
-#if 0
     int result = 0;
     uint8_t bind[] = {
         0x05, 0x00, 0x0b, 0x03, 0x10, 0x00, 0x00, 0x00,
@@ -2262,17 +2294,13 @@ end:
 
     UTHFreePackets(p, 4);
     return result;
-#else
-    return 1;
-#endif
 }
 
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest03(void)
+int DetectEngineDceTest03(void)
 {
-#if 0
     int result = 0;
     uint8_t bind[] = {
         0x05, 0x00, 0x0b, 0x03, 0x10, 0x00, 0x00, 0x00,
@@ -2709,17 +2737,13 @@ end:
 
     UTHFreePackets(p, 4);
     return result;
-#else
-    return 1;
-#endif
 }
 
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest04(void)
+int DetectEngineDceTest04(void)
 {
-#if 0
     int result = 0;
     uint8_t bind[] = {
         0x05, 0x00, 0x0b, 0x03, 0x10, 0x00, 0x00, 0x00,
@@ -3156,17 +3180,13 @@ end:
 
     UTHFreePackets(p, 4);
     return result;
-#else
-    return 1;
-#endif
 }
 
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest05(void)
+int DetectEngineDceTest05(void)
 {
-#if 0
     int result = 0;
     uint8_t bind[] = {
         0x05, 0x00, 0x0b, 0x03, 0x10, 0x00, 0x00, 0x00,
@@ -3602,17 +3622,13 @@ end:
 
     UTHFreePackets(p, 4);
     return result;
-#else
-    return 1;
-#endif
 }
 
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest06(void)
+int DetectEngineDceTest06(void)
 {
-#if 0
     int result = 0;
     uint8_t bind[] = {
         0x05, 0x00, 0x0b, 0x03, 0x10, 0x00, 0x00, 0x00,
@@ -4049,17 +4065,13 @@ end:
 
     UTHFreePackets(p, 4);
     return result;
-#else
-    return 1;
-#endif
 }
 
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest07(void)
+int DetectEngineDceTest07(void)
 {
-#if 0
     int result = 0;
     uint8_t bind[] = {
         0x05, 0x00, 0x0b, 0x03, 0x10, 0x00, 0x00, 0x00,
@@ -4495,17 +4507,13 @@ end:
 
     UTHFreePackets(p, 4);
     return result;
-#else
-    return 1;
-#endif
 }
 
 /**
  * \test Positive test, to test the working of distance and within.
  */
-int DcePayloadTest08(void)
+int DetectEngineDceTest08(void)
 {
-#if 0
     int result = 0;
 
     uint8_t request1[] = {
@@ -4718,17 +4726,13 @@ end:
 
     UTHFreePackets(p, 1);
     return result;
-#else
-    return 1;
-#endif
 }
 
 /**
  * \test Positive test, to test the working of distance and within.
  */
-int DcePayloadTest09(void)
+int DetectEngineDceTest09(void)
 {
-#if 0
     int result = 0;
 
     uint8_t request1[] = {
@@ -4941,17 +4945,13 @@ end:
 
     UTHFreePackets(p, 1);
     return result;
-#else
-    return 1;
-#endif
 }
 
 /**
  * \test Positive test, to test the working of distance and within.
  */
-int DcePayloadTest10(void)
+int DetectEngineDceTest10(void)
 {
-#if 0
     int result = 0;
 
     uint8_t request1[] = {
@@ -5164,17 +5164,13 @@ end:
 
     UTHFreePackets(p, 1);
     return result;
-#else
-    return 1;
-#endif
 }
 
 /**
  * \test Postive test to check the working of disance and within across frags.
  */
-int DcePayloadTest11(void)
+int DetectEngineDceTest11(void)
 {
-#if 0
     int result = 0;
 
     uint8_t request1[] = {
@@ -5535,16 +5531,13 @@ end:
 
     UTHFreePackets(p, 2);
     return result;
-#else
-    return 1;
-#endif
 }
 
 /**
  * \test Negative test the working of contents on stub data with invalid
  *       distance.
  */
-int DcePayloadTest12(void)
+int DetectEngineDceTest12(void)
 {
 #if 0 /* payload ticks off clamav */
     int result = 0;
@@ -5912,14 +5905,10 @@ end:
 #endif
 }
 
-/* Disabled because of bug_753.  Would be enabled, once we rewrite
- * dce parser */
-#if 0
-
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest13(void)
+int DetectEngineDceTest13(void)
 {
     int result = 0;
     uint8_t request1[] = {
@@ -6182,7 +6171,7 @@ end:
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest14(void)
+int DetectEngineDceTest14(void)
 {
     int result = 0;
 
@@ -6401,12 +6390,10 @@ end:
     return result;
 }
 
-#endif
-
 /**
  * \test Test the working of byte_test endianness.
  */
-int DcePayloadTest15(void)
+int DetectEngineDceTest15(void)
 {
     int result = 0;
 
@@ -6515,7 +6502,7 @@ end:
 /**
  * \test Test the working of byte_test endianness.
  */
-int DcePayloadTest16(void)
+int DetectEngineDceTest16(void)
 {
     int result = 0;
 
@@ -6624,7 +6611,7 @@ end:
 /**
  * \test Test the working of byte_test endianness.
  */
-int DcePayloadTest17(void)
+int DetectEngineDceTest17(void)
 {
     int result = 0;
 
@@ -6733,7 +6720,7 @@ end:
 /**
  * \test Test the working of byte_jump endianness.
  */
-int DcePayloadTest18(void)
+int DetectEngineDceTest18(void)
 {
     int result = 0;
 
@@ -6842,7 +6829,7 @@ end:
 /**
  * \test Test the working of byte_jump endianness.
  */
-int DcePayloadTest19(void)
+int DetectEngineDceTest19(void)
 {
     int result = 0;
 
@@ -6951,7 +6938,7 @@ end:
 /**
  * \test Test the working of byte_jump endianness.
  */
-int DcePayloadTest20(void)
+int DetectEngineDceTest20(void)
 {
     int result = 0;
 
@@ -7060,7 +7047,7 @@ end:
 /**
  * \test Test the working of consecutive relative matches.
  */
-int DcePayloadTest21(void)
+int DetectEngineDceTest21(void)
 {
     int result = 0;
 
@@ -7154,7 +7141,7 @@ end:
 /**
  * \test Test the working of consecutive relative matches.
  */
-int DcePayloadTest22(void)
+int DetectEngineDceTest22(void)
 {
     int result = 0;
 
@@ -7248,7 +7235,7 @@ end:
 /**
  * \test Test the working of consecutive relative matches.
  */
-int DcePayloadTest23(void)
+int DetectEngineDceTest23(void)
 {
     int result = 0;
 
@@ -7343,7 +7330,7 @@ end:
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest25(void)
+int DetectEngineDceTest25(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -7368,7 +7355,7 @@ int DcePayloadParseTest25(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -7464,7 +7451,7 @@ int DcePayloadParseTest25(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest26(void)
+int DetectEngineDceTest26(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -7491,7 +7478,7 @@ int DcePayloadParseTest26(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] != NULL) {
         result = 0;
         goto end;
     }
@@ -7591,7 +7578,7 @@ int DcePayloadParseTest26(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest27(void)
+int DetectEngineDceTest27(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -7617,7 +7604,7 @@ int DcePayloadParseTest27(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -7626,7 +7613,7 @@ int DcePayloadParseTest27(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -7717,7 +7704,7 @@ int DcePayloadParseTest27(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest28(void)
+int DetectEngineDceTest28(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -7744,7 +7731,7 @@ int DcePayloadParseTest28(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -7753,7 +7740,7 @@ int DcePayloadParseTest28(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -7844,7 +7831,7 @@ int DcePayloadParseTest28(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest29(void)
+int DetectEngineDceTest29(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -7873,7 +7860,7 @@ int DcePayloadParseTest29(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] != NULL) {
         result = 0;
         goto end;
     }
@@ -7986,7 +7973,7 @@ int DcePayloadParseTest29(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest30(void)
+int DetectEngineDceTest30(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8015,7 +8002,7 @@ int DcePayloadParseTest30(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] != NULL) {
         result = 0;
         goto end;
     }
@@ -8133,7 +8120,7 @@ int DcePayloadParseTest30(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest31(void)
+int DetectEngineDceTest31(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8162,7 +8149,7 @@ int DcePayloadParseTest31(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -8171,7 +8158,7 @@ int DcePayloadParseTest31(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH];
     if (sm->type != DETECT_BYTEJUMP) {
         result = 0;
         goto end;
@@ -8280,7 +8267,7 @@ int DcePayloadParseTest31(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest32(void)
+int DetectEngineDceTest32(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8309,7 +8296,7 @@ int DcePayloadParseTest32(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -8318,7 +8305,7 @@ int DcePayloadParseTest32(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH];
     if (sm->type != DETECT_BYTEJUMP) {
         result = 0;
         goto end;
@@ -8427,7 +8414,7 @@ int DcePayloadParseTest32(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest33(void)
+int DetectEngineDceTest33(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8456,7 +8443,7 @@ int DcePayloadParseTest33(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -8465,7 +8452,7 @@ int DcePayloadParseTest33(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH];
     if (sm->type != DETECT_PCRE) {
         result = 0;
         goto end;
@@ -8569,7 +8556,7 @@ int DcePayloadParseTest33(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest34(void)
+int DetectEngineDceTest34(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8599,7 +8586,9 @@ int DcePayloadParseTest34(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_OPNUM_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -8608,7 +8597,7 @@ int DcePayloadParseTest34(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH];
     if (sm->type != DETECT_PCRE) {
         result = 0;
         goto end;
@@ -8693,7 +8682,7 @@ int DcePayloadParseTest34(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest35(void)
+int DetectEngineDceTest35(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8720,16 +8709,19 @@ int DcePayloadParseTest35(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_OPNUM_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
+
     if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH];
     if (sm->type != DETECT_BYTETEST) {
         result = 0;
         goto end;
@@ -8780,7 +8772,7 @@ int DcePayloadParseTest35(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest36(void)
+int DetectEngineDceTest36(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8808,7 +8800,9 @@ int DcePayloadParseTest36(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_OPNUM_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -8817,7 +8811,7 @@ int DcePayloadParseTest36(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH];
     if (sm->type != DETECT_ISDATAAT) {
         result = 0;
         goto end;
@@ -8884,7 +8878,7 @@ int DcePayloadParseTest36(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest37(void)
+int DetectEngineDceTest37(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8913,7 +8907,9 @@ int DcePayloadParseTest37(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_OPNUM_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -8922,7 +8918,7 @@ int DcePayloadParseTest37(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH];
     if (sm->type != DETECT_BYTEJUMP) {
         result = 0;
         goto end;
@@ -8991,7 +8987,7 @@ int DcePayloadParseTest37(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest38(void)
+int DetectEngineDceTest38(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9022,7 +9018,9 @@ int DcePayloadParseTest38(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_OPNUM_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -9031,7 +9029,7 @@ int DcePayloadParseTest38(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH];
     if (sm->type != DETECT_PCRE) {
         result = 0;
         goto end;
@@ -9113,7 +9111,7 @@ int DcePayloadParseTest38(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest39(void)
+int DetectEngineDceTest39(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9138,7 +9136,9 @@ int DcePayloadParseTest39(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_OPNUM_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -9169,7 +9169,7 @@ int DcePayloadParseTest39(void)
 
     result &= (sm->next == NULL);
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH];
     data = (DetectContentData *)sm->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
@@ -9198,7 +9198,7 @@ int DcePayloadParseTest39(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest40(void)
+int DetectEngineDceTest40(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9227,7 +9227,9 @@ int DcePayloadParseTest40(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_OPNUM_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -9236,7 +9238,7 @@ int DcePayloadParseTest40(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -9328,7 +9330,7 @@ int DcePayloadParseTest40(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest41(void)
+int DetectEngineDceTest41(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9357,7 +9359,9 @@ int DcePayloadParseTest41(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_OPNUM_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -9366,7 +9370,7 @@ int DcePayloadParseTest41(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -9457,7 +9461,7 @@ int DcePayloadParseTest41(void)
 /**
  * \test Test the working of consecutive relative matches with a negated content.
  */
-int DcePayloadTest42(void)
+int DetectEngineDceTest42(void)
 {
     int result = 0;
 
@@ -9552,7 +9556,7 @@ end:
 /**
  * \test Test the working of consecutive relative pcres.
  */
-int DcePayloadTest43(void)
+int DetectEngineDceTest43(void)
 {
     int result = 0;
 
@@ -9647,7 +9651,7 @@ end:
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest44(void)
+int DetectEngineDceTest44(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9676,7 +9680,9 @@ int DcePayloadParseTest44(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_OPNUM_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -9685,7 +9691,7 @@ int DcePayloadParseTest44(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH];
     if (sm->type != DETECT_ISDATAAT) {
         result = 0;
         goto end;
@@ -9774,7 +9780,7 @@ int DcePayloadParseTest44(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest45(void)
+int DetectEngineDceTest45(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9802,7 +9808,9 @@ int DcePayloadParseTest45(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_OPNUM_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -9811,7 +9819,7 @@ int DcePayloadParseTest45(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH];
     if (sm->type != DETECT_BYTEJUMP) {
         result = 0;
         goto end;
@@ -9886,7 +9894,7 @@ int DcePayloadParseTest45(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest46(void)
+int DetectEngineDceTest46(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9914,7 +9922,9 @@ int DcePayloadParseTest46(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_IFACE_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_OPNUM_MATCH] == NULL ||
+        s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -9923,7 +9933,7 @@ int DcePayloadParseTest46(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH];
     if (sm->type != DETECT_BYTETEST) {
         result = 0;
         goto end;
@@ -9995,62 +10005,58 @@ int DcePayloadParseTest46(void)
 
 #endif /* UNITTESTS */
 
-void DcePayloadRegisterTests(void)
+void DetectEngineDceRegisterTests(void)
 {
 
 #ifdef UNITTESTS
-    UtRegisterTest("DcePayloadTest01", DcePayloadTest01, 1);
-    UtRegisterTest("DcePayloadTest02", DcePayloadTest02, 1);
-    UtRegisterTest("DcePayloadTest03", DcePayloadTest03, 1);
-    UtRegisterTest("DcePayloadTest04", DcePayloadTest04, 1);
-    UtRegisterTest("DcePayloadTest05", DcePayloadTest05, 1);
-    UtRegisterTest("DcePayloadTest06", DcePayloadTest06, 1);
-    UtRegisterTest("DcePayloadTest07", DcePayloadTest07, 1);
-    UtRegisterTest("DcePayloadTest08", DcePayloadTest08, 1);
-    UtRegisterTest("DcePayloadTest09", DcePayloadTest09, 1);
-    UtRegisterTest("DcePayloadTest10", DcePayloadTest10, 1);
-    UtRegisterTest("DcePayloadTest11", DcePayloadTest11, 1);
-    UtRegisterTest("DcePayloadTest12", DcePayloadTest12, 1);
-    /* Disabled because of bug_753.  Would be enabled, once we rewrite
-     * dce parser */
+    UtRegisterTest("DetectEngineDceTest01", DetectEngineDceTest01, 1);
+    UtRegisterTest("DetectEngineDceTest02", DetectEngineDceTest02, 1);
+    UtRegisterTest("DetectEngineDceTest03", DetectEngineDceTest03, 1);
+    UtRegisterTest("DetectEngineDceTest04", DetectEngineDceTest04, 1);
+    UtRegisterTest("DetectEngineDceTest05", DetectEngineDceTest05, 1);
+    UtRegisterTest("DetectEngineDceTest06", DetectEngineDceTest06, 1);
+    UtRegisterTest("DetectEngineDceTest07", DetectEngineDceTest07, 1);
+    UtRegisterTest("DetectEngineDceTest08", DetectEngineDceTest08, 1);
+    UtRegisterTest("DetectEngineDceTest09", DetectEngineDceTest09, 1);
+    UtRegisterTest("DetectEngineDceTest10", DetectEngineDceTest10, 1);
+    UtRegisterTest("DetectEngineDceTest11", DetectEngineDceTest11, 1);
+    UtRegisterTest("DetectEngineDceTest12", DetectEngineDceTest12, 1);
+    UtRegisterTest("DetectEngineDceTest13", DetectEngineDceTest13, 1);
+    UtRegisterTest("DetectEngineDceTest14", DetectEngineDceTest14, 1);
+    UtRegisterTest("DetectEngineDceTest15", DetectEngineDceTest15, 1);
+    UtRegisterTest("DetectEngineDceTest16", DetectEngineDceTest16, 1);
+    UtRegisterTest("DetectEngineDceTest17", DetectEngineDceTest17, 1);
+    UtRegisterTest("DetectEngineDceTest18", DetectEngineDceTest18, 1);
+    UtRegisterTest("DetectEngineDceTest19", DetectEngineDceTest19, 1);
+    UtRegisterTest("DetectEngineDceTest20", DetectEngineDceTest20, 1);
+    UtRegisterTest("DetectEngineDceTest21", DetectEngineDceTest21, 1);
+    UtRegisterTest("DetectEngineDceTest22", DetectEngineDceTest22, 1);
+    UtRegisterTest("DetectEngineDceTest23", DetectEngineDceTest23, 1);
+
+    UtRegisterTest("DetectEngineDceTest25", DetectEngineDceTest25, 1);
+    UtRegisterTest("DetectEngineDceTest26", DetectEngineDceTest26, 1);
+    UtRegisterTest("DetectEngineDceTest27", DetectEngineDceTest27, 1);
+    UtRegisterTest("DetectEngineDceTest28", DetectEngineDceTest28, 1);
+    UtRegisterTest("DetectEngineDceTest29", DetectEngineDceTest29, 1);
+    UtRegisterTest("DetectEngineDceTest30", DetectEngineDceTest30, 1);
+    UtRegisterTest("DetectEngineDceTest31", DetectEngineDceTest31, 1);
+    UtRegisterTest("DetectEngineDceTest32", DetectEngineDceTest32, 1);
+    UtRegisterTest("DetectEngineDceTest33", DetectEngineDceTest33, 1);
+    UtRegisterTest("DetectEngineDceTest34", DetectEngineDceTest34, 1);
 #if 0
-    UtRegisterTest("DcePayloadTest13", DcePayloadTest13, 1);
-    UtRegisterTest("DcePayloadTest14", DcePayloadTest14, 1);
+    UtRegisterTest("DetectEngineDceTest35", DetectEngineDceTest35, 1);
+    UtRegisterTest("DetectEngineDceTest36", DetectEngineDceTest36, 1);
+    UtRegisterTest("DetectEngineDceTest37", DetectEngineDceTest37, 1);
+    UtRegisterTest("DetectEngineDceTest38", DetectEngineDceTest38, 1);
+    UtRegisterTest("DetectEngineDceTest39", DetectEngineDceTest39, 1);
+    UtRegisterTest("DetectEngineDceTest40", DetectEngineDceTest40, 1);
+    UtRegisterTest("DetectEngineDceTest41", DetectEngineDceTest41, 1);
+    UtRegisterTest("DetectEngineDceTest42", DetectEngineDceTest42, 1);
+    UtRegisterTest("DetectEngineDceTest43", DetectEngineDceTest43, 1);
+    UtRegisterTest("DetectEngineDceTest44", DetectEngineDceTest44, 1);
+    UtRegisterTest("DetectEngineDceTest45", DetectEngineDceTest45, 1);
+    UtRegisterTest("DetectEngineDceTest46", DetectEngineDceTest46, 1);
 #endif
-    UtRegisterTest("DcePayloadTest15", DcePayloadTest15, 1);
-    UtRegisterTest("DcePayloadTest16", DcePayloadTest16, 1);
-    UtRegisterTest("DcePayloadTest17", DcePayloadTest17, 1);
-    UtRegisterTest("DcePayloadTest18", DcePayloadTest18, 1);
-    UtRegisterTest("DcePayloadTest19", DcePayloadTest19, 1);
-    UtRegisterTest("DcePayloadTest20", DcePayloadTest20, 1);
-    UtRegisterTest("DcePayloadTest21", DcePayloadTest21, 1);
-    UtRegisterTest("DcePayloadTest22", DcePayloadTest22, 1);
-    UtRegisterTest("DcePayloadTest23", DcePayloadTest23, 1);
-
-    UtRegisterTest("DcePayloadParseTest25", DcePayloadParseTest25, 1);
-    UtRegisterTest("DcePayloadParseTest26", DcePayloadParseTest26, 1);
-    UtRegisterTest("DcePayloadParseTest27", DcePayloadParseTest27, 1);
-    UtRegisterTest("DcePayloadParseTest28", DcePayloadParseTest28, 1);
-    UtRegisterTest("DcePayloadParseTest29", DcePayloadParseTest29, 1);
-    UtRegisterTest("DcePayloadParseTest30", DcePayloadParseTest30, 1);
-    UtRegisterTest("DcePayloadParseTest31", DcePayloadParseTest31, 1);
-    UtRegisterTest("DcePayloadParseTest32", DcePayloadParseTest32, 1);
-    UtRegisterTest("DcePayloadParseTest33", DcePayloadParseTest33, 1);
-    UtRegisterTest("DcePayloadParseTest34", DcePayloadParseTest34, 1);
-    UtRegisterTest("DcePayloadParseTest35", DcePayloadParseTest35, 1);
-    UtRegisterTest("DcePayloadParseTest36", DcePayloadParseTest36, 1);
-    UtRegisterTest("DcePayloadParseTest37", DcePayloadParseTest37, 1);
-    UtRegisterTest("DcePayloadParseTest38", DcePayloadParseTest38, 1);
-    UtRegisterTest("DcePayloadParseTest39", DcePayloadParseTest39, 1);
-    UtRegisterTest("DcePayloadParseTest40", DcePayloadParseTest40, 1);
-    UtRegisterTest("DcePayloadParseTest41", DcePayloadParseTest41, 1);
-
-    UtRegisterTest("DcePayloadTest42", DcePayloadTest42, 1);
-    UtRegisterTest("DcePayloadTest43", DcePayloadTest43, 1);
-
-    UtRegisterTest("DcePayloadParseTest44", DcePayloadParseTest44, 1);
-    UtRegisterTest("DcePayloadParseTest45", DcePayloadParseTest45, 1);
-    UtRegisterTest("DcePayloadParseTest46", DcePayloadParseTest46, 1);
 #endif /* UNITTESTS */
 
     return;

@@ -63,6 +63,8 @@ typedef struct AppLayerProto_ {
     uint64_t (*StateGetTxCnt)(void *alstate);
     void *(*StateGetTx)(void *alstate, uint64_t tx_id);
     int (*StateGetAlstateProgressCompletionStatus)(uint8_t direction);
+    uint16_t (*StateGetNestedState)(void *alstate, void **new_alstate);
+
 } AppLayerProto;
 
 /** flags for the result elmts */
@@ -270,6 +272,8 @@ void AppLayerRegisterGetTx(uint16_t alproto,
                            void *(*StateGetTx)(void *alstate, uint64_t tx_id));
 void AppLayerRegisterGetAlstateProgressCompletionStatus(uint16_t alproto,
     int (*StateProgressCompletionStatus)(uint8_t direction));
+void AppLayerRegisterNestedProtocol(uint16_t alproto,
+                                    uint16_t (*StateGetNestedState)(void *alstate, void **new_alstate));
 
 int AppLayerParse(void *, Flow *, uint8_t,
                   uint8_t, uint8_t *, uint32_t);
@@ -405,6 +409,27 @@ int AppLayerGetAlstateProgressCompletionStatus(uint16_t alproto, uint8_t directi
  * \retval 1 If true; 0 If false.
  */
 int AppLayerAlprotoSupportsTxs(uint16_t alproto);
+
+/**
+ * \brief Informs if the alproto supports a nested protocol.
+ *
+ * \param alproto The app protocol.
+ *
+ * \retval 1 If true; 0 If false.
+ */
+int AppLayerStateSupportsNestedProtocol(uint16_t alproto);
+
+/**
+ * \brief If the alstate contains a nested protocol, it returns the nested
+ *        alstate.
+ *
+ * \param alproto     The app protocol.
+ * \param alstate     The app state.
+ * \param new_alstate Var of size (void *) to send back the nested alstate.
+ *
+ * \retval The nested app protocol.
+ */
+uint16_t AppLayerStateGetNestedState(uint16_t alproto, void *alstate, void **new_alstate);
 
 void AppLayerTriggerRawStreamReassembly(Flow *);
 

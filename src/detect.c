@@ -44,7 +44,6 @@
 #include "detect-engine-threshold.h"
 
 #include "detect-engine-payload.h"
-#include "detect-engine-dcepayload.h"
 #include "detect-engine-uri.h"
 #include "detect-engine-state.h"
 #include "detect-engine-analyzer.h"
@@ -1641,7 +1640,7 @@ next:
 
 end:
     /* see if we need to increment the inspect_id and reset the de_state */
-    if (alstate != NULL && AppLayerAlprotoSupportsTxs(alproto)) {
+    if (alstate != NULL && (AppLayerAlprotoSupportsTxs(alproto) || alproto == ALPROTO_SMB)) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
         DeStateUpdateInspectTransactionId(p->flow, flags);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
@@ -2192,7 +2191,17 @@ static int SignatureCreateMask(Signature *s) {
         SCLogDebug("sig requires payload");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH] != NULL) {
+        s->mask |= SIG_MASK_REQUIRE_DCE_STATE;
+        SCLogDebug("sig requires dce state");
+    }
+
+    if (s->sm_lists[DETECT_SM_LIST_DCE_IFACE_MATCH] != NULL) {
+        s->mask |= SIG_MASK_REQUIRE_DCE_STATE;
+        SCLogDebug("sig requires dce state");
+    }
+
+    if (s->sm_lists[DETECT_SM_LIST_DCE_OPNUM_MATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_DCE_STATE;
         SCLogDebug("sig requires dce state");
     }

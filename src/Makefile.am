@@ -78,7 +78,7 @@ detect-engine-alert.c detect-engine-alert.h \
 detect-engine-analyzer.c detect-engine-analyzer.h \
 detect-engine.c detect-engine.h \
 detect-engine-content-inspection.c detect-engine-content-inspection.h \
-detect-engine-dcepayload.c detect-engine-dcepayload.h \
+detect-engine-dce.c detect-engine-dce.h \
 detect-engine-event.c detect-engine-event.h \
 detect-engine-file.c detect-engine-file.h \
 detect-engine-hcbd.c detect-engine-hcbd.h \

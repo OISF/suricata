@@ -29,6 +29,7 @@
 #include "flow.h"
 #include "stream.h"
 #include "app-layer-nbss.h"
+#include "app-layer-dcerpc.h"
 #include "app-layer-dcerpc-common.h"
 
 typedef struct SMBHdr_ {
@@ -83,9 +84,10 @@ typedef struct SMBState_ {
     SMBWordCount wordcount;
     SMBByteCount bytecount;
     SMBAndX andx;
-    DCERPC dcerpc;
+    DCERPCState *dcerpc;
     uint8_t dcerpc_present;
     uint8_t data_needed_for_dir;
+    uint8_t curr_dir;
 } SMBState;
 
 #define SMB_FLAGS_SERVER_TO_REDIR 0x80

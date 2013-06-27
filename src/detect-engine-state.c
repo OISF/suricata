@@ -55,7 +55,6 @@
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "detect-engine-state.h"
-#include "detect-engine-dcepayload.h"
 
 #include "detect-flowvar.h"
 
@@ -244,7 +243,6 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     uint32_t inspect_flags = 0;
 
     HtpState *htp_state = NULL;
-    SMBState *smb_state = NULL;
 
     void *tx = NULL;
     uint64_t tx_id = 0;
@@ -262,17 +260,37 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     if (alstate == NULL)
         goto end;
 
+    if (AppLayerStateSupportsNestedProtocol(alproto)) {
+        void *new_alstate = NULL;
+        FLOWLOCK_RDLOCK(f);
+        alproto = AppLayerStateGetNestedState(alproto, alstate, &new_alstate);
+        if (alproto == ALPROTO_DCERPC)
+            alstate = new_alstate;
+        FLOWLOCK_UNLOCK(f);
+    }
+
+    //if (alproto == ALPROTO_SMB) {
+    //    FLOWLOCK_RDLOCK(f);
+    //    if (((SMBState *)alstate)->dcerpc_present) {
+    //        alstate = (((SMBState *)alstate)->dcerpc);
+    //        alproto = ALPROTO_DCERPC;
+    //    }
+    //    FLOWLOCK_UNLOCK(f);
+    //}
+
     if (AppLayerAlprotoSupportsTxs(alproto)) {
         FLOWLOCK_WRLOCK(f);
 
-        htp_state = (HtpState *)alstate;
-        if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-            FLOWLOCK_UNLOCK(f);
-            goto end;
+        if (alproto == ALPROTO_HTTP) {
+            htp_state = (HtpState *)alstate;
+            if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
+                FLOWLOCK_UNLOCK(f);
+                goto end;
+            }
         }
 
         tx_id = AppLayerTransactionGetInspectId(f, flags);
-        total_txs = AppLayerGetTxCnt(alproto, htp_state);
+        total_txs = AppLayerGetTxCnt(alproto, alstate);
         for (; tx_id < total_txs; tx_id++) {
             total_matches = 0;
             tx = AppLayerGetTx(alproto, alstate, tx_id);
@@ -322,41 +340,13 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         } /* for */
 
         FLOWLOCK_UNLOCK(f);
-
-    } else if (s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL &&
-               (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB ||
-                alproto == ALPROTO_SMB2))
-    {
-        if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
-            smb_state = (SMBState *)alstate;
-            if (smb_state->dcerpc_present &&
-                DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
-                                              flags, &smb_state->dcerpc) == 1) {
-                alert_cnt++;
-            }
-        } else {
-            if (DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
-                                              flags, alstate) == 1) {
-                alert_cnt++;
-            }
-        }
     }
 
     sm = s->sm_lists[DETECT_SM_LIST_AMATCH];
     for (; sm != NULL; sm = sm->next) {
-        if (sigmatch_table[sm->type].AppLayerMatch != NULL &&
-            (alproto == s->alproto || alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2))
-        {
-            if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
-                smb_state = (SMBState *)alstate;
-                if (smb_state->dcerpc_present) {
-                    match = sigmatch_table[sm->type].
-                        AppLayerMatch(tv, det_ctx, f, flags, &smb_state->dcerpc, s, sm);
-                }
-            } else {
-                match = sigmatch_table[sm->type].
-                    AppLayerMatch(tv, det_ctx, f, flags, alstate, s, sm);
-            }
+        if (sigmatch_table[sm->type].AppLayerMatch != NULL && (alproto == s->alproto)) {
+            match = sigmatch_table[sm->type].
+                AppLayerMatch(tv, det_ctx, f, flags, alstate, s, sm);
 
             if (match == 0)
                 break;
@@ -415,7 +405,6 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     uint32_t inspect_flags = 0;
 
     HtpState *htp_state = NULL;
-    SMBState *smb_state = NULL;
 
     SigIntId store_cnt = 0;
     SigIntId state_cnt = 0;
@@ -434,6 +423,15 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
      * assume that we have an alert if engine == NULL */
     uint8_t total_matches = 0;
     uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
+
+    if (AppLayerStateSupportsNestedProtocol(alproto)) {
+        void *new_alstate = NULL;
+        FLOWLOCK_RDLOCK(f);
+        alproto = AppLayerStateGetNestedState(alproto, alstate, &new_alstate);
+        if (alproto == ALPROTO_DCERPC)
+            alstate = new_alstate;
+        FLOWLOCK_UNLOCK(f);
+    }
 
     DeStateResetFileInspection(f, alproto, alstate, flags);
 
@@ -526,11 +524,13 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             if (alproto_supports_txs) {
                 FLOWLOCK_WRLOCK(f);
 
-                htp_state = (HtpState *)alstate;
-                if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-                    FLOWLOCK_UNLOCK(f);
-                    RULE_PROFILING_END(det_ctx, s, match);
-                    goto end;
+                if (alproto == ALPROTO_HTTP) {
+                    htp_state = (HtpState *)alstate;
+                    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
+                        FLOWLOCK_UNLOCK(f);
+                        RULE_PROFILING_END(det_ctx, s, match);
+                        goto end;
+                    }
                 }
 
                 engine = app_inspection_engine[alproto][(flags & STREAM_TOSERVER) ? 0 : 1];
@@ -573,25 +573,15 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             }
 
             for (sm = item->nm; sm != NULL; sm = sm->next) {
-                if (sigmatch_table[sm->type].AppLayerMatch != NULL &&
-                    (alproto == s->alproto || alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2))
-                    {
-                        if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
-                            smb_state = (SMBState *)alstate;
-                            if (smb_state->dcerpc_present) {
-                                match = sigmatch_table[sm->type].
-                                    AppLayerMatch(tv, det_ctx, f, flags, &smb_state->dcerpc, s, sm);
-                            }
-                        } else {
-                            match = sigmatch_table[sm->type].
-                                AppLayerMatch(tv, det_ctx, f, flags, alstate, s, sm);
-                        }
+                if (sigmatch_table[sm->type].AppLayerMatch != NULL && (alproto == s->alproto)) {
+                    match = sigmatch_table[sm->type].
+                        AppLayerMatch(tv, det_ctx, f, flags, alstate, s, sm);
 
-                        if (match == 0)
-                            break;
-                        else if (match == 2)
-                            inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
-                    }
+                    if (match == 0)
+                        break;
+                    else if (match == 2)
+                        inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
+                }
             }
             RULE_PROFILING_END(det_ctx, s, match);
 

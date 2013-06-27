@@ -39,6 +39,7 @@ typedef struct DetectDceIfaceData_ {
     uint8_t any_frag;
 } DetectDceIfaceData;
 
+int DetectDceIfaceMatchVersion(uint16_t iv, DetectDceIfaceData *did);
 void DetectDceIfaceRegister(void);
 void DetectDceIfaceRegisterTests(void);
 

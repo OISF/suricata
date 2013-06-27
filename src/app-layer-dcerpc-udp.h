@@ -1,3 +1,5 @@
+#if 0
+
 /*
  * Copyright (c) 2009,2010 Open Information Security Foundation
  *
@@ -28,3 +30,5 @@ void DCERPCUDPParserTests(void);
 void DCERPCUDPParserRegisterTests(void);
 
 #endif /* __APP_LAYER_DCERPC_UDP_H__ */
+
+#endif

@@ -390,7 +390,7 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
             s->alproto = ALPROTO_HTTP;
             sm_list = DETECT_SM_LIST_HSBDMATCH;
         } else {
-            sm_list = DETECT_SM_LIST_DMATCH;
+            sm_list = DETECT_SM_LIST_DCE_STUB_MATCH;
         }
 
         s->flags |= SIG_FLAG_APPLAYER;
@@ -1043,7 +1043,7 @@ int DetectContentParseTest18(void)
     s->alproto = ALPROTO_DCERPC;
 
     result &= (DetectContentSetup(de_ctx, s, "\"one\"") == 0);
-    result &= (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
     SigFree(s);
 
@@ -1052,7 +1052,7 @@ int DetectContentParseTest18(void)
         return 0;
 
     result &= (DetectContentSetup(de_ctx, s, "\"one\"") == 0);
-    result &= (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
  end:
     SigFree(s);
@@ -1088,13 +1088,13 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_CONTENT);
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->type == DETECT_CONTENT);
     result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
@@ -1117,13 +1117,13 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_CONTENT);
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->type == DETECT_CONTENT);
     result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         !(data->flags & DETECT_CONTENT_WITHIN) ||
@@ -1148,13 +1148,13 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_CONTENT);
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->type == DETECT_CONTENT);
     result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
@@ -1166,7 +1166,7 @@ int DetectContentParseTest19(void)
         goto end;
     }
     result &= (data->offset == 5 && data->depth == 9);
-    data = (DetectContentData *)s->sm_lists[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         !(data->flags & DETECT_CONTENT_WITHIN) ||
@@ -1189,13 +1189,13 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_CONTENT);
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->type == DETECT_CONTENT);
     result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
@@ -1219,13 +1219,13 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_CONTENT);
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->type == DETECT_CONTENT);
     result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         !(data->flags & DETECT_CONTENT_WITHIN) ||
@@ -1249,13 +1249,13 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_CONTENT);
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->type == DETECT_CONTENT);
     result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
@@ -1279,13 +1279,13 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_CONTENT);
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->type == DETECT_CONTENT);
     result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
@@ -1309,13 +1309,13 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_CONTENT);
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->type == DETECT_CONTENT);
     result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
@@ -1337,7 +1337,7 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DCE_STUB_MATCH] != NULL) {
         result = 0;
         goto end;
     }

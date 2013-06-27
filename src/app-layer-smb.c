@@ -589,7 +589,21 @@ static int32_t DataParser(void *smb_state, AppLayerParserState *pstate,
     int32_t parsed = 0;
 
     if (sstate->andx.paddingparsed) {
-        parsed = DCERPCParser(&sstate->dcerpc, input, input_len);
+        if (sstate->curr_dir == 0) {
+            parsed = DCERPCParseRequest(NULL /* flow */,
+                                        sstate->dcerpc,
+                                        NULL /* pstate */,
+                                        input, input_len,
+                                        NULL /* local_data */,
+                                        NULL /* output */);
+        } else {
+            parsed = DCERPCParseResponse(NULL /* flow */,
+                                         sstate->dcerpc,
+                                         NULL /* pstate */,
+                                         input, input_len,
+                                         NULL /* local_data */,
+                                         NULL /* output */);
+        }
         if (parsed == -1 || parsed > sstate->bytecount.bytecountleft || parsed > (int32_t)input_len) {
             SCReturnInt(-1);
         } else {
@@ -1061,6 +1075,8 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
         SCReturnInt(0);
     }
 
+    sstate->curr_dir = dir;
+
     if (sstate->bytesprocessed != 0 && sstate->data_needed_for_dir != dir) {
         SCReturnInt(-1);
     }
@@ -1311,12 +1327,17 @@ int isAndX(SMBState *smb_state) {
 static void *SMBStateAlloc(void) {
     SCEnter();
 
-    void *s = SCMalloc(sizeof(SMBState));
+    SMBState *s = SCMalloc(sizeof(SMBState));
     if (unlikely(s == NULL)) {
         SCReturnPtr(NULL, "void");
     }
-
     memset(s, 0, sizeof(SMBState));
+
+    s->dcerpc = DCERPCStateAlloc();
+    if (s->dcerpc == NULL) {
+        SCFree(s);
+        SCReturnPtr(NULL, "NULL");
+    }
 
     SCReturnPtr(s, "void");
 }
@@ -1328,23 +1349,7 @@ static void SMBStateFree(void *s) {
     SCEnter();
     SMBState *sstate = (SMBState *) s;
 
-    DCERPCUuidEntry *item;
-
-    while ((item = TAILQ_FIRST(&sstate->dcerpc.dcerpcbindbindack.uuid_list))) {
-	//printUUID("Free", item);
-	TAILQ_REMOVE(&sstate->dcerpc.dcerpcbindbindack.uuid_list, item, next);
-	SCFree(item);
-    }
-    if (sstate->dcerpc.dcerpcrequest.stub_data_buffer != NULL) {
-        SCFree(sstate->dcerpc.dcerpcrequest.stub_data_buffer);
-        sstate->dcerpc.dcerpcrequest.stub_data_buffer = NULL;
-        sstate->dcerpc.dcerpcrequest.stub_data_buffer_len = 0;
-    }
-    if (sstate->dcerpc.dcerpcresponse.stub_data_buffer != NULL) {
-        SCFree(sstate->dcerpc.dcerpcresponse.stub_data_buffer);
-        sstate->dcerpc.dcerpcresponse.stub_data_buffer = NULL;
-        sstate->dcerpc.dcerpcresponse.stub_data_buffer_len = 0;
-    }
+    DCERPCStateFree(sstate->dcerpc);
 
     if (s) {
         SCFree(s);
@@ -1411,6 +1416,19 @@ static uint16_t SMBProbingParser(uint8_t *input, uint32_t ilen)
     return ALPROTO_UNKNOWN;
 }
 
+uint16_t SMBStateGetNestedState(void *alstate, void **new_alstate)
+{
+    SMBState *state = (SMBState *)alstate;
+
+    if (state->dcerpc_present) {
+        *new_alstate = state->dcerpc;
+        return ALPROTO_DCERPC;
+    } else {
+        *new_alstate = NULL;
+        return ALPROTO_UNKNOWN;
+    }
+}
+
 void RegisterSMBParsers(void) {
     char *proto_name = "smb";
 
@@ -1425,6 +1443,9 @@ void RegisterSMBParsers(void) {
     AppLayerRegisterStateFuncs(ALPROTO_SMB, SMBStateAlloc, SMBStateFree);
     AppLayerRegisterTransactionIdFuncs(ALPROTO_SMB,
             SMBUpdateTransactionId, NULL);
+
+    AppLayerRegisterNestedProtocol(ALPROTO_SMB, SMBStateGetNestedState);
+
 
     AppLayerRegisterProbingParser(&alp_proto_ctx,
                                   139,
@@ -1566,7 +1587,7 @@ int SMBParserTest02(void) {
         goto end;
     }
 
-    printUUID("BIND", smb_state->dcerpc.dcerpcbindbindack.uuid_entry);
+    //printUUID("BIND", smb_state->dcerpc.dcerpcbindbindack.uuid_entry);
     result = 1;
 end:
     StreamTcpFreeConfig(TRUE);
@@ -1854,7 +1875,7 @@ int SMBParserTest03(void) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-    printUUID("BIND", smb_state->dcerpc.dcerpcbindbindack.uuid_entry);
+    //printUUID("BIND", smb_state->dcerpc.dcerpcbindbindack.uuid_entry);
     result = 1;
 end:
     StreamTcpFreeConfig(TRUE);
