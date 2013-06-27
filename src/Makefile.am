@@ -193,6 +193,7 @@ flow-var.c flow-var.h \
 host.c host.h \
 host-queue.c host-queue.h \
 host-timeout.c host-timeout.h \
+log-dcerpc.c log-dcerpc.h \
 log-droplog.c log-droplog.h \
 log-file.c log-file.h \
 log-filestore.c log-filestore.h \
