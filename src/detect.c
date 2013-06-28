@@ -3485,12 +3485,6 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *hea
 
                     de_ctx->mpm_uri_tot_patcnt += sgr->sh->mpm_uri_ctx_ts->pattern_cnt;
                 }
-                if (sgr->sh->mpm_uri_ctx_tc != NULL) {
-                    if (de_ctx->mpm_uri_max_patcnt < sgr->sh->mpm_uri_ctx_tc->pattern_cnt)
-                        de_ctx->mpm_uri_max_patcnt = sgr->sh->mpm_uri_ctx_tc->pattern_cnt;
-
-                    de_ctx->mpm_uri_tot_patcnt += sgr->sh->mpm_uri_ctx_tc->pattern_cnt;
-                }
                 /* dbg */
                 if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && sgr->sh->mpm_proto_tcp_ctx_ts) {
                     de_ctx->mpm_memory_size += sgr->sh->mpm_proto_tcp_ctx_ts->memory_size;
@@ -3509,9 +3503,6 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *hea
                 }
                 if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY) && sgr->sh->mpm_uri_ctx_ts) {
                     de_ctx->mpm_memory_size += sgr->sh->mpm_uri_ctx_ts->memory_size;
-                }
-                if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY) && sgr->sh->mpm_uri_ctx_tc) {
-                    de_ctx->mpm_memory_size += sgr->sh->mpm_uri_ctx_tc->memory_size;
                 }
 
                 SigGroupHeadHashAdd(de_ctx, sgr->sh);
@@ -3781,12 +3772,6 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
 
                                     de_ctx->mpm_uri_tot_patcnt += dp->sh->mpm_uri_ctx_ts->pattern_cnt;
                                 }
-                                if (dp->sh->mpm_uri_ctx_tc != NULL) {
-                                    if (de_ctx->mpm_uri_max_patcnt < dp->sh->mpm_uri_ctx_tc->pattern_cnt)
-                                        de_ctx->mpm_uri_max_patcnt = dp->sh->mpm_uri_ctx_tc->pattern_cnt;
-
-                                    de_ctx->mpm_uri_tot_patcnt += dp->sh->mpm_uri_ctx_tc->pattern_cnt;
-                                }
                                 /* dbg */
                                 if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && dp->sh->mpm_proto_tcp_ctx_ts) {
                                     de_ctx->mpm_memory_size += dp->sh->mpm_proto_tcp_ctx_ts->memory_size;
@@ -3805,9 +3790,6 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
                                 }
                                 if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY) && dp->sh->mpm_uri_ctx_ts) {
                                     de_ctx->mpm_memory_size += dp->sh->mpm_uri_ctx_ts->memory_size;
-                                }
-                                if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY) && dp->sh->mpm_uri_ctx_tc) {
-                                    de_ctx->mpm_memory_size += dp->sh->mpm_uri_ctx_tc->memory_size;
                                 }
 
                                 SigGroupHeadDPortHashAdd(de_ctx, dp->sh);
