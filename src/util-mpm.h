@@ -151,7 +151,7 @@ typedef struct MpmCtxFactoryContainer_ {
 typedef struct MpmTableElmt_ {
     char *name;
     uint8_t max_pattern_length;
-    void (*InitCtx)(struct MpmCtx_ *, int);
+    void (*InitCtx)(struct MpmCtx_ *);
     void (*InitThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *, uint32_t);
     void (*DestroyCtx)(struct MpmCtx_ *);
     void (*DestroyThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *);
@@ -235,7 +235,7 @@ void MpmRegisterTests(void);
 int32_t MpmMatcherGetMaxPatternLength(uint16_t);
 
 int MpmVerifyMatch(MpmThreadCtx *, PatternMatcherQueue *, uint32_t);
-void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher, int module_handle);
+void MpmInitCtx(MpmCtx *mpm_ctx, uint16_t matcher);
 void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t, uint32_t);
 uint32_t MpmGetHashSize(const char *);
 uint32_t MpmGetBloomSize(const char *);

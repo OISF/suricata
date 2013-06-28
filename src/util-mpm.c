@@ -548,9 +548,9 @@ void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t matcher, uint32_t m
     mpm_table[matcher].InitThreadCtx(NULL, mpm_thread_ctx, max_id);
 }
 
-void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher, int module_handle) {
+void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher) {
     mpm_ctx->mpm_type = matcher;
-    mpm_table[matcher].InitCtx(mpm_ctx, module_handle);
+    mpm_table[matcher].InitCtx(mpm_ctx);
 }
 
 void MpmTableSetup(void) {

@@ -956,14 +956,11 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_stream_ctx_ts;
     MpmCtx *mpm_uri_ctx_ts;
     MpmCtx *mpm_hcbd_ctx_ts;
-    MpmCtx *mpm_hsbd_ctx_ts;
     MpmCtx *mpm_hhd_ctx_ts;
     MpmCtx *mpm_hrhd_ctx_ts;
     MpmCtx *mpm_hmd_ctx_ts;
     MpmCtx *mpm_hcd_ctx_ts;
     MpmCtx *mpm_hrud_ctx_ts;
-    MpmCtx *mpm_hsmd_ctx_ts;
-    MpmCtx *mpm_hscd_ctx_ts;
     MpmCtx *mpm_huad_ctx_ts;
     MpmCtx *mpm_hhhd_ctx_ts;
     MpmCtx *mpm_hrhhd_ctx_ts;
@@ -972,19 +969,12 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_proto_tcp_ctx_tc;
     MpmCtx *mpm_proto_udp_ctx_tc;
     MpmCtx *mpm_stream_ctx_tc;
-    MpmCtx *mpm_uri_ctx_tc;
-    MpmCtx *mpm_hcbd_ctx_tc;
     MpmCtx *mpm_hsbd_ctx_tc;
     MpmCtx *mpm_hhd_ctx_tc;
     MpmCtx *mpm_hrhd_ctx_tc;
-    MpmCtx *mpm_hmd_ctx_tc;
     MpmCtx *mpm_hcd_ctx_tc;
-    MpmCtx *mpm_hrud_ctx_tc;
     MpmCtx *mpm_hsmd_ctx_tc;
     MpmCtx *mpm_hscd_ctx_tc;
-    MpmCtx *mpm_huad_ctx_tc;
-    MpmCtx *mpm_hhhd_ctx_tc;
-    MpmCtx *mpm_hrhhd_ctx_tc;
 
     uint16_t mpm_uricontent_maxlen;
 

@@ -821,7 +821,7 @@ static void SMTPSetMpmState(void)
     }
     memset(smtp_mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
 
-    mpm_table[SMTP_MPM].InitCtx(smtp_mpm_ctx, -1);
+    mpm_table[SMTP_MPM].InitCtx(smtp_mpm_ctx);
     mpm_table[SMTP_MPM].InitThreadCtx(smtp_mpm_ctx, smtp_mpm_thread_ctx, 0);
 
     uint32_t i = 0;
