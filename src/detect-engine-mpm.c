@@ -655,7 +655,7 @@ uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    uint32_t ret;
+    uint32_t ret = 0;
 
     if (flags & STREAM_TOSERVER) {
         if (det_ctx->sgh->mpm_dnsquery_ctx_ts == NULL)
