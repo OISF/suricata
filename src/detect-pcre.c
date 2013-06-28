@@ -471,10 +471,6 @@ DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr)
                     /* snort's option */
                     pd->flags |= DETECT_PCRE_HTTP_STAT_CODE;
                     break;
-                case 'F':
-                    /* suricata extension (dns query name) */
-                    pd->flags |= DETECT_PCRE_DNS_QUERY;
-                    break;
                 default:
                     SCLogError(SC_ERR_UNKNOWN_REGEX_MOD, "unknown regex modifier '%c'", *op);
                     goto error;
@@ -697,22 +693,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         }
     }
 
-    if (pd->flags & DETECT_PCRE_DNS_QUERY) {
-        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DNS) {
-            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option.  "
-                       "Conflicting alprotos detected for this rule. Dns "
-                       "pcre modifier found along with a different protocol "
-                       "for the rule.");
-            goto error;
-        }
-        if (s->list != DETECT_SM_LIST_NOTSET) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre found with dns "
-                       "modifier set, with file_data/dce_stub_data sticky "
-                       "option set.");
-            goto error;
-        }
-    }
-
     int sm_list;
     if (s->list != DETECT_SM_LIST_NOTSET) {
         if (s->list == DETECT_SM_LIST_HSBDMATCH) {
@@ -720,6 +700,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             AppLayerHtpEnableResponseBodyCallback();
         } else if (s->list == DETECT_SM_LIST_DMATCH) {
             SCLogDebug("adding to dmatch list because of dce_stub_data");
+        } else if (s->list == DETECT_SM_LIST_DNSQUERY_MATCH) {
+            SCLogDebug("adding to DETECT_SM_LIST_DNSQUERY_MATCH list because of dns_query");
         }
         s->flags |= SIG_FLAG_APPLAYER;
         sm_list = s->list;
@@ -786,11 +768,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         s->flags |= SIG_FLAG_APPLAYER;
         s->alproto = ALPROTO_HTTP;
         sm_list = DETECT_SM_LIST_HUADMATCH;
-    } else if (pd->flags & DETECT_PCRE_DNS_QUERY) {
-        SCLogDebug("DNS query inspection modifier set on pcre");
-        s->flags |= SIG_FLAG_APPLAYER;
-        s->alproto = ALPROTO_DNS;
-        sm_list = DETECT_SM_LIST_DNSQUERY_MATCH;
     } else {
         sm_list = DETECT_SM_LIST_PMATCH;
     }

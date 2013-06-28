@@ -89,10 +89,8 @@ void DetectDnsQueryRegister (void) {
 
 static int DetectDnsQuerySetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    return DetectEngineContentModifierBufferSetup(de_ctx, s, str,
-                                                  DETECT_AL_DNS_QUERY,
-                                                  DETECT_SM_LIST_DNSQUERY_MATCH,
-                                                  ALPROTO_DNS, NULL);
+    s->list = DETECT_SM_LIST_DNSQUERY_MATCH;
+    return 0;
 }
 
 /**
@@ -170,7 +168,7 @@ static int DetectDnsQueryTest01(void) {
 
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                    "(msg:\"Test dns_query option\"; "
-                                   "content:\"google\"; nocase; dns_query; sid:1;)");
+                                   "dns_query; content:\"google\"; nocase; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -288,13 +286,13 @@ static int DetectDnsQueryTest02(void) {
 
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                    "(msg:\"Test dns_query option\"; "
-                                   "content:\"google.com\"; nocase; dns_query; sid:1;)");
+                                   "dns_query; content:\"google.com\"; nocase; sid:1;)");
     if (s == NULL) {
         goto end;
     }
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                    "(msg:\"Test dns_query option\"; "
-                                   "content:\"google.net\"; nocase; dns_query; sid:2;)");
+                                   "dns_query; content:\"google.net\"; nocase; sid:2;)");
     if (s == NULL) {
         goto end;
     }
@@ -518,7 +516,7 @@ static int DetectDnsQueryTest04(void) {
 
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                    "(msg:\"Test dns_query option\"; "
-                                   "content:\"google\"; nocase; dns_query; sid:1;)");
+                                   "dns_query; content:\"google\"; nocase; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -663,13 +661,13 @@ static int DetectDnsQueryTest05(void) {
 
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                       "(msg:\"Test dns_query option\"; "
-                                      "content:\"google.com\"; nocase; dns_query; sid:1;)");
+                                      "dns_query; content:\"google.com\"; nocase; sid:1;)");
     if (s == NULL) {
         goto end;
     }
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                       "(msg:\"Test dns_query option\"; "
-                                      "content:\"google.net\"; nocase; dns_query; sid:2;)");
+                                      "dns_query; content:\"google.net\"; nocase; sid:2;)");
     if (s == NULL) {
         goto end;
     }
@@ -813,15 +811,15 @@ static int DetectDnsQueryTest06(void) {
 
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                       "(msg:\"Test dns_query option\"; "
-                                      "content:\"google\"; nocase; dns_query; "
-                                      "pcre:\"/google\\.com$/iF\"; sid:1;)");
+                                      "dns_query; content:\"google\"; nocase; "
+                                      "pcre:\"/google\\.com$/i\"; sid:1;)");
     if (s == NULL) {
         goto end;
     }
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                       "(msg:\"Test dns_query option\"; "
-                                      "content:\"google\"; nocase; dns_query; "
-                                      "pcre:\"/^\\.[a-z]{2,3}$/iRF\"; sid:2;)");
+                                      "dns_query; content:\"google\"; nocase; "
+                                      "pcre:\"/^\\.[a-z]{2,3}$/iR\"; sid:2;)");
     if (s == NULL) {
         goto end;
     }
@@ -945,13 +943,13 @@ static int DetectDnsQueryTest07(void) {
 
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                    "(msg:\"Test dns_query option\"; "
-                                   "content:\"google.com\"; nocase; dns_query; sid:1;)");
+                                   "dns_query; content:\"google.com\"; nocase; sid:1;)");
     if (s == NULL) {
         goto end;
     }
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                    "(msg:\"Test dns_query option\"; "
-                                   "content:\"google.net\"; nocase; dns_query; sid:2;)");
+                                   "dns_query; content:\"google.net\"; nocase; sid:2;)");
     if (s == NULL) {
         goto end;
     }
