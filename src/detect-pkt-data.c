@@ -73,7 +73,7 @@ void DetectPktDataRegister(void) {
 static int DetectPktDataSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     SCEnter();
-    s->init_flags &= (~SIG_FLAG_INIT_FILE_DATA & ~SIG_FLAG_INIT_DCE_STUB_DATA);
+    s->list = DETECT_SM_LIST_NOTSET;
 
     return 0;
 }
@@ -126,8 +126,8 @@ static int DetectPktDataTest01(void)
     }
 
 
-    if (sig->init_flags & SIG_FLAG_INIT_FILE_DATA) {
-        printf("sm init_flags SIG_FLAG_INIT_FILE_DATA set: ");
+    if (sig->list != DETECT_SM_LIST_NOTSET) {
+        printf("sticky buffer set: ");
         goto end;
     }
 

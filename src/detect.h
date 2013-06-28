@@ -123,6 +123,11 @@ enum {
     /* list for alert thresholding */
     DETECT_SM_LIST_THRESHOLD,
     DETECT_SM_LIST_MAX,
+
+    /* used for Signature->list, which indicates which list
+     * we're adding keywords to in cases of sticky buffers like
+     * file_data */
+    DETECT_SM_LIST_NOTSET,
 };
 
 /* a is ... than b */
@@ -277,8 +282,6 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_FLOW           (1<<2)  /**< signature has a flow setting */
 #define SIG_FLAG_INIT_BIDIREC        (1<<3)  /**< signature has bidirectional operator */
 #define SIG_FLAG_INIT_PAYLOAD        (1<<4)  /**< signature is inspecting the packet payload */
-#define SIG_FLAG_INIT_FILE_DATA      (1<<5)  /**< file_data set */
-#define SIG_FLAG_INIT_DCE_STUB_DATA  (1<<6)  /**< dce_stub_data set */
 
 /* signature mask flags */
 #define SIG_MASK_REQUIRE_PAYLOAD            (1<<0)
@@ -459,6 +462,8 @@ typedef struct Signature_ {
     /* Be careful, this pointer is only valid while parsing the sig,
      * to warn the user about any possible problem */
     char *sig_str;
+
+    int list;
 
     /** ptr to the next sig in the list */
     struct Signature_ *next;

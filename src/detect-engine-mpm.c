@@ -2895,8 +2895,8 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, Signature *s, uint
 
     r = HashTableLookup(ht->hash, (void *)e, sizeof(MpmPatternIdTableElmt));
     if (r == NULL) {
-        if (s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) {
-            BUG_ON((sm_list != DETECT_SM_LIST_HSBDMATCH) & (sm_list != DETECT_SM_LIST_DMATCH));
+        if (s->list != DETECT_SM_LIST_NOTSET) {
+            BUG_ON((sm_list != DETECT_SM_LIST_HSBDMATCH) && (sm_list != DETECT_SM_LIST_DMATCH));
             e->id = ht->max_id;
             ht->max_id++;
             id = e->id;
@@ -2960,7 +2960,7 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, Signature *s, uint
     } else {
         /* oh cool!  It is a duplicate for content, uricontent types.  Update the
          * dup_count and get out */
-        if ((s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) ||
+        if ((s->list != DETECT_SM_LIST_NOTSET) ||
             sm_list == DETECT_SM_LIST_PMATCH) {
             /* we have a duplicate */
             r->dup_count++;

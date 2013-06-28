@@ -109,7 +109,7 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
         goto end;
     }
 
-    if (s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) {
+    if (s->list != DETECT_SM_LIST_NOTSET) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "\"%s\" keyword seen "
                    "with a sticky buffer still set.  Reset sticky buffer "
                    "with pkt_data before using the modifier.",
@@ -902,6 +902,8 @@ Signature *SigAlloc (void) {
      * overwritten after the Signature has been parsed, and if it hasn't been
      * overwritten, we can then assign the default value of 3 */
     sig->prio = -1;
+
+    sig->list = DETECT_SM_LIST_NOTSET;
     return sig;
 }
 

@@ -545,18 +545,16 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         goto error;
 
     int sm_list;
-    if (s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) {
-        if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+    if (s->list != DETECT_SM_LIST_NOTSET) {
+        if (s->list == DETECT_SM_LIST_HSBDMATCH) {
             if (data->endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "dce byte_extract specified "
                            "with file_data option set.");
                 goto error;
             }
             AppLayerHtpEnableResponseBodyCallback();
-            sm_list = DETECT_SM_LIST_HSBDMATCH;
-        } else {
-            sm_list = DETECT_SM_LIST_DMATCH;
         }
+        sm_list = s->list;
         s->flags |= SIG_FLAG_APPLAYER;
         if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
             prev_pm = SigMatchGetLastSMFromLists(s, 4,

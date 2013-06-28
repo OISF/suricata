@@ -384,16 +384,14 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
     DetectContentPrint(cd);
 
     int sm_list;
-    if (s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) {
-        if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+    if (s->list != DETECT_SM_LIST_NOTSET) {
+        if (s->list == DETECT_SM_LIST_HSBDMATCH) {
             AppLayerHtpEnableResponseBodyCallback();
             s->alproto = ALPROTO_HTTP;
-            sm_list = DETECT_SM_LIST_HSBDMATCH;
-        } else {
-            sm_list = DETECT_SM_LIST_DMATCH;
         }
 
         s->flags |= SIG_FLAG_APPLAYER;
+        sm_list = s->list;
     } else {
         sm_list = DETECT_SM_LIST_PMATCH;
     }

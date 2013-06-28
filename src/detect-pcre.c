@@ -689,7 +689,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                        "for the rule.");
             goto error;
         }
-        if (s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) {
+        if (s->list != DETECT_SM_LIST_NOTSET) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre found with http "
                        "modifier set, with file_data/dce_stub_data sticky "
                        "option set.");
@@ -705,7 +705,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                        "for the rule.");
             goto error;
         }
-        if (s->init_flags & (SIG_FLAG_INIT_FILE_DATA | SIG_FLAG_INIT_DCE_STUB_DATA)) {
+        if (s->list != DETECT_SM_LIST_NOTSET) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre found with dns "
                        "modifier set, with file_data/dce_stub_data sticky "
                        "option set.");
@@ -714,15 +714,15 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     }
 
     int sm_list;
-    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
-        SCLogDebug("adding to http server body list because of file data");
+    if (s->list != DETECT_SM_LIST_NOTSET) {
+        if (s->list == DETECT_SM_LIST_HSBDMATCH) {
+            SCLogDebug("adding to http server body list because of file data");
+            AppLayerHtpEnableResponseBodyCallback();
+        } else if (s->list == DETECT_SM_LIST_DMATCH) {
+            SCLogDebug("adding to dmatch list because of dce_stub_data");
+        }
         s->flags |= SIG_FLAG_APPLAYER;
-        AppLayerHtpEnableResponseBodyCallback();
-        sm_list = DETECT_SM_LIST_HSBDMATCH;
-    } else if (s->init_flags & SIG_FLAG_INIT_DCE_STUB_DATA) {
-        SCLogDebug("adding to dmatch list because of dce_stub_data");
-        s->flags |= SIG_FLAG_APPLAYER;
-        sm_list = DETECT_SM_LIST_DMATCH;
+        sm_list = s->list;
     } else if (pd->flags & DETECT_PCRE_URI) {
         s->flags |= SIG_FLAG_APPLAYER;
         s->alproto = ALPROTO_HTTP;

@@ -80,11 +80,8 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
     }
 
     /* retrive the sm to apply the depth against */
-    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA || s->init_flags & SIG_FLAG_INIT_DCE_STUB_DATA) {
-        if (s->init_flags & SIG_FLAG_INIT_FILE_DATA)
-            pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]);
-        else
-            pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
+    if (s->list != DETECT_SM_LIST_NOTSET) {
+        pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[s->list]);
     } else {
         pm =  SigMatchGetLastSMFromLists(s, 28,
                                          DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
