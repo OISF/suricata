@@ -2538,6 +2538,7 @@ static int SSLParserTest21(void)
 
     result = 1;
 end:
+    StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
 }

@@ -8380,6 +8380,7 @@ static int StreamTcpReassembleInlineTest10(void) {
     ThreadVars tv;
     TcpSession ssn;
     Flow *f = NULL;
+    Packet *p = NULL;
 
     memset(&tv, 0x00, sizeof(tv));
 
@@ -8396,7 +8397,7 @@ static int StreamTcpReassembleInlineTest10(void) {
     uint8_t stream_payload2[] = "T /";
     uint8_t stream_payload3[] = "HTTP/1.0\r\n\r\n";
 
-    Packet *p = UTHBuildPacketReal(stream_payload3, 12, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p = UTHBuildPacketReal(stream_payload3, 12, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
     if (p == NULL) {
         printf("couldn't get a packet: ");
         goto end;
@@ -8446,12 +8447,9 @@ static int StreamTcpReassembleInlineTest10(void) {
 
     ret = 1;
 end:
-#if 0
-    FLOW_DESTROY(&f);
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-#endif
     UTHFreeFlow(f);
     return ret;
 }
