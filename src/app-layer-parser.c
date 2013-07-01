@@ -121,10 +121,11 @@ AppLayerDecoderEvents *AppLayerGetEventsFromFlowByTx(Flow *f, uint64_t tx_id) {
     }
 }
 
-/** \brief check if we have decoder events */
+/** \brief check if we have decoder events
+ *  \retval 1 yes
+ *  \retval 0 no */
 int AppLayerFlowHasDecoderEvents(Flow *f, uint8_t flags) {
     AppLayerDecoderEvents *decoder_events;
-    uint64_t tx_id, max_id;
 
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
@@ -132,13 +133,20 @@ int AppLayerFlowHasDecoderEvents(Flow *f, uint8_t flags) {
         return 0;
 
     if (AppLayerProtoIsTxEventAware(f->alproto)) {
-        tx_id = AppLayerTransactionGetInspectId(f, flags);
-        max_id = AppLayerGetTxCnt(f->alproto, f->alstate);
-
-        for ( ; tx_id < max_id; tx_id++) {
-            decoder_events = AppLayerGetEventsFromFlowByTx(f, tx_id);
-            if (decoder_events && decoder_events->cnt)
+        /* fast path if supported by proto */
+        if (al_proto_table[f->alproto].StateHasEvents != NULL) {
+            if (al_proto_table[f->alproto].StateHasEvents(f->alstate) == 1)
                 return 1;
+        } else {
+            /* check each tx */
+            uint64_t tx_id = AppLayerTransactionGetInspectId(f, flags);
+            uint64_t max_id = AppLayerGetTxCnt(f->alproto, f->alstate);
+
+            for ( ; tx_id < max_id; tx_id++) {
+                decoder_events = AppLayerGetEventsFromFlowByTx(f, tx_id);
+                if (decoder_events && decoder_events->cnt)
+                    return 1;
+            }
         }
     }
 
@@ -800,6 +808,11 @@ void AppLayerRegisterGetEventsFunc(uint16_t proto,
         AppLayerDecoderEvents *(*StateGetEvents)(void *, uint64_t))
 {
     al_proto_table[proto].StateGetEvents = StateGetEvents;
+}
+
+void AppLayerRegisterHasEventsFunc(uint16_t proto,
+        int (*StateHasEvents)(void *)) {
+    al_proto_table[proto].StateHasEvents = StateHasEvents;
 }
 
 /** \brief Indicate to the app layer parser that a logger is active

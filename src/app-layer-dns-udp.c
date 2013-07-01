@@ -324,7 +324,6 @@ static void DNSStateTransactionFree(void *state, uint16_t id) {
 
     DNSState *s = state;
 
-    s->transaction_done = id;
     SCLogDebug("state %p, id %"PRIu16, s, id);
 
     /* we can't remove the actual transactions here */
@@ -345,7 +344,9 @@ void RegisterDNSUDPParsers(void) {
 			DNSStateFree);
     AppLayerRegisterTransactionIdFuncs(ALPROTO_DNS_UDP,
             DNSStateUpdateTransactionId, DNSStateTransactionFree);
+
     AppLayerRegisterGetEventsFunc(ALPROTO_DNS_UDP, DNSGetEvents);
+    AppLayerRegisterHasEventsFunc(ALPROTO_DNS_UDP, DNSHasEvents);
 
     AppLayerRegisterGetTx(ALPROTO_DNS_UDP,
             DNSGetTx);

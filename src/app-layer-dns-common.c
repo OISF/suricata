@@ -45,11 +45,21 @@ void DNSAppLayerDecoderEventsRegister(int alproto) {
 AppLayerDecoderEvents *DNSGetEvents(void *state, uint64_t id) {
     DNSState *dns_state = (DNSState *)state;
     DNSTransaction *tx;
+
+    if (dns_state->curr && dns_state->curr->tx_num == (id + 1)) {
+        return dns_state->curr->decoder_events;
+    }
+
     TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
         if (tx->tx_num == (id+1))
             return tx->decoder_events;
     }
     return NULL;
+}
+
+int DNSHasEvents(void *state) {
+    DNSState *dns_state = (DNSState *)state;
+    return (dns_state->events > 0);
 }
 
 void *DNSStateAlloc(void) {
@@ -87,6 +97,9 @@ void *DNSGetTx(void *alstate, uint64_t tx_id) {
     DNSState *dns_state = (DNSState *)alstate;
     DNSTransaction *tx = NULL;
 
+    if (dns_state->curr && dns_state->curr->tx_num == tx_id + 1)
+        return dns_state->curr;
+
     TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
         SCLogDebug("tx->tx_num %u, tx_id %"PRIu64, tx->tx_num, (tx_id+1));
         if ((tx_id+1) != tx->tx_num)
@@ -119,6 +132,7 @@ void DNSSetEvent(DNSState *s, uint8_t e) {
         SCLogDebug("s->curr->decoder_events %p", s->curr->decoder_events);
         AppLayerDecoderEventsSetEventRaw(s->curr->decoder_events, e);
         SCLogDebug("s->curr->decoder_events %p", s->curr->decoder_events);
+        s->events++;
     } else {
         SCLogDebug("couldn't set event %u", e);
     }

@@ -59,6 +59,8 @@ typedef struct AppLayerProto_ {
     void (*Truncate)(void *, uint8_t);
     FileContainer *(*StateGetFiles)(void *, uint8_t);
     AppLayerDecoderEvents *(*StateGetEvents)(void *, uint64_t);
+    /* bool indicating a state has decoder/parser events */
+    int (*StateHasEvents)(void *);
 
     int (*StateGetAlstateProgress)(void *alstate, uint8_t direction);
     uint64_t (*StateGetTxCnt)(void *alstate);
@@ -261,6 +263,9 @@ void AppLayerRegisterGetFilesFunc(uint16_t proto,
         FileContainer *(*StateGetFile)(void *, uint8_t));
 void AppLayerRegisterGetEventsFunc(uint16_t proto,
         AppLayerDecoderEvents *(*StateGetEvents)(void *, uint64_t));
+void AppLayerRegisterHasEventsFunc(uint16_t proto,
+        int (*StateHasEvents)(void *));
+
 void AppLayerRegisterLogger(uint16_t proto);
 uint16_t AppLayerGetProtoByName(const char *);
 const char *AppLayerGetProtoString(int proto);
