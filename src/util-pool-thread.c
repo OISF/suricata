@@ -61,10 +61,6 @@ PoolThread *PoolThreadInit(int threads, uint32_t size, uint32_t prealloc_size, u
 
     for (i = 0; i < threads; i++) {
         PoolThreadElement *e = &pt->array[i];
-        if (e == NULL) {
-            SCLogDebug("error");
-            goto error;
-        }
 
         SCMutexInit(&e->lock, NULL);
         SCMutexLock(&e->lock);
@@ -81,7 +77,8 @@ PoolThread *PoolThreadInit(int threads, uint32_t size, uint32_t prealloc_size, u
 
     return pt;
 error:
-    SCLogDebug("error");
+    if (pt != NULL)
+        PoolThreadFree(pt);
     return NULL;
 }
 
@@ -108,10 +105,6 @@ int PoolThreadGrow(PoolThread *pt, uint32_t size, uint32_t prealloc_size, uint32
     pt->size = newsize;
 
     e = &pt->array[newsize - 1];
-    if (e == NULL) {
-        SCLogError(SC_ERR_POOL_INIT, "pool grow failed");
-        return -1;
-    }
     memset(e, 0x00, sizeof(*e));
     SCMutexInit(&e->lock, NULL);
     SCMutexLock(&e->lock);
@@ -140,9 +133,6 @@ void PoolThreadFree(PoolThread *pt) {
     if (pt->array != NULL) {
         for (i = 0; i < (int)pt->size; i++) {
             PoolThreadElement *e = &pt->array[i];
-            if (e == NULL)
-                continue;
-
             SCMutexLock(&e->lock);
             PoolFree(e->pool);
             SCMutexUnlock(&e->lock);
@@ -160,14 +150,12 @@ void *PoolThreadGetById(PoolThread *pt, uint16_t id) {
         return NULL;
 
     PoolThreadElement *e = &pt->array[id];
-    if (e) {
-        SCMutexLock(&e->lock);
-        data = PoolGet(e->pool);
-        SCMutexUnlock(&e->lock);
-        if (data) {
-            PoolThreadReserved *did = data;
-            *did = id;
-        }
+    SCMutexLock(&e->lock);
+    data = PoolGet(e->pool);
+    SCMutexUnlock(&e->lock);
+    if (data) {
+        PoolThreadReserved *did = data;
+        *did = id;
     }
 
     return data;
@@ -182,11 +170,9 @@ void PoolThreadReturn(PoolThread *pt, void *data) {
     SCLogDebug("returning to id %u", *id);
 
     PoolThreadElement *e = &pt->array[*id];
-    if (e) {
-        SCMutexLock(&e->lock);
-        PoolReturn(e->pool, data);
-        SCMutexUnlock(&e->lock);
-    }
+    SCMutexLock(&e->lock);
+    PoolReturn(e->pool, data);
+    SCMutexUnlock(&e->lock);
 }
 
 #ifdef UNITTESTS
