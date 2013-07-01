@@ -68,6 +68,8 @@ typedef struct TcpStreamCnf_ {
 } TcpStreamCnf;
 
 typedef struct StreamTcpThread_ {
+    int ssn_pool_id;
+
     uint64_t pkts;
 
     /** queue for pseudo packet(s) that were created in the stream

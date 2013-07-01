@@ -765,7 +765,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             return 0;
 
         if (ssn == NULL) {
-            ssn = StreamTcpNewSession(p, tv->id);
+            ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
             if (ssn == NULL) {
                 SCPerfCounterIncr(stt->counter_tcp_ssn_memcap, tv->sc_perf_pca);
                 return -1;
@@ -839,7 +839,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
     } else if (p->tcph->th_flags & TH_SYN) {
         if (ssn == NULL) {
-            ssn = StreamTcpNewSession(p, tv->id);
+            ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
             if (ssn == NULL) {
                 SCPerfCounterIncr(stt->counter_tcp_ssn_memcap, tv->sc_perf_pca);
                 return -1;
@@ -892,7 +892,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             return 0;
 
         if (ssn == NULL) {
-            ssn = StreamTcpNewSession(p, tv->id);
+            ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
             if (ssn == NULL) {
                 SCPerfCounterIncr(stt->counter_tcp_ssn_memcap, tv->sc_perf_pca);
                 return -1;
@@ -4459,6 +4459,7 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     if (unlikely(stt == NULL))
         SCReturnInt(TM_ECODE_FAILED);
     memset(stt, 0, sizeof(StreamTcpThread));
+    stt->ssn_pool_id = -1;
 
     *data = (void *)stt;
 
@@ -4517,9 +4518,8 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     SCLogDebug("StreamTcp thread specific ctx online at %p, reassembly ctx %p",
                 stt, stt->ra_ctx);
 
-    int r = 0;
     SCMutexLock(&ssn_pool_mutex);
-    if (ssn_pool == NULL)
+    if (ssn_pool == NULL) {
         ssn_pool = PoolThreadInit(1, /* thread */
                 0, /* unlimited */
                 stream_config.prealloc_sessions,
@@ -4527,21 +4527,21 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
                 StreamTcpSessionPoolAlloc,
                 StreamTcpSessionPoolInit, NULL,
                 StreamTcpSessionPoolCleanup, NULL);
-    else {
+        stt->ssn_pool_id = 0;
+        SCLogDebug("pool size %d, thread ssn_pool_id %d", PoolThreadSize(ssn_pool), stt->ssn_pool_id);
+    } else {
         /* grow ssn_pool until we have a element for our thread id */
-        do {
-            r = PoolThreadGrow(ssn_pool,
-                    0, /* unlimited */
-                    stream_config.prealloc_sessions,
-                    sizeof(TcpSession),
-                    StreamTcpSessionPoolAlloc,
-                    StreamTcpSessionPoolInit, NULL,
-                    StreamTcpSessionPoolCleanup, NULL);
-        } while (r != -1 && r < tv->id);
-        SCLogDebug("pool size %d, thread %d", PoolThreadSize(ssn_pool), tv->id);
+        stt->ssn_pool_id = PoolThreadGrow(ssn_pool,
+                0, /* unlimited */
+                stream_config.prealloc_sessions,
+                sizeof(TcpSession),
+                StreamTcpSessionPoolAlloc,
+                StreamTcpSessionPoolInit, NULL,
+                StreamTcpSessionPoolCleanup, NULL);
+        SCLogDebug("pool size %d, thread ssn_pool_id %d", PoolThreadSize(ssn_pool), stt->ssn_pool_id);
     }
     SCMutexUnlock(&ssn_pool_mutex);
-    if (r < 0 || ssn_pool == NULL)
+    if (stt->ssn_pool_id < 0 || ssn_pool == NULL)
         SCReturnInt(TM_ECODE_FAILED);
 
     SCReturnInt(TM_ECODE_OK);
