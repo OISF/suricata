@@ -598,12 +598,12 @@ void DNSStateUpdateTransactionId(void *state, uint16_t *id) {
 /**
  *  \brief dns transaction cleanup callback
  */
-void DNSStateTransactionFree(void *state, uint16_t id) {
+void DNSStateTransactionFree(void *state, uint64_t id) {
     SCEnter();
 
     DNSState *s = state;
 
-    SCLogDebug("state %p, id %"PRIu16, s, id);
+    SCLogDebug("state %p, id %"PRIu64, s, id);
 
     /* we can't remove the actual transactions here */
 
@@ -621,8 +621,8 @@ void RegisterDNSTCPParsers(void) {
 			DNSTCPResponseParse);
 	AppLayerRegisterStateFuncs(ALPROTO_DNS_TCP, DNSStateAlloc,
 			DNSStateFree);
-    AppLayerRegisterTransactionIdFuncs(ALPROTO_DNS_TCP,
-            DNSStateUpdateTransactionId, DNSStateTransactionFree);
+    AppLayerRegisterTxFreeFunc(ALPROTO_DNS_TCP,
+            DNSStateTransactionFree);
 
     AppLayerRegisterGetEventsFunc(ALPROTO_DNS_TCP, DNSGetEvents);
     AppLayerRegisterHasEventsFunc(ALPROTO_DNS_TCP, DNSHasEvents);

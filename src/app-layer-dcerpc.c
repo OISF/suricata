@@ -1866,20 +1866,6 @@ static void DCERPCStateFree(void *s) {
     }
 }
 
-/**
- *  \brief Update the transaction id based on the DCERPC state
- */
-void DCERPCUpdateTransactionId(void *state, uint16_t *id) {
-    SCEnter();
-
-    DCERPCState *s = (DCERPCState *)state;
-    SCLogDebug("original id %"PRIu16, *id);
-    (*id) = s->dcerpc.transaction_id;
-    SCLogDebug("updated id %"PRIu16, *id);
-
-    SCReturn;
-}
-
 void RegisterDCERPCParsers(void) {
     char *proto_name = "dcerpc";
 
@@ -1892,8 +1878,6 @@ void RegisterDCERPCParsers(void) {
             DCERPCParseResponse);
     AppLayerRegisterStateFuncs(ALPROTO_DCERPC, DCERPCStateAlloc,
             DCERPCStateFree);
-    AppLayerRegisterTransactionIdFuncs(ALPROTO_DCERPC,
-            DCERPCUpdateTransactionId, NULL);
 }
 
 /* UNITTESTS */

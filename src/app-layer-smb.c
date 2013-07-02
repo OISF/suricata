@@ -1354,20 +1354,6 @@ static void SMBStateFree(void *s) {
     SCReturn;
 }
 
-/**
- *  \brief Update the transaction id based on the SMB state
- */
-void SMBUpdateTransactionId(void *state, uint16_t *id) {
-    SCEnter();
-
-    SMBState *s = (SMBState *)state;
-    SCLogDebug("original id %"PRIu16, *id);
-    (*id) = s->transaction_id;
-    SCLogDebug("updated id %"PRIu16, *id);
-
-    SCReturn;
-}
-
 #define SMB_PROBING_PARSER_MIN_DEPTH 8
 
 static uint16_t SMBProbingParser(uint8_t *input, uint32_t ilen)
@@ -1423,8 +1409,6 @@ void RegisterSMBParsers(void) {
     AppLayerRegisterProto(proto_name, ALPROTO_SMB, STREAM_TOSERVER, SMBParseRequest);
     AppLayerRegisterProto(proto_name, ALPROTO_SMB, STREAM_TOCLIENT, SMBParseResponse);
     AppLayerRegisterStateFuncs(ALPROTO_SMB, SMBStateAlloc, SMBStateFree);
-    AppLayerRegisterTransactionIdFuncs(ALPROTO_SMB,
-            SMBUpdateTransactionId, NULL);
 
     AppLayerRegisterProbingParser(&alp_proto_ctx,
                                   139,

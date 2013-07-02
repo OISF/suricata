@@ -303,13 +303,13 @@ void HTPStateFree(void *state)
  *  \warning We cannot actually free the transactions here. It seems that
  *           HTP only accepts freeing of transactions in the response callback.
  */
-void HTPStateTransactionFree(void *state, uint16_t id) {
+void HTPStateTransactionFree(void *state, uint64_t id) {
     SCEnter();
 
     HtpState *s = (HtpState *)state;
 
     s->transaction_done = id;
-    SCLogDebug("state %p, id %"PRIu16, s, id);
+    SCLogDebug("state %p, id %"PRIu64, s, id);
 
     /* we can't remove the actual transactions here */
 
@@ -2439,7 +2439,7 @@ void RegisterHTPParsers(void)
     AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "CONNECT|09|", 8, 0, STREAM_TOSERVER);
 
     AppLayerRegisterStateFuncs(ALPROTO_HTTP, HTPStateAlloc, HTPStateFree);
-    AppLayerRegisterTransactionIdFuncs(ALPROTO_HTTP, NULL, HTPStateTransactionFree);
+    AppLayerRegisterTxFreeFunc(ALPROTO_HTTP, HTPStateTransactionFree);
     AppLayerRegisterGetFilesFunc(ALPROTO_HTTP, HTPStateGetFiles);
     AppLayerRegisterGetAlstateProgressFunc(ALPROTO_HTTP, HTPStateGetAlstateProgress);
     AppLayerRegisterGetTxCnt(ALPROTO_HTTP, HTPStateGetTxCnt);

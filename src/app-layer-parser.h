@@ -50,8 +50,7 @@ typedef struct AppLayerProto_ {
 
     void *(*StateAlloc)(void);
     void (*StateFree)(void *);
-    void (*StateUpdateTransactionId)(void *, uint16_t *);
-    void (*StateTransactionFree)(void *, uint16_t);
+    void (*StateTransactionFree)(void *, uint64_t);
     void *(*LocalStorageAlloc)(void);
     void (*LocalStorageFree)(void *);
 
@@ -252,9 +251,6 @@ void AppLayerRegisterProbingParser(struct AlpProtoDetectCtx_ *, uint16_t, uint16
                                    uint16_t (*ProbingParser)(uint8_t *, uint32_t));
 void AppLayerRegisterStateFuncs(uint16_t proto, void *(*StateAlloc)(void),
                                 void (*StateFree)(void *));
-void AppLayerRegisterTransactionIdFuncs(uint16_t proto,
-        void (*StateTransactionId)(void *, uint16_t *),
-        void (*StateTransactionFree)(void *, uint16_t id));
 void AppLayerRegisterLocalStorageFunc(uint16_t proto,
                                       void *(*LocalStorageAlloc)(void),
                                       void (*LocalStorageFree)(void *));
@@ -272,6 +268,8 @@ const char *AppLayerGetProtoString(int proto);
 void AppLayerRegisterTruncateFunc(uint16_t proto, void (*Truncate)(void *, uint8_t));
 void AppLayerRegisterGetAlstateProgressFunc(uint16_t alproto,
                                             int (*StateGetAlstateProgress)(void *alstate, uint8_t direction));
+void AppLayerRegisterTxFreeFunc(uint16_t proto,
+        void (*StateTransactionFree)(void *, uint64_t));
 void AppLayerRegisterGetTxCnt(uint16_t alproto,
                               uint64_t (*StateGetTxCnt)(void *alstate));
 void AppLayerRegisterGetTx(uint16_t alproto,

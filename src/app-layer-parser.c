@@ -734,10 +734,9 @@ void AppLayerRegisterStateFuncs(uint16_t proto, void *(*StateAlloc)(void),
     al_proto_table[proto].StateFree = StateFree;
 }
 
-void AppLayerRegisterTransactionIdFuncs(uint16_t proto,
-        void (*StateUpdateTransactionId)(void *state, uint16_t *), void (*StateTransactionFree)(void *, uint16_t))
+void AppLayerRegisterTxFreeFunc(uint16_t proto,
+        void (*StateTransactionFree)(void *, uint64_t))
 {
-    al_proto_table[proto].StateUpdateTransactionId = StateUpdateTransactionId;
     al_proto_table[proto].StateTransactionFree = StateTransactionFree;
 }
 
