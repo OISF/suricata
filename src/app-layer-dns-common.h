@@ -124,9 +124,10 @@ typedef struct DNSAnswerEntry_ {
 typedef struct DNSTransaction_ {
     uint16_t tx_num;                                /**< internal: id */
     uint16_t tx_id;                                 /**< transaction id */
-    uint16_t replied;                               /**< bool indicating request is
+    uint8_t replied;                                /**< bool indicating request is
                                                          replied to. */
-    uint16_t no_such_name;                          /**< server said "no such name" */
+    uint8_t reply_lost;
+    uint8_t no_such_name;                           /**< server said "no such name" */
 
     TAILQ_HEAD(, DNSQueryEntry_) query_list;        /**< list for query/queries */
     TAILQ_HEAD(, DNSAnswerEntry_) answer_list;      /**< list for answers */

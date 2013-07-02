@@ -88,7 +88,7 @@ uint64_t DNSGetTxCnt(void *alstate) {
 
 int DNSGetAlstateProgress(void *tx, uint8_t direction) {
     DNSTransaction *dns_tx = (DNSTransaction *)tx;
-    return dns_tx->replied;
+    return dns_tx->replied|dns_tx->reply_lost;
 }
 
 /* value for tx->replied value */
@@ -293,6 +293,9 @@ bad_data:
 void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16_t fqdn_len,
         const uint16_t type, const uint16_t class, const uint16_t tx_id)
 {
+    if (dns_state->curr != NULL && dns_state->curr->replied == 0)
+        dns_state->curr->reply_lost = 1;
+
     DNSTransaction *tx = DNSTransactionFindByTxId(dns_state, tx_id);
     if (tx == NULL) {
         tx = DNSTransactionAlloc(tx_id);
