@@ -215,7 +215,6 @@ typedef struct HtpState_ {
                                  each connection */
     Flow *f;                /**< Needed to retrieve the original flow when usin HTPLib callbacks */
     uint64_t transaction_cnt;
-    uint64_t transaction_done;
     uint64_t store_tx_id;
     FileContainer *files_ts;
     FileContainer *files_tc;

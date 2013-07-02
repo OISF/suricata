@@ -303,17 +303,26 @@ void HTPStateFree(void *state)
  *  \warning We cannot actually free the transactions here. It seems that
  *           HTP only accepts freeing of transactions in the response callback.
  */
-void HTPStateTransactionFree(void *state, uint64_t id) {
+static void HTPStateTransactionFree(void *state, uint64_t id) {
     SCEnter();
 
     HtpState *s = (HtpState *)state;
 
-    s->transaction_done = id;
     SCLogDebug("state %p, id %"PRIu64, s, id);
 
-    /* we can't remove the actual transactions here */
+    htp_tx_t *tx = HTPStateGetTx(s, id);
+    if (tx != NULL) {
+        /* This will remove obsolete body chunks */
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        if (htud != NULL) {
+            HtpBodyFree(&htud->request_body);
+            HtpBodyFree(&htud->response_body);
+            SCFree(htud);
+            htp_tx_set_user_data(tx, NULL);
+        }
 
-    SCReturn;
+        htp_tx_destroy(tx);
+    }
 }
 
 /**
@@ -1999,27 +2008,6 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
                 htud->tcflags &= ~HTP_FILENAME_SET;
             }
         }
-    }
-
-    /* remove obsolete transactions */
-    uint64_t idx;
-    for (idx = 0; idx < hstate->transaction_done; idx++) {
-        SCLogDebug("idx %"PRIuMAX, (uintmax_t)idx);
-
-        htp_tx_t *tx = HTPStateGetTx(hstate, idx);
-        if (tx == NULL)
-            continue;
-
-        /* This will remove obsolete body chunks */
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-        if (htud != NULL) {
-            HtpBodyFree(&htud->request_body);
-            HtpBodyFree(&htud->response_body);
-            SCFree(htud);
-            htp_tx_set_user_data(tx, NULL);
-        }
-
-        htp_tx_destroy(tx);
     }
 
     /* response done, do raw reassembly now to inspect state and stream
