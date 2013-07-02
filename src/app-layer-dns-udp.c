@@ -301,11 +301,11 @@ static void DNSStateUpdateTransactionId(void *state, uint16_t *id) {
 
     DNSState *s = state;
 
-    SCLogDebug("original id %"PRIu16", s->transaction_max %"PRIu16,
+    SCLogDebug("original id %"PRIu16", s->transaction_max %"PRIu64,
             *id, (s->transaction_max));
 
     if ((s->transaction_max) > (*id)) {
-        SCLogDebug("original id %"PRIu16", updating with s->transaction_max %"PRIu16,
+        SCLogDebug("original id %"PRIu16", updating with s->transaction_max %"PRIu64,
                 *id, (s->transaction_max));
 
         (*id) = (s->transaction_max);

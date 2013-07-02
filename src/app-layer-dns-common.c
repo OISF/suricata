@@ -265,7 +265,7 @@ void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16
         if (tx == NULL)
             return;
         dns_state->transaction_max++;
-        SCLogDebug("dns_state->transaction_max updated to %u", dns_state->transaction_max);
+        SCLogDebug("dns_state->transaction_max updated to %"PRIu64, dns_state->transaction_max);
         TAILQ_INSERT_TAIL(&dns_state->tx_list, tx, next);
         dns_state->curr = tx;
         tx->tx_num = dns_state->transaction_max;

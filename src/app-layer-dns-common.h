@@ -141,7 +141,7 @@ typedef struct DNSTransaction_ {
 typedef struct DNSState_ {
     TAILQ_HEAD(, DNSTransaction_) tx_list;  /**< transaction list */
     DNSTransaction *curr;                   /**< ptr to current tx */
-    uint16_t transaction_max;
+    uint64_t transaction_max;
     uint16_t events;
 
     /* used by TCP only */
