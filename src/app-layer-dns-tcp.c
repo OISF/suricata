@@ -572,45 +572,6 @@ static uint16_t DNSTcpProbingParser(uint8_t *input, uint32_t ilen)
     return ALPROTO_DNS_TCP;
 }
 
-/**
- *  \brief Update the transaction id based on the dns state
- */
-void DNSStateUpdateTransactionId(void *state, uint16_t *id) {
-    SCEnter();
-
-    DNSState *s = state;
-
-    SCLogDebug("original id %"PRIu16", s->transaction_max %"PRIu64,
-            *id, (s->transaction_max));
-
-    if ((s->transaction_max) > (*id)) {
-        SCLogDebug("original id %"PRIu16", updating with s->transaction_max %"PRIu64,
-                *id, (s->transaction_max));
-
-        (*id) = (s->transaction_max);
-
-        SCLogDebug("updated id %"PRIu16, *id);
-    }
-
-    SCReturn;
-}
-
-/**
- *  \brief dns transaction cleanup callback
- */
-void DNSStateTransactionFree(void *state, uint64_t id) {
-    SCEnter();
-
-    DNSState *s = state;
-
-    SCLogDebug("state %p, id %"PRIu64, s, id);
-
-    /* we can't remove the actual transactions here */
-
-    SCReturn;
-}
-
-
 void RegisterDNSTCPParsers(void) {
     char *proto_name = "dnstcp";
 

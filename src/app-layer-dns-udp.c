@@ -293,21 +293,6 @@ static uint16_t DNSUdpProbingParser(uint8_t *input, uint32_t ilen)
     return ALPROTO_DNS_UDP;
 }
 
-/**
- *  \brief dns transaction cleanup callback
- */
-static void DNSStateTransactionFree(void *state, uint64_t id) {
-    SCEnter();
-
-    DNSState *s = state;
-
-    SCLogDebug("state %p, id %"PRIu64, s, id);
-
-    /* we can't remove the actual transactions here */
-
-    SCReturn;
-}
-
 
 void RegisterDNSUDPParsers(void) {
     char *proto_name = "dnsudp";

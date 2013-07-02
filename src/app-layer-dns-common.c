@@ -62,37 +62,6 @@ int DNSHasEvents(void *state) {
     return (dns_state->events > 0);
 }
 
-void *DNSStateAlloc(void) {
-    void *s = SCMalloc(sizeof(DNSState));
-    if (unlikely(s == NULL))
-        return NULL;
-
-    memset(s, 0, sizeof(DNSState));
-
-    DNSState *dns_state = (DNSState *)s;
-
-    TAILQ_INIT(&dns_state->tx_list);
-    return s;
-}
-
-void DNSStateFree(void *s) {
-    if (s) {
-        DNSState *dns_state = (DNSState *) s;
-
-        DNSTransaction *tx = NULL;
-        while ((tx = TAILQ_FIRST(&dns_state->tx_list))) {
-            TAILQ_REMOVE(&dns_state->tx_list, tx, next);
-            DNSTransactionFree(tx);
-        }
-
-        if (dns_state->buffer != NULL)
-            SCFree(dns_state->buffer);
-
-        SCFree(s);
-        s = NULL;
-    }
-}
-
 void *DNSGetTx(void *alstate, uint64_t tx_id) {
     DNSState *dns_state = (DNSState *)alstate;
     DNSTransaction *tx = NULL;
@@ -158,7 +127,7 @@ DNSTransaction *DNSTransactionAlloc(const uint16_t tx_id) {
 /** \internal
  *  \brief Free a DNS TX
  *  \param tx DNS TX to free */
-void DNSTransactionFree(DNSTransaction *tx) {
+static void DNSTransactionFree(DNSTransaction *tx) {
     DNSQueryEntry *q = NULL;
     while ((q = TAILQ_FIRST(&tx->query_list))) {
         TAILQ_REMOVE(&tx->query_list, q, next);
@@ -175,6 +144,40 @@ void DNSTransactionFree(DNSTransaction *tx) {
         SCFree(a);
     }
     SCFree(tx);
+}
+
+/**
+ *  \brief dns transaction cleanup callback
+ */
+void DNSStateTransactionFree(void *state, uint64_t tx_id) {
+    SCEnter();
+
+    DNSState *dns_state = state;
+    DNSTransaction *tx = NULL;
+
+    SCLogDebug("state %p, id %"PRIu64, dns_state, tx_id);
+
+    TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
+        SCLogDebug("tx %p tx->tx_num %u, tx_id %"PRIu64, tx, tx->tx_num, (tx_id+1));
+        if ((tx_id+1) < tx->tx_num)
+            break;
+        else if ((tx_id+1) > tx->tx_num)
+            continue;
+
+        if (tx == dns_state->curr)
+            dns_state->curr = NULL;
+
+        if (tx->decoder_events != NULL) {
+            if (tx->decoder_events->cnt <= dns_state->events)
+                dns_state->events -= tx->decoder_events->cnt;
+            else
+                dns_state->events = 0;
+        }
+
+        TAILQ_REMOVE(&dns_state->tx_list, tx, next);
+        DNSTransactionFree(tx);
+        break;
+    }
 }
 
 /** \internal
@@ -200,6 +203,37 @@ DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16
     }
     /* not found */
     return NULL;
+}
+
+void *DNSStateAlloc(void) {
+    void *s = SCMalloc(sizeof(DNSState));
+    if (unlikely(s == NULL))
+        return NULL;
+
+    memset(s, 0, sizeof(DNSState));
+
+    DNSState *dns_state = (DNSState *)s;
+
+    TAILQ_INIT(&dns_state->tx_list);
+    return s;
+}
+
+void DNSStateFree(void *s) {
+    if (s) {
+        DNSState *dns_state = (DNSState *) s;
+
+        DNSTransaction *tx = NULL;
+        while ((tx = TAILQ_FIRST(&dns_state->tx_list))) {
+            TAILQ_REMOVE(&dns_state->tx_list, tx, next);
+            DNSTransactionFree(tx);
+        }
+
+        if (dns_state->buffer != NULL)
+            SCFree(dns_state->buffer);
+
+        SCFree(s);
+        s = NULL;
+    }
 }
 
 /** \brief Validation checks for DNS request header

@@ -953,32 +953,30 @@ static int AppLayerDoParse(void *local_data, Flow *f,
 /**
  * \brief remove obsolete (inspected and logged) transactions
  */
-static int AppLayerTransactionsCleanup(AppLayerProto *p, AppLayerParserStateStore *parser_state_store, void *app_layer_state)
+static void AppLayerTransactionsCleanup(AppLayerProto *p, AppLayerParserStateStore *parser_state_store, void *app_layer_state)
 {
-    uint64_t low;
-
     if (p->StateTransactionFree == NULL)
-        goto end;
+        return;
+
+    uint64_t inspect = 0, log = 0;
+    if (parser_state_store->inspect_id[0] < parser_state_store->inspect_id[1])
+        inspect = parser_state_store->inspect_id[0];
+    else
+        inspect = parser_state_store->inspect_id[1];
+    log = parser_state_store->log_id;
 
     if (p->logger == TRUE) {
-        if (parser_state_store->inspect_id[0] < parser_state_store->inspect_id[1])
-            low = parser_state_store->inspect_id[0];
-        else
-            low = parser_state_store->inspect_id[1];
-        if (parser_state_store->log_id < low) {
-            low = parser_state_store->log_id;
+        uint64_t min = log < inspect ? log : inspect;
+        if (min > 0) {
+            SCLogDebug("freeing %"PRIu64" (with logger) %p", min - 1, p->StateTransactionFree);
+            p->StateTransactionFree(app_layer_state, min - 1);
         }
     } else {
-        if (parser_state_store->inspect_id[0] < parser_state_store->inspect_id[1])
-            low = parser_state_store->inspect_id[0];
-        else
-            low = parser_state_store->inspect_id[1];
+        if (inspect > 0) {
+            SCLogDebug("freeing %"PRIu64" (no logger) %p", inspect - 1, p->StateTransactionFree);
+            p->StateTransactionFree(app_layer_state, inspect - 1);
+        }
     }
-
-    p->StateTransactionFree(app_layer_state, low);
-
-end:
-    return 0;
 }
 
 #ifdef DEBUG
