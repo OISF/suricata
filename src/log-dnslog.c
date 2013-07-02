@@ -79,7 +79,7 @@ void TmModuleLogDnsLogRegister (void) {
     /* enable the logger for the app layer */
     AppLayerRegisterLogger(ALPROTO_DNS_UDP);
     AppLayerRegisterLogger(ALPROTO_DNS_TCP);
-    SCLogInfo("registered %s", MODULE_NAME);
+    SCLogDebug("registered %s", MODULE_NAME);
 }
 
 typedef struct LogDnsFileCtx_ {
