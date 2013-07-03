@@ -45,6 +45,8 @@ void PrintRawLineHexFp(FILE *, uint8_t *, uint32_t);
 void PrintRawUriFp(FILE *, uint8_t *, uint32_t);
 void PrintRawUriBuf(char *, uint32_t *, uint32_t,
                     uint8_t *, uint32_t);
+void PrintRawJsonToBuffer(char *dbuf, uint32_t dbuflen,
+                          uint8_t *buf, uint32_t buflen);
 void PrintRawJsonFp(FILE *, uint8_t *, uint32_t);
 void PrintRawDataFp(FILE *, uint8_t *, uint32_t);
 void PrintRawDataToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32_t dst_buf_size,
