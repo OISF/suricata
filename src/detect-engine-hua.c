@@ -65,8 +65,8 @@ int DetectEngineRunHttpUAMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     if (tx->request_headers == NULL)
         goto end;
 
-    htp_header_t *h = (htp_header_t *)table_getc(tx->request_headers,
-                                                 "User-Agent");
+    htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
+                                                      "User-Agent");
     if (h == NULL) {
         SCLogDebug("HTTP user agent header not present in this request");
         goto end;
@@ -100,8 +100,8 @@ int DetectEngineInspectHttpUA(ThreadVars *tv,
                               void *txv, uint64_t tx_id)
 {
     htp_tx_t *tx = (htp_tx_t *)txv;
-    htp_header_t *h = (htp_header_t *)table_getc(tx->request_headers,
-                                                 "User-Agent");
+    htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
+                                                      "User-Agent");
     if (h == NULL) {
         SCLogDebug("HTTP user agent header not present in this request");
         goto end;
@@ -120,7 +120,7 @@ int DetectEngineInspectHttpUA(ThreadVars *tv,
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
  end:
-    if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_REQ_HEADERS)
+    if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > HTP_REQUEST_HEADERS)
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     else
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
