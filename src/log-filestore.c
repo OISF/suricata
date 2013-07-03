@@ -584,8 +584,7 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
     output_ctx->DeInit = LogFilestoreLogDeInitCtx;
 
     char *s_default_log_dir = NULL;
-    if (ConfGet("default-log-dir", &s_default_log_dir) != 1)
-        s_default_log_dir = DEFAULT_LOG_DIR;
+    s_default_log_dir = ConfigGetLogDirectory();
 
     const char *s_base_dir = NULL;
     s_base_dir = ConfNodeLookupChildValue(conf, "log-dir");
