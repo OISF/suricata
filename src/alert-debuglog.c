@@ -197,6 +197,7 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
     int i;
     char timebuf[64];
+    const char *pkt_src_str = NULL;
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
@@ -210,6 +211,8 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     if (p->pcap_cnt > 0) {
         MemBufferWriteString(aft->buffer, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
     }
+    pkt_src_str = PktSrcToString(p->pkt_src);
+    MemBufferWriteString(aft->buffer, "PKT SRC:           %s\n", pkt_src_str);
 
     char srcip[46], dstip[46];
     if (PKT_IS_IPV4(p)) {
@@ -354,6 +357,7 @@ TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQ
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
     int i;
     char timebuf[64];
+    const char *pkt_src_str = NULL;
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
@@ -369,6 +373,8 @@ TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQ
         MemBufferWriteString(aft->buffer,
                              "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
     }
+    pkt_src_str = PktSrcToString(p->pkt_src);
+    MemBufferWriteString(aft->buffer, "PKT SRC:           %s\n", pkt_src_str);
     MemBufferWriteString(aft->buffer,
                          "ALERT CNT:         %" PRIu32 "\n", p->alerts.cnt);
 
