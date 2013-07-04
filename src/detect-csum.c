@@ -1483,6 +1483,7 @@ int DetectCsumICMPV6ValidArgsTestParse03(void) {
 int DetectCsumICMPV6Test01(void)
 {
     int result = 0;
+    DetectEngineCtx *de_ctx = NULL;
 
     Packet *p = PacketGetFromAlloc();
     if (p == NULL) {
@@ -1520,7 +1521,7 @@ int DetectCsumICMPV6Test01(void)
     StreamTcpInitConfig(TRUE);
     FlowInitConfig(FLOW_QUIET);
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         printf("DetectEngineCtxInit failure\n");
         goto end;
