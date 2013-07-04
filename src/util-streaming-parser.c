@@ -109,15 +109,14 @@ static int StreamingParserGetValue(void *ctx, void *ret_input, uint8_t psize)
     if (psize <= tctx->buffer_len) {
         if (psize == 2) {
             *((uint16_t *)ret_input) = tctx->buffer.u16[0];
+            tctx->buffer.u64 >>= 16;
         } else if (psize == 4) {
             *((uint32_t *)ret_input) = tctx->buffer.u32[0];
+            tctx->buffer.u64 >>= 32;
         } else {
             *((uint64_t *)ret_input) = tctx->buffer.u64;
+            tctx->buffer.u64 = 0;
         }
-        /* Since a type can't be shifted by a value >= width of the type, we
-         * need to split it */
-        tctx->buffer.u64 >>= (psize * 8 - 1);
-        tctx->buffer.u64 >>= 1;
         tctx->buffer_len -= psize;
 
         return STREAMING_PARSER_ROK;
@@ -532,6 +531,8 @@ int StreamingParserGetChunk(void *ctx, uint8_t *buffer, uint16_t copy, uint16_t 
     for (u = 0; u < tctx->buffer_len && u < copy; u++) {
         buffer[u] = tctx->buffer.u8[u];
     }
+    /* Since a type can't be shifted by a value >= width of the type, we
+     * need to split it */
     tctx->buffer_len -= u;
     tctx->buffer.u64 >>= (u * 8 - 1);
     tctx->buffer.u64 >>= 1;
