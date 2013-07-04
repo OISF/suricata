@@ -121,6 +121,37 @@ enum {
 PacketQueue trans_q[256];
 
 SCDQDataQueue data_queues[256];
+
+typedef struct SuriInstance_ {
+    int run_mode;
+
+    char pcap_dev[128];
+    char *sig_file;
+    int sig_file_exclusive;
+    char *pid_filename;
+    char *regex_arg;
+
+    char *keyword_info;
+    char *runmode_custom_mode;
+#ifndef OS_WIN32
+    char *user_name;
+    char *group_name;
+    uint8_t do_setuid;
+    uint8_t do_setgid;
+    uint32_t userid;
+    uint32_t groupid;
+#endif /* OS_WIN32 */
+    int delayed_detect;
+    int rule_reload;
+    int daemon;
+    int offline;
+
+    struct timeval start_time;
+
+    char *log_dir;
+} SuriInstance;
+
+
 /* memset to zeros, and mutex init! */
 void GlobalInits();
 
