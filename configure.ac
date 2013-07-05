@@ -590,6 +590,12 @@ AC_INIT(configure.ac)
                 ;;
             esac
         fi
+    else
+        echo
+        echo "   Jansson >= 2.2 is required for features like unix socket"
+        echo "   Go get it from your distribution of from:"
+        echo "     http://www.digip.org/jansson/"
+        echo
     fi
 
     AS_IF([test "x$enable_unixsocket" = "xyes"], [AC_DEFINE([BUILD_UNIX_SOCKET], [1], [Unix socket support enabled])])
