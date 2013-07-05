@@ -332,6 +332,7 @@ typedef struct IPOnlyCIDRItem_ {
 typedef struct SignatureHeader_ {
     union {
         struct {
+            /* coccinelle: SignatureHeader:flags:SIG_FLAG */
             uint32_t flags;
             uint16_t alproto;
             uint16_t dsize_low;
@@ -370,6 +371,7 @@ typedef struct SigMatch_ {
 typedef struct Signature_ {
     union {
         struct {
+            /* coccinelle: Signature:flags:SIG_FLAG */
             uint32_t flags;
             uint16_t alproto;
             uint16_t dsize_low;
@@ -449,6 +451,8 @@ typedef struct Signature_ {
 
     /* used to hold flags that are predominantly used during init */
     uint32_t init_flags;
+    /* coccinelle: Signature:init_flags:SIG_FLAG_INIT_ */
+
     /** number of sigmatches in the match and pmatch list */
     uint16_t sm_cnt;
     /* used at init to determine max dsize */
