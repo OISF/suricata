@@ -57,11 +57,13 @@ typedef struct TcpSegment_ {
     uint32_t seq;
     struct TcpSegment_ *next;
     struct TcpSegment_ *prev;
+    /* coccinelle: TcpSegment:flags:SEGMENTTCP_FLAG */
     uint8_t flags;
 } TcpSegment;
 
 typedef struct TcpStream_ {
     uint16_t flags;                 /**< Flag specific to the stream e.g. Timestamp */
+    /* coccinelle: TcpStream:flags:STREAMTCP_STREAM_FLAG_ */
     uint8_t wscale;                 /**< wscale setting in this direction */
     uint8_t os_policy;              /**< target based OS policy used for reassembly and handling packets*/
 
@@ -205,6 +207,7 @@ typedef struct TcpSession_ {
     PoolThreadReserved res;
     uint8_t state;
     uint8_t queue_len;                      /**< length of queue list below */
+    /* coccinelle: TcpSession:flags:STREAMTCP_FLAG */
     uint16_t flags;
     TcpStream server;
     TcpStream client;

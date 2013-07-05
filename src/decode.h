@@ -372,6 +372,7 @@ typedef struct Packet_
 
     /* flow */
     uint8_t flowflags;
+    /* coccinelle: Packet:flowflags:FLOW_PKT_ */
 
     uint8_t pkt_src;
 
