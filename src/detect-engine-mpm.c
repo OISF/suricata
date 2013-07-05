@@ -1442,116 +1442,115 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
             MpmCtx *mpm_ctx_ts = NULL;
             MpmCtx *mpm_ctx_tc = NULL;
             uint32_t sgh_flags = 0;
-            uint32_t sig_flags = 0;
 
             cd = (DetectContentData *)mpm_sm->ctx;
 
             if (sm_list == DETECT_SM_LIST_UMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_uri_ctx_ts;
-                sgh_flags = SIG_GROUP_HEAD_MPM_URI;
-                sig_flags |= SIG_FLAG_MPM_APPLAYER;
+                sgh->flags = SIG_GROUP_HEAD_MPM_URI;
+                s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
-                    sig_flags |= SIG_FLAG_MPM_APPLAYER_NEG;
+                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
             } else if (sm_list == DETECT_SM_LIST_HCBDMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_hcbd_ctx_ts;
-                sgh_flags = SIG_GROUP_HEAD_MPM_HCBD;
-                sig_flags |= SIG_FLAG_MPM_APPLAYER;
+                sgh->flags = SIG_GROUP_HEAD_MPM_HCBD;
+                s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
-                    sig_flags |= SIG_FLAG_MPM_APPLAYER_NEG;
+                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
             } else if (sm_list == DETECT_SM_LIST_HSBDMATCH) {
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hsbd_ctx_tc;
-                sgh_flags = SIG_GROUP_HEAD_MPM_HSBD;
-                sig_flags |= SIG_FLAG_MPM_APPLAYER;
+                sgh->flags = SIG_GROUP_HEAD_MPM_HSBD;
+                s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
-                    sig_flags |= SIG_FLAG_MPM_APPLAYER_NEG;
+                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
             } else if (sm_list == DETECT_SM_LIST_HHDMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_hhd_ctx_ts;
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hhd_ctx_tc;
-                sgh_flags = SIG_GROUP_HEAD_MPM_HHD;
-                sig_flags |= SIG_FLAG_MPM_APPLAYER;
+                sgh->flags = SIG_GROUP_HEAD_MPM_HHD;
+                s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
-                    sig_flags |= SIG_FLAG_MPM_APPLAYER_NEG;
+                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
             } else if (sm_list == DETECT_SM_LIST_HRHDMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_hrhd_ctx_ts;
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hrhd_ctx_tc;
-                sgh_flags = SIG_GROUP_HEAD_MPM_HRHD;
-                sig_flags |= SIG_FLAG_MPM_APPLAYER;
+                sgh->flags = SIG_GROUP_HEAD_MPM_HRHD;
+                s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
-                    sig_flags |= SIG_FLAG_MPM_APPLAYER_NEG;
+                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
             } else if (sm_list == DETECT_SM_LIST_HMDMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_hmd_ctx_ts;
-                sgh_flags = SIG_GROUP_HEAD_MPM_HMD;
-                sig_flags |= SIG_FLAG_MPM_APPLAYER;
+                sgh->flags = SIG_GROUP_HEAD_MPM_HMD;
+                s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
-                    sig_flags |= SIG_FLAG_MPM_APPLAYER_NEG;
+                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
             } else if (sm_list == DETECT_SM_LIST_HCDMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_hcd_ctx_ts;
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hcd_ctx_tc;
-                sgh_flags = SIG_GROUP_HEAD_MPM_HCD;
-                sig_flags |= SIG_FLAG_MPM_APPLAYER;
+                sgh->flags = SIG_GROUP_HEAD_MPM_HCD;
+                s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
-                    sig_flags |= SIG_FLAG_MPM_APPLAYER_NEG;
+                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
             } else if (sm_list == DETECT_SM_LIST_HRUDMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_hrud_ctx_ts;
-                sgh_flags = SIG_GROUP_HEAD_MPM_HRUD;
-                sig_flags |= SIG_FLAG_MPM_APPLAYER;
+                sgh->flags = SIG_GROUP_HEAD_MPM_HRUD;
+                s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
-                    sig_flags |= SIG_FLAG_MPM_APPLAYER_NEG;
+                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
             } else if (sm_list == DETECT_SM_LIST_HSMDMATCH) {
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hsmd_ctx_tc;
-                sgh_flags = SIG_GROUP_HEAD_MPM_HSMD;
-                sig_flags |= SIG_FLAG_MPM_APPLAYER;
+                sgh->flags = SIG_GROUP_HEAD_MPM_HSMD;
+                s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
-                    sig_flags |= SIG_FLAG_MPM_APPLAYER_NEG;
+                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
             } else if (sm_list == DETECT_SM_LIST_HSCDMATCH) {
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hscd_ctx_tc;
-                sgh_flags = SIG_GROUP_HEAD_MPM_HSCD;
-                sig_flags |= SIG_FLAG_MPM_APPLAYER;
+                sgh->flags = SIG_GROUP_HEAD_MPM_HSCD;
+                s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
-                    sig_flags |= SIG_FLAG_MPM_APPLAYER_NEG;
+                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
             } else if (sm_list == DETECT_SM_LIST_HUADMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_huad_ctx_ts;
-                sgh_flags = SIG_GROUP_HEAD_MPM_HUAD;
-                sig_flags |= SIG_FLAG_MPM_APPLAYER;
+                sgh->flags = SIG_GROUP_HEAD_MPM_HUAD;
+                s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
-                    sig_flags |= SIG_FLAG_MPM_APPLAYER_NEG;
+                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
             } else if (sm_list == DETECT_SM_LIST_HHHDMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_hhhd_ctx_ts;
-                sgh_flags = SIG_GROUP_HEAD_MPM_HHHD;
-                sig_flags |= SIG_FLAG_MPM_APPLAYER;
+                sgh->flags = SIG_GROUP_HEAD_MPM_HHHD;
+                s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
-                    sig_flags |= SIG_FLAG_MPM_APPLAYER_NEG;
+                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
             } else if (sm_list == DETECT_SM_LIST_HRHHDMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_hrhhd_ctx_ts;
-                sgh_flags = SIG_GROUP_HEAD_MPM_HRHHD;
-                sig_flags |= SIG_FLAG_MPM_APPLAYER;
+                sgh->flags = SIG_GROUP_HEAD_MPM_HRHHD;
+                s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
-                    sig_flags |= SIG_FLAG_MPM_APPLAYER_NEG;
+                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
             } else if (sm_list == DETECT_SM_LIST_DNSQUERY_MATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_dnsquery_ctx_ts;
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = NULL;
-                sgh_flags = SIG_GROUP_HEAD_MPM_DNSQUERY;
-                sig_flags |= SIG_FLAG_MPM_APPLAYER;
+                sgh->flags = SIG_GROUP_HEAD_MPM_DNSQUERY;
+                s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
-                    sig_flags |= SIG_FLAG_MPM_APPLAYER_NEG;
+                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
             }
 
             if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
@@ -1631,10 +1630,8 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 }
             }
             /* tell matcher we are inspecting uri */
-            s->flags |= sig_flags;
             s->mpm_pattern_id_div_8 = cd->id / 8;
             s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
-            sgh->flags |= sgh_flags;
 
             break;
         }
