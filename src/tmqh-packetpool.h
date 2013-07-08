@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -33,7 +33,7 @@ Packet *PacketPoolGetPacket(void);
 uint16_t PacketPoolSize(void);
 void PacketPoolStorePacket(Packet *);
 void PacketPoolWait(void);
-
+void PacketPoolReturnPacket(Packet *p);
 void PacketPoolInit(intmax_t max_pending_packets);
 void PacketPoolDestroy(void);
 
