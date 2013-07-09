@@ -156,12 +156,12 @@ static uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
      * when they come */
     if (htud->response_body.content_len == 0) {
         if ((htud->response_body.content_len_so_far > 0) &&
-            tx->progress[1] != TX_PROGRESS_RES_BODY) {
+            tx->response_progress != HTP_RESPONSE_BODY) {
             /* final length of the body */
             htud->tcflags |= HTP_RES_BODY_COMPLETE;
         }
     } else {
-        if (htud->response_body.content_len == tx->response_entity_len) {
+        if (htud->response_body.content_len == (uint64_t)tx->response_entity_len) {
              SCLogDebug("content_len reached");
              htud->tcflags |= HTP_RES_BODY_COMPLETE;
         }
@@ -283,7 +283,7 @@ int DetectEngineInspectHttpServerBody(ThreadVars *tv,
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
  end:
-    if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_RES_BODY)
+    if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 1) > HTP_RESPONSE_BODY)
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     else
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
