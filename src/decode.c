@@ -58,6 +58,7 @@
 #include "util-print.h"
 #include "tmqh-packetpool.h"
 #include "util-profiling.h"
+#include "pkt-var.h"
 
 void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         uint8_t *pkt, uint16_t len, PacketQueue *pq, uint8_t proto)
@@ -78,6 +79,17 @@ void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 }
 
 /**
+ * \brief Return a malloced packet.
+ *
+ * \retval p packet, NULL on error
+ */
+void PacketFree(Packet *p)
+{
+    PACKET_CLEANUP(p);
+    SCFree(p);
+}
+
+/**
  * \brief Get a malloced packet.
  *
  * \retval p packet, NULL on error
@@ -91,6 +103,7 @@ Packet *PacketGetFromAlloc(void)
 
     memset(p, 0, SIZE_OF_PACKET);
     PACKET_INITIALIZE(p);
+    p->ReleasePacket = PacketFree;
     p->flags |= PKT_ALLOC;
 
     SCLogDebug("allocated a new packet only using alloc...");
@@ -98,6 +111,20 @@ Packet *PacketGetFromAlloc(void)
     PACKET_PROFILING_START(p);
     return p;
 }
+
+/**
+ * \brief Return a malloced packet.
+ *
+ * \retval p packet, NULL on error
+ */
+void PacketFreeOrRelease(Packet *p)
+{
+  if (p->flags & PKT_ALLOC) 
+    PacketFree(p);
+  else
+    PacketPoolReturnPacket(p);
+}
+
 
 /**
  *  \brief Get a packet. We try to get a packet from the packetpool first, but
