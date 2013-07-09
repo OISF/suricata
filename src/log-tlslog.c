@@ -480,6 +480,25 @@ TmEcode LogTlsLogThreadInit(ThreadVars *t, void *initdata, void **data)
         return TM_ECODE_FAILED;
     }
 
+    struct stat stat_buf;
+    if (stat(tls_logfile_base_dir, &stat_buf) != 0) {
+        int ret;
+        ret = mkdir(tls_logfile_base_dir, S_IRWXU|S_IXGRP|S_IRGRP);
+        if (ret != 0) {
+            int err = errno;
+            if (err != EEXIST) {
+                SCLogError(SC_ERR_LOGDIR_CONFIG,
+                        "Cannot create certs drop directory %s: %s",
+                        tls_logfile_base_dir, strerror(err));
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            SCLogInfo("Created certs drop directory %s",
+                    tls_logfile_base_dir);
+        }
+
+    }
+
     aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
         SCFree(aft);
