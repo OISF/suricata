@@ -236,13 +236,22 @@ ConfYamlLoadFile(const char *filename)
     ConfNode *root = ConfGetRootNode();
 
     if (yaml_parser_initialize(&parser) != 1) {
-        fprintf(stderr, "Failed to initialize yaml parser.\n");
+        SCLogError(SC_ERR_FATAL, "failed to initialize yaml parser.");
         return -1;
+    }
+
+    struct stat stat_buf;
+    if (stat(filename, &stat_buf) == 0) {
+        if (stat_buf.st_mode & S_IFDIR) {
+            SCLogError(SC_ERR_FATAL, "yaml argument is not a file but a directory: %s. "
+                    "Please specify the yaml file in your -c option.", filename);
+            return -1;
+        }
     }
 
     infile = fopen(filename, "r");
     if (infile == NULL) {
-        fprintf(stderr, "Failed to open file: %s: %s\n", filename,
+        SCLogError(SC_ERR_FATAL, "failed to open file: %s: %s", filename,
             strerror(errno));
         yaml_parser_delete(&parser);
         return -1;
