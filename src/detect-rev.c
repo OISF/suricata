@@ -59,10 +59,15 @@ static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     char *endptr = NULL;
     rev = strtoul(rawstr, &endptr, 10);
     if (endptr == NULL || *endptr != '\0') {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Saw an invalid character as arg "
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid character as arg "
                    "to rev keyword");
         goto error;
     }
+    if (rev >= UINT_MAX) {
+        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "rev value to high, max %u", UINT_MAX);
+        goto error;
+    }
+
     s->rev = (uint32_t)rev;
 
     if (dubbed)

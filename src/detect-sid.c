@@ -59,10 +59,15 @@ static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, char *sidstr)
     char *endptr = NULL;
     id = strtoul(sidstr, &endptr, 10);
     if (endptr == NULL || *endptr != '\0') {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Saw an invalid character as arg "
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid character as arg "
                    "to sid keyword");
         goto error;
     }
+    if (id >= UINT_MAX) {
+        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "sid value to high, max %u", UINT_MAX);
+        goto error;
+    }
+
     s->id = (uint32_t)id;
 
     if (dubbed)

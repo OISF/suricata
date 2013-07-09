@@ -2277,6 +2277,60 @@ end:
     return result;
 }
 
+/** \test sid value too large. Bug #779 */
+static int SigParseTest18 (void) {
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    if (DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:99999999999999999999;)") != NULL)
+        goto end;
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/** \test gid value too large. Related to bug #779 */
+static int SigParseTest19 (void) {
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    if (DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:1; gid:99999999999999999999;)") != NULL)
+        goto end;
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/** \test rev value too large. Related to bug #779 */
+static int SigParseTest20 (void) {
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    if (DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:1; rev:99999999999999999999;)") != NULL)
+        goto end;
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 /** \test Direction operator validation (invalid) */
 int SigParseBidirecTest06 (void) {
     int result = 1;
@@ -3156,6 +3210,9 @@ void SigParseRegisterTests(void) {
     UtRegisterTest("SigParseTest15", SigParseTest15, 1);
     UtRegisterTest("SigParseTest16", SigParseTest16, 1);
     UtRegisterTest("SigParseTest17", SigParseTest17, 1);
+    UtRegisterTest("SigParseTest18", SigParseTest18, 1);
+    UtRegisterTest("SigParseTest19", SigParseTest19, 1);
+    UtRegisterTest("SigParseTest20", SigParseTest20, 1);
 
     UtRegisterTest("SigParseBidirecTest06", SigParseBidirecTest06, 1);
     UtRegisterTest("SigParseBidirecTest07", SigParseBidirecTest07, 1);
