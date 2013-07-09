@@ -1050,17 +1050,10 @@ AC_INIT(configure.ac)
             echo
             exit 1
         fi
-        PKG_CHECK_MODULES(LIBHTPMINVERSION, htp >= 0.2.3,[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
+        PKG_CHECK_MODULES(LIBHTPMINVERSION, htp >= 0.5.X,[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
         if test "$libhtp_minver_found" = "no"; then
             echo
-            echo "   ERROR! libhtp was found but is not the minimum version required >=0.2.3"
-            echo
-            exit 1
-        fi
-        PKG_CHECK_MODULES(LIBHTPMAXVERSION, htp <= 0.3.0,[libhtp_maxver_found="yes"],[libhtp_maxver_found="no"])
-        if test "$libhtp_maxver_found" = "no"; then
-            echo
-            echo "   ERROR! libhtp 0.3.x was found but only 0.2.x is supported"
+            echo "   ERROR! libhtp was found but is not the minimum version required >= 0.5.X"
             echo
             exit 1
         fi
