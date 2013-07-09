@@ -1,4 +1,4 @@
-/* Copyright (C) 2011,2012 Open Information Security Foundation
+/* Copyright (C) 2011-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -653,13 +653,12 @@ TmEcode AFPWritePacket(Packet *p)
     return TM_ECODE_OK;
 }
 
-TmEcode AFPReleaseDataFromRing(ThreadVars *t, Packet *p)
+void AFPReleaseDataFromRing(Packet *p)
 {
-    int ret = TM_ECODE_OK;
     /* Need to be in copy mode and need to detect early release
        where Ethernet header could not be set (and pseudo packet) */
     if ((p->afp_v.copy_mode != AFP_COPY_MODE_NONE) && !PKT_IS_PSEUDOPKT(p)) {
-        ret = AFPWritePacket(p);
+        AFPWritePacket(p);
     }
 
     if (AFPDerefSocket(p->afp_v.mpeer) == 0)
@@ -673,7 +672,12 @@ TmEcode AFPReleaseDataFromRing(ThreadVars *t, Packet *p)
 
 cleanup:
     AFPV_CLEANUP(&p->afp_v);
-    return ret;
+}
+
+void AFPReleasePacket(Packet *p)
+{
+    AFPReleaseDataFromRing(p);
+    PacketFreeOrRelease(p);
 }
 
 /**
@@ -776,7 +780,7 @@ int AFPReadFromRing(AFPThreadVars *ptv)
                 SCReturnInt(AFP_FAILURE);
             } else {
                 p->afp_v.relptr = h.raw;
-                p->ReleaseData = AFPReleaseDataFromRing;
+                p->ReleasePacket = AFPReleasePacket;
                 p->afp_v.mpeer = ptv->mpeer;
                 AFPRefSocket(ptv->mpeer);
 
