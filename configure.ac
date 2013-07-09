@@ -1554,10 +1554,12 @@ if test "$WINDOWS_PATH" = "yes"; then
   e_magic_file="$e_winbase\\\\magic.mgc"
   e_logdir="$e_winbase\\\\log"
   e_logfilesdir="$e_logdir\\\\files"
+  e_logcertsdir="$e_logdir\\\\certs"
 else
   EXPAND_VARIABLE(localstatedir, e_logdir, "/log/suricata/")
   EXPAND_VARIABLE(localstatedir, e_rundir, "/run/")
   EXPAND_VARIABLE(localstatedir, e_logfilesdir, "/log/suricata/files")
+  EXPAND_VARIABLE(localstatedir, e_logcertsdir, "/log/suricata/certs")
   EXPAND_VARIABLE(sysconfdir, e_sysconfdir, "/suricata/")
   EXPAND_VARIABLE(sysconfdir, e_sysconfrulesdir, "/suricata/rules")
   EXPAND_VARIABLE(localstatedir, e_localstatedir, "/run/suricata")
@@ -1565,6 +1567,7 @@ fi
 AC_SUBST(e_logdir)
 AC_SUBST(e_rundir)
 AC_SUBST(e_logfilesdir)
+AC_SUBST(e_logcertsdir)
 AC_SUBST(e_sysconfdir)
 AC_SUBST(e_sysconfrulesdir)
 AC_SUBST(e_localstatedir)
