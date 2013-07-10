@@ -268,6 +268,7 @@ int htp_connp_RES_BODY_DETERMINE(htp_connp_t *connp) {
         &&(connp->out_tx->response_status_number >= 200)
         &&(connp->out_tx->response_status_number <= 299))
     {
+        connp->in_status = STREAM_STATE_TUNNEL;
         connp->out_status = STREAM_STATE_TUNNEL;
         connp->out_state = htp_connp_RES_IDLE;
         connp->out_tx->progress = TX_PROGRESS_DONE;
