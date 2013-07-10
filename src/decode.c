@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -58,6 +58,7 @@
 #include "util-print.h"
 #include "tmqh-packetpool.h"
 #include "util-profiling.h"
+#include "pkt-var.h"
 
 void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         uint8_t *pkt, uint16_t len, PacketQueue *pq, uint8_t proto)
@@ -78,6 +79,15 @@ void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 }
 
 /**
+ * \brief Return a malloced packet.
+ */
+void PacketFree(Packet *p)
+{
+    PACKET_CLEANUP(p);
+    SCFree(p);
+}
+
+/**
  * \brief Get a malloced packet.
  *
  * \retval p packet, NULL on error
@@ -91,12 +101,24 @@ Packet *PacketGetFromAlloc(void)
 
     memset(p, 0, SIZE_OF_PACKET);
     PACKET_INITIALIZE(p);
+    p->ReleasePacket = PacketFree;
     p->flags |= PKT_ALLOC;
 
     SCLogDebug("allocated a new packet only using alloc...");
 
     PACKET_PROFILING_START(p);
     return p;
+}
+
+/**
+ * \brief Return a packet to where it was allocated.
+ */
+void PacketFreeOrRelease(Packet *p)
+{
+    if (p->flags & PKT_ALLOC)
+        PacketFree(p);
+    else
+        PacketPoolReturnPacket(p);
 }
 
 /**
@@ -182,8 +204,6 @@ inline int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen)
     return PacketCopyDataOffset(p, 0, pktdata, pktlen);
 }
 
-
-
 /**
  *  \brief Setup a pseudo packet (tunnel)
  *
@@ -248,7 +268,8 @@ Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
  *
  *  \retval p the pseudo packet or NULL if out of memory
  */
-Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto) {
+Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto)
+{
     SCEnter();
 
     /* get us a packet */
@@ -381,7 +402,8 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
  *
  *  \todo IPv6
  */
-void AddressDebugPrint(Address *a) {
+void AddressDebugPrint(Address *a)
+{
     if (a == NULL)
         return;
 
@@ -397,7 +419,8 @@ void AddressDebugPrint(Address *a) {
 }
 
 /** \brief Alloc and setup DecodeThreadVars */
-DecodeThreadVars *DecodeThreadVarsAlloc() {
+DecodeThreadVars *DecodeThreadVarsAlloc()
+{
 
     DecodeThreadVars *dtv = NULL;
 
@@ -411,7 +434,6 @@ DecodeThreadVars *DecodeThreadVarsAlloc() {
 
     return dtv;
 }
-
 
 /**
  * \brief Set data for Packet and set length when zeo copy is used
@@ -432,7 +454,8 @@ inline int PacketSetData(Packet *p, uint8_t *pktdata, int pktlen)
     return 0;
 }
 
-const char *PktSrcToString(enum PktSrcEnum pkt_src) {
+const char *PktSrcToString(enum PktSrcEnum pkt_src)
+{
     char *pkt_src_str = "<unknown>";
     switch (pkt_src) {
         case PKT_SRC_WIRE:

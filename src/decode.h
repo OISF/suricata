@@ -406,8 +406,8 @@ typedef struct Packet_
     int debuglog_flowbits_names_len;
     const char **debuglog_flowbits_names;
 
-    /** The release function for packet data */
-    TmEcode (*ReleaseData)(ThreadVars *, struct Packet_ *);
+    /** The release function for packet structure and data */
+    void (*ReleasePacket)(struct Packet_ *);
 
     /* pkt vars */
     PktVar *pktvar;
@@ -686,7 +686,6 @@ typedef struct DecodeThreadVars_
         (p)->prev = NULL;                       \
         (p)->root = NULL;                       \
         (p)->livedev = NULL;                    \
-        (p)->ReleaseData = NULL;                \
         PACKET_RESET_CHECKSUMS((p));            \
         PACKET_PROFILING_RESET((p));            \
     } while (0)
@@ -777,6 +776,8 @@ Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
 Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto);
 Packet *PacketGetFromQueueOrAlloc(void);
 Packet *PacketGetFromAlloc(void);
+void PacketFree(Packet *p);
+void PacketFreeOrRelease(Packet *p);
 int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen);
 int PacketSetData(Packet *p, uint8_t *pktdata, int pktlen);
 int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datalen);

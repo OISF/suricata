@@ -99,8 +99,9 @@ void PacketPoolStorePacket(Packet *p) {
     /* Clear the PKT_ALLOC flag, since that indicates to push back
      * onto the ring buffer. */
     p->flags &= ~PKT_ALLOC;
+    p->ReleasePacket = PacketPoolReturnPacket;
+    PacketPoolReturnPacket(p);
 
-    RingBufferMrMwPut(ringbuffer, (void *)p);
     SCLogDebug("buffersize %u", RingBufferSize(ringbuffer));
 }
 
@@ -113,6 +114,15 @@ Packet *PacketPoolGetPacket(void) {
 
     Packet *p = RingBufferMrMwGetNoWait(ringbuffer);
     return p;
+}
+
+/** \brief Return packet to Packet pool
+ *
+ */
+void PacketPoolReturnPacket(Packet *p)
+{
+    PACKET_RECYCLE(p);
+    RingBufferMrMwPut(ringbuffer, (void *)p);
 }
 
 void PacketPoolInit(intmax_t max_pending_packets) {
@@ -253,33 +263,14 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
 
         FlowDeReference(&p->root->flow);
         /* if p->root uses extended data, free them */
-        if (p->root->ReleaseData) {
-            if (p->root->ReleaseData(t, p->root) == TM_ECODE_FAILED) {
-                SCLogWarning(SC_ERR_INVALID_ACTION,
-                        "Unable to release packet data");
-            }
-        }
         if (p->root->ext_pkt) {
             if (!(p->root->flags & PKT_ZERO_COPY)) {
                 SCFree(p->root->ext_pkt);
             }
             p->root->ext_pkt = NULL;
         }
-        if (p->root->flags & PKT_ALLOC) {
-            PACKET_CLEANUP(p->root);
-            SCFree(p->root);
-            p->root = NULL;
-        } else {
-            PACKET_RECYCLE(p->root);
-            RingBufferMrMwPut(ringbuffer, (void *)p->root);
-        }
-
-    }
-
-    if (p->ReleaseData) {
-        if (p->ReleaseData(t, p) == TM_ECODE_FAILED) {
-            SCLogWarning(SC_ERR_INVALID_ACTION, "Unable to release packet data");
-        }
+        p->root->ReleasePacket(p->root);
+        p->root = NULL;
     }
 
     /* if p uses extended data, free them */
@@ -292,14 +283,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
 
     PACKET_PROFILING_END(p);
 
-    SCLogDebug("getting rid of tunnel pkt... alloc'd %s (root %p)", p->flags & PKT_ALLOC ? "true" : "false", p->root);
-    if (p->flags & PKT_ALLOC) {
-        PACKET_CLEANUP(p);
-        SCFree(p);
-    } else {
-        PACKET_RECYCLE(p);
-        RingBufferMrMwPut(ringbuffer, (void *)p);
-    }
+    p->ReleasePacket(p);
 
     SCReturn;
 }
