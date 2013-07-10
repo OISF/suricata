@@ -5,9 +5,6 @@ ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
              classification.config threshold.config \
              reference.config
-if BUILD_LIBHTP
- HTP_DIR = libhtp
-endif
 SUBDIRS = $(HTP_DIR) src qa rules doc contrib scripts
 
 install-data-am:

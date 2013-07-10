@@ -1072,14 +1072,30 @@ AC_INIT(configure.ac)
         AC_EGREP_HEADER(htp_config_set_path_decode_u_encoding, htp/htp.h, AC_DEFINE_UNQUOTED([HAVE_HTP_SET_PATH_DECODE_U_ENCODING],[1],[Found usable htp_config_set_path_decode_u_encoding function in libhtp]) )
     ])
 
-    # even if we are using an installed htp lib we still need to gen Makefiles inside of htp
-    AC_CONFIG_SUBDIRS([libhtp])
-    AM_CONDITIONAL([BUILD_LIBHTP], [test "x$enable_non_bundled_htp" = "xno"])
-    AS_IF([test "x$enable_non_bundled_htp" = "xno"], [
-        AC_DEFINE_UNQUOTED([HAVE_HTP_URI_NORMALIZE_HOOK],[1],[Assuming htp_config_register_request_uri_normalize function in bundled libhtp])
-        AC_DEFINE_UNQUOTED([HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW],[1],[Assuming htp_tx_get_response_headers_raw function in bundled libhtp])
-        AC_DEFINE_UNQUOTED([HAVE_HTP_DECODE_QUERY_INPLACE],[1],[Assuming htp_decode_query_inplace function in bundled libhtp])
-    ])
+    if test "x$enable_non_bundled_htp" = "xno"; then
+        # test if we have a bundled htp
+        if test -d "$srcdir/libhtp"; then
+            AC_CONFIG_SUBDIRS([libhtp])
+            HTP_DIR="libhtp"
+            AC_SUBST(HTP_DIR)
+            HTP_LDADD="../libhtp/htp/libhtp.la"
+            AC_SUBST(HTP_LDADD)
+            # make sure libhtp is added to the includes
+            CPPFLAGS="${CPPFLAGS} -I${srcdir}/../libhtp/"
+
+            AC_DEFINE_UNQUOTED([HAVE_HTP_URI_NORMALIZE_HOOK],[1],[Assuming htp_config_register_request_uri_normalize function in bundled libhtp])
+            AC_DEFINE_UNQUOTED([HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW],[1],[Assuming htp_tx_get_response_headers_raw function in bundled libhtp])
+            AC_DEFINE_UNQUOTED([HAVE_HTP_DECODE_QUERY_INPLACE],[1],[Assuming htp_decode_query_inplace function in bundled libhtp])
+        else
+            echo
+            echo "  ERROR: Libhtp is not bundled. Get libhtp from https://github.com/ironbee/libhtp"
+            echo "  and pass --enable-non-bundled-htp to Suricata's configure script."
+            echo "  Add --with-libhtp-includes=<dir> and --with-libhtp-libraries=<dir> if"
+            echo "  libhtp is not installed in the include and library paths."
+            echo
+            exit 1
+        fi
+    fi
 
 
   # enable CUDA output

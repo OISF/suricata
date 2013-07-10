@@ -342,11 +342,7 @@ INCLUDES= $(all_includes)
 
 # the library search path.
 suricata_LDFLAGS = $(all_libraries)
-
-if BUILD_LIBHTP
-suricata_LDADD = $(top_builddir)/libhtp/htp/libhtp.la
-INCLUDES += -I$(top_srcdir)/libhtp
-endif
+suricata_LDADD = $(HTP_LDADD)
 
 # Rules to build CUDA ptx modules
 if BUILD_CUDA
