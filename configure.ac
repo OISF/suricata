@@ -1633,9 +1633,9 @@ Generic build parameters:
 
 echo
 echo "$SURICATA_BUILD_CONF"
-echo "printf(" >${ac_builddir}/src/build-info.h
-echo "$SURICATA_BUILD_CONF" | sed -e 's/^/"/' | sed -e 's/$/\\n"/' >>${ac_builddir}/src/build-info.h
-echo ");" >>${ac_builddir}/src/build-info.h
+echo "printf(" >src/build-info.h
+echo "$SURICATA_BUILD_CONF" | sed -e 's/^/"/' | sed -e 's/$/\\n"/' >>src/build-info.h
+echo ");" >>src/build-info.h
 
 echo "
 To build and install run 'make' and 'make install'.
