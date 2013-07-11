@@ -60,9 +60,9 @@ TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
     int ret = 0;
 
     /* ACTION_REJECT defaults to rejecting the SRC */
-    if (!(p->action & ACTION_REJECT) &&
-        !(p->action & ACTION_REJECT_DST) &&
-        !(p->action & ACTION_REJECT_BOTH)) {
+    if (!(PACKET_TEST_ACTION(p, ACTION_REJECT)) &&
+        !(PACKET_TEST_ACTION(p, ACTION_REJECT_DST)) &&
+        !(PACKET_TEST_ACTION(p, ACTION_REJECT_BOTH))) {
         return TM_ECODE_OK;
     }
 
@@ -94,11 +94,11 @@ TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
 }
 
 int RejectSendIPv4TCP(ThreadVars *tv, Packet *p, void *data) {
-    if (p->action & ACTION_REJECT) {
+    if (PACKET_TEST_ACTION(p, ACTION_REJECT)) {
         return RejectSendLibnet11L3IPv4TCP(tv, p, data, REJECT_DIR_SRC);
-    } else if (p->action & ACTION_REJECT_DST) {
+    } else if (PACKET_TEST_ACTION(p, ACTION_REJECT_DST)) {
         return RejectSendLibnet11L3IPv4TCP(tv, p, data, REJECT_DIR_DST);
-    } else if(p->action & ACTION_REJECT_BOTH) {
+    } else if(PACKET_TEST_ACTION(p, ACTION_REJECT_BOTH)) {
         if (RejectSendLibnet11L3IPv4TCP(tv, p, data, REJECT_DIR_SRC) == 0 &&
             RejectSendLibnet11L3IPv4TCP(tv, p, data, REJECT_DIR_DST) == 0) {
             return 0;
@@ -110,11 +110,11 @@ int RejectSendIPv4TCP(ThreadVars *tv, Packet *p, void *data) {
 }
 
 int RejectSendIPv4ICMP(ThreadVars *tv, Packet *p, void *data) {
-    if (p->action & ACTION_REJECT) {
+    if (PACKET_TEST_ACTION(p, ACTION_REJECT)) {
         return RejectSendLibnet11L3IPv4ICMP(tv, p, data, REJECT_DIR_SRC);
-    } else if (p->action & ACTION_REJECT_DST) {
+    } else if (PACKET_TEST_ACTION(p, ACTION_REJECT_DST)) {
         return RejectSendLibnet11L3IPv4ICMP(tv, p, data, REJECT_DIR_DST);
-    } else if(p->action & ACTION_REJECT_BOTH) {
+    } else if(PACKET_TEST_ACTION(p, ACTION_REJECT_BOTH)) {
         if (RejectSendLibnet11L3IPv4ICMP(tv, p, data, REJECT_DIR_SRC) == 0 &&
             RejectSendLibnet11L3IPv4ICMP(tv, p, data, REJECT_DIR_DST) == 0) {
             return 0;

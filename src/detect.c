@@ -1760,7 +1760,7 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
     DEBUG_VALIDATE_PACKET(p);
 
     /* No need to perform any detection on this packet, if the the given flag is set.*/
-    if ((p->flags & PKT_NOPACKET_INSPECTION) || (p->action & ACTION_DROP))
+    if ((p->flags & PKT_NOPACKET_INSPECTION) || (PACKET_TEST_ACTION(p, ACTION_DROP)))
         return 0;
 
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
@@ -10910,7 +10910,7 @@ static int SigTestDropFlow03(void)
         goto end;
     }
 
-    if ( !(p2->action & ACTION_DROP)) {
+    if ( !(PACKET_TEST_ACTION(p2, ACTION_DROP))) {
         printf("A \"drop\" action should be set from the flow to the packet: ");
         goto end;
     }
@@ -11041,7 +11041,7 @@ static int SigTestDropFlow04(void)
         goto end;
     }
 
-    if (!(p1->action & ACTION_DROP)) {
+    if (!(PACKET_TEST_ACTION(p1, ACTION_DROP))) {
         printf("A \"drop\" action was set from the flow to the packet "
                "which is right, but setting the flag shouldn't disable "
                "inspection on the packet in IDS mode");
@@ -11082,7 +11082,7 @@ static int SigTestDropFlow04(void)
         goto end;
     }
 
-    if (!(p2->action & ACTION_DROP)) {
+    if (!(PACKET_TEST_ACTION(p2, ACTION_DROP))) {
         printf("A \"drop\" action was set from the flow to the packet "
                "which is right, but setting the flag shouldn't disable "
                "inspection on the packet in IDS mode");

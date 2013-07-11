@@ -1642,7 +1642,7 @@ int SCThresholdConfTest09(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt != 1 || p->action & ACTION_DROP) {
+    if (p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP)) {
         result = 0;
         goto end;
     }
@@ -1650,7 +1650,7 @@ int SCThresholdConfTest09(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt != 1 || p->action & ACTION_DROP) {
+    if (p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP)) {
         result = 0;
         goto end;
     }
@@ -1658,7 +1658,7 @@ int SCThresholdConfTest09(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt != 1 || p->action & ACTION_DROP) {
+    if (p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP)) {
         result = 0;
         goto end;
     }
@@ -1669,7 +1669,7 @@ int SCThresholdConfTest09(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt != 1 || !(p->action & ACTION_DROP)) {
+    if (p->alerts.cnt != 1 || !(PACKET_TEST_ACTION(p, ACTION_DROP))) {
         result = 0;
         goto end;
     }
@@ -1680,7 +1680,7 @@ int SCThresholdConfTest09(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt != 1 || !(p->action & ACTION_DROP)) {
+    if (p->alerts.cnt != 1 || !(PACKET_TEST_ACTION(p, ACTION_DROP))) {
         result = 0;
         goto end;
     }
@@ -1691,7 +1691,7 @@ int SCThresholdConfTest09(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt != 1 || p->action & ACTION_DROP) {
+    if (p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP)) {
         result = 0;
         goto end;
     }
@@ -1699,7 +1699,7 @@ int SCThresholdConfTest09(void)
     p->alerts.cnt = 0;
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt != 1 || p->action & ACTION_DROP) {
+    if (p->alerts.cnt != 1 || PACKET_TEST_ACTION(p, ACTION_DROP)) {
         result = 0;
         goto end;
     }
@@ -2221,7 +2221,7 @@ static int SCThresholdConfTest15(void)
         goto end;
     }
     /* however, it should have set the drop flag */
-    if (!(p->action & ACTION_DROP)) {
+    if (!(PACKET_TEST_ACTION(p, ACTION_DROP))) {
         printf("sid 10000 should have set DROP flag even if suppressed: ");
         goto end;
     }
@@ -2290,7 +2290,7 @@ static int SCThresholdConfTest16(void)
         goto end;
     }
     /* however, it should have set the drop flag */
-    if (!(p->action & ACTION_DROP)) {
+    if (!(PACKET_TEST_ACTION(p, ACTION_DROP))) {
         printf("sid 1000 should have set DROP flag even if suppressed: ");
         goto end;
     }
@@ -2359,7 +2359,7 @@ static int SCThresholdConfTest17(void)
         goto end;
     }
     /* however, it should have set the drop flag */
-    if (!(p->action & ACTION_DROP)) {
+    if (!(PACKET_TEST_ACTION(p, ACTION_DROP))) {
         printf("sid 10000 should have set DROP flag even if suppressed: ");
         goto end;
     }

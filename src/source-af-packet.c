@@ -614,7 +614,7 @@ TmEcode AFPWritePacket(Packet *p)
     int socket;
 
     if (p->afp_v.copy_mode == AFP_COPY_MODE_IPS) {
-        if (p->action & ACTION_DROP) {
+        if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
             return TM_ECODE_OK;
         }
     }
