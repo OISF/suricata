@@ -59,6 +59,7 @@ enum PktSrcEnum {
 #include "source-ipfw.h"
 #include "source-pcap.h"
 #include "source-af-packet.h"
+#include "source-mpipe.h"
 
 #include "action-globals.h"
 
@@ -390,6 +391,10 @@ typedef struct Packet_
 #ifdef AF_PACKET
         AFPPacketVars afp_v;
 #endif
+#ifdef HAVE_MPIPE
+        /* tilegx mpipe stuff */
+        MpipePacketVars mpipe_v;
+#endif
 
         /** libpcap vars: shared by Pcap Live mode and Pcap File mode */
         PcapPacketVars pcap_v;
@@ -405,8 +410,8 @@ typedef struct Packet_
     int debuglog_flowbits_names_len;
     const char **debuglog_flowbits_names;
 
-    /** The release function for packet data */
-    TmEcode (*ReleaseData)(ThreadVars *, struct Packet_ *);
+    /** The release function for packet structure and data */
+    void (*ReleasePacket)(struct Packet_ *);
 
     /* pkt vars */
     PktVar *pktvar;
@@ -494,7 +499,13 @@ typedef struct Packet_
 #ifdef __SC_CUDA_SUPPORT__
     CudaPacketVars cuda_pkt_vars;
 #endif
-} Packet;
+}
+#ifdef HAVE_MPIPE
+/* mPIPE requires packet buffers to be aligned to 128 byte
+   boundaries. */
+  __attribute__((aligned(128)))
+#endif
+Packet;
 
 #define DEFAULT_PACKET_SIZE (1500 + ETHERNET_HEADER_LEN)
 /* storage: maximum ip packet size + link header */
@@ -685,7 +696,6 @@ typedef struct DecodeThreadVars_
         (p)->prev = NULL;                       \
         (p)->root = NULL;                       \
         (p)->livedev = NULL;                    \
-        (p)->ReleaseData = NULL;                \
         PACKET_RESET_CHECKSUMS((p));            \
         PACKET_PROFILING_RESET((p));            \
     } while (0)
@@ -776,6 +786,8 @@ Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
 Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto);
 Packet *PacketGetFromQueueOrAlloc(void);
 Packet *PacketGetFromAlloc(void);
+void PacketFree(Packet *p);
+void PacketFreeOrRelease(Packet *p);
 int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen);
 int PacketSetData(Packet *p, uint8_t *pktdata, int pktlen);
 int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datalen);
