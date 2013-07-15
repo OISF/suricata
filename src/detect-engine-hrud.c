@@ -100,7 +100,7 @@ int DetectEngineInspectHttpRawUri(ThreadVars *tv,
 {
     htp_tx_t *tx = (htp_tx_t *)txv;
     if (tx->request_uri == NULL) {
-        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > TX_PROGRESS_REQ_LINE)
+        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > HTP_REQUEST_LINE)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
         else
             return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;

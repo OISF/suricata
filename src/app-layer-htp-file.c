@@ -348,9 +348,9 @@ static int HTPFileParserTest01(void) {
         goto end;
     }
 
-    if (tx->request_method == NULL || memcmp(bstr_tocstr(tx->request_method), "POST", 4) != 0)
+    if (tx->request_method == NULL || memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0)
     {
-        printf("expected method POST, got %s \n", bstr_tocstr(tx->request_method));
+        printf("expected method POST, got %s \n", bstr_util_strdup_to_c(tx->request_method));
         goto end;
     }
 
@@ -445,9 +445,9 @@ static int HTPFileParserTest02(void) {
         goto end;
     }
 
-    if (tx->request_method == NULL || memcmp(bstr_tocstr(tx->request_method), "POST", 4) != 0)
+    if (tx->request_method == NULL || memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0)
     {
-        printf("expected method POST, got %s \n", bstr_tocstr(tx->request_method));
+        printf("expected method POST, got %s \n", bstr_util_strdup_to_c(tx->request_method));
         goto end;
     }
 
@@ -568,9 +568,9 @@ static int HTPFileParserTest03(void) {
         goto end;
     }
 
-    if (tx->request_method == NULL || memcmp(bstr_tocstr(tx->request_method), "POST", 4) != 0)
+    if (tx->request_method == NULL || memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0)
     {
-        printf("expected method POST, got %s \n", bstr_tocstr(tx->request_method));
+        printf("expected method POST, got %s \n", bstr_util_strdup_to_c(tx->request_method));
         goto end;
     }
 
@@ -696,9 +696,9 @@ static int HTPFileParserTest04(void) {
         goto end;
     }
 
-    if (tx->request_method == NULL || memcmp(bstr_tocstr(tx->request_method), "POST", 4) != 0)
+    if (tx->request_method == NULL || memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0)
     {
-        printf("expected method POST, got %s: ", bstr_tocstr(tx->request_method));
+        printf("expected method POST, got %s: ", bstr_util_strdup_to_c(tx->request_method));
         goto end;
     }
 
@@ -778,9 +778,9 @@ static int HTPFileParserTest05(void) {
         goto end;
     }
 
-    if (tx->request_method == NULL || memcmp(bstr_tocstr(tx->request_method), "POST", 4) != 0)
+    if (tx->request_method == NULL || memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0)
     {
-        printf("expected method POST, got %s \n", bstr_tocstr(tx->request_method));
+        printf("expected method POST, got %s \n", bstr_util_strdup_to_c(tx->request_method));
         goto end;
     }
 
@@ -892,9 +892,9 @@ static int HTPFileParserTest06(void) {
         goto end;
     }
 
-    if (tx->request_method == NULL || memcmp(bstr_tocstr(tx->request_method), "POST", 4) != 0)
+    if (tx->request_method == NULL || memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0)
     {
-        printf("expected method POST, got %s \n", bstr_tocstr(tx->request_method));
+        printf("expected method POST, got %s \n", bstr_util_strdup_to_c(tx->request_method));
         goto end;
     }
 
@@ -995,9 +995,9 @@ static int HTPFileParserTest07(void) {
         goto end;
     }
 
-    if (tx->request_method == NULL || memcmp(bstr_tocstr(tx->request_method), "POST", 4) != 0)
+    if (tx->request_method == NULL || memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0)
     {
-        printf("expected method POST, got %s \n", bstr_tocstr(tx->request_method));
+        printf("expected method POST, got %s \n", bstr_util_strdup_to_c(tx->request_method));
         goto end;
     }
 
@@ -1399,9 +1399,9 @@ static int HTPFileParserTest11(void) {
         goto end;
     }
 
-    if (tx->request_method == NULL || memcmp(bstr_tocstr(tx->request_method), "POST", 4) != 0)
+    if (tx->request_method == NULL || memcmp(bstr_util_strdup_to_c(tx->request_method), "POST", 4) != 0)
     {
-        printf("expected method POST, got %s \n", bstr_tocstr(tx->request_method));
+        printf("expected method POST, got %s \n", bstr_util_strdup_to_c(tx->request_method));
         goto end;
     }
 
