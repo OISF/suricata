@@ -1505,7 +1505,7 @@ AC_INIT(configure.ac)
     AC_PATH_PROG(HAVE_GETCONF_CMD, getconf, "no")
     if test "$HAVE_GETCONF_CMD" != "no"; then
         CLS=$(getconf LEVEL1_DCACHE_LINESIZE)
-        if test "$CLS" != "" and "$CLS" != "0"; then
+        if [test "$CLS" != "" && test "$CLS" != "0"]; then
             AC_DEFINE_UNQUOTED([CLS],[${CLS}],[L1 cache line size])
         else
             AC_DEFINE_UNQUOTED([CLS],[64],[L1 cache line size])
