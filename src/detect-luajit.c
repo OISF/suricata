@@ -392,7 +392,7 @@ static int DetectLuajitMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     if (tluajit->alproto == ALPROTO_HTTP) {
         FLOWLOCK_RDLOCK(p->flow);
         HtpState *htp_state = p->flow->alstate;
-        if (htp_state != NULL && htp_state->connp != NULL && htp_state->connp->conn != NULL) {
+        if (htp_state != NULL && htp_state->connp != NULL) {
             htp_tx_t *tx = NULL;
             uint64_t idx = AppLayerTransactionGetInspectId(p->flow, 0);
             uint64_t total_txs= AppLayerGetTxCnt(ALPROTO_HTTP, htp_state);
@@ -916,18 +916,10 @@ static int LuajitMatchTest01(void) {
     int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13\r\n"
-        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9;q=0.8\r\n";
+        "Host: www.emergingthreats.net\r\n\r\n";
     uint8_t httpbuf2[] =
-        "Accept-Language: es-es,es;q=0.8,en-us;q=0.5,en;q=0.3\r\n"
-        "Accept-Encoding: gzip,deflate\r\n"
-        "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n"
-        "Date: Tue, 22 Sep 2009 19:24:48 GMT\r\n"
-        "Server: Apache\r\n"
-        "Content-Length: 500\r\n"
-        "\r\n"
-        "<!DOCTYPE html PUBLIC";
+        "POST / HTTP/1.1\r\n"
+        "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -990,6 +982,7 @@ static int LuajitMatchTest01(void) {
     }
 
     /* do detect for p1 */
+    SCLogDebug("inspecting p1");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
     if ((PacketAlertCheck(p1, 1))) {
@@ -1003,6 +996,7 @@ static int LuajitMatchTest01(void) {
         goto end;
     }
     /* do detect for p2 */
+    SCLogDebug("inspecting p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
     if (!(PacketAlertCheck(p2, 1))) {
@@ -1074,18 +1068,10 @@ static int LuajitMatchTest02(void) {
     int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13\r\n"
-        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9;q=0.8\r\n";
+        "Host: www.emergingthreats.net\r\n\r\n";
     uint8_t httpbuf2[] =
-        "Accept-Language: es-es,es;q=0.8,en-us;q=0.5,en;q=0.3\r\n"
-        "Accept-Encoding: gzip,deflate\r\n"
-        "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n"
-        "Date: Tue, 22 Sep 2009 19:24:48 GMT\r\n"
-        "Server: Apache\r\n"
-        "Content-Length: 500\r\n"
-        "\r\n"
-        "<!DOCTYPE html PUBLIC";
+        "POST / HTTP/1.1\r\n"
+        "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -1216,18 +1202,10 @@ static int LuajitMatchTest03(void) {
     int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13\r\n"
-        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9;q=0.8\r\n";
+        "Host: www.emergingthreats.net\r\n\r\n";
     uint8_t httpbuf2[] =
-        "Accept-Language: es-es,es;q=0.8,en-us;q=0.5,en;q=0.3\r\n"
-        "Accept-Encoding: gzip,deflate\r\n"
-        "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n"
-        "Date: Tue, 22 Sep 2009 19:24:48 GMT\r\n"
-        "Server: Apache\r\n"
-        "Content-Length: 500\r\n"
-        "\r\n"
-        "<!DOCTYPE html PUBLIC";
+        "POST / HTTP/1.1\r\n"
+        "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -1355,18 +1333,10 @@ static int LuajitMatchTest04(void) {
     int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13\r\n"
-        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9;q=0.8\r\n";
+        "Host: www.emergingthreats.net\r\n\r\n";
     uint8_t httpbuf2[] =
-        "Accept-Language: es-es,es;q=0.8,en-us;q=0.5,en;q=0.3\r\n"
-        "Accept-Encoding: gzip,deflate\r\n"
-        "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n"
-        "Date: Tue, 22 Sep 2009 19:24:48 GMT\r\n"
-        "Server: Apache\r\n"
-        "Content-Length: 500\r\n"
-        "\r\n"
-        "<!DOCTYPE html PUBLIC";
+        "POST / HTTP/1.1\r\n"
+        "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -1499,18 +1469,10 @@ static int LuajitMatchTest05(void) {
     int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13\r\n"
-        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9;q=0.8\r\n";
+        "Host: www.emergingthreats.net\r\n\r\n";
     uint8_t httpbuf2[] =
-        "Accept-Language: es-es,es;q=0.8,en-us;q=0.5,en;q=0.3\r\n"
-        "Accept-Encoding: gzip,deflate\r\n"
-        "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n"
-        "Date: Tue, 22 Sep 2009 19:24:48 GMT\r\n"
-        "Server: Apache\r\n"
-        "Content-Length: 500\r\n"
-        "\r\n"
-        "<!DOCTYPE html PUBLIC";
+        "POST / HTTP/1.1\r\n"
+        "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -1648,18 +1610,10 @@ static int LuajitMatchTest06(void) {
     int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13\r\n"
-        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9;q=0.8\r\n";
+        "Host: www.emergingthreats.net\r\n\r\n";
     uint8_t httpbuf2[] =
-        "Accept-Language: es-es,es;q=0.8,en-us;q=0.5,en;q=0.3\r\n"
-        "Accept-Encoding: gzip,deflate\r\n"
-        "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n"
-        "Date: Tue, 22 Sep 2009 19:24:48 GMT\r\n"
-        "Server: Apache\r\n"
-        "Content-Length: 500\r\n"
-        "\r\n"
-        "<!DOCTYPE html PUBLIC";
+        "POST / HTTP/1.1\r\n"
+        "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
