@@ -895,7 +895,7 @@ TmEcode NFQSetVerdict(Packet *p) {
         return TM_ECODE_OK;
     }
 
-    if (p->action & ACTION_DROP) {
+    if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
         verdict = NF_DROP;
 #ifdef COUNTERS
         t->dropped++;
