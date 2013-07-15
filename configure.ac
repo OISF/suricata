@@ -1033,7 +1033,7 @@ AC_INIT(configure.ac)
                 [with_libhtp_libraries="$withval"],[with_libhtp_libraries="no"])
 
         if test "$with_libhtp_includes" != "no"; then
-            CPPFLAGS="${CPPFLAGS} -I${with_libhtp_includes}"
+            CPPFLAGS="-I${with_libhtp_includes} ${CPPFLAGS}"
         fi
 
         if test "$with_libhtp_libraries" != "no"; then
@@ -1074,7 +1074,7 @@ AC_INIT(configure.ac)
             HTP_LDADD="../libhtp/htp/libhtp.la"
             AC_SUBST(HTP_LDADD)
             # make sure libhtp is added to the includes
-            CPPFLAGS="${CPPFLAGS} -I${srcdir}/../libhtp/"
+            CPPFLAGS="-I${srcdir}/../libhtp/ ${CPPFLAGS}"
 
             AC_DEFINE_UNQUOTED([HAVE_HTP_URI_NORMALIZE_HOOK],[1],[Assuming htp_config_register_request_uri_normalize function in bundled libhtp])
             AC_DEFINE_UNQUOTED([HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW],[1],[Assuming htp_tx_get_response_headers_raw function in bundled libhtp])
