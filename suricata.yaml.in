@@ -962,8 +962,7 @@ pcre:
 #   IIS_6_0
 #   IIS_7_0
 #   IIS_7_5
-#   Apache
-#   Apache_2_2
+#   Apache_2
 ###########################################################################
 libhtp:
 
@@ -989,7 +988,7 @@ libhtp:
 
      - apache:
          address: [192.168.1.0/24, 127.0.0.0/8, "::1"]
-         personality: Apache_2_2
+         personality: Apache_2
          # Can be specified in kb, mb, gb.  Just a number indicates
          # it's in bytes.
          request-body-limit: 4096

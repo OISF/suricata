@@ -250,12 +250,14 @@ uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     SCEnter();
 
     htp_tx_t *tx = (htp_tx_t *)txv;
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     uint32_t cnt = 0;
-    if (tx->request_uri_normalized == NULL)
+
+    if (tx_ud == NULL || tx_ud->request_uri_normalized == NULL)
         goto end;
     cnt = DoDetectAppLayerUricontentMatch(det_ctx, (uint8_t *)
-                                          bstr_ptr(tx->request_uri_normalized),
-                                          bstr_len(tx->request_uri_normalized),
+                                          bstr_ptr(tx_ud->request_uri_normalized),
+                                          bstr_len(tx_ud->request_uri_normalized),
                                           flags);
 
 end:
@@ -304,20 +306,20 @@ static int HTTPUriTest01(void) {
 
     htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, 0);
 
-    if (tx->request_method_number != M_GET ||
-            tx->request_protocol_number != HTTP_1_1)
+    if (tx->request_method_number != HTP_M_GET ||
+        tx->request_protocol_number != HTP_PROTOCOL_1_1)
     {
         goto end;
     }
 
-    if ((tx->parsed_uri->hostname == NULL) ||
-            (bstr_cmpc(tx->parsed_uri->hostname, "www.example.com") != 0))
+    if ((tx->request_hostname == NULL) ||
+            (bstr_cmp_c(tx->request_hostname, "www.example.com") != 0))
     {
         goto end;
     }
 
     if ((tx->parsed_uri->path == NULL) ||
-            (bstr_cmpc(tx->parsed_uri->path, "/images.gif") != 0))
+            (bstr_cmp_c(tx->parsed_uri->path, "/images.gif") != 0))
     {
         goto end;
     }
@@ -364,20 +366,20 @@ static int HTTPUriTest02(void) {
 
     htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, 0);
 
-    if (tx->request_method_number != M_GET ||
-            tx->request_protocol_number != HTTP_1_1)
+    if (tx->request_method_number != HTP_M_GET ||
+        tx->request_protocol_number != HTP_PROTOCOL_1_1)
     {
         goto end;
     }
 
-    if ((tx->parsed_uri->hostname == NULL) ||
-            (bstr_cmpc(tx->parsed_uri->hostname, "www.example.com") != 0))
+    if ((tx->request_hostname == NULL) ||
+            (bstr_cmp_c(tx->request_hostname, "www.example.com") != 0))
     {
         goto end;
     }
 
     if ((tx->parsed_uri->path == NULL) ||
-            (bstr_cmpc(tx->parsed_uri->path, "/images.gif") != 0))
+            (bstr_cmp_c(tx->parsed_uri->path, "/images.gif") != 0))
     {
         goto end;
     }
@@ -426,20 +428,20 @@ static int HTTPUriTest03(void) {
 
     htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, 0);
 
-    if (tx->request_method_number != M_UNKNOWN ||
-            tx->request_protocol_number != HTTP_1_1)
+    if (tx->request_method_number != HTP_M_UNKNOWN ||
+        tx->request_protocol_number != HTP_PROTOCOL_1_1)
     {
         goto end;
     }
 
-   if ((tx->parsed_uri->hostname == NULL) ||
-            (bstr_cmpc(tx->parsed_uri->hostname, "www.example.com") != 0))
+    if ((tx->request_hostname == NULL) ||
+            (bstr_cmp_c(tx->request_hostname, "www.example.com") != 0))
     {
         goto end;
     }
 
     if ((tx->parsed_uri->path == NULL) ||
-            (bstr_cmpc(tx->parsed_uri->path, "/images.gif") != 0))
+            (bstr_cmp_c(tx->parsed_uri->path, "/images.gif") != 0))
     {
         goto end;
     }
@@ -489,20 +491,20 @@ static int HTTPUriTest04(void) {
 
     htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, 0);
 
-    if (tx->request_method_number != M_GET ||
-            tx->request_protocol_number != HTTP_1_1)
+    if (tx->request_method_number != HTP_M_GET ||
+        tx->request_protocol_number != HTP_PROTOCOL_1_1)
     {
         goto end;
     }
 
-    if ((tx->parsed_uri->hostname == NULL) ||
-            (bstr_cmpc(tx->parsed_uri->hostname, "www.example.com") != 0))
+    if ((tx->request_hostname == NULL) ||
+            (bstr_cmp_c(tx->request_hostname, "www.example.com") != 0))
     {
         goto end;
     }
 
     if ((tx->parsed_uri->path == NULL) ||
-           (bstr_cmpc(tx->parsed_uri->path, "/images.gif") != 0))
+           (bstr_cmp_c(tx->parsed_uri->path, "/images.gif") != 0))
     {
         goto end;
     }

@@ -254,7 +254,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
             case LOG_HTTP_CF_REQUEST_HEADER:
             /* REQUEST HEADER */
                 if (tx->request_headers != NULL) {
-                    h_request_hdr = table_getc(tx->request_headers, httplog_ctx->cf_nodes[i]->data);
+                    h_request_hdr = htp_table_get_c(tx->request_headers, httplog_ctx->cf_nodes[i]->data);
                 }
                 if (h_request_hdr != NULL) {
                     PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
@@ -275,7 +275,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                             tx->response_status_number > 300 &&
                             tx->response_status_number < 303)
                     {
-                        htp_header_t *h_location = table_getc(tx->response_headers, "location");
+                        htp_header_t *h_location = htp_table_get_c(tx->response_headers, "location");
                         if (h_location != NULL) {
                             MemBufferWriteString(aft->buffer, "(");
 
@@ -292,7 +292,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
             case LOG_HTTP_CF_RESPONSE_HEADER:
             /* RESPONSE HEADER */
                 if (tx->response_headers != NULL) {
-                    h_response_hdr = table_getc(tx->response_headers,
+                    h_response_hdr = htp_table_get_c(tx->response_headers,
                                     httplog_ctx->cf_nodes[i]->data);
                 }
                 if (h_response_hdr != NULL) {
@@ -319,7 +319,7 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
     /* referer */
     htp_header_t *h_referer = NULL;
     if (tx->request_headers != NULL) {
-        h_referer = table_getc(tx->request_headers, "referer");
+        h_referer = htp_table_get_c(tx->request_headers, "referer");
     }
     if (h_referer != NULL) {
         PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
@@ -355,7 +355,7 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
                        bstr_len(tx->response_status));
         /* Redirect? */
         if ((tx->response_status_number > 300) && ((tx->response_status_number) < 303)) {
-            htp_header_t *h_location = table_getc(tx->response_headers, "location");
+            htp_header_t *h_location = htp_table_get_c(tx->response_headers, "location");
             if (h_location != NULL) {
                 MemBufferWriteString(aft->buffer, " => ");
 
@@ -409,9 +409,6 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
     tx_id = AppLayerTransactionGetLogId(p->flow);
     tx_progress_done_value_ts = AppLayerGetAlstateProgressCompletionStatus(ALPROTO_HTTP, 0);
     tx_progress_done_value_tc = AppLayerGetAlstateProgressCompletionStatus(ALPROTO_HTTP, 1);
-
-    if (htp_state->connp == NULL || htp_state->connp->conn == NULL)
-        goto end;
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
@@ -501,7 +498,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
             /* user agent */
             htp_header_t *h_user_agent = NULL;
             if (tx->request_headers != NULL) {
-                h_user_agent = table_getc(tx->request_headers, "user-agent");
+                h_user_agent = htp_table_get_c(tx->request_headers, "user-agent");
             }
             if (h_user_agent != NULL) {
                 PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
