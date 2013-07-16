@@ -525,6 +525,7 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
         p->ip4h = NULL;
         return;
     }
+    p->proto = IPV4_GET_IPPROTO(p);
 
     /* If a fragment, pass off for re-assembly. */
     if (unlikely(IPV4_GET_IPOFFSET(p) > 0 || IPV4_GET_MF(p) == 1)) {
@@ -534,6 +535,7 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
             DecodeIPV4(tv, dtv, rp, (void *)rp->ip4h, IPV4_GET_IPLEN(rp), pq);
             PacketEnqueue(pq, rp);
         }
+        p->flags |= PKT_IS_FRAGMENT;
         return;
     }
 
@@ -598,9 +600,6 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
                 DecodeTCP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
                           IPV4_GET_IPLEN(p) -  IPV4_GET_HLEN(p), pq);
             }
-            break;
-        default:
-            p->proto = IPV4_GET_IPPROTO(p);
             break;
     }
 
