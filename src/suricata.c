@@ -1478,21 +1478,21 @@ int main(int argc, char **argv)
     }
 
     if (list_keywords) {
-        return SuriListKeywords(keyword_info);
+        return ListKeywords(keyword_info);
     }
 
     if (list_app_layer_protocols) {
-        return SuriListAppLayerProtocols();
+        return ListAppLayerProtocols();
     }
 
 #ifdef __SC_CUDA_SUPPORT__
     if (list_cuda_cards) {
-        return SuriListCudaCards();
+        return ListCudaCards();
     }
 #endif
 
     if (run_mode == RUNMODE_UNITTEST) {
-        return SuriRunUnittests(list_unittests, regex_arg);
+        return RunUnittests(list_unittests, regex_arg);
     }
 
 #ifdef REVISION

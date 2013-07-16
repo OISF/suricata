@@ -116,7 +116,7 @@
 void RegisterAllModules();
 void TmqhSetup (void);
 
-int SuriRunUnittests(int list_unittests, char *regex_arg)
+int RunUnittests(int list_unittests, char *regex_arg)
 {
 #ifdef UNITTESTS
     /* Initializations for global vars, queues, etc (memsets, mutex init..) */
