@@ -1058,11 +1058,6 @@ AC_INIT(configure.ac)
             exit 1
         fi
 
-        AC_CHECK_LIB([htp], [htp_config_register_request_uri_normalize],AC_DEFINE_UNQUOTED([HAVE_HTP_URI_NORMALIZE_HOOK],[1],[Found htp_config_register_request_uri_normalize function in libhtp]) ,,[-lhtp])
-        # check for htp_tx_get_response_headers_raw
-        AC_CHECK_LIB([htp], [htp_tx_get_response_headers_raw],AC_DEFINE_UNQUOTED([HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW],[1],[Found htp_tx_get_response_headers_raw in libhtp]) ,,[-lhtp])
-        AC_CHECK_LIB([htp], [htp_decode_query_inplace],AC_DEFINE_UNQUOTED([HAVE_HTP_DECODE_QUERY_INPLACE],[1],[Found htp_decode_query_inplace function in libhtp]) ,,[-lhtp])
-        AC_EGREP_HEADER(htp_config_set_path_decode_u_encoding, htp/htp.h, AC_DEFINE_UNQUOTED([HAVE_HTP_SET_PATH_DECODE_U_ENCODING],[1],[Found usable htp_config_set_path_decode_u_encoding function in libhtp]) )
     ])
 
     if test "x$enable_non_bundled_htp" = "xno"; then
@@ -1075,10 +1070,6 @@ AC_INIT(configure.ac)
             AC_SUBST(HTP_LDADD)
             # make sure libhtp is added to the includes
             CPPFLAGS="${CPPFLAGS} -I${srcdir}/../libhtp/"
-
-            AC_DEFINE_UNQUOTED([HAVE_HTP_URI_NORMALIZE_HOOK],[1],[Assuming htp_config_register_request_uri_normalize function in bundled libhtp])
-            AC_DEFINE_UNQUOTED([HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW],[1],[Assuming htp_tx_get_response_headers_raw function in bundled libhtp])
-            AC_DEFINE_UNQUOTED([HAVE_HTP_DECODE_QUERY_INPLACE],[1],[Assuming htp_decode_query_inplace function in bundled libhtp])
         else
             echo
             echo "  ERROR: Libhtp is not bundled. Get libhtp from https://github.com/ironbee/libhtp"
