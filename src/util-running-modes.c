@@ -26,14 +26,14 @@
 #include "util-cuda.h"
 #include "util-unittest.h"
 
-int SuriListKeywords(const char *keyword_info)
+int ListKeywords(const char *keyword_info)
 {
     SigTableSetup(); /* load the rule keywords */
     SigTableList(keyword_info);
     exit(EXIT_SUCCESS);
 }
 
-int SuriListAppLayerProtocols()
+int ListAppLayerProtocols()
 {
     MpmTableSetup();
     AppLayerDetectProtoThreadInit();
@@ -42,7 +42,7 @@ int SuriListAppLayerProtocols()
 }
 
 #ifdef __SC_CUDA_SUPPORT__
-int SuriListCudaCards()
+int ListCudaCards()
 {
     SCCudaInitCudaEnvironment();
     SCCudaListCards();
