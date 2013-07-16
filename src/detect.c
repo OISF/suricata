@@ -1501,6 +1501,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         /* check the source & dst port in the sig */
         if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP || p->proto == IPPROTO_SCTP) {
             if (!(s->flags & SIG_FLAG_DP_ANY)) {
+                if (p->flags & PKT_IS_FRAGMENT)
+                    goto next;
                 DetectPort *dport = DetectPortLookupGroup(s->dp,p->dp);
                 if (dport == NULL) {
                     SCLogDebug("dport didn't match.");
@@ -1508,6 +1510,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 }
             }
             if (!(s->flags & SIG_FLAG_SP_ANY)) {
+                if (p->flags & PKT_IS_FRAGMENT)
+                    goto next;
                 DetectPort *sport = DetectPortLookupGroup(s->sp,p->sp);
                 if (sport == NULL) {
                     SCLogDebug("sport didn't match.");

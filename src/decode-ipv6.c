@@ -402,6 +402,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 }
 
                 /* the rest is parsed upon reassembly */
+                p->flags |= PKT_IS_FRAGMENT;
                 SCReturn;
 
             case IPPROTO_ESP:
@@ -583,9 +584,10 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
             ENGINE_SET_EVENT(p,IPV6_WITH_ICMPV4);
             break;
         default:
-            p->proto = IPV6_GET_NH(p);
+            IPV6_SET_L4PROTO (p, IPV6_GET_NH(p));
             break;
     }
+    p->proto = IPV6_GET_L4PROTO (p);
 
     /* Pass to defragger if a fragment. */
     if (IPV6_EXTHDR_ISSET_FH(p)) {

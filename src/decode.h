@@ -903,6 +903,8 @@ void AddressDebugPrint(Address *);
 #define PKT_HOST_SRC_LOOKED_UP          (1<<17)
 #define PKT_HOST_DST_LOOKED_UP          (1<<18)
 
+#define PKT_IS_FRAGMENT                 (1<<19)     /**< Packet is a fragment */
+
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) ((p)->flags & PKT_PSEUDO_STREAM_END)
 
