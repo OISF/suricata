@@ -46,44 +46,20 @@
 
 #include "util-atomic.h"
 #include "util-spm.h"
-#include "util-hash.h"
-#include "util-hashlist.h"
-#include "util-bloomfilter.h"
-#include "util-bloomfilter-counting.h"
-#include "util-pool.h"
-#include "util-byte.h"
 #include "util-cpu.h"
 #include "util-action.h"
 #include "util-pidfile.h"
 #include "util-ioctl.h"
 #include "util-device.h"
 #include "util-misc.h"
+#include "util-running-modes.h"
 
-#include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-address.h"
-#include "detect-engine-proto.h"
-#include "detect-engine-port.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-sigorder.h"
-#include "detect-engine-payload.h"
-#include "detect-engine-dcepayload.h"
-#include "detect-engine-uri.h"
-#include "detect-engine-hcbd.h"
-#include "detect-engine-hsbd.h"
-#include "detect-engine-hhd.h"
-#include "detect-engine-hrhd.h"
-#include "detect-engine-hmd.h"
-#include "detect-engine-hcd.h"
-#include "detect-engine-hrud.h"
-#include "detect-engine-hsmd.h"
-#include "detect-engine-hscd.h"
-#include "detect-engine-hua.h"
-#include "detect-engine-hhhd.h"
-#include "detect-engine-hrhhd.h"
-#include "detect-engine-state.h"
-#include "detect-engine-tag.h"
+#include "detect-parse.h"
 #include "detect-fast-pattern.h"
+#include "detect-engine-tag.h"
+#include "detect-engine-address.h"
+#include "detect-engine-port.h"
 
 #include "tm-queuehandlers.h"
 #include "tm-queues.h"
@@ -140,16 +116,7 @@
 #include "host.h"
 #include "unix-manager.h"
 
-#include "app-layer-detect-proto.h"
-#include "app-layer-parser.h"
-#include "app-layer-smb.h"
-#include "app-layer-dcerpc.h"
-#include "app-layer-dcerpc-udp.h"
 #include "app-layer-htp.h"
-#include "app-layer-ftp.h"
-#include "app-layer-ssl.h"
-#include "app-layer-ssh.h"
-#include "app-layer-smtp.h"
 
 #include "util-radix-tree.h"
 #include "util-host-os-info.h"
@@ -170,12 +137,12 @@
 #include "defrag.h"
 
 #include "runmodes.h"
+#include "runmode-unittests.h"
 
 #include "util-cuda.h"
 #include "util-decode-asn1.h"
 #include "util-debug.h"
 #include "util-error.h"
-#include "detect-engine-siggroup.h"
 #include "util-daemon.h"
 #include "reputation.h"
 
@@ -184,11 +151,7 @@
 
 #include "tmqh-packetpool.h"
 
-#include "util-ringbuffer.h"
-#include "util-mem.h"
-#include "util-memcmp.h"
 #include "util-proto-name.h"
-#include "util-spm-bm.h"
 #ifdef __SC_CUDA_SUPPORT__
 #include "util-cuda-buffer.h"
 #include "util-mpm-ac.h"
@@ -322,6 +285,20 @@ uint8_t print_mem_flag = 1;
 #endif
 #endif
 #endif
+
+void CreateLowercaseTable()
+{
+    /* create table for O(1) lowercase conversion lookup.  It was removed, but
+     * we still need it for cuda.  So resintalling it back into the codebase */
+    uint8_t c = 0;
+    memset(g_u8_lowercasetable, 0x00, sizeof(g_u8_lowercasetable));
+    for ( ; c < 255; c++) {
+        if (c >= 'A' && c <= 'Z')
+            g_u8_lowercasetable[c] = (c + ('a' - 'A'));
+        else
+            g_u8_lowercasetable[c] = c;
+    }
+}
 
 void GlobalInits()
 {
@@ -702,6 +679,175 @@ void SCPrintBuildInfo(void) {
 #include "build-info.h"
 }
 
+void RegisterAllModules()
+{
+    /* nfq */
+    TmModuleReceiveNFQRegister();
+    TmModuleVerdictNFQRegister();
+    TmModuleDecodeNFQRegister();
+    /* ipfw */
+    TmModuleReceiveIPFWRegister();
+    TmModuleVerdictIPFWRegister();
+    TmModuleDecodeIPFWRegister();
+    /* pcap live */
+    TmModuleReceivePcapRegister();
+    TmModuleDecodePcapRegister();
+    /* pcap file */
+    TmModuleReceivePcapFileRegister();
+    TmModuleDecodePcapFileRegister();
+    /* af-packet */
+    TmModuleReceiveAFPRegister();
+    TmModuleDecodeAFPRegister();
+    /* pfring */
+    TmModuleReceivePfringRegister();
+    TmModuleDecodePfringRegister();
+    /* dag file */
+    TmModuleReceiveErfFileRegister();
+    TmModuleDecodeErfFileRegister();
+    /* dag live */
+    TmModuleReceiveErfDagRegister();
+    TmModuleDecodeErfDagRegister();
+    /* napatech */
+    TmModuleNapatechStreamRegister();
+    TmModuleNapatechDecodeRegister();
+
+    /* stream engine */
+    TmModuleStreamTcpRegister();
+    /* detection */
+    TmModuleDetectRegister();
+    /* respond-reject */
+    TmModuleRespondRejectRegister();
+
+    /* fast log */
+    TmModuleAlertFastLogRegister();
+    TmModuleAlertFastLogIPv4Register();
+    TmModuleAlertFastLogIPv6Register();
+    /* debug log */
+    TmModuleAlertDebugLogRegister();
+    /* prelue log */
+    TmModuleAlertPreludeRegister();
+    /* syslog log */
+    TmModuleAlertSyslogRegister();
+    TmModuleAlertSyslogIPv4Register();
+    TmModuleAlertSyslogIPv6Register();
+    /* unified2 log */
+    TmModuleUnified2AlertRegister();
+    /* pcap info log */
+    TmModuleAlertPcapInfoRegister();
+    /* drop log */
+    TmModuleLogDropLogRegister();
+    /* http log */
+    TmModuleLogHttpLogRegister();
+    TmModuleLogHttpLogIPv4Register();
+    TmModuleLogHttpLogIPv6Register();
+    TmModuleLogTlsLogRegister();
+    TmModuleLogTlsLogIPv4Register();
+    TmModuleLogTlsLogIPv6Register();
+    /* pcap log */
+    TmModulePcapLogRegister();
+    /* file log */
+    TmModuleLogFileLogRegister();
+    TmModuleLogFilestoreRegister();
+    /* dns log */
+    TmModuleLogDnsLogRegister();
+    /* cuda */
+    TmModuleDebugList();
+
+}
+
+TmEcode LoadYamlConfig(char *conf_filename) {
+    SCEnter();
+
+    if (conf_filename == NULL)
+        SCReturn(TM_ECODE_OK);
+
+    if (ConfYamlLoadFile(conf_filename) != 0) {
+        /* Error already displayed. */
+        SCReturn(TM_ECODE_FAILED);
+    }
+
+    ConfNode *file;
+    ConfNode *includes = ConfGetNode("include");
+    if (includes != NULL) {
+        TAILQ_FOREACH(file, &includes->head, next) {
+            char *ifile = ConfLoadCompleteIncludePath(file->val);
+            SCLogInfo("Including: %s", ifile);
+
+            if (ConfYamlLoadFile(ifile) != 0) {
+                /* Error already displayed. */
+                SCReturn(TM_ECODE_FAILED);
+            }
+        }
+    }
+
+    SCReturn(TM_ECODE_OK);
+}
+
+static int IsRuleReloadSet(int quiet)
+{
+    int rule_reload;
+
+    ConfNode *denode = NULL;
+    ConfNode *decnf = ConfGetNode("detect-engine");
+    if (decnf != NULL) {
+        TAILQ_FOREACH(denode, &decnf->head, next) {
+            if (strcmp(denode->val, "rule-reload") == 0) {
+                (void)ConfGetChildValueBool(denode, "rule-reload", &rule_reload);
+                if (!quiet)
+                    SCLogInfo("Live rule reloads %s",
+                              rule_reload ? "enabled" : "disabled");
+            }
+        }
+    }
+    return rule_reload;
+}
+
+static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
+{
+    SCEnter();
+
+    /* run the selected runmode */
+    if (run_mode == RUNMODE_PCAP_DEV) {
+        if (strlen(pcap_dev) == 0) {
+            int ret = LiveBuildDeviceList("pcap");
+            if (ret == 0) {
+                SCLogError(SC_ERR_INITIALIZATION, "No interface found in config for pcap");
+                SCReturn(TM_ECODE_FAILED);
+            }
+        }
+#ifdef HAVE_PFRING
+    } else if (run_mode == RUNMODE_PFRING) {
+        /* FIXME add backward compat support */
+        /* iface has been set on command line */
+        if (strlen(pcap_dev)) {
+            if (ConfSet("pfring.live-interface", pcap_dev, 0) != 1) {
+                SCLogError(SC_ERR_INITIALIZATION, "Failed to set pfring.live-interface");
+                SCReturn(TM_ECODE_FAILED);
+            }
+        } else {
+            /* not an error condition if we have a 1.0 config */
+            LiveBuildDeviceList("pfring");
+        }
+#endif /* HAVE_PFRING */
+    } else if (run_mode == RUNMODE_AFP_DEV) {
+        /* iface has been set on command line */
+        if (strlen(pcap_dev)) {
+            if (ConfSet("af-packet.live-interface", pcap_dev, 0) != 1) {
+                SCLogError(SC_ERR_INITIALIZATION, "Failed to set af-packet.live-interface");
+                SCReturn(TM_ECODE_FAILED);
+            }
+        } else {
+            int ret = LiveBuildDeviceList("af-packet");
+            if (ret == 0) {
+                SCLogError(SC_ERR_INITIALIZATION, "No interface found in config for af-packet");
+                SCReturn(TM_ECODE_FAILED);
+            }
+        }
+    }
+
+    SCReturn(TM_ECODE_OK);
+}
+
 int main(int argc, char **argv)
 {
     int opt;
@@ -710,9 +856,7 @@ int main(int argc, char **argv)
     int sig_file_exclusive = FALSE;
     int conf_test = 0;
     char *pid_filename = NULL;
-#ifdef UNITTESTS
     char *regex_arg = NULL;
-#endif
     int dump_config = 0;
     int list_app_layer_protocols = 0;
     int list_unittests = 0;
@@ -734,11 +878,6 @@ int main(int argc, char **argv)
     int delayed_detect = 0;
 
     char *log_dir;
-#ifdef OS_WIN32
-    struct _stat buf;
-#else
-    struct stat buf;
-#endif /* OS_WIN32 */
 
     sc_set_caps = FALSE;
 
@@ -1154,11 +1293,11 @@ int main(int argc, char **argv)
             }
             break;
         case 'l':
-            if (ConfSet("default-log-dir", optarg, 0) != 1) {
-                fprintf(stderr, "ERROR: Failed to set log directory.\n");
+            if (SetLogDirectory(optarg) != TM_ECODE_OK) {
+                SCLogError(SC_ERR_FATAL, "Failed to set log directory.\n");
                 exit(EXIT_FAILURE);
             }
-            if (stat(optarg, &buf) != 0) {
+            if (CheckLogDirectory(optarg) != TM_ECODE_OK) {
                 SCLogError(SC_ERR_LOGDIR_CMDLINE, "The logging directory \"%s\""
                         " supplied at the commandline (-l %s) doesn't "
                         "exist. Shutting down the engine.", optarg, optarg);
@@ -1277,28 +1416,39 @@ int main(int argc, char **argv)
         }
     }
 
-    if (!list_keywords && !list_app_layer_protocols) {
-#ifdef REVISION
-        SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
-#elif defined RELEASE
-        SCLogInfo("This is %s version %s RELEASE", PROG_NAME, PROG_VER);
-#else
-        SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
-#endif
+    if (list_keywords) {
+        return SuriListKeywords(keyword_info);
     }
+
+    if (list_app_layer_protocols) {
+        return SuriListAppLayerProtocols();
+    }
+
+#ifdef __SC_CUDA_SUPPORT__
+    if (list_cuda_cards) {
+        return SuriListCudaCards();
+    }
+#endif
+
+    if (run_mode == RUNMODE_UNITTEST) {
+        return SuriRunUnittests(list_unittests, regex_arg);
+    }
+
+#ifdef REVISION
+    SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
+#elif defined RELEASE
+    SCLogInfo("This is %s version %s RELEASE", PROG_NAME, PROG_VER);
+#else
+    SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
+#endif
 
     SetBpfString(optind, argv);
 
-    if (!list_keywords && !list_app_layer_protocols)
-        UtilCpuPrintSummary();
+    UtilCpuPrintSummary();
 
 #ifdef __SC_CUDA_SUPPORT__
     /* Init the CUDA environment */
     SCCudaInitCudaEnvironment();
-    if (list_cuda_cards) {
-        SCCudaListCards();
-        exit(EXIT_SUCCESS);
-    }
     CudaBufferInit();
 #endif
 
@@ -1311,61 +1461,21 @@ int main(int argc, char **argv)
     TimeInit();
     SupportFastPatternForSigMatchTypes();
 
-    if (run_mode != RUNMODE_UNITTEST &&
-            !list_keywords &&
-            !list_app_layer_protocols) {
-        if (conf_filename == NULL)
-            conf_filename = DEFAULT_CONF_FILE;
-    }
+    if (conf_filename == NULL)
+        conf_filename = DEFAULT_CONF_FILE;
 
     /** \todo we need an api for these */
     /* Load yaml configuration file if provided. */
-    if (conf_filename != NULL) {
-#ifdef UNITTESTS
-        if (run_mode == RUNMODE_UNITTEST) {
-            SCLogError(SC_ERR_CMD_LINE, "should not use a configuration file with unittests");
-            exit(EXIT_FAILURE);
-        }
-#endif
-        if (ConfYamlLoadFile(conf_filename) != 0) {
-            /* Error already displayed. */
-            exit(EXIT_FAILURE);
-        }
-
-        ConfNode *file;
-        ConfNode *includes = ConfGetNode("include");
-        if (includes != NULL) {
-            TAILQ_FOREACH(file, &includes->head, next) {
-                char *ifile = ConfLoadCompleteIncludePath(file->val);
-                SCLogInfo("Including: %s", ifile);
-
-                if (ConfYamlLoadFile(ifile) != 0) {
-                    /* Error already displayed. */
-                    exit(EXIT_FAILURE);
-                }
-            }
-        }
-
-        ConfNode *denode = NULL;
-        ConfNode *decnf = ConfGetNode("detect-engine");
-        if (decnf != NULL) {
-            TAILQ_FOREACH(denode, &decnf->head, next) {
-                if (strcmp(denode->val, "rule-reload") == 0) {
-                    (void)ConfGetChildValueBool(denode, "rule-reload", &rule_reload);
-                    SCLogInfo("Live rule reloads %s", rule_reload ? "enabled" : "disabled");
-                }
-            }
-        }
+    if (LoadYamlConfig(conf_filename) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
     }
 
     /* load the pattern matchers */
     MpmTableSetup();
 
+    rule_reload = IsRuleReloadSet(FALSE);
+
     AppLayerDetectProtoThreadInit();
-    if (list_app_layer_protocols) {
-        AppLayerListSupportedProtocols();
-        exit(EXIT_SUCCESS);
-    }
     AppLayerParsersInitPostProcess();
 
     if (dump_config) {
@@ -1375,28 +1485,13 @@ int main(int argc, char **argv)
 
     /* Check for the existance of the default logging directory which we pick
      * from suricata.yaml.  If not found, shut the engine down */
-    if (ConfGet("default-log-dir", &log_dir) != 1) {
-#ifdef OS_WIN32
-        log_dir = _getcwd(NULL, 0);
-        if (log_dir == NULL) {
-            log_dir = DEFAULT_LOG_DIR;
-        }
-#else
-        log_dir = DEFAULT_LOG_DIR;
-#endif /* OS_WIN32 */
-    }
+    log_dir = GetLogDirectory();
 
-    if (!list_keywords && !list_app_layer_protocols) {
-#ifdef OS_WIN32
-        if (_stat(log_dir, &buf) != 0) {
-#else
-        if (stat(log_dir, &buf) != 0) {
-#endif /* OS_WIN32 */
-            SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
-                        "supplied by %s (default-log-dir) doesn't exist. "
-                        "Shutting down the engine", log_dir, conf_filename);
-            exit(EXIT_FAILURE);
-        }
+    if (CheckLogDirectory(log_dir) != TM_ECODE_OK) {
+        SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
+                "supplied by %s (default-log-dir) doesn't exist. "
+                "Shutting down the engine", log_dir, conf_filename);
+        exit(EXIT_FAILURE);
     }
 
     /* Pull the max pending packets from the config, if not found fall
@@ -1450,13 +1545,12 @@ int main(int argc, char **argv)
 
     /* Load the Host-OS lookup. */
     SCHInfoLoadFromConfig();
-    if (!list_keywords && !list_app_layer_protocols &&
-        (run_mode != RUNMODE_UNIX_SOCKET)) {
+    if (run_mode != RUNMODE_UNIX_SOCKET) {
         DefragInit();
     }
 
     if (run_mode == RUNMODE_UNKNOWN) {
-        if (!engine_analysis && !list_keywords && !conf_test) {
+        if (!engine_analysis && !conf_test) {
             usage(argv[0]);
             exit(EXIT_FAILURE);
         }
@@ -1473,23 +1567,10 @@ int main(int argc, char **argv)
         }
     }
 
-    /* create table for O(1) lowercase conversion lookup.  It was removed, but
-     * we still need it for cuda.  So resintalling it back into the codebase */
-    uint8_t c = 0;
-    memset(g_u8_lowercasetable, 0x00, sizeof(g_u8_lowercasetable));
-    for ( ; c < 255; c++) {
-        if (c >= 'A' && c <= 'Z')
-            g_u8_lowercasetable[c] = (c + ('a' - 'A'));
-        else
-            g_u8_lowercasetable[c] = c;
-    }
+    CreateLowercaseTable();
 
     /* hardcoded initialization code */
     SigTableSetup(); /* load the rule keywords */
-    if (list_keywords) {
-        SigTableList(keyword_info);
-        exit(EXIT_FAILURE);
-    }
     TmqhSetup();
 
     CIDRInit();
@@ -1518,78 +1599,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-
-    /* nfq */
-    TmModuleReceiveNFQRegister();
-    TmModuleVerdictNFQRegister();
-    TmModuleDecodeNFQRegister();
-    /* ipfw */
-    TmModuleReceiveIPFWRegister();
-    TmModuleVerdictIPFWRegister();
-    TmModuleDecodeIPFWRegister();
-    /* pcap live */
-    TmModuleReceivePcapRegister();
-    TmModuleDecodePcapRegister();
-    /* pcap file */
-    TmModuleReceivePcapFileRegister();
-    TmModuleDecodePcapFileRegister();
-    /* af-packet */
-    TmModuleReceiveAFPRegister();
-    TmModuleDecodeAFPRegister();
-    /* pfring */
-    TmModuleReceivePfringRegister();
-    TmModuleDecodePfringRegister();
-    /* dag file */
-    TmModuleReceiveErfFileRegister();
-    TmModuleDecodeErfFileRegister();
-    /* dag live */
-    TmModuleReceiveErfDagRegister();
-    TmModuleDecodeErfDagRegister();
-    /* napatech */
-    TmModuleNapatechStreamRegister();
-    TmModuleNapatechDecodeRegister();
-
-    /* stream engine */
-    TmModuleStreamTcpRegister();
-    /* detection */
-    TmModuleDetectRegister();
-    /* respond-reject */
-    TmModuleRespondRejectRegister();
-
-    /* fast log */
-    TmModuleAlertFastLogRegister();
-    TmModuleAlertFastLogIPv4Register();
-    TmModuleAlertFastLogIPv6Register();
-    /* debug log */
-    TmModuleAlertDebugLogRegister();
-    /* prelue log */
-    TmModuleAlertPreludeRegister();
-    /* syslog log */
-    TmModuleAlertSyslogRegister();
-    TmModuleAlertSyslogIPv4Register();
-    TmModuleAlertSyslogIPv6Register();
-    /* unified2 log */
-    TmModuleUnified2AlertRegister();
-    /* pcap info log */
-    TmModuleAlertPcapInfoRegister();
-    /* drop log */
-    TmModuleLogDropLogRegister();
-    /* http log */
-    TmModuleLogHttpLogRegister();
-    TmModuleLogHttpLogIPv4Register();
-    TmModuleLogHttpLogIPv6Register();
-    TmModuleLogTlsLogRegister();
-    TmModuleLogTlsLogIPv4Register();
-    TmModuleLogTlsLogIPv6Register();
-    /* pcap log */
-    TmModulePcapLogRegister();
-    /* file log */
-    TmModuleLogFileLogRegister();
-    TmModuleLogFilestoreRegister();
-    /* dns log */
-    TmModuleLogDnsLogRegister();
-    /* cuda */
-    TmModuleDebugList();
+    RegisterAllModules();
 
     AppLayerHtpNeedFileInspection();
 
@@ -1603,128 +1613,6 @@ int main(int argc, char **argv)
     } else {
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Disabled);
     }
-
-#ifdef UNITTESTS
-
-    if (run_mode == RUNMODE_UNITTEST) {
-#ifdef DBG_MEM_ALLOC
-    SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
-#endif
-        /* test and initialize the unittesting subsystem */
-        if(regex_arg == NULL){
-            regex_arg = ".*";
-            UtRunSelftest(regex_arg); /* inits and cleans up again */
-        }
-
-        AppLayerHtpEnableRequestBodyCallback();
-        AppLayerHtpNeedFileInspection();
-
-        UtInitialize();
-        UTHRegisterTests();
-        SCReputationRegisterTests();
-        TmModuleRegisterTests();
-        SigTableRegisterTests();
-        HashTableRegisterTests();
-        HashListTableRegisterTests();
-        BloomFilterRegisterTests();
-        BloomFilterCountingRegisterTests();
-        PoolRegisterTests();
-        ByteRegisterTests();
-        MpmRegisterTests();
-        FlowBitRegisterTests();
-        FlowAlertSidRegisterTests();
-        SCPerfRegisterTests();
-        DecodePPPRegisterTests();
-        DecodeVLANRegisterTests();
-        HTPParserRegisterTests();
-        SSLParserRegisterTests();
-        SSHParserRegisterTests();
-        SMBParserRegisterTests();
-        DCERPCParserRegisterTests();
-        DCERPCUDPParserRegisterTests();
-        FTPParserRegisterTests();
-        DecodeRawRegisterTests();
-        DecodePPPOERegisterTests();
-        DecodeICMPV4RegisterTests();
-        DecodeICMPV6RegisterTests();
-        DecodeIPV4RegisterTests();
-        DecodeIPV6RegisterTests();
-        DecodeTCPRegisterTests();
-        DecodeUDPV4RegisterTests();
-        DecodeGRERegisterTests();
-        DecodeAsn1RegisterTests();
-        AlpDetectRegisterTests();
-        ConfRegisterTests();
-        ConfYamlRegisterTests();
-        TmqhFlowRegisterTests();
-        FlowRegisterTests();
-        SCSigRegisterSignatureOrderingTests();
-        SCRadixRegisterTests();
-        DefragRegisterTests();
-        SigGroupHeadRegisterTests();
-        SCHInfoRegisterTests();
-        SCRuleVarsRegisterTests();
-        AppLayerParserRegisterTests();
-        ThreadMacrosRegisterTests();
-        UtilSpmSearchRegistertests();
-        UtilActionRegisterTests();
-        SCClassConfRegisterTests();
-        SCThresholdConfRegisterTests();
-        SCRConfRegisterTests();
-#ifdef __SC_CUDA_SUPPORT__
-        SCCudaRegisterTests();
-#endif
-        PayloadRegisterTests();
-        DcePayloadRegisterTests();
-        UriRegisterTests();
-#ifdef PROFILING
-        SCProfilingRegisterTests();
-#endif
-        DeStateRegisterTests();
-        DetectRingBufferRegisterTests();
-        MemcmpRegisterTests();
-        DetectEngineHttpClientBodyRegisterTests();
-        DetectEngineHttpServerBodyRegisterTests();
-        DetectEngineHttpHeaderRegisterTests();
-        DetectEngineHttpRawHeaderRegisterTests();
-        DetectEngineHttpMethodRegisterTests();
-        DetectEngineHttpCookieRegisterTests();
-        DetectEngineHttpRawUriRegisterTests();
-        DetectEngineHttpStatMsgRegisterTests();
-        DetectEngineHttpStatCodeRegisterTests();
-        DetectEngineHttpUARegisterTests();
-        DetectEngineHttpHHRegisterTests();
-        DetectEngineHttpHRHRegisterTests();
-        DetectEngineRegisterTests();
-        SCLogRegisterTests();
-        SMTPParserRegisterTests();
-        MagicRegisterTests();
-        UtilMiscRegisterTests();
-        DetectAddressTests();
-        DetectProtoTests();
-        DetectPortTests();
-        SCAtomicRegisterTests();
-#ifdef __SC_CUDA_SUPPORT__
-        CudaBufferRegisterUnittests();
-#endif
-        if (list_unittests) {
-            UtListTests(regex_arg);
-        }
-        else {
-            uint32_t failed = UtRunTests(regex_arg);
-            UtCleanup();
-            if (failed) {
-                exit(EXIT_FAILURE);
-            }
-        }
-
-#ifdef DBG_MEM_ALLOC
-        SCLogInfo("Total memory used (without SCFree()): %"PRIdMAX, (intmax_t)global_mem);
-#endif
-
-        exit(EXIT_SUCCESS);
-    }
-#endif /* UNITTESTS */
 
     TmModuleRunInit();
 
@@ -1896,43 +1784,8 @@ int main(int argc, char **argv)
         RunModeInitializeOutputs();
     }
 
-    /* run the selected runmode */
-    if (run_mode == RUNMODE_PCAP_DEV) {
-        if (strlen(pcap_dev) == 0) {
-            int ret = LiveBuildDeviceList("pcap");
-            if (ret == 0) {
-                fprintf(stderr, "ERROR: No interface found in config for pcap\n");
-                exit(EXIT_FAILURE);
-            }
-        }
-#ifdef HAVE_PFRING
-    } else if (run_mode == RUNMODE_PFRING) {
-        /* FIXME add backward compat support */
-        /* iface has been set on command line */
-        if (strlen(pcap_dev)) {
-            if (ConfSet("pfring.live-interface", pcap_dev, 0) != 1) {
-                fprintf(stderr, "ERROR: Failed to set pfring.live-interface\n");
-                exit(EXIT_FAILURE);
-            }
-        } else {
-            /* not an error condition if we have a 1.0 config */
-            LiveBuildDeviceList("pfring");
-        }
-#endif /* HAVE_PFRING */
-    } else if (run_mode == RUNMODE_AFP_DEV) {
-        /* iface has been set on command line */
-        if (strlen(pcap_dev)) {
-            if (ConfSet("af-packet.live-interface", pcap_dev, 0) != 1) {
-                fprintf(stderr, "ERROR: Failed to set af-packet.live-interface\n");
-                exit(EXIT_FAILURE);
-            }
-        } else {
-            int ret = LiveBuildDeviceList("af-packet");
-            if (ret == 0) {
-                fprintf(stderr, "ERROR: No interface found in config for af-packet\n");
-                exit(EXIT_FAILURE);
-            }
-        }
+    if (ParseInterfacesList(run_mode, pcap_dev) != TM_ECODE_OK) {
+            exit(EXIT_FAILURE);
     }
 
     if(conf_test == 1){
@@ -1959,13 +1812,7 @@ int main(int argc, char **argv)
         /* Spawn the flow manager thread */
         FlowManagerThreadSpawn();
         StreamTcpInitConfig(STREAM_VERBOSE);
-    }
 
-    /* Spawn the L7 App Detect thread */
-    //AppLayerDetectProtoThreadSpawn();
-
-    /* Spawn the perf counter threads.  Let these be the last one spawned */
-    if (run_mode != RUNMODE_UNIX_SOCKET) {
         SCPerfSpawnThreads();
     }
 
