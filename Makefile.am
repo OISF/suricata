@@ -7,6 +7,8 @@ EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
              reference.config
 SUBDIRS = $(HTP_DIR) src qa rules doc contrib scripts
 
+CLEANFILES = stamp-h[0-9]*
+
 install-data-am:
 	@echo "Run 'make install-conf' if you want to install initial configuration files. Or 'make install-full' to install configuration and rules";
 
