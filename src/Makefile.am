@@ -221,6 +221,7 @@ runmode-nfq.c runmode-nfq.h \
 runmode-pcap.c runmode-pcap.h \
 runmode-pcap-file.c runmode-pcap-file.h \
 runmode-pfring.c runmode-pfring.h \
+runmode-unittests.c runmode-unittests.h \
 runmode-unix-socket.c runmode-unix-socket.h \
 runmodes.c runmodes.h \
 source-af-packet.c source-af-packet.h \
@@ -259,6 +260,7 @@ util-byte.c util-byte.h \
 util-checksum.c util-checksum.h \
 util-cidr.c util-cidr.h \
 util-classification-config.c util-classification-config.h \
+util-conf.c util-conf.h \
 util-coredump-config.c util-coredump-config.h \
 util-cpu.c util-cpu.h \
 util-crypt.c util-crypt.h \
@@ -315,6 +317,7 @@ util-ringbuffer.c util-ringbuffer.h \
 util-rohash.c util-rohash.h \
 util-rule-vars.c util-rule-vars.h \
 util-runmodes.c util-runmodes.h \
+util-running-modes.c util-running-modes.h \
 util-signal.c util-signal.h \
 util-spm-bm.c util-spm-bm.h \
 util-spm-bs2bm.c util-spm-bs2bm.h \

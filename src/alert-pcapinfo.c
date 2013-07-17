@@ -214,8 +214,7 @@ static int AlertPcapInfoOpenFileCtx(LogFileCtx *file_ctx, const char *filename,
     char log_path[PATH_MAX];
     char *log_dir;
 
-    if (ConfGet("default-log-dir", &log_dir) != 1)
-        log_dir = DEFAULT_LOG_DIR;
+    log_dir = GetLogDirectory();
 
     snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
 
