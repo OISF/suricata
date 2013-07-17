@@ -278,7 +278,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
     }
     if ((unix_manager_file_task_failed == 1) || (this->running == 1)) {
         if (unix_manager_file_task_failed) {
-            SCLogInfo("Preceeding taks failed, cleaning the running mode");
+            SCLogInfo("Preceeding task failed, cleaning the running mode");
         }
         unix_manager_file_task_failed = 0;
         this->running = 0;

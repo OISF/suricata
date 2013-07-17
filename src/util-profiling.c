@@ -148,8 +148,7 @@ SCProfilingInit(void)
             if (filename != NULL) {
 
                 char *log_dir;
-                if (ConfGet("default-log-dir", &log_dir) != 1)
-                    log_dir = DEFAULT_LOG_DIR;
+                log_dir = GetLogDirectory();
 
                 profiling_packets_file_name = SCMalloc(PATH_MAX);
                 if (unlikely(profiling_packets_file_name == NULL)) {
@@ -180,8 +179,7 @@ SCProfilingInit(void)
                 }
 
                 char *log_dir;
-                if (ConfGet("default-log-dir", &log_dir) != 1)
-                    log_dir = DEFAULT_LOG_DIR;
+                log_dir = GetLogDirectory();
 
                 profiling_csv_file_name = SCMalloc(PATH_MAX);
                 if (unlikely(profiling_csv_file_name == NULL)) {
@@ -227,8 +225,7 @@ SCProfilingInit(void)
             const char *filename = ConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
                 char *log_dir;
-                if (ConfGet("default-log-dir", &log_dir) != 1)
-                    log_dir = DEFAULT_LOG_DIR;
+                log_dir = GetLogDirectory();
 
                 profiling_locks_file_name = SCMalloc(PATH_MAX);
                 if (unlikely(profiling_locks_file_name == NULL)) {
