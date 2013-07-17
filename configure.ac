@@ -1076,6 +1076,7 @@ AC_INIT(configure.ac)
             # make sure libhtp is added to the includes
             CPPFLAGS="-I${srcdir}/../libhtp/ ${CPPFLAGS}"
 
+            AC_CHECK_LIB(iconv, libiconv_close)
             AC_DEFINE_UNQUOTED([HAVE_HTP_URI_NORMALIZE_HOOK],[1],[Assuming htp_config_register_request_uri_normalize function in bundled libhtp])
             AC_DEFINE_UNQUOTED([HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW],[1],[Assuming htp_tx_get_response_headers_raw function in bundled libhtp])
             AC_DEFINE_UNQUOTED([HAVE_HTP_DECODE_QUERY_INPLACE],[1],[Assuming htp_decode_query_inplace function in bundled libhtp])
