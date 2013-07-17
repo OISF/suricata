@@ -1052,12 +1052,15 @@
             echo
             exit 1
         fi
-        PKG_CHECK_MODULES(LIBHTPMINVERSION, htp >= 0.5.X,[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
+        PKG_CHECK_MODULES(LIBHTPMINVERSION, [htp >= 0.5.5],[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
         if test "$libhtp_minver_found" = "no"; then
-            echo
-            echo "   ERROR! libhtp was found but is not the minimum version required >= 0.5.X"
-            echo
-            exit 1
+            PKG_CHECK_MODULES(LIBHTPDEVVERSION, [htp = 0.5.X],[libhtp_devver_found="yes"],[libhtp_devver_found="no"])
+            if test "$libhtp_devver_found" = "no"; then
+                echo
+                echo "   ERROR! libhtp was found but it is neither >= 0.5.5, nor the dev 0.5.X"
+                echo
+                exit 1
+            fi
         fi
 
         AC_CHECK_LIB([htp], [htp_config_register_request_uri_normalize],AC_DEFINE_UNQUOTED([HAVE_HTP_URI_NORMALIZE_HOOK],[1],[Found htp_config_register_request_uri_normalize function in libhtp]) ,,[-lhtp])
