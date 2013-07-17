@@ -1,8 +1,8 @@
 #TODO A better place for default CFLAGS?
 
 
-    AC_CONFIG_HEADERS([config.h])
     AC_INIT(suricata, 2.0dev)
+    AC_CONFIG_HEADERS([config.h])
     AC_CONFIG_SRCDIR([src/suricata.c])
     AC_CONFIG_MACRO_DIR(m4)
     AM_INIT_AUTOMAKE
