@@ -159,8 +159,10 @@ static int BufferData(DNSState *dns_state, uint8_t *data, uint16_t len) {
     }
 
     if ((uint32_t)len + (uint32_t)dns_state->offset > (uint32_t)dns_state->record_len) {
-        SCLogInfo("oh my, we have more data than the max record size. What do we do. WHAT DO WE DOOOOO!");
+        SCLogDebug("oh my, we have more data than the max record size. What do we do. WHAT DO WE DOOOOO!");
+#ifdef DEBUG
         BUG_ON(1);
+#endif
         len = dns_state->record_len - dns_state->offset;
     }
 

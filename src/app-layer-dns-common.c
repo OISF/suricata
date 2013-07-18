@@ -386,7 +386,7 @@ static uint16_t DNSResponseGetNameByOffset(const uint8_t * const input, const ui
         const uint16_t offset, uint8_t *fqdn, const size_t fqdn_size)
 {
     if (input + input_len < input + offset + 1) {
-        SCLogInfo("input buffer too small for domain of len %u", offset);
+        SCLogDebug("input buffer too small for domain of len %u", offset);
         goto insufficient_data;
     }
 
@@ -406,7 +406,7 @@ static uint16_t DNSResponseGetNameByOffset(const uint8_t * const input, const ui
             qdata = (const uint8_t *)input + offset;
 
             if (input + input_len < qdata + 1) {
-                SCLogInfo("input buffer too small");
+                SCLogDebug("input buffer too small");
                 goto insufficient_data;
             }
 
@@ -417,7 +417,7 @@ static uint16_t DNSResponseGetNameByOffset(const uint8_t * const input, const ui
 
         if (length > 0) {
             if (input + input_len < qdata + length) {
-                SCLogInfo("input buffer too small for domain of len %u", length);
+                SCLogDebug("input buffer too small for domain of len %u", length);
                 goto insufficient_data;
             }
             //PrintRawDataFp(stdout, qdata, length);
@@ -431,7 +431,7 @@ static uint16_t DNSResponseGetNameByOffset(const uint8_t * const input, const ui
         qdata += length;
 
         if (input + input_len < qdata + 1) {
-            SCLogInfo("input buffer too small for len field");
+            SCLogDebug("input buffer too small for len field");
             goto insufficient_data;
         }
 
@@ -472,13 +472,13 @@ static const uint8_t *SkipDomain(const uint8_t * const input,
             sdata += ((*sdata) + 1);
         }
         if (input + input_len < sdata) {
-            SCLogInfo("input buffer too small for data of len");
+            SCLogDebug("input buffer too small for data of len");
             goto insufficient_data;
         }
     }
     sdata++;
     if (input + input_len < sdata) {
-        SCLogInfo("input buffer too small for data of len");
+        SCLogDebug("input buffer too small for data of len");
         goto insufficient_data;
     }
     return sdata;
@@ -491,7 +491,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
         const uint32_t input_len, const uint8_t *data)
 {
     if (input + input_len < data + 2) {
-        SCLogInfo("input buffer too small for record 'name' field, record %u, "
+        SCLogDebug("input buffer too small for record 'name' field, record %u, "
                 "total answer_rr %u", num, ntohs(dns_header->answer_rr));
         goto insufficient_data;
     }
@@ -533,7 +533,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
     }
 
     if (input + input_len < data + sizeof(DNSAnswerHeader)) {
-        SCLogInfo("input buffer too small for DNSAnswerHeader");
+        SCLogDebug("input buffer too small for DNSAnswerHeader");
         goto insufficient_data;
     }
 
@@ -548,7 +548,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
             SCLogDebug("head->len %u", ntohs(head->len));
 
             if (input + input_len < data + ntohs(head->len)) {
-                SCLogInfo("input buffer too small for data of len %u", ntohs(head->len));
+                SCLogDebug("input buffer too small for data of len %u", ntohs(head->len));
                 goto insufficient_data;
             }
             SCLogDebug("TTL %u", ntohl(head->ttl));
@@ -599,7 +599,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
             SCLogDebug("head->len %u", ntohs(head->len));
 
             if (input + input_len < data + ntohs(head->len)) {
-                SCLogInfo("input buffer too small for data of len %u", ntohs(head->len));
+                SCLogDebug("input buffer too small for data of len %u", ntohs(head->len));
                 goto insufficient_data;
             }
 
@@ -630,7 +630,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
             data += sizeof(DNSAnswerHeader);
 
             if (input + input_len < data + ntohs(head->len)) {
-                SCLogInfo("input buffer too small for data of len %u", ntohs(head->len));
+                SCLogDebug("input buffer too small for data of len %u", ntohs(head->len));
                 goto insufficient_data;
             }
 
@@ -682,7 +682,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
                 } *tail = (struct Trailer *)tdata;
 
                 if (input + input_len < tdata + sizeof(struct Trailer)) {
-                    SCLogInfo("input buffer too small for data of len");
+                    SCLogDebug("input buffer too small for data of len");
                     goto insufficient_data;
                 }
 
@@ -705,7 +705,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
             data += sizeof(DNSAnswerHeader);
 
             if (input + input_len < data + ntohs(head->len)) {
-                SCLogInfo("input buffer too small for data of len %u", ntohs(head->len));
+                SCLogDebug("input buffer too small for data of len %u", ntohs(head->len));
                 goto insufficient_data;
             }
 
