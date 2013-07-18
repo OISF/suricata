@@ -562,12 +562,12 @@ void MpmTableSetup(void) {
     MpmB2gcRegister();
     MpmB2gmRegister();
     MpmACRegister();
+    MpmACBSRegister();
+    MpmACGfbsRegister();
 #ifdef __SC_CUDA_SUPPORT__
     CudaHandlerAddCudaProfileFromConf("mpm", MpmCudaConfParse, MpmCudaConfFree);
     MpmACCudaRegister();
 #endif /* __SC_CUDA_SUPPORT__ */
-    MpmACBSRegister();
-    MpmACGfbsRegister();
 }
 
 /** \brief  Function to return the default hash size for the mpm algorithm,
