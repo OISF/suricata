@@ -47,6 +47,7 @@
 #include "util-unittest.h"
 #ifdef __SC_CUDA_SUPPORT__
 #include "util-cuda-handlers.h"
+#include "detect-engine-mpm.h"
 #endif
 
 /**
@@ -378,6 +379,30 @@ static void *MpmCudaConfParse(ConfNode *node)
 
     return conf;
 }
+
+void MpmCudaEnvironmentSetup()
+{
+    if (PatternMatchDefaultMatcher() != MPM_AC_CUDA)
+        return;
+
+    CudaHandlerAddCudaProfileFromConf("mpm", MpmCudaConfParse, MpmCudaConfFree);
+
+    MpmCudaConf *conf = CudaHandlerGetCudaProfile("mpm");
+    if (conf == NULL) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error obtaining cuda mpm "
+                       "profile.");
+        exit(EXIT_FAILURE);
+    }
+
+    if (MpmCudaBufferSetup() < 0) {
+        SCLogError(SC_ERR_AC_CUDA_ERROR, "Error setting up env for ac "
+                   "cuda");
+        exit(EXIT_FAILURE);
+    }
+
+    return;
+}
+
 #endif
 
 /**
@@ -565,7 +590,6 @@ void MpmTableSetup(void) {
     MpmACBSRegister();
     MpmACGfbsRegister();
 #ifdef __SC_CUDA_SUPPORT__
-    CudaHandlerAddCudaProfileFromConf("mpm", MpmCudaConfParse, MpmCudaConfFree);
     MpmACCudaRegister();
 #endif /* __SC_CUDA_SUPPORT__ */
 }

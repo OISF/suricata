@@ -2163,19 +2163,6 @@ void MpmACCudaRegister(void)
     mpm_table[MPM_AC_CUDA].PrintThreadCtx = SCACPrintSearchStats;
     mpm_table[MPM_AC_CUDA].RegisterUnittests = SCACRegisterTests;
 
-    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA) {
-        MpmCudaConf *conf = CudaHandlerGetCudaProfile("mpm");
-        if (conf == NULL) {
-            SCLogError(SC_ERR_AC_CUDA_ERROR, "Error obtaining cuda mpm profile.");
-            exit(EXIT_FAILURE);
-        }
-
-        if (MpmCudaBufferSetup() < 0) {
-            SCLogError(SC_ERR_AC_CUDA_ERROR, "Error setting up env for ac cuda");
-            exit(EXIT_FAILURE);
-        }
-    }
-
     return;
 }
 

@@ -212,6 +212,8 @@ typedef struct MpmCudaConf_ {
     int cuda_streams;
 } MpmCudaConf;
 
+void MpmCudaEnvironmentSetup();
+
 #endif /* __SC_CUDA_SUPPORT__ */
 
 struct DetectEngineCtx_;
