@@ -1,3 +1,13 @@
+1.4.4 -- 2013-07-18
+
+- Bug #834: Unix socket - showing as compiled when it is not desired to do so
+- Bug #835: Unix Socket not working as expected
+- Bug #841: configure --enable-unix-socket does not err out if libs/pkgs are not present
+- Bug #846: FP on IP frag and sig use udp port 0, thanks to Rmkml
+- Bug #864: backport packet action macro's
+- Bug #876: htp tunnel fix
+- Bug #877: Flowbit check with content doesn't match consistently, thanks to Francis Trudeau
+
 1.4.3 -- 2013-06-20
 
 - Fix missed detection in bytetest, bytejump and byteextract for negative offset (#828)
