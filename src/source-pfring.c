@@ -48,6 +48,18 @@
 #include "util-device.h"
 #include "runmodes.h"
 
+#ifdef __SC_CUDA_SUPPORT__
+
+#include "util-cuda.h"
+#include "util-cuda-buffer.h"
+#include "util-mpm-ac.h"
+#include "util-cuda-handlers.h"
+#include "detect-engine.h"
+#include "detect-engine-mpm.h"
+#include "util-cuda-vars.h"
+
+#endif /* __SC_CUDA_SUPPORT__ */
+
 TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot);
 TmEcode ReceivePfringThreadInit(ThreadVars *, void *, void **);
 void ReceivePfringThreadExitStats(ThreadVars *, void *);
@@ -536,6 +548,11 @@ TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pac
 
     DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
 
+#ifdef __SC_CUDA_SUPPORT__
+    if (dtv->cuda_vars.mpm_is_cuda)
+        CudaBufferPacket(&dtv->cuda_vars, p);
+#endif
+
     return TM_ECODE_OK;
 }
 
@@ -560,6 +577,11 @@ TmEcode DecodePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
     DecodeRegisterPerfCounters(dtv, tv);
 
     *data = (void *)dtv;
+
+#ifdef __SC_CUDA_SUPPORT__
+    if (CudaThreadVarsInit(&dtv->cuda_vars) < 0)
+        SCReturnInt(TM_ECODE_FAILED);
+#endif
 
     return TM_ECODE_OK;
 }
