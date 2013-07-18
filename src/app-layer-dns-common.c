@@ -390,6 +390,7 @@ static uint16_t DNSResponseGetNameByOffset(const uint8_t * const input, const ui
         goto insufficient_data;
     }
 
+    int steps = 0;
     uint16_t fqdn_offset = 0;
     uint8_t length = *(input + offset);
     const uint8_t *qdata = input + offset;
@@ -437,12 +438,16 @@ static uint16_t DNSResponseGetNameByOffset(const uint8_t * const input, const ui
 
         length = *qdata;
         SCLogDebug("qry length %u", length);
+        steps++;
+        if (steps >= 255)
+            goto bad_data;
     }
     if (fqdn_offset) {
         fqdn_offset--;
     }
     //PrintRawDataFp(stdout, fqdn, fqdn_offset);
     SCReturnUInt(fqdn_offset);
+bad_data:
 insufficient_data:
     SCReturnUInt(0U);
 }
