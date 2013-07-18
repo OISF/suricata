@@ -1361,6 +1361,9 @@ int main(int argc, char **argv)
 
     /* load the pattern matchers */
     MpmTableSetup();
+#ifdef __SC_CUDA_SUPPORT__
+    MpmCudaEnvironmentSetup();
+#endif
 
     AppLayerDetectProtoThreadInit();
     if (list_app_layer_protocols) {
