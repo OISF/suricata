@@ -1,3 +1,104 @@
+2.0beta1 -- 2013-07-18
+
+- Luajit flow vars and flow ints support (#593)
+- DNS parser, logger and keyword support (#792), funded by Emerging Threats
+- deflate support for HTTP response bodies (#470, #775)
+- update to libhtp 0.5 (#775)
+- improved gzip support for HTTP response bodies (#470, #775)
+- redesigned transaction handling, improving both accuracy and performance (#753)
+- redesigned CUDA support (#729)
+- Be sure to always apply verdict to NFQ packet (#769)
+- stream engine: SACK allocs should adhere to memcap (#794)
+- stream: deal with multiple different SYN/ACK's better (#796)
+- stream: Randomize stream chunk size for raw stream inspection (#804)
+- Introduce per stream thread ssn pool (#519)
+- "pass" IP-only rules should bypass detection engine after matching (#718)
+- Generate error if bpf is used in IPS mode (#777)
+- Add support for batch verdicts in NFQ, thanks to Florian Westphal
+- Update Doxygen config, thanks to Phil Schroeder
+- Improve libnss detection, thanks to Christian Kreibich
+- Fix a FP on rules looking for port 0 and fragments (#847), thanks to Rmkml
+- OS X unix socket build fixed (#830)
+- bytetest, bytejump and byteextract negative offset failure (#827)
+- Fix fast.log formatting issues (#771), thanks to Rmkml
+- Invalidate negative depth (#774), thanks to Rmkml
+- Fixed accuracy issues with relative pcre matching (#791)
+- Fix deadlock in flowvar capture code (#802)
+- Improved accuracy of file_data keyword (#817)
+- Fix af-packet ips mode rule processing bug (#819), thanks to Laszlo Madarassy
+- stream: fix injecting pseudo packet too soon leading to FP (#883), thanks to Francis Trudeau
+
+1.4.4 -- 2013-07-18
+
+- Bug #834: Unix socket - showing as compiled when it is not desired to do so
+- Bug #835: Unix Socket not working as expected
+- Bug #841: configure --enable-unix-socket does not err out if libs/pkgs are not present
+- Bug #846: FP on IP frag and sig use udp port 0, thanks to Rmkml
+- Bug #864: backport packet action macro's
+- Bug #876: htp tunnel fix
+- Bug #877: Flowbit check with content doesn't match consistently, thanks to Francis Trudeau
+
+1.4.3 -- 2013-06-20
+
+- Fix missed detection in bytetest, bytejump and byteextract for negative offset (#828)
+- Fix IPS mode being unable to drop tunneled packets (#826)
+- Fix OS X Unix Socket build (#829)
+
+1.4.2 -- 2013-05-29
+
+- No longer force nocase to be used on http_host
+- Invalidate rule if uppercase content is used for http_host w/o nocase
+- Warn user if bpf is used in af-packet IPS mode
+- Better test for available libjansson version
+- Fixed accuracy issues with relative pcre matching (#784)
+- Improved accuracy of file_data keyword (#788)
+- Invalidate negative depth (#770)
+- Fix http host parsing for IPv6 addresses (#761)
+- Fix fast.log formatting issues (#773)
+- Fixed deadlock in flowvar set code for http buffers (#801)
+- Various signature ordering improvements
+- Minor stream engine fix
+
+1.4.1 -- 2013-03-08
+
+- GeoIP keyword, allowing matching on Maxmind's database, contributed by Ignacio Sanchez (#559)
+- Introduce http_host and http_raw_host keywords (#733, #743)
+- Add python module for interacting with unix socket (#767)
+- Add new unix socket commands: fetching config, counters, basic runtime info (#764, #765)
+- Big Napatech support update by Matt Keeler
+- Configurable sensor id in unified2 output, contributed by Jake Gionet (#667)
+- FreeBSD IPFW fixes by Nikolay Denev
+- Add "default" interface setting to capture configuration in yaml (#679)
+- Make sure "snaplen" can be set by the user (#680)
+- Improve HTTP URI query string normalization (#739)
+- Improved error reporting in MD5 loading (#693)
+- Improve reference.config parser error reporting (#737)
+- Improve build info output to include all configure options (#738)
+- Segfault in TLS parsing reported by Charles Smutz (#725)
+- Fix crash in teredo decoding, reported by Rmkml (#736)
+- fixed UDPv4 packets without checksum being detected as invalid (#760)
+- fixed DCE/SMB parsers getting confused in some fragmented cases (#764)
+- parsing ipv6 address/subnet parsing in thresholding was fixed by Jamie Strandboge (#697)
+- FN: IP-only rule ip_proto not matching for some protocols (#689)
+- Fix build failure with other libhtp installs (#688)
+- Fix malformed yaml loading leading to a crash (#694)
+- Various Mac OS X fixes (#700, #701, #703)
+- Fix for autotools on Mac OS X by Jason Ish (#704)
+- Fix AF_PACKET under high load not updating stats (#706)
+
+1.3.6 -- 2013-03-07
+
+- fix decoder event rules not checked in all cases (#671)
+- checksum detection for icmpv6 was fixed (#673)
+- crash in HTTP server body inspection code fixed (#675)
+- fixed a icmpv6 payload bug (#676)
+- IP-only rule ip_proto not matching for some protocols was addressed (#690)
+- fixed malformed yaml crashing suricata (#702)
+- parsing ipv6 address/subnet parsing in thresholding was fixed by Jamie Strandboge (#717)
+- crash in tls parser was fixed (#759)
+- fixed UDPv4 packets without checksum being detected as invalid (#762)
+- fixed DCE/SMB parsers getting confused in some fragmented cases (#763)
+
 1.4 2012-12-13
 
 - Decoder event matching fixed (#672)
