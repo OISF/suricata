@@ -123,15 +123,10 @@ static void LogFileMetaGetHost(FILE *fp, Packet *p, File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, ff->txid);
-        if (tx != NULL) {
-            htp_header_t *h = NULL;
-            h = (htp_header_t *)htp_table_get_c(tx->request_headers,
-                                                "Host");
-            if (h != NULL) {
-                PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(h->value),
-                               bstr_len(h->value));
-                return;
-            }
+        if (tx != NULL && tx->request_hostname != NULL) {
+            PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(tx->request_hostname),
+                           bstr_len(tx->request_hostname));
+            return;
         }
     }
 

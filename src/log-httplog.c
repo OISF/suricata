@@ -232,11 +232,11 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                 break;
             case LOG_HTTP_CF_REQUEST_HOST:
             /* HOSTNAME */
-                if (tx->parsed_uri != NULL && tx->parsed_uri->hostname != NULL)
+                if (tx->request_hostname != NULL)
                 {
                     PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
-                                aft->buffer->size, (uint8_t *)bstr_ptr(tx->parsed_uri->hostname),
-                                bstr_len(tx->parsed_uri->hostname));
+                                aft->buffer->size, (uint8_t *)bstr_ptr(tx->request_hostname),
+                                bstr_len(tx->request_hostname));
                 } else {
                     MemBufferWriteString(aft->buffer, LOG_HTTP_CF_NONE);
                 }
@@ -476,12 +476,10 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
             MemBufferWriteString(aft->buffer, "%s ", timebuf);
 
             /* hostname */
-            if (tx->parsed_uri != NULL &&
-                    tx->parsed_uri->hostname != NULL)
-            {
+            if (tx->request_hostname != NULL) {
                 PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                               (uint8_t *)bstr_ptr(tx->parsed_uri->hostname),
-                               bstr_len(tx->parsed_uri->hostname));
+                               (uint8_t *)bstr_ptr(tx->request_hostname),
+                               bstr_len(tx->request_hostname));
             } else {
                 MemBufferWriteString(aft->buffer, "<hostname unknown>");
             }
