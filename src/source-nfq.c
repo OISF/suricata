@@ -473,13 +473,12 @@ int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
     return 0;
 }
 
-TmEcode NFQReleaseData(ThreadVars *t, Packet *p)
+static void NFQReleasePacket(Packet *p)
 {
     if (unlikely(!p->nfq_v.verdicted)) {
         PACKET_UPDATE_ACTION(p, ACTION_DROP);
         NFQSetVerdict(p);
     }
-    return TM_ECODE_OK;
 }
 
 static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
@@ -511,7 +510,7 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
         return 0;
     }
 
-    p->ReleaseData = NFQReleaseData;
+    p->ReleasePacket = NFQReleasePacket;
 
 #ifdef COUNTERS
     NFQQueueVars *nfq_q = NFQGetQueue(ntv->nfq_index);
