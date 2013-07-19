@@ -479,6 +479,7 @@ static void NFQReleasePacket(Packet *p)
         PACKET_UPDATE_ACTION(p, ACTION_DROP);
         NFQSetVerdict(p);
     }
+    PacketFreeOrRelease(p);
 }
 
 static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
