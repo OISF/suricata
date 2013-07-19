@@ -30,7 +30,7 @@
             echo "*************************************************************************"
             echo "   Warning! libnet version 1.1.x could not be found in " $1
             echo "   Reject keywords will not be supported."
-            echo "   If you require reject support plese install libnet 1.1.x. "
+            echo "   If you require reject support, please install libnet 1.1.x. "
             echo "   If libnet is not installed in a non-standard location please use the"
             echo "   --with-libnet-includes and --with-libnet-libraries configure options"
             echo "*************************************************************************"
