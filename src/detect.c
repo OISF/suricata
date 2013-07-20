@@ -170,8 +170,6 @@
 
 #include "pkt-var.h"
 
-#include "flow-alert-sid.h"
-
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
@@ -5505,7 +5503,7 @@ static int SigTest08Real (int mpm_type) {
     }
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if ( (PacketAlertCheck(p, 1) || FlowAlertSidIsset(&f, 1)) && PacketAlertCheck(p, 2))
+    if (PacketAlertCheck(p, 1) && PacketAlertCheck(p, 2))
         result = 1;
     else
         printf("sid:1 %s, sid:2 %s: ",

@@ -30,7 +30,6 @@
 
 #include "flow-var.h"
 #include "flow-bit.h"
-#include "flow-alert-sid.h"
 #include "pkt-var.h"
 
 #include "util-debug.h"
@@ -48,13 +47,6 @@ void GenericVarFree(GenericVar *gv) {
             FlowBit *fb = (FlowBit *)gv;
             //printf("GenericVarFree: fb %p, removing\n", fb);
             FlowBitFree(fb);
-            break;
-        }
-        case DETECT_FLOWALERTSID:
-        {
-            FlowAlertSid *fb = (FlowAlertSid *)gv;
-            SCLogDebug("fb %p, removing", fb);
-            FlowAlertSidFree(fb);
             break;
         }
         case DETECT_FLOWVAR:

@@ -187,7 +187,6 @@ detect-uricontent.c detect-uricontent.h \
 detect-urilen.c detect-urilen.h \
 detect-window.c detect-window.h \
 detect-within.c detect-within.h \
-flow-alert-sid.c flow-alert-sid.h \
 flow-bit.c flow-bit.h \
 flow.c flow.h \
 flow-hash.c flow-hash.h \

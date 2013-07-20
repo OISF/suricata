@@ -30,7 +30,6 @@
 
 #include "pkt-var.h"
 #include "flow-var.h"
-#include "flow-alert-sid.h"
 #include "flow-util.h"
 
 #include "detect-pcre.h"

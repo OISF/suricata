@@ -39,7 +39,6 @@
 #include "flow-var.h"
 #include "flow-util.h"
 #include "threads.h"
-#include "flow-alert-sid.h"
 
 #include "stream-tcp.h"
 #include "stream.h"
