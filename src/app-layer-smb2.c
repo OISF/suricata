@@ -521,6 +521,9 @@ void RegisterSMB2Parsers(void) {
     AppLayerRegisterProto("smb", ALPROTO_SMB2, STREAM_TOSERVER, SMB2Parse);
     AppLayerRegisterProto("smb", ALPROTO_SMB2, STREAM_TOCLIENT, SMB2Parse);
     AppLayerRegisterStateFuncs(ALPROTO_SMB2, SMB2StateAlloc, SMB2StateFree);
+#ifdef UNITTESTS
+    AppLayerRegisterUnittests(ALPROTO_SMB2, SMB2ParserRegisterTests);
+#endif
 }
 
 /* UNITTESTS */
@@ -585,7 +588,6 @@ end:
 }
 
 void SMB2ParserRegisterTests(void) {
-    printf("SMB2ParserRegisterTests\n");
     UtRegisterTest("SMB2ParserTest01", SMB2ParserTest01, 1);
 }
 #endif

@@ -279,6 +279,9 @@ void RegisterFTPParsers(void) {
                            FTP_FIELD_REQUEST_LINE, FTPParseRequestCommandLine,
                            "ftp");
     AppLayerRegisterStateFuncs(ALPROTO_FTP, FTPStateAlloc, FTPStateFree);
+#ifdef UNITTESTS
+    AppLayerRegisterUnittests(ALPROTO_FTP, FTPParserRegisterTests);
+#endif
 }
 
 void FTPAtExitPrintStats(void) {

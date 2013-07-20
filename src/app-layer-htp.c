@@ -2425,6 +2425,9 @@ void RegisterHTPParsers(void)
                           HTPHandleRequestData);
     AppLayerRegisterProto(proto_name, ALPROTO_HTTP, STREAM_TOCLIENT,
                           HTPHandleResponseData);
+#ifdef UNITTESTS
+    AppLayerRegisterUnittests(ALPROTO_HTTP, HTPParserRegisterTests);
+#endif
 
     SC_ATOMIC_INIT(htp_config_flags);
     HTPConfigure();

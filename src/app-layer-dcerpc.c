@@ -1878,6 +1878,9 @@ void RegisterDCERPCParsers(void) {
             DCERPCParseResponse);
     AppLayerRegisterStateFuncs(ALPROTO_DCERPC, DCERPCStateAlloc,
             DCERPCStateFree);
+#ifdef UNITTESTS
+    AppLayerRegisterUnittests(ALPROTO_DCERPC, DCERPCParserRegisterTests);
+#endif
 }
 
 /* UNITTESTS */

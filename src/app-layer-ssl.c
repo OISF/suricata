@@ -989,6 +989,9 @@ void RegisterSSLParsers(void)
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   SSLProbingParser);
+#ifdef UNITTESTS
+    AppLayerRegisterUnittests(ALPROTO_TLS, SSLParserRegisterTests);
+#endif
 
     /* Get the value of no reassembly option from the config file */
     if (ConfGetBool("tls.no-reassemble", &ssl_config.no_reassemble) != 1)

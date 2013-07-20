@@ -747,7 +747,9 @@ void RegisterSSHParsers(void)
                             SSHParseClientRecord);
 
     AppLayerRegisterStateFuncs(ALPROTO_SSH, SSHStateAlloc, SSHStateFree);
-
+#ifdef UNITTESTS
+    AppLayerRegisterUnittests(ALPROTO_SSH, SSHParserRegisterTests);
+#endif
 }
 
 /* UNITTESTS */

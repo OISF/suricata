@@ -263,6 +263,7 @@ typedef enum {
     SC_ERR_CUDA_BUFFER_ERROR,
     SC_ERR_DNS_LOG_GENERIC,
     SC_WARN_OPTION_OBSOLETE,
+    SC_WARN_NO_UNITTESTS,
 } SCError;
 
 const char *SCErrorToString(SCError);

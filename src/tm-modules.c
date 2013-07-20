@@ -202,11 +202,16 @@ void TmModuleRegisterTests(void) {
         if (t->name == NULL)
             continue;
 
+        g_ut_modules++;
+
+
         if (t->RegisterTests == NULL) {
-            SCLogDebug("threading module %s has no unittest "
-                   "registration function.", t->name);
+            if (coverage_unittests)
+                SCLogWarning(SC_WARN_NO_UNITTESTS, "threading module %s has no unittest "
+                        "registration function.", t->name);
         } else {
             t->RegisterTests();
+            g_ut_covered++;
         }
     }
 #endif /* UNITTESTS */

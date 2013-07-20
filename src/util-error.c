@@ -274,6 +274,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_CUDA_BUFFER_ERROR);
         CASE_CODE (SC_ERR_DNS_LOG_GENERIC);
         CASE_CODE (SC_WARN_OPTION_OBSOLETE);
+        CASE_CODE (SC_WARN_NO_UNITTESTS);
     }
 
     return "UNKNOWN_ERROR";

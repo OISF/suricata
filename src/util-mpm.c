@@ -663,10 +663,15 @@ void MpmRegisterTests(void) {
         if (i == MPM_NOTSET)
             continue;
 
+        g_ut_modules++;
+
         if (mpm_table[i].RegisterUnittests != NULL) {
+            g_ut_covered++;
             mpm_table[i].RegisterUnittests();
         } else {
-            printf("Warning: mpm %s has no unittest registration function...", mpm_table[i].name);
+            if (coverage_unittests)
+                SCLogWarning(SC_WARN_NO_UNITTESTS, "mpm module %s has no "
+                        "unittest registration function.", mpm_table[i].name);
         }
     }
 

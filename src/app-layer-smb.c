@@ -1419,7 +1419,9 @@ void RegisterSMBParsers(void) {
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   SMBProbingParser);
-
+#ifdef UNITTESTS
+    AppLayerRegisterUnittests(ALPROTO_SMB, SMBParserRegisterTests);
+#endif
     return;
 }
 

@@ -4903,22 +4903,23 @@ void SigTableSetup(void) {
     DetectLuajitRegister();
     DetectIPRepRegister();
     DetectDnsQueryRegister();
-
-    uint8_t i = 0;
-    for (i = 0; i < DETECT_TBLSIZE; i++) {
-        if (sigmatch_table[i].RegisterTests == NULL) {
-            SCLogDebug("detection plugin %s has no unittest "
-                   "registration function.", sigmatch_table[i].name);
-        }
-    }
 }
 
 void SigTableRegisterTests(void) {
     /* register the tests */
-    uint8_t i = 0;
+    int i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {
+        g_ut_modules++;
         if (sigmatch_table[i].RegisterTests != NULL) {
             sigmatch_table[i].RegisterTests();
+            g_ut_covered++;
+        } else {
+            SCLogDebug("detection plugin %s has no unittest "
+                   "registration function.", sigmatch_table[i].name);
+
+            if (coverage_unittests)
+                SCLogWarning(SC_WARN_NO_UNITTESTS, "detection plugin %s has no unittest "
+                        "registration function.", sigmatch_table[i].name);
         }
     }
 }

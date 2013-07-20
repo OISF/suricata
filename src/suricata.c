@@ -514,6 +514,7 @@ void usage(const char *progname)
     printf("\t-U, --unittest-filter=REGEX          : filter unittests with a regex\n");
     printf("\t--list-unittests                     : list unit tests\n");
     printf("\t--fatal-unittests                    : enable fatal failure on unittest error\n");
+    printf("\t--unittests-coverage                 : display unittest coverage report\n");
 #endif /* UNITTESTS */
     printf("\t--list-app-layer-protos              : list supported app layer protocols\n");
     printf("\t--list-keywords[=all|csv|<kword>]    : list keywords implemented by the engine\n");
@@ -703,6 +704,10 @@ void SCPrintBuildInfo(void) {
 #include "build-info.h"
 }
 
+int coverage_unittests;
+int g_ut_modules;
+int g_ut_covered;
+
 int main(int argc, char **argv)
 {
     int opt;
@@ -789,6 +794,12 @@ int main(int argc, char **argv)
     /* Initialize the configuration module. */
     ConfInit();
 
+#ifdef UNITTESTS
+    coverage_unittests = 0;
+    g_ut_modules = 0;
+    g_ut_covered = 0;
+#endif
+
     struct option long_opts[] = {
         {"dump-config", 0, &dump_config, 1},
         {"pfring", optional_argument, 0, 0},
@@ -817,6 +828,7 @@ int main(int argc, char **argv)
         {"pidfile", required_argument, 0, 0},
         {"init-errors-fatal", 0, 0, 0},
         {"fatal-unittests", 0, 0, 0},
+        {"unittests-coverage", 0, &coverage_unittests, 1},
         {"user", required_argument, 0, 0},
         {"group", required_argument, 0, 0},
         {"erf-in", required_argument, 0, 0},
@@ -1612,10 +1624,10 @@ int main(int argc, char **argv)
 
     if (run_mode == RUNMODE_UNITTEST) {
 #ifdef DBG_MEM_ALLOC
-    SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
+        SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
 #endif
         /* test and initialize the unittesting subsystem */
-        if(regex_arg == NULL){
+        if(regex_arg == NULL && !coverage_unittests){
             regex_arg = ".*";
             UtRunSelftest(regex_arg); /* inits and cleans up again */
         }
@@ -1638,15 +1650,9 @@ int main(int argc, char **argv)
         FlowBitRegisterTests();
         FlowAlertSidRegisterTests();
         SCPerfRegisterTests();
+
         DecodePPPRegisterTests();
         DecodeVLANRegisterTests();
-        HTPParserRegisterTests();
-        SSLParserRegisterTests();
-        SSHParserRegisterTests();
-        SMBParserRegisterTests();
-        DCERPCParserRegisterTests();
-        DCERPCUDPParserRegisterTests();
-        FTPParserRegisterTests();
         DecodeRawRegisterTests();
         DecodePPPOERegisterTests();
         DecodeICMPV4RegisterTests();
@@ -1657,6 +1663,7 @@ int main(int argc, char **argv)
         DecodeUDPV4RegisterTests();
         DecodeGRERegisterTests();
         DecodeAsn1RegisterTests();
+
         AlpDetectRegisterTests();
         ConfRegisterTests();
         ConfYamlRegisterTests();
@@ -1701,7 +1708,6 @@ int main(int argc, char **argv)
         DetectEngineHttpHRHRegisterTests();
         DetectEngineRegisterTests();
         SCLogRegisterTests();
-        SMTPParserRegisterTests();
         MagicRegisterTests();
         UtilMiscRegisterTests();
         DetectAddressTests();
@@ -1713,8 +1719,11 @@ int main(int argc, char **argv)
 #endif
         if (list_unittests) {
             UtListTests(regex_arg);
-        }
-        else {
+        } else if (coverage_unittests) {
+            /* nothing */
+            SCLogInfo("%d out of %d code modules have unittests (%.0f%%)",
+                    g_ut_covered, g_ut_modules, (float)((float)g_ut_covered/(float)g_ut_modules)*100);
+        } else {
             uint32_t failed = UtRunTests(regex_arg);
             UtCleanup();
             if (failed) {

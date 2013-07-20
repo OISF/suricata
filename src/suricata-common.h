@@ -313,5 +313,8 @@ typedef enum PacketProfileDetectId_ {
 size_t strlcat(char *, const char *src, size_t siz);
 size_t strlcpy(char *dst, const char *src, size_t siz);
 
+extern int coverage_unittests;
+extern int g_ut_modules;
+extern int g_ut_covered;
 #endif /* __SURICATA_COMMON_H__ */
 

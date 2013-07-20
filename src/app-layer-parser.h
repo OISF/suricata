@@ -65,6 +65,10 @@ typedef struct AppLayerProto_ {
     uint64_t (*StateGetTxCnt)(void *alstate);
     void *(*StateGetTx)(void *alstate, uint64_t tx_id);
     int (*StateGetAlstateProgressCompletionStatus)(uint8_t direction);
+
+#ifdef UNITTESTS
+    void (*RegisterUnittests)(void);
+#endif
 } AppLayerProto;
 
 /** flags for the result elmts */
@@ -249,6 +253,9 @@ void AppLayerRegisterProbingParser(struct AlpProtoDetectCtx_ *, uint16_t, uint16
                                    uint16_t, uint16_t, uint8_t, uint8_t,
                                    uint8_t,
                                    uint16_t (*ProbingParser)(uint8_t *, uint32_t));
+#ifdef UNITTESTS
+void AppLayerRegisterUnittests(uint16_t proto, void (*RegisterUnittests)(void));
+#endif
 void AppLayerRegisterStateFuncs(uint16_t proto, void *(*StateAlloc)(void),
                                 void (*StateFree)(void *));
 void AppLayerRegisterLocalStorageFunc(uint16_t proto,

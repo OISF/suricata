@@ -45,6 +45,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-smb.h"
+#include "app-layer-smb2.h"
 #include "app-layer-dcerpc.h"
 #include "app-layer-dcerpc-udp.h"
 #include "app-layer-htp.h"
@@ -727,6 +728,12 @@ int AppLayerRegisterProto(char *name, uint8_t proto, uint8_t flags,
     return 0;
 }
 
+#ifdef UNITTESTS
+void AppLayerRegisterUnittests(uint16_t proto, void (*RegisterUnittests)(void)) {
+    al_proto_table[proto].RegisterUnittests = RegisterUnittests;
+}
+#endif
+
 void AppLayerRegisterStateFuncs(uint16_t proto, void *(*StateAlloc)(void),
                                 void (*StateFree)(void *))
 {
@@ -1337,6 +1344,8 @@ void RegisterAppLayerParsers(void)
     RegisterHTPParsers();
     RegisterSSLParsers();
     RegisterSMBParsers();
+    /** \todo bug 719 */
+    //RegisterSMB2Parsers();
     RegisterDCERPCParsers();
     RegisterDCERPCUDPParsers();
     RegisterFTPParsers();
@@ -5869,6 +5878,25 @@ static int AppLayerProbingParserTest15(void)
 void AppLayerParserRegisterTests(void)
 {
 #ifdef UNITTESTS
+    int i;
+    for (i = 0; i < ALPROTO_MAX; i++) {
+        AppLayerProto *p = &al_proto_table[i];
+
+        if (p->name == NULL)
+            continue;
+
+        g_ut_modules++;
+
+        if (p->RegisterUnittests != NULL) {
+            p->RegisterUnittests();
+            g_ut_covered++;
+        } else {
+            if (coverage_unittests)
+                SCLogWarning(SC_WARN_NO_UNITTESTS, "app layer module %s has no "
+                        "unittests", p->name);
+        }
+    }
+
     UtRegisterTest("AppLayerParserTest01", AppLayerParserTest01, 1);
     UtRegisterTest("AppLayerParserTest02", AppLayerParserTest02, 1);
     UtRegisterTest("AppLayerProbingParserTest01", AppLayerProbingParserTest01, 1);

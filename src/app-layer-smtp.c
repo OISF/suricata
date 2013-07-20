@@ -865,6 +865,9 @@ void RegisterSMTPParsers(void)
 
     SMTPSetMpmState();
 
+#ifdef UNITTESTS
+    AppLayerRegisterUnittests(ALPROTO_SMTP, SMTPParserRegisterTests);
+#endif
     return;
 }
 

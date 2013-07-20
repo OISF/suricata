@@ -729,6 +729,9 @@ void RegisterDCERPCUDPParsers(void) {
 			DCERPCUDPParse);
 	AppLayerRegisterStateFuncs(ALPROTO_DCERPC_UDP, DCERPCUDPStateAlloc,
 			DCERPCUDPStateFree);
+#ifdef UNITTESTS
+    AppLayerRegisterUnittests(ALPROTO_DCERPC_UDP, DCERPCUDPParserRegisterTests);
+#endif
 }
 
 /* UNITTESTS */
