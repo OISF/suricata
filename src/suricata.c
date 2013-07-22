@@ -192,6 +192,8 @@
 #include "util-cuda-buffer.h"
 #include "util-mpm-ac.h"
 #endif
+#include "util-storage.h"
+#include "host-storage.h"
 
 /*
  * we put this here, because we only use it here in main.
@@ -1507,6 +1509,7 @@ int main(int argc, char **argv)
     }
     TmqhSetup();
 
+    StorageInit();
     CIDRInit();
     SigParsePrepare();
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
@@ -1619,6 +1622,7 @@ int main(int argc, char **argv)
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Disabled);
     }
 
+    StorageFinalize();
 #ifdef UNITTESTS
 
     if (run_mode == RUNMODE_UNITTEST) {
@@ -1715,6 +1719,9 @@ int main(int argc, char **argv)
 #ifdef __SC_CUDA_SUPPORT__
         CudaBufferRegisterUnittests();
 #endif
+        StorageRegisterTests();
+        RegisterHostStorageTests();
+
         if (list_unittests) {
             UtListTests(regex_arg);
         } else if (coverage_unittests) {

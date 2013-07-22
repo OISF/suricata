@@ -192,11 +192,13 @@ flow.c flow.h \
 flow-hash.c flow-hash.h \
 flow-manager.c flow-manager.h \
 flow-queue.c flow-queue.h \
+flow-storage.c flow-storage.h \
 flow-timeout.c flow-timeout.h \
 flow-util.c flow-util.h \
 flow-var.c flow-var.h \
 host.c host.h \
 host-queue.c host-queue.h \
+host-storage.c host-storage.h \
 host-timeout.c host-timeout.h \
 log-dnslog.c log-dnslog.h \
 log-droplog.c log-droplog.h \
@@ -319,6 +321,7 @@ util-spm-bm.c util-spm-bm.h \
 util-spm-bs2bm.c util-spm-bs2bm.h \
 util-spm-bs.c util-spm-bs.h \
 util-spm.c util-spm.h util-clock.h \
+util-storage.c util-storage.h \
 util-strlcatu.c \
 util-strlcpyu.c \
 util-syslog.c util-syslog.h \

@@ -34,6 +34,7 @@
 
 #include "util-var.h"
 #include "util-debug.h"
+#include "flow-storage.h"
 
 #include "detect.h"
 #include "detect-engine-state.h"
@@ -48,18 +49,20 @@
 Flow *FlowAlloc(void)
 {
     Flow *f;
+    size_t size = sizeof(Flow) + FlowStorageSize();
 
-    if (!(FLOW_CHECK_MEMCAP(sizeof(Flow)))) {
+    if (!(FLOW_CHECK_MEMCAP(size))) {
         return NULL;
     }
 
-    (void) SC_ATOMIC_ADD(flow_memuse, sizeof(Flow));
+    (void) SC_ATOMIC_ADD(flow_memuse, size);
 
-    f = SCMalloc(sizeof(Flow));
+    f = SCMalloc(size);
     if (unlikely(f == NULL)) {
-        (void)SC_ATOMIC_SUB(flow_memuse, sizeof(Flow));
+        (void)SC_ATOMIC_SUB(flow_memuse, size);
         return NULL;
     }
+    memset(f, 0, size);
 
     FLOW_INITIALIZE(f);
     return f;
