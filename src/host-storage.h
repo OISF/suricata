@@ -40,6 +40,6 @@ void HostFreeStorage(Host *h);
 
 void RegisterHostStorageTests(void);
 
-int HostStorageRegister(const char *name, const unsigned int size, void *(*Init)(unsigned int), void (*Free)(void *));
+int HostStorageRegister(const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *));
 
 #endif /* __HOST_STORAGE_H__ */

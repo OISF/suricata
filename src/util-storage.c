@@ -31,7 +31,7 @@ typedef struct StorageMapping_ {
     const char *name;
     StorageEnum type; // host, flow, tx, stream, ssn, etc
     unsigned int size;
-    void *(*Init)(unsigned int);
+    void *(*Alloc)(unsigned int);
     void (*Free)(void *);
 } StorageMapping;
 
@@ -89,12 +89,12 @@ void StorageCleanup(void) {
     storage_list = NULL;
 }
 
-int StorageRegister(const StorageEnum type, const char *name, const unsigned int size, void *(*Init)(unsigned int), void (*Free)(void *)) {
+int StorageRegister(const StorageEnum type, const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *)) {
     if (storage_registraton_closed)
         return -1;
 
     if (type >= STORAGE_MAX || name == NULL || strlen(name) == 0 ||
-            size == 0 || (size != sizeof(void *) && Init == NULL) || Free == NULL)
+            size == 0 || (size != sizeof(void *) && Alloc == NULL) || Free == NULL)
         return -1;
 
     StorageList *list = storage_list;
@@ -118,7 +118,7 @@ int StorageRegister(const StorageEnum type, const char *name, const unsigned int
     entry->map.type = type;
     entry->map.name = name;
     entry->map.size = size;
-    entry->map.Init = Init;
+    entry->map.Alloc = Alloc;
     entry->map.Free = Free;
 
     entry->id = storage_max_id[type]++;
@@ -162,7 +162,7 @@ int StorageFinalize(void) {
             storage_map[entry->map.type][entry->id].name = entry->map.name;
             storage_map[entry->map.type][entry->id].type = entry->map.type;
             storage_map[entry->map.type][entry->id].size = entry->map.size;
-            storage_map[entry->map.type][entry->id].Init = entry->map.Init;
+            storage_map[entry->map.type][entry->id].Alloc = entry->map.Alloc;
             storage_map[entry->map.type][entry->id].Free = entry->map.Free;
         }
 
@@ -227,8 +227,8 @@ void *StorageAllocByIdPrealloc(Storage *storage, StorageEnum type, int id) {
     SCLogDebug("storage %p id %d", storage, id);
 
     StorageMapping *map = &storage_map[type][id];
-    if (storage[id] == NULL && map->Init != NULL) {
-        storage[id] = map->Init(map->size);
+    if (storage[id] == NULL && map->Alloc != NULL) {
+        storage[id] = map->Alloc(map->size);
         if (storage[id] == NULL) {
             return NULL;
         }
@@ -253,8 +253,8 @@ void *StorageAllocById(Storage **storage, StorageEnum type, int id) {
     }
     SCLogDebug("store %p", store);
 
-    if (store[id] == NULL && map->Init != NULL) {
-        store[id] = map->Init(map->size);
+    if (store[id] == NULL && map->Alloc != NULL) {
+        store[id] = map->Alloc(map->size);
         if (store[id] == NULL) {
             SCFree(store);
             *storage = NULL;
@@ -325,7 +325,7 @@ void StorageFree(Storage **storage, StorageEnum type) {
 
 #ifdef UNITTESTS
 
-static void *StorageTestInit(unsigned int size) {
+static void *StorageTestAlloc(unsigned int size) {
     void *x = SCMalloc(size);
     return x;
 }
@@ -337,13 +337,13 @@ static void StorageTestFree(void *x) {
 static int StorageTest01(void) {
     StorageInit();
 
-    int id = StorageRegister(STORAGE_HOST, "test", 8, StorageTestInit, StorageTestFree);
+    int id = StorageRegister(STORAGE_HOST, "test", 8, StorageTestAlloc, StorageTestFree);
     if (id < 0)
         goto error;
-    id = StorageRegister(STORAGE_HOST, "variable", 24, StorageTestInit, StorageTestFree);
+    id = StorageRegister(STORAGE_HOST, "variable", 24, StorageTestAlloc, StorageTestFree);
     if (id < 0)
         goto error;
-    id = StorageRegister(STORAGE_FLOW, "store", sizeof(void *), StorageTestInit, StorageTestFree);
+    id = StorageRegister(STORAGE_FLOW, "store", sizeof(void *), StorageTestAlloc, StorageTestFree);
     if (id < 0)
         goto error;
 
@@ -439,10 +439,10 @@ error:
 static int StorageTest03(void) {
     StorageInit();
 
-    int id = StorageRegister(STORAGE_HOST, "test", 8, StorageTestInit, StorageTestFree);
+    int id = StorageRegister(STORAGE_HOST, "test", 8, StorageTestAlloc, StorageTestFree);
     if (id < 0)
         goto error;
-    id = StorageRegister(STORAGE_HOST, "test", 8, StorageTestInit, StorageTestFree);
+    id = StorageRegister(STORAGE_HOST, "test", 8, StorageTestAlloc, StorageTestFree);
     if (id != -1) {
         printf("duplicate registration should have failed: ");
         goto error;
@@ -454,43 +454,43 @@ static int StorageTest03(void) {
         goto error;
     }
 
-    id = StorageRegister(STORAGE_HOST, "test2", 8, StorageTestInit, NULL);
+    id = StorageRegister(STORAGE_HOST, "test2", 8, StorageTestAlloc, NULL);
     if (id != -1) {
         printf("duplicate registration should have failed (3): ");
         goto error;
     }
 
-    id = StorageRegister(STORAGE_HOST, "test3", 0, StorageTestInit, StorageTestFree);
+    id = StorageRegister(STORAGE_HOST, "test3", 0, StorageTestAlloc, StorageTestFree);
     if (id != -1) {
         printf("duplicate registration should have failed (4): ");
         goto error;
     }
 
-    id = StorageRegister(STORAGE_HOST, "", 8, StorageTestInit, StorageTestFree);
+    id = StorageRegister(STORAGE_HOST, "", 8, StorageTestAlloc, StorageTestFree);
     if (id != -1) {
         printf("duplicate registration should have failed (5): ");
         goto error;
     }
 
-    id = StorageRegister(STORAGE_HOST, NULL, 8, StorageTestInit, StorageTestFree);
+    id = StorageRegister(STORAGE_HOST, NULL, 8, StorageTestAlloc, StorageTestFree);
     if (id != -1) {
         printf("duplicate registration should have failed (6): ");
         goto error;
     }
 
-    id = StorageRegister(STORAGE_MAX, "test4", 8, StorageTestInit, StorageTestFree);
+    id = StorageRegister(STORAGE_MAX, "test4", 8, StorageTestAlloc, StorageTestFree);
     if (id != -1) {
         printf("duplicate registration should have failed (7): ");
         goto error;
     }
 
-    id = StorageRegister(38, "test5", 8, StorageTestInit, StorageTestFree);
+    id = StorageRegister(38, "test5", 8, StorageTestAlloc, StorageTestFree);
     if (id != -1) {
         printf("duplicate registration should have failed (8): ");
         goto error;
     }
 
-    id = StorageRegister(-1, "test6", 8, StorageTestInit, StorageTestFree);
+    id = StorageRegister(-1, "test6", 8, StorageTestAlloc, StorageTestFree);
     if (id != -1) {
         printf("duplicate registration should have failed (9): ");
         goto error;

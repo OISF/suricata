@@ -40,6 +40,6 @@ void FlowFreeStorage(Flow *h);
 
 void RegisterFlowStorageTests(void);
 
-int FlowStorageRegister(const char *name, const unsigned int size, void *(*Init)(unsigned int), void (*Free)(void *));
+int FlowStorageRegister(const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *));
 
 #endif /* __FLOW_STORAGE_H__ */
