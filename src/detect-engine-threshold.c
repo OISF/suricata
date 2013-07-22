@@ -74,6 +74,10 @@ int ThresholdHostStorageId(void) {
 
 void ThresholdInit(void) {
     threshold_id = HostStorageRegister("threshold", sizeof(void *), NULL, ThresholdListFree);
+    if (threshold_id == -1) {
+        SCLogError(SC_ERR_HOST_INIT, "Can't initiate host storage for thresholding");
+        exit(EXIT_FAILURE);
+    }
 }
 
 int ThresholdHostHasThreshold(Host *host) {

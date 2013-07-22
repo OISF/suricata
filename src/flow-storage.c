@@ -56,13 +56,13 @@ void FlowFreeStorage(Flow *f) {
         StorageFreeAll((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW);
 }
 
-int FlowStorageRegister(const char *name, const unsigned int size, void *(*Init)(unsigned int), void (*Free)(void *)) {
-    return StorageRegister(STORAGE_FLOW, name, size, Init, Free);
+int FlowStorageRegister(const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *)) {
+    return StorageRegister(STORAGE_FLOW, name, size, Alloc, Free);
 }
 
 #ifdef UNITTESTS
 
-static void *StorageTestInit(unsigned int size) {
+static void *StorageTestAlloc(unsigned int size) {
     void *x = SCMalloc(size);
     return x;
 }
@@ -74,13 +74,13 @@ static void StorageTestFree(void *x) {
 static int FlowStorageTest01(void) {
     StorageInit();
 
-    int id1 = FlowStorageRegister("test", 8, StorageTestInit, StorageTestFree);
+    int id1 = FlowStorageRegister("test", 8, StorageTestAlloc, StorageTestFree);
     if (id1 < 0)
         goto error;
-    int id2 = FlowStorageRegister("variable", 24, StorageTestInit, StorageTestFree);
+    int id2 = FlowStorageRegister("variable", 24, StorageTestAlloc, StorageTestFree);
     if (id2 < 0)
         goto error;
-    int id3 = FlowStorageRegister("store", sizeof(void *), StorageTestInit, StorageTestFree);
+    int id3 = FlowStorageRegister("store", sizeof(void *), StorageTestAlloc, StorageTestFree);
     if (id3 < 0)
         goto error;
 
@@ -200,7 +200,7 @@ static int FlowStorageTest03(void) {
     int id2 = FlowStorageRegister("test2", sizeof(void *), NULL, StorageTestFree);
     if (id2 < 0)
         goto error;
-    int id3 = FlowStorageRegister("test3", 32, StorageTestInit, StorageTestFree);
+    int id3 = FlowStorageRegister("test3", 32, StorageTestAlloc, StorageTestFree);
     if (id3 < 0)
         goto error;
 

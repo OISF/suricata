@@ -52,13 +52,13 @@ void HostFreeStorage(Host *h) {
         StorageFreeAll((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST);
 }
 
-int HostStorageRegister(const char *name, const unsigned int size, void *(*Init)(unsigned int), void (*Free)(void *)) {
-    return StorageRegister(STORAGE_HOST, name, size, Init, Free);
+int HostStorageRegister(const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *)) {
+    return StorageRegister(STORAGE_HOST, name, size, Alloc, Free);
 }
 
 #ifdef UNITTESTS
 
-static void *StorageTestInit(unsigned int size) {
+static void *StorageTestAlloc(unsigned int size) {
     void *x = SCMalloc(size);
     return x;
 }
@@ -70,13 +70,13 @@ static void StorageTestFree(void *x) {
 static int HostStorageTest01(void) {
     StorageInit();
 
-    int id1 = HostStorageRegister("test", 8, StorageTestInit, StorageTestFree);
+    int id1 = HostStorageRegister("test", 8, StorageTestAlloc, StorageTestFree);
     if (id1 < 0)
         goto error;
-    int id2 = HostStorageRegister("variable", 24, StorageTestInit, StorageTestFree);
+    int id2 = HostStorageRegister("variable", 24, StorageTestAlloc, StorageTestFree);
     if (id2 < 0)
         goto error;
-    int id3 = HostStorageRegister("store", sizeof(void *), StorageTestInit, StorageTestFree);
+    int id3 = HostStorageRegister("store", sizeof(void *), StorageTestAlloc, StorageTestFree);
     if (id3 < 0)
         goto error;
 
@@ -203,7 +203,7 @@ static int HostStorageTest03(void) {
     int id2 = HostStorageRegister("test2", sizeof(void *), NULL, StorageTestFree);
     if (id2 < 0)
         goto error;
-    int id3 = HostStorageRegister("test3", 32, StorageTestInit, StorageTestFree);
+    int id3 = HostStorageRegister("test3", 32, StorageTestAlloc, StorageTestFree);
     if (id3 < 0)
         goto error;
 
