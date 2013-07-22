@@ -612,12 +612,12 @@
             esac
         fi
     else
+        echo
+        echo "   Jansson >= 2.2 is required for features like unix socket"
+        echo "   Go get it from your distribution of from:"
+        echo "     http://www.digip.org/jansson/"
+        echo
         if test "x$enable_unixsocket" = "xyes"; then
-            echo
-            echo "   Jansson >= 2.2 is required for features like unix socket"
-            echo "   Go get it from your distribution of from:"
-            echo "     http://www.digip.org/jansson/"
-            echo
             exit 1
         fi
         enable_unixsocket="no"
