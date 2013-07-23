@@ -172,8 +172,9 @@ typedef struct FlowHashKey4_ {
             uint16_t sp, dp;
             uint16_t proto; /**< u16 so proto and recur add up to u32 */
             uint16_t recur; /**< u16 so proto and recur add up to u32 */
+            uint16_t vlan_id[2];
         };
-        uint32_t u32[4];
+        const uint32_t u32[5];
     };
 } FlowHashKey4;
 
@@ -184,8 +185,9 @@ typedef struct FlowHashKey6_ {
             uint16_t sp, dp;
             uint16_t proto; /**< u16 so proto and recur add up to u32 */
             uint16_t recur; /**< u16 so proto and recur add up to u32 */
+            uint16_t vlan_id[2];
         };
-        uint32_t u32[10];
+        const uint32_t u32[11];
     };
 } FlowHashKey6;
 
@@ -224,8 +226,10 @@ static inline uint32_t FlowGetKey(Packet *p) {
             }
             fhk.proto = (uint16_t)p->proto;
             fhk.recur = (uint16_t)p->recursion_level;
+            fhk.vlan_id[0] = p->vlan_id[0];
+            fhk.vlan_id[1] = p->vlan_id[1];
 
-            uint32_t hash = hashword(fhk.u32, 4, flow_config.hash_rand);
+            uint32_t hash = hashword(fhk.u32, 5, flow_config.hash_rand);
             key = hash % flow_config.hash_size;
 
         } else if (ICMPV4_DEST_UNREACH_IS_VALID(p)) {
@@ -248,8 +252,10 @@ static inline uint32_t FlowGetKey(Packet *p) {
             }
             fhk.proto = (uint16_t)ICMPV4_GET_EMB_PROTO(p);
             fhk.recur = (uint16_t)p->recursion_level;
+            fhk.vlan_id[0] = p->vlan_id[0];
+            fhk.vlan_id[1] = p->vlan_id[1];
 
-            uint32_t hash = hashword(fhk.u32, 4, flow_config.hash_rand);
+            uint32_t hash = hashword(fhk.u32, 5, flow_config.hash_rand);
             key = hash % flow_config.hash_size;
 
         } else {
@@ -265,8 +271,10 @@ static inline uint32_t FlowGetKey(Packet *p) {
             fhk.dp = 0xbeef;
             fhk.proto = (uint16_t)p->proto;
             fhk.recur = (uint16_t)p->recursion_level;
+            fhk.vlan_id[0] = p->vlan_id[0];
+            fhk.vlan_id[1] = p->vlan_id[1];
 
-            uint32_t hash = hashword(fhk.u32, 4, flow_config.hash_rand);
+            uint32_t hash = hashword(fhk.u32, 5, flow_config.hash_rand);
             key = hash % flow_config.hash_size;
         }
     } else if (p->ip6h != NULL) {
@@ -299,8 +307,10 @@ static inline uint32_t FlowGetKey(Packet *p) {
         }
         fhk.proto = (uint16_t)p->proto;
         fhk.recur = (uint16_t)p->recursion_level;
+        fhk.vlan_id[0] = p->vlan_id[0];
+        fhk.vlan_id[1] = p->vlan_id[1];
 
-        uint32_t hash = hashword(fhk.u32, 10, flow_config.hash_rand);
+        uint32_t hash = hashword(fhk.u32, 11, flow_config.hash_rand);
         key = hash % flow_config.hash_size;
     } else
         key = 0;
@@ -318,7 +328,9 @@ static inline uint32_t FlowGetKey(Packet *p) {
        CMP_ADDR(&(f1)->dst, &(f2)->src) && \
        CMP_PORT((f1)->sp, (f2)->dp) && CMP_PORT((f1)->dp, (f2)->sp))) && \
      (f1)->proto == (f2)->proto && \
-     (f1)->recursion_level == (f2)->recursion_level)
+     (f1)->recursion_level == (f2)->recursion_level && \
+     (f1)->vlan_id[0] == (f2)->vlan_id[0] && \
+     (f1)->vlan_id[1] == (f2)->vlan_id[1])
 
 /**
  *  \brief See if a ICMP packet belongs to a flow by comparing the embedded
@@ -340,7 +352,9 @@ static inline int FlowCompareICMPv4(Flow *f, Packet *p) {
                 f->sp == p->icmpv4vars.emb_sport &&
                 f->dp == p->icmpv4vars.emb_dport &&
                 f->proto == ICMPV4_GET_EMB_PROTO(p) &&
-                f->recursion_level == p->recursion_level)
+                f->recursion_level == p->recursion_level &&
+                f->vlan_id[0] == p->vlan_id[0] &&
+                f->vlan_id[1] == p->vlan_id[1])
         {
             return 1;
 
@@ -351,7 +365,9 @@ static inline int FlowCompareICMPv4(Flow *f, Packet *p) {
                 f->dp == p->icmpv4vars.emb_sport &&
                 f->sp == p->icmpv4vars.emb_dport &&
                 f->proto == ICMPV4_GET_EMB_PROTO(p) &&
-                f->recursion_level == p->recursion_level)
+                f->recursion_level == p->recursion_level &&
+                f->vlan_id[0] == p->vlan_id[0] &&
+                f->vlan_id[1] == p->vlan_id[1])
         {
             return 1;
         }
