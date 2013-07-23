@@ -77,7 +77,10 @@ void DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
             p, pkt, proto, GET_VLAN_PRIORITY(p->vlanh[p->vlan_idx]),
             GET_VLAN_CFI(p->vlanh[p->vlan_idx]), GET_VLAN_ID(p->vlanh[p->vlan_idx]), len);
 
-    p->vlan_id[p->vlan_idx] = (uint16_t)GET_VLAN_ID(p->vlanh[p->vlan_idx]);
+    /* only store the id for flow hashing if it's not disabled. */
+    if (dtv->vlan_disabled == 0)
+        p->vlan_id[p->vlan_idx] = (uint16_t)GET_VLAN_ID(p->vlanh[p->vlan_idx]);
+
     p->vlan_idx++;
 
     switch (proto)   {

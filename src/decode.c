@@ -432,6 +432,13 @@ DecodeThreadVars *DecodeThreadVarsAlloc()
     /* initialize UDP app layer code */
     AlpProtoFinalize2Thread(&dtv->udp_dp_ctx);
 
+    /** set config defaults */
+    int vlanbool = 0;
+    if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
+        dtv->vlan_disabled = 1;
+    }
+    SCLogDebug("vlan tracking is %s", dtv->vlan_disabled == 0 ? "enabled" : "disabled");
+
     return dtv;
 }
 
