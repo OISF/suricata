@@ -524,12 +524,14 @@ defrag:
 # not in use.
 # The memcap can be specified in kb, mb, gb.  Just a number indicates it's
 # in bytes.
+# The ignore-vlan option disables the use of vlan ids in the flow hash.
 
 flow:
   memcap: 32mb
   hash-size: 65536
   prealloc: 10000
   emergency-recovery: 30
+  ignore-vlan: false
 
 # Specific timeouts for flows. Here you can specify the timeouts that the
 # active flows will wait to transit from the current state to another, on each
