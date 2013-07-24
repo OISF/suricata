@@ -80,6 +80,9 @@ alert pkthdr any any -> any any (msg:"SURICATA GRE v1 malformed Source Route Ent
 alert pkthdr any any -> any any (msg:"SURICATA GRE v1 header too big"; decode-event:gre.version1_hdr_too_big; sid:2200065; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA VLAN header too small "; decode-event:vlan.header_too_small; sid:2200066; rev:1;) 
 alert pkthdr any any -> any any (msg:"SURICATA VLAN unknown type"; decode-event:vlan.unknown_type; sid:2200067; rev:1;)
+# more than 2 vlan layers in the packet
+alert pkthdr any any -> any any (msg:"SURICATA VLAN too many layers"; decode-event:vlan.too_many_layers; sid:2200091; rev:1;)
+
 alert pkthdr any any -> any any (msg:"SURICATA IP raw invalid IP version "; decode-event:ipraw.invalid_ip_version; sid:2200068; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv4 Packet size too large"; decode-event:ipv4.frag_too_large; sid:2200069; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv4 Fragmentation overlap"; decode-event:ipv4.frag_overlap; sid:2200070; rev:1;)
@@ -102,5 +105,5 @@ alert pkthdr any any -> any any (msg:"SURICATA IPv4-in-IPv6 invalid protocol"; d
 alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 packet too short"; decode-event:ipv6.ipv6_in_ipv6_too_small; sid:2200084; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 invalid protocol"; decode-event:ipv6.ipv6_in_ipv6_wrong_version; sid:2200085; rev:1;)
 
-# next sid is 2200091
+# next sid is 2200092
 

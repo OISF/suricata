@@ -117,6 +117,7 @@ struct DetectEngineEvents_ {
     { "ipraw.invalid_ip_version",IPRAW_INVALID_IPV, },
     { "vlan.header_too_small",VLAN_HEADER_TOO_SMALL, },
     { "vlan.unknown_type",VLAN_UNKNOWN_TYPE, },
+    { "vlan.too_many_layers", VLAN_HEADER_TOO_MANY_LAYERS, },
     { "ipv4.frag_too_large", IPV4_FRAG_PKT_TOO_LARGE, },
     { "ipv4.frag_overlap", IPV4_FRAG_OVERLAP, },
     { "ipv6.frag_too_large", IPV6_FRAG_PKT_TOO_LARGE, },

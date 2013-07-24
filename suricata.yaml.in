@@ -531,6 +531,13 @@ flow:
   prealloc: 10000
   emergency-recovery: 30
 
+# This option controls the use of vlan ids in the flow hashing. Normally this
+# should be enabled, but in some (broken) setups where both sides of a flow are
+# not tagged with the same vlan tag, we can ignore the vlan id's in the flow
+# hashing.
+vlan:
+  use-for-tracking: true
+
 # Specific timeouts for flows. Here you can specify the timeouts that the
 # active flows will wait to transit from the current state to another, on each
 # protocol. The value of "new" determine the seconds to wait after a hanshake or
