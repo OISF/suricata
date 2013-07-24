@@ -49,6 +49,7 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
+#include "conf.h"
 #include "decode.h"
 #include "util-debug.h"
 #include "util-mem.h"
