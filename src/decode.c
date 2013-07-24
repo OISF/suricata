@@ -432,6 +432,12 @@ DecodeThreadVars *DecodeThreadVarsAlloc()
     /* initialize UDP app layer code */
     AlpProtoFinalize2Thread(&dtv->udp_dp_ctx);
 
+    /** set config defaults */
+    if ((ConfGetBool("flow.ignore-vlan", &dtv->vlan_disabled)) != 1) {
+        if (dtv->vlan_disabled)
+            SCLogInfo("Disabled vlan id tracking");
+    }
+
     return dtv;
 }
 
