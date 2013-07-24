@@ -25,6 +25,7 @@
 #define __HOST_H__
 
 #include "decode.h"
+#include "util-storage.h"
 
 /** Spinlocks or Mutex for the flow buckets. */
 //#define HRLOCK_SPIN
@@ -64,10 +65,11 @@ typedef struct Host_ {
     /** use cnt, reference counter */
     SC_ATOMIC_DECLARE(unsigned short, use_cnt);
 
-    /** pointers to tag and threshold storage */
-    void *tag;
-    void *threshold;
+    /** pointers to iprep storage */
     void *iprep;
+
+    /** storage api handle */
+    Storage *storage;
 
     /** hash pointers, protected by hash row mutex/spin */
     struct Host_ *hnext;

@@ -39,7 +39,9 @@
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
+
 #include "host.h"
+#include "host-storage.h"
 
 #include "detect-parse.h"
 #include "detect-engine-sigorder.h"
@@ -63,6 +65,24 @@
 
 #include "util-var-name.h"
 #include "tm-threads.h"
+
+static int threshold_id = -1; /**< host storage id for thresholds */
+
+int ThresholdHostStorageId(void) {
+    return threshold_id;
+}
+
+void ThresholdInit(void) {
+    threshold_id = HostStorageRegister("threshold", sizeof(void *), NULL, ThresholdListFree);
+    if (threshold_id == -1) {
+        SCLogError(SC_ERR_HOST_INIT, "Can't initiate host storage for thresholding");
+        exit(EXIT_FAILURE);
+    }
+}
+
+int ThresholdHostHasThreshold(Host *host) {
+    return HostGetStorageById(host, threshold_id) ? 1 : 0;
+}
 
 /**
  * \brief Return next DetectThresholdData for signature
@@ -135,10 +155,9 @@ int ThresholdTimeoutCheck(Host *host, struct timeval *tv)
     DetectThresholdEntry *prev = NULL;
     int retval = 1;
 
-    if (host->threshold == NULL)
-        return 1;
-
-    tmp = host->threshold;
+    tmp = HostGetStorageById(host, threshold_id);
+    if (tmp == NULL)
+         return 1;
 
     prev = NULL;
     while (tmp != NULL) {
@@ -159,8 +178,7 @@ int ThresholdTimeoutCheck(Host *host, struct timeval *tv)
 
             SCFree(tde);
         } else {
-            host->threshold = tmp->next;
-
+            HostSetStorageById(host, threshold_id, tmp->next);
             tde = tmp;
             tmp = tde->next;
 
@@ -193,7 +211,7 @@ static DetectThresholdEntry *ThresholdHostLookupEntry(Host *h, uint32_t sid, uin
 {
     DetectThresholdEntry *e;
 
-    for (e = h->threshold; e != NULL; e = e->next) {
+    for (e = HostGetStorageById(h, threshold_id); e != NULL; e = e->next) {
         if (e->sid == sid && e->gid == gid)
             break;
     }
@@ -243,8 +261,8 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
 
                 ret = 1;
 
-                e->next = h->threshold;
-                h->threshold = e;
+                e->next = HostGetStorageById(h, threshold_id);
+                HostSetStorageById(h, threshold_id, e);
             }
             break;
         }
@@ -276,8 +294,8 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
                     e->current_count = 1;
                     e->tv_sec1 = p->ts.tv_sec;
 
-                    e->next = h->threshold;
-                    h->threshold = e;
+                    e->next = HostGetStorageById(h, threshold_id);
+                    HostSetStorageById(h, threshold_id, e);
                 }
             }
             break;
@@ -316,8 +334,8 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
                 e->current_count = 1;
                 e->tv_sec1 = p->ts.tv_sec;
 
-                e->next = h->threshold;
-                h->threshold = e;
+                e->next = HostGetStorageById(h, threshold_id);
+                HostSetStorageById(h, threshold_id, e);
 
                 /* for the first match we return 1 to
                  * indicate we should alert */
@@ -360,8 +378,8 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
                 e->tv_sec1 = p->ts.tv_sec;
                 e->tv_usec1 = p->ts.tv_usec;
 
-                e->next = h->threshold;
-                h->threshold = e;
+                e->next = HostGetStorageById(h, threshold_id);
+                HostSetStorageById(h, threshold_id, e);
             }
             break;
         }
@@ -449,8 +467,8 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
                 e->tv_sec1 = p->ts.tv_sec;
                 e->tv_timeout = 0;
 
-                e->next = h->threshold;
-                h->threshold = e;
+                e->next = HostGetStorageById(h, threshold_id);
+                HostSetStorageById(h, threshold_id, e);
             }
             break;
         }

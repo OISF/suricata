@@ -42,6 +42,7 @@
 #include "flow-private.h"
 #include "flow-timeout.h"
 #include "flow-manager.h"
+#include "flow-storage.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -760,6 +761,8 @@ int FlowClearMemory(Flow* f, uint8_t proto_map)
         flow_proto[proto_map].Freefunc(f->protoctx);
     }
 
+    FlowFreeStorage(f);
+
     FLOW_RECYCLE(f);
 
     SCReturnInt(1);
@@ -1085,5 +1088,6 @@ void FlowRegisterTests (void) {
     UtRegisterTest("FlowTest09 -- Test flow Allocations when it reach memcap", FlowTest09, 1);
 
     FlowMgrRegisterTests();
+    RegisterFlowStorageTests();
 #endif /* UNITTESTS */
 }

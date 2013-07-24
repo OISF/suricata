@@ -28,6 +28,7 @@
 
 #include "util-debug.h"
 #include "host.h"
+#include "host-storage.h"
 
 #include "util-random.h"
 #include "util-misc.h"
@@ -36,6 +37,7 @@
 #include "host-queue.h"
 
 #include "detect-tag.h"
+#include "detect-engine-tag.h"
 #include "detect-engine-threshold.h"
 
 #include "util-hash-lookup3.h"
@@ -55,17 +57,19 @@ void HostMoveToSpare(Host *h) {
 }
 
 Host *HostAlloc(void) {
-    if (!(HOST_CHECK_MEMCAP(sizeof(Host)))) {
+    size_t size = sizeof(Host) + HostStorageSize();
+
+    if (!(HOST_CHECK_MEMCAP(size))) {
         return NULL;
     }
 
-    (void) SC_ATOMIC_ADD(host_memuse, sizeof(Host));
+    (void) SC_ATOMIC_ADD(host_memuse, size);
 
-    Host *h = SCMalloc(sizeof(Host));
+    Host *h = SCMalloc(size);
     if (unlikely(h == NULL))
         goto error;
 
-    memset(h, 0x00, sizeof(Host));
+    memset(h, 0x00, size);
 
     SCMutexInit(&h->m, NULL);
     SC_ATOMIC_INIT(h->use_cnt);
@@ -82,7 +86,7 @@ void HostFree(Host *h) {
         SC_ATOMIC_DESTROY(h->use_cnt);
         SCMutexDestroy(&h->m);
         SCFree(h);
-        (void) SC_ATOMIC_SUB(host_memuse, sizeof(Host));
+        (void) SC_ATOMIC_SUB(host_memuse, (sizeof(Host) + HostStorageSize()));
     }
 }
 
@@ -101,18 +105,13 @@ error:
 }
 
 void HostClearMemory(Host *h) {
-    if (h->tag != NULL) {
-        DetectTagDataListFree(h->tag);
-        h->tag = NULL;
-    }
-    if (h->threshold != NULL) {
-        ThresholdListFree(h->threshold);
-        h->threshold = NULL;
-    }
     if (h->iprep != NULL) {
         SCFree(h->iprep);
         h->iprep = NULL;
     }
+
+    if (HostStorageSize() > 0)
+        HostFreeStorage(h);
 }
 
 #define HOST_DEFAULT_HASHSIZE 4096
@@ -302,15 +301,8 @@ void HostCleanup(void)
             HRLOCK_LOCK(hb);
             while (h) {
                 if ((SC_ATOMIC_GET(h->use_cnt) > 0) && (h->iprep != NULL)) {
-                    /* iprep is attached to host only clear tag and threshold */
-                    if (h->tag != NULL) {
-                        DetectTagDataListFree(h->tag);
-                        h->tag = NULL;
-                    }
-                    if (h->threshold != NULL) {
-                        ThresholdListFree(h->threshold);
-                        h->threshold = NULL;
-                    }
+                    /* iprep is attached to host only clear local storage */
+                    HostFreeStorage(h);
                     h = h->hnext;
                 } else {
                     Host *n = h->hnext;
@@ -673,4 +665,7 @@ static Host *HostGetUsedHost(void) {
     return NULL;
 }
 
+void HostRegisterUnittests(void) {
+    RegisterHostStorageTests();
+}
 

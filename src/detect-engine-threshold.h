@@ -28,6 +28,9 @@
 #include "detect.h"
 #include "host.h"
 
+int ThresholdHostStorageId(void);
+int ThresholdHostHasThreshold(Host *);
+
 DetectThresholdData *SigGetThresholdType(Signature *, Packet *);
 DetectThresholdData *SigGetThresholdTypeIter(Signature *, Packet *, SigMatch **);
 int PacketAlertThreshold(DetectEngineCtx *, DetectEngineThreadCtx *,

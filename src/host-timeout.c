@@ -62,10 +62,10 @@ static int HostHostTimedOut(Host *h, struct timeval *ts) {
         SCLogDebug("host %p reputation timed out", h);
     }
 
-    if (h->tag && TagTimeoutCheck(h, ts) == 0) {
+    if (TagHostHasTag(h) && TagTimeoutCheck(h, ts) == 0) {
         tags = 1;
     }
-    if (h->threshold && ThresholdTimeoutCheck(h, ts) == 0) {
+    if (ThresholdHostHasThreshold(h) && ThresholdTimeoutCheck(h, ts) == 0) {
         thresholds = 1;
     }
 
