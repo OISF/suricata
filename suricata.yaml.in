@@ -681,6 +681,30 @@ logging:
       facility: local5
       format: "[%i] <%d> -- "
 
+# Tilera mpipe configuration. for use on Tilera TILE-Gx.
+mpipe:
+
+  # Load balancing mode "static" or "dynamic".
+  load-balance: dynamic
+
+  # List of interfaces we will listen on.
+  inputs:
+  - interface: xgbe2
+  - interface: xgbe3
+  - interface: xgbe4
+
+
+  # Relative weight of memory for packets of each mPipe buffer size.
+  stack:
+    size128: 0
+    size256: 9
+    size512: 0
+    size1024: 0
+    size1664: 7
+    size4096: 0
+    size10386: 0
+    size16384: 0
+
 # PF_RING configuration. for use with native PF_RING support
 # for more info see http://www.ntop.org/PF_RING.html
 pfring:
