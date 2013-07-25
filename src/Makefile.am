@@ -327,6 +327,7 @@ util-time.c util-time.h \
 util-unittest.c util-unittest.h \
 util-unittest-helper.c util-unittest-helper.h \
 util-validate.h util-affinity.h util-affinity.c \
+util-valgrind.c util-valgrind.h \
 util-var.c util-var.h \
 util-var-name.c util-var-name.h \
 util-vector.h \
