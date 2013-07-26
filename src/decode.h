@@ -59,6 +59,7 @@ enum PktSrcEnum {
 #include "source-ipfw.h"
 #include "source-pcap.h"
 #include "source-af-packet.h"
+#include "source-mpipe.h"
 
 #include "action-globals.h"
 
@@ -394,6 +395,10 @@ typedef struct Packet_
 #ifdef AF_PACKET
         AFPPacketVars afp_v;
 #endif
+#ifdef HAVE_MPIPE
+        /* tilegx mpipe stuff */
+        MpipePacketVars mpipe_v;
+#endif
 
         /** libpcap vars: shared by Pcap Live mode and Pcap File mode */
         PcapPacketVars pcap_v;
@@ -498,7 +503,12 @@ typedef struct Packet_
 #ifdef __SC_CUDA_SUPPORT__
     CudaPacketVars cuda_pkt_vars;
 #endif
-} Packet;
+}
+#ifdef HAVE_MPIPE
+    /* mPIPE requires packet buffers to be aligned to 128 byte boundaries. */
+    __attribute__((aligned(128)))
+#endif
+Packet;
 
 #define DEFAULT_PACKET_SIZE (1500 + ETHERNET_HEADER_LEN)
 /* storage: maximum ip packet size + link header */
