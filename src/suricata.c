@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -126,6 +126,7 @@
 #include "source-napatech.h"
 
 #include "source-af-packet.h"
+#include "source-mpipe.h"
 
 #include "respond-reject.h"
 
@@ -558,6 +559,9 @@ void usage(const char *progname)
 #ifdef BUILD_UNIX_SOCKET
     printf("\t--unix-socket[=<file>]       : use unix socket to control suricata work\n");
 #endif
+#ifdef HAVE_MPIPE
+    printf("\t--mpipe                      : run with tilegx mpipe interface(s)\n");
+#endif
     printf("\n");
     printf("\nTo run the engine with default configuration on "
             "interface eth0 with signature file \"signatures.rules\", run the "
@@ -834,6 +838,9 @@ int main(int argc, char **argv)
         {"dag", required_argument, 0, 0},
         {"napatech", 0, 0, 0},
         {"build-info", 0, &build_info, 1},
+#ifdef HAVE_MPIPE
+        {"mpipe", optional_argument, 0, 0},
+#endif
         {NULL, 0, NULL, 0}
     };
 
@@ -1105,6 +1112,25 @@ int main(int argc, char **argv)
                 SCPrintBuildInfo();
                 exit(EXIT_SUCCESS);
             }
+#ifdef HAVE_MPIPE
+            else if(strcmp((long_opts[option_index]).name , "mpipe") == 0) {
+                if (run_mode == RUNMODE_UNKNOWN) {
+                    run_mode = RUNMODE_TILERA_MPIPE;
+                    if (optarg != NULL) {
+                        memset(pcap_dev, 0, sizeof(pcap_dev));
+                        strlcpy(pcap_dev, optarg,
+                                ((strlen(optarg) < sizeof(pcap_dev)) ?
+                                 (strlen(optarg) + 1) : sizeof(pcap_dev)));
+                        LiveRegisterDevice(optarg);
+                    }
+                } else {
+                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, 
+                               "more than one run mode has been specified");
+                    usage(argv[0]);
+                    exit(EXIT_FAILURE);
+                }
+            }
+#endif
             break;
         case 'c':
             conf_filename = optarg;
@@ -1548,6 +1574,11 @@ int main(int argc, char **argv)
     /* pcap file */
     TmModuleReceivePcapFileRegister();
     TmModuleDecodePcapFileRegister();
+#ifdef HAVE_MPIPE
+    /* mpipe */
+    TmModuleReceiveMpipeRegister();
+    TmModuleDecodeMpipeRegister();
+#endif
     /* af-packet */
     TmModuleReceiveAFPRegister();
     TmModuleDecodeAFPRegister();
@@ -1916,6 +1947,21 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
             }
         }
+#ifdef HAVE_MPIPE
+    } else if (run_mode == RUNMODE_TILERA_MPIPE) {
+        if (strlen(pcap_dev)) {
+            if (ConfSet("mpipe.single_mpipe_dev", pcap_dev, 0) != 1) {
+                fprintf(stderr, "ERROR: Failed to set mpipe.single_mpipe_dev\n");
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            int ret = LiveBuildDeviceList("mpipe.inputs");
+            if (ret == 0) {
+                fprintf(stderr, "ERROR: No interface found in config for mpipe\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+#endif
 #ifdef HAVE_PFRING
     } else if (run_mode == RUNMODE_PFRING) {
         /* FIXME add backward compat support */
