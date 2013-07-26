@@ -99,10 +99,6 @@ int DetectIcmpIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
         return 0;
 
     if (PKT_IS_ICMPV4(p)) {
-        SCLogDebug("ICMPV4_GET_ID(p) %"PRIu16" (network byte order), "
-                "%"PRIu16" (host byte order)", ICMPV4_GET_ID(p),
-                ntohs(ICMPV4_GET_ID(p)));
-
         switch (ICMPV4_GET_TYPE(p)){
             case ICMP_ECHOREPLY:
             case ICMP_ECHO:
@@ -112,6 +108,10 @@ int DetectIcmpIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
             case ICMP_INFO_REPLY:
             case ICMP_ADDRESS:
             case ICMP_ADDRESSREPLY:
+                SCLogDebug("ICMPV4_GET_ID(p) %"PRIu16" (network byte order), "
+                        "%"PRIu16" (host byte order)", ICMPV4_GET_ID(p),
+                        ntohs(ICMPV4_GET_ID(p)));
+
                 pid = ICMPV4_GET_ID(p);
                 break;
             default:
@@ -122,6 +122,10 @@ int DetectIcmpIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
         switch (ICMPV6_GET_TYPE(p)) {
             case ICMP6_ECHO_REQUEST:
             case ICMP6_ECHO_REPLY:
+                SCLogDebug("ICMPV6_GET_ID(p) %"PRIu16" (network byte order), "
+                        "%"PRIu16" (host byte order)", ICMPV6_GET_ID(p),
+                        ntohs(ICMPV6_GET_ID(p)));
+
                 pid = ICMPV6_GET_ID(p);
                 break;
             default:
