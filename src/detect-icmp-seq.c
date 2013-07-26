@@ -99,10 +99,6 @@ int DetectIcmpSeqMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
         return 0;
 
     if (PKT_IS_ICMPV4(p)) {
-        SCLogDebug("ICMPV4_GET_SEQ(p) %"PRIu16" (network byte order), "
-                "%"PRIu16" (host byte order)", ICMPV4_GET_SEQ(p),
-                ntohs(ICMPV4_GET_SEQ(p)));
-
         switch (ICMPV4_GET_TYPE(p)){
             case ICMP_ECHOREPLY:
             case ICMP_ECHO:
@@ -112,6 +108,10 @@ int DetectIcmpSeqMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
             case ICMP_INFO_REPLY:
             case ICMP_ADDRESS:
             case ICMP_ADDRESSREPLY:
+                SCLogDebug("ICMPV4_GET_SEQ(p) %"PRIu16" (network byte order), "
+                        "%"PRIu16" (host byte order)", ICMPV4_GET_SEQ(p),
+                        ntohs(ICMPV4_GET_SEQ(p)));
+
                 seqn = ICMPV4_GET_SEQ(p);
                 break;
             default:
@@ -119,9 +119,14 @@ int DetectIcmpSeqMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
                 return 0;
         }
     } else if (PKT_IS_ICMPV6(p)) {
+
         switch (ICMPV6_GET_TYPE(p)) {
             case ICMP6_ECHO_REQUEST:
             case ICMP6_ECHO_REPLY:
+                SCLogDebug("ICMPV6_GET_SEQ(p) %"PRIu16" (network byte order), "
+                        "%"PRIu16" (host byte order)", ICMPV6_GET_SEQ(p),
+                        ntohs(ICMPV6_GET_SEQ(p)));
+
                 seqn = ICMPV6_GET_SEQ(p);
                 break;
             default:
@@ -268,7 +273,7 @@ void DetectIcmpSeqFree (void *ptr) {
 int DetectIcmpSeqParseTest01 (void) {
     DetectIcmpSeqData *iseq = NULL;
     iseq = DetectIcmpSeqParse("300");
-    if (iseq != NULL && iseq->seq == htons(300)) {
+    if (iseq != NULL && htons(iseq->seq) == 300) {
         DetectIcmpSeqFree(iseq);
         return 1;
     }
@@ -282,7 +287,7 @@ int DetectIcmpSeqParseTest01 (void) {
 int DetectIcmpSeqParseTest02 (void) {
     DetectIcmpSeqData *iseq = NULL;
     iseq = DetectIcmpSeqParse("  300  ");
-    if (iseq != NULL && iseq->seq == htons(300)) {
+    if (iseq != NULL && htons(iseq->seq) == 300) {
         DetectIcmpSeqFree(iseq);
         return 1;
     }
