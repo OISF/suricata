@@ -490,7 +490,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 SCReturn;
             case IPPROTO_ICMP:
                 ENGINE_SET_EVENT(p,IPV6_WITH_ICMPV4);
-                break;
+                SCReturn;
             default:
                 IPV6_SET_L4PROTO(p,nh);
                 SCReturn;
