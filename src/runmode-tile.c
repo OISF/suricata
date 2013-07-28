@@ -202,9 +202,17 @@ int RunModeTileMpipeWorkers(DetectEngineCtx *de_ctx)
         } else {
             mpipe_devc = SCStrdup(mpipe_dev);
         }
+        if (mpipe_devc == NULL) {
+            printf("ERROR: SCStrdup failed for ReceiveMpipe\n");
+            exit(EXIT_FAILURE);
+        }
 
         snprintf(tname, sizeof(tname), "Worker%d", pipe+1);
         thread_name = SCStrdup(tname);
+        if (thread_name == NULL) {
+            printf("ERROR: SCStrdup failed for ReceiveMpipe\n");
+            exit(EXIT_FAILURE);
+        }
 
         /* create the threads */
         ThreadVars *tv_worker =
