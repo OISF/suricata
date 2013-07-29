@@ -200,7 +200,6 @@
  * we put this here, because we only use it here in main.
  */
 volatile sig_atomic_t sigint_count = 0;
-volatile sig_atomic_t sighup_count = 0;
 volatile sig_atomic_t sigterm_count = 0;
 
 /*
@@ -304,12 +303,9 @@ void SignalHandlerSigusr2(int sig)
     return;
 }
 
-#if 0
 static void SignalHandlerSighup(/*@unused@*/ int sig) {
-    sighup_count = 1;
-    suricata_ctl_flags |= SURICATA_SIGHUP;
+    SCLogInfo("SigHUP received and ignored.");
 }
-#endif
 
 #ifdef DBG_MEM_ALLOC
 #ifndef _GLOBAL_MEM_
@@ -1826,7 +1822,7 @@ int main(int argc, char **argv)
 
 #ifndef OS_WIN32
 	/* SIGHUP is not implemnetd on WIN32 */
-    //UtilSignalHandlerSetup(SIGHUP, SignalHandlerSighup);
+    UtilSignalHandlerSetup(SIGHUP, SignalHandlerSighup);
 
     /* Try to get user/group to run suricata as if
        command line as not decide of that */
