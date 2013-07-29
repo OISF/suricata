@@ -1669,7 +1669,7 @@ static void CapabilitiesWarning(SuriInstance *suri, int argc, char**argv)
 #endif
 }
 
-static void SuriSetupDelayedDetect(DetectEngineCtx *de_ctx, SuriInstance *suri)
+static void SetupDelayedDetect(DetectEngineCtx *de_ctx, SuriInstance *suri)
 {
     /* In offline mode delayed init of detect is a bad idea */
     if (suri->offline) {
@@ -1981,7 +1981,7 @@ int main(int argc, char **argv)
     if (MagicInit() != 0)
         exit(EXIT_FAILURE);
 
-    SuriSetupDelayedDetect(de_ctx, &suri);
+    SetupDelayedDetect(de_ctx, &suri);
 
     if (!suri.delayed_detect) {
         if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
