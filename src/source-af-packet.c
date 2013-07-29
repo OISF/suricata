@@ -884,6 +884,9 @@ static int AFPRefSocket(AFPPeer* peer)
  */
 static int AFPDerefSocket(AFPPeer* peer)
 {
+    if (peer == NULL)
+        return 1;
+
     if (SC_ATOMIC_SUB(peer->sock_usage, 1) == 0) {
         if (SC_ATOMIC_GET(peer->state) == AFP_STATE_DOWN) {
             SCLogInfo("Cleaning socket connected to '%s'", peer->iface);
