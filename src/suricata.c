@@ -902,7 +902,7 @@ static void SuriInstanceInit(SuriInstance *suri)
     suri->offline = 0;
 }
 
-static TmEcode SuriPrintVersion()
+static TmEcode PrintVersion()
 {
 #ifdef REVISION
     printf("This is %s version %s (rev %s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
@@ -1469,7 +1469,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SuriInstance *suri)
 }
 
 #ifdef OS_WIN32
-static int SuriWindowsInitService(int argc, char **argv)
+static int WindowsInitService(int argc, char **argv)
 {
     if (SCRunningAsService()) {
         char path[MAX_PATH];
@@ -1498,7 +1498,7 @@ static int SuriWindowsInitService(int argc, char **argv)
 }
 #endif /* OS_WIN32 */
 
-static int SuriMayDaemonize(SuriInstance *suri)
+static int MayDaemonize(SuriInstance *suri)
 {
     if (suri->daemon == 1) {
         if (suri->pid_filename == NULL) {
@@ -1534,7 +1534,7 @@ static int SuriMayDaemonize(SuriInstance *suri)
     return TM_ECODE_OK;
 }
 
-static int SuriInitSignalHandler(SuriInstance *suri)
+static int InitSignalHandler(SuriInstance *suri)
 {
     /* registering signals we use */
     UtilSignalHandlerSetup(SIGINT, SignalHandlerSigint);
@@ -1593,7 +1593,7 @@ int StartInternalRunMode(SuriInstance *suri, int argc, char **argv)
             ListAppLayerProtocols();
             return TM_ECODE_DONE;
         case RUNMODE_PRINT_VERSION:
-            SuriPrintVersion();
+            PrintVersion();
             return TM_ECODE_DONE;
         case RUNMODE_PRINT_BUILDINFO:
             SCPrintBuildInfo();
@@ -1661,7 +1661,7 @@ static int FinalizeRunMode(SuriInstance *suri, char **argv)
     return TM_ECODE_OK;
 }
 
-static void SuriSetupDelayedDetect(DetectEngineCtx *de_ctx, SuriInstance *suri)
+static void SetupDelayedDetect(DetectEngineCtx *de_ctx, SuriInstance *suri)
 {
     /* In offline mode delayed init of detect is a bad idea */
     if (suri->offline) {
@@ -1771,7 +1771,7 @@ int main(int argc, char **argv)
 
 #ifdef OS_WIN32
     /* service initialization */
-    if (SuriWindowsInit(argc, argv) != 0) {
+    if (WindowsInit(argc, argv) != 0) {
         exit(EXIT_FAILURE);
     }
 #endif /* OS_WIN32 */
@@ -1797,7 +1797,7 @@ int main(int argc, char **argv)
     if (suri.run_mode == RUNMODE_UNITTEST)
         return RunUnittests(0, suri.regex_arg);
 
-    SuriPrintVersion();
+    PrintVersion();
 
     UtilCpuPrintSummary();
 
@@ -1932,10 +1932,10 @@ int main(int argc, char **argv)
 
     TmModuleRunInit();
 
-    if (SuriMayDaemonize(&suri) != TM_ECODE_OK)
+    if (MayDaemonize(&suri) != TM_ECODE_OK)
             exit(EXIT_FAILURE);
 
-    if (SuriInitSignalHandler(&suri) != TM_ECODE_OK)
+    if (InitSignalHandler(&suri) != TM_ECODE_OK)
             exit(EXIT_FAILURE);
 
 #ifdef HAVE_NSS
@@ -1971,7 +1971,7 @@ int main(int argc, char **argv)
     if (MagicInit() != 0)
         exit(EXIT_FAILURE);
 
-    SuriSetupDelayedDetect(de_ctx, &suri);
+    SetupDelayedDetect(de_ctx, &suri);
 
     if (!suri.delayed_detect) {
         if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
