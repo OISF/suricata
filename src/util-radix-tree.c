@@ -27,93 +27,9 @@
 #include "util-radix-tree.h"
 #include "util-debug.h"
 #include "util-error.h"
+#include "util-ip.h"
 #include "util-unittest.h"
 #include "util-memcmp.h"
-
-/**
- * \brief Validates an IPV4 address and returns the network endian arranged
- *        version of the IPV4 address
- *
- * \param addr Pointer to a character string containing an IPV4 address.  A
- *             valid IPV4 address is a character string containing a dotted
- *             format of "ddd.ddd.ddd.ddd"
- *
- * \retval Pointer to an in_addr instance containing the network endian format
- *         of the IPV4 address
- * \retval NULL if the IPV4 address is invalid
- */
-struct in_addr *SCRadixValidateIPV4Address(const char *addr_str)
-{
-    struct in_addr *addr = NULL;
-
-    if ( (addr = SCMalloc(sizeof(struct in_addr))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixValidateIPV4Address. Exiting...");
-        exit(EXIT_FAILURE);
-    }
-
-    if (inet_pton(AF_INET, addr_str, addr) <= 0) {
-        SCFree(addr);
-        return NULL;
-    }
-
-    return addr;
-}
-
-/**
- * \brief Validates an IPV6 address and returns the network endian arranged
- *        version of the IPV6 addresss
- *
- * \param addr Pointer to a character string containing an IPV6 address
- *
- * \retval Pointer to a in6_addr instance containing the network endian format
- *         of the IPV6 address
- * \retval NULL if the IPV6 address is invalid
- */
-struct in6_addr *SCRadixValidateIPV6Address(const char *addr_str)
-{
-    struct in6_addr *addr = NULL;
-
-    if ( (addr = SCMalloc(sizeof(struct in6_addr))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixValidateIPV6Address. Exiting...");
-        exit(EXIT_FAILURE);
-    }
-
-    if (inet_pton(AF_INET6, addr_str, addr) <= 0) {
-        SCFree(addr);
-        return NULL;
-    }
-
-    return addr;
-}
-
-/**
- * \brief Chops an ip address against a netmask.  For example an ip address
- *        192.168.240.1 would be chopped to 192.168.224.0 against a netmask
- *        value of 19.
- *
- * \param stream  Pointer the ip address that has to be chopped.
- * \param netmask The netmask value (cidr) to which the ip address has to be chopped.
- */
-void SCRadixChopIPAddressAgainstNetmask(uint8_t *stream, uint8_t netmask,
-                                               uint16_t key_bitlen)
-{
-    int mask = 0;
-    int i = 0;
-    int bytes = key_bitlen / 8;
-
-    for (i = 0; i < bytes; i++) {
-        mask = -1;
-        if ( ((i + 1) * 8) > netmask) {
-            if ( ((i + 1) * 8 - netmask) < 8)
-                mask = -1 << ((i + 1) * 8 - netmask);
-            else
-                mask = 0;
-        }
-        stream[i] &= mask;
-    }
-
-    return;
-}
 
 /**
  * \brief Allocates and returns a new instance of SCRadixUserData.
@@ -594,7 +510,7 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
     }
 
     /* chop the ip address against a netmask */
-    SCRadixChopIPAddressAgainstNetmask(key_stream, netmask, key_bitlen);
+    MaskIPNetblock(key_stream, netmask, key_bitlen);
 
     if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user,
                                        netmask)) == NULL) {
@@ -4158,7 +4074,7 @@ int SCRadixTestIPV4NetblockInsertion26(void)
         return 0;
     tmp = SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, str, 0);
     if (!tmp) {
-        printf("Not inserted correctly 1 :");
+        printf("Not inserted correctly 1:");
         result = 0;
         goto this_end;
     }
@@ -4169,7 +4085,7 @@ int SCRadixTestIPV4NetblockInsertion26(void)
         return 0;
     tmp = SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, str, 5);
     if (!tmp) {
-        printf("Not inserted correctly 2 :");
+        printf("Not inserted correctly 2:");
         result = 0;
         goto this_end;
     }
@@ -4182,7 +4098,7 @@ int SCRadixTestIPV4NetblockInsertion26(void)
     }
     tmp = SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, str, 7);
     if (!tmp) {
-        printf("Not inserted correctly 3 :");
+        printf("Not inserted correctly 3:");
         result = 0;
         goto this_end;
     }
