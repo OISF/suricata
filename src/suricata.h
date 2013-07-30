@@ -122,7 +122,7 @@ PacketQueue trans_q[256];
 
 SCDQDataQueue data_queues[256];
 
-typedef struct SuriInstance_ {
+typedef struct SCInstance_ {
     int run_mode;
 
     char pcap_dev[128];
@@ -149,7 +149,7 @@ typedef struct SuriInstance_ {
     struct timeval start_time;
 
     char *log_dir;
-} SuriInstance;
+} SCInstance;
 
 
 /* memset to zeros, and mutex init! */

@@ -877,7 +877,7 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
     SCReturnInt(TM_ECODE_OK);
 }
 
-static void SuriInstanceInit(SuriInstance *suri)
+static void SCInstanceInit(SCInstance *suri)
 {
     suri->run_mode = RUNMODE_UNKNOWN;
 
@@ -914,13 +914,13 @@ static TmEcode PrintVersion()
     return TM_ECODE_OK;
 }
 
-static void SuriSetStartTime(SuriInstance *suri)
+static void SCSetStartTime(SCInstance *suri)
 {
     memset(&suri->start_time, 0, sizeof(suri->start_time));
     gettimeofday(&suri->start_time, NULL);
 }
 
-static void SuriPrintElapsedTime(SuriInstance *suri)
+static void SCPrintElapsedTime(SCInstance *suri)
 {
     struct timeval end_time;
     memset(&end_time, 0, sizeof(end_time));
@@ -930,7 +930,7 @@ static void SuriPrintElapsedTime(SuriInstance *suri)
     SCLogInfo("time elapsed %.3fs", (float)milliseconds/(float)1000);
 }
 
-static TmEcode ParseCommandLine(int argc, char** argv, SuriInstance *suri)
+static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 {
     int opt;
 
@@ -1498,7 +1498,7 @@ static int WindowsInitService(int argc, char **argv)
 }
 #endif /* OS_WIN32 */
 
-static int MayDaemonize(SuriInstance *suri)
+static int MayDaemonize(SCInstance *suri)
 {
     if (suri->daemon == 1) {
         if (suri->pid_filename == NULL) {
@@ -1534,7 +1534,7 @@ static int MayDaemonize(SuriInstance *suri)
     return TM_ECODE_OK;
 }
 
-static int InitSignalHandler(SuriInstance *suri)
+static int InitSignalHandler(SCInstance *suri)
 {
     /* registering signals we use */
     UtilSignalHandlerSetup(SIGINT, SignalHandlerSigint);
@@ -1582,7 +1582,7 @@ static int InitSignalHandler(SuriInstance *suri)
     return TM_ECODE_OK;
 }
 
-int StartInternalRunMode(SuriInstance *suri, int argc, char **argv)
+int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
 {
     /* Treat internal running mode */
     switch(suri->run_mode) {
@@ -1643,7 +1643,7 @@ int StartInternalRunMode(SuriInstance *suri, int argc, char **argv)
     return TM_ECODE_OK;
 }
 
-static int FinalizeRunMode(SuriInstance *suri, char **argv)
+static int FinalizeRunMode(SCInstance *suri, char **argv)
 {
     switch (suri->run_mode) {
         case RUNMODE_PCAP_FILE:
@@ -1661,7 +1661,7 @@ static int FinalizeRunMode(SuriInstance *suri, char **argv)
     return TM_ECODE_OK;
 }
 
-static void SetupDelayedDetect(DetectEngineCtx *de_ctx, SuriInstance *suri)
+static void SetupDelayedDetect(DetectEngineCtx *de_ctx, SCInstance *suri)
 {
     /* In offline mode delayed init of detect is a bad idea */
     if (suri->offline) {
@@ -1686,7 +1686,7 @@ static void SetupDelayedDetect(DetectEngineCtx *de_ctx, SuriInstance *suri)
 
 }
 
-static int LoadSignatures(DetectEngineCtx *de_ctx, SuriInstance *suri)
+static int LoadSignatures(DetectEngineCtx *de_ctx, SCInstance *suri)
 {
     if (SigLoadSignatures(de_ctx, suri->sig_file, suri->sig_file_exclusive) < 0) {
         if (suri->sig_file == NULL) {
@@ -1700,7 +1700,7 @@ static int LoadSignatures(DetectEngineCtx *de_ctx, SuriInstance *suri)
     return TM_ECODE_OK;
 }
 
-static int ConfigGetCaptureValue(SuriInstance *suri)
+static int ConfigGetCaptureValue(SCInstance *suri)
 {
     /* Pull the max pending packets from the config, if not found fall
      * back on a sane default. */
@@ -1747,9 +1747,9 @@ static int ConfigGetCaptureValue(SuriInstance *suri)
 
 int main(int argc, char **argv)
 {
-    SuriInstance suri;
+    SCInstance suri;
 
-    SuriInstanceInit(&suri);
+    SCInstanceInit(&suri);
 
     sc_set_caps = FALSE;
 
@@ -1991,7 +1991,7 @@ int main(int argc, char **argv)
 
     CoredumpLoadConfig();
 
-    SuriSetStartTime(&suri);
+    SCSetStartTime(&suri);
 
     SCDropMainThreadCaps(suri.userid, suri.groupid);
 
@@ -2096,7 +2096,7 @@ int main(int argc, char **argv)
         FlowForceReassembly();
     }
 
-    SuriPrintElapsedTime(&suri);
+    SCPrintElapsedTime(&suri);
 
     if (suri.rule_reload == 1) {
         /* Disable detect threads first.  This is required by live rule swap */
