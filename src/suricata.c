@@ -539,7 +539,7 @@ void usage(const char *progname)
     printf("\t--unix-socket[=<file>]       : use unix socket to control suricata work\n");
 #endif
 #ifdef HAVE_MPIPE
-    printf("\t--mpipe                      : run with tilegx mpipe interface(s)\n");
+    printf("\t--mpipe                              : run with tilegx mpipe interface(s)\n");
 #endif
     printf("\n");
     printf("\nTo run the engine with default configuration on "
@@ -1005,10 +1005,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef HAVE_PFRING
                 suri->run_mode = RUNMODE_PFRING;
                 if (optarg != NULL) {
-                    memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
-                    strlcpy(suri->pcap_dev, optarg,
-                            ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
-                             (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
+                    memset(pcap_dev, 0, sizeof(pcap_dev));
+                    strlcpy(pcap_dev, optarg,
+                            ((strlen(optarg) < sizeof(pcap_dev)) ?
+                             (strlen(optarg) + 1) : sizeof(pcap_dev)));
                     LiveRegisterDevice(optarg);
                 }
 #else
@@ -1252,13 +1252,13 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
 #ifdef HAVE_MPIPE
             else if(strcmp((long_opts[option_index]).name , "mpipe") == 0) {
-                if (run_mode == RUNMODE_UNKNOWN) {
-                    run_mode = RUNMODE_TILERA_MPIPE;
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_TILERA_MPIPE;
                     if (optarg != NULL) {
-                        memset(pcap_dev, 0, sizeof(pcap_dev));
-                        strlcpy(pcap_dev, optarg,
-                                ((strlen(optarg) < sizeof(pcap_dev)) ?
-                                 (strlen(optarg) + 1) : sizeof(pcap_dev)));
+                        memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
+                        strlcpy(suri->pcap_dev, optarg,
+                                ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
+                                 (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
                         LiveRegisterDevice(optarg);
                     }
                 } else {
