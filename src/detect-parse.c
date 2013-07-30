@@ -134,40 +134,40 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
         goto end;
     }
     if (sm->type == DETECT_CONTENT) {
-    DetectContentData *cd = (DetectContentData *)sm->ctx;
-    if (cd->flags & DETECT_CONTENT_RAWBYTES) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "%s rule can not "
-                   "be used with the rawbytes rule keyword",
-                   sigmatch_table[sm_type].name);
-        goto end;
-    }
-    if (cd->flags & (DETECT_CONTENT_WITHIN | DETECT_CONTENT_DISTANCE)) {
-        SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
-                                                   DETECT_CONTENT, sm->prev,
-                                                   DETECT_PCRE, sm->prev);
-        if (pm != NULL) {
-            if (pm->type == DETECT_CONTENT) {
-                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
-                tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
-            } else {
-                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
-                tmp_pd->flags &= ~DETECT_PCRE_RELATIVE_NEXT;
-            }
+        DetectContentData *cd = (DetectContentData *)sm->ctx;
+        if (cd->flags & DETECT_CONTENT_RAWBYTES) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "%s rule can not "
+                       "be used with the rawbytes rule keyword",
+                       sigmatch_table[sm_type].name);
+            goto end;
         }
+        if (cd->flags & (DETECT_CONTENT_WITHIN | DETECT_CONTENT_DISTANCE)) {
+            SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
+                                                       DETECT_CONTENT, sm->prev,
+                                                       DETECT_PCRE, sm->prev);
+            if (pm != NULL) {
+                if (pm->type == DETECT_CONTENT) {
+                    DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                    tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
+                } else {
+                    DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                    tmp_pd->flags &= ~DETECT_PCRE_RELATIVE_NEXT;
+                }
+            }
 
-        pm = SigMatchGetLastSMFromLists(s, 4,
-                                        DETECT_CONTENT, s->sm_lists_tail[sm_list],
-                                        DETECT_PCRE, s->sm_lists_tail[sm_list]);
-        if (pm != NULL) {
-            if (pm->type == DETECT_CONTENT) {
-                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
-                tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-            } else {
-                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
-                tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
+            pm = SigMatchGetLastSMFromLists(s, 4,
+                                            DETECT_CONTENT, s->sm_lists_tail[sm_list],
+                                            DETECT_PCRE, s->sm_lists_tail[sm_list]);
+            if (pm != NULL) {
+                if (pm->type == DETECT_CONTENT) {
+                    DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                    tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+                } else {
+                    DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                    tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
+                }
             }
         }
-    }
     }
     if (CustomCallback != NULL)
         CustomCallback(s);
