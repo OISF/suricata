@@ -163,7 +163,7 @@ void SCProfilingRulesGlobalInit(void) {
             if (filename != NULL) {
 
                 char *log_dir;
-                log_dir = GetLogDirectory();
+                log_dir = ConfigGetLogDirectory();
 
                 profiling_file_name = SCMalloc(PATH_MAX);
                 if (unlikely(profiling_file_name == NULL)) {
