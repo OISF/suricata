@@ -27,8 +27,8 @@
 
 #include "util-error.h"
 #include "util-debug.h"
+#include "util-ip.h"
 #include "util-radix-tree.h"
-#include "util-host-os-info.h"
 #include "util-unittest.h"
 #include "suricata-common.h"
 #include "threads.h"
@@ -802,7 +802,7 @@ Reputation *SCReputationAddIPV4Data(uint8_t *ipv4addr, int netmask_value, Reputa
             return NULL;
         }
 
-        SCRadixChopIPAddressAgainstNetmask((uint8_t *)ipv4_addr, netmask_value, 32);
+        MaskIPNetblock((uint8_t *)ipv4_addr, netmask_value, 32);
 
         /* Be careful with the mutex */
         SCMutexLock(&rep_ctx->reputationIPV4_lock);
@@ -1072,7 +1072,7 @@ Reputation *SCReputationAddIPV6Data(uint8_t *ipv6addr, int netmask_value, Reputa
             return NULL;
         }
 
-        SCRadixChopIPAddressAgainstNetmask((uint8_t *)ipv6_addr, netmask_value, 128);
+        MaskIPNetblock((uint8_t *)ipv6_addr, netmask_value, 128);
 
         /* Be careful with the mutex */
         SCMutexLock(&rep_ctx->reputationIPV6_lock);
