@@ -123,16 +123,17 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
         goto end;
     }
 
-    sm = SigMatchGetLastSMFromLists(s, 2,
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+    sm = SigMatchGetLastSMFromLists(s, 4,
+                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                    DETECT_CONTENT_LEN, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
     if (sm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "\"%s\" keyword "
                    "found inside the rule without a content context.  "
-                   "Please use a \"content\" keyword before using the "
-                   "\"%s\" keyword", sigmatch_table[sm_type].name,
-                   sigmatch_table[sm_type].name);
+                   "Please use a \"content\" or \"content_len\" keyword "
+                   "before using the keyword", sigmatch_table[sm_type].name);
         goto end;
     }
+    if (sm->type == DETECT_CONTENT) {
     DetectContentData *cd = (DetectContentData *)sm->ctx;
     if (cd->flags & DETECT_CONTENT_RAWBYTES) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "%s rule can not "
@@ -166,6 +167,7 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
                 tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
             }
         }
+    }
     }
     if (CustomCallback != NULL)
         CustomCallback(s);
