@@ -32,6 +32,7 @@
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "detect-content.h"
+#include "detect-content-len.h"
 #include "detect-pcre.h"
 #include "detect-isdataat.h"
 #include "detect-bytetest.h"
@@ -523,8 +524,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         SCReturnInt(0);
 #ifdef HAVE_LUAJIT
-    }
-    else if (sm->type == DETECT_LUAJIT) {
+    } else if (sm->type == DETECT_LUAJIT) {
         /* for flowvar gets and sets we need to know the flow's lock status */
         int need_flow_lock = 0;
         if (inspection_mode <= DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM)
@@ -537,6 +537,25 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         }
         goto match;
 #endif
+    } else if (sm->type == DETECT_CONTENT_LEN) {
+        DetectContentLenData *cld = sm->ctx;
+        if (cld->op == DETECT_CONTENT_LEN_LT) {
+            if (buffer_len < cld->len1)
+                goto match;
+        } else if (cld->op == DETECT_CONTENT_LEN_GT) {
+            if (buffer_len > cld->len1)
+                goto match;
+        } else if (cld->op == DETECT_CONTENT_LEN_EQ) {
+            if (buffer_len == cld->len1)
+                goto match;
+        } else if (cld->op == DETECT_CONTENT_LEN_NE) {
+            if (buffer_len != cld->len1)
+                goto match;
+        } else if (cld->op == DETECT_CONTENT_LEN_RA) {
+            if (buffer_len > cld->len1 && buffer_len < cld->len2)
+                goto match;
+        }
+        SCReturnInt(0);
     } else {
         SCLogDebug("sm->type %u", sm->type);
 #ifdef DEBUG
