@@ -130,7 +130,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
     if (filename == NULL)
         filename = default_filename;
 
-    log_dir = GetLogDirectory();
+    log_dir = ConfigGetLogDirectory();
 
     if (PathIsAbsolute(filename)) {
         snprintf(log_path, PATH_MAX, "%s", filename);

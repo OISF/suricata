@@ -25,8 +25,8 @@
 #ifndef __UTIL_UTIL_CONF_H__
 #define __UTIL_UTIL_CONF_H__
 
-TmEcode SetLogDirectory(char *name);
-char *GetLogDirectory();
-TmEcode CheckLogDirectory(char *log_dir);
+TmEcode ConfigSetLogDirectory(char *name);
+char *ConfigGetLogDirectory();
+TmEcode ConfigCheckLogDirectory(char *log_dir);
 
 #endif /* __UTIL_UTIL_CONF_H__ */

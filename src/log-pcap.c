@@ -463,7 +463,7 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
                 exit(EXIT_FAILURE);
             } else {
                 char *log_dir = NULL;
-                log_dir = GetLogDirectory();
+                log_dir = ConfigGetLogDirectory();
 
                 strlcpy(pl->dir,
                     log_dir, sizeof(pl->dir));
@@ -475,7 +475,7 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
                         s_dir, sizeof(pl->dir));
             } else {
                 char *log_dir = NULL;
-                log_dir = GetLogDirectory();
+                log_dir = ConfigGetLogDirectory();
 
                 snprintf(pl->dir, sizeof(pl->dir), "%s/%s",
                     log_dir, s_dir);

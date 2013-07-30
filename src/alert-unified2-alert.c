@@ -1096,7 +1096,7 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
 
     /* create the filename to use */
     char *log_dir;
-    log_dir = GetLogDirectory();
+    log_dir = ConfigGetLogDirectory();
 
     snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, log_dir, prefix, (uint32_t)ts.tv_sec);
 
