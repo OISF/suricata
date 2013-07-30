@@ -152,6 +152,7 @@ void SignalHandlerSigusr2Idle(int sig);
 
 int RunmodeIsUnittests(void);
 int RunmodeGetCurrent(void);
+int IsRuleReloadSet(int quiet);
 
 extern int run_mode;
 

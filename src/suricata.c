@@ -800,7 +800,7 @@ TmEcode LoadYamlConfig(char *conf_filename) {
     SCReturnInt(TM_ECODE_OK);
 }
 
-static int IsRuleReloadSet(int quiet)
+int IsRuleReloadSet(int quiet)
 {
     int rule_reload;
 

@@ -2612,7 +2612,9 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
 
 #ifdef HAVE_LUAJIT
     /* run this before the mpm states are initialized */
-    if (DetectLuajitSetupStatesPool(de_ctx->detect_luajit_instances, rule_reload) != 0) {
+    if (DetectLuajitSetupStatesPool(de_ctx->detect_luajit_instances,
+                                    IsRuleReloadSet(TRUE))
+            != 0) {
         if (de_ctx->failure_fatal)
             return -1;
     }
