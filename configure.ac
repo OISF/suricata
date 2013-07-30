@@ -1088,8 +1088,11 @@
             AC_DEFINE_UNQUOTED([HAVE_HTP_DECODE_QUERY_INPLACE],[1],[Assuming htp_decode_query_inplace function in bundled libhtp])
         else
             echo
-            echo "  ERROR: Libhtp is not bundled. Get libhtp from https://github.com/ironbee/libhtp"
-            echo "  and pass --enable-non-bundled-htp to Suricata's configure script."
+            echo "  ERROR: Libhtp is not bundled. Get libhtp by doing:"
+            echo "     git clone https://github.com/ironbee/libhtp"
+            echo "  Then re-run Suricata's autogen.sh and configure script."
+            echo "  Or, if libhtp is installed in a different location,"
+            echo "  pass --enable-non-bundled-htp to Suricata's configure script."
             echo "  Add --with-libhtp-includes=<dir> and --with-libhtp-libraries=<dir> if"
             echo "  libhtp is not installed in the include and library paths."
             echo
