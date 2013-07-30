@@ -214,7 +214,7 @@ static int AlertPcapInfoOpenFileCtx(LogFileCtx *file_ctx, const char *filename,
     char log_path[PATH_MAX];
     char *log_dir;
 
-    log_dir = GetLogDirectory();
+    log_dir = ConfigGetLogDirectory();
 
     snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
 

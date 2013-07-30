@@ -385,7 +385,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     int sigtotal = 0;
     char *sfile = NULL;
 
-    if (engine_analysis) {
+    if (RunmodeGetCurrent() == RUNMODE_ENGINE_ANALYSIS) {
         fp_engine_analysis_set = SetupFPAnalyzer();
         rule_engine_analysis_set = SetupRuleAnalyzer();
     }
@@ -468,7 +468,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     ret = 0;
 
  end:
-    if (engine_analysis) {
+    if (RunmodeGetCurrent() == RUNMODE_ENGINE_ANALYSIS) {
         if (rule_engine_analysis_set) {
             CleanupRuleAnalyzer();
         }
@@ -2612,7 +2612,9 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
 
 #ifdef HAVE_LUAJIT
     /* run this before the mpm states are initialized */
-    if (DetectLuajitSetupStatesPool(de_ctx->detect_luajit_instances, rule_reload) != 0) {
+    if (DetectLuajitSetupStatesPool(de_ctx->detect_luajit_instances,
+                                    IsRuleReloadSet(TRUE))
+            != 0) {
         if (de_ctx->failure_fatal)
             return -1;
     }
