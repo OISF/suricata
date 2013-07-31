@@ -1252,17 +1252,17 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
 #ifdef HAVE_MPIPE
             else if(strcmp((long_opts[option_index]).name , "mpipe") == 0) {
-                if (run_mode == RUNMODE_UNKNOWN) {
-                    run_mode = RUNMODE_TILERA_MPIPE;
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_TILERA_MPIPE;
                     if (optarg != NULL) {
-                        memset(pcap_dev, 0, sizeof(pcap_dev));
-                        strlcpy(pcap_dev, optarg,
-                                ((strlen(optarg) < sizeof(pcap_dev)) ?
-                                 (strlen(optarg) + 1) : sizeof(pcap_dev)));
+                        memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
+                        strlcpy(suri->pcap_dev, optarg,
+                                ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
+                                 (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
                         LiveRegisterDevice(optarg);
                     }
                 } else {
-                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, 
+                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE,
                                "more than one run mode has been specified");
                     usage(argv[0]);
                     exit(EXIT_FAILURE);
