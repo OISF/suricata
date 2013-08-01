@@ -262,12 +262,12 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
     len = sizeof(*pl->h) + GET_PKT_LEN(p);
 
     if (pl->filename == NULL) {
-        SCLogDebug("Opening PCAP log file %s", pl->filename);
         ret = PcapLogOpenFileCtx(pl);
         if (ret < 0) {
             SCMutexUnlock(&pl->plog_lock);
             return TM_ECODE_FAILED;
         }
+        SCLogDebug("Opening PCAP log file %s", pl->filename);
     }
 
     if (pl->mode == LOGMODE_SGUIL) {
