@@ -953,7 +953,7 @@ static int DetectDnsQueryTest07(void) {
     if (s == NULL) {
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
+    s = DetectEngineAppendSig(de_ctx, "alert dnsudp any any -> any any "
                                    "(msg:\"Test Z flag event\"; "
                                    "app-layer-event:dns.z_flag_set; sid:3;)");
     if (s == NULL) {
