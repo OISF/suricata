@@ -360,6 +360,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     int rc;
     u_int32_t version = 0;
     PfringIfaceConfig *pfconf = (PfringIfaceConfig *) initdata;
+    unsigned int opflag;
 
 
     if (pfconf == NULL)
@@ -383,9 +384,23 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
+    ptv->checksum_mode = pfconf->checksum_mode;
+
+    opflag = PF_RING_REENTRANT | PF_RING_PROMISC;
+
+    if (ptv->checksum_mode == CHECKSUM_VALIDATION_RXONLY) {
+        if (strncmp(ptv->interface, "dna", 3) == 0) {
+            SCLogWarning(SC_ERR_INVALID_VALUE,
+                         "Can't use rxonly checksum-checks on DNA interface,"
+                         " resetting to auto");
+            ptv->checksum_mode = CHECKSUM_VALIDATION_AUTO;
+        } else {
+            opflag |= PF_RING_LONG_HEADER;
+        }
+    }
+
 #ifdef HAVE_PFRING_OPEN_NEW
-    ptv->pd = pfring_open(ptv->interface, (uint32_t)default_packet_size,
-                          PF_RING_REENTRANT | PF_RING_LONG_HEADER | PF_RING_PROMISC);
+    ptv->pd = pfring_open(ptv->interface, (uint32_t)default_packet_size, opflag);
 #else
     ptv->pd = pfring_open(ptv->interface, LIBPFRING_PROMISC, (uint32_t)default_packet_size, LIBPFRING_REENTRANT);
 #endif
@@ -398,8 +413,6 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
         pfring_set_application_name(ptv->pd, PROG_NAME);
         pfring_version(ptv->pd, &version);
     }
-
-    ptv->checksum_mode = pfconf->checksum_mode;
 
     /* We only set cluster info if the number of pfring threads is greater than 1 */
     ptv->threads = pfconf->threads;
