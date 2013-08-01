@@ -114,7 +114,17 @@
     fi
     AM_CONDITIONAL([HAVE_PYTHON], [test "$HAVE_PYTHON_CONFIG" != "no"])
 
-
+    AC_PATH_PROG(HAVE_WGET, wget, "no")
+    if test "$HAVE_WGET" = "no"; then
+        AC_PATH_PROG(HAVE_CURL, curl, "no")
+        if test "$HAVE_CURL" = "no"; then
+            echo
+            echo "   Warning curl or wget not found, you won't be able to"
+            echo "   download latest ruleset with 'make install-rules'"
+        fi
+    fi
+    AM_CONDITIONAL([HAVE_FETCH_COMMAND], [test "x$HAVE_WGET" != "xno" || test "x$HAVE_CURL" != "xno"])
+    AM_CONDITIONAL([HAVE_WGET_COMMAND], [test "x$HAVE_WGET" != "xno"])
 
     # Checks for libraries.
 
