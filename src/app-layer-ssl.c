@@ -971,7 +971,7 @@ void SSLStateFree(void *p)
     return;
 }
 
-static uint16_t SSLProbingParser(uint8_t *input, uint32_t ilen)
+static uint16_t SSLProbingParser(uint8_t *input, uint32_t ilen, uint32_t *offset)
 {
     /* probably a rst/fin sending an eof */
     if (ilen == 0)
@@ -1025,13 +1025,12 @@ void RegisterSSLParsers(void)
     AppLayerRegisterStateFuncs(ALPROTO_TLS, SSLStateAlloc, SSLStateFree);
 
     AppLayerRegisterProbingParser(&alp_proto_ctx,
-                                  443,
                                   IPPROTO_TCP,
+                                  "443",
                                   proto_name,
                                   ALPROTO_TLS,
                                   0, 3,
                                   STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   SSLProbingParser);
 #ifdef UNITTESTS
     AppLayerRegisterUnittests(ALPROTO_TLS, SSLParserRegisterTests);

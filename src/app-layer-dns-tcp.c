@@ -540,7 +540,7 @@ bad_data:
     SCReturnInt(-1);
 }
 
-static uint16_t DNSTcpProbingParser(uint8_t *input, uint32_t ilen)
+static uint16_t DNSTcpProbingParser(uint8_t *input, uint32_t ilen, uint32_t *offset)
 {
     if (ilen == 0 || ilen < sizeof(DNSTcpHeader)) {
         SCLogDebug("ilen too small, hoped for at least %"PRIuMAX, (uintmax_t)sizeof(DNSTcpHeader));
@@ -600,13 +600,12 @@ void RegisterDNSTCPParsers(void) {
             DNSGetAlstateProgressCompletionStatus);
 
     AppLayerRegisterProbingParser(&alp_proto_ctx,
-                                  53,
                                   IPPROTO_TCP,
+                                  "53",
                                   proto_name,
                                   ALPROTO_DNS_TCP,
                                   0, sizeof(DNSTcpHeader),
                                   STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   DNSTcpProbingParser);
 
     DNSAppLayerDecoderEventsRegister(ALPROTO_DNS_TCP);
