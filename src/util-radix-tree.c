@@ -1226,7 +1226,8 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
 void SCRadixRemoveKeyGeneric(uint8_t *key_stream, uint16_t key_bitlen,
                              SCRadixTree *tree)
 {
-    return SCRadixRemoveKey(key_stream, key_bitlen, tree, 255);
+    SCRadixRemoveKey(key_stream, key_bitlen, tree, 255);
+    return;
 }
 
 /**
@@ -1240,7 +1241,8 @@ void SCRadixRemoveKeyGeneric(uint8_t *key_stream, uint16_t key_bitlen,
 void SCRadixRemoveKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree,
                                   uint8_t netmask)
 {
-    return SCRadixRemoveKey(key_stream, 32, tree, netmask);
+    SCRadixRemoveKey(key_stream, 32, tree, netmask);
+    return;
 }
 
 /**
@@ -1255,7 +1257,8 @@ void SCRadixRemoveKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree,
  */
 void SCRadixRemoveKeyIPV4(uint8_t *key_stream, SCRadixTree *tree)
 {
-    return SCRadixRemoveKey(key_stream, 32, tree, 32);
+    SCRadixRemoveKey(key_stream, 32, tree, 32);
+    return;
 }
 
 /**
@@ -1269,7 +1272,8 @@ void SCRadixRemoveKeyIPV4(uint8_t *key_stream, SCRadixTree *tree)
 void SCRadixRemoveKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree,
                                   uint8_t netmask)
 {
-    return SCRadixRemoveKey(key_stream, 128, tree, netmask);
+    SCRadixRemoveKey(key_stream, 128, tree, netmask);
+    return;
 }
 
 /**
@@ -1284,7 +1288,8 @@ void SCRadixRemoveKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree,
  */
 void SCRadixRemoveKeyIPV6(uint8_t *key_stream, SCRadixTree *tree)
 {
-    return SCRadixRemoveKey(key_stream, 128, tree, 128);
+    SCRadixRemoveKey(key_stream, 128, tree, 128);
+    return;
 }
 
 /**
