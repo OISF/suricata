@@ -262,23 +262,29 @@ static void FTPStateFree(void *s) {
 #endif
 }
 
-
 void RegisterFTPParsers(void) {
     char *proto_name = "ftp";
 
     /** FTP */
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "USER ", 5, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "PASS ", 5, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "PORT ", 5, 0, STREAM_TOSERVER);
+    if (AppLayerProtoDetectionEnabled(proto_name)) {
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "USER ", 5, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "PASS ", 5, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "PORT ", 5, 0, STREAM_TOSERVER);
+    }
 
-    AppLayerRegisterProto(proto_name, ALPROTO_FTP, STREAM_TOSERVER,
-                          FTPParseRequest);
-    AppLayerRegisterProto(proto_name, ALPROTO_FTP, STREAM_TOCLIENT,
-                          FTPParseResponse);
-    AppLayerRegisterParser("ftp.request_command_line", ALPROTO_FTP,
-                           FTP_FIELD_REQUEST_LINE, FTPParseRequestCommandLine,
-                           "ftp");
-    AppLayerRegisterStateFuncs(ALPROTO_FTP, FTPStateAlloc, FTPStateFree);
+    if (AppLayerParserEnabled(proto_name)) {
+        AppLayerRegisterProto(proto_name, ALPROTO_FTP, STREAM_TOSERVER,
+                              FTPParseRequest);
+        AppLayerRegisterProto(proto_name, ALPROTO_FTP, STREAM_TOCLIENT,
+                              FTPParseResponse);
+        AppLayerRegisterParser("ftp.request_command_line", ALPROTO_FTP,
+                               FTP_FIELD_REQUEST_LINE, FTPParseRequestCommandLine,
+                               "ftp");
+        AppLayerRegisterStateFuncs(ALPROTO_FTP, FTPStateAlloc, FTPStateFree);
+    } else {
+        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
+                  "still on.", proto_name);
+    }
 #ifdef UNITTESTS
     AppLayerRegisterUnittests(ALPROTO_FTP, FTPParserRegisterTests);
 #endif

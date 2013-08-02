@@ -578,35 +578,46 @@ void RegisterDNSTCPParsers(void) {
     char *proto_name = "dnstcp";
 
     /** DNS */
-	AppLayerRegisterProto(proto_name, ALPROTO_DNS_TCP, STREAM_TOSERVER,
-			DNSTCPRequestParse);
-	AppLayerRegisterProto(proto_name, ALPROTO_DNS_TCP, STREAM_TOCLIENT,
-			DNSTCPResponseParse);
-	AppLayerRegisterStateFuncs(ALPROTO_DNS_TCP, DNSStateAlloc,
-			DNSStateFree);
-    AppLayerRegisterTxFreeFunc(ALPROTO_DNS_TCP,
-            DNSStateTransactionFree);
+    if (AppLayerProtoDetectionEnabled(proto_name)) {
+        AppLayerRegisterProbingParser(&alp_proto_ctx,
+                                      IPPROTO_TCP,
+                                      "53",
+                                      proto_name,
+                                      ALPROTO_DNS_TCP,
+                                      0, sizeof(DNSTcpHeader),
+                                      STREAM_TOSERVER,
+                                      DNSTcpProbingParser);
+    } else {
+        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
+                  proto_name);
+        return;
+    }
 
-    AppLayerRegisterGetEventsFunc(ALPROTO_DNS_TCP, DNSGetEvents);
-    AppLayerRegisterHasEventsFunc(ALPROTO_DNS_TCP, DNSHasEvents);
+    if (AppLayerParserEnabled(proto_name)) {
+        AppLayerRegisterProto(proto_name, ALPROTO_DNS_TCP, STREAM_TOSERVER,
+                              DNSTCPRequestParse);
+        AppLayerRegisterProto(proto_name, ALPROTO_DNS_TCP, STREAM_TOCLIENT,
+                              DNSTCPResponseParse);
+        AppLayerRegisterStateFuncs(ALPROTO_DNS_TCP, DNSStateAlloc,
+                                   DNSStateFree);
+        AppLayerRegisterTxFreeFunc(ALPROTO_DNS_TCP,
+                                   DNSStateTransactionFree);
 
-    AppLayerRegisterGetTx(ALPROTO_DNS_TCP,
-            DNSGetTx);
-    AppLayerRegisterGetTxCnt(ALPROTO_DNS_TCP,
-            DNSGetTxCnt);
-    AppLayerRegisterGetAlstateProgressFunc(ALPROTO_DNS_TCP,
-            DNSGetAlstateProgress);
-    AppLayerRegisterGetAlstateProgressCompletionStatus(ALPROTO_DNS_TCP,
-            DNSGetAlstateProgressCompletionStatus);
+        AppLayerRegisterGetEventsFunc(ALPROTO_DNS_TCP, DNSGetEvents);
+        AppLayerRegisterHasEventsFunc(ALPROTO_DNS_TCP, DNSHasEvents);
 
-    AppLayerRegisterProbingParser(&alp_proto_ctx,
-                                  IPPROTO_TCP,
-                                  "53",
-                                  proto_name,
-                                  ALPROTO_DNS_TCP,
-                                  0, sizeof(DNSTcpHeader),
-                                  STREAM_TOSERVER,
-                                  DNSTcpProbingParser);
+        AppLayerRegisterGetTx(ALPROTO_DNS_TCP,
+                              DNSGetTx);
+        AppLayerRegisterGetTxCnt(ALPROTO_DNS_TCP,
+                                 DNSGetTxCnt);
+        AppLayerRegisterGetAlstateProgressFunc(ALPROTO_DNS_TCP,
+                                               DNSGetAlstateProgress);
+        AppLayerRegisterGetAlstateProgressCompletionStatus(ALPROTO_DNS_TCP,
+                                                           DNSGetAlstateProgressCompletionStatus);
+    } else {
+        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
+                  "still on.", proto_name);
+    }
 
     DNSAppLayerDecoderEventsRegister(ALPROTO_DNS_TCP);
 }

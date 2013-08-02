@@ -631,7 +631,11 @@ int SigParseProto(Signature *s, const char *protostr) {
 
         if (s->alproto == ALPROTO_UNKNOWN) {
             SCLogError(SC_ERR_UNKNOWN_PROTOCOL, "protocol \"%s\" cannot be used "
-                       "in a signature", protostr);
+                       "in a signature.  Either detection for this protocol "
+                       "supported yet OR detection has been disabled for "
+                       "protocol through the yaml option "
+                       "app-layer.protocols.%s.detection-enabled", protostr,
+                       protostr);
             SCReturnInt(-1);
         }
     }
@@ -1102,6 +1106,246 @@ static void SigBuildAddressMatchArray(Signature *s) {
     }
 }
 
+/*
+ * \retval 1 Indicates the port range is valid and needs no changes.
+ * \retval 2 Indicates the sig port range needs to be downsized.
+ * \retval 3 Invalidating signature, since a port range other than any
+ *           has been specified and port detection on the alproto
+ *           has been specified with a range which doesn't cover the
+ *           sig range.
+ */
+static inline int SigHasValidPortRangeAgainstPP(Signature *s, int dir,
+                                                AppLayerProbingParser *pp)
+{
+    DetectPort *tmp_ap;
+    uint32_t tmp_port;
+    uint16_t u;
+    AppLayerProbingParserPort *pp_port;
+    DetectPort *ap;
+    if (dir == 0) {
+        if (s->flags & SIG_FLAG_DP_ANY)
+            return 2;
+        ap = s->dp;
+    } else {
+        if (s->flags & SIG_FLAG_SP_ANY)
+            return 2;
+        ap = s->sp;
+    }
+
+    uint8_t pp_port_range[65536 / 8];
+    uint8_t sig_port_range[65536 / 8];
+    memset(pp_port_range, 0, sizeof(pp_port_range));
+    memset(sig_port_range, 0, sizeof(sig_port_range));
+
+    /* validate range */
+    for (pp_port = pp->port;
+         pp_port != NULL && pp_port->port != 0;
+         pp_port = pp_port->next) {
+
+        AppLayerProbingParserElement *pp_pe;
+        if (dir == 0) {
+            pp_pe = pp_port->toserver;
+        } else {
+            pp_pe = pp_port->toclient;
+        }
+        while (pp_pe != NULL && pp_pe->al_proto != s->alproto)
+            pp_pe = pp_pe->next;
+        if (pp_pe == NULL)
+            continue;
+
+        pp_port_range[pp_port->port / 8] |= 1 << (pp_port->port % 8);
+    } /* for */
+
+    for (tmp_ap = ap; tmp_ap != NULL; tmp_ap = tmp_ap->next) {
+        for (tmp_port = tmp_ap->port; tmp_port <= tmp_ap->port2; tmp_port++) {
+            sig_port_range[tmp_port / 8] |= 1 << (tmp_port % 8);
+        }
+    }
+
+    /* if we have a port range that is specific to sig port range but isn't
+     * covered by the pp port range, it's an invalid sig */
+    for (u = 0; u < (65536 / 8); u++) {
+        uint8_t and_port = pp_port_range[u] & sig_port_range[u];
+        if (and_port == sig_port_range[u]) {
+            ;
+        } else {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature requires detection "
+                       "on some ports that are not covered for detection "
+                       "by the app protocol port detection feature "
+                       "in the conf file.  Invalidating signature.");
+            return 3;
+        }
+    }
+
+    return 1;
+}
+
+/**
+ * \internal
+ * \brief Resets the current port range of sig and applies the port
+ *        range specified by the port detection engine to the sig.
+ */
+static inline void SigInsertPPPortRangeIntoSig(Signature *s, int dir,
+                                               AppLayerProbingParser *pp)
+{
+    AppLayerProbingParserPort *pp_port;
+
+    if (dir == 0) {
+        s->flags &= ~SIG_FLAG_DP_ANY;
+        DetectPortCleanupList(s->dp);
+        s->dp = NULL;
+    } else {
+        s->flags &= ~SIG_FLAG_SP_ANY;
+        DetectPortCleanupList(s->sp);
+        s->sp = NULL;
+    }
+
+    for (pp_port = pp->port;
+         pp_port != NULL && pp_port->port != 0;
+         pp_port = pp_port->next) {
+        AppLayerProbingParserElement *pp_pe;
+
+        if (dir == 0) {
+            pp_pe = pp_port->toserver;
+        } else {
+            pp_pe = pp_port->toclient;
+        }
+        while (pp_pe != NULL && pp_pe->al_proto != s->alproto)
+            pp_pe = pp_pe->next;
+        if (pp_pe == NULL)
+            continue;
+
+        char tmp[6];
+        snprintf(tmp, sizeof(tmp), "%d", pp_port->port);
+        if (dir == 0)
+            DetectPortParse(&s->dp, tmp);
+        else
+            DetectPortParse(&s->sp, tmp);
+    }
+
+    return;
+}
+
+/**
+ * \internal
+ * \brief Helper function for SigValidateSigPortRangeWithPPPortRange().
+ */
+static inline int SigPMParserIsSet(Signature *s, int dir)
+{
+    uint32_t u;
+
+    if (dir == 0) {
+        for (u = 0; u < alp_proto_ctx.toserver.id; u++) {
+            if (s->alproto == alp_proto_ctx.toserver.map[u]) {
+                return 1;
+            }
+        }
+    } else {
+        for (u = 0; u < alp_proto_ctx.toclient.id; u++) {
+            if (s->alproto == alp_proto_ctx.toclient.map[u]) {
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * \internal
+ * \brief Validate the port range specified with the PP port range.
+ *        Also modify it if necessary.
+ *
+ * \param s   Pointer to the signature.
+ * \param dir Direction.  0 for toserver, 1 for toclient
+ *
+ * \retval 1 If signature is valid, 0 if invalid.
+ */
+static inline int SigValidateSigPortRangeWithPPPortRange(Signature *s, int dir)
+{
+    int i;
+
+    if (SigPMParserIsSet(s, dir))
+        return 1;
+
+    for (i = 1; i < 256; i++) {
+        if (!(s->proto.proto[i / 8] & (1 << (i % 8)))) {
+            continue;
+        }
+
+        /* check if we have a pp set against this ipproto */
+        AppLayerProbingParser *pp;
+
+        pp = alp_proto_ctx.probing_parsers;
+        while (pp != NULL && pp->ip_proto != i)
+            pp = pp->next;
+        if (pp == NULL) {
+            continue;
+        }
+
+        /* we have a pp against this ipproto */
+
+        AppLayerProbingParserPort *pp_port;
+
+        int pe_present = 0;
+        pp_port = pp->port;
+        while (pp_port != NULL && pp_port->port != 0) {
+            AppLayerProbingParserElement *pp_pe;
+
+            if (dir == 0) {
+                pp_pe = pp_port->toserver;
+            } else {
+                pp_pe = pp_port->toclient;
+            }
+            while (pe_present == 0 && pp_pe != NULL) {
+                if (pp_pe->al_proto == s->alproto) {
+                    pe_present = 1;
+                    break;
+                }
+                pp_pe = pp_pe->next;
+            }
+
+            pp_port = pp_port->next;
+        }
+        if (pe_present == 0)
+            continue;
+        if (pp_port != NULL) {
+            /* holds true only against port 0 */
+            AppLayerProbingParserElement *pp_pe;
+
+            if (dir == 0) {
+                pp_pe = pp_port->toserver;
+            } else {
+                pp_pe = pp_port->toclient;
+            }
+            while (pp_pe != NULL && pp_pe->al_proto != s->alproto)
+                pp_pe = pp_pe->next;
+            if (pp_pe != NULL)
+                return 1;
+        }
+
+        int retval = SigHasValidPortRangeAgainstPP(s, dir, pp);
+        if (retval == 1) {
+            return 1;
+        } else if (retval == 2) {
+            SCLogWarning(SC_ERR_PORT_ENGINE_GENERIC, "The signature has been "
+                         "specified to match on a port range which covers and "
+                         "exceeds the port range covered by the app proto "
+                         "detection for the same app proto matched by the "
+                         "signature.  Downsizing the port range inspected by "
+                         "the sig to that covered by the app proto detection "
+                         "engine.  Please have a look at the sig or the "
+                         "port range specified in the yaml file for this "
+                         "alproto proto detection ports");
+        } else if (retval == 3) {
+            return 0;
+        }
+        SigInsertPPPortRangeIntoSig(s, dir, pp);
+    } /* for */
+
+    return 1;
+}
+
 /**
  *  \internal
  *  \brief validate a just parsed signature for internal inconsistencies
@@ -1218,6 +1462,28 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
                 }
             }
         }
+    }
+
+    if (s->alproto != ALPROTO_UNKNOWN) {
+        if (s->flags & SIG_FLAG_STATE_MATCH) {
+            if (al_proto_table[s->alproto].to_server == 0 ||
+                al_proto_table[s->alproto].to_client == 0) {
+                const char *proto_name = TmModuleAlprotoToString(s->alproto);
+                SCLogInfo("Signature uses options that need the app layer "
+                          "parser for \"%s\", but the parser's disabled "
+                          "for the protocol.  Please check if you have "
+                          "disabled it through the option "
+                          "\"app-layer.protocols.%s.enabled\" or internally "
+                          "there the parser has been disabled in the code.   "
+                          "Invalidating signature.", proto_name, proto_name);
+                SCReturnInt(0);
+            }
+        }
+
+        if (SigValidateSigPortRangeWithPPPortRange(s, 0 /* toserver */) == 0)
+            return 0;
+        if (SigValidateSigPortRangeWithPPPortRange(s, 1 /* toclient */) == 0)
+            return 0;
     }
 
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {

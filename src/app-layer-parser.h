@@ -416,4 +416,7 @@ int AppLayerAlprotoSupportsTxs(uint16_t alproto);
 
 void AppLayerTriggerRawStreamReassembly(Flow *);
 
+int AppLayerParserEnabled(const char *alproto);
+int AppLayerProtoDetectionEnabled(const char *alproto);
+
 #endif /* __APP_LAYER_PARSER_H__ */
