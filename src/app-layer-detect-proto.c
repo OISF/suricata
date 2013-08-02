@@ -244,8 +244,8 @@ void AlpProtoTestDestroy(AlpProtoDetectCtx *ctx) {
     AlpProtoFreeSignature(ctx->head);
     AppLayerFreeProbingParsers(ctx->probing_parsers);
     ctx->probing_parsers = NULL;
-    AppLayerFreeProbingParsersInfo(ctx->probing_parsers_info);
-    ctx->probing_parsers_info = NULL;
+
+    return;
 }
 #endif
 
@@ -256,8 +256,7 @@ void AlpProtoDestroy() {
     MpmPatternIdTableFreeHash(alp_proto_ctx.mpm_pattern_id_store);
     AppLayerFreeProbingParsers(alp_proto_ctx.probing_parsers);
     alp_proto_ctx.probing_parsers = NULL;
-    AppLayerFreeProbingParsersInfo(alp_proto_ctx.probing_parsers_info);
-    alp_proto_ctx.probing_parsers_info = NULL;
+
     SCReturn;
 }
 
@@ -490,15 +489,14 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
                                              uint8_t *buf, uint32_t buflen,
                                              uint8_t flags, uint8_t ipproto)
 {
+    AppLayerProbingParserPort *pp_port = NULL;
     AppLayerProbingParserElement *pe = NULL;
-    AppLayerProbingParser *probing_parsers = ctx->probing_parsers;
-    AppLayerProbingParser *pp = NULL;
     uint32_t *al_proto_masks;
 
     if (flags & STREAM_TOSERVER) {
-        pp = AppLayerGetProbingParsers(probing_parsers, ipproto, f->dp);
+        pp_port = AppLayerGetProbingParsers(ctx->probing_parsers, ipproto, f->dp);
         al_proto_masks = &f->probing_parser_toserver_al_proto_masks;
-        if (pp == NULL) {
+        if (pp_port == NULL) {
             SCLogDebug("toserver-No probing parser registered for port %"PRIu16,
                        f->dp);
             if (f->flags & FLOW_TS_PM_ALPROTO_DETECT_DONE) {
@@ -508,11 +506,11 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
             f->flags |= FLOW_TS_PP_ALPROTO_DETECT_DONE;
             return ALPROTO_UNKNOWN;
         }
-        pe = pp->toserver;
+        pe = pp_port->toserver;
     } else {
-        pp = AppLayerGetProbingParsers(probing_parsers, ipproto, f->sp);
+        pp_port = AppLayerGetProbingParsers(ctx->probing_parsers, ipproto, f->sp);
         al_proto_masks = &f->probing_parser_toclient_al_proto_masks;
-        if (pp == NULL) {
+        if (pp_port == NULL) {
             SCLogDebug("toclient-No probing parser registered for port %"PRIu16,
                        f->sp);
             if (f->flags & FLOW_TC_PM_ALPROTO_DETECT_DONE) {
@@ -522,7 +520,7 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
             f->flags |= FLOW_TC_PP_ALPROTO_DETECT_DONE;
             return ALPROTO_UNKNOWN;
         }
-        pe = pp->toclient;
+        pe = pp_port->toclient;
     }
 
 
@@ -533,7 +531,7 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
             continue;
         }
 
-        int alproto = pe->ProbingParser(buf, buflen);
+        int alproto = pe->ProbingParser(buf, buflen, NULL);
         if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
             return alproto;
         if (alproto == ALPROTO_FAILED ||
@@ -544,7 +542,7 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
     }
 
     if (flags & STREAM_TOSERVER) {
-        if (al_proto_masks[0] == pp->toserver_al_proto_mask) {
+        if (al_proto_masks[0] == pp_port->toserver_al_proto_mask) {
             if (f->flags & FLOW_TS_PM_ALPROTO_DETECT_DONE) {
                 f->flags |= FLOW_TS_PM_PP_ALPROTO_DETECT_DONE;
                 return ALPROTO_UNKNOWN;
@@ -553,7 +551,7 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
             return ALPROTO_UNKNOWN;
         }
     } else {
-        if (al_proto_masks[0] == pp->toclient_al_proto_mask) {
+        if (al_proto_masks[0] == pp_port->toclient_al_proto_mask) {
             if (f->flags & FLOW_TC_PM_ALPROTO_DETECT_DONE) {
                 f->flags |= FLOW_TC_PM_PP_ALPROTO_DETECT_DONE;
                 return ALPROTO_UNKNOWN;

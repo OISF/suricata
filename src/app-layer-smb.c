@@ -1356,7 +1356,7 @@ static void SMBStateFree(void *s) {
 
 #define SMB_PROBING_PARSER_MIN_DEPTH 8
 
-static uint16_t SMBProbingParser(uint8_t *input, uint32_t ilen)
+static uint16_t SMBProbingParser(uint8_t *input, uint32_t ilen, uint32_t *offset)
 {
     int32_t len;
     int32_t input_len = ilen;
@@ -1411,13 +1411,12 @@ void RegisterSMBParsers(void) {
     AppLayerRegisterStateFuncs(ALPROTO_SMB, SMBStateAlloc, SMBStateFree);
 
     AppLayerRegisterProbingParser(&alp_proto_ctx,
-                                  139,
                                   IPPROTO_TCP,
+                                  "139",
                                   "smb",
                                   ALPROTO_SMB,
                                   SMB_PROBING_PARSER_MIN_DEPTH, 0,
                                   STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   SMBProbingParser);
 #ifdef UNITTESTS
     AppLayerRegisterUnittests(ALPROTO_SMB, SMBParserRegisterTests);
@@ -2044,13 +2043,12 @@ int SMBParserTest05(void)
     AlpProtoAdd(&ctx, "smb2", IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
 
     AppLayerRegisterProbingParser(&ctx,
-                                  f.dp,
                                   IPPROTO_TCP,
+                                  "139",
                                   "smb",
                                   ALPROTO_SMB,
                                   SMB_PROBING_PARSER_MIN_DEPTH, 0,
                                   STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   SMBProbingParser);
 
 
@@ -2128,15 +2126,13 @@ int SMBParserTest06(void)
     AlpProtoAdd(&ctx, "smb2", IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
 
     AppLayerRegisterProbingParser(&ctx,
-                                  f.dp,
                                   IPPROTO_TCP,
+                                  "139",
                                   "smb",
                                   ALPROTO_SMB,
                                   SMB_PROBING_PARSER_MIN_DEPTH, 0,
                                   STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   SMBProbingParser);
-
 
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
