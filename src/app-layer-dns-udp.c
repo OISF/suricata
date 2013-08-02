@@ -298,37 +298,48 @@ void RegisterDNSUDPParsers(void) {
     char *proto_name = "dnsudp";
 
     /** DNS */
-	AppLayerRegisterProto(proto_name, ALPROTO_DNS_UDP, STREAM_TOSERVER,
-			DNSUDPRequestParse);
-	AppLayerRegisterProto(proto_name, ALPROTO_DNS_UDP, STREAM_TOCLIENT,
-			DNSUDPResponseParse);
-	AppLayerRegisterStateFuncs(ALPROTO_DNS_UDP, DNSStateAlloc,
-			DNSStateFree);
-    AppLayerRegisterTxFreeFunc(ALPROTO_DNS_UDP,
-            DNSStateTransactionFree);
+    if (AppLayerProtoDetectionEnabled(proto_name)) {
+        AppLayerRegisterProbingParser(&alp_proto_ctx,
+                                      IPPROTO_UDP,
+                                      "53",
+                                      proto_name,
+                                      ALPROTO_DNS_UDP,
+                                      0, sizeof(DNSHeader),
+                                      STREAM_TOSERVER,
+                                      DNSUdpProbingParser);
+    } else {
+        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
+                  proto_name);
+        return;
+    }
 
-    AppLayerRegisterGetEventsFunc(ALPROTO_DNS_UDP, DNSGetEvents);
-    AppLayerRegisterHasEventsFunc(ALPROTO_DNS_UDP, DNSHasEvents);
+    if (AppLayerParserEnabled(proto_name)) {
+        AppLayerRegisterProto(proto_name, ALPROTO_DNS_UDP, STREAM_TOSERVER,
+                              DNSUDPRequestParse);
+        AppLayerRegisterProto(proto_name, ALPROTO_DNS_UDP, STREAM_TOCLIENT,
+                              DNSUDPResponseParse);
+        AppLayerRegisterStateFuncs(ALPROTO_DNS_UDP, DNSStateAlloc,
+                                   DNSStateFree);
+        AppLayerRegisterTxFreeFunc(ALPROTO_DNS_UDP,
+                                   DNSStateTransactionFree);
 
-    AppLayerRegisterGetTx(ALPROTO_DNS_UDP,
-            DNSGetTx);
-    AppLayerRegisterGetTxCnt(ALPROTO_DNS_UDP,
-            DNSGetTxCnt);
-    AppLayerRegisterGetAlstateProgressFunc(ALPROTO_DNS_UDP,
-            DNSGetAlstateProgress);
-    AppLayerRegisterGetAlstateProgressCompletionStatus(ALPROTO_DNS_UDP,
-            DNSGetAlstateProgressCompletionStatus);
+        AppLayerRegisterGetEventsFunc(ALPROTO_DNS_UDP, DNSGetEvents);
+        AppLayerRegisterHasEventsFunc(ALPROTO_DNS_UDP, DNSHasEvents);
 
-    AppLayerRegisterProbingParser(&alp_proto_ctx,
-                                  IPPROTO_UDP,
-                                  "53",
-                                  proto_name,
-                                  ALPROTO_DNS_UDP,
-                                  0, sizeof(DNSHeader),
-                                  STREAM_TOSERVER,
-                                  DNSUdpProbingParser);
+        AppLayerRegisterGetTx(ALPROTO_DNS_UDP,
+                              DNSGetTx);
+        AppLayerRegisterGetTxCnt(ALPROTO_DNS_UDP,
+                                 DNSGetTxCnt);
+        AppLayerRegisterGetAlstateProgressFunc(ALPROTO_DNS_UDP,
+                                               DNSGetAlstateProgress);
+        AppLayerRegisterGetAlstateProgressCompletionStatus(ALPROTO_DNS_UDP,
+                                                           DNSGetAlstateProgressCompletionStatus);
 
-    DNSAppLayerDecoderEventsRegister(ALPROTO_DNS_UDP);
+        DNSAppLayerDecoderEventsRegister(ALPROTO_DNS_UDP);
+    } else {
+        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
+                  "still on.", proto_name);
+    }
 }
 
 /* UNITTESTS */
