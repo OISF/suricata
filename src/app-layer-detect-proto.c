@@ -314,7 +314,8 @@ void AlpProtoDeFinalize2Thread(AlpProtoDetectThreadCtx *tctx) {
 /** \brief to be called by ReassemblyThreadInit
  *  \todo this is a hack, we need a proper place to store the global ctx */
 void AlpProtoFinalize2Thread(AlpProtoDetectThreadCtx *tctx) {
-    return AlpProtoFinalizeThread(&alp_proto_ctx, tctx);
+    AlpProtoFinalizeThread(&alp_proto_ctx, tctx);
+    return;
 }
 
 void AlpProtoFinalizeGlobal(AlpProtoDetectCtx *ctx) {
