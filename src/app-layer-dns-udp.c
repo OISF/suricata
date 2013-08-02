@@ -280,7 +280,7 @@ insufficient_data:
     SCReturnInt(-1);
 }
 
-static uint16_t DNSUdpProbingParser(uint8_t *input, uint32_t ilen)
+static uint16_t DNSUdpProbingParser(uint8_t *input, uint32_t ilen, uint32_t *offset)
 {
     if (ilen == 0 || ilen < sizeof(DNSHeader)) {
         SCLogDebug("ilen too small, hoped for at least %"PRIuMAX, (uintmax_t)sizeof(DNSHeader));
@@ -320,13 +320,12 @@ void RegisterDNSUDPParsers(void) {
             DNSGetAlstateProgressCompletionStatus);
 
     AppLayerRegisterProbingParser(&alp_proto_ctx,
-                                  53,
                                   IPPROTO_UDP,
+                                  "53",
                                   proto_name,
                                   ALPROTO_DNS_UDP,
                                   0, sizeof(DNSHeader),
                                   STREAM_TOSERVER,
-                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   DNSUdpProbingParser);
 
     DNSAppLayerDecoderEventsRegister(ALPROTO_DNS_UDP);
