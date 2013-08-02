@@ -847,21 +847,32 @@ void RegisterSMTPParsers(void)
 {
     char *proto_name = "smtp";
 
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMTP, "EHLO", 4, 0,
-                STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMTP, "HELO", 4, 0,
-                STREAM_TOSERVER);
+    if (AppLayerProtoDetectionEnabled(proto_name)) {
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMTP, "EHLO", 4, 0,
+                    STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMTP, "HELO", 4, 0,
+                    STREAM_TOSERVER);
+    } else {
+        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
+                  proto_name);
+        return;
+    }
 
-    AppLayerRegisterStateFuncs(ALPROTO_SMTP, SMTPStateAlloc, SMTPStateFree);
+    if (AppLayerParserEnabled(proto_name)) {
+        AppLayerRegisterStateFuncs(ALPROTO_SMTP, SMTPStateAlloc, SMTPStateFree);
 
-    AppLayerRegisterProto(proto_name, ALPROTO_SMTP, STREAM_TOSERVER,
-                          SMTPParseClientRecord);
-    AppLayerRegisterProto(proto_name, ALPROTO_SMTP, STREAM_TOCLIENT,
-                          SMTPParseServerRecord);
-    AppLayerDecoderEventsModuleRegister(ALPROTO_SMTP, smtp_decoder_event_table);
+        AppLayerRegisterProto(proto_name, ALPROTO_SMTP, STREAM_TOSERVER,
+                              SMTPParseClientRecord);
+        AppLayerRegisterProto(proto_name, ALPROTO_SMTP, STREAM_TOCLIENT,
+                              SMTPParseServerRecord);
+        AppLayerDecoderEventsModuleRegister(ALPROTO_SMTP, smtp_decoder_event_table);
 
-    AppLayerRegisterLocalStorageFunc(ALPROTO_SMTP, SMTPLocalStorageAlloc,
-                                     SMTPLocalStorageFree);
+        AppLayerRegisterLocalStorageFunc(ALPROTO_SMTP, SMTPLocalStorageAlloc,
+                                         SMTPLocalStorageFree);
+    } else {
+        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
+                  "still on.", proto_name);
+    }
 
     SMTPSetMpmState();
 
