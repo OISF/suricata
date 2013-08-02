@@ -518,12 +518,22 @@ static void SMB2StateFree(void *s) {
 }
 
 void RegisterSMB2Parsers(void) {
-    AppLayerRegisterProto("smb", ALPROTO_SMB2, STREAM_TOSERVER, SMB2Parse);
-    AppLayerRegisterProto("smb", ALPROTO_SMB2, STREAM_TOCLIENT, SMB2Parse);
-    AppLayerRegisterStateFuncs(ALPROTO_SMB2, SMB2StateAlloc, SMB2StateFree);
+    /** SMB2 */
+    char *proto_name = "smb2";
+
+    if (AppLayerProtoDetectionEnabled(proto_name)) {
+        AppLayerRegisterProto(proto_name, ALPROTO_SMB2, STREAM_TOSERVER, SMB2Parse);
+        AppLayerRegisterProto(proto_name, ALPROTO_SMB2, STREAM_TOCLIENT, SMB2Parse);
+        AppLayerRegisterStateFuncs(ALPROTO_SMB2, SMB2StateAlloc, SMB2StateFree);
+    } else {
+        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
+                  "still on.", proto_name);
+    }
+
 #ifdef UNITTESTS
     AppLayerRegisterUnittests(ALPROTO_SMB2, SMB2ParserRegisterTests);
 #endif
+    return;
 }
 
 /* UNITTESTS */

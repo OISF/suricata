@@ -1869,18 +1869,30 @@ static void DCERPCStateFree(void *s) {
 void RegisterDCERPCParsers(void) {
     char *proto_name = "dcerpc";
 
-    /** DCERPC */
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_DCERPC, "|05 00|", 2, 0, STREAM_TOSERVER);
+    if (AppLayerProtoDetectionEnabled(proto_name)) {
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_DCERPC, "|05 00|", 2, 0, STREAM_TOSERVER);
+    } else {
+        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
+                  proto_name);
+        return;
+    }
 
-    AppLayerRegisterProto(proto_name, ALPROTO_DCERPC, STREAM_TOSERVER,
-            DCERPCParseRequest);
-    AppLayerRegisterProto(proto_name, ALPROTO_DCERPC, STREAM_TOCLIENT,
-            DCERPCParseResponse);
-    AppLayerRegisterStateFuncs(ALPROTO_DCERPC, DCERPCStateAlloc,
-            DCERPCStateFree);
+    if (AppLayerParserEnabled(proto_name)) {
+        AppLayerRegisterProto(proto_name, ALPROTO_DCERPC, STREAM_TOSERVER,
+                              DCERPCParseRequest);
+        AppLayerRegisterProto(proto_name, ALPROTO_DCERPC, STREAM_TOCLIENT,
+                              DCERPCParseResponse);
+        AppLayerRegisterStateFuncs(ALPROTO_DCERPC, DCERPCStateAlloc,
+                                   DCERPCStateFree);
+    } else {
+        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
+                  "still on.", proto_name);
+    }
 #ifdef UNITTESTS
     AppLayerRegisterUnittests(ALPROTO_DCERPC, DCERPCParserRegisterTests);
 #endif
+
+    return;
 }
 
 /* UNITTESTS */
