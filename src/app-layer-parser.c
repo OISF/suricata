@@ -1632,9 +1632,7 @@ int AppLayerProtoDetectionEnabled(const char *al_proto)
 
 void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_proto,
                                      uint16_t min_depth, uint16_t max_depth,
-                                     uint16_t (*ProbingParser)(uint8_t *input,
-                                                               uint32_t input_len,
-                                                               uint32_t *offset))
+                                     ProbingParserFPtr ProbingParser)
 {
     char param[100];
     int r;
@@ -2078,7 +2076,7 @@ static inline void AppLayerInsertNewProbingParser(AppLayerProbingParser **pp,
                                                   char *al_proto_name, uint16_t al_proto,
                                                   uint16_t min_depth, uint16_t max_depth,
                                                   uint8_t flags,
-                                                  uint16_t (*ProbingParser)(uint8_t *input, uint32_t input_len, uint32_t *offset))
+                                                  ProbingParserFPtr ProbingParser)
 {
     /* get the top level ipproto pp */
     AppLayerProbingParser *curr_pp = *pp;
@@ -2248,7 +2246,7 @@ void AppLayerRegisterProbingParser(AlpProtoDetectCtx *ctx,
                                    char *al_proto_name, uint16_t al_proto,
                                    uint16_t min_depth, uint16_t max_depth,
                                    uint8_t flags,
-                                   uint16_t (*ProbingParser)(uint8_t *input, uint32_t input_len, uint32_t *offset))
+                                   ProbingParserFPtr ProbingParser)
 {
     DetectPort *head = NULL;
     DetectPortParse(&head, portstr);
