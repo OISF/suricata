@@ -128,7 +128,11 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
 #endif
 
     SCLogDebug("data_len %u flags %02X", data_len, flags);
-    if (!(f->flags & FLOW_NO_APPLAYER_INSPECTION)) {
+    if (f->flags & FLOW_NO_APPLAYER_INSPECTION) {
+        SCLogDebug("FLOW_AL_NO_APPLAYER_INSPECTION is set");
+        SCReturnInt(r);
+    }
+
         /* if we don't know the proto yet and we have received a stream
          * initializer message, we run proto detection.
          * We receive 2 stream init msgs (one for each direction) but we
@@ -189,9 +193,6 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
                 SCLogDebug(" smsg not start, but no l7 data? Weird");
             }
         }
-    } else {
-        SCLogDebug("FLOW_AL_NO_APPLAYER_INSPECTION is set");
-    }
 
     SCReturnInt(r);
 }
