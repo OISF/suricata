@@ -579,14 +579,20 @@ void RegisterDNSTCPParsers(void) {
 
     /** DNS */
     if (AppLayerProtoDetectionEnabled(proto_name)) {
-        AppLayerRegisterProbingParser(&alp_proto_ctx,
-                                      IPPROTO_TCP,
-                                      "53",
-                                      proto_name,
-                                      ALPROTO_DNS_TCP,
-                                      0, sizeof(DNSTcpHeader),
-                                      STREAM_TOSERVER,
-                                      DNSTcpProbingParser);
+        if (RunmodeIsUnittests()) {
+            AppLayerRegisterProbingParser(&alp_proto_ctx,
+                                          IPPROTO_TCP,
+                                          "53",
+                                          proto_name,
+                                          ALPROTO_DNS_TCP,
+                                          0, sizeof(DNSTcpHeader),
+                                          STREAM_TOSERVER,
+                                          DNSTcpProbingParser);
+        } else {
+            AppLayerParseProbingParserPorts(proto_name, ALPROTO_DNS_TCP,
+                                            0, sizeof(DNSTcpHeader),
+                                            DNSTcpProbingParser);
+        }
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",
                   proto_name);
