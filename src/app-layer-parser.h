@@ -138,6 +138,9 @@ typedef struct AppLayerParserStateStore_ {
     AppLayerDecoderEvents *decoder_events;
 } AppLayerParserStateStore;
 
+typedef uint16_t (*ProbingParserFPtr)(uint8_t *input, uint32_t input_len,
+                                      uint32_t *offset);
+
 typedef struct AppLayerParserTableElement_ {
     int (*AppLayerParser)(Flow *f, void *protocol_state, AppLayerParserState
                           *parser_state, uint8_t *input, uint32_t input_len,
@@ -162,7 +165,7 @@ typedef struct AppLayerProbingParserElement_ {
     /* the max length of data after which this parser won't be invoked */
     uint32_t max_depth;
     /* the probing parser function */
-    uint16_t (*ProbingParser)(uint8_t *input, uint32_t input_len, uint32_t *offset);
+    ProbingParserFPtr ProbingParser;
 
     struct AppLayerProbingParserElement_ *next;
 } AppLayerProbingParserElement;
@@ -245,7 +248,7 @@ void AppLayerRegisterProbingParser(struct AlpProtoDetectCtx_ *,
                                    char *al_proto_name, uint16_t al_proto,
                                    uint16_t min_depth, uint16_t max_depth,
                                    uint8_t flags,
-                                   uint16_t (*ProbingParser)(uint8_t *input, uint32_t input_len, uint32_t *offset));
+                                   ProbingParserFPtr ProbingParser);
 #ifdef UNITTESTS
 void AppLayerRegisterUnittests(uint16_t proto, void (*RegisterUnittests)(void));
 #endif
@@ -420,6 +423,6 @@ int AppLayerParserEnabled(const char *alproto);
 int AppLayerProtoDetectionEnabled(const char *alproto);
 void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_proto,
                                      uint16_t min_depth, uint16_t max_depth,
-                                     uint16_t (*ProbingParser)(uint8_t *input, uint32_t input_len, uint32_t *offset));
+                                     ProbingParserFPtr ProbingParser);
 
 #endif /* __APP_LAYER_PARSER_H__ */
