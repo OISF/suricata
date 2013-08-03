@@ -38,6 +38,7 @@
 #include "detect-reference.h"
 #include "detect-ipproto.h"
 #include "detect-flow.h"
+#include "detect-app-layer-protocol.h"
 
 #include "pkt-var.h"
 #include "host.h"
@@ -1295,6 +1296,19 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
                     "http_* keywords).");
             SCReturnInt(0);
         }
+    }
+
+    for (sm = s->sm_lists[DETECT_SM_LIST_AMATCH]; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_AL_APP_LAYER_PROTOCOL)
+            continue;
+        if (((DetectAppLayerProtocolData *)sm->ctx)->negated)
+            break;
+    }
+    if (sm != NULL && s->alproto != ALPROTO_UNKNOWN) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "We can't have "
+                   "the rule match on a fixed alproto and at the same time"
+                   "have an app-layer-protocol keyword set.");
+        SCReturnInt(0);
     }
 
     /* TCP: pkt vs stream vs depth/offset */

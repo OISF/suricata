@@ -151,6 +151,7 @@
 #include "detect-iprep.h"
 #include "detect-geoip.h"
 #include "detect-dns-query.h"
+#include "detect-app-layer-protocol.h"
 
 #include "util-rule-vars.h"
 
@@ -4756,6 +4757,7 @@ void SigTableSetup(void) {
     DetectLuajitRegister();
     DetectIPRepRegister();
     DetectDnsQueryRegister();
+    DetectAppLayerProtocolRegister();
 }
 
 void SigTableRegisterTests(void)
