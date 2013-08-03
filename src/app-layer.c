@@ -165,8 +165,8 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
             r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags, data, data_len);
             PACKET_PROFILING_APP_END(dp_ctx, f->alproto);
         } else {
-            if ((f->flags & FLOW_TS_PM_PP_ALPROTO_DETECT_DONE) &&
-                (f->flags & FLOW_TC_PM_PP_ALPROTO_DETECT_DONE)) {
+            if ((FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) && (FLOW_IS_PM_DONE(f, STREAM_TOCLIENT)) &&
+                (FLOW_IS_PP_DONE(f, STREAM_TOSERVER)) && (FLOW_IS_PP_DONE(f, STREAM_TOCLIENT))) {
                 FlowSetSessionNoApplayerInspectionFlag(f);
                 ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
             }
