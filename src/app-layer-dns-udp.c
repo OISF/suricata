@@ -299,14 +299,20 @@ void RegisterDNSUDPParsers(void) {
 
     /** DNS */
     if (AppLayerProtoDetectionEnabled(proto_name)) {
-        AppLayerRegisterProbingParser(&alp_proto_ctx,
-                                      IPPROTO_UDP,
-                                      "53",
-                                      proto_name,
-                                      ALPROTO_DNS_UDP,
-                                      0, sizeof(DNSHeader),
-                                      STREAM_TOSERVER,
-                                      DNSUdpProbingParser);
+        if (RunmodeIsUnittests()) {
+            AppLayerRegisterProbingParser(&alp_proto_ctx,
+                                          IPPROTO_UDP,
+                                          "53",
+                                          proto_name,
+                                          ALPROTO_DNS_UDP,
+                                          0, sizeof(DNSHeader),
+                                          STREAM_TOSERVER,
+                                          DNSUdpProbingParser);
+        } else {
+            AppLayerParseProbingParserPorts(proto_name, ALPROTO_DNS_UDP,
+                                        0, sizeof(DNSHeader),
+                                        DNSUdpProbingParser);
+        }
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",
                   proto_name);
