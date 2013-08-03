@@ -84,10 +84,11 @@ void *AppLayerDetectProtoThread(void *td);
 
 void AppLayerDetectProtoThreadInit(void);
 
-uint16_t AppLayerDetectGetProtoPMParser(AlpProtoDetectCtx *,
-                                        AlpProtoDetectThreadCtx *,
-                                        uint8_t *, uint16_t,
-                                        uint8_t, uint8_t);
+uint16_t AppLayerDetectGetProtoPMParser(AlpProtoDetectCtx *ctx,
+                                        AlpProtoDetectThreadCtx *tctx,
+                                        uint8_t *buf, uint16_t buflen,
+                                        uint8_t flags, uint8_t ipproto,
+                                        uint16_t *pm_results);
 uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *, Flow *,
                                              uint8_t *, uint32_t,
                                              uint8_t, uint8_t);
