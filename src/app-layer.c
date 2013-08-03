@@ -114,7 +114,9 @@ extern AlpProtoDetectCtx alp_proto_ctx;
  *  \retval -1 error
  */
 int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
-        TcpSession *ssn, uint8_t *data, uint32_t data_len, uint8_t flags)
+                          TcpSession *ssn, TcpStream *stream,
+                          uint8_t *data, uint32_t data_len,
+                          uint8_t flags)
 {
     SCEnter();
 
@@ -138,7 +140,9 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
      * We receive 2 stream init msgs (one for each direction) but we
      * only run the proto detection once. */
     if (f->alproto == ALPROTO_UNKNOWN && (flags & STREAM_GAP)) {
-        ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
+        //stream->flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
+        ssn->client.flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
+        ssn->server.flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
         SCLogDebug("ALPROTO_UNKNOWN flow %p, due to GAP in stream start", f);
         StreamTcpSetSessionNoReassemblyFlag(ssn, 0);
     } else if (f->alproto == ALPROTO_UNKNOWN && (flags & STREAM_START)) {
@@ -159,7 +163,9 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
         PACKET_PROFILING_APP_PD_END(dp_ctx);
 
         if (f->alproto != ALPROTO_UNKNOWN) {
-            ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
+            //stream->flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
+            ssn->client.flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
+            ssn->server.flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
 
             PACKET_PROFILING_APP_START(dp_ctx, f->alproto);
             r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags, data, data_len);
@@ -168,7 +174,9 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
             if ((FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) && (FLOW_IS_PM_DONE(f, STREAM_TOCLIENT)) &&
                 (FLOW_IS_PP_DONE(f, STREAM_TOSERVER)) && (FLOW_IS_PP_DONE(f, STREAM_TOCLIENT))) {
                 FlowSetSessionNoApplayerInspectionFlag(f);
-                ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
+                //stream->flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
+                ssn->client.flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
+                ssn->server.flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
             }
         }
     } else {
