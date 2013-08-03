@@ -127,24 +127,21 @@ enum
 /** Flag to indicate we're dealing with 4WHS: SYN, SYN, SYN/ACK, ACK
  * (http://www.breakingpointsystems.com/community/blog/tcp-portals-the-three-way-handshake-is-a-lie) */
 #define STREAMTCP_FLAG_4WHS                         0x0080
-/** Flag to indicate the app layer has detected the app layer protocol on
- *  the current TCP session */
-#define STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED 0x0100
 /** Flag to indicate that this session is possible trying to evade the detection
  *  (http://www.packetstan.com/2010/06/recently-ive-been-on-campaign-to-make.html) */
-#define STREAMTCP_FLAG_DETECTION_EVASION_ATTEMPT    0x0200
+#define STREAMTCP_FLAG_DETECTION_EVASION_ATTEMPT    0x0100
 /** Flag to indicate the client (SYN pkt) permits SACK */
-#define STREAMTCP_FLAG_CLIENT_SACKOK                0x0400
+#define STREAMTCP_FLAG_CLIENT_SACKOK                0x0200
 /** Flag to indicate both sides of the session permit SACK (SYN + SYN/ACK) */
-#define STREAMTCP_FLAG_SACKOK                       0x0800
+#define STREAMTCP_FLAG_SACKOK                       0x0400
 /** Flag for triggering RAW reassembly before the size limit is reached or
     the stream reaches EOF. */
-#define STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY       0x1000
+#define STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY       0x0800
 /** 3WHS confirmed by server -- if suri sees 3whs ACK but server doesn't (pkt
  *  is lost on the way to server), SYN/ACK is retransmitted. If server sends
  *  normal packet we assume 3whs to be completed. Only used for SYN/ACK resend
  *  event. */
-#define STREAMTCP_FLAG_3WHS_CONFIRMED               0x2000
+#define STREAMTCP_FLAG_3WHS_CONFIRMED               0x1000
 
 /*
  * Per STREAM flags
@@ -165,6 +162,8 @@ enum
 #define STREAMTCP_STREAM_FLAG_TIMESTAMP         0x20
 /** Flag to indicate the zero value of timestamp */
 #define STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP    0x40
+/** App proto detection completed */
+#define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED 0x80
 
 /*
  * Per SEGMENT flags
