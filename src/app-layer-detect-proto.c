@@ -591,63 +591,8 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx,
     return ALPROTO_UNKNOWN;
 }
 
-/* VJ Originally I thought of having separate app layer
- * handling threads, leaving this here in case we'll revisit that */
-#if 0
-void *AppLayerDetectProtoThread(void *td)
-{
-    ThreadVars *tv = (ThreadVars *)td;
-    char run = TRUE;
+/*****Unittests*****/
 
-    /* get the stream msg queue for this thread */
-    StreamMsgQueue *stream_q = StreamMsgQueueGetByPort(0);
-
-    TmThreadsSetFlag(tv, THV_INIT_DONE);
-
-    /* main loop */
-    while(run) {
-        if (TmThreadsCheckFlag(tv, THV_PAUSE)) {
-            TmThreadsSetFlag(tv, THV_PAUSED);
-            TmThreadTestThreadUnPaused(tv);
-            TmThreadsUnsetFlag(tv, THV_PAUSED);
-        }
-
-        /* grab a msg, can return NULL on signals */
-        StreamMsg *smsg = StreamMsgGetFromQueue(stream_q);
-        if (smsg != NULL) {
-            AppLayerHandleMsg(smsg, TRUE);
-        }
-
-        if (TmThreadsCheckFlag(tv, THV_KILL)) {
-            SCPerfSyncCounters(tv, 0);
-            run = 0;
-        }
-    }
-
-    pthread_exit((void *) 0);
-}
-
-void AppLayerDetectProtoThreadSpawn()
-{
-    ThreadVars *tv_applayerdetect = NULL;
-
-    tv_applayerdetect = TmThreadCreateMgmtThread("AppLayerDetectProtoThread",
-                                                 AppLayerDetectProtoThread, 0);
-    if (tv_applayerdetect == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(1);
-    }
-    if (TmThreadSpawn(tv_applayerdetect) != TM_ECODE_OK) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(1);
-    }
-
-#ifdef DEBUG
-    printf("AppLayerDetectProtoThread thread created\n");
-#endif
-    return;
-}
-#endif
 #ifdef UNITTESTS
 
 int AlpDetectTest01(void) {
