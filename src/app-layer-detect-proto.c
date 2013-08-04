@@ -573,8 +573,17 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx,
 {
     if (!FLOW_IS_PM_DONE(f, flags)) {
         uint16_t pm_results[ALPROTO_MAX];
-        if (AppLayerDetectGetProtoPMParser(ctx, tctx, f, buf, buflen, flags, ipproto, pm_results) != 0) {
-            return pm_results[0];
+        uint16_t pm_matches = AppLayerDetectGetProtoPMParser(ctx, tctx, f, buf, buflen, flags, ipproto, pm_results);
+        uint8_t dir = (flags & STREAM_TOSERVER) ? 0 : 1;
+        for (uint16_t i = 0; i < pm_matches; i++) {
+            if (al_proto_table[pm_results[i]].pp_alproto_map[dir] != NULL) {
+                if (pm_results[i] != al_proto_table[pm_results[i]].pp_alproto_map[dir](buf, buflen, NULL)) {
+                    /* \todo set event */
+                    continue;
+                }
+            }
+
+            return pm_results[i];
         }
     }
     if (!FLOW_IS_PP_DONE(f, flags))

@@ -63,6 +63,7 @@
 
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
+#include "app-layer.h"
 #include "app-layer-smb.h"
 #include "app-layer-dcerpc.h"
 #include "app-layer-dcerpc-udp.h"
@@ -257,6 +258,7 @@ int RunUnittests(int list_unittests, char *regex_arg)
 #ifdef __SC_CUDA_SUPPORT__
     CudaBufferRegisterUnittests();
 #endif
+    AppLayerRegisterUnittests();
     if (list_unittests) {
         UtListTests(regex_arg);
     } else {

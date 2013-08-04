@@ -2420,6 +2420,12 @@ void RegisterHTPParsers(void)
         AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "OPTIONS|09|", 8, 0, STREAM_TOSERVER);
         AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "CONNECT|20|", 8, 0, STREAM_TOSERVER);
         AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "CONNECT|09|", 8, 0, STREAM_TOSERVER);
+
+        /* toclient direction */
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "HTTP/0.9", 8, 0, STREAM_TOCLIENT);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "HTTP/1.0", 8, 0, STREAM_TOCLIENT);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "HTTP/1.1", 8, 0, STREAM_TOCLIENT);
+        AppLayerRegisterParserAcceptableDataDirection(ALPROTO_HTTP, STREAM_TOSERVER);
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol",
                   proto_name);
@@ -2451,7 +2457,7 @@ void RegisterHTPParsers(void)
                   "still on.", proto_name);
     }
 #ifdef UNITTESTS
-    AppLayerRegisterUnittests(ALPROTO_HTTP, HTPParserRegisterTests);
+    AppLayerParserRegisterUnittests(ALPROTO_HTTP, HTPParserRegisterTests);
 #endif
 
     SCReturn;

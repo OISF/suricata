@@ -1016,6 +1016,15 @@ void RegisterSSLParsers(void)
         AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|01 03 03|", 3, 0, STREAM_TOSERVER);
         AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 03|", 3, 0, STREAM_TOSERVER); /* client hello */
 
+        /* toclient direction */
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 00|", 3, 0, STREAM_TOCLIENT); /* server hello */
+        /** TLSv1 */
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 01|", 3, 0, STREAM_TOCLIENT); /* server hello */
+        /** TLSv1.1 */
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 02|", 3, 0, STREAM_TOCLIENT); /* server hello */
+        /** TLSv1.2 */
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 03|", 3, 0, STREAM_TOCLIENT); /* server hello */
+
         if (RunmodeIsUnittests()) {
             AppLayerRegisterProbingParser(&alp_proto_ctx,
                                           IPPROTO_TCP,
@@ -1030,6 +1039,8 @@ void RegisterSSLParsers(void)
                                             0, 3,
                                             SSLProbingParser);
         }
+
+        AppLayerRegisterParserAcceptableDataDirection(ALPROTO_TLS, STREAM_TOSERVER);
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol",
                   proto_name);
@@ -1060,7 +1071,7 @@ void RegisterSSLParsers(void)
     }
 
 #ifdef UNITTESTS
-    AppLayerRegisterUnittests(ALPROTO_TLS, SSLParserRegisterTests);
+    AppLayerParserRegisterUnittests(ALPROTO_TLS, SSLParserRegisterTests);
 #endif
 
     /* Get the value of no reassembly option from the config file */
