@@ -1630,6 +1630,14 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
 {
     SCEnter();
 
+    if (ssn->data_first_seen_dir == 0) {
+        if (p->flowflags & FLOW_PKT_TOSERVER) {
+            ssn->data_first_seen_dir = STREAM_TOSERVER;
+        } else {
+            ssn->data_first_seen_dir = STREAM_TOCLIENT;
+        }
+    }
+
     /* If we have reached the defined depth for either of the stream, then stop
        reassembling the TCP session */
     uint32_t size = StreamTcpReassembleCheckDepth(stream, TCP_GET_SEQ(p), p->payload_len);
@@ -1856,8 +1864,8 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
             SCLogDebug("sending empty eof message");
             /* send EOF to app layer */
             STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
-            AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn, stream,
-                    NULL, 0, flags);
+            AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
+                                  NULL, 0, p, flags);
             PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
 
         } else {
@@ -1935,8 +1943,8 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
                 STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
 
                 /* process what we have so far */
-                AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn, stream,
-                        data, data_len, flags);
+                AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
+                                      data, data_len, p, flags);
                 PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
 
                 data_sent += data_len;
@@ -1964,8 +1972,8 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
 
                 /* send gap signal */
                 STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
-                AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn, stream,
-                        NULL, 0, flags|STREAM_GAP);
+                AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
+                                      NULL, 0, p, flags|STREAM_GAP);
                 PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
                 data_len = 0;
 
@@ -2036,8 +2044,8 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
                 /* process what we have so far */
                 STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
                 BUG_ON(data_len > sizeof(data));
-                AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn, stream,
-                        data, data_len, flags);
+                AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
+                                      data, data_len, p, flags);
                 PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
                 data_sent += data_len;
                 data_len = 0;
@@ -2090,8 +2098,8 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
                         /* process what we have so far */
                         STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
                         BUG_ON(data_len > sizeof(data));
-                        AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn, stream,
-                                data, data_len, flags);
+                        AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
+                                              data, data_len, p, flags);
                         PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
                         data_sent += data_len;
                         data_len = 0;
@@ -2126,8 +2134,8 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
         /* process what we have so far */
         STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
         BUG_ON(data_len > sizeof(data));
-        AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn, stream,
-                data, data_len, flags);
+        AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
+                              data, data_len, p, flags);
         PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
         data_sent += data_len;
     }
@@ -2136,8 +2144,8 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
         SCLogDebug("sending empty eof message");
         /* send EOF to app layer */
         STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
-        AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn, stream,
-                NULL, 0, flags);
+        AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
+                              NULL, 0, p, flags);
         PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
     }
 
@@ -2570,9 +2578,9 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags) {
  *
  *  \todo this function is too long, we need to break it up. It needs it BAD
  */
-static int StreamTcpReassembleAppLayer (ThreadVars *tv,
-        TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn, TcpStream *stream,
-        Packet *p)
+int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
+                                 TcpSession *ssn, TcpStream *stream,
+                                 Packet *p)
 {
     SCEnter();
 
@@ -2595,8 +2603,8 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
             SCLogDebug("sending empty eof message");
             /* send EOF to app layer */
             STREAM_SET_FLAGS(ssn, stream, p, flags);
-            AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn, stream,
-                    NULL, 0, flags);
+            AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
+                                  NULL, 0, p, flags);
             PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
 
             SCReturnInt(0);
@@ -2699,8 +2707,8 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
                 STREAM_SET_FLAGS(ssn, stream, p, flags);
 
                 /* process what we have so far */
-                AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn, stream,
-                        data, data_len, flags);
+                AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
+                                      data, data_len, p, flags);
                 PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
                 data_len = 0;
             }
@@ -2726,8 +2734,8 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
 
                 /* send gap signal */
                 STREAM_SET_FLAGS(ssn, stream, p, flags);
-                AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn, stream,
-                        NULL, 0, flags|STREAM_GAP);
+                AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
+                                      NULL, 0, p, flags|STREAM_GAP);
                 PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
                 data_len = 0;
 
@@ -2823,8 +2831,8 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
                 /* process what we have so far */
                 STREAM_SET_FLAGS(ssn, stream, p, flags);
                 BUG_ON(data_len > sizeof(data));
-                AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn, stream,
-                        data, data_len, flags);
+                AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
+                                      data, data_len, p, flags);
                 PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
                 data_len = 0;
 
@@ -2883,8 +2891,8 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
                         /* process what we have so far */
                         STREAM_SET_FLAGS(ssn, stream, p, flags);
                         BUG_ON(data_len > sizeof(data));
-                        AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn, stream,
-                                data, data_len, flags);
+                        AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
+                                              data, data_len, p, flags);
                         PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
                         data_len = 0;
 
@@ -2930,8 +2938,8 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
         /* process what we have so far */
         STREAM_SET_FLAGS(ssn, stream, p, flags);
         BUG_ON(data_len > sizeof(data));
-        AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn, stream,
-                data, data_len, flags);
+        AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
+                              data, data_len, p, flags);
         PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
     }
 
@@ -5997,9 +6005,16 @@ static int StreamTcpReassembleTest37(void) {
  *          until the app layer protocol has been detected and one smsg from
  *          toserver side has been sent to app layer.
  *
+ * Unittest modified by commit -
+ *
+ * commit bab1636377bb4f1b7b889f4e3fd594795085eaa4
+ * Author: Anoop Saldanha <anoopsaldanha@gmail.com>
+ * Date:   Fri Feb 15 18:58:33 2013 +0530
+ *
+ *     Improved app protocol detection.
+ *
  *  \retval On success it returns 1 and on failure 0.
  */
-
 static int StreamTcpReassembleTest38 (void) {
     int ret = 0;
     Packet *p = PacketGetFromAlloc();
@@ -6022,11 +6037,11 @@ static int StreamTcpReassembleTest38 (void) {
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
 
-    uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\n";
-    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
-
-    uint8_t httpbuf2[] = "HTTP/1.0 200 OK\r\nServer: VictorServer/1.0\r\n\r\n";
+    uint8_t httpbuf2[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\n";
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+
+    uint8_t httpbuf1[] = "HTTP/1.0 200 OK\r\nServer: VictorServer/1.0\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
 
     FLOW_INITIALIZE(&f);
     if (inet_pton(AF_INET, "1.2.3.4", &in) != 1)
@@ -6057,7 +6072,7 @@ static int StreamTcpReassembleTest38 (void) {
     tcph.th_ack = htonl(20);
     tcph.th_flags = TH_ACK|TH_PUSH;
     p->tcph = &tcph;
-    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->flowflags = FLOW_PKT_TOSERVER;
 
     p->payload = httpbuf2;
     p->payload_len = httplen2;
@@ -6078,7 +6093,7 @@ static int StreamTcpReassembleTest38 (void) {
         goto end;
     }
 
-    p->flowflags = FLOW_PKT_TOSERVER;
+    p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload = httpbuf1;
     p->payload_len = httplen1;
     tcph.th_seq = htonl(10);
@@ -6091,50 +6106,8 @@ static int StreamTcpReassembleTest38 (void) {
     }
 
     /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len > 0) {
-        printf("there shouldn't be any stream smsgs in the queue, as we didn't"
-                " processed any smsg from toserver side till yet (4): ");
-        goto end;
-    }
-
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload = httpbuf2;
-    p->payload_len = httplen2;
-    tcph.th_seq = htonl(55);
-    tcph.th_ack = htonl(53);
-    s = &ssn.server;
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (5): ");
-        goto end;
-    }
-
-    /* we should now have a smsg as the http request is complete and triggered
-     * reassembly */
     if (ra_ctx->stream_q->len != 1) {
         printf("there should one stream smsg in the queue (6): ");
-        goto end;
-    }
-
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload = httpbuf1;
-    p->payload_len = httplen1;
-    tcph.th_seq = htonl(53);
-    tcph.th_ack = htonl(100);
-    s = &ssn.client;
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (8): ");
-        goto end;
-    }
-
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload = NULL;
-    p->payload_len = 0;
-    tcph.th_seq = htonl(100);
-    tcph.th_ack = htonl(53);
-    s = &ssn.server;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (9): ");
         goto end;
     }
 
@@ -6156,205 +6129,590 @@ end:
  */
 
 static int StreamTcpReassembleTest39 (void) {
-    SCEnter();
-
-    int ret = 0;
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
-    Flow *f = NULL;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread *stt = NULL;
     TCPHdr tcph;
-    TcpSession ssn;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
-    memset(&tcph, 0, sizeof (TCPHdr));
-    memset(&ssn, 0, sizeof(TcpSession));
-    ThreadVars tv;
+    memset (&f, 0, sizeof(Flow));
     memset(&tv, 0, sizeof (ThreadVars));
+    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
+    memset(&tcph, 0, sizeof (TCPHdr));
+
+    f.flags = FLOW_IPV4;
+    p->pkt = (uint8_t *)(p + 1);
+    p->flow = &f;
+    p->tcph = &tcph;
+
+    SCMutexLock(&f.m);
+    int ret = 0;
 
     StreamTcpInitConfig(TRUE);
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 7);
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 7);
 
-    uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\n";
-    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
-
-    uint8_t httpbuf2[] = "HTTP/1.0 200 OK\r\nServer: VictorServer/1.0\r\n\r\n";
-    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
-
-    ssn.server.ra_raw_base_seq = ssn.server.ra_app_base_seq = 9;
-    ssn.server.isn = 9;
-    ssn.server.last_ack = 160;
-    ssn.client.ra_raw_base_seq = ssn.client.ra_app_base_seq= 9;
-    ssn.client.isn = 9;
-    ssn.client.last_ack = 160;
-
-    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
-    if (f == NULL)
-        goto end;
-    f->protoctx = &ssn;
-    p->flow = f;
-
-    SCLogDebug("check client seg list %p", ssn.client.seg_list);
+    /* handshake */
     tcph.th_win = htons(5480);
-    tcph.th_seq = htonl(10);
-    tcph.th_ack = htonl(20);
-    tcph.th_flags = TH_ACK|TH_PUSH;
-    p->tcph = &tcph;
-    p->flowflags = FLOW_PKT_TOCLIENT;
-
-    p->payload = httpbuf2;
-    p->payload_len = httplen2;
-    ssn.state = TCP_ESTABLISHED;
-
-    TcpStream *s = NULL;
-    s = &ssn.server;
-
-    SCMutexLock(&f->m);
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (1): ");
-        goto end;
-    }
-
-    /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len > 0) {
-        printf("there shouldn't be any stream smsgs in the queue: (2): ");
-        goto end;
-    }
-
-    SCLogDebug("check client seg list %p", ssn.client.seg_list);
+    tcph.th_flags = TH_SYN;
     p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload = httpbuf1;
-    p->payload_len = httplen1;
-    tcph.th_seq = htonl(10);
-    tcph.th_ack = htonl(55);
-    s = &ssn.client;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
 
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (3): ");
+    TcpSession *ssn = (TcpSession *)f.protoctx;
+
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->client.seg_list != NULL ||
+        ssn->server.seg_list != NULL ||
+        stt->ra_ctx->stream_q->len != 0 ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 1\n");
         goto end;
     }
 
-    /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len == 0) {
-        printf("there should be stream smsgs in the queue (4): ");
-        goto end;
-    }
-    SCLogDebug("check client seg list %p", ssn.client.seg_list);
-
-
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_flags = TH_SYN | TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload = httpbuf2;
-    p->payload_len = httplen2;
-    tcph.th_seq = htonl(55);
-    tcph.th_ack = htonl(53);
-    s = &ssn.server;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (5): ");
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    }
-    SCLogDebug("check client seg list %p", ssn.client.seg_list);
-
-
-    /* Check if we have stream smsgs in queue */
-    SCLogDebug("check if we have stream smsgs in queue");
-    if (ra_ctx->stream_q->len == 0) {
-        printf("there should be a stream smsgs in the queue (6): ");
-        goto end;
-    }
-
-    SCLogDebug("check client seg list %p", ssn.client.seg_list);
-    /* Process stream smsgs we may have in queue */
-    SCLogDebug("process stream smsgs we may have in queue");
-    if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
-        printf("failed in processing stream smsgs (7): ");
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->client.seg_list != NULL ||
+        ssn->server.seg_list != NULL ||
+        stt->ra_ctx->stream_q->len != 0 ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 2\n");
         goto end;
     }
 
-    SCLogDebug("check client seg list %p", ssn.client.seg_list);
-
-    /* check is have the segment in the list and flagged or not */
-/*
-    if (ssn.client.seg_list == NULL ||
-            !(ssn.client.seg_list->flags & SEGMENTTCP_FLAG_RAW_PROCESSED))
-    {
-        printf("the list is NULL or the processed segment has not been flaged (8), seg %p, flags %02X: ",
-                ssn.client.seg_list, ssn.client.seg_list? ssn.client.seg_list->flags:0);
-//abort();
-        goto end;
-    }
-*/
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload = httpbuf1;
-    p->payload_len = httplen1;
-    tcph.th_seq = htonl(53);
-    tcph.th_ack = htonl(100);
-    s = &ssn.client;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (9): ");
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->client.seg_list != NULL ||
+        ssn->server.seg_list != NULL ||
+        stt->ra_ctx->stream_q->len != 0 ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 3\n");
         goto end;
     }
 
-    /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len == 0 &&
-            !(ssn.client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)) {
-        printf("there should be a stream smsgs in the queue, as we have detected"
-                " the app layer protocol and one smsg from toserver side has "
-                "been sent (10): ");
+    /* partial request */
+    uint8_t request1[] = { 0x47, 0x45, };
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = sizeof(request1);
+    p->payload = request1;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    /* Process stream smsgs we may have in queue */
-    } else if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
-        printf("failed in processing stream smsgs (11): ");
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->client.seg_list == NULL ||
+        ssn->client.seg_list->next != NULL ||
+        ssn->server.seg_list != NULL ||
+        stt->ra_ctx->stream_q->len != 0 ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 4\n");
         goto end;
     }
 
+
+    /* response ack against partial request */
+    p->tcph->th_ack = htonl(3);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload = httpbuf2;
-    p->payload_len = httplen2;
-    tcph.th_seq = htonl(100);
-    tcph.th_ack = htonl(96);
-    s = &ssn.server;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (12): ");
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->client.seg_list == NULL ||
+        ssn->client.seg_list->next != NULL ||
+        ssn->server.seg_list != NULL ||
+        stt->ra_ctx->stream_q->len != 0 ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 5\n");
         goto end;
     }
 
-    SCLogDebug("final check");
-
-    if (!(ssn.client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)) {
-        printf("STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED flag should have been set (13): ");
+    /* complete partial request */
+    uint8_t request2[] = {
+        0x54, 0x20, 0x2f, 0x69, 0x6e, 0x64,
+        0x65, 0x78, 0x2e, 0x68, 0x74, 0x6d, 0x6c, 0x20,
+        0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x30,
+        0x0d, 0x0a, 0x48, 0x6f, 0x73, 0x74, 0x3a, 0x20,
+        0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73,
+        0x74, 0x0d, 0x0a, 0x55, 0x73, 0x65, 0x72, 0x2d,
+        0x41, 0x67, 0x65, 0x6e, 0x74, 0x3a, 0x20, 0x41,
+        0x70, 0x61, 0x63, 0x68, 0x65, 0x42, 0x65, 0x6e,
+        0x63, 0x68, 0x2f, 0x32, 0x2e, 0x33, 0x0d, 0x0a,
+        0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x3a, 0x20,
+        0x2a, 0x2f, 0x2a, 0x0d, 0x0a, 0x0d, 0x0a };
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(3);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = sizeof(request2);
+    p->payload = request2;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->client.seg_list == NULL ||
+        ssn->client.seg_list->next == NULL ||
+        ssn->client.seg_list->next->next != NULL ||
+        ssn->server.seg_list != NULL ||
+        stt->ra_ctx->stream_q->len != 0 ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 6\n");
         goto end;
     }
 
-    /* check if the segment in the list is flagged or not */
-    if (ssn.client.seg_list == NULL) {
-        printf("segment list should not be empty (14): ");
+    /* response - request ack */
+    uint8_t response[] = {
+        0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x31,
+        0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b, 0x0d,
+        0x0a, 0x44, 0x61, 0x74, 0x65, 0x3a, 0x20, 0x46,
+        0x72, 0x69, 0x2c, 0x20, 0x32, 0x33, 0x20, 0x53,
+        0x65, 0x70, 0x20, 0x32, 0x30, 0x31, 0x31, 0x20,
+        0x30, 0x36, 0x3a, 0x32, 0x39, 0x3a, 0x33, 0x39,
+        0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65,
+        0x72, 0x76, 0x65, 0x72, 0x3a, 0x20, 0x41, 0x70,
+        0x61, 0x63, 0x68, 0x65, 0x2f, 0x32, 0x2e, 0x32,
+        0x2e, 0x31, 0x35, 0x20, 0x28, 0x55, 0x6e, 0x69,
+        0x78, 0x29, 0x20, 0x44, 0x41, 0x56, 0x2f, 0x32,
+        0x0d, 0x0a, 0x4c, 0x61, 0x73, 0x74, 0x2d, 0x4d,
+        0x6f, 0x64, 0x69, 0x66, 0x69, 0x65, 0x64, 0x3a,
+        0x20, 0x54, 0x68, 0x75, 0x2c, 0x20, 0x30, 0x34,
+        0x20, 0x4e, 0x6f, 0x76, 0x20, 0x32, 0x30, 0x31,
+        0x30, 0x20, 0x31, 0x35, 0x3a, 0x30, 0x34, 0x3a,
+        0x34, 0x36, 0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a,
+        0x45, 0x54, 0x61, 0x67, 0x3a, 0x20, 0x22, 0x61,
+        0x62, 0x38, 0x39, 0x36, 0x35, 0x2d, 0x32, 0x63,
+        0x2d, 0x34, 0x39, 0x34, 0x33, 0x62, 0x37, 0x61,
+        0x37, 0x66, 0x37, 0x66, 0x38, 0x30, 0x22, 0x0d,
+        0x0a, 0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2d,
+        0x52, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x3a, 0x20,
+        0x62, 0x79, 0x74, 0x65, 0x73, 0x0d, 0x0a, 0x43,
+        0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x4c,
+        0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a, 0x20, 0x34,
+        0x34, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x6e, 0x65,
+        0x63, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20, 0x63,
+        0x6c, 0x6f, 0x73, 0x65, 0x0d, 0x0a, 0x43, 0x6f,
+        0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x54, 0x79,
+        0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78, 0x74,
+        0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x0d, 0x0a, 0x58,
+        0x2d, 0x50, 0x61, 0x64, 0x3a, 0x20, 0x61, 0x76,
+        0x6f, 0x69, 0x64, 0x20, 0x62, 0x72, 0x6f, 0x77,
+        0x73, 0x65, 0x72, 0x20, 0x62, 0x75, 0x67, 0x0d,
+        0x0a, 0x0d, 0x0a, 0x3c, 0x68, 0x74, 0x6d, 0x6c,
+        0x3e, 0x3c, 0x62, 0x6f, 0x64, 0x79, 0x3e, 0x3c,
+        0x68, 0x31, 0x3e, 0x49, 0x74, 0x20, 0x77, 0x6f,
+        0x72, 0x6b, 0x73, 0x21, 0x3c, 0x2f, 0x68, 0x31,
+        0x3e, 0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e,
+        0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e };
+    p->tcph->th_ack = htonl(88);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = sizeof(response);
+    p->payload = response;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->client.seg_list == NULL ||
+        ssn->client.seg_list->next == NULL ||
+        ssn->client.seg_list->next->next != NULL ||
+        ssn->server.seg_list == NULL ||
+        ssn->server.seg_list->next != NULL ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 7\n");
         goto end;
     }
 
-    SCLogDebug("ssn.client.seg_list->flags %02x, seg %p", ssn.client.seg_list->flags, ssn.client.seg_list);
-
-    if (!(ssn.client.seg_list->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) {
-        printf("segment should have flags SEGMENTTCP_FLAG_APPLAYER_PROCESSED set (15): ");
+    /* response ack from request */
+    p->tcph->th_ack = htonl(328);
+    p->tcph->th_seq = htonl(88);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_HTTP ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->client.seg_list == NULL ||
+        ssn->client.seg_list->next == NULL ||
+        ssn->client.seg_list->next->next != NULL ||
+        ssn->server.seg_list == NULL ||
+        ssn->server.seg_list->next != NULL ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 8\n");
         goto end;
     }
 
-    if (!(ssn.client.seg_list->flags & SEGMENTTCP_FLAG_RAW_PROCESSED)) {
-        printf("segment should have flags SEGMENTTCP_FLAG_RAW_PROCESSED set (16): ");
+    /* response - acking */
+    p->tcph->th_ack = htonl(88);
+    p->tcph->th_seq = htonl(328);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_HTTP ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->client.seg_list == NULL ||
+        ssn->client.seg_list->next != NULL ||
+        ssn->server.seg_list == NULL ||
+        ssn->server.seg_list->next != NULL ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 9\n");
         goto end;
     }
+
+    /* response ack from request */
+    p->tcph->th_ack = htonl(328);
+    p->tcph->th_seq = htonl(88);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_HTTP ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->client.seg_list == NULL ||
+        ssn->client.seg_list->next != NULL ||
+        ssn->server.seg_list == NULL ||
+        ssn->server.seg_list->next != NULL ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 10\n");
+        goto end;
+    }
+
+    /* response - acking the request again*/
+    p->tcph->th_ack = htonl(88);
+    p->tcph->th_seq = htonl(328);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_HTTP ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->client.seg_list == NULL ||
+        ssn->client.seg_list->next != NULL ||
+        ssn->server.seg_list == NULL ||
+        ssn->server.seg_list->next != NULL ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 11\n");
+        goto end;
+    }
+
+    /*** New Request ***/
+
+    /* partial request */
+    p->tcph->th_ack = htonl(328);
+    p->tcph->th_seq = htonl(88);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = sizeof(request1);
+    p->payload = request1;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_HTTP ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->client.seg_list == NULL ||
+        ssn->client.seg_list->next == NULL ||
+        ssn->client.seg_list->next->next != NULL ||
+        ssn->server.seg_list == NULL ||
+        ssn->server.seg_list->next != NULL ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 12\n");
+        goto end;
+    }
+
+
+    /* response ack against partial request */
+    p->tcph->th_ack = htonl(90);
+    p->tcph->th_seq = htonl(328);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_HTTP ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->client.seg_list == NULL ||
+        ssn->client.seg_list->next == NULL ||
+        ssn->client.seg_list->next->next != NULL ||
+        ssn->server.seg_list == NULL ||
+        ssn->server.seg_list->next != NULL ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 13\n");
+        goto end;
+    }
+
+    /* complete request */
+    p->tcph->th_ack = htonl(328);
+    p->tcph->th_seq = htonl(90);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = sizeof(request2);
+    p->payload = request2;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_HTTP ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->client.seg_list == NULL ||
+        ssn->client.seg_list->next == NULL ||
+        ssn->client.seg_list->next->next == NULL ||
+        ssn->client.seg_list->next->next->next != NULL ||
+        ssn->server.seg_list == NULL ||
+        ssn->server.seg_list->next != NULL ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 14\n");
+        goto end;
+    }
+
+    /* response ack against second partial request */
+    p->tcph->th_ack = htonl(175);
+    p->tcph->th_seq = htonl(328);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_HTTP ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->client.seg_list->next == NULL ||
+        ssn->client.seg_list->next->next == NULL ||
+        ssn->client.seg_list->next->next->next != NULL ||
+        ssn->server.seg_list == NULL ||
+        ssn->server.seg_list->next != NULL ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 15\n");
+        goto end;
+    }
+
+    if (ssn->toserver_smsg_head == NULL ||
+        ssn->toserver_smsg_head->next == NULL ||
+        ssn->toserver_smsg_head->next->next != NULL ||
+        ssn->toclient_smsg_head == NULL ||
+        ssn->toclient_smsg_head->next != NULL) {
+        printf("failure 16\n");
+        goto end;
+    }
+
+    StreamMsgReturnListToPool(ssn->toserver_smsg_head);
+    ssn->toserver_smsg_head = ssn->toserver_smsg_tail = NULL;
+    StreamMsgReturnListToPool(ssn->toclient_smsg_head);
+    ssn->toclient_smsg_head = ssn->toclient_smsg_tail = NULL;
+
+    /* response acking a request */
+    p->tcph->th_ack = htonl(175);
+    p->tcph->th_seq = htonl(328);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_HTTP ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->client.seg_list != NULL ||
+        ssn->server.seg_list == NULL ||
+        ssn->server.seg_list->next != NULL ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 15\n");
+        goto end;
+    }
+
+    /* request acking a response */
+    p->tcph->th_ack = htonl(328);
+    p->tcph->th_seq = htonl(175);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_HTTP ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->client.seg_list != NULL ||
+        ssn->server.seg_list != NULL ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 15\n");
+        goto end;
+    }
+
 
     ret = 1;
 end:
-    StreamTcpReassembleFreeThreadCtx(ra_ctx);
+    StreamTcpThreadDeinit(&tv, (void *)stt);
+    StreamTcpSessionClear(p->flow->protoctx);
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
-    SCMutexUnlock(&f->m);
-    UTHFreeFlow(f);
+    SCMutexUnlock(&f.m);
     return ret;
 }
 
@@ -6584,197 +6942,6 @@ static int StreamTcpReassembleTest40 (void) {
 
     if (f->alproto != ALPROTO_HTTP) {
         printf("app layer proto has not been detected (18): ");
-        goto end;
-    }
-
-    ret = 1;
-end:
-    StreamTcpReassembleFreeThreadCtx(ra_ctx);
-    StreamTcpFreeConfig(TRUE);
-    SCFree(p);
-    SCMutexUnlock(&f->m);
-    UTHFreeFlow(f);
-    return ret;
-}
-
-/**
- *  \test   Test to make sure we don't send more than one smsg from toserver to
- *          app layer  until the app layer protocol has not been detected. After
- *          protocol has been detected the processed segments should be returned
- *          to pool.
- *
- *  \retval On success it returns 1 and on failure 0.
- */
-
-static int StreamTcpReassembleTest41 (void) {
-    int ret = 0;
-    Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    Flow *f = NULL;
-    TCPHdr tcph;
-    TcpSession ssn;
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
-    memset(&tcph, 0, sizeof (TCPHdr));
-    memset(&ssn, 0, sizeof(TcpSession));
-    ThreadVars tv;
-    memset(&tv, 0, sizeof (ThreadVars));
-
-    StreamTcpInitConfig(TRUE);
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-
-    uint8_t httpbuf1[] = "GET / HTTP/1.0\r\nUser-Agent: Victor/1.0"
-                         "W2dyb3VwMV0NCnBob25lMT1wMDB3ODgyMTMxMzAyMTINCmxvZ2lu"
-                         "MT0NCnBhc3N3b3JkMT0NCnBob25lMj1wMDB3ODgyMTMxMzAyMTIN"
-                         "CmxvZ2luMj0NCnBhc3N3b3JkMj0NCnBob25lMz0NCmxvZ2luMz0N"
-                         "CnBhc3N3b3JkMz0NCnBob25lND0NCmxvZ2luND0NCnBhc3N3b3Jk"
-                         "ND0NCnBob25lNT0NCmxvZ2luNT0NCnBhc3N3b3JkNT0NCnBob25l"
-                         "Nj0NCmxvZ2luNj0NCnBhc3N3b3JkNj0NCmNhbGxfdGltZTE9MzIN"
-                         "CmNhbGxfdGltZTI9MjMyDQpkYXlfbGltaXQ9NQ0KbW9udGhfbGlt"
-                         "aXQ9MTUNCltncm91cDJdDQpwaG9uZTE9DQpsb2dpbjE9DQpwYXNz"
-                         "d29yZDE9DQpwaG9uZTI9DQpsb2dpbjI9DQpwYXNzd29yZDI9DQpw"
-                         "aG9uZT";
-    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
-
-    uint8_t httpbuf3[] = "psb2dpbjM9DQpwYXNzd29yZDM9DQpwaG9uZTQ9DQps"
-                         "b2dpbjQ9DQpwYXNzd29yZDQ9DQpwaG9uZTU9DQpsb2dpbjU9DQpw"
-                         "YXNzd29yZDU9DQpwaG9uZTY9DQpsb2dpbjY9DQpwYXNzd29yZDY9"
-                         "DQpjYWxsX3RpbWUxPQ0KY2FsbF90aW1lMj0NCmRheV9saW1pdD0N"
-                         "\r\n\r\n";
-    uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
-
-    uint8_t httpbuf2[] = "HTTP/1.0 200 OK\r\nServer: VictorServer/1.0\r\n\r\n";
-    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
-
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 100);
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 500);
-
-    ssn.server.ra_raw_base_seq = ssn.server.ra_app_base_seq = 9;
-    ssn.server.isn = 9;
-    ssn.server.last_ack = 600;
-    ssn.client.ra_raw_base_seq = ssn.client.ra_app_base_seq = 9;
-    ssn.client.isn = 9;
-    ssn.client.last_ack = 600;
-
-    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
-    if (f == NULL)
-        goto end;
-    f->protoctx = &ssn;
-    p->flow = f;
-
-    tcph.th_win = htons(5480);
-    tcph.th_seq = htonl(10);
-    tcph.th_ack = htonl(20);
-    tcph.th_flags = TH_ACK|TH_PUSH;
-    p->tcph = &tcph;
-    p->flowflags = FLOW_PKT_TOCLIENT;
-
-    p->payload = httpbuf2;
-    p->payload_len = httplen2;
-    ssn.state = TCP_ESTABLISHED;
-
-    TcpStream *s = NULL;
-    s = &ssn.server;
-
-    SCMutexLock(&f->m);
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet: ");
-        goto end;
-    }
-
-    /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len > 0) {
-        printf("there shouldn't be any stream smsgs in the queue: ");
-        goto end;
-    }
-
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload = httpbuf1;
-    p->payload_len = httplen1;
-    tcph.th_seq = htonl(10);
-    tcph.th_ack = htonl(55);
-    s = &ssn.client;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet: ");
-        goto end;
-    }
-
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload = httpbuf3;
-    p->payload_len = httplen3;
-    tcph.th_seq = htonl(522);
-    tcph.th_ack = htonl(100);
-    s = &ssn.client;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet: ");
-        goto end;
-    }
-
-    /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len == 0) {
-        printf("there should be stream smsgs in the queue: ");
-        goto end;
-    }
-
-    if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
-        printf("failed in processing stream smsgs: ");
-        goto end;
-    }
-
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload = httpbuf2;
-    p->payload_len = httplen2;
-    tcph.th_seq = htonl(55);
-    tcph.th_ack = htonl(522);
-    s = &ssn.server;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet: ");
-        goto end;
-    }
-
-    /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len == 0) {
-        printf("there should be a stream smsgs in the queue: ");
-        goto end;
-    /* Process stream smsgs we may have in queue */
-    } else if (ra_ctx->stream_q->len > 1) {
-        printf("there should be only one stream smsgs in the queue: ");
-        goto end;
-    } else if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
-        printf("failed in processing stream smsgs: ");
-        goto end;
-    }
-
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload = httpbuf2;
-    p->payload_len = httplen2;
-    tcph.th_seq = htonl(100);
-    tcph.th_ack = htonl(522);
-    s = &ssn.server;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet: ");
-        goto end;
-    }
-
-    /* check if the segment in the list is flagged or not */
-    if (ssn.client.seg_list == NULL) {
-        printf("segment list should not be empty: ");
-        goto end;
-    }
-
-    /* last_ack is in the middle of this segment */
-    if ((ssn.client.seg_list->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) {
-        printf("segment should not have flags SEGMENTTCP_FLAG_APPLAYER_PROCESSED set: ");
-        goto end;
-    }
-
-    if (!(ssn.client.seg_list->flags & SEGMENTTCP_FLAG_RAW_PROCESSED)) {
-        printf("segment should have flags SEGMENTTCP_FLAG_RAW_PROCESSED set: ");
         goto end;
     }
 
@@ -8713,7 +8880,6 @@ void StreamTcpReassembleRegisterTests(void) {
     UtRegisterTest("StreamTcpReassembleTest38 -- app proto test", StreamTcpReassembleTest38, 1);
     UtRegisterTest("StreamTcpReassembleTest39 -- app proto test", StreamTcpReassembleTest39, 1);
     UtRegisterTest("StreamTcpReassembleTest40 -- app proto test", StreamTcpReassembleTest40, 1);
-    UtRegisterTest("StreamTcpReassembleTest41 -- app proto test", StreamTcpReassembleTest41, 1);
     UtRegisterTest("StreamTcpReassembleTest43 -- min smsg size test", StreamTcpReassembleTest43, 1);
     UtRegisterTest("StreamTcpReassembleTest44 -- Memcap Test", StreamTcpReassembleTest44, 1);
     UtRegisterTest("StreamTcpReassembleTest45 -- Depth Test", StreamTcpReassembleTest45, 1);

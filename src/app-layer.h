@@ -38,10 +38,13 @@
 uint16_t AppLayerGetProtoFromPacket(Packet *);
 void *AppLayerGetProtoStateFromPacket(Packet *);
 void *AppLayerGetProtoStateFromFlow(Flow *);
-int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *, Flow *, TcpSession *, TcpStream *, uint8_t *, uint32_t, uint8_t);
+int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Flow *f,
+                          TcpSession *ssn, TcpStream *stream, uint8_t *data, uint32_t data_len, Packet *p, uint8_t flags);
 int AppLayerHandleTCPMsg(AlpProtoDetectThreadCtx *, StreamMsg *);
 //int AppLayerHandleMsg(AlpProtoDetectThreadCtx *, StreamMsg *);
 int AppLayerHandleUdp(AlpProtoDetectThreadCtx *, Flow *, Packet *p);
+
+void AppLayerRegisterUnittests(void);
 
 #endif /* __APP_LAYER_H__ */
 

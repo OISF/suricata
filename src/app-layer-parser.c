@@ -758,7 +758,7 @@ int AppLayerRegisterProto(char *name, uint8_t proto, uint8_t flags,
 }
 
 #ifdef UNITTESTS
-void AppLayerRegisterUnittests(uint16_t proto, void (*RegisterUnittests)(void)) {
+void AppLayerParserRegisterUnittests(uint16_t proto, void (*RegisterUnittests)(void)) {
     al_proto_table[proto].RegisterUnittests = RegisterUnittests;
 }
 #endif
@@ -2237,6 +2237,23 @@ static inline void AppLayerInsertNewProbingParser(AppLayerProbingParser **pp,
     } /* if */
 
  error:
+    return;
+}
+
+void AppLayerRegisterParserAcceptableDataDirection(uint16_t al_proto,
+                                                   uint8_t flags)
+{
+    al_proto_table[al_proto].flags |= (flags & (STREAM_TOSERVER | STREAM_TOCLIENT));
+
+    return;
+}
+
+void AppLayerMapProbingParserAgainstAlproto(uint16_t al_proto,
+                                            uint8_t flags,
+                                            ProbingParserFPtr ProbingParser)
+{
+    al_proto_table[al_proto].pp_alproto_map[(flags & STREAM_TOSERVER) ? 0 : 1] = ProbingParser;
+
     return;
 }
 

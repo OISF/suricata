@@ -50,6 +50,10 @@
         FLOWLOCK_INIT((f)); \
         (f)->protoctx = NULL; \
         (f)->alproto = 0; \
+        (f)->alproto_ts = 0; \
+        (f)->alproto_tc = 0; \
+        (f)->data_al_so_far[0] = 0; \
+        (f)->data_al_so_far[1] = 0; \
         (f)->de_ctx_id = 0; \
         (f)->alparser = NULL; \
         (f)->alstate = NULL; \
@@ -85,6 +89,10 @@
         (f)->alparser = NULL; \
         (f)->alstate = NULL; \
         (f)->alproto = 0; \
+        (f)->alproto_ts = 0; \
+        (f)->alproto_tc = 0; \
+        (f)->data_al_so_far[0] = 0; \
+        (f)->data_al_so_far[1] = 0; \
         (f)->de_ctx_id = 0; \
         if ((f)->de_state != NULL) { \
             DetectEngineStateReset((f)->de_state, (STREAM_TOSERVER | STREAM_TOCLIENT)); \

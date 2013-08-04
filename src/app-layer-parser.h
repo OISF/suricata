@@ -34,6 +34,9 @@ typedef struct AppLayerLocalMap_ {
     uint16_t parser_id;
 } AppLayerLocalMap;
 
+typedef uint16_t (*ProbingParserFPtr)(uint8_t *input, uint32_t input_len,
+                                      uint32_t *offset);
+
 /** \brief Mapping between ALPROTO_* and L7Parsers
  *
  * Map the proto to the parsers for the to_client and to_server directions.
@@ -65,6 +68,10 @@ typedef struct AppLayerProto_ {
     uint64_t (*StateGetTxCnt)(void *alstate);
     void *(*StateGetTx)(void *alstate, uint64_t tx_id);
     int (*StateGetAlstateProgressCompletionStatus)(uint8_t direction);
+
+    ProbingParserFPtr pp_alproto_map[2];
+    /* The current values taken are STREAM_TOSERVER, STREAM_TOCLIENT */
+    uint8_t flags;
 
 #ifdef UNITTESTS
     void (*RegisterUnittests)(void);
@@ -137,9 +144,6 @@ typedef struct AppLayerParserStateStore_ {
     /* Used to store decoder events */
     AppLayerDecoderEvents *decoder_events;
 } AppLayerParserStateStore;
-
-typedef uint16_t (*ProbingParserFPtr)(uint8_t *input, uint32_t input_len,
-                                      uint32_t *offset);
 
 typedef struct AppLayerParserTableElement_ {
     int (*AppLayerParser)(Flow *f, void *protocol_state, AppLayerParserState
@@ -242,6 +246,11 @@ int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id,
                                                  void *local_data,
                                                  AppLayerParserResult *output),
                            char *dependency);
+void AppLayerRegisterParserAcceptableDataDirection(uint16_t al_proto,
+                                                   uint8_t flags);
+void AppLayerMapProbingParserAgainstAlproto(uint16_t al_proto,
+                                            uint8_t flags,
+                                            ProbingParserFPtr ProbingParser);
 void AppLayerRegisterProbingParser(struct AlpProtoDetectCtx_ *,
                                    uint16_t ip_proto,
                                    char *portstr,
@@ -250,7 +259,7 @@ void AppLayerRegisterProbingParser(struct AlpProtoDetectCtx_ *,
                                    uint8_t flags,
                                    ProbingParserFPtr ProbingParser);
 #ifdef UNITTESTS
-void AppLayerRegisterUnittests(uint16_t proto, void (*RegisterUnittests)(void));
+void AppLayerParserRegisterUnittests(uint16_t proto, void (*RegisterUnittests)(void));
 #endif
 void AppLayerRegisterStateFuncs(uint16_t proto, void *(*StateAlloc)(void),
                                 void (*StateFree)(void *));

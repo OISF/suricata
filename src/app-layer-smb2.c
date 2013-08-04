@@ -531,7 +531,7 @@ void RegisterSMB2Parsers(void) {
     }
 
 #ifdef UNITTESTS
-    AppLayerRegisterUnittests(ALPROTO_SMB2, SMB2ParserRegisterTests);
+    AppLayerParserRegisterUnittests(ALPROTO_SMB2, SMB2ParserRegisterTests);
 #endif
     return;
 }
