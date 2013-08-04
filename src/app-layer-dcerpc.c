@@ -1871,6 +1871,9 @@ void RegisterDCERPCParsers(void) {
 
     if (AppLayerProtoDetectionEnabled(proto_name)) {
         AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_DCERPC, "|05 00|", 2, 0, STREAM_TOSERVER);
+        /* toclient direction */
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_DCERPC, "|05 00|", 2, 0, STREAM_TOCLIENT);
+        AppLayerRegisterParserAcceptableDataDirection(ALPROTO_DCERPC, STREAM_TOSERVER);
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",
                   proto_name);
@@ -1889,7 +1892,7 @@ void RegisterDCERPCParsers(void) {
                   "still on.", proto_name);
     }
 #ifdef UNITTESTS
-    AppLayerRegisterUnittests(ALPROTO_DCERPC, DCERPCParserRegisterTests);
+    AppLayerParserRegisterUnittests(ALPROTO_DCERPC, DCERPCParserRegisterTests);
 #endif
 
     return;

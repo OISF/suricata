@@ -270,6 +270,7 @@ void RegisterFTPParsers(void) {
         AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "USER ", 5, 0, STREAM_TOSERVER);
         AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "PASS ", 5, 0, STREAM_TOSERVER);
         AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "PORT ", 5, 0, STREAM_TOSERVER);
+        AppLayerRegisterParserAcceptableDataDirection(ALPROTO_FTP, STREAM_TOSERVER | STREAM_TOCLIENT);
     }
 
     if (AppLayerParserEnabled(proto_name)) {
@@ -286,7 +287,7 @@ void RegisterFTPParsers(void) {
                   "still on.", proto_name);
     }
 #ifdef UNITTESTS
-    AppLayerRegisterUnittests(ALPROTO_FTP, FTPParserRegisterTests);
+    AppLayerParserRegisterUnittests(ALPROTO_FTP, FTPParserRegisterTests);
 #endif
 }
 

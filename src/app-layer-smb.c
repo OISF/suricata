@@ -1420,6 +1420,8 @@ void RegisterSMBParsers(void) {
                                             SMB_PROBING_PARSER_MIN_DEPTH, 0,
                                             SMBProbingParser);
         }
+
+        AppLayerRegisterParserAcceptableDataDirection(ALPROTO_SMB, STREAM_TOSERVER);
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",
                   proto_name);
@@ -1436,7 +1438,7 @@ void RegisterSMBParsers(void) {
     }
 
 #ifdef UNITTESTS
-    AppLayerRegisterUnittests(ALPROTO_SMB, SMBParserRegisterTests);
+    AppLayerParserRegisterUnittests(ALPROTO_SMB, SMBParserRegisterTests);
 #endif
     return;
 }
