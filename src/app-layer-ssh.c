@@ -741,6 +741,7 @@ void RegisterSSHParsers(void)
     /** SSH */
     if (AppLayerProtoDetectionEnabled(proto_name)) {
         AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SSH, "SSH-", 4, 0, STREAM_TOSERVER);
+        AppLayerRegisterParserAcceptableDataDirection(ALPROTO_SSH, STREAM_TOSERVER | STREAM_TOCLIENT);
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",
                   proto_name);
@@ -759,7 +760,7 @@ void RegisterSSHParsers(void)
     }
 
 #ifdef UNITTESTS
-    AppLayerRegisterUnittests(ALPROTO_SSH, SSHParserRegisterTests);
+    AppLayerParserRegisterUnittests(ALPROTO_SSH, SSHParserRegisterTests);
 #endif
 }
 
