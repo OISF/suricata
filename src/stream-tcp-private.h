@@ -215,6 +215,8 @@ typedef struct TcpSession_ {
     struct StreamMsg_ *toclient_smsg_head;  /**< list of stream msgs (for detection inspection) */
     struct StreamMsg_ *toclient_smsg_tail;  /**< list of stream msgs (for detection inspection) */
 
+    int8_t data_first_seen_dir;
+
     TcpStateQueue *queue;                   /**< list of SYN/ACK candidates */
 } TcpSession;
 
