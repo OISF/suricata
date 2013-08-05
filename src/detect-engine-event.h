@@ -40,10 +40,13 @@ struct DetectEngineEvents_ {
     char *event_name;
     uint8_t code;
 } DEvents[] = {
+    /* IPV4 EVENTS */
     { "ipv4.pkt_too_small", IPV4_PKT_TOO_SMALL, },
     { "ipv4.hlen_too_small", IPV4_HLEN_TOO_SMALL, },
     { "ipv4.iplen_smaller_than_hlen", IPV4_IPLEN_SMALLER_THAN_HLEN, },
     { "ipv4.trunc_pkt", IPV4_TRUNC_PKT, },
+
+    /* IPV4 OPTIONS */
     { "ipv4.opt_invalid", IPV4_OPT_INVALID, },
     { "ipv4.opt_invalid_len", IPV4_OPT_INVALID_LEN, },
     { "ipv4.opt_malformed", IPV4_OPT_MALFORMED, },
@@ -52,6 +55,22 @@ struct DetectEngineEvents_ {
     { "ipv4.opt_duplicate", IPV4_OPT_DUPLICATE, },
     { "ipv4.opt_unknown", IPV4_OPT_UNKNOWN, },
     { "ipv4.wrong_ip_version", IPV4_WRONG_IP_VER, },
+
+    /* ICMP EVENTS */
+    { "icmpv4.pkt_too_small", ICMPV4_PKT_TOO_SMALL, },
+    { "icmpv4.unknown_type", ICMPV4_UNKNOWN_TYPE, },
+    { "icmpv4.unknown_code", ICMPV4_UNKNOWN_CODE, },
+    { "icmpv4.ipv4_trunc_pkt", ICMPV4_IPV4_TRUNC_PKT, },
+    { "icmpv4.ipv4_unknown_ver", ICMPV4_IPV4_UNKNOWN_VER, },
+
+    /* ICMPv6 EVENTS */
+    { "icmpv6.unknown_type", ICMPV6_UNKNOWN_TYPE,},
+    { "icmpv6.unknown_code", ICMPV6_UNKNOWN_CODE,},
+    { "icmpv6.pkt_too_small", ICMPV6_PKT_TOO_SMALL,},
+    { "icmpv6.ipv6_unknown_version", ICMPV6_IPV6_UNKNOWN_VER,},
+    { "icmpv6.ipv6_trunc_pkt", ICMPV6_IPV6_TRUNC_PKT,},
+
+    /* IPV6 EVENTS */
     { "ipv6.pkt_too_small", IPV6_PKT_TOO_SMALL, },
     { "ipv6.trunc_pkt", IPV6_TRUNC_PKT, },
     { "ipv6.trunc_exthdr", IPV6_TRUNC_EXTHDR, },
@@ -70,35 +89,41 @@ struct DetectEngineEvents_ {
     { "ipv6.dstopts_unknown_opt", IPV6_DSTOPTS_UNKNOWN_OPT, },
     { "ipv6.dstopts_only_padding", IPV6_DSTOPTS_ONLY_PADDING, },
     { "ipv6.icmpv4", IPV6_WITH_ICMPV4, },
-    { "icmpv4.pkt_too_small", ICMPV4_PKT_TOO_SMALL, },
-    { "icmpv4.unknown_type", ICMPV4_UNKNOWN_TYPE, },
-    { "icmpv4.unknown_code", ICMPV4_UNKNOWN_CODE, },
-    { "icmpv4.ipv4_trunc_pkt", ICMPV4_IPV4_TRUNC_PKT, },
-    { "icmpv4.ipv4_unknown_ver", ICMPV4_IPV4_UNKNOWN_VER, },
-    { "icmpv6.unknown_type", ICMPV6_UNKNOWN_TYPE,},
-    { "icmpv6.unknown_code", ICMPV6_UNKNOWN_CODE,},
-    { "icmpv6.pkt_too_small", ICMPV6_PKT_TOO_SMALL,},
-    { "icmpv6.ipv6_unknown_version", ICMPV6_IPV6_UNKNOWN_VER,},
-    { "icmpv6.ipv6_trunc_pkt", ICMPV6_IPV6_TRUNC_PKT,},
+
+    /* TCP EVENTS */
     { "tcp.pkt_too_small", TCP_PKT_TOO_SMALL, },
     { "tcp.hlen_too_small", TCP_HLEN_TOO_SMALL, },
     { "tcp.invalid_optlen", TCP_INVALID_OPTLEN, },
+
+    /* TCP OPTIONS */
     { "tcp.opt_invalid_len", TCP_OPT_INVALID_LEN, },
     { "tcp.opt_duplicate", TCP_OPT_DUPLICATE, },
+
+    /* UDP EVENTS */
     { "udp.pkt_too_small", UDP_PKT_TOO_SMALL, },
     { "udp.hlen_too_small", UDP_HLEN_TOO_SMALL, },
     { "udp.hlen_invalid", UDP_HLEN_INVALID, },
+
+    /* SLL EVENTS */
     { "sll.pkt_too_small", SLL_PKT_TOO_SMALL, },
+
+    /* ETHERNET EVENTS */
     { "ethernet.pkt_too_small", ETHERNET_PKT_TOO_SMALL, },
+
+    /* PPP EVENTS */
     { "ppp.pkt_too_small", PPP_PKT_TOO_SMALL, },
     { "ppp.vju_pkt_too_small", PPPVJU_PKT_TOO_SMALL, },
     { "ppp.ip4_pkt_too_small", PPPIPV4_PKT_TOO_SMALL, },
     { "ppp.ip6_pkt_too_small", PPPIPV6_PKT_TOO_SMALL, },
     { "ppp.wrong_type", PPP_WRONG_TYPE, }, /** unknown & invalid protocol */
     { "ppp.unsup_proto", PPP_UNSUP_PROTO, }, /** unsupported but valid protocol */
+
+    /* PPPOE EVENTS */
     { "pppoe.pkt_too_small", PPPOE_PKT_TOO_SMALL, },
     { "pppoe.wrong_code", PPPOE_WRONG_CODE, },
     { "pppoe.malformed_tags", PPPOE_MALFORMED_TAGS, },
+
+    /* GRE EVENTS */
     { "gre.pkt_too_small", GRE_PKT_TOO_SMALL, },
     { "gre.wrong_version", GRE_WRONG_VERSION, },
     { "gre.version0_recur", GRE_VERSION0_RECUR, },
@@ -114,18 +139,16 @@ struct DetectEngineEvents_ {
     { "gre.version1_wrong_protocol", GRE_VERSION1_WRONG_PROTOCOL, },
     { "gre.version1_malformed_sre_hdr", GRE_VERSION1_MALFORMED_SRE_HDR, },
     { "gre.version1_hdr_too_big", GRE_VERSION1_HDR_TOO_BIG, },
-    { "ipraw.invalid_ip_version",IPRAW_INVALID_IPV, },
+
+    /* VLAN EVENTS */
     { "vlan.header_too_small",VLAN_HEADER_TOO_SMALL, },
     { "vlan.unknown_type",VLAN_UNKNOWN_TYPE, },
     { "vlan.too_many_layers", VLAN_HEADER_TOO_MANY_LAYERS, },
-    { "ipv4.frag_too_large", IPV4_FRAG_PKT_TOO_LARGE, },
-    { "ipv4.frag_overlap", IPV4_FRAG_OVERLAP, },
-    { "ipv6.frag_too_large", IPV6_FRAG_PKT_TOO_LARGE, },
-    { "ipv6.frag_overlap", IPV6_FRAG_OVERLAP, },
-    { "ipv6.ipv4_in_ipv6_too_small", IPV4_IN_IPV6_PKT_TOO_SMALL, },
-    { "ipv6.ipv4_in_ipv6_wrong_version", IPV4_IN_IPV6_WRONG_IP_VER, },
-    { "ipv6.ipv6_in_ipv6_too_small", IPV6_IN_IPV6_PKT_TOO_SMALL, },
-    { "ipv6.ipv6_in_ipv6_wrong_version", IPV6_IN_IPV6_WRONG_IP_VER, },
+
+    /* RAW EVENTS */
+    { "ipraw.invalid_ip_version",IPRAW_INVALID_IPV, },
+
+    /* STREAM EVENTS */
     { "stream.3whs_ack_in_wrong_dir", STREAM_3WHS_ACK_IN_WRONG_DIR, },
     { "stream.3whs_async_wrong_seq", STREAM_3WHS_ASYNC_WRONG_SEQ, },
     { "stream.3whs_right_seq_wrong_ack_evasion", STREAM_3WHS_RIGHT_SEQ_WRONG_ACK_EVASION, },
@@ -182,6 +205,26 @@ struct DetectEngineEvents_ {
     { "stream.reassembly_no_segment", STREAM_REASSEMBLY_NO_SEGMENT, },
     { "stream.reassembly_seq_gap", STREAM_REASSEMBLY_SEQ_GAP, },
     { "stream.reassembly_overlap_different_data", STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA, },
+
+    /* SCTP EVENTS */
+    { "sctp.pkt_too_small", SCTP_PKT_TOO_SMALL, },
+
+    /* Fragmentation reasembly events. */
+    { "ipv4.frag_too_large", IPV4_FRAG_PKT_TOO_LARGE, },
+    { "ipv6.frag_too_large", IPV6_FRAG_PKT_TOO_LARGE, },
+    { "ipv4.frag_overlap", IPV4_FRAG_OVERLAP, },
+    { "ipv6.frag_overlap", IPV6_FRAG_OVERLAP, },
+    /* Fragment ignored due to internal error */
+    { "ipv4.frag_ignored", IPV4_FRAG_IGNORED, },
+    { "ipv6.frag_ignored", IPV6_FRAG_IGNORED, },
+
+    /* IPv4 in IPv6 events */
+    { "ipv6.ipv4_in_ipv6_too_small", IPV4_IN_IPV6_PKT_TOO_SMALL, },
+    { "ipv6.ipv4_in_ipv6_wrong_version", IPV4_IN_IPV6_WRONG_IP_VER, },
+    /* IPv6 in IPv6 events */
+    { "ipv6.ipv6_in_ipv6_too_small", IPV6_IN_IPV6_PKT_TOO_SMALL, },
+    { "ipv6.ipv6_in_ipv6_wrong_version", IPV6_IN_IPV6_WRONG_IP_VER, },
+
     { NULL, 0 },
 };
 #endif /* DETECT_EVENTS */
