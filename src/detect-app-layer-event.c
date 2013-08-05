@@ -113,6 +113,9 @@ static DetectAppLayerEventData *DetectAppLayerEventParse(const char *arg)
 {
     /* period index */
     const char *p_idx;
+    int r = 0;
+    int event_id = 0;
+    uint16_t alproto;
 
     if (arg == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword supplied "
@@ -139,14 +142,14 @@ static DetectAppLayerEventData *DetectAppLayerEventParse(const char *arg)
     if (strcasecmp(buffer, "dns") == 0)
         strlcpy(buffer, "dnsudp", sizeof(buffer));
 
-    uint16_t alproto = AppLayerDecoderEventsModuleGetAlproto(buffer);
+    alproto = AppLayerGetProtoByName(buffer);
     if (alproto == ALPROTO_UNKNOWN) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword supplied "
                    "with unknown protocol \"%s\"", buffer);
         return NULL;
     }
-    int event_id = AppLayerDecoderEventsModuleGetEventId(alproto, p_idx + 1);
-    if (event_id == -1) {
+    r = AppLayerGetAlprotoEventInfo(alproto, p_idx + 1, &event_id);
+    if (r < 0) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword protocol "
                    "\"%s\" don't have event \"%s\" registered", buffer, p_idx + 1);
         return NULL;
@@ -235,8 +238,8 @@ SCEnumCharMap app_layer_event_test_map[ ] = {
 
 int DetectAppLayerEventTest01(void)
 {
-    AppLayerDecoderEventsModuleCreateBackup();
-    AppLayerDecoderEventsModuleRegister(ALPROTO_SMTP, app_layer_event_test_map);
+    AppLayerParserBackupAlprotoTable();
+    AppLayerRegisterEventsTable(ALPROTO_SMTP, app_layer_event_test_map);
 
     int result = 0;
 
@@ -252,7 +255,7 @@ int DetectAppLayerEventTest01(void)
     result = 1;
 
  end:
-    AppLayerDecoderEventsModuleRestoreBackup();
+    AppLayerParserRestoreAlprotoTable();
     if (aled != NULL)
         DetectAppLayerEventFree(aled);
     return result;
@@ -260,11 +263,12 @@ int DetectAppLayerEventTest01(void)
 
 int DetectAppLayerEventTest02(void)
 {
-    AppLayerDecoderEventsModuleCreateBackup();
-    AppLayerDecoderEventsModuleRegister(ALPROTO_SMTP, app_layer_event_test_map);
-    AppLayerDecoderEventsModuleRegister(ALPROTO_HTTP, app_layer_event_test_map);
-    AppLayerDecoderEventsModuleRegister(ALPROTO_SMB, app_layer_event_test_map);
-    AppLayerDecoderEventsModuleRegister(ALPROTO_FTP, app_layer_event_test_map);
+    AppLayerParserBackupAlprotoTable();
+
+    AppLayerRegisterEventsTable(ALPROTO_SMTP, app_layer_event_test_map);
+    AppLayerRegisterEventsTable(ALPROTO_HTTP, app_layer_event_test_map);
+    AppLayerRegisterEventsTable(ALPROTO_SMB, app_layer_event_test_map);
+    AppLayerRegisterEventsTable(ALPROTO_FTP, app_layer_event_test_map);
 
     int result = 0;
 
@@ -316,7 +320,7 @@ int DetectAppLayerEventTest02(void)
     result = 1;
 
  end:
-    AppLayerDecoderEventsModuleRestoreBackup();
+    AppLayerParserRestoreAlprotoTable();
     if (aled != NULL)
         DetectAppLayerEventFree(aled);
     return result;
