@@ -1233,17 +1233,33 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
 
     if (s->alproto != ALPROTO_UNKNOWN) {
         if (s->flags & SIG_FLAG_STATE_MATCH) {
-            if (al_proto_table[s->alproto].to_server == 0 ||
-                al_proto_table[s->alproto].to_client == 0) {
-                const char *proto_name = TmModuleAlprotoToString(s->alproto);
-                SCLogInfo("Signature uses options that need the app layer "
-                          "parser for \"%s\", but the parser's disabled "
-                          "for the protocol.  Please check if you have "
-                          "disabled it through the option "
-                          "\"app-layer.protocols.%s.enabled\" or internally "
-                          "there the parser has been disabled in the code.   "
-                          "Invalidating signature.", proto_name, proto_name);
-                SCReturnInt(0);
+            if (s->alproto == ALPROTO_DNS) {
+                if (al_proto_table[ALPROTO_DNS_UDP].to_server == 0 ||
+                    al_proto_table[ALPROTO_DNS_UDP].to_client == 0 ||
+                    al_proto_table[ALPROTO_DNS_TCP].to_server == 0 ||
+                    al_proto_table[ALPROTO_DNS_TCP].to_client == 0) {
+                    SCLogInfo("Signature uses options that need the app layer "
+                              "parser for dns, but the parser's disabled "
+                              "for the protocol.  Please check if you have "
+                              "disabled it through the option "
+                              "\"app-layer.protocols.dcerpc[udp|tcp].enabled\""
+                              "or internally the parser has been disabled in "
+                              "the code.  Invalidating signature.");
+                    SCReturnInt(0);
+                }
+            } else {
+                if (al_proto_table[s->alproto].to_server == 0 ||
+                    al_proto_table[s->alproto].to_client == 0) {
+                    const char *proto_name = TmModuleAlprotoToString(s->alproto);
+                    SCLogInfo("Signature uses options that need the app layer "
+                              "parser for \"%s\", but the parser's disabled "
+                              "for the protocol.  Please check if you have "
+                              "disabled it through the option "
+                              "\"app-layer.protocols.%s.enabled\" or internally "
+                              "there the parser has been disabled in the code.   "
+                              "Invalidating signature.", proto_name, proto_name);
+                    SCReturnInt(0);
+                }
             }
         }
 
