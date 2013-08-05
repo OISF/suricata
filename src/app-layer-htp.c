@@ -2442,7 +2442,7 @@ void RegisterHTPParsers(void)
         AppLayerRegisterGetAlstateProgressCompletionStatus(ALPROTO_HTTP,
                                                            HTPStateGetAlstateProgressCompletionStatus);
 
-        AppLayerDecoderEventsModuleRegister(ALPROTO_HTTP, http_decoder_event_table);
+        AppLayerRegisterEventsTable(ALPROTO_HTTP, http_decoder_event_table);
 
         AppLayerRegisterTruncateFunc(ALPROTO_HTTP, HTPStateTruncate);
 

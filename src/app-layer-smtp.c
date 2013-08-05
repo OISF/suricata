@@ -862,7 +862,8 @@ void RegisterSMTPParsers(void)
                               SMTPParseClientRecord);
         AppLayerRegisterProto(proto_name, ALPROTO_SMTP, STREAM_TOCLIENT,
                               SMTPParseServerRecord);
-        AppLayerDecoderEventsModuleRegister(ALPROTO_SMTP, smtp_decoder_event_table);
+
+        AppLayerRegisterEventsTable(ALPROTO_SMTP, smtp_decoder_event_table);
 
         AppLayerRegisterLocalStorageFunc(ALPROTO_SMTP, SMTPLocalStorageAlloc,
                                          SMTPLocalStorageFree);
