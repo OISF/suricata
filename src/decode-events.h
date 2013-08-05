@@ -139,6 +139,7 @@ enum {
     /* RAW EVENTS */
     IPRAW_INVALID_IPV,              /**< invalid ip version in ip raw */
 
+    /* STREAM EVENTS */
     STREAM_3WHS_ACK_IN_WRONG_DIR,
     STREAM_3WHS_ASYNC_WRONG_SEQ,
     STREAM_3WHS_RIGHT_SEQ_WRONG_ACK_EVASION,
@@ -204,8 +205,8 @@ enum {
 
     /* Fragmentation reasembly events. */
     IPV4_FRAG_PKT_TOO_LARGE,
-    IPV4_FRAG_OVERLAP,
     IPV6_FRAG_PKT_TOO_LARGE,
+    IPV4_FRAG_OVERLAP,
     IPV6_FRAG_OVERLAP,
     IPV4_FRAG_TOO_LARGE,
     IPV6_FRAG_TOO_LARGE,
