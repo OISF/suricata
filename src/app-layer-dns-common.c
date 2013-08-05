@@ -39,7 +39,7 @@ SCEnumCharMap dns_decoder_event_table[ ] = {
 
 /** \brief register event map */
 void DNSAppLayerDecoderEventsRegister(int alproto) {
-    AppLayerDecoderEventsModuleRegister(alproto, dns_decoder_event_table);
+    AppLayerRegisterEventsTable(alproto, dns_decoder_event_table);
 }
 
 AppLayerDecoderEvents *DNSGetEvents(void *state, uint64_t id) {

@@ -51,6 +51,8 @@ typedef struct AppLayerProto_ {
 
     AppLayerLocalMap **map;
 
+    SCEnumCharMap *events_table;
+
     void *(*StateAlloc)(void);
     void (*StateFree)(void *);
     void (*StateTransactionFree)(void *, uint64_t);
@@ -288,6 +290,8 @@ void AppLayerRegisterGetTx(uint16_t alproto,
                            void *(*StateGetTx)(void *alstate, uint64_t tx_id));
 void AppLayerRegisterGetAlstateProgressCompletionStatus(uint16_t alproto,
     int (*StateProgressCompletionStatus)(uint8_t direction));
+void AppLayerRegisterEventsTable(uint16_t alproto,
+                                 SCEnumCharMap *events_table);
 
 int AppLayerParse(void *, Flow *, uint8_t,
                   uint8_t, uint8_t *, uint32_t);
@@ -426,12 +430,47 @@ int AppLayerGetAlstateProgressCompletionStatus(uint16_t alproto, uint8_t directi
  */
 int AppLayerAlprotoSupportsTxs(uint16_t alproto);
 
+/**
+ * \brief Triggers raw reassembly.
+ *
+ * \param f Flow pointer.
+ */
 void AppLayerTriggerRawStreamReassembly(Flow *);
 
+/**
+ * \brief Informs if the specified alproto's parser is enabled.
+ *
+ * \param alproto Character string holding the alproto name.
+ */
 int AppLayerParserEnabled(const char *alproto);
+
+/**
+ * \brief Informs if the specified alproto has detection enabled.
+ *
+ * \param alproto    Character string holding the alproto name.
+ */
 int AppLayerProtoDetectionEnabled(const char *alproto);
+
+/**
+ * \brief Gets event info for this alproto.
+ *
+ * \param alproto    Character string holding the alproto name.
+ * \param event_name Name of the event.
+ * \param event_id   Pointer to an instance to send back event id.
+ */
+int AppLayerGetAlprotoEventInfo(uint16_t alproto, const char *event_name,
+                                int *event_id);
+
+/***** Utility *****/
+
 void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_proto,
                                      uint16_t min_depth, uint16_t max_depth,
                                      ProbingParserFPtr ProbingParser);
+
+
+/***** Unittests *****/
+
+void AppLayerParserBackupAlprotoTable(void);
+void AppLayerParserRestoreAlprotoTable(void);
 
 #endif /* __APP_LAYER_PARSER_H__ */

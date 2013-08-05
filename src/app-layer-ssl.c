@@ -1053,7 +1053,7 @@ void RegisterSSLParsers(void)
 
         AppLayerRegisterProto(proto_name, ALPROTO_TLS, STREAM_TOCLIENT,
                               SSLParseServerRecord);
-        AppLayerDecoderEventsModuleRegister(ALPROTO_TLS, tls_decoder_event_table);
+        AppLayerRegisterEventsTable(ALPROTO_TLS, tls_decoder_event_table);
 
         AppLayerRegisterStateFuncs(ALPROTO_TLS, SSLStateAlloc, SSLStateFree);
 

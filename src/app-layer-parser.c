@@ -857,6 +857,11 @@ void AppLayerRegisterLogger(uint16_t proto) {
     al_proto_table[proto].logger = TRUE;
 }
 
+void AppLayerRegisterEventsTable(uint16_t alproto,
+                                 SCEnumCharMap *events_table)
+{
+    al_proto_table[alproto].events_table = events_table;
+}
 
 AppLayerParserStateStore *AppLayerParserStateStoreAlloc(void)
 {
@@ -1630,6 +1635,21 @@ int AppLayerProtoDetectionEnabled(const char *al_proto)
     return enabled;
 }
 
+int AppLayerGetAlprotoEventInfo(uint16_t alproto, const char *event_name,
+                                int *event_id)
+{
+    *event_id = SCMapEnumNameToValue(event_name, al_proto_table[alproto].events_table);
+    if (*event_id == -1) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
+                   "\"%s\"'s enum map table.",  event_name,
+                   al_proto_table[alproto].name);
+        /* yes this is fatal */
+        return -1;
+    }
+
+    return 0;
+}
+
 void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_proto,
                                      uint16_t min_depth, uint16_t max_depth,
                                      ProbingParserFPtr ProbingParser)
@@ -2336,8 +2356,37 @@ static void TestProtocolStateFree(void *s)
     SCFree(s);
 }
 
-/** \test   Test the deallocation of app layer parser memory on occurance of
- *          error in the parsing process.
+/****Unittests*****/
+
+static AppLayerProto al_proto_table_ut_backup[ALPROTO_MAX];
+
+/**
+ * \brief Backup al_proto_table.
+ *
+ *        Currently we backup only the event table.  Feel free to backup
+ *        other stuff as and when required.
+ */
+void AppLayerParserBackupAlprotoTable(void)
+{
+    int i;
+    for (i = ALPROTO_UNKNOWN; i < ALPROTO_MAX; i++)
+        al_proto_table_ut_backup[i].events_table = al_proto_table[i].events_table;
+
+    return;
+}
+
+void AppLayerParserRestoreAlprotoTable(void)
+{
+    int i;
+    for (i = ALPROTO_UNKNOWN; i < ALPROTO_MAX; i++)
+        al_proto_table[i].events_table = al_proto_table_ut_backup[i].events_table;
+
+    return;
+}
+
+/**
+ * \test Test the deallocation of app layer parser memory on occurance of
+ *       error in the parsing process.
  */
 static int AppLayerParserTest01 (void)
 {
@@ -2389,8 +2438,9 @@ end:
     return result;
 }
 
-/** \test   Test the deallocation of app layer parser memory on occurance of
- *          error in the parsing process for UDP.
+/**
+ * \test Test the deallocation of app layer parser memory on occurance of
+ *       error in the parsing process for UDP.
  */
 static int AppLayerParserTest02 (void)
 {
