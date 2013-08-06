@@ -119,7 +119,7 @@ void DetectLuajitRegister(void) {
  *  Alternatively, the "detect-engine.luajit-states" var can be set.
  */
 static Pool *luajit_states = NULL;
-static pthread_mutex_t luajit_states_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t luajit_states_lock = SCMUTEX_INITIALIZER;
 
 #define DATATYPE_PACKET                     (1<<0)
 #define DATATYPE_PAYLOAD                    (1<<1)
