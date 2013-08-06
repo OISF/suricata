@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -115,7 +115,7 @@ TmEcode NoPfringSupportExit(ThreadVars *tv, void *initdata, void **data)
 #else /* implied we do have PF_RING support */
 
 /** protect pfring_set_bpf_filter, as it is not thread safe */
-static SCMutex pfring_bpf_set_filter_lock = PTHREAD_MUTEX_INITIALIZER;
+static SCMutex pfring_bpf_set_filter_lock = SCMUTEX_INITIALIZER;
 
 /* XXX replace with user configurable options */
 #define LIBPFRING_PROMISC     1

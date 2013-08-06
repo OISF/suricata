@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -43,7 +43,7 @@ static uint16_t toserver_min_chunk_len = 2560;
 static uint16_t toclient_min_chunk_len = 2560;
 
 static Pool *stream_msg_pool = NULL;
-static SCMutex stream_msg_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
+static SCMutex stream_msg_pool_mutex = SCMUTEX_INITIALIZER;
 
 int StreamMsgInit(void *data, void *initdata)
 {
