@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -29,7 +29,7 @@
 #include "util-debug.h"
 
 static struct timeval current_time = { 0, 0 };
-//static SCMutex current_time_mutex = PTHREAD_MUTEX_INITIALIZER;
+//static SCMutex current_time_mutex = SCMUTEX_INITIALIZER;
 static SCSpinlock current_time_spinlock;
 static char live = TRUE;
 

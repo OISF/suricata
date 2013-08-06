@@ -77,7 +77,7 @@ static int SetCPUAffinity(uint16_t cpu);
 ThreadVars *tv_root[TVT_MAX] = { NULL };
 
 /* lock to protect tv_root */
-SCMutex tv_root_lock = PTHREAD_MUTEX_INITIALIZER;
+SCMutex tv_root_lock = SCMUTEX_INITIALIZER;
 
 /* Action On Failure(AOF).  Determines how the engine should behave when a
  * thread encounters a failure.  Defaults to restart the failed thread */
