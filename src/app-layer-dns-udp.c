@@ -341,7 +341,7 @@ void RegisterDNSUDPParsers(void) {
         AppLayerRegisterGetAlstateProgressCompletionStatus(ALPROTO_DNS_UDP,
                                                            DNSGetAlstateProgressCompletionStatus);
 
-        DNSAppLayerDecoderEventsRegister(ALPROTO_DNS_UDP);
+        DNSAppLayerRegisterGetEventInfo(ALPROTO_DNS_UDP);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
