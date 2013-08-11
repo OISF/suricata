@@ -51,8 +51,6 @@ typedef struct AppLayerProto_ {
 
     AppLayerLocalMap **map;
 
-    SCEnumCharMap *events_table;
-
     void *(*StateAlloc)(void);
     void (*StateFree)(void *);
     void (*StateTransactionFree)(void *, uint64_t);
@@ -70,6 +68,9 @@ typedef struct AppLayerProto_ {
     uint64_t (*StateGetTxCnt)(void *alstate);
     void *(*StateGetTx)(void *alstate, uint64_t tx_id);
     int (*StateGetAlstateProgressCompletionStatus)(uint8_t direction);
+
+    int (*StateGetEventInfo)(const char *event_name,
+                             int *event_id, AppLayerEventType *event_type);
 
     ProbingParserFPtr pp_alproto_map[2];
     /* The current values taken are STREAM_TOSERVER, STREAM_TOCLIENT */
@@ -290,8 +291,10 @@ void AppLayerRegisterGetTx(uint16_t alproto,
                            void *(*StateGetTx)(void *alstate, uint64_t tx_id));
 void AppLayerRegisterGetAlstateProgressCompletionStatus(uint16_t alproto,
     int (*StateProgressCompletionStatus)(uint8_t direction));
-void AppLayerRegisterEventsTable(uint16_t alproto,
-                                 SCEnumCharMap *events_table);
+void AppLayerRegisterGetEventInfo(uint16_t alproto,
+                                  int (*StateGetEventInfo)(const char *event_name,
+                                                           int *event_id,
+                                                           AppLayerEventType *event_type));
 
 int AppLayerParse(void *, Flow *, uint8_t,
                   uint8_t, uint8_t *, uint32_t);
@@ -458,8 +461,8 @@ int AppLayerProtoDetectionEnabled(const char *alproto);
  * \param event_name Name of the event.
  * \param event_id   Pointer to an instance to send back event id.
  */
-int AppLayerGetAlprotoEventInfo(uint16_t alproto, const char *event_name,
-                                int *event_id);
+int AppLayerGetEventInfo(uint16_t alproto, const char *event_name,
+                         int *event_id, AppLayerEventType *event_type);
 
 /***** Utility *****/
 
@@ -470,6 +473,12 @@ void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_prot
 
 /***** Unittests *****/
 
+/**
+ * \brief Backup al_proto_table.
+ *
+ *        Currently we backup only the event table.  Feel free to backup
+ *        other stuff as and when required.
+ */
 void AppLayerParserBackupAlprotoTable(void);
 void AppLayerParserRestoreAlprotoTable(void);
 

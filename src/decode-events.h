@@ -227,6 +227,12 @@ enum {
 
 #define DECODER_EVENTS_BUFFER_STEPS 5
 
+/* the event types for app events */
+typedef enum AppLayerEventType_ {
+    APP_LAYER_EVENT_TYPE_GENERAL = 1,
+    APP_LAYER_EVENT_TYPE_TRANSACTION,
+} AppLayerEventType;
+
 /**
  * \brief Data structure to store app layer decoder events.
  */
