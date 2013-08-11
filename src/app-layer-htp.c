@@ -28,6 +28,7 @@
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  * \author Brian Rectanus <brectanu@gmail.com>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  *
  * This file provides a HTTP protocol support for the engine using HTP library.
  */
@@ -69,6 +70,7 @@
 #include "detect-engine-state.h"
 #include "detect-parse.h"
 
+#include "decode-events.h"
 #include "conf.h"
 
 #include "util-memcmp.h"
@@ -2387,6 +2389,22 @@ static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction)
     return (direction == 0) ? HTP_REQUEST_COMPLETE : HTP_RESPONSE_COMPLETE;
 }
 
+int HTPStateGetEventInfo(const char *event_name,
+                         int *event_id, AppLayerEventType *event_type)
+{
+    *event_id = SCMapEnumNameToValue(event_name, http_decoder_event_table);
+    if (*event_id == -1) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
+                   "http's enum map table.",  event_name);
+        /* this should be treated as fatal */
+        return -1;
+    }
+
+    *event_type = APP_LAYER_EVENT_TYPE_GENERAL;
+
+    return 0;
+}
+
 static void HTPStateTruncate(void *state, uint8_t flags) {
     FileContainer *fc = HTPStateGetFiles(state, flags);
     if (fc != NULL) {
@@ -2442,7 +2460,7 @@ void RegisterHTPParsers(void)
         AppLayerRegisterGetAlstateProgressCompletionStatus(ALPROTO_HTTP,
                                                            HTPStateGetAlstateProgressCompletionStatus);
 
-        AppLayerRegisterEventsTable(ALPROTO_HTTP, http_decoder_event_table);
+        AppLayerRegisterGetEventInfo(ALPROTO_HTTP, HTPStateGetEventInfo);
 
         AppLayerRegisterTruncateFunc(ALPROTO_HTTP, HTPStateTruncate);
 

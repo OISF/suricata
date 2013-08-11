@@ -115,6 +115,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParse(const char *arg)
     const char *p_idx;
     int r = 0;
     int event_id = 0;
+    AppLayerEventType event_type = 0;
     uint16_t alproto;
 
     if (arg == NULL) {
@@ -148,7 +149,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParse(const char *arg)
                    "with unknown protocol \"%s\"", buffer);
         return NULL;
     }
-    r = AppLayerGetAlprotoEventInfo(alproto, p_idx + 1, &event_id);
+    r = AppLayerGetEventInfo(alproto, p_idx + 1, &event_id, &event_type);
     if (r < 0) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword protocol "
                    "\"%s\" don't have event \"%s\" registered", buffer, p_idx + 1);
@@ -236,10 +237,29 @@ SCEnumCharMap app_layer_event_test_map[ ] = {
     { "event6", APP_LAYER_EVENT_TEST_MAP_EVENT6 },
 };
 
+static int DetectAppLayerEventTestGetEventInfo(const char *event_name,
+                                               int *event_id,
+                                               AppLayerEventType *event_type)
+{
+    *event_id = SCMapEnumNameToValue(event_name, app_layer_event_test_map);
+    if (*event_id == -1) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
+                   "app-layer-event's test enum map table.",  event_name);
+        /* this should be treated as fatal */
+        return -1;
+    }
+
+    *event_type = APP_LAYER_EVENT_TYPE_GENERAL;
+
+    return 0;
+}
+
+
 int DetectAppLayerEventTest01(void)
 {
     AppLayerParserBackupAlprotoTable();
-    AppLayerRegisterEventsTable(ALPROTO_SMTP, app_layer_event_test_map);
+    AppLayerRegisterGetEventInfo(ALPROTO_SMTP,
+                                 DetectAppLayerEventTestGetEventInfo);
 
     int result = 0;
 
@@ -265,10 +285,14 @@ int DetectAppLayerEventTest02(void)
 {
     AppLayerParserBackupAlprotoTable();
 
-    AppLayerRegisterEventsTable(ALPROTO_SMTP, app_layer_event_test_map);
-    AppLayerRegisterEventsTable(ALPROTO_HTTP, app_layer_event_test_map);
-    AppLayerRegisterEventsTable(ALPROTO_SMB, app_layer_event_test_map);
-    AppLayerRegisterEventsTable(ALPROTO_FTP, app_layer_event_test_map);
+    AppLayerRegisterGetEventInfo(ALPROTO_SMTP,
+                                 DetectAppLayerEventTestGetEventInfo);
+    AppLayerRegisterGetEventInfo(ALPROTO_HTTP,
+                                 DetectAppLayerEventTestGetEventInfo);
+    AppLayerRegisterGetEventInfo(ALPROTO_SMB,
+                                 DetectAppLayerEventTestGetEventInfo);
+    AppLayerRegisterGetEventInfo(ALPROTO_FTP,
+                                 DetectAppLayerEventTestGetEventInfo);
 
     int result = 0;
 

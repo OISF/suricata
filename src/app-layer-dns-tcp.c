@@ -620,12 +620,13 @@ void RegisterDNSTCPParsers(void) {
                                                DNSGetAlstateProgress);
         AppLayerRegisterGetAlstateProgressCompletionStatus(ALPROTO_DNS_TCP,
                                                            DNSGetAlstateProgressCompletionStatus);
+        DNSAppLayerRegisterGetEventInfo(ALPROTO_DNS_TCP);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
     }
 
-    DNSAppLayerDecoderEventsRegister(ALPROTO_DNS_TCP);
+    return;
 }
 
 /* UNITTESTS */

@@ -857,10 +857,12 @@ void AppLayerRegisterLogger(uint16_t proto) {
     al_proto_table[proto].logger = TRUE;
 }
 
-void AppLayerRegisterEventsTable(uint16_t alproto,
-                                 SCEnumCharMap *events_table)
+void AppLayerRegisterGetEventInfo(uint16_t alproto,
+                                  int (*StateGetEventInfo)(const char *event_name,
+                                                           int *event_id,
+                                                           AppLayerEventType *event_type))
 {
-    al_proto_table[alproto].events_table = events_table;
+    al_proto_table[alproto].StateGetEventInfo = StateGetEventInfo;
 }
 
 AppLayerParserStateStore *AppLayerParserStateStoreAlloc(void)
@@ -1635,19 +1637,25 @@ int AppLayerProtoDetectionEnabled(const char *al_proto)
     return enabled;
 }
 
-int AppLayerGetAlprotoEventInfo(uint16_t alproto, const char *event_name,
-                                int *event_id)
+/**
+ * \brief Gets event info for this alproto.
+ *
+ * \param alproto The app layer protocol.
+ * \param event_name The event name.
+ * \param event_id The event id.
+ * \param The type of event, as represented by AppLayerEventType.
+ *
+ * \retval 0 On succesfully returning back info.
+ * \retval -1 On failure.
+ */
+int AppLayerGetEventInfo(uint16_t alproto, const char *event_name,
+                         int *event_id, AppLayerEventType *event_type)
 {
-    *event_id = SCMapEnumNameToValue(event_name, al_proto_table[alproto].events_table);
-    if (*event_id == -1) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
-                   "\"%s\"'s enum map table.",  event_name,
-                   al_proto_table[alproto].name);
-        /* yes this is fatal */
+    if (al_proto_table[alproto].StateGetEventInfo == NULL)
         return -1;
-    }
 
-    return 0;
+    return al_proto_table[alproto].StateGetEventInfo(event_name,
+                                                     event_id, event_type);
 }
 
 void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_proto,
@@ -2356,21 +2364,13 @@ static void TestProtocolStateFree(void *s)
     SCFree(s);
 }
 
-/****Unittests*****/
-
 static AppLayerProto al_proto_table_ut_backup[ALPROTO_MAX];
 
-/**
- * \brief Backup al_proto_table.
- *
- *        Currently we backup only the event table.  Feel free to backup
- *        other stuff as and when required.
- */
 void AppLayerParserBackupAlprotoTable(void)
 {
     int i;
     for (i = ALPROTO_UNKNOWN; i < ALPROTO_MAX; i++)
-        al_proto_table_ut_backup[i].events_table = al_proto_table[i].events_table;
+        al_proto_table_ut_backup[i].StateGetEventInfo = al_proto_table[i].StateGetEventInfo;
 
     return;
 }
@@ -2379,7 +2379,7 @@ void AppLayerParserRestoreAlprotoTable(void)
 {
     int i;
     for (i = ALPROTO_UNKNOWN; i < ALPROTO_MAX; i++)
-        al_proto_table[i].events_table = al_proto_table_ut_backup[i].events_table;
+        al_proto_table[i].StateGetEventInfo = al_proto_table_ut_backup[i].StateGetEventInfo;
 
     return;
 }
