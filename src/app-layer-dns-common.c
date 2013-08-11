@@ -22,6 +22,7 @@
  */
 
 #include "suricata-common.h"
+#include "app-layer-parser.h"
 #include "app-layer-dns-common.h"
 #ifdef DEBUG
 #include "util-print.h"
@@ -37,9 +38,25 @@ SCEnumCharMap dns_decoder_event_table[ ] = {
     { NULL,                         -1 },
 };
 
-/** \brief register event map */
-void DNSAppLayerDecoderEventsRegister(int alproto) {
-    AppLayerRegisterEventsTable(alproto, dns_decoder_event_table);
+int DNSStateGetEventInfo(const char *event_name,
+                         int *event_id, AppLayerEventType *event_type)
+{
+    *event_id = SCMapEnumNameToValue(event_name, dns_decoder_event_table);
+    if (*event_id == -1) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
+                   "dns's enum map table.",  event_name);
+        /* this should be treated as fatal */
+        return -1;
+    }
+
+    *event_type = APP_LAYER_EVENT_TYPE_GENERAL;
+
+    return 0;
+}
+
+void DNSAppLayerRegisterGetEventInfo(uint16_t alproto)
+{
+    return AppLayerRegisterGetEventInfo(alproto, DNSStateGetEventInfo);
 }
 
 AppLayerDecoderEvents *DNSGetEvents(void *state, uint64_t id) {

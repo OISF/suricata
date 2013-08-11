@@ -42,8 +42,8 @@
 
 #include "app-layer-tls-handshake.h"
 
-#include "conf.h"
 #include "decode-events.h"
+#include "conf.h"
 
 #include "util-spm.h"
 #include "util-unittest.h"
@@ -986,6 +986,22 @@ static uint16_t SSLProbingParser(uint8_t *input, uint32_t ilen, uint32_t *offset
     return ALPROTO_FAILED;
 }
 
+int SSLStateGetEventInfo(const char *event_name,
+                         int *event_id, AppLayerEventType *event_type)
+{
+    *event_id = SCMapEnumNameToValue(event_name, tls_decoder_event_table);
+    if (*event_id == -1) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
+                   "ssl's enum map table.",  event_name);
+        /* yes this is fatal */
+        return -1;
+    }
+
+    *event_type = APP_LAYER_EVENT_TYPE_GENERAL;
+
+    return 0;
+}
+
 /**
  * \brief Function to register the SSL protocol parser and other functions
  */
@@ -1053,7 +1069,7 @@ void RegisterSSLParsers(void)
 
         AppLayerRegisterProto(proto_name, ALPROTO_TLS, STREAM_TOCLIENT,
                               SSLParseServerRecord);
-        AppLayerRegisterEventsTable(ALPROTO_TLS, tls_decoder_event_table);
+        AppLayerRegisterGetEventInfo(ALPROTO_TLS, SSLStateGetEventInfo);
 
         AppLayerRegisterStateFuncs(ALPROTO_TLS, SSLStateAlloc, SSLStateFree);
 
