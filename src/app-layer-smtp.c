@@ -48,8 +48,8 @@
 #include "detect-engine-state.h"
 #include "detect-parse.h"
 
-#include "conf.h"
 #include "decode-events.h"
+#include "conf.h"
 
 #define SMTP_MAX_REQUEST_AND_REPLY_LINE_LENGTH 510
 
@@ -834,6 +834,22 @@ static void SMTPSetMpmState(void)
     mpm_table[SMTP_MPM].Prepare(smtp_mpm_ctx);
 }
 
+int SMTPStateGetEventInfo(const char *event_name,
+                          int *event_id, AppLayerEventType *event_type)
+{
+    *event_id = SCMapEnumNameToValue(event_name, smtp_decoder_event_table);
+    if (*event_id == -1) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
+                   "smtp's enum map table.",  event_name);
+        /* yes this is fatal */
+        return -1;
+    }
+
+    *event_type = APP_LAYER_EVENT_TYPE_GENERAL;
+
+    return 0;
+}
+
 /**
  * \brief Register the SMPT Protocol parser.
  */
@@ -863,7 +879,7 @@ void RegisterSMTPParsers(void)
         AppLayerRegisterProto(proto_name, ALPROTO_SMTP, STREAM_TOCLIENT,
                               SMTPParseServerRecord);
 
-        AppLayerRegisterEventsTable(ALPROTO_SMTP, smtp_decoder_event_table);
+        AppLayerRegisterGetEventInfo(ALPROTO_SMTP, SMTPStateGetEventInfo);
 
         AppLayerRegisterLocalStorageFunc(ALPROTO_SMTP, SMTPLocalStorageAlloc,
                                          SMTPLocalStorageFree);
