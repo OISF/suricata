@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,8 +25,7 @@
 #ifndef __DECODE_EVENTS_H__
 #define __DECODE_EVENTS_H__
 
-/***** packet decoder events *****/
-
+/* packet decoder events */
 enum {
     /* IPV4 EVENTS */
     IPV4_PKT_TOO_SMALL = 1,         /**< ipv4 pkt smaller than minimum header size */
@@ -225,12 +224,20 @@ enum {
     DECODE_EVENT_MAX,
 };
 
+/* app layer pkt level events */
+enum {
+    APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS,
+    APPLAYER_WRONG_DIRECTION_FIRST_DATA,
+    APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION,
+};
+
 #define DECODER_EVENTS_BUFFER_STEPS 5
 
 /* the event types for app events */
 typedef enum AppLayerEventType_ {
     APP_LAYER_EVENT_TYPE_GENERAL = 1,
     APP_LAYER_EVENT_TYPE_TRANSACTION,
+    APP_LAYER_EVENT_TYPE_PACKET,
 } AppLayerEventType;
 
 /**
@@ -352,5 +359,7 @@ static inline int AppLayerDecoderEventsIsEventSet(AppLayerDecoderEvents *devents
         }                                                   \
         SCFree((devents));                                  \
     } while (0)
+
+int AppLayerGetPktEventInfo(const char *event_name, int *event_id);
 
 #endif /* __DECODE_EVENTS_H__ */
