@@ -2194,7 +2194,7 @@ PacketCreateMask(Packet *p, SignatureMask *mask, uint16_t alproto, void *alstate
         (*mask) |= SIG_MASK_REQUIRE_NO_PAYLOAD;
     }
 
-    if (p->events.cnt > 0 || app_decoder_events != 0) {
+    if (p->events.cnt > 0 || app_decoder_events != 0 || p->app_layer_events != NULL) {
         SCLogDebug("packet/flow has events set");
         (*mask) |= SIG_MASK_REQUIRE_ENGINE_EVENT;
     }
@@ -2402,6 +2402,9 @@ static int SignatureCreateMask(Signature *s) {
                 }
                 break;
             }
+            case DETECT_AL_APP_LAYER_EVENT:
+                s->mask |= SIG_MASK_REQUIRE_ENGINE_EVENT;
+                break;
             case DETECT_ENGINE_EVENT:
                 s->mask |= SIG_MASK_REQUIRE_ENGINE_EVENT;
                 break;
