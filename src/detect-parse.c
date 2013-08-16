@@ -1427,8 +1427,6 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
         if (sig->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
             SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
             for ( ; sm != NULL; sm = sm->next) {
-                if (sigmatch_table[sm->type].AppLayerMatch != NULL)
-                    sig->flags |= SIG_FLAG_APPLAYER;
                 if (sigmatch_table[sm->type].Match != NULL)
                     sig->init_flags |= SIG_FLAG_INIT_PACKET;
             }
@@ -1436,6 +1434,9 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
             sig->init_flags |= SIG_FLAG_INIT_PACKET;
         }
     }
+
+    if (sig->sm_lists[DETECT_SM_LIST_AMATCH] != NULL)
+        sig->flags |= SIG_FLAG_APPLAYER;
 
     if (sig->sm_lists[DETECT_SM_LIST_UMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;

@@ -36,6 +36,7 @@
 #include "util-print.h"
 #include "util-profiling.h"
 #include "util-validate.h"
+#include "decode-events.h"
 
 //#define PRINT
 extern uint8_t engine_mode;
@@ -182,7 +183,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
         if (*alproto != ALPROTO_UNKNOWN) {
             if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto_otherdir != *alproto) {
-                /* \todo set event */
+                AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
+                                                 APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS);
                 f->alproto = f->alproto_ts = f->alproto_tc = ALPROTO_UNKNOWN;
                 FlowSetSessionNoApplayerInspectionFlag(f);
                 ssn->client.flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
@@ -220,7 +222,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
                 if (ssn->data_first_seen_dir != 0x01) {
                     if (al_proto_table[*alproto].flags && !(al_proto_table[*alproto].flags & ssn->data_first_seen_dir)) {
-                        /* \todo Set event */
+                        AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
+                                                         APPLAYER_WRONG_DIRECTION_FIRST_DATA);
                         r = -1;
                         f->alproto = f->alproto_ts = f->alproto_tc = ALPROTO_UNKNOWN;
                         FlowSetSessionNoApplayerInspectionFlag(f);
@@ -247,7 +250,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                                   data + data_al_so_far, data_len - data_al_so_far);
                 PACKET_PROFILING_APP_END(dp_ctx, *alproto_otherdir);
                 if (FLOW_IS_PM_DONE(f, flags) && FLOW_IS_PP_DONE(f, flags)) {
-                    /* \todo event.  Unable to detect protocol for one direction */
+                    AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
+                                                     APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION);
                     stream->flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
                     f->data_al_so_far[dir] = 0;
                 } else {
