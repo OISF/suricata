@@ -244,16 +244,17 @@ static int DetectSshVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     if (sm == NULL)
         goto error;
 
-    sm->type = DETECT_AL_SSH_PROTOVERSION;
-    sm->ctx = (void *)ssh;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
-
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_SSH) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
         goto error;
     }
 
+    sm->type = DETECT_AL_SSH_PROTOVERSION;
+    sm->ctx = (void *)ssh;
+
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+
+    s->flags |= SIG_FLAG_APPLAYER;
     s->alproto = ALPROTO_SSH;
     return 0;
 

@@ -269,14 +269,15 @@ int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s, char *ftpbounces
     */
     sm->ctx = NULL;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
-
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_FTP) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
         goto error;
     }
 
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+
     s->alproto = ALPROTO_FTP;
+    s->flags |= SIG_FLAG_APPLAYER;
     SCReturnInt(0);
 
 error:
