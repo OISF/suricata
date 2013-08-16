@@ -578,7 +578,7 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx,
         for (uint16_t i = 0; i < pm_matches; i++) {
             if (al_proto_table[pm_results[i]].pp_alproto_map[dir] != NULL) {
                 if (pm_results[i] != al_proto_table[pm_results[i]].pp_alproto_map[dir](buf, buflen, NULL)) {
-                    /* \todo set event */
+                    /* \todo set event - Needs some deliberation */
                     continue;
                 }
             }

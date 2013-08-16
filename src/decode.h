@@ -29,6 +29,7 @@
 
 #include "suricata-common.h"
 #include "threadvars.h"
+#include "decode-events.h"
 
 #ifdef __SC_CUDA_SUPPORT__
 #include "util-cuda-buffer.h"
@@ -486,6 +487,8 @@ typedef struct Packet_
     /* engine events */
     PacketEngineEvents events;
 
+    AppLayerDecoderEvents *app_layer_events;
+
     /* double linked list ptrs */
     struct Packet_ *next;
     struct Packet_ *prev;
@@ -701,6 +704,7 @@ typedef struct DecodeThreadVars_
         SCMutexDestroy(&(p)->tunnel_mutex);     \
         SCMutexInit(&(p)->tunnel_mutex, NULL);  \
         (p)->events.cnt = 0;                    \
+        AppLayerDecoderEventsResetEvents((p)->app_layer_events); \
         (p)->next = NULL;                       \
         (p)->prev = NULL;                       \
         (p)->root = NULL;                       \
@@ -719,6 +723,7 @@ typedef struct DecodeThreadVars_
             PktVarFree((p)->pktvar);            \
         }                                       \
         SCMutexDestroy(&(p)->tunnel_mutex);     \
+        AppLayerDecoderEventsFreeEvents((p)->app_layer_events); \
     } while (0)
 
 
