@@ -656,7 +656,6 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
 
     switch(r) {
         case HTP_STREAM_ERROR:
-            HTPHandleError(hstate);
 
             hstate->flags |= HTP_FLAG_STATE_ERROR;
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
@@ -665,17 +664,17 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             break;
         case HTP_STREAM_DATA:
         case HTP_STREAM_DATA_OTHER:
-            HTPHandleWarning(hstate);
 
             hstate->flags |= HTP_FLAG_STATE_DATA;
             break;
         case HTP_STREAM_TUNNEL:
             break;
         default:
-            HTPHandleWarning(hstate);
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
             hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
     }
+    HTPHandleWarning(hstate);
+    HTPHandleError(hstate);
 
     /* if the TCP connection is closed, then close the HTTP connection */
     if ((pstate->flags & APP_LAYER_PARSER_EOF) &&
