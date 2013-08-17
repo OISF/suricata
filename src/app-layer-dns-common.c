@@ -160,6 +160,9 @@ static void DNSTransactionFree(DNSTransaction *tx) {
         TAILQ_REMOVE(&tx->authority_list, a, next);
         SCFree(a);
     }
+
+    AppLayerDecoderEventsFreeEvents(tx->decoder_events);
+
     SCFree(tx);
 }
 
