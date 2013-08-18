@@ -168,7 +168,7 @@ static int DetectDnsQueryTest01(void) {
     de_ctx->mpm_matcher = DEFAULT_MPM;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dnsudp any any -> any any "
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                               "(msg:\"Test dns_query option\"; "
                               "dns_query; content:\"google\"; nocase; sid:1;)");
     if (s == NULL) {
@@ -295,13 +295,13 @@ static int DetectDnsQueryTest02(void) {
     de_ctx->mpm_matcher = DEFAULT_MPM;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dnsudp any any -> any any "
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                    "(msg:\"Test dns_query option\"; "
                                    "dns_query; content:\"google.com\"; nocase; sid:1;)");
     if (s == NULL) {
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert dnsudp any any -> any any "
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                    "(msg:\"Test dns_query option\"; "
                                    "dns_query; content:\"google.net\"; nocase; sid:2;)");
     if (s == NULL) {
@@ -866,14 +866,14 @@ static int DetectDnsQueryTest06(void) {
     de_ctx->mpm_matcher = DEFAULT_MPM;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dnsudp any any -> any any "
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                       "(msg:\"Test dns_query option\"; "
                                       "dns_query; content:\"google\"; nocase; "
                                       "pcre:\"/google\\.com$/i\"; sid:1;)");
     if (s == NULL) {
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert dnsudp any any -> any any "
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                       "(msg:\"Test dns_query option\"; "
                                       "dns_query; content:\"google\"; nocase; "
                                       "pcre:\"/^\\.[a-z]{2,3}$/iR\"; sid:2;)");
@@ -1007,19 +1007,19 @@ static int DetectDnsQueryTest07(void) {
     de_ctx->mpm_matcher = DEFAULT_MPM;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dnsudp any any -> any any "
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                    "(msg:\"Test dns_query option\"; "
                                    "dns_query; content:\"google.com\"; nocase; sid:1;)");
     if (s == NULL) {
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert dnsudp any any -> any any "
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                    "(msg:\"Test dns_query option\"; "
                                    "dns_query; content:\"google.net\"; nocase; sid:2;)");
     if (s == NULL) {
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert dnsudp any any -> any any "
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                    "(msg:\"Test Z flag event\"; "
                                    "app-layer-event:dns.z_flag_set; sid:3;)");
     if (s == NULL) {

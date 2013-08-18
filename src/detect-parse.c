@@ -31,6 +31,7 @@
 #include "detect-engine-address.h"
 #include "detect-engine-port.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-state.h"
 
 #include "detect-content.h"
 #include "detect-pcre.h"
@@ -39,6 +40,7 @@
 #include "detect-ipproto.h"
 #include "detect-flow.h"
 #include "detect-app-layer-protocol.h"
+#include "detect-engine-apt-event.h"
 
 #include "pkt-var.h"
 #include "host.h"
@@ -1472,6 +1474,8 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_DNSQUERY_MATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_APP_EVENT])
+        sig->flags |= SIG_FLAG_STATE_MATCH;
 
     if (!(sig->init_flags & SIG_FLAG_INIT_FLOW)) {
         sig->flags |= SIG_FLAG_TOSERVER;
@@ -1483,6 +1487,48 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
         sig->init_flags & SIG_FLAG_INIT_PACKET ? "set" : "not set");
 
     SigBuildAddressMatchArray(sig);
+
+    if (sig->sm_lists[DETECT_SM_LIST_APP_EVENT] != NULL &&
+        (AppLayerProtoIsTxEventAware(sig->alproto) || sig->alproto == ALPROTO_DNS)) {
+        if (sig->alproto == ALPROTO_DNS) {
+            DetectEngineRegisterAppInspectionEngine(ALPROTO_DNS_TCP,
+                                                    0,
+                                                    DETECT_SM_LIST_APP_EVENT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DetectEngineAptEventInspect,
+                                                    app_inspection_engine);
+            DetectEngineRegisterAppInspectionEngine(ALPROTO_DNS_UDP,
+                                                    0,
+                                                    DETECT_SM_LIST_APP_EVENT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DetectEngineAptEventInspect,
+                                                    app_inspection_engine);
+            DetectEngineRegisterAppInspectionEngine(ALPROTO_DNS_TCP,
+                                                    1,
+                                                    DETECT_SM_LIST_APP_EVENT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DetectEngineAptEventInspect,
+                                                    app_inspection_engine);
+            DetectEngineRegisterAppInspectionEngine(ALPROTO_DNS_UDP,
+                                                    1,
+                                                    DETECT_SM_LIST_APP_EVENT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DetectEngineAptEventInspect,
+                                                    app_inspection_engine);
+        } else {
+            DetectEngineRegisterAppInspectionEngine(sig->alproto,
+                                                    (sig->flags & SIG_FLAG_TOSERVER) ? 0 : 1,
+                                                    DETECT_SM_LIST_APP_EVENT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DetectEngineAptEventInspect,
+                                                    app_inspection_engine);
+        }
+    }
 
     /* validate signature, SigValidate will report the error reason */
     if (SigValidate(de_ctx, sig) == 0) {
