@@ -88,27 +88,9 @@ int DetectAppLayerEventAppMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCEnter();
     AppLayerDecoderEvents *decoder_events = NULL;
     int r = 0;
-    uint64_t tx_id = 0, max_id;
     DetectAppLayerEventData *aled = (DetectAppLayerEventData *)m->ctx;
 
     FLOWLOCK_RDLOCK(f);
-
-    /* inspect TX events first if we need to */
-    if (AppLayerProtoIsTxEventAware(f->alproto)) {
-        SCLogDebug("proto is AppLayerProtoIsTxEventAware true");
-
-        tx_id = AppLayerTransactionGetInspectId(f, flags);
-        max_id = AppLayerGetTxCnt(f->alproto, f->alstate);
-
-        for (; tx_id < max_id; tx_id++) {
-            decoder_events = AppLayerGetEventsFromFlowByTx(f, tx_id);
-            if (decoder_events != NULL &&
-                    AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
-                r = 1;
-                break;
-            }
-        }
-    }
 
     if (r == 0) {
         decoder_events = AppLayerGetDecoderEventsForFlow(f);
@@ -244,8 +226,12 @@ int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 
     if (event_type == APP_LAYER_EVENT_TYPE_PACKET) {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-    } else {
+    } else if (event_type == APP_LAYER_EVENT_TYPE_GENERAL) {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+        s->flags |= SIG_FLAG_APPLAYER;
+    } else {
+        /* implied APP_LAYER_EVENT_TYPE_TRANSACTION */
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_APP_EVENT);
         s->flags |= SIG_FLAG_APPLAYER;
     }
 

@@ -108,6 +108,8 @@ enum {
     DETECT_SM_LIST_HCDMATCH,
     /* list for http_user_agent keyword and the ones relative to it */
     DETECT_SM_LIST_HUADMATCH,
+    /* app event engine sm list */
+    DETECT_SM_LIST_APP_EVENT,
 
     DETECT_SM_LIST_AMATCH,
     DETECT_SM_LIST_DMATCH,
