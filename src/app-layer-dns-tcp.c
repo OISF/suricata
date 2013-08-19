@@ -584,12 +584,12 @@ void RegisterDNSTCPParsers(void) {
                                           IPPROTO_TCP,
                                           "53",
                                           proto_name,
-                                          ALPROTO_DNS_TCP,
+                                          ALPROTO_DNS,
                                           0, sizeof(DNSTcpHeader),
                                           STREAM_TOSERVER,
                                           DNSTcpProbingParser);
         } else {
-            AppLayerParseProbingParserPorts(proto_name, ALPROTO_DNS_TCP,
+            AppLayerParseProbingParserPorts(proto_name, ALPROTO_DNS,
                                             0, sizeof(DNSTcpHeader),
                                             DNSTcpProbingParser);
         }

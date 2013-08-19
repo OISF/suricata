@@ -71,11 +71,15 @@ static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg)
     while (*arg != '\0' && isspace((unsigned char)*arg))
         arg++;
 
-    alproto = AppLayerGetProtoByName(arg);
-    if (alproto == ALPROTO_UNKNOWN) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-protocol "
-                   "keyword supplied with unknown protocol \"%s\"", arg);
-        return NULL;
+    if (strcasecmp(arg, "dns") == 0) {
+        alproto = ALPROTO_DNS;
+    } else {
+        alproto = AppLayerGetProtoByName(arg);
+        if (alproto == ALPROTO_UNKNOWN) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-protocol "
+                       "keyword supplied with unknown protocol \"%s\"", arg);
+            return NULL;
+        }
     }
 
     data = SCMalloc(sizeof(DetectAppLayerProtocolData));
