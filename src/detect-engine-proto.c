@@ -118,11 +118,13 @@ int DetectProtoParse(DetectProto *dp, char *str)
     } else if (strcasecmp(str,"ipv4") == 0 ||
                strcasecmp(str,"ip4") == 0 ) {
         dp->flags |= DETECT_PROTO_IPV4;
+        dp->flags |= DETECT_PROTO_ANY;
         memset(dp->proto, 0xff, sizeof(dp->proto));
         SCLogDebug("IPv4 protocol detected");
     } else if (strcasecmp(str,"ipv6") == 0 ||
                strcasecmp(str,"ip6") == 0 ) {
         dp->flags |= DETECT_PROTO_IPV6;
+        dp->flags |= DETECT_PROTO_ANY;
         memset(dp->proto, 0xff, sizeof(dp->proto));
         SCLogDebug("IPv6 protocol detected");
     } else if (strcasecmp(str,"ip") == 0 ||
