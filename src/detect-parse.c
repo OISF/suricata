@@ -580,56 +580,33 @@ error:
 int SigParseProto(Signature *s, const char *protostr) {
     SCEnter();
 
+    AppLayerProbingParser *pp;
+    AppLayerProbingParserPort *pp_port;
+    AppLayerProbingParserElement *pp_pe;
+
     int r = DetectProtoParse(&s->proto, (char *)protostr);
     if (r < 0) {
         s->alproto = AppLayerGetProtoByName(protostr);
-        if (s->alproto != ALPROTO_UNKNOWN) {
-            /* indicate that the signature is app-layer */
+        /* indicate that the signature is app-layer */
+        if (s->alproto != ALPROTO_UNKNOWN)
             s->flags |= SIG_FLAG_APPLAYER;
 
-            /* We are going to set ip proto from the
-             * registered applayer signatures for proto detection */
-            AlpProtoSignature *als = alp_proto_ctx.head;
-            while (als != NULL) {
-                if (als->proto == s->alproto) {
-                    /* Set the ipproto that this AL proto detection sig needs
-                     * Note that an AL proto can be present in more than one
-                     * IP proto (over TCP, UDP..) */
-                    s->proto.proto[als->ip_proto / 8] |= 1 << (als->ip_proto % 8);
+        for (pp = alp_proto_ctx.probing_parsers; pp != NULL; pp = pp->next) {
+            for (pp_port = pp->port; pp_port != NULL; pp_port = pp_port->next) {
+                for (pp_pe = pp_port->toserver; pp_pe != NULL; pp_pe = pp_pe->next) {
+                    if (strcasecmp(pp_pe->al_proto_name, protostr) != 0)
+                        continue;
+                    s->flags |= SIG_FLAG_APPLAYER;
+                    s->alproto = pp_pe->al_proto;
                 }
-                als = als->next;
+
+                for (pp_pe = pp_port->toclient; pp_pe != NULL; pp_pe = pp_pe->next) {
+                    if (strcasecmp(pp_pe->al_proto_name, protostr) != 0)
+                        continue;
+                    s->flags |= SIG_FLAG_APPLAYER;
+                    s->alproto = pp_pe->al_proto;
+                }
             }
-        }
-
-        AppLayerProbingParser *pp = alp_proto_ctx.probing_parsers;
-        while (pp != NULL) {
-            AppLayerProbingParserPort *pp_port = pp->port;
-            while (pp_port != NULL) {
-                AppLayerProbingParserElement *pp_pe = pp_port->toserver;
-                while (pp_pe != NULL) {
-                    if (strcasecmp(pp_pe->al_proto_name, protostr) == 0) {
-                        s->flags |= SIG_FLAG_APPLAYER;
-                        s->alproto = pp_pe->al_proto;
-                        s->proto.proto[pp->ip_proto / 8] |= 1 << (pp->ip_proto % 8);
-                    }
-
-                    pp_pe = pp_pe->next;
-                }
-
-                pp_pe = pp_port->toclient;
-                while (pp_pe != NULL) {
-                    if (strcasecmp(pp_pe->al_proto_name, protostr) == 0) {
-                        s->flags |= SIG_FLAG_APPLAYER;
-                        s->alproto = pp_pe->al_proto;
-                        s->proto.proto[pp->ip_proto / 8] |= 1 << (pp->ip_proto % 8);
-                    }
-
-                    pp_pe = pp_pe->next;
-                }
-
-                pp_port = pp_port->next;
-            }
-            pp = pp->next;
         }
 
         if (s->alproto == ALPROTO_UNKNOWN) {
@@ -826,18 +803,14 @@ static int SigParseBasics(Signature *s, char *sigstr, char ***result, uint8_t ad
     if (IPOnlySigParseAddress(s, arr[CONFIG_DST], SIG_DIREC_DST ^ addrs_direction) < 0)
         goto error;
 
-
-    /* For "ip" we parse the ports as well, even though they will be just "any".
-     *  We do this for later sgh building for the tcp and udp protocols. */
-    if (DetectProtoContainsProto(&s->proto, IPPROTO_TCP) ||
-        DetectProtoContainsProto(&s->proto, IPPROTO_UDP) ||
-        DetectProtoContainsProto(&s->proto, IPPROTO_SCTP))
-    {
-        if (SigParsePort(s, arr[CONFIG_SP], SIG_DIREC_SRC ^ addrs_direction) < 0)
-            goto error;
-        if (SigParsePort(s, arr[CONFIG_DP], SIG_DIREC_DST ^ addrs_direction) < 0)
-            goto error;
-    }
+    /* By AWS - Traditionally we should be doing this only for tcp/udp/sctp,
+     * but we do it for regardless of ip proto, since the dns/dnstcp/dnsudp
+     * changes that we made sees to it that at this point of time we don't
+     * set the ip proto for the sig.  We do it a bit later. */
+    if (SigParsePort(s, arr[CONFIG_SP], SIG_DIREC_SRC ^ addrs_direction) < 0)
+        goto error;
+    if (SigParsePort(s, arr[CONFIG_DP], SIG_DIREC_DST ^ addrs_direction) < 0)
+        goto error;
 
     *result = (char **)arr;
     return 0;
@@ -1362,6 +1335,11 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
 static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
                                 uint8_t dir)
 {
+    AlpProtoSignature *als;
+    AppLayerProbingParser *pp;
+    AppLayerProbingParserPort *pp_port;
+    AppLayerProbingParserElement *pp_pe;
+    SigMatch *sm;
     Signature *sig = SigAlloc();
     if (sig == NULL)
         goto error;
@@ -1379,7 +1357,32 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
     sig->num = de_ctx->signum;
     de_ctx->signum++;
 
-    SigMatch *sm;
+    if (sig->alproto != ALPROTO_UNKNOWN) {
+        for (sm = sig->sm_lists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_IPPROTO)
+                break;
+        }
+        if (sm == NULL) {
+            for (als = alp_proto_ctx.head; als != NULL; als = als->next) {
+                if (sig->alproto == als->proto)
+                    sig->proto.proto[als->ip_proto / 8] |= 1 << (als->ip_proto % 8);
+            }
+
+            for (pp = alp_proto_ctx.probing_parsers; pp != NULL; pp = pp->next) {
+                for (pp_port = pp->port; pp_port != NULL; pp_port = pp_port->next) {
+                    for (pp_pe = pp_port->toserver; pp_pe != NULL; pp_pe = pp_pe->next) {
+                        if (sig->alproto == pp_pe->al_proto)
+                            sig->proto.proto[pp->ip_proto / 8] |= 1 << (pp->ip_proto % 8);
+                    }
+                    for (pp_pe = pp_port->toclient; pp_pe != NULL; pp_pe = pp_pe->next) {
+                        if (sig->alproto == pp_pe->al_proto)
+                            sig->proto.proto[pp->ip_proto / 8] |= 1 << (pp->ip_proto % 8);
+                    }
+                }
+            }
+        } /* if */
+    } /* if */
+
     /* set mpm_content_len */
 
     /* determine the length of the longest pattern in the sig */
