@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -47,6 +47,7 @@ void TimeModeSetLive(void);
 void TimeModeSetOffline (void);
 
 struct tm *SCLocalTime(time_t timep, struct tm *result);
+void CreateTimeString (const struct timeval *ts, char *str, size_t size);
 
 #endif /* __UTIL_TIME_H__ */
 
