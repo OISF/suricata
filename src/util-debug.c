@@ -1368,7 +1368,7 @@ static char *SCLogGetLogFilename(char *filearg)
     char *log_dir;
     char *log_filename;
 
-    log_dir = GetLogDirectory();
+    log_dir = ConfigGetLogDirectory();
 
     log_filename = SCMalloc(PATH_MAX);
     if (unlikely(log_filename == NULL))
