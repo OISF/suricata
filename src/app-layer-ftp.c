@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -228,7 +228,7 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
 }
 
 #ifdef DEBUG
-static SCMutex ftp_state_mem_lock = PTHREAD_MUTEX_INITIALIZER;
+static SCMutex ftp_state_mem_lock = SCMUTEX_INITIALIZER;
 static uint64_t ftp_state_memuse = 0;
 static uint64_t ftp_state_memcnt = 0;
 #endif

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -43,8 +43,8 @@ SCLogFGFilterFile *sc_log_fg_filters[SC_LOG_FILTER_MAX] = { NULL, NULL };
 /**
  * \brief Mutex for accessing the fine-grained fiters sc_log_fg_filters
  */
-static SCMutex sc_log_fg_filters_m[SC_LOG_FILTER_MAX] = { PTHREAD_MUTEX_INITIALIZER,
-                                                                  PTHREAD_MUTEX_INITIALIZER };
+static SCMutex sc_log_fg_filters_m[SC_LOG_FILTER_MAX] = { SCMUTEX_INITIALIZER,
+                                                          SCMUTEX_INITIALIZER };
 
 /**
  * \brief Holds the function-dependent filters
@@ -54,7 +54,7 @@ static SCLogFDFilter *sc_log_fd_filters = NULL;
 /**
  * \brief Mutex for accessing the function-dependent filters sc_log_fd_filters
  */
-static SCMutex sc_log_fd_filters_m = PTHREAD_MUTEX_INITIALIZER;
+static SCMutex sc_log_fd_filters_m = SCMUTEX_INITIALIZER;
 
 /**
  * \brief Holds the thread_list required by function-dependent filters
@@ -64,7 +64,7 @@ static SCLogFDFilterThreadList *sc_log_fd_filters_tl = NULL;
 /**
  * \brief Mutex for accessing the FD thread_list sc_log_fd_filters_tl
  */
-static SCMutex sc_log_fd_filters_tl_m = PTHREAD_MUTEX_INITIALIZER;
+static SCMutex sc_log_fd_filters_tl_m = SCMUTEX_INITIALIZER;
 
 /**
  * \brief Helper function used internally to add a FG filter
