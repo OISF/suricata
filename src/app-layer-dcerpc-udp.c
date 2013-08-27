@@ -939,12 +939,15 @@ int DCERPCUDPParserTest01(void) {
 
 	StreamTcpInitConfig(TRUE);
 
+	SCMutexLock(&f.m);
 	int r = AppLayerParse(NULL, &f, ALPROTO_DCERPC_UDP, STREAM_TOSERVER|STREAM_START, dcerpcrequest, requestlen);
 	if (r != 0) {
 		printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
 		result = 0;
+		SCMutexUnlock(&f.m);
 		goto end;
 	}
+	SCMutexUnlock(&f.m);
 
 	DCERPCUDPState *dcerpc_state = f.alstate;
 	if (dcerpc_state == NULL) {

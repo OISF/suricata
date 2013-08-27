@@ -176,11 +176,14 @@ static int DetectDnsQueryTest01(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
+    SCMutexLock(&f.m);
     int r = AppLayerParse(NULL, &f, ALPROTO_DNS_UDP, STREAM_TOSERVER, buf, sizeof(buf));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     dns_state = f.alstate;
     if (dns_state == NULL) {
@@ -300,11 +303,14 @@ static int DetectDnsQueryTest02(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
+    SCMutexLock(&f.m);
     int r = AppLayerParse(NULL, &f, ALPROTO_DNS_UDP, STREAM_TOSERVER, buf1, sizeof(buf1));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     dns_state = f.alstate;
     if (dns_state == NULL) {
@@ -324,11 +330,14 @@ static int DetectDnsQueryTest02(void) {
         goto end;
     }
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DNS_UDP, STREAM_TOCLIENT, buf2, sizeof(buf2));
     if (r != 0) {
         printf("toserver client 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p2);
@@ -342,11 +351,14 @@ static int DetectDnsQueryTest02(void) {
         goto end;
     }
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DNS_UDP, STREAM_TOSERVER, buf3, sizeof(buf3));
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p3);
@@ -430,11 +442,14 @@ static int DetectDnsQueryTest03(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
+    SCMutexLock(&f.m);
     int r = AppLayerParse(NULL, &f, ALPROTO_DNS_TCP, STREAM_TOSERVER, buf, sizeof(buf));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     dns_state = f.alstate;
     if (dns_state == NULL) {
@@ -524,11 +539,14 @@ static int DetectDnsQueryTest04(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
+    SCMutexLock(&f.m);
     int r = AppLayerParse(NULL, &f, ALPROTO_DNS_TCP, STREAM_TOSERVER, buf1, sizeof(buf1));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     dns_state = f.alstate;
     if (dns_state == NULL) {
@@ -544,11 +562,14 @@ static int DetectDnsQueryTest04(void) {
         goto end;
     }
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DNS_TCP, STREAM_TOSERVER, buf2, sizeof(buf2));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p2);
@@ -675,11 +696,14 @@ static int DetectDnsQueryTest05(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
+    SCMutexLock(&f.m);
     int r = AppLayerParse(NULL, &f, ALPROTO_DNS_TCP, STREAM_TOSERVER, buf1, sizeof(buf1));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     dns_state = f.alstate;
     if (dns_state == NULL) {
@@ -699,11 +723,14 @@ static int DetectDnsQueryTest05(void) {
         goto end;
     }
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DNS_TCP, STREAM_TOSERVER, buf2, sizeof(buf2));
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p2);
@@ -717,11 +744,14 @@ static int DetectDnsQueryTest05(void) {
         goto end;
     }
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DNS_TCP, STREAM_TOCLIENT, buf3, sizeof(buf3));
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p3);
@@ -735,11 +765,14 @@ static int DetectDnsQueryTest05(void) {
         goto end;
     }
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DNS_TCP, STREAM_TOSERVER, buf4, sizeof(buf4));
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p4);
@@ -828,11 +861,14 @@ static int DetectDnsQueryTest06(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
+    SCMutexLock(&f.m);
     int r = AppLayerParse(NULL, &f, ALPROTO_DNS_UDP, STREAM_TOSERVER, buf, sizeof(buf));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     dns_state = f.alstate;
     if (dns_state == NULL) {
@@ -963,11 +999,14 @@ static int DetectDnsQueryTest07(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
+    SCMutexLock(&f.m);
     int r = AppLayerParse(NULL, &f, ALPROTO_DNS_UDP, STREAM_TOSERVER, buf1, sizeof(buf1));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     dns_state = f.alstate;
     if (dns_state == NULL) {
@@ -987,11 +1026,14 @@ static int DetectDnsQueryTest07(void) {
         goto end;
     }
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DNS_UDP, STREAM_TOCLIENT, buf2, sizeof(buf2));
     if (r != -1) {
         printf("toserver client 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p2);
@@ -1009,11 +1051,14 @@ static int DetectDnsQueryTest07(void) {
         goto end;
     }
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DNS_UDP, STREAM_TOSERVER, buf3, sizeof(buf3));
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p3);

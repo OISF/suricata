@@ -351,29 +351,35 @@ static int DetectSshSoftwareVersionTestDetect01(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
+    SCMutexLock(&f.m);
     int r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf4, sshlen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
@@ -453,29 +459,35 @@ static int DetectSshSoftwareVersionTestDetect02(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
+    SCMutexLock(&f.m);
     int r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf4, sshlen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
@@ -555,29 +567,35 @@ static int DetectSshSoftwareVersionTestDetect03(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
+    SCMutexLock(&f.m);
     int r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf4, sshlen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {

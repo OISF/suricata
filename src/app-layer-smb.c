@@ -1456,11 +1456,14 @@ int SMBParserTest01(void) {
 
     StreamTcpInitConfig(TRUE);
 
+    SCMutexLock(&f.m);
     int r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_EOF, smbbuf, smblen);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     SMBState *smb_state = f.alstate;
     if (smb_state == NULL) {
@@ -1525,11 +1528,14 @@ int SMBParserTest02(void) {
 
     StreamTcpInitConfig(TRUE);
 
+    SCMutexLock(&f.m);
     int r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_EOF, smbbuf, smblen);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     SMBState *smb_state = f.alstate;
     if (smb_state == NULL) {
@@ -1813,11 +1819,14 @@ int SMBParserTest03(void) {
 
     StreamTcpInitConfig(TRUE);
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     SMBState *smb_state = f.alstate;
     if (smb_state == NULL) {
@@ -1830,16 +1839,22 @@ int SMBParserTest03(void) {
         goto end;
     }
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf2, smblen2);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf3, smblen3);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     printUUID("BIND", smb_state->dcerpc.dcerpcbindbindack.uuid_entry);
     result = 1;
 end:
@@ -1916,11 +1931,14 @@ int SMBParserTest04(void) {
 
     StreamTcpInitConfig(TRUE);
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     SMBState *smb_state = f.alstate;
     if (smb_state == NULL) {
@@ -1933,21 +1951,30 @@ int SMBParserTest04(void) {
         goto end;
     }
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf2, smblen2);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf3, smblen3);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf4, smblen4);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     result = 1;
 end:
@@ -2156,11 +2183,14 @@ int SMBParserTest07(void) {
 
     StreamTcpInitConfig(TRUE);
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOCLIENT | STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     SMBState *smb_state = f.alstate;
     if (smb_state == NULL) {
@@ -2222,11 +2252,14 @@ int SMBParserTest08(void) {
 
     StreamTcpInitConfig(TRUE);
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOCLIENT | STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     SMBState *smb_state = f.alstate;
     if (smb_state == NULL) {
@@ -2250,11 +2283,14 @@ int SMBParserTest08(void) {
         goto end;
     }
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOCLIENT, smbbuf2, smblen2);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     if (smb_state->smb.command != SMB_COM_NEGOTIATE) {
         printf("we should expect SMB command 0x%02x , got 0x%02x : ",
@@ -2325,11 +2361,14 @@ int SMBParserTest09(void) {
 
     StreamTcpInitConfig(TRUE);
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER | STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     SMBState *smb_state = f.alstate;
     if (smb_state == NULL) {
@@ -2353,11 +2392,14 @@ int SMBParserTest09(void) {
         goto end;
     }
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf2, smblen2);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     if (smb_state->smb.command != SMB_COM_NEGOTIATE) {
         printf("we should expect SMB command 0x%02x , got 0x%02x : ",
@@ -2437,11 +2479,14 @@ int SMBParserTest10(void)
 
     StreamTcpInitConfig(TRUE);
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER | STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     SMBState *smb_state = f.alstate;
     if (smb_state == NULL) {
@@ -2454,11 +2499,14 @@ int SMBParserTest10(void)
         goto end;
     }
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOCLIENT, smbbuf2, smblen2);
     if (r == 0) {
         printf("smb parser didn't return fail\n");
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     result = 1;
 end:
