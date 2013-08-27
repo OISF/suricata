@@ -40,6 +40,10 @@
 #include "alert-unified2-alert.h"
 #include "decode-ipv4.h"
 
+#include "host.h"
+#include "util-profiling.h"
+#include "decode.h"
+
 #include "util-error.h"
 #include "util-debug.h"
 #include "util-time.h"
@@ -1162,39 +1166,40 @@ static int Unified2Test01 (void)   {
 
     DecodeEthernet(&tv, &dtv, p, raw_ipv4_tcp, sizeof(raw_ipv4_tcp), &pq);
 
-    FlowShutdown();
 
     oc = Unified2AlertInitCtx(NULL);
     if (oc == NULL) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     lf = (LogFileCtx *)oc->data;
     if(lf == NULL) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     ret = Unified2AlertThreadInit(&tv, oc, &data);
     if(ret == TM_ECODE_FAILED) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     ret = Unified2Alert(&tv, p, data, &pq, NULL);
     if(ret == TM_ECODE_FAILED) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     ret = Unified2AlertThreadDeinit(&tv, data);
     if(ret == -1) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
 
     Unified2AlertDeInitCtx(oc);
 
-    PACKET_CLEANUP(p);
+    PACKET_RECYCLE(p);
     SCFree(p);
+    FlowShutdown();
     return 1;
+
+end:
+    PACKET_RECYCLE(p);
+    SCFree(p);
+    FlowShutdown();
+    return 0;
 }
 
 /**
@@ -1248,39 +1253,39 @@ static int Unified2Test02 (void)   {
 
     DecodeEthernet(&tv, &dtv, p, raw_ipv6_tcp, sizeof(raw_ipv6_tcp), &pq);
 
-    FlowShutdown();
-
     oc = Unified2AlertInitCtx(NULL);
     if (oc == NULL) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     lf = (LogFileCtx *)oc->data;
     if(lf == NULL) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     ret = Unified2AlertThreadInit(&tv, oc, &data);
     if(ret == -1) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     ret = Unified2Alert(&tv, p, data, &pq, NULL);
     if(ret == TM_ECODE_FAILED) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     ret = Unified2AlertThreadDeinit(&tv, data);
     if(ret == -1) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
 
     Unified2AlertDeInitCtx(oc);
 
-    PACKET_CLEANUP(p);
+    PACKET_RECYCLE(p);
     SCFree(p);
+    FlowShutdown();
     return 1;
+
+end:
+    PACKET_RECYCLE(p);
+    SCFree(p);
+    FlowShutdown();
+    return 0;
 }
 
 
@@ -1319,6 +1324,7 @@ static int Unified2Test03 (void) {
         0x6e, 0x6f, 0x64, 0x65, 0x2e, 0x6e, 0x65, 0x74,
         0x0d, 0x0a};
     Packet *p = PacketGetFromAlloc();
+    Packet *pkt;
     if (unlikely(p == NULL))
         return 0;
     int ret;
@@ -1340,45 +1346,52 @@ static int Unified2Test03 (void) {
 
     DecodeEthernet(&tv, &dtv, p, raw_gre, sizeof(raw_gre), &pq);
 
-    FlowShutdown();
-
     oc = Unified2AlertInitCtx(NULL);
     if (oc == NULL) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     lf = (LogFileCtx *)oc->data;
     if(lf == NULL) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     ret = Unified2AlertThreadInit(&tv, oc, &data);
     if(ret == -1) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     ret = Unified2Alert(&tv, p, data, &pq, NULL);
     if(ret == TM_ECODE_FAILED) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     ret = Unified2AlertThreadDeinit(&tv, data);
     if(ret == -1) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
 
     Unified2AlertDeInitCtx(oc);
 
-    Packet *pkt = PacketDequeue(&pq);
+    pkt = PacketDequeue(&pq);
     while (pkt != NULL) {
+        PACKET_RECYCLE(pkt);
         SCFree(pkt);
         pkt = PacketDequeue(&pq);
     }
 
-    PACKET_CLEANUP(p);
+    PACKET_RECYCLE(p);
     SCFree(p);
+    FlowShutdown();
     return 1;
+
+end:
+    pkt = PacketDequeue(&pq);
+    while (pkt != NULL) {
+        PACKET_RECYCLE(pkt);
+        SCFree(pkt);
+        pkt = PacketDequeue(&pq);
+    }
+    PACKET_RECYCLE(p);
+    SCFree(p);
+    FlowShutdown();
+    return 0;
 }
 
 /**
@@ -1426,39 +1439,39 @@ static int Unified2Test04 (void)   {
 
     DecodePPP(&tv, &dtv, p, raw_ppp, sizeof(raw_ppp), &pq);
 
-    FlowShutdown();
-
     oc = Unified2AlertInitCtx(NULL);
     if (oc == NULL) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     lf = (LogFileCtx *)oc->data;
     if(lf == NULL) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     ret = Unified2AlertThreadInit(&tv, oc, &data);
     if(ret == -1) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     ret = Unified2Alert(&tv, p, data, &pq, NULL);
     if(ret == TM_ECODE_FAILED) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     ret = Unified2AlertThreadDeinit(&tv, data);
     if(ret == -1) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
 
     Unified2AlertDeInitCtx(oc);
 
-    PACKET_CLEANUP(p);
+    PACKET_RECYCLE(p);
     SCFree(p);
+    FlowShutdown();
     return 1;
+
+end:
+    PACKET_RECYCLE(p);
+    SCFree(p);
+    FlowShutdown();
+    return 0;
 }
 
 /**
@@ -1510,41 +1523,41 @@ static int Unified2Test05 (void)   {
 
     DecodeEthernet(&tv, &dtv, p, raw_ipv4_tcp, sizeof(raw_ipv4_tcp), &pq);
 
-    FlowShutdown();
-
     p->action = ACTION_DROP;
 
     oc = Unified2AlertInitCtx(NULL);
     if (oc == NULL) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     lf = (LogFileCtx *)oc->data;
     if(lf == NULL) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     ret = Unified2AlertThreadInit(&tv, oc, &data);
     if(ret == -1) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     ret = Unified2Alert(&tv, p, data, &pq, NULL);
     if(ret == TM_ECODE_FAILED) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
     ret = Unified2AlertThreadDeinit(&tv, data);
     if(ret == TM_ECODE_FAILED) {
-        SCFree(p);
-        return 0;
+        goto end;
     }
 
     Unified2AlertDeInitCtx(oc);
 
-    PACKET_CLEANUP(p);
+    PACKET_RECYCLE(p);
     SCFree(p);
+    FlowShutdown();
     return 1;
+
+end:
+    PACKET_RECYCLE(p);
+    SCFree(p);
+    FlowShutdown();
+    return 0;
 }
 
 /**

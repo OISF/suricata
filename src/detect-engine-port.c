@@ -48,6 +48,10 @@
 #include "util-debug.h"
 #include "util-error.h"
 
+#include "pkt-var.h"
+#include "host.h"
+#include "util-profiling.h"
+
 static int DetectPortCutNot(DetectPort *, DetectPort **);
 static int DetectPortCut(DetectEngineCtx *, DetectPort *, DetectPort *,
                          DetectPort **);
@@ -2444,6 +2448,7 @@ int PortTestMatchReal(uint8_t *raw_eth_pkt, uint16_t pktsize, char *sig,
     FlowInitConfig(FLOW_QUIET);
     Packet *p = UTHBuildPacketFromEth(raw_eth_pkt, pktsize);
     result = UTHPacketMatchSig(p, sig);
+    PACKET_RECYCLE(p);
     FlowShutdown();
     return result;
 }

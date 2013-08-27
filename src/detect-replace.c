@@ -55,6 +55,10 @@ extern int run_mode;
 
 #include "util-debug.h"
 
+#include "pkt-var.h"
+#include "host.h"
+#include "util-profiling.h"
+
 static int DetectReplaceSetup (DetectEngineCtx *, Signature *, char *);
 void DetectReplaceRegisterTests(void);
 
@@ -285,6 +289,7 @@ end:
             DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
     }
+    PACKET_RECYCLE(p);
     FlowShutdown();
     SCFree(p);
 

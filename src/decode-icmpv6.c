@@ -42,6 +42,10 @@
 #include "util-debug.h"
 #include "util-print.h"
 
+#include "pkt-var.h"
+#include "util-profiling.h"
+#include "host.h"
+
 
 /**
  * \brief Get variables and do some checks of the embedded IPV6 packet
@@ -387,7 +391,6 @@ static int ICMPV6ParamProbTest01(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6), NULL);
-    FlowShutdown();
 
     if (p->icmpv6h == NULL) {
         SCLogDebug("ICMPv6 Unable to detect icmpv6 layer from ipv6");
@@ -416,6 +419,8 @@ static int ICMPV6ParamProbTest01(void)
 
     retval = 1;
 end:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return retval;
 }
@@ -459,7 +464,6 @@ static int ICMPV6PktTooBigTest01(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6), NULL);
-    FlowShutdown();
 
     if (p->icmpv6h == NULL) {
         SCLogDebug("ICMPv6 Unable to detect icmpv6 layer from ipv6");
@@ -490,6 +494,8 @@ static int ICMPV6PktTooBigTest01(void)
 
     retval = 1;
 end:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return retval;
 }
@@ -534,7 +540,6 @@ static int ICMPV6TimeExceedTest01(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6), NULL);
-    FlowShutdown();
 
     if (p->icmpv6h == NULL) {
         SCLogDebug("ICMPv6 Unable to detect icmpv6 layer from ipv6");
@@ -566,6 +571,8 @@ static int ICMPV6TimeExceedTest01(void)
 
     retval = 1;
 end:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return retval;
 }
@@ -610,7 +617,6 @@ static int ICMPV6DestUnreachTest01(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6), NULL);
-    FlowShutdown();
 
     if (p->icmpv6h == NULL) {
         SCLogDebug("ICMPv6 Unable to detect icmpv6 layer from ipv6");
@@ -640,6 +646,8 @@ static int ICMPV6DestUnreachTest01(void)
 
     retval = 1;
 end:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return retval;
 }
@@ -673,7 +681,6 @@ static int ICMPV6EchoReqTest01(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6), NULL);
-    FlowShutdown();
 
     if (p->icmpv6h == NULL) {
         SCLogDebug("ICMPv6 Unable to detect icmpv6 layer from ipv6");
@@ -692,6 +699,8 @@ static int ICMPV6EchoReqTest01(void)
 
     retval = 1;
 end:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return retval;
 }
@@ -726,7 +735,6 @@ static int ICMPV6EchoRepTest01(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6), NULL);
-    FlowShutdown();
 
     if (p->icmpv6h == NULL) {
         SCLogDebug("ICMPv6 Unable to detect icmpv6 layer from ipv6");
@@ -746,6 +754,8 @@ static int ICMPV6EchoRepTest01(void)
 
     retval = 1;
 end:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return retval;
 }
@@ -786,7 +796,6 @@ static int ICMPV6ParamProbTest02(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6), NULL);
-    FlowShutdown();
 
     if (p->icmpv6h == NULL) {
         SCLogDebug("ICMPv6 Unable to detect icmpv6 layer from ipv6");
@@ -808,6 +817,8 @@ static int ICMPV6ParamProbTest02(void)
 
     retval = 1;
 end:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return retval;
 }
@@ -847,7 +858,6 @@ static int ICMPV6PktTooBigTest02(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6), NULL);
-    FlowShutdown();
 
     if (p->icmpv6h == NULL) {
         SCLogDebug("ICMPv6 Unable to detect icmpv6 layer from ipv6");
@@ -863,6 +873,8 @@ static int ICMPV6PktTooBigTest02(void)
 
     retval = 1;
 end:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return retval;
 }
@@ -899,7 +911,6 @@ static int ICMPV6TimeExceedTest02(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6), NULL);
-    FlowShutdown();
 
     if (!ENGINE_ISSET_EVENT(p, ICMPV6_PKT_TOO_SMALL)) {
         SCLogDebug("ICMPv6 Error: event packet too small not set");
@@ -909,6 +920,8 @@ static int ICMPV6TimeExceedTest02(void)
 
     retval = 1;
 end:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return retval;
 }
@@ -948,7 +961,6 @@ static int ICMPV6DestUnreachTest02(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6), NULL);
-    FlowShutdown();
 
     if (!ENGINE_ISSET_EVENT(p, ICMPV6_IPV6_TRUNC_PKT)) {
         SCLogDebug("ICMPv6 Error: embedded ipv6 truncated packet event not set");
@@ -958,6 +970,8 @@ static int ICMPV6DestUnreachTest02(void)
 
     retval = 1;
 end:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return retval;
 }
@@ -993,7 +1007,6 @@ static int ICMPV6EchoReqTest02(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6), NULL);
-    FlowShutdown();
 
     if (!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE)) {
         SCLogDebug("ICMPv6 Error: Unknown code event not set");
@@ -1003,6 +1016,8 @@ static int ICMPV6EchoReqTest02(void)
 
     retval = 1;
 end:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return retval;
 }
@@ -1038,7 +1053,6 @@ static int ICMPV6EchoRepTest02(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6), NULL);
-    FlowShutdown();
 
     if (!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE)) {
         SCLogDebug("ICMPv6 Error: Unknown code event not set");
@@ -1048,6 +1062,8 @@ static int ICMPV6EchoRepTest02(void)
 
     retval = 1;
 end:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return retval;
 }
@@ -1086,7 +1102,6 @@ static int ICMPV6PayloadTest01(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6), NULL);
-    FlowShutdown();
 
     if (p->payload == NULL) {
         printf("payload == NULL, expected non-NULL: ");
@@ -1100,6 +1115,8 @@ static int ICMPV6PayloadTest01(void)
 
     retval = 1;
 end:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return retval;
 }

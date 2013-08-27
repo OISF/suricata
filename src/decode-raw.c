@@ -38,6 +38,11 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
+#include "pkt-var.h"
+#include "util-profiling.h"
+#include "host.h"
+
+
 void DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     SCPerfCounterIncr(dtv->counter_raw, tv->sc_perf_pca);
@@ -107,6 +112,7 @@ static int DecodeRawTest01 (void)   {
         return 1;
     }
 
+    PACKET_RECYCLE(p);
     FlowShutdown();
     SCFree(p);
     return 0;
@@ -144,13 +150,16 @@ static int DecodeRawTest02 (void)   {
     FlowInitConfig(FLOW_QUIET);
 
     DecodeRaw(&tv, &dtv, p, raw_ip, GET_PKT_LEN(p), NULL);
-    FlowShutdown();
     if (p->ip4h == NULL) {
         printf("expected a valid ipv4 header but it was NULL: ");
+        PACKET_RECYCLE(p);
+        FlowShutdown();
         SCFree(p);
         return 1;
     }
 
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return 0;
 }
@@ -195,6 +204,7 @@ static int DecodeRawTest03 (void)   {
     } else {
         printf("expected IPRAW_INVALID_IPV to be set but it wasn't: ");
     }
+    PACKET_RECYCLE(p);
     FlowShutdown();
     SCFree(p);
     return 1;

@@ -1535,13 +1535,13 @@ int DecodeIPV4DefragTest01(void)
             goto end;
     }
 
-    PACKET_CLEANUP(p);
+    PACKET_RECYCLE(tp);
     SCFree(tp);
 
 end:
     DefragDestroy();
+    PACKET_RECYCLE(p);
     FlowShutdown();
-    PACKET_CLEANUP(p);
     SCFree(p);
     return result;
 }
@@ -1667,13 +1667,13 @@ int DecodeIPV4DefragTest02(void)
     }
 
     result = 1;
-    PACKET_CLEANUP(p);
+    PACKET_RECYCLE(tp);
     SCFree(tp);
 
 end:
     DefragDestroy();
+    PACKET_RECYCLE(p);
     FlowShutdown();
-    PACKET_CLEANUP(p);
     SCFree(p);
     return result;
 }
@@ -1826,13 +1826,13 @@ int DecodeIPV4DefragTest03(void)
             goto end;
     }
 
-    PACKET_CLEANUP(p);
+    PACKET_RECYCLE(tp);
     SCFree(tp);
 
 end:
     DefragDestroy();
+    PACKET_RECYCLE(p);
     FlowShutdown();
-    PACKET_CLEANUP(p);
     SCFree(p);
     return result;
 }

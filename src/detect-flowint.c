@@ -40,6 +40,10 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 
+#include "pkt-var.h"
+#include "host.h"
+#include "util-profiling.h"
+
 /*                         name             modifiers          value      */
 #define PARSE_REGEX "^\\s*([a-zA-Z][\\w\\d_.]+)\\s*,\\s*([+=-]{1}|==|!=|<|<=|>|>=|isset|notset)\\s*,?\\s*([a-zA-Z][\\w\\d]+|[\\d]{1,10})?\\s*$"
 /* Varnames must begin with a letter */
@@ -1400,6 +1404,7 @@ int DetectFlowintTestPacket01Real()
                 break;
         }
         SCLogDebug("Raw Packet %d has %u alerts ", i, p->alerts.cnt);
+        PACKET_RECYCLE(p);
     }
 
     SigGroupCleanup(de_ctx);
@@ -1422,6 +1427,7 @@ end:
     if (de_ctx)
         DetectEngineCtxFree(de_ctx);
 
+    PACKET_RECYCLE(p);
     FlowShutdown();
     SCFree(p);
     return result;
@@ -1736,6 +1742,7 @@ int DetectFlowintTestPacket02Real()
                 break;
         }
         SCLogDebug("Raw Packet %d has %u alerts ", i, p->alerts.cnt);
+        PACKET_RECYCLE(p);
     }
 
     SigGroupCleanup(de_ctx);
@@ -2065,6 +2072,7 @@ int DetectFlowintTestPacket03Real()
                 break;
         }
         SCLogDebug("Raw Packet %d has %u alerts ", i, p->alerts.cnt);
+        PACKET_RECYCLE(p);
     }
 
     SigGroupCleanup(de_ctx);

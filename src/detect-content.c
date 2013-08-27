@@ -44,6 +44,9 @@
 #include "util-spm-bm.h"
 #include "threads.h"
 #include "util-unittest-helper.h"
+#include "pkt-var.h"
+#include "host.h"
+#include "util-profiling.h"
 
 int DetectContentMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectContentSetup(DetectEngineCtx *, Signature *, char *);
@@ -682,6 +685,7 @@ end:
             DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
     }
+    PACKET_RECYCLE(p);
     FlowShutdown();
 
     SCFree(p);
