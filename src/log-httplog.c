@@ -156,7 +156,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
 
     time_t time = ts->tv_sec;
     struct tm local_tm;
-    struct tm *timestamp = (struct tm *)SCLocalTime(time, &local_tm);
+    struct tm *timestamp = SCLocalTime(time, &local_tm);
 
     for (i = 0; i < httplog_ctx->cf_n; i++) {
         switch (httplog_ctx->cf_nodes[i]->type){
