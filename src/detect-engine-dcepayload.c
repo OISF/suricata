@@ -6478,12 +6478,15 @@ int DcePayloadTest15(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
     if (!(PacketAlertCheck(p, 1))) {
@@ -6587,12 +6590,15 @@ int DcePayloadTest16(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
     if (!(PacketAlertCheck(p, 1))) {
@@ -6696,12 +6702,15 @@ int DcePayloadTest17(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
     if (!(PacketAlertCheck(p, 1))) {
@@ -6805,12 +6814,15 @@ int DcePayloadTest18(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
     if (!(PacketAlertCheck(p, 1))) {
@@ -6914,12 +6926,15 @@ int DcePayloadTest19(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
     if (!(PacketAlertCheck(p, 1))) {
@@ -7023,12 +7038,15 @@ int DcePayloadTest20(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
     if (!(PacketAlertCheck(p, 1))) {
@@ -7121,12 +7139,15 @@ int DcePayloadTest21(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
     if (!(PacketAlertCheck(p, 1))) {
@@ -7215,12 +7236,15 @@ int DcePayloadTest22(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
     if (!(PacketAlertCheck(p, 1))) {
@@ -7310,12 +7334,15 @@ int DcePayloadTest23(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
     if (!(PacketAlertCheck(p, 1))) {
@@ -9519,12 +9546,15 @@ int DcePayloadTest42(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
     if ((PacketAlertCheck(p, 1))) {
@@ -9614,12 +9644,15 @@ int DcePayloadTest43(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
     if ( !(PacketAlertCheck(p, 1))) {

@@ -452,29 +452,35 @@ static int DetectSslVersionTestDetect01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
+    SCMutexLock(&f.m);
     int r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf1, ssllen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf2, ssllen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf3, ssllen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf4, ssllen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     SSLState *app_state = f.alstate;
     if (app_state == NULL) {
@@ -567,29 +573,35 @@ static int DetectSslVersionTestDetect02(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
+    SCMutexLock(&f.m);
     int r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf1, ssllen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf2, ssllen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf3, ssllen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf4, ssllen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     SSLState *app_state = f.alstate;
     if (app_state == NULL) {
@@ -692,29 +704,35 @@ static int DetectSslVersionTestDetect03(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
+    SCMutexLock(&f.m);
     int r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf1, ssllen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf2, ssllen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf3, ssllen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf4, ssllen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     SSLState *app_state = f.alstate;
     if (app_state == NULL) {

@@ -893,11 +893,14 @@ static int DeStateSigTest01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
+    SCMutexLock(&f.m);
     int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, 1)) {
@@ -906,11 +909,14 @@ static int DeStateSigTest01(void)
     }
     p->alerts.cnt = 0;
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, 1)) {
@@ -919,11 +925,14 @@ static int DeStateSigTest01(void)
     }
     p->alerts.cnt = 0;
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (!(PacketAlertCheck(p, 1))) {
@@ -932,12 +941,15 @@ static int DeStateSigTest01(void)
     }
     p->alerts.cnt = 0;
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf4, httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, 1)) {
@@ -1029,11 +1041,14 @@ static int DeStateSigTest02(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
+    SCMutexLock(&f.m);
     int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, 1)) {
@@ -1042,11 +1057,14 @@ static int DeStateSigTest02(void) {
     }
     p->alerts.cnt = 0;
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, 1)) {
@@ -1055,11 +1073,14 @@ static int DeStateSigTest02(void) {
     }
     p->alerts.cnt = 0;
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (!(PacketAlertCheck(p, 1))) {
@@ -1068,12 +1089,15 @@ static int DeStateSigTest02(void) {
     }
     p->alerts.cnt = 0;
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf4, httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, 1)) {
@@ -1082,11 +1106,14 @@ static int DeStateSigTest02(void) {
     }
     p->alerts.cnt = 0;
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf5, httplen5);
     if (r != 0) {
         printf("toserver chunk 5 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, 1)) {
@@ -1095,11 +1122,14 @@ static int DeStateSigTest02(void) {
     }
     p->alerts.cnt = 0;
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf6, httplen6);
     if (r != 0) {
         printf("toserver chunk 6 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if ((PacketAlertCheck(p, 1)) || (PacketAlertCheck(p, 2))) {
@@ -1110,11 +1140,14 @@ static int DeStateSigTest02(void) {
 
     SCLogDebug("sending data chunk 7");
 
+    SCMutexLock(&f.m);
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf7, httplen7);
     if (r != 0) {
         printf("toserver chunk 7 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (!(PacketAlertCheck(p, 2))) {
@@ -1196,12 +1229,15 @@ static int DeStateSigTest03(void) {
 
     StreamTcpInitConfig(TRUE);
 
+    SCMutexLock(&f->m);
     int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f->m);
         goto end;
     }
+    SCMutexUnlock(&f->m);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -1222,11 +1258,14 @@ static int DeStateSigTest03(void) {
         goto end;
     }
 
+    SCMutexLock(&f->m);
     FileContainer *files = AppLayerGetFilesFromFlow(p->flow, STREAM_TOSERVER);
     if (files == NULL) {
         printf("no stored files: ");
+        SCMutexUnlock(&f->m);
         goto end;
     }
+    SCMutexUnlock(&f->m);
 
     File *file = files->head;
     if (file == NULL) {
@@ -1311,12 +1350,15 @@ static int DeStateSigTest04(void) {
 
     StreamTcpInitConfig(TRUE);
 
+    SCMutexLock(&f->m);
     int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f->m);
         goto end;
     }
+    SCMutexUnlock(&f->m);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -1337,11 +1379,14 @@ static int DeStateSigTest04(void) {
         goto end;
     }
 
+    SCMutexLock(&f->m);
     FileContainer *files = AppLayerGetFilesFromFlow(p->flow, STREAM_TOSERVER);
     if (files == NULL) {
         printf("no stored files: ");
+        SCMutexUnlock(&f->m);
         goto end;
     }
+    SCMutexUnlock(&f->m);
 
     File *file = files->head;
     if (file == NULL) {
@@ -1426,12 +1471,15 @@ static int DeStateSigTest05(void) {
 
     StreamTcpInitConfig(TRUE);
 
+    SCMutexLock(&f->m);
     int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f->m);
         goto end;
     }
+    SCMutexUnlock(&f->m);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -1452,11 +1500,14 @@ static int DeStateSigTest05(void) {
         goto end;
     }
 
+    SCMutexLock(&f->m);
     FileContainer *files = AppLayerGetFilesFromFlow(p->flow, STREAM_TOSERVER);
     if (files == NULL) {
         printf("no stored files: ");
+        SCMutexUnlock(&f->m);
         goto end;
     }
+    SCMutexUnlock(&f->m);
 
     File *file = files->head;
     if (file == NULL) {
@@ -1541,12 +1592,15 @@ static int DeStateSigTest06(void) {
 
     StreamTcpInitConfig(TRUE);
 
+    SCMutexLock(&f->m);
     int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f->m);
         goto end;
     }
+    SCMutexUnlock(&f->m);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -1567,11 +1621,14 @@ static int DeStateSigTest06(void) {
         goto end;
     }
 
+    SCMutexLock(&f->m);
     FileContainer *files = AppLayerGetFilesFromFlow(p->flow, STREAM_TOSERVER);
     if (files == NULL) {
         printf("no stored files: ");
+        SCMutexUnlock(&f->m);
         goto end;
     }
+    SCMutexUnlock(&f->m);
 
     File *file = files->head;
     if (file == NULL) {
@@ -1659,12 +1716,15 @@ static int DeStateSigTest07(void) {
     StreamTcpInitConfig(TRUE);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
+    SCMutexLock(&f->m);
     int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f->m);
         goto end;
     }
+    SCMutexUnlock(&f->m);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -1674,12 +1734,15 @@ static int DeStateSigTest07(void) {
     }
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
+    SCMutexLock(&f->m);
     r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
+        SCMutexUnlock(&f->m);
         goto end;
     }
+    SCMutexUnlock(&f->m);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, 1)) {
@@ -1699,11 +1762,14 @@ static int DeStateSigTest07(void) {
         goto end;
     }
 
+    SCMutexLock(&f->m);
     FileContainer *files = AppLayerGetFilesFromFlow(p->flow, STREAM_TOSERVER);
     if (files == NULL) {
         printf("no stored files: ");
+        SCMutexUnlock(&f->m);
         goto end;
     }
+    SCMutexUnlock(&f->m);
 
     File *file = files->head;
     if (file == NULL) {

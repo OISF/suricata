@@ -2058,12 +2058,15 @@ static int AppLayerParserTest01 (void)
 
     StreamTcpInitConfig(TRUE);
 
+    SCMutexLock(&f->m);
     int r = AppLayerParse(NULL, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
                           testlen);
     if (r != -1) {
         printf("returned %" PRId32 ", expected -1: ", r);
+        SCMutexUnlock(&f->m);
         goto end;
     }
+    SCMutexUnlock(&f->m);
 
     if (!(f->flags & FLOW_NO_APPLAYER_INSPECTION))
     {
@@ -2103,13 +2106,16 @@ static int AppLayerParserTest02 (void)
 
     StreamTcpInitConfig(TRUE);
 
+    SCMutexLock(&f->m);
     int r = AppLayerParse(NULL, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
                           testlen);
     if (r != -1) {
         printf("returned %" PRId32 ", expected -1: \n", r);
         result = 0;
+        SCMutexUnlock(&f->m);
         goto end;
     }
+    SCMutexUnlock(&f->m);
 
 end:
     StreamTcpFreeConfig(TRUE);
