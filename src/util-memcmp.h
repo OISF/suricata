@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -20,7 +20,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Memcmp implementations for SSE3, SSE4.1 and SSE4.2.
+ * Memcmp implementations for SSE3, SSE4.1, SSE4.2 and TILE-Gx SIMD.
  *
  * Both SCMemcmp and SCMemcmpLowercase return 0 on a exact match,
  * 1 on a failed match.
@@ -338,6 +338,122 @@ static inline int SCMemcmpLowercase(void *s1, void *s2, size_t len) {
         s1 += SCMEMCMP_BYTES;
         s2 += SCMEMCMP_BYTES;
     } while (len > offset);
+
+    return 0;
+}
+
+#elif defined(__tile__)
+
+#include <ctype.h>
+
+static inline int SCMemcmp(void *s1, void *s2, size_t len)
+{
+    uint64_t b1, w1, aligned1;
+    uint64_t b2, w2, aligned2;
+
+    if (len == 0)
+        return 0;
+
+    /* Load aligned words containing the beginning of each string.
+     * These loads don't trigger unaligned events.
+     */
+    w1 = __insn_ldna(s1);
+    w2 = __insn_ldna(s2);
+    /* Can't just read next 8 bytes because it might go past the end
+     * of a page. */
+    while (len > 8) {
+        /* Here, the buffer extends into the next word by at least one
+         * byte, so it is safe to read the next word.  Do an aligned
+         * loads on the next word.  Then use the two words to create
+         * an aligned word from each string. */
+        b1 = __insn_ldna(s1 + 8);
+        b2 = __insn_ldna(s2 + 8);
+        aligned1 = __insn_dblalign(w1, b1, s1);
+        aligned2 = __insn_dblalign(w2, b2, s2);
+        if (aligned1 != aligned2)
+            return 1;
+
+        /* Move forward one word (8 bytes) */
+        w1 = b1;
+        w2 = b2;
+        len -= 8;
+        s1 += 8;
+        s2 += 8;
+    }
+    /* Process the last up-to 8 bytes. */
+    do {
+        if (*(char*)s1 != *(char*)s2)
+            return 1;
+        s1++;
+        s2++;
+        len--;
+    } while (len);
+
+    return 0;
+}
+
+/** \brief Convert 8 characters to lower case using SIMD.
+ *  \param Word containing the 8 bytes.
+ *  \return Word containing 8-bytes each converted to lowercase.
+ */
+static inline uint64_t
+vec_tolower(uint64_t cc)
+{
+    /* For Uppercases letters, add 32 to convert to lower case. */
+    uint64_t less_than_eq_Z = __insn_v1cmpltui (cc, 'Z' + 1);
+    uint64_t less_than_A =  __insn_v1cmpltui (cc, 'A');
+    uint64_t is_upper = __insn_v1cmpne (less_than_eq_Z, less_than_A);
+    return __insn_v1add (cc,__insn_v1shli (is_upper, 5));
+}
+
+/** \brief compare two buffers in a case insensitive way
+ *  \param s1 buffer already in lowercase
+ *  \param s2 buffer with mixed upper and lowercase
+ */
+static inline int SCMemcmpLowercase(void *s1, void *s2, size_t len)
+{
+    uint64_t b1, w1, aligned1;
+    uint64_t b2, w2, aligned2;
+
+    if (len == 0)
+        return 0;
+
+    /* TODO Check for already aligned cases. To optimize. */
+
+    /* Load word containing the beginning of each string.
+     * These loads don't trigger unaligned events.
+     */
+    w1 = __insn_ldna(s1);
+    w2 = __insn_ldna(s2);
+    /* Can't just read next 8 bytes because it might go past the end
+     * of a page. */
+    while (len > 8) {
+        /* Here, the buffer extends into the next word by at least one
+         * byte, so it is safe to read the next word.  Do aligned
+         * loads on next word.  Then use the two words to create an
+         * aligned word from each string. */
+        b1 = __insn_ldna(s1 + 8);
+        b2 = __insn_ldna(s2 + 8);
+        aligned1 = __insn_dblalign(w1, b1, s1);
+        aligned2 = vec_tolower(__insn_dblalign(w2, b2, s2));
+        if (aligned1 != aligned2)
+            return 1;
+
+        /* Move forward one word (8 bytes) */
+        w1 = b1;
+        w2 = b2;
+        len -= 8;
+        s1 += 8;
+        s2 += 8;
+    }
+
+    do {
+        if (*(char*)s1 != tolower(*(char*)s2))
+            return 1;
+        s1++;
+        s2++;
+        len--;
+    } while (len);
 
     return 0;
 }

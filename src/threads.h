@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -104,6 +104,7 @@ enum {
 #define SCMutex pthread_mutex_t
 #define SCMutexAttr pthread_mutexattr_t
 #define SCMutexDestroy pthread_mutex_destroy
+#define SCMUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
 
 /** Suricata RWLocks */
 #define SCRWLock pthread_rwlock_t
