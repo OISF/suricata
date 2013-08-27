@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -175,6 +175,13 @@ void UtilCpuPrintSummary() {
  * \todo We'll have to deal with removig ticks from the extra cpuids inbetween
  *       2 calls.
  */
+#if defined(__tile__)
+#include <arch/cycle.h>
+uint64_t UtilCpuGetTicks(void)
+{
+  return get_cycle_count();
+}
+#else
 uint64_t UtilCpuGetTicks(void)
 {
     uint64_t val;
@@ -217,3 +224,4 @@ uint64_t UtilCpuGetTicks(void)
 #endif
     return val;
 }
+#endif /* __tile__ */
