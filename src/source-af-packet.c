@@ -157,7 +157,7 @@ TmEcode NoAFPSupportExit(ThreadVars *tv, void *initdata, void **data)
 #endif
 
 /** protect pfring_set_bpf_filter, as it is not thread safe */
-static SCMutex afpacket_bpf_set_filter_lock = PTHREAD_MUTEX_INITIALIZER;
+static SCMutex afpacket_bpf_set_filter_lock = SCMUTEX_INITIALIZER;
 
 enum {
     AFP_READ_OK,

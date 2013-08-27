@@ -63,7 +63,7 @@ typedef struct Host_ {
     Address a;
 
     /** use cnt, reference counter */
-    SC_ATOMIC_DECLARE(unsigned short, use_cnt);
+    SC_ATOMIC_DECLARE(unsigned int, use_cnt);
 
     /** pointers to iprep storage */
     void *iprep;

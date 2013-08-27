@@ -42,8 +42,15 @@
 #define __UTIL_ATOMIC_H__
 
 /* test if we have atomic operations support */
-#if !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8) || !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4) || \
-    !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2) || !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1)
+#undef USE_GCC_SYNC_ATOMICS
+#ifdef __GNUC__
+#include <features.h>
+#if __GNUC_PREREQ(4,1)
+#define USE_GCC_SYNC_ATOMICS
+#endif
+#endif
+
+#if !defined(USE_GCC_SYNC_ATOMICS)
 
 /**
  *  \brief wrapper to declare an atomic variable including a (spin) lock
@@ -468,6 +475,8 @@
 #endif /* !no atomic operations */
 
 void SCAtomicRegisterTests(void);
+
+#undef USE_GCC_SYNC_ATOMICS
 
 #endif /* __UTIL_ATOMIC_H__ */
 

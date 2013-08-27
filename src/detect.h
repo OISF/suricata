@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -949,7 +949,7 @@ typedef struct SigGroupHead_ {
 
     /** array of masks, used to check multiple masks against
      *  a packet using SIMD. */
-#if defined(__SSE3__)
+#if defined(__SSE3__) || defined(__tile__)
     SignatureMask *mask_array;
 #endif
     /** chunk of memory containing the "header" part of each

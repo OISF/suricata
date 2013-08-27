@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -48,6 +48,7 @@
 
 #include "util-logopenfile.h"
 #include "util-crypt.h"
+#include "util-time.h"
 
 #define DEFAULT_LOG_FILENAME "tls.log"
 
@@ -124,17 +125,6 @@ typedef struct LogTlsLogThread_ {
     uint8_t*   enc_buf;
     size_t     enc_buf_len;
 } LogTlsLogThread;
-
-static void CreateTimeString(const struct timeval *ts, char *str, size_t size)
-{
-    time_t time = ts->tv_sec;
-    struct tm local_tm;
-    struct tm *t = (struct tm *) localtime_r(&time, &local_tm);
-
-    snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
-        t->tm_mon + 1, t->tm_mday, t->tm_year + 1900, t->tm_hour,
-            t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
-}
 
 static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState * state)
 {

@@ -111,7 +111,7 @@ typedef struct DefragTracker_ {
     uint32_t timeout; /**< When this tracker will timeout. */
 
     /** use cnt, reference counter */
-    SC_ATOMIC_DECLARE(unsigned short, use_cnt);
+    SC_ATOMIC_DECLARE(unsigned int, use_cnt);
 
     TAILQ_HEAD(frag_tailq, Frag_) frags; /**< Head of list of fragments. */
 
