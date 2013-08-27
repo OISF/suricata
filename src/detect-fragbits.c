@@ -38,6 +38,10 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
+#include "pkt-var.h"
+#include "host.h"
+#include "util-profiling.h"
+
 /**
  *  Regex
  *  fragbits: [!+*](MDR)
@@ -524,7 +528,6 @@ static int FragBitsTestParse04 (void) {
 
     DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth), NULL);
 
-    FlowShutdown();
 
     de = DetectFragBitsParse("!D");
 
@@ -543,6 +546,8 @@ static int FragBitsTestParse04 (void) {
     if(ret) {
         if (de) SCFree(de);
         if (sm) SCFree(sm);
+        PACKET_RECYCLE(p);
+        FlowShutdown();
         SCFree(p);
         return 1;
     }
@@ -550,6 +555,8 @@ static int FragBitsTestParse04 (void) {
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return 0;
 }

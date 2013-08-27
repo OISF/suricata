@@ -38,6 +38,9 @@
 #include "util-debug.h"
 #include "util-optimize.h"
 #include "flow.h"
+#include "util-profiling.h"
+#include "pkt-var.h"
+#include "host.h"
 
 static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
 {
@@ -319,7 +322,6 @@ static int TCPGetWscaleTest01(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp), NULL);
-    FlowShutdown();
 
     if (p->tcph == NULL) {
         printf("tcp packet decode failed: ");
@@ -334,6 +336,8 @@ static int TCPGetWscaleTest01(void)
 
     retval = 1;
 end:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return retval;
 }
@@ -364,7 +368,6 @@ static int TCPGetWscaleTest02(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp), NULL);
-    FlowShutdown();
 
     if (p->tcph == NULL) {
         printf("tcp packet decode failed: ");
@@ -379,6 +382,8 @@ static int TCPGetWscaleTest02(void)
 
     retval = 1;
 end:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return retval;
 }
@@ -408,7 +413,6 @@ static int TCPGetWscaleTest03(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp), NULL);
-    FlowShutdown();
 
     if (p->tcph == NULL) {
         printf("tcp packet decode failed: ");
@@ -423,6 +427,8 @@ static int TCPGetWscaleTest03(void)
 
     retval = 1;
 end:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return retval;
 }
@@ -456,7 +462,6 @@ static int TCPGetSackTest01(void)
 
     FlowInitConfig(FLOW_QUIET);
     DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp), NULL);
-    FlowShutdown();
 
     if (p->tcph == NULL) {
         printf("tcp packet decode failed: ");
@@ -487,6 +492,8 @@ static int TCPGetSackTest01(void)
 
     retval = 1;
 end:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return retval;
 }

@@ -41,6 +41,8 @@
 #include "util-debug.h"
 #include "util-print.h"
 #include "util-unittest.h"
+#include "util-profiling.h"
+#include "host.h"
 
 #define IPV6_EXTHDRS     ip6eh.ip6_exthdrs
 #define IPV6_EH_CNT      ip6eh.ip6_exthdrs_cnt
@@ -738,6 +740,7 @@ static int DecodeIPV6FragTest01 (void)   {
         0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
         0x20, 0x20, 0x20, 0x20,
     };
+    Packet *pkt;
     Packet *p1 = PacketGetFromAlloc();
     if (unlikely(p1 == NULL))
         return 0;
@@ -782,10 +785,16 @@ static int DecodeIPV6FragTest01 (void)   {
 
     result = 1;
 end:
-    PACKET_CLEANUP(p1);
-    PACKET_CLEANUP(p2);
+    PACKET_RECYCLE(p1);
+    PACKET_RECYCLE(p2);
     SCFree(p1);
     SCFree(p2);
+    pkt = PacketDequeue(&pq);
+    while (pkt != NULL) {
+        PACKET_RECYCLE(pkt);
+        SCFree(pkt);
+        pkt = PacketDequeue(&pq);
+    }
     DefragDestroy();
     FlowShutdown();
     return result;
@@ -838,7 +847,7 @@ static int DecodeIPV6RouteTest01 (void)   {
 
     result = 1;
 end:
-    PACKET_CLEANUP(p1);
+    PACKET_RECYCLE(p1);
     SCFree(p1);
     FlowShutdown();
     return result;

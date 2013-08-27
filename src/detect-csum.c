@@ -35,6 +35,10 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
+#include "pkt-var.h"
+#include "host.h"
+#include "util-profiling.h"
+
 /* prototypes for the "ipv4-csum" rule keyword */
 int DetectIPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                         Signature *, SigMatch *);
@@ -1559,6 +1563,7 @@ int DetectCsumICMPV6Test01(void)
     }
 
     StreamTcpFreeConfig(TRUE);
+    PACKET_RECYCLE(p);
     FlowShutdown();
 
     SCFree(p);

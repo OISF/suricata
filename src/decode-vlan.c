@@ -40,6 +40,10 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
+#include "pkt-var.h"
+#include "util-profiling.h"
+#include "host.h"
+
 /**
  * \internal
  * \brief this function is used to decode IEEE802.1q packets
@@ -215,25 +219,29 @@ static int DecodeVLANtest03 (void)   {
 
     DecodeVLAN(&tv, &dtv, p, raw_vlan, sizeof(raw_vlan), NULL);
 
-    FlowShutdown();
 
     if(p->vlanh == NULL) {
-        SCFree(p);
-        return 0;
+        goto error;
     }
 
     if(ENGINE_ISSET_EVENT(p,VLAN_HEADER_TOO_SMALL))  {
-        SCFree(p);
-        return 0;
+        goto error;
     }
 
     if(ENGINE_ISSET_EVENT(p,VLAN_UNKNOWN_TYPE))  {
-        SCFree(p);
-        return 0;
+        goto error;
     }
 
+    PACKET_RECYCLE(p);
+    FlowShutdown();
     SCFree(p);
     return 1;
+
+error:
+    PACKET_RECYCLE(p);
+    FlowShutdown();
+    SCFree(p);
+    return 0;
 }
 #endif /* UNITTESTS */
 

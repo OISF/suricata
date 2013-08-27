@@ -37,6 +37,10 @@
 #include "util-debug.h"
 #include "util-byte.h"
 
+#include "pkt-var.h"
+#include "host.h"
+#include "util-profiling.h"
+
 /**
  *  dsize:[<>]<0-65535>[<><0-65535>];
  */
@@ -790,6 +794,7 @@ cleanup:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    PACKET_RECYCLE(p);
     FlowShutdown();
 end:
     SCFree(p);

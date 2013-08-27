@@ -39,6 +39,11 @@
 #include "detect-ipproto.h"
 #include "detect-flow.h"
 
+#include "pkt-var.h"
+#include "host.h"
+#include "util-profiling.h"
+#include "decode.h"
+
 #include "flow.h"
 
 #include "util-rule-vars.h"
@@ -2671,8 +2676,10 @@ int SigTestBidirec03 (void) {
     result = UTHCheckPacketMatchResults(p, sids, results, 1);
 
 end:
-    if (p != NULL)
+    if (p != NULL) {
+        PACKET_RECYCLE(p);
         SCFree(p);
+    }
     if (de_ctx != NULL) {
         SigCleanSignatures(de_ctx);
         SigGroupCleanup(de_ctx);
@@ -2815,6 +2822,9 @@ int SigTestBidirec04 (void) {
         result = 1;
     }
 
+    if (p != NULL) {
+        PACKET_RECYCLE(p);
+    }
     FlowShutdown();
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);

@@ -8710,6 +8710,7 @@ int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type) {
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
+    PACKET_RECYCLE(p);
     FlowShutdown();
 
     SCFree(p);
@@ -8729,6 +8730,9 @@ end:
 
     if(de_ctx)
              DetectEngineCtxFree(de_ctx);
+
+    if (p != NULL)
+        PACKET_RECYCLE(p);
 
     FlowShutdown();
 
@@ -8842,6 +8846,8 @@ int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type) {
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
+
+    PACKET_RECYCLE(p);
     FlowShutdown();
 
     SCFree(p);
@@ -8859,6 +8865,9 @@ end:
 
     if(de_ctx)
         DetectEngineCtxFree(de_ctx);
+
+    if (p != NULL)
+        PACKET_RECYCLE(p);
 
     FlowShutdown();
 
@@ -10497,15 +10506,23 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    FlowShutdown();
-    if (p1 != NULL)
+    if (p1 != NULL) {
+        PACKET_RECYCLE(p1);
         SCFree(p1);
-    if (p2 != NULL)
+    }
+    if (p2 != NULL) {
+        PACKET_RECYCLE(p2);
         SCFree(p2);
-    if (p3 != NULL)
+    }
+    if (p3 != NULL) {
+        PACKET_RECYCLE(p3);
         SCFree(p3);
-    if (p4 != NULL)
+    }
+    if (p4 != NULL) {
+        PACKET_RECYCLE(p4);
         SCFree(p4);
+    }
+    FlowShutdown();
     return result;
 }
 
