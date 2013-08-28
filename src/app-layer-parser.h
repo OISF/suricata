@@ -34,6 +34,9 @@ typedef struct AppLayerLocalMap_ {
     uint16_t parser_id;
 } AppLayerLocalMap;
 
+typedef uint16_t (*ProbingParserFPtr)(uint8_t *input, uint32_t input_len,
+                                      uint32_t *offset);
+
 /** \brief Mapping between ALPROTO_* and L7Parsers
  *
  * Map the proto to the parsers for the to_client and to_server directions.
@@ -65,6 +68,13 @@ typedef struct AppLayerProto_ {
     uint64_t (*StateGetTxCnt)(void *alstate);
     void *(*StateGetTx)(void *alstate, uint64_t tx_id);
     int (*StateGetAlstateProgressCompletionStatus)(uint8_t direction);
+
+    int (*StateGetEventInfo)(const char *event_name,
+                             int *event_id, AppLayerEventType *event_type);
+
+    ProbingParserFPtr pp_alproto_map[2];
+    /* The current values taken are STREAM_TOSERVER, STREAM_TOCLIENT */
+    uint8_t flags;
 
 #ifdef UNITTESTS
     void (*RegisterUnittests)(void);
@@ -150,26 +160,27 @@ typedef struct AppLayerParserTableElement_ {
 } AppLayerParserTableElement;
 
 typedef struct AppLayerProbingParserElement_ {
-    const char *al_proto_name;
+    char *al_proto_name;
     uint16_t al_proto;
+    /* \todo don't really need it.  See if you can get rid of it */
     uint16_t port;
-    uint16_t ip_proto;
-    uint8_t priority;
-    uint8_t top;
+    /* \todo calculate at runtime and get rid of this var */
     uint32_t al_proto_mask;
+    /* \todo check if we can reduce the bottom 2 vars to uint16_t */
     /* the min length of data that has to be supplied to invoke the parser */
     uint32_t min_depth;
     /* the max length of data after which this parser won't be invoked */
     uint32_t max_depth;
     /* the probing parser function */
-    uint16_t (*ProbingParser)(uint8_t *input, uint32_t input_len);
+    ProbingParserFPtr ProbingParser;
 
     struct AppLayerProbingParserElement_ *next;
 } AppLayerProbingParserElement;
 
-typedef struct AppLayerProbingParser_ {
+typedef struct AppLayerProbingParserPort_ {
     /* the port no for which probing parser(s) are invoked */
     uint16_t port;
+
     uint32_t toserver_al_proto_mask;
     uint32_t toclient_al_proto_mask;
     /* the max depth for all the probing parsers registered for this port */
@@ -179,54 +190,44 @@ typedef struct AppLayerProbingParser_ {
     AppLayerProbingParserElement *toserver;
     AppLayerProbingParserElement *toclient;
 
+    struct AppLayerProbingParserPort_ *next;
+} AppLayerProbingParserPort;
+
+typedef struct AppLayerProbingParser_ {
+    uint16_t ip_proto;
+    AppLayerProbingParserPort *port;
+
     struct AppLayerProbingParser_ *next;
 } AppLayerProbingParser;
-
-typedef struct AppLayerProbingParserInfo_ {
-    const char *al_proto_name;
-    uint16_t ip_proto;
-    uint16_t al_proto;
-    uint16_t (*ProbingParser)(uint8_t *input, uint32_t input_len);
-    struct AppLayerProbingParserInfo_ *next;
-} AppLayerProbingParserInfo;
-
-#define APP_LAYER_PROBING_PARSER_PRIORITY_HIGH   1
-#define APP_LAYER_PROBING_PARSER_PRIORITY_MEDIUM 2
-#define APP_LAYER_PROBING_PARSER_PRIORITY_LOW    3
 
 extern AppLayerProto al_proto_table[];
 
 static inline
-AppLayerProbingParser *AppLayerGetProbingParsers(AppLayerProbingParser *probing_parsers,
-                                                 uint16_t ip_proto,
-                                                 uint16_t port)
+AppLayerProbingParserPort *AppLayerGetProbingParsers(AppLayerProbingParser *pp,
+                                                     uint16_t ip_proto,
+                                                     uint16_t port)
 {
-    if (probing_parsers == NULL)
-        return NULL;
-
-    AppLayerProbingParser *pp = probing_parsers;
     while (pp != NULL) {
-        if (pp->port == port || pp->port == 0) {
+        if (pp->ip_proto == ip_proto)
             break;
-        }
+
         pp = pp->next;
     }
 
-    return pp;
-}
+    if (pp == NULL)
+        return NULL;
 
-static inline
-AppLayerProbingParserInfo *AppLayerGetProbingParserInfo(AppLayerProbingParserInfo *ppi,
-                                                        const char *al_proto_name)
-{
-    while (ppi != NULL) {
-        if (strcmp(ppi->al_proto_name, al_proto_name) == 0)
-            return ppi;
-        ppi = ppi->next;
+    AppLayerProbingParserPort *pp_port = pp->port;
+    while (pp_port != NULL) {
+        if (pp_port->port == port || pp_port->port == 0) {
+            break;
+        }
+        pp_port = pp_port->next;
     }
 
-    return NULL;
+    return pp_port;
 }
+
 struct AlpProtoDetectCtx_;
 
 /* prototypes */
@@ -248,13 +249,20 @@ int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id,
                                                  void *local_data,
                                                  AppLayerParserResult *output),
                            char *dependency);
-void AppLayerRegisterProbingParser(struct AlpProtoDetectCtx_ *, uint16_t, uint16_t,
-                                   const char *, uint16_t,
-                                   uint16_t, uint16_t, uint8_t, uint8_t,
-                                   uint8_t,
-                                   uint16_t (*ProbingParser)(uint8_t *, uint32_t));
+void AppLayerRegisterParserAcceptableDataDirection(uint16_t al_proto,
+                                                   uint8_t flags);
+void AppLayerMapProbingParserAgainstAlproto(uint16_t al_proto,
+                                            uint8_t flags,
+                                            ProbingParserFPtr ProbingParser);
+void AppLayerRegisterProbingParser(struct AlpProtoDetectCtx_ *,
+                                   uint16_t ip_proto,
+                                   char *portstr,
+                                   char *al_proto_name, uint16_t al_proto,
+                                   uint16_t min_depth, uint16_t max_depth,
+                                   uint8_t flags,
+                                   ProbingParserFPtr ProbingParser);
 #ifdef UNITTESTS
-void AppLayerRegisterUnittests(uint16_t proto, void (*RegisterUnittests)(void));
+void AppLayerParserRegisterUnittests(uint16_t proto, void (*RegisterUnittests)(void));
 #endif
 void AppLayerRegisterStateFuncs(uint16_t proto, void *(*StateAlloc)(void),
                                 void (*StateFree)(void *));
@@ -283,6 +291,10 @@ void AppLayerRegisterGetTx(uint16_t alproto,
                            void *(*StateGetTx)(void *alstate, uint64_t tx_id));
 void AppLayerRegisterGetAlstateProgressCompletionStatus(uint16_t alproto,
     int (*StateProgressCompletionStatus)(uint8_t direction));
+void AppLayerRegisterGetEventInfo(uint16_t alproto,
+                                  int (*StateGetEventInfo)(const char *event_name,
+                                                           int *event_id,
+                                                           AppLayerEventType *event_type));
 
 int AppLayerParse(void *, Flow *, uint8_t,
                   uint8_t, uint8_t *, uint32_t);
@@ -340,7 +352,6 @@ void AppLayerSetEOF(Flow *);
 
 void AppLayerParserCleanupState(Flow *);
 void AppLayerFreeProbingParsers(AppLayerProbingParser *);
-void AppLayerFreeProbingParsersInfo(AppLayerProbingParserInfo *);
 void AppLayerPrintProbingParsers(AppLayerProbingParser *);
 
 void AppLayerListSupportedProtocols(void);
@@ -422,6 +433,53 @@ int AppLayerGetAlstateProgressCompletionStatus(uint16_t alproto, uint8_t directi
  */
 int AppLayerAlprotoSupportsTxs(uint16_t alproto);
 
+/**
+ * \brief Triggers raw reassembly.
+ *
+ * \param f Flow pointer.
+ */
 void AppLayerTriggerRawStreamReassembly(Flow *);
+
+/**
+ * \brief Informs if the specified alproto's parser is enabled.
+ *
+ * \param alproto Character string holding the alproto name.
+ */
+int AppLayerParserEnabled(const char *alproto);
+
+/**
+ * \brief Informs if the specified alproto has detection enabled.
+ *
+ * \param alproto    Character string holding the alproto name.
+ */
+int AppLayerProtoDetectionEnabled(const char *alproto);
+
+/**
+ * \brief Gets event info for this alproto.
+ *
+ * \param alproto    Character string holding the alproto name.
+ * \param event_name Name of the event.
+ * \param event_id   Pointer to an instance to send back event id.
+ */
+int AppLayerGetEventInfo(uint16_t alproto, const char *event_name,
+                         int *event_id, AppLayerEventType *event_type);
+
+/***** Utility *****/
+
+void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_proto,
+                                     uint16_t min_depth, uint16_t max_depth,
+                                     ProbingParserFPtr ProbingParser);
+
+
+/***** Unittests *****/
+
+/**
+ * \brief Backup al_proto_table.
+ *
+ *        Currently we backup only the event table.  Feel free to backup
+ *        other stuff as and when required.
+ */
+void AppLayerParserBackupAlprotoTable(void);
+void AppLayerParserRestoreAlprotoTable(void);
 
 #endif /* __APP_LAYER_PARSER_H__ */

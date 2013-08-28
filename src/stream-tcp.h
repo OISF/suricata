@@ -202,5 +202,11 @@ static inline int StreamHasUnprocessedSegments(TcpSession *ssn, int direction)
     }
 }
 
+TmEcode StreamTcpThreadInit(ThreadVars *, void *, void **);
+TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data);
+int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
+                     PacketQueue *pq);
+void StreamTcpSessionClear(void *ssnptr);
+
 #endif /* __STREAM_TCP_H__ */
 

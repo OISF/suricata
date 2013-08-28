@@ -36,6 +36,7 @@
 #include "util-print.h"
 #include "util-profiling.h"
 #include "util-validate.h"
+#include "decode-events.h"
 
 //#define PRINT
 extern uint8_t engine_mode;
@@ -113,10 +114,13 @@ extern AlpProtoDetectCtx alp_proto_ctx;
  *  \retval 0 ok
  *  \retval -1 error
  */
-int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
-        TcpSession *ssn, uint8_t *data, uint32_t data_len, uint8_t flags)
+int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
+                          Flow *f, TcpSession *ssn, TcpStream *stream,
+                          uint8_t *data, uint32_t data_len, Packet *p,
+                          uint8_t flags)
 {
     SCEnter();
+    AlpProtoDetectThreadCtx *dp_ctx = &ra_ctx->dp_ctx;
 
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
@@ -128,71 +132,165 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
 #endif
 
     SCLogDebug("data_len %u flags %02X", data_len, flags);
-    if (!(f->flags & FLOW_NO_APPLAYER_INSPECTION)) {
-        /* if we don't know the proto yet and we have received a stream
-         * initializer message, we run proto detection.
-         * We receive 2 stream init msgs (one for each direction) but we
-         * only run the proto detection once. */
-        if (f->alproto == ALPROTO_UNKNOWN && (flags & STREAM_GAP)) {
-            ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
-            SCLogDebug("ALPROTO_UNKNOWN flow %p, due to GAP in stream start", f);
-            StreamTcpSetSessionNoReassemblyFlag(ssn, 0);
-        } else if (f->alproto == ALPROTO_UNKNOWN && (flags & STREAM_START)) {
-            SCLogDebug("Stream initializer (len %" PRIu32 ")", data_len);
+    if (f->flags & FLOW_NO_APPLAYER_INSPECTION) {
+        SCLogDebug("FLOW_AL_NO_APPLAYER_INSPECTION is set");
+        SCReturnInt(r);
+    }
+
+    uint16_t *alproto;
+    uint16_t *alproto_otherdir;
+    uint8_t dir;
+    if (flags & STREAM_TOSERVER) {
+        alproto = &f->alproto_ts;
+        alproto_otherdir = &f->alproto_tc;
+        dir = 0;
+    } else {
+        alproto = &f->alproto_tc;
+        alproto_otherdir = &f->alproto_ts;
+        dir = 1;
+    }
+
+    /* if we don't know the proto yet and we have received a stream
+     * initializer message, we run proto detection.
+     * We receive 2 stream init msgs (one for each direction) but we
+     * only run the proto detection once. */
+    if (*alproto == ALPROTO_UNKNOWN && (flags & STREAM_GAP)) {
+        stream->flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
+        SCLogDebug("ALPROTO_UNKNOWN flow %p, due to GAP in stream start", f);
+        StreamTcpSetSessionNoReassemblyFlag(ssn, dir);
+    } else if (*alproto == ALPROTO_UNKNOWN && (flags & STREAM_START)) {
+        uint32_t data_al_so_far;
+        if (data_len == 0)
+            data_al_so_far = 0;
+        else
+            data_al_so_far = f->data_al_so_far[dir];
+
+        SCLogDebug("Stream initializer (len %" PRIu32 ")", data_len);
 #ifdef PRINT
-            if (data_len > 0) {
-                printf("=> Init Stream Data (app layer) -- start %s%s\n",
-                        flags & STREAM_TOCLIENT ? "toclient" : "",
-                        flags & STREAM_TOSERVER ? "toserver" : "");
-                PrintRawDataFp(stdout, data, data_len);
-                printf("=> Init Stream Data -- end\n");
-            }
+        if (data_len > 0) {
+            printf("=> Init Stream Data (app layer) -- start %s%s\n",
+                   flags & STREAM_TOCLIENT ? "toclient" : "",
+                   flags & STREAM_TOSERVER ? "toserver" : "");
+            PrintRawDataFp(stdout, data, data_len);
+            printf("=> Init Stream Data -- end\n");
+        }
 #endif
 
-            PACKET_PROFILING_APP_PD_START(dp_ctx);
-            f->alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx, f,
-                    data, data_len, flags, IPPROTO_TCP);
-            PACKET_PROFILING_APP_PD_END(dp_ctx);
+        PACKET_PROFILING_APP_PD_START(dp_ctx);
+        *alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx, f,
+                                          data, data_len, flags, IPPROTO_TCP);
+        PACKET_PROFILING_APP_PD_END(dp_ctx);
 
-            if (f->alproto != ALPROTO_UNKNOWN) {
-                ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
-
-                PACKET_PROFILING_APP_START(dp_ctx, f->alproto);
-                r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags, data, data_len);
-                PACKET_PROFILING_APP_END(dp_ctx, f->alproto);
+        if (*alproto != ALPROTO_UNKNOWN) {
+            if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto_otherdir != *alproto) {
+                AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
+                                                 APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS);
+                f->alproto = f->alproto_ts = f->alproto_tc = ALPROTO_UNKNOWN;
+                FlowSetSessionNoApplayerInspectionFlag(f);
+                ssn->client.flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
+                ssn->server.flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
             } else {
-                if ((f->flags & FLOW_TS_PM_PP_ALPROTO_DETECT_DONE) &&
-                    (f->flags & FLOW_TC_PM_PP_ALPROTO_DETECT_DONE)) {
-                    FlowSetSessionNoApplayerInspectionFlag(f);
-                    ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
+                f->alproto = *alproto;
+                stream->flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
+
+                if ((ssn->data_first_seen_dir & (STREAM_TOSERVER | STREAM_TOCLIENT)) &&
+                    !(flags & ssn->data_first_seen_dir)) {
+                    TcpStream *opposing_stream = NULL;
+                    if (stream == &ssn->client) {
+                        opposing_stream = &ssn->server;
+                        p->flowflags &= ~FLOW_PKT_TOCLIENT;
+                        p->flowflags |= FLOW_PKT_TOSERVER;
+                    } else {
+                        opposing_stream = &ssn->client;
+                        p->flowflags &= ~FLOW_PKT_TOSERVER;
+                        p->flowflags |= FLOW_PKT_TOCLIENT;
+                    }
+
+                    int ret = StreamTcpReassembleAppLayer(tv, ra_ctx, ssn, opposing_stream, p);
+                    if (stream == &ssn->client) {
+                        p->flowflags &= ~FLOW_PKT_TOSERVER;
+                        p->flowflags |= FLOW_PKT_TOCLIENT;
+                    } else {
+                        p->flowflags &= ~FLOW_PKT_TOCLIENT;
+                        p->flowflags |= FLOW_PKT_TOSERVER;
+                    }
+                    if (ret < 0) {
+                        r = -1;
+                        goto end;
+                    }
                 }
+
+                if (ssn->data_first_seen_dir != 0x01) {
+                    if (al_proto_table[*alproto].flags && !(al_proto_table[*alproto].flags & ssn->data_first_seen_dir)) {
+                        AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
+                                                         APPLAYER_WRONG_DIRECTION_FIRST_DATA);
+                        r = -1;
+                        f->alproto = f->alproto_ts = f->alproto_tc = ALPROTO_UNKNOWN;
+                        FlowSetSessionNoApplayerInspectionFlag(f);
+                        ssn->server.flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
+                        ssn->client.flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
+                        /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
+                        ssn->data_first_seen_dir = 0x01;
+                        goto end;
+                    }
+                }
+
+                /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
+                ssn->data_first_seen_dir = 0x01;
+
+                PACKET_PROFILING_APP_START(dp_ctx, *alproto);
+                r = AppLayerParse(dp_ctx->alproto_local_storage[*alproto], f, *alproto, flags, data + data_al_so_far, data_len - data_al_so_far);
+                PACKET_PROFILING_APP_END(dp_ctx, *alproto);
+                f->data_al_so_far[dir] = 0;
             }
         } else {
-            SCLogDebug("stream data (len %" PRIu32 " alproto "
-                    "%"PRIu16" (flow %p)", data_len, f->alproto, f);
-#ifdef PRINT
-            if (data_len > 0) {
-                printf("=> Stream Data (app layer) -- start %s%s\n",
-                        flags & STREAM_TOCLIENT ? "toclient" : "",
-                        flags & STREAM_TOSERVER ? "toserver" : "");
-                PrintRawDataFp(stdout, data, data_len);
-                printf("=> Stream Data -- end\n");
-            }
-#endif
-            /* if we don't have a data object here we are not getting it
-             * a start msg should have gotten us one */
-            if (f->alproto != ALPROTO_UNKNOWN) {
-                PACKET_PROFILING_APP_START(dp_ctx, f->alproto);
-                r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags, data, data_len);
-                PACKET_PROFILING_APP_END(dp_ctx, f->alproto);
+            if (*alproto_otherdir != ALPROTO_UNKNOWN) {
+                PACKET_PROFILING_APP_START(dp_ctx, *alproto_otherdir);
+                r = AppLayerParse(dp_ctx->alproto_local_storage[*alproto_otherdir], f, *alproto_otherdir, flags,
+                                  data + data_al_so_far, data_len - data_al_so_far);
+                PACKET_PROFILING_APP_END(dp_ctx, *alproto_otherdir);
+                if (IS_PM_DONE(f, flags) && IS_PP_DONE(f, flags)) {
+                    AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
+                                                     APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION);
+                    stream->flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
+                    f->data_al_so_far[dir] = 0;
+                } else {
+                    f->data_al_so_far[dir] = data_len;
+                }
             } else {
-                SCLogDebug(" smsg not start, but no l7 data? Weird");
+                if (IS_PM_DONE(f, STREAM_TOSERVER) && IS_PP_DONE(f, STREAM_TOSERVER) &&
+                    IS_PM_DONE(f, STREAM_TOCLIENT) && IS_PP_DONE(f, STREAM_TOCLIENT)) {
+                    ssn->client.flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
+                    ssn->server.flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
+                    ssn->data_first_seen_dir = 0x01;
+                    FlowSetSessionNoApplayerInspectionFlag(f);
+                }
             }
         }
     } else {
-        SCLogDebug("FLOW_AL_NO_APPLAYER_INSPECTION is set");
+        SCLogDebug("stream data (len %" PRIu32 " alproto "
+                   "%"PRIu16" (flow %p)", data_len, f->alproto, f);
+#ifdef PRINT
+        if (data_len > 0) {
+            printf("=> Stream Data (app layer) -- start %s%s\n",
+                   flags & STREAM_TOCLIENT ? "toclient" : "",
+                   flags & STREAM_TOSERVER ? "toserver" : "");
+            PrintRawDataFp(stdout, data, data_len);
+            printf("=> Stream Data -- end\n");
+        }
+#endif
+        /* if we don't have a data object here we are not getting it
+         * a start msg should have gotten us one */
+        if (f->alproto != ALPROTO_UNKNOWN) {
+            PACKET_PROFILING_APP_START(dp_ctx, f->alproto);
+            r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags, data, data_len);
+            PACKET_PROFILING_APP_END(dp_ctx, f->alproto);
+        } else {
+            SCLogDebug(" smsg not start, but no l7 data? Weird");
+        }
     }
 
+ end:
     SCReturnInt(r);
 }
 
@@ -351,3 +449,2849 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
     SCReturnInt(r);
 }
 
+/************Unittests*************/
+
+#ifdef UNITTESTS
+
+#include "stream-tcp.h"
+#include "stream-tcp-private.h"
+#include "stream-tcp-reassemble.h"
+#include "stream-tcp-inline.h"
+#include "stream-tcp-util.h"
+#include "stream.h"
+#include "util-unittest.h"
+
+/**
+ * \test GET -> HTTP/1.1
+ */
+static int AppLayerTest01(void)
+{
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (unlikely(p == NULL))
+        return 0;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread *stt = NULL;
+    TCPHdr tcph;
+    PacketQueue pq;
+    memset(&pq,0,sizeof(PacketQueue));
+    memset(p, 0, SIZE_OF_PACKET);
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
+    memset(&tcph, 0, sizeof (TCPHdr));
+
+    f.flags = FLOW_IPV4;
+    p->pkt = (uint8_t *)(p + 1);
+    p->flow = &f;
+    p->tcph = &tcph;
+
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    tcph.th_win = htons(5480);
+    tcph.th_flags = TH_SYN;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+
+    TcpSession *ssn = (TcpSession *)f.protoctx;
+
+    /* handshake */
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 1\n");
+        goto end;
+    }
+
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_flags = TH_SYN | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 2\n");
+        goto end;
+    }
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 3\n");
+        goto end;
+    }
+
+    /* full request */
+    uint8_t request[] = {
+        0x47, 0x45, 0x54, 0x20, 0x2f, 0x69, 0x6e, 0x64,
+        0x65, 0x78, 0x2e, 0x68, 0x74, 0x6d, 0x6c, 0x20,
+        0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x30,
+        0x0d, 0x0a, 0x48, 0x6f, 0x73, 0x74, 0x3a, 0x20,
+        0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73,
+        0x74, 0x0d, 0x0a, 0x55, 0x73, 0x65, 0x72, 0x2d,
+        0x41, 0x67, 0x65, 0x6e, 0x74, 0x3a, 0x20, 0x41,
+        0x70, 0x61, 0x63, 0x68, 0x65, 0x42, 0x65, 0x6e,
+        0x63, 0x68, 0x2f, 0x32, 0x2e, 0x33, 0x0d, 0x0a,
+        0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x3a, 0x20,
+        0x2a, 0x2f, 0x2a, 0x0d, 0x0a, 0x0d, 0x0a };
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = sizeof(request);
+    p->payload = request;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 4\n");
+        goto end;
+    }
+
+    /* full response - request ack */
+    uint8_t response[] = {
+        0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x31,
+        0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b, 0x0d,
+        0x0a, 0x44, 0x61, 0x74, 0x65, 0x3a, 0x20, 0x46,
+        0x72, 0x69, 0x2c, 0x20, 0x32, 0x33, 0x20, 0x53,
+        0x65, 0x70, 0x20, 0x32, 0x30, 0x31, 0x31, 0x20,
+        0x30, 0x36, 0x3a, 0x32, 0x39, 0x3a, 0x33, 0x39,
+        0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65,
+        0x72, 0x76, 0x65, 0x72, 0x3a, 0x20, 0x41, 0x70,
+        0x61, 0x63, 0x68, 0x65, 0x2f, 0x32, 0x2e, 0x32,
+        0x2e, 0x31, 0x35, 0x20, 0x28, 0x55, 0x6e, 0x69,
+        0x78, 0x29, 0x20, 0x44, 0x41, 0x56, 0x2f, 0x32,
+        0x0d, 0x0a, 0x4c, 0x61, 0x73, 0x74, 0x2d, 0x4d,
+        0x6f, 0x64, 0x69, 0x66, 0x69, 0x65, 0x64, 0x3a,
+        0x20, 0x54, 0x68, 0x75, 0x2c, 0x20, 0x30, 0x34,
+        0x20, 0x4e, 0x6f, 0x76, 0x20, 0x32, 0x30, 0x31,
+        0x30, 0x20, 0x31, 0x35, 0x3a, 0x30, 0x34, 0x3a,
+        0x34, 0x36, 0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a,
+        0x45, 0x54, 0x61, 0x67, 0x3a, 0x20, 0x22, 0x61,
+        0x62, 0x38, 0x39, 0x36, 0x35, 0x2d, 0x32, 0x63,
+        0x2d, 0x34, 0x39, 0x34, 0x33, 0x62, 0x37, 0x61,
+        0x37, 0x66, 0x37, 0x66, 0x38, 0x30, 0x22, 0x0d,
+        0x0a, 0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2d,
+        0x52, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x3a, 0x20,
+        0x62, 0x79, 0x74, 0x65, 0x73, 0x0d, 0x0a, 0x43,
+        0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x4c,
+        0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a, 0x20, 0x34,
+        0x34, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x6e, 0x65,
+        0x63, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20, 0x63,
+        0x6c, 0x6f, 0x73, 0x65, 0x0d, 0x0a, 0x43, 0x6f,
+        0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x54, 0x79,
+        0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78, 0x74,
+        0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x0d, 0x0a, 0x58,
+        0x2d, 0x50, 0x61, 0x64, 0x3a, 0x20, 0x61, 0x76,
+        0x6f, 0x69, 0x64, 0x20, 0x62, 0x72, 0x6f, 0x77,
+        0x73, 0x65, 0x72, 0x20, 0x62, 0x75, 0x67, 0x0d,
+        0x0a, 0x0d, 0x0a, 0x3c, 0x68, 0x74, 0x6d, 0x6c,
+        0x3e, 0x3c, 0x62, 0x6f, 0x64, 0x79, 0x3e, 0x3c,
+        0x68, 0x31, 0x3e, 0x49, 0x74, 0x20, 0x77, 0x6f,
+        0x72, 0x6b, 0x73, 0x21, 0x3c, 0x2f, 0x68, 0x31,
+        0x3e, 0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e,
+        0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e };
+    p->tcph->th_ack = htonl(88);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = sizeof(response);
+    p->payload = response;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 5\n");
+        goto end;
+    }
+
+    /* response ack */
+    p->tcph->th_ack = htonl(328);
+    p->tcph->th_seq = htonl(88);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_HTTP ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 6\n");
+        goto end;
+    }
+
+    StreamTcpSessionClear(p->flow->protoctx);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    SCFree(p);
+    return ret;
+}
+
+/**
+ * \test GE -> T -> HTTP/1.1
+ */
+static int AppLayerTest02(void)
+{
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (unlikely(p == NULL))
+        return 0;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread *stt = NULL;
+    TCPHdr tcph;
+    PacketQueue pq;
+    memset(&pq,0,sizeof(PacketQueue));
+    memset(p, 0, SIZE_OF_PACKET);
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
+    memset(&tcph, 0, sizeof (TCPHdr));
+
+    f.flags = FLOW_IPV4;
+    p->pkt = (uint8_t *)(p + 1);
+    p->flow = &f;
+    p->tcph = &tcph;
+
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    /* handshake */
+    tcph.th_win = htons(5480);
+    tcph.th_flags = TH_SYN;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+
+    TcpSession *ssn = (TcpSession *)f.protoctx;
+
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 1\n");
+        goto end;
+    }
+
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_flags = TH_SYN | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 2\n");
+        goto end;
+    }
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 3\n");
+        goto end;
+    }
+
+    /* partial request */
+    uint8_t request1[] = { 0x47, 0x45, };
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = sizeof(request1);
+    p->payload = request1;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 4\n");
+        goto end;
+    }
+
+    /* response ack against partial request */
+    p->tcph->th_ack = htonl(3);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 5\n");
+        goto end;
+    }
+
+    /* complete partial request */
+    uint8_t request2[] = {
+        0x54, 0x20, 0x2f, 0x69, 0x6e, 0x64,
+        0x65, 0x78, 0x2e, 0x68, 0x74, 0x6d, 0x6c, 0x20,
+        0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x30,
+        0x0d, 0x0a, 0x48, 0x6f, 0x73, 0x74, 0x3a, 0x20,
+        0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73,
+        0x74, 0x0d, 0x0a, 0x55, 0x73, 0x65, 0x72, 0x2d,
+        0x41, 0x67, 0x65, 0x6e, 0x74, 0x3a, 0x20, 0x41,
+        0x70, 0x61, 0x63, 0x68, 0x65, 0x42, 0x65, 0x6e,
+        0x63, 0x68, 0x2f, 0x32, 0x2e, 0x33, 0x0d, 0x0a,
+        0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x3a, 0x20,
+        0x2a, 0x2f, 0x2a, 0x0d, 0x0a, 0x0d, 0x0a };
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(3);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = sizeof(request2);
+    p->payload = request2;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 6\n");
+        goto end;
+    }
+
+    /* response - request ack */
+    uint8_t response[] = {
+        0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x31,
+        0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b, 0x0d,
+        0x0a, 0x44, 0x61, 0x74, 0x65, 0x3a, 0x20, 0x46,
+        0x72, 0x69, 0x2c, 0x20, 0x32, 0x33, 0x20, 0x53,
+        0x65, 0x70, 0x20, 0x32, 0x30, 0x31, 0x31, 0x20,
+        0x30, 0x36, 0x3a, 0x32, 0x39, 0x3a, 0x33, 0x39,
+        0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65,
+        0x72, 0x76, 0x65, 0x72, 0x3a, 0x20, 0x41, 0x70,
+        0x61, 0x63, 0x68, 0x65, 0x2f, 0x32, 0x2e, 0x32,
+        0x2e, 0x31, 0x35, 0x20, 0x28, 0x55, 0x6e, 0x69,
+        0x78, 0x29, 0x20, 0x44, 0x41, 0x56, 0x2f, 0x32,
+        0x0d, 0x0a, 0x4c, 0x61, 0x73, 0x74, 0x2d, 0x4d,
+        0x6f, 0x64, 0x69, 0x66, 0x69, 0x65, 0x64, 0x3a,
+        0x20, 0x54, 0x68, 0x75, 0x2c, 0x20, 0x30, 0x34,
+        0x20, 0x4e, 0x6f, 0x76, 0x20, 0x32, 0x30, 0x31,
+        0x30, 0x20, 0x31, 0x35, 0x3a, 0x30, 0x34, 0x3a,
+        0x34, 0x36, 0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a,
+        0x45, 0x54, 0x61, 0x67, 0x3a, 0x20, 0x22, 0x61,
+        0x62, 0x38, 0x39, 0x36, 0x35, 0x2d, 0x32, 0x63,
+        0x2d, 0x34, 0x39, 0x34, 0x33, 0x62, 0x37, 0x61,
+        0x37, 0x66, 0x37, 0x66, 0x38, 0x30, 0x22, 0x0d,
+        0x0a, 0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2d,
+        0x52, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x3a, 0x20,
+        0x62, 0x79, 0x74, 0x65, 0x73, 0x0d, 0x0a, 0x43,
+        0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x4c,
+        0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a, 0x20, 0x34,
+        0x34, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x6e, 0x65,
+        0x63, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20, 0x63,
+        0x6c, 0x6f, 0x73, 0x65, 0x0d, 0x0a, 0x43, 0x6f,
+        0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x54, 0x79,
+        0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78, 0x74,
+        0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x0d, 0x0a, 0x58,
+        0x2d, 0x50, 0x61, 0x64, 0x3a, 0x20, 0x61, 0x76,
+        0x6f, 0x69, 0x64, 0x20, 0x62, 0x72, 0x6f, 0x77,
+        0x73, 0x65, 0x72, 0x20, 0x62, 0x75, 0x67, 0x0d,
+        0x0a, 0x0d, 0x0a, 0x3c, 0x68, 0x74, 0x6d, 0x6c,
+        0x3e, 0x3c, 0x62, 0x6f, 0x64, 0x79, 0x3e, 0x3c,
+        0x68, 0x31, 0x3e, 0x49, 0x74, 0x20, 0x77, 0x6f,
+        0x72, 0x6b, 0x73, 0x21, 0x3c, 0x2f, 0x68, 0x31,
+        0x3e, 0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e,
+        0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e };
+    p->tcph->th_ack = htonl(88);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = sizeof(response);
+    p->payload = response;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 7\n");
+        goto end;
+    }
+
+    /* response ack */
+    p->tcph->th_ack = htonl(328);
+    p->tcph->th_seq = htonl(88);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_HTTP ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 8\n");
+        goto end;
+    }
+
+    StreamTcpSessionClear(p->flow->protoctx);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    SCFree(p);
+    return ret;
+}
+
+/**
+ * \test GET -> RUBBISH(PM AND PP DONE IN ONE GO)
+ */
+ static int AppLayerTest03(void)
+{
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (unlikely(p == NULL))
+        return 0;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread *stt = NULL;
+    TCPHdr tcph;
+    PacketQueue pq;
+    memset(&pq,0,sizeof(PacketQueue));
+    memset(p, 0, SIZE_OF_PACKET);
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
+    memset(&tcph, 0, sizeof (TCPHdr));
+
+    f.flags = FLOW_IPV4;
+    p->pkt = (uint8_t *)(p + 1);
+    p->flow = &f;
+    p->tcph = &tcph;
+
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    tcph.th_win = htons(5480);
+    tcph.th_flags = TH_SYN;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+
+    TcpSession *ssn = (TcpSession *)f.protoctx;
+
+    /* handshake */
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 1\n");
+        goto end;
+    }
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_flags = TH_SYN | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 2\n");
+        goto end;
+    }
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 3\n");
+        goto end;
+    }
+
+    /* request */
+    uint8_t request[] = {
+        0x47, 0x45, 0x54, 0x20, 0x2f, 0x69, 0x6e, 0x64,
+        0x65, 0x78, 0x2e, 0x68, 0x74, 0x6d, 0x6c, 0x20,
+        0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x30,
+        0x0d, 0x0a, 0x48, 0x6f, 0x73, 0x74, 0x3a, 0x20,
+        0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73,
+        0x74, 0x0d, 0x0a, 0x55, 0x73, 0x65, 0x72, 0x2d,
+        0x41, 0x67, 0x65, 0x6e, 0x74, 0x3a, 0x20, 0x41,
+        0x70, 0x61, 0x63, 0x68, 0x65, 0x42, 0x65, 0x6e,
+        0x63, 0x68, 0x2f, 0x32, 0x2e, 0x33, 0x0d, 0x0a,
+        0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x3a, 0x20,
+        0x2a, 0x2f, 0x2a, 0x0d, 0x0a, 0x0d, 0x0a };
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = sizeof(request);
+    p->payload = request;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 4\n");
+        goto end;
+    }
+
+    /* rubbish response */
+    uint8_t response[] = {
+        0x58, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x31,
+        0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b, 0x0d,
+        0x0a, 0x44, 0x61, 0x74, 0x65, 0x3a, 0x20, 0x46,
+        0x72, 0x69, 0x2c, 0x20, 0x32, 0x33, 0x20, 0x53,
+        0x65, 0x70, 0x20, 0x32, 0x30, 0x31, 0x31, 0x20,
+        0x30, 0x36, 0x3a, 0x32, 0x39, 0x3a, 0x33, 0x39,
+        0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65,
+        0x72, 0x76, 0x65, 0x72, 0x3a, 0x20, 0x41, 0x70,
+        0x61, 0x63, 0x68, 0x65, 0x2f, 0x32, 0x2e, 0x32,
+        0x2e, 0x31, 0x35, 0x20, 0x28, 0x55, 0x6e, 0x69,
+        0x78, 0x29, 0x20, 0x44, 0x41, 0x56, 0x2f, 0x32,
+        0x0d, 0x0a, 0x4c, 0x61, 0x73, 0x74, 0x2d, 0x4d,
+        0x6f, 0x64, 0x69, 0x66, 0x69, 0x65, 0x64, 0x3a,
+        0x20, 0x54, 0x68, 0x75, 0x2c, 0x20, 0x30, 0x34,
+        0x20, 0x4e, 0x6f, 0x76, 0x20, 0x32, 0x30, 0x31,
+        0x30, 0x20, 0x31, 0x35, 0x3a, 0x30, 0x34, 0x3a,
+        0x34, 0x36, 0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a,
+        0x45, 0x54, 0x61, 0x67, 0x3a, 0x20, 0x22, 0x61,
+        0x62, 0x38, 0x39, 0x36, 0x35, 0x2d, 0x32, 0x63,
+        0x2d, 0x34, 0x39, 0x34, 0x33, 0x62, 0x37, 0x61,
+        0x37, 0x66, 0x37, 0x66, 0x38, 0x30, 0x22, 0x0d,
+        0x0a, 0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2d,
+        0x52, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x3a, 0x20,
+        0x62, 0x79, 0x74, 0x65, 0x73, 0x0d, 0x0a, 0x43,
+        0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x4c,
+        0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a, 0x20, 0x34,
+        0x34, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x6e, 0x65,
+        0x63, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20, 0x63,
+        0x6c, 0x6f, 0x73, 0x65, 0x0d, 0x0a, 0x43, 0x6f,
+        0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x54, 0x79,
+        0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78, 0x74,
+        0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x0d, 0x0a, 0x58,
+        0x2d, 0x50, 0x61, 0x64, 0x3a, 0x20, 0x61, 0x76,
+        0x6f, 0x69, 0x64, 0x20, 0x62, 0x72, 0x6f, 0x77,
+        0x73, 0x65, 0x72, 0x20, 0x62, 0x75, 0x67, 0x0d,
+        0x0a, 0x0d, 0x0a, 0x3c, 0x68, 0x74, 0x6d, 0x6c,
+        0x3e, 0x3c, 0x62, 0x6f, 0x64, 0x79, 0x3e, 0x3c,
+        0x68, 0x31, 0x3e, 0x49, 0x74, 0x20, 0x77, 0x6f,
+        0x72, 0x6b, 0x73, 0x21, 0x3c, 0x2f, 0x68, 0x31,
+        0x3e, 0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e,
+        0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e };
+    p->tcph->th_ack = htonl(88);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = sizeof(response);
+    p->payload = response;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 5\n");
+        goto end;
+    }
+
+    /* response ack */
+    p->tcph->th_ack = htonl(328);
+    p->tcph->th_seq = htonl(88);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !IS_PM_DONE(&f, STREAM_TOCLIENT) || !IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 6\n");
+        goto end;
+    }
+
+    StreamTcpSessionClear(p->flow->protoctx);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    SCFree(p);
+    return ret;
+}
+
+/**
+ * \test GE -> RUBBISH(TC - PM AND PP NOT DONE) -> RUBBISH(TC - PM AND PP DONE).
+ */
+static int AppLayerTest04(void)
+{
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (unlikely(p == NULL))
+        return 0;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread *stt = NULL;
+    TCPHdr tcph;
+    PacketQueue pq;
+    memset(&pq,0,sizeof(PacketQueue));
+    memset(p, 0, SIZE_OF_PACKET);
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
+    memset(&tcph, 0, sizeof (TCPHdr));
+
+    f.flags = FLOW_IPV4;
+    p->pkt = (uint8_t *)(p + 1);
+    p->flow = &f;
+    p->tcph = &tcph;
+
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    /* handshake */
+    tcph.th_win = htons(5480);
+    tcph.th_flags = TH_SYN;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+
+    TcpSession *ssn = (TcpSession *)f.protoctx;
+
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 1\n");
+        goto end;
+    }
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_flags = TH_SYN | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 2\n");
+        goto end;
+    }
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 3\n");
+        goto end;
+    }
+
+    /* request */
+    uint8_t request[] = {
+        0x47, 0x45, 0x54, 0x20, 0x2f, 0x69, 0x6e, 0x64,
+        0x65, 0x78, 0x2e, 0x68, 0x74, 0x6d, 0x6c, 0x20,
+        0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x30,
+        0x0d, 0x0a, 0x48, 0x6f, 0x73, 0x74, 0x3a, 0x20,
+        0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73,
+        0x74, 0x0d, 0x0a, 0x55, 0x73, 0x65, 0x72, 0x2d,
+        0x41, 0x67, 0x65, 0x6e, 0x74, 0x3a, 0x20, 0x41,
+        0x70, 0x61, 0x63, 0x68, 0x65, 0x42, 0x65, 0x6e,
+        0x63, 0x68, 0x2f, 0x32, 0x2e, 0x33, 0x0d, 0x0a,
+        0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x3a, 0x20,
+        0x2a, 0x2f, 0x2a, 0x0d, 0x0a, 0x0d, 0x0a };
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = sizeof(request);
+    p->payload = request;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 4\n");
+        goto end;
+    }
+
+    /* partial response */
+    uint8_t response1[] = { 0x58, 0x54, 0x54, 0x50, };
+    p->tcph->th_ack = htonl(88);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = sizeof(response1);
+    p->payload = response1;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 5\n");
+        goto end;
+    }
+
+    /* partial response ack */
+    p->tcph->th_ack = htonl(5);
+    p->tcph->th_seq = htonl(88);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 4 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || !IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 6\n");
+        goto end;
+    }
+
+    /* remaining response */
+    uint8_t response2[] = {
+        0x2f, 0x31, 0x2e, 0x31,
+        0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b, 0x0d,
+        0x0a, 0x44, 0x61, 0x74, 0x65, 0x3a, 0x20, 0x46,
+        0x72, 0x69, 0x2c, 0x20, 0x32, 0x33, 0x20, 0x53,
+        0x65, 0x70, 0x20, 0x32, 0x30, 0x31, 0x31, 0x20,
+        0x30, 0x36, 0x3a, 0x32, 0x39, 0x3a, 0x33, 0x39,
+        0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65,
+        0x72, 0x76, 0x65, 0x72, 0x3a, 0x20, 0x41, 0x70,
+        0x61, 0x63, 0x68, 0x65, 0x2f, 0x32, 0x2e, 0x32,
+        0x2e, 0x31, 0x35, 0x20, 0x28, 0x55, 0x6e, 0x69,
+        0x78, 0x29, 0x20, 0x44, 0x41, 0x56, 0x2f, 0x32,
+        0x0d, 0x0a, 0x4c, 0x61, 0x73, 0x74, 0x2d, 0x4d,
+        0x6f, 0x64, 0x69, 0x66, 0x69, 0x65, 0x64, 0x3a,
+        0x20, 0x54, 0x68, 0x75, 0x2c, 0x20, 0x30, 0x34,
+        0x20, 0x4e, 0x6f, 0x76, 0x20, 0x32, 0x30, 0x31,
+        0x30, 0x20, 0x31, 0x35, 0x3a, 0x30, 0x34, 0x3a,
+        0x34, 0x36, 0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a,
+        0x45, 0x54, 0x61, 0x67, 0x3a, 0x20, 0x22, 0x61,
+        0x62, 0x38, 0x39, 0x36, 0x35, 0x2d, 0x32, 0x63,
+        0x2d, 0x34, 0x39, 0x34, 0x33, 0x62, 0x37, 0x61,
+        0x37, 0x66, 0x37, 0x66, 0x38, 0x30, 0x22, 0x0d,
+        0x0a, 0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2d,
+        0x52, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x3a, 0x20,
+        0x62, 0x79, 0x74, 0x65, 0x73, 0x0d, 0x0a, 0x43,
+        0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x4c,
+        0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a, 0x20, 0x34,
+        0x34, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x6e, 0x65,
+        0x63, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20, 0x63,
+        0x6c, 0x6f, 0x73, 0x65, 0x0d, 0x0a, 0x43, 0x6f,
+        0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x54, 0x79,
+        0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78, 0x74,
+        0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x0d, 0x0a, 0x58,
+        0x2d, 0x50, 0x61, 0x64, 0x3a, 0x20, 0x61, 0x76,
+        0x6f, 0x69, 0x64, 0x20, 0x62, 0x72, 0x6f, 0x77,
+        0x73, 0x65, 0x72, 0x20, 0x62, 0x75, 0x67, 0x0d,
+        0x0a, 0x0d, 0x0a, 0x3c, 0x68, 0x74, 0x6d, 0x6c,
+        0x3e, 0x3c, 0x62, 0x6f, 0x64, 0x79, 0x3e, 0x3c,
+        0x68, 0x31, 0x3e, 0x49, 0x74, 0x20, 0x77, 0x6f,
+        0x72, 0x6b, 0x73, 0x21, 0x3c, 0x2f, 0x68, 0x31,
+        0x3e, 0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e,
+        0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e };
+    p->tcph->th_ack = htonl(88);
+    p->tcph->th_seq = htonl(5);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = sizeof(response2);
+    p->payload = response2;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 4 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || !IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 7\n");
+        goto end;
+    }
+
+    /* response ack */
+    p->tcph->th_ack = htonl(328);
+    p->tcph->th_seq = htonl(88);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !IS_PM_DONE(&f, STREAM_TOCLIENT) || !IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 8\n");
+        goto end;
+    }
+
+    StreamTcpSessionClear(p->flow->protoctx);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    SCFree(p);
+    return ret;
+}
+
+/**
+ * \test RUBBISH -> HTTP/1.1
+ */
+static int AppLayerTest05(void)
+{
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (unlikely(p == NULL))
+        return 0;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread *stt = NULL;
+    TCPHdr tcph;
+    PacketQueue pq;
+    memset(&pq,0,sizeof(PacketQueue));
+    memset(p, 0, SIZE_OF_PACKET);
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
+    memset(&tcph, 0, sizeof (TCPHdr));
+
+    f.flags = FLOW_IPV4;
+    p->pkt = (uint8_t *)(p + 1);
+    p->flow = &f;
+    p->tcph = &tcph;
+
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    tcph.th_win = htons(5480);
+    tcph.th_flags = TH_SYN;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+
+    TcpSession *ssn = (TcpSession *)f.protoctx;
+
+    /* handshake */
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 1\n");
+        goto end;
+    }
+
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_flags = TH_SYN | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 2\n");
+        goto end;
+    }
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 3\n");
+        goto end;
+    }
+
+    /* full request */
+    uint8_t request[] = {
+        0x48, 0x45, 0x54, 0x20, 0x2f, 0x69, 0x6e, 0x64,
+        0x65, 0x78, 0x2e, 0x68, 0x74, 0x6d, 0x6c, 0x20,
+        0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x30,
+        0x0d, 0x0a, 0x48, 0x6f, 0x73, 0x74, 0x3a, 0x20,
+        0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73,
+        0x74, 0x0d, 0x0a, 0x55, 0x73, 0x65, 0x72, 0x2d,
+        0x41, 0x67, 0x65, 0x6e, 0x74, 0x3a, 0x20, 0x41,
+        0x70, 0x61, 0x63, 0x68, 0x65, 0x42, 0x65, 0x6e,
+        0x63, 0x68, 0x2f, 0x32, 0x2e, 0x33, 0x0d, 0x0a,
+        0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x3a, 0x20,
+        0x2a, 0x2f, 0x2a, 0x0d, 0x0a, 0x0d, 0x0a };
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = sizeof(request);
+    p->payload = request;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 4\n");
+        goto end;
+    }
+
+    /* full response - request ack */
+    uint8_t response[] = {
+        0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x31,
+        0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b, 0x0d,
+        0x0a, 0x44, 0x61, 0x74, 0x65, 0x3a, 0x20, 0x46,
+        0x72, 0x69, 0x2c, 0x20, 0x32, 0x33, 0x20, 0x53,
+        0x65, 0x70, 0x20, 0x32, 0x30, 0x31, 0x31, 0x20,
+        0x30, 0x36, 0x3a, 0x32, 0x39, 0x3a, 0x33, 0x39,
+        0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65,
+        0x72, 0x76, 0x65, 0x72, 0x3a, 0x20, 0x41, 0x70,
+        0x61, 0x63, 0x68, 0x65, 0x2f, 0x32, 0x2e, 0x32,
+        0x2e, 0x31, 0x35, 0x20, 0x28, 0x55, 0x6e, 0x69,
+        0x78, 0x29, 0x20, 0x44, 0x41, 0x56, 0x2f, 0x32,
+        0x0d, 0x0a, 0x4c, 0x61, 0x73, 0x74, 0x2d, 0x4d,
+        0x6f, 0x64, 0x69, 0x66, 0x69, 0x65, 0x64, 0x3a,
+        0x20, 0x54, 0x68, 0x75, 0x2c, 0x20, 0x30, 0x34,
+        0x20, 0x4e, 0x6f, 0x76, 0x20, 0x32, 0x30, 0x31,
+        0x30, 0x20, 0x31, 0x35, 0x3a, 0x30, 0x34, 0x3a,
+        0x34, 0x36, 0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a,
+        0x45, 0x54, 0x61, 0x67, 0x3a, 0x20, 0x22, 0x61,
+        0x62, 0x38, 0x39, 0x36, 0x35, 0x2d, 0x32, 0x63,
+        0x2d, 0x34, 0x39, 0x34, 0x33, 0x62, 0x37, 0x61,
+        0x37, 0x66, 0x37, 0x66, 0x38, 0x30, 0x22, 0x0d,
+        0x0a, 0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2d,
+        0x52, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x3a, 0x20,
+        0x62, 0x79, 0x74, 0x65, 0x73, 0x0d, 0x0a, 0x43,
+        0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x4c,
+        0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a, 0x20, 0x34,
+        0x34, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x6e, 0x65,
+        0x63, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20, 0x63,
+        0x6c, 0x6f, 0x73, 0x65, 0x0d, 0x0a, 0x43, 0x6f,
+        0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x54, 0x79,
+        0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78, 0x74,
+        0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x0d, 0x0a, 0x58,
+        0x2d, 0x50, 0x61, 0x64, 0x3a, 0x20, 0x61, 0x76,
+        0x6f, 0x69, 0x64, 0x20, 0x62, 0x72, 0x6f, 0x77,
+        0x73, 0x65, 0x72, 0x20, 0x62, 0x75, 0x67, 0x0d,
+        0x0a, 0x0d, 0x0a, 0x3c, 0x68, 0x74, 0x6d, 0x6c,
+        0x3e, 0x3c, 0x62, 0x6f, 0x64, 0x79, 0x3e, 0x3c,
+        0x68, 0x31, 0x3e, 0x49, 0x74, 0x20, 0x77, 0x6f,
+        0x72, 0x6b, 0x73, 0x21, 0x3c, 0x2f, 0x68, 0x31,
+        0x3e, 0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e,
+        0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e };
+    p->tcph->th_ack = htonl(88);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = sizeof(response);
+    p->payload = response;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 5\n");
+        goto end;
+    }
+
+    /* response ack */
+    p->tcph->th_ack = htonl(328);
+    p->tcph->th_seq = htonl(88);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_HTTP ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 6\n");
+        goto end;
+    }
+
+    StreamTcpSessionClear(p->flow->protoctx);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    SCFree(p);
+    return ret;
+}
+
+/**
+ * \test HTTP/1.1 -> GET
+ */
+static int AppLayerTest06(void)
+{
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (unlikely(p == NULL))
+        return 0;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread *stt = NULL;
+    TCPHdr tcph;
+    PacketQueue pq;
+    memset(&pq,0,sizeof(PacketQueue));
+    memset(p, 0, SIZE_OF_PACKET);
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
+    memset(&tcph, 0, sizeof (TCPHdr));
+
+    f.flags = FLOW_IPV4;
+    p->pkt = (uint8_t *)(p + 1);
+    p->flow = &f;
+    p->tcph = &tcph;
+
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    tcph.th_win = htons(5480);
+    tcph.th_flags = TH_SYN;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+
+    TcpSession *ssn = (TcpSession *)f.protoctx;
+
+    /* handshake */
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 1\n");
+        goto end;
+    }
+
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_flags = TH_SYN | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 2\n");
+        goto end;
+    }
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 3\n");
+        goto end;
+    }
+
+    /* full response - request ack */
+    uint8_t response[] = {
+        0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x31,
+        0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b, 0x0d,
+        0x0a, 0x44, 0x61, 0x74, 0x65, 0x3a, 0x20, 0x46,
+        0x72, 0x69, 0x2c, 0x20, 0x32, 0x33, 0x20, 0x53,
+        0x65, 0x70, 0x20, 0x32, 0x30, 0x31, 0x31, 0x20,
+        0x30, 0x36, 0x3a, 0x32, 0x39, 0x3a, 0x33, 0x39,
+        0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65,
+        0x72, 0x76, 0x65, 0x72, 0x3a, 0x20, 0x41, 0x70,
+        0x61, 0x63, 0x68, 0x65, 0x2f, 0x32, 0x2e, 0x32,
+        0x2e, 0x31, 0x35, 0x20, 0x28, 0x55, 0x6e, 0x69,
+        0x78, 0x29, 0x20, 0x44, 0x41, 0x56, 0x2f, 0x32,
+        0x0d, 0x0a, 0x4c, 0x61, 0x73, 0x74, 0x2d, 0x4d,
+        0x6f, 0x64, 0x69, 0x66, 0x69, 0x65, 0x64, 0x3a,
+        0x20, 0x54, 0x68, 0x75, 0x2c, 0x20, 0x30, 0x34,
+        0x20, 0x4e, 0x6f, 0x76, 0x20, 0x32, 0x30, 0x31,
+        0x30, 0x20, 0x31, 0x35, 0x3a, 0x30, 0x34, 0x3a,
+        0x34, 0x36, 0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a,
+        0x45, 0x54, 0x61, 0x67, 0x3a, 0x20, 0x22, 0x61,
+        0x62, 0x38, 0x39, 0x36, 0x35, 0x2d, 0x32, 0x63,
+        0x2d, 0x34, 0x39, 0x34, 0x33, 0x62, 0x37, 0x61,
+        0x37, 0x66, 0x37, 0x66, 0x38, 0x30, 0x22, 0x0d,
+        0x0a, 0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2d,
+        0x52, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x3a, 0x20,
+        0x62, 0x79, 0x74, 0x65, 0x73, 0x0d, 0x0a, 0x43,
+        0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x4c,
+        0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a, 0x20, 0x34,
+        0x34, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x6e, 0x65,
+        0x63, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20, 0x63,
+        0x6c, 0x6f, 0x73, 0x65, 0x0d, 0x0a, 0x43, 0x6f,
+        0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x54, 0x79,
+        0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78, 0x74,
+        0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x0d, 0x0a, 0x58,
+        0x2d, 0x50, 0x61, 0x64, 0x3a, 0x20, 0x61, 0x76,
+        0x6f, 0x69, 0x64, 0x20, 0x62, 0x72, 0x6f, 0x77,
+        0x73, 0x65, 0x72, 0x20, 0x62, 0x75, 0x67, 0x0d,
+        0x0a, 0x0d, 0x0a, 0x3c, 0x68, 0x74, 0x6d, 0x6c,
+        0x3e, 0x3c, 0x62, 0x6f, 0x64, 0x79, 0x3e, 0x3c,
+        0x68, 0x31, 0x3e, 0x49, 0x74, 0x20, 0x77, 0x6f,
+        0x72, 0x6b, 0x73, 0x21, 0x3c, 0x2f, 0x68, 0x31,
+        0x3e, 0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e,
+        0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e };
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = sizeof(response);
+    p->payload = response;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOCLIENT) {
+        printf("failure 4\n");
+        goto end;
+    }
+
+    /* full request - response ack*/
+    uint8_t request[] = {
+        0x47, 0x45, 0x54, 0x20, 0x2f, 0x69, 0x6e, 0x64,
+        0x65, 0x78, 0x2e, 0x68, 0x74, 0x6d, 0x6c, 0x20,
+        0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x30,
+        0x0d, 0x0a, 0x48, 0x6f, 0x73, 0x74, 0x3a, 0x20,
+        0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73,
+        0x74, 0x0d, 0x0a, 0x55, 0x73, 0x65, 0x72, 0x2d,
+        0x41, 0x67, 0x65, 0x6e, 0x74, 0x3a, 0x20, 0x41,
+        0x70, 0x61, 0x63, 0x68, 0x65, 0x42, 0x65, 0x6e,
+        0x63, 0x68, 0x2f, 0x32, 0x2e, 0x33, 0x0d, 0x0a,
+        0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x3a, 0x20,
+        0x2a, 0x2f, 0x2a, 0x0d, 0x0a, 0x0d, 0x0a };
+    p->tcph->th_ack = htonl(328);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = sizeof(request);
+    p->payload = request;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 5\n");
+        goto end;
+    }
+
+    StreamTcpSessionClear(p->flow->protoctx);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    SCFree(p);
+    return ret;
+}
+
+/**
+ * \test GET -> DCERPC
+ */
+static int AppLayerTest07(void)
+{
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (unlikely(p == NULL))
+        return 0;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread *stt = NULL;
+    TCPHdr tcph;
+    PacketQueue pq;
+    memset(&pq,0,sizeof(PacketQueue));
+    memset(p, 0, SIZE_OF_PACKET);
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
+    memset(&tcph, 0, sizeof (TCPHdr));
+
+    f.flags = FLOW_IPV4;
+    p->pkt = (uint8_t *)(p + 1);
+    p->flow = &f;
+    p->tcph = &tcph;
+
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    tcph.th_win = htons(5480);
+    tcph.th_flags = TH_SYN;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+
+    TcpSession *ssn = (TcpSession *)f.protoctx;
+
+    /* handshake */
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 1\n");
+        goto end;
+    }
+
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_flags = TH_SYN | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 2\n");
+        goto end;
+    }
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 3\n");
+        goto end;
+    }
+
+    /* full request */
+    uint8_t request[] = {
+        0x47, 0x45, 0x54, 0x20, 0x2f, 0x69, 0x6e, 0x64,
+        0x65, 0x78, 0x2e, 0x68, 0x74, 0x6d, 0x6c, 0x20,
+        0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x30,
+        0x0d, 0x0a, 0x48, 0x6f, 0x73, 0x74, 0x3a, 0x20,
+        0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73,
+        0x74, 0x0d, 0x0a, 0x55, 0x73, 0x65, 0x72, 0x2d,
+        0x41, 0x67, 0x65, 0x6e, 0x74, 0x3a, 0x20, 0x41,
+        0x70, 0x61, 0x63, 0x68, 0x65, 0x42, 0x65, 0x6e,
+        0x63, 0x68, 0x2f, 0x32, 0x2e, 0x33, 0x0d, 0x0a,
+        0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x3a, 0x20,
+        0x2a, 0x2f, 0x2a, 0x0d, 0x0a, 0x0d, 0x0a };
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = sizeof(request);
+    p->payload = request;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 4\n");
+        goto end;
+    }
+
+    /* full response - request ack */
+    uint8_t response[] = {
+        0x05, 0x00, 0x4d, 0x42, 0x2f, 0x31, 0x2e, 0x31,
+        0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b, 0x0d,
+        0x0a, 0x44, 0x61, 0x74, 0x65, 0x3a, 0x20, 0x46,
+        0x72, 0x69, 0x2c, 0x20, 0x32, 0x33, 0x20, 0x53,
+        0x65, 0x70, 0x20, 0x32, 0x30, 0x31, 0x31, 0x20,
+        0x30, 0x36, 0x3a, 0x32, 0x39, 0x3a, 0x33, 0x39,
+        0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65,
+        0x72, 0x76, 0x65, 0x72, 0x3a, 0x20, 0x41, 0x70,
+        0x61, 0x63, 0x68, 0x65, 0x2f, 0x32, 0x2e, 0x32,
+        0x2e, 0x31, 0x35, 0x20, 0x28, 0x55, 0x6e, 0x69,
+        0x78, 0x29, 0x20, 0x44, 0x41, 0x56, 0x2f, 0x32,
+        0x0d, 0x0a, 0x4c, 0x61, 0x73, 0x74, 0x2d, 0x4d,
+        0x6f, 0x64, 0x69, 0x66, 0x69, 0x65, 0x64, 0x3a,
+        0x20, 0x54, 0x68, 0x75, 0x2c, 0x20, 0x30, 0x34,
+        0x20, 0x4e, 0x6f, 0x76, 0x20, 0x32, 0x30, 0x31,
+        0x30, 0x20, 0x31, 0x35, 0x3a, 0x30, 0x34, 0x3a,
+        0x34, 0x36, 0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a,
+        0x45, 0x54, 0x61, 0x67, 0x3a, 0x20, 0x22, 0x61,
+        0x62, 0x38, 0x39, 0x36, 0x35, 0x2d, 0x32, 0x63,
+        0x2d, 0x34, 0x39, 0x34, 0x33, 0x62, 0x37, 0x61,
+        0x37, 0x66, 0x37, 0x66, 0x38, 0x30, 0x22, 0x0d,
+        0x0a, 0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2d,
+        0x52, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x3a, 0x20,
+        0x62, 0x79, 0x74, 0x65, 0x73, 0x0d, 0x0a, 0x43,
+        0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x4c,
+        0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a, 0x20, 0x34,
+        0x34, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x6e, 0x65,
+        0x63, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20, 0x63,
+        0x6c, 0x6f, 0x73, 0x65, 0x0d, 0x0a, 0x43, 0x6f,
+        0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x54, 0x79,
+        0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78, 0x74,
+        0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x0d, 0x0a, 0x58,
+        0x2d, 0x50, 0x61, 0x64, 0x3a, 0x20, 0x61, 0x76,
+        0x6f, 0x69, 0x64, 0x20, 0x62, 0x72, 0x6f, 0x77,
+        0x73, 0x65, 0x72, 0x20, 0x62, 0x75, 0x67, 0x0d,
+        0x0a, 0x0d, 0x0a, 0x3c, 0x68, 0x74, 0x6d, 0x6c,
+        0x3e, 0x3c, 0x62, 0x6f, 0x64, 0x79, 0x3e, 0x3c,
+        0x68, 0x31, 0x3e, 0x49, 0x74, 0x20, 0x77, 0x6f,
+        0x72, 0x6b, 0x73, 0x21, 0x3c, 0x2f, 0x68, 0x31,
+        0x3e, 0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e,
+        0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e };
+    p->tcph->th_ack = htonl(88);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = sizeof(response);
+    p->payload = response;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 5\n");
+        goto end;
+    }
+
+    /* response ack */
+    p->tcph->th_ack = htonl(328);
+    p->tcph->th_seq = htonl(88);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 6\n");
+        goto end;
+    }
+
+    StreamTcpSessionClear(p->flow->protoctx);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    SCFree(p);
+    return ret;
+}
+
+/**
+ * \test SMB -> HTTP/1.1
+ */
+static int AppLayerTest08(void)
+{
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (unlikely(p == NULL))
+        return 0;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread *stt = NULL;
+    TCPHdr tcph;
+    PacketQueue pq;
+    memset(&pq,0,sizeof(PacketQueue));
+    memset(p, 0, SIZE_OF_PACKET);
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
+    memset(&tcph, 0, sizeof (TCPHdr));
+
+    f.flags = FLOW_IPV4;
+    p->pkt = (uint8_t *)(p + 1);
+    p->flow = &f;
+    p->tcph = &tcph;
+
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    tcph.th_win = htons(5480);
+    tcph.th_flags = TH_SYN;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+
+    TcpSession *ssn = (TcpSession *)f.protoctx;
+
+    /* handshake */
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 1\n");
+        goto end;
+    }
+
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_flags = TH_SYN | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 2\n");
+        goto end;
+    }
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 3\n");
+        goto end;
+    }
+
+    /* full request */
+    uint8_t request[] = {
+        0x05, 0x00, 0x54, 0x20, 0x2f, 0x69, 0x6e, 0x64,
+        0x65, 0x78, 0x2e, 0x68, 0x74, 0x6d, 0x6c, 0x20,
+        0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x30,
+        0x0d, 0x0a, 0x48, 0x6f, 0x73, 0x74, 0x3a, 0x20,
+        0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73,
+        0x74, 0x0d, 0x0a, 0x55, 0x73, 0x65, 0x72, 0x2d,
+        0x41, 0x67, 0x65, 0x6e, 0x74, 0x3a, 0x20, 0x41,
+        0x70, 0x61, 0x63, 0x68, 0x65, 0x42, 0x65, 0x6e,
+        0x63, 0x68, 0x2f, 0x32, 0x2e, 0x33, 0x0d, 0x0a,
+        0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x3a, 0x20,
+        0x2a, 0x2f, 0x2a, 0x0d, 0x0a, 0x0d, 0x0a };
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = sizeof(request);
+    p->payload = request;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 4\n");
+        goto end;
+    }
+
+    /* full response - request ack */
+    uint8_t response[] = {
+        0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x31,
+        0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b, 0x0d,
+        0x0a, 0x44, 0x61, 0x74, 0x65, 0x3a, 0x20, 0x46,
+        0x72, 0x69, 0x2c, 0x20, 0x32, 0x33, 0x20, 0x53,
+        0x65, 0x70, 0x20, 0x32, 0x30, 0x31, 0x31, 0x20,
+        0x30, 0x36, 0x3a, 0x32, 0x39, 0x3a, 0x33, 0x39,
+        0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65,
+        0x72, 0x76, 0x65, 0x72, 0x3a, 0x20, 0x41, 0x70,
+        0x61, 0x63, 0x68, 0x65, 0x2f, 0x32, 0x2e, 0x32,
+        0x2e, 0x31, 0x35, 0x20, 0x28, 0x55, 0x6e, 0x69,
+        0x78, 0x29, 0x20, 0x44, 0x41, 0x56, 0x2f, 0x32,
+        0x0d, 0x0a, 0x4c, 0x61, 0x73, 0x74, 0x2d, 0x4d,
+        0x6f, 0x64, 0x69, 0x66, 0x69, 0x65, 0x64, 0x3a,
+        0x20, 0x54, 0x68, 0x75, 0x2c, 0x20, 0x30, 0x34,
+        0x20, 0x4e, 0x6f, 0x76, 0x20, 0x32, 0x30, 0x31,
+        0x30, 0x20, 0x31, 0x35, 0x3a, 0x30, 0x34, 0x3a,
+        0x34, 0x36, 0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a,
+        0x45, 0x54, 0x61, 0x67, 0x3a, 0x20, 0x22, 0x61,
+        0x62, 0x38, 0x39, 0x36, 0x35, 0x2d, 0x32, 0x63,
+        0x2d, 0x34, 0x39, 0x34, 0x33, 0x62, 0x37, 0x61,
+        0x37, 0x66, 0x37, 0x66, 0x38, 0x30, 0x22, 0x0d,
+        0x0a, 0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2d,
+        0x52, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x3a, 0x20,
+        0x62, 0x79, 0x74, 0x65, 0x73, 0x0d, 0x0a, 0x43,
+        0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x4c,
+        0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a, 0x20, 0x34,
+        0x34, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x6e, 0x65,
+        0x63, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20, 0x63,
+        0x6c, 0x6f, 0x73, 0x65, 0x0d, 0x0a, 0x43, 0x6f,
+        0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x54, 0x79,
+        0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78, 0x74,
+        0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x0d, 0x0a, 0x58,
+        0x2d, 0x50, 0x61, 0x64, 0x3a, 0x20, 0x61, 0x76,
+        0x6f, 0x69, 0x64, 0x20, 0x62, 0x72, 0x6f, 0x77,
+        0x73, 0x65, 0x72, 0x20, 0x62, 0x75, 0x67, 0x0d,
+        0x0a, 0x0d, 0x0a, 0x3c, 0x68, 0x74, 0x6d, 0x6c,
+        0x3e, 0x3c, 0x62, 0x6f, 0x64, 0x79, 0x3e, 0x3c,
+        0x68, 0x31, 0x3e, 0x49, 0x74, 0x20, 0x77, 0x6f,
+        0x72, 0x6b, 0x73, 0x21, 0x3c, 0x2f, 0x68, 0x31,
+        0x3e, 0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e,
+        0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e };
+    p->tcph->th_ack = htonl(88);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = sizeof(response);
+    p->payload = response;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_DCERPC ||
+        f.alproto_ts != ALPROTO_DCERPC ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 5\n");
+        goto end;
+    }
+
+    /* response ack */
+    p->tcph->th_ack = htonl(328);
+    p->tcph->th_seq = htonl(88);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 6\n");
+        goto end;
+    }
+
+    StreamTcpSessionClear(p->flow->protoctx);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    SCFree(p);
+    return ret;
+}
+
+/**
+ * \test RUBBISH(TC - PM and PP NOT DONE) ->
+ *       RUBBISH(TC - PM and PP DONE) ->
+ *       RUBBISH(TS - PM and PP DONE)
+ */
+static int AppLayerTest09(void)
+{
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (unlikely(p == NULL))
+        return 0;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread *stt = NULL;
+    TCPHdr tcph;
+    PacketQueue pq;
+    memset(&pq,0,sizeof(PacketQueue));
+    memset(p, 0, SIZE_OF_PACKET);
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
+    memset(&tcph, 0, sizeof (TCPHdr));
+
+    f.flags = FLOW_IPV4;
+    p->pkt = (uint8_t *)(p + 1);
+    p->flow = &f;
+    p->tcph = &tcph;
+
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    tcph.th_win = htons(5480);
+    tcph.th_flags = TH_SYN;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+
+    TcpSession *ssn = (TcpSession *)f.protoctx;
+
+    /* handshake */
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 1\n");
+        goto end;
+    }
+
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_flags = TH_SYN | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 2\n");
+        goto end;
+    }
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 3\n");
+        goto end;
+    }
+
+    /* full request */
+    uint8_t request1[] = {
+        0x47, 0x47, 0x49, 0x20, 0x2f, 0x69, 0x6e, 0x64 };
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = sizeof(request1);
+    p->payload = request1;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 4\n");
+        goto end;
+    }
+
+    /* response - request ack */
+    p->tcph->th_ack = htonl(9);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 5\n");
+        goto end;
+    }
+
+    /* full request */
+    uint8_t request2[] = {
+        0x44, 0x44, 0x45, 0x20, 0x2f, 0x69, 0x6e, 0x64 };
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(9);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = sizeof(request2);
+    p->payload = request2;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 6\n");
+        goto end;
+    }
+
+    /* full response - request ack */
+    uint8_t response[] = {
+        0x55, 0x74, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x31,
+        0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b, 0x0d,
+        0x0a, 0x44, 0x61, 0x74, 0x65, 0x3a, 0x20, 0x46,
+        0x72, 0x69, 0x2c, 0x20, 0x32, 0x33, 0x20, 0x53,
+        0x65, 0x70, 0x20, 0x32, 0x30, 0x31, 0x31, 0x20,
+        0x30, 0x36, 0x3a, 0x32, 0x39, 0x3a, 0x33, 0x39,
+        0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65,
+        0x72, 0x76, 0x65, 0x72, 0x3a, 0x20, 0x41, 0x70,
+        0x61, 0x63, 0x68, 0x65, 0x2f, 0x32, 0x2e, 0x32,
+        0x2e, 0x31, 0x35, 0x20, 0x28, 0x55, 0x6e, 0x69,
+        0x78, 0x29, 0x20, 0x44, 0x41, 0x56, 0x2f, 0x32,
+        0x0d, 0x0a, 0x4c, 0x61, 0x73, 0x74, 0x2d, 0x4d,
+        0x6f, 0x64, 0x69, 0x66, 0x69, 0x65, 0x64, 0x3a,
+        0x20, 0x54, 0x68, 0x75, 0x2c, 0x20, 0x30, 0x34,
+        0x20, 0x4e, 0x6f, 0x76, 0x20, 0x32, 0x30, 0x31,
+        0x30, 0x20, 0x31, 0x35, 0x3a, 0x30, 0x34, 0x3a,
+        0x34, 0x36, 0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a,
+        0x45, 0x54, 0x61, 0x67, 0x3a, 0x20, 0x22, 0x61,
+        0x62, 0x38, 0x39, 0x36, 0x35, 0x2d, 0x32, 0x63,
+        0x2d, 0x34, 0x39, 0x34, 0x33, 0x62, 0x37, 0x61,
+        0x37, 0x66, 0x37, 0x66, 0x38, 0x30, 0x22, 0x0d,
+        0x0a, 0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2d,
+        0x52, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x3a, 0x20,
+        0x62, 0x79, 0x74, 0x65, 0x73, 0x0d, 0x0a, 0x43,
+        0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x4c,
+        0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a, 0x20, 0x34,
+        0x34, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x6e, 0x65,
+        0x63, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20, 0x63,
+        0x6c, 0x6f, 0x73, 0x65, 0x0d, 0x0a, 0x43, 0x6f,
+        0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x54, 0x79,
+        0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78, 0x74,
+        0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x0d, 0x0a, 0x58,
+        0x2d, 0x50, 0x61, 0x64, 0x3a, 0x20, 0x61, 0x76,
+        0x6f, 0x69, 0x64, 0x20, 0x62, 0x72, 0x6f, 0x77,
+        0x73, 0x65, 0x72, 0x20, 0x62, 0x75, 0x67, 0x0d,
+        0x0a, 0x0d, 0x0a, 0x3c, 0x68, 0x74, 0x6d, 0x6c,
+        0x3e, 0x3c, 0x62, 0x6f, 0x64, 0x79, 0x3e, 0x3c,
+        0x68, 0x31, 0x3e, 0x49, 0x74, 0x20, 0x77, 0x6f,
+        0x72, 0x6b, 0x73, 0x21, 0x3c, 0x2f, 0x68, 0x31,
+        0x3e, 0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e,
+        0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e };
+    p->tcph->th_ack = htonl(17);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = sizeof(response);
+    p->payload = response;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 7\n");
+        goto end;
+    }
+
+    /* response ack */
+    p->tcph->th_ack = htonl(328);
+    p->tcph->th_seq = htonl(17);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !IS_PM_DONE(&f, STREAM_TOCLIENT) || !IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 8\n");
+        goto end;
+    }
+
+    StreamTcpSessionClear(p->flow->protoctx);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    SCFree(p);
+    return ret;
+}
+
+/**
+ * \test RUBBISH(TC - PM and PP DONE) ->
+ *       RUBBISH(TS - PM and PP DONE)
+ */
+static int AppLayerTest10(void)
+{
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (unlikely(p == NULL))
+        return 0;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread *stt = NULL;
+    TCPHdr tcph;
+    PacketQueue pq;
+    memset(&pq,0,sizeof(PacketQueue));
+    memset(p, 0, SIZE_OF_PACKET);
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
+    memset(&tcph, 0, sizeof (TCPHdr));
+
+    f.flags = FLOW_IPV4;
+    p->pkt = (uint8_t *)(p + 1);
+    p->flow = &f;
+    p->tcph = &tcph;
+
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    tcph.th_win = htons(5480);
+    tcph.th_flags = TH_SYN;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+
+    TcpSession *ssn = (TcpSession *)f.protoctx;
+
+    /* handshake */
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 1\n");
+        goto end;
+    }
+
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_flags = TH_SYN | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 2\n");
+        goto end;
+    }
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 3\n");
+        goto end;
+    }
+
+    /* full request */
+    uint8_t request1[] = {
+        0x47, 0x47, 0x49, 0x20, 0x2f, 0x69, 0x6e, 0x64,
+        0x47, 0x47, 0x49, 0x20, 0x2f, 0x69, 0x6e, 0x64 };
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = sizeof(request1);
+    p->payload = request1;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 4\n");
+        goto end;
+    }
+
+    /* response - request ack */
+    p->tcph->th_ack = htonl(17);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 5\n");
+        goto end;
+    }
+
+    /* full response - request ack */
+    uint8_t response[] = {
+        0x55, 0x74, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x31,
+        0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b, 0x0d,
+        0x0a, 0x44, 0x61, 0x74, 0x65, 0x3a, 0x20, 0x46,
+        0x72, 0x69, 0x2c, 0x20, 0x32, 0x33, 0x20, 0x53,
+        0x65, 0x70, 0x20, 0x32, 0x30, 0x31, 0x31, 0x20,
+        0x30, 0x36, 0x3a, 0x32, 0x39, 0x3a, 0x33, 0x39,
+        0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65,
+        0x72, 0x76, 0x65, 0x72, 0x3a, 0x20, 0x41, 0x70,
+        0x61, 0x63, 0x68, 0x65, 0x2f, 0x32, 0x2e, 0x32,
+        0x2e, 0x31, 0x35, 0x20, 0x28, 0x55, 0x6e, 0x69,
+        0x78, 0x29, 0x20, 0x44, 0x41, 0x56, 0x2f, 0x32,
+        0x0d, 0x0a, 0x4c, 0x61, 0x73, 0x74, 0x2d, 0x4d,
+        0x6f, 0x64, 0x69, 0x66, 0x69, 0x65, 0x64, 0x3a,
+        0x20, 0x54, 0x68, 0x75, 0x2c, 0x20, 0x30, 0x34,
+        0x20, 0x4e, 0x6f, 0x76, 0x20, 0x32, 0x30, 0x31,
+        0x30, 0x20, 0x31, 0x35, 0x3a, 0x30, 0x34, 0x3a,
+        0x34, 0x36, 0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a,
+        0x45, 0x54, 0x61, 0x67, 0x3a, 0x20, 0x22, 0x61,
+        0x62, 0x38, 0x39, 0x36, 0x35, 0x2d, 0x32, 0x63,
+        0x2d, 0x34, 0x39, 0x34, 0x33, 0x62, 0x37, 0x61,
+        0x37, 0x66, 0x37, 0x66, 0x38, 0x30, 0x22, 0x0d,
+        0x0a, 0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2d,
+        0x52, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x3a, 0x20,
+        0x62, 0x79, 0x74, 0x65, 0x73, 0x0d, 0x0a, 0x43,
+        0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x4c,
+        0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a, 0x20, 0x34,
+        0x34, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x6e, 0x65,
+        0x63, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20, 0x63,
+        0x6c, 0x6f, 0x73, 0x65, 0x0d, 0x0a, 0x43, 0x6f,
+        0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x54, 0x79,
+        0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78, 0x74,
+        0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x0d, 0x0a, 0x58,
+        0x2d, 0x50, 0x61, 0x64, 0x3a, 0x20, 0x61, 0x76,
+        0x6f, 0x69, 0x64, 0x20, 0x62, 0x72, 0x6f, 0x77,
+        0x73, 0x65, 0x72, 0x20, 0x62, 0x75, 0x67, 0x0d,
+        0x0a, 0x0d, 0x0a, 0x3c, 0x68, 0x74, 0x6d, 0x6c,
+        0x3e, 0x3c, 0x62, 0x6f, 0x64, 0x79, 0x3e, 0x3c,
+        0x68, 0x31, 0x3e, 0x49, 0x74, 0x20, 0x77, 0x6f,
+        0x72, 0x6b, 0x73, 0x21, 0x3c, 0x2f, 0x68, 0x31,
+        0x3e, 0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e,
+        0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e };
+    p->tcph->th_ack = htonl(17);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = sizeof(response);
+    p->payload = response;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 7\n");
+        goto end;
+    }
+
+    /* response ack */
+    p->tcph->th_ack = htonl(328);
+    p->tcph->th_seq = htonl(17);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !IS_PM_DONE(&f, STREAM_TOCLIENT) || !IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 8\n");
+        goto end;
+    }
+
+    StreamTcpSessionClear(p->flow->protoctx);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    SCFree(p);
+    return ret;
+}
+
+/**
+ * \test RUBBISH(TC - PM and PP DONE) ->
+ *       RUBBISH(TS - PM and PP NOT DONE) ->
+ *       RUBBISH(TS - PM and PP DONE)
+ */
+static int AppLayerTest11(void)
+{
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (unlikely(p == NULL))
+        return 0;
+    Flow f;
+    ThreadVars tv;
+    StreamTcpThread *stt = NULL;
+    TCPHdr tcph;
+    PacketQueue pq;
+    memset(&pq,0,sizeof(PacketQueue));
+    memset(p, 0, SIZE_OF_PACKET);
+    memset (&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof (ThreadVars));
+    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
+    memset(&tcph, 0, sizeof (TCPHdr));
+
+    f.flags = FLOW_IPV4;
+    p->pkt = (uint8_t *)(p + 1);
+    p->flow = &f;
+    p->tcph = &tcph;
+
+    int ret = 0;
+
+    StreamTcpInitConfig(TRUE);
+
+    tcph.th_win = htons(5480);
+    tcph.th_flags = TH_SYN;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+
+    TcpSession *ssn = (TcpSession *)f.protoctx;
+
+    /* handshake */
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 1\n");
+        goto end;
+    }
+
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_flags = TH_SYN | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 2\n");
+        goto end;
+    }
+
+    /* handshake */
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0) {
+        printf("failure 3\n");
+        goto end;
+    }
+
+    /* full request */
+    uint8_t request1[] = {
+        0x47, 0x47, 0x49, 0x20, 0x2f, 0x69, 0x6e, 0x64,
+        0x47, 0x47, 0x49, 0x20, 0x2f, 0x69, 0x6e, 0x64 };
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = sizeof(request1);
+    p->payload = request1;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        IS_PM_DONE(&f, STREAM_TOSERVER) || IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 4\n");
+        goto end;
+    }
+
+    /* response - request ack */
+    p->tcph->th_ack = htonl(17);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 5\n");
+        goto end;
+    }
+
+    /* full response - request ack */
+    uint8_t response1[] = {
+        0x55, 0x74, 0x54, 0x50, };
+    p->tcph->th_ack = htonl(17);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = sizeof(response1);
+    p->payload = response1;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 6\n");
+        goto end;
+    }
+
+    /* response ack from request */
+    p->tcph->th_ack = htonl(5);
+    p->tcph->th_seq = htonl(17);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || !IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 7\n");
+        goto end;
+    }
+
+    uint8_t response2[] = {
+        0x2f, 0x31, 0x2e, 0x31,
+        0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b, 0x0d,
+        0x0a, 0x44, 0x61, 0x74, 0x65, 0x3a, 0x20, 0x46,
+        0x72, 0x69, 0x2c, 0x20, 0x32, 0x33, 0x20, 0x53,
+        0x65, 0x70, 0x20, 0x32, 0x30, 0x31, 0x31, 0x20,
+        0x30, 0x36, 0x3a, 0x32, 0x39, 0x3a, 0x33, 0x39,
+        0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65,
+        0x72, 0x76, 0x65, 0x72, 0x3a, 0x20, 0x41, 0x70,
+        0x61, 0x63, 0x68, 0x65, 0x2f, 0x32, 0x2e, 0x32,
+        0x2e, 0x31, 0x35, 0x20, 0x28, 0x55, 0x6e, 0x69,
+        0x78, 0x29, 0x20, 0x44, 0x41, 0x56, 0x2f, 0x32,
+        0x0d, 0x0a, 0x4c, 0x61, 0x73, 0x74, 0x2d, 0x4d,
+        0x6f, 0x64, 0x69, 0x66, 0x69, 0x65, 0x64, 0x3a,
+        0x20, 0x54, 0x68, 0x75, 0x2c, 0x20, 0x30, 0x34,
+        0x20, 0x4e, 0x6f, 0x76, 0x20, 0x32, 0x30, 0x31,
+        0x30, 0x20, 0x31, 0x35, 0x3a, 0x30, 0x34, 0x3a,
+        0x34, 0x36, 0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a,
+        0x45, 0x54, 0x61, 0x67, 0x3a, 0x20, 0x22, 0x61,
+        0x62, 0x38, 0x39, 0x36, 0x35, 0x2d, 0x32, 0x63,
+        0x2d, 0x34, 0x39, 0x34, 0x33, 0x62, 0x37, 0x61,
+        0x37, 0x66, 0x37, 0x66, 0x38, 0x30, 0x22, 0x0d,
+        0x0a, 0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2d,
+        0x52, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x3a, 0x20,
+        0x62, 0x79, 0x74, 0x65, 0x73, 0x0d, 0x0a, 0x43,
+        0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x4c,
+        0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a, 0x20, 0x34,
+        0x34, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x6e, 0x65,
+        0x63, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20, 0x63,
+        0x6c, 0x6f, 0x73, 0x65, 0x0d, 0x0a, 0x43, 0x6f,
+        0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x54, 0x79,
+        0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78, 0x74,
+        0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x0d, 0x0a, 0x58,
+        0x2d, 0x50, 0x61, 0x64, 0x3a, 0x20, 0x61, 0x76,
+        0x6f, 0x69, 0x64, 0x20, 0x62, 0x72, 0x6f, 0x77,
+        0x73, 0x65, 0x72, 0x20, 0x62, 0x75, 0x67, 0x0d,
+        0x0a, 0x0d, 0x0a, 0x3c, 0x68, 0x74, 0x6d, 0x6c,
+        0x3e, 0x3c, 0x62, 0x6f, 0x64, 0x79, 0x3e, 0x3c,
+        0x68, 0x31, 0x3e, 0x49, 0x74, 0x20, 0x77, 0x6f,
+        0x72, 0x6b, 0x73, 0x21, 0x3c, 0x2f, 0x68, 0x31,
+        0x3e, 0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e,
+        0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e };
+    p->tcph->th_ack = htonl(17);
+    p->tcph->th_seq = htonl(5);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+    p->payload_len = sizeof(response2);
+    p->payload = response2;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        IS_PM_DONE(&f, STREAM_TOCLIENT) || !IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != STREAM_TOSERVER) {
+        printf("failure 8\n");
+        goto end;
+    }
+
+    /* response ack from request */
+    p->tcph->th_ack = htonl(328);
+    p->tcph->th_seq = htonl(17);
+    p->tcph->th_flags = TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+    p->payload_len = 0;
+    p->payload = NULL;
+    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
+        goto end;
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto_ts != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.data_al_so_far[0] != 0 ||
+        f.data_al_so_far[1] != 0 ||
+        !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
+        !IS_PM_DONE(&f, STREAM_TOSERVER) || !IS_PP_DONE(&f, STREAM_TOSERVER) ||
+        !IS_PM_DONE(&f, STREAM_TOCLIENT) || !IS_PP_DONE(&f, STREAM_TOCLIENT) ||
+        ssn->data_first_seen_dir != 0x01) {
+        printf("failure 9\n");
+        goto end;
+    }
+
+    StreamTcpSessionClear(p->flow->protoctx);
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    SCFree(p);
+    return ret;
+}
+
+#endif
+
+void AppLayerRegisterUnittests(void)
+{
+#ifdef UNITTESTS
+    UtRegisterTest("AppLayerTest01", AppLayerTest01, 1);
+    UtRegisterTest("AppLayerTest02", AppLayerTest02, 1);
+    UtRegisterTest("AppLayerTest03", AppLayerTest03, 1);
+    UtRegisterTest("AppLayerTest04", AppLayerTest04, 1);
+    UtRegisterTest("AppLayerTest05", AppLayerTest05, 1);
+    UtRegisterTest("AppLayerTest06", AppLayerTest06, 1);
+    UtRegisterTest("AppLayerTest07", AppLayerTest07, 1);
+    UtRegisterTest("AppLayerTest08", AppLayerTest08, 1);
+    UtRegisterTest("AppLayerTest09", AppLayerTest09, 1);
+    UtRegisterTest("AppLayerTest10", AppLayerTest10, 1);
+    UtRegisterTest("AppLayerTest11", AppLayerTest11, 1);
+#endif
+
+    return;
+}

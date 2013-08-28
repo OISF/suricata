@@ -165,6 +165,8 @@ enum
 #define STREAMTCP_STREAM_FLAG_TIMESTAMP         0x20
 /** Flag to indicate the zero value of timestamp */
 #define STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP    0x40
+/** App proto detection completed */
+#define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED 0x80
 
 /*
  * Per SEGMENT flags
@@ -215,6 +217,8 @@ typedef struct TcpSession_ {
     struct StreamMsg_ *toserver_smsg_tail;  /**< list of stream msgs (for detection inspection) */
     struct StreamMsg_ *toclient_smsg_head;  /**< list of stream msgs (for detection inspection) */
     struct StreamMsg_ *toclient_smsg_tail;  /**< list of stream msgs (for detection inspection) */
+
+    int8_t data_first_seen_dir;
 
     TcpStateQueue *queue;                   /**< list of SYN/ACK candidates */
 } TcpSession;
