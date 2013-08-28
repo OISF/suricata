@@ -801,7 +801,7 @@ TmEcode LoadYamlConfig(char *conf_filename) {
 
 int IsRuleReloadSet(int quiet)
 {
-    int rule_reload;
+    int rule_reload = 0;
 
     ConfNode *denode = NULL;
     ConfNode *decnf = ConfGetNode("detect-engine");
