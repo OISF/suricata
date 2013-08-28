@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -82,7 +82,8 @@ static int DetectPcreSetup (DetectEngineCtx *, Signature *, char *);
 void DetectPcreFree(void *);
 void DetectPcreRegisterTests(void);
 
-void DetectPcreRegister (void) {
+void DetectPcreRegister (void)
+{
     sigmatch_table[DETECT_PCRE].name = "pcre";
     sigmatch_table[DETECT_PCRE].desc = "match on regular expression";
     sigmatch_table[DETECT_PCRE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#Pcre-Perl-Compatible-Regular-Expressions";
@@ -807,7 +808,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     SCReturnInt(ret);
 }
 
-void DetectPcreFree(void *ptr) {
+void DetectPcreFree(void *ptr)
+{
     if (ptr == NULL)
         return;
 
@@ -829,7 +831,8 @@ void DetectPcreFree(void *ptr) {
 /**
  * \test DetectPcreParseTest01 make sure we don't allow invalid opts 7.
  */
-static int DetectPcreParseTest01 (void) {
+static int DetectPcreParseTest01 (void)
+{
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/blah/7";
@@ -851,7 +854,8 @@ static int DetectPcreParseTest01 (void) {
 /**
  * \test DetectPcreParseTest02 make sure we don't allow invalid opts Ui$.
  */
-static int DetectPcreParseTest02 (void) {
+static int DetectPcreParseTest02 (void)
+{
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/blah/Ui$";
@@ -872,7 +876,8 @@ static int DetectPcreParseTest02 (void) {
 /**
  * \test DetectPcreParseTest03 make sure we don't allow invalid opts UZi.
  */
-static int DetectPcreParseTest03 (void) {
+static int DetectPcreParseTest03 (void)
+{
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/blah/UNi";
@@ -893,7 +898,8 @@ static int DetectPcreParseTest03 (void) {
 /**
  * \test DetectPcreParseTest04 make sure we allow escaped "
  */
-static int DetectPcreParseTest04 (void) {
+static int DetectPcreParseTest04 (void)
+{
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/b\\\"lah/i";
@@ -915,7 +921,8 @@ static int DetectPcreParseTest04 (void) {
 /**
  * \test DetectPcreParseTest05 make sure we parse pcre with no opts
  */
-static int DetectPcreParseTest05 (void) {
+static int DetectPcreParseTest05 (void)
+{
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/b(l|a)h/";
@@ -937,7 +944,8 @@ static int DetectPcreParseTest05 (void) {
 /**
  * \test DetectPcreParseTest06 make sure we parse pcre with smi opts
  */
-static int DetectPcreParseTest06 (void) {
+static int DetectPcreParseTest06 (void)
+{
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/b(l|a)h/smi";
@@ -959,7 +967,8 @@ static int DetectPcreParseTest06 (void) {
 /**
  * \test DetectPcreParseTest07 make sure we parse pcre with /Ui opts
  */
-static int DetectPcreParseTest07 (void) {
+static int DetectPcreParseTest07 (void)
+{
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/blah/Ui";
@@ -981,7 +990,8 @@ static int DetectPcreParseTest07 (void) {
 /**
  * \test DetectPcreParseTest08 make sure we parse pcre with O opts
  */
-static int DetectPcreParseTest08 (void) {
+static int DetectPcreParseTest08 (void)
+{
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/b(l|a)h/O";
@@ -1004,7 +1014,8 @@ static int DetectPcreParseTest08 (void) {
  * \test DetectPcreParseTest09 make sure we parse pcre with a content
  *       that has slashes
  */
-static int DetectPcreParseTest09 (void) {
+static int DetectPcreParseTest09 (void)
+{
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/lala\\\\/";
@@ -1669,7 +1680,8 @@ static int DetectPcreParseTest26(void)
     return result;
 }
 
-static int DetectPcreTestSig01Real(int mpm_type) {
+static int DetectPcreTestSig01Real(int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
         "GET /one/ HTTP/1.1\r\n"
         "Host: one.example.org\r\n"
@@ -1744,17 +1756,21 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int DetectPcreTestSig01B2g (void) {
+static int DetectPcreTestSig01B2g (void)
+{
     return DetectPcreTestSig01Real(MPM_B2G);
 }
-static int DetectPcreTestSig01B3g (void) {
+static int DetectPcreTestSig01B3g (void)
+{
     return DetectPcreTestSig01Real(MPM_B3G);
 }
-static int DetectPcreTestSig01Wm (void) {
+static int DetectPcreTestSig01Wm (void)
+{
     return DetectPcreTestSig01Real(MPM_WUMANBER);
 }
 
-static int DetectPcreTestSig02Real(int mpm_type) {
+static int DetectPcreTestSig02Real(int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
         "GET /one/ HTTP/1.1\r\n"
         "Host: one.example.org\r\n"
@@ -1813,20 +1829,24 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int DetectPcreTestSig02B2g (void) {
+static int DetectPcreTestSig02B2g (void)
+{
     return DetectPcreTestSig02Real(MPM_B2G);
 }
-static int DetectPcreTestSig02B3g (void) {
+static int DetectPcreTestSig02B3g (void)
+{
     return DetectPcreTestSig02Real(MPM_B3G);
 }
-static int DetectPcreTestSig02Wm (void) {
+static int DetectPcreTestSig02Wm (void)
+{
     return DetectPcreTestSig02Real(MPM_WUMANBER);
 }
 
 /**
  * \test DetectPcreTestSig03Real negation test ! outside of "" this sig should not match
  */
-static int DetectPcreTestSig03Real(int mpm_type) {
+static int DetectPcreTestSig03Real(int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
         "GET /one/ HTTP/1.1\r\n"
         "Host: one.example.org\r\n"
@@ -1877,20 +1897,24 @@ end:
     return result;
 }
 
-static int DetectPcreTestSig03B2g (void) {
+static int DetectPcreTestSig03B2g (void)
+{
     return DetectPcreTestSig03Real(MPM_B2G);
 }
-static int DetectPcreTestSig03B3g (void) {
+static int DetectPcreTestSig03B3g (void)
+{
     return DetectPcreTestSig03Real(MPM_B3G);
 }
-static int DetectPcreTestSig03Wm (void) {
+static int DetectPcreTestSig03Wm (void)
+{
     return DetectPcreTestSig03Real(MPM_WUMANBER);
 }
 
 /**
  * \test Check the signature with pcre modifier P (match with L7 to http body data)
  */
-static int DetectPcreModifPTest04(void) {
+static int DetectPcreModifPTest04(void)
+{
     int result = 0;
     uint8_t httpbuf1[] =
         "GET / HTTP/1.1\r\n"
@@ -2009,7 +2033,8 @@ end:
  * \test Check the signature with pcre modifier P (match with L7 to http body data)
  *       over fragmented chunks (DOCTYPE fragmented)
  */
-static int DetectPcreModifPTest05(void) {
+static int DetectPcreModifPTest05(void)
+{
     int result = 0;
     uint8_t httpbuf1[] =
         "GET / HTTP/1.1\r\n"
@@ -2156,7 +2181,8 @@ end:
     return result;
 }
 
-int DetectPcreTestSig06() {
+int DetectPcreTestSig06()
+{
     uint8_t *buf = (uint8_t *)
                     "lalala lalala\\ lala\n";
     uint16_t buflen = strlen((char *)buf);
@@ -2176,7 +2202,8 @@ end:
 }
 
 /** \test anchored pcre */
-int DetectPcreTestSig07() {
+int DetectPcreTestSig07()
+{
     uint8_t *buf = (uint8_t *)
                     "lalala\n";
     uint16_t buflen = strlen((char *)buf);
@@ -2196,7 +2223,8 @@ end:
 }
 
 /** \test anchored pcre */
-int DetectPcreTestSig08() {
+int DetectPcreTestSig08()
+{
     /* test it also without ending in a newline "\n" */
     uint8_t *buf = (uint8_t *)
                     "lalala";
@@ -2219,7 +2247,8 @@ end:
 /** \test Check the signature working to alert when cookie modifier is
  *       passed to pcre
  */
-static int DetectPcreTestSig09(void) {
+static int DetectPcreTestSig09(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
@@ -2307,7 +2336,8 @@ end:
 /** \test Check the signature working to alert when cookie modifier is
  *       passed to a negated pcre
  */
-static int DetectPcreTestSig10(void) {
+static int DetectPcreTestSig10(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
@@ -2395,7 +2425,8 @@ end:
 /** \test Check the signature working to alert when method modifier is
  *       passed to pcre
  */
-static int DetectPcreTestSig11(void) {
+static int DetectPcreTestSig11(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
@@ -2483,7 +2514,8 @@ end:
 /** \test Check the signature working to alert when method modifier is
  *       passed to a negated pcre
  */
-static int DetectPcreTestSig12(void) {
+static int DetectPcreTestSig12(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "GET / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
@@ -2571,7 +2603,8 @@ end:
 /** \test Check the signature working to alert when header modifier is
  *       passed to pcre
  */
-static int DetectPcreTestSig13(void) {
+static int DetectPcreTestSig13(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
@@ -2659,7 +2692,8 @@ end:
 /** \test Check the signature working to alert when header modifier is
  *       passed to a negated pcre
  */
-static int DetectPcreTestSig14(void) {
+static int DetectPcreTestSig14(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "GET / HTTP/1.0\r\nUser-Agent: IEXPLORER/1.0\r\n"
@@ -2747,7 +2781,8 @@ end:
 /** \test Check the signature working to alert when cookie and relative modifiers are
  *       passed to pcre
  */
-static int DetectPcreTestSig15(void) {
+static int DetectPcreTestSig15(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
@@ -2836,7 +2871,8 @@ end:
 /** \test Check the signature working to alert when method and relative modifiers are
  *       passed to pcre
  */
-static int DetectPcreTestSig16(void) {
+static int DetectPcreTestSig16(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
@@ -2924,7 +2960,8 @@ end:
 
 /** \test Test tracking of body chunks per transactions (on requests)
  */
-static int DetectPcreTxBodyChunksTest01(void) {
+static int DetectPcreTxBodyChunksTest01(void)
+{
     int result = 0;
     Flow f;
     TcpSession ssn;
@@ -3067,7 +3104,8 @@ end:
 }
 
 /** \test test pcre P modifier with multiple pipelined http transactions */
-static int DetectPcreTxBodyChunksTest02(void) {
+static int DetectPcreTxBodyChunksTest02(void)
+{
     int result = 0;
     Signature *s = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -3290,7 +3328,8 @@ end:
 }
 
 /** \test multiple http transactions and body chunks of request handling */
-static int DetectPcreTxBodyChunksTest03(void) {
+static int DetectPcreTxBodyChunksTest03(void)
+{
     int result = 0;
     Signature *s = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -3485,7 +3524,8 @@ end:
 /**
  * \test flowvar capture on http buffer
  */
-static int DetectPcreFlowvarCapture01(void) {
+static int DetectPcreFlowvarCapture01(void)
+{
     int result = 0;
     uint8_t uabuf1[] =
         "Mozilla/5.0 (X11; U; Linux i686; es-ES; rv:1.9.0.13) Gecko/2009080315 Ubuntu/8.10 (intrepid) Firefox/3.0.13";
@@ -3602,7 +3642,8 @@ end:
 /**
  * \test flowvar capture on http buffer, capture overwrite
  */
-static int DetectPcreFlowvarCapture02(void) {
+static int DetectPcreFlowvarCapture02(void)
+{
     int result = 0;
     uint8_t uabuf1[] =
         "Apache";
@@ -3742,7 +3783,8 @@ end:
 /**
  * \test flowvar capture on http buffer, capture overwrite + no matching sigs, so flowvars should not be set.
  */
-static int DetectPcreFlowvarCapture03(void) {
+static int DetectPcreFlowvarCapture03(void)
+{
     int result = 0;
     uint8_t httpbuf1[] =
         "GET / HTTP/1.1\r\n"
