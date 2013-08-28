@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -68,7 +68,8 @@
  * \param needle pattern to search for
  * \param needlelen length of the pattern
  */
-uint8_t *Bs2bmSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen) {
+uint8_t *Bs2bmSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen)
+{
     uint8_t badchars[ALPHABET_SIZE];
     Bs2BmBadchars(needle, needlelen, badchars);
 
@@ -83,7 +84,8 @@ uint8_t *Bs2bmSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t 
  * \param needle pattern to search for
  * \param needlelen length of the pattern
  */
-uint8_t *Bs2bmNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen) {
+uint8_t *Bs2bmNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen)
+{
     uint8_t badchars[ALPHABET_SIZE];
     Bs2BmBadchars(needle, needlelen, badchars);
 
@@ -99,7 +101,8 @@ uint8_t *Bs2bmNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uin
  * \param needle pattern to search for
  * \param needlelen length of the pattern
  */
-uint8_t *BoyerMooreSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen) {
+uint8_t *BoyerMooreSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen)
+{
     uint16_t bmBc[ALPHABET_SIZE];
     uint16_t *bmGs = SCMalloc(sizeof(uint16_t)*(needlelen + 1));
     if (unlikely(bmGs == NULL))
@@ -123,7 +126,8 @@ uint8_t *BoyerMooreSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint
  * \param needle pattern to search for
  * \param needlelen length of the pattern
  */
-uint8_t *BoyerMooreNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen) {
+uint8_t *BoyerMooreNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen)
+{
     uint16_t bmBc[ALPHABET_SIZE];
     uint16_t *bmGs = SCMalloc(sizeof(uint16_t)*(needlelen + 1));
     if (unlikely(bmGs == NULL))
@@ -155,7 +159,8 @@ uint8_t *BoyerMooreNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle
  * \param times If you are testing performance, se the numebr of times
  *              that you want to repeat the search
  */
-uint8_t *BasicSearchWrapper(uint8_t *text, uint8_t *needle, int times) {
+uint8_t *BasicSearchWrapper(uint8_t *text, uint8_t *needle, int times)
+{
     uint32_t textlen = strlen((char *)text);
     uint16_t needlelen = strlen((char *)needle);
 
@@ -174,7 +179,8 @@ uint8_t *BasicSearchWrapper(uint8_t *text, uint8_t *needle, int times) {
     return ret;
 }
 
-uint8_t *BasicSearchNocaseWrapper(uint8_t *text, uint8_t *needle, int times) {
+uint8_t *BasicSearchNocaseWrapper(uint8_t *text, uint8_t *needle, int times)
+{
     uint32_t textlen = strlen((char *)text);
     uint16_t needlelen = strlen((char *)needle);
 
@@ -190,7 +196,8 @@ uint8_t *BasicSearchNocaseWrapper(uint8_t *text, uint8_t *needle, int times) {
     return ret;
 }
 
-uint8_t *Bs2bmWrapper(uint8_t *text, uint8_t *needle, int times) {
+uint8_t *Bs2bmWrapper(uint8_t *text, uint8_t *needle, int times)
+{
     uint32_t textlen = strlen((char *)text);
     uint16_t needlelen = strlen((char *)needle);
 
@@ -209,7 +216,8 @@ uint8_t *Bs2bmWrapper(uint8_t *text, uint8_t *needle, int times) {
     return ret;
 }
 
-uint8_t *Bs2bmNocaseWrapper(uint8_t *text, uint8_t *needle, int times) {
+uint8_t *Bs2bmNocaseWrapper(uint8_t *text, uint8_t *needle, int times)
+{
     uint32_t textlen = strlen((char *)text);
     uint16_t needlelen = strlen((char *)needle);
 
@@ -228,7 +236,8 @@ uint8_t *Bs2bmNocaseWrapper(uint8_t *text, uint8_t *needle, int times) {
     return ret;
 }
 
-uint8_t *BoyerMooreWrapper(uint8_t *text, uint8_t *needle, int times) {
+uint8_t *BoyerMooreWrapper(uint8_t *text, uint8_t *needle, int times)
+{
     uint32_t textlen = strlen((char *)text);
     uint16_t needlelen = strlen((char *)needle);
 
@@ -253,7 +262,8 @@ uint8_t *BoyerMooreWrapper(uint8_t *text, uint8_t *needle, int times) {
     return ret;
 }
 
-uint8_t *BoyerMooreNocaseWrapper(uint8_t *text, uint8_t *needle, int times) {
+uint8_t *BoyerMooreNocaseWrapper(uint8_t *text, uint8_t *needle, int times)
+{
     uint32_t textlen = strlen((char *)text);
     uint16_t needlelen = strlen((char *)needle);
 
@@ -286,7 +296,8 @@ uint8_t *BoyerMooreNocaseWrapper(uint8_t *text, uint8_t *needle, int times) {
  * \param times If you are testing performance, se the numebr of times
  *              that you want to repeat the search
  */
-uint8_t *BasicSearchCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
+uint8_t *BasicSearchCtxWrapper(uint8_t *text, uint8_t *needle, int times)
+{
     uint32_t textlen = strlen((char *)text);
     uint16_t needlelen = strlen((char *)needle);
 
@@ -303,7 +314,8 @@ uint8_t *BasicSearchCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
     return ret;
 }
 
-uint8_t *BasicSearchNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
+uint8_t *BasicSearchNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int times)
+{
     uint32_t textlen = strlen((char *)text);
     uint16_t needlelen = strlen((char *)needle);
 
@@ -320,7 +332,8 @@ uint8_t *BasicSearchNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int times) 
     return ret;
 }
 
-uint8_t *Bs2bmCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
+uint8_t *Bs2bmCtxWrapper(uint8_t *text, uint8_t *needle, int times)
+{
     uint32_t textlen = strlen((char *)text);
     uint16_t needlelen = strlen((char *)needle);
 
@@ -340,7 +353,8 @@ uint8_t *Bs2bmCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
     return ret;
 }
 
-uint8_t *Bs2bmNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
+uint8_t *Bs2bmNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int times)
+{
     uint32_t textlen = strlen((char *)text);
     uint16_t needlelen = strlen((char *)needle);
 
@@ -360,7 +374,8 @@ uint8_t *Bs2bmNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
     return ret;
 }
 
-uint8_t *BoyerMooreCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
+uint8_t *BoyerMooreCtxWrapper(uint8_t *text, uint8_t *needle, int times)
+{
     uint32_t textlen = strlen((char *)text);
     uint16_t needlelen = strlen((char *)needle);
 
@@ -386,7 +401,8 @@ uint8_t *BoyerMooreCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
     return ret;
 }
 
-uint8_t *RawCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
+uint8_t *RawCtxWrapper(uint8_t *text, uint8_t *needle, int times)
+{
     uint32_t textlen = strlen((char *)text);
     uint16_t needlelen = strlen((char *)needle);
 
@@ -402,7 +418,8 @@ uint8_t *RawCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
     return ret;
 }
 
-uint8_t *BoyerMooreNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
+uint8_t *BoyerMooreNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int times)
+{
     uint32_t textlen = strlen((char *)text);
     uint16_t needlelen = strlen((char *)needle);
 
@@ -431,7 +448,8 @@ uint8_t *BoyerMooreNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
 /**
  * \test Generic test for BasicSearch matching
  */
-int UtilSpmBasicSearchTest01() {
+int UtilSpmBasicSearchTest01()
+{
     uint8_t *needle = (uint8_t *)"oPqRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BasicSearchWrapper(text, needle, 1);
@@ -445,7 +463,8 @@ int UtilSpmBasicSearchTest01() {
 /**
  * \test Generic test for BasicSearch nocase matching
  */
-int UtilSpmBasicSearchNocaseTest01() {
+int UtilSpmBasicSearchNocaseTest01()
+{
     uint8_t *needle = (uint8_t *)"OpQrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BasicSearchNocaseWrapper(text, needle, 1);
@@ -459,7 +478,8 @@ int UtilSpmBasicSearchNocaseTest01() {
 /**
  * \test Generic test for Bs2Bm matching
  */
-int UtilSpmBs2bmSearchTest01() {
+int UtilSpmBs2bmSearchTest01()
+{
     uint8_t *needle = (uint8_t *)"oPqRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = Bs2bmWrapper(text, needle, 1);
@@ -473,7 +493,8 @@ int UtilSpmBs2bmSearchTest01() {
 /**
  * \test Generic test for Bs2Bm no case matching
  */
-int UtilSpmBs2bmSearchNocaseTest01() {
+int UtilSpmBs2bmSearchNocaseTest01()
+{
     uint8_t *needle = (uint8_t *)"OpQrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = Bs2bmNocaseWrapper(text, needle, 1);
@@ -487,7 +508,8 @@ int UtilSpmBs2bmSearchNocaseTest01() {
 /**
  * \test Generic test for boyer moore matching
  */
-int UtilSpmBoyerMooreSearchTest01() {
+int UtilSpmBoyerMooreSearchTest01()
+{
     uint8_t *needle = (uint8_t *)"oPqRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BoyerMooreWrapper(text, needle, 1);
@@ -501,7 +523,8 @@ int UtilSpmBoyerMooreSearchTest01() {
 /**
  * \test Generic test for boyer moore nocase matching
  */
-int UtilSpmBoyerMooreSearchNocaseTest01() {
+int UtilSpmBoyerMooreSearchNocaseTest01()
+{
     uint8_t *needle = (uint8_t *)"OpQrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BoyerMooreNocaseWrapper(text, needle, 1);
@@ -516,7 +539,8 @@ int UtilSpmBoyerMooreSearchNocaseTest01() {
  * \test issue 130 (@redmine) check to ensure that the
  *       problem is not the algorithm implementation
  */
-int UtilSpmBoyerMooreSearchNocaseTestIssue130() {
+int UtilSpmBoyerMooreSearchNocaseTestIssue130()
+{
     uint8_t *needle = (uint8_t *)"WWW-Authenticate: ";
     uint8_t *text = (uint8_t *)"Date: Mon, 23 Feb 2009 13:31:49 GMT"
                 "Server: Apache\r\n"
@@ -536,7 +560,8 @@ int UtilSpmBoyerMooreSearchNocaseTestIssue130() {
 }
 
 /* Generic tests that should not match */
-int UtilSpmBasicSearchTest02() {
+int UtilSpmBasicSearchTest02()
+{
     uint8_t *needle = (uint8_t *)"oPQRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BasicSearchWrapper(text, needle, 1);
@@ -547,7 +572,8 @@ int UtilSpmBasicSearchTest02() {
         return 1;
 }
 
-int UtilSpmBasicSearchNocaseTest02() {
+int UtilSpmBasicSearchNocaseTest02()
+{
     uint8_t *needle = (uint8_t *)"OpZrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BasicSearchNocaseWrapper(text, needle, 1);
@@ -558,7 +584,8 @@ int UtilSpmBasicSearchNocaseTest02() {
         return 1;
 }
 
-int UtilSpmBs2bmSearchTest02() {
+int UtilSpmBs2bmSearchTest02()
+{
     uint8_t *needle = (uint8_t *)"oPQRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = Bs2bmWrapper(text, needle, 1);
@@ -569,7 +596,8 @@ int UtilSpmBs2bmSearchTest02() {
         return 1;
 }
 
-int UtilSpmBs2bmSearchNocaseTest02() {
+int UtilSpmBs2bmSearchNocaseTest02()
+{
     uint8_t *needle = (uint8_t *)"OpZrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = Bs2bmNocaseWrapper(text, needle, 1);
@@ -580,7 +608,8 @@ int UtilSpmBs2bmSearchNocaseTest02() {
         return 1;
 }
 
-int UtilSpmBoyerMooreSearchTest02() {
+int UtilSpmBoyerMooreSearchTest02()
+{
     uint8_t *needle = (uint8_t *)"oPQRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BoyerMooreWrapper(text, needle, 1);
@@ -591,7 +620,8 @@ int UtilSpmBoyerMooreSearchTest02() {
         return 1;
 }
 
-int UtilSpmBoyerMooreSearchNocaseTest02() {
+int UtilSpmBoyerMooreSearchNocaseTest02()
+{
     uint8_t *needle = (uint8_t *)"OpZrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BoyerMooreNocaseWrapper(text, needle, 1);
@@ -605,7 +635,8 @@ int UtilSpmBoyerMooreSearchNocaseTest02() {
 /**
  * \test Check that all the algorithms work at any offset and any pattern length
  */
-int UtilSpmSearchOffsetsTest01() {
+int UtilSpmSearchOffsetsTest01()
+{
     char *text[26][27];
     text[0][0]="azzzzzzzzzzzzzzzzzzzzzzzzzz";
     text[0][1]="zazzzzzzzzzzzzzzzzzzzzzzzzz";
@@ -1040,7 +1071,8 @@ int UtilSpmSearchOffsetsTest01() {
 /**
  * \test Check that all the algorithms (no case) work at any offset and any pattern length
  */
-int UtilSpmSearchOffsetsNocaseTest01() {
+int UtilSpmSearchOffsetsNocaseTest01()
+{
     char *text[26][27];
     text[0][0]="azzzzzzzzzzzzzzzzzzzzzzzzzz";
     text[0][1]="zazzzzzzzzzzzzzzzzzzzzzzzzz";
@@ -1475,7 +1507,8 @@ int UtilSpmSearchOffsetsNocaseTest01() {
 /**
  * \test Give some stats
  */
-int UtilSpmSearchStatsTest01() {
+int UtilSpmSearchStatsTest01()
+{
     char *text[16];
     text[0]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzza";
     text[1]="aaaaaaaaazaaaaaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaazaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaazaaaaaraaaaazaaaaaaazaaaaaaaaaaaaaazaaaaaaaazaaaaaaaaazaaaaaaaaaaaaB";
@@ -1542,7 +1575,8 @@ int UtilSpmSearchStatsTest01() {
 /**
  * \test Give some stats for
  */
-int UtilSpmSearchStatsTest02() {
+int UtilSpmSearchStatsTest02()
+{
     char *text[16];
     text[0]="zzzzzzzzzzzzzzzzzza";
     text[1]="zzzzzzzzzzzzzzzzzzaB";
@@ -1607,7 +1641,8 @@ int UtilSpmSearchStatsTest02() {
 }
 
 
-int UtilSpmSearchStatsTest03() {
+int UtilSpmSearchStatsTest03()
+{
     char *text[16];
     text[0]="zzzzzza";
     text[1]="zzzzzzaB";
@@ -1674,7 +1709,8 @@ int UtilSpmSearchStatsTest03() {
 /**
  * \test Give some stats
  */
-int UtilSpmSearchStatsTest04() {
+int UtilSpmSearchStatsTest04()
+{
     char *text[16];
     text[0]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzza";
     text[1]="aaaaaaaaazaaaaaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaazaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaazaaaaaraaaaazaaaaaaazaaaaaaaaaaaaaazaaaaaaaazaaaaaaaaazaaaaaaaaaaaaB";
@@ -1748,7 +1784,8 @@ int UtilSpmSearchStatsTest04() {
 /**
  * \test Give some stats for
  */
-int UtilSpmSearchStatsTest05() {
+int UtilSpmSearchStatsTest05()
+{
     char *text[16];
     text[0]="zzzzzzzzzzzzzzzzzza";
     text[1]="zzzzzzzzzzzzzzzzzzaB";
@@ -1813,7 +1850,8 @@ int UtilSpmSearchStatsTest05() {
 }
 
 
-int UtilSpmSearchStatsTest06() {
+int UtilSpmSearchStatsTest06()
+{
     char *text[16];
     text[0]="zzzzkzzzzzzzkzzzzzza";
     text[1]="BBBBkBBBBBBBkBBBBBaB";
@@ -1855,7 +1893,8 @@ int UtilSpmSearchStatsTest06() {
     return 1;
 }
 
-int UtilSpmSearchStatsTest07() {
+int UtilSpmSearchStatsTest07()
+{
     char *text[16];
     text[0]="zzzza";
     text[1]="BBBaB";
@@ -1900,7 +1939,8 @@ int UtilSpmSearchStatsTest07() {
 /**
  * \test Give some stats for no case algorithms
  */
-int UtilSpmNocaseSearchStatsTest01() {
+int UtilSpmNocaseSearchStatsTest01()
+{
     char *text[16];
     text[0]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzza";
     text[1]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaB";
@@ -1964,7 +2004,8 @@ int UtilSpmNocaseSearchStatsTest01() {
     return 1;
 }
 
-int UtilSpmNocaseSearchStatsTest02() {
+int UtilSpmNocaseSearchStatsTest02()
+{
     char *text[16];
     text[0]="zzzzzzzzzzzzzzzzzza";
     text[1]="zzzzzzzzzzzzzzzzzzaB";
@@ -2029,7 +2070,8 @@ int UtilSpmNocaseSearchStatsTest02() {
 }
 
 
-int UtilSpmNocaseSearchStatsTest03() {
+int UtilSpmNocaseSearchStatsTest03()
+{
     char *text[16];
     text[0]="zzzzkzzzzzzzkzzzzzza";
     text[1]="BBBBkBBBBBBBkBBBBBaB";
@@ -2074,7 +2116,8 @@ int UtilSpmNocaseSearchStatsTest03() {
 /**
  * \test Give some stats for no case algorithms
  */
-int UtilSpmNocaseSearchStatsTest04() {
+int UtilSpmNocaseSearchStatsTest04()
+{
     char *text[16];
     text[0]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzza";
     text[1]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaB";
@@ -2138,7 +2181,8 @@ int UtilSpmNocaseSearchStatsTest04() {
     return 1;
 }
 
-int UtilSpmNocaseSearchStatsTest05() {
+int UtilSpmNocaseSearchStatsTest05()
+{
     char *text[16];
     text[0]="zzzzzzzzzzzzzzzzzza";
     text[1]="zzzzzzzzzzzzzzzzzzaB";
@@ -2203,7 +2247,8 @@ int UtilSpmNocaseSearchStatsTest05() {
 }
 
 
-int UtilSpmNocaseSearchStatsTest06() {
+int UtilSpmNocaseSearchStatsTest06()
+{
     char *text[16];
     text[0]="zzzzkzzzzzzzkzzzzzza";
     text[1]="BBBBkBBBBBBBkBBBBBaB";
@@ -2245,7 +2290,8 @@ int UtilSpmNocaseSearchStatsTest06() {
     return 1;
 }
 
-int UtilSpmNocaseSearchStatsTest07() {
+int UtilSpmNocaseSearchStatsTest07()
+{
     char *text[16];
     text[0]="zzzza";
     text[1]="bbbAb";

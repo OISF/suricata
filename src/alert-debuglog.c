@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -56,6 +56,7 @@
 #include "util-var-name.h"
 #include "util-optimize.h"
 #include "util-logopenfile.h"
+#include "util-time.h"
 
 #define DEFAULT_LOG_FILENAME "alert-debug.log"
 
@@ -85,16 +86,6 @@ typedef struct AlertDebugLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     MemBuffer *buffer;
 } AlertDebugLogThread;
-
-static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
-    time_t time = ts->tv_sec;
-    struct tm local_tm;
-    struct tm *t = (struct tm*)SCLocalTime(time, &local_tm);
-
-    snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
-        t->tm_mon + 1, t->tm_mday, t->tm_year + 1900, t->tm_hour,
-            t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
-}
 
 /**
  *  \brief Function to log the FlowVars in to alert-debug.log
