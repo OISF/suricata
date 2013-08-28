@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -50,7 +50,8 @@ uint8_t action_order_sigs[4] = {ACTION_PASS, ACTION_DROP, ACTION_REJECT, ACTION_
  *        ACTION_REJECT or ACTION_ALERT
  * \retval uint8_t the priority (order of this actions)
  */
-uint8_t ActionOrderVal(uint8_t action) {
+uint8_t ActionOrderVal(uint8_t action)
+{
     /* reject_both and reject_dst have the same prio as reject */
     if( (action & ACTION_REJECT) ||
         (action & ACTION_REJECT_BOTH) ||
@@ -73,7 +74,8 @@ uint8_t ActionOrderVal(uint8_t action) {
  * \retval uint8_t can be one of ACTION_PASS, ACTION_DROP,
  *        ACTION_REJECT or ACTION_ALERT
  */
-uint8_t ActionAsciiToFlag(char *action) {
+uint8_t ActionAsciiToFlag(char *action)
+{
     if (strcmp(action,"pass") == 0)
         return ACTION_PASS;
     if (strcmp(action,"drop") == 0)
@@ -93,7 +95,8 @@ uint8_t ActionAsciiToFlag(char *action) {
  *
  * \retval 0 on success; -1 on fatal error;
  */
-int ActionInitConfig() {
+int ActionInitConfig()
+{
     uint8_t actions_used = 0;
     uint8_t action_flag = 0;
     uint8_t actions_config[4] = {0, 0, 0, 0};

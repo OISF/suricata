@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -33,7 +33,8 @@
 #include "util-debug.h"
 #include "util-print.h"
 
-FlowQueue *FlowQueueNew() {
+FlowQueue *FlowQueueNew()
+{
     FlowQueue *q = (FlowQueue *)SCMalloc(sizeof(FlowQueue));
     if (q == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in FlowQueueNew. Exiting...");
@@ -43,7 +44,8 @@ FlowQueue *FlowQueueNew() {
     return q;
 }
 
-FlowQueue *FlowQueueInit (FlowQueue *q) {
+FlowQueue *FlowQueueInit (FlowQueue *q)
+{
     if (q != NULL) {
         memset(q, 0, sizeof(FlowQueue));
         FQLOCK_INIT(q);
@@ -56,7 +58,8 @@ FlowQueue *FlowQueueInit (FlowQueue *q) {
  *
  *  \param q the flow queue to destroy
  */
-void FlowQueueDestroy (FlowQueue *q) {
+void FlowQueueDestroy (FlowQueue *q)
+{
     FQLOCK_DESTROY(q);
 }
 
@@ -66,7 +69,8 @@ void FlowQueueDestroy (FlowQueue *q) {
  *  \param q queue
  *  \param f flow
  */
-void FlowEnqueue (FlowQueue *q, Flow *f) {
+void FlowEnqueue (FlowQueue *q, Flow *f)
+{
 #ifdef DEBUG
     BUG_ON(q == NULL || f == NULL);
 #endif
@@ -98,7 +102,8 @@ void FlowEnqueue (FlowQueue *q, Flow *f) {
  *
  *  \retval f flow or NULL if empty list.
  */
-Flow *FlowDequeue (FlowQueue *q) {
+Flow *FlowDequeue (FlowQueue *q)
+{
     FQLOCK_LOCK(q);
 
     Flow *f = q->bot;

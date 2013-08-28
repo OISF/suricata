@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -42,7 +42,8 @@ SC_ATOMIC_DECLARE(unsigned int, num_tags);  /**< Atomic counter, to know if we
 static int host_tag_id = -1;                /**< Host storage id for tags */
 static int flow_tag_id = -1;                /**< Flow storage id for tags */
 
-void TagInitCtx(void) {
+void TagInitCtx(void)
+{
     SC_ATOMIC_INIT(num_tags);
 
     host_tag_id = HostStorageRegister("tag", sizeof(void *), NULL, DetectTagDataListFree);
@@ -73,16 +74,19 @@ void TagDestroyCtx(void)
 
 /** \brief Reset the tagging engine context
  */
-void TagRestartCtx() {
+void TagRestartCtx()
+{
     TagDestroyCtx();
     TagInitCtx();
 }
 
-int TagHostHasTag(Host *host) {
+int TagHostHasTag(Host *host)
+{
     return HostGetStorageById(host, host_tag_id) ? 1 : 0;
 }
 
-static DetectTagDataEntry *DetectTagDataCopy(DetectTagDataEntry *dtd) {
+static DetectTagDataEntry *DetectTagDataCopy(DetectTagDataEntry *dtd)
+{
     DetectTagDataEntry *tde = SCMalloc(sizeof(DetectTagDataEntry));
     if (unlikely(tde == NULL)) {
         return NULL;
@@ -113,7 +117,8 @@ static DetectTagDataEntry *DetectTagDataCopy(DetectTagDataEntry *dtd) {
  * \retval 0 if the tde was added succesfuly
  * \retval 1 if an entry of this sid/gid already exist and was updated
  */
-int TagFlowAdd(Packet *p, DetectTagDataEntry *tde) {
+int TagFlowAdd(Packet *p, DetectTagDataEntry *tde)
+{
     uint8_t updated = 0;
     uint16_t num_tags = 0;
     DetectTagDataEntry *iter = NULL;
@@ -240,7 +245,8 @@ int TagHashAddTag(DetectTagDataEntry *tde, Packet *p)
     SCReturnInt(updated);
 }
 
-static void TagHandlePacketFlow(Flow *f, Packet *p) {
+static void TagHandlePacketFlow(Flow *f, Packet *p)
+{
     if (FlowGetStorageById(f, flow_tag_id) == NULL)
         return;
 
@@ -354,7 +360,8 @@ static void TagHandlePacketFlow(Flow *f, Packet *p) {
     }
 }
 
-void TagHandlePacketHost(Host *host, Packet *p) {
+void TagHandlePacketHost(Host *host, Packet *p)
+{
     DetectTagDataEntry *tde = NULL;
     DetectTagDataEntry *prev = NULL;
     DetectTagDataEntry *iter;
@@ -476,7 +483,7 @@ void TagHandlePacketHost(Host *host, Packet *p) {
  *
  */
 void TagHandlePacket(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Packet *p)
+                     DetectEngineThreadCtx *det_ctx, Packet *p)
 {
     /* If there's no tag, get out of here */
     unsigned int current_tags = SC_ATOMIC_GET(num_tags);

@@ -43,7 +43,8 @@ void TimeInit(void)
     tzset();
 }
 
-void TimeDeinit(void) {
+void TimeDeinit(void)
+{
     SCSpinDestroy(&current_time_spinlock);
 }
 
@@ -78,7 +79,8 @@ void TimeSet(struct timeval *tv)
 }
 
 /** \brief set the time to "gettimeofday" meant for testing */
-void TimeSetToCurrentTime(void) {
+void TimeSetToCurrentTime(void)
+{
     struct timeval tv;
     memset(&tv, 0x00, sizeof(tv));
 
@@ -107,7 +109,8 @@ void TimeGet(struct timeval *tv)
 
 /** \brief increment the time in the engine
  *  \param tv_sec seconds to increment the time with */
-void TimeSetIncrementTime(uint32_t tv_sec) {
+void TimeSetIncrementTime(uint32_t tv_sec)
+{
     struct timeval tv;
     memset(&tv, 0x00, sizeof(tv));
     TimeGet(&tv);
