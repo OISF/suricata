@@ -2334,7 +2334,7 @@ static int UriTestSig21(void)
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1)) {
+    if (!PacketAlertCheck(p, 1)) {
         printf("sig 1 alerted, but it should not: ");
         goto end;
     }
