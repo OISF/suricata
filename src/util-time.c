@@ -35,19 +35,6 @@ static struct timeval current_time = { 0, 0 };
 static SCSpinlock current_time_spinlock;
 static char live = TRUE;
 
-/* Values for caching in CreateTimeString */
-#define MAX_LOCAL_TIME_STRING 128
-static __thread int mru_time_slot; /* Most recently used cached value */
-static __thread time_t last_local_time[2];
-static __thread short int cached_local_time_len[2];
-static __thread char cached_local_time[2][MAX_LOCAL_TIME_STRING];
-
-/* Values for caching SCLocalTime() These cached values are
- * independent from the CreateTimeString cached values. */
-static __thread int mru_tm_slot; /* Most recently used local tm */
-static __thread time_t cached_minute_start[2];
-static __thread struct tm cached_local_tm[2];
-
 void TimeInit(void)
 {
     SCSpinInit(&current_time_spinlock, 0);
@@ -129,6 +116,46 @@ void TimeSetIncrementTime(uint32_t tv_sec) {
 
     TimeSet(&tv);
 }
+
+/*
+ * Time Caching code
+ */
+
+#if defined(__OpenBSD__)
+/* OpenBSD does not support __thread, so don't use time caching on BSD
+ */
+struct tm *SCLocalTime(time_t timep, struct tm *result)
+{
+    return localtime_r(&timep, result);
+}
+
+void CreateTimeString (const struct timeval *ts, char *str, size_t size)
+{
+    time_t time = ts->tv_sec;
+    struct tm local_tm;
+    struct tm *t = (struct tm*)SCLocalTime(time, &local_tm);
+
+    snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
+             t->tm_mon + 1, t->tm_mday, t->tm_year + 1900, t->tm_hour,
+             t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
+}
+
+#else
+
+/* On systems supporting __thread, use Per-thread values for caching
+ * in CreateTimeString */
+
+#define MAX_LOCAL_TIME_STRING 128
+static __thread int mru_time_slot; /* Most recently used cached value */
+static __thread time_t last_local_time[2];
+static __thread short int cached_local_time_len[2];
+static __thread char cached_local_time[2][MAX_LOCAL_TIME_STRING];
+
+/* Per-thread values for caching SCLocalTime() These cached values are
+ * independent from the CreateTimeString cached values. */
+static __thread int mru_tm_slot; /* Most recently used local tm */
+static __thread time_t cached_minute_start[2];
+static __thread struct tm cached_local_tm[2];
 
 /** \brief Convert time_t into Year, month, day, hour and minutes.
  * \param timep Time in seconds since defined date.
@@ -242,3 +269,5 @@ void CreateTimeString (const struct timeval *ts, char *str, size_t size)
              "%02d.%06u",
              seconds, (uint32_t) ts->tv_usec);
 }
+
+#endif /* defined(__OpenBSD__) */
