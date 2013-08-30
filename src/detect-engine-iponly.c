@@ -106,6 +106,10 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, char *str)
     char *ip2 = NULL;
     char *mask = NULL;
     int r = 0;
+
+    while (*str != '\0' && *str == ' ')
+        str++;
+
     char *ipdup = SCStrdup(str);
 
     if (unlikely(ipdup == NULL))
