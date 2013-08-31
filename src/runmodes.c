@@ -36,6 +36,7 @@
 #include "queue.h"
 #include "runmodes.h"
 #include "util-unittest.h"
+#include "util-misc.h"
 
 #include "alert-fastlog.h"
 #include "alert-prelude.h"
@@ -505,6 +506,8 @@ void RunModeInitialize(void)
         AffinitySetupLoadFromConfig();
     }
     if ((ConfGetFloat("threading.detect-thread-ratio", &threading_detect_ratio)) != 1) {
+        if (ConfGetNode("threading.detect-thread-ratio") != NULL)
+            WarnInvalidConfEntry("threading.detect-thread-ratio", "%s", "1");
         threading_detect_ratio = 1;
     }
 
