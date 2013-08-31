@@ -2280,7 +2280,7 @@ void AppLayerMapProbingParserAgainstAlproto(uint16_t al_proto,
                                             uint8_t flags,
                                             ProbingParserFPtr ProbingParser)
 {
-    al_proto_table[al_proto].pp_alproto_map[(flags & STREAM_TOSERVER) ? 0 : 1] = ProbingParser;
+    al_proto_table[al_proto].PPAlprotoMap[(flags & STREAM_TOSERVER) ? 0 : 1] = ProbingParser;
 
     return;
 }

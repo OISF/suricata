@@ -72,7 +72,7 @@ typedef struct AppLayerProto_ {
     int (*StateGetEventInfo)(const char *event_name,
                              int *event_id, AppLayerEventType *event_type);
 
-    ProbingParserFPtr pp_alproto_map[2];
+    ProbingParserFPtr PPAlprotoMap[2];
     /* The current values taken are STREAM_TOSERVER, STREAM_TOCLIENT */
     uint8_t flags;
 
