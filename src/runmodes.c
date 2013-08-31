@@ -505,6 +505,11 @@ void RunModeInitialize(void)
         AffinitySetupLoadFromConfig();
     }
     if ((ConfGetFloat("threading.detect-thread-ratio", &threading_detect_ratio)) != 1) {
+        if (ConfGetNode("threading.detect-thread-ratio") != NULL) {
+            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry "
+                         "found for threading.detect-thread-ratio.  "
+                         "Defaulting to a value of 1.");
+        }
         threading_detect_ratio = 1;
     }
 
