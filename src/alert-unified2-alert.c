@@ -636,7 +636,7 @@ static int Unified2PrintStreamSegmentCallback(Packet *p, void *data, uint8_t *bu
         }
         /** If XFF is in overwrite mode... */
         if (aun->xff_flags & UNIFIED2_ALERT_XFF_OVERWRITE) {
-            BUG_ON(aun->xff_flags & UNIFIED2_ALERT_XFF_IPV4);
+            BUG_ON(aun->xff_flags & UNIFIED2_ALERT_XFF_IPV6);
             fakehdr.ip4h.s_ip_src.s_addr = aun->xff_ip[0];
         }
         memcpy(aun->data + aun->offset, &fakehdr, hdr_length);
