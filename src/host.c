@@ -166,6 +166,8 @@ void HostInitConfig(char quiet)
         if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
             host_config.prealloc = configval;
+        } else {
+            WarnInvalidConfEntry("host.prealloc", "%"PRIu32, host_config.prealloc);
         }
     }
     SCLogDebug("Host config from suricata.yaml: memcap: %"PRIu64", hash-size: "
