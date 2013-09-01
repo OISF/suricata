@@ -347,10 +347,16 @@ void StreamTcpInitConfig(char quiet)
     if ((ConfGetInt("stream.prealloc-sessions", &value)) == 1) {
         stream_config.prealloc_sessions = (uint32_t)value;
     } else {
-        if (RunmodeIsUnittests())
+        if (RunmodeIsUnittests()) {
             stream_config.prealloc_sessions = 128;
-        else
+        } else {
             stream_config.prealloc_sessions = STREAMTCP_DEFAULT_PREALLOC;
+            if (ConfGetNode("stream.prealloc-sessions") != NULL) {
+                WarnInvalidConfEntry("stream.prealloc_sessions",
+                                     "%"PRIu32,
+                                     stream_config.prealloc_sessions);
+            }
+        }
     }
     if (!quiet) {
         SCLogInfo("stream \"prealloc-sessions\": %"PRIu32" (per thread)",
