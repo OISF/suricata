@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -115,7 +115,7 @@ TmEcode DecodePcap(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *)
 
 /** protect pcap_compile and pcap_setfilter, as they are not thread safe:
  *  http://seclists.org/tcpdump/2009/q1/62 */
-static SCMutex pcap_bpf_compile_lock = PTHREAD_MUTEX_INITIALIZER;
+static SCMutex pcap_bpf_compile_lock = SCMUTEX_INITIALIZER;
 
 /**
  * \brief Registration Function for RecievePcap.

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -39,7 +39,8 @@ static SCMutex g_magic_lock;
 /**
  *  \brief Initialize the "magic" context.
  */
-int MagicInit(void) {
+int MagicInit(void)
+{
     BUG_ON(g_magic_ctx != NULL);
 
     SCEnter();
@@ -93,7 +94,8 @@ error:
  *
  *  \retval result pointer to null terminated string
  */
-char *MagicGlobalLookup(uint8_t *buf, uint32_t buflen) {
+char *MagicGlobalLookup(uint8_t *buf, uint32_t buflen)
+{
     const char *result = NULL;
     char *magic = NULL;
 
@@ -121,7 +123,8 @@ char *MagicGlobalLookup(uint8_t *buf, uint32_t buflen) {
  *
  *  \retval result pointer to null terminated string
  */
-char *MagicThreadLookup(magic_t *ctx, uint8_t *buf, uint32_t buflen) {
+char *MagicThreadLookup(magic_t *ctx, uint8_t *buf, uint32_t buflen)
+{
     const char *result = NULL;
     char *magic = NULL;
 
@@ -138,7 +141,8 @@ char *MagicThreadLookup(magic_t *ctx, uint8_t *buf, uint32_t buflen) {
     SCReturnPtr(magic, "const char");
 }
 
-void MagicDeinit(void) {
+void MagicDeinit(void)
+{
     SCMutexLock(&g_magic_lock);
     if (g_magic_ctx != NULL) {
         magic_close(g_magic_ctx);
@@ -288,7 +292,8 @@ end:
 }
 
 /** \test magic lib calls -- lookup */
-int MagicDetectTest03(void) {
+int MagicDetectTest03(void)
+{
     magic_t magic_ctx;
     char *result = NULL;
 
@@ -343,7 +348,8 @@ end:
 }
 
 /** \test magic lib calls -- lookup */
-int MagicDetectTest04(void) {
+int MagicDetectTest04(void)
+{
     magic_t magic_ctx;
     char *result = NULL;
 
@@ -404,7 +410,8 @@ end:
 }
 
 /** \test magic api calls -- lookup */
-int MagicDetectTest05(void) {
+int MagicDetectTest05(void)
+{
     const char *result = NULL;
     uint8_t buffer[] = { 0x25, 'P', 'D', 'F', '-', '1', '.', '3', 0x0d, 0x0a};
     size_t buffer_len = sizeof(buffer);
@@ -428,7 +435,8 @@ end:
 }
 
 /** \test magic api calls -- lookup */
-int MagicDetectTest06(void) {
+int MagicDetectTest06(void)
+{
     const char *result = NULL;
     uint8_t buffer[] = {
         0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1,
@@ -468,7 +476,8 @@ end:
 }
 
 /** \test magic api calls -- lookup */
-int MagicDetectTest07(void) {
+int MagicDetectTest07(void)
+{
     const char *result = NULL;
     uint8_t buffer[] = {
         0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00,
@@ -515,7 +524,8 @@ end:
 }
 
 /** \test magic api calls -- lookup */
-int MagicDetectTest08(void) {
+int MagicDetectTest08(void)
+{
     const char *result = NULL;
     uint8_t buffer[] = {
         0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x00, 0x08,
@@ -568,7 +578,8 @@ end:
 }
 
 /** \test magic api calls -- make sure memory is shared */
-int MagicDetectTest09(void) {
+int MagicDetectTest09(void)
+{
     const char *result1 = NULL;
     const char *result2 = NULL;
     uint8_t buffer[] = { 0x25, 'P', 'D', 'F', '-', '1', '.', '3', 0x0d, 0x0a};
@@ -605,7 +616,8 @@ end:
 
 /** \test results in valgrind warning about invalid read, tested with
  *        file 5.09 and 5.11 */
-static int MagicDetectTest10ValgrindError(void) {
+static int MagicDetectTest10ValgrindError(void)
+{
     const char *result = NULL;
     uint8_t buffer[] = {
         0xFF,0xD8,0xFF,0xE0,0x00,0x10,0x4A,0x46,0x49,0x46,0x00,0x01,0x01,0x01,0x01,0x2C,
@@ -643,7 +655,8 @@ end:
 #endif /* UNITTESTS */
 
 
-void MagicRegisterTests(void) {
+void MagicRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("MagicInitTest01", MagicInitTest01, 1);
     UtRegisterTest("MagicInitTest02", MagicInitTest02, 1);

@@ -272,7 +272,7 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
 
     if (pl->mode == LOGMODE_SGUIL) {
         struct tm local_tm;
-        struct tm *tms = (struct tm *)SCLocalTime(p->ts.tv_sec, &local_tm);
+        struct tm *tms = SCLocalTime(p->ts.tv_sec, &local_tm);
         if (tms->tm_mday != pl->prev_day) {
             rotate = 1;
             pl->prev_day = tms->tm_mday;
@@ -342,7 +342,7 @@ TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
     memset(&ts, 0x00, sizeof(struct timeval));
     TimeGet(&ts);
     struct tm local_tm;
-    struct tm *tms = (struct tm *)SCLocalTime(ts.tv_sec, &local_tm);
+    struct tm *tms = SCLocalTime(ts.tv_sec, &local_tm);
     pl->prev_day = tms->tm_mday;
 
     *data = (void *)pl;
@@ -612,7 +612,7 @@ int PcapLogOpenFileCtx(PcapLogData *pl)
 
     if (pl->mode == LOGMODE_SGUIL) {
         struct tm local_tm;
-        struct tm *tms = (struct tm *)SCLocalTime(ts.tv_sec, &local_tm);
+        struct tm *tms = SCLocalTime(ts.tv_sec, &local_tm);
 
         char dirname[32], dirfull[PATH_MAX] = "";
 
