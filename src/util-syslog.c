@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -53,7 +53,8 @@ SCEnumCharMap sc_syslog_facility_map[] = {
 };
 
 /** \brief returns the syslog facility enum map */
-SCEnumCharMap *SCSyslogGetFacilityMap() {
+SCEnumCharMap *SCSyslogGetFacilityMap()
+{
     return sc_syslog_facility_map;
 }
 
@@ -70,7 +71,8 @@ SCEnumCharMap sc_syslog_level_map[ ] = {
 };
 
 /** \brief returns the syslog facility enum map */
-SCEnumCharMap *SCSyslogGetLogLevelMap() {
+SCEnumCharMap *SCSyslogGetLogLevelMap()
+{
     return sc_syslog_level_map;
 }
 

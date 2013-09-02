@@ -47,7 +47,8 @@ static int storage_max_id[STORAGE_MAX];
 static int storage_registraton_closed = 0;
 static StorageMapping **storage_map = NULL;
 
-const char *StoragePrintType(StorageEnum type) {
+const char *StoragePrintType(StorageEnum type)
+{
     switch(type) {
         case STORAGE_HOST:
             return "host";
@@ -59,14 +60,16 @@ const char *StoragePrintType(StorageEnum type) {
     return "invalid";
 }
 
-void StorageInit(void) {
+void StorageInit(void)
+{
     memset(&storage_max_id, 0x00, sizeof(storage_max_id));
     storage_list = NULL;
     storage_map = NULL;
     storage_registraton_closed = 0;
 }
 
-void StorageCleanup(void) {
+void StorageCleanup(void)
+{
     if (storage_map) {
         int i;
         for (i = 0; i < STORAGE_MAX; i++) {
@@ -89,7 +92,8 @@ void StorageCleanup(void) {
     storage_list = NULL;
 }
 
-int StorageRegister(const StorageEnum type, const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *)) {
+int StorageRegister(const StorageEnum type, const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *))
+{
     if (storage_registraton_closed)
         return -1;
 
@@ -128,7 +132,8 @@ int StorageRegister(const StorageEnum type, const char *name, const unsigned int
     return entry->id;
 }
 
-int StorageFinalize(void) {
+int StorageFinalize(void)
+{
     int count = 0;
     int i;
 
@@ -185,7 +190,8 @@ int StorageFinalize(void) {
     return 0;
 }
 
-unsigned int StorageGetCnt(StorageEnum type) {
+unsigned int StorageGetCnt(StorageEnum type)
+{
     return storage_max_id[type];
 }
 
@@ -195,11 +201,13 @@ unsigned int StorageGetCnt(StorageEnum type) {
  *
  *  \todo we could return -1 when registration isn't closed yet, however
  *        this will break lots of tests currently, so not doing it now */
-unsigned int StorageGetSize(StorageEnum type) {
+unsigned int StorageGetSize(StorageEnum type)
+{
     return storage_max_id[type] * sizeof(void *);
 }
 
-void *StorageGetById(const Storage *storage, const StorageEnum type, const int id) {
+void *StorageGetById(const Storage *storage, const StorageEnum type, const int id)
+{
 #ifdef DEBUG
     BUG_ON(!storage_registraton_closed);
 #endif
@@ -209,7 +217,8 @@ void *StorageGetById(const Storage *storage, const StorageEnum type, const int i
     return storage[id];
 }
 
-int StorageSetById(Storage *storage, const StorageEnum type, const int id, void *ptr) {
+int StorageSetById(Storage *storage, const StorageEnum type, const int id, void *ptr)
+{
 #ifdef DEBUG
     BUG_ON(!storage_registraton_closed);
 #endif
@@ -220,7 +229,8 @@ int StorageSetById(Storage *storage, const StorageEnum type, const int id, void 
     return 0;
 }
 
-void *StorageAllocByIdPrealloc(Storage *storage, StorageEnum type, int id) {
+void *StorageAllocByIdPrealloc(Storage *storage, StorageEnum type, int id)
+{
 #ifdef DEBUG
     BUG_ON(!storage_registraton_closed);
 #endif
@@ -237,7 +247,8 @@ void *StorageAllocByIdPrealloc(Storage *storage, StorageEnum type, int id) {
     return storage[id];
 }
 
-void *StorageAllocById(Storage **storage, StorageEnum type, int id) {
+void *StorageAllocById(Storage **storage, StorageEnum type, int id)
+{
 #ifdef DEBUG
     BUG_ON(!storage_registraton_closed);
 #endif
@@ -266,7 +277,8 @@ void *StorageAllocById(Storage **storage, StorageEnum type, int id) {
     return store[id];
 }
 
-void StorageFreeById(Storage *storage, StorageEnum type, int id) {
+void StorageFreeById(Storage *storage, StorageEnum type, int id)
+{
 #ifdef DEBUG
     BUG_ON(!storage_registraton_closed);
 #endif
@@ -283,7 +295,8 @@ void StorageFreeById(Storage *storage, StorageEnum type, int id) {
     }
 }
 
-void StorageFreeAll(Storage *storage, StorageEnum type) {
+void StorageFreeAll(Storage *storage, StorageEnum type)
+{
     if (*storage == NULL)
         return;
 
@@ -302,7 +315,8 @@ void StorageFreeAll(Storage *storage, StorageEnum type) {
     }
 }
 
-void StorageFree(Storage **storage, StorageEnum type) {
+void StorageFree(Storage **storage, StorageEnum type)
+{
     if (*storage == NULL)
         return;
 
@@ -325,16 +339,19 @@ void StorageFree(Storage **storage, StorageEnum type) {
 
 #ifdef UNITTESTS
 
-static void *StorageTestAlloc(unsigned int size) {
+static void *StorageTestAlloc(unsigned int size)
+{
     void *x = SCMalloc(size);
     return x;
 }
-static void StorageTestFree(void *x) {
+static void StorageTestFree(void *x)
+{
     if (x)
         SCFree(x);
 }
 
-static int StorageTest01(void) {
+static int StorageTest01(void)
+{
     StorageInit();
 
     int id = StorageRegister(STORAGE_HOST, "test", 8, StorageTestAlloc, StorageTestFree);
@@ -361,14 +378,16 @@ struct StorageTest02Data {
     int abc;
 };
 
-static void *StorageTest02Init(unsigned int size) {
+static void *StorageTest02Init(unsigned int size)
+{
     struct StorageTest02Data *data = (struct StorageTest02Data *)SCMalloc(size);
     if (data != NULL)
         data->abc = 1234;
     return (void *)data;
 }
 
-static int StorageTest02(void) {
+static int StorageTest02(void)
+{
     struct StorageTest02Data *test = NULL;
 
     StorageInit();
@@ -436,7 +455,8 @@ error:
     return 0;
 }
 
-static int StorageTest03(void) {
+static int StorageTest03(void)
+{
     StorageInit();
 
     int id = StorageRegister(STORAGE_HOST, "test", 8, StorageTestAlloc, StorageTestFree);
@@ -503,7 +523,8 @@ error:
     return 0;
 }
 
-void StorageRegisterTests(void) {
+void StorageRegisterTests(void)
+{
     UtRegisterTest("StorageTest01", StorageTest01, 1);
     UtRegisterTest("StorageTest02", StorageTest02, 1);
     UtRegisterTest("StorageTest03", StorageTest03, 1);

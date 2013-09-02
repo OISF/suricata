@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -576,7 +576,7 @@ static inline int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThre
  *  On 64 bit systems we inspect in 64 sig batches, creating a u64 with flags.
  *  The size of a register is leading here.
  */
-static inline void SigMatchSignaturesBuildMatchArraySIMD(DetectEngineThreadCtx *det_ctx,
+static inline void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *det_ctx,
         Packet *p, SignatureMask mask, uint16_t alproto)
 {
     uint32_t u;
@@ -712,10 +712,84 @@ static inline void SigMatchSignaturesBuildMatchArraySIMD(DetectEngineThreadCtx *
 #error Wordsize (__WORDSIZE) neither 32 or 64.
 #endif
 }
-#endif /* defined(__SSE3__) */
+ /* end defined(__SSE3__) */
+#elif defined(__tile__)
 
-static inline void SigMatchSignaturesBuildMatchArrayNoSIMD(DetectEngineThreadCtx *det_ctx,
+/**
+ *  \brief SIMD implementation of mask prefiltering for TILE-Gx
+ *
+ *  Mass mask matching is done creating a bitmap of signatures that need
+ *  futher inspection.
+ */
+static inline void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *det_ctx,
         Packet *p, SignatureMask mask, uint16_t alproto)
+{
+    uint32_t u;
+    register uint64_t bm; /* bit mask, 64 bits used */
+
+    /* Keep local copies of variables that don't change during this function. */
+    uint64_t *mask_vector = (uint64_t*)det_ctx->sgh->mask_array;
+    uint32_t sig_cnt = det_ctx->sgh->sig_cnt;
+    SignatureHeader *head_array = det_ctx->sgh->head_array;
+
+    Signature **match_array = det_ctx->match_array;
+    uint32_t match_count = 0;
+
+    /* Replicate the packet mask into each byte of the vector. */
+    uint64_t pm = __insn_shufflebytes(mask, 0, 0);
+
+    /* u is the signature index. */
+    for (u = 0; u < sig_cnt; u += 8) {
+        /* Load 8 masks */
+        uint64_t sm = *mask_vector++;
+        /* Binary AND 8 masks with the packet's mask */
+        uint64_t r1 = pm & sm;
+        /* Compare the result with the original mask
+         * Result if equal puts a 1 in LSB of bytes that match.
+         */
+        bm = __insn_v1cmpeq(sm, r1);
+
+        /* Check the LSB bit of each byte in the bit map. Little endian is assumed,
+         * so the LSB byte is index 0. Uses count trailing zeros to find least
+         * significant bit that is set. */
+        while (bm) {
+            /* Find first bit set starting from LSB. */
+            unsigned int first_bit = __insn_ctz(bm);
+            unsigned int first_byte = first_bit >> 3;
+            unsigned int x = u + first_byte;
+            if (x >= sig_cnt)
+                break;
+            SignatureHeader *s = &head_array[x];
+
+            /* Clear the first bit set, so it is not found again. */
+            bm -= (1UL << first_bit);
+
+            if (SigMatchSignaturesBuildMatchArrayAddSignature(det_ctx, p, s, alproto) == 1) {
+                /* okay, store it */
+                *match_array++ = s->full_sig;
+                match_count++;
+            }
+        }
+    }
+    det_ctx->match_array_cnt = match_count;
+}
+/* end defined(__tile__) */
+#else
+/* No SIMD implementation */
+/**
+ *  \brief build an array of signatures that will be inspected
+ *
+ *  All signatures that can be filtered out on forehand are not added to it.
+ *
+ *  \param de_ctx detection engine ctx
+ *  \param det_ctx detection engine thread ctx -- array is stored here
+ *  \param p packet
+ *  \param mask Packets mask
+ *  \param alproto application layer protocol
+ */
+static inline void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *det_ctx,
+                                                     Packet *p, SignatureMask mask,
+                                                     uint16_t alproto)
 {
     uint32_t u;
 
@@ -733,27 +807,7 @@ static inline void SigMatchSignaturesBuildMatchArrayNoSIMD(DetectEngineThreadCtx
         }
     }
 }
-
-/**
- *  \brief build an array of signatures that will be inspected
- *
- *  All signatures that can be filtered out on forehand are not added to it.
- *
- *  \param de_ctx detection engine ctx
- *  \param det_ctx detection engine thread ctx -- array is stored here
- *  \param p packet
- *  \param mask Packets mask
- *  \param alproto application layer protocol
- */
-static void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *det_ctx,
-        Packet *p, SignatureMask mask, uint16_t alproto)
-{
-#if defined(__SSE3__)
-    SigMatchSignaturesBuildMatchArraySIMD(det_ctx, p, mask, alproto);
-#else
-    SigMatchSignaturesBuildMatchArrayNoSIMD(det_ctx, p, mask, alproto);
-#endif
-}
+#endif /* No SIMD implementation */
 
 int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
                                    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,

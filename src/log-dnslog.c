@@ -46,6 +46,7 @@
 #include "util-buffer.h"
 
 #include "util-logopenfile.h"
+#include "util-time.h"
 
 #define DEFAULT_LOG_FILENAME "dns.log"
 
@@ -94,17 +95,6 @@ typedef struct LogDnsLogThread_ {
 
     MemBuffer *buffer;
 } LogDnsLogThread;
-
-static void CreateTimeString (const struct timeval *ts, char *str, size_t size)
-{
-    time_t time = ts->tv_sec;
-    struct tm local_tm;
-    struct tm *t = (struct tm *)SCLocalTime(time, &local_tm);
-
-    snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
-        t->tm_mon + 1, t->tm_mday, t->tm_year + 1900, t->tm_hour,
-            t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
-}
 
 static void CreateTypeString(uint16_t type, char *str, size_t str_size) {
     if (type == DNS_RECORD_TYPE_A) {

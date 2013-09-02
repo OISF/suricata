@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -72,7 +72,7 @@ static AppLayerParserTableElement al_parser_table[MAX_PARSERS];
 static uint16_t al_max_parsers = 0; /* incremented for every registered parser */
 
 static Pool *al_result_pool = NULL;
-static SCMutex al_result_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
+static SCMutex al_result_pool_mutex = SCMUTEX_INITIALIZER;
 #ifdef DEBUG
 static uint32_t al_result_pool_elmts = 0;
 #endif /* DEBUG */

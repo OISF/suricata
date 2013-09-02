@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -34,7 +34,8 @@
 
 #include "util-debug.h"
 
-void GenericVarFree(GenericVar *gv) {
+void GenericVarFree(GenericVar *gv)
+{
     if (gv == NULL)
         return;
 
@@ -71,7 +72,8 @@ void GenericVarFree(GenericVar *gv) {
     GenericVarFree(next_gv);
 }
 
-void GenericVarAppend(GenericVar **list, GenericVar *gv) {
+void GenericVarAppend(GenericVar **list, GenericVar *gv)
+{
     gv->next = NULL;
 
     if (*list == NULL) {
@@ -89,7 +91,8 @@ void GenericVarAppend(GenericVar **list, GenericVar *gv) {
     }
 }
 
-void GenericVarRemove(GenericVar **list, GenericVar *gv) {
+void GenericVarRemove(GenericVar **list, GenericVar *gv)
+{
     if (*list == NULL)
         return;
 
@@ -108,4 +111,3 @@ void GenericVarRemove(GenericVar **list, GenericVar *gv) {
         listgv = listgv->next;
     }
 }
-

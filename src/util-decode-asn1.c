@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -35,7 +35,8 @@
 
 uint16_t asn1_max_frames_config = ASN1_MAX_FRAMES;
 
-void SCAsn1LoadConfig() {
+void SCAsn1LoadConfig()
+{
     intmax_t value = 0;
 
     /** set config defaults */
@@ -54,7 +55,8 @@ void SCAsn1LoadConfig() {
  *
  * \retval byte of the status of the parser
  */
-uint8_t SCAsn1GetHighTagNumber(Asn1Ctx *ac) {
+uint8_t SCAsn1GetHighTagNumber(Asn1Ctx *ac)
+{
     uint8_t ret = 0;
     uint32_t tag_num = 0;
 
@@ -117,7 +119,8 @@ uint8_t SCAsn1GetHighTagNumber(Asn1Ctx *ac) {
  *
  * \retval byte of the status of the parser
  */
-uint32_t SCAsn1GetLengthLongForm(Asn1Ctx *ac) {
+uint32_t SCAsn1GetLengthLongForm(Asn1Ctx *ac)
+{
     uint8_t raw_len = *ac->iter;
     uint8_t ret = 0;
     uint32_t content_len = 0;
@@ -169,7 +172,8 @@ uint32_t SCAsn1GetLengthLongForm(Asn1Ctx *ac) {
  *
  * \retval byte of the status of the parser
  */
-uint8_t SCAsn1DecodeContent(Asn1Ctx *ac) {
+uint8_t SCAsn1DecodeContent(Asn1Ctx *ac)
+{
 
     Asn1Node *node = ASN1CTX_CUR_NODE(ac);
 
@@ -208,7 +212,8 @@ uint8_t SCAsn1DecodeContent(Asn1Ctx *ac) {
  *
  * \retval byte of the status of the parser
  */
-uint8_t SCAsn1DecodeLength(Asn1Ctx *ac) {
+uint8_t SCAsn1DecodeLength(Asn1Ctx *ac)
+{
     uint8_t ret = 0;
     ret = SCAsn1CheckBounds(ac);
     if (ret == ASN1_PARSER_ERR) {
@@ -277,7 +282,8 @@ uint8_t SCAsn1DecodeLength(Asn1Ctx *ac) {
  *
  * \retval byte of the status of the parser
  */
-uint8_t SCAsn1DecodeIdentifier(Asn1Ctx *ac) {
+uint8_t SCAsn1DecodeIdentifier(Asn1Ctx *ac)
+{
     uint8_t ret = 0;
     ret = SCAsn1CheckBounds(ac);
     if (ret == ASN1_PARSER_ERR) {
@@ -309,7 +315,8 @@ uint8_t SCAsn1DecodeIdentifier(Asn1Ctx *ac) {
  *        to check encoding internals
  * \param byte value of the byte
  */
-void SCPrintByteBin(uint8_t byte) {
+void SCPrintByteBin(uint8_t byte)
+{
     uint8_t i = 0;
     for (i = 8; i > 0; i--) {
         printf("%"PRIu8, ((byte >> (i - 1)) & 0x01));
@@ -325,7 +332,8 @@ void SCPrintByteBin(uint8_t byte) {
  * \param ac Asn1Ctx pointer initialized
  * \retval 1 if we are out of bounds, 0 if not
  */
-uint8_t SCAsn1CheckBounds(Asn1Ctx *ac) {
+uint8_t SCAsn1CheckBounds(Asn1Ctx *ac)
+{
     return (ac->iter < ac->end && ac->iter >= ac->data)? ASN1_PARSER_OK : ASN1_PARSER_ERR;
 }
 
@@ -335,7 +343,8 @@ uint8_t SCAsn1CheckBounds(Asn1Ctx *ac) {
  *
  * \retval Asn1Ctx pointer to the new ctx
  */
-Asn1Ctx *SCAsn1CtxNew(void) {
+Asn1Ctx *SCAsn1CtxNew(void)
+{
     Asn1Ctx *ac = SCMalloc(sizeof(Asn1Ctx));
 
     if (unlikely(ac == NULL)) {
@@ -359,7 +368,8 @@ Asn1Ctx *SCAsn1CtxNew(void) {
  *
  * \param Asn1Ctx pointer to the new ctx
  */
-void SCAsn1CtxDestroy(Asn1Ctx *ac) {
+void SCAsn1CtxDestroy(Asn1Ctx *ac)
+{
     if (ac == NULL)
         return;
 
@@ -382,7 +392,8 @@ void SCAsn1CtxDestroy(Asn1Ctx *ac) {
  *
  * \retval Asn1Node pointer to the new node allocated
  */
-Asn1Node *SCAsn1CtxNewFrame(Asn1Ctx *ac, uint16_t node) {
+Asn1Node *SCAsn1CtxNewFrame(Asn1Ctx *ac, uint16_t node)
+{
     if (node >= asn1_max_frames_config) {
         return NULL;
     }
@@ -406,8 +417,8 @@ Asn1Node *SCAsn1CtxNewFrame(Asn1Ctx *ac, uint16_t node) {
  *
  * \retval void
  */
-void SCAsn1CtxInit(Asn1Ctx *ac, uint8_t *data, uint16_t length) {
-
+void SCAsn1CtxInit(Asn1Ctx *ac, uint8_t *data, uint16_t length)
+{
     ac->data = data;
     ac->iter = data;
     ac->len = length;
@@ -423,7 +434,8 @@ void SCAsn1CtxInit(Asn1Ctx *ac, uint8_t *data, uint16_t length) {
  *
  * \retval byte of parser status
  */
-uint8_t SCAsn1Decode(Asn1Ctx *ac, uint16_t node_id) {
+uint8_t SCAsn1Decode(Asn1Ctx *ac, uint16_t node_id)
+{
     Asn1Node *node = NULL;
     uint8_t ret = 0;
 
@@ -528,7 +540,8 @@ uint8_t SCAsn1Decode(Asn1Ctx *ac, uint16_t node_id) {
 /**
  * \test Check we handle extended identifiers correctly
  */
-int DecodeAsn1Test01(void) {
+int DecodeAsn1Test01(void)
+{
     uint8_t *str = (uint8_t *) "\x3F\x84\x06";
 
     Asn1Ctx *ac = SCAsn1CtxNew();
@@ -556,7 +569,8 @@ end:
 /**
  * \test Check we handle extended identifiers correctly
  */
-int DecodeAsn1Test02(void) {
+int DecodeAsn1Test02(void)
+{
     uint8_t *str = (uint8_t *) "\x3F\x81\x81\x81\x81\x06";
 
     Asn1Ctx *ac = SCAsn1CtxNew();
@@ -584,7 +598,8 @@ end:
 /**
  * \test Check we handle short identifiers correctly
  */
-int DecodeAsn1Test03(void) {
+int DecodeAsn1Test03(void)
+{
     uint8_t *str = (uint8_t *) "\x28";
 
     Asn1Ctx *ac = SCAsn1CtxNew();
@@ -612,7 +627,8 @@ end:
 /**
  * \test Check we handle extended lengths correctly with indefinite form
  */
-int DecodeAsn1Test04(void) {
+int DecodeAsn1Test04(void)
+{
     uint8_t *str = (uint8_t *) "\x3F\x84\x06\x80\x12\x12\x12\x00\x00";
 
     Asn1Ctx *ac = SCAsn1CtxNew();
@@ -641,7 +657,8 @@ end:
  * \test Check we handle extended lengths correctly
  *       in the definite form
  */
-int DecodeAsn1Test05(void) {
+int DecodeAsn1Test05(void)
+{
     uint8_t *str = (uint8_t *) "\x3F\x84\x06\x82\x10\x10";
 
     Asn1Ctx *ac = SCAsn1CtxNew();
@@ -669,7 +686,8 @@ end:
 /**
  * \test Check we handle short lengths correctly
  */
-int DecodeAsn1Test06(void) {
+int DecodeAsn1Test06(void)
+{
     uint8_t *str = (uint8_t *) "\x3F\x84\x06\x26";
 
     Asn1Ctx *ac = SCAsn1CtxNew();
@@ -697,7 +715,8 @@ end:
 /**
  * \test Check we handle events correctly
  */
-int DecodeAsn1Test07(void) {
+int DecodeAsn1Test07(void)
+{
     uint8_t *str = (uint8_t *) "\x3F\x00\x84\x06";
 
     Asn1Ctx *ac = SCAsn1CtxNew();
@@ -727,7 +746,8 @@ end:
 /**
  * \test Check we handle events correctly
  */
-int DecodeAsn1Test08(void) {
+int DecodeAsn1Test08(void)
+{
     uint8_t *str = (uint8_t *) "\x3F\x84\x06\x81\xFF";
 
     Asn1Ctx *ac = SCAsn1CtxNew();
@@ -757,7 +777,8 @@ end:
 /**
  * \test Check we handle events correctly
  */
-int DecodeAsn1Test09(void) {
+int DecodeAsn1Test09(void)
+{
     uint8_t *str = (uint8_t *) "\x3F\x84\x06\x80\xAB\xCD\xEF";
 
     Asn1Ctx *ac = SCAsn1CtxNew();
@@ -787,7 +808,8 @@ end:
 /**
  * \test Decode a big chunk of data
  */
-int DecodeAsn1Test10(void) {
+int DecodeAsn1Test10(void)
+{
     // Example from the specification X.690-0207 Appendix A.3
     uint8_t *str = (uint8_t *) "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01"
                    "P""\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
@@ -861,7 +883,8 @@ end:
 
 #endif
 
-void DecodeAsn1RegisterTests(void) {
+void DecodeAsn1RegisterTests(void)
+{
 #ifdef UNITTESTS
      UtRegisterTest("DecodeAsn1Test01", DecodeAsn1Test01, 1);
      UtRegisterTest("DecodeAsn1Test02", DecodeAsn1Test02, 1);
