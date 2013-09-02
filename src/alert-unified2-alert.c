@@ -637,7 +637,12 @@ static int Unified2PrintStreamSegmentCallback(Packet *p, void *data, uint8_t *bu
         /** If XFF is in overwrite mode... */
         if (aun->xff_flags & UNIFIED2_ALERT_XFF_OVERWRITE) {
             BUG_ON(aun->xff_flags & UNIFIED2_ALERT_XFF_IPV6);
-            fakehdr.ip4h.s_ip_src.s_addr = aun->xff_ip[0];
+
+            if (p->flowflags & FLOW_PKT_TOCLIENT) {
+                fakehdr.ip4h.s_ip_dst.s_addr = aun->xff_ip[0];
+            } else {
+                fakehdr.ip4h.s_ip_src.s_addr = aun->xff_ip[0];
+            }
         } 
 
         memcpy(aun->data + aun->offset, &fakehdr, hdr_length);
@@ -675,7 +680,12 @@ static int Unified2PrintStreamSegmentCallback(Packet *p, void *data, uint8_t *bu
         /** If XFF is in overwrite mode... */
         if (aun->xff_flags & UNIFIED2_ALERT_XFF_OVERWRITE) {
             BUG_ON(aun->xff_flags & UNIFIED2_ALERT_XFF_IPV4);
-            memcpy(fakehdr.ip6h.s_ip6_src, aun->xff_ip, 4 * sizeof(uint32_t));
+
+            if (p->flowflags & FLOW_PKT_TOCLIENT) {
+                memcpy(fakehdr.ip6h.s_ip6_dst, aun->xff_ip, 4 * sizeof(uint32_t));
+            } else {
+                memcpy(fakehdr.ip6h.s_ip6_src, aun->xff_ip, 4 * sizeof(uint32_t));
+            }
         }        
          
         memcpy(aun->data + aun->offset, &fakehdr, hdr_length);
