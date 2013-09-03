@@ -2302,6 +2302,48 @@ int AddressTestParse37(void)
     return 0;
 }
 
+int AddressTestParse38(void)
+{
+    int result = 0;
+
+    char *addr1 = "[192.168.0.0/16, 10.0.0.0/8,172.16.0.0/12]";
+    char *addr2 = "[10.10.10.0/24, !10.10.10.247]";
+    char *addr3 = "[10.10.10.0/24, !10.10.10.247/32]";
+
+    DetectAddressHead *gh;
+    int r;
+
+    gh = DetectAddressHeadInit();
+    if (gh == NULL)
+        goto end;
+    r = DetectAddressParse(gh, addr1);
+    if (r < 0)
+        goto end;
+    DetectAddressHeadFree(gh);
+
+
+    gh = DetectAddressHeadInit();
+    if (gh == NULL)
+        goto end;
+    r = DetectAddressParse(gh, addr2);
+    if (r < 0)
+        goto end;
+    DetectAddressHeadFree(gh);
+
+    gh = DetectAddressHeadInit();
+    if (gh == NULL)
+        goto end;
+    r = DetectAddressParse(gh, addr3);
+    if (r < 0)
+        goto end;
+    DetectAddressHeadFree(gh);
+
+    result = 1;
+
+ end:
+    return result;
+}
+
 int AddressTestMatch01(void)
 {
     DetectAddress *dd = NULL;
@@ -4765,6 +4807,7 @@ void DetectAddressTests(void)
     UtRegisterTest("AddressTestParse35", AddressTestParse35, 1);
     UtRegisterTest("AddressTestParse36", AddressTestParse36, 1);
     UtRegisterTest("AddressTestParse37", AddressTestParse37, 1);
+    UtRegisterTest("AddressTestParse38", AddressTestParse38, 1);
 
     UtRegisterTest("AddressTestMatch01", AddressTestMatch01, 1);
     UtRegisterTest("AddressTestMatch02", AddressTestMatch02, 1);
