@@ -232,7 +232,9 @@ magic-file: @e_magic_file@
 # On linux >= 3.1, you can set batchcount to a value > 1 to improve performance
 # by processing several packets before sending a verdict (worker runmode only).
 # On linux >= 3.6, you can set the fail-open option to yes to have the kernel
-# accept the packet if suricata is not able to keep pace.
+# accept the packet if suricata is not able to keep pace.
+# If fail-accept is set to yes, packet will be accepted in case of an internal
+# error in suricata
 nfq:
 #  mode: accept
 #  repeat-mark: 1
@@ -240,6 +242,7 @@ nfq:
 #  route-queue: 2
 #  batchcount: 20
 #  fail-open: yes
+#  fail-accept: yes
 
 # af-packet support
 # Set threads to > 1 to use PACKET_FANOUT support
