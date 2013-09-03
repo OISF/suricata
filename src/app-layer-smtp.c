@@ -113,7 +113,7 @@ SCEnumCharMap smtp_decoder_event_table[ ] = {
     { NULL,                      -1 },
 };
 
-#define SMTP_MPM MPM_AC
+#define SMTP_MPM MPM_B2G
 
 static MpmCtx *smtp_mpm_ctx = NULL;
 MpmThreadCtx *smtp_mpm_thread_ctx;
