@@ -411,9 +411,9 @@ AM_CFLAGS = -DLOCAL_STATE_DIR=\"$(localstatedir)\"
 
 if BUILD_UNITTESTS
 check-am:
-	-mkdir $(top_srcdir)/qa/log/
-	$(top_builddir)/src/suricata -u -l $(top_srcdir)/qa/log/
-	-rm -rf $(top_srcdir)/qa/log
+	-mkdir $(top_builddir)/qa/log/
+	$(top_builddir)/src/suricata -u -l $(top_builddir)/qa/log/
+	-rm -rf $(top_builddir)/qa/log
 endif
 
 distclean-local:
