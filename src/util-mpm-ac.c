@@ -1831,12 +1831,12 @@ static void *SCACCudaDispatcher(void *arg)
                   cb_data->op_buffer_read,
                   cb_data->op_buffer_write);
 #endif
-        r = SCCudaMemcpyHtoD(cuda_packets_buffer_d, (cb_data->d_buffer + cb_culled_info.d_buffer_start_offset), cb_culled_info.d_buffer_len);
+        r = SCCudaMemcpyHtoDAsync(cuda_packets_buffer_d, (cb_data->d_buffer + cb_culled_info.d_buffer_start_offset), cb_culled_info.d_buffer_len, 0);
         if (r < 0) {
             SCLogError(SC_ERR_AC_CUDA_ERROR, "SCCudaMemcpyHtoD failure.");
             exit(EXIT_FAILURE);
         }
-        r = SCCudaMemcpyHtoD(cuda_offset_buffer_d, (cb_data->o_buffer + cb_culled_info.op_buffer_start_offset), sizeof(uint32_t) * cb_culled_info.no_of_items);
+        r = SCCudaMemcpyHtoDAsync(cuda_offset_buffer_d, (cb_data->o_buffer + cb_culled_info.op_buffer_start_offset), sizeof(uint32_t) * cb_culled_info.no_of_items, 0);
         if (r < 0) {
             SCLogError(SC_ERR_AC_CUDA_ERROR, "SCCudaMemcpyHtoD failure.");
             exit(EXIT_FAILURE);
@@ -1856,7 +1856,7 @@ static void *SCACCudaDispatcher(void *arg)
             SCLogError(SC_ERR_AC_CUDA_ERROR, "SCCudaLaunchKernel failure.");
             exit(EXIT_FAILURE);
         }
-        r = SCCudaMemcpyDtoH(cuda_results_buffer_h, cuda_results_buffer_d, sizeof(uint32_t) * (cb_culled_info.d_buffer_len * 2));
+        r = SCCudaMemcpyDtoHAsync(cuda_results_buffer_h, cuda_results_buffer_d, sizeof(uint32_t) * (cb_culled_info.d_buffer_len * 2), 0);
         if (r < 0) {
             SCLogError(SC_ERR_AC_CUDA_ERROR, "SCCudaMemcpyDtoH failure.");
             exit(EXIT_FAILURE);
