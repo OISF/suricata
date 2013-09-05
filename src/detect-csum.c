@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1530,7 +1530,7 @@ int DetectCsumICMPV6Test01(void)
         printf("DetectEngineCtxInit failure\n");
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_AC;
+    de_ctx->mpm_matcher = DEFAULT_MPM;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert ip any any -> any any "

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -58,8 +58,7 @@
 #endif
 
 /** \todo make it possible to use multiple pattern matcher algorithms next to
-          eachother. */
-#define PM   MPM_AC
+          each other. */
 
 #define POPULATE_MPM_AVOID_PACKET_MPM_PATTERNS 0x01
 #define POPULATE_MPM_AVOID_STREAM_MPM_PATTERNS 0x02
@@ -134,13 +133,13 @@ int SignatureHasStreamContent(Signature *s) {
 /**
  *  \brief  Function to return the multi pattern matcher algorithm to be
  *          used by the engine, based on the mpm-algo setting in yaml
- *          Use the default mpm non is found in yaml.
+ *          Use the default mpm if none is specified in the yaml file.
  *
  *  \retval mpm algo value
  */
 uint16_t PatternMatchDefaultMatcher(void) {
     char *mpm_algo;
-    uint16_t mpm_algo_val = PM;
+    uint16_t mpm_algo_val = DEFAULT_MPM;
 
     /* Get the mpm algo defined in config file by the user */
     if ((ConfGet("mpm-algo", &mpm_algo)) == 1) {
@@ -152,7 +151,8 @@ uint16_t PatternMatchDefaultMatcher(void) {
                     continue;
 
                 if (strcmp(mpm_table[u].name, mpm_algo) == 0) {
-                    return u;
+                    mpm_algo_val = u;
+                    goto done;
                 }
             }
         }
@@ -161,6 +161,12 @@ uint16_t PatternMatchDefaultMatcher(void) {
                 "in the yaml conf file: \"%s\"", mpm_algo);
         exit(EXIT_FAILURE);
     }
+
+ done:
+#ifdef __tile__
+    if (mpm_algo_val == MPM_AC)
+      mpm_algo_val = MPM_AC_TILE;
+#endif
 
     return mpm_algo_val;
 }
