@@ -297,6 +297,7 @@ util-misc.c util-misc.h \
 util-mpm-ac-bs.c util-mpm-ac-bs.h \
 util-mpm-ac.c util-mpm-ac.h \
 util-mpm-ac-gfbs.c util-mpm-ac-gfbs.h \
+util-mpm-ac-tile.c util-mpm-ac-tile.h \
 util-mpm-b2gc.c util-mpm-b2gc.h \
 util-mpm-b2g.c util-mpm-b2g.h \
 util-mpm-b2gm.c util-mpm-b2gm.h \

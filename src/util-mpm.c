@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -36,6 +36,7 @@
 #include "util-mpm-ac.h"
 #include "util-mpm-ac-gfbs.h"
 #include "util-mpm-ac-bs.h"
+#include "util-mpm-ac-tile.h"
 #include "util-hashlist.h"
 
 #include "detect-engine.h"
@@ -589,6 +590,7 @@ void MpmTableSetup(void) {
     MpmACRegister();
     MpmACBSRegister();
     MpmACGfbsRegister();
+    MpmACTileRegister();
 #ifdef __SC_CUDA_SUPPORT__
     MpmACCudaRegister();
 #endif /* __SC_CUDA_SUPPORT__ */
