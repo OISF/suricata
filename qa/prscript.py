@@ -27,14 +27,35 @@ BASE_URI="https://buildbot.suricata-ids.org/"
 BUILDERS_URI=BASE_URI+"builders/"
 JSON_BUILDERS_URI=BASE_URI+"json/builders/"
 
+GITHUB_BASE_URI = "https://api.github.com/repos/"
+GITHUB_MASTER_URI = "https://api.github.com/repos/inliniac/suricata/commits?sha=master"
+
 parser = argparse.ArgumentParser(prog='prscript', description='Script checking validity of branch before PR')
 parser.add_argument('-u', '--username', dest='username', help='github and buildbot user')
 parser.add_argument('-p', '--password', dest='password', help='buildbot password')
 parser.add_argument('-c', '--check', action='store_const', const=True, help='only check last build', default=False)
+parser.add_argument('-r', '--repository', dest='repository', default='suricata', help='suricata repository on github')
 parser.add_argument('branch', metavar='branch', help='github branch to build')
 args = parser.parse_args()
 username = args.username
 password = args.password
+
+def TestRepoSync(branch):
+    request = urllib2.Request(GITHUB_MASTER_URI)
+    page = urllib2.urlopen(request)
+    json_result = json.loads(page.read())
+    sha_orig = json_result[0]["sha"]
+    request = urllib2.Request(GITHUB_BASE_URI + username + "/" + args.repository + "/commits?sha=" + branch)
+    page = urllib2.urlopen(request)
+    json_result = json.loads(page.read())
+    found = -1
+    for commit in json_result:
+        if commit["sha"] == sha_orig:
+            found = 1
+            break
+    return found
+
+
 
 def SubmitBuild(branch):
     raw_params = {'username':username,'passwd':password,'branch':branch,'comments':'Testing ' + branch, 'name':'force_build'}
@@ -73,8 +94,10 @@ def GetBuildStatus(builder, buildid):
         return 0
     return -1
 
-# check that github branch and current branch are sync
-
+# check that github branch and inliniac master branch are sync
+if TestRepoSync(args.branch) == -1:
+    print "Branch " + args.branch + " is not in sync with inliniac's master branch. Rebase needed."
+    sys.exit(-1)
 
 # submit buildbot form to build current branch on the devel builder
 if not args.check:
