@@ -157,6 +157,11 @@ void DefragInitConfig(char quiet)
         if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
             defrag_config.hash_size = configval;
+        } else {
+            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid value "
+                         "found for defrag.hash-size.  Defaulting to "
+                         "default value of %"PRIu32".",
+                         defrag_config.hash_size);
         }
     }
 
@@ -166,6 +171,10 @@ void DefragInitConfig(char quiet)
         if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
             defrag_config.prealloc = configval;
+        } else {
+            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid value found "
+                         "for defrag.trackers.  Defaulting to default value of "
+                         "%"PRIu32".", defrag_config.prealloc);
         }
     }
     SCLogDebug("DefragTracker config from suricata.yaml: memcap: %"PRIu64", hash-size: "
