@@ -34,7 +34,8 @@ parser = argparse.ArgumentParser(prog='prscript', description='Script checking v
 parser.add_argument('-u', '--username', dest='username', help='github and buildbot user')
 parser.add_argument('-p', '--password', dest='password', help='buildbot password')
 parser.add_argument('-c', '--check', action='store_const', const=True, help='only check last build', default=False)
-parser.add_argument('-r', '--repository', dest='repository', default='suricata', help='suricata repository on github')
+parser.add_argument('-v', '--verbose', action='store_const', const=True, help='verbose output', default=False)
+parser.add_argument('-r', '--repository', dest='repository', default='suricata', help='name of suricata repository on github')
 parser.add_argument('branch', metavar='branch', help='github branch to build')
 args = parser.parse_args()
 username = args.username
@@ -55,15 +56,16 @@ def TestRepoSync(branch):
             break
     return found
 
-
-
 def SubmitBuild(branch):
     raw_params = {'username':username,'passwd':password,'branch':branch,'comments':'Testing ' + branch, 'name':'force_build'}
     params = urllib.urlencode(raw_params)
     request = urllib2.Request(BUILDERS_URI + username + '/force', params)
     page = urllib2.urlopen(request)
-    info = page.info()
     result = page.read()
+    if args.verbose:
+        print "=== response ==="
+        print result
+        print "=== end of response ==="
     if "Current Builds" in result:
         print "Build submitted"
         return 0
@@ -88,7 +90,12 @@ def GetBuildStatus(builder, buildid):
     # https://buildbot.suricata-ids.org/json/builders/build%20deb6/builds/11
     request = urllib2.Request(JSON_BUILDERS_URI + username + '/builds/' + str(buildid))
     page = urllib2.urlopen(request)
-    json_result = json.loads(page.read())
+    result = page.read()
+    if args.verbose:
+        print "=== response ==="
+        print result
+        print "=== end of response ==="
+    json_result = json.loads(result)
     if json_result["currentStep"]:
         return 1
     if 'successful' in json_result["text"]:
