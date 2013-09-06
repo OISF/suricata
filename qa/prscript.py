@@ -82,6 +82,7 @@ def FindBuild(branch):
         return json_result["currentBuilds"][0]
     if json_result["cachedBuilds"]:
         return json_result["cachedBuilds"][-1]
+    return -2
 
 def GetBuildStatus(builder, buildid):
     # https://buildbot.suricata-ids.org/json/builders/build%20deb6/builds/11
@@ -112,6 +113,9 @@ buildid = FindBuild(args.branch)
 if buildid == -1:
     print "Pending build tracking is not supported. Follow build by browsing " + BUILDERS_URI + username
     sys.exit(-1)
+if buildid == -2:
+    print "No build found for " + BUILDERS_URI + username
+    sys.exit(0)
 # fetch result every 10 secs till task is over
 
 res = 1
