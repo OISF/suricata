@@ -157,6 +157,8 @@ void DefragInitConfig(char quiet)
         if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
             defrag_config.hash_size = configval;
+        } else {
+            WarnInvalidConfEntry("defrag.hash-size", defrag_config.hash_size, "%"PRIu32);
         }
     }
 
@@ -166,6 +168,8 @@ void DefragInitConfig(char quiet)
         if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
             defrag_config.prealloc = configval;
+        } else {
+            WarnInvalidConfEntry("defrag.trackers", defrag_config.prealloc, "%"PRIu32);
         }
     }
     SCLogDebug("DefragTracker config from suricata.yaml: memcap: %"PRIu64", hash-size: "
