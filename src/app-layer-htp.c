@@ -2439,18 +2439,14 @@ static HTPCfgRec cfglist_backup;
 
 void HtpConfigCreateBackup(void)
 {
-    cfglist_backup.cfg = cfglist.cfg;
-    cfglist_backup.next = cfglist.next;
-    cfglist_backup.request_body_limit = cfglist.request_body_limit;
+    cfglist_backup = cfglist;
 
     return;
 }
 
 void HtpConfigRestoreBackup(void)
 {
-    cfglist.cfg = cfglist_backup.cfg;
-    cfglist.next = cfglist_backup.next;
-    cfglist.request_body_limit = cfglist_backup.request_body_limit;
+    cfglist = cfglist_backup;
 
     return;
 }
