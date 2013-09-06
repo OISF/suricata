@@ -24,6 +24,23 @@
 #ifndef __UTIL_MISC_H__
 #define __UTIL_MISC_H__
 
+#include "util-error.h"
+
+/**
+ * \brief Generic API that can be used by all to log an
+ *        invalid conf entry.
+ * \param param_name A string specifying the param name.
+ * \param format Format for the below value.  For example "%s", "%"PRIu32,
+                 etc.
+ * \param value Default value to be printed.
+ */
+#define WarnInvalidConfEntry(param_name, format, value) do {            \
+        SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY,                    \
+                     "Invalid conf entry found for "                    \
+                     "\"%s\".  Using default value of \"" format "\".", \
+                     param_name, value);                                \
+    } while (0)
+
 /* size string parsing API */
 
 int ParseSizeStringU8(const char *, uint8_t *);
