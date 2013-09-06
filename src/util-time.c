@@ -148,7 +148,11 @@ void CreateTimeString (const struct timeval *ts, char *str, size_t size)
 /* On systems supporting __thread, use Per-thread values for caching
  * in CreateTimeString */
 
-#define MAX_LOCAL_TIME_STRING 128
+/* The maximum possible length of the time string.
+ * "%02d/%02d/%02d-%02d:%02d:%02d.%06u"
+ * Or "01/01/2013-15:42:21.123456", which is 26, so round up to 32. */
+#define MAX_LOCAL_TIME_STRING 32
+
 static __thread int mru_time_slot; /* Most recently used cached value */
 static __thread time_t last_local_time[2];
 static __thread short int cached_local_time_len[2];
@@ -267,6 +271,8 @@ void CreateTimeString (const struct timeval *ts, char *str, size_t size)
        into the return string buffer. */
     char *cached_str = cached_local_time[mru_time_slot];
     int cached_len = cached_local_time_len[mru_time_slot];
+    if (cached_len >= size)
+      cached_len = size;
     memcpy(str, cached_str, cached_len);
     snprintf(str + cached_len, size - cached_len,
              "%02d.%06u",
