@@ -290,7 +290,7 @@ typedef struct Flow_
      *  On receiving a packet the counter is incremented while the flow
      *  bucked is locked, which is also the case on timeout pruning.
      */
-    SC_ATOMIC_DECLARE(unsigned short, use_cnt);
+    SC_ATOMIC_DECLARE(unsigned int, use_cnt);
 
     /** flow queue id, used with autofp */
     SC_ATOMIC_DECLARE(int, autofp_tmqh_flow_qid);
