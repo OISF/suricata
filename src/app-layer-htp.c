@@ -1154,13 +1154,14 @@ static void HtpRequestBodyReassemble(HtpTxUserData *htud,
 }
 
 int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
-        uint8_t *chunks_buffer, uint32_t chunks_buffer_len)
+                                  void *tx, uint8_t *chunks_buffer, uint32_t chunks_buffer_len)
 {
     int result = 0;
     uint8_t *expected_boundary = NULL;
     uint8_t *expected_boundary_end = NULL;
     uint8_t expected_boundary_len = 0;
     uint8_t expected_boundary_end_len = 0;
+    int tx_progress = 0;
 
 #ifdef PRINT
     printf("CHUNK START: \n");
@@ -1187,9 +1188,12 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
     SCLogDebug("header_start %p, header_end %p, form_end %p", header_start,
             header_end, form_end);
 
+    /* we currently only handle multipart for ts.  When we support it for tc,
+     * we will need to supply right direction */
+    tx_progress = AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0);
     /* if we're in the file storage process, deal with that now */
     if (htud->tsflags & HTP_FILENAME_SET) {
-        if (header_start != NULL || form_end != NULL || (htud->tsflags & HTP_REQ_BODY_COMPLETE)) {
+        if (header_start != NULL || form_end != NULL || (tx_progress > HTP_REQUEST_BODY)) {
             SCLogDebug("reached the end of the file");
 
             uint8_t *filedata = chunks_buffer;
@@ -1202,7 +1206,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                 filedata_len = form_end - filedata;
             } else if (form_end != NULL && form_end == header_start) {
                 filedata_len = form_end - filedata - 2; /* 0d 0a */
-            } else if (htud->tsflags & HTP_REQ_BODY_COMPLETE) {
+            } else if (tx_progress > HTP_RESPONSE_BODY) {
                 filedata_len = chunks_buffer_len;
                 flags = FILE_TRUNCATED;
             }
@@ -1700,16 +1704,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
         }
         SCLogDebug("len %u", len);
 
-        int r = HtpBodyAppendChunk(tx_ud, &tx_ud->request_body, (uint8_t *)d->data, len);
-        if (r < 0) {
-            tx_ud->tsflags |= HTP_REQ_BODY_COMPLETE;
-        } else if (hstate->cfg->request_body_limit > 0 &&
-            tx_ud->request_body.content_len_so_far >= hstate->cfg->request_body_limit)
-        {
-            tx_ud->tsflags |= HTP_REQ_BODY_COMPLETE;
-        } else if (tx_ud->request_body.content_len_so_far == tx_ud->request_body.content_len) {
-            tx_ud->tsflags |= HTP_REQ_BODY_COMPLETE;
-        }
+        HtpBodyAppendChunk(tx_ud, &tx_ud->request_body, (uint8_t *)d->data, len);
 
         uint8_t *chunks_buffer = NULL;
         uint32_t chunks_buffer_len = 0;
@@ -1730,7 +1725,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
             printf("REASSCHUNK END: \n");
 #endif
 
-            HtpRequestBodyHandleMultipart(hstate, tx_ud, chunks_buffer, chunks_buffer_len);
+            HtpRequestBodyHandleMultipart(hstate, tx_ud, d->tx, chunks_buffer, chunks_buffer_len);
 
             if (chunks_buffer != NULL) {
                 SCFree(chunks_buffer);
@@ -1813,16 +1808,7 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
         }
         SCLogDebug("len %u", len);
 
-        int r = HtpBodyAppendChunk(tx_ud, &tx_ud->response_body, (uint8_t *)d->data, len);
-        if (r < 0) {
-            tx_ud->tcflags |= HTP_RES_BODY_COMPLETE;
-        } else if (hstate->cfg->response_body_limit > 0 &&
-            tx_ud->response_body.content_len_so_far >= hstate->cfg->response_body_limit)
-        {
-            tx_ud->tcflags |= HTP_RES_BODY_COMPLETE;
-        } else if (tx_ud->response_body.content_len_so_far == tx_ud->response_body.content_len) {
-            tx_ud->tcflags |= HTP_RES_BODY_COMPLETE;
-        }
+        HtpBodyAppendChunk(tx_ud, &tx_ud->response_body, (uint8_t *)d->data, len);
 
         HtpResponseBodyHandle(hstate, tx_ud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
     }
@@ -4705,6 +4691,8 @@ static int HTPBodyReassemblyTest01(void)
     memset(&flow, 0x00, sizeof(flow));
     AppLayerParserStateStore parser;
     memset(&parser, 0x00, sizeof(parser));
+    htp_tx_t tx;
+    memset(&tx, 0, sizeof(tx));
 
     hstate.f = &flow;
     flow.alparser = &parser;
@@ -4730,7 +4718,7 @@ static int HTPBodyReassemblyTest01(void)
     printf("REASSCHUNK END: \n");
 #endif
 
-    HtpRequestBodyHandleMultipart(&hstate, &htud, chunks_buffer, chunks_buffer_len);
+    HtpRequestBodyHandleMultipart(&hstate, &htud, &tx, chunks_buffer, chunks_buffer_len);
 
     if (htud.request_body.content_len_so_far != 669) {
         printf("htud.request_body.content_len_so_far %"PRIu64": ", htud.request_body.content_len_so_far);

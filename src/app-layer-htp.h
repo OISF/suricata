@@ -167,14 +167,11 @@ typedef struct HtpBody_ {
     uint64_t body_inspected;
 } HtpBody;
 
-#define HTP_REQ_BODY_COMPLETE   0x01    /**< body is complete or limit is reached,
-                                             either way, this is it. */
-#define HTP_RES_BODY_COMPLETE   0x02
-#define HTP_CONTENTTYPE_SET     0x04    /**< We have the content type */
-#define HTP_BOUNDARY_SET        0x08    /**< We have a boundary string */
-#define HTP_BOUNDARY_OPEN       0x10    /**< We have a boundary string */
-#define HTP_FILENAME_SET        0x20    /**< filename is registered in the flow */
-#define HTP_DONTSTORE           0x40    /**< not storing this file */
+#define HTP_CONTENTTYPE_SET     0x01    /**< We have the content type */
+#define HTP_BOUNDARY_SET        0x02    /**< We have a boundary string */
+#define HTP_BOUNDARY_OPEN       0x04    /**< We have a boundary string */
+#define HTP_FILENAME_SET        0x08   /**< filename is registered in the flow */
+#define HTP_DONTSTORE           0x10    /**< not storing this file */
 
 #define HTP_TX_HAS_FILE             0x01
 #define HTP_TX_HAS_FILENAME         0x02    /**< filename is known at this time */
