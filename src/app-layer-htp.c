@@ -2841,7 +2841,7 @@ int HTPParserTest06(void) {
                          "X-Powered-By: PHP/4.4.7\r\nTransfer-Encoding: "
                          "chunked\r\n"
                          "Content-Type: text/html\r\n\r\n"
-                         "1408\r\n"
+                         "580\r\n"
                          "W2dyb3VwMV0NCnBob25lMT1wMDB3ODgyMTMxMzAyMTINCmxvZ2lu"
                          "MT0NCnBhc3N3b3JkMT0NCnBob25lMj1wMDB3ODgyMTMxMzAyMTIN"
                          "CmxvZ2luMj0NCnBhc3N3b3JkMj0NCnBob25lMz0NCmxvZ2luMz0N"
@@ -2869,7 +2869,7 @@ int HTPParserTest06(void) {
                          "aW42PQ0KcGFzc3dvcmQ2PQ0KY2FsbF90aW1lMT0NCmNhbGxfdGlt"
                          "ZTI9DQpkYXlfbGltaXQ9DQptb250aF9saW1pdD0NCltmaWxlc10N"
                          "Cmxpbms9aHR0cDovLzIwOS4yMDUuMTk2LjE2L2xkL2dldGJvdC5w"
-                         "aHA=0\r\n\r\n";
+                         "aHA=\r\n0\r\n\r\n";
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
     HtpState *http_state = NULL;

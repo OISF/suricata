@@ -1943,7 +1943,7 @@ static int DetectPcreModifPTest04(void)
         "15"
         "\r\n"
         "<!DOCTYPE html PUBLIC\r\n"
-        "0\r\n";
+        "0\r\n\r\n";
 
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -2067,7 +2067,7 @@ static int DetectPcreModifPTest05(void)
         "\r\n"
         "<!DOC";
 
-    uint8_t httpbuf2[] = "<!DOCTYPE html PUBLIC\r\n0\r\n";
+    uint8_t httpbuf2[] = "<!DOCTYPE html PUBLIC\r\n0\r\n\r\n";
 
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
