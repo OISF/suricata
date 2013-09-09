@@ -188,7 +188,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 FlowSetSessionNoApplayerInspectionFlag(f);
                 StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
                 StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
-                if (ssn->data_first_seen_dir == 0x01) {
+                /* it indicates some data has already been sent to the parser */
+                if (ssn->data_first_seen_dir == APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
                     f->alproto = *alproto = *alproto_otherdir;
                 } else {
                     if (flags & STREAM_TOCLIENT)
@@ -228,7 +229,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 }
             }
 
-            if (ssn->data_first_seen_dir != 0x01) {
+            if (ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
                 if (al_proto_table[*alproto].flags && !(al_proto_table[*alproto].flags & ssn->data_first_seen_dir)) {
                     AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
                                                      APPLAYER_WRONG_DIRECTION_FIRST_DATA);
@@ -238,13 +239,13 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
                     /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
-                    ssn->data_first_seen_dir = 0x01;
+                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
                     goto end;
                 }
             }
 
             /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
-            ssn->data_first_seen_dir = 0x01;
+            ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
 
             PACKET_PROFILING_APP_START(dp_ctx, *alproto);
             r = AppLayerParse(dp_ctx->alproto_local_storage[*alproto], f, *alproto, flags, data + data_al_so_far, data_len - data_al_so_far);
@@ -269,7 +270,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT)) {
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
-                    ssn->data_first_seen_dir = 0x01;
+                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
                     FlowSetSessionNoApplayerInspectionFlag(f);
                 }
             }
@@ -668,7 +669,7 @@ static int AppLayerTest01(void)
         f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 5\n");
         goto end;
     }
@@ -692,7 +693,7 @@ static int AppLayerTest01(void)
         f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 6\n");
         goto end;
     }
@@ -955,7 +956,7 @@ static int AppLayerTest02(void)
         f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 7\n");
         goto end;
     }
@@ -979,7 +980,7 @@ static int AppLayerTest02(void)
         f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 8\n");
         goto end;
     }
@@ -1192,7 +1193,7 @@ end:
         f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 5\n");
         goto end;
     }
@@ -1216,7 +1217,7 @@ end:
         f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 6\n");
         goto end;
     }
@@ -1388,7 +1389,7 @@ static int AppLayerTest04(void)
         f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 5\n");
         goto end;
     }
@@ -1412,7 +1413,7 @@ static int AppLayerTest04(void)
         f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 6\n");
         goto end;
     }
@@ -1478,7 +1479,7 @@ static int AppLayerTest04(void)
         f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 7\n");
         goto end;
     }
@@ -1502,7 +1503,7 @@ static int AppLayerTest04(void)
         f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 8\n");
         goto end;
     }
@@ -1740,7 +1741,7 @@ static int AppLayerTest05(void)
         f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 6\n");
         goto end;
     }
@@ -1954,7 +1955,7 @@ static int AppLayerTest06(void)
         !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 5\n");
         goto end;
     }
@@ -2168,7 +2169,7 @@ static int AppLayerTest07(void)
         f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 5\n");
         goto end;
     }
@@ -2192,7 +2193,7 @@ static int AppLayerTest07(void)
         !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 6\n");
         goto end;
     }
@@ -2406,7 +2407,7 @@ static int AppLayerTest08(void)
         f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 5\n");
         goto end;
     }
@@ -2430,7 +2431,7 @@ static int AppLayerTest08(void)
         !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 6\n");
         goto end;
     }
@@ -2710,7 +2711,7 @@ static int AppLayerTest09(void)
         !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 8\n");
         goto end;
     }
@@ -2964,7 +2965,7 @@ static int AppLayerTest10(void)
         !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 8\n");
         goto end;
     }
@@ -3268,7 +3269,7 @@ static int AppLayerTest11(void)
         !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 9\n");
         goto end;
     }
