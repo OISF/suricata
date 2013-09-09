@@ -185,11 +185,19 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto_otherdir != *alproto) {
                 AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
                                                  APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS);
-                f->alproto = f->alproto_ts = f->alproto_tc = ALPROTO_UNKNOWN;
                 FlowSetSessionNoApplayerInspectionFlag(f);
                 StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
                 StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
-            } else {
+                if (ssn->data_first_seen_dir == 0x01) {
+                    f->alproto = *alproto = *alproto_otherdir;
+                } else {
+                    if (flags & STREAM_TOCLIENT)
+                        f->alproto = *alproto_otherdir = *alproto;
+                    else
+                        f->alproto = *alproto = *alproto_otherdir;
+                }
+            }
+
                 f->alproto = *alproto;
                 StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
 
@@ -242,7 +250,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 r = AppLayerParse(dp_ctx->alproto_local_storage[*alproto], f, *alproto, flags, data + data_al_so_far, data_len - data_al_so_far);
                 PACKET_PROFILING_APP_END(dp_ctx, *alproto);
                 f->data_al_so_far[dir] = 0;
-            }
+
         } else {
             if (*alproto_otherdir != ALPROTO_UNKNOWN) {
                 PACKET_PROFILING_APP_START(dp_ctx, *alproto_otherdir);
@@ -2177,9 +2185,9 @@ static int AppLayerTest07(void)
         goto end;
     if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.alproto != ALPROTO_HTTP ||
+        f.alproto_ts != ALPROTO_HTTP ||
+        f.alproto_tc != ALPROTO_HTTP ||
         f.data_al_so_far[0] != 0 ||
         f.data_al_so_far[1] != 0 ||
         !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
@@ -2415,9 +2423,9 @@ static int AppLayerTest08(void)
         goto end;
     if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.alproto != ALPROTO_DCERPC ||
+        f.alproto_ts != ALPROTO_DCERPC ||
+        f.alproto_tc != ALPROTO_DCERPC ||
         f.data_al_so_far[0] != 0 ||
         f.data_al_so_far[1] != 0 ||
         !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
