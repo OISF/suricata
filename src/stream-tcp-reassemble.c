@@ -1913,7 +1913,7 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
 
             /* if app layer protocol has been detected, then remove all the segments
              * which has been previously processed and reassembled */
-        } else if ((stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) &&
+        } else if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream) &&
                    (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
                    StreamTcpAppLayerSegmentProcessed(stream, seg)) {
             SCLogDebug("segment(%p) of length %"PRIu16" has been processed,"
@@ -2150,7 +2150,7 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
     }
 
     /* store ra_base_seq in the stream */
-    if ((stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)) {
+    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
         stream->ra_app_base_seq = ra_base_seq;
     }
 
@@ -2249,7 +2249,7 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
          * which has been previously processed and reassembled
          *
          * If the stream is in GAP state the app layer flag won't be set */
-        if ((stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) &&
+        if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream) &&
                 (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
                 StreamTcpAppLayerSegmentProcessed(stream, seg))
         {
@@ -2549,7 +2549,7 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags) {
             seg = next_seg;
             continue;
 
-        } else if ((stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) &&
+        } else if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream) &&
                 (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
                 (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
         {
@@ -2679,7 +2679,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
         /* if app layer protocol has been detected, then remove all the segments
            which has been previously processed and reassembled */
-        if ((stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) &&
+        if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream) &&
                 (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
                 (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
         {
@@ -2838,7 +2838,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
                 /* if after the first data chunk we have no alproto yet,
                  * there is no point in continueing here. */
-                if (!(stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)) {
+                if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
                     SCLogDebug("no alproto after first data chunk");
                     break;
                 }
@@ -2898,7 +2898,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
                         /* if after the first data chunk we have no alproto yet,
                          * there is no point in continueing here. */
-                        if (!(stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)) {
+                        if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
                             SCLogDebug("no alproto after first data chunk");
                             break;
                         }
@@ -2944,7 +2944,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     }
 
     /* store ra_base_seq in the stream */
-    if ((stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)) {
+    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
         stream->ra_app_base_seq = ra_base_seq;
     }
     SCLogDebug("stream->ra_app_base_seq %u", stream->ra_app_base_seq);
@@ -2982,7 +2982,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
 
 #if 0
     if (ssn->state <= TCP_ESTABLISHED &&
-            !(stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)) {
+        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
         SCLogDebug("only starting raw reassembly after app layer protocol "
                 "detection has completed.");
         SCReturnInt(0);
@@ -3038,7 +3038,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
          * which has been previously processed and reassembled
          *
          * If the stream is in GAP state the app layer flag won't be set */
-        if ((stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) &&
+        if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream) &&
                 (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
                 ((seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED) ||
                  (stream->flags & STREAMTCP_STREAM_FLAG_GAP)))
@@ -6164,8 +6164,8 @@ static int StreamTcpReassembleTest39 (void) {
 
     TcpSession *ssn = (TcpSession *)f.protoctx;
 
-    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
-        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
+        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
         f.alproto != ALPROTO_UNKNOWN ||
         f.alproto_ts != ALPROTO_UNKNOWN ||
         f.alproto_tc != ALPROTO_UNKNOWN ||
@@ -6190,8 +6190,8 @@ static int StreamTcpReassembleTest39 (void) {
     p->payload = NULL;
     if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
-        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
+        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
         f.alproto != ALPROTO_UNKNOWN ||
         f.alproto_ts != ALPROTO_UNKNOWN ||
         f.alproto_tc != ALPROTO_UNKNOWN ||
@@ -6217,8 +6217,8 @@ static int StreamTcpReassembleTest39 (void) {
     p->payload = NULL;
     if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
-        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
+        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
         f.alproto != ALPROTO_UNKNOWN ||
         f.alproto_ts != ALPROTO_UNKNOWN ||
         f.alproto_tc != ALPROTO_UNKNOWN ||
@@ -6245,8 +6245,8 @@ static int StreamTcpReassembleTest39 (void) {
     p->payload = request1;
     if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
-        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
+        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
         f.alproto != ALPROTO_UNKNOWN ||
         f.alproto_ts != ALPROTO_UNKNOWN ||
         f.alproto_tc != ALPROTO_UNKNOWN ||
@@ -6274,8 +6274,8 @@ static int StreamTcpReassembleTest39 (void) {
     p->payload = NULL;
     if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
-        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
+        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
         f.alproto != ALPROTO_UNKNOWN ||
         f.alproto_ts != ALPROTO_UNKNOWN ||
         f.alproto_tc != ALPROTO_UNKNOWN ||
@@ -6314,8 +6314,8 @@ static int StreamTcpReassembleTest39 (void) {
     p->payload = request2;
     if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
-        ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
+    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
+        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
         f.alproto != ALPROTO_UNKNOWN ||
         f.alproto_ts != ALPROTO_UNKNOWN ||
         f.alproto_tc != ALPROTO_UNKNOWN ||
@@ -6385,8 +6385,8 @@ static int StreamTcpReassembleTest39 (void) {
     p->payload = response;
     if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    if (ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED ||
-        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
+        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
         f.alproto != ALPROTO_HTTP ||
         f.alproto_ts != ALPROTO_HTTP ||
         f.alproto_tc != ALPROTO_UNKNOWN ||
@@ -6414,8 +6414,8 @@ static int StreamTcpReassembleTest39 (void) {
     p->payload = NULL;
     if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
-        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
+        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
         f.alproto != ALPROTO_HTTP ||
         f.alproto_ts != ALPROTO_HTTP ||
         f.alproto_tc != ALPROTO_HTTP ||
@@ -6443,8 +6443,8 @@ static int StreamTcpReassembleTest39 (void) {
     p->payload = NULL;
     if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
-        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
+        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
         f.alproto != ALPROTO_HTTP ||
         f.alproto_ts != ALPROTO_HTTP ||
         f.alproto_tc != ALPROTO_HTTP ||
@@ -6471,8 +6471,8 @@ static int StreamTcpReassembleTest39 (void) {
     p->payload = NULL;
     if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
-        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
+        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
         f.alproto != ALPROTO_HTTP ||
         f.alproto_ts != ALPROTO_HTTP ||
         f.alproto_tc != ALPROTO_HTTP ||
@@ -6499,8 +6499,8 @@ static int StreamTcpReassembleTest39 (void) {
     p->payload = NULL;
     if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
-        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
+        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
         f.alproto != ALPROTO_HTTP ||
         f.alproto_ts != ALPROTO_HTTP ||
         f.alproto_tc != ALPROTO_HTTP ||
@@ -6529,8 +6529,8 @@ static int StreamTcpReassembleTest39 (void) {
     p->payload = request1;
     if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
-        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
+        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
         f.alproto != ALPROTO_HTTP ||
         f.alproto_ts != ALPROTO_HTTP ||
         f.alproto_tc != ALPROTO_HTTP ||
@@ -6559,8 +6559,8 @@ static int StreamTcpReassembleTest39 (void) {
     p->payload = NULL;
     if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
-        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
+        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
         f.alproto != ALPROTO_HTTP ||
         f.alproto_ts != ALPROTO_HTTP ||
         f.alproto_tc != ALPROTO_HTTP ||
@@ -6588,8 +6588,8 @@ static int StreamTcpReassembleTest39 (void) {
     p->payload = request2;
     if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
-        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
+        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
         f.alproto != ALPROTO_HTTP ||
         f.alproto_ts != ALPROTO_HTTP ||
         f.alproto_tc != ALPROTO_HTTP ||
@@ -6618,8 +6618,8 @@ static int StreamTcpReassembleTest39 (void) {
     p->payload = NULL;
     if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
-        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
+        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
         f.alproto != ALPROTO_HTTP ||
         f.alproto_ts != ALPROTO_HTTP ||
         f.alproto_tc != ALPROTO_HTTP ||
@@ -6661,8 +6661,8 @@ static int StreamTcpReassembleTest39 (void) {
     p->payload = NULL;
     if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
-        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
+        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
         f.alproto != ALPROTO_HTTP ||
         f.alproto_ts != ALPROTO_HTTP ||
         f.alproto_tc != ALPROTO_HTTP ||
@@ -6688,8 +6688,8 @@ static int StreamTcpReassembleTest39 (void) {
     p->payload = NULL;
     if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
         goto end;
-    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
-        !(ssn->client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
+        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
         f.alproto != ALPROTO_HTTP ||
         f.alproto_ts != ALPROTO_HTTP ||
         f.alproto_tc != ALPROTO_HTTP ||
@@ -7076,7 +7076,7 @@ static int StreamTcpReassembleTest43 (void) {
         goto end;
     }
 #endif
-    if (!(ssn.client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)) {
+    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn.client)) {
         printf("app layer detected flag isn't set, it should be (8): ");
         goto end;
     }
@@ -7132,7 +7132,7 @@ static int StreamTcpReassembleTest43 (void) {
 #endif
     /* the flag should be set, as the smsg scanned size has crossed the max.
        signature size for app proto detection */
-    if (! (ssn.client.flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)) {
+    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn.client)) {
         printf("app layer detected flag is not set, it should be (14): ");
         goto end;
     }
