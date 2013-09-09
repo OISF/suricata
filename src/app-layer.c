@@ -202,6 +202,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             f->alproto = *alproto;
             StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
 
+            /* if we have seen data from the other direction first, send
+             * data for that direction first to the parser */
             if ((ssn->data_first_seen_dir & (STREAM_TOSERVER | STREAM_TOCLIENT)) &&
                 !(flags & ssn->data_first_seen_dir)) {
                 TcpStream *opposing_stream = NULL;
@@ -229,8 +231,26 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 }
             }
 
+            /* if the parser operates such that it needs to see data from
+             * a particular direction first, we check if we have seen
+             * data from that direction first for the flow.  IF it is not
+             * the same, we set an event and exit.
+             *
+             * \todo We need to figure out a more robust solution for this,
+             *       as this can lead to easy evasion tactics, where the
+             *       attackeer can first send some dummy data in the wrong
+             *       direction first to mislead our proto detection process.
+             *       While doing this we need to update the parsers as well,
+             *       since the parsers must be robust to see such wrong
+             *       direction data.
+             *       Either ways the moment we see the
+             *       APPLAYER_WRONG_DIRECTION_FIRST_DATA event set for the
+             *       flow, it shows something's fishy.
+             */
             if (ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-                if (al_proto_table[*alproto].flags && !(al_proto_table[*alproto].flags & ssn->data_first_seen_dir)) {
+                if (al_proto_table[*alproto].first_data_dir &&
+                    !(al_proto_table[*alproto].first_data_dir & ssn->data_first_seen_dir))
+                {
                     AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
                                                      APPLAYER_WRONG_DIRECTION_FIRST_DATA);
                     r = -1;
