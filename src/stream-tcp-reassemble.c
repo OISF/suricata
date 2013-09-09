@@ -6394,7 +6394,7 @@ static int StreamTcpReassembleTest39 (void) {
         ssn->client.seg_list->next->next != NULL ||
         ssn->server.seg_list == NULL ||
         ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 7\n");
         goto end;
     }
@@ -6423,7 +6423,7 @@ static int StreamTcpReassembleTest39 (void) {
         ssn->client.seg_list->next->next != NULL ||
         ssn->server.seg_list == NULL ||
         ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 8\n");
         goto end;
     }
@@ -6451,7 +6451,7 @@ static int StreamTcpReassembleTest39 (void) {
         ssn->client.seg_list->next != NULL ||
         ssn->server.seg_list == NULL ||
         ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 9\n");
         goto end;
     }
@@ -6479,7 +6479,7 @@ static int StreamTcpReassembleTest39 (void) {
         ssn->client.seg_list->next != NULL ||
         ssn->server.seg_list == NULL ||
         ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 10\n");
         goto end;
     }
@@ -6507,7 +6507,7 @@ static int StreamTcpReassembleTest39 (void) {
         ssn->client.seg_list->next != NULL ||
         ssn->server.seg_list == NULL ||
         ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 11\n");
         goto end;
     }
@@ -6538,7 +6538,7 @@ static int StreamTcpReassembleTest39 (void) {
         ssn->client.seg_list->next->next != NULL ||
         ssn->server.seg_list == NULL ||
         ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 12\n");
         goto end;
     }
@@ -6568,7 +6568,7 @@ static int StreamTcpReassembleTest39 (void) {
         ssn->client.seg_list->next->next != NULL ||
         ssn->server.seg_list == NULL ||
         ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 13\n");
         goto end;
     }
@@ -6598,7 +6598,7 @@ static int StreamTcpReassembleTest39 (void) {
         ssn->client.seg_list->next->next->next != NULL ||
         ssn->server.seg_list == NULL ||
         ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 14\n");
         goto end;
     }
@@ -6627,7 +6627,7 @@ static int StreamTcpReassembleTest39 (void) {
         ssn->client.seg_list->next->next->next != NULL ||
         ssn->server.seg_list == NULL ||
         ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 15\n");
         goto end;
     }
@@ -6668,7 +6668,7 @@ static int StreamTcpReassembleTest39 (void) {
         ssn->client.seg_list != NULL ||
         ssn->server.seg_list == NULL ||
         ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 15\n");
         goto end;
     }
@@ -6694,7 +6694,7 @@ static int StreamTcpReassembleTest39 (void) {
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->client.seg_list != NULL ||
         ssn->server.seg_list != NULL ||
-        ssn->data_first_seen_dir != 0x01) {
+        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
         printf("failure 15\n");
         goto end;
     }

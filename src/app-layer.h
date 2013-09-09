@@ -35,6 +35,8 @@
 
 #include "stream.h"
 
+#define APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER (~STREAM_TOSERVER & ~STREAM_TOCLIENT)
+
 uint16_t AppLayerGetProtoFromPacket(Packet *);
 void *AppLayerGetProtoStateFromPacket(Packet *);
 void *AppLayerGetProtoStateFromFlow(Flow *);
