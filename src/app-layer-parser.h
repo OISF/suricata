@@ -73,8 +73,10 @@ typedef struct AppLayerProto_ {
                              int *event_id, AppLayerEventType *event_type);
 
     ProbingParserFPtr PPAlprotoMap[2];
-    /* The current values taken are STREAM_TOSERVER, STREAM_TOCLIENT */
-    uint8_t flags;
+    /* Indicates the direction the parser is ready to see the data
+     * the first time for a flow.  Values accepted -
+     * STREAM_TOSERVER, STREAM_TOCLIENT */
+    uint8_t first_data_dir;
 
 #ifdef UNITTESTS
     void (*RegisterUnittests)(void);

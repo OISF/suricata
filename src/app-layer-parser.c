@@ -2271,7 +2271,8 @@ static inline void AppLayerInsertNewProbingParser(AppLayerProbingParser **pp,
 void AppLayerRegisterParserAcceptableDataDirection(uint16_t al_proto,
                                                    uint8_t flags)
 {
-    al_proto_table[al_proto].flags |= (flags & (STREAM_TOSERVER | STREAM_TOCLIENT));
+    al_proto_table[al_proto].first_data_dir |=
+        (flags & (STREAM_TOSERVER | STREAM_TOCLIENT));
 
     return;
 }
