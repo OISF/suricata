@@ -59,6 +59,7 @@ Tmq* TmqCreateQueue(char *name) {
     return q;
 
 error:
+    SCLogError(SC_ERR_THREAD_QUEUE, "too many thread queues %u, max is %u", tmq_id+1, TMQ_MAX_QUEUES);
     return NULL;
 }
 
@@ -100,10 +101,10 @@ void TmValidateQueueState(void)
     for (i = 0; i < tmq_id; i++) {
         SCMutexLock(&trans_q[tmqs[i].id].mutex_q);
         if (tmqs[i].reader_cnt == 0) {
-            printf("Error: Queue \"%s\" doesn't have a reader\n", tmqs[i].name);
+            SCLogError(SC_ERR_THREAD_QUEUE, "queue \"%s\" doesn't have a reader (id %d, max %u)", tmqs[i].name, i, tmq_id);
             err = TRUE;
         } else if (tmqs[i].writer_cnt == 0) {
-            printf("Error: Queue \"%s\" doesn't have a writer\n", tmqs[i].name);
+            SCLogError(SC_ERR_THREAD_QUEUE, "queue \"%s\" doesn't have a writer (id %d, max %u)", tmqs[i].name, i, tmq_id);
             err = TRUE;
         }
         SCMutexUnlock(&trans_q[tmqs[i].id].mutex_q);
@@ -115,5 +116,6 @@ void TmValidateQueueState(void)
     return;
 
 error:
+    SCLogError(SC_ERR_FATAL, "fatal error during threading setup");
     exit(EXIT_FAILURE);
 }

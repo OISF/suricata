@@ -34,6 +34,8 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 
+#include "util-runmodes.h"
+
 static const char *default_mode;
 
 const char *RunModeErfFileGetDefaultMode(void)
@@ -126,12 +128,22 @@ int RunModeErfFileSingle(DetectEngineCtx *de_ctx)
 int RunModeErfFileAutoFp(DetectEngineCtx *de_ctx)
 {
     SCEnter();
-    char tname[12];
-    char qname[12];
+    char tname[TM_THREAD_NAME_MAX];
+    char qname[TM_QUEUE_NAME_MAX];
     uint16_t cpu = 0;
-    char queues[2048] = "";
+    char *queues = NULL;
+    int thread;
 
     RunModeInitialize();
+
+    char *file = NULL;
+    if (ConfGet("erf-file.file", &file) == 0) {
+        SCLogError(SC_ERR_RUNMODE,
+            "Failed retrieving erf-file.file from config");
+        exit(EXIT_FAILURE);
+    }
+
+    TimeModeSetOffline();
 
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
@@ -148,24 +160,11 @@ int RunModeErfFileAutoFp(DetectEngineCtx *de_ctx)
     if (thread_max < 1)
         thread_max = 1;
 
-    int thread;
-    for (thread = 0; thread < thread_max; thread++) {
-        if (strlen(queues) > 0)
-            strlcat(queues, ",", sizeof(queues));
-
-        snprintf(qname, sizeof(qname), "pickup%"PRIu16, thread+1);
-        strlcat(queues, qname, sizeof(queues));
-    }
-    SCLogDebug("queues %s", queues);
-
-    char *file = NULL;
-    if (ConfGet("erf-file.file", &file) == 0) {
-        SCLogError(SC_ERR_RUNMODE,
-            "Failed retrieving erf-file.file from config");
+    queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
+    if (queues == NULL) {
+        SCLogError(SC_ERR_RUNMODE, "RunmodeAutoFpCreatePickupQueuesString failed");
         exit(EXIT_FAILURE);
     }
-
-    TimeModeSetOffline();
 
     /* create the threads */
     ThreadVars *tv =
@@ -173,6 +172,8 @@ int RunModeErfFileAutoFp(DetectEngineCtx *de_ctx)
                                     "packetpool", "packetpool",
                                     queues, "flow",
                                     "pktacqloop");
+    SCFree(queues);
+
     if (tv == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(EXIT_FAILURE);

@@ -1405,6 +1405,8 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
 
             if (tmqh->OutHandlerCtxSetup != NULL) {
                 tv->outctx = tmqh->OutHandlerCtxSetup(outq_name);
+                if (tv->outctx == NULL)
+                    goto error;
                 tv->outq = NULL;
             } else {
                 tmq = TmqGetQueueByName(outq_name);

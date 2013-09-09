@@ -73,4 +73,7 @@ int RunModeSetIPSWorker(DetectEngineCtx *de_ctx,
                         char *recv_mod_name,
                         char *verdict_mod_name,
                         char *decode_mod_name);
+
+char *RunmodeAutoFpCreatePickupQueuesString(int n);
+
 #endif /* __UTIL_RUNMODES_H__ */

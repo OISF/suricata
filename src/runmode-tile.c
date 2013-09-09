@@ -148,7 +148,7 @@ void *ParseMpipeConfig(const char *iface)
 int RunModeTileMpipeWorkers(DetectEngineCtx *de_ctx)
 {
     SCEnter();
-    char tname[32];
+    char tname[TM_THREAD_NAME_MAX];
     char *thread_name;
     TmModule *tm_module;
     int pipe;

@@ -153,6 +153,8 @@ void *TmqhOutputFlowSetupCtx(char *queue_str)
     if (queue_str == NULL || strlen(queue_str) == 0)
         return NULL;
 
+    SCLogDebug("queue_str %s", queue_str);
+
     TmqhFlowCtx *ctx = SCMalloc(sizeof(TmqhFlowCtx));
     if (unlikely(ctx == NULL))
         return NULL;

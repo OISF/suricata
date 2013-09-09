@@ -29,6 +29,9 @@
 #include "tm-threads-common.h"
 #include "tm-modules.h"
 
+#define TM_QUEUE_NAME_MAX 16
+#define TM_THREAD_NAME_MAX 16
+
 typedef TmEcode (*TmSlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *,
                         PacketQueue *);
 
