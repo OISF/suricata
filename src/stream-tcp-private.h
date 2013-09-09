@@ -220,5 +220,9 @@ typedef struct TcpSession_ {
     TcpStateQueue *queue;                   /**< list of SYN/ACK candidates */
 } TcpSession;
 
-#endif /* __STREAM_TCP_PRIVATE_H__ */
+#define StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream) \
+    ((stream)->flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)
+#define StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream) \
+    ((stream)->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)
 
+#endif /* __STREAM_TCP_PRIVATE_H__ */
