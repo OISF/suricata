@@ -198,59 +198,58 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 }
             }
 
-                f->alproto = *alproto;
-                StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
+            f->alproto = *alproto;
+            StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
 
-                if ((ssn->data_first_seen_dir & (STREAM_TOSERVER | STREAM_TOCLIENT)) &&
-                    !(flags & ssn->data_first_seen_dir)) {
-                    TcpStream *opposing_stream = NULL;
-                    if (stream == &ssn->client) {
-                        opposing_stream = &ssn->server;
-                        p->flowflags &= ~FLOW_PKT_TOCLIENT;
-                        p->flowflags |= FLOW_PKT_TOSERVER;
-                    } else {
-                        opposing_stream = &ssn->client;
-                        p->flowflags &= ~FLOW_PKT_TOSERVER;
-                        p->flowflags |= FLOW_PKT_TOCLIENT;
-                    }
-
-                    int ret = StreamTcpReassembleAppLayer(tv, ra_ctx, ssn, opposing_stream, p);
-                    if (stream == &ssn->client) {
-                        p->flowflags &= ~FLOW_PKT_TOSERVER;
-                        p->flowflags |= FLOW_PKT_TOCLIENT;
-                    } else {
-                        p->flowflags &= ~FLOW_PKT_TOCLIENT;
-                        p->flowflags |= FLOW_PKT_TOSERVER;
-                    }
-                    if (ret < 0) {
-                        r = -1;
-                        goto end;
-                    }
+            if ((ssn->data_first_seen_dir & (STREAM_TOSERVER | STREAM_TOCLIENT)) &&
+                !(flags & ssn->data_first_seen_dir)) {
+                TcpStream *opposing_stream = NULL;
+                if (stream == &ssn->client) {
+                    opposing_stream = &ssn->server;
+                    p->flowflags &= ~FLOW_PKT_TOCLIENT;
+                    p->flowflags |= FLOW_PKT_TOSERVER;
+                } else {
+                    opposing_stream = &ssn->client;
+                    p->flowflags &= ~FLOW_PKT_TOSERVER;
+                    p->flowflags |= FLOW_PKT_TOCLIENT;
                 }
 
-                if (ssn->data_first_seen_dir != 0x01) {
-                    if (al_proto_table[*alproto].flags && !(al_proto_table[*alproto].flags & ssn->data_first_seen_dir)) {
-                        AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
-                                                         APPLAYER_WRONG_DIRECTION_FIRST_DATA);
-                        r = -1;
-                        f->alproto = f->alproto_ts = f->alproto_tc = ALPROTO_UNKNOWN;
-                        FlowSetSessionNoApplayerInspectionFlag(f);
-                        StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
-                        StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
-                        /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
-                        ssn->data_first_seen_dir = 0x01;
-                        goto end;
-                    }
+                int ret = StreamTcpReassembleAppLayer(tv, ra_ctx, ssn, opposing_stream, p);
+                if (stream == &ssn->client) {
+                    p->flowflags &= ~FLOW_PKT_TOSERVER;
+                    p->flowflags |= FLOW_PKT_TOCLIENT;
+                } else {
+                    p->flowflags &= ~FLOW_PKT_TOCLIENT;
+                    p->flowflags |= FLOW_PKT_TOSERVER;
                 }
+                if (ret < 0) {
+                    r = -1;
+                    goto end;
+                }
+            }
 
-                /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
-                ssn->data_first_seen_dir = 0x01;
+            if (ssn->data_first_seen_dir != 0x01) {
+                if (al_proto_table[*alproto].flags && !(al_proto_table[*alproto].flags & ssn->data_first_seen_dir)) {
+                    AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
+                                                     APPLAYER_WRONG_DIRECTION_FIRST_DATA);
+                    r = -1;
+                    f->alproto = f->alproto_ts = f->alproto_tc = ALPROTO_UNKNOWN;
+                    FlowSetSessionNoApplayerInspectionFlag(f);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
+                    ssn->data_first_seen_dir = 0x01;
+                    goto end;
+                }
+            }
 
-                PACKET_PROFILING_APP_START(dp_ctx, *alproto);
-                r = AppLayerParse(dp_ctx->alproto_local_storage[*alproto], f, *alproto, flags, data + data_al_so_far, data_len - data_al_so_far);
-                PACKET_PROFILING_APP_END(dp_ctx, *alproto);
-                f->data_al_so_far[dir] = 0;
+            /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
+            ssn->data_first_seen_dir = 0x01;
 
+            PACKET_PROFILING_APP_START(dp_ctx, *alproto);
+            r = AppLayerParse(dp_ctx->alproto_local_storage[*alproto], f, *alproto, flags, data + data_al_so_far, data_len - data_al_so_far);
+            PACKET_PROFILING_APP_END(dp_ctx, *alproto);
+            f->data_al_so_far[dir] = 0;
         } else {
             if (*alproto_otherdir != ALPROTO_UNKNOWN) {
                 PACKET_PROFILING_APP_START(dp_ctx, *alproto_otherdir);
