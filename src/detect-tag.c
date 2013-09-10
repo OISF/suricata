@@ -295,7 +295,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectTagSetup (DetectEngineCtx *de_ctx, Signature *s, char *tagstr)
+int DetectTagSetup(DetectEngineCtx *de_ctx, Signature *s, char *tagstr)
 {
     DetectTagData *td = NULL;
     SigMatch *sm = NULL;

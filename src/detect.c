@@ -67,6 +67,7 @@
 #include "detect-ack.h"
 #include "detect-seq.h"
 #include "detect-content.h"
+#include "detect-content-len.h"
 #include "detect-uricontent.h"
 #include "detect-pcre.h"
 #include "detect-depth.h"
@@ -4876,6 +4877,7 @@ void SigTableSetup(void) {
     DetectAckRegister();
     DetectSeqRegister();
     DetectContentRegister();
+    DetectContentLenRegister();
     DetectUricontentRegister();
     DetectPcreRegister();
     DetectDepthRegister();
