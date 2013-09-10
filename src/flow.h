@@ -247,6 +247,13 @@ typedef struct FlowAddress_ {
 #define addr_data16 address.address_un_data16
 #define addr_data8  address.address_un_data8
 
+#ifdef __tile__
+/* Atomic Ints performance better on Tile. */
+typedef unsigned int FlowRefCount;
+#else
+typedef unsigned short FlowRefCount;
+#endif
+
 /**
  *  \brief Flow data structure.
  *
@@ -290,7 +297,7 @@ typedef struct Flow_
      *  On receiving a packet the counter is incremented while the flow
      *  bucked is locked, which is also the case on timeout pruning.
      */
-    SC_ATOMIC_DECLARE(unsigned short, use_cnt);
+    SC_ATOMIC_DECLARE(FlowRefCount, use_cnt);
 
     /** flow queue id, used with autofp */
     SC_ATOMIC_DECLARE(int, autofp_tmqh_flow_qid);

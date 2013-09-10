@@ -80,7 +80,7 @@
 SC_ATOMIC_DECLARE(unsigned int, flow_prune_idx);
 
 /** atomic flags */
-SC_ATOMIC_DECLARE(unsigned char, flow_flags);
+SC_ATOMIC_DECLARE(unsigned int, flow_flags);
 
 void FlowRegisterTests(void);
 void FlowInitFlowProto();

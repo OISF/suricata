@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -60,7 +60,7 @@ typedef struct ThreadVars_ {
     char *name;
     char *thread_group_name;
 
-    SC_ATOMIC_DECLARE(unsigned short, flags);
+    SC_ATOMIC_DECLARE(unsigned int, flags);
 
     /** aof(action on failure) determines what should be done with the thread
         when it encounters certain conditions like failures */

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -45,7 +45,7 @@
 #define FLOW_DEFAULT_FLOW_PRUNE 5
 
 SC_ATOMIC_EXTERN(unsigned int, flow_prune_idx);
-SC_ATOMIC_EXTERN(unsigned char, flow_flags);
+SC_ATOMIC_EXTERN(unsigned int, flow_flags);
 
 static Flow *FlowGetUsedFlow(void);
 
