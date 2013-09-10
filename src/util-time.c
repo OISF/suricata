@@ -124,7 +124,7 @@ void TimeSetIncrementTime(uint32_t tv_sec)
  * Time Caching code
  */
 
-#if defined(__OpenBSD__)
+#ifndef TLS
 /* OpenBSD does not support __thread, so don't use time caching on BSD
  */
 struct tm *SCLocalTime(time_t timep, struct tm *result)
