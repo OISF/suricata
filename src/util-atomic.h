@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -42,8 +42,11 @@
 #define __UTIL_ATOMIC_H__
 
 /* test if we have atomic operations support */
-#if !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8) || !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4) || \
-    !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2) || !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1)
+#if (!defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8) || !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4) || \
+     !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2) || !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1)) && \
+  !defined(__tile__)
+
+/* Do not have atomic operations support, so implement them with locks. */
 
 /**
  *  \brief wrapper to declare an atomic variable including a (spin) lock

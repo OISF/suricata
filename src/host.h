@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -63,7 +63,7 @@ typedef struct Host_ {
     Address a;
 
     /** use cnt, reference counter */
-    SC_ATOMIC_DECLARE(unsigned short, use_cnt);
+    SC_ATOMIC_DECLARE(unsigned int, use_cnt);
 
     /** pointers to iprep storage */
     void *iprep;
