@@ -113,7 +113,6 @@ if not args.check:
     if res == -1:
         print "Unable to start build. Check command line parameters"
         sys.exit(-1)
-    print "Waiting for test completion"
 
 # get build number and exit if we don't have
 buildid = FindBuild(args.branch)
@@ -123,8 +122,10 @@ if buildid == -1:
 if buildid == -2:
     print "No build found for " + BUILDERS_URI + username
     sys.exit(0)
-# fetch result every 10 secs till task is over
+print "You can watch build progress at " + BUILDERS_URI + username + "/builds/" + str(buildid)
+print "Waiting for build completion"
 
+# fetch result every 10 secs till task is over
 res = 1
 while res == 1:
     res = GetBuildStatus(username,buildid)
