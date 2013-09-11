@@ -84,7 +84,7 @@ typedef struct HostHashRow_ {
     HRLOCK_TYPE lock;
     Host *head;
     Host *tail;
-} HostHashRow;
+} __attribute__((aligned(CLS))) HostHashRow;
 
 /** host hash table */
 HostHashRow *host_hash;
