@@ -86,7 +86,9 @@ const char *TmModuleAlprotoToString(enum AppProto proto)
             proto_name = "dns";
             break;
         case ALPROTO_FAILED:
+#ifdef UNITTESTS
         case ALPROTO_TEST:
+#endif
         case ALPROTO_MAX:
         case ALPROTO_UNKNOWN:
             break;
