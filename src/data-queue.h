@@ -56,7 +56,7 @@ typedef struct SCDQDataQueue_ {
     SCMutex mutex_q;
     SCCondT cond_q;
 
-} SCDQDataQueue;
+} __attribute__((aligned(CLS))) SCDQDataQueue;
 
 void SCDQDataEnqueue(SCDQDataQueue *, SCDQGenericQData *);
 SCDQGenericQData *SCDQDataDequeue(SCDQDataQueue *);
