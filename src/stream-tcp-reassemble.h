@@ -75,6 +75,10 @@ void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *);
 int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                                  TcpSession *ssn, TcpStream *stream,
                                  Packet *p);
+int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
+                                      TcpReassemblyThreadCtx *ra_ctx,
+                                      TcpSession *ssn, TcpStream *stream,
+                                      Packet *p);
 int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *);
 
 void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);

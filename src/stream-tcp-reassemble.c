@@ -1839,11 +1839,18 @@ static void StreamTcpRemoveSegmentFromStream(TcpStream *stream, TcpSegment *seg)
  *
  *  Reassembly is in the same direction of the packet.
  *
+ *  One of the utilities called by this function AppLayerHandleTCPData(),
+ *  has a feature where it will call this very same function for the
+ *  stream opposing the stream it is called with.  This shouldn't cause
+ *  any issues, since processing of each stream is independent of the
+ *  other stream.
+ *
  *  \todo this function is too long, we need to break it up. It needs it BAD
  */
-static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
-        TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn, TcpStream *stream,
-        Packet *p)
+int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
+                                      TcpReassemblyThreadCtx *ra_ctx,
+                                      TcpSession *ssn, TcpStream *stream,
+                                      Packet *p)
 {
     SCEnter();
 
@@ -2575,6 +2582,12 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags) {
  *
  *  Stream is in the opposite direction of the packet, as the ACK-packet
  *  is ACK'ing the stream.
+ *
+ *  One of the utilities call by this function AppLayerHandleTCPData(),
+ *  has a feature where it will call this very same function for the
+ *  stream opposing the stream it is called with.  This shouldn't cause
+ *  any issues, since processing of each stream is independent of the
+ *  other stream.
  *
  *  \todo this function is too long, we need to break it up. It needs it BAD
  */

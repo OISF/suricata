@@ -29,6 +29,7 @@
 #include "app-layer-detect-proto.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp-private.h"
+#include "stream-tcp-inline.h"
 #include "flow.h"
 #include "flow-util.h"
 
@@ -110,6 +111,12 @@ extern AlpProtoDetectCtx alp_proto_ctx;
  *  \param data ptr to reassembled data
  *  \param data_len length of the data chunk
  *  \param flags control flags
+ *
+ *  During detection this function can call the stream reassembly,
+ *  inline or non-inline for the opposing direction, while already
+ *  being called by the same stream reassembly for a particular
+ *  direction.  This should cause any issues, since processing of
+ *  each stream is independent of the other stream.
  *
  *  \retval 0 ok
  *  \retval -1 error
@@ -203,27 +210,56 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
 
             /* if we have seen data from the other direction first, send
-             * data for that direction first to the parser */
+             * data for that direction first to the parser.  This shouldn't
+             * be an issue, since each stream processing happens
+             * independently of the other stream direction.  At this point of
+             * call, you need to know that this function's already being
+             * called by the very same StreamReassembly() function that we
+             * will now call shortly for the opposing direction. */
             if ((ssn->data_first_seen_dir & (STREAM_TOSERVER | STREAM_TOCLIENT)) &&
                 !(flags & ssn->data_first_seen_dir)) {
                 TcpStream *opposing_stream = NULL;
                 if (stream == &ssn->client) {
                     opposing_stream = &ssn->server;
-                    p->flowflags &= ~FLOW_PKT_TOCLIENT;
-                    p->flowflags |= FLOW_PKT_TOSERVER;
+                    if (StreamTcpInlineMode()) {
+                        p->flowflags &= ~FLOW_PKT_TOSERVER;
+                        p->flowflags |= FLOW_PKT_TOCLIENT;
+                    } else {
+                        p->flowflags &= ~FLOW_PKT_TOCLIENT;
+                        p->flowflags |= FLOW_PKT_TOSERVER;
+                    }
                 } else {
                     opposing_stream = &ssn->client;
-                    p->flowflags &= ~FLOW_PKT_TOSERVER;
-                    p->flowflags |= FLOW_PKT_TOCLIENT;
+                    if (StreamTcpInlineMode()) {
+                        p->flowflags &= ~FLOW_PKT_TOCLIENT;
+                        p->flowflags |= FLOW_PKT_TOSERVER;
+                    } else {
+                        p->flowflags &= ~FLOW_PKT_TOSERVER;
+                        p->flowflags |= FLOW_PKT_TOCLIENT;
+                    }
                 }
 
-                int ret = StreamTcpReassembleAppLayer(tv, ra_ctx, ssn, opposing_stream, p);
+                int ret;
+                if (StreamTcpInlineMode())
+                    ret = StreamTcpReassembleInlineAppLayer(tv, ra_ctx, ssn, opposing_stream, p);
+                else
+                    ret = StreamTcpReassembleAppLayer(tv, ra_ctx, ssn, opposing_stream, p);
                 if (stream == &ssn->client) {
-                    p->flowflags &= ~FLOW_PKT_TOSERVER;
-                    p->flowflags |= FLOW_PKT_TOCLIENT;
+                    if (StreamTcpInlineMode()) {
+                        p->flowflags &= ~FLOW_PKT_TOCLIENT;
+                        p->flowflags |= FLOW_PKT_TOSERVER;
+                    } else {
+                        p->flowflags &= ~FLOW_PKT_TOSERVER;
+                        p->flowflags |= FLOW_PKT_TOCLIENT;
+                    }
                 } else {
-                    p->flowflags &= ~FLOW_PKT_TOCLIENT;
-                    p->flowflags |= FLOW_PKT_TOSERVER;
+                    if (StreamTcpInlineMode()) {
+                        p->flowflags &= ~FLOW_PKT_TOSERVER;
+                        p->flowflags |= FLOW_PKT_TOCLIENT;
+                    } else {
+                        p->flowflags &= ~FLOW_PKT_TOCLIENT;
+                        p->flowflags |= FLOW_PKT_TOSERVER;
+                    }
                 }
                 if (ret < 0) {
                     r = -1;
