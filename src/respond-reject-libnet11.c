@@ -47,6 +47,7 @@
 #include "action-globals.h"
 #include "respond-reject.h"
 #include "respond-reject-libnet11.h"
+#include "util-device.h"
 
 #ifdef HAVE_LIBNET11
 
@@ -56,6 +57,7 @@ extern int sc_set_caps;
 
 #include <libnet.h>
 
+extern uint8_t host_mode;
 
 typedef struct Libnet11Packet_ {
     uint32_t ack, seq;
@@ -77,6 +79,7 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
     int result;
+    char *devname = NULL;
 
     /* fill in struct defaults */
     lpacket.ttl = 0;
@@ -84,7 +87,11 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     lpacket.flow = 0;
     lpacket.class = 0;
 
-    if ((c = libnet_init(LIBNET_RAW4, NULL, ebuf)) == NULL) {
+    if (IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
+        devname = p->livedev->dev;
+        SCLogDebug("Will emit reject packet on dev %s", devname);
+    }
+    if ((c = libnet_init(LIBNET_RAW4, devname, ebuf)) == NULL) {
         SCLogError(SC_ERR_LIBNET_INIT,"libnet_inint failed: %s", ebuf);
         return 1;
     }
@@ -187,6 +194,7 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
     int result;
+    char *devname = NULL;
 
     /* fill in struct defaults */
     lpacket.ttl = 0;
@@ -195,7 +203,11 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     lpacket.class = 0;
 
     lpacket.len = (IPV4_GET_HLEN(p) + p->payload_len);
-    if ((c = libnet_init(LIBNET_RAW4, NULL, ebuf)) == NULL) {
+
+    if (IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
+        devname = p->livedev->dev;
+    }
+    if ((c = libnet_init(LIBNET_RAW4, devname, ebuf)) == NULL) {
         SCLogError(SC_ERR_LIBNET_INIT,"libnet_inint failed: %s", ebuf);
         return 1;
     }
