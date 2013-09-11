@@ -105,8 +105,18 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     switch (dir) {
         case REJECT_DIR_SRC:
             SCLogDebug("sending a tcp reset to src");
-            lpacket.seq = TCP_GET_ACK(p);
-            lpacket.ack = TCP_GET_SEQ(p) + lpacket.dsize;
+            /* We follow http://tools.ietf.org/html/rfc793#section-3.4 :
+             *  If packet has no ACK, the seq number is 0 and the ACK is built
+             *  the normal way. If packet has a ACK, the seq of the RST packet
+             *  is equal to the ACK of incoming packet and the ACK is build
+             *  using packet sequence number and size of the data. */
+            if (TCP_GET_ACK(p) == 0) {
+                lpacket.seq = 0;
+                lpacket.ack = TCP_GET_SEQ(p) + lpacket.dsize + 1;
+            } else {
+                lpacket.seq = TCP_GET_ACK(p);
+                lpacket.ack = TCP_GET_SEQ(p) + lpacket.dsize;
+            }
 
             lpacket.sp = TCP_GET_DST_PORT(p);
             lpacket.dp = TCP_GET_SRC_PORT(p);
@@ -142,7 +152,7 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
                     lpacket.sp,            /* source port */
                     lpacket.dp,            /* dst port */
                     lpacket.seq,           /* seq number */
-                    lpacket.ack+1,           /* ack number */
+                    lpacket.ack,           /* ack number */
                     TH_RST|TH_ACK,         /* flags */
                     lpacket.window,        /* window size */
                     0,                     /* checksum */
