@@ -87,6 +87,22 @@ outputs:
       # Sensor ID field of unified2 alerts.
       #sensor-id: 0
 
+      # HTTP X-Forwarded-For support by adding the unified2 extra header that
+      # will contain the actual client IP address or by overwriting the source
+      # IP address (helpful when inspecting traffic that is being reversed
+      # proxied).
+      xff:
+        enabled: no
+        # Two operation modes are available, "extra-data" and "overwrite". Note
+        # that in the "overwrite" mode, if the reported IP address in the HTTP
+        # X-Forwarded-For header is of a different version of the packet
+        # received, it will fall-back to "extra-data" mode.
+        mode: extra-data
+        # Header name were the actual IP address will be reported, if more than
+        # one IP address is present, the last IP address will be the one taken
+        # into consideration.
+        header: X-Forwarded-For 
+
   # a line based log of HTTP requests (no alerts)
   - http-log:
       enabled: yes
@@ -232,7 +248,7 @@ magic-file: @e_magic_file@
 # On linux >= 3.1, you can set batchcount to a value > 1 to improve performance
 # by processing several packets before sending a verdict (worker runmode only).
 # On linux >= 3.6, you can set the fail-open option to yes to have the kernel
-# accept the packet if suricata is not able to keep pace.
+# accept the packet if suricata is not able to keep pace.
 nfq:
 #  mode: accept
 #  repeat-mark: 1
@@ -254,7 +270,7 @@ af-packet:
     cluster-id: 99
     # Default AF_PACKET cluster type. AF_PACKET can load balance per flow or per hash.
     # This is only supported for Linux kernel > 3.1
-    # possible value are:
+    # possible value are:
     #  * cluster_round_robin: round robin load balancing
     #  * cluster_flow: all packets of a given flow are send to the same socket
     #  * cluster_cpu: all packets treated in kernel by a CPU are send to the same socket
@@ -365,7 +381,7 @@ threading:
   #
   set-cpu-affinity: no
   # Tune cpu affinity of suricata threads. Each family of threads can be bound
-  # on specific CPUs.
+  # on specific CPUs.
   cpu-affinity:
     - management-cpu-set:
         cpu: [ 0 ]  # include only these cpus in affinity settings
