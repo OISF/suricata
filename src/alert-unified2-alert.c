@@ -1256,6 +1256,7 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
     int ret = 0;
     LogFileCtx* file_ctx = NULL;
     OutputCtx* output_ctx = NULL;
+    ConfNode *xff_node = NULL;
 
     file_ctx = LogFileNewCtx();
     if (file_ctx == NULL) {
@@ -1326,7 +1327,8 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
 
     output_ctx->DeInit = Unified2AlertDeInitCtx;
 
-    ConfNode *xff_node = ConfNodeLookupChild(conf, "xff");
+    if (conf != NULL)
+        xff_node = ConfNodeLookupChild(conf, "xff");
 
     if (xff_node != NULL && ConfNodeChildValueIsTrue(xff_node, "enabled")) {
         const char *xff_mode = ConfNodeLookupChildValue(xff_node, "mode");
@@ -1449,6 +1451,7 @@ static int Unified2Test01 (void)   {
     void *data = NULL;
     OutputCtx *oc;
     LogFileCtx *lf;
+    Unified2AlertFileCtx *uaf = NULL;
     Signature s;
 
     uint8_t raw_ipv4_tcp[] = {
@@ -1489,7 +1492,10 @@ static int Unified2Test01 (void)   {
     if (oc == NULL) {
         goto end;
     }
-    lf = (LogFileCtx *)oc->data;
+    uaf = oc->data;
+    if (uaf == NULL)
+        return 0;
+    lf = uaf->file_ctx;
     if(lf == NULL) {
         goto end;
     }
@@ -1534,6 +1540,7 @@ static int Unified2Test02 (void)   {
     void *data = NULL;
     OutputCtx *oc;
     LogFileCtx *lf;
+    Unified2AlertFileCtx *uaf = NULL;
     Signature s;
 
     uint8_t raw_ipv6_tcp[] = {
@@ -1575,7 +1582,10 @@ static int Unified2Test02 (void)   {
     if (oc == NULL) {
         goto end;
     }
-    lf = (LogFileCtx *)oc->data;
+    uaf = oc->data;
+    if (uaf == NULL)
+        return 0;
+    lf = uaf->file_ctx;
     if(lf == NULL) {
         goto end;
     }
@@ -1621,6 +1631,7 @@ static int Unified2Test03 (void) {
     void *data = NULL;
     OutputCtx *oc;
     LogFileCtx *lf;
+    Unified2AlertFileCtx *uaf = NULL;
     Signature s;
 
     uint8_t raw_gre[] = {
@@ -1668,7 +1679,10 @@ static int Unified2Test03 (void) {
     if (oc == NULL) {
         goto end;
     }
-    lf = (LogFileCtx *)oc->data;
+    uaf = oc->data;
+    if (uaf == NULL)
+        return 0;
+    lf = uaf->file_ctx;
     if(lf == NULL) {
         goto end;
     }
@@ -1726,6 +1740,7 @@ static int Unified2Test04 (void)   {
     void *data = NULL;
     OutputCtx *oc;
     LogFileCtx *lf;
+    Unified2AlertFileCtx *uaf = NULL;
     Signature s;
 
     uint8_t raw_ppp[] = {
@@ -1761,7 +1776,10 @@ static int Unified2Test04 (void)   {
     if (oc == NULL) {
         goto end;
     }
-    lf = (LogFileCtx *)oc->data;
+    uaf = oc->data;
+    if (uaf == NULL)
+        return 0;
+    lf = uaf->file_ctx;
     if(lf == NULL) {
         goto end;
     }
@@ -1806,6 +1824,7 @@ static int Unified2Test05 (void)   {
     void *data = NULL;
     OutputCtx *oc;
     LogFileCtx *lf;
+    Unified2AlertFileCtx *uaf = NULL;
     Signature s;
 
     uint8_t raw_ipv4_tcp[] = {
@@ -1847,7 +1866,10 @@ static int Unified2Test05 (void)   {
     if (oc == NULL) {
         goto end;
     }
-    lf = (LogFileCtx *)oc->data;
+    uaf = oc->data;
+    if (uaf == NULL)
+        return 0;
+    lf = uaf->file_ctx;
     if(lf == NULL) {
         goto end;
     }
@@ -1891,13 +1913,17 @@ static int Unified2TestRotate01(void)
     ThreadVars tv;
     OutputCtx *oc;
     LogFileCtx *lf;
+    Unified2AlertFileCtx *uaf = NULL;
     void *data = NULL;
     char *filename = NULL;
 
     oc = Unified2AlertInitCtx(NULL);
     if (oc == NULL)
         return 0;
-    lf = (LogFileCtx *)oc->data;
+    uaf = oc->data;
+    if (uaf == NULL)
+        return 0;
+    lf = uaf->file_ctx;
     if (lf == NULL)
         return 0;
     filename = SCStrdup(lf->filename);
