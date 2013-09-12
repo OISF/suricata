@@ -92,7 +92,7 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
         SCLogDebug("Will emit reject packet on dev %s", devname);
     }
     if ((c = libnet_init(LIBNET_RAW4, devname, ebuf)) == NULL) {
-        SCLogError(SC_ERR_LIBNET_INIT,"libnet_inint failed: %s", ebuf);
+        SCLogError(SC_ERR_LIBNET_INIT,"libnet_init failed: %s", ebuf);
         return 1;
     }
 
