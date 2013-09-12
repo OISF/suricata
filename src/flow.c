@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -169,33 +169,6 @@ void FlowSetIPOnlyFlagNoLock(Flow *f, char direction)
 {
     direction ? (f->flags |= FLOW_TOSERVER_IPONLY_SET) :
         (f->flags |= FLOW_TOCLIENT_IPONLY_SET);
-    return;
-}
-
-/**
- *  \brief increase the use cnt of a flow
- *
- *  \param f flow to decrease use cnt for
- */
-void FlowIncrUsecnt(Flow *f)
-{
-    if (f == NULL)
-        return;
-
-    (void) SC_ATOMIC_ADD(f->use_cnt, 1);
-    return;
-}
-/**
- *  \brief decrease the use cnt of a flow
- *
- *  \param f flow to decrease use cnt for
- */
-void FlowDecrUsecnt(Flow *f)
-{
-    if (f == NULL)
-        return;
-
-    (void) SC_ATOMIC_SUB(f->use_cnt, 1);
     return;
 }
 

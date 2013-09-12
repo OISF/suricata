@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -387,9 +387,6 @@ void FlowShutdown(void);
 void FlowSetIPOnlyFlag(Flow *, char);
 void FlowSetIPOnlyFlagNoLock(Flow *, char);
 
-void FlowIncrUsecnt(Flow *);
-void FlowDecrUsecnt(Flow *);
-
 void FlowRegisterTests (void);
 int FlowSetProtoTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
 int FlowSetProtoEmergencyTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
@@ -475,6 +472,32 @@ static inline void FlowSetNoPayloadInspectionFlag(Flow *f) {
  */
 static inline void FlowSetSessionNoApplayerInspectionFlag(Flow *f) {
     f->flags |= FLOW_NO_APPLAYER_INSPECTION;
+}
+
+/**
+ *  \brief increase the use count of a flow
+ *
+ *  \param f flow to decrease use count for
+ */
+static inline void FlowIncrUsecnt(Flow *f)
+{
+    if (f == NULL)
+        return;
+
+    (void) SC_ATOMIC_ADD(f->use_cnt, 1);
+}
+
+/**
+ *  \brief decrease the use count of a flow
+ *
+ *  \param f flow to decrease use count for
+ */
+static inline void FlowDecrUsecnt(Flow *f)
+{
+    if (f == NULL)
+        return;
+
+    (void) SC_ATOMIC_SUB(f->use_cnt, 1);
 }
 
 #define FlowReference(dst_f_ptr, f) do {            \
