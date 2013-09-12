@@ -20,6 +20,8 @@
  *
  * \author Breno Silva <breno.silva@gmail.com>
  * \author Eric Leblond <eric@regit.org>
+ * \author Ignacio Sanchez <sanchezmartin.ji@gmail.com>
+ * \author Duarte Silva <duarte.silva@serializing.me>
  *
  * Logs alerts in a format compatible to Snort's unified2 format, so it should
  * be readable by Barnyard2.
@@ -50,6 +52,9 @@
 #include "util-byte.h"
 #include "util-misc.h"
 
+#include "app-layer-htp.h"
+#include "app-layer.h"
+
 #include "output.h"
 #include "alert-unified2-alert.h"
 #include "util-privs.h"
@@ -73,6 +78,28 @@
 
 /* Default Sensor ID value */
 static uint32_t sensor_id = 0;
+
+/**
+ * Unified2 Extra Data Header
+ *
+ */
+typedef struct Unified2ExtraDataHdr_ {
+    uint32_t event_type;
+    uint32_t event_length;
+} Unified2ExtraDataHdr;
+
+/**
+ * Unified2 Extra Data (currently used only for XFF)
+ *
+ */
+typedef struct Unified2ExtraData_ {
+    uint32_t sensor_id;
+    uint32_t event_id;
+    uint32_t event_second;
+    uint32_t type; /* EventInfo */
+    uint32_t data_type; /*EventDataType */
+    uint32_t blob_length; /* Length of the data + sizeof(blob_length) + sizeof(data_type)*/
+} Unified2ExtraData;
 
 /**
  * Unified2 file header struct
@@ -146,13 +173,38 @@ typedef struct AlertUnified2Packet_ {
     uint8_t packet_data[4];         /**< packet data */
 } Unified2Packet;
 
+/** XFF is disabled */
+#define UNIFIED2_ALERT_XFF_DISABLED 1
+/** XFF extra data mode */
+#define UNIFIED2_ALERT_XFF_EXTRADATA 2
+/** XFF overwrite mode */
+#define UNIFIED2_ALERT_XFF_OVERWRITE 4
+/** Extracted XFF IP is v4 */
+#define UNIFIED2_ALERT_XFF_IPV4 8
+/** Extracted XFF IP is v4 */
+#define UNIFIED2_ALERT_XFF_IPV6 16
+/** Default XFF header name */
+#define UNIFIED2_ALERT_XFF_DEFAULT "X-Forwarded-For"
+/** Single XFF IP maximum length */
+#define UNIFIED2_ALERT_XFF_MAXLEN 46
+/** XFF header value minimal length */
+#define UNIFIED2_ALERT_XFF_CHAIN_MINLEN 7
+/** XFF header value maximum length */
+#define UNIFIED2_ALERT_XFF_CHAIN_MAXLEN 256
+
+typedef struct Unified2AlertFileCtx_ {
+    LogFileCtx *file_ctx;
+    uint8_t xff_mode; /**< XFF operation mode */
+    char *xff_header; /**< XFF Header name */
+} Unified2AlertFileCtx;
+
 /**
  * Unified2 thread vars
  *
  * Used for storing file options.
  */
 typedef struct Unified2AlertThread_ {
-    LogFileCtx *file_ctx;   /**< LogFileCtx pointer */
+    Unified2AlertFileCtx *unified2alert_ctx; /**< LogFileCtx pointer */
     uint8_t *data; /**< Per function and thread data */
     /** Pointer to the Unified2AlertFileHeader contained in
      * the pointer data. */
@@ -166,6 +218,8 @@ typedef struct Unified2AlertThread_ {
     int datalen; /**< Length of per function and thread data */
     int offset; /**< Offset used to now where to fill data */
     int length; /**< Length of data for current alert */
+    uint8_t xff_flags; /**< XFF flags for the current alert */
+    uint32_t xff_ip[4]; /**< The XFF reported IP address for the current alert */
     uint32_t event_id;
 } Unified2AlertThread;
 
@@ -205,10 +259,10 @@ void TmModuleUnified2AlertRegister (void) {
  */
 
 int Unified2AlertCloseFile(ThreadVars *t, Unified2AlertThread *aun) {
-    if (aun->file_ctx->fp != NULL) {
-        fclose(aun->file_ctx->fp);
+    if (aun->unified2alert_ctx->file_ctx->fp != NULL) {
+        fclose(aun->unified2alert_ctx->file_ctx->fp);
     }
-    aun->file_ctx->size_current = 0;
+    aun->unified2alert_ctx->file_ctx->size_current = 0;
 
     return 0;
 }
@@ -228,7 +282,8 @@ int Unified2AlertRotateFile(ThreadVars *t, Unified2AlertThread *aun) {
                    "Error: Unified2AlertCloseFile failed");
         return -1;
     }
-    if (Unified2AlertOpenFileCtx(aun->file_ctx,aun->file_ctx->prefix) < 0) {
+    if (Unified2AlertOpenFileCtx(aun->unified2alert_ctx->file_ctx,aun->unified2alert_ctx->
+            file_ctx->prefix) < 0) {
         SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC,
                    "Error: Unified2AlertOpenFileCtx, open new log file failed");
         return -1;
@@ -248,14 +303,75 @@ static int Unified2Write(Unified2AlertThread *aun)
 {
     int ret;
 
-    ret = fwrite(aun->data, aun->length, 1, aun->file_ctx->fp);
+    ret = fwrite(aun->data, aun->length, 1, aun->unified2alert_ctx->file_ctx->fp);
     if (ret != 1) {
         SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
         return -1;
     }
 
-    aun->file_ctx->size_current += aun->length;
+    aun->unified2alert_ctx->file_ctx->size_current += aun->length;
     return 1;
+}
+
+/**
+ *  \brief Function to return XFF IP if any...
+ *  \retval 1 if the IP has been found and returned in dstbuf
+ *  \retval 0 if the IP has not being found or error
+ */
+static int GetXFFIP (Packet *p, char *xff_header, char *dstbuf, int dstbuflen)
+{
+    uint8_t xff_chain[UNIFIED2_ALERT_XFF_CHAIN_MAXLEN];
+    HtpState *htp_state = NULL;
+    htp_tx_t *tx = NULL;
+    uint64_t tx_id = 0;
+    uint64_t total_txs = 0;
+
+    htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
+
+    if (htp_state == NULL) {
+        SCLogDebug("no http state, XFF IP cannot be retrieved");
+        goto end;
+    }
+
+    total_txs = AppLayerGetTxCnt(ALPROTO_HTTP, htp_state);
+
+    for (; tx_id < total_txs; tx_id++) {
+        tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, tx_id);
+
+        if (tx == NULL) {
+            SCLogDebug("tx is NULL, XFF cannot be retrieved");
+            continue;
+        }
+
+        htp_header_t *h_xff = NULL;
+        if (tx->request_headers != NULL) {
+            h_xff = htp_table_get_c(tx->request_headers, xff_header);
+        }
+
+        if (h_xff != NULL && bstr_len(h_xff->value) >= UNIFIED2_ALERT_XFF_CHAIN_MINLEN &&
+                bstr_len(h_xff->value) < UNIFIED2_ALERT_XFF_CHAIN_MAXLEN) {
+
+            memcpy(xff_chain, bstr_ptr(h_xff->value), bstr_len(h_xff->value));
+            xff_chain[bstr_len(h_xff->value)]=0;
+            /** Check for chained IP's separated by ", ", we will get the last one */
+            uint8_t *p_xff = memrchr(xff_chain, ' ', bstr_len(h_xff->value));
+            if (p_xff == NULL) {
+                p_xff = xff_chain;
+            } else {
+                p_xff++;
+            }
+            /** Sanity check on extracted IP for IPv4 and IPv6 */
+            uint32_t ip[4];
+            if ( inet_pton(AF_INET, (char *)p_xff, ip ) == 1 ||
+                    inet_pton(AF_INET6, (char *)p_xff, ip ) == 1 ) {
+                strlcpy(dstbuf, (char *)p_xff, dstbuflen);
+                return 1; // OK
+            }
+        }
+    }
+
+end:
+    return 0; // Not found
 }
 
 /**
@@ -266,6 +382,55 @@ static int Unified2Write(Unified2AlertThread *aun)
  */
 TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
+    Unified2AlertThread *aun = (Unified2AlertThread *)data;
+    aun->xff_flags = UNIFIED2_ALERT_XFF_DISABLED;
+
+    if (!(aun->unified2alert_ctx->xff_mode & UNIFIED2_ALERT_XFF_DISABLED) &&
+            p->flow != NULL) {
+        FLOWLOCK_RDLOCK(p->flow);
+
+        if (AppLayerGetProtoFromPacket(p) == ALPROTO_HTTP) {
+            char buffer[UNIFIED2_ALERT_XFF_MAXLEN];
+
+            if (GetXFFIP(p, aun->unified2alert_ctx->xff_header, buffer, UNIFIED2_ALERT_XFF_MAXLEN) == 1) {
+                /** Be sure that we have a nice zeroed buffer */
+                memset(aun->xff_ip, 0, 4 * sizeof(uint32_t));
+
+                if (aun->unified2alert_ctx->xff_mode & UNIFIED2_ALERT_XFF_OVERWRITE) {
+                    /** We can only have override mode if packet IP version matches
+                     * the XFF IP version, otherwise fall-back to extra data */
+                    if (inet_pton(AF_INET, buffer, aun->xff_ip) == 1) {
+                        aun->xff_flags = UNIFIED2_ALERT_XFF_IPV4;
+
+                        if (PKT_IS_IPV4(p)) {
+                            aun->xff_flags |= UNIFIED2_ALERT_XFF_OVERWRITE;
+                        } else {
+                            aun->xff_flags |= UNIFIED2_ALERT_XFF_EXTRADATA;
+                        }
+                    } else if (inet_pton(AF_INET6, buffer, aun->xff_ip) == 1) {
+                        aun->xff_flags = UNIFIED2_ALERT_XFF_IPV6;
+
+                        if (PKT_IS_IPV6(p)) {
+                            aun->xff_flags |= UNIFIED2_ALERT_XFF_OVERWRITE;
+                        } else {
+                            aun->xff_flags |= UNIFIED2_ALERT_XFF_EXTRADATA;
+                        }
+                    }
+                }
+                else if (aun->unified2alert_ctx->xff_mode & UNIFIED2_ALERT_XFF_EXTRADATA) {
+                    aun->xff_flags = UNIFIED2_ALERT_XFF_EXTRADATA;
+
+                    if (inet_pton(AF_INET, buffer, aun->xff_ip) == 1) {
+                        aun->xff_flags |= UNIFIED2_ALERT_XFF_IPV4;
+                    } else if (inet_pton(AF_INET6, buffer, aun->xff_ip) == 1) {
+                        aun->xff_flags |= UNIFIED2_ALERT_XFF_IPV6;
+                    }
+                }
+            }
+        }
+        FLOWLOCK_UNLOCK(p->flow);
+    }
+
     int ret = 0;
 
     if (PKT_IS_IPV4(p)) {
@@ -354,6 +519,66 @@ static int Unified2PrintStreamSegmentCallback(Packet *p, void *data, uint8_t *bu
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
     Unified2AlertFileHeader *hdr = (Unified2AlertFileHeader*)(aun->data);
     Unified2Packet *phdr = (Unified2Packet *)(hdr + 1);
+    /** Prepare the pointers to extra data structures should they be required.
+     * If they are required we will shift the *hdr and the *phdr */
+    Unified2AlertFileHeader *eu2hdr =  (Unified2AlertFileHeader*)(aun->data);
+    Unified2ExtraDataHdr *ehdr = (Unified2ExtraDataHdr *)(eu2hdr + 1);
+    Unified2ExtraData *dhdr = (Unified2ExtraData *) (ehdr + 1);
+    uint32_t *edxff = (uint32_t *) (dhdr + 1);
+
+    aun->length = 0;
+    aun->offset = 0;
+
+    // If XFF is in extra data mode...
+    if (aun->xff_flags & UNIFIED2_ALERT_XFF_EXTRADATA) {
+        memset(dhdr, 0, sizeof(Unified2ExtraData));
+
+        if (aun->xff_flags & UNIFIED2_ALERT_XFF_IPV4) {
+            eu2hdr->type = htonl (UNIFIED2_IDS_EVENT_EXTRADATA_TYPE);
+            eu2hdr->length = htonl(sizeof (Unified2ExtraDataHdr)
+                    + sizeof (Unified2ExtraData) + sizeof(uint32_t));
+            ehdr->event_type = htonl(UNIFIED2_EXTRADATA_TYPE_EXTRA_DATA);
+            ehdr->event_length = htonl(sizeof (Unified2ExtraDataHdr)
+                    + sizeof (Unified2ExtraData) + sizeof(uint32_t));
+            dhdr->sensor_id = 0;
+            dhdr->event_id = aun->event_id;
+            dhdr->event_second = htonl(p->ts.tv_sec);
+            dhdr->data_type = htonl(UNIFIED2_EXTRADATA_TYPE_BLOB);
+            dhdr->type = htonl(UNIFIED2_EXTRADATA_CLIENT_IPV4_TYPE);
+            dhdr->blob_length = htonl(3 * sizeof(uint32_t));
+            aun->length += sizeof(Unified2AlertFileHeader) + sizeof (Unified2ExtraDataHdr)
+                    + sizeof (Unified2ExtraData) + sizeof(uint32_t);
+            aun->offset += sizeof(Unified2AlertFileHeader) + sizeof (Unified2ExtraDataHdr)
+                    + sizeof (Unified2ExtraData) + sizeof(uint32_t);
+            *edxff=aun->xff_ip[0];
+            /** Shift the *hdr and *phdr pointers */
+            hdr = (Unified2AlertFileHeader*)(edxff + 1);
+            phdr = (Unified2Packet *)(hdr + 1);
+        }
+        else if (aun->xff_flags & UNIFIED2_ALERT_XFF_IPV6) {
+            eu2hdr->type = htonl(UNIFIED2_IDS_EVENT_EXTRADATA_TYPE);
+            eu2hdr->length = htonl(sizeof (Unified2ExtraDataHdr)
+                    + sizeof (Unified2ExtraData) + 4 * sizeof(uint32_t));
+            ehdr->event_type = htonl(UNIFIED2_EXTRADATA_TYPE_EXTRA_DATA);
+            ehdr->event_length = htonl(sizeof (Unified2ExtraDataHdr)
+                    + sizeof (Unified2ExtraData) + 4 * sizeof(uint32_t));
+            dhdr->sensor_id = 0;
+            dhdr->event_id = aun->event_id;
+            dhdr->event_second = htonl(p->ts.tv_sec);
+            dhdr->data_type = htonl(UNIFIED2_EXTRADATA_TYPE_BLOB);
+            dhdr->type = htonl(UNIFIED2_EXTRADATA_CLIENT_IPV6_TYPE);
+            dhdr->blob_length = htonl(6 * sizeof(uint32_t));
+            aun->length += sizeof(Unified2AlertFileHeader) + sizeof (Unified2ExtraDataHdr)
+                    + sizeof (Unified2ExtraData) + 4 * sizeof(uint32_t);
+            aun->offset += sizeof(Unified2AlertFileHeader) + sizeof (Unified2ExtraDataHdr)
+                    + sizeof (Unified2ExtraData) + 4 * sizeof(uint32_t);
+            memcpy(edxff, aun->xff_ip, 4 * sizeof(uint32_t));
+            /** Shift the *hdr and *phdr pointers */
+            hdr = (Unified2AlertFileHeader*)(edxff + 4);
+            phdr = (Unified2Packet *)(hdr + 1);
+        }
+    }
+
     int ethh_offset = 0;
     EthernetHdr ethhdr = { {0,0,0,0,0,0}, {0,0,0,0,0,0}, htons(ETHERNET_TYPE_IPV6) };
     uint32_t hdr_length = 0;
@@ -378,8 +603,8 @@ static int Unified2PrintStreamSegmentCallback(Packet *p, void *data, uint8_t *bu
         datalink = DLT_RAW;
     }
 
-    aun->length = sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE;
-    aun->offset = sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE;
+    aun->length += sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE;
+    aun->offset += sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE;
 
     /* Include Packet header */
     if (PKT_IS_IPV4(p)) {
@@ -410,6 +635,16 @@ static int Unified2PrintStreamSegmentCallback(Packet *p, void *data, uint8_t *bu
             SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data");
             goto error;
         }
+        /** If XFF is in overwrite mode... */
+        if (aun->xff_flags & UNIFIED2_ALERT_XFF_OVERWRITE) {
+            BUG_ON(aun->xff_flags & UNIFIED2_ALERT_XFF_IPV6);
+            if (p->flowflags & FLOW_PKT_TOCLIENT) {
+                fakehdr.ip4h.s_ip_dst.s_addr = aun->xff_ip[0];
+            } else {
+                fakehdr.ip4h.s_ip_src.s_addr = aun->xff_ip[0];
+            }
+        }
+
         memcpy(aun->data + aun->offset, &fakehdr, hdr_length);
         aun->iphdr = (void *)(aun->data + aun->offset);
         aun->offset += hdr_length;
@@ -442,6 +677,17 @@ static int Unified2PrintStreamSegmentCallback(Packet *p, void *data, uint8_t *bu
             SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data");
             goto error;
         }
+        /** If XFF is in overwrite mode... */
+        if (aun->xff_flags & UNIFIED2_ALERT_XFF_OVERWRITE) {
+            BUG_ON(aun->xff_flags & UNIFIED2_ALERT_XFF_IPV4);
+
+            if (p->flowflags & FLOW_PKT_TOCLIENT) {
+                memcpy(fakehdr.ip6h.s_ip6_dst, aun->xff_ip, 4 * sizeof(uint32_t));
+            } else {
+                memcpy(fakehdr.ip6h.s_ip6_src, aun->xff_ip, 4 * sizeof(uint32_t));
+            }
+        }
+
         memcpy(aun->data + aun->offset, &fakehdr, hdr_length);
         aun->iphdr = (void *)(aun->data + aun->offset);
         aun->offset += hdr_length;
@@ -650,6 +896,16 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     gphdr.event_microsecond = htonl(p->ts.tv_usec);
     gphdr.src_ip = *(struct in6_addr*)GET_IPV6_SRC_ADDR(p);
     gphdr.dst_ip = *(struct in6_addr*)GET_IPV6_DST_ADDR(p);
+    /** If XFF is in overwrite mode... */
+    if (aun->xff_flags & UNIFIED2_ALERT_XFF_OVERWRITE) {
+        BUG_ON(aun->xff_flags & UNIFIED2_ALERT_XFF_IPV4);
+
+        if (p->flowflags & FLOW_PKT_TOCLIENT) {
+           gphdr.dst_ip = *(struct in6_addr*)aun->xff_ip;
+        } else {
+           gphdr.src_ip = *(struct in6_addr*)aun->xff_ip;
+        }
+    }
     gphdr.protocol = p->proto;
 
     if(PACKET_TEST_ACTION(p, ACTION_DROP))
@@ -719,18 +975,19 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         phdr->classification_id = htonl(pa->s->class);
         phdr->priority_id = htonl(pa->s->prio);
 
-        SCMutexLock(&aun->file_ctx->fp_mutex);
-        if ((aun->file_ctx->size_current + length) > aun->file_ctx->size_limit) {
+        SCMutexLock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
+        if ((aun->unified2alert_ctx->file_ctx->size_current + length) >
+              aun->unified2alert_ctx->file_ctx->size_limit) {
             if (Unified2AlertRotateFile(t,aun) < 0) {
-                aun->file_ctx->alerts += i;
-                SCMutexUnlock(&aun->file_ctx->fp_mutex);
+                aun->unified2alert_ctx->file_ctx->alerts += i;
+                SCMutexUnlock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
                 return -1;
             }
         }
 
         if (Unified2Write(aun) != 1) {
-            aun->file_ctx->alerts += i;
-            SCMutexUnlock(&aun->file_ctx->fp_mutex);
+            aun->unified2alert_ctx->file_ctx->alerts += i;
+            SCMutexUnlock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
             return -1;
         }
 
@@ -744,13 +1001,13 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         ret = Unified2PacketTypeAlert(aun, p, phdr->event_id, stream);
         if (ret != 1) {
             SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
-            aun->file_ctx->alerts += i;
-            SCMutexUnlock(&aun->file_ctx->fp_mutex);
+            aun->unified2alert_ctx->file_ctx->alerts += i;
+            SCMutexUnlock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
             return -1;
         }
-        fflush(aun->file_ctx->fp);
-        aun->file_ctx->alerts++;
-        SCMutexUnlock(&aun->file_ctx->fp_mutex);
+        fflush(aun->unified2alert_ctx->file_ctx->fp);
+        aun->unified2alert_ctx->file_ctx->alerts++;
+        SCMutexUnlock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
     }
 
     return 0;
@@ -798,6 +1055,16 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     gphdr.event_microsecond = htonl(p->ts.tv_usec);
     gphdr.src_ip = p->ip4h->s_ip_src.s_addr;
     gphdr.dst_ip = p->ip4h->s_ip_dst.s_addr;
+    /** If XFF is in overwrite mode... */
+    if (aun->xff_flags & UNIFIED2_ALERT_XFF_OVERWRITE) {
+        BUG_ON(aun->xff_flags & UNIFIED2_ALERT_XFF_IPV6);
+
+        if (p->flowflags & FLOW_PKT_TOCLIENT) {
+            gphdr.dst_ip = aun->xff_ip[0];
+        } else {
+            gphdr.src_ip = aun->xff_ip[0];
+        }
+    }
     gphdr.protocol = IPV4_GET_RAW_IPPROTO(p->ip4h);
 
     if(PACKET_TEST_ACTION(p, ACTION_DROP))
@@ -858,19 +1125,20 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
         phdr->priority_id = htonl(pa->s->prio);
 
         /* check and enforce the filesize limit */
-        SCMutexLock(&aun->file_ctx->fp_mutex);
+        SCMutexLock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
 
-        if ((aun->file_ctx->size_current + length) > aun->file_ctx->size_limit) {
+        if ((aun->unified2alert_ctx->file_ctx->size_current + length) >
+              aun->unified2alert_ctx->file_ctx->size_limit) {
             if (Unified2AlertRotateFile(tv,aun) < 0) {
-                aun->file_ctx->alerts += i;
-                SCMutexUnlock(&aun->file_ctx->fp_mutex);
+                aun->unified2alert_ctx->file_ctx->alerts += i;
+                SCMutexUnlock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
                 return -1;
             }
         }
 
         if (Unified2Write(aun) != 1) {
-            aun->file_ctx->alerts += i;
-            SCMutexUnlock(&aun->file_ctx->fp_mutex);
+            aun->unified2alert_ctx->file_ctx->alerts += i;
+            SCMutexUnlock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
             return -1;
         }
 
@@ -885,14 +1153,14 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
             (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_STREAM_MATCH) ? 1 : 0) : 0;
         ret = Unified2PacketTypeAlert(aun, p, event_id, stream);
         if (ret != 1) {
-            aun->file_ctx->alerts += i;
-            SCMutexUnlock(&aun->file_ctx->fp_mutex);
+            aun->unified2alert_ctx->file_ctx->alerts += i;
+            SCMutexUnlock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
             return -1;
         }
 
-        fflush(aun->file_ctx->fp);
-        aun->file_ctx->alerts++;
-        SCMutexUnlock(&aun->file_ctx->fp_mutex);
+        fflush(aun->unified2alert_ctx->file_ctx->fp);
+        aun->unified2alert_ctx->file_ctx->alerts++;
+        SCMutexUnlock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
     }
 
     return 0;
@@ -921,14 +1189,16 @@ TmEcode Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
         return TM_ECODE_FAILED;
     }
     /** Use the Ouptut Context (file pointer and mutex) */
-    aun->file_ctx = ((OutputCtx *)initdata)->data;
+    aun->unified2alert_ctx = ((OutputCtx *)initdata)->data;
 
-    aun->data = SCMalloc(sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) + IPV4_MAXPACKET_LEN);
+    aun->data = SCMalloc(sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) +
+                    IPV4_MAXPACKET_LEN + sizeof(Unified2ExtraDataHdr) + sizeof (Unified2ExtraData));
     if (aun->data == NULL) {
         SCFree(aun);
         return TM_ECODE_FAILED;
     }
-    aun->datalen = sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) + IPV4_MAXPACKET_LEN;
+    aun->datalen = sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) +
+                    IPV4_MAXPACKET_LEN + sizeof(Unified2ExtraDataHdr) + sizeof(Unified2ExtraData);
 
     *data = (void *)aun;
 
@@ -951,12 +1221,12 @@ TmEcode Unified2AlertThreadDeinit(ThreadVars *t, void *data)
         goto error;
     }
 
-    if (!(aun->file_ctx->flags & LOGFILE_ALERTS_PRINTED)) {
+    if (!(aun->unified2alert_ctx->file_ctx->flags & LOGFILE_ALERTS_PRINTED)) {
         SCLogInfo("Alert unified2 module wrote %"PRIu64" alerts",
-                aun->file_ctx->alerts);
+                aun->unified2alert_ctx->file_ctx->alerts);
 
         /* Do not print it for each thread */
-        aun->file_ctx->flags |= LOGFILE_ALERTS_PRINTED;
+        aun->unified2alert_ctx->file_ctx->flags |= LOGFILE_ALERTS_PRINTED;
 
     }
 
@@ -982,6 +1252,7 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
 {
     int ret = 0;
     LogFileCtx* file_ctx = NULL;
+    OutputCtx* output_ctx = NULL;
 
     file_ctx = LogFileNewCtx();
     if (file_ctx == NULL) {
@@ -1037,11 +1308,52 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
     if (ret < 0)
         goto error;
 
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
         goto error;
     output_ctx->data = file_ctx;
+
+    Unified2AlertFileCtx *unified2alert_ctx = SCMalloc(sizeof(Unified2AlertFileCtx));
+    if (unlikely(unified2alert_ctx == NULL)) {
+        goto error;
+    }
+    memset(unified2alert_ctx, 0x00, sizeof(Unified2AlertFileCtx));
+    unified2alert_ctx->file_ctx = file_ctx;
+    output_ctx->data = unified2alert_ctx;
+
     output_ctx->DeInit = Unified2AlertDeInitCtx;
+
+    ConfNode *xff_node = ConfNodeLookupChild(conf, "xff");
+
+    if (xff_node != NULL && ConfNodeChildValueIsTrue(xff_node, "enabled")) {
+        const char *xff_mode = ConfNodeLookupChildValue(xff_node, "mode");
+
+        if (xff_mode != NULL && strcasecmp(xff_mode, "overwrite") == 0) {
+                unified2alert_ctx->xff_mode |= UNIFIED2_ALERT_XFF_OVERWRITE;
+        } else {
+            if (xff_mode == NULL) {
+                SCLogWarning(SC_WARN_XFF_INVALID_MODE, "The unified2 output XFF mode hasn't been defined, falling back to extra-data mode");
+            }
+            else if (strcasecmp(xff_mode, "extra-data") != 0) {
+                SCLogWarning(SC_WARN_XFF_INVALID_MODE, "The unified2 output XFF mode %s is invalid, falling back to extra-data mode",
+                        xff_mode);
+            }
+            unified2alert_ctx->xff_mode |= UNIFIED2_ALERT_XFF_EXTRADATA;
+        }
+
+        const char *xff_header = ConfNodeLookupChildValue(xff_node, "header");
+
+        if (xff_header != NULL) {
+            unified2alert_ctx->xff_header = (char *) xff_header;
+        } else {
+            SCLogWarning(SC_WARN_XFF_INVALID_HEADER, "The unified2 output XFF header hasn't been defined, using the default %s",
+                    UNIFIED2_ALERT_XFF_DEFAULT);
+            unified2alert_ctx->xff_header = UNIFIED2_ALERT_XFF_DEFAULT;
+        }
+    }
+    else {
+        unified2alert_ctx->xff_mode = UNIFIED2_ALERT_XFF_DISABLED;
+    }
 
     SCLogInfo("Unified2-alert initialized: filename %s, limit %"PRIu64" MB",
               filename, file_ctx->size_limit / (1024*1024));
@@ -1051,8 +1363,8 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
     return output_ctx;
 
 error:
-    if (file_ctx != NULL) {
-        LogFileFreeCtx(file_ctx);
+    if (output_ctx != NULL) {
+        SCFree(output_ctx);
     }
 
     return NULL;
@@ -1061,11 +1373,14 @@ error:
 static void Unified2AlertDeInitCtx(OutputCtx *output_ctx)
 {
     if (output_ctx != NULL) {
-        LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
-        if (logfile_ctx != NULL) {
-            LogFileFreeCtx(logfile_ctx);
+        Unified2AlertFileCtx *unified2alert_ctx = (Unified2AlertFileCtx *) output_ctx->data;
+        if (unified2alert_ctx != NULL) {
+            LogFileCtx *logfile_ctx = unified2alert_ctx->file_ctx;
+            if (logfile_ctx != NULL) {
+                LogFileFreeCtx(logfile_ctx);
+            }
+            SCFree(unified2alert_ctx);
         }
-        SCFree(output_ctx);
     }
 }
 

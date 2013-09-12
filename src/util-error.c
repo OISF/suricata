@@ -276,6 +276,8 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_WARN_OPTION_OBSOLETE);
         CASE_CODE (SC_WARN_NO_UNITTESTS);
         CASE_CODE (SC_ERR_THREAD_QUEUE);
+        CASE_CODE (SC_WARN_XFF_INVALID_MODE);
+        CASE_CODE (SC_WARN_XFF_INVALID_HEADER);
     }
 
     return "UNKNOWN_ERROR";
