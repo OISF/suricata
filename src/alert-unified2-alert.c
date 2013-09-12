@@ -385,6 +385,9 @@ TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, Pa
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
     aun->xff_flags = UNIFIED2_ALERT_XFF_DISABLED;
 
+    if (p->alerts.cnt == 0)
+        return TM_ECODE_OK;
+
     if (!(aun->unified2alert_ctx->xff_mode & UNIFIED2_ALERT_XFF_DISABLED) &&
             p->flow != NULL) {
         FLOWLOCK_RDLOCK(p->flow);
