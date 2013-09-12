@@ -864,7 +864,6 @@ void RegisterSMTPParsers(void)
                     STREAM_TOSERVER);
         AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMTP, "QUIT", 4, 0,
                 STREAM_TOSERVER);
-        AppLayerRegisterParserAcceptableDataDirection(ALPROTO_SMTP, STREAM_TOCLIENT);
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",
                   proto_name);
