@@ -187,7 +187,6 @@ int RunUnittests(int list_unittests, char *regex_arg)
     DecodePPPRegisterTests();
     DecodeVLANRegisterTests();
     HTPParserRegisterTests();
-    SSLParserRegisterTests();
     SSHParserRegisterTests();
     SMBParserRegisterTests();
     DCERPCParserRegisterTests();
