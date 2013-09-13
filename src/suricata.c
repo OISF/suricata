@@ -187,6 +187,10 @@ int run_mode = RUNMODE_UNKNOWN;
   * detection mode (ENGINE_MODE_IDS by default) */
 uint8_t engine_mode = ENGINE_MODE_IDS;
 
+/** Host mode: set if box is sniffing only
+ * or is a router */
+uint8_t host_mode = HOST_IS_SNIFFER_ONLY;
+
 /** Maximum packets to simultaneously process. */
 intmax_t max_pending_packets;
 
@@ -1658,6 +1662,7 @@ static int FinalizeRunMode(SCInstance *suri, char **argv)
     /* Set the global run mode */
     run_mode = suri->run_mode;
 
+
     return TM_ECODE_OK;
 }
 
@@ -1744,6 +1749,37 @@ static int ConfigGetCaptureValue(SCInstance *suri)
 
     return TM_ECODE_OK;
 }
+
+static int PostConfLoadedSetup(SCInstance *suri)
+{
+    char *hostmode = NULL;
+
+    if (ConfGet("host-mode", &hostmode) == 1) {
+        if (!strncmp(hostmode, "router", strlen("router"))) {
+            host_mode = HOST_IS_ROUTER;
+        } else if (!strncmp(hostmode, "sniffer-only", strlen("sniffer-only"))) {
+            host_mode = HOST_IS_SNIFFER_ONLY;
+        } else {
+            if (strncmp(hostmode, "auto", strlen("auto"))) {
+                SCLogInfo("Unsupported 'host-mode' value, switching to 'auto'");
+            }
+            if (IS_ENGINE_MODE_IPS(engine_mode)) {
+                host_mode = HOST_IS_ROUTER;
+            } else {
+                host_mode = HOST_IS_SNIFFER_ONLY;
+            }
+        }
+    } else {
+        SCLogInfo("No 'host-mode' setting using IPS/IDS info");
+        if (IS_ENGINE_MODE_IPS(engine_mode)) {
+            host_mode = HOST_IS_ROUTER;
+        } else {
+            host_mode = HOST_IS_SNIFFER_ONLY;
+        }
+    }
+    return TM_ECODE_OK;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -1853,6 +1889,11 @@ int main(int argc, char **argv)
     }
 
     if (ConfigGetCaptureValue(&suri) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
+
+    if (PostConfLoadedSetup(&suri) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 

@@ -32,6 +32,12 @@
 #
 #autofp-scheduler: active-packets
 
+# If suricata box is a router for the sniffed networks, set it to 'router'. If
+# it is a pure sniffing setup, set it to 'sniffer-only'.
+# If set to auto, the variable is internally switch to 'router' in IPS mode
+# and 'sniffer-only' in IDS mode.
+host-mode: auto
+
 # Run suricata as user and group.
 #run-as:
 #  user: suri
