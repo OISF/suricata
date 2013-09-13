@@ -187,6 +187,10 @@ int run_mode = RUNMODE_UNKNOWN;
   * detection mode (ENGINE_MODE_IDS by default) */
 uint8_t engine_mode = ENGINE_MODE_IDS;
 
+/** Host mode: set if box is sniffing only
+ * or is a router */
+uint8_t host_mode = SURI_HOST_IS_SNIFFER_ONLY;
+
 /** Maximum packets to simultaneously process. */
 intmax_t max_pending_packets;
 
@@ -1673,6 +1677,7 @@ static int FinalizeRunMode(SCInstance *suri, char **argv)
     /* Set the global run mode */
     run_mode = suri->run_mode;
 
+
     return TM_ECODE_OK;
 }
 
@@ -1759,6 +1764,43 @@ static int ConfigGetCaptureValue(SCInstance *suri)
 
     return TM_ECODE_OK;
 }
+/**
+ * This function is meant to contain code that needs
+ * to be run once the configuration has been loaded.
+ */
+static int PostConfLoadedSetup(SCInstance *suri)
+{
+    char *hostmode = NULL;
+
+    if (ConfGet("host-mode", &hostmode) == 1) {
+        if (!strcmp(hostmode, "router")) {
+            host_mode = SURI_HOST_IS_ROUTER;
+        } else if (!strcmp(hostmode, "sniffer-only")) {
+            host_mode = SURI_HOST_IS_SNIFFER_ONLY;
+        } else {
+            if (strcmp(hostmode, "auto")) {
+                WarnInvalidConfEntry("host-mode", "%s", "auto");
+            }
+            if (IS_ENGINE_MODE_IPS(engine_mode)) {
+                host_mode = SURI_HOST_IS_ROUTER;
+            } else {
+                host_mode = SURI_HOST_IS_SNIFFER_ONLY;
+            }
+        }
+    } else {
+        if (IS_ENGINE_MODE_IPS(engine_mode)) {
+            host_mode = SURI_HOST_IS_ROUTER;
+            SCLogInfo("No 'host-mode': suricata in IPS mode, so"
+                      "automatic setting to 'router'");
+        } else {
+            host_mode = SURI_HOST_IS_SNIFFER_ONLY;
+            SCLogInfo("No 'host-mode': suricata in IDS mode, so"
+                      "automatic setting to 'sniffer-only'");
+        }
+    }
+    return TM_ECODE_OK;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -1870,6 +1912,11 @@ int main(int argc, char **argv)
     }
 
     if (ConfigGetCaptureValue(&suri) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
+
+    if (PostConfLoadedSetup(&suri) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
