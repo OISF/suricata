@@ -47,6 +47,7 @@
 #include "action-globals.h"
 #include "respond-reject.h"
 #include "respond-reject-libnet11.h"
+#include "util-device.h"
 
 #ifdef HAVE_LIBNET11
 
@@ -56,9 +57,9 @@ extern int sc_set_caps;
 
 #include <libnet.h>
 
+extern uint8_t host_mode;
 
-typedef struct Libnet11Packet_
-{
+typedef struct Libnet11Packet_ {
     uint32_t ack, seq;
     uint16_t window, dsize;
     uint8_t ttl;
@@ -71,12 +72,14 @@ typedef struct Libnet11Packet_
     size_t len;
 } Libnet11Packet;
 
-int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir) {
+int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+{
 
     Libnet11Packet lpacket;
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
     int result;
+    char *devname = NULL;
 
     /* fill in struct defaults */
     lpacket.ttl = 0;
@@ -84,9 +87,12 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir) 
     lpacket.flow = 0;
     lpacket.class = 0;
 
-    if ((c = libnet_init (LIBNET_RAW4, NULL, ebuf)) == NULL)
-    {
-        SCLogError(SC_ERR_LIBNET_INIT,"libnet_inint failed: %s", ebuf);
+    if (IS_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
+        devname = p->livedev->dev;
+        SCLogInfo("set dev to %s", devname);
+    }
+    if ((c = libnet_init(LIBNET_RAW4, devname, ebuf)) == NULL) {
+        SCLogError(SC_ERR_LIBNET_INIT,"libnet_init failed: %s", ebuf);
         return 1;
     }
 
@@ -96,31 +102,43 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir) 
     /* save payload len */
     lpacket.dsize = p->payload_len;
 
-    if (dir == REJECT_DIR_SRC) {
-        SCLogDebug("sending a tcp reset to src");
-        lpacket.seq = TCP_GET_ACK(p);
-        lpacket.ack = TCP_GET_SEQ(p) + lpacket.dsize;
+    switch (dir) {
+        case REJECT_DIR_SRC:
+            SCLogDebug("sending a tcp reset to src");
+            /* We follow http://tools.ietf.org/html/rfc793#section-3.4 :
+             *  If packet has no ACK, the seq number is 0 and the ACK is built
+             *  the normal way. If packet has a ACK, the seq of the RST packet
+             *  is equal to the ACK of incoming packet and the ACK is build
+             *  using packet sequence number and size of the data. */
+            if (TCP_GET_ACK(p) == 0) {
+                lpacket.seq = 0;
+                lpacket.ack = TCP_GET_SEQ(p) + lpacket.dsize + 1;
+            } else {
+                lpacket.seq = TCP_GET_ACK(p);
+                lpacket.ack = TCP_GET_SEQ(p) + lpacket.dsize;
+            }
 
-        lpacket.sp = TCP_GET_DST_PORT(p);
-        lpacket.dp = TCP_GET_SRC_PORT(p);
+            lpacket.sp = TCP_GET_DST_PORT(p);
+            lpacket.dp = TCP_GET_SRC_PORT(p);
 
-        lpacket.src4 = GET_IPV4_DST_ADDR_U32(p);
-        lpacket.dst4 = GET_IPV4_SRC_ADDR_U32(p);
-    }
-    else if (dir == REJECT_DIR_DST) {
-        SCLogDebug("sending a tcp reset to dst");
-        lpacket.seq = TCP_GET_SEQ(p);
-        lpacket.ack = TCP_GET_ACK(p);
+            lpacket.src4 = GET_IPV4_DST_ADDR_U32(p);
+            lpacket.dst4 = GET_IPV4_SRC_ADDR_U32(p);
+            break;
+        case REJECT_DIR_DST:
+            SCLogDebug("sending a tcp reset to dst");
+            lpacket.seq = TCP_GET_SEQ(p);
+            lpacket.ack = TCP_GET_ACK(p);
 
-        lpacket.sp = TCP_GET_SRC_PORT(p);
-        lpacket.dp = TCP_GET_DST_PORT(p);
+            lpacket.sp = TCP_GET_SRC_PORT(p);
+            lpacket.dp = TCP_GET_DST_PORT(p);
 
-        lpacket.src4 = GET_IPV4_SRC_ADDR_U32(p);
-        lpacket.dst4 = GET_IPV4_DST_ADDR_U32(p);
-
-    } else {
-        SCLogError(SC_ERR_LIBNET_INVALID_DIR,"reset not src or dst returning");
-        return 1;
+            lpacket.src4 = GET_IPV4_SRC_ADDR_U32(p);
+            lpacket.dst4 = GET_IPV4_DST_ADDR_U32(p);
+            break;
+        default:
+            SCLogError(SC_ERR_LIBNET_INVALID_DIR,
+                       "reset not src or dst returning");
+            return 1;
     }
 
     lpacket.window = TCP_GET_WINDOW(p);
@@ -130,11 +148,11 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir) 
     lpacket.ttl = 64;
 
     /* build the package */
-    if ((libnet_build_tcp (
+    if ((libnet_build_tcp(
                     lpacket.sp,            /* source port */
                     lpacket.dp,            /* dst port */
                     lpacket.seq,           /* seq number */
-                    lpacket.ack+1,           /* ack number */
+                    lpacket.ack,           /* ack number */
                     TH_RST|TH_ACK,         /* flags */
                     lpacket.window,        /* window size */
                     0,                     /* checksum */
@@ -149,7 +167,7 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir) 
         goto cleanup;
     }
 
-    if((libnet_build_ipv4(
+    if ((libnet_build_ipv4(
                     LIBNET_TCP_H + LIBNET_IPV4_H, /* entire packet length */
                     0,                            /* tos */
                     lpacket.id,                   /* ID */
@@ -179,12 +197,14 @@ cleanup:
     return 0;
 }
 
-int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir) {
+int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+{
     //printf("going to send a ICMP host unreachable\n");
     Libnet11Packet lpacket;
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
     int result;
+    char *devname = NULL;
 
     /* fill in struct defaults */
     lpacket.ttl = 0;
@@ -193,29 +213,35 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     lpacket.class = 0;
 
     lpacket.len = (IPV4_GET_HLEN(p) + p->payload_len);
-    if ((c = libnet_init (LIBNET_RAW4, NULL, ebuf)) == NULL){
+
+    if (IS_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
+        devname = p->livedev->dev;
+    }
+    if ((c = libnet_init(LIBNET_RAW4, devname, ebuf)) == NULL) {
         SCLogError(SC_ERR_LIBNET_INIT,"libnet_inint failed: %s", ebuf);
         return 1;
     }
 
-    if (dir == REJECT_DIR_SRC) {
-        lpacket.src4 = GET_IPV4_DST_ADDR_U32(p);
-        lpacket.dst4 = GET_IPV4_SRC_ADDR_U32(p);
-    }
-    else if (dir == REJECT_DIR_DST) {
-        lpacket.src4 = GET_IPV4_SRC_ADDR_U32(p);
-        lpacket.dst4 = GET_IPV4_DST_ADDR_U32(p);
-
-    } else {
-        SCLogError(SC_ERR_LIBNET_INVALID_DIR,"reset not src or dst returning");
-        return 1;
+    switch (dir) {
+        case REJECT_DIR_SRC:
+            lpacket.src4 = GET_IPV4_DST_ADDR_U32(p);
+            lpacket.dst4 = GET_IPV4_SRC_ADDR_U32(p);
+            break;
+        case REJECT_DIR_DST:
+            lpacket.src4 = GET_IPV4_SRC_ADDR_U32(p);
+            lpacket.dst4 = GET_IPV4_DST_ADDR_U32(p);
+            break;
+        default:
+            SCLogError(SC_ERR_LIBNET_INVALID_DIR,
+                       "reset not src or dst returning");
+            return 1;
     }
 
     /* TODO come up with ttl calc function */
     lpacket.ttl = 64;
 
     /* build the package */
-    if ((libnet_build_icmpv4_unreach (
+    if ((libnet_build_icmpv4_unreach(
                     ICMP_DEST_UNREACH,        /* type */
                     ICMP_HOST_ANO,            /* code */
                     0,                        /* checksum */
@@ -228,7 +254,7 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
         goto cleanup;
     }
 
-    if((libnet_build_ipv4(
+    if ((libnet_build_ipv4(
                     LIBNET_ICMPV4_H + LIBNET_IPV4_H +
                     lpacket.len,                    /* entire packet length */
                     0,                              /* tos */
@@ -261,14 +287,20 @@ cleanup:
 
 #else
 
-int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir) {
-	SCLogError(SC_ERR_LIBNET_NOT_ENABLED,"Libnet based rejects are disabled. Usually this means that you don't have libnet installed, or configure couldn't find it.");
-	return 0;
+int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+{
+    SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
+                "Usually this means that you don't have libnet installed,"
+                " or configure couldn't find it.");
+    return 0;
 }
 
-int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir) {
-    SCLogError(SC_ERR_LIBNET_NOT_ENABLED,"Libnet based rejects are disabled. Usually this means that you don't have libnet installed, or configure couldn't find it.");
-	return 0;
+int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+{
+    SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
+                "Usually this means that you don't have libnet installed,"
+                " or configure couldn't find it.");
+    return 0;
 }
 
 #endif /* HAVE_LIBNET11 */
