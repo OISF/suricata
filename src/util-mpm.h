@@ -71,9 +71,16 @@ enum {
     /* aho-corasick-goto-failure state based */
     MPM_AC_GFBS,
     MPM_AC_BS,
+    MPM_AC_TILE,
     /* table size */
     MPM_TABLE_SIZE,
 };
+
+#ifdef __tile__
+#define DEFAULT_MPM   MPM_AC_TILE
+#else
+#define DEFAULT_MPM   MPM_AC
+#endif
 
 typedef struct MpmMatchBucket_ {
     uint32_t len;
