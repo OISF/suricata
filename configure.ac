@@ -827,7 +827,7 @@
 
     AC_MSG_CHECKING(for libnet.h version 1.1.x)
     if test "$LIBNET_INC_DIR" != ""; then
-        if eval "grep LIBNET_VERSION $LIBNET_INC_DIR/libnet.h | grep -v 1.1 >/dev/null"; then
+        if eval "grep LIBNET_VERSION $LIBNET_INC_DIR/libnet.h | grep -v '1.[[12]]' >/dev/null"; then
             AC_MSG_RESULT(no)
             LIBNET_DETECT_FAIL="yes"
             LIBNET_FAIL_WARN($libnet_dir)
