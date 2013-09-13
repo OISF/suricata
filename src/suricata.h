@@ -115,6 +115,15 @@ enum {
 #define IS_ENGINE_MODE_IPS(engine_mode)  ((engine_mode) == ENGINE_MODE_IPS)
 #define IS_ENGINE_MODE_IDS(engine_mode)  ((engine_mode) == ENGINE_MODE_IDS)
 
+/* Box is acting as router */
+enum {
+    SURI_HOST_IS_SNIFFER_ONLY,
+    SURI_HOST_IS_ROUTER,
+};
+
+#define IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode)  ((host_mode) == SURI_HOST_IS_SNIFFER_ONLY)
+#define IS_SURI_HOST_MODE_ROUTER(host_mode)  ((host_mode) == SURI_HOST_IS_ROUTER)
+
 /* queue's between various other threads
  * XXX move to the TmQueue structure later
  */
