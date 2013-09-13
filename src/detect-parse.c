@@ -31,6 +31,7 @@
 #include "detect-engine-address.h"
 #include "detect-engine-port.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-state.h"
 
 #include "detect-content.h"
 #include "detect-pcre.h"
@@ -38,6 +39,8 @@
 #include "detect-reference.h"
 #include "detect-ipproto.h"
 #include "detect-flow.h"
+#include "detect-app-layer-protocol.h"
+#include "detect-engine-apt-event.h"
 
 #include "pkt-var.h"
 #include "host.h"
@@ -582,52 +585,44 @@ error:
 int SigParseProto(Signature *s, const char *protostr) {
     SCEnter();
 
+    AppLayerProbingParser *pp;
+    AppLayerProbingParserPort *pp_port;
+    AppLayerProbingParserElement *pp_pe;
+
     int r = DetectProtoParse(&s->proto, (char *)protostr);
     if (r < 0) {
         s->alproto = AppLayerGetProtoByName(protostr);
-        if (s->alproto != ALPROTO_UNKNOWN) {
-            /* indicate that the signature is app-layer */
+        /* indicate that the signature is app-layer */
+        if (s->alproto != ALPROTO_UNKNOWN)
             s->flags |= SIG_FLAG_APPLAYER;
 
-            /* We are going to set ip proto from the
-             * registered applayer signatures for proto detection */
-            AlpProtoSignature *als = alp_proto_ctx.head;
-            while (als != NULL) {
-                if (als->proto == s->alproto) {
-                    /* Set the ipproto that this AL proto detection sig needs
-                     * Note that an AL proto can be present in more than one
-                     * IP proto (over TCP, UDP..) */
-                    s->proto.proto[als->ip_proto / 8] |= 1 << (als->ip_proto % 8);
+        for (pp = alp_proto_ctx.probing_parsers; pp != NULL; pp = pp->next) {
+            for (pp_port = pp->port; pp_port != NULL; pp_port = pp_port->next) {
+                for (pp_pe = pp_port->toserver; pp_pe != NULL; pp_pe = pp_pe->next) {
+                    if (strcasecmp(pp_pe->al_proto_name, protostr) != 0)
+                        continue;
+                    s->flags |= SIG_FLAG_APPLAYER;
+                    s->alproto = pp_pe->al_proto;
                 }
-                als = als->next;
+
+                for (pp_pe = pp_port->toclient; pp_pe != NULL; pp_pe = pp_pe->next) {
+                    if (strcasecmp(pp_pe->al_proto_name, protostr) != 0)
+                        continue;
+                    s->flags |= SIG_FLAG_APPLAYER;
+                    s->alproto = pp_pe->al_proto;
+                }
             }
-            /** VJ since our dns parser uses only pp, this is required to set
-             *  ipprotos */
-            AppLayerProbingParserInfo *ppi =
-                AppLayerGetProbingParserInfo(alp_proto_ctx.probing_parsers_info,
-                        protostr);
-            if (ppi != NULL) {
-                /* indicate that the signature is app-layer */
-                s->flags |= SIG_FLAG_APPLAYER;
-                s->alproto = ppi->al_proto;
-                s->proto.proto[ppi->ip_proto / 8] |= 1 << (ppi->ip_proto % 8);
-            }
-            SCReturnInt(0);
-        }
-        AppLayerProbingParserInfo *ppi =
-            AppLayerGetProbingParserInfo(alp_proto_ctx.probing_parsers_info,
-                                         protostr);
-        if (ppi != NULL) {
-            /* indicate that the signature is app-layer */
-            s->flags |= SIG_FLAG_APPLAYER;
-            s->alproto = ppi->al_proto;
-            s->proto.proto[ppi->ip_proto / 8] |= 1 << (ppi->ip_proto % 8);
-            SCReturnInt(0);
         }
 
-        SCLogError(SC_ERR_UNKNOWN_PROTOCOL, "protocol \"%s\" cannot be used "
-                "in a signature", protostr);
-        SCReturnInt(-1);
+        if (s->alproto == ALPROTO_UNKNOWN) {
+            SCLogError(SC_ERR_UNKNOWN_PROTOCOL, "protocol \"%s\" cannot be used "
+                       "in a signature.  Either detection for this protocol "
+                       "supported yet OR detection has been disabled for "
+                       "protocol through the yaml option "
+                       "app-layer.protocols.%s.detection-enabled", protostr,
+                       protostr);
+            SCReturnInt(-1);
+        }
     }
 
     /* if any of these flags are set they are set in a mutually exclusive
@@ -813,18 +808,14 @@ static int SigParseBasics(Signature *s, char *sigstr, char ***result, uint8_t ad
     if (IPOnlySigParseAddress(s, arr[CONFIG_DST], SIG_DIREC_DST ^ addrs_direction) < 0)
         goto error;
 
-
-    /* For "ip" we parse the ports as well, even though they will be just "any".
-     *  We do this for later sgh building for the tcp and udp protocols. */
-    if (DetectProtoContainsProto(&s->proto, IPPROTO_TCP) ||
-        DetectProtoContainsProto(&s->proto, IPPROTO_UDP) ||
-        DetectProtoContainsProto(&s->proto, IPPROTO_SCTP))
-    {
-        if (SigParsePort(s, arr[CONFIG_SP], SIG_DIREC_SRC ^ addrs_direction) < 0)
-            goto error;
-        if (SigParsePort(s, arr[CONFIG_DP], SIG_DIREC_DST ^ addrs_direction) < 0)
-            goto error;
-    }
+    /* By AWS - Traditionally we should be doing this only for tcp/udp/sctp,
+     * but we do it for regardless of ip proto, since the dns/dnstcp/dnsudp
+     * changes that we made sees to it that at this point of time we don't
+     * set the ip proto for the sig.  We do it a bit later. */
+    if (SigParsePort(s, arr[CONFIG_SP], SIG_DIREC_SRC ^ addrs_direction) < 0)
+        goto error;
+    if (SigParsePort(s, arr[CONFIG_DP], SIG_DIREC_DST ^ addrs_direction) < 0)
+        goto error;
 
     *result = (char **)arr;
     return 0;
@@ -1214,6 +1205,44 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
         }
     }
 
+    if (s->alproto != ALPROTO_UNKNOWN) {
+        if (s->flags & SIG_FLAG_STATE_MATCH) {
+            if (s->alproto == ALPROTO_DNS) {
+                if (al_proto_table[ALPROTO_DNS_UDP].to_server == 0 ||
+                    al_proto_table[ALPROTO_DNS_UDP].to_client == 0 ||
+                    al_proto_table[ALPROTO_DNS_TCP].to_server == 0 ||
+                    al_proto_table[ALPROTO_DNS_TCP].to_client == 0) {
+                    SCLogInfo("Signature uses options that need the app layer "
+                              "parser for dns, but the parser's disabled "
+                              "for the protocol.  Please check if you have "
+                              "disabled it through the option "
+                              "\"app-layer.protocols.dcerpc[udp|tcp].enabled\""
+                              "or internally the parser has been disabled in "
+                              "the code.  Invalidating signature.");
+                    SCReturnInt(0);
+                }
+            } else {
+                if (al_proto_table[s->alproto].to_server == 0 ||
+                    al_proto_table[s->alproto].to_client == 0) {
+                    const char *proto_name = TmModuleAlprotoToString(s->alproto);
+                    SCLogInfo("Signature uses options that need the app layer "
+                              "parser for \"%s\", but the parser's disabled "
+                              "for the protocol.  Please check if you have "
+                              "disabled it through the option "
+                              "\"app-layer.protocols.%s.enabled\" or internally "
+                              "there the parser has been disabled in the code.   "
+                              "Invalidating signature.", proto_name, proto_name);
+                    SCReturnInt(0);
+                }
+            }
+        }
+
+
+
+
+
+    }
+
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
         pm =  SigMatchGetLastSMFromLists(s, 24,
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
@@ -1259,6 +1288,19 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
         }
     }
 
+    for (sm = s->sm_lists[DETECT_SM_LIST_AMATCH]; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_AL_APP_LAYER_PROTOCOL)
+            continue;
+        if (((DetectAppLayerProtocolData *)sm->ctx)->negated)
+            break;
+    }
+    if (sm != NULL && s->alproto != ALPROTO_UNKNOWN) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "We can't have "
+                   "the rule match on a fixed alproto and at the same time"
+                   "have an app-layer-protocol keyword set.");
+        SCReturnInt(0);
+    }
+
     /* TCP: pkt vs stream vs depth/offset */
     if (s->proto.proto[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8))) {
         if (!(s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM))) {
@@ -1298,6 +1340,11 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
 static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
                                 uint8_t dir)
 {
+    AlpProtoSignature *als;
+    AppLayerProbingParser *pp;
+    AppLayerProbingParserPort *pp_port;
+    AppLayerProbingParserElement *pp_pe;
+    SigMatch *sm;
     Signature *sig = SigAlloc();
     if (sig == NULL)
         goto error;
@@ -1315,7 +1362,48 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
     sig->num = de_ctx->signum;
     de_ctx->signum++;
 
-    SigMatch *sm;
+    if (sig->alproto != ALPROTO_UNKNOWN) {
+        int override_needed = 0;
+        if (sig->proto.flags & DETECT_PROTO_ANY) {
+            sig->proto.flags &= ~DETECT_PROTO_ANY;
+            memset(sig->proto.proto, 0x00, sizeof(sig->proto.proto));
+            override_needed = 1;
+        } else {
+            override_needed = 1;
+            size_t s = 0;
+            for (s = 0; s < sizeof(sig->proto.proto); s++) {
+                if (sig->proto.proto[s] != 0x00) {
+                    override_needed = 0;
+                    break;
+                }
+            }
+        }
+
+        /* at this point if we had alert ip and the ip proto was not
+         * overridden, we use the ip proto that has been configured
+         * against the app proto in use. */
+        if (override_needed) {
+
+            for (als = alp_proto_ctx.head; als != NULL; als = als->next) {
+                if (sig->alproto == als->proto)
+                    sig->proto.proto[als->ip_proto / 8] |= 1 << (als->ip_proto % 8);
+            }
+
+            for (pp = alp_proto_ctx.probing_parsers; pp != NULL; pp = pp->next) {
+                for (pp_port = pp->port; pp_port != NULL; pp_port = pp_port->next) {
+                    for (pp_pe = pp_port->toserver; pp_pe != NULL; pp_pe = pp_pe->next) {
+                        if (sig->alproto == pp_pe->al_proto)
+                            sig->proto.proto[pp->ip_proto / 8] |= 1 << (pp->ip_proto % 8);
+                    }
+                    for (pp_pe = pp_port->toclient; pp_pe != NULL; pp_pe = pp_pe->next) {
+                        if (sig->alproto == pp_pe->al_proto)
+                            sig->proto.proto[pp->ip_proto / 8] |= 1 << (pp->ip_proto % 8);
+                    }
+                }
+            }
+        } /* if */
+    } /* if */
+
     /* set mpm_content_len */
 
     /* determine the length of the longest pattern in the sig */
@@ -1359,8 +1447,6 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
         if (sig->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
             SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
             for ( ; sm != NULL; sm = sm->next) {
-                if (sigmatch_table[sm->type].AppLayerMatch != NULL)
-                    sig->flags |= SIG_FLAG_APPLAYER;
                 if (sigmatch_table[sm->type].Match != NULL)
                     sig->init_flags |= SIG_FLAG_INIT_PACKET;
             }
@@ -1368,6 +1454,9 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
             sig->init_flags |= SIG_FLAG_INIT_PACKET;
         }
     }
+
+    if (sig->sm_lists[DETECT_SM_LIST_AMATCH] != NULL)
+        sig->flags |= SIG_FLAG_APPLAYER;
 
     if (sig->sm_lists[DETECT_SM_LIST_UMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
@@ -1403,6 +1492,8 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_DNSQUERY_MATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_APP_EVENT])
+        sig->flags |= SIG_FLAG_STATE_MATCH;
 
     if (!(sig->init_flags & SIG_FLAG_INIT_FLOW)) {
         sig->flags |= SIG_FLAG_TOSERVER;
@@ -1414,6 +1505,48 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
         sig->init_flags & SIG_FLAG_INIT_PACKET ? "set" : "not set");
 
     SigBuildAddressMatchArray(sig);
+
+    if (sig->sm_lists[DETECT_SM_LIST_APP_EVENT] != NULL &&
+        (AppLayerProtoIsTxEventAware(sig->alproto) || sig->alproto == ALPROTO_DNS)) {
+        if (sig->alproto == ALPROTO_DNS) {
+            DetectEngineRegisterAppInspectionEngine(ALPROTO_DNS_TCP,
+                                                    0,
+                                                    DETECT_SM_LIST_APP_EVENT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DetectEngineAptEventInspect,
+                                                    app_inspection_engine);
+            DetectEngineRegisterAppInspectionEngine(ALPROTO_DNS_UDP,
+                                                    0,
+                                                    DETECT_SM_LIST_APP_EVENT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DetectEngineAptEventInspect,
+                                                    app_inspection_engine);
+            DetectEngineRegisterAppInspectionEngine(ALPROTO_DNS_TCP,
+                                                    1,
+                                                    DETECT_SM_LIST_APP_EVENT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DetectEngineAptEventInspect,
+                                                    app_inspection_engine);
+            DetectEngineRegisterAppInspectionEngine(ALPROTO_DNS_UDP,
+                                                    1,
+                                                    DETECT_SM_LIST_APP_EVENT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DetectEngineAptEventInspect,
+                                                    app_inspection_engine);
+        } else {
+            DetectEngineRegisterAppInspectionEngine(sig->alproto,
+                                                    (sig->flags & SIG_FLAG_TOSERVER) ? 0 : 1,
+                                                    DETECT_SM_LIST_APP_EVENT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                    DetectEngineAptEventInspect,
+                                                    app_inspection_engine);
+        }
+    }
 
     /* validate signature, SigValidate will report the error reason */
     if (SigValidate(de_ctx, sig) == 0) {

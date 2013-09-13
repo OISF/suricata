@@ -244,8 +244,8 @@ void AlpProtoTestDestroy(AlpProtoDetectCtx *ctx) {
     AlpProtoFreeSignature(ctx->head);
     AppLayerFreeProbingParsers(ctx->probing_parsers);
     ctx->probing_parsers = NULL;
-    AppLayerFreeProbingParsersInfo(ctx->probing_parsers_info);
-    ctx->probing_parsers_info = NULL;
+
+    return;
 }
 #endif
 
@@ -256,8 +256,7 @@ void AlpProtoDestroy() {
     MpmPatternIdTableFreeHash(alp_proto_ctx.mpm_pattern_id_store);
     AppLayerFreeProbingParsers(alp_proto_ctx.probing_parsers);
     alp_proto_ctx.probing_parsers = NULL;
-    AppLayerFreeProbingParsersInfo(alp_proto_ctx.probing_parsers_info);
-    alp_proto_ctx.probing_parsers_info = NULL;
+
     SCReturn;
 }
 
@@ -351,31 +350,41 @@ void AppLayerDetectProtoThreadInit(void) {
  *
  *  \param ctx Global app layer detection context
  *  \param tctx Thread app layer detection context
+ *  \param f Pointer to the flow.
  *  \param buf Pointer to the buffer to inspect
  *  \param buflen Lenght of the buffer
  *  \param flags Flags.
+ *  \param Pointer to the results array, ALPROTO_MAX long.
  *
- *  \retval proto App Layer proto, or ALPROTO_UNKNOWN if unknown
+ *  \retval pm_matches Returns the no of alproto matches.
  */
 uint16_t AppLayerDetectGetProtoPMParser(AlpProtoDetectCtx *ctx,
                                         AlpProtoDetectThreadCtx *tctx,
+                                        Flow *f,
                                         uint8_t *buf, uint16_t buflen,
-                                        uint8_t flags, uint8_t ipproto) {
+                                        uint8_t flags, uint8_t ipproto,
+                                        uint16_t *pm_results) {
     SCEnter();
+
+    uint16_t pm_matches = 0;
+    pm_results[0] = ALPROTO_UNKNOWN;
 
     AlpProtoDetectDirection *dir;
     AlpProtoDetectDirectionThread *tdir;
+    uint16_t max_len;
 
     if (flags & STREAM_TOSERVER) {
         dir = &ctx->toserver;
         tdir = &tctx->toserver;
+        max_len = ctx->toserver.max_len;
     } else {
         dir = &ctx->toclient;
         tdir = &tctx->toclient;
+        max_len = ctx->toclient.max_len;
     }
 
     if (dir->id == 0) {
-        SCReturnUInt(ALPROTO_UNKNOWN);
+        goto end;
     }
 
     /* see if we can limit the data we inspect */
@@ -383,39 +392,33 @@ uint16_t AppLayerDetectGetProtoPMParser(AlpProtoDetectCtx *ctx,
     if (searchlen > dir->max_len)
         searchlen = dir->max_len;
 
-    uint16_t proto = ALPROTO_UNKNOWN;
-    uint32_t cnt = 0;
+    uint32_t search_cnt = 0;
 
     /* do the mpm search */
-    cnt = mpm_table[dir->mpm_ctx.mpm_type].Search(&dir->mpm_ctx,
-                                                &tdir->mpm_ctx,
-                                                &tdir->pmq, buf,
-                                                searchlen);
-    SCLogDebug("search cnt %" PRIu32 "", cnt);
-    if (cnt == 0) {
-        proto = ALPROTO_UNKNOWN;
+    search_cnt = mpm_table[dir->mpm_ctx.mpm_type].Search(&dir->mpm_ctx,
+                                                         &tdir->mpm_ctx,
+                                                         &tdir->pmq, buf,
+                                                         searchlen);
+    SCLogDebug("search cnt %" PRIu32 "", search_cnt);
+    if (search_cnt == 0)
         goto end;
-    }
 
-    /* We just work with the first match */
-    uint16_t patid = tdir->pmq.pattern_id_array[0];
-    SCLogDebug("array count is %"PRIu32" patid %"PRIu16"",
-            tdir->pmq.pattern_id_array_cnt, patid);
+    /* alproto bit field */
+    uint8_t pm_results_bf[ALPROTO_MAX / 8];
+    memset(pm_results_bf, 0, sizeof(pm_results_bf));
 
-    AlpProtoSignature *s = ctx->map[patid];
-    if (s == NULL) {
-        goto end;
-    }
-    uint8_t s_cnt = 1;
-
-    while (proto == ALPROTO_UNKNOWN && s != NULL) {
-        proto = AlpProtoMatchSignature(s, buf, buflen, ipproto);
-
-        s = s->map_next;
-        if (s == NULL && s_cnt < tdir->pmq.pattern_id_array_cnt) {
-            patid = tdir->pmq.pattern_id_array[s_cnt];
-            s = ctx->map[patid];
-            s_cnt++;
+    for (uint8_t s_cnt = 0; s_cnt < search_cnt; s_cnt++) {
+        AlpProtoSignature *s = ctx->map[tdir->pmq.pattern_id_array[s_cnt]];
+        SCLogDebug("array count is %"PRIu32" patid %"PRIu16"",
+                   tdir->pmq.pattern_id_array_cnt,
+                   tdir->pmq.pattern_id_array[s_cnt]);
+        while (s != NULL) {
+            uint16_t proto = AlpProtoMatchSignature(s, buf, buflen, ipproto);
+            if (proto != ALPROTO_UNKNOWN && !(pm_results_bf[proto / 8] & (1 << (proto % 8))) ) {
+                pm_results[pm_matches++] = proto;
+                pm_results_bf[proto / 8] |= 1 << (proto % 8);
+            }
+            s = s->map_next;
         }
     }
 
@@ -480,7 +483,9 @@ end:
             break;
     }
 #endif
-    SCReturnUInt(proto);
+    if (buflen >= max_len)
+        FLOW_SET_PM_DONE(f, flags);
+    SCReturnUInt(pm_matches);
 }
 
 /**
@@ -490,39 +495,30 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
                                              uint8_t *buf, uint32_t buflen,
                                              uint8_t flags, uint8_t ipproto)
 {
+    AppLayerProbingParserPort *pp_port = NULL;
     AppLayerProbingParserElement *pe = NULL;
-    AppLayerProbingParser *probing_parsers = ctx->probing_parsers;
-    AppLayerProbingParser *pp = NULL;
     uint32_t *al_proto_masks;
 
     if (flags & STREAM_TOSERVER) {
-        pp = AppLayerGetProbingParsers(probing_parsers, ipproto, f->dp);
+        pp_port = AppLayerGetProbingParsers(ctx->probing_parsers, ipproto, f->dp);
         al_proto_masks = &f->probing_parser_toserver_al_proto_masks;
-        if (pp == NULL) {
+        if (pp_port == NULL) {
             SCLogDebug("toserver-No probing parser registered for port %"PRIu16,
                        f->dp);
-            if (f->flags & FLOW_TS_PM_ALPROTO_DETECT_DONE) {
-                f->flags |= FLOW_TS_PM_PP_ALPROTO_DETECT_DONE;
-                return ALPROTO_UNKNOWN;
-            }
-            f->flags |= FLOW_TS_PP_ALPROTO_DETECT_DONE;
+            FLOW_SET_PP_DONE(f, flags);
             return ALPROTO_UNKNOWN;
         }
-        pe = pp->toserver;
+        pe = pp_port->toserver;
     } else {
-        pp = AppLayerGetProbingParsers(probing_parsers, ipproto, f->sp);
+        pp_port = AppLayerGetProbingParsers(ctx->probing_parsers, ipproto, f->sp);
         al_proto_masks = &f->probing_parser_toclient_al_proto_masks;
-        if (pp == NULL) {
+        if (pp_port == NULL) {
             SCLogDebug("toclient-No probing parser registered for port %"PRIu16,
                        f->sp);
-            if (f->flags & FLOW_TC_PM_ALPROTO_DETECT_DONE) {
-                f->flags |= FLOW_TC_PM_PP_ALPROTO_DETECT_DONE;
-                return ALPROTO_UNKNOWN;
-            }
-            f->flags |= FLOW_TC_PP_ALPROTO_DETECT_DONE;
+            FLOW_SET_PP_DONE(f, flags);
             return ALPROTO_UNKNOWN;
         }
-        pe = pp->toclient;
+        pe = pp_port->toclient;
     }
 
 
@@ -533,7 +529,7 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
             continue;
         }
 
-        int alproto = pe->ProbingParser(buf, buflen);
+        int alproto = pe->ProbingParser(buf, buflen, NULL);
         if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
             return alproto;
         if (alproto == ALPROTO_FAILED ||
@@ -544,21 +540,13 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
     }
 
     if (flags & STREAM_TOSERVER) {
-        if (al_proto_masks[0] == pp->toserver_al_proto_mask) {
-            if (f->flags & FLOW_TS_PM_ALPROTO_DETECT_DONE) {
-                f->flags |= FLOW_TS_PM_PP_ALPROTO_DETECT_DONE;
-                return ALPROTO_UNKNOWN;
-            }
-            f->flags |= FLOW_TS_PP_ALPROTO_DETECT_DONE;
+        if (al_proto_masks[0] == pp_port->toserver_al_proto_mask) {
+            FLOW_SET_PP_DONE(f, flags);
             return ALPROTO_UNKNOWN;
         }
     } else {
-        if (al_proto_masks[0] == pp->toclient_al_proto_mask) {
-            if (f->flags & FLOW_TC_PM_ALPROTO_DETECT_DONE) {
-                f->flags |= FLOW_TC_PM_PP_ALPROTO_DETECT_DONE;
-                return ALPROTO_UNKNOWN;
-            }
-            f->flags |= FLOW_TC_PP_ALPROTO_DETECT_DONE;
+        if (al_proto_masks[0] == pp_port->toclient_al_proto_mask) {
+            FLOW_SET_PP_DONE(f, flags);
             return ALPROTO_UNKNOWN;
         }
     }
@@ -583,121 +571,28 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx,
                                 uint8_t *buf, uint32_t buflen,
                                 uint8_t flags, uint8_t ipproto)
 {
-    uint16_t alproto = ALPROTO_UNKNOWN;
-
-    if (flags & STREAM_TOSERVER) {
-        if (buflen >= alp_proto_ctx.toserver.max_len) {
-            if (f->flags & FLOW_TS_PM_ALPROTO_DETECT_DONE) {
-                /* the PM parser has already tried and failed.  Now it is
-                 * upto the probing parser */
-                ;
-            } else {
-                alproto = AppLayerDetectGetProtoPMParser(ctx, tctx, buf, buflen,
-                                                         flags, ipproto);
-                if (alproto != ALPROTO_UNKNOWN)
-                    return alproto;
-                /* the alproto hasn't been detected at this point */
-                if (f->flags & FLOW_TS_PP_ALPROTO_DETECT_DONE) {
-                    f->flags |= FLOW_TS_PM_PP_ALPROTO_DETECT_DONE;
-                    return ALPROTO_UNKNOWN;
+    if (!FLOW_IS_PM_DONE(f, flags)) {
+        uint16_t pm_results[ALPROTO_MAX];
+        uint16_t pm_matches = AppLayerDetectGetProtoPMParser(ctx, tctx, f, buf, buflen, flags, ipproto, pm_results);
+        uint8_t dir = (flags & STREAM_TOSERVER) ? 0 : 1;
+        for (uint16_t i = 0; i < pm_matches; i++) {
+            if (al_proto_table[pm_results[i]].PPAlprotoMap[dir] != NULL) {
+                if (pm_results[i] != al_proto_table[pm_results[i]].PPAlprotoMap[dir](buf, buflen, NULL)) {
+                    /* \todo set event - Needs some deliberation */
+                    continue;
                 }
-                f->flags |= FLOW_TS_PM_ALPROTO_DETECT_DONE;
             }
-        } else {
-            alproto = AppLayerDetectGetProtoPMParser(ctx, tctx, buf, buflen,
-                                                     flags, ipproto);
-            if (alproto != ALPROTO_UNKNOWN)
-                return alproto;
-        }
-        /* If we have reached here, the PM parser has failed to detect the
-         * alproto */
-        return AppLayerDetectGetProtoProbingParser(ctx, f, buf, buflen,
-                                                   flags, ipproto);
 
-        /* STREAM_TOCLIENT */
-    } else {
-        if (buflen >= alp_proto_ctx.toclient.max_len) {
-            if (f->flags & FLOW_TC_PM_ALPROTO_DETECT_DONE) {
-                ;
-            } else {
-                alproto = AppLayerDetectGetProtoPMParser(ctx, tctx, buf, buflen,
-                                                         flags, ipproto);
-                if (alproto != ALPROTO_UNKNOWN)
-                    return alproto;
-                if (f->flags & FLOW_TC_PP_ALPROTO_DETECT_DONE) {
-                    f->flags |= FLOW_TC_PM_PP_ALPROTO_DETECT_DONE;
-                    return ALPROTO_UNKNOWN;
-                }
-                f->flags |= FLOW_TC_PM_ALPROTO_DETECT_DONE;
-            }
-        } else {
-            alproto = AppLayerDetectGetProtoPMParser(ctx, tctx, buf, buflen,
-                                                     flags, ipproto);
-            if (alproto != ALPROTO_UNKNOWN)
-                return alproto;
+            return pm_results[i];
         }
-        return AppLayerDetectGetProtoProbingParser(ctx, f, buf, buflen,
-                                                       flags, ipproto);
     }
+    if (!FLOW_IS_PP_DONE(f, flags))
+        return AppLayerDetectGetProtoProbingParser(ctx, f, buf, buflen, flags, ipproto);
+    return ALPROTO_UNKNOWN;
 }
 
-/* VJ Originally I thought of having separate app layer
- * handling threads, leaving this here in case we'll revisit that */
-#if 0
-void *AppLayerDetectProtoThread(void *td)
-{
-    ThreadVars *tv = (ThreadVars *)td;
-    char run = TRUE;
+/*****Unittests*****/
 
-    /* get the stream msg queue for this thread */
-    StreamMsgQueue *stream_q = StreamMsgQueueGetByPort(0);
-
-    TmThreadsSetFlag(tv, THV_INIT_DONE);
-
-    /* main loop */
-    while(run) {
-        if (TmThreadsCheckFlag(tv, THV_PAUSE)) {
-            TmThreadsSetFlag(tv, THV_PAUSED);
-            TmThreadTestThreadUnPaused(tv);
-            TmThreadsUnsetFlag(tv, THV_PAUSED);
-        }
-
-        /* grab a msg, can return NULL on signals */
-        StreamMsg *smsg = StreamMsgGetFromQueue(stream_q);
-        if (smsg != NULL) {
-            AppLayerHandleMsg(smsg, TRUE);
-        }
-
-        if (TmThreadsCheckFlag(tv, THV_KILL)) {
-            SCPerfSyncCounters(tv, 0);
-            run = 0;
-        }
-    }
-
-    pthread_exit((void *) 0);
-}
-
-void AppLayerDetectProtoThreadSpawn()
-{
-    ThreadVars *tv_applayerdetect = NULL;
-
-    tv_applayerdetect = TmThreadCreateMgmtThread("AppLayerDetectProtoThread",
-                                                 AppLayerDetectProtoThread, 0);
-    if (tv_applayerdetect == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(1);
-    }
-    if (TmThreadSpawn(tv_applayerdetect) != TM_ECODE_OK) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(1);
-    }
-
-#ifdef DEBUG
-    printf("AppLayerDetectProtoThread thread created\n");
-#endif
-    return;
-}
-#endif
 #ifdef UNITTESTS
 
 int AlpDetectTest01(void) {
@@ -877,9 +772,11 @@ int AlpDetectTest05(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint8_t proto = AppLayerDetectGetProtoPMParser(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP);
-    if (proto != ALPROTO_HTTP) {
-        printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_HTTP);
+    uint16_t pm_results[ALPROTO_MAX];
+    Flow f;
+    AppLayerDetectGetProtoPMParser(&ctx, &tctx, &f, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP, pm_results);
+    if (pm_results[0] != ALPROTO_HTTP) {
+        printf("proto %" PRIu8 " != %" PRIu8 ": ", pm_results[0], ALPROTO_HTTP);
         r = 0;
     }
 
@@ -923,9 +820,11 @@ int AlpDetectTest06(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint8_t proto = AppLayerDetectGetProtoPMParser(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP);
-    if (proto != ALPROTO_FTP) {
-        printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_FTP);
+    uint16_t pm_results[ALPROTO_MAX];
+    Flow f;
+    AppLayerDetectGetProtoPMParser(&ctx, &tctx, &f, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP, pm_results);
+    if (pm_results[0] != ALPROTO_FTP) {
+        printf("proto %" PRIu8 " != %" PRIu8 ": ", pm_results[0], ALPROTO_FTP);
         r = 0;
     }
 
@@ -957,9 +856,11 @@ int AlpDetectTest07(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint8_t proto = AppLayerDetectGetProtoPMParser(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP);
-    if (proto != ALPROTO_UNKNOWN) {
-        printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_UNKNOWN);
+    uint16_t pm_results[ALPROTO_MAX];
+    Flow f;
+    AppLayerDetectGetProtoPMParser(&ctx, &tctx, &f, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP, pm_results);
+    if (pm_results[0] != ALPROTO_UNKNOWN) {
+        printf("proto %" PRIu8 " != %" PRIu8 ": ", pm_results[0], ALPROTO_UNKNOWN);
         r = 0;
     }
 
@@ -1002,9 +903,11 @@ int AlpDetectTest08(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint8_t proto = AppLayerDetectGetProtoPMParser(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP);
-    if (proto != ALPROTO_SMB) {
-        printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_SMB);
+    uint16_t pm_results[ALPROTO_MAX];
+    Flow f;
+    AppLayerDetectGetProtoPMParser(&ctx, &tctx, &f, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP, pm_results);
+    if (pm_results[0] != ALPROTO_SMB) {
+        printf("proto %" PRIu8 " != %" PRIu8 ": ", pm_results[0], ALPROTO_SMB);
         r = 0;
     }
 
@@ -1044,9 +947,11 @@ int AlpDetectTest09(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint8_t proto = AppLayerDetectGetProtoPMParser(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP);
-    if (proto != ALPROTO_SMB2) {
-        printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_SMB2);
+    uint16_t pm_results[ALPROTO_MAX];
+    Flow f;
+    AppLayerDetectGetProtoPMParser(&ctx, &tctx, &f, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP, pm_results);
+    if (pm_results[0] != ALPROTO_SMB2) {
+        printf("proto %" PRIu8 " != %" PRIu8 ": ", pm_results[0], ALPROTO_SMB2);
         r = 0;
     }
 
@@ -1082,9 +987,11 @@ int AlpDetectTest10(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint8_t proto = AppLayerDetectGetProtoPMParser(&ctx, &tctx, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP);
-    if (proto != ALPROTO_DCERPC) {
-        printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_DCERPC);
+    uint16_t pm_results[ALPROTO_MAX];
+    Flow f;
+    AppLayerDetectGetProtoPMParser(&ctx, &tctx, &f, l7data,sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP, pm_results);
+    if (pm_results[0] != ALPROTO_DCERPC) {
+        printf("proto %" PRIu8 " != %" PRIu8 ": ", pm_results[0], ALPROTO_DCERPC);
         r = 0;
     }
 
@@ -1124,15 +1031,17 @@ int AlpDetectTest11(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint8_t proto = AppLayerDetectGetProtoPMParser(&ctx, &tctx, l7data, sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP);
-    if (proto == ALPROTO_HTTP) {
-        printf("proto %" PRIu8 " == %" PRIu8 ": ", proto, ALPROTO_HTTP);
+    uint16_t pm_results[ALPROTO_MAX];
+    Flow f;
+    AppLayerDetectGetProtoPMParser(&ctx, &tctx, &f, l7data, sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP, pm_results);
+    if (pm_results[0] == ALPROTO_HTTP) {
+        printf("proto %" PRIu8 " == %" PRIu8 ": ", pm_results[0], ALPROTO_HTTP);
         r = 0;
     }
 
-    proto = AppLayerDetectGetProtoPMParser(&ctx, &tctx, l7data_resp, sizeof(l7data_resp), STREAM_TOSERVER, IPPROTO_TCP);
-    if (proto != ALPROTO_HTTP) {
-        printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_HTTP);
+    AppLayerDetectGetProtoPMParser(&ctx, &tctx, &f, l7data_resp, sizeof(l7data_resp), STREAM_TOSERVER, IPPROTO_TCP, pm_results);
+    if (pm_results[0] != ALPROTO_HTTP) {
+        printf("proto %" PRIu8 " != %" PRIu8 ": ", pm_results[0], ALPROTO_HTTP);
         r = 0;
     }
 
@@ -1213,15 +1122,17 @@ int AlpDetectTest13(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint8_t proto = AppLayerDetectGetProtoPMParser(&ctx, &tctx, l7data, sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP);
-    if (proto == ALPROTO_HTTP) {
-        printf("proto %" PRIu8 " == %" PRIu8 ": ", proto, ALPROTO_HTTP);
+    uint16_t pm_results[ALPROTO_MAX];
+    Flow f;
+    AppLayerDetectGetProtoPMParser(&ctx, &tctx, &f, l7data, sizeof(l7data), STREAM_TOCLIENT, IPPROTO_TCP, pm_results);
+    if (pm_results[0] == ALPROTO_HTTP) {
+        printf("proto %" PRIu8 " == %" PRIu8 ": ", pm_results[0], ALPROTO_HTTP);
         r = 0;
     }
 
-    proto = AppLayerDetectGetProtoPMParser(&ctx, &tctx, l7data_resp, sizeof(l7data_resp), STREAM_TOSERVER, IPPROTO_TCP);
-    if (proto == ALPROTO_HTTP) {
-        printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_HTTP);
+    AppLayerDetectGetProtoPMParser(&ctx, &tctx, &f, l7data_resp, sizeof(l7data_resp), STREAM_TOSERVER, IPPROTO_TCP, pm_results);
+    if (pm_results[0] == ALPROTO_HTTP) {
+        printf("proto %" PRIu8 " != %" PRIu8 ": ", pm_results[0], ALPROTO_HTTP);
         r = 0;
     }
 
@@ -1264,15 +1175,17 @@ int AlpDetectTest14(void) {
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    uint8_t proto = AppLayerDetectGetProtoPMParser(&ctx, &tctx, l7data, sizeof(l7data), STREAM_TOCLIENT, IPPROTO_UDP);
-    if (proto == ALPROTO_HTTP) {
-        printf("proto %" PRIu8 " == %" PRIu8 ": ", proto, ALPROTO_HTTP);
+    uint16_t pm_results[ALPROTO_MAX];
+    Flow f;
+    AppLayerDetectGetProtoPMParser(&ctx, &tctx, &f, l7data, sizeof(l7data), STREAM_TOCLIENT, IPPROTO_UDP, pm_results);
+    if (pm_results[0] == ALPROTO_HTTP) {
+        printf("proto %" PRIu8 " == %" PRIu8 ": ", pm_results[0], ALPROTO_HTTP);
         r = 0;
     }
 
-    proto = AppLayerDetectGetProtoPMParser(&ctx, &tctx, l7data_resp, sizeof(l7data_resp), STREAM_TOSERVER, IPPROTO_UDP);
-    if (proto != ALPROTO_HTTP) {
-        printf("proto %" PRIu8 " != %" PRIu8 ": ", proto, ALPROTO_HTTP);
+    AppLayerDetectGetProtoPMParser(&ctx, &tctx, &f, l7data_resp, sizeof(l7data_resp), STREAM_TOSERVER, IPPROTO_UDP, pm_results);
+    if (pm_results[0] != ALPROTO_HTTP) {
+        printf("proto %" PRIu8 " != %" PRIu8 ": ", pm_results[0], ALPROTO_HTTP);
         r = 0;
     }
 

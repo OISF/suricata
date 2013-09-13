@@ -348,10 +348,9 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     }
 
     sm = s->sm_lists[DETECT_SM_LIST_AMATCH];
-    for (; sm != NULL; sm = sm->next) {
-        if (sigmatch_table[sm->type].AppLayerMatch != NULL &&
-            (alproto == s->alproto || alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2))
-        {
+    for (match = 0; sm != NULL; sm = sm->next) {
+        match = 0;
+        if (sigmatch_table[sm->type].AppLayerMatch != NULL) {
             if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
                 smb_state = (SMBState *)alstate;
                 if (smb_state->dcerpc_present) {
@@ -365,14 +364,16 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
             if (match == 0)
                 break;
-            else if (match == 2)
+            if (match == 2) {
                 inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
+                break;
+            }
         }
     }
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
         store_de_state = 1;
         if (sm == NULL || inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
-            if (sm == NULL)
+            if (match == 1)
                 alert_cnt = 1;
             inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
         }
