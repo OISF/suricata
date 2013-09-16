@@ -1137,6 +1137,12 @@ SigTableElmt sigmatch_table[DETECT_TBLSIZE];
 /* detection api */
 SigMatch *SigMatchAlloc(void);
 Signature *SigFindSignatureBySidGid(DetectEngineCtx *, uint32_t, uint32_t);
+void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *,
+                                       Packet *, SignatureMask,
+                                       uint16_t);
+int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThreadCtx *,
+                                                  Packet *, SignatureHeader *,
+                                                  uint16_t);
 void SigMatchFree(SigMatch *sm);
 void SigCleanSignatures(DetectEngineCtx *);
 
