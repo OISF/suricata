@@ -646,8 +646,6 @@ static DefragTracker *DefragTrackerGetUsedDefragTracker(void) {
             idx = 0;
 
         DefragTrackerHashRow *hb = &defragtracker_hash[idx];
-        if (hb == NULL)
-            continue;
 
         if (DRLOCK_TRYLOCK(hb) != 0)
             continue;
