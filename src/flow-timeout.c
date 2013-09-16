@@ -503,8 +503,7 @@ static inline void FlowForceReassemblyForHash(void)
 
     for (idx = 0; idx < flow_config.hash_size; idx++) {
         FlowBucket *fb = &flow_hash[idx];
-        if (fb == NULL)
-            continue;
+
         FBLOCK_LOCK(fb);
 
         /* get the topmost flow from the QUEUE */
