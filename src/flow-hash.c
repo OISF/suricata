@@ -596,8 +596,6 @@ static Flow *FlowGetUsedFlow(void) {
             idx = 0;
 
         FlowBucket *fb = &flow_hash[idx];
-        if (fb == NULL)
-            continue;
 
         if (FBLOCK_TRYLOCK(fb) != 0)
             continue;
