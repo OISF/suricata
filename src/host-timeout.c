@@ -148,8 +148,7 @@ uint32_t HostTimeoutHash(struct timeval *ts) {
 
     for (idx = 0; idx < host_config.hash_size; idx++) {
         HostHashRow *hb = &host_hash[idx];
-        if (hb == NULL)
-            continue;
+
         if (HRLOCK_TRYLOCK(hb) != 0)
             continue;
 
