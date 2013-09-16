@@ -28,6 +28,7 @@
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  * \author Brian Rectanus <brectanu@gmail.com>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  *
  * This file provides a HTTP protocol support for the engine using HTP library.
  */
@@ -69,6 +70,7 @@
 #include "detect-engine-state.h"
 #include "detect-parse.h"
 
+#include "decode-events.h"
 #include "conf.h"
 
 #include "util-memcmp.h"
@@ -643,7 +645,6 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
 
     switch(r) {
         case HTP_STREAM_ERROR:
-            HTPHandleError(hstate);
 
             hstate->flags |= HTP_FLAG_STATE_ERROR;
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
@@ -652,17 +653,17 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             break;
         case HTP_STREAM_DATA:
         case HTP_STREAM_DATA_OTHER:
-            HTPHandleWarning(hstate);
 
             hstate->flags |= HTP_FLAG_STATE_DATA;
             break;
         case HTP_STREAM_TUNNEL:
             break;
         default:
-            HTPHandleWarning(hstate);
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
             hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
     }
+    HTPHandleWarning(hstate);
+    HTPHandleError(hstate);
 
     /* if the TCP connection is closed, then close the HTTP connection */
     if ((pstate->flags & APP_LAYER_PARSER_EOF) &&
@@ -1842,6 +1843,9 @@ void HTPFreeConfig(void)
 {
     SCEnter();
 
+    if (!AppLayerProtoDetectionEnabled("http") || !AppLayerParserEnabled("http"))
+        SCReturn;
+
     HTPCfgRec *nextrec = cfglist.next;
     SCRadixReleaseRadixTree(cfgtree);
     htp_config_destroy(cfglist.cfg);
@@ -2270,15 +2274,24 @@ void HTPConfigure(void)
     }
     SCLogDebug("LIBHTP default config: %p", cfglist.cfg);
     HTPConfigSetDefaultsPhase1(&cfglist);
-    HTPConfigParseParameters(&cfglist, ConfGetNode("libhtp.default-config"),
-                             cfgtree);
+    if (ConfGetNode("app-layer.protocols.http.libhtp") == NULL) {
+        HTPConfigParseParameters(&cfglist, ConfGetNode("libhtp.default-config"),
+                                 cfgtree);
+    } else {
+        HTPConfigParseParameters(&cfglist, ConfGetNode("app-layer.protocols.http.libhtp.default-config"), cfgtree);
+    }
     HTPConfigSetDefaultsPhase2(&cfglist);
 
     /* Read server config and create a parser for each IP in radix tree */
-    ConfNode *server_config = ConfGetNode("libhtp.server-config");
+    ConfNode *server_config = ConfGetNode("app-layer.protocols.http.libhtp.server-config");
+    if (server_config == NULL) {
+        server_config = ConfGetNode("libhtp.server-config");
+        if (server_config == NULL) {
+            SCLogDebug("LIBHTP Configuring %p", server_config);
+            SCReturn;
+        }
+    }
     SCLogDebug("LIBHTP Configuring %p", server_config);
-    if (server_config == NULL)
-        SCReturn;
 
     ConfNode *si;
     /* Server Nodes */
@@ -2361,6 +2374,22 @@ static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction)
     return (direction == 0) ? HTP_REQUEST_COMPLETE : HTP_RESPONSE_COMPLETE;
 }
 
+int HTPStateGetEventInfo(const char *event_name,
+                         int *event_id, AppLayerEventType *event_type)
+{
+    *event_id = SCMapEnumNameToValue(event_name, http_decoder_event_table);
+    if (*event_id == -1) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
+                   "http's enum map table.",  event_name);
+        /* this should be treated as fatal */
+        return -1;
+    }
+
+    *event_type = APP_LAYER_EVENT_TYPE_GENERAL;
+
+    return 0;
+}
+
 static void HTPStateTruncate(void *state, uint8_t flags) {
     FileContainer *fc = HTPStateGetFiles(state, flags);
     if (fc != NULL) {
@@ -2379,44 +2408,61 @@ void RegisterHTPParsers(void)
     char *proto_name = "http";
 
     /** HTTP */
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "GET|20|", 4, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "GET|09|", 4, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "PUT|20|", 4, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "PUT|09|", 4, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "POST|20|", 5, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "POST|09|", 5, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "HEAD|20|", 5, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "HEAD|09|", 5, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "TRACE|20|", 6, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "TRACE|09|", 6, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "OPTIONS|20|", 8, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "OPTIONS|09|", 8, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "CONNECT|20|", 8, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "CONNECT|09|", 8, 0, STREAM_TOSERVER);
+    if (AppLayerProtoDetectionEnabled(proto_name)) {
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "GET|20|", 4, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "GET|09|", 4, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "PUT|20|", 4, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "PUT|09|", 4, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "POST|20|", 5, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "POST|09|", 5, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "HEAD|20|", 5, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "HEAD|09|", 5, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "TRACE|20|", 6, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "TRACE|09|", 6, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "OPTIONS|20|", 8, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "OPTIONS|09|", 8, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "CONNECT|20|", 8, 0, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "CONNECT|09|", 8, 0, STREAM_TOSERVER);
 
-    AppLayerRegisterStateFuncs(ALPROTO_HTTP, HTPStateAlloc, HTPStateFree);
-    AppLayerRegisterTxFreeFunc(ALPROTO_HTTP, HTPStateTransactionFree);
-    AppLayerRegisterGetFilesFunc(ALPROTO_HTTP, HTPStateGetFiles);
-    AppLayerRegisterGetAlstateProgressFunc(ALPROTO_HTTP, HTPStateGetAlstateProgress);
-    AppLayerRegisterGetTxCnt(ALPROTO_HTTP, HTPStateGetTxCnt);
-    AppLayerRegisterGetTx(ALPROTO_HTTP, HTPStateGetTx);
-    AppLayerRegisterGetAlstateProgressCompletionStatus(ALPROTO_HTTP,
-        HTPStateGetAlstateProgressCompletionStatus);
+        /* toclient direction */
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "HTTP/0.9", 8, 0, STREAM_TOCLIENT);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "HTTP/1.0", 8, 0, STREAM_TOCLIENT);
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "HTTP/1.1", 8, 0, STREAM_TOCLIENT);
+        AppLayerRegisterParserAcceptableDataDirection(ALPROTO_HTTP, STREAM_TOSERVER);
+    } else {
+        SCLogInfo("Protocol detection and parser disabled for %s protocol",
+                  proto_name);
+        return;
+    }
 
-    AppLayerDecoderEventsModuleRegister(ALPROTO_HTTP, http_decoder_event_table);
+    if (AppLayerParserEnabled(proto_name)) {
+        AppLayerRegisterStateFuncs(ALPROTO_HTTP, HTPStateAlloc, HTPStateFree);
+        AppLayerRegisterTxFreeFunc(ALPROTO_HTTP, HTPStateTransactionFree);
+        AppLayerRegisterGetFilesFunc(ALPROTO_HTTP, HTPStateGetFiles);
+        AppLayerRegisterGetAlstateProgressFunc(ALPROTO_HTTP, HTPStateGetAlstateProgress);
+        AppLayerRegisterGetTxCnt(ALPROTO_HTTP, HTPStateGetTxCnt);
+        AppLayerRegisterGetTx(ALPROTO_HTTP, HTPStateGetTx);
+        AppLayerRegisterGetAlstateProgressCompletionStatus(ALPROTO_HTTP,
+                                                           HTPStateGetAlstateProgressCompletionStatus);
 
-    AppLayerRegisterTruncateFunc(ALPROTO_HTTP, HTPStateTruncate);
+        AppLayerRegisterGetEventInfo(ALPROTO_HTTP, HTPStateGetEventInfo);
 
-    AppLayerRegisterProto(proto_name, ALPROTO_HTTP, STREAM_TOSERVER,
-                          HTPHandleRequestData);
-    AppLayerRegisterProto(proto_name, ALPROTO_HTTP, STREAM_TOCLIENT,
-                          HTPHandleResponseData);
+        AppLayerRegisterTruncateFunc(ALPROTO_HTTP, HTPStateTruncate);
+
+        AppLayerRegisterProto(proto_name, ALPROTO_HTTP, STREAM_TOSERVER,
+                              HTPHandleRequestData);
+        AppLayerRegisterProto(proto_name, ALPROTO_HTTP, STREAM_TOCLIENT,
+                              HTPHandleResponseData);
+        SC_ATOMIC_INIT(htp_config_flags);
+        HTPConfigure();
+    } else {
+        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
+                  "still on.", proto_name);
+    }
 #ifdef UNITTESTS
-    AppLayerRegisterUnittests(ALPROTO_HTTP, HTPParserRegisterTests);
+    AppLayerParserRegisterUnittests(ALPROTO_HTTP, HTPParserRegisterTests);
 #endif
 
-    SC_ATOMIC_INIT(htp_config_flags);
-    HTPConfigure();
     SCReturn;
 }
 

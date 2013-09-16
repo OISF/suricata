@@ -60,6 +60,7 @@ defrag-queue.c defrag-queue.h \
 defrag-timeout.c defrag-timeout.h \
 detect-ack.c detect-ack.h \
 detect-app-layer-event.c detect-app-layer-event.h \
+detect-app-layer-protocol.c detect-app-layer-protocol.h \
 detect-asn1.c detect-asn1.h \
 detect-byte-extract.c detect-byte-extract.h \
 detect-bytejump.c detect-bytejump.h \
@@ -81,6 +82,7 @@ detect-engine-address-ipv4.c detect-engine-address-ipv4.h \
 detect-engine-address-ipv6.c detect-engine-address-ipv6.h \
 detect-engine-alert.c detect-engine-alert.h \
 detect-engine-analyzer.c detect-engine-analyzer.h \
+detect-engine-apt-event.c detect-engine-apt-event.h \
 detect-engine.c detect-engine.h \
 detect-engine-content-inspection.c detect-engine-content-inspection.h \
 detect-engine-dcepayload.c detect-engine-dcepayload.h \

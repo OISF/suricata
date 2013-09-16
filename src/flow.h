@@ -327,6 +327,10 @@ typedef struct Flow_
     uint8_t pad0;
 
     uint16_t alproto; /**< \brief application level protocol */
+    uint16_t alproto_ts;
+    uint16_t alproto_tc;
+
+    uint32_t data_al_so_far[2];
 
     /** detection engine ctx id used to inspect this flow. Set at initial
      *  inspection. If it doesn't match the currently in use de_ctx, the

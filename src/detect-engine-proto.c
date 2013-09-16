@@ -118,11 +118,13 @@ int DetectProtoParse(DetectProto *dp, char *str)
     } else if (strcasecmp(str,"ipv4") == 0 ||
                strcasecmp(str,"ip4") == 0 ) {
         dp->flags |= DETECT_PROTO_IPV4;
+        dp->flags |= DETECT_PROTO_ANY;
         memset(dp->proto, 0xff, sizeof(dp->proto));
         SCLogDebug("IPv4 protocol detected");
     } else if (strcasecmp(str,"ipv6") == 0 ||
                strcasecmp(str,"ip6") == 0 ) {
         dp->flags |= DETECT_PROTO_IPV6;
+        dp->flags |= DETECT_PROTO_ANY;
         memset(dp->proto, 0xff, sizeof(dp->proto));
         SCLogDebug("IPv6 protocol detected");
     } else if (strcasecmp(str,"ip") == 0 ||
@@ -154,7 +156,7 @@ int DetectProtoParse(DetectProto *dp, char *str)
         }
 #endif
     }
-    return 0;
+    return proto;
 
 error:
     return -1;
@@ -213,7 +215,7 @@ static int DetectProtoInitTest(DetectEngineCtx **de_ctx, Signature **sig,
 
     *sig = (*de_ctx)->sig_list;
 
-    if (DetectProtoParse(dp, str) != 0)
+    if (DetectProtoParse(dp, str) < 0)
         goto end;
 
     result = 1;
@@ -232,7 +234,7 @@ static int ProtoTestParse01 (void)
     memset(&dp,0,sizeof(DetectProto));
 
     int r = DetectProtoParse(&dp, "6");
-    if (r != 0) {
+    if (r < 0) {
         return 1;
     }
 
@@ -249,7 +251,7 @@ static int ProtoTestParse02 (void)
     memset(&dp,0,sizeof(DetectProto));
 
     int r = DetectProtoParse(&dp, "tcp");
-    if (r == 0 && dp.proto[(IPPROTO_TCP/8)] & (1<<(IPPROTO_TCP%8))) {
+    if (r >= 0 && dp.proto[(IPPROTO_TCP/8)] & (1<<(IPPROTO_TCP%8))) {
         return 1;
     }
 
@@ -266,7 +268,7 @@ static int ProtoTestParse03 (void)
     memset(&dp,0,sizeof(DetectProto));
 
     int r = DetectProtoParse(&dp, "ip");
-    if (r == 0 && dp.flags & DETECT_PROTO_ANY) {
+    if (r >= 0 && dp.flags & DETECT_PROTO_ANY) {
         return 1;
     }
 
@@ -285,7 +287,7 @@ static int ProtoTestParse04 (void)
 
     /* Check for a bad number */
     int r = DetectProtoParse(&dp, "4242");
-    if (r == -1) {
+    if (r < 0) {
         return 1;
     }
 
@@ -304,7 +306,7 @@ static int ProtoTestParse05 (void)
 
     /* Check for a bad string */
     int r = DetectProtoParse(&dp, "tcp/udp");
-    if (r == -1) {
+    if (r < 0) {
         return 1;
     }
 
@@ -322,7 +324,7 @@ static int ProtoTestParse06 (void)
 
     /* Check for a bad string */
     int r = DetectProtoParse(&dp, "tcp-pkt");
-    if (r == -1) {
+    if (r < -1) {
         printf("parsing tcp-pkt failed: ");
         return 0;
     }
@@ -345,7 +347,7 @@ static int ProtoTestParse07 (void)
 
     /* Check for a bad string */
     int r = DetectProtoParse(&dp, "tcp-stream");
-    if (r == -1) {
+    if (r < -1) {
         printf("parsing tcp-stream failed: ");
         return 0;
     }

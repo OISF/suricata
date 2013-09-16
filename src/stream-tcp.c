@@ -4128,8 +4128,8 @@ static int StreamTcpPacketIsWindowUpdate(TcpSession *ssn, Packet *p) {
 }
 
 /* flow is and stays locked */
-static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
-                            PacketQueue *pq)
+int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
+                     PacketQueue *pq)
 {
     SCEnter();
 
