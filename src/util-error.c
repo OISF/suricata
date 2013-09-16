@@ -246,6 +246,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_NO_REPUTATION);
         CASE_CODE (SC_ERR_NOT_SUPPORTED);
         CASE_CODE (SC_WARN_UNCOMMON);
+        CASE_CODE (SC_ERR_THRESHOLD_SETUP);
         default:
             return "UNKNOWN_ERROR";
     }

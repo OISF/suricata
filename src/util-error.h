@@ -259,6 +259,7 @@ typedef enum {
     SC_ERR_NO_GEOIP_SUPPORT,
     SC_ERR_GEOIP_ERROR,
     SC_WARN_UNCOMMON,
+    SC_ERR_THRESHOLD_SETUP,
 } SCError;
 
 const char *SCErrorToString(SCError);
