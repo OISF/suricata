@@ -128,8 +128,7 @@ uint32_t DefragTimeoutHash(struct timeval *ts) {
 
     for (idx = 0; idx < defrag_config.hash_size; idx++) {
         DefragTrackerHashRow *hb = &defragtracker_hash[idx];
-        if (hb == NULL)
-            continue;
+
         if (DRLOCK_TRYLOCK(hb) != 0)
             continue;
 
