@@ -156,8 +156,7 @@ static SigGroupHead *SigGroupHeadAlloc(DetectEngineCtx *de_ctx, uint32_t size)
     return sgh;
 
 error:
-    if (sgh != NULL)
-        SigGroupHeadFree(sgh);
+    SigGroupHeadFree(sgh);
     return NULL;
 }
 
