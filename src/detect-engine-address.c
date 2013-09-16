@@ -605,7 +605,6 @@ int DetectAddressParseString(DetectAddress *dd, char *str)
         str++;
 
     char *ipdup = SCStrdup(str);
-
     if (unlikely(ipdup == NULL))
         return -1;
     SCLogDebug("str %s", str);
@@ -765,8 +764,7 @@ int DetectAddressParseString(DetectAddress *dd, char *str)
     return 0;
 
 error:
-    if (ipdup)
-        SCFree(ipdup);
+    SCFree(ipdup);
     return -1;
 }
 
