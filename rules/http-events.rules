@@ -37,5 +37,7 @@ alert http any any -> any any (msg:"SURICATA HTTP multipart no filedata"; flow:e
 alert http any any -> any any (msg:"SURICATA HTTP multipart invalid header"; flow:established,to_server; app-layer-event:http.multipart_invalid_header; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221024; rev:1;)
 # Warn when the port in the Host: header doesn't match the actual TCP Server port.
 alert http any any -> any any (msg:"SURICATA HTTP request server port doesn't match TCP port"; flow:established,to_server; app-layer-event:http.request_server_port_tcp_port_mismatch; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221026; rev:1;)
-# next sid 2221026
+# Alert when valgrind is unhappy about libhtp
+alert http any any -> any any (msg:"SURICATA HTTP valgrind error"; flow:established; app-layer-event:http.valgrind_error; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221027; rev:1;)
+# next sid 2221028
 

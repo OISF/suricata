@@ -73,6 +73,8 @@
 
 #include "util-memcmp.h"
 
+#include "util-valgrind.h"
+
 #ifndef HAVE_HTP_SET_PATH_DECODE_U_ENCODING
 void htp_config_set_path_decode_u_encoding(htp_cfg_t *cfg, int decode_u_encoding);
 #endif
@@ -144,6 +146,8 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_MULTIPART_NO_FILEDATA},
     { "MULTIPART_INVALID_HEADER",
         HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER},
+    { "VALGRIND_ERROR",
+        HTTP_DECODER_EVENT_VALGRIND_ERROR},
 
     { NULL,                      -1 },
 };
@@ -473,6 +477,14 @@ static int HTPHandleErrorGetId(const char *msg) {
     return 0;
 }
 
+/** \internal */
+static void HTPHandleValgrindError(HtpState *s) {
+    if (ValgrindError()) {
+        AppLayerDecoderEventsSetEvent(s->f,
+                HTTP_DECODER_EVENT_VALGRIND_ERROR);
+    }
+}
+
 /**
  *  \internal
  *
@@ -640,6 +652,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
     htp_time_t ts = { f->lastts_sec, 0 };
     /* pass the new data to the htp parser */
     r = htp_connp_req_data(hstate->connp, &ts, input, input_len);
+    HTPHandleValgrindError(hstate);
 
     switch(r) {
         case HTP_STREAM_ERROR:
@@ -715,6 +728,7 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
 
     htp_time_t ts = { f->lastts_sec, 0 };
     r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
+    HTPHandleValgrindError(hstate);
     switch(r) {
         case HTP_STREAM_ERROR:
             HTPHandleError(hstate);
