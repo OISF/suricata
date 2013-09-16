@@ -756,6 +756,10 @@ static int DetectLuajitSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
         else
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+    } else {
+        SCLogError(SC_ERR_LUAJIT_ERROR, "luajit can't be used with protocol %s",
+                AppLayerGetProtoString(luajit->alproto));
+        goto error;
     }
 
     de_ctx->detect_luajit_instances++;
