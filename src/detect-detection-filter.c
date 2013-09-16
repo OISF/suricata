@@ -133,13 +133,10 @@ DetectThresholdData *DetectDetectionFilterParse (char *rawstr) {
         if(strstr(df_opt,"track"))
             track_found++;
     }
+    SCFree(copy_str);
+    copy_str = NULL;
 
-    if (copy_str) {
-        SCFree(copy_str);
-        copy_str = NULL;
-    }
-
-    if(count_found != 1 || seconds_found != 1 || track_found != 1)
+    if (count_found != 1 || seconds_found != 1 || track_found != 1)
         goto error;
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
@@ -207,8 +204,6 @@ error:
     }
     if (df != NULL)
         SCFree(df);
-    if (copy_str != NULL)
-        SCFree(copy_str);
     return NULL;
 }
 
