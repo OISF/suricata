@@ -920,7 +920,11 @@ int SCThresholdConfLineLength(FILE *fd) {
     if (pos < 0)
         pos = 0;
 
-    fseek(fd, pos, SEEK_SET);
+    if (fseek(fd, pos, SEEK_SET) < 0) {
+        SCLogError(SC_ERR_THRESHOLD_SETUP, "threshold fseek failure: %s",
+                strerror(errno));
+        return -1;
+    }
     return len;
 }
 
