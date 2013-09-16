@@ -149,11 +149,8 @@ static DetectThresholdData *DetectThresholdParse (char *rawstr)
         if(strstr(threshold_opt,"track"))
             track_found++;
     }
-
-    if (copy_str != NULL) {
-        SCFree(copy_str);
-        copy_str = NULL;
-    }
+    SCFree(copy_str);
+    copy_str = NULL;
 
     if(count_found != 1 || second_found != 1 || type_found != 1 || track_found != 1)
         goto error;
@@ -223,8 +220,6 @@ error:
     }
     if (de != NULL)
         SCFree(de);
-    if (copy_str != NULL)
-        SCFree(copy_str);
     return NULL;
 }
 
