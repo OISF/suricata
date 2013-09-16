@@ -342,8 +342,7 @@ uint32_t FlowTimeoutHash(struct timeval *ts, uint32_t try_cnt, FlowTimeoutCounte
 
     for (idx = 0; idx < flow_config.hash_size; idx++) {
         FlowBucket *fb = &flow_hash[idx];
-        if (fb == NULL)
-            continue;
+
         if (FBLOCK_TRYLOCK(fb) != 0)
             continue;
 
