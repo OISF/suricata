@@ -259,7 +259,7 @@ DetectContentData *DetectContentParse (char *contentstr)
 
 DetectContentData *DetectContentParseEncloseQuotes(char *contentstr)
 {
-    char str[strlen(contentstr) + 2];
+    char str[strlen(contentstr) + 3]; // 2 for quotes, 1 for \0
 
     str[0] = '\"';
     memcpy(str + 1, contentstr, strlen(contentstr));
