@@ -280,7 +280,7 @@ static int B2gmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16
 
         B2gmPattern *p = B2gmAllocPattern(mpm_ctx);
         if (p == NULL)
-            goto error;
+            return -1;
 
         p->len = patlen;
         p->flags = flags;
@@ -288,8 +288,10 @@ static int B2gmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16
 
         /* setup the case insensitive part of the pattern */
         p->pat = SCMalloc(patlen);
-        if (p->pat == NULL)
-            goto error;
+        if (p->pat == NULL) {
+            B2gmFreePattern(mpm_ctx, p);
+            return -1;
+        }
 
         mpm_ctx->memory_cnt++;
         mpm_ctx->memory_size += patlen;
@@ -326,10 +328,6 @@ static int B2gmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16
     }
 
     return 0;
-
-error:
-    B2gmFreePattern(mpm_ctx, p);
-    return -1;
 }
 
 int B2gmAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
