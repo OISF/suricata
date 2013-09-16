@@ -623,8 +623,6 @@ static Host *HostGetUsedHost(void) {
             idx = 0;
 
         HostHashRow *hb = &host_hash[idx];
-        if (hb == NULL)
-            continue;
 
         if (HRLOCK_TRYLOCK(hb) != 0)
             continue;
