@@ -307,7 +307,7 @@ static int PayloadTestSig08(void)
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"fix\"; content:\"this\"; within:6; content:!\"and\"; distance:0; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 1) {
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) != 1) {
         goto end;
     }
 
