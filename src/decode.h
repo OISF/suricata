@@ -248,6 +248,7 @@ typedef struct PacketAlert_ {
     uint8_t action; /* Internal num, used for sorting */
     uint8_t flags;
     struct Signature_ *s;
+    uint64_t tx_id;
 } PacketAlert;
 
 /** After processing an alert by the thresholding module, if at
@@ -258,6 +259,8 @@ typedef struct PacketAlert_ {
 #define PACKET_ALERT_FLAG_STATE_MATCH   0x02
 /** alert was generated based on stream */
 #define PACKET_ALERT_FLAG_STREAM_MATCH  0x04
+/** alert is in a tx, tx_id set */
+#define PACKET_ALERT_FLAG_TX            0x08
 
 #define PACKET_ALERT_MAX 15
 
