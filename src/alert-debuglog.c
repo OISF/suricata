@@ -301,6 +301,13 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
                              i,
                              pa->flags & PACKET_ALERT_FLAG_STREAM_MATCH  ? "STREAM" :
                              (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH ? "STATE" : "PACKET"));
+        if (pa->flags & PACKET_ALERT_FLAG_TX) {
+            MemBufferWriteString(aft->buffer,
+                    "ALERT IN TX [%02d]:    %"PRIu64"\n", i, pa->tx_id);
+        } else {
+            MemBufferWriteString(aft->buffer,
+                    "ALERT IN TX [%02d]:    N/A\n", i);
+        }
         if (p->payload_len > 0) {
             MemBufferWriteString(aft->buffer,
                                  "PAYLOAD LEN:         %" PRIu32 "\n"
