@@ -313,6 +313,58 @@ static int Unified2Write(Unified2AlertThread *aun)
     return 1;
 }
 
+static int GetXFFIPFromTx (Packet *p, uint64_t tx_id, char *xff_header, char *dstbuf, int dstbuflen)
+{
+    uint8_t xff_chain[UNIFIED2_ALERT_XFF_CHAIN_MAXLEN];
+    HtpState *htp_state = NULL;
+    htp_tx_t *tx = NULL;
+    uint64_t total_txs = 0;
+
+    htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
+
+    if (htp_state == NULL) {
+        SCLogDebug("no http state, XFF IP cannot be retrieved");
+        return 0;
+    }
+
+    total_txs = AppLayerGetTxCnt(ALPROTO_HTTP, htp_state);
+    if (tx_id >= total_txs)
+        return 0;
+
+    tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, tx_id);
+    if (tx == NULL) {
+        SCLogDebug("tx is NULL, XFF cannot be retrieved");
+        return 0;
+    }
+
+    htp_header_t *h_xff = NULL;
+    if (tx->request_headers != NULL) {
+        h_xff = htp_table_get_c(tx->request_headers, xff_header);
+    }
+
+    if (h_xff != NULL && bstr_len(h_xff->value) >= UNIFIED2_ALERT_XFF_CHAIN_MINLEN &&
+            bstr_len(h_xff->value) < UNIFIED2_ALERT_XFF_CHAIN_MAXLEN) {
+
+        memcpy(xff_chain, bstr_ptr(h_xff->value), bstr_len(h_xff->value));
+        xff_chain[bstr_len(h_xff->value)]=0;
+        /** Check for chained IP's separated by ", ", we will get the last one */
+        uint8_t *p_xff = memrchr(xff_chain, ' ', bstr_len(h_xff->value));
+        if (p_xff == NULL) {
+            p_xff = xff_chain;
+        } else {
+            p_xff++;
+        }
+        /** Sanity check on extracted IP for IPv4 and IPv6 */
+        uint32_t ip[4];
+        if ( inet_pton(AF_INET, (char *)p_xff, ip ) == 1 ||
+                inet_pton(AF_INET6, (char *)p_xff, ip ) == 1 ) {
+            strlcpy(dstbuf, (char *)p_xff, dstbuflen);
+            return 1; // OK
+        }
+    }
+    return 0;
+}
+
 /**
  *  \brief Function to return XFF IP if any...
  *  \retval 1 if the IP has been found and returned in dstbuf
@@ -320,54 +372,20 @@ static int Unified2Write(Unified2AlertThread *aun)
  */
 static int GetXFFIP (Packet *p, char *xff_header, char *dstbuf, int dstbuflen)
 {
-    uint8_t xff_chain[UNIFIED2_ALERT_XFF_CHAIN_MAXLEN];
     HtpState *htp_state = NULL;
-    htp_tx_t *tx = NULL;
     uint64_t tx_id = 0;
     uint64_t total_txs = 0;
 
     htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
-
     if (htp_state == NULL) {
         SCLogDebug("no http state, XFF IP cannot be retrieved");
         goto end;
     }
 
     total_txs = AppLayerGetTxCnt(ALPROTO_HTTP, htp_state);
-
     for (; tx_id < total_txs; tx_id++) {
-        tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, tx_id);
-
-        if (tx == NULL) {
-            SCLogDebug("tx is NULL, XFF cannot be retrieved");
-            continue;
-        }
-
-        htp_header_t *h_xff = NULL;
-        if (tx->request_headers != NULL) {
-            h_xff = htp_table_get_c(tx->request_headers, xff_header);
-        }
-
-        if (h_xff != NULL && bstr_len(h_xff->value) >= UNIFIED2_ALERT_XFF_CHAIN_MINLEN &&
-                bstr_len(h_xff->value) < UNIFIED2_ALERT_XFF_CHAIN_MAXLEN) {
-
-            memcpy(xff_chain, bstr_ptr(h_xff->value), bstr_len(h_xff->value));
-            xff_chain[bstr_len(h_xff->value)]=0;
-            /** Check for chained IP's separated by ", ", we will get the last one */
-            uint8_t *p_xff = memrchr(xff_chain, ' ', bstr_len(h_xff->value));
-            if (p_xff == NULL) {
-                p_xff = xff_chain;
-            } else {
-                p_xff++;
-            }
-            /** Sanity check on extracted IP for IPv4 and IPv6 */
-            uint32_t ip[4];
-            if ( inet_pton(AF_INET, (char *)p_xff, ip ) == 1 ||
-                    inet_pton(AF_INET6, (char *)p_xff, ip ) == 1 ) {
-                strlcpy(dstbuf, (char *)p_xff, dstbuflen);
-                return 1; // OK
-            }
-        }
+        if (GetXFFIPFromTx(p, tx_id, xff_header, dstbuf, dstbuflen) == 1)
+            return 1;
     }
 
 end:
@@ -382,6 +400,7 @@ end:
  */
 TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
+    int ret = 0;
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
     aun->xff_flags = UNIFIED2_ALERT_XFF_DISABLED;
 
@@ -390,16 +409,18 @@ TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, Pa
 
     if (!(aun->unified2alert_ctx->xff_mode & UNIFIED2_ALERT_XFF_DISABLED) &&
             p->flow != NULL) {
-        FLOWLOCK_RDLOCK(p->flow);
+        /* overwrite mode can only work per u2 block, not per individual
+         * alert. So we'll look for an XFF record once */
+        if (aun->unified2alert_ctx->xff_mode & UNIFIED2_ALERT_XFF_OVERWRITE) {
+            FLOWLOCK_RDLOCK(p->flow);
 
-        if (AppLayerGetProtoFromPacket(p) == ALPROTO_HTTP) {
-            char buffer[UNIFIED2_ALERT_XFF_MAXLEN];
+            if (AppLayerGetProtoFromPacket(p) == ALPROTO_HTTP) {
+                char buffer[UNIFIED2_ALERT_XFF_MAXLEN];
 
-            if (GetXFFIP(p, aun->unified2alert_ctx->xff_header, buffer, UNIFIED2_ALERT_XFF_MAXLEN) == 1) {
-                /** Be sure that we have a nice zeroed buffer */
-                memset(aun->xff_ip, 0, 4 * sizeof(uint32_t));
+                if (GetXFFIP(p, aun->unified2alert_ctx->xff_header, buffer, UNIFIED2_ALERT_XFF_MAXLEN) == 1) {
+                    /** Be sure that we have a nice zeroed buffer */
+                    memset(aun->xff_ip, 0, 4 * sizeof(uint32_t));
 
-                if (aun->unified2alert_ctx->xff_mode & UNIFIED2_ALERT_XFF_OVERWRITE) {
                     /** We can only have override mode if packet IP version matches
                      * the XFF IP version, otherwise fall-back to extra data */
                     if (inet_pton(AF_INET, buffer, aun->xff_ip) == 1) {
@@ -420,21 +441,10 @@ TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, Pa
                         }
                     }
                 }
-                else if (aun->unified2alert_ctx->xff_mode & UNIFIED2_ALERT_XFF_EXTRADATA) {
-                    aun->xff_flags = UNIFIED2_ALERT_XFF_EXTRADATA;
-
-                    if (inet_pton(AF_INET, buffer, aun->xff_ip) == 1) {
-                        aun->xff_flags |= UNIFIED2_ALERT_XFF_IPV4;
-                    } else if (inet_pton(AF_INET6, buffer, aun->xff_ip) == 1) {
-                        aun->xff_flags |= UNIFIED2_ALERT_XFF_IPV6;
-                    }
-                }
             }
+            FLOWLOCK_UNLOCK(p->flow);
         }
-        FLOWLOCK_UNLOCK(p->flow);
     }
-
-    int ret = 0;
 
     if (PKT_IS_IPV4(p)) {
         ret = Unified2IPv4TypeAlert (t, p, data, pq);
@@ -960,6 +970,31 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         if (unlikely(pa->s == NULL))
             continue;
 
+        if ((aun->unified2alert_ctx->xff_mode & UNIFIED2_ALERT_XFF_EXTRADATA) && p->flow != NULL) {
+            FLOWLOCK_RDLOCK(p->flow);
+            if (AppLayerGetProtoFromPacket(p) == ALPROTO_HTTP) {
+                char buffer[UNIFIED2_ALERT_XFF_MAXLEN];
+                int have_xff_ip = 0;
+
+                if (pa->flags & PACKET_ALERT_FLAG_TX) {
+                    have_xff_ip = GetXFFIPFromTx(p, pa->tx_id, aun->unified2alert_ctx->xff_header, buffer, UNIFIED2_ALERT_XFF_MAXLEN);
+                } else {
+                    have_xff_ip = GetXFFIP(p, aun->unified2alert_ctx->xff_header, buffer, UNIFIED2_ALERT_XFF_MAXLEN);
+                }
+                if (have_xff_ip) {
+                    memset(aun->xff_ip, 0, 4 * sizeof(uint32_t));
+
+                    if (inet_pton(AF_INET, buffer, aun->xff_ip) == 1) {
+                        SCLogDebug("valid ipv4 xff, setting flag");
+                        aun->xff_flags |= (UNIFIED2_ALERT_XFF_IPV4|UNIFIED2_ALERT_XFF_EXTRADATA);
+                    } else if (inet_pton(AF_INET6, buffer, aun->xff_ip) == 1) {
+                        aun->xff_flags |= (UNIFIED2_ALERT_XFF_IPV6|UNIFIED2_ALERT_XFF_EXTRADATA);
+                    }
+                }
+            }
+            FLOWLOCK_UNLOCK(p->flow);
+        }
+
         /* reset length and offset */
         aun->offset = offset;
         aun->length = length;
@@ -1108,6 +1143,32 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
 
         if (unlikely(pa->s == NULL))
             continue;
+
+        if ((aun->unified2alert_ctx->xff_mode & UNIFIED2_ALERT_XFF_EXTRADATA) && p->flow != NULL) {
+            FLOWLOCK_RDLOCK(p->flow);
+            if (AppLayerGetProtoFromPacket(p) == ALPROTO_HTTP) {
+                char buffer[UNIFIED2_ALERT_XFF_MAXLEN];
+                int have_xff_ip = 0;
+
+                if (pa->flags & PACKET_ALERT_FLAG_TX) {
+                    have_xff_ip = GetXFFIPFromTx(p, pa->tx_id, aun->unified2alert_ctx->xff_header, buffer, UNIFIED2_ALERT_XFF_MAXLEN);
+                } else {
+                    have_xff_ip = GetXFFIP(p, aun->unified2alert_ctx->xff_header, buffer, UNIFIED2_ALERT_XFF_MAXLEN);
+                }
+                if (have_xff_ip) {
+                    SCLogDebug("buffer %s", buffer);
+                    memset(aun->xff_ip, 0, 4 * sizeof(uint32_t));
+
+                    if (inet_pton(AF_INET, buffer, aun->xff_ip) == 1) {
+                        SCLogDebug("valid ipv4 xff, setting flags");
+                        aun->xff_flags |= (UNIFIED2_ALERT_XFF_IPV4|UNIFIED2_ALERT_XFF_EXTRADATA);
+                    } else if (inet_pton(AF_INET6, buffer, aun->xff_ip) == 1) {
+                        aun->xff_flags |= (UNIFIED2_ALERT_XFF_IPV6|UNIFIED2_ALERT_XFF_EXTRADATA);
+                    }
+                }
+            }
+            FLOWLOCK_UNLOCK(p->flow);
+        }
 
         /* reset length and offset */
         aun->offset = offset;
