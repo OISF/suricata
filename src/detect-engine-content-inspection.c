@@ -286,7 +286,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 SCLogDebug("content %"PRIu32" matched at offset %"PRIu32", but negated so no match", cd->id, match_offset);
                 /* don't bother carrying recursive matches now, for preceding
                  * relative keywords */
-                det_ctx->discontinue_matching = 1;
+                if (DETECT_CONTENT_IS_SINGLE(cd))
+                    det_ctx->discontinue_matching = 1;
                 SCReturnInt(0);
             } else {
                 match_offset = (uint32_t)((found - buffer) + cd->content_len);
