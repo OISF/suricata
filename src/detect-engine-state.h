@@ -170,7 +170,7 @@ int DeStateFlowHasInspectableState(Flow *f, uint16_t alproto, uint16_t alversion
  */
 int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                 DetectEngineThreadCtx *det_ctx,
-                                Signature *s, Flow *f, uint8_t flags,
+                                Signature *s, Packet *p, Flow *f, uint8_t flags,
                                 void *alstate, uint16_t alproto,
                                 uint16_t alversion);
 

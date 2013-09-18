@@ -236,7 +236,7 @@ int DeStateFlowHasInspectableState(Flow *f, uint16_t alproto, uint16_t alversion
 
 int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                 DetectEngineThreadCtx *det_ctx,
-                                Signature *s, Flow *f, uint8_t flags,
+                                Signature *s, Packet *p, Flow *f, uint8_t flags,
                                 void *alstate, uint16_t alproto, uint16_t alversion)
 {
     DetectEngineAppInspectionEngine *engine = NULL;
@@ -310,8 +310,17 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             /* all the engines seem to be exhausted at this point.  If we
              * didn't have a match in one of the engines we would have
              * broken off and engine wouldn't be NULL.  Hence the alert. */
-            if (engine == NULL && total_matches > 0)
-                alert_cnt++;
+            if (engine == NULL && total_matches > 0) {
+
+                if (!(s->flags & SIG_FLAG_NOALERT)) {
+                    PacketAlertAppend(det_ctx, s, p, tx_id,
+                            PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_TX);
+                } else {
+                    PACKET_UPDATE_ACTION(p, s->action);
+                }
+
+                alert_cnt = 1;
+            }
 
             if (tx_id == (total_txs - 1)) {
                 void *tx = AppLayerGetTx(alproto, alstate, tx_id);
@@ -337,12 +346,27 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             if (smb_state->dcerpc_present &&
                 DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
                                               flags, &smb_state->dcerpc) == 1) {
-                alert_cnt++;
+                if (!(s->flags & SIG_FLAG_NOALERT)) {
+                    PacketAlertAppend(det_ctx, s, p, 0,
+                            PACKET_ALERT_FLAG_STATE_MATCH);
+                } else {
+                    PACKET_UPDATE_ACTION(p, s->action);
+                }
+
+                alert_cnt = 1;
             }
         } else {
             if (DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
                                               flags, alstate) == 1) {
-                alert_cnt++;
+                alert_cnt = 1;
+
+                if (!(s->flags & SIG_FLAG_NOALERT)) {
+                    PacketAlertAppend(det_ctx, s, p, 0,
+                            PACKET_ALERT_FLAG_STATE_MATCH);
+                } else {
+                    PACKET_UPDATE_ACTION(p, s->action);
+                }
+
             }
         }
     }
@@ -373,8 +397,15 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
         store_de_state = 1;
         if (sm == NULL || inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
-            if (match == 1)
+            if (match == 1) {
+                if (!(s->flags & SIG_FLAG_NOALERT)) {
+                    PacketAlertAppend(det_ctx, s, p, 0,
+                            PACKET_ALERT_FLAG_STATE_MATCH);
+                } else {
+                    PACKET_UPDATE_ACTION(p, s->action);
+                }
                 alert_cnt = 1;
+            }
             inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
         }
     }
@@ -405,7 +436,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     SCMutexUnlock(&f->de_state_m);
 
  end:
-    return alert_cnt;
+    return alert_cnt ? 1:0;
 }
 
 void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
@@ -621,7 +652,12 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 SigMatchSignaturesRunPostMatch(tv, de_ctx, det_ctx, p, s);
 
                 if (!(s->flags & SIG_FLAG_NOALERT)) {
-                    PacketAlertAppend(det_ctx, s, p, 0);
+                    if (alproto_supports_txs)
+                        PacketAlertAppend(det_ctx, s, p, inspect_tx_id,
+                                PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_TX);
+                    else
+                        PacketAlertAppend(det_ctx, s, p, 0,
+                                PACKET_ALERT_FLAG_STATE_MATCH);
                 } else {
                     PACKET_UPDATE_ACTION(p, s->action);
                 }
