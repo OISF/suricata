@@ -2269,6 +2269,9 @@ end:
 
 /**
  * \test Test multiple relative contents with a negated content.
+ *
+ * By AWS.  This test was modified by a commit
+ * a8d401a5011374570b6f090a21dc65d704c64e38.
  */
 static int UriTestSig21(void)
 {
@@ -2334,7 +2337,7 @@ static int UriTestSig21(void)
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1)) {
+    if (!PacketAlertCheck(p, 1)) {
         printf("sig 1 alerted, but it should not: ");
         goto end;
     }

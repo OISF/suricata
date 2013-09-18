@@ -9424,6 +9424,9 @@ int DcePayloadParseTest41(void)
 
 /**
  * \test Test the working of consecutive relative matches with a negated content.
+ *
+ * By AWS.  This test was modified by a commit
+ * a8d401a5011374570b6f090a21dc65d704c64e38.
  */
 int DcePayloadTest42(void)
 {
@@ -9495,7 +9498,7 @@ int DcePayloadTest42(void)
     }
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-    if ((PacketAlertCheck(p, 1))) {
+    if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 matched but shouldn't have for packet: ");
         goto end;
     }
