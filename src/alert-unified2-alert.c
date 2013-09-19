@@ -627,7 +627,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     int ret;
     unsigned int event_id;
 
-    if (p->alerts.cnt == 0)
+    if (p->alerts.cnt == 0 && !(p->flags & PKT_HAS_TAG))
         return 0;
 
     length = (sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv6Unified2));
@@ -773,7 +773,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     int ret;
     unsigned int event_id;
 
-    if (p->alerts.cnt == 0)
+    if (p->alerts.cnt == 0 && !(p->flags & PKT_HAS_TAG))
         return 0;
 
     length = (sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv4Unified2));
