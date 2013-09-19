@@ -281,7 +281,8 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
     /* At this point, we should have all the new alerts. Now check the tag
      * keyword context for sessions and hosts */
-    TagHandlePacket(de_ctx, det_ctx, p);
+    if (!(p->flags & PKT_PSEUDO_STREAM_END))
+        TagHandlePacket(de_ctx, det_ctx, p);
 }
 
 
