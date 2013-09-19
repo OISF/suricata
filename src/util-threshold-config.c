@@ -672,16 +672,12 @@ error:
     return -1;
 }
 
-/**
- * \brief Parses a line from the threshold file and adds it to Thresholdtype
- *
- * \param rawstr Pointer to the string to be parsed.
- * \param de_ctx Pointer to the Detection Engine Context.
- *
- * \retval  0 On success.
- * \retval -1 On failure.
- */
-int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
+static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
+    uint32_t *ret_id, uint32_t *ret_gid,
+    uint8_t *ret_parsed_type, uint8_t *ret_parsed_track,
+    uint32_t *ret_parsed_count, uint32_t *ret_parsed_seconds, uint32_t *ret_parsed_timeout,
+    uint8_t *ret_parsed_new_action,
+    const char **ret_th_ip)
 {
     const char *th_rule_type = NULL;
     const char *th_gid = NULL;
@@ -707,7 +703,6 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
     int ov[MAX_SUBSTRINGS];
     uint32_t id = 0, gid = 0;
     ThresholdRuleType rule_type;
-    int fret = -1;
 
     if (de_ctx == NULL)
         return -1;
@@ -968,21 +963,16 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
         goto error;
     }
 
-    int r = 0;
-    if (parsed_type == TYPE_SUPPRESS) {
-        r = SetupSuppressRule(de_ctx, id, gid, parsed_type, parsed_track,
-                    parsed_count, parsed_seconds, parsed_timeout, parsed_new_action,
-                    th_ip);
-    } else {
-        r = SetupThresholdRule(de_ctx, id, gid, parsed_type, parsed_track,
-                    parsed_count, parsed_seconds, parsed_timeout, parsed_new_action,
-                    th_ip);
-    }
-    if (r < 0) {
-        goto error;
-    }
-
-    fret = 0;
+    *ret_id = id;
+    *ret_gid = gid;
+    *ret_parsed_type = parsed_type;
+    *ret_parsed_track = parsed_track;
+    *ret_parsed_new_action = parsed_new_action;
+    *ret_parsed_count = parsed_count;
+    *ret_parsed_seconds = parsed_seconds;
+    *ret_parsed_timeout = parsed_timeout;
+    *ret_th_ip = th_ip;
+    return 0;
 error:
     if (th_rule_type != NULL)
         SCFree((char *)th_rule_type);
@@ -1002,7 +992,55 @@ error:
         SCFree((char *)th_ip);
     if (rule_extend != NULL)
         SCFree((char *)rule_extend);
-    return fret;
+    return -1;
+}
+
+/**
+ * \brief Parses a line from the threshold file and applies it to the
+ *        detection engine
+ *
+ * \param rawstr Pointer to the string to be parsed.
+ * \param de_ctx Pointer to the Detection Engine Context.
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
+{
+    uint8_t parsed_type = 0;
+    uint8_t parsed_track = 0;
+    uint8_t parsed_new_action = 0;
+    uint32_t parsed_count = 0;
+    uint32_t parsed_seconds = 0;
+    uint32_t parsed_timeout = 0;
+    const char *th_ip = NULL;
+    uint32_t id, gid;
+
+    int r = 0;
+    r = ParseThresholdRule(de_ctx, rawstr, &id, &gid, &parsed_type, &parsed_track,
+                    &parsed_count, &parsed_seconds, &parsed_timeout, &parsed_new_action,
+                    &th_ip);
+    if (r < 0)
+        goto error;
+
+    if (parsed_type == TYPE_SUPPRESS) {
+        r = SetupSuppressRule(de_ctx, id, gid, parsed_type, parsed_track,
+                    parsed_count, parsed_seconds, parsed_timeout, parsed_new_action,
+                    th_ip);
+    } else {
+        r = SetupThresholdRule(de_ctx, id, gid, parsed_type, parsed_track,
+                    parsed_count, parsed_seconds, parsed_timeout, parsed_new_action,
+                    th_ip);
+    }
+    if (r < 0) {
+        goto error;
+    }
+
+    return 0;
+error:
+    if (th_ip != NULL)
+        SCFree((char *)th_ip);
+    return -1;
 }
 
 /**
