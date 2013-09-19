@@ -69,27 +69,49 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
     SCEnter();
     int ret = 1;
     DetectThresholdData *td = NULL;
-    SigMatch *sm = NULL;
+    SigMatch *sm;
 
     if (!(PKT_IS_IPV4(p) || PKT_IS_IPV6(p))) {
         SCReturnInt(1);
     }
 
-    do {
-        td = SigGetThresholdTypeIter(s, p, &sm);
-        if (td != NULL) {
-            SCLogDebug("td %p", td);
+    /* handle suppressions first */
+    if (s->sm_lists[DETECT_SM_LIST_SUPPRESS] != NULL) {
+        sm = NULL;
+        do {
+            td = SigGetThresholdTypeIter(s, p, &sm, DETECT_SM_LIST_SUPPRESS);
+            if (td != NULL) {
+                SCLogDebug("td %p", td);
 
-            /* PacketAlertThreshold returns 2 if the alert is suppressed but
-             * we do need to apply rule actions to the packet. */
-            ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s);
-            if (ret == 0 || ret == 2) {
-                /* It doesn't match threshold, remove it */
-                SCReturnInt(ret);
+                /* PacketAlertThreshold returns 2 if the alert is suppressed but
+                 * we do need to apply rule actions to the packet. */
+                ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s);
+                if (ret == 0 || ret == 2) {
+                    /* It doesn't match threshold, remove it */
+                    SCReturnInt(ret);
+                }
             }
-        }
-    } while (sm != NULL);
+        } while (sm != NULL);
+    }
 
+    /* if we're still here, consider thresholding */
+    if (s->sm_lists[DETECT_SM_LIST_THRESHOLD] != NULL) {
+        sm = NULL;
+        do {
+            td = SigGetThresholdTypeIter(s, p, &sm, DETECT_SM_LIST_THRESHOLD);
+            if (td != NULL) {
+                SCLogDebug("td %p", td);
+
+                /* PacketAlertThreshold returns 2 if the alert is suppressed but
+                 * we do need to apply rule actions to the packet. */
+                ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s);
+                if (ret == 0 || ret == 2) {
+                    /* It doesn't match threshold, remove it */
+                    SCReturnInt(ret);
+                }
+            }
+        } while (sm != NULL);
+    }
     SCReturnInt(1);
 }
 
