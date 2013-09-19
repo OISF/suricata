@@ -385,7 +385,7 @@ TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, Pa
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
     aun->xff_flags = UNIFIED2_ALERT_XFF_DISABLED;
 
-    if (p->alerts.cnt == 0)
+    if (p->alerts.cnt == 0 && !(p->flags & PKT_HAS_TAG))
         return TM_ECODE_OK;
 
     if (!(aun->unified2alert_ctx->xff_mode & UNIFIED2_ALERT_XFF_DISABLED) &&
@@ -880,7 +880,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     int ret;
     unsigned int event_id;
 
-    if (p->alerts.cnt == 0)
+    if (p->alerts.cnt == 0 && !(p->flags & PKT_HAS_TAG))
         return 0;
 
     length = (sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv6Unified2));
@@ -1039,7 +1039,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     int ret;
     unsigned int event_id;
 
-    if (p->alerts.cnt == 0)
+    if (p->alerts.cnt == 0 && !(p->flags & PKT_HAS_TAG))
         return 0;
 
     length = (sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv4Unified2));

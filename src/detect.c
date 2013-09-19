@@ -1888,6 +1888,9 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL)
         return 0;
 
+    /* TMATCH list can be ignored, it contains TAGs and
+     * tags are compatible to IP-only. */
+
     IPOnlyCIDRItem *cidr_item;
     cidr_item = s->CidrSrc;
     while (cidr_item != NULL) {
