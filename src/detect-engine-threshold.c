@@ -95,7 +95,7 @@ int ThresholdHostHasThreshold(Host *host) {
  *
  *
  */
-DetectThresholdData *SigGetThresholdTypeIter(Signature *sig, Packet *p, SigMatch **psm)
+DetectThresholdData *SigGetThresholdTypeIter(Signature *sig, Packet *p, SigMatch **psm, int list)
 {
     SigMatch *sm = NULL;
     DetectThresholdData *tsh = NULL;
@@ -104,7 +104,7 @@ DetectThresholdData *SigGetThresholdTypeIter(Signature *sig, Packet *p, SigMatch
         return NULL;
 
     if (*psm == NULL) {
-        sm = sig->sm_lists_tail[DETECT_SM_LIST_THRESHOLD];
+        sm = sig->sm_lists_tail[list];
     } else {
         /* Iteration in progress, using provided value */
         sm = *psm;
@@ -125,20 +125,6 @@ DetectThresholdData *SigGetThresholdTypeIter(Signature *sig, Packet *p, SigMatch
     *psm = NULL;
 
     return NULL;
-}
-
-/**
- * \brief Check if a certain signature has threshold option
- *
- * \param sig Signature pointer
- * \param p Packet structure
- *
- * \retval tsh Return the threshold data from signature or NULL if not found
- */
-DetectThresholdData *SigGetThresholdType(Signature *sig, Packet *p)
-{
-    SigMatch *psm = NULL;
-    return SigGetThresholdTypeIter(sig, p, &psm);
 }
 
 /**

@@ -255,6 +255,423 @@ void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd)
     return;
 }
 
+/** \internal
+ *  \brief setup suppress rules
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
+static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
+        uint8_t parsed_type, uint8_t parsed_track, uint32_t parsed_count,
+        uint32_t parsed_seconds, uint32_t parsed_timeout, uint8_t parsed_new_action,
+        const char *th_ip)
+{
+    Signature *s = NULL;
+    SigMatch *sm = NULL;
+    DetectThresholdData *de = NULL;
+
+    BUG_ON(parsed_type != TYPE_SUPPRESS);
+
+    /* Install it */
+    if (id == 0 && gid == 0) {
+        if (parsed_track == TRACK_RULE) {
+            SCLogWarning(SC_ERR_EVENT_ENGINE, "suppressing all rules");
+        }
+
+        /* update each sig with our suppress info */
+        for (s = de_ctx->sig_list; s != NULL; s = s->next) {
+            /* tag the rule as noalert */
+            if (parsed_track == TRACK_RULE) {
+                s->flags |= SIG_FLAG_NOALERT;
+                continue;
+            }
+
+            de = SCMalloc(sizeof(DetectThresholdData));
+            if (unlikely(de == NULL))
+                goto error;
+            memset(de,0,sizeof(DetectThresholdData));
+
+            de->type = TYPE_SUPPRESS;
+            de->track = parsed_track;
+            de->count = parsed_count;
+            de->seconds = parsed_seconds;
+            de->new_action = parsed_new_action;
+            de->timeout = parsed_timeout;
+            de->addr = NULL;
+
+            if (parsed_track != TRACK_RULE) {
+                de->addr = DetectAddressInit();
+                if (de->addr == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't init DetectAddress");
+                    goto error;
+                }
+                if (DetectAddressParseString(de->addr, (char *)th_ip) < 0) {
+                    SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Can't add %s to address group", th_ip);
+                    goto error;
+                }
+            }
+
+            sm = SigMatchAlloc();
+            if (sm == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
+                goto error;
+            }
+
+            sm->type = DETECT_THRESHOLD;
+            sm->ctx = (void *)de;
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_SUPPRESS);
+        }
+    } else if (id == 0 && gid > 0)    {
+        if (parsed_track == TRACK_RULE) {
+            SCLogWarning(SC_ERR_EVENT_ENGINE, "suppressing all rules with gid %"PRIu32, gid);
+        }
+        /* set up suppression for each signature with a matching gid */
+        for (s = de_ctx->sig_list; s != NULL; s = s->next) {
+            if (s->gid != gid)
+                continue;
+
+            /* tag the rule as noalert */
+            if (parsed_track == TRACK_RULE) {
+                s->flags |= SIG_FLAG_NOALERT;
+                continue;
+            }
+
+            de = SCMalloc(sizeof(DetectThresholdData));
+            if (unlikely(de == NULL))
+                goto error;
+
+            memset(de,0,sizeof(DetectThresholdData));
+
+            de->type = TYPE_SUPPRESS;
+            de->track = parsed_track;
+            de->count = parsed_count;
+            de->seconds = parsed_seconds;
+            de->new_action = parsed_new_action;
+            de->timeout = parsed_timeout;
+            de->addr = NULL;
+
+            if (parsed_track != TRACK_RULE) {
+                de->addr = DetectAddressInit();
+                if (de->addr == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't init DetectAddress");
+                    goto error;
+                }
+                if (DetectAddressParseString(de->addr, (char *)th_ip) < 0) {
+                    SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Can't add %s to address group", th_ip);
+                    goto error;
+                }
+            }
+
+            sm = SigMatchAlloc();
+            if (sm == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
+                goto error;
+            }
+
+            sm->type = DETECT_THRESHOLD;
+            sm->ctx = (void *)de;
+
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_SUPPRESS);
+        }
+    } else if (id > 0 && gid == 0) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Can't use a event config that has "
+                   "sid > 0 and gid == 0. Please fix this "
+                   "in your threshold.conf file");
+        goto error;
+    } else {
+        s = SigFindSignatureBySidGid(de_ctx, id, gid);
+        if (s == NULL) {
+            SCLogWarning(SC_ERR_EVENT_ENGINE, "can't suppress sid "
+                    "%"PRIu32", gid %"PRIu32": unknown rule", id, gid);
+        } else {
+            if (parsed_track == TRACK_RULE) {
+                s->flags |= SIG_FLAG_NOALERT;
+                goto end;
+            }
+
+            de = SCMalloc(sizeof(DetectThresholdData));
+            if (unlikely(de == NULL))
+                goto error;
+            memset(de,0,sizeof(DetectThresholdData));
+
+            de->type = TYPE_SUPPRESS;
+            de->track = parsed_track;
+            de->count = parsed_count;
+            de->seconds = parsed_seconds;
+            de->new_action = parsed_new_action;
+            de->timeout = parsed_timeout;
+
+            de->addr = DetectAddressInit();
+            if (de->addr == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't init DetectAddress");
+                goto error;
+            }
+            if (DetectAddressParseString(de->addr, (char *)th_ip) < 0) {
+                SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Can't add %s to address group", th_ip);
+                goto error;
+            }
+
+            sm = SigMatchAlloc();
+            if (sm == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
+                goto error;
+            }
+
+            sm->type = DETECT_THRESHOLD;
+            sm->ctx = (void *)de;
+
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_SUPPRESS);
+        }
+    }
+
+end:
+    return 0;
+error:
+    if (de != NULL) {
+        if (de->addr != NULL)
+            DetectAddressFree(de->addr);
+        SCFree(de);
+    }
+    return -1;
+}
+
+/** \internal
+ *  \brief setup suppress rules
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
+static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
+        uint8_t parsed_type, uint8_t parsed_track, uint32_t parsed_count,
+        uint32_t parsed_seconds, uint32_t parsed_timeout, uint8_t parsed_new_action,
+        const char *th_ip)
+{
+    Signature *s = NULL;
+    SigMatch *sm = NULL;
+    DetectThresholdData *de = NULL;
+
+    BUG_ON(parsed_type == TYPE_SUPPRESS);
+
+    /* Install it */
+    if (id == 0 && gid == 0) {
+        for (s = de_ctx->sig_list; s != NULL; s = s->next) {
+            sm = SigMatchGetLastSMFromLists(s, 2,
+                    DETECT_THRESHOLD, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+            if (sm != NULL) {
+                SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
+                        "an event var set.  The signature event var is "
+                        "given precedence over the threshold.conf one.  "
+                        "We'll change this in the future though.", s->id);
+                goto end;
+            }
+
+            sm = SigMatchGetLastSMFromLists(s, 2,
+                    DETECT_DETECTION_FILTER, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+            if (sm != NULL) {
+                SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
+                        "an event var set.  The signature event var is "
+                        "given precedence over the threshold.conf one.  "
+                        "We'll change this in the future though.", s->id);
+                goto end;
+            }
+
+            de = SCMalloc(sizeof(DetectThresholdData));
+            if (unlikely(de == NULL))
+                goto error;
+            memset(de,0,sizeof(DetectThresholdData));
+
+            de->type = parsed_type;
+            de->track = parsed_track;
+            de->count = parsed_count;
+            de->seconds = parsed_seconds;
+            de->new_action = parsed_new_action;
+            de->timeout = parsed_timeout;
+            de->addr = NULL;
+
+            sm = SigMatchAlloc();
+            if (sm == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
+                goto error;
+            }
+
+            if (parsed_type == TYPE_RATE)
+                sm->type = DETECT_DETECTION_FILTER;
+            else
+                sm->type = DETECT_THRESHOLD;
+            sm->ctx = (void *)de;
+
+            if (parsed_track == TRACK_RULE) {
+                de_ctx->ths_ctx.th_entry = SCRealloc(de_ctx->ths_ctx.th_entry, (de_ctx->ths_ctx.th_size + 1) * sizeof(DetectThresholdEntry *));
+                if (de_ctx->ths_ctx.th_entry == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for threshold config"
+                    " (tried to allocate %"PRIu32"th_entrys for rule tracking with rate_filter)", de_ctx->ths_ctx.th_size + 1);
+                } else {
+                    de_ctx->ths_ctx.th_entry[de_ctx->ths_ctx.th_size] = NULL;
+                    de_ctx->ths_ctx.th_size++;
+                }
+            }
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
+        }
+
+    } else if (id == 0 && gid > 0) {
+        for (s = de_ctx->sig_list; s != NULL; s = s->next) {
+            if (s->gid == gid) {
+                sm = SigMatchGetLastSMFromLists(s, 2,
+                        DETECT_THRESHOLD, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+                if (sm != NULL) {
+                    SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
+                            "an event var set.  The signature event var is "
+                            "given precedence over the threshold.conf one.  "
+                            "We'll change this in the future though.", id);
+                    goto end;
+                }
+
+                sm = SigMatchGetLastSMFromLists(s, 2,
+                        DETECT_DETECTION_FILTER, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+                if (sm != NULL) {
+                    SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
+                            "an event var set.  The signature event var is "
+                            "given precedence over the threshold.conf one.  "
+                            "We'll change this in the future though.", id);
+                    goto end;
+                }
+
+                de = SCMalloc(sizeof(DetectThresholdData));
+                if (unlikely(de == NULL))
+                    goto error;
+                memset(de,0,sizeof(DetectThresholdData));
+
+                de->type = parsed_type;
+                de->track = parsed_track;
+                de->count = parsed_count;
+                de->seconds = parsed_seconds;
+                de->new_action = parsed_new_action;
+                de->timeout = parsed_timeout;
+                de->addr = NULL;
+
+                sm = SigMatchAlloc();
+                if (sm == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
+                    goto error;
+                }
+
+                if (parsed_type == TYPE_RATE)
+                    sm->type = DETECT_DETECTION_FILTER;
+                else
+                    sm->type = DETECT_THRESHOLD;
+                sm->ctx = (void *)de;
+
+                if (parsed_track == TRACK_RULE) {
+                    de_ctx->ths_ctx.th_entry = SCRealloc(de_ctx->ths_ctx.th_entry, (de_ctx->ths_ctx.th_size + 1) * sizeof(DetectThresholdEntry *));
+                    if (de_ctx->ths_ctx.th_entry == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for threshold config"
+                        " (tried to allocate %"PRIu32"th_entrys for rule tracking with rate_filter)", de_ctx->ths_ctx.th_size + 1);
+                    } else {
+                        de_ctx->ths_ctx.th_entry[de_ctx->ths_ctx.th_size] = NULL;
+                        de_ctx->ths_ctx.th_size++;
+                    }
+                }
+                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
+            }
+        }
+    } else if (id > 0 && gid == 0) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Can't use a event config that has "
+                   "sid > 0 and gid == 0. Please fix this "
+                   "in your threshold.conf file");
+    } else {
+        s = SigFindSignatureBySidGid(de_ctx, id, gid);
+        if (s == NULL) {
+            SCLogWarning(SC_ERR_EVENT_ENGINE, "can't suppress sid "
+                    "%"PRIu32", gid %"PRIu32": unknown rule", id, gid);
+        } else {
+            if (parsed_type != TYPE_SUPPRESS && parsed_type != TYPE_THRESHOLD &&
+                parsed_type != TYPE_BOTH && parsed_type != TYPE_LIMIT)
+            {
+                sm = SigMatchGetLastSMFromLists(s, 2,
+                        DETECT_THRESHOLD, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+                if (sm != NULL) {
+                    SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
+                            "a threshold set. The signature event var is "
+                            "given precedence over the threshold.conf one. "
+                            "Bug #425.", s->id);
+                    goto end;
+                }
+
+                sm = SigMatchGetLastSMFromLists(s, 2,
+                        DETECT_DETECTION_FILTER, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+                if (sm != NULL) {
+                    SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
+                            "a detection_filter set. The signature event var is "
+                            "given precedence over the threshold.conf one. "
+                            "Bug #425.", s->id);
+                    goto end;
+                }
+
+            /* replace threshold on sig if we have a global override for it */
+#if 1
+            } else if (parsed_type == TYPE_THRESHOLD || parsed_type == TYPE_BOTH || parsed_type == TYPE_LIMIT) {
+                sm = SigMatchGetLastSMFromLists(s, 2,
+                        DETECT_THRESHOLD, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+                if (sm == NULL) {
+                    sm = SigMatchGetLastSMFromLists(s, 2,
+                            DETECT_DETECTION_FILTER, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+                }
+                if (sm != NULL) {
+                    SigMatchRemoveSMFromList(s, sm, DETECT_SM_LIST_THRESHOLD);
+                    SigMatchFree(sm);
+                    sm = NULL;
+                }
+#endif
+            }
+
+            de = SCMalloc(sizeof(DetectThresholdData));
+            if (unlikely(de == NULL))
+                goto error;
+            memset(de,0,sizeof(DetectThresholdData));
+
+            de->type = parsed_type;
+            de->track = parsed_track;
+            de->count = parsed_count;
+            de->seconds = parsed_seconds;
+            de->new_action = parsed_new_action;
+            de->timeout = parsed_timeout;
+            de->addr = NULL;
+
+            sm = SigMatchAlloc();
+            if (sm == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
+                goto error;
+            }
+
+            if (parsed_type == TYPE_RATE)
+                sm->type = DETECT_DETECTION_FILTER;
+            else
+                sm->type = DETECT_THRESHOLD;
+            sm->ctx = (void *)de;
+
+            if (parsed_track == TRACK_RULE) {
+                de_ctx->ths_ctx.th_entry = SCRealloc(de_ctx->ths_ctx.th_entry, (de_ctx->ths_ctx.th_size + 1) * sizeof(DetectThresholdEntry *));
+                if (de_ctx->ths_ctx.th_entry == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for threshold config"
+                    " (tried to allocate %"PRIu32"th_entrys for rule tracking with rate_filter)", de_ctx->ths_ctx.th_size + 1);
+                } else {
+                    de_ctx->ths_ctx.th_entry[de_ctx->ths_ctx.th_size] = NULL;
+                    de_ctx->ths_ctx.th_size++;
+                }
+            }
+
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
+        }
+    }
+end:
+    return 0;
+error:
+    if (de != NULL) {
+        if (de->addr != NULL)
+            DetectAddressFree(de->addr);
+        SCFree(de);
+    }
+    return -1;
+}
+
 /**
  * \brief Parses a line from the threshold file and adds it to Thresholdtype
  *
@@ -285,11 +702,6 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
     uint32_t parsed_seconds = 0;
     uint32_t parsed_timeout = 0;
 
-    Signature *sig = NULL;
-    Signature *s = NULL, *ns = NULL;
-    DetectThresholdData *de = NULL;
-    SigMatch *sm = NULL;
-    SigMatch *m = NULL;
 #define MAX_SUBSTRINGS 30
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
@@ -556,291 +968,40 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
         goto error;
     }
 
-    /* Install it */
-    if (id == 0 && gid == 0) {
-        for (s = de_ctx->sig_list; s != NULL;) {
-            ns = s->next;
-            if (parsed_type != TYPE_SUPPRESS) {
-                m = SigMatchGetLastSMFromLists(s, 2,
-                        DETECT_THRESHOLD, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
-
-                if (m != NULL) {
-                    SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
-                            "an event var set.  The signature event var is "
-                            "given precedence over the threshold.conf one.  "
-                            "We'll change this in the future though.", s->id);
-                    goto end;
-                }
-
-                m = SigMatchGetLastSMFromLists(s, 2,
-                        DETECT_DETECTION_FILTER, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
-
-                if (m != NULL) {
-                    SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
-                            "an event var set.  The signature event var is "
-                            "given precedence over the threshold.conf one.  "
-                            "We'll change this in the future though.", s->id);
-                    goto end;
-                }
-            }
-
-            de = SCMalloc(sizeof(DetectThresholdData));
-            if (unlikely(de == NULL))
-                goto error;
-
-            memset(de,0,sizeof(DetectThresholdData));
-
-            de->type = parsed_type;
-            de->track = parsed_track;
-            de->count = parsed_count;
-            de->seconds = parsed_seconds;
-            de->new_action = parsed_new_action;
-            de->timeout = parsed_timeout;
-            de->addr = NULL;
-
-            if ((parsed_type == TYPE_SUPPRESS) && (parsed_track != TRACK_RULE)) {
-                de->addr = DetectAddressInit();
-                if (de->addr == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Can't init DetectAddress");
-                    goto error;
-                }
-                if (DetectAddressParseString(de->addr, (char *)th_ip) < 0) {
-                    SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Can't add %s to address group", th_ip);
-                    goto error;
-                }
-            }
-
-            sm = SigMatchAlloc();
-            if (sm == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
-                goto error;
-            }
-
-            if (parsed_type == TYPE_RATE)
-                sm->type = DETECT_DETECTION_FILTER;
-            else
-                sm->type = DETECT_THRESHOLD;
-            sm->ctx = (void *)de;
-
-            if (parsed_track == TRACK_RULE) {
-                de_ctx->ths_ctx.th_entry = SCRealloc(de_ctx->ths_ctx.th_entry, (de_ctx->ths_ctx.th_size + 1) * sizeof(DetectThresholdEntry *));
-                if (de_ctx->ths_ctx.th_entry == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for threshold config"
-                    " (tried to allocate %"PRIu32"th_entrys for rule tracking with rate_filter)", de_ctx->ths_ctx.th_size + 1);
-                } else {
-                    de_ctx->ths_ctx.th_entry[de_ctx->ths_ctx.th_size] = NULL;
-                    de_ctx->ths_ctx.th_size++;
-                }
-            }
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
-            s = ns;
-        }
-
-    } else if (id == 0 && gid > 0)    {
-        for (s = de_ctx->sig_list; s != NULL;) {
-            ns = s->next;
-
-            if(s->gid == gid)   {
-                if (parsed_type != TYPE_SUPPRESS) {
-                    m = SigMatchGetLastSMFromLists(s, 2,
-                            DETECT_THRESHOLD, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
-
-                    if (m != NULL) {
-                        SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
-                                "an event var set.  The signature event var is "
-                                "given precedence over the threshold.conf one.  "
-                                "We'll change this in the future though.", id);
-                        goto end;
-                    }
-
-                    m = SigMatchGetLastSMFromLists(s, 2,
-                            DETECT_DETECTION_FILTER, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
-
-                    if (m != NULL) {
-                        SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
-                                "an event var set.  The signature event var is "
-                                "given precedence over the threshold.conf one.  "
-                                "We'll change this in the future though.", id);
-                        goto end;
-                    }
-                }
-
-                de = SCMalloc(sizeof(DetectThresholdData));
-                if (unlikely(de == NULL))
-                    goto error;
-
-                memset(de,0,sizeof(DetectThresholdData));
-
-                de->type = parsed_type;
-                de->track = parsed_track;
-                de->count = parsed_count;
-                de->seconds = parsed_seconds;
-                de->new_action = parsed_new_action;
-                de->timeout = parsed_timeout;
-                de->addr = NULL;
-
-                if ((parsed_type == TYPE_SUPPRESS) && (parsed_track != TRACK_RULE)) {
-                    de->addr = DetectAddressInit();
-                    if (de->addr == NULL) {
-                        SCLogError(SC_ERR_MEM_ALLOC, "Can't init DetectAddress");
-                        goto error;
-                    }
-                    if (DetectAddressParseString(de->addr, (char *)th_ip) < 0) {
-                        SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Can't add %s to address group", th_ip);
-                        goto error;
-                    }
-                }
-
-                sm = SigMatchAlloc();
-                if (sm == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
-                    goto error;
-                }
-
-                if (parsed_type == TYPE_RATE)
-                    sm->type = DETECT_DETECTION_FILTER;
-                else
-                    sm->type = DETECT_THRESHOLD;
-                sm->ctx = (void *)de;
-
-                if (parsed_track == TRACK_RULE) {
-                    de_ctx->ths_ctx.th_entry = SCRealloc(de_ctx->ths_ctx.th_entry, (de_ctx->ths_ctx.th_size + 1) * sizeof(DetectThresholdEntry *));
-                    if (de_ctx->ths_ctx.th_entry == NULL) {
-                        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for threshold config"
-                        " (tried to allocate %"PRIu32"th_entrys for rule tracking with rate_filter)", de_ctx->ths_ctx.th_size + 1);
-                    } else {
-                        de_ctx->ths_ctx.th_entry[de_ctx->ths_ctx.th_size] = NULL;
-                        de_ctx->ths_ctx.th_size++;
-                    }
-                }
-                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
-            }
-            s = ns;
-        }
-    } else if (id > 0 && gid == 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Can't use a event config that has "
-                   "sid > 0 and gid == 0. Please fix this "
-                   "in your threshold.conf file");
+    int r = 0;
+    if (parsed_type == TYPE_SUPPRESS) {
+        r = SetupSuppressRule(de_ctx, id, gid, parsed_type, parsed_track,
+                    parsed_count, parsed_seconds, parsed_timeout, parsed_new_action,
+                    th_ip);
     } else {
-        sig = SigFindSignatureBySidGid(de_ctx,id,gid);
-
-        if(sig != NULL) {
-            if ((parsed_type == TYPE_SUPPRESS) && (parsed_track == TRACK_RULE)) {
-                sig->flags |= SIG_FLAG_NOALERT;
-                goto end;
-            }
-
-            if (parsed_type != TYPE_SUPPRESS && parsed_type != TYPE_THRESHOLD &&
-                parsed_type != TYPE_BOTH && parsed_type != TYPE_LIMIT)
-            {
-                m = SigMatchGetLastSMFromLists(sig, 2,
-                        DETECT_THRESHOLD, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
-
-                if (m != NULL) {
-                    SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
-                            "a threshold set. The signature event var is "
-                            "given precedence over the threshold.conf one. "
-                            "Bug #425.", sig->id);
-                    goto end;
-                }
-
-                m = SigMatchGetLastSMFromLists(sig, 2,
-                        DETECT_DETECTION_FILTER, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
-
-                if (m != NULL) {
-                    SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
-                            "a detection_filter set. The signature event var is "
-                            "given precedence over the threshold.conf one. "
-                            "Bug #425.", sig->id);
-                    goto end;
-                }
-
-            /* replace threshold on sig if we have a global override for it */
-            } else if (parsed_type == TYPE_THRESHOLD || parsed_type == TYPE_BOTH || parsed_type == TYPE_LIMIT) {
-                m = SigMatchGetLastSMFromLists(sig, 2,
-                        DETECT_THRESHOLD, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
-                if (m == NULL) {
-                    m = SigMatchGetLastSMFromLists(sig, 2,
-                            DETECT_DETECTION_FILTER, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
-                }
-                if (m != NULL) {
-                    SigMatchRemoveSMFromList(sig, m, DETECT_SM_LIST_THRESHOLD);
-                    SigMatchFree(m);
-                    m = NULL;
-                }
-            }
-
-            de = SCMalloc(sizeof(DetectThresholdData));
-            if (unlikely(de == NULL))
-                goto error;
-
-            memset(de,0,sizeof(DetectThresholdData));
-
-            de->type = parsed_type;
-            de->track = parsed_track;
-            de->count = parsed_count;
-            de->seconds = parsed_seconds;
-            de->new_action = parsed_new_action;
-            de->timeout = parsed_timeout;
-            de->addr = NULL;
-
-            if ((parsed_type == TYPE_SUPPRESS) && (parsed_track != TRACK_RULE)) {
-                de->addr = DetectAddressInit();
-                if (de->addr == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Can't init DetectAddress");
-                    goto error;
-                }
-                if (DetectAddressParseString(de->addr, (char *)th_ip) < 0) {
-                    SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Can't add %s to address group", th_ip);
-                    goto error;
-                }
-            }
-
-            sm = SigMatchAlloc();
-            if (sm == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating SigMatch");
-                goto error;
-            }
-
-            if (parsed_type == TYPE_RATE)
-                sm->type = DETECT_DETECTION_FILTER;
-            else
-                sm->type = DETECT_THRESHOLD;
-            sm->ctx = (void *)de;
-
-            if (parsed_track == TRACK_RULE) {
-                de_ctx->ths_ctx.th_entry = SCRealloc(de_ctx->ths_ctx.th_entry, (de_ctx->ths_ctx.th_size + 1) * sizeof(DetectThresholdEntry *));
-                if (de_ctx->ths_ctx.th_entry == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for threshold config"
-                    " (tried to allocate %"PRIu32"th_entrys for rule tracking with rate_filter)", de_ctx->ths_ctx.th_size + 1);
-                } else {
-                    de_ctx->ths_ctx.th_entry[de_ctx->ths_ctx.th_size] = NULL;
-                    de_ctx->ths_ctx.th_size++;
-                }
-            }
-
-            SigMatchAppendSMToList(sig, sm, DETECT_SM_LIST_THRESHOLD);
-        }
+        r = SetupThresholdRule(de_ctx, id, gid, parsed_type, parsed_track,
+                    parsed_count, parsed_seconds, parsed_timeout, parsed_new_action,
+                    th_ip);
+    }
+    if (r < 0) {
+        goto error;
     }
 
-end:
     fret = 0;
 error:
-    if (fret == -1) {
-        if (de != NULL) {
-            if (de->addr != NULL) DetectAddressFree(de->addr);
-            SCFree(de);
-        }
-    }
-    if(th_rule_type != NULL) SCFree((char *)th_rule_type);
-    if(th_sid != NULL) SCFree((char *)th_sid);
-    if(th_gid != NULL) SCFree((char *)th_gid);
-    if(th_track != NULL) SCFree((char *)th_track);
-    if(th_count != NULL) SCFree((char *)th_count);
-    if(th_seconds != NULL) SCFree((char *)th_seconds);
-    if(th_type != NULL) SCFree((char *)th_type);
-    if(th_ip != NULL) SCFree((char *)th_ip);
-    if(rule_extend != NULL) SCFree((char *)rule_extend);
+    if (th_rule_type != NULL)
+        SCFree((char *)th_rule_type);
+    if (th_sid != NULL)
+        SCFree((char *)th_sid);
+    if (th_gid != NULL)
+        SCFree((char *)th_gid);
+    if (th_track != NULL)
+        SCFree((char *)th_track);
+    if (th_count != NULL)
+        SCFree((char *)th_count);
+    if (th_seconds != NULL)
+        SCFree((char *)th_seconds);
+    if (th_type != NULL)
+        SCFree((char *)th_type);
+    if (th_ip != NULL)
+        SCFree((char *)th_ip);
+    if (rule_extend != NULL)
+        SCFree((char *)rule_extend);
     return fret;
 }
 
@@ -2092,9 +2253,9 @@ int SCThresholdConfTest13(void)
     SCThresholdConfInitContext(de_ctx,fd);
 
     m = SigMatchGetLastSMFromLists(sig, 2,
-                                   DETECT_THRESHOLD, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+                                   DETECT_THRESHOLD, sig->sm_lists[DETECT_SM_LIST_SUPPRESS]);
 
-    if(m != NULL)   {
+    if (m != NULL)   {
         de = (DetectThresholdData *)m->ctx;
         if(de != NULL && (de->type == TYPE_SUPPRESS && de->track == TRACK_SRC))
             result = 1;
@@ -2429,11 +2590,11 @@ static int SCThresholdConfTest18(void)
     SCThresholdConfInitContext(de_ctx,fd);
     SigGroupBuild(de_ctx);
 
-    if (s->sm_lists[DETECT_SM_LIST_THRESHOLD] == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_SUPPRESS] == NULL) {
         printf("no thresholds: ");
         goto end;
     }
-    sm = s->sm_lists[DETECT_SM_LIST_THRESHOLD];
+    sm = s->sm_lists[DETECT_SM_LIST_SUPPRESS];
     if (sm == NULL) {
         printf("no sm: ");
         goto end;
@@ -2504,11 +2665,11 @@ static int SCThresholdConfTest19(void)
     SCThresholdConfInitContext(de_ctx,fd);
     SigGroupBuild(de_ctx);
 
-    if (s->sm_lists[DETECT_SM_LIST_THRESHOLD] == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_SUPPRESS] == NULL) {
         printf("no thresholds: ");
         goto end;
     }
-    sm = s->sm_lists[DETECT_SM_LIST_THRESHOLD];
+    sm = s->sm_lists[DETECT_SM_LIST_SUPPRESS];
     if (sm == NULL) {
         printf("no sm: ");
         goto end;
@@ -2526,6 +2687,145 @@ static int SCThresholdConfTest19(void)
 
     result = 1;
 end:
+    DetectEngineCtxFree(de_ctx);
+    HostShutdown();
+    return result;
+}
+
+/**
+ * \brief Creates a dummy threshold file, with all valid options, for testing purposes.
+ *
+ * \retval fd Pointer to file descriptor.
+ */
+FILE *SCThresholdConfGenerateValidDummyFD20()
+{
+    FILE *fd = NULL;
+    const char *buffer =
+        "suppress gen_id 1, sig_id 1000, track by_src, ip 2.2.3.4\n"
+        "suppress gen_id 1, sig_id 1000, track by_src, ip 1.2.3.4\n"
+        "suppress gen_id 1, sig_id 1000, track by_src, ip 192.168.1.1\n";
+
+    fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
+    if (fd == NULL)
+        SCLogDebug("Error with SCFmemopen() called by Threshold Config test code");
+
+    return fd;
+}
+
+/**
+ * \test Check if the threshold file is loaded and well parsed
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+static int SCThresholdConfTest20(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    DetectThresholdData *de = NULL;
+    Signature *sig = NULL;
+    SigMatch *m = NULL;
+    int result = 0;
+    FILE *fd = NULL;
+
+    HostInitConfig(HOST_QUIET);
+
+    if (de_ctx == NULL)
+        return result;
+
+    de_ctx->flags |= DE_QUIET;
+
+    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold limit\"; content:\"abc\"; sid:1000;)");
+    if (sig == NULL) {
+        goto end;
+    }
+
+    fd = SCThresholdConfGenerateValidDummyFD20();
+    SCThresholdConfInitContext(de_ctx,fd);
+
+    m = SigMatchGetLastSMFromLists(sig, 2,
+                                   DETECT_THRESHOLD, sig->sm_lists[DETECT_SM_LIST_SUPPRESS]);
+    if (m != NULL)   {
+        de = (DetectThresholdData *)m->ctx;
+        if (de != NULL && (de->type == TYPE_SUPPRESS && de->track == TRACK_SRC)) {
+            m = m->next;
+            if (m != NULL)   {
+                de = (DetectThresholdData *)m->ctx;
+                if (de != NULL && (de->type == TYPE_SUPPRESS && de->track == TRACK_SRC)) {
+                    m = m->next;
+                    if (m != NULL)   {
+                        de = (DetectThresholdData *)m->ctx;
+                        if (de != NULL && (de->type == TYPE_SUPPRESS && de->track == TRACK_SRC)) {
+                            result = 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+end:
+    SigGroupBuild(de_ctx);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    HostShutdown();
+    return result;
+}
+
+/**
+ * \test Check if the threshold file is loaded and well parsed, and applied
+ *       correctly to a rule with thresholding
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+static int SCThresholdConfTest21(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    DetectThresholdData *de = NULL;
+    Signature *sig = NULL;
+    SigMatch *m = NULL;
+    int result = 0;
+    FILE *fd = NULL;
+
+    HostInitConfig(HOST_QUIET);
+
+    if (de_ctx == NULL)
+        return result;
+
+    de_ctx->flags |= DE_QUIET;
+
+    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold limit\"; content:\"abc\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)");
+    if (sig == NULL) {
+        goto end;
+    }
+
+    fd = SCThresholdConfGenerateValidDummyFD20();
+    SCThresholdConfInitContext(de_ctx,fd);
+
+    m = SigMatchGetLastSMFromLists(sig, 2,
+                                   DETECT_THRESHOLD, sig->sm_lists[DETECT_SM_LIST_SUPPRESS]);
+    if (m != NULL)   {
+        de = (DetectThresholdData *)m->ctx;
+        if (de != NULL && (de->type == TYPE_SUPPRESS && de->track == TRACK_SRC)) {
+            m = m->next;
+            if (m != NULL)   {
+                de = (DetectThresholdData *)m->ctx;
+                if (de != NULL && (de->type == TYPE_SUPPRESS && de->track == TRACK_SRC)) {
+                    m = m->next;
+                    if (m != NULL)   {
+                        de = (DetectThresholdData *)m->ctx;
+                        if (de != NULL && (de->type == TYPE_SUPPRESS && de->track == TRACK_SRC)) {
+                            result = 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+end:
+    SigGroupBuild(de_ctx);
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     HostShutdown();
     return result;
@@ -2559,6 +2859,8 @@ void SCThresholdConfRegisterTests(void)
 
     UtRegisterTest("SCThresholdConfTest18 - suppress parsing", SCThresholdConfTest18, 1);
     UtRegisterTest("SCThresholdConfTest19 - suppress parsing", SCThresholdConfTest19, 1);
+    UtRegisterTest("SCThresholdConfTest20 - suppress parsing", SCThresholdConfTest20, 1);
+    UtRegisterTest("SCThresholdConfTest21 - suppress parsing", SCThresholdConfTest21, 1);
 #endif /* UNITTESTS */
 }
 

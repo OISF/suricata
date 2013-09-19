@@ -120,7 +120,8 @@ enum {
     /* list for post match actions: flowbit set, flowint increment, etc */
     DETECT_SM_LIST_POSTMATCH,
 
-    /* list for alert thresholding */
+    /* lists for alert thresholding and suppression */
+    DETECT_SM_LIST_SUPPRESS,
     DETECT_SM_LIST_THRESHOLD,
     DETECT_SM_LIST_MAX,
 
