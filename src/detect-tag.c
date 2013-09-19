@@ -71,6 +71,7 @@ void DetectTagRegister (void) {
     sigmatch_table[DETECT_TAG].Setup = DetectTagSetup;
     sigmatch_table[DETECT_TAG].Free  = DetectTagDataFree;
     sigmatch_table[DETECT_TAG].RegisterTests = DetectTagRegisterTests;
+    sigmatch_table[DETECT_TAG].flags |= SIGMATCH_IPONLY_COMPAT;
 
     const char *eb;
     int eo;
