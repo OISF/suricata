@@ -998,9 +998,13 @@ int DetectFlowTestParse21 (void) {
 static int DetectFlowSigTest01(void)
 {
     int result = 0;
-
+    ThreadVars th_v;
+    DecodeThreadVars dtv;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
     uint8_t *buf = (uint8_t *)"supernovaduper";
     uint16_t buflen = strlen((char *)buf);
+
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
     if (p->flow != NULL) {
         printf("packet has flow set\n");
@@ -1010,14 +1014,10 @@ static int DetectFlowSigTest01(void)
     char *sig1 = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"nova\"; flow:no_stream; sid:1;)";
 
-    ThreadVars th_v;
-    DecodeThreadVars dtv;
-    DetectEngineThreadCtx *det_ctx = NULL;
-
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         printf("de_ctx == NULL: ");
         goto end;

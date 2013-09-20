@@ -2327,11 +2327,11 @@ static int SCPerfTestAverageQual12()
     result &= (0 == pca->head[1].wrapped_syncs);
     result &= (3.5 == *((double *)tv.sc_perf_pctx.head->value->cvalue) );
 
-    SCPerfCounterAddUI64(id2, pca, 1.635);
-    SCPerfCounterAddUI64(id2, pca, 2.12);
-    SCPerfCounterAddUI64(id2, pca, 3.74);
-    SCPerfCounterAddUI64(id2, pca, 4.23);
-    SCPerfCounterAddUI64(id2, pca, 5.76);
+    SCPerfCounterAddUI64(id2, pca, (uint64_t)1.635);
+    SCPerfCounterAddUI64(id2, pca, (uint64_t)2.12);
+    SCPerfCounterAddUI64(id2, pca, (uint64_t)3.74);
+    SCPerfCounterAddUI64(id2, pca, (uint64_t)4.23);
+    SCPerfCounterAddUI64(id2, pca, (uint64_t)5.76);
     SCPerfCounterAddDouble(id2, pca, 6.99999);
 
     SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);

@@ -181,7 +181,7 @@ static uint8_t *DetectEngineHHDGetBufferForTX(int tx_id,
     det_ctx->hhd_buffers[index] = headers_buffer;
     det_ctx->hhd_buffers_len[index] = headers_buffer_len;
 
-    *buffer_len = headers_buffer_len;
+    *buffer_len = (uint32_t)headers_buffer_len;
  end:
     return headers_buffer;
 }
