@@ -294,6 +294,7 @@ util-logopenfile.h util-logopenfile.c \
 util-magic.c util-magic.h \
 util-memcmp.c util-memcmp.h \
 util-mem.h \
+util-memrchr.c util-memrchr.h \
 util-misc.c util-misc.h \
 util-mpm-ac-bs.c util-mpm-ac-bs.h \
 util-mpm-ac.c util-mpm-ac.h \

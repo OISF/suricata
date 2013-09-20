@@ -99,6 +99,7 @@
 #include "util-pool.h"
 #include "util-byte.h"
 #include "util-proto-name.h"
+#include "util-memrchr.h"
 
 #include "util-mpm-ac.h"
 #include "detect-engine-mpm.h"
@@ -253,6 +254,7 @@ int RunUnittests(int list_unittests, char *regex_arg)
     DetectProtoTests();
     DetectPortTests();
     SCAtomicRegisterTests();
+    MemrchrRegisterTests();
 #ifdef __SC_CUDA_SUPPORT__
     CudaBufferRegisterUnittests();
 #endif
