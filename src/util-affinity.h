@@ -83,7 +83,7 @@ typedef struct ThreadsAffinityType_ {
 
 /** store thread affinity mode for all type of threads */
 #ifndef _THREAD_AFFINITY
-ThreadsAffinityType thread_affinity[MAX_CPU_SET];
+extern ThreadsAffinityType thread_affinity[MAX_CPU_SET];
 #endif
 
 void AffinitySetupLoadFromConfig();
