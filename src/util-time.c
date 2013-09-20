@@ -271,7 +271,7 @@ void CreateTimeString (const struct timeval *ts, char *str, size_t size)
        into the return string buffer. */
     char *cached_str = cached_local_time[mru_time_slot];
     int cached_len = cached_local_time_len[mru_time_slot];
-    if (cached_len >= size)
+    if (cached_len >= (int)size)
       cached_len = size;
     memcpy(str, cached_str, cached_len);
     snprintf(str + cached_len, size - cached_len,
