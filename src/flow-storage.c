@@ -72,6 +72,8 @@ static void StorageTestFree(void *x) {
 }
 
 static int FlowStorageTest01(void) {
+    Flow *f = NULL;
+
     StorageInit();
 
     int id1 = FlowStorageRegister("test", 8, StorageTestAlloc, StorageTestFree);
@@ -88,7 +90,8 @@ static int FlowStorageTest01(void) {
         goto error;
 
     FlowInitConfig(FLOW_QUIET);
-    Flow *f = FlowAlloc();
+
+    f = FlowAlloc();
     if (f == NULL) {
         goto error;
     }
@@ -138,14 +141,18 @@ static int FlowStorageTest01(void) {
     StorageCleanup();
     return 1;
 error:
-    FlowClearMemory(f, 0);
-    FlowFree(f);
+    if (f != NULL) {
+        FlowClearMemory(f, 0);
+        FlowFree(f);
+    }
     FlowShutdown();
     StorageCleanup();
     return 0;
 }
 
 static int FlowStorageTest02(void) {
+    Flow *f = NULL;
+
     StorageInit();
 
     int id1 = FlowStorageRegister("test", sizeof(void *), NULL, StorageTestFree);
@@ -156,7 +163,7 @@ static int FlowStorageTest02(void) {
         goto error;
 
     FlowInitConfig(FLOW_QUIET);
-    Flow *f = FlowAlloc();
+    f = FlowAlloc();
     if (f == NULL) {
         goto error;
     }
@@ -184,14 +191,18 @@ static int FlowStorageTest02(void) {
     StorageCleanup();
     return 1;
 error:
-    FlowClearMemory(f, 0);
-    FlowFree(f);
+    if (f != NULL) {
+        FlowClearMemory(f, 0);
+        FlowFree(f);
+    }
     FlowShutdown();
     StorageCleanup();
     return 0;
 }
 
 static int FlowStorageTest03(void) {
+    Flow *f = NULL;
+
     StorageInit();
 
     int id1 = FlowStorageRegister("test1", sizeof(void *), NULL, StorageTestFree);
@@ -208,7 +219,7 @@ static int FlowStorageTest03(void) {
         goto error;
 
     FlowInitConfig(FLOW_QUIET);
-    Flow *f = FlowAlloc();
+    f = FlowAlloc();
     if (f == NULL) {
         goto error;
     }
@@ -254,8 +265,10 @@ static int FlowStorageTest03(void) {
     StorageCleanup();
     return 1;
 error:
-    FlowClearMemory(f, 0);
-    FlowFree(f);
+    if (f != NULL) {
+        FlowClearMemory(f, 0);
+        FlowFree(f);
+    }
     FlowShutdown();
     StorageCleanup();
     return 0;

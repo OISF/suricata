@@ -81,7 +81,6 @@ static inline int HHDCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size) 
     return 0;
 }
 
-
 static uint8_t *DetectEngineHHDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
                                               DetectEngineCtx *de_ctx,
                                               DetectEngineThreadCtx *det_ctx,
@@ -181,7 +180,7 @@ static uint8_t *DetectEngineHHDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
     det_ctx->hhd_buffers[index] = headers_buffer;
     det_ctx->hhd_buffers_len[index] = headers_buffer_len;
 
-    *buffer_len = headers_buffer_len;
+    *buffer_len = (uint32_t)headers_buffer_len;
  end:
     return headers_buffer;
 }

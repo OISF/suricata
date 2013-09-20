@@ -1488,6 +1488,10 @@ int DetectCsumICMPV6Test01(void)
 {
     int result = 0;
     DetectEngineCtx *de_ctx = NULL;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DecodeThreadVars dtv;
 
     Packet *p = PacketGetFromAlloc();
     if (p == NULL) {
@@ -1514,10 +1518,6 @@ int DetectCsumICMPV6Test01(void)
 
     PacketCopyData(p, pkt, sizeof(pkt));
 
-    Signature *s = NULL;
-    ThreadVars tv;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(tv));
     memset(&dtv, 0, sizeof(dtv));

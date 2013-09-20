@@ -6749,7 +6749,7 @@ int SigTest26TCPV4Keyword(void)
     }
 
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(ThreadVars));
@@ -6863,7 +6863,7 @@ static int SigTest27NegativeTCPV4Keyword(void)
         return 0;
     }
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(ThreadVars));
@@ -6991,7 +6991,7 @@ int SigTest28TCPV6Keyword(void)
         return 0;
     }
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(ThreadVars));

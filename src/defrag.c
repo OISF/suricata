@@ -937,7 +937,7 @@ BuildTestPacket(uint16_t id, uint16_t off, int mf, const char content,
     ip4h.s_ip_dst.s_addr = 0x02020202; /* 2.2.2.2 */
 
     /* copy content_len crap, we need full length */
-    PacketCopyData(p, (uint8_t *)&ip4h, sizeof(ip4h) + content_len);
+    PacketCopyData(p, (uint8_t *)&ip4h, sizeof(ip4h));
     p->ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
     SET_IPV4_SRC_ADDR(p, &p->src);
     SET_IPV4_DST_ADDR(p, &p->dst);
@@ -1007,7 +1007,7 @@ IPV6BuildTestPacket(uint32_t id, uint16_t off, int mf, const char content,
     ip6h.s_ip6_dst[3] = 0x02020202;
 
     /* copy content_len crap, we need full length */
-    PacketCopyData(p, (uint8_t *)&ip6h, sizeof(IPV6Hdr) + sizeof(IPV6FragHdr) + content_len);
+    PacketCopyData(p, (uint8_t *)&ip6h, sizeof(IPV6Hdr));
 
     p->ip6h = (IPV6Hdr *)GET_PKT_DATA(p);
     IPV6_SET_RAW_VER(p->ip6h, 6);
