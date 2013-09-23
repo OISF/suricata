@@ -41,7 +41,7 @@ void *memrchr (const void *s, int c, size_t n)
 
 #ifdef UNITTESTS
 static int MemrchrTest01 (void) {
-    char haystack[] = "abcabc";
+    char *haystack = "abcabc";
     char needle = 'b';
 
     char *ptr = memrchr(haystack, needle, strlen(haystack));
