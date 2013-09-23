@@ -1271,6 +1271,8 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 uint32_t k;
                 for (k = 0; k < no_of_entries; k++) {
                     if (pids[k] & 0xFFFF0000) {
+                        if ((i + 1) < pid_pat_list[pids[k] & 0x0000FFFF].patlen)
+                            continue;
                         if (SCMemcmp(pid_pat_list[pids[k] & 0x0000FFFF].cs,
                                      buf + i - pid_pat_list[pids[k] & 0x0000FFFF].patlen + 1,
                                      pid_pat_list[pids[k] & 0x0000FFFF].patlen) != 0) {
@@ -1312,6 +1314,8 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 uint32_t k;
                 for (k = 0; k < no_of_entries; k++) {
                     if (pids[k] & 0xFFFF0000) {
+                        if ((i + 1) < pid_pat_list[pids[k] & 0x0000FFFF].patlen)
+                            continue;
                         if (SCMemcmp(pid_pat_list[pids[k] & 0x0000FFFF].cs,
                                      buf + i - pid_pat_list[pids[k] & 0x0000FFFF].patlen + 1,
                                      pid_pat_list[pids[k] & 0x0000FFFF].patlen) != 0) {
