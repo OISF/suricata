@@ -1292,6 +1292,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         case 'i':
             memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
 
+            if (optarg == NULL) {
+                SCLogError(SC_ERR_INITIALIZATION, "no option argument (optarg) for -i");
+                return TM_ECODE_FAILED;
+            }
+
             /* some windows shells require escaping of the \ in \Device. Otherwise
              * the backslashes are stripped. We put them back here. */
             if (strlen(optarg) > 9 && strncmp(optarg, "DeviceNPF", 9) == 0) {
@@ -1329,6 +1334,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             break;
         case 'l':
+            if (optarg == NULL) {
+                SCLogError(SC_ERR_INITIALIZATION, "no option argument (optarg) for -l");
+                return TM_ECODE_FAILED;
+            }
+
             if (ConfigSetLogDirectory(optarg) != TM_ECODE_OK) {
                 SCLogError(SC_ERR_FATAL, "Failed to set log directory.\n");
                 return TM_ECODE_FAILED;
@@ -1438,6 +1448,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             suri->run_mode = RUNMODE_PRINT_VERSION;
             return TM_ECODE_OK;
         case 'F':
+            if (optarg == NULL) {
+                SCLogError(SC_ERR_INITIALIZATION, "no option argument (optarg) for -F");
+                return TM_ECODE_FAILED;
+            }
+
             SetBpfStringFromFile(optarg);
             break;
         default:
