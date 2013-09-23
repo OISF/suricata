@@ -49,10 +49,13 @@
 #include "suricata.h"
 
 #include "detect.h"
+#include "detect-parse.h"
+#include "detect-engine.h"
 
 #include "conf.h"
 #include "util-debug.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 #include "util-memcmp.h"
 #include "util-mpm-ac.h"
 
@@ -3163,6 +3166,60 @@ static int SCACTest28(void)
     return result;
 }
 
+static int SCACTest29(void)
+{
+    uint8_t *buf = (uint8_t *)"onetwothreefourfivesixseveneightnine";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(content:\"onetwothreefourfivesixseveneightnine\"; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(content:\"onetwothreefourfivesixseveneightnine\"; fast_pattern:3,3; sid:2;)");
+    if (de_ctx->sig_list->next == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1) != 1) {
+        printf("if (PacketAlertCheck(p, 1) != 1) failure\n");
+        goto end;
+    }
+    if (PacketAlertCheck(p, 2) != 1) {
+        printf("if (PacketAlertCheck(p, 1) != 2) failure\n");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void SCACRegisterTests(void)
@@ -3197,6 +3254,7 @@ void SCACRegisterTests(void)
     UtRegisterTest("SCACTest26", SCACTest26, 1);
     UtRegisterTest("SCACTest27", SCACTest27, 1);
     UtRegisterTest("SCACTest28", SCACTest28, 1);
+    UtRegisterTest("SCACTest29", SCACTest29, 1);
 #endif
 
     return;
