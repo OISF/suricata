@@ -30,8 +30,8 @@
 
 #define UNIX_CMD_TAKE_ARGS 1
 
-SCCondT unix_manager_cond;
-SCMutex unix_manager_mutex;
+SCControlCondT unix_manager_cond;
+SCControlMutex unix_manager_mutex;
 
 void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode);
 void UnixSocketKillSocketThread(void);

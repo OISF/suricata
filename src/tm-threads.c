@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1952,24 +1952,24 @@ void TmThreadSetAOF(ThreadVars *tv, uint8_t aof)
  */
 void TmThreadInitMC(ThreadVars *tv)
 {
-    if ( (tv->m = SCMalloc(sizeof(SCMutex))) == NULL) {
+    if ( (tv->m = SCMalloc(sizeof(*tv->m))) == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in TmThreadInitMC.  "
                    "Exiting...");
         exit(EXIT_FAILURE);
     }
 
-    if (SCMutexInit(tv->m, NULL) != 0) {
+    if (SCControlMutexInit(tv->m, NULL) != 0) {
         printf("Error initializing the tv->m mutex\n");
         exit(0);
     }
 
-    if ( (tv->cond = SCMalloc(sizeof(SCCondT))) == NULL) {
+    if ( (tv->cond = SCMalloc(sizeof(*tv->cond))) == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in TmThreadInitMC.  "
                    "Exiting...");
         exit(0);
     }
 
-    if (SCCondInit(tv->cond, NULL) != 0) {
+    if (SCControlCondInit(tv->cond, NULL) != 0) {
         SCLogError(SC_ERR_FATAL, "Error initializing the tv->cond condition "
                    "variable");
         exit(0);
