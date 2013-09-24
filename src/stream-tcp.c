@@ -172,6 +172,7 @@ void StreamTcpSessionClear(void *ssnptr)
 {
     SCEnter();
     StreamMsg *smsg = NULL;
+    TcpStateQueue *q, *q_next;
 
     TcpSession *ssn = (TcpSession *)ssnptr;
     if (ssn == NULL)
@@ -209,6 +210,16 @@ void StreamTcpSessionClear(void *ssnptr)
         smsg = smsg_next;
     }
     ssn->toclient_smsg_head = NULL;
+
+    q = ssn->queue;
+    while (q != NULL) {
+        q_next = q->next;
+        SCFree(q);
+        q = q_next;
+        StreamTcpDecrMemuse((uint64_t)sizeof(TcpStateQueue));
+    }
+    ssn->queue = NULL;
+    ssn->queue_len = 0;
 
     memset(ssn, 0, sizeof(TcpSession));
     PoolThreadReturn(ssn_pool, ssn);
