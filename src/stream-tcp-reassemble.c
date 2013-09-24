@@ -3052,26 +3052,31 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                 seg, seg->seq, seg->payload_len,
                 (uint32_t)(seg->seq + seg->payload_len));
 
-        /* Remove the segments which are either completely before the
-           ra_base_seq or if they are beyond ra_base_seq, but the segment offset
-           from which we need to copy in to smsg is beyond the stream->last_ack.
-           As we are copying until the stream->last_ack only */
-        if (SEQ_LEQ((seg->seq + seg->payload_len), ra_base_seq+1))
+        if ((p->flow->flags & FLOW_NO_APPLAYER_INSPECTION) ||
+            (stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+            (stream->flags & STREAMTCP_STREAM_FLAG_GAP))
         {
-            if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
-                seg = seg->next;
-                continue;
-            }
+            /* Remove the segments which are either completely before the
+               ra_base_seq or if they are beyond ra_base_seq, but the segment offset
+               from which we need to copy in to smsg is beyond the stream->last_ack.
+               As we are copying until the stream->last_ack only */
+            if (SEQ_LEQ((seg->seq + seg->payload_len), ra_base_seq+1))
+            {
+                if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
+                    seg = seg->next;
+                    continue;
+                }
 
-            SCLogDebug("removing pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32""
+                SCLogDebug("removing pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32""
                         " len %"PRIu16"", ra_base_seq, seg, seg->seq,
                         seg->payload_len);
 
-            TcpSegment *next_seg = seg->next;
-            StreamTcpRemoveSegmentFromStream(stream, seg);
-            StreamTcpSegmentReturntoPool(seg);
-            seg = next_seg;
-            continue;
+                TcpSegment *next_seg = seg->next;
+                StreamTcpRemoveSegmentFromStream(stream, seg);
+                StreamTcpSegmentReturntoPool(seg);
+                seg = next_seg;
+                continue;
+            }
         }
 
         /* if app layer protocol has been detected, then remove all the segments
