@@ -1,3 +1,13 @@
+1.4.6 -- 2013-09-24
+
+Bug #955: SSL parsing issue
+Bug #971: AC memory read error
+Bug #934: Suricata failed to parse address
+Bug #937: wrong IP version - on stacked layers
+Bug #938: 1.4.5: decode-ipv6.c: void function cannot return value
+Bug #965: duplicate of #964 - Modify negated content handling
+Bug #969: unified2 not logging tagged packets
+
 1.4.5 -- 2013-07-26
 
 - Bug #906: icmp_seq and icmp_id keyword with icmpv6 traffic
