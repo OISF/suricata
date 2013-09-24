@@ -277,6 +277,13 @@ void HTPStateFree(void *state)
                     if (htud != NULL) {
                         HtpBodyFree(&htud->request_body);
                         HtpBodyFree(&htud->response_body);
+                        bstr_free(htud->request_uri_normalized);
+                        if (htud->request_headers_raw)
+                            SCFree(htud->request_headers_raw);
+                        if (htud->response_headers_raw)
+                            SCFree(htud->response_headers_raw);
+                        if (htud->boundary)
+                            SCFree(htud->boundary);
                         SCFree(htud);
                         htp_tx_set_user_data(tx, NULL);
                     }
@@ -1938,8 +1945,10 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
         return HTP_OK;
 
     tx_ud = SCMalloc(sizeof(*tx_ud));
-    if (tx_ud == NULL)
+    if (tx_ud == NULL) {
+        bstr_free(request_uri_normalized);
         return HTP_OK;
+    }
     memset(tx_ud, 0, sizeof(*tx_ud));
     tx_ud->request_uri_normalized = request_uri_normalized;
     htp_tx_set_user_data(tx, tx_ud);
