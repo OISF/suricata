@@ -247,6 +247,21 @@ error:
     SCReturnPtr(NULL, "void");
 }
 
+static void HtpTxUserDataFree(HtpTxUserData *htud) {
+    if (htud) {
+        HtpBodyFree(&htud->request_body);
+        HtpBodyFree(&htud->response_body);
+        bstr_free(htud->request_uri_normalized);
+        if (htud->request_headers_raw)
+            SCFree(htud->request_headers_raw);
+        if (htud->response_headers_raw)
+            SCFree(htud->response_headers_raw);
+        if (htud->boundary)
+            SCFree(htud->boundary);
+        SCFree(htud);
+    }
+}
+
 /** \brief Function to frees the HTTP state memory and also frees the HTTP
  *         connection parser memory which was used by the HTP library
  */
@@ -275,16 +290,7 @@ void HTPStateFree(void *state)
                 if (tx != NULL) {
                     HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
                     if (htud != NULL) {
-                        HtpBodyFree(&htud->request_body);
-                        HtpBodyFree(&htud->response_body);
-                        bstr_free(htud->request_uri_normalized);
-                        if (htud->request_headers_raw)
-                            SCFree(htud->request_headers_raw);
-                        if (htud->response_headers_raw)
-                            SCFree(htud->response_headers_raw);
-                        if (htud->boundary)
-                            SCFree(htud->boundary);
-                        SCFree(htud);
+                        HtpTxUserDataFree(htud);
                         htp_tx_set_user_data(tx, NULL);
                     }
                 }
@@ -326,9 +332,7 @@ static void HTPStateTransactionFree(void *state, uint64_t id) {
         /* This will remove obsolete body chunks */
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud != NULL) {
-            HtpBodyFree(&htud->request_body);
-            HtpBodyFree(&htud->response_body);
-            SCFree(htud);
+            HtpTxUserDataFree(htud);
             htp_tx_set_user_data(tx, NULL);
         }
 
@@ -1995,8 +1999,8 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
                                            tx_ud->request_headers_raw_len + tx_data->len);
     if (tx_ud->request_headers_raw == NULL) {
         tx_ud->request_headers_raw_len = 0;
+        HtpTxUserDataFree(tx_ud);
         htp_tx_set_user_data(tx_data->tx, NULL);
-        SCFree(tx_ud);
         return HTP_OK;
     }
     memcpy(tx_ud->request_headers_raw + tx_ud->request_headers_raw_len,
@@ -2023,8 +2027,8 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
                                            tx_ud->response_headers_raw_len + tx_data->len);
     if (tx_ud->response_headers_raw == NULL) {
         tx_ud->response_headers_raw_len = 0;
+        HtpTxUserDataFree(tx_ud);
         htp_tx_set_user_data(tx_data->tx, NULL);
-        SCFree(tx_ud);
         return HTP_OK;
     }
     memcpy(tx_ud->response_headers_raw + tx_ud->response_headers_raw_len,
