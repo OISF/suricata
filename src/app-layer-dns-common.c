@@ -144,8 +144,7 @@ static void DNSTransactionFree(DNSTransaction *tx) {
         SCFree(a);
     }
 
-    if (tx->decoder_events)
-        SCFree(tx->decoder_events);
+    AppLayerDecoderEventsFreeEvents(tx->decoder_events);
     SCFree(tx);
 }
 
