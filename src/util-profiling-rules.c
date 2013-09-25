@@ -512,6 +512,10 @@ void SCProfilingRuleThreadCleanup(DetectEngineThreadCtx *det_ctx) {
     pthread_mutex_lock(&det_ctx->de_ctx->profile_ctx->data_m);
     SCProfilingRuleThreadMerge(det_ctx->de_ctx, det_ctx);
     pthread_mutex_unlock(&det_ctx->de_ctx->profile_ctx->data_m);
+
+    SCFree(det_ctx->rule_perf_data);
+    det_ctx->rule_perf_data = NULL;
+    det_ctx->rule_perf_data_size = 0;
 }
 
 /**
