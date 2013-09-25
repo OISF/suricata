@@ -19288,6 +19288,119 @@ int DetectFastPatternTest670(void)
     return result;
 }
 
+
+/**
+ * Unittest to check
+ * - if we assign different content_ids to duplicate patterns, but one of the
+ *   patterns has a fast_pattern chop set.
+ * - if 2 unique patterns get unique ids.
+ * - if 2 duplicate patterns, with no chop set get unique ids.
+ */
+int DetectFastPatternTest671(void)
+{
+    int no_of_sigs = 6;
+    int result = 0;
+    char *sigs[no_of_sigs];
+    Signature *s[no_of_sigs];
+    Signature *sig = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectContentData *cd = NULL;
+    SigMatch *sm = NULL;
+    int i = 0;
+
+    sigs[0] = "alert tcp any any -> any any "
+        "(content:\"onetwothreefour\"; sid:1;)";
+    sigs[1] = "alert tcp any any -> any any "
+        "(content:\"onetwothreefour\"; sid:2;)";
+    sigs[2] = "alert tcp any any -> any any "
+        "(content:\"uniquepattern\"; sid:3;)";
+    sigs[3] = "alert tcp any any -> any any "
+        "(content:\"onetwothreefour\"; fast_pattern:3,5; sid:4;)";
+    sigs[4] = "alert tcp any any -> any any "
+        "(content:\"twoth\"; sid:5;)";
+    sigs[5] = "alert tcp any any -> any any "
+        "(content:\"onetwothreefour\"; fast_pattern:0,15; sid:6;)";
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        printf("DetectEngineCtxInit() failure\n");
+        goto end;
+    }
+    de_ctx->flags |= DE_QUIET;
+
+    i = 0;
+    s[i] = SigInit(de_ctx, sigs[i]);
+    de_ctx->sig_list = sig = s[i];
+    if (sig == NULL) {
+        printf("SigInit(de_ctx, sig1) failure\n");
+        goto end;
+    }
+    i++;
+    for ( ; i < no_of_sigs; i++) {
+        s[i] = SigInit(de_ctx, sigs[i]);
+        sig->next = s[i];
+        sig = sig->next;
+        if (sig == NULL) {
+            printf("SigInit(de_ctx, sig[%d]) failure\n", i);
+            goto end;
+        }
+    }
+
+    SigGroupBuild(de_ctx);
+
+    sm = s[0]->sm_lists[DETECT_SM_LIST_PMATCH];
+    cd = sm->ctx;
+    if (cd->id != 0) {
+        printf("sm = s[0]->sm_lists[DETECT_SM_LIST_PMATCH] failure\n");
+        goto end;
+    }
+
+    sm = s[1]->sm_lists[DETECT_SM_LIST_PMATCH];
+    cd = sm->ctx;
+    if (cd->id != 0) {
+        printf("sm = s[1]->sm_lists[DETECT_SM_LIST_PMATCH] failure\n");
+        goto end;
+    }
+
+    sm = s[2]->sm_lists[DETECT_SM_LIST_PMATCH];
+    cd = sm->ctx;
+    if (cd->id != 1) {
+        printf("sm = s[2]->sm_lists[DETECT_SM_LIST_PMATCH] failure\n");
+        goto end;
+    }
+
+    sm = s[3]->sm_lists[DETECT_SM_LIST_PMATCH];
+    cd = sm->ctx;
+    if (cd->id != 2) {
+        printf("sm = s[3]->sm_lists[DETECT_SM_LIST_PMATCH] failure\n");
+        goto end;
+    }
+
+    sm = s[4]->sm_lists[DETECT_SM_LIST_PMATCH];
+    cd = sm->ctx;
+    if (cd->id != 2) {
+        printf("sm = s[4]->sm_lists[DETECT_SM_LIST_PMATCH] failure\n");
+        goto end;
+    }
+
+    sm = s[5]->sm_lists[DETECT_SM_LIST_PMATCH];
+    cd = sm->ctx;
+    if (cd->id != 0) {
+        printf("sm = s[5]->sm_lists[DETECT_SM_LIST_PMATCH] failure\n");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    return result;
+}
+
 #endif
 
 void DetectFastPatternRegisterTests(void)
@@ -19996,6 +20109,14 @@ void DetectFastPatternRegisterTests(void)
     UtRegisterTest("DetectFastPatternTest668", DetectFastPatternTest668, 1);
     UtRegisterTest("DetectFastPatternTest669", DetectFastPatternTest669, 1);
     UtRegisterTest("DetectFastPatternTest670", DetectFastPatternTest670, 1);
+
+    /* Unittest to check
+     * - if we assign different content_ids to duplicate patterns, but one of the
+     *   patterns has a fast_pattern chop set.
+     * - if 2 unique patterns get unique ids.
+     * - if 2 duplicate patterns, with no chop set get unique ids.
+     */
+    UtRegisterTest("DetectFastPatternTest671", DetectFastPatternTest671, 1);
 #endif
 
     return;
