@@ -1288,6 +1288,7 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data) {
 
     /** \todo get rid of this static */
     PatternMatchThreadDestroy(&det_ctx->mtc, det_ctx->de_ctx->mpm_matcher);
+    PatternMatchThreadDestroy(&det_ctx->mtcs, det_ctx->de_ctx->mpm_matcher);
     PatternMatchThreadDestroy(&det_ctx->mtcu, det_ctx->de_ctx->mpm_matcher);
 
     PmqFree(&det_ctx->pmq);
