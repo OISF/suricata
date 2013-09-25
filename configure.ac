@@ -469,6 +469,14 @@
         echo
     fi
 
+    TMPCFLAGS="${CFLAGS}"
+    CFLAGS="-O0 -g -Werror -Wall"
+    AC_TRY_COMPILE([ #include <pcre.h> ],
+        [ pcre_extra *extra = NULL; pcre_free_study(extra); ],
+        [ AC_DEFINE([HAVE_PCRE_FREE_STUDY], [1], [Pcre pcre_free_study supported])], [:]
+    )
+    CFLAGS="${TMPCFLAGS}"
+
     #enable support for PCRE-jit available since pcre-8.20
     AC_MSG_CHECKING(for PCRE JIT support)
     AC_TRY_COMPILE([ #include <pcre.h> ],

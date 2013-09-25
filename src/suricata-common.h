@@ -270,6 +270,10 @@
 #endif
 #endif
 
+#ifndef HAVE_PCRE_FREE_STUDY
+#define pcre_free_study pcre_free
+#endif
+
 typedef enum PacketProfileDetectId_ {
     PROF_DETECT_MPM,
     PROF_DETECT_MPM_PACKET,         /* PKT MPM */
