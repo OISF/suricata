@@ -49,4 +49,7 @@ int ParseSizeStringU32(const char *, uint32_t *);
 int ParseSizeStringU64(const char *, uint64_t *);
 void UtilMiscRegisterTests(void);
 
+void ParseSizeInit(void);
+void ParseSizeDeinit(void);
+
 #endif /* __UTIL_MISC_H__ */

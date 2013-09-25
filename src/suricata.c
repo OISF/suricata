@@ -1777,6 +1777,8 @@ int main(int argc, char **argv)
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
 
+    ParseSizeInit();
+
     RunModeRegisterRunModes();
 
     /* By default use IDS mode, but if nfq or ipfw
@@ -2177,6 +2179,7 @@ int main(int argc, char **argv)
     MagicDeinit();
     TmqhCleanup();
     TmModuleRunDeInit();
+    ParseSizeDeinit();
 
 #ifdef HAVE_AF_PACKET
     AFPPeersListClean();
