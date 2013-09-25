@@ -14,7 +14,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
-import urllib, urllib2
+import urllib, urllib2, cookielib
 import simplejson as json
 import time
 import argparse
@@ -40,6 +40,7 @@ parser.add_argument('branch', metavar='branch', help='github branch to build')
 args = parser.parse_args()
 username = args.username
 password = args.password
+cookie = None
 
 def TestRepoSync(branch):
     request = urllib2.Request(GITHUB_MASTER_URI)
@@ -56,11 +57,25 @@ def TestRepoSync(branch):
             break
     return found
 
+def OpenBuildbotSession():
+    auth_params = { 'username':username,'passwd':password, 'name':'login'}
+    cookie = cookielib.LWPCookieJar()
+    params = urllib.urlencode(auth_params)
+    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie))
+    urllib2.install_opener(opener)
+    request = urllib2.Request(BASE_URI + '/login', params)
+    page = urllib2.urlopen(request)
+    return cookie
+
+
 def SubmitBuild(branch):
-    raw_params = {'username':username,'passwd':password,'branch':branch,'comments':'Testing ' + branch, 'name':'force_build'}
+    raw_params = {'branch':branch,'reason':'Testing ' + branch, 'name':'force_build', 'forcescheduler':'force'}
     params = urllib.urlencode(raw_params)
+    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie))
+    urllib2.install_opener(opener)
     request = urllib2.Request(BUILDERS_URI + username + '/force', params)
     page = urllib2.urlopen(request)
+
     result = page.read()
     if args.verbose:
         print "=== response ==="
@@ -109,6 +124,10 @@ if TestRepoSync(args.branch) == -1:
 
 # submit buildbot form to build current branch on the devel builder
 if not args.check:
+    cookie = OpenBuildbotSession()
+    if cookie == None:
+        print "Unable to connect to buildbot with provided credentials"
+        sys.exit(-1)
     res = SubmitBuild(args.branch)
     if res == -1:
         print "Unable to start build. Check command line parameters"
