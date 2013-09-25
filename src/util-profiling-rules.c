@@ -477,7 +477,7 @@ void SCProfilingRuleDestroyCtx(SCProfileDetectCtx *ctx) {
 }
 
 void SCProfilingRuleThreadSetup(SCProfileDetectCtx *ctx, DetectEngineThreadCtx *det_ctx) {
-    if (ctx == NULL)
+    if (ctx == NULL|| ctx->size == 0)
         return;
 
     SCProfileData *a = SCMalloc(sizeof(SCProfileData) * ctx->size);
