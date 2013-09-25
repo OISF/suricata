@@ -2841,6 +2841,8 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
     if (ahb == NULL)
         return -1;
 
+    uint8_t *content = NULL;
+    uint8_t content_len = 0;
     PatIntId max_id = 0;
     DetectFPAndItsId *struct_offset = (DetectFPAndItsId *)ahb;
     uint8_t *content_offset = ahb + struct_total_size;
@@ -2851,10 +2853,17 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
 
             DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
             DetectFPAndItsId *dup = (DetectFPAndItsId *)ahb;
+            if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+                content = cd->content + cd->fp_chop_offset;
+                content_len = cd->fp_chop_len;
+            } else {
+                content = cd->content;
+                content_len = cd->content_len;
+            }
             for (; dup != struct_offset; dup++) {
-                if (dup->content_len != cd->content_len ||
+                if (dup->content_len != content_len ||
                     dup->sm_list != sm_list ||
-                    SCMemcmp(dup->content, cd->content, dup->content_len) != 0) {
+                    SCMemcmp(dup->content, content, dup->content_len) != 0) {
                     continue;
                 }
 
@@ -2867,11 +2876,11 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
 
             struct_offset->id = max_id++;
             cd->id = struct_offset->id;
-            struct_offset->content_len = cd->content_len;
+            struct_offset->content_len = content_len;
             struct_offset->sm_list = sm_list;
             struct_offset->content = content_offset;
-            content_offset += cd->content_len;
-            memcpy(struct_offset->content, cd->content, cd->content_len);
+            content_offset += content_len;
+            memcpy(struct_offset->content, content, content_len);
 
             struct_offset++;
         } /* if (s->mpm_sm != NULL) */
