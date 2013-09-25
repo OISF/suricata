@@ -2180,6 +2180,10 @@ int main(int argc, char **argv)
     TmqhCleanup();
     TmModuleRunDeInit();
     ParseSizeDeinit();
+#ifdef HAVE_NSS
+    NSS_Shutdown();
+    PR_Cleanup();
+#endif
 
 #ifdef HAVE_AF_PACKET
     AFPPeersListClean();
