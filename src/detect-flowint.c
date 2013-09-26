@@ -221,6 +221,7 @@ int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
             return 0;
         }
     }
+    return 0;
 }
 
 /**
