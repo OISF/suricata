@@ -154,7 +154,7 @@ int DetectSshSoftwareVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx
 DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (char *str)
 {
     DetectSshSoftwareVersionData *ssh = NULL;
-	#define MAX_SUBSTRINGS 30
+#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
@@ -167,7 +167,7 @@ DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (char *str)
     }
 
     if (ret > 1) {
-        const char *str_ptr;
+        const char *str_ptr = NULL;
         res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
@@ -179,11 +179,13 @@ DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (char *str)
         if (unlikely(ssh == NULL))
             goto error;
 
-        ssh->software_ver = (uint8_t *)SCStrdup((char*)str_ptr);
+        ssh->software_ver = (uint8_t *)SCStrdup((char *)str_ptr);
         if (ssh->software_ver == NULL) {
             goto error;
         }
-        ssh->len = strlen((char *) ssh->software_ver);
+        pcre_free_substring(str_ptr);
+
+        ssh->len = strlen((char *)ssh->software_ver);
 
         SCLogDebug("will look for ssh %s", ssh->software_ver);
     }
@@ -214,7 +216,8 @@ static int DetectSshSoftwareVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
     SigMatch *sm = NULL;
 
     ssh = DetectSshSoftwareVersionParse(str);
-    if (ssh == NULL) goto error;
+    if (ssh == NULL)
+        goto error;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
@@ -236,8 +239,10 @@ static int DetectSshSoftwareVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
     return 0;
 
 error:
-    if (ssh != NULL) DetectSshSoftwareVersionFree(ssh);
-    if (sm != NULL) SCFree(sm);
+    if (ssh != NULL)
+        DetectSshSoftwareVersionFree(ssh);
+    if (sm != NULL)
+        SCFree(sm);
     return -1;
 
 }
@@ -248,8 +253,13 @@ error:
  * \param id_d pointer to DetectSshSoftwareVersionData
  */
 void DetectSshSoftwareVersionFree(void *ptr) {
-    DetectSshSoftwareVersionData *id_d = (DetectSshSoftwareVersionData *)ptr;
-    SCFree(id_d);
+    if (ptr == NULL)
+        return;
+
+    DetectSshSoftwareVersionData *ssh = (DetectSshSoftwareVersionData *)ptr;
+    if (ssh->software_ver != NULL)
+        SCFree(ssh->software_ver);
+    SCFree(ssh);
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
