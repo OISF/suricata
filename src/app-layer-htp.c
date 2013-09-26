@@ -1855,6 +1855,7 @@ void HTPFreeConfig(void)
 
     HTPCfgRec *nextrec = cfglist.next;
     SCRadixReleaseRadixTree(cfgtree);
+    cfgtree = NULL;
     htp_config_destroy(cfglist.cfg);
     while (nextrec != NULL) {
         HTPCfgRec *htprec = nextrec;

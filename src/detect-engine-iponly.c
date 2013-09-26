@@ -899,19 +899,22 @@ void IPOnlyDeinit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx) {
 
     if (io_ctx->tree_ipv4src != NULL)
         SCRadixReleaseRadixTree(io_ctx->tree_ipv4src);
+    io_ctx->tree_ipv4src = NULL;
 
     if (io_ctx->tree_ipv4dst != NULL)
         SCRadixReleaseRadixTree(io_ctx->tree_ipv4dst);
+    io_ctx->tree_ipv4dst = NULL;
 
     if (io_ctx->tree_ipv6src != NULL)
         SCRadixReleaseRadixTree(io_ctx->tree_ipv6src);
+    io_ctx->tree_ipv6src = NULL;
 
     if (io_ctx->tree_ipv6dst != NULL)
         SCRadixReleaseRadixTree(io_ctx->tree_ipv6dst);
+    io_ctx->tree_ipv6dst = NULL;
 
     if (io_ctx->sig_init_array)
         SCFree(io_ctx->sig_init_array);
-
     io_ctx->sig_init_array = NULL;
 }
 
