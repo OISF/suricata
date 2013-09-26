@@ -88,8 +88,10 @@ void DetectUrilenRegister(void)
     return;
 
 error:
-    if (parse_regex != NULL) SCFree(parse_regex);
-    if (parse_regex_study != NULL) SCFree(parse_regex_study);
+    if (parse_regex != NULL)
+        pcre_free(parse_regex);
+    if (parse_regex_study != NULL)
+        pcre_free_study(parse_regex_study);
     return;
 }
 
@@ -172,7 +174,7 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
 
     urilend = SCMalloc(sizeof (DetectUrilenData));
     if (unlikely(urilend == NULL))
-    goto error;
+        goto error;
     memset(urilend, 0, sizeof(DetectUrilenData));
 
     if (arg1[0] == '<')
@@ -301,7 +303,7 @@ error:
  */
 void DetectUrilenFree(void *ptr)
 {
-    if (ptr != NULL)
+    if (ptr == NULL)
         return;
 
     DetectUrilenData *urilend = (DetectUrilenData *)ptr;
