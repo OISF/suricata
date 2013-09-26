@@ -201,7 +201,9 @@ int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                 break;
             default:
                 SCLogDebug("Unknown Modifier!");
-                exit(EXIT_FAILURE);
+#ifdef DEBUG
+                BUG_ON(1);
+#endif
         }
     } else {
         /* allow a add on a non-existing var, it will init to the "add" value,
@@ -237,6 +239,7 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
     char *str = rawstr;
     char *varname = NULL;
     char *varval = NULL;
+    char *modstr = NULL;
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
@@ -255,40 +258,41 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
     res = pcre_get_substring((char *) rawstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-        return NULL;
+        goto error;
     }
-    varname =(char *) str_ptr;
+    varname = (char *)str_ptr;
 
     res = pcre_get_substring((char *) rawstr, ov, MAX_SUBSTRINGS, 2,
                                &str_ptr);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-        return NULL;
+        goto error;
     }
+    modstr = (char *)str_ptr;
 
     /* Get the modifier */
-    if (strcmp("=", str_ptr) == 0)
+    if (strcmp("=", modstr) == 0)
         modifier = FLOWINT_MODIFIER_SET;
-    if (strcmp("+", str_ptr) == 0)
+    if (strcmp("+", modstr) == 0)
         modifier = FLOWINT_MODIFIER_ADD;
-    if (strcmp("-", str_ptr) == 0)
+    if (strcmp("-", modstr) == 0)
         modifier = FLOWINT_MODIFIER_SUB;
 
-    if (strcmp("<", str_ptr) == 0)
+    if (strcmp("<", modstr) == 0)
         modifier = FLOWINT_MODIFIER_LT;
-    if (strcmp("<=", str_ptr) == 0)
+    if (strcmp("<=", modstr) == 0)
         modifier = FLOWINT_MODIFIER_LE;
-    if (strcmp("!=", str_ptr) == 0)
+    if (strcmp("!=", modstr) == 0)
         modifier = FLOWINT_MODIFIER_NE;
-    if (strcmp("==", str_ptr) == 0)
+    if (strcmp("==", modstr) == 0)
         modifier = FLOWINT_MODIFIER_EQ;
-    if (strcmp(">=", str_ptr) == 0)
+    if (strcmp(">=", modstr) == 0)
         modifier = FLOWINT_MODIFIER_GE;
-    if (strcmp(">", str_ptr) == 0)
+    if (strcmp(">", modstr) == 0)
         modifier = FLOWINT_MODIFIER_GT;
-    if (strcmp("isset", str_ptr) == 0)
+    if (strcmp("isset", modstr) == 0)
         modifier = FLOWINT_MODIFIER_ISSET;
-    if (strcmp("notset", str_ptr) == 0)
+    if (strcmp("notset", modstr) == 0)
         modifier = FLOWINT_MODIFIER_NOTSET;
 
     if (modifier == FLOWINT_MODIFIER_UNKNOWN) {
@@ -307,11 +311,10 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
 
         res = pcre_get_substring((char *) rawstr, ov, MAX_SUBSTRINGS, 3,
                                    &str_ptr);
-        varval =(char *) str_ptr;
-        if (res < 0 || strcmp(varval,"") == 0) {
+        varval = (char *)str_ptr;
+        if (res < 0 || strcmp(varval, "") == 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-            SCFree(sfd);
-            return NULL;
+            goto error;
         }
 
         /* get the target value to operate with
@@ -342,12 +345,24 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
     sfd->name = SCStrdup(varname);
     if (de_ctx != NULL)
         sfd->idx = VariableNameGetIdx(de_ctx, varname, DETECT_FLOWINT);
-    sfd->target.value =(uint32_t) value_long;
+    sfd->target.value = (uint32_t) value_long;
 
     sfd->modifier = modifier;
 
+    if (varname)
+        pcre_free_substring(varname);
+    if (varval)
+        pcre_free_substring(varval);
+    if (modstr)
+        pcre_free_substring(modstr);
     return sfd;
 error:
+    if (varname)
+        pcre_free_substring(varname);
+    if (varval)
+        pcre_free_substring(varval);
+    if (modstr)
+        pcre_free_substring(modstr);
     if (sfd != NULL)
         SCFree(sfd);
     return NULL;
