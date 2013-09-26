@@ -464,7 +464,7 @@ void SCRadixReleaseRadixTree(SCRadixTree *tree)
 
     SCRadixReleaseRadixSubtree(tree->head, tree);
     tree->head = NULL;
-
+    SCFree(tree);
     return;
 }
 
