@@ -157,6 +157,10 @@ void *TmThreadsSlot1NoIn(void *td)
     memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
     memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
 
+    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
+    SCPerfAddToClubbedTMTable((tv->thread_group_name != NULL) ?
+            tv->thread_group_name : tv->name, &tv->sc_perf_pctx);
+
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 
     while (run) {
@@ -263,6 +267,10 @@ void *TmThreadsSlot1NoOut(void *td)
     memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
     memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
 
+    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
+    SCPerfAddToClubbedTMTable((tv->thread_group_name != NULL) ?
+            tv->thread_group_name : tv->name, &tv->sc_perf_pctx);
+
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 
     while (run) {
@@ -352,6 +360,10 @@ void *TmThreadsSlot1NoInOut(void *td)
     memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
     memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
 
+    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
+    SCPerfAddToClubbedTMTable((tv->thread_group_name != NULL) ?
+            tv->thread_group_name : tv->name, &tv->sc_perf_pctx);
+
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 
     while (run) {
@@ -438,7 +450,12 @@ void *TmThreadsSlot1(void *td)
     memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
     SCMutexInit(&s->slot_post_pq.mutex_q, NULL);
 
+    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
+    SCPerfAddToClubbedTMTable((tv->thread_group_name != NULL) ?
+            tv->thread_group_name : tv->name, &tv->sc_perf_pctx);
+
     TmThreadsSetFlag(tv, THV_INIT_DONE);
+
     while (run) {
         if (TmThreadsCheckFlag(tv, THV_PAUSE)) {
             TmThreadsSetFlag(tv, THV_PAUSED);
@@ -670,6 +687,10 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
         SCMutexInit(&slot->slot_post_pq.mutex_q, NULL);
     }
 
+    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
+    SCPerfAddToClubbedTMTable((tv->thread_group_name != NULL) ?
+            tv->thread_group_name : tv->name, &tv->sc_perf_pctx);
+
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 
     while(run) {
@@ -769,6 +790,10 @@ void *TmThreadsSlotVar(void *td)
         memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
         SCMutexInit(&s->slot_post_pq.mutex_q, NULL);
     }
+
+    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
+    SCPerfAddToClubbedTMTable((tv->thread_group_name != NULL) ?
+            tv->thread_group_name : tv->name, &tv->sc_perf_pctx);
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 

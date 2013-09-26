@@ -428,8 +428,6 @@ static void MpipeRegisterPerfCounters(MpipeThreadVars *ptv, ThreadVars *tv)
     ptv->counter_no_buffers_7 = SCPerfTVRegisterCounter("mpipe.no_buf7", tv,
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");
-    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
-    SCPerfAddToClubbedTMTable(tv->name, &tv->sc_perf_pctx);
 }
 
 static const gxio_mpipe_buffer_size_enum_t gxio_buffer_sizes[] = {
