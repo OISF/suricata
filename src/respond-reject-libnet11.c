@@ -199,7 +199,6 @@ cleanup:
 
 int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 {
-    //printf("going to send a ICMP host unreachable\n");
     Libnet11Packet lpacket;
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
