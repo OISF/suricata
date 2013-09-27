@@ -1346,9 +1346,9 @@ int DetectPortTestConfVars(void)
         }
 
         if (gh != NULL)
-            DetectPortFree(gh);
+            DetectPortCleanupList(gh);
         if (ghn != NULL)
-            DetectPortFree(ghn);
+            DetectPortCleanupList(ghn);
     }
 
     return 0;
