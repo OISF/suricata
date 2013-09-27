@@ -416,7 +416,7 @@ static uint16_t DNSResponseGetNameByOffset(const uint8_t * const input, const ui
     SCLogDebug("qry length %u", length);
 
     if (length == 0) {
-        memcpy(fqdn, "<root>", fqdn_size);
+        memcpy(fqdn, "<root>", 6);
         SCReturnUInt(6U);
     }
 
