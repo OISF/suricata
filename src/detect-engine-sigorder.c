@@ -346,7 +346,7 @@ static inline int SCSigGetPktvarType(Signature *sig)
  */
 static inline void SCSigProcessUserDataForFlowbits(SCSigSignatureWrapper *sw)
 {
-    *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWBITS])) = SCSigGetFlowbitsType(sw->sig);
+    sw->user[SC_RADIX_USER_DATA_FLOWBITS] = SCSigGetFlowbitsType(sw->sig);
 
     return;
 }
@@ -360,14 +360,14 @@ static inline void SCSigProcessUserDataForFlowbits(SCSigSignatureWrapper *sw)
  */
 static inline void SCSigProcessUserDataForFlowvar(SCSigSignatureWrapper *sw)
 {
-    *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWVAR])) = SCSigGetFlowvarType(sw->sig);
+    sw->user[SC_RADIX_USER_DATA_FLOWVAR] = SCSigGetFlowvarType(sw->sig);
 
     return;
 }
 
 static inline void SCSigProcessUserDataForFlowint(SCSigSignatureWrapper *sw)
 {
-    *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWINT])) = SCSigGetFlowintType(sw->sig);
+    sw->user[SC_RADIX_USER_DATA_FLOWINT] = SCSigGetFlowintType(sw->sig);
 
     return;
 }
@@ -381,7 +381,7 @@ static inline void SCSigProcessUserDataForFlowint(SCSigSignatureWrapper *sw)
  */
 static inline void SCSigProcessUserDataForPktvar(SCSigSignatureWrapper *sw)
 {
-    *((int *)(sw->user[SC_RADIX_USER_DATA_PKTVAR])) = SCSigGetPktvarType(sw->sig);
+    sw->user[SC_RADIX_USER_DATA_PKTVAR] = SCSigGetPktvarType(sw->sig);
 
     return;
 }
@@ -510,8 +510,8 @@ static int SCSigOrderByActionCompare(SCSigSignatureWrapper *sw1,
 static int SCSigOrderByFlowbitsCompare(SCSigSignatureWrapper *sw1,
                                        SCSigSignatureWrapper *sw2)
 {
-    return *((int *)sw1->user[SC_RADIX_USER_DATA_FLOWBITS]) -
-        *((int *)sw2->user[SC_RADIX_USER_DATA_FLOWBITS]);
+    return sw1->user[SC_RADIX_USER_DATA_FLOWBITS] -
+        sw2->user[SC_RADIX_USER_DATA_FLOWBITS];
 }
 
 /**
@@ -524,8 +524,8 @@ static int SCSigOrderByFlowbitsCompare(SCSigSignatureWrapper *sw1,
 static int SCSigOrderByFlowvarCompare(SCSigSignatureWrapper *sw1,
                                       SCSigSignatureWrapper *sw2)
 {
-    return *((int *)sw1->user[SC_RADIX_USER_DATA_FLOWVAR]) -
-        *((int *)sw2->user[SC_RADIX_USER_DATA_FLOWVAR]);
+    return sw1->user[SC_RADIX_USER_DATA_FLOWVAR] -
+        sw2->user[SC_RADIX_USER_DATA_FLOWVAR];
 }
 
 /**
@@ -538,15 +538,15 @@ static int SCSigOrderByFlowvarCompare(SCSigSignatureWrapper *sw1,
 static int SCSigOrderByPktvarCompare(SCSigSignatureWrapper *sw1,
                                      SCSigSignatureWrapper *sw2)
 {
-    return *((int *)sw1->user[SC_RADIX_USER_DATA_PKTVAR]) -
-        *((int *)sw2->user[SC_RADIX_USER_DATA_PKTVAR]);
+    return sw1->user[SC_RADIX_USER_DATA_PKTVAR] -
+        sw2->user[SC_RADIX_USER_DATA_PKTVAR];
 }
 
 static int SCSigOrderByFlowintCompare(SCSigSignatureWrapper *sw1,
                                       SCSigSignatureWrapper *sw2)
 {
-    return *((int *)sw1->user[SC_RADIX_USER_DATA_FLOWINT]) -
-        *((int *)sw2->user[SC_RADIX_USER_DATA_FLOWINT]);
+    return sw1->user[SC_RADIX_USER_DATA_FLOWINT] -
+        sw2->user[SC_RADIX_USER_DATA_FLOWINT];
 }
 
 /**
@@ -579,20 +579,6 @@ static inline SCSigSignatureWrapper *SCSigAllocSignatureWrapper(Signature *sig)
     memset(sw, 0, sizeof(SCSigSignatureWrapper));
 
     sw->sig = sig;
-
-    if ( (sw->user = SCMalloc(SC_RADIX_USER_DATA_MAX * sizeof(int *))) == NULL) {
-        SCFree(sw);
-        return NULL;
-    }
-    memset(sw->user, 0, SC_RADIX_USER_DATA_MAX * sizeof(int *));
-
-    for (i = 0; i < SC_RADIX_USER_DATA_MAX; i++) {
-        if ( (sw->user[i] = SCMalloc(sizeof(int))) == NULL) {
-            SCFree(sw);
-            return NULL;
-        }
-        memset(sw->user[i], 0, sizeof(int));
-    }
 
     /* Process data from the signature into a cache for further use by the
      * sig_ordering module */
@@ -712,12 +698,6 @@ void SCSigSignatureOrderingModuleCleanup(DetectEngineCtx *de_ctx)
     while (sigw != NULL) {
         prev = sigw;
         sigw = sigw->next;
-        for (i = 0; i < SC_RADIX_USER_DATA_MAX; i++) {
-            if (prev->user[i] != NULL) {
-                SCFree(prev->user[i]);
-            }
-        }
-        SCFree(prev->user);
         SCFree(prev);
     }
     de_ctx->sc_sig_sig_wrapper = NULL;
