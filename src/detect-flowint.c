@@ -233,11 +233,9 @@ int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval NULL if invalid option
  * \retval DetectFlowintData pointer with the flowint parsed
  */
-DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
-                                       char *rawstr)
+DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, char *rawstr)
 {
     DetectFlowintData *sfd = NULL;
-    char *str = rawstr;
     char *varname = NULL;
     char *varval = NULL;
     char *modstr = NULL;
@@ -257,15 +255,14 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
 
     /* Get our flowint varname */
     res = pcre_get_substring((char *) rawstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
-    if (res < 0) {
+    if (res < 0 || str_ptr == NULL) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         goto error;
     }
     varname = (char *)str_ptr;
 
-    res = pcre_get_substring((char *) rawstr, ov, MAX_SUBSTRINGS, 2,
-                               &str_ptr);
-    if (res < 0) {
+    res = pcre_get_substring((char *) rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+    if (res < 0 || str_ptr == NULL) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         goto error;
     }
@@ -310,25 +307,16 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
         if (ret < 4)
             goto error;
 
-        res = pcre_get_substring((char *) rawstr, ov, MAX_SUBSTRINGS, 3,
-                                   &str_ptr);
+        res = pcre_get_substring((char *) rawstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
         varval = (char *)str_ptr;
-        if (res < 0 || strcmp(varval, "") == 0) {
+        if (res < 0 || varval == NULL || strcmp(varval, "") == 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
         }
 
-        /* get the target value to operate with
-        *(it should be a value or another var) */
-        str = SCStrdup(varval);
-        if (unlikely(str == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "malloc from strdup failed");
-            goto error;
-        }
-
-        if (str[0] >= '0' && str[0] <= '9') { /* is digit, look at the regexp */
+        if (varval[0] >= '0' && varval[0] <= '9') { /* is digit, look at the regexp */
             sfd->targettype = FLOWINT_TARGET_VAL;
-            value_long = atoll(str);
+            value_long = atoll(varval);
             if (value_long > UINT32_MAX) {
                 SCLogDebug("DetectFlowintParse: Cannot load this value."
                             " Values should be between 0 and %"PRIu32, UINT32_MAX);
@@ -336,7 +324,11 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
             }
         } else {
             sfd->targettype = FLOWINT_TARGET_VAR;
-            sfd->target.tvar.name = str;
+            sfd->target.tvar.name = SCStrdup(varval);
+            if (unlikely(sfd->target.tvar.name == NULL)) {
+                SCLogError(SC_ERR_MEM_ALLOC, "malloc from strdup failed");
+                goto error;
+            }
         }
     } else {
         sfd->targettype = FLOWINT_TARGET_SELF;
@@ -344,18 +336,19 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
 
     /* Set the name of the origin var to modify/compared with the target */
     sfd->name = SCStrdup(varname);
+    if (unlikely(sfd->name == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc from strdup failed");
+        goto error;
+    }
     if (de_ctx != NULL)
         sfd->idx = VariableNameGetIdx(de_ctx, varname, DETECT_FLOWINT);
     sfd->target.value = (uint32_t) value_long;
-
     sfd->modifier = modifier;
 
-    if (varname)
-        pcre_free_substring(varname);
+    pcre_free_substring(varname);
+    pcre_free_substring(modstr);
     if (varval)
         pcre_free_substring(varval);
-    if (modstr)
-        pcre_free_substring(modstr);
     return sfd;
 error:
     if (varname)
