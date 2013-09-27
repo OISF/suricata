@@ -52,6 +52,7 @@ int DetectEngineEventMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Sig
 static int DetectEngineEventSetup (DetectEngineCtx *, Signature *, char *);
 static int DetectDecodeEventSetup (DetectEngineCtx *, Signature *, char *);
 static int DetectStreamEventSetup (DetectEngineCtx *, Signature *, char *);
+static void DetectEngineEventFree (void *);
 void EngineEventRegisterTests(void);
 
 
@@ -62,19 +63,19 @@ void DetectEngineEventRegister (void) {
     sigmatch_table[DETECT_ENGINE_EVENT].name = "engine-event";
     sigmatch_table[DETECT_ENGINE_EVENT].Match = DetectEngineEventMatch;
     sigmatch_table[DETECT_ENGINE_EVENT].Setup = DetectEngineEventSetup;
-    sigmatch_table[DETECT_ENGINE_EVENT].Free  = NULL;
+    sigmatch_table[DETECT_ENGINE_EVENT].Free  = DetectEngineEventFree;
     sigmatch_table[DETECT_ENGINE_EVENT].RegisterTests = EngineEventRegisterTests;
 
     sigmatch_table[DETECT_DECODE_EVENT].name = "decode-event";
     sigmatch_table[DETECT_DECODE_EVENT].Match = DetectEngineEventMatch;
     sigmatch_table[DETECT_DECODE_EVENT].Setup = DetectDecodeEventSetup;
-    sigmatch_table[DETECT_DECODE_EVENT].Free  = NULL;
+    sigmatch_table[DETECT_DECODE_EVENT].Free  = DetectEngineEventFree;
     sigmatch_table[DETECT_DECODE_EVENT].flags |= SIGMATCH_DEONLY_COMPAT;
 
     sigmatch_table[DETECT_STREAM_EVENT].name = "stream-event";
     sigmatch_table[DETECT_STREAM_EVENT].Match = DetectEngineEventMatch;
     sigmatch_table[DETECT_STREAM_EVENT].Setup = DetectStreamEventSetup;
-    sigmatch_table[DETECT_STREAM_EVENT].Free  = NULL;
+    sigmatch_table[DETECT_STREAM_EVENT].Free  = DetectEngineEventFree;
 
     const char *eb;
     int eo;
@@ -234,8 +235,10 @@ static int DetectEngineEventSetup (DetectEngineCtx *de_ctx, Signature *s, char *
  *
  * \param de pointer to DetectEngineEventData
  */
-void DetectEngineEventFree(DetectEngineEventData *de) {
-    if(de) SCFree(de);
+static void DetectEngineEventFree(void *ptr) {
+    DetectEngineEventData *de = (DetectEngineEventData *)ptr;
+    if (de)
+        SCFree(de);
 }
 
 
