@@ -57,6 +57,7 @@ static pcre_extra *parse_regex_study;
 static int DetectIPProtoSetup(DetectEngineCtx *, Signature *, char *);
 static DetectIPProtoData *DetectIPProtoParse(const char *);
 static void DetectIPProtoRegisterTests(void);
+static void DetectIPProtoFree(void *);
 
 void DetectIPProtoRegister(void)
 {
@@ -69,7 +70,7 @@ void DetectIPProtoRegister(void)
     sigmatch_table[DETECT_IPPROTO].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#ip_proto";
     sigmatch_table[DETECT_IPPROTO].Match = NULL;
     sigmatch_table[DETECT_IPPROTO].Setup = DetectIPProtoSetup;
-    sigmatch_table[DETECT_IPPROTO].Free  = NULL;
+    sigmatch_table[DETECT_IPPROTO].Free  = DetectIPProtoFree;
     sigmatch_table[DETECT_IPPROTO].RegisterTests = DetectIPProtoRegisterTests;
 
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
@@ -80,15 +81,18 @@ void DetectIPProtoRegister(void)
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
+    if (parse_regex_study == NULL || eb != NULL) {
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb ? eb : "unknown");
         goto error;
     }
 
     return;
 
 error:
-    /* XXX */
+    if (parse_regex)
+        pcre_free(parse_regex);
+    if (parse_regex_study)
+        pcre_free_study(parse_regex_study);
     return;
 }
 
@@ -547,10 +551,18 @@ void DetectIPProtoRemoveAllSMs(Signature *s)
         }
         SigMatch *tmp_sm = sm->next;
         SigMatchRemoveSMFromList(s, sm, DETECT_SM_LIST_MATCH);
+        SigMatchFree(sm);
         sm = tmp_sm;
     }
 
     return;
+}
+
+static void DetectIPProtoFree(void *ptr) {
+    DetectIPProtoData *data = (DetectIPProtoData *)ptr;
+    if (data) {
+        SCFree(data);
+    }
 }
 
 /* UNITTESTS */
