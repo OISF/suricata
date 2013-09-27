@@ -99,8 +99,8 @@ typedef struct ThreadVars_ {
     SCPerfContext sc_perf_pctx;
     SCPerfCounterArray *sc_perf_pca;
 
-    SCMutex *m;
-    SCCondT *cond;
+    SCCtrlMutex *ctrl_mutex;
+    SCCtrlCondT *ctrl_cond;
 
     uint8_t cap_flags; /**< Flags to indicate the capabilities of all the
                             TmModules resgitered under this thread */

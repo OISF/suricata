@@ -27,6 +27,11 @@
 #ifndef __THREADS_H__
 #define __THREADS_H__
 
+#ifdef __tile__
+#include <tmc/spin.h>
+#include <arch/cycle.h>
+#endif
+
 #if HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -101,14 +106,34 @@ enum {
 //#define DBG_THREADS
 
 /** Suricata Mutex */
+#ifdef __tile__
+#define SCMutex tmc_spin_queued_mutex_t
+#define SCMutexAttr
+#define SCMutexDestroy(x) ({ (void)(x); 0; })
+#define SCMUTEX_INITIALIZER TMC_SPIN_QUEUED_MUTEX_INIT
+#else
 #define SCMutex pthread_mutex_t
 #define SCMutexAttr pthread_mutexattr_t
 #define SCMutexDestroy pthread_mutex_destroy
 #define SCMUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
+#endif
+
+/* NOTE: On Tilera datapath threads use the tmc library for mutexes
+ * while the control threads use pthread mutexes.  So the pthread
+ * mutex types are split out so they their use can be differentiated.
+ */
+#define SCCtrlMutex pthread_mutex_t
+#define SCCtrlMutexAttr pthread_mutexattr_t
+#define SCCtrlMutexDestroy pthread_mutex_destroy
 
 /** Suricata RWLocks */
+#ifdef __tile__
+#define SCRWLock tmc_spin_rwlock_t
+#define SCRWLockDestroy(x) ({ (void)(x); 0; })
+#else
 #define SCRWLock pthread_rwlock_t
 #define SCRWLockDestroy pthread_rwlock_destroy
+#endif
 
 /** Get the Current Thread Id */
 #ifdef OS_FREEBSD
@@ -291,20 +316,60 @@ extern __thread uint64_t mutex_lock_cnt;
 #define SCMutexLock(mut) SCMutexLock_profile(mut)
 #define SCMutexTrylock(mut) pthread_mutex_trylock(mut)
 
-#else
+#else /* Not Debug and Not Profile */
+#ifdef __tile__
+#define SCMutexInit(mut, mutattr) ({ \
+    int ret = 0; \
+    tmc_spin_queued_mutex_init(mut); \
+    ret; \
+})
+#define SCMutexLock(mut) ({ \
+    int ret = 0; \
+    tmc_spin_queued_mutex_lock(mut); \
+    ret; \
+})
+#define SCMutexTrylock(mut) ({ \
+    int ret = (tmc_spin_queued_mutex_trylock(mut) == 0) ? 0 : EBUSY; \
+    ret; \
+})
+#define SCMutexUnlock(mut) ({ \
+    int ret = 0; \
+    tmc_spin_queued_mutex_unlock(mut); \
+    ret; \
+})
+#else /* !__tile__ and ! DEBUG*/
 #define SCMutexInit(mut, mutattr ) pthread_mutex_init(mut, mutattr)
 #define SCMutexLock(mut) pthread_mutex_lock(mut)
 #define SCMutexTrylock(mut) pthread_mutex_trylock(mut)
 #define SCMutexUnlock(mut) pthread_mutex_unlock(mut)
-#endif
+#endif /* __tile__ */
+/* Control threads locks. Not Debug. */
+#define SCCtrlMutexInit(mut, mutattr ) pthread_mutex_init(mut, mutattr)
+#define SCCtrlMutexLock(mut) pthread_mutex_lock(mut)
+#define SCCtrlMutexTrylock(mut) pthread_mutex_trylock(mut)
+#define SCCtrlMutexUnlock(mut) pthread_mutex_unlock(mut)
+#endif /* DBG_THREADS */
 
 /** Conditions/Signals */
-/* Here we don't need to do nothing atm */
+/* Here we don't need to do anything at the moment */
+#ifdef __tile__
+/* Ignore signals when using spin locks */
+#define SCCondT uint8_t
+#define SCCondInit(x,y) ({ 0; })
+#define SCCondSignal(x)
+#define SCCondDestroy(x)
+#else /* !__tile__ */
 #define SCCondT pthread_cond_t
 #define SCCondInit pthread_cond_init
 #define SCCondSignal pthread_cond_signal
-#define SCCondTimedwait pthread_cond_timedwait
 #define SCCondDestroy pthread_cond_destroy
+#endif /* __tile__ */
+
+#define SCCtrlCondT pthread_cond_t
+#define SCCtrlCondInit pthread_cond_init
+#define SCCtrlCondSignal pthread_cond_signal
+#define SCCtrlCondTimedwait pthread_cond_timedwait
+#define SCCtrlCondDestroy pthread_cond_destroy
 
 #ifdef DBG_THREAD
 #define SCCondWait_dbg(cond, mut) ({ \
@@ -319,10 +384,27 @@ extern __thread uint64_t mutex_lock_cnt;
 })
 #define SCCondWait SCondWait_dbg
 #else
+#ifdef __tile__
+static inline void cycle_sleep(int cycles)
+{
+  uint64_t end = get_cycle_count() + cycles;
+  while (get_cycle_count() < end)
+    ;
+}
+#define SCCondWait(x,y) cycle_sleep(300)
+#else
 #define SCCondWait(cond, mut) pthread_cond_wait(cond, mut)
+#endif /* __tile__ */
 #endif
 
 /** Spinlocks */
+#if 0
+#ifdef __tile__
+#define SCSpinlock               tmc_spin_queued_mutex_t
+#else
+#define SCSpinlock               pthread_spinlock_t
+#endif
+#endif
 
 /** If posix spin not supported, use mutex */
 #if ((_POSIX_SPIN_LOCKS - 200112L) < 0L) || defined HELGRIND
@@ -472,12 +554,21 @@ extern __thread uint64_t spin_lock_cnt;
 
 #else /* if no dbg threads defined... */
 
+#ifdef __tile__
+#define SCSpinlock                              tmc_spin_queued_mutex_t
+#define SCSpinLock(spin)                        ({ tmc_spin_queued_mutex_lock(spin); 0; })
+#define SCSpinTrylock(spin)                     (tmc_spin_queued_mutex_trylock(spin) ? EBUSY : 0)
+#define SCSpinUnlock(spin)                      ({ tmc_spin_queued_mutex_unlock(spin); 0; })
+#define SCSpinInit(spin, spin_attr)             ({ tmc_spin_queued_mutex_init(spin); 0; })
+#define SCSpinDestroy(spin)                     ({ (void)(spin); 0; })
+#else
 #define SCSpinlock                              pthread_spinlock_t
 #define SCSpinLock(spin)                        pthread_spin_lock(spin)
 #define SCSpinTrylock(spin)                     pthread_spin_trylock(spin)
 #define SCSpinUnlock(spin)                      pthread_spin_unlock(spin)
 #define SCSpinInit(spin, spin_attr)             pthread_spin_init(spin, spin_attr)
 #define SCSpinDestroy(spin)                     pthread_spin_destroy(spin)
+#endif /* __tile__ */
 
 #endif /* DBG_THREADS */
 
@@ -719,12 +810,21 @@ extern __thread uint64_t rwr_lock_cnt;
 #define SCRWLockTryWRLock(rwl) pthread_rwlock_trywrlock(rwl)
 #define SCRWLockTryRDLock(rwl) pthread_rwlock_tryrdlock(rwl)
 #else
+#ifdef __tile__
+#define SCRWLockInit(rwl, rwlattr ) ({ tmc_spin_rwlock_init(rwl); 0; })
+#define SCRWLockWRLock(rwl) ({ tmc_spin_rwlock_wrlock(rwl); 0; })
+#define SCRWLockRDLock(rwl) ({ tmc_spin_rwlock_rdlock(rwl); 0; })
+#define SCRWLockTryWRLock(rwl) (tmc_spin_rwlock_trywrlock(rwl) ? EBUSY : 0)
+#define SCRWLockTryRDLock(rwl) (tmc_spin_rwlock_tryrdlock(rwl) ? EBUSY : 0)
+#define SCRWLockUnlock(rwl) ({ tmc_spin_rwlock_unlock(rwl); 0; })
+#else
 #define SCRWLockInit(rwl, rwlattr ) pthread_rwlock_init(rwl, rwlattr)
 #define SCRWLockWRLock(rwl) pthread_rwlock_wrlock(rwl)
 #define SCRWLockRDLock(rwl) pthread_rwlock_rdlock(rwl)
 #define SCRWLockTryWRLock(rwl) pthread_rwlock_trywrlock(rwl)
 #define SCRWLockTryRDLock(rwl) pthread_rwlock_tryrdlock(rwl)
 #define SCRWLockUnlock(rwl) pthread_rwlock_unlock(rwl)
+#endif
 #endif
 
 /** End of RWLock functions */
