@@ -3867,6 +3867,10 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx) {
         }
     }
 
+    if (de_ctx->decoder_event_sgh)
+        SigGroupHeadFree(de_ctx->decoder_event_sgh);
+    de_ctx->decoder_event_sgh = NULL;
+
     IPOnlyDeinit(de_ctx, &de_ctx->io_ctx);
 
     if (!(de_ctx->flags & DE_QUIET)) {
