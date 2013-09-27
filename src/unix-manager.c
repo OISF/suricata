@@ -1,4 +1,4 @@
-/* Copyright (C) 2012 Open Information Security Foundation
+/* Copyright (C) 2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -549,7 +549,7 @@ void UnixKillUnixManagerThread(void)
     ThreadVars *tv = NULL;
     int cnt = 0;
 
-    SCCondSignal(&unix_manager_cond);
+    SCCtrlCondSignal(&unix_manager_ctrl_cond);
 
     SCMutexLock(&tv_root_lock);
 
@@ -899,7 +899,8 @@ void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode)
 {
     ThreadVars *tv_unixmgr = NULL;
 
-    SCCondInit(&unix_manager_cond, NULL);
+    SCCtrlCondInit(&unix_manager_ctrl_cond, NULL);
+    SCCtrlMutexInit(&unix_manager_ctrl_mutex, NULL);
 
     tv_unixmgr = TmThreadCreateCmdThread("UnixManagerThread",
                                           UnixManagerThread, 0);

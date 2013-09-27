@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,9 +25,9 @@
 #define __FLOW_MANAGER_H__
 
 /** flow manager scheduling condition */
-SCCondT flow_manager_cond;
-SCMutex flow_manager_mutex;
-#define FlowWakeupFlowManagerThread() SCCondSignal(&flow_manager_cond)
+SCCtrlCondT flow_manager_ctrl_cond;
+SCCtrlMutex flow_manager_ctrl_mutex;
+#define FlowWakeupFlowManagerThread() SCCtrlCondSignal(&flow_manager_ctrl_cond)
 
 void FlowManagerThreadSpawn(void);
 void FlowKillFlowManagerThread(void);

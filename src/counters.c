@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -474,9 +474,9 @@ static void *SCPerfMgmtThread(void *arg)
         cond_time.tv_sec = time(NULL) + sc_counter_tts;
         cond_time.tv_nsec = 0;
 
-        SCMutexLock(tv_local->m);
-        SCCondTimedwait(tv_local->cond, tv_local->m, &cond_time);
-        SCMutexUnlock(tv_local->m);
+        SCCtrlMutexLock(tv_local->ctrl_mutex);
+        SCCtrlCondTimedwait(tv_local->ctrl_cond, tv_local->ctrl_mutex, &cond_time);
+        SCCtrlMutexUnlock(tv_local->ctrl_mutex);
 
         SCPerfOutputCounters();
 
@@ -542,9 +542,9 @@ static void *SCPerfWakeupThread(void *arg)
         cond_time.tv_sec = time(NULL) + SC_PERF_WUT_TTS;
         cond_time.tv_nsec = 0;
 
-        SCMutexLock(tv_local->m);
-        SCCondTimedwait(tv_local->cond, tv_local->m, &cond_time);
-        SCMutexUnlock(tv_local->m);
+        SCCtrlMutexLock(tv_local->ctrl_mutex);
+        SCCtrlCondTimedwait(tv_local->ctrl_cond, tv_local->ctrl_mutex, &cond_time);
+        SCCtrlMutexUnlock(tv_local->ctrl_mutex);
 
         tv = tv_root[TVT_PPT];
         while (tv != NULL) {
