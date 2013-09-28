@@ -4287,8 +4287,6 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                                        ~FLOW_TS_PP_ALPROTO_DETECT_DONE &
                                        ~FLOW_TC_PM_ALPROTO_DETECT_DONE &
                                        ~FLOW_TC_PP_ALPROTO_DETECT_DONE);
-                    p->flow->flags &= ~FLOW_TS_PM_PP_ALPROTO_DETECT_DONE;
-                    p->flow->flags &= ~FLOW_TS_PM_PP_ALPROTO_DETECT_DONE;
 
                     if (StreamTcpPacketStateNone(tv,p,stt,ssn, &stt->pseudo_queue)) {
                         goto error;

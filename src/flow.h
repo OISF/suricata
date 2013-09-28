@@ -78,14 +78,10 @@
 #define FLOW_TS_PM_ALPROTO_DETECT_DONE    0x00020000
 /** Probing parser alproto detection done */
 #define FLOW_TS_PP_ALPROTO_DETECT_DONE    0x00040000
-/** Both pattern matcher and probing parser alproto detection done */
-#define FLOW_TS_PM_PP_ALPROTO_DETECT_DONE 0x00080000
 /** Pattern matcher alproto detection done */
 #define FLOW_TC_PM_ALPROTO_DETECT_DONE    0x00100000
 /** Probing parser alproto detection done */
 #define FLOW_TC_PP_ALPROTO_DETECT_DONE    0x00200000
-/** Both pattern matcher and probing parser alproto detection done */
-#define FLOW_TC_PM_PP_ALPROTO_DETECT_DONE 0x00400000
 #define FLOW_TIMEOUT_REASSEMBLY_DONE      0x00800000
 /** even if the flow has files, don't store 'm */
 #define FLOW_FILE_NO_STORE_TS             0x01000000
