@@ -60,13 +60,6 @@ typedef struct AlpProtoDetectCtx_ {
 
     MpmPatternIdStore *mpm_pattern_id_store;    /** pattern id store */
 
-    int alp_content_module_handle;
-
-    /** mapping between proto id's and pattern id's: this will
-     *  be used to look up a proto by the pattern id. The pattern
-     *  id is returned by the mpm */
-    //uint16_t *proto_map;
-
     /** Mapping between pattern id and signature. As each signature has a
      *  unique pattern with a unique id, we can lookup the signature by
      *  the pattern id. */
