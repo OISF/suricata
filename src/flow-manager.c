@@ -94,7 +94,7 @@ void FlowKillFlowManagerThread(void)
     ThreadVars *tv = NULL;
     int cnt = 0;
 
-    SCCondSignal(&flow_manager_cond);
+    SCControlCondSignal(&flow_manager_cond);
 
     SCMutexLock(&tv_root_lock);
 
@@ -538,9 +538,9 @@ void *FlowManagerThread(void *td)
 
         cond_time.tv_sec = time(NULL) + flow_update_delay_sec;
         cond_time.tv_nsec = flow_update_delay_nsec;
-        SCMutexLock(&flow_manager_mutex);
-        SCCondTimedwait(&flow_manager_cond, &flow_manager_mutex, &cond_time);
-        SCMutexUnlock(&flow_manager_mutex);
+        SCControlMutexLock(&flow_manager_mutex);
+        SCControlCondTimedwait(&flow_manager_cond, &flow_manager_mutex, &cond_time);
+        SCControlMutexUnlock(&flow_manager_mutex);
 
         SCLogDebug("woke up... %s", SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY ? "emergency":"");
 
@@ -566,8 +566,8 @@ void FlowManagerThreadSpawn()
 {
     ThreadVars *tv_flowmgr = NULL;
 
-    SCCondInit(&flow_manager_cond, NULL);
-    SCMutexInit(&flow_manager_mutex, NULL);
+    SCControlCondInit(&flow_manager_cond, NULL);
+    SCControlMutexInit(&flow_manager_mutex, NULL);
 
     tv_flowmgr = TmThreadCreateMgmtThread("FlowManagerThread",
                                           FlowManagerThread, 0);

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -88,7 +88,7 @@ Packet *TmqhInputFlow(ThreadVars *tv)
     SCPerfSyncCountersIfSignalled(tv, 0);
 
     SCMutexLock(&q->mutex_q);
-    if (q->len == 0) {
+    while (q->len == 0) {
         /* if we have no packets in queue, wait... */
         SCCondWait(&q->cond_q, &q->mutex_q);
     }
