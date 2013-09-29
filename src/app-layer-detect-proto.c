@@ -116,9 +116,9 @@ static void AlpProtoAddSignature(AlpProtoDetectCtx *ctx, DetectContentData *co, 
     ctx->sigs++;
 }
 
-#ifdef UNITTESTS
 /** \brief free a AlpProtoSignature, recursively free any next sig */
-static void AlpProtoFreeSignature(AlpProtoSignature *s) {
+static void AlpProtoFreeSignature(AlpProtoSignature *s)
+{
     if (s == NULL)
         return;
 
@@ -132,7 +132,6 @@ static void AlpProtoFreeSignature(AlpProtoSignature *s) {
 
     AlpProtoFreeSignature(next_s);
 }
-#endif
 
 /**
  *  \brief Match a AlpProtoSignature against a buffer
@@ -254,6 +253,7 @@ void AlpProtoDestroy() {
     mpm_table[alp_proto_ctx.toserver.mpm_ctx.mpm_type].DestroyCtx(&alp_proto_ctx.toserver.mpm_ctx);
     mpm_table[alp_proto_ctx.toclient.mpm_ctx.mpm_type].DestroyCtx(&alp_proto_ctx.toclient.mpm_ctx);
     MpmPatternIdTableFreeHash(alp_proto_ctx.mpm_pattern_id_store);
+    AlpProtoFreeSignature(alp_proto_ctx.head);
     AppLayerFreeProbingParsers(alp_proto_ctx.probing_parsers);
     alp_proto_ctx.probing_parsers = NULL;
 
