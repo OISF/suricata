@@ -2319,10 +2319,16 @@ void AppLayerRegisterProbingParser(AlpProtoDetectCtx *ctx,
 
 void AppLayerFreeProbingParsers(AppLayerProbingParser *pp)
 {
+    AppLayerProbingParser *tmp_pp = NULL;
+
     if (pp == NULL)
         return;
 
-    DeAllocAppLayerProbingParser(pp);
+    while (pp != NULL) {
+        tmp_pp = pp->next;
+        DeAllocAppLayerProbingParser(pp);
+        pp = tmp_pp;
+    }
 
     return;
 }
