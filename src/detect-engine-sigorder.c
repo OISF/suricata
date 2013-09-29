@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -76,17 +76,18 @@ static void SCSigRegisterSignatureOrderingFunc(DetectEngineCtx *de_ctx,
     SCSigOrderFunc *temp = NULL;
 
     curr = de_ctx->sc_sig_order_funcs;
+
+    /* Walk to the end of the list, and leave prev pointing at the
+       last element. */
     prev = curr;
     while (curr != NULL) {
+        if (curr->SWCompare == SWCompare) {
+            /* Already specified this compare */
+            return;
+        }
         prev = curr;
-        if (curr->SWCompare == SWCompare)
-            break;
-
         curr = curr->next;
     }
-
-    if (curr != NULL)
-        return;
 
     if ( (temp = SCMalloc(sizeof(SCSigOrderFunc))) == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCSigRegisterSignatureOrderingFunc. Exiting...");
@@ -96,6 +97,7 @@ static void SCSigRegisterSignatureOrderingFunc(DetectEngineCtx *de_ctx,
 
     temp->SWCompare = SWCompare;
 
+    /* Append the new compare function at the end of the list. */
     if (prev == NULL)
         de_ctx->sc_sig_order_funcs = temp;
     else
@@ -346,9 +348,7 @@ static inline int SCSigGetPktvarType(Signature *sig)
  */
 static inline void SCSigProcessUserDataForFlowbits(SCSigSignatureWrapper *sw)
 {
-    *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWBITS])) = SCSigGetFlowbitsType(sw->sig);
-
-    return;
+    sw->user[SC_RADIX_USER_DATA_FLOWBITS] = SCSigGetFlowbitsType(sw->sig);
 }
 
 /**
@@ -360,16 +360,12 @@ static inline void SCSigProcessUserDataForFlowbits(SCSigSignatureWrapper *sw)
  */
 static inline void SCSigProcessUserDataForFlowvar(SCSigSignatureWrapper *sw)
 {
-    *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWVAR])) = SCSigGetFlowvarType(sw->sig);
-
-    return;
+    sw->user[SC_RADIX_USER_DATA_FLOWVAR] = SCSigGetFlowvarType(sw->sig);
 }
 
 static inline void SCSigProcessUserDataForFlowint(SCSigSignatureWrapper *sw)
 {
-    *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWINT])) = SCSigGetFlowintType(sw->sig);
-
-    return;
+    sw->user[SC_RADIX_USER_DATA_FLOWINT] = SCSigGetFlowintType(sw->sig);
 }
 
 /**
@@ -381,110 +377,92 @@ static inline void SCSigProcessUserDataForFlowint(SCSigSignatureWrapper *sw)
  */
 static inline void SCSigProcessUserDataForPktvar(SCSigSignatureWrapper *sw)
 {
-    *((int *)(sw->user[SC_RADIX_USER_DATA_PKTVAR])) = SCSigGetPktvarType(sw->sig);
-
-    return;
+    sw->user[SC_RADIX_USER_DATA_PKTVAR] = SCSigGetPktvarType(sw->sig);
 }
 
-static void SCSigOrder(DetectEngineCtx *de_ctx,
-                       SCSigSignatureWrapper *sw,
-                       int (*SWCompare)(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2))
+/* Return 1 if sw1 comes before sw2 in the final list. */
+static int SCSigLessThan(SCSigSignatureWrapper *sw1,
+                         SCSigSignatureWrapper *sw2,
+                         SCSigOrderFunc *cmp_func_list)
 {
-    SCSigSignatureWrapper *min = NULL;
-    SCSigSignatureWrapper *max = NULL;
-    SCSigSignatureWrapper *prev = NULL;
+    SCSigOrderFunc *funcs = cmp_func_list;
 
-    if (sw == NULL)
-        return;
+    while (funcs != NULL) {
+        int delta = funcs->SWCompare(sw1, sw2);
+        if (delta > 0)
+            return 1;
+        else if (delta < 0)
+            return 0;
 
-    if (de_ctx->sc_sig_sig_wrapper == NULL) {
-        de_ctx->sc_sig_sig_wrapper = sw;
-        sw->min = NULL;
-        sw->max = NULL;
-        return;
+        funcs = funcs->next;
     }
+    // They are equal, so use sid as the final decider.
+    return sw1->sig->id < sw2->sig->id;
+}
 
-    min = sw->min;
-    max = sw->max;
-    if (min == NULL)
-        min = de_ctx->sc_sig_sig_wrapper;
-    else
-        min = min->next;
+/* Merge sort based on a list of compare functions */
+static SCSigSignatureWrapper *SCSigOrder(SCSigSignatureWrapper *sw,
+                                         SCSigOrderFunc *cmp_func_list)
+{
+    SCSigSignatureWrapper *subA = NULL;
+    SCSigSignatureWrapper *subB = NULL;
+    SCSigSignatureWrapper *first;
+    SCSigSignatureWrapper *second;
+    SCSigSignatureWrapper *result = NULL;
+    SCSigSignatureWrapper *last = NULL;
+    SCSigSignatureWrapper *new = NULL;
 
-    while (min != max) {
-        prev = min;
-        /* the sorting logic */
-        if (SWCompare(sw, min) <= 0) {
-            min = min->next;
-            continue;
-        }
+    /* Divide input list into two sub-lists. */
+    while (sw != NULL) {
+        first = sw;
+        sw = sw->next;
+        /* Push the first element onto sub-list A */
+        first->next = subA;
+        subA = first;
 
-        if (min->prev == sw)
+        if (sw == NULL)
             break;
-
-        if (sw->next != NULL)
-            sw->next->prev = sw->prev;
-        if (sw->prev != NULL)
-            sw->prev->next = sw->next;
-        if (de_ctx->sc_sig_sig_wrapper == sw)
-            de_ctx->sc_sig_sig_wrapper = sw->next;
-
-        sw->next = min;
-        sw->prev = min->prev;
-
-        if (min->prev != NULL)
-            min->prev->next = sw;
-        else
-            de_ctx->sc_sig_sig_wrapper = sw;
-
-        min->prev = sw;
-
-        break;
+        second = sw;
+        sw = sw->next;
+        /* Push the second element onto sub-list B */
+        second->next = subB;
+        subB = second;
+    }
+    if (subB == NULL) {
+        /* Only zero or one element on the list. */
+        return subA;
     }
 
-    if (min == max && prev != sw) {
-        if (sw->next != NULL) {
-            sw->next->prev = sw->prev;
-        }
-        if (sw->prev != NULL) {
-            sw->prev->next = sw->next;
-        }
+    /* Now sort each list */
+    subA = SCSigOrder(subA, cmp_func_list);
+    subB = SCSigOrder(subB, cmp_func_list);
 
-        if (min == NULL) {
-            if (prev != NULL)
-                prev->next = sw;
-            sw->prev = prev;
-            sw->next = NULL;
+    /* Merge the two sorted lists. */
+    while (subA != NULL && subB != NULL) {
+        if (SCSigLessThan(subA, subB, cmp_func_list)) {
+            new = subA;
+            subA = subA->next;
         } else {
-            sw->prev = min->prev;
-            sw->next = min;
-            if (min->prev != NULL)
-                min->prev->next = sw;
-            min->prev = sw;
+          new = subB;
+          subB = subB->next;
+        }
+        /* Push onto the end of the output list. */
+        new->next = NULL;
+        if (result == NULL) {
+            result = new;
+            last = new;
+        } else {
+            last->next = new;
+            last = new;
         }
     }
+    /* Attach the rest of any remaining list. Only one can be non-NULL here. */
+    if (subA == NULL)
+        last->next = subB;
+    else if (subB == NULL)
+        last->next = subA;
 
-    /* set the min signature for this keyword, for the next ordering function */
-    min = sw;
-    while (min != NULL && min != sw->min) {
-        if (SWCompare(sw, min) != 0)
-            break;
-
-        min = min->prev;
-    }
-    sw->min = min;
-
-    /* set the max signature for this keyword + 1, for the next ordering func */
-    max = sw;
-    while (max != NULL && max != sw->max) {
-        if (SWCompare(max, sw) != 0)
-            break;
-
-        max = max->next;
-    }
-    sw->max = max;
-
-    return;
+    return result;
 }
 
 /**
@@ -510,8 +488,8 @@ static int SCSigOrderByActionCompare(SCSigSignatureWrapper *sw1,
 static int SCSigOrderByFlowbitsCompare(SCSigSignatureWrapper *sw1,
                                        SCSigSignatureWrapper *sw2)
 {
-    return *((int *)sw1->user[SC_RADIX_USER_DATA_FLOWBITS]) -
-        *((int *)sw2->user[SC_RADIX_USER_DATA_FLOWBITS]);
+    return sw1->user[SC_RADIX_USER_DATA_FLOWBITS] -
+        sw2->user[SC_RADIX_USER_DATA_FLOWBITS];
 }
 
 /**
@@ -524,8 +502,8 @@ static int SCSigOrderByFlowbitsCompare(SCSigSignatureWrapper *sw1,
 static int SCSigOrderByFlowvarCompare(SCSigSignatureWrapper *sw1,
                                       SCSigSignatureWrapper *sw2)
 {
-    return *((int *)sw1->user[SC_RADIX_USER_DATA_FLOWVAR]) -
-        *((int *)sw2->user[SC_RADIX_USER_DATA_FLOWVAR]);
+    return sw1->user[SC_RADIX_USER_DATA_FLOWVAR] -
+        sw2->user[SC_RADIX_USER_DATA_FLOWVAR];
 }
 
 /**
@@ -538,15 +516,15 @@ static int SCSigOrderByFlowvarCompare(SCSigSignatureWrapper *sw1,
 static int SCSigOrderByPktvarCompare(SCSigSignatureWrapper *sw1,
                                      SCSigSignatureWrapper *sw2)
 {
-    return *((int *)sw1->user[SC_RADIX_USER_DATA_PKTVAR]) -
-        *((int *)sw2->user[SC_RADIX_USER_DATA_PKTVAR]);
+    return sw1->user[SC_RADIX_USER_DATA_PKTVAR] -
+        sw2->user[SC_RADIX_USER_DATA_PKTVAR];
 }
 
 static int SCSigOrderByFlowintCompare(SCSigSignatureWrapper *sw1,
                                       SCSigSignatureWrapper *sw2)
 {
-    return *((int *)sw1->user[SC_RADIX_USER_DATA_FLOWINT]) -
-        *((int *)sw2->user[SC_RADIX_USER_DATA_FLOWINT]);
+    return sw1->user[SC_RADIX_USER_DATA_FLOWINT] -
+        sw2->user[SC_RADIX_USER_DATA_FLOWINT];
 }
 
 /**
@@ -572,27 +550,12 @@ static int SCSigOrderByPriorityCompare(SCSigSignatureWrapper *sw1,
 static inline SCSigSignatureWrapper *SCSigAllocSignatureWrapper(Signature *sig)
 {
     SCSigSignatureWrapper *sw = NULL;
-    int i = 0;
 
     if ( (sw = SCMalloc(sizeof(SCSigSignatureWrapper))) == NULL)
         return NULL;
     memset(sw, 0, sizeof(SCSigSignatureWrapper));
 
     sw->sig = sig;
-
-    if ( (sw->user = SCMalloc(SC_RADIX_USER_DATA_MAX * sizeof(int *))) == NULL) {
-        SCFree(sw);
-        return NULL;
-    }
-    memset(sw->user, 0, SC_RADIX_USER_DATA_MAX * sizeof(int *));
-
-    for (i = 0; i < SC_RADIX_USER_DATA_MAX; i++) {
-        if ( (sw->user[i] = SCMalloc(sizeof(int))) == NULL) {
-            SCFree(sw);
-            return NULL;
-        }
-        memset(sw->user[i], 0, sizeof(int));
-    }
 
     /* Process data from the signature into a cache for further use by the
      * sig_ordering module */
@@ -612,51 +575,51 @@ static inline SCSigSignatureWrapper *SCSigAllocSignatureWrapper(Signature *sig)
  */
 void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
 {
-    SCSigOrderFunc *funcs = NULL;
     Signature *sig = NULL;
     SCSigSignatureWrapper *sigw = NULL;
+    SCSigSignatureWrapper *sigw_list = NULL;
 
     int i = 0;
     SCLogDebug("ordering signatures in memory");
 
     sig = de_ctx->sig_list;
     while (sig != NULL) {
-        i++;
         sigw = SCSigAllocSignatureWrapper(sig);
-        funcs = de_ctx->sc_sig_order_funcs;
-        while (funcs != NULL) {
-            SCSigOrder(de_ctx, sigw, funcs->SWCompare);
+        /* Push signature wrapper onto a list, order doesn't matter here. */
+        sigw->next = sigw_list;
+        sigw_list = sigw;
 
-            funcs = funcs->next;
-        }
         sig = sig->next;
+        i++;
     }
+
+    /* Sort the list */
+    sigw_list = SCSigOrder(sigw_list, de_ctx->sc_sig_order_funcs);
 
     SCLogDebug("Total Signatures to be processed by the"
            "sigordering module: %d", i);
 
-    /* Re-order it in the Detection Engine Context sig_list */
+    /* Recreate the sig list in order */
     de_ctx->sig_list = NULL;
-    sigw = de_ctx->sc_sig_sig_wrapper;
+    sigw = sigw_list;
     i = 0;
     while (sigw != NULL) {
         i++;
+        sigw->sig->next = NULL;
         if (de_ctx->sig_list == NULL) {
-            sigw->sig->next = NULL;
+            /* First entry on the list */
             de_ctx->sig_list = sigw->sig;
             sig = de_ctx->sig_list;
-            sigw = sigw->next;
-            continue;
+        } else {
+            sig->next = sigw->sig;
+            sig = sig->next;
         }
-
-        sigw->sig->next = NULL;
-        sig->next = sigw->sig;
-        sig = sig->next;
+        SCSigSignatureWrapper *sigw_to_free = sigw;
         sigw = sigw->next;
+        SCFree(sigw_to_free);
     }
 
     SCLogDebug("total signatures reordered by the sigordering module: %d", i);
-    return;
 }
 
 /**
@@ -680,8 +643,6 @@ void SCSigRegisterSignatureOrderingFuncs(DetectEngineCtx *de_ctx)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
-
-    return;
 }
 
 /**
@@ -692,11 +653,8 @@ void SCSigRegisterSignatureOrderingFuncs(DetectEngineCtx *de_ctx)
  */
 void SCSigSignatureOrderingModuleCleanup(DetectEngineCtx *de_ctx)
 {
-    SCSigOrderFunc *funcs = NULL;
-    SCSigSignatureWrapper *sigw = NULL;
-    SCSigSignatureWrapper *prev = NULL;
-    void *temp = NULL;
-    uint8_t i;
+    SCSigOrderFunc *funcs;
+    void *temp;
 
     /* clean the memory alloted to the signature ordering funcs */
     funcs = de_ctx->sc_sig_order_funcs;
@@ -706,23 +664,6 @@ void SCSigSignatureOrderingModuleCleanup(DetectEngineCtx *de_ctx)
         SCFree(temp);
     }
     de_ctx->sc_sig_order_funcs = NULL;
-
-    /* clean the memory alloted to the signature wrappers */
-    sigw = de_ctx->sc_sig_sig_wrapper;
-    while (sigw != NULL) {
-        prev = sigw;
-        sigw = sigw->next;
-        for (i = 0; i < SC_RADIX_USER_DATA_MAX; i++) {
-            if (prev->user[i] != NULL) {
-                SCFree(prev->user[i]);
-            }
-        }
-        SCFree(prev->user);
-        SCFree(prev);
-    }
-    de_ctx->sc_sig_sig_wrapper = NULL;
-
-    return;
 }
 
 /**********Unittests**********/
@@ -2069,6 +2010,4 @@ void SCSigRegisterSignatureOrderingTests(void)
     UtRegisterTest("SCSigOrderingTest11", SCSigOrderingTest11, 1);
     UtRegisterTest("SCSigOrderingTest12", SCSigOrderingTest12, 1);
 #endif
-
-    return;
 }

@@ -54,7 +54,7 @@ typedef struct SCSigSignatureWrapper_ {
     struct SCSigSignatureWrapper_ *max;
 
     /* user data that is to be associated with this sigwrapper */
-    int **user;
+    int user[SC_RADIX_USER_DATA_MAX];
 
     struct SCSigSignatureWrapper_ *next;
     struct SCSigSignatureWrapper_ *prev;
