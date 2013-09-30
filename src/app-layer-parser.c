@@ -1687,7 +1687,7 @@ void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_prot
     TAILQ_FOREACH(proto_node, &node->head, next) {
         DetectProto dp;
         int ip_proto = DetectProtoParse(&dp, proto_node->name);
-        if (ip_proto <= 0) {
+        if (ip_proto < 0) {
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
                        "%s.%s", param, proto_node->name);
             exit(EXIT_FAILURE);
