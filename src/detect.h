@@ -591,7 +591,6 @@ typedef struct DetectEngineCtx_ {
 
     /* used by the signature ordering module */
     struct SCSigOrderFunc_ *sc_sig_order_funcs;
-    struct SCSigSignatureWrapper_ *sc_sig_sig_wrapper;
 
     /* hash table used for holding the classification config info */
     HashTable *class_conf_ht;
