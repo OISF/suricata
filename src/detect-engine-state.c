@@ -613,6 +613,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             }
 
             item->flags |= inspect_flags;
+            item->nm = sm;
             if ((total_txs - inspect_tx_id) <= 1)
                 det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
 
