@@ -365,6 +365,14 @@ void DetectEngineRegisterAppInspectionEngine(uint16_t alproto,
         exit(EXIT_FAILURE);
     }
 
+    DetectEngineAppInspectionEngine *tmp = list[alproto][dir];
+    while (tmp != NULL) {
+        if (tmp->sm_list == sm_list && tmp->Callback == Callback) {
+            return;
+        }
+        tmp = tmp->next;
+    }
+
     DetectEngineAppInspectionEngine *new_engine = SCMalloc(sizeof(DetectEngineAppInspectionEngine));
     if (unlikely(new_engine == NULL)) {
         exit(EXIT_FAILURE);

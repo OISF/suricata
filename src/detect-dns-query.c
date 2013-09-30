@@ -90,6 +90,7 @@ void DetectDnsQueryRegister (void) {
 static int DetectDnsQuerySetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     s->list = DETECT_SM_LIST_DNSQUERY_MATCH;
+    s->alproto = ALPROTO_DNS;
     return 0;
 }
 
@@ -148,7 +149,9 @@ static int DetectDnsQueryTest01(void) {
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
 
-    p = UTHBuildPacket(buf, sizeof(buf), IPPROTO_UDP);
+    p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_UDP,
+                           "192.168.1.5", "192.168.1.1",
+                           41424, 53);
 
     FLOW_INITIALIZE(&f);
     f.flags |= FLOW_IPV4;
@@ -167,8 +170,8 @@ static int DetectDnsQueryTest01(void) {
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                                   "(msg:\"Test dns_query option\"; "
-                                   "dns_query; content:\"google\"; nocase; sid:1;)");
+                              "(msg:\"Test dns_query option\"; "
+                              "dns_query; content:\"google\"; nocase; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -256,9 +259,15 @@ static int DetectDnsQueryTest02(void) {
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
 
-    p1 = UTHBuildPacket(buf1, sizeof(buf1), IPPROTO_UDP);
-    p2 = UTHBuildPacket(buf2, sizeof(buf2), IPPROTO_UDP);
-    p3 = UTHBuildPacket(buf3, sizeof(buf3), IPPROTO_UDP);
+    p1 = UTHBuildPacketReal(buf1, sizeof(buf1), IPPROTO_UDP,
+                           "192.168.1.5", "192.168.1.1",
+                           41424, 53);
+    p2 = UTHBuildPacketReal(buf1, sizeof(buf1), IPPROTO_UDP,
+                           "192.168.1.5", "192.168.1.1",
+                           41424, 53);
+    p3 = UTHBuildPacketReal(buf1, sizeof(buf1), IPPROTO_UDP,
+                           "192.168.1.5", "192.168.1.1",
+                           41424, 53);
 
     FLOW_INITIALIZE(&f);
     f.flags |= FLOW_IPV4;
@@ -411,7 +420,9 @@ static int DetectDnsQueryTest03(void) {
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
-    p = UTHBuildPacket(buf, sizeof(buf), IPPROTO_TCP);
+    p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_TCP,
+                           "192.168.1.5", "192.168.1.1",
+                           41424, 53);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -432,7 +443,7 @@ static int DetectDnsQueryTest03(void) {
     de_ctx->mpm_matcher = DEFAULT_MPM;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
+    s = DetectEngineAppendSig(de_ctx, "alert dnstcp any any -> any any "
                                    "(msg:\"Test dns_query option\"; "
                                    "content:\"google\"; nocase; dns_query; sid:1;)");
     if (s == NULL) {
@@ -503,8 +514,12 @@ static int DetectDnsQueryTest04(void) {
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
-    p1 = UTHBuildPacket(buf1, sizeof(buf1), IPPROTO_TCP);
-    p2 = UTHBuildPacket(buf2, sizeof(buf2), IPPROTO_TCP);
+    p1 = UTHBuildPacketReal(buf1, sizeof(buf1), IPPROTO_TCP,
+                           "192.168.1.5", "192.168.1.1",
+                           41424, 53);
+    p2 = UTHBuildPacketReal(buf2, sizeof(buf2), IPPROTO_TCP,
+                           "192.168.1.5", "192.168.1.1",
+                           41424, 53);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -529,7 +544,7 @@ static int DetectDnsQueryTest04(void) {
     de_ctx->mpm_matcher = DEFAULT_MPM;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
+    s = DetectEngineAppendSig(de_ctx, "alert dnstcp any any -> any any "
                                    "(msg:\"Test dns_query option\"; "
                                    "dns_query; content:\"google\"; nocase; sid:1;)");
     if (s == NULL) {
@@ -644,10 +659,18 @@ static int DetectDnsQueryTest05(void) {
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
-    p1 = UTHBuildPacket(buf1, sizeof(buf1), IPPROTO_TCP);
-    p2 = UTHBuildPacket(buf2, sizeof(buf2), IPPROTO_TCP);
-    p3 = UTHBuildPacket(buf3, sizeof(buf3), IPPROTO_TCP);
-    p4 = UTHBuildPacket(buf4, sizeof(buf4), IPPROTO_TCP);
+    p1 = UTHBuildPacketReal(buf1, sizeof(buf1), IPPROTO_TCP,
+                            "192.168.1.5", "192.168.1.1",
+                            41424, 53);
+    p2 = UTHBuildPacketReal(buf2, sizeof(buf2), IPPROTO_TCP,
+                            "192.168.1.5", "192.168.1.1",
+                            41424, 53);
+    p3 = UTHBuildPacketReal(buf3, sizeof(buf3), IPPROTO_TCP,
+                            "192.168.1.5", "192.168.1.1",
+                            41424, 53);
+    p4 = UTHBuildPacketReal(buf4, sizeof(buf4), IPPROTO_TCP,
+                            "192.168.1.5", "192.168.1.1",
+                            41424, 53);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -680,13 +703,13 @@ static int DetectDnsQueryTest05(void) {
     de_ctx->mpm_matcher = DEFAULT_MPM;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
+    s = DetectEngineAppendSig(de_ctx, "alert dnstcp any any -> any any "
                                       "(msg:\"Test dns_query option\"; "
                                       "dns_query; content:\"google.com\"; nocase; sid:1;)");
     if (s == NULL) {
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
+    s = DetectEngineAppendSig(de_ctx, "alert dnstcp any any -> any any "
                                       "(msg:\"Test dns_query option\"; "
                                       "dns_query; content:\"google.net\"; nocase; sid:2;)");
     if (s == NULL) {
@@ -824,7 +847,9 @@ static int DetectDnsQueryTest06(void) {
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
 
-    p = UTHBuildPacket(buf, sizeof(buf), IPPROTO_UDP);
+    p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_UDP,
+                           "192.168.1.5", "192.168.1.1",
+                           41424, 53);
 
     FLOW_INITIALIZE(&f);
     f.flags |= FLOW_IPV4;
@@ -946,9 +971,15 @@ static int DetectDnsQueryTest07(void) {
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
 
-    p1 = UTHBuildPacket(buf1, sizeof(buf1), IPPROTO_UDP);
-    p2 = UTHBuildPacket(buf2, sizeof(buf2), IPPROTO_UDP);
-    p3 = UTHBuildPacket(buf3, sizeof(buf3), IPPROTO_UDP);
+    p1 = UTHBuildPacketReal(buf1, sizeof(buf1), IPPROTO_UDP,
+                            "192.168.1.5", "192.168.1.1",
+                            41424, 53);
+    p2 = UTHBuildPacketReal(buf2, sizeof(buf2), IPPROTO_UDP,
+                            "192.168.1.5", "192.168.1.1",
+                            41424, 53);
+    p3 = UTHBuildPacketReal(buf3, sizeof(buf3), IPPROTO_UDP,
+                            "192.168.1.5", "192.168.1.1",
+                            41424, 53);
 
     FLOW_INITIALIZE(&f);
     f.flags |= FLOW_IPV4;

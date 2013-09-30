@@ -60,13 +60,6 @@ typedef struct AlpProtoDetectCtx_ {
 
     MpmPatternIdStore *mpm_pattern_id_store;    /** pattern id store */
 
-    int alp_content_module_handle;
-
-    /** mapping between proto id's and pattern id's: this will
-     *  be used to look up a proto by the pattern id. The pattern
-     *  id is returned by the mpm */
-    //uint16_t *proto_map;
-
     /** Mapping between pattern id and signature. As each signature has a
      *  unique pattern with a unique id, we can lookup the signature by
      *  the pattern id. */
@@ -74,21 +67,28 @@ typedef struct AlpProtoDetectCtx_ {
 
     AlpProtoSignature *head;    /**< list of sigs */
     AppLayerProbingParser *probing_parsers;
-    AppLayerProbingParserInfo *probing_parsers_info;
     uint16_t sigs;              /**< number of sigs */
 } AlpProtoDetectCtx;
 
 extern AlpProtoDetectCtx alp_proto_ctx;
+
+#define FLOW_IS_PM_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags & FLOW_TS_PM_ALPROTO_DETECT_DONE) : ((f)->flags & FLOW_TC_PM_ALPROTO_DETECT_DONE))
+#define FLOW_IS_PP_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags & FLOW_TS_PP_ALPROTO_DETECT_DONE) : ((f)->flags & FLOW_TC_PP_ALPROTO_DETECT_DONE))
+
+#define FLOW_SET_PM_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags |= FLOW_TS_PM_ALPROTO_DETECT_DONE) : ((f)->flags |= FLOW_TC_PM_ALPROTO_DETECT_DONE))
+#define FLOW_SET_PP_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags |= FLOW_TS_PP_ALPROTO_DETECT_DONE) : ((f)->flags |= FLOW_TC_PP_ALPROTO_DETECT_DONE))
 
 void AlpProtoInit(AlpProtoDetectCtx *);
 void *AppLayerDetectProtoThread(void *td);
 
 void AppLayerDetectProtoThreadInit(void);
 
-uint16_t AppLayerDetectGetProtoPMParser(AlpProtoDetectCtx *,
-                                        AlpProtoDetectThreadCtx *,
-                                        uint8_t *, uint16_t,
-                                        uint8_t, uint8_t);
+uint16_t AppLayerDetectGetProtoPMParser(AlpProtoDetectCtx *ctx,
+                                        AlpProtoDetectThreadCtx *tctx,
+                                        Flow *f,
+                                        uint8_t *buf, uint16_t buflen,
+                                        uint8_t flags, uint8_t ipproto,
+                                        uint16_t *pm_results);
 uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *, Flow *,
                                              uint8_t *, uint32_t,
                                              uint8_t, uint8_t);

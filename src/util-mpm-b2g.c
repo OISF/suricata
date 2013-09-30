@@ -270,6 +270,12 @@ void B2gFreePattern(MpmCtx *mpm_ctx, B2gPattern *p) {
         mpm_ctx->memory_size -= p->len;
     }
 
+    if (p != NULL && p->original_pat != NULL) {
+        SCFree(p->original_pat);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= p->len;
+    }
+
     if (p) {
         SCFree(p);
         mpm_ctx->memory_cnt--;

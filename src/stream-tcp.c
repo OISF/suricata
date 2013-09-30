@@ -4139,8 +4139,8 @@ static int StreamTcpPacketIsWindowUpdate(TcpSession *ssn, Packet *p) {
 }
 
 /* flow is and stays locked */
-static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
-                            PacketQueue *pq)
+int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
+                     PacketQueue *pq)
 {
     SCEnter();
 
@@ -4282,9 +4282,11 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                     /* set state the NONE, also pulls flow out of closed queue */
                     StreamTcpPacketSetState(p, ssn, TCP_NONE);
 
-                    p->flow->alproto = ALPROTO_UNKNOWN;
-                    p->flow->flags &= ~FLOW_TS_PM_PP_ALPROTO_DETECT_DONE;
-                    p->flow->flags &= ~FLOW_TS_PM_PP_ALPROTO_DETECT_DONE;
+                    p->flow->alproto_ts = p->flow->alproto_tc = p->flow->alproto = ALPROTO_UNKNOWN;
+                    p->flow->flags &= (~FLOW_TS_PM_ALPROTO_DETECT_DONE &
+                                       ~FLOW_TS_PP_ALPROTO_DETECT_DONE &
+                                       ~FLOW_TC_PM_ALPROTO_DETECT_DONE &
+                                       ~FLOW_TC_PP_ALPROTO_DETECT_DONE);
 
                     if (StreamTcpPacketStateNone(tv,p,stt,ssn, &stt->pseudo_queue)) {
                         goto error;

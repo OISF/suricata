@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,6 +25,7 @@
 #ifndef __DECODE_EVENTS_H__
 #define __DECODE_EVENTS_H__
 
+/* packet decoder events */
 enum {
     /* IPV4 EVENTS */
     IPV4_PKT_TOO_SMALL = 1,         /**< ipv4 pkt smaller than minimum header size */
@@ -137,6 +138,7 @@ enum {
     /* RAW EVENTS */
     IPRAW_INVALID_IPV,              /**< invalid ip version in ip raw */
 
+    /* STREAM EVENTS */
     STREAM_3WHS_ACK_IN_WRONG_DIR,
     STREAM_3WHS_ASYNC_WRONG_SEQ,
     STREAM_3WHS_RIGHT_SEQ_WRONG_ACK_EVASION,
@@ -198,12 +200,12 @@ enum {
     STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA,
 
     /* SCTP EVENTS */
-    SCTP_PKT_TOO_SMALL,              /**< sctp packet smaller than minimum size */
+    SCTP_PKT_TOO_SMALL, /**< sctp packet smaller than minimum size */
 
     /* Fragmentation reasembly events. */
     IPV4_FRAG_PKT_TOO_LARGE,
-    IPV4_FRAG_OVERLAP,
     IPV6_FRAG_PKT_TOO_LARGE,
+    IPV4_FRAG_OVERLAP,
     IPV6_FRAG_OVERLAP,
     IPV4_FRAG_TOO_LARGE,
     IPV6_FRAG_TOO_LARGE,
@@ -222,7 +224,21 @@ enum {
     DECODE_EVENT_MAX,
 };
 
+/* app layer pkt level events */
+enum {
+    APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS,
+    APPLAYER_WRONG_DIRECTION_FIRST_DATA,
+    APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION,
+};
+
 #define DECODER_EVENTS_BUFFER_STEPS 5
+
+/* the event types for app events */
+typedef enum AppLayerEventType_ {
+    APP_LAYER_EVENT_TYPE_GENERAL = 1,
+    APP_LAYER_EVENT_TYPE_TRANSACTION,
+    APP_LAYER_EVENT_TYPE_PACKET,
+} AppLayerEventType;
 
 /**
  * \brief Data structure to store app layer decoder events.
@@ -235,81 +251,6 @@ typedef struct AppLayerDecoderEvents_ {
     /* current event buffer size */
     uint8_t events_buffer_size;
 } AppLayerDecoderEvents;
-
-/**
- * \brief Store decoder event module
- */
-typedef struct AppLayerDecoderEventsModule_ {
-    /* the alproto module for which we are storing the event table */
-    uint16_t alproto;
-    /* the event table map */
-    SCEnumCharMap *table;
-
-    struct AppLayerDecoderEventsModule_ *next;
-} AppLayerDecoderEventsModule;
-
-#if 0
-
-#define AppLayerDecoderEventsSetEvent(module_id, devents_head, event)   \
-    do {                                                                \
-        DecoderEvents devents = *devents_head;                          \
-        while (devents != NULL && devents->module_id != module_id) {    \
-            devents = devents->next;                                    \
-        }                                                               \
-        if (devents == NULL) {                                          \
-            DecoderEvents new_devents = SCMalloc(sizeof(DecoderEvents));\
-            if (new_devents == NULL)                                    \
-                return;                                                 \
-            memset(new_devents, 0, sizeof(DecoderEvents));              \
-            devents_head = new_devents;                                 \
-        }                                                               \
-        if ((devents)->cnt == events_buffer_size) {                     \
-            devents->events = SCRealloc(devents->events,                \
-                                        (devents->cnt +                 \
-                                         DECODER_EVENTS_BUFFER_STEPS) * \
-                                         sizeof(uint8_t));              \
-            if (devents->events == NULL) {                              \
-                devents->events_buffer_size = 0;                        \
-                devents->cnt = 0;                                       \
-                break;                                                  \
-            }                                                           \
-            devents->events_buffer_size += DECODER_EVENTS_BUFFER_STEPS; \
-        }                                                               \
-        devents->events[devents->cnt++] = event;                        \
-    } while (0)
-
-static inline int AppLayerDecoderEventsIsEventSet(int module_id,
-                                                  DecoderEvents *devents,
-                                                  uint8_t event)
-{
-    while (devents != NULL && devents->module_id != module_id) {
-        devents = devents->next;
-    }
-
-    if (devents == NULL)
-        return 0;
-
-    int i;
-    int cnt = devents->cnt;
-    for (i = 0; i < cnt; i++) {
-        if (devents->events[i] == event)
-            return 1;
-    }
-
-    return 0;
-}
-
-#define DecoderEventsFreeEvents(devents)                    \
-    do {                                                    \
-        while ((devents) != NULL) {                         \
-            if ((devents)->events != NULL)                  \
-                SCFree((devents)->events);                  \
-            (devents) = (devents)->next;                    \
-        }                                                   \
-    } while (0)
-
-
-#endif /* #if 0 */
 
 /**
  * \brief Set an app layer decoder event.
@@ -419,13 +360,6 @@ static inline int AppLayerDecoderEventsIsEventSet(AppLayerDecoderEvents *devents
         SCFree((devents));                                  \
     } while (0)
 
-void AppLayerDecoderEventsModuleRegister(uint16_t, SCEnumCharMap *);
-uint16_t AppLayerDecoderEventsModuleGetAlproto(const char *);
-int AppLayerDecoderEventsModuleGetEventId(uint16_t, const char *);
-void AppLayerDecodeEventsModuleDeRegister(void);
-
-/***** Unittest helper functions *****/
-void AppLayerDecoderEventsModuleCreateBackup(void);
-void AppLayerDecoderEventsModuleRestoreBackup(void);
+int AppLayerGetPktEventInfo(const char *event_name, int *event_id);
 
 #endif /* __DECODE_EVENTS_H__ */
