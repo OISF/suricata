@@ -2522,8 +2522,9 @@ int AppLayerPPTestData(AppLayerProbingParser *pp,
 {
     int result = 0;
     int i, j, k;
+#ifdef DEBUG
     int dir = 0;
-
+#endif
     for (i = 0; i < no_of_ip_proto; i++, pp = pp->next) {
         if (pp->ip_proto != ip_proto[i].ip_proto)
             goto end;
@@ -2542,7 +2543,9 @@ int AppLayerPPTestData(AppLayerProbingParser *pp,
                 goto end;
 
             AppLayerProbingParserElement *pp_element = pp_port->toserver;
+#ifdef DEBUG
             dir = 0;
+#endif
             for (j = 0 ; j < ip_proto[i].port[k].ts_no_of_element;
                  j++, pp_element = pp_element->next) {
 
@@ -2572,7 +2575,9 @@ int AppLayerPPTestData(AppLayerProbingParser *pp,
                 goto end;
 
             pp_element = pp_port->toclient;
+#ifdef DEBUG
             dir = 1;
+#endif
             for (j = 0 ; j < ip_proto[i].port[k].tc_no_of_element; j++, pp_element = pp_element->next) {
                 if ((strlen(pp_element->al_proto_name) !=
                      strlen(ip_proto[i].port[k].toclient_element[j].al_proto_name)) ||
@@ -2607,7 +2612,7 @@ int AppLayerPPTestData(AppLayerProbingParser *pp,
 
     result = 1;
  end:
-#if DEBUG
+#ifdef DEBUG
     printf("i = %d, k = %d, j = %d(%s)\n", i, k, j, (dir == 0) ? "ts" : "tc");
 #endif
     return result;
