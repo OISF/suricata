@@ -4879,6 +4879,142 @@ end:
     return result;
 }
 
+/** \test Test really long request, this should result in HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG */
+int HTPParserTest14(void) {
+    int result = 0;
+    Flow *f = NULL;
+    char *httpbuf = NULL;
+    size_t len = 18887;
+    TcpSession ssn;
+    HtpState *htp_state =  NULL;
+    int r = 0;
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: IDS\n\
+    double-decode-path: no\n\
+    double-decode-query: no\n\
+    request-body-limit: 0\n\
+    response-body-limit: 0\n\
+";
+
+    memset(&ssn, 0, sizeof(ssn));
+
+    ConfCreateContextBackup();
+    ConfInit();
+    HtpConfigCreateBackup();
+    ConfYamlLoadString(input, strlen(input));
+    HTPConfigure();
+
+    httpbuf = SCMalloc(len);
+    if (httpbuf == NULL)
+        goto end;
+    memset(httpbuf, 0x00, len);
+
+    /* create the request with a longer than 18k cookie */
+    strlcpy(httpbuf, "GET /blah/ HTTP/1.1\r\n"
+                     "Host: myhost.lan\r\n"
+                     "Connection: keep-alive\r\n"
+                     "Accept: */*\r\n"
+                     "User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.76 Safari/537.36\r\n"
+                     "Referer: http://blah.lan/\r\n"
+                     "Accept-Encoding: gzip,deflate,sdch\r\nAccept-Language: en-US,en;q=0.8\r\n"
+                     "Cookie: ", len);
+    size_t o = strlen(httpbuf);
+    for ( ; o < len - 4; o++) {
+        httpbuf[o] = 'A';
+    }
+    httpbuf[len - 4] = '\r';
+    httpbuf[len - 3] = '\n';
+    httpbuf[len - 2] = '\r';
+    httpbuf[len - 1] = '\n';
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    uint32_t u;
+    for (u = 0; u < len; u++) {
+        uint8_t flags = 0;
+
+        if (u == 0) flags = STREAM_TOSERVER|STREAM_START;
+        else if (u == (len - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
+        else flags = STREAM_TOSERVER;
+
+        SCMutexLock(&f->m);
+        r = AppLayerParse(NULL, f, ALPROTO_HTTP, flags, (uint8_t *)&httpbuf[u], 1);
+        if (u < 18294) { /* first 18294 bytes should result in 0 */
+            if (r != 0) {
+                printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
+                        " 0: ", u, r);
+                result = 0;
+                SCMutexUnlock(&f->m);
+                goto end;
+            }
+        } else if (u == 18294UL) { /* byte 18294 should result in error */
+            if (r != -1) {
+                printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
+                        " -1: ", u, r);
+                result = 0;
+                SCMutexUnlock(&f->m);
+                goto end;
+            }
+
+            /* break out, htp state is in error state now */
+            SCMutexUnlock(&f->m);
+            break;
+        }
+        SCMutexUnlock(&f->m);
+    }
+    htp_state = f->alstate;
+    if (htp_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
+    if (tx == NULL || tx->request_method_number != HTP_M_GET || tx->request_protocol_number != HTP_PROTOCOL_1_1)
+    {
+        printf("expected method M_GET and got %s: , expected protocol "
+                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
+                bstr_util_strdup_to_c(tx->request_protocol));
+        goto end;
+    }
+
+    SCMutexLock(&f->m);
+    AppLayerDecoderEvents *decoder_events = AppLayerGetDecoderEventsForFlow(f);
+    if (decoder_events == NULL) {
+        printf("no app events: ");
+        SCMutexUnlock(&f->m);
+        goto end;
+    }
+    SCMutexUnlock(&f->m);
+
+    if (decoder_events->events[0] != HTTP_DECODER_EVENT_UNKNOWN_ERROR) {
+        printf("HTTP_DECODER_EVENT_UNKNOWN_ERROR not set: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
+    UTHFreeFlow(f);
+    if (httpbuf != NULL)
+        SCFree(httpbuf);
+    HTPFreeConfig();
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
+    return result;
+}
 #endif /* UNITTESTS */
 
 /**
@@ -4915,6 +5051,7 @@ void HTPParserRegisterTests(void) {
     UtRegisterTest("HTPBodyReassemblyTest01", HTPBodyReassemblyTest01, 1);
 
     UtRegisterTest("HTPSegvTest01", HTPSegvTest01, 1);
+    UtRegisterTest("HTPParserTest14", HTPParserTest14, 1);
 
     HTPFileParserRegisterTests();
 #endif /* UNITTESTS */
