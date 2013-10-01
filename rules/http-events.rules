@@ -2,7 +2,7 @@
 #
 # SID's fall in the 2221000+ range. See http://doc.emergingthreats.net/bin/view/Main/SidAllocation
 #
-# These sigs fire at most once per connection.
+# These sigs fire at most once per HTTP transaction.
 #
 # A flowint http.anomaly.count is incremented for each match. By default it will be 0.
 #
@@ -27,8 +27,8 @@ alert http any any -> any any (msg:"SURICATA HTTP missing Host header"; flow:est
 alert http any any -> any any (msg:"SURICATA HTTP Host header ambiguous"; flow:established,to_server; app-layer-event:http.host_header_ambiguous; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221015; rev:1;)
 alert http any any -> any any (msg:"SURICATA HTTP invalid request field folding"; flow:established,to_server; app-layer-event:http.invalid_request_field_folding; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221016; rev:1;)
 alert http any any -> any any (msg:"SURICATA HTTP invalid response field folding"; flow:established,to_client; app-layer-event:http.invalid_response_field_folding; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221017; rev:1;)
-alert http any any -> any any (msg:"SURICATA HTTP request field too long"; flow:established,to_server; app-layer-event:http.request_field_too_long; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221018; rev:1;)
-alert http any any -> any any (msg:"SURICATA HTTP response field too long"; flow:established,to_client; app-layer-event:http.response_field_too_long; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221019; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP request buffer too long"; flow:established,to_server; app-layer-event:http.request_field_too_long; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221018; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP response buffer too long"; flow:established,to_client; app-layer-event:http.response_field_too_long; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221019; rev:1;)
 # Multipart parser detected generic error.
 alert http any any -> any any (msg:"SURICATA HTTP multipart generic error"; flow:established,to_server; app-layer-event:http.multipart_generic_error; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221022; rev:1;)
 # Multipart header claiming a file to present, but no actual filedata available.
@@ -37,5 +37,10 @@ alert http any any -> any any (msg:"SURICATA HTTP multipart no filedata"; flow:e
 alert http any any -> any any (msg:"SURICATA HTTP multipart invalid header"; flow:established,to_server; app-layer-event:http.multipart_invalid_header; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221024; rev:1;)
 # Warn when the port in the Host: header doesn't match the actual TCP Server port.
 alert http any any -> any any (msg:"SURICATA HTTP request server port doesn't match TCP port"; flow:established,to_server; app-layer-event:http.request_server_port_tcp_port_mismatch; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221026; rev:1;)
-# next sid 2221026
+# Host part of URI is invalid
+alert http any any -> any any (msg:"SURICATA HTTP Host part of URI is invalid"; flow:established,to_server; app-layer-event:http.request_uri_host_invalid; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221027; rev:1;)
+# Host header is invalid
+alert http any any -> any any (msg:"SURICATA HTTP Host header invalid"; flow:established,to_server; app-layer-event:http.request_header_host_invalid; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221028; rev:1;)
+
+# next sid 2221029
 
