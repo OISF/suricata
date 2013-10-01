@@ -139,6 +139,11 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG},
     { "REQUEST_SERVER_PORT_TCP_PORT_MISMATCH",
         HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH},
+    { "REQUEST_URI_HOST_INVALID",
+        HTTP_DECODER_EVENT_URI_HOST_INVALID},
+    { "REQUEST_HEADER_HOST_INVALID",
+        HTTP_DECODER_EVENT_HEADER_HOST_INVALID},
+
     /* suricata warnings/errors */
     { "MULTIPART_GENERIC_ERROR",
         HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR},
@@ -564,7 +569,8 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
     BUG_ON(s == NULL || tx == NULL);
 #endif
     if (tx->flags & (   HTP_REQUEST_INVALID_T_E|HTP_REQUEST_INVALID_C_L|
-                        HTP_HOST_MISSING|HTP_HOST_AMBIGUOUS))
+                        HTP_HOST_MISSING|HTP_HOST_AMBIGUOUS|HTP_HOSTU_INVALID|
+                        HTP_HOSTH_INVALID))
     {
         if (tx->flags & HTP_REQUEST_INVALID_T_E)
             AppLayerDecoderEventsSetEvent(s->f,
@@ -578,6 +584,12 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
         if (tx->flags & HTP_HOST_AMBIGUOUS)
             AppLayerDecoderEventsSetEvent(s->f,
                     HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS);
+        if (tx->flags & HTP_HOSTU_INVALID)
+            AppLayerDecoderEventsSetEvent(s->f,
+                    HTTP_DECODER_EVENT_URI_HOST_INVALID);
+        if (tx->flags & HTP_HOSTH_INVALID)
+            AppLayerDecoderEventsSetEvent(s->f,
+                    HTTP_DECODER_EVENT_HEADER_HOST_INVALID);
     }
 }
 
