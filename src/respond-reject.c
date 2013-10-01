@@ -125,17 +125,37 @@ int RejectSendIPv4ICMP(ThreadVars *tv, Packet *p, void *data) {
     return 0;
 }
 
-/** \todo implement */
 int RejectSendIPv6TCP(ThreadVars *tv, Packet *p, void *data) {
     SCEnter();
-    SCLogDebug("we would send a ipv6 tcp reset here");
+    if (PACKET_TEST_ACTION(p, ACTION_REJECT)) {
+        return RejectSendLibnet11L3IPv6TCP(tv, p, data, REJECT_DIR_SRC);
+    } else if (PACKET_TEST_ACTION(p, ACTION_REJECT_DST)) {
+        return RejectSendLibnet11L3IPv6TCP(tv, p, data, REJECT_DIR_DST);
+    } else if(PACKET_TEST_ACTION(p, ACTION_REJECT_BOTH)) {
+        if (RejectSendLibnet11L3IPv6TCP(tv, p, data, REJECT_DIR_SRC) == 0 &&
+            RejectSendLibnet11L3IPv6TCP(tv, p, data, REJECT_DIR_DST) == 0) {
+            return 0;
+        } else {
+            return 1;
+        }
+    }
     SCReturnInt(0);
 }
 
-/** \todo implement */
 int RejectSendIPv6ICMP(ThreadVars *tv, Packet *p, void *data) {
     SCEnter();
-    SCLogDebug("we would send a ipv6 icmp reset here");
+    if (PACKET_TEST_ACTION(p, ACTION_REJECT)) {
+        return RejectSendLibnet11L3IPv6ICMP(tv, p, data, REJECT_DIR_SRC);
+    } else if (PACKET_TEST_ACTION(p, ACTION_REJECT_DST)) {
+        return RejectSendLibnet11L3IPv6ICMP(tv, p, data, REJECT_DIR_DST);
+    } else if(PACKET_TEST_ACTION(p, ACTION_REJECT_BOTH)) {
+        if (RejectSendLibnet11L3IPv6ICMP(tv, p, data, REJECT_DIR_SRC) == 0 &&
+            RejectSendLibnet11L3IPv6ICMP(tv, p, data, REJECT_DIR_DST) == 0) {
+            return 0;
+        } else {
+            return 1;
+        }
+    }
     SCReturnInt(0);
 }
 
