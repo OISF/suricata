@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1678,8 +1678,8 @@ void TmThreadKillThread(ThreadVars *tv)
             SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
         }
 
-        if (tv->cond != NULL ) {
-            pthread_cond_broadcast(tv->cond);
+        if (tv->ctrl_cond != NULL ) {
+            pthread_cond_broadcast(tv->ctrl_cond);
         }
 
         usleep(100);
@@ -1952,24 +1952,24 @@ void TmThreadSetAOF(ThreadVars *tv, uint8_t aof)
  */
 void TmThreadInitMC(ThreadVars *tv)
 {
-    if ( (tv->m = SCMalloc(sizeof(SCMutex))) == NULL) {
+    if ( (tv->ctrl_mutex = SCMalloc(sizeof(*tv->ctrl_mutex))) == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in TmThreadInitMC.  "
                    "Exiting...");
         exit(EXIT_FAILURE);
     }
 
-    if (SCMutexInit(tv->m, NULL) != 0) {
+    if (SCCtrlMutexInit(tv->ctrl_mutex, NULL) != 0) {
         printf("Error initializing the tv->m mutex\n");
         exit(0);
     }
 
-    if ( (tv->cond = SCMalloc(sizeof(SCCondT))) == NULL) {
+    if ( (tv->ctrl_cond = SCMalloc(sizeof(*tv->ctrl_cond))) == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in TmThreadInitMC.  "
                    "Exiting...");
         exit(0);
     }
 
-    if (SCCondInit(tv->cond, NULL) != 0) {
+    if (SCCtrlCondInit(tv->ctrl_cond, NULL) != 0) {
         SCLogError(SC_ERR_FATAL, "Error initializing the tv->cond condition "
                    "variable");
         exit(0);
