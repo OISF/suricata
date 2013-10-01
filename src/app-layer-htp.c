@@ -416,8 +416,8 @@ struct {
     { "Unable to match response to request", HTTP_DECODER_EVENT_UNABLE_TO_MATCH_RESPONSE_TO_REQUEST},
     { "Invalid server port information in request", HTTP_DECODER_EVENT_INVALID_SERVER_PORT_IN_REQUEST},
     { "Invalid authority port", HTTP_DECODER_EVENT_INVALID_AUTHORITY_PORT},
-    { "Request field over", HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG},
-    { "Response field over", HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG},
+    { "Request buffer over", HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG},
+    { "Response buffer over", HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG},
 };
 
 struct {
@@ -4995,8 +4995,8 @@ libhtp:\n\
     }
     SCMutexUnlock(&f->m);
 
-    if (decoder_events->events[0] != HTTP_DECODER_EVENT_UNKNOWN_ERROR) {
-        printf("HTTP_DECODER_EVENT_UNKNOWN_ERROR not set: ");
+    if (decoder_events->events[0] != HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG) {
+        printf("HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG not set: ");
         goto end;
     }
 
