@@ -24,6 +24,9 @@
 #ifndef __DETECT_PROTO_H__
 #define __DETECT_PROTO_H__
 
+/* These are DetectProto flags only, and shouldn't be mistaken as
+ * being chums of our standardized values like IPPROTO_TCP, IPPROTO_UDP,
+ * etc. */
 #define DETECT_PROTO_ANY            (1 << 0) /**< Indicate that given protocol
                                               is considered as IP */
 #define DETECT_PROTO_ONLY_PKT       (1 << 1) /**< Indicate that we only care
@@ -39,7 +42,7 @@ typedef struct DetectProto_ {
 } DetectProto;
 
 /* prototypes */
-int DetectProtoParse(DetectProto *dp, char *str);
+int DetectProtoParse(DetectProto *dp, char *str, uint16_t *ip_proto);
 int DetectProtoContainsProto(DetectProto *, int);
 
 void DetectProtoTests(void);
