@@ -3,7 +3,7 @@ noinst_HEADERS = action-globals.h \
     debug.h \
 	flow-private.h queue.h source-nfq-prototypes.h \
 	suricata-common.h threadvars.h util-binsearch.h \
-        util-validate.h
+    util-validate.h
 bin_PROGRAMS = suricata
 
 suricata_SOURCES = \
@@ -246,7 +246,8 @@ stream-tcp-reassemble.c stream-tcp-reassemble.h \
 stream-tcp-sack.c stream-tcp-sack.h \
 stream-tcp-util.c stream-tcp-util.h \
 suricata.c suricata.h \
-threads.c threads.h \
+threads.c threads.h threads-arch-tile.h \
+threads-debug.h threads-profile.h \
 tm-modules.c tm-modules.h \
 tmqh-flow.c tmqh-flow.h \
 tmqh-nfq.c tmqh-nfq.h \
