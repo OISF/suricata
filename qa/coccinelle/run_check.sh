@@ -19,11 +19,22 @@ else
 	PREFIX=$(git rev-parse --show-toplevel)/
 fi
 
+if [ -z "$CONCURRENCY_LEVEL" ]; then
+	CONCURRENCY_LEVEL=1
+	echo "No concurrency"
+else
+	echo "Using concurrency level $CONCURRENCY_LEVEL"
+fi
+
 for SMPL in $(git rev-parse --show-toplevel)/qa/coccinelle/*.cocci; do
 	echo "Testing cocci file: $SMPL"
-	for FILE in $LIST ; do
-		spatch --very-quiet -sp_file $SMPL --undefined UNITTESTS  $PREFIX$FILE || exit 1;
-	done
+	if command -v parallel >/dev/null; then
+		echo -n $LIST | parallel -d ' ' -j $CONCURRENCY_LEVEL spatch --very-quiet -sp_file $SMPL --undefined UNITTESTS $PREFIX{} || exit 1;
+	else
+		for FILE in $LIST ; do
+			spatch --very-quiet -sp_file $SMPL --undefined UNITTESTS  $PREFIX$FILE || exit 1;
+		done
+	fi
 done
 
 exit 0
