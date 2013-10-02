@@ -27,11 +27,6 @@
 #ifndef __THREADS_H__
 #define __THREADS_H__
 
-#ifdef __tile__
-#include <tmc/spin.h>
-#include <arch/cycle.h>
-#endif
-
 #if HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -43,9 +38,10 @@
 
 #ifdef PROFILING
 #include "util-cpu.h"
+#ifdef PROFILE_LOCKING
 #include "util-profiling-locks.h"
-#endif
-
+#endif /* PROFILE_LOCKING */
+#endif /* PROFILING */
 
 #if defined OS_FREEBSD || __OpenBSD__
 
@@ -96,8 +92,8 @@ enum {
 
 #include <pthread.h>
 
-/** The mutex/spinlock/condition definitions and functions are used
- * in the same way as the POSIX definitionsr; Anyway we are centralizing
+/* The mutex/spinlock/condition definitions and functions are used
+ * in the same way as the POSIX definitions; Anyway we are centralizing
  * them here to make an easier portability process and debugging process;
  * Please, make sure you initialize mutex and spinlocks before using them
  * because, some OS doesn't initialize them for you :)
@@ -105,34 +101,111 @@ enum {
 
 //#define DBG_THREADS
 
-/** Suricata Mutex */
 #ifdef __tile__
-#define SCMutex tmc_spin_queued_mutex_t
-#define SCMutexAttr
-#define SCMutexDestroy(x) ({ (void)(x); 0; })
-#define SCMUTEX_INITIALIZER TMC_SPIN_QUEUED_MUTEX_INIT
-#else
+    #include "threads-arch-tile.h"
+#elif defined DBG_THREADS
+    #ifdef PROFILE_LOCKING
+        #error "Cannot mix DBG_THREADS and PROFILE_LOCKING"
+    #endif
+    #include "threads-debug.h"
+#elif defined PROFILE_LOCKING
+    #include "threads-profile.h"
+#else /* normal */
+
+/* mutex */
 #define SCMutex pthread_mutex_t
 #define SCMutexAttr pthread_mutexattr_t
+#define SCMutexInit(mut, mutattr ) pthread_mutex_init(mut, mutattr)
+#define SCMutexLock(mut) pthread_mutex_lock(mut)
+#define SCMutexTrylock(mut) pthread_mutex_trylock(mut)
+#define SCMutexUnlock(mut) pthread_mutex_unlock(mut)
 #define SCMutexDestroy pthread_mutex_destroy
 #define SCMUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
-#endif
 
-/* NOTE: On Tilera datapath threads use the tmc library for mutexes
- * while the control threads use pthread mutexes.  So the pthread
- * mutex types are split out so they their use can be differentiated.
- */
+/* rwlocks */
+#define SCRWLock pthread_rwlock_t
+#define SCRWLockInit(rwl, rwlattr ) pthread_rwlock_init(rwl, rwlattr)
+#define SCRWLockWRLock(rwl) pthread_rwlock_wrlock(rwl)
+#define SCRWLockRDLock(rwl) pthread_rwlock_rdlock(rwl)
+#define SCRWLockTryWRLock(rwl) pthread_rwlock_trywrlock(rwl)
+#define SCRWLockTryRDLock(rwl) pthread_rwlock_tryrdlock(rwl)
+#define SCRWLockUnlock(rwl) pthread_rwlock_unlock(rwl)
+#define SCRWLockDestroy pthread_rwlock_destroy
+
+/* conditions */
+#define SCCondT pthread_cond_t
+#define SCCondInit pthread_cond_init
+#define SCCondSignal pthread_cond_signal
+#define SCCondDestroy pthread_cond_destroy
+#define SCCondWait(cond, mut) pthread_cond_wait(cond, mut)
+
+/* ctrl mutex */
 #define SCCtrlMutex pthread_mutex_t
 #define SCCtrlMutexAttr pthread_mutexattr_t
+#define SCCtrlMutexInit(mut, mutattr ) pthread_mutex_init(mut, mutattr)
+#define SCCtrlMutexLock(mut) pthread_mutex_lock(mut)
+#define SCCtrlMutexTrylock(mut) pthread_mutex_trylock(mut)
+#define SCCtrlMutexUnlock(mut) pthread_mutex_unlock(mut)
 #define SCCtrlMutexDestroy pthread_mutex_destroy
 
-/** Suricata RWLocks */
-#ifdef __tile__
-#define SCRWLock tmc_spin_rwlock_t
-#define SCRWLockDestroy(x) ({ (void)(x); 0; })
-#else
-#define SCRWLock pthread_rwlock_t
-#define SCRWLockDestroy pthread_rwlock_destroy
+/* ctrl conditions */
+#define SCCtrlCondT pthread_cond_t
+#define SCCtrlCondInit pthread_cond_init
+#define SCCtrlCondSignal pthread_cond_signal
+#define SCCtrlCondTimedwait pthread_cond_timedwait
+#define SCCtrlCondDestroy pthread_cond_destroy
+
+/* spinlocks */
+#if ((_POSIX_SPIN_LOCKS - 200112L) < 0L) || defined HELGRIND
+#define SCSpinlock                              SCMutex
+#define SCSpinLock(spin)                        SCMutexLock((spin))
+#define SCSpinTrylock(spin)                     SCMutexTrylock((spin))
+#define SCSpinUnlock(spin)                      SCMutexUnlock((spin))
+#define SCSpinInit(spin, spin_attr)             SCMutexInit((spin), NULL)
+#define SCSpinDestroy(spin)                     SCMutexDestroy((spin))
+#else /* no spinlocks */
+#define SCSpinlock                              pthread_spinlock_t
+#define SCSpinLock(spin)                        pthread_spin_lock(spin)
+#define SCSpinTrylock(spin)                     pthread_spin_trylock(spin)
+#define SCSpinUnlock(spin)                      pthread_spin_unlock(spin)
+#define SCSpinInit(spin, spin_attr)             pthread_spin_init(spin, spin_attr)
+#define SCSpinDestroy(spin)                     pthread_spin_destroy(spin)
+#endif /* no spinlocks */
+
+#endif /* __tile__ */
+
+#if (!defined SCMutex       || !defined SCMutexAttr     || !defined SCMutexInit || \
+     !defined SCMutexLock   || !defined SCMutexTrylock  || \
+     !defined SCMutexUnlock || !defined SCMutexDestroy  || \
+     !defined SCMUTEX_INITIALIZER)
+#error "Mutex types and/or macro's not properly defined"
+#endif
+#if (!defined SCCtrlMutex       || !defined SCCtrlMutexAttr     || !defined SCCtrlMutexInit || \
+     !defined SCCtrlMutexLock   || !defined SCCtrlMutexTrylock  || \
+     !defined SCCtrlMutexUnlock || !defined SCCtrlMutexDestroy)
+#error "SCCtrlMutex types and/or macro's not properly defined"
+#endif
+
+#if (!defined SCSpinlock    || !defined SCSpinLock      || \
+     !defined SCSpinTrylock || !defined SCSpinUnlock    || \
+     !defined SCSpinInit    || !defined SCSpinDestroy)
+#error "Spinlock types and/or macro's not properly defined"
+#endif
+
+#if (!defined SCRWLock || !defined SCRWLockInit || !defined SCRWLockWRLock || \
+     !defined SCRWLockRDLock || !defined SCRWLockTryWRLock || \
+     !defined SCRWLockTryRDLock || !defined SCRWLockUnlock || !defined SCRWLockDestroy)
+#error "SCRWLock types and/or macro's not properly defined"
+#endif
+
+#if (!defined SCCondT || !defined SCCondInit || !defined SCCondSignal || \
+     !defined SCCondDestroy || !defined SCCondWait)
+#error "SCCond types and/or macro's not properly defined"
+#endif
+
+#if (!defined SCCtrlCondT || !defined SCCtrlCondInit || !defined SCCtrlCondSignal ||\
+     !defined SCCtrlCondDestroy || !defined SCCtrlCondTimedwait)
+#error "SCCtrlCond types and/or macro's not properly defined"
 #endif
 
 /** Get the Current Thread Id */
@@ -178,400 +251,6 @@ enum {
 })
 #endif /* OS FREEBSD */
 
-/** Mutex Functions */
-#ifdef DBG_THREADS
-/** When dbg threads is defined, if a mutex fail to lock, it's
- * initialized, logged, and does a second try; This is to prevent the system to freeze;
- * It is for Mac OS X users;
- * If you see a mutex, spinlock or condiion not initialized, report it please!
- */
-#define SCMutexLock_dbg(mut) ({ \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") locking mutex %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut); \
-    int retl = pthread_mutex_lock(mut); \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") locked mutex %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut, retl); \
-    if (retl != 0) { \
-        switch (retl) { \
-            case EINVAL: \
-            printf("The value specified by attr is invalid\n"); \
-            retl = pthread_mutex_init(mut, NULL); \
-            if (retl != 0) \
-                exit(EXIT_FAILURE); \
-            retl = pthread_mutex_lock(mut); \
-            break; \
-            case EDEADLK: \
-            printf("A deadlock would occur if the thread blocked waiting for mutex\n"); \
-            break; \
-        } \
-    } \
-    retl; \
-})
-
-#define SCMutexTrylock_dbg(mut) ({ \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") trylocking mutex %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut); \
-    int rett = pthread_mutex_trylock(mut); \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") trylocked mutex %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut, rett); \
-    if (rett != 0) { \
-        switch (rett) { \
-            case EINVAL: \
-            printf("%16s(%s:%d): The value specified by attr is invalid\n", __FUNCTION__, __FILE__, __LINE__); \
-            break; \
-            case EBUSY: \
-            printf("Mutex is already locked\n"); \
-            break; \
-        } \
-    } \
-    rett; \
-})
-
-#define SCMutexInit_dbg(mut, mutattr) ({ \
-    int ret; \
-    ret = pthread_mutex_init(mut, mutattr); \
-    if (ret != 0) { \
-        switch (ret) { \
-            case EINVAL: \
-            printf("The value specified by attr is invalid\n"); \
-            printf("%16s(%s:%d): (thread:%"PRIuMAX") mutex %p initialization returned %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut, ret); \
-            break; \
-            case EAGAIN: \
-            printf("The system temporarily lacks the resources to create another mutex\n"); \
-            printf("%16s(%s:%d): (thread:%"PRIuMAX") mutex %p initialization returned %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut, ret); \
-            break; \
-            case ENOMEM: \
-            printf("The process cannot allocate enough memory to create another mutex\n"); \
-            printf("%16s(%s:%d): (thread:%"PRIuMAX") mutex %p initialization returned %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut, ret); \
-            break; \
-        } \
-    } \
-    ret; \
-})
-
-#define SCMutexUnlock_dbg(mut) ({ \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") unlocking mutex %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut); \
-    int retu = pthread_mutex_unlock(mut); \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") unlocked mutex %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut, retu); \
-    if (retu != 0) { \
-        switch (retu) { \
-            case EINVAL: \
-            printf("%16s(%s:%d): The value specified by attr is invalid\n", __FUNCTION__, __FILE__, __LINE__); \
-            break; \
-            case EPERM: \
-            printf("The current thread does not hold a lock on mutex\n"); \
-            break; \
-        } \
-    } \
-    retu; \
-})
-
-#define SCMutexInit(mut, mutattrs) SCMutexInit_dbg(mut, mutattrs)
-#define SCMutexLock(mut) SCMutexLock_dbg(mut)
-#define SCMutexTrylock(mut) SCMutexTrylock_dbg(mut)
-#define SCMutexUnlock(mut) SCMutexUnlock_dbg(mut)
-#elif defined PROFILE_LOCKING
-#define SCMutexInit(mut, mutattr ) pthread_mutex_init(mut, mutattr)
-#define SCMutexUnlock(mut) pthread_mutex_unlock(mut)
-
-typedef struct ProfilingLock_ {
-    char *file;
-    char *func;
-    int line;
-    int type;
-    uint32_t cont;
-    uint64_t ticks;
-} ProfilingLock;
-
-extern __thread ProfilingLock locks[PROFILING_MAX_LOCKS];
-extern __thread int locks_idx;
-extern __thread int record_locks;
-
-extern __thread uint64_t mutex_lock_contention;
-extern __thread uint64_t mutex_lock_wait_ticks;
-extern __thread uint64_t mutex_lock_cnt;
-
-//printf("%16s(%s:%d): (thread:%"PRIuMAX") locked mutex %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut, retl);
-#define SCMutexLock_profile(mut) ({ \
-    mutex_lock_cnt++; \
-    int retl = 0; \
-    int cont = 0; \
-    uint64_t mutex_lock_start = UtilCpuGetTicks(); \
-    if (pthread_mutex_trylock((mut)) != 0) { \
-        mutex_lock_contention++; \
-        cont = 1; \
-        retl = pthread_mutex_lock(mut); \
-    } \
-    uint64_t mutex_lock_end = UtilCpuGetTicks();                                \
-    mutex_lock_wait_ticks += (uint64_t)(mutex_lock_end - mutex_lock_start);     \
-    \
-    if (locks_idx < PROFILING_MAX_LOCKS && record_locks) {                      \
-        locks[locks_idx].file = (char *)__FILE__;                               \
-        locks[locks_idx].func = (char *)__func__;                               \
-        locks[locks_idx].line = (int)__LINE__;                                  \
-        locks[locks_idx].type = LOCK_MUTEX;                                     \
-        locks[locks_idx].cont = cont;                                           \
-        locks[locks_idx].ticks = (uint64_t)(mutex_lock_end - mutex_lock_start); \
-        locks_idx++;                                                            \
-    } \
-    retl; \
-})
-
-#define SCMutexLock(mut) SCMutexLock_profile(mut)
-#define SCMutexTrylock(mut) pthread_mutex_trylock(mut)
-
-#else /* Not Debug and Not Profile */
-#ifdef __tile__
-#define SCMutexInit(mut, mutattr) ({ \
-    int ret = 0; \
-    tmc_spin_queued_mutex_init(mut); \
-    ret; \
-})
-#define SCMutexLock(mut) ({ \
-    int ret = 0; \
-    tmc_spin_queued_mutex_lock(mut); \
-    ret; \
-})
-#define SCMutexTrylock(mut) ({ \
-    int ret = (tmc_spin_queued_mutex_trylock(mut) == 0) ? 0 : EBUSY; \
-    ret; \
-})
-#define SCMutexUnlock(mut) ({ \
-    int ret = 0; \
-    tmc_spin_queued_mutex_unlock(mut); \
-    ret; \
-})
-#else /* !__tile__ and ! DEBUG*/
-#define SCMutexInit(mut, mutattr ) pthread_mutex_init(mut, mutattr)
-#define SCMutexLock(mut) pthread_mutex_lock(mut)
-#define SCMutexTrylock(mut) pthread_mutex_trylock(mut)
-#define SCMutexUnlock(mut) pthread_mutex_unlock(mut)
-#endif /* __tile__ */
-/* Control threads locks. Not Debug. */
-#define SCCtrlMutexInit(mut, mutattr ) pthread_mutex_init(mut, mutattr)
-#define SCCtrlMutexLock(mut) pthread_mutex_lock(mut)
-#define SCCtrlMutexTrylock(mut) pthread_mutex_trylock(mut)
-#define SCCtrlMutexUnlock(mut) pthread_mutex_unlock(mut)
-#endif /* DBG_THREADS */
-
-/** Conditions/Signals */
-/* Here we don't need to do anything at the moment */
-#ifdef __tile__
-/* Ignore signals when using spin locks */
-#define SCCondT uint8_t
-#define SCCondInit(x,y) ({ 0; })
-#define SCCondSignal(x)
-#define SCCondDestroy(x)
-#else /* !__tile__ */
-#define SCCondT pthread_cond_t
-#define SCCondInit pthread_cond_init
-#define SCCondSignal pthread_cond_signal
-#define SCCondDestroy pthread_cond_destroy
-#endif /* __tile__ */
-
-#define SCCtrlCondT pthread_cond_t
-#define SCCtrlCondInit pthread_cond_init
-#define SCCtrlCondSignal pthread_cond_signal
-#define SCCtrlCondTimedwait pthread_cond_timedwait
-#define SCCtrlCondDestroy pthread_cond_destroy
-
-#ifdef DBG_THREAD
-#define SCCondWait_dbg(cond, mut) ({ \
-    int ret = pthread_cond_wait(cond, mut); \
-    switch (ret) { \
-        case EINVAL: \
-        printf("The value specified by attr is invalid (or a SCCondT not initialized!)\n"); \
-        printf("%16s(%s:%d): (thread:%"PRIuMAX") failed SCCondWait %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut, retu); \
-        break; \
-    } \
-    ret; \
-})
-#define SCCondWait SCondWait_dbg
-#else
-#ifdef __tile__
-static inline void cycle_sleep(int cycles)
-{
-  uint64_t end = get_cycle_count() + cycles;
-  while (get_cycle_count() < end)
-    ;
-}
-#define SCCondWait(x,y) cycle_sleep(300)
-#else
-#define SCCondWait(cond, mut) pthread_cond_wait(cond, mut)
-#endif /* __tile__ */
-#endif
-
-/** Spinlocks */
-#if 0
-#ifdef __tile__
-#define SCSpinlock               tmc_spin_queued_mutex_t
-#else
-#define SCSpinlock               pthread_spinlock_t
-#endif
-#endif
-
-/** If posix spin not supported, use mutex */
-#if ((_POSIX_SPIN_LOCKS - 200112L) < 0L) || defined HELGRIND
-#define SCSpinlock                              SCMutex
-#define SCSpinLock(spin)                        SCMutexLock((spin))
-#define SCSpinTrylock(spin)                     SCMutexTrylock((spin))
-#define SCSpinUnlock(spin)                      SCMutexUnlock((spin))
-#define SCSpinInit(spin, spin_attr)             SCMutexInit((spin), NULL)
-#define SCSpinDestroy(spin)                     SCMutexDestroy((spin))
-
-#elif defined DBG_THREADS
-#define SCSpinlock                              pthread_spinlock_t
-
-#define SCSpinLock_dbg(spin) ({ \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") locking spin %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), spin); \
-    int ret = pthread_spin_lock(spin); \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") unlocked spin %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), spin, ret); \
-    switch (ret) { \
-        case EINVAL: \
-        printf("The value specified by attr is invalid\n"); \
-        break; \
-        case EDEADLK: \
-        printf("A deadlock would occur if the thread blocked waiting for spin\n"); \
-        break; \
-    } \
-    ret; \
-})
-
-#define SCSpinTrylock_dbg(spin) ({ \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") trylocking spin %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), spin); \
-    int ret = pthread_spin_trylock(spin); \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") trylocked spin %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), spin, ret); \
-    switch (ret) { \
-        case EINVAL: \
-        printf("The value specified by attr is invalid\n"); \
-        break; \
-        case EDEADLK: \
-        printf("A deadlock would occur if the thread blocked waiting for spin\n"); \
-        break; \
-        case EBUSY: \
-        printf("A thread currently holds the lock\n"); \
-        break; \
-    } \
-    ret; \
-})
-
-#define SCSpinUnlock_dbg(spin) ({ \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") unlocking spin %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), spin); \
-    int ret = pthread_spin_unlock(spin); \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") unlockedspin %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), spin, ret); \
-    switch (ret) { \
-        case EINVAL: \
-        printf("The value specified by attr is invalid\n"); \
-        break; \
-        case EPERM: \
-        printf("The calling thread does not hold the lock\n"); \
-        break; \
-    } \
-    ret; \
-})
-
-#define SCSpinInit_dbg(spin, spin_attr) ({ \
-    int ret = pthread_spin_init(spin, spin_attr); \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") spinlock %p initialization returned %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), spin, ret); \
-    switch (ret) { \
-        case EINVAL: \
-        printf("The value specified by attr is invalid\n"); \
-        break; \
-        case EBUSY: \
-        printf("A thread currently holds the lock\n"); \
-        break; \
-        case ENOMEM: \
-        printf("The process cannot allocate enough memory to create another spin\n"); \
-        break; \
-        case EAGAIN: \
-        printf("The system temporarily lacks the resources to create another spin\n"); \
-        break; \
-    } \
-    ret; \
-})
-
-#define SCSpinDestroy_dbg(spin) ({ \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") condition %p waiting\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), spin); \
-    int ret = pthread_spin_destroy(spin); \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") condition %p passed %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), spin, ret); \
-    switch (ret) { \
-        case EINVAL: \
-        printf("The value specified by attr is invalid\n"); \
-        break; \
-        case EBUSY: \
-        printf("A thread currently holds the lock\n"); \
-        break; \
-        case ENOMEM: \
-        printf("The process cannot allocate enough memory to create another spin\n"); \
-        break; \
-        case EAGAIN: \
-        printf("The system temporarily lacks the resources to create another spin\n"); \
-        break; \
-    } \
-    ret; \
-})
-
-#define SCSpinLock                              SCSpinLock_dbg
-#define SCSpinTrylock                           SCSpinTrylock_dbg
-#define SCSpinUnlock                            SCSpinUnlock_dbg
-#define SCSpinInit                              SCSpinInit_dbg
-#define SCSpinDestroy                           SCSpinDestroy_dbg
-
-#elif defined PROFILE_LOCKING
-#define SCSpinlock                              pthread_spinlock_t
-
-extern __thread uint64_t spin_lock_contention;
-extern __thread uint64_t spin_lock_wait_ticks;
-extern __thread uint64_t spin_lock_cnt;
-
-//printf("%16s(%s:%d): (thread:%"PRIuMAX") locked mutex %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut, retl);
-#define SCSpinLock_profile(spin) ({ \
-    spin_lock_cnt++; \
-    int retl = 0; \
-    int cont = 0; \
-    uint64_t spin_lock_start = UtilCpuGetTicks(); \
-    if (pthread_spin_trylock((spin)) != 0) { \
-        spin_lock_contention++; \
-        cont = 1;   \
-        retl = pthread_spin_lock((spin)); \
-    } \
-    uint64_t spin_lock_end = UtilCpuGetTicks(); \
-    spin_lock_wait_ticks += (uint64_t)(spin_lock_end - spin_lock_start); \
-    \
-    if (locks_idx < PROFILING_MAX_LOCKS && record_locks) {                      \
-        locks[locks_idx].file = (char *)__FILE__;                               \
-        locks[locks_idx].func = (char *)__func__;                               \
-        locks[locks_idx].line = (int)__LINE__;                                  \
-        locks[locks_idx].type = LOCK_SPIN;                                      \
-        locks[locks_idx].cont = cont;                                           \
-        locks[locks_idx].ticks = (uint64_t)(spin_lock_end - spin_lock_start);   \
-        locks_idx++;                                                            \
-    } \
-    retl; \
-})
-
-#define SCSpinLock(mut)                         SCSpinLock_profile(mut)
-#define SCSpinTrylock(spin)                     pthread_spin_trylock(spin)
-#define SCSpinUnlock(spin)                      pthread_spin_unlock(spin)
-#define SCSpinInit(spin, spin_attr)             pthread_spin_init(spin, spin_attr)
-#define SCSpinDestroy(spin)                     pthread_spin_destroy(spin)
-
-#else /* if no dbg threads defined... */
-
-#ifdef __tile__
-#define SCSpinlock                              tmc_spin_queued_mutex_t
-#define SCSpinLock(spin)                        ({ tmc_spin_queued_mutex_lock(spin); 0; })
-#define SCSpinTrylock(spin)                     (tmc_spin_queued_mutex_trylock(spin) ? EBUSY : 0)
-#define SCSpinUnlock(spin)                      ({ tmc_spin_queued_mutex_unlock(spin); 0; })
-#define SCSpinInit(spin, spin_attr)             ({ tmc_spin_queued_mutex_init(spin); 0; })
-#define SCSpinDestroy(spin)                     ({ (void)(spin); 0; })
-#else
-#define SCSpinlock                              pthread_spinlock_t
-#define SCSpinLock(spin)                        pthread_spin_lock(spin)
-#define SCSpinTrylock(spin)                     pthread_spin_trylock(spin)
-#define SCSpinUnlock(spin)                      pthread_spin_unlock(spin)
-#define SCSpinInit(spin, spin_attr)             pthread_spin_init(spin, spin_attr)
-#define SCSpinDestroy(spin)                     pthread_spin_destroy(spin)
-#endif /* __tile__ */
-
-#endif /* DBG_THREADS */
-
 /*
  * OS specific macro's for setting the thread name. "top" can display
  * this name.
@@ -595,7 +274,7 @@ extern __thread uint64_t spin_lock_cnt;
 #elif defined OS_DARWIN /* Mac OS X */
 /** \todo Add implementation for MacOS */
 #define SCSetThreadName(n) (0)
-#elif defined PR_SET_NAME /*PR_SET_NAME */
+#elif defined PR_SET_NAME /* PR_SET_NAME */
 /**
  * \brief Set the threads name
  */
@@ -613,221 +292,6 @@ extern __thread uint64_t spin_lock_cnt;
 #define SCSetThreadName(n) (0)
 #endif
 
-
-/** RWLock Functions */
-#ifdef DBG_THREADS
-/** When dbg threads is defined, if a rwlock fail to lock, it's
- * initialized, logged, and does a second try; This is to prevent the system to freeze;
- * If you see a rwlock, spinlock or condiion not initialized, report it please!
- */
-#define SCRWLockRDLock_dbg(rwl) ({ \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") locking rwlock %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl); \
-    int retl = pthread_rwlock_rdlock(rwl); \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") locked rwlock %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl, retl); \
-    if (retl != 0) { \
-        switch (retl) { \
-            case EINVAL: \
-            printf("The value specified by attr is invalid\n"); \
-            retl = pthread_rwlock_init(rwl, NULL); \
-            if (retl != 0) \
-                exit(EXIT_FAILURE); \
-            retl = pthread_rwlock_rdlock(rwl); \
-            break; \
-            case EDEADLK: \
-            printf("A deadlock would occur if the thread blocked waiting for rwlock\n"); \
-            break; \
-        } \
-    } \
-    retl; \
-})
-
-#define SCRWLockWRLock_dbg(rwl) ({ \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") locking rwlock %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl); \
-    int retl = pthread_rwlock_wrlock(rwl); \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") locked rwlock %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl, retl); \
-    if (retl != 0) { \
-        switch (retl) { \
-            case EINVAL: \
-            printf("The value specified by attr is invalid\n"); \
-            retl = pthread_rwlock_init(rwl, NULL); \
-            if (retl != 0) \
-                exit(EXIT_FAILURE); \
-            retl = pthread_rwlock_wrlock(rwl); \
-            break; \
-            case EDEADLK: \
-            printf("A deadlock would occur if the thread blocked waiting for rwlock\n"); \
-            break; \
-        } \
-    } \
-    retl; \
-})
-
-
-#define SCRWLockTryWRLock_dbg(rwl) ({ \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") trylocking rwlock %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl); \
-    int rett = pthread_rwlock_trywrlock(rwl); \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") trylocked rwlock %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl, rett); \
-    if (rett != 0) { \
-        switch (rett) { \
-            case EINVAL: \
-            printf("%16s(%s:%d): The value specified by attr is invalid\n", __FUNCTION__, __FILE__, __LINE__); \
-            break; \
-            case EBUSY: \
-            printf("RWLock is already locked\n"); \
-            break; \
-        } \
-    } \
-    rett; \
-})
-
-#define SCRWLockTryRDLock_dbg(rwl) ({ \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") trylocking rwlock %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl); \
-    int rett = pthread_rwlock_tryrdlock(rwl); \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") trylocked rwlock %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl, rett); \
-    if (rett != 0) { \
-        switch (rett) { \
-            case EINVAL: \
-            printf("%16s(%s:%d): The value specified by attr is invalid\n", __FUNCTION__, __FILE__, __LINE__); \
-            break; \
-            case EBUSY: \
-            printf("RWLock is already locked\n"); \
-            break; \
-        } \
-    } \
-    rett; \
-})
-
-#define SCRWLockInit_dbg(rwl, rwlattr) ({ \
-    int ret; \
-    ret = pthread_rwlock_init(rwl, rwlattr); \
-    if (ret != 0) { \
-        switch (ret) { \
-            case EINVAL: \
-            printf("The value specified by attr is invalid\n"); \
-            printf("%16s(%s:%d): (thread:%"PRIuMAX") rwlock %p initialization returned %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl, ret); \
-            break; \
-            case EAGAIN: \
-            printf("The system temporarily lacks the resources to create another rwlock\n"); \
-            printf("%16s(%s:%d): (thread:%"PRIuMAX") rwlock %p initialization returned %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl, ret); \
-            break; \
-            case ENOMEM: \
-            printf("The process cannot allocate enough memory to create another rwlock\n"); \
-            printf("%16s(%s:%d): (thread:%"PRIuMAX") rwlock %p initialization returned %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl, ret); \
-            break; \
-        } \
-    } \
-    ret; \
-})
-
-#define SCRWLockUnlock_dbg(rwl) ({ \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") unlocking rwlock %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl); \
-    int retu = pthread_rwlock_unlock(rwl); \
-    printf("%16s(%s:%d): (thread:%"PRIuMAX") unlocked rwlock %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl, retu); \
-    if (retu != 0) { \
-        switch (retu) { \
-            case EINVAL: \
-            printf("%16s(%s:%d): The value specified by attr is invalid\n", __FUNCTION__, __FILE__, __LINE__); \
-            break; \
-            case EPERM: \
-            printf("The current thread does not hold a lock on rwlock\n"); \
-            break; \
-        } \
-    } \
-    retu; \
-})
-
-#define SCRWLockInit(rwl, rwlattrs) SCRWLockInit_dbg(rwl, rwlattrs)
-#define SCRWLockRDLock(rwl) SCRWLockRDLock_dbg(rwl)
-#define SCRWLockWRLock(rwl) SCRWLockWRLock_dbg(rwl)
-#define SCRWLockTryWRLock(rwl) SCRWLockTryWRLock_dbg(rwl)
-#define SCRWLockTryRDLock(rwl) SCRWLockTryRDLock_dbg(rwl)
-#define SCRWLockUnlock(rwl) SCRWLockUnlock_dbg(rwl)
-#elif defined PROFILE_LOCKING
-#define SCRWLockInit(rwl, rwlattr ) pthread_rwlock_init(rwl, rwlattr)
-#define SCRWLockUnlock(rwl) pthread_rwlock_unlock(rwl)
-
-extern __thread uint64_t rww_lock_contention;
-extern __thread uint64_t rww_lock_wait_ticks;
-extern __thread uint64_t rww_lock_cnt;
-
-#define SCRWLockWRLock_profile(mut) ({ \
-    rww_lock_cnt++; \
-    int retl = 0; \
-    int cont = 0; \
-    uint64_t rww_lock_start = UtilCpuGetTicks(); \
-    if (pthread_rwlock_trywrlock((mut)) != 0) { \
-        rww_lock_contention++; \
-        cont = 1; \
-        retl = pthread_rwlock_wrlock(mut); \
-    } \
-    uint64_t rww_lock_end = UtilCpuGetTicks();                                  \
-    rww_lock_wait_ticks += (uint64_t)(rww_lock_end - rww_lock_start);           \
-    \
-    if (locks_idx < PROFILING_MAX_LOCKS && record_locks) {                      \
-        locks[locks_idx].file = (char *)__FILE__;                               \
-        locks[locks_idx].func = (char *)__func__;                               \
-        locks[locks_idx].line = (int)__LINE__;                                  \
-        locks[locks_idx].type = LOCK_RWW;                                       \
-        locks[locks_idx].cont = cont;                                           \
-        locks[locks_idx].ticks = (uint64_t)(rww_lock_end - rww_lock_start);     \
-        locks_idx++;                                                            \
-    } \
-    retl; \
-})
-
-extern __thread uint64_t rwr_lock_contention;
-extern __thread uint64_t rwr_lock_wait_ticks;
-extern __thread uint64_t rwr_lock_cnt;
-
-#define SCRWLockRDLock_profile(mut) ({ \
-    rwr_lock_cnt++; \
-    int retl = 0; \
-    int cont = 0; \
-    uint64_t rwr_lock_start = UtilCpuGetTicks(); \
-    if (pthread_rwlock_tryrdlock((mut)) != 0) { \
-        rwr_lock_contention++; \
-        cont = 1; \
-        retl = pthread_rwlock_rdlock(mut); \
-    } \
-    uint64_t rwr_lock_end = UtilCpuGetTicks();                                  \
-    rwr_lock_wait_ticks += (uint64_t)(rwr_lock_end - rwr_lock_start);           \
-    \
-    if (locks_idx < PROFILING_MAX_LOCKS && record_locks) {                      \
-        locks[locks_idx].file = (char *)__FILE__;                               \
-        locks[locks_idx].func = (char *)__func__;                               \
-        locks[locks_idx].line = (int)__LINE__;                                  \
-        locks[locks_idx].type = LOCK_RWR;                                       \
-        locks[locks_idx].cont = cont;                                           \
-        locks[locks_idx].ticks = (uint64_t)(rwr_lock_end - rwr_lock_start);     \
-        locks_idx++;                                                            \
-    } \
-    retl; \
-})
-
-#define SCRWLockWRLock(mut) SCRWLockWRLock_profile(mut)
-#define SCRWLockRDLock(mut) SCRWLockRDLock_profile(mut)
-
-#define SCRWLockTryWRLock(rwl) pthread_rwlock_trywrlock(rwl)
-#define SCRWLockTryRDLock(rwl) pthread_rwlock_tryrdlock(rwl)
-#else
-#ifdef __tile__
-#define SCRWLockInit(rwl, rwlattr ) ({ tmc_spin_rwlock_init(rwl); 0; })
-#define SCRWLockWRLock(rwl) ({ tmc_spin_rwlock_wrlock(rwl); 0; })
-#define SCRWLockRDLock(rwl) ({ tmc_spin_rwlock_rdlock(rwl); 0; })
-#define SCRWLockTryWRLock(rwl) (tmc_spin_rwlock_trywrlock(rwl) ? EBUSY : 0)
-#define SCRWLockTryRDLock(rwl) (tmc_spin_rwlock_tryrdlock(rwl) ? EBUSY : 0)
-#define SCRWLockUnlock(rwl) ({ tmc_spin_rwlock_unlock(rwl); 0; })
-#else
-#define SCRWLockInit(rwl, rwlattr ) pthread_rwlock_init(rwl, rwlattr)
-#define SCRWLockWRLock(rwl) pthread_rwlock_wrlock(rwl)
-#define SCRWLockRDLock(rwl) pthread_rwlock_rdlock(rwl)
-#define SCRWLockTryWRLock(rwl) pthread_rwlock_trywrlock(rwl)
-#define SCRWLockTryRDLock(rwl) pthread_rwlock_tryrdlock(rwl)
-#define SCRWLockUnlock(rwl) pthread_rwlock_unlock(rwl)
-#endif
-#endif
-
-/** End of RWLock functions */
 
 void ThreadMacrosRegisterTests(void);
 
