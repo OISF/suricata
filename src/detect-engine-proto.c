@@ -80,44 +80,66 @@ void DetectProtoFree(DetectProto *dp)
  * \param dp  Pointer to the DetectProto instance which will be updated with the
  *            incoming protocol information.
  * \param str Pointer to the string containing the protocol name.
+ * \param ip_proto Pointer to an [out] variable to send back the ip_protocol
+ *                 value, for the input sent.
  *
  * \retval >=0 If proto is detected, -1 otherwise.
  */
-int DetectProtoParse(DetectProto *dp, char *str)
+int DetectProtoParse(DetectProto *dp, char *str, uint16_t *ip_proto)
 {
+    if (ip_proto != NULL)
+        *ip_proto = 0;
+
+    uint16_t ip_proto_tmp = 0;
+
     if (strcasecmp(str, "tcp") == 0) {
-        dp->proto[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
+        ip_proto_tmp = IPPROTO_TCP;
+        dp->proto[ip_proto_tmp / 8] |= 1 << (ip_proto_tmp % 8);
         SCLogDebug("TCP protocol detected");
     } else if (strcasecmp(str, "tcp-pkt") == 0) {
-        dp->proto[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
+        ip_proto_tmp = IPPROTO_TCP;
+        dp->proto[ip_proto_tmp / 8] |= 1 << (ip_proto_tmp % 8);
         SCLogDebug("TCP protocol detected, packets only");
         dp->flags |= DETECT_PROTO_ONLY_PKT;
     } else if (strcasecmp(str, "tcp-stream") == 0) {
-        dp->proto[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
+        ip_proto_tmp = IPPROTO_TCP;
+        dp->proto[ip_proto_tmp / 8] |= 1 << (ip_proto_tmp % 8);
         SCLogDebug("TCP protocol detected, stream only");
         dp->flags |= DETECT_PROTO_ONLY_STREAM;
     } else if (strcasecmp(str, "udp") == 0) {
-        dp->proto[IPPROTO_UDP / 8] |= 1 << (IPPROTO_UDP % 8);
+        ip_proto_tmp = IPPROTO_UDP;
+        dp->proto[ip_proto_tmp / 8] |= 1 << (ip_proto_tmp % 8);
         SCLogDebug("UDP protocol detected");
     } else if (strcasecmp(str, "icmp") == 0) {
+        /* AWS, how do we handle this? */
+        ip_proto_tmp = 0;
         dp->proto[IPPROTO_ICMP / 8] |= 1 << (IPPROTO_ICMP % 8);
         dp->proto[IPPROTO_ICMPV6 / 8] |= 1 << (IPPROTO_ICMPV6 % 8);
         SCLogDebug("ICMP protocol detected, sig applies both to ICMPv4 and ICMPv6");
     } else if (strcasecmp(str, "sctp") == 0) {
-        dp->proto[IPPROTO_SCTP / 8] |= 1 << (IPPROTO_SCTP % 8);
+        ip_proto_tmp = IPPROTO_SCTP;
+        dp->proto[ip_proto_tmp / 8] |= 1 << (ip_proto_tmp % 8);
         SCLogDebug("SCTP protocol detected");
     } else if (strcasecmp(str,"ipv4") == 0 ||
                strcasecmp(str,"ip4") == 0 ) {
+        /* AWS, how do we handle this?  Some universal value that
+         * represents all protocols?*/
+        ip_proto_tmp = 0;
         dp->flags |= (DETECT_PROTO_IPV4 | DETECT_PROTO_ANY);
         memset(dp->proto, 0xff, sizeof(dp->proto));
         SCLogDebug("IPv4 protocol detected");
     } else if (strcasecmp(str,"ipv6") == 0 ||
                strcasecmp(str,"ip6") == 0 ) {
+        /* AWS, how do we handle this? */
+        ip_proto_tmp = 0;
         dp->flags |= (DETECT_PROTO_IPV6 | DETECT_PROTO_ANY);
         memset(dp->proto, 0xff, sizeof(dp->proto));
         SCLogDebug("IPv6 protocol detected");
     } else if (strcasecmp(str,"ip") == 0 ||
                strcasecmp(str,"pkthdr") == 0) {
+        /* AWS, how do we handle this?  Some universal value that
+         * represents all protocols?*/
+        ip_proto_tmp = 0;
         /* Proto "ip" is treated as an "any" */
         dp->flags |= DETECT_PROTO_ANY;
         memset(dp->proto, 0xff, sizeof(dp->proto));
@@ -145,6 +167,9 @@ int DetectProtoParse(DetectProto *dp, char *str)
         }
 #endif
     }
+
+    if (ip_proto != NULL)
+        *ip_proto = ip_proto_tmp;
 
     return 0;
 error:
@@ -204,7 +229,7 @@ static int DetectProtoInitTest(DetectEngineCtx **de_ctx, Signature **sig,
 
     *sig = (*de_ctx)->sig_list;
 
-    if (DetectProtoParse(dp, str) < 0)
+    if (DetectProtoParse(dp, str, NULL) < 0)
         goto end;
 
     result = 1;
@@ -222,7 +247,7 @@ static int ProtoTestParse01 (void)
     DetectProto dp;
     memset(&dp,0,sizeof(DetectProto));
 
-    int r = DetectProtoParse(&dp, "6");
+    int r = DetectProtoParse(&dp, "6", NULL);
     if (r < 0) {
         return 1;
     }
@@ -239,7 +264,7 @@ static int ProtoTestParse02 (void)
     DetectProto dp;
     memset(&dp,0,sizeof(DetectProto));
 
-    int r = DetectProtoParse(&dp, "tcp");
+    int r = DetectProtoParse(&dp, "tcp", NULL);
     if (r >= 0 && dp.proto[(IPPROTO_TCP/8)] & (1<<(IPPROTO_TCP%8))) {
         return 1;
     }
@@ -256,7 +281,7 @@ static int ProtoTestParse03 (void)
     DetectProto dp;
     memset(&dp,0,sizeof(DetectProto));
 
-    int r = DetectProtoParse(&dp, "ip");
+    int r = DetectProtoParse(&dp, "ip", NULL);
     if (r >= 0 && dp.flags & DETECT_PROTO_ANY) {
         return 1;
     }
@@ -275,7 +300,7 @@ static int ProtoTestParse04 (void)
     memset(&dp,0,sizeof(DetectProto));
 
     /* Check for a bad number */
-    int r = DetectProtoParse(&dp, "4242");
+    int r = DetectProtoParse(&dp, "4242", NULL);
     if (r < 0) {
         return 1;
     }
@@ -294,7 +319,7 @@ static int ProtoTestParse05 (void)
     memset(&dp,0,sizeof(DetectProto));
 
     /* Check for a bad string */
-    int r = DetectProtoParse(&dp, "tcp/udp");
+    int r = DetectProtoParse(&dp, "tcp/udp", NULL);
     if (r < 0) {
         return 1;
     }
@@ -312,7 +337,7 @@ static int ProtoTestParse06 (void)
     memset(&dp,0,sizeof(DetectProto));
 
     /* Check for a bad string */
-    int r = DetectProtoParse(&dp, "tcp-pkt");
+    int r = DetectProtoParse(&dp, "tcp-pkt", NULL);
     if (r < 0) {
         printf("parsing tcp-pkt failed: ");
         return 0;
@@ -335,7 +360,7 @@ static int ProtoTestParse07 (void)
     memset(&dp,0,sizeof(DetectProto));
 
     /* Check for a bad string */
-    int r = DetectProtoParse(&dp, "tcp-stream");
+    int r = DetectProtoParse(&dp, "tcp-stream", NULL);
     if (r < 0) {
         printf("parsing tcp-stream failed: ");
         return 0;
