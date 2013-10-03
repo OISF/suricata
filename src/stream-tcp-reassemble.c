@@ -2853,6 +2853,11 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                  * there is no point in continueing here. */
                 if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
                     SCLogDebug("no alproto after first data chunk");
+                    TcpSegment *tmp_seg = stream->seg_list;
+                    while (tmp_seg != NULL) {
+                        tmp_seg->flags &= ~SEGMENTTCP_FLAG_APPLAYER_PROCESSED;
+                        tmp_seg = tmp_seg->next;
+                    }
                     break;
                 }
             }
@@ -2913,6 +2918,11 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                          * there is no point in continueing here. */
                         if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
                             SCLogDebug("no alproto after first data chunk");
+                            TcpSegment *tmp_seg = stream->seg_list;
+                            while (tmp_seg != NULL) {
+                                tmp_seg->flags &= ~SEGMENTTCP_FLAG_APPLAYER_PROCESSED;
+                                tmp_seg = tmp_seg->next;
+                            }
                             break;
                         }
                     }
@@ -2959,6 +2969,12 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     /* store ra_base_seq in the stream */
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
         stream->ra_app_base_seq = ra_base_seq;
+    } else {
+        TcpSegment *tmp_seg = stream->seg_list;
+        while (tmp_seg != NULL) {
+            tmp_seg->flags &= ~SEGMENTTCP_FLAG_APPLAYER_PROCESSED;
+            tmp_seg = tmp_seg->next;
+        }
     }
     SCLogDebug("stream->ra_app_base_seq %u", stream->ra_app_base_seq);
     SCReturnInt(0);
@@ -6855,7 +6871,7 @@ static int StreamTcpReassembleTest40 (void) {
 
     /* check is have the segment in the list and flagged or not */
     if (ssn.client.seg_list == NULL ||
-            !(ssn.client.seg_list->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
+        (ssn.client.seg_list->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
     {
         printf("the list is NULL or the processed segment has not been flaged (7): ");
         goto end;
