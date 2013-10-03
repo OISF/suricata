@@ -1884,6 +1884,10 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    /* Since our config is now loaded we can finish configurating the
+     * logging module. */
+    SCLogLoadConfig(suri.daemon);
+
     /* load the pattern matchers */
     MpmTableSetup();
 #ifdef __SC_CUDA_SUPPORT__
@@ -1924,10 +1928,6 @@ int main(int argc, char **argv)
     if (suri.run_mode == RUNMODE_NFQ)
         NFQInitConfig(FALSE);
 #endif
-
-    /* Since our config is now loaded we can finish configurating the
-     * logging module. */
-    SCLogLoadConfig(suri.daemon);
 
     /* Load the Host-OS lookup. */
     SCHInfoLoadFromConfig();
