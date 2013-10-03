@@ -50,7 +50,7 @@ Packet *TmqhInputSimple(ThreadVars *t)
 
     SCMutexLock(&q->mutex_q);
 
-    while (q->len == 0) {
+    if (q->len == 0) {
         /* if we have no packets in queue, wait... */
         SCCondWait(&q->cond_q, &q->mutex_q);
     }
@@ -111,7 +111,7 @@ void TmqhOutputSimple(ThreadVars *t, Packet *p)
 SCDQGenericQData *TmqhInputSimpleOnQ(SCDQDataQueue *q)
 {
     SCMutexLock(&q->mutex_q);
-    while (q->len == 0) {
+    if (q->len == 0) {
         /* if we have no packets in queue, wait... */
         SCCondWait(&q->cond_q, &q->mutex_q);
     }

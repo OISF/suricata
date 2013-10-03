@@ -88,7 +88,7 @@ Packet *TmqhInputFlow(ThreadVars *tv)
     SCPerfSyncCountersIfSignalled(tv, 0);
 
     SCMutexLock(&q->mutex_q);
-    while (q->len == 0) {
+    if (q->len == 0) {
         /* if we have no packets in queue, wait... */
         SCCondWait(&q->cond_q, &q->mutex_q);
     }
