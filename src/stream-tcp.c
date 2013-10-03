@@ -4283,6 +4283,8 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                     StreamTcpPacketSetState(p, ssn, TCP_NONE);
 
                     p->flow->alproto_ts = p->flow->alproto_tc = p->flow->alproto = ALPROTO_UNKNOWN;
+                    p->flow->data_al_so_far[0] = p->flow->data_al_so_far[1] = 0;
+                    ssn->data_first_seen_dir = 0;
                     p->flow->flags &= (~FLOW_TS_PM_ALPROTO_DETECT_DONE &
                                        ~FLOW_TS_PP_ALPROTO_DETECT_DONE &
                                        ~FLOW_TC_PM_ALPROTO_DETECT_DONE &
