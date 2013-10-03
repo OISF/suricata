@@ -2119,7 +2119,7 @@ int main(int argc, char **argv)
         if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
             exit(EXIT_FAILURE);
         TmThreadActivateDummySlot();
-        SCLogInfo("Signature(s) loaded, Detect thread(s) activated.");
+        SCLogNotice("Signature(s) loaded, Detect thread(s) activated.");
     }
 
 
@@ -2133,7 +2133,7 @@ int main(int argc, char **argv)
     int engine_retval = EXIT_SUCCESS;
     while(1) {
         if (suricata_ctl_flags & (SURICATA_KILL | SURICATA_STOP)) {
-            SCLogInfo("Signal Received.  Stopping engine.");
+            SCLogNotice("Signal Received.  Stopping engine.");
 
             break;
         }

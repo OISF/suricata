@@ -1130,7 +1130,7 @@ void SCLogLoadConfig(int daemon)
     else {
         SCLogWarning(SC_ERR_MISSING_CONFIG_PARAM,
             "No default log level set, will use info.");
-        sc_lid->global_log_level = SC_LOG_INFO;
+        sc_lid->global_log_level = SC_LOG_NOTICE;
     }
     if (ConfGet("logging.default-log-format", &sc_lid->global_log_format) != 1)
         sc_lid->global_log_format = SC_LOG_DEF_LOG_FORMAT;
