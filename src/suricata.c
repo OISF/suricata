@@ -918,6 +918,18 @@ static TmEcode PrintVersion()
     return TM_ECODE_OK;
 }
 
+static TmEcode SCPrintVersion()
+{
+#ifdef REVISION
+    SCLogNotice("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
+#elif defined RELEASE
+    SCLogNotice("This is %s version %s RELEASE", PROG_NAME, PROG_VER);
+#else
+    SCLogNotice("This is %s version %s", PROG_NAME, PROG_VER);
+#endif
+    return TM_ECODE_OK;
+}
+
 static void SCSetStartTime(SCInstance *suri)
 {
     memset(&suri->start_time, 0, sizeof(suri->start_time));
@@ -1856,10 +1868,6 @@ int main(int argc, char **argv)
     if (suri.run_mode == RUNMODE_UNITTEST)
         return RunUnittests(0, suri.regex_arg);
 
-    PrintVersion();
-
-    UtilCpuPrintSummary();
-
 #ifdef __SC_CUDA_SUPPORT__
     /* Init the CUDA environment */
     SCCudaInitCudaEnvironment();
@@ -1887,6 +1895,10 @@ int main(int argc, char **argv)
     /* Since our config is now loaded we can finish configurating the
      * logging module. */
     SCLogLoadConfig(suri.daemon);
+
+    SCPrintVersion();
+
+    UtilCpuPrintSummary();
 
     /* load the pattern matchers */
     MpmTableSetup();
