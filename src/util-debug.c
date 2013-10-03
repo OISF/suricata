@@ -1098,7 +1098,7 @@ void SCLogInitLogModule(SCLogInitData *sc_lid)
     return;
 }
 
-void SCLogLoadConfig(int daemon)
+void SCLogLoadConfig(int daemon, int verbose)
 {
     ConfNode *outputs;
     SCLogInitData *sc_lid;
@@ -1132,6 +1132,13 @@ void SCLogLoadConfig(int daemon)
             "No default log level set, will use info.");
         sc_lid->global_log_level = SC_LOG_NOTICE;
     }
+
+    if (verbose) {
+        sc_lid->global_log_level += verbose;
+        if (sc_lid->global_log_level > SC_LOG_LEVEL_MAX)
+            sc_lid->global_log_level = SC_LOG_LEVEL_MAX;
+    }
+
     if (ConfGet("logging.default-log-format", &sc_lid->global_log_format) != 1)
         sc_lid->global_log_format = SC_LOG_DEF_LOG_FORMAT;
 

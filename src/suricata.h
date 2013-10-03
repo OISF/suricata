@@ -154,6 +154,7 @@ typedef struct SCInstance_ {
     int rule_reload;
     int daemon;
     int offline;
+    int verbose;
 
     struct timeval start_time;
 

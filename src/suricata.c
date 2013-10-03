@@ -492,6 +492,7 @@ void usage(const char *progname)
 	printf("\t--service-change-params              : change service startup parameters\n");
 #endif /* OS_WIN32 */
     printf("\t-V                                   : display Suricata version\n");
+    printf("\t-v[v]                                : increase default Suricata verbosity\n");
 #ifdef UNITTESTS
     printf("\t-u                                   : run the unittests and exit\n");
     printf("\t-U, --unittest-filter=REGEX          : filter unittests with a regex\n");
@@ -904,6 +905,7 @@ static void SCInstanceInit(SCInstance *suri)
     suri->delayed_detect = 0;
     suri->daemon = 0;
     suri->offline = 0;
+    suri->verbose = 0;
 }
 
 static TmEcode PrintVersion()
@@ -1011,7 +1013,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    char short_opts[] = "c:TDhi:l:q:d:r:us:S:U:VF:";
+    char short_opts[] = "c:TDhi:l:q:d:r:us:S:U:VF:v";
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
@@ -1471,6 +1473,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 
             SetBpfStringFromFile(optarg);
             break;
+        case 'v':
+            suri->verbose++;
+            break;
         default:
             usage(argv[0]);
             return TM_ECODE_FAILED;
@@ -1894,7 +1899,7 @@ int main(int argc, char **argv)
 
     /* Since our config is now loaded we can finish configurating the
      * logging module. */
-    SCLogLoadConfig(suri.daemon);
+    SCLogLoadConfig(suri.daemon, suri.verbose);
 
     SCPrintVersion();
 
