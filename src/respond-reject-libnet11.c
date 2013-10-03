@@ -499,6 +499,7 @@ int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet ICMPv6 based rejects are disabled."
                 "Usually this means that you don't have a patched libnet installed,"
                 " or configure couldn't find it.");
+    return 0;
 }
 #endif /* HAVE_LIBNET_ICMPV6_UNREACH */
 
