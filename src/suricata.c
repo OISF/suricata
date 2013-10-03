@@ -1778,7 +1778,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
         } else if (!strcmp(hostmode, "sniffer-only")) {
             host_mode = SURI_HOST_IS_SNIFFER_ONLY;
         } else {
-            if (strcmp(hostmode, "auto")) {
+            if (strcmp(hostmode, "auto") != 0) {
                 WarnInvalidConfEntry("host-mode", "%s", "auto");
             }
             if (IS_ENGINE_MODE_IPS(engine_mode)) {
@@ -1790,12 +1790,12 @@ static int PostConfLoadedSetup(SCInstance *suri)
     } else {
         if (IS_ENGINE_MODE_IPS(engine_mode)) {
             host_mode = SURI_HOST_IS_ROUTER;
-            SCLogInfo("No 'host-mode': suricata in IPS mode, so"
-                      "automatic setting to 'router'");
+            SCLogInfo("No 'host-mode': suricata is in IPS mode, using "
+                      "default setting 'router'");
         } else {
             host_mode = SURI_HOST_IS_SNIFFER_ONLY;
-            SCLogInfo("No 'host-mode': suricata in IDS mode, so"
-                      "automatic setting to 'sniffer-only'");
+            SCLogInfo("No 'host-mode': suricata is in IDS mode, using "
+                      "default setting 'sniffer-only'");
         }
     }
     return TM_ECODE_OK;
