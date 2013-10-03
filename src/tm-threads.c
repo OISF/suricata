@@ -2188,7 +2188,7 @@ TmEcode TmThreadWaitOnThreadInit(void)
         }
     }
 
-    SCLogInfo("all %"PRIu16" packet processing threads, %"PRIu16" management "
+    SCLogNotice("all %"PRIu16" packet processing threads, %"PRIu16" management "
               "threads initialized, engine started.", ppt_num, mgt_num);
 
     return TM_ECODE_OK;

@@ -492,6 +492,7 @@ void usage(const char *progname)
 	printf("\t--service-change-params              : change service startup parameters\n");
 #endif /* OS_WIN32 */
     printf("\t-V                                   : display Suricata version\n");
+    printf("\t-v[v]                                : increase default Suricata verbosity\n");
 #ifdef UNITTESTS
     printf("\t-u                                   : run the unittests and exit\n");
     printf("\t-U, --unittest-filter=REGEX          : filter unittests with a regex\n");
@@ -904,6 +905,7 @@ static void SCInstanceInit(SCInstance *suri)
     suri->delayed_detect = 0;
     suri->daemon = 0;
     suri->offline = 0;
+    suri->verbose = 0;
 }
 
 static TmEcode PrintVersion()
@@ -914,6 +916,18 @@ static TmEcode PrintVersion()
     printf("This is %s version %s RELEASE\n", PROG_NAME, PROG_VER);
 #else
     printf("This is %s version %s\n", PROG_NAME, PROG_VER);
+#endif
+    return TM_ECODE_OK;
+}
+
+static TmEcode SCPrintVersion()
+{
+#ifdef REVISION
+    SCLogNotice("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
+#elif defined RELEASE
+    SCLogNotice("This is %s version %s RELEASE", PROG_NAME, PROG_VER);
+#else
+    SCLogNotice("This is %s version %s", PROG_NAME, PROG_VER);
 #endif
     return TM_ECODE_OK;
 }
@@ -999,7 +1013,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    char short_opts[] = "c:TDhi:l:q:d:r:us:S:U:VF:";
+    char short_opts[] = "c:TDhi:l:q:d:r:us:S:U:VF:v";
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
@@ -1459,6 +1473,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 
             SetBpfStringFromFile(optarg);
             break;
+        case 'v':
+            suri->verbose++;
+            break;
         default:
             usage(argv[0]);
             return TM_ECODE_FAILED;
@@ -1856,10 +1873,6 @@ int main(int argc, char **argv)
     if (suri.run_mode == RUNMODE_UNITTEST)
         return RunUnittests(0, suri.regex_arg);
 
-    PrintVersion();
-
-    UtilCpuPrintSummary();
-
 #ifdef __SC_CUDA_SUPPORT__
     /* Init the CUDA environment */
     SCCudaInitCudaEnvironment();
@@ -1883,6 +1896,14 @@ int main(int argc, char **argv)
     if (LoadYamlConfig(conf_filename) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
+
+    /* Since our config is now loaded we can finish configurating the
+     * logging module. */
+    SCLogLoadConfig(suri.daemon, suri.verbose);
+
+    SCPrintVersion();
+
+    UtilCpuPrintSummary();
 
     /* load the pattern matchers */
     MpmTableSetup();
@@ -1924,10 +1945,6 @@ int main(int argc, char **argv)
     if (suri.run_mode == RUNMODE_NFQ)
         NFQInitConfig(FALSE);
 #endif
-
-    /* Since our config is now loaded we can finish configurating the
-     * logging module. */
-    SCLogLoadConfig(suri.daemon);
 
     /* Load the Host-OS lookup. */
     SCHInfoLoadFromConfig();
@@ -2119,7 +2136,7 @@ int main(int argc, char **argv)
         if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
             exit(EXIT_FAILURE);
         TmThreadActivateDummySlot();
-        SCLogInfo("Signature(s) loaded, Detect thread(s) activated.");
+        SCLogNotice("Signature(s) loaded, Detect thread(s) activated.");
     }
 
 
@@ -2133,7 +2150,7 @@ int main(int argc, char **argv)
     int engine_retval = EXIT_SUCCESS;
     while(1) {
         if (suricata_ctl_flags & (SURICATA_KILL | SURICATA_STOP)) {
-            SCLogInfo("Signal Received.  Stopping engine.");
+            SCLogNotice("Signal Received.  Stopping engine.");
 
             break;
         }

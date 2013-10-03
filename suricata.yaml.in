@@ -676,7 +676,7 @@ logging:
   # compiled with the --enable-debug configure option.
   #
   # This value is overriden by the SC_LOG_LEVEL env var.
-  default-log-level: info
+  default-log-level: notice
 
   # The default output format.  Optional parameter, should default to
   # something reasonable if not provided.  Can be overriden in an
