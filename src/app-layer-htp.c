@@ -2002,7 +2002,7 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
     tx_ud->request_uri_normalized = request_uri_normalized;
     htp_tx_set_user_data(tx, tx_ud);
 
-    if (tx && tx->flags) {
+    if (tx->flags) {
         HtpState *hstate = htp_connp_get_user_data(tx->connp);
         HTPErrorCheckTxRequestFlags(hstate, tx);
     }
