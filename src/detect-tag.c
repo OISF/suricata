@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -57,15 +57,16 @@ SC_ATOMIC_EXTERN(unsigned int, num_tags);
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectTagMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-static int DetectTagSetup (DetectEngineCtx *, Signature *, char *);
+int DetectTagMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+static int DetectTagSetup(DetectEngineCtx *, Signature *, char *);
 void DetectTagRegisterTests(void);
 void DetectTagDataFree(void *);
 
 /**
  * \brief Registration function for keyword tag
  */
-void DetectTagRegister (void) {
+void DetectTagRegister(void)
+{
     sigmatch_table[DETECT_TAG].name = "tag";
     sigmatch_table[DETECT_TAG].Match = DetectTagMatch;
     sigmatch_table[DETECT_TAG].Setup = DetectTagSetup;
@@ -108,7 +109,7 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectTagMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectTagMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
     DetectTagData *td = (DetectTagData *) m->ctx;
     DetectTagDataEntry tde;
@@ -169,7 +170,7 @@ int DetectTagMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
  * \retval td pointer to DetectTagData on success
  * \retval NULL on failure
  */
-DetectTagData *DetectTagParse (char *tagstr)
+DetectTagData *DetectTagParse(char *tagstr)
 {
     DetectTagData td;
 #define MAX_SUBSTRINGS 30
@@ -299,7 +300,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectTagSetup (DetectEngineCtx *de_ctx, Signature *s, char *tagstr)
+int DetectTagSetup(DetectEngineCtx *de_ctx, Signature *s, char *tagstr)
 {
     DetectTagData *td = NULL;
     SigMatch *sm = NULL;
@@ -332,7 +333,8 @@ error:
  *
  *  \param td pointer to DetectTagDataEntry
  */
-static void DetectTagDataEntryFree(void *ptr) {
+static void DetectTagDataEntryFree(void *ptr)
+{
     if (ptr != NULL) {
         DetectTagDataEntry *dte = (DetectTagDataEntry *)ptr;
         SCFree(dte);
@@ -346,7 +348,8 @@ static void DetectTagDataEntryFree(void *ptr) {
  *
  * \param td pointer to DetectTagDataEntryList
  */
-void DetectTagDataListFree(void *ptr) {
+void DetectTagDataListFree(void *ptr)
+{
     if (ptr != NULL) {
         DetectTagDataEntry *entry = ptr;
 
@@ -364,7 +367,8 @@ void DetectTagDataListFree(void *ptr) {
  *
  * \param td pointer to DetectTagData
  */
-void DetectTagDataFree(void *ptr) {
+void DetectTagDataFree(void *ptr)
+{
     DetectTagData *td = (DetectTagData *)ptr;
     SCFree(td);
 }
@@ -375,7 +379,8 @@ void DetectTagDataFree(void *ptr) {
  * \test DetectTagTestParse01 is a test to make sure that we return "something"
  *  when given valid tag opt
  */
-int DetectTagTestParse01 (void) {
+static int DetectTagTestParse01(void)
+{
     int result = 0;
     DetectTagData *td = NULL;
     td = DetectTagParse("session, 123, packets");
@@ -392,7 +397,8 @@ int DetectTagTestParse01 (void) {
 /**
  * \test DetectTagTestParse02 is a test to check that we parse tag correctly
  */
-int DetectTagTestParse02 (void) {
+static int DetectTagTestParse02(void)
+{
     int result = 0;
     DetectTagData *td = NULL;
     td = DetectTagParse("host, 200, bytes, src");
@@ -410,7 +416,8 @@ int DetectTagTestParse02 (void) {
 /**
  * \test DetectTagTestParse03 is a test for setting the stateless tag opt
  */
-int DetectTagTestParse03 (void) {
+static int DetectTagTestParse03(void)
+{
     int result = 0;
     DetectTagData *td = NULL;
     td = DetectTagParse("host, 200, bytes, dst");
@@ -428,7 +435,8 @@ int DetectTagTestParse03 (void) {
 /**
  * \test DetectTagTestParse04 is a test for default opts
  */
-int DetectTagTestParse04 (void) {
+static int DetectTagTestParse04(void)
+{
     int result = 0;
     DetectTagData *td = NULL;
     td = DetectTagParse("session");
@@ -445,7 +453,8 @@ int DetectTagTestParse04 (void) {
 /**
  * \test DetectTagTestParse05 is a test for default opts
  */
-int DetectTagTestParse05 (void) {
+static int DetectTagTestParse05(void)
+{
     int result = 0;
     DetectTagData *td = NULL;
     td = DetectTagParse("host");
@@ -465,7 +474,8 @@ int DetectTagTestParse05 (void) {
 /**
  * \brief this function registers unit tests for DetectTag
  */
-void DetectTagRegisterTests(void) {
+void DetectTagRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DetectTagTestParse01", DetectTagTestParse01, 1);
     UtRegisterTest("DetectTagTestParse02", DetectTagTestParse02, 1);
@@ -476,4 +486,3 @@ void DetectTagRegisterTests(void) {
     DetectEngineTagRegisterTests();
 #endif /* UNITTESTS */
 }
-
