@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -65,15 +65,16 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectThresholdMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-static int DetectThresholdSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectThresholdMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+static int DetectThresholdSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectThresholdFree(void *);
 
 /**
  * \brief Registration function for threshold: keyword
  */
 
-void DetectThresholdRegister (void) {
+void DetectThresholdRegister(void)
+{
     sigmatch_table[DETECT_THRESHOLD].name = "threshold";
     sigmatch_table[DETECT_THRESHOLD].desc = "control the rule's alert frequency";
     sigmatch_table[DETECT_THRESHOLD].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Rule-Thresholding#threshold";
@@ -107,7 +108,7 @@ error:
 
 }
 
-static int DetectThresholdMatch (ThreadVars *thv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm)
+static int DetectThresholdMatch(ThreadVars *thv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm)
 {
     return 1;
 }
@@ -121,7 +122,7 @@ static int DetectThresholdMatch (ThreadVars *thv, DetectEngineThreadCtx *det_ctx
  * \retval de pointer to DetectThresholdData on success
  * \retval NULL on failure
  */
-static DetectThresholdData *DetectThresholdParse (char *rawstr)
+static DetectThresholdData *DetectThresholdParse(char *rawstr)
 {
     DetectThresholdData *de = NULL;
 #define MAX_SUBSTRINGS 30
@@ -237,7 +238,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectThresholdSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+static int DetectThresholdSetup(DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     DetectThresholdData *de = NULL;
     SigMatch *sm = NULL;
@@ -278,7 +279,8 @@ error:
  *
  * \param de pointer to DetectThresholdData
  */
-static void DetectThresholdFree(void *de_ptr) {
+static void DetectThresholdFree(void *de_ptr)
+{
     DetectThresholdData *de = (DetectThresholdData *)de_ptr;
     if (de) {
         DetectAddressFree(de->addr);
@@ -304,7 +306,8 @@ static void DetectThresholdFree(void *de_ptr) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-static int ThresholdTestParse01 (void) {
+static int ThresholdTestParse01(void)
+{
     DetectThresholdData *de = NULL;
     de = DetectThresholdParse("type limit,track by_dst,count 10,seconds 60");
     if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
@@ -321,7 +324,8 @@ static int ThresholdTestParse01 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-static int ThresholdTestParse02 (void) {
+static int ThresholdTestParse02(void)
+{
     DetectThresholdData *de = NULL;
     de = DetectThresholdParse("type any,track by_dst,count 10,seconds 60");
     if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
@@ -338,7 +342,8 @@ static int ThresholdTestParse02 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-static int ThresholdTestParse03 (void) {
+static int ThresholdTestParse03(void)
+{
     DetectThresholdData *de = NULL;
     de = DetectThresholdParse("track by_dst, type limit, seconds 60, count 10");
     if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
@@ -356,7 +361,8 @@ static int ThresholdTestParse03 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-static int ThresholdTestParse04 (void) {
+static int ThresholdTestParse04(void)
+{
     DetectThresholdData *de = NULL;
     de = DetectThresholdParse("count 10, track by_dst, seconds 60, type both, count 10");
     if (de && (de->type == TYPE_BOTH) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
@@ -373,7 +379,8 @@ static int ThresholdTestParse04 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-static int ThresholdTestParse05 (void) {
+static int ThresholdTestParse05(void)
+{
     DetectThresholdData *de = NULL;
     de = DetectThresholdParse("count 10, track by_dst, seconds 60, type both");
     if (de && (de->type == TYPE_BOTH) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
@@ -394,8 +401,8 @@ static int ThresholdTestParse05 (void) {
  *  \retval 0 on failure
  */
 
-static int DetectThresholdTestSig1(void) {
-
+static int DetectThresholdTestSig1(void)
+{
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
@@ -498,7 +505,8 @@ end:
  *  \retval 0 on failure
  */
 
-static int DetectThresholdTestSig2(void) {
+static int DetectThresholdTestSig2(void)
+{
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
@@ -575,7 +583,8 @@ end:
  *  \retval 0 on failure
  */
 
-static int DetectThresholdTestSig3(void) {
+static int DetectThresholdTestSig3(void)
+{
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
@@ -679,7 +688,8 @@ end:
  *  \retval 0 on failure
  */
 
-static int DetectThresholdTestSig4(void) {
+static int DetectThresholdTestSig4(void)
+{
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
@@ -756,7 +766,8 @@ end:
  *  \retval 0 on failure
  */
 
-static int DetectThresholdTestSig5(void) {
+static int DetectThresholdTestSig5(void)
+{
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
@@ -834,7 +845,8 @@ end:
     return result;
 }
 
-static int DetectThresholdTestSig6Ticks(void) {
+static int DetectThresholdTestSig6Ticks(void)
+{
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
@@ -919,7 +931,8 @@ end:
 /**
  * \test Test drop action being set even if thresholded
  */
-static int DetectThresholdTestSig7(void) {
+static int DetectThresholdTestSig7(void)
+{
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
@@ -1012,7 +1025,8 @@ end:
 /**
  * \test Test drop action being set even if thresholded
  */
-static int DetectThresholdTestSig8(void) {
+static int DetectThresholdTestSig8(void)
+{
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
@@ -1198,7 +1212,8 @@ end:
 /**
  * \test Test drop action being set even if thresholded
  */
-static int DetectThresholdTestSig10(void) {
+static int DetectThresholdTestSig10(void)
+{
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
@@ -1291,7 +1306,8 @@ end:
 /**
  * \test Test drop action being set even if thresholded
  */
-static int DetectThresholdTestSig11(void) {
+static int DetectThresholdTestSig11(void)
+{
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
@@ -1384,7 +1400,8 @@ end:
 /**
  * \test Test drop action being set even if thresholded
  */
-static int DetectThresholdTestSig12(void) {
+static int DetectThresholdTestSig12(void)
+{
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
@@ -1476,7 +1493,8 @@ end:
 
 #endif /* UNITTESTS */
 
-void ThresholdRegisterTests(void) {
+void ThresholdRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("ThresholdTestParse01", ThresholdTestParse01, 1);
     UtRegisterTest("ThresholdTestParse02", ThresholdTestParse02, 0);
