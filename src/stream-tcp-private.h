@@ -224,5 +224,7 @@ typedef struct TcpSession_ {
     ((stream)->flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)
 #define StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream) \
     ((stream)->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)
+#define StreamTcpResetStreamFlagAppProtoDetectionCompleted(stream) \
+    ((stream)->flags &= ~STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED);
 
 #endif /* __STREAM_TCP_PRIVATE_H__ */
