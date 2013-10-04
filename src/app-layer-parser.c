@@ -1426,16 +1426,18 @@ void RegisterAppLayerParsers(void)
         return;
     }
 
+#if 0
     /** Jabber */
     if (AppLayerProtoDetectionEnabled("jabber")) {
-        //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOCLIENT);
-        //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOCLIENT);
+        AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOSERVER);
     } else {
         SCLogInfo("Protocol detection disabled for %s protocol and as a "
                   "consequence the conf param \"app-layer.protocols.%s."
                   "parser-enabled\" will now be ignored.", "jabber", "jabber");
         return;
     }
+#endif
 
     return;
 }
@@ -2206,7 +2208,13 @@ static inline void AppLayerInsertNewProbingParser(AppLayerProbingParser **pp,
         curr_pe = curr_port->toclient;
     while (curr_pe != NULL) {
         if (curr_pe->al_proto == al_proto) {
-            SCLogError(SC_ERR_ALPARSER, "Duplicate pp registered");
+            SCLogError(SC_ERR_ALPARSER, "Duplicate pp registered - "
+                       "ip_proto - %"PRIu16" Port - %"PRIu16" "
+                       "App Protocol - %s, App Protocol(ID) - "
+                       "%"PRIu16" min_depth - %"PRIu16" "
+                       "max_dept - %"PRIu16".",
+                       ip_proto, port, al_proto_name, al_proto,
+                       min_depth, max_depth);
             goto error;
         }
         curr_pe = curr_pe->next;
