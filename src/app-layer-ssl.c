@@ -1040,6 +1040,13 @@ void RegisterSSLParsers(void)
         AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 02|", 3, 0, STREAM_TOCLIENT); /* server hello */
         /** TLSv1.2 */
         AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 03|", 3, 0, STREAM_TOCLIENT); /* server hello */
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|17 03 00|", 3, 0, STREAM_TOCLIENT); /* server hello */
+        /** TLSv1 */
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|17 03 01|", 3, 0, STREAM_TOCLIENT); /* server hello */
+        /** TLSv1.1 */
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|17 03 02|", 3, 0, STREAM_TOCLIENT); /* server hello */
+        /** TLSv1.2 */
+        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|17 03 03|", 3, 0, STREAM_TOCLIENT); /* server hello */
 
         if (RunmodeIsUnittests()) {
             AppLayerRegisterProbingParser(&alp_proto_ctx,
