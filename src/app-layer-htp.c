@@ -212,12 +212,17 @@ static int HTPLookupPersonality(const char *str)
     IF_HTP_PERSONALITY_NUM(IIS_7_0);
     IF_HTP_PERSONALITY_NUM(IIS_7_5);
     IF_HTP_PERSONALITY_NUM(APACHE_2);
-    if ((strcasecmp("TOMCAT_6_0", str) == 0) ||
-        (strcasecmp("APACHE", str) == 0) ||
-        (strcasecmp("APACHE_2_2", str) == 0)) {
+    if (strcasecmp("TOMCAT_6_0", str) == 0) {
         SCLogError(SC_WARN_OPTION_OBSOLETE, "Personality %s no "
                    "longer supported by libhtp.", str);
         return -1;
+    } else if ((strcasecmp("APACHE", str) == 0) ||
+               (strcasecmp("APACHE_2_2", str) == 0))
+    {
+        SCLogWarning(SC_WARN_OPTION_OBSOLETE, "Personality %s no "
+                   "longer supported by libhtp, failing back to "
+                   "Apache2 personality.", str);
+        return HTP_SERVER_APACHE_2;
     }
 
     return -1;
