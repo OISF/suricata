@@ -169,9 +169,13 @@ int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length, u
 
         switch (node_str->type) {
             case ASN1_PRINTSTRING:
+                /* fall through */
             case ASN1_IA5STRING:
+                /* fall through */
             case ASN1_T61STRING:
+                /* fall through */
             case ASN1_UTF8STRING:
+                /* fall through */
             case ASN1_OCTETSTRING:
                 strlcat(buffer, shortname, length);
                 strlcat(buffer, "=", length);
@@ -243,9 +247,13 @@ int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length, 
 
         switch (node_str->type) {
             case ASN1_PRINTSTRING:
+                /* fall through */
             case ASN1_IA5STRING:
+                /* fall through */
             case ASN1_T61STRING:
+                /* fall through */
             case ASN1_UTF8STRING:
+                /* fall through */
             case ASN1_OCTETSTRING:
                 strlcat(buffer, shortname, length);
                 strlcat(buffer, "=", length);

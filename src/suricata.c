@@ -1666,7 +1666,9 @@ static int FinalizeRunMode(SCInstance *suri, char **argv)
 {
     switch (suri->run_mode) {
         case RUNMODE_PCAP_FILE:
+            /* fall through */
         case RUNMODE_ERF_FILE:
+            /* fall through */
         case RUNMODE_ENGINE_ANALYSIS:
             suri->offline = 1;
             break;
@@ -1741,13 +1743,16 @@ static int ConfigGetCaptureValue(SCInstance *suri)
     if ((ConfGet("default-packet-size", &temp_default_packet_size)) != 1) {
         switch (suri->run_mode) {
             case RUNMODE_PCAP_DEV:
+                /* fall through */
             case RUNMODE_AFP_DEV:
+                /* fall through */
             case RUNMODE_PFRING:
                 /* FIXME this don't work effficiently in multiinterface */
                 /* find payload for interface and use it */
                 default_packet_size = GetIfaceMaxPacketSize(suri->pcap_dev);
                 if (default_packet_size)
                     break;
+                /* fall through */
             default:
                 default_packet_size = DEFAULT_PACKET_SIZE;
         }

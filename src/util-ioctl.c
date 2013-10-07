@@ -112,6 +112,7 @@ int GetIfaceMaxPacketSize(char *pcap_dev)
     int mtu = GetIfaceMTU(pcap_dev);
     switch (mtu) {
         case 0:
+            /* fall through */
         case -1:
             return 0;
     }

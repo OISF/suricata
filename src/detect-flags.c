@@ -222,31 +222,37 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
         while (*ptr != '\0') {
             switch (*ptr) {
                 case 'S':
+                    /* fall through */
                 case 's':
                     de->flags |= TH_SYN;
                     found++;
                     break;
                 case 'A':
+                    /* fall through */
                 case 'a':
                     de->flags |= TH_ACK;
                     found++;
                     break;
                 case 'F':
+                    /* fall through */
                 case 'f':
                     de->flags |= TH_FIN;
                     found++;
                     break;
                 case 'R':
+                    /* fall through */
                 case 'r':
                     de->flags |= TH_RST;
                     found++;
                     break;
                 case 'P':
+                    /* fall through */
                 case 'p':
                     de->flags |= TH_PUSH;
                     found++;
                     break;
                 case 'U':
+                    /* fall through */
                 case 'u':
                     de->flags |= TH_URG;
                     found++;
@@ -260,11 +266,13 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
                     found++;
                     break;
                 case 'C':
+                    /* fall through */
                 case 'c':
                     de->flags |= TH_CWR;
                     found++;
                     break;
                 case 'E':
+                    /* fall through */
                 case 'e':
                     de->flags |= TH_ECN;
                     found++;
@@ -296,31 +304,37 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
     while (*ptr != '\0') {
         switch (*ptr) {
             case 'S':
+                /* fall through */
             case 's':
                 de->flags |= TH_SYN;
                 found++;
                 break;
             case 'A':
+                /* fall through */
             case 'a':
                 de->flags |= TH_ACK;
                 found++;
                 break;
             case 'F':
+                /* fall through */
             case 'f':
                 de->flags |= TH_FIN;
                 found++;
                 break;
             case 'R':
+                /* fall through */
             case 'r':
                 de->flags |= TH_RST;
                 found++;
                 break;
             case 'P':
+                /* fall through */
             case 'p':
                 de->flags |= TH_PUSH;
                 found++;
                 break;
             case 'U':
+                /* fall through */
             case 'u':
                 de->flags |= TH_URG;
                 found++;
@@ -334,11 +348,13 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
                 found++;
                 break;
             case 'C':
+                /* fall through */
             case 'c':
                 de->flags |= TH_CWR;
                 found++;
                 break;
             case 'E':
+                /* fall through */
             case 'e':
                 de->flags |= TH_ECN;
                 found++;
@@ -393,31 +409,37 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
         while (*ptr != '\0') {
             switch (*ptr) {
                 case 'S':
+                    /* fall through */
                 case 's':
                     de->ignored_flags &= ~TH_SYN;
                     ignore++;
                     break;
                 case 'A':
+                    /* fall through */
                 case 'a':
                     de->ignored_flags &= ~TH_ACK;
                     ignore++;
                     break;
                 case 'F':
+                    /* fall through */
                 case 'f':
                     de->ignored_flags &= ~TH_FIN;
                     ignore++;
                     break;
                 case 'R':
+                    /* fall through */
                 case 'r':
                     de->ignored_flags &= ~TH_RST;
                     ignore++;
                     break;
                 case 'P':
+                    /* fall through */
                 case 'p':
                     de->ignored_flags &= ~TH_PUSH;
                     ignore++;
                     break;
                 case 'U':
+                    /* fall through */
                 case 'u':
                     de->ignored_flags &= ~TH_URG;
                     ignore++;
@@ -431,11 +453,13 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
                     ignore++;
                     break;
                 case 'C':
+                    /* fall through */
                 case 'c':
                     de->ignored_flags &= ~TH_CWR;
                     ignore++;
                     break;
                 case 'E':
+                    /* fall through */
                 case 'e':
                     de->ignored_flags &= ~TH_ECN;
                     ignore++;

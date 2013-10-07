@@ -1431,18 +1431,31 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
         } /* case DETECT_CONTENT */
 
         case DETECT_SM_LIST_UMATCH:
+            /* fall through */
         case DETECT_SM_LIST_HRUDMATCH:
+            /* fall through */
         case DETECT_SM_LIST_HCBDMATCH:
+            /* fall through */
         case DETECT_SM_LIST_HSBDMATCH:
+            /* fall through */
         case DETECT_SM_LIST_HHDMATCH:
+            /* fall through */
         case DETECT_SM_LIST_HRHDMATCH:
+            /* fall through */
         case DETECT_SM_LIST_HMDMATCH:
+            /* fall through */
         case DETECT_SM_LIST_HCDMATCH:
+            /* fall through */
         case DETECT_SM_LIST_HSMDMATCH:
+            /* fall through */
         case DETECT_SM_LIST_HSCDMATCH:
+            /* fall through */
         case DETECT_SM_LIST_HUADMATCH:
+            /* fall through */
         case DETECT_SM_LIST_HHHDMATCH:
+            /* fall through */
         case DETECT_SM_LIST_HRHHDMATCH:
+            /* fall through */
         case DETECT_SM_LIST_DNSQUERY_MATCH:
         {
             MpmCtx *mpm_ctx_ts = NULL;

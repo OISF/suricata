@@ -132,9 +132,9 @@ static int FTPParseRequestCommandLine(Flow *f, void *ftp_state, AppLayerParserSt
                         fstate->port_line = memcpy(fstate->port_line, input,
                                                    input_len);
                         fstate->port_line_len = input_len;
-                    break;
+                        break;
                     default:
-                    break;
+                        break;
                 } /* end switch command specified args */
 
                 break;

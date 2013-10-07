@@ -203,6 +203,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 break;
 
             case IPPROTO_HOPOPTS:
+                /* fall through */
             case IPPROTO_DSTOPTS:
             {
                 IPV6OptHAO *hao = NULL;
@@ -580,11 +581,17 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
             DecodeIP6inIP6(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq);
             return;
         case IPPROTO_FRAGMENT:
+            /* fall through */
         case IPPROTO_HOPOPTS:
+            /* fall through */
         case IPPROTO_ROUTING:
+            /* fall through */
         case IPPROTO_NONE:
+            /* fall through */
         case IPPROTO_DSTOPTS:
+            /* fall through */
         case IPPROTO_AH:
+            /* fall through */
         case IPPROTO_ESP:
             DecodeIPV6ExtHdrs(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq);
             break;

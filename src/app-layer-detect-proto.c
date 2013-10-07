@@ -473,6 +473,7 @@ end:
             printf("DCERPC\n");
             break;
         case ALPROTO_UNKNOWN:
+            /* fall through */
         default:
             printf("UNKNOWN (%u): cnt was %u (", proto, cnt);
             /* print the first 32 bytes */

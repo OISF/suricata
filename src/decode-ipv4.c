@@ -244,9 +244,13 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
                 ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
                 return -1;
             case 1:
+                /* fall through */
             case 2:
+                /* fall through */
             case 5:
+                /* fall through */
             case 6:
+                /* fall through */
             case 7:
                 /* Tag is at least 4 and at most the remainder of option len */
                 if ((tlen < 4) || (tlen > len)) {

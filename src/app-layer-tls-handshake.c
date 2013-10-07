@@ -61,6 +61,7 @@ static void TLSCertificateErrCodeToWarning(SSLState *ssl_state, uint32_t errcode
 
     switch (errcode) {
     case ERR_DER_ELEMENT_SIZE_TOO_BIG:
+        /* fall through */
     case ERR_DER_INVALID_SIZE:
         AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_CERTIFICATE_INVALID_LENGTH);
         break;
@@ -74,6 +75,7 @@ static void TLSCertificateErrCodeToWarning(SSLState *ssl_state, uint32_t errcode
         AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_CERTIFICATE_MISSING_ELEMENT);
         break;
     case ERR_DER_GENERIC:
+        /* fall through */
     default:
         AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
         break;

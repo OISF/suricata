@@ -552,6 +552,7 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
                     IPFWMutexUnlock(nq);
                     SCReturnInt(TM_ECODE_FAILED);
                 case EHOSTDOWN:
+                /* fall through */
                 case ENETDOWN:
                     break;
             }

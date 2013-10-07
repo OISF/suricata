@@ -420,7 +420,9 @@ static inline TmEcode ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top,
             /* Skip. */
             continue;
         case TYPE_DSM_COLOR_ETH:
+            /* fall through */
         case TYPE_COLOR_ETH:
+            /* fall through */
         case TYPE_COLOR_HASH_ETH:
             /* In these types the color value overwrites the lctr
              * (drop count). */

@@ -392,18 +392,27 @@ static int DetectFlowintSetup(DetectEngineCtx *de_ctx, Signature *s, char *rawst
 
     switch (sfd->modifier) {
         case FLOWINT_MODIFIER_SET:
+            /* fall through */
         case FLOWINT_MODIFIER_ADD:
+            /* fall through */
         case FLOWINT_MODIFIER_SUB:
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
             break;
 
         case FLOWINT_MODIFIER_LT:
+            /* fall through */
         case FLOWINT_MODIFIER_LE:
+            /* fall through */
         case FLOWINT_MODIFIER_NE:
+            /* fall through */
         case FLOWINT_MODIFIER_EQ:
+            /* fall through */
         case FLOWINT_MODIFIER_GE:
+            /* fall through */
         case FLOWINT_MODIFIER_GT:
+            /* fall through */
         case FLOWINT_MODIFIER_ISSET:
+            /* fall through */
         case FLOWINT_MODIFIER_NOTSET:
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
             break;

@@ -4672,7 +4672,9 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
             }
             break;
         case OS_POLICY_OLD_LINUX:
+            /* fall through */
         case OS_POLICY_LINUX:
+            /* fall through */
         case OS_POLICY_SOLARIS:
             if(PKT_IS_TOSERVER(p)){
                 if(SEQ_GEQ((TCP_GET_SEQ(p)+p->payload_len),
@@ -4712,13 +4714,21 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
             break;
         default:
         case OS_POLICY_BSD:
+            /* fall through */
         case OS_POLICY_FIRST:
+            /* fall through */
         case OS_POLICY_HPUX10:
+            /* fall through */
         case OS_POLICY_IRIX:
+            /* fall through */
         case OS_POLICY_MACOS:
+            /* fall through */
         case OS_POLICY_LAST:
+            /* fall through */
         case OS_POLICY_WINDOWS:
+            /* fall through */
         case OS_POLICY_WINDOWS2K3:
+            /* fall through */
         case OS_POLICY_VISTA:
             if(PKT_IS_TOSERVER(p)) {
                 if(SEQ_EQ(TCP_GET_SEQ(p), ssn->client.next_seq)) {
@@ -4767,19 +4777,28 @@ int StreamTcpGetFlowState(void *s)
 
     switch(ssn->state) {
         case TCP_NONE:
+            /* fall through */
         case TCP_SYN_SENT:
+            /* fall through */
         case TCP_SYN_RECV:
+            /* fall through */
         case TCP_LISTEN:
             SCReturnInt(FLOW_STATE_NEW);
 
         case TCP_ESTABLISHED:
+            /* fall through */
         case TCP_FIN_WAIT1:
+            /* fall through */
         case TCP_FIN_WAIT2:
+            /* fall through */
         case TCP_CLOSING:
+            /* fall through */
         case TCP_CLOSE_WAIT:
             SCReturnInt(FLOW_STATE_ESTABLISHED);
         case TCP_LAST_ACK:
+            /* fall through */
         case TCP_TIME_WAIT:
+            /* fall through */
         case TCP_CLOSED:
             SCReturnInt(FLOW_STATE_CLOSED);
     }
@@ -4833,6 +4852,7 @@ static int StreamTcpValidateTimestamp (TcpSession *ssn, Packet *p)
             /* The 3whs used the timestamp with 0 value. */
             switch (receiver_stream->os_policy) {
                 case OS_POLICY_LINUX:
+                    /* fall through */
                 case OS_POLICY_WINDOWS2K3:
                     /* Linux and windows 2003 does not allow the use of 0 as
                      * timestamp in the 3whs. */
@@ -4840,7 +4860,9 @@ static int StreamTcpValidateTimestamp (TcpSession *ssn, Packet *p)
                     break;
 
                 case OS_POLICY_OLD_LINUX:
+                    /* fall through */
                 case OS_POLICY_WINDOWS:
+                    /* fall through */
                 case OS_POLICY_VISTA:
                     if (SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p))) {
                         last_ts = ts;
@@ -4861,9 +4883,13 @@ static int StreamTcpValidateTimestamp (TcpSession *ssn, Packet *p)
         if (ts == 0) {
             switch (receiver_stream->os_policy) {
                 case OS_POLICY_OLD_LINUX:
+                    /* fall through */
                 case OS_POLICY_WINDOWS:
+                    /* fall through */
                 case OS_POLICY_WINDOWS2K3:
+                    /* fall through */
                 case OS_POLICY_VISTA:
+                    /* fall through */
                 case OS_POLICY_SOLARIS:
                     /* Old Linux and windows allowed packet with 0 timestamp. */
                     break;
@@ -4973,6 +4999,7 @@ static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
             /* The 3whs used the timestamp with 0 value. */
             switch (receiver_stream->os_policy) {
                 case OS_POLICY_LINUX:
+                    /* fall through */
                 case OS_POLICY_WINDOWS2K3:
                     /* Linux and windows 2003 does not allow the use of 0 as
                      * timestamp in the 3whs. */
@@ -4981,7 +5008,9 @@ static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
                     break;
 
                 case OS_POLICY_OLD_LINUX:
+                    /* fall through */
                 case OS_POLICY_WINDOWS:
+                    /* fall through */
                 case OS_POLICY_VISTA:
                     sender_stream->flags &= ~STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
                     if (SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p))) {
@@ -5005,9 +5034,13 @@ static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
         if (ts == 0) {
             switch (receiver_stream->os_policy) {
                 case OS_POLICY_OLD_LINUX:
+                    /* fall through */
                 case OS_POLICY_WINDOWS:
+                    /* fall through */
                 case OS_POLICY_WINDOWS2K3:
+                    /* fall through */
                 case OS_POLICY_VISTA:
+                    /* fall through */
                 case OS_POLICY_SOLARIS:
                     /* Old Linux and windows allowed packet with 0 timestamp. */
                     break;

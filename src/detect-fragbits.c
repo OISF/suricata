@@ -234,16 +234,19 @@ static DetectFragBitsData *DetectFragBitsParse (char *rawstr)
     while (*ptr != '\0') {
         switch (*ptr) {
             case 'M':
+                /* fall through */
             case 'm':
                 de->fragbits |= FRAGBITS_HAVE_MF;
                 found++;
                 break;
             case 'D':
+                /* fall through */
             case 'd':
                 de->fragbits |= FRAGBITS_HAVE_DF;
                 found++;
                 break;
             case 'R':
+                /* fall through */
             case 'r':
                 de->fragbits |= FRAGBITS_HAVE_RF;
                 found++;

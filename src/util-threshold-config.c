@@ -756,6 +756,7 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
     /* get end of rule */
     switch(rule_type) {
         case THRESHOLD_TYPE_EVENT_FILTER:
+            /* fall through */
         case THRESHOLD_TYPE_THRESHOLD:
             if (strlen(rule_extend) > 0) {
                 ret = pcre_exec(regex_threshold, regex_threshold_study,
@@ -914,7 +915,9 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
     switch (rule_type) {
         /* This part is common to threshold/event_filter/rate_filter */
         case THRESHOLD_TYPE_EVENT_FILTER:
+            /* fall through */
         case THRESHOLD_TYPE_THRESHOLD:
+            /* fall through */
         case THRESHOLD_TYPE_RATE:
             if (strcasecmp(th_track,"by_dst") == 0)
                 parsed_track = TRACK_DST;

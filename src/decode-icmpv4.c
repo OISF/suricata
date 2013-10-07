@@ -87,7 +87,7 @@ void DecodePartialIPV4( Packet* p, uint8_t* partial_packet, uint16_t len )
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->TCP header sport: "
                            "%"PRIu8" dport %"PRIu8"", p->icmpv4vars.emb_sport,
                             p->icmpv4vars.emb_dport);
-		} else if (len >= IPV4_HEADER_LEN + 4) {
+            } else if (len >= IPV4_HEADER_LEN + 4) {
                 /* only access th_sport and th_dport */
                 TCPHdr *emb_tcph = (TCPHdr*)(partial_packet + IPV4_HEADER_LEN);
 
