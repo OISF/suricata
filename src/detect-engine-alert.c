@@ -175,7 +175,7 @@ int PacketAlertRemove(Packet *p, uint16_t pos)
  *  \param flags alert flags
  *  \param alert_msg ptr to StreamMsg object that the signature matched on
  */
-int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, uint8_t flags)
+int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, uint64_t tx_id, uint8_t flags)
 {
     int i = 0;
 
@@ -192,6 +192,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, u
         p->alerts.alerts[p->alerts.cnt].action = s->action;
         p->alerts.alerts[p->alerts.cnt].flags = flags;
         p->alerts.alerts[p->alerts.cnt].s = s;
+        p->alerts.alerts[p->alerts.cnt].tx_id = tx_id;
     } else {
         /* We need to make room for this s->num
          (a bit ugly with memcpy but we are planning changes here)*/
@@ -205,6 +206,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, u
         p->alerts.alerts[i].action = s->action;
         p->alerts.alerts[i].flags = flags;
         p->alerts.alerts[i].s = s;
+        p->alerts.alerts[i].tx_id = tx_id;
     }
 
     /* Update the count */

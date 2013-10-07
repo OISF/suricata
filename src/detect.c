@@ -1103,8 +1103,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     SigMatch *sm = NULL;
     uint16_t alversion = 0;
     int reset_de_state = 0;
+    int state_alert = 0;
     int alerts = 0;
-    int i;
     int app_decoder_events = 0;
 
     SCEnter();
@@ -1305,7 +1305,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* inspect the sigs against the packet */
     for (idx = 0; idx < det_ctx->match_array_cnt; idx++) {
         RULE_PROFILING_START;
-        alerts = 0;
+        state_alert = 0;
 #ifdef PROFILING
         smatch = 0;
 #endif
@@ -1492,11 +1492,16 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
 
             SCLogDebug("stateful app layer match inspection starting");
+
+            /* if DeStateDetectStartDetection matches, it's a full
+             * signature match. It will then call PacketAlertAppend
+             * itself, so we can skip it below. This is done so it
+             * can store the tx_id with the alert */
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
-            alerts = DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
-                                                 p->flow, flags, alstate, alproto, alversion);
+            state_alert = DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
+                                                 p, p->flow, flags, alstate, alproto, alversion);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
-            if (alerts == 0)
+            if (state_alert == 0)
                 goto next;
 
             /* match */
@@ -1506,11 +1511,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             alert_flags |= PACKET_ALERT_FLAG_STATE_MATCH;
         }
 
-        /* If we have reached this stage and we don't have any alerts, it
-         * indicates that we didn't have a stateful sig, hence we set alerts
-         * to 1.  But if we have an alert set, then the sig is definitely a
-         * stateful sig and we need to retain the no of alerts */
-        alerts = (alerts == 0) ? 1 : alerts;
 #ifdef PROFILING
         smatch = 1;
 #endif
@@ -1518,12 +1518,14 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         SigMatchSignaturesRunPostMatch(th_v, de_ctx, det_ctx, p, s);
 
         if (!(s->flags & SIG_FLAG_NOALERT)) {
-            for (i = 0; i < alerts; i++)
-                PacketAlertAppend(det_ctx, s, p, alert_flags);
+            /* stateful sigs call PacketAlertAppend from DeStateDetectStartDetection */
+            if (!state_alert)
+                PacketAlertAppend(det_ctx, s, p, 0, alert_flags);
         } else {
             /* apply actions even if not alerting */
             PACKET_UPDATE_ACTION(p, s->action);
         }
+        alerts++;
 next:
         DetectFlowvarProcessList(det_ctx, p->flow);
         DetectReplaceFree(det_ctx->replist);
