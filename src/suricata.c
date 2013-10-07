@@ -1768,6 +1768,7 @@ static int ConfigGetCaptureValue(SCInstance *suri)
                 default_packet_size = GetIfaceMaxPacketSize(suri->pcap_dev);
                 if (default_packet_size)
                     break;
+                /* fall through */
             default:
                 default_packet_size = DEFAULT_PACKET_SIZE;
         }

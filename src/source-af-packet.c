@@ -1398,6 +1398,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         case ARPHRD_PPP:
         case ARPHRD_ATM:
             ptv->cooked = 1;
+            break;
     }
 
     TmEcode rc;

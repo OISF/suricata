@@ -267,318 +267,397 @@ static int DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
                 /* We fall through to the next case if we still have input.
                  * Same applies for other cases as well */
 			}
+            /* fall through */
 		case 1:
 			sstate->dcerpc.dcerpchdrudp.type = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 2:
 			sstate->dcerpc.dcerpchdrudp.flags1 = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 3:
 			sstate->dcerpc.dcerpchdrudp.flags2 = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 4:
 			sstate->dcerpc.dcerpchdrudp.drep[0] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 5:
 			sstate->dcerpc.dcerpchdrudp.drep[1] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 6:
 			sstate->dcerpc.dcerpchdrudp.drep[2] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 7:
 			sstate->dcerpc.dcerpchdrudp.serial_hi = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 8:
 			sstate->dcerpc.dcerpchdrudp.objectuuid[3] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 9:
 			sstate->dcerpc.dcerpchdrudp.objectuuid[2] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 10:
 			sstate->dcerpc.dcerpchdrudp.objectuuid[1] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 11:
 			sstate->dcerpc.dcerpchdrudp.objectuuid[0] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 12:
 			sstate->dcerpc.dcerpchdrudp.objectuuid[5] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 13:
 			sstate->dcerpc.dcerpchdrudp.objectuuid[4] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 14:
 			sstate->dcerpc.dcerpchdrudp.objectuuid[7] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 15:
 			sstate->dcerpc.dcerpchdrudp.objectuuid[6] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 16:
 			sstate->dcerpc.dcerpchdrudp.objectuuid[8] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 17:
 			sstate->dcerpc.dcerpchdrudp.objectuuid[9] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 18:
 			sstate->dcerpc.dcerpchdrudp.objectuuid[10] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 19:
 			sstate->dcerpc.dcerpchdrudp.objectuuid[11] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 20:
 			sstate->dcerpc.dcerpchdrudp.objectuuid[12] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 21:
 			sstate->dcerpc.dcerpchdrudp.objectuuid[13] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 22:
 			sstate->dcerpc.dcerpchdrudp.objectuuid[14] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 23:
 			sstate->dcerpc.dcerpchdrudp.objectuuid[15] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 24:
 			sstate->dcerpc.dcerpchdrudp.interfaceuuid[3] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 25:
 			sstate->dcerpc.dcerpchdrudp.interfaceuuid[2] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 26:
 			sstate->dcerpc.dcerpchdrudp.interfaceuuid[1] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 27:
 			sstate->dcerpc.dcerpchdrudp.interfaceuuid[0] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 28:
 			sstate->dcerpc.dcerpchdrudp.interfaceuuid[5] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 29:
 			sstate->dcerpc.dcerpchdrudp.interfaceuuid[4] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 30:
 			sstate->dcerpc.dcerpchdrudp.interfaceuuid[7] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 31:
 			sstate->dcerpc.dcerpchdrudp.interfaceuuid[6] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 32:
 			sstate->dcerpc.dcerpchdrudp.interfaceuuid[8] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 33:
 			sstate->dcerpc.dcerpchdrudp.interfaceuuid[9] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 34:
 			sstate->dcerpc.dcerpchdrudp.interfaceuuid[10] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 35:
 			sstate->dcerpc.dcerpchdrudp.interfaceuuid[11] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 36:
 			sstate->dcerpc.dcerpchdrudp.interfaceuuid[12] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 37:
 			sstate->dcerpc.dcerpchdrudp.interfaceuuid[13] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 38:
 			sstate->dcerpc.dcerpchdrudp.interfaceuuid[14] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 39:
 			sstate->dcerpc.dcerpchdrudp.interfaceuuid[15] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 40:
 			sstate->dcerpc.dcerpchdrudp.activityuuid[3] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 41:
 			sstate->dcerpc.dcerpchdrudp.activityuuid[2] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 42:
 			sstate->dcerpc.dcerpchdrudp.activityuuid[1] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 43:
 			sstate->dcerpc.dcerpchdrudp.activityuuid[0] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 44:
 			sstate->dcerpc.dcerpchdrudp.activityuuid[5] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 45:
 			sstate->dcerpc.dcerpchdrudp.activityuuid[4] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 46:
 			sstate->dcerpc.dcerpchdrudp.activityuuid[7] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 47:
 			sstate->dcerpc.dcerpchdrudp.activityuuid[6] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 48:
 			sstate->dcerpc.dcerpchdrudp.activityuuid[8] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 49:
 			sstate->dcerpc.dcerpchdrudp.activityuuid[9] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 50:
 			sstate->dcerpc.dcerpchdrudp.activityuuid[10] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 51:
 			sstate->dcerpc.dcerpchdrudp.activityuuid[11] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 52:
 			sstate->dcerpc.dcerpchdrudp.activityuuid[12] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 53:
 			sstate->dcerpc.dcerpchdrudp.activityuuid[13] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 54:
 			sstate->dcerpc.dcerpchdrudp.activityuuid[14] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 55:
 			sstate->dcerpc.dcerpchdrudp.activityuuid[15] = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 56:
 			sstate->dcerpc.dcerpchdrudp.server_boot = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 57:
 			sstate->dcerpc.dcerpchdrudp.server_boot |= *(p++) << 8;
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 58:
 			sstate->dcerpc.dcerpchdrudp.server_boot |= *(p++) << 16;
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 59:
 			sstate->dcerpc.dcerpchdrudp.server_boot |= *(p++) << 24;
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 60:
 			sstate->dcerpc.dcerpchdrudp.if_vers = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 61:
 			sstate->dcerpc.dcerpchdrudp.if_vers |= *(p++) << 8;
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 62:
 			sstate->dcerpc.dcerpchdrudp.if_vers |= *(p++) << 16;
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 63:
 			sstate->dcerpc.dcerpchdrudp.if_vers |= *(p++) << 24;
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 64:
 			sstate->dcerpc.dcerpchdrudp.seqnum = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 65:
 			sstate->dcerpc.dcerpchdrudp.seqnum |= *(p++) << 8;
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 66:
 			sstate->dcerpc.dcerpchdrudp.seqnum |= *(p++) << 16;
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 67:
 			sstate->dcerpc.dcerpchdrudp.seqnum |= *(p++) << 24;
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 68:
 			sstate->dcerpc.dcerpchdrudp.opnum = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 69:
 			sstate->dcerpc.dcerpchdrudp.opnum |= *(p++) << 8;
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 70:
 			sstate->dcerpc.dcerpchdrudp.ihint = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 71:
 			sstate->dcerpc.dcerpchdrudp.ihint |= *(p++) << 8;
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 72:
 			sstate->dcerpc.dcerpchdrudp.ahint = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 73:
 			sstate->dcerpc.dcerpchdrudp.ahint |= *(p++) << 8;
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 74:
 			sstate->dcerpc.dcerpchdrudp.fraglen = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 75:
 			sstate->dcerpc.dcerpchdrudp.fraglen |= *(p++) << 8;
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 76:
 			sstate->dcerpc.dcerpchdrudp.fragnum = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 77:
 			sstate->dcerpc.dcerpchdrudp.fragnum |= *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 78:
 			sstate->dcerpc.dcerpchdrudp.auth_proto = *(p++);
 			if (!(--input_len))
 				break;
+            /* fall through */
 		case 79:
 			sstate->dcerpc.dcerpchdrudp.serial_lo = *(p++);
 			if (sstate->dcerpc.dcerpchdrudp.drep[0] != 0x10) {
