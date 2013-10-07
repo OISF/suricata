@@ -1396,8 +1396,10 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
     ptv->datalink = AFPGetDevLinktype(ptv->socket, ptv->iface);
     switch (ptv->datalink) {
         case ARPHRD_PPP:
+            /* fall through */
         case ARPHRD_ATM:
             ptv->cooked = 1;
+            /* fall through */
     }
 
     TmEcode rc;

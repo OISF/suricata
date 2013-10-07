@@ -101,12 +101,19 @@ int DetectIcmpSeqMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     if (PKT_IS_ICMPV4(p)) {
         switch (ICMPV4_GET_TYPE(p)){
             case ICMP_ECHOREPLY:
+                /* fall through */
             case ICMP_ECHO:
+                /* fall through */
             case ICMP_TIMESTAMP:
+                /* fall through */
             case ICMP_TIMESTAMPREPLY:
+                /* fall through */
             case ICMP_INFO_REQUEST:
+                /* fall through */
             case ICMP_INFO_REPLY:
+                /* fall through */
             case ICMP_ADDRESS:
+                /* fall through */
             case ICMP_ADDRESSREPLY:
                 SCLogDebug("ICMPV4_GET_SEQ(p) %"PRIu16" (network byte order), "
                         "%"PRIu16" (host byte order)", ICMPV4_GET_SEQ(p),
@@ -122,6 +129,7 @@ int DetectIcmpSeqMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
 
         switch (ICMPV6_GET_TYPE(p)) {
             case ICMP6_ECHO_REQUEST:
+                /* fall through */
             case ICMP6_ECHO_REPLY:
                 SCLogDebug("ICMPV6_GET_SEQ(p) %"PRIu16" (network byte order), "
                         "%"PRIu16" (host byte order)", ICMPV6_GET_SEQ(p),

@@ -938,7 +938,9 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
             }
             break;
         case IPPROTO_UDP:
+            /* fall through */
         case IPPROTO_TCP:
+            /* fall through */
         case IPPROTO_SCTP:
             gphdr.sp = htons(p->sp);
             gphdr.dp = htons(p->dp);
@@ -1087,7 +1089,9 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
             }
             break;
         case IPPROTO_UDP:
+            /* fall through */
         case IPPROTO_TCP:
+            /* fall through */
         case IPPROTO_SCTP:
             gphdr.sp = htons(p->sp);
             gphdr.dp = htons(p->dp);

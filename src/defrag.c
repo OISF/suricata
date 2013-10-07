@@ -764,8 +764,11 @@ DefragGetOsPolicy(Packet *p)
      * defrag specific policies. */
     switch (policy) {
         /* BSD. */
+        /* fall through */
     case OS_POLICY_BSD:
+        /* fall through */
     case OS_POLICY_HPUX10:
+        /* fall through */
     case OS_POLICY_IRIX:
         return DEFRAG_POLICY_BSD;
 
@@ -775,13 +778,17 @@ DefragGetOsPolicy(Packet *p)
 
         /* Linux. */
     case OS_POLICY_OLD_LINUX:
+        /* fall through */
     case OS_POLICY_LINUX:
         return DEFRAG_POLICY_LINUX;
 
         /* First. */
     case OS_POLICY_OLD_SOLARIS:
+        /* fall through */
     case OS_POLICY_HPUX11:
+        /* fall through */
     case OS_POLICY_MACOS:
+        /* fall through */
     case OS_POLICY_FIRST:
         return DEFRAG_POLICY_FIRST;
 
@@ -791,7 +798,9 @@ DefragGetOsPolicy(Packet *p)
 
         /* Windows. */
     case OS_POLICY_WINDOWS:
+        /* fall through */
     case OS_POLICY_VISTA:
+        /* fall through */
     case OS_POLICY_WINDOWS2K3:
         return DEFRAG_POLICY_WINDOWS;
 

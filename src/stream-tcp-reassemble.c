@@ -1086,6 +1086,7 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
         } else {
             switch (os_policy) {
                 case OS_POLICY_SOLARIS:
+                    /* fall through */
                 case OS_POLICY_HPUX11:
                     if (end_after == TRUE || end_same == TRUE) {
                         StreamTcpSegmentDataReplace(list_seg, seg, overlap_point,
@@ -1098,6 +1099,7 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
                     }
                     break;
                 case OS_POLICY_VISTA:
+                    /* fall through */
                 case OS_POLICY_FIRST:
                     SCLogDebug("using old data in starts before list case, "
                             "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
@@ -1105,14 +1107,23 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
                             overlap);
                     break;
                 case OS_POLICY_BSD:
+                    /* fall through */
                 case OS_POLICY_HPUX10:
+                    /* fall through */
                 case OS_POLICY_IRIX:
+                    /* fall through */
                 case OS_POLICY_WINDOWS:
+                    /* fall through */
                 case OS_POLICY_WINDOWS2K3:
+                    /* fall through */
                 case OS_POLICY_OLD_LINUX:
+                    /* fall through */
                 case OS_POLICY_LINUX:
+                    /* fall through */
                 case OS_POLICY_MACOS:
+                    /* fall through */
                 case OS_POLICY_LAST:
+                    /* fall through */
                 default:
                     SCLogDebug("replacing old data in starts before list seg "
                             "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
@@ -1284,7 +1295,9 @@ static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThr
         } else {
             switch (os_policy) {
                 case OS_POLICY_OLD_LINUX:
+                    /* fall through */
                 case OS_POLICY_SOLARIS:
+                    /* fall through */
                 case OS_POLICY_HPUX11:
                     if (end_after == TRUE || end_same == TRUE) {
                         StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
@@ -1309,13 +1322,21 @@ static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThr
                     }
                     break;
                 case OS_POLICY_BSD:
+                    /* fall through */
                 case OS_POLICY_HPUX10:
+                    /* fall through */
                 case OS_POLICY_IRIX:
+                    /* fall through */
                 case OS_POLICY_WINDOWS:
+                    /* fall through */
                 case OS_POLICY_WINDOWS2K3:
+                    /* fall through */
                 case OS_POLICY_VISTA:
+                    /* fall through */
                 case OS_POLICY_MACOS:
+                    /* fall through */
                 case OS_POLICY_FIRST:
+                    /* fall through */
                 default:
                     SCLogDebug("using old data in starts at list case, list_seg->seq"
                             " %" PRIu32 " policy %" PRIu32 " overlap %" PRIu32 "",
@@ -1491,6 +1512,7 @@ static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThre
         } else {
             switch (os_policy) {
                 case OS_POLICY_SOLARIS:
+                    /* fall through */
                 case OS_POLICY_HPUX11:
                     if (end_after == TRUE) {
                         StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
@@ -1505,15 +1527,25 @@ static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThre
                     StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
                     break;
                 case OS_POLICY_BSD:
+                    /* fall through */
                 case OS_POLICY_HPUX10:
+                    /* fall through */
                 case OS_POLICY_IRIX:
+                    /* fall through */
                 case OS_POLICY_WINDOWS:
+                    /* fall through */
                 case OS_POLICY_WINDOWS2K3:
+                    /* fall through */
                 case OS_POLICY_VISTA:
+                    /* fall through */
                 case OS_POLICY_OLD_LINUX:
+                    /* fall through */
                 case OS_POLICY_LINUX:
+                    /* fall through */
                 case OS_POLICY_MACOS:
+                    /* fall through */
                 case OS_POLICY_FIRST:
+                    /* fall through */
                 default: /* DEFAULT POLICY */
                     SCLogDebug("using old data in starts beyond list case, "
                             "list_seg->seq %" PRIu32 " policy %" PRIu32 " "

@@ -1082,7 +1082,9 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
 
         /* Default (or no config provided) is profile medium */
         case ENGINE_PROFILE_MEDIUM:
+            /* fall through */
         case ENGINE_PROFILE_UNKNOWN:
+            /* fall through */
         default:
             de_ctx->max_uniq_toclient_src_groups = 4;
             de_ctx->max_uniq_toclient_dst_groups = 4;

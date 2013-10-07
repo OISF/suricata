@@ -217,10 +217,15 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
             s->flags |= SIG_FLAG_NOALERT;
             return 0;
         case DETECT_FLOWBITS_CMD_ISNOTSET:
+            /* fall through */
         case DETECT_FLOWBITS_CMD_ISSET:
+            /* fall through */
         case DETECT_FLOWBITS_CMD_SET:
+            /* fall through */
         case DETECT_FLOWBITS_CMD_UNSET:
+            /* fall through */
         case DETECT_FLOWBITS_CMD_TOGGLE:
+            /* fall through */
         default:
             if(fb_name == NULL)
                 goto error;
@@ -257,13 +262,16 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
             break;
 
         case DETECT_FLOWBITS_CMD_ISNOTSET:
+            /* fall through */
         case DETECT_FLOWBITS_CMD_ISSET:
             /* checks, so packet list */
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
             break;
 
         case DETECT_FLOWBITS_CMD_SET:
+            /* fall through */
         case DETECT_FLOWBITS_CMD_UNSET:
+            /* fall through */
         case DETECT_FLOWBITS_CMD_TOGGLE:
             /* modifiers, only run when entire sig has matched */
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);

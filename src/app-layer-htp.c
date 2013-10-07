@@ -702,6 +702,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             ret = -1;
             break;
         case HTP_STREAM_DATA:
+            /* fall through */
         case HTP_STREAM_DATA_OTHER:
 
             hstate->flags |= HTP_FLAG_STATE_DATA;
@@ -775,6 +776,7 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
             ret = -1;
             break;
         case HTP_STREAM_DATA:
+            /* fall through */
         case HTP_STREAM_DATA_OTHER:
             HTPHandleWarning(hstate);
             hstate->flags |= HTP_FLAG_STATE_DATA;

@@ -59,32 +59,59 @@ void DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     switch (ntohs(p->ppph->protocol))
     {
         case PPP_VJ_COMP:
+            /* fall through */
         case PPP_IPX:
+            /* fall through */
         case PPP_OSI:
+            /* fall through */
         case PPP_NS:
+            /* fall through */
         case PPP_DECNET:
+            /* fall through */
         case PPP_APPLE:
+            /* fall through */
         case PPP_BRPDU:
+            /* fall through */
         case PPP_STII:
+            /* fall through */
         case PPP_VINES:
+            /* fall through */
         case PPP_HELLO:
+            /* fall through */
         case PPP_LUXCOM:
+            /* fall through */
         case PPP_SNS:
+            /* fall through */
         case PPP_MPLS_UCAST:
+            /* fall through */
         case PPP_MPLS_MCAST:
+            /* fall through */
         case PPP_IPCP:
+            /* fall through */
         case PPP_OSICP:
+            /* fall through */
         case PPP_NSCP:
+            /* fall through */
         case PPP_DECNETCP:
+            /* fall through */
         case PPP_APPLECP:
+            /* fall through */
         case PPP_IPXCP:
+            /* fall through */
         case PPP_STIICP:
+            /* fall through */
         case PPP_VINESCP:
+            /* fall through */
         case PPP_IPV6CP:
+            /* fall through */
         case PPP_MPLSCP:
+            /* fall through */
         case PPP_LCP:
+            /* fall through */
         case PPP_PAP:
+            /* fall through */
         case PPP_LQM:
+            /* fall through */
         case PPP_CHAP:
             ENGINE_SET_EVENT(p,PPP_UNSUP_PROTO);
             break;

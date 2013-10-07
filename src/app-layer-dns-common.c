@@ -564,7 +564,9 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
     const DNSAnswerHeader *head = (DNSAnswerHeader *)data;
     switch (ntohs(head->type)) {
         case DNS_RECORD_TYPE_A:
+            /* fall through */
         case DNS_RECORD_TYPE_AAAA:
+            /* fall through */
         case DNS_RECORD_TYPE_CNAME:
         {
             data += sizeof(DNSAnswerHeader);
@@ -649,6 +651,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
             break;
         }
         case DNS_RECORD_TYPE_NS:
+            /* fall through */
         case DNS_RECORD_TYPE_SOA:
         {
             data += sizeof(DNSAnswerHeader);

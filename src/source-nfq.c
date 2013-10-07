@@ -1077,6 +1077,7 @@ TmEcode NFQSetVerdict(Packet *p) {
         switch (nfq_config.mode) {
             default:
             case NFQ_ACCEPT_MODE:
+                /* fall through */
             case NFQ_ROUTE_MODE:
                 if (p->flags & PKT_MARK_MODIFIED) {
 #ifdef HAVE_NFQ_SET_VERDICT2

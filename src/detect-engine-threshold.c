@@ -469,6 +469,7 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
                     res = DetectAddressMatch(td->addr, &p->src);
                     break;
                 case TRACK_RULE:
+                    /* fall through */
                 default:
                     SCLogError(SC_ERR_INVALID_VALUE,
                                "track mode %d is not supported", td->track);
