@@ -1426,16 +1426,18 @@ void RegisterAppLayerParsers(void)
         return;
     }
 
+#if 0
     /** Jabber */
     if (AppLayerProtoDetectionEnabled("jabber")) {
-        //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOCLIENT);
-        //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOCLIENT);
+        AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOSERVER);
     } else {
         SCLogInfo("Protocol detection disabled for %s protocol and as a "
                   "consequence the conf param \"app-layer.protocols.%s."
                   "parser-enabled\" will now be ignored.", "jabber", "jabber");
         return;
     }
+#endif
 
     return;
 }
@@ -1667,6 +1669,7 @@ void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_prot
     ConfNode *node;
     ConfNode *proto_node = NULL;
     ConfNode *port_node = NULL;
+    uint16_t ip_proto;
 
     r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
                  al_proto_name, ".detection-ports");
@@ -1686,8 +1689,8 @@ void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_prot
     /* for each proto */
     TAILQ_FOREACH(proto_node, &node->head, next) {
         DetectProto dp;
-        int ip_proto = DetectProtoParse(&dp, proto_node->name);
-        if (ip_proto < 0) {
+        r = DetectProtoParse(&dp, proto_node->name, &ip_proto);
+        if (r < 0) {
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
                        "%s.%s", param, proto_node->name);
             exit(EXIT_FAILURE);
@@ -2191,7 +2194,13 @@ static inline void AppLayerInsertNewProbingParser(AppLayerProbingParser **pp,
         curr_pe = curr_port->toclient;
     while (curr_pe != NULL) {
         if (curr_pe->al_proto == al_proto) {
-            SCLogError(SC_ERR_ALPARSER, "Duplicate pp registered");
+            SCLogError(SC_ERR_ALPARSER, "Duplicate pp registered - "
+                       "ip_proto - %"PRIu16" Port - %"PRIu16" "
+                       "App Protocol - %s, App Protocol(ID) - "
+                       "%"PRIu16" min_depth - %"PRIu16" "
+                       "max_dept - %"PRIu16".",
+                       ip_proto, port, al_proto_name, al_proto,
+                       min_depth, max_depth);
             goto error;
         }
         curr_pe = curr_pe->next;

@@ -589,7 +589,7 @@ int SigParseProto(Signature *s, const char *protostr) {
     AppLayerProbingParserPort *pp_port;
     AppLayerProbingParserElement *pp_pe;
 
-    int r = DetectProtoParse(&s->proto, (char *)protostr);
+    int r = DetectProtoParse(&s->proto, (char *)protostr, NULL);
     if (r < 0) {
         s->alproto = AppLayerGetProtoByName(protostr);
         /* indicate that the signature is app-layer */
