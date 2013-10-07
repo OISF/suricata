@@ -197,14 +197,17 @@ static uint32_t DCERPCGetCTXItems(DCERPC *dcerpc, uint8_t *input, uint32_t input
                     if (!(--input_len))
                         break;
                 }
+                /* fall through */
             case 1:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 2:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 3:
                 p++;
                 input_len--;
@@ -329,6 +332,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                     if (!(--input_len))
                         break;
                 }
+                /* fall through */
             case 1:
                 if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                     dcerpc->dcerpcbindbindack.ctxid |= *(p++) << 8;
@@ -337,16 +341,19 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 2:
                 /* num transact items */
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 3:
                 /* reserved */
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 4:
                 if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                     dcerpc->dcerpcbindbindack.uuid[3] = *(p++);
@@ -355,6 +362,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 5:
                 if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                     dcerpc->dcerpcbindbindack.uuid[2] = *(p++);
@@ -363,6 +371,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 6:
                 if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                     dcerpc->dcerpcbindbindack.uuid[1] = *(p++);
@@ -371,6 +380,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 7:
                 if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                     dcerpc->dcerpcbindbindack.uuid[0] = *(p++);
@@ -379,6 +389,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 8:
                 if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                     dcerpc->dcerpcbindbindack.uuid[5] = *(p++);
@@ -387,6 +398,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 9:
                 if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                     dcerpc->dcerpcbindbindack.uuid[4] = *(p++);
@@ -395,6 +407,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 10:
                 if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                     dcerpc->dcerpcbindbindack.uuid[7] = *(p++);
@@ -403,6 +416,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 11:
                 if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                     dcerpc->dcerpcbindbindack.uuid[6] = *(p++);
@@ -411,39 +425,48 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 12:
                 /* The following bytes are in the same order for both big and little endian */
                 dcerpc->dcerpcbindbindack.uuid[8] = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 13:
                 dcerpc->dcerpcbindbindack.uuid[9] = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 14:
                 dcerpc->dcerpcbindbindack.uuid[10] = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 15:
                 dcerpc->dcerpcbindbindack.uuid[11] = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 16:
                 dcerpc->dcerpcbindbindack.uuid[12] = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 17:
                 dcerpc->dcerpcbindbindack.uuid[13] = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 18:
                 dcerpc->dcerpcbindbindack.uuid[14] = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 19:
                 dcerpc->dcerpcbindbindack.uuid[15] = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 20:
                 if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                     dcerpc->dcerpcbindbindack.version = *(p++);
@@ -452,6 +475,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 21:
                 if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                     dcerpc->dcerpcbindbindack.version |= *(p++) << 8;
@@ -460,6 +484,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 22:
                 if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                     dcerpc->dcerpcbindbindack.versionminor = *(p++);
@@ -468,6 +493,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 23:
                 if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                     dcerpc->dcerpcbindbindack.versionminor |= *(p++) << 8;
@@ -476,82 +502,102 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 24:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 25:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 26:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 27:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 28:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 29:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 30:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 31:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 32:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 33:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 34:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 35:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 36:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 37:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 38:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 39:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 40:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 41:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 42:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 43:
                 p++;
                 --input_len;
@@ -666,6 +712,7 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
                     if (!(--input_len))
                         break;
                 }
+                /* fall through */
             case 1:
                 if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                     dcerpc->dcerpcbindbindack.result |= *(p++) << 8;
@@ -674,92 +721,114 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 2:
                 /* num transact items */
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 3:
                 /* reserved */
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 4:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 5:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 6:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 7:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 8:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 9:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 10:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 11:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 12:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 13:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 14:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 15:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 16:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 17:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 18:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 19:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 20:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 21:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 22:
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 23:
                 TAILQ_FOREACH(uuid_entry, &dcerpc->dcerpcbindbindack.uuid_list, next) {
                     if (uuid_entry->internal_id == dcerpc->dcerpcbindbindack.uuid_internal_id) {
@@ -833,41 +902,49 @@ static uint32_t DCERPCParseBIND(DCERPC *dcerpc, uint8_t *input, uint32_t input_l
                     if (!(--input_len))
                         break;
                 }
+                /* fall through */
             case 17:
                 /* max_xmit_frag */
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 18:
                 /* max_recv_frag */
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 19:
                 /* max_recv_frag */
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 20:
                 /* assoc_group_id */
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 21:
                 /* assoc_group_id */
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 22:
                 /* assoc_group_id */
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 23:
                 /* assoc_group_id */
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 24:
                 while ((item = TAILQ_FIRST(&dcerpc->dcerpcbindbindack.uuid_list))) {
                     TAILQ_REMOVE(&dcerpc->dcerpcbindbindack.uuid_list, item, next);
@@ -886,21 +963,25 @@ static uint32_t DCERPCParseBIND(DCERPC *dcerpc, uint8_t *input, uint32_t input_l
                 TAILQ_INIT(&dcerpc->dcerpcbindbindack.uuid_list);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 25:
                 /* pad byte 1 */
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 26:
                 /* pad byte 2 */
                 p++;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 27:
                 /* pad byte 3 */
                 p++;
                 --input_len;
                 break;
+                /* fall through */
             default:
                 dcerpc->bytesprocessed++;
                 SCReturnUInt(1);
@@ -936,45 +1017,54 @@ static uint32_t DCERPCParseBINDACK(DCERPC *dcerpc, uint8_t *input, uint32_t inpu
                 if (!(--input_len))
                     break;
             }
+            /* fall through */
         case 17:
             /* max_xmit_frag */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 18:
             /* max_recv_frag */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 19:
             /* max_recv_frag */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 20:
             /* assoc_group_id */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 21:
             /* assoc_group_id */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 22:
             /* assoc_group_id */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 23:
             /* assoc_group_id */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 24:
             dcerpc->dcerpcbindbindack.secondaryaddrlen = *(p++) << 8;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 25:
             dcerpc->dcerpcbindbindack.secondaryaddrlen |= *(p++);
             if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
@@ -1024,26 +1114,31 @@ static uint32_t DCERPCParseREQUEST(DCERPC *dcerpc, uint8_t *input, uint32_t inpu
                 if (!(--input_len))
                     break;
             }
+            /* fall through */
         case 17:
             /* alloc hint 2 */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 18:
             /* alloc hint 3 */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 19:
             /* alloc hint 4 */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 20:
             /* context id 1 */
             dcerpc->dcerpcrequest.ctxid = *(p++);
             if (!(--input_len))
                 break;
+            /* fall through */
         case 21:
             /* context id 2 */
             dcerpc->dcerpcrequest.ctxid |= *(p++) << 8;
@@ -1053,6 +1148,7 @@ static uint32_t DCERPCParseREQUEST(DCERPC *dcerpc, uint8_t *input, uint32_t inpu
             dcerpc->dcerpcrequest.first_request_seen = 1;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 22:
             if (dcerpc->dcerpchdr.type == REQUEST) {
                 dcerpc->dcerpcrequest.opnum = *(p++);
@@ -1061,6 +1157,7 @@ static uint32_t DCERPCParseREQUEST(DCERPC *dcerpc, uint8_t *input, uint32_t inpu
             }
             if (!(--input_len))
                 break;
+            /* fall through */
         case 23:
             if (dcerpc->dcerpchdr.type == REQUEST) {
                 dcerpc->dcerpcrequest.opnum |= *(p++) << 8;
@@ -1222,6 +1319,7 @@ static int DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                     if (!(--input_len))
                         break;
                 }
+                /* fall through */
             case 1:
                 dcerpc->dcerpchdr.rpc_vers_minor = *(p++);
                 if ((dcerpc->dcerpchdr.rpc_vers != 5) ||
@@ -1232,60 +1330,74 @@ static int DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 2:
                 dcerpc->dcerpchdr.type = *(p++);
                 SCLogDebug("dcerpc->dcerpchdr.type %02x",
                         dcerpc->dcerpchdr.type);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 3:
                 dcerpc->dcerpchdr.pfc_flags = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 4:
                 dcerpc->dcerpchdr.packed_drep[0] = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 5:
                 dcerpc->dcerpchdr.packed_drep[1] = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 6:
                 dcerpc->dcerpchdr.packed_drep[2] = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 7:
                 dcerpc->dcerpchdr.packed_drep[3] = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 8:
                 dcerpc->dcerpchdr.frag_length = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 9:
                 dcerpc->dcerpchdr.frag_length |= *(p++) << 8;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 10:
                 dcerpc->dcerpchdr.auth_length = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 11:
                 dcerpc->dcerpchdr.auth_length |= *(p++) << 8;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 12:
                 dcerpc->dcerpchdr.call_id = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 13:
                 dcerpc->dcerpchdr.call_id |= *(p++) << 8;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 14:
                 dcerpc->dcerpchdr.call_id |= *(p++) << 16;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 15:
                 dcerpc->dcerpchdr.call_id |= *(p++) << 24;
                 if (!(dcerpc->dcerpchdr.packed_drep[0] & 0x10)) {

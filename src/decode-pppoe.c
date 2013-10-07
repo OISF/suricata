@@ -200,7 +200,7 @@ void DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_
                 }
 
                 DecodeIPV4(tv, dtv, p, pkt + PPPOE_SESSION_HEADER_LEN, len - PPPOE_SESSION_HEADER_LEN, pq );
-            break;
+                break;
 
             /* PPP IPv6 was not tested */
             case PPP_IPV6:

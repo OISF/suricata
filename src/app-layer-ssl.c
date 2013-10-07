@@ -270,6 +270,7 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, uint8_t *input,
             {
                 return (input - initial_input);
             }
+            /* fall through */
         case 1:
             ssl_state->curr_connp->message_length = *(input++) << 16;
             ssl_state->curr_connp->bytes_processed++;
@@ -280,6 +281,7 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, uint8_t *input,
             {
                 return (input - initial_input);
             }
+            /* fall through */
         case 2:
             ssl_state->curr_connp->message_length |= *(input++) << 8;
             ssl_state->curr_connp->bytes_processed++;
@@ -290,11 +292,13 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, uint8_t *input,
             {
                 return (input - initial_input);
             }
+            /* fall through */
         case 3:
             ssl_state->curr_connp->message_length |= *(input++);
             ssl_state->curr_connp->bytes_processed++;
             ssl_state->curr_connp->hs_bytes_processed++;
             --input_len;
+            /* fall through */
     }
 
     retval = SSLv3ParseHandshakeType(ssl_state, input, input_len);
@@ -330,22 +334,27 @@ static int SSLv3ParseRecord(uint8_t direction, SSLState *ssl_state,
                 if (--input_len == 0)
                     break;
             }
+            /* fall through */
         case 1:
             ssl_state->curr_connp->version = *(input++) << 8;
             if (--input_len == 0)
                 break;
+            /* fall through */
         case 2:
             ssl_state->curr_connp->version |= *(input++);
             if (--input_len == 0)
                 break;
+            /* fall through */
         case 3:
             ssl_state->curr_connp->record_length = *(input++) << 8;
             if (--input_len == 0)
                 break;
+            /* fall through */
         case 4:
             ssl_state->curr_connp->record_length |= *(input++);
             if (--input_len == 0)
                 break;
+            /* fall through */
     } /* switch (ssl_state->curr_connp->bytes_processed) */
 
     ssl_state->curr_connp->bytes_processed += (input - initial_input);
@@ -377,15 +386,18 @@ static int SSLv2ParseRecord(uint8_t direction, SSLState *ssl_state,
                         break;
                 }
 
+                /* fall through */
             case 1:
                 ssl_state->curr_connp->record_length |= *(input++);
                 if (--input_len == 0)
                     break;
+                /* fall through */
             case 2:
                 ssl_state->curr_connp->content_type = *(input++);
                 ssl_state->curr_connp->version = SSL_VERSION_2;
                 if (--input_len == 0)
                     break;
+                /* fall through */
         } /* switch (ssl_state->curr_connp->bytes_processed) */
 
     } else {
@@ -402,23 +414,26 @@ static int SSLv2ParseRecord(uint8_t direction, SSLState *ssl_state,
                     if (--input_len == 0)
                         break;
                 }
-
+                /* fall through */
             case 1:
                 ssl_state->curr_connp->record_length |= *(input++);
                 if (--input_len == 0)
                     break;
 
+                /* fall through */
             case 2:
                 /* padding */
                 input++;
                 if (--input_len == 0)
                     break;
 
+                /* fall through */
             case 3:
                 ssl_state->curr_connp->content_type = *(input++);
                 ssl_state->curr_connp->version = SSL_VERSION_2;
                 if (--input_len == 0)
                     break;
+                /* fall through */
         } /* switch (ssl_state->curr_connp->bytes_processed) */
     }
 
@@ -491,31 +506,37 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                             if (--input_len == 0)
                                 break;
                         }
+                        /* fall through */
                     case 5:
                         input++;
                         ssl_state->curr_connp->bytes_processed++;
                         if (--input_len == 0)
                             break;
+                        /* fall through */
                     case 6:
                         input++;
                         ssl_state->curr_connp->bytes_processed++;
                         if (--input_len == 0)
                             break;
+                        /* fall through */
                     case 7:
                         input++;
                         ssl_state->curr_connp->bytes_processed++;
                         if (--input_len == 0)
                             break;
+                        /* fall through */
                     case 8:
                         ssl_state->curr_connp->session_id_length = *(input++) << 8;
                         ssl_state->curr_connp->bytes_processed++;
                         if (--input_len == 0)
                             break;
+                        /* fall through */
                     case 9:
                         ssl_state->curr_connp->session_id_length |= *(input++);
                         ssl_state->curr_connp->bytes_processed++;
                         if (--input_len == 0)
                             break;
+                        /* fall through */
                 } /* switch (ssl_state->curr_connp->bytes_processed) */
 
                 /* ssl_state->curr_connp->record_lengths_length is 3 */
@@ -584,6 +605,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
             } else {
                 ssl_state->flags |= SSL_AL_FLAG_STATE_CLIENT_KEYX;
             }
+            /* fall through */
         case SSLV2_MT_SERVER_VERIFY:
         case SSLV2_MT_SERVER_FINISHED:
             if (direction == 0 &&
@@ -591,6 +613,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                 SCLogDebug("Incorrect SSL Record type sent in the toserver "
                            "direction!");
             }
+            /* fall through */
         case SSLV2_MT_CLIENT_FINISHED:
         case SSLV2_MT_REQUEST_CERTIFICATE:
             /* both ways hello seen */
