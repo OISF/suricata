@@ -96,132 +96,160 @@ static uint32_t SMBParseWriteAndX(Flow *f, void *smb_state,
                 if (!(--input_len))
                     break;
             }
+            /* fall through */
         case 1:
             p++; // Reserved
             if (!(--input_len))
                 break;
+            /* fall through */
         case 2:
             sstate->andx.andxoffset = *(p++) << 8;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 3:
             sstate->andx.andxoffset |= *(p++);
             if (!(--input_len))
                 break;
+            /* fall through */
         case 4:
             // SMB_COM_WRITE_ANDX Fid 1
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 5:
             // SMB_COM_WRITE_ANDX Fid 2
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 6:
             // SMB_COM_WRITE_ANDX Offset 1
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 7:
             // SMB_COM_WRITE_ANDX Offset 2
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 8:
             // SMB_COM_WRITE_ANDX Offset 3
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 9:
             // SMB_COM_WRITE_ANDX Offset 4
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 10:
             // SMB_COM_WRITE_ANDX Reserved 1
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 11:
             // SMB_COM_WRITE_ANDX Reserved 2
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 12:
             // SMB_COM_WRITE_ANDX Reserved 3
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 13:
             // SMB_COM_WRITE_ANDX Reserved 4
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 14:
             // SMB_COM_WRITE_ANDX WriteMode 1
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 15:
             // SMB_COM_WRITE_ANDX WriteMode 2
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 16:
             // SMB_COM_WRITE_ANDX BytesRemaining 1
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 17:
             // SMB_COM_WRITE_ANDX BytesRemaining 2
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 18:
             // DataLengthHigh 1
             sstate->andx.datalengthhigh = *(p++);
             if (!(--input_len))
                 break;
+            /* fall through */
         case 19:
             // DataLengthHigh 2
             sstate->andx.datalengthhigh |= *(p++) << 8;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 20:
             // DataLength 1
             sstate->andx.datalength = *(p++);
             if (!(--input_len))
                 break;
+            /* fall through */
         case 21:
             // DataLength 2
             sstate->andx.datalength |= *(p++) << 8;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 22:
             sstate->andx.dataoffset = *(p++) << 8;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 23:
             sstate->andx.dataoffset |= *(p++);
             if (!(--input_len))
                 break;
+            /* fall through */
         case 24:
             sstate->andx.dataoffset |= (uint64_t) *(p++) << 56;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 25:
             sstate->andx.dataoffset |= (uint64_t) *(p++) << 48;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 26:
             sstate->andx.dataoffset |= (uint64_t) *(p++) << 40;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 27:
             sstate->andx.dataoffset |= (uint64_t) *(p++) << 32;
             --input_len;
             break;
+            /* fall through */
         default:
 		sstate->bytesprocessed++;
 		SCReturnUInt(1);
@@ -264,82 +292,100 @@ static uint32_t SMBParseReadAndX(Flow *f, void *smb_state,
                 if (!(--input_len))
                     break;
             }
+            /* fall through */
         case 1:
             p++; // Reserved
             if (!(--input_len))
                 break;
+            /* fall through */
         case 2:
             sstate->andx.andxoffset |= *(p++);
             if (!(--input_len))
                 break;
+            /* fall through */
         case 3:
             sstate->andx.andxoffset |= *(p++) << 8;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 4:
             // SMB_COM_READ_ANDX Remaining Reserved must be 0xff
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 5:
             // SMB_COM_READ_ANDX Remaining Reserved must be 0xff
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 6:
             // SMB_COM_READ_ANDX DataCompactionMode 1
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 7:
             // SMB_COM_READ_ANDX DataCompactionMode 1
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 8:
             // SMB_COM_READ_ANDX Reserved
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 9:
             // SMB_COM_READ_ANDX Reserved
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 10:
             sstate->andx.datalength = *(p++);
             if (!(--input_len))
                 break;
+            /* fall through */
         case 11:
             sstate->andx.datalength |= *(p++) << 8;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 12:
             sstate->andx.dataoffset = *(p++);
             if (!(--input_len))
                 break;
+            /* fall through */
         case 13:
             sstate->andx.dataoffset |= *(p++) << 8;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 14:
             sstate->andx.datalength |= *(p++) << 16;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 15:
             sstate->andx.datalength |= *(p++) << 24;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 16:
             // SMB_COM_READ_ANDX Reserved
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 17:
             // SMB_COM_READ_ANDX Reserved
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 18:
             // SMB_COM_READ_ANDX Reserved
             p++;
@@ -384,153 +430,184 @@ static uint32_t SMBParseTransact(Flow *f, void *smb_state,
                 if (!(--input_len))
                     break;
             }
+            /* fall through */
         case 1:
             /* total parameter count 2 */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 2:
             /* total data count 1 */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 3:
             /* total data count 2 */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 4:
             /* max parameter count 1 */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 5:
             /* max parameter count 2 */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 6:
             /* max data count 1 */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 7:
             /* max data count 2 */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 8:
             /* max setup count */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 9:
             /* Reserved */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 10:
             /* Flags */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 11:
             /* Flags */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 12:
             /* Timeout */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 13:
             /* Timeout */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 14:
             /* Timeout */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 15:
             /* Timeout */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 16:
             /* Reserved */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 17:
             /* Reserved */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 18:
             /* Parameter Count */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 19:
             /* Parameter Count */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 20:
             /* Parameter Offset */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 21:
             /* Parameter Offset */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 22:
             /* Data Count */
             sstate->andx.datalength = *(p++);
             if (!(--input_len))
                 break;
+            /* fall through */
         case 23:
             /* Data Count */
             sstate->andx.datalength |= *(p++) << 8;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 24:
             /* Data Offset */
             sstate->andx.dataoffset = *(p++);
             if (!(--input_len))
                 break;
+            /* fall through */
         case 25:
             /* Data Offset */
             sstate->andx.dataoffset |= *(p++) << 8;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 26:
             /* Setup Count */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 27:
             /* Reserved */
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 28:
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 29:
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 30:
             p++;
             if (!(--input_len))
                 break;
+            /* fall through */
         case 31:
             p++;
             --input_len;
@@ -819,14 +896,17 @@ static uint32_t NBSSParseHeader(Flow *f, void *smb_state,
                     if (!(--input_len))
                         break;
                 }
+                /* fall through */
             case 1:
                 sstate->nbss.length = (*(p++) & 0x01) << 16;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 2:
                 sstate->nbss.length |= *(p++) << 8;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 3:
                 sstate->nbss.length |= *(p++);
                 --input_len;
@@ -904,6 +984,7 @@ static int SMBParseHeader(Flow *f, void *smb_state,
                     /* We fall through to the next case if we still have input.
                      * Same applies for other cases as well */
                 }
+                /* fall through */
             case 5:
                 if (*(p++) != 'S') {
                         SCLogDebug("SMB Header did not validate");
@@ -911,6 +992,7 @@ static int SMBParseHeader(Flow *f, void *smb_state,
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 6:
                 if (*(p++) != 'M') {
                         SCLogDebug("SMB Header did not validate");
@@ -918,6 +1000,7 @@ static int SMBParseHeader(Flow *f, void *smb_state,
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 7:
                 if (*(p++) != 'B') {
                         SCLogDebug("SMB Header did not validate");
@@ -925,118 +1008,147 @@ static int SMBParseHeader(Flow *f, void *smb_state,
                 }
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 8:
                 sstate->smb.command = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 9:
                 sstate->smb.status = *(p++) << 24;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 10:
                 sstate->smb.status |= *(p++) << 16;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 11:
                 sstate->smb.status |= *(p++) << 8;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 12:
                 sstate->smb.status |= *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 13:
                 sstate->smb.flags = *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 14:
                 sstate->smb.flags2 = *(p++) << 8;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 15:
                 sstate->smb.flags2 |= *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 16:
                 sstate->smb.pidhigh = *(p++) << 8;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 17:
                 sstate->smb.pidhigh |= *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 18:
                 sstate->smb.securitysignature = (uint64_t) *(p++) << 56;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 19:
                 sstate->smb.securitysignature |= (uint64_t) *(p++) << 48;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 20:
                 sstate->smb.securitysignature |= (uint64_t) *(p++) << 40;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 21:
                 sstate->smb.securitysignature |= (uint64_t) *(p++) << 32;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 22:
                 sstate->smb.securitysignature |= (uint64_t) *(p++) << 24;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 23:
                 sstate->smb.securitysignature |= (uint64_t) *(p++) << 16;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 24:
                 sstate->smb.securitysignature |= (uint64_t) *(p++) << 8;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 25:
                 sstate->smb.securitysignature |= (uint64_t) *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 26:
                 p++; // UNUSED
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 27:
                 p++; // UNUSED
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 28:
                 sstate->smb.tid = *(p++) << 8;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 29:
                 sstate->smb.tid |= *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 30:
                 sstate->smb.pid = *(p++) << 8;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 31:
                 sstate->smb.pid |= *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 32:
                 sstate->smb.uid = *(p++) << 8;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 33:
                 sstate->smb.uid |= *(p++);
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 34:
                 sstate->smb.mid = *(p++) << 8;
                 if (!(--input_len))
                     break;
+                /* fall through */
             case 35:
                 sstate->smb.mid |= *(p++);
                 --input_len;
                 break;
+                /* fall through */
         }
     }
     sstate->bytesprocessed += (p - input);
@@ -1369,6 +1481,7 @@ static uint16_t SMBProbingParser(uint8_t *input, uint32_t ilen, uint32_t *offset
                     return ALPROTO_SMB;
                 }
 
+                /* fall through */
             case NBSS_SESSION_REQUEST:
             case NBSS_POSITIVE_SESSION_RESPONSE:
             case NBSS_NEGATIVE_SESSION_RESPONSE:
