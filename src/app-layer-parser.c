@@ -1663,6 +1663,8 @@ void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_prot
                                      ProbingParserFPtr ProbingParser)
 {
     char param[100];
+    uint8_t ip_proto;
+    DetectProto dp;
     int r;
     ConfNode *node;
     ConfNode *proto_node = NULL;
@@ -1685,11 +1687,24 @@ void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_prot
 
     /* for each proto */
     TAILQ_FOREACH(proto_node, &node->head, next) {
-        DetectProto dp;
-        int ip_proto = DetectProtoParse(&dp, proto_node->name);
-        if (ip_proto < 0) {
+        memset(&dp, 0, sizeof(dp));
+        r = DetectProtoParse(&dp, proto_node->name);
+        if (r < 0) {
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
-                       "%s.%s", param, proto_node->name);
+                       "%s.%s.  Accepted values are tcp, udp and sctp",
+                       param, proto_node->name);
+            exit(EXIT_FAILURE);
+        }
+        if (dp.proto[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8))) {
+            ip_proto = IPPROTO_TCP;
+        } else if (dp.proto[IPPROTO_UDP / 8] & (1 << (IPPROTO_UDP % 8))) {
+            ip_proto = IPPROTO_UDP;
+        } else if (dp.proto[IPPROTO_SCTP / 8] & (1 << (IPPROTO_SCTP % 8))) {
+            ip_proto = IPPROTO_SCTP;
+        } else {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                       "%s.%s.  Accepted values are tcp, udp and sctp",
+                       param, proto_node->name);
             exit(EXIT_FAILURE);
         }
 
