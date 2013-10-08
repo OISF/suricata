@@ -176,7 +176,7 @@ enum {
     STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION = 2,
 };
 
-static inline int StreamHasUnprocessedSegments(TcpSession *ssn, int direction)
+static inline int StreamNeedsReassembly(TcpSession *ssn, int direction)
 {
     /* server tcp state */
     if (direction) {

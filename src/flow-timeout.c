@@ -303,8 +303,8 @@ int FlowForceReassemblyNeedReassmbly(Flow *f, int *server, int *client) {
         return 0;
     }
 
-    *client = StreamHasUnprocessedSegments(ssn, 0);
-    *server = StreamHasUnprocessedSegments(ssn, 1);
+    *client = StreamNeedsReassembly(ssn, 0);
+    *server = StreamNeedsReassembly(ssn, 1);
 
     /* if state is not fully closed we assume that we haven't fully
      * inspected the app layer state yet */
@@ -526,7 +526,7 @@ static inline void FlowForceReassemblyForHash(void)
             }
 
             /* ah ah!  We have some unattended toserver segments */
-            if ((client_ok = StreamHasUnprocessedSegments(ssn, 0)) == 1) {
+            if ((client_ok = StreamNeedsReassembly(ssn, 0)) == 1) {
                 StreamTcpThread *stt = SC_ATOMIC_GET(stream_pseudo_pkt_stream_tm_slot->slot_data);
 
                 ssn->client.last_ack = (ssn->client.seg_list_tail->seq +
@@ -544,7 +544,7 @@ static inline void FlowForceReassemblyForHash(void)
                 }
             }
             /* oh oh!  We have some unattended toclient segments */
-            if ((server_ok = StreamHasUnprocessedSegments(ssn, 1)) == 1) {
+            if ((server_ok = StreamNeedsReassembly(ssn, 1)) == 1) {
                 StreamTcpThread *stt = SC_ATOMIC_GET(stream_pseudo_pkt_stream_tm_slot->slot_data);
 
                 ssn->server.last_ack = (ssn->server.seg_list_tail->seq +
