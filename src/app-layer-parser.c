@@ -1426,16 +1426,18 @@ void RegisterAppLayerParsers(void)
         return;
     }
 
+#if 0
     /** Jabber */
     if (AppLayerProtoDetectionEnabled("jabber")) {
-        //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOCLIENT);
-        //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOSERVER);
+        AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOCLIENT);
+        AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOSERVER);
     } else {
         SCLogInfo("Protocol detection disabled for %s protocol and as a "
                   "consequence the conf param \"app-layer.protocols.%s."
                   "parser-enabled\" will now be ignored.", "jabber", "jabber");
         return;
     }
+#endif
 
     return;
 }
@@ -1663,6 +1665,8 @@ void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_prot
                                      ProbingParserFPtr ProbingParser)
 {
     char param[100];
+    uint8_t ip_proto;
+    DetectProto dp;
     int r;
     ConfNode *node;
     ConfNode *proto_node = NULL;
@@ -1685,11 +1689,24 @@ void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_prot
 
     /* for each proto */
     TAILQ_FOREACH(proto_node, &node->head, next) {
-        DetectProto dp;
-        int ip_proto = DetectProtoParse(&dp, proto_node->name);
-        if (ip_proto < 0) {
+        memset(&dp, 0, sizeof(dp));
+        r = DetectProtoParse(&dp, proto_node->name);
+        if (r < 0) {
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
-                       "%s.%s", param, proto_node->name);
+                       "%s.%s.  Accepted values are tcp, udp and sctp",
+                       param, proto_node->name);
+            exit(EXIT_FAILURE);
+        }
+        if (dp.proto[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8))) {
+            ip_proto = IPPROTO_TCP;
+        } else if (dp.proto[IPPROTO_UDP / 8] & (1 << (IPPROTO_UDP % 8))) {
+            ip_proto = IPPROTO_UDP;
+        } else if (dp.proto[IPPROTO_SCTP / 8] & (1 << (IPPROTO_SCTP % 8))) {
+            ip_proto = IPPROTO_SCTP;
+        } else {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                       "%s.%s.  Accepted values are tcp, udp and sctp",
+                       param, proto_node->name);
             exit(EXIT_FAILURE);
         }
 
@@ -2191,7 +2208,13 @@ static inline void AppLayerInsertNewProbingParser(AppLayerProbingParser **pp,
         curr_pe = curr_port->toclient;
     while (curr_pe != NULL) {
         if (curr_pe->al_proto == al_proto) {
-            SCLogError(SC_ERR_ALPARSER, "Duplicate pp registered");
+            SCLogError(SC_ERR_ALPARSER, "Duplicate pp registered - "
+                       "ip_proto - %"PRIu16" Port - %"PRIu16" "
+                       "App Protocol - %s, App Protocol(ID) - "
+                       "%"PRIu16" min_depth - %"PRIu16" "
+                       "max_dept - %"PRIu16".",
+                       ip_proto, port, al_proto_name, al_proto,
+                       min_depth, max_depth);
             goto error;
         }
         curr_pe = curr_pe->next;

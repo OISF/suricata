@@ -192,9 +192,6 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto_otherdir != *alproto) {
                 AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
                                                  APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS);
-                FlowSetSessionNoApplayerInspectionFlag(f);
-                StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
-                StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
                 /* it indicates some data has already been sent to the parser */
                 if (ssn->data_first_seen_dir == APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
                     f->alproto = *alproto = *alproto_otherdir;
@@ -238,12 +235,14 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                         p->flowflags |= FLOW_PKT_TOCLIENT;
                     }
                 }
-
                 int ret;
-                if (StreamTcpInlineMode())
-                    ret = StreamTcpReassembleInlineAppLayer(tv, ra_ctx, ssn, opposing_stream, p);
-                else
-                    ret = StreamTcpReassembleAppLayer(tv, ra_ctx, ssn, opposing_stream, p);
+                if (StreamTcpInlineMode()) {
+                    ret = StreamTcpReassembleInlineAppLayer(tv, ra_ctx, ssn,
+                                                            opposing_stream, p);
+                } else {
+                    ret = StreamTcpReassembleAppLayer(tv, ra_ctx, ssn,
+                                                      opposing_stream, p);
+                }
                 if (stream == &ssn->client) {
                     if (StreamTcpInlineMode()) {
                         p->flowflags &= ~FLOW_PKT_TOCLIENT;
@@ -262,6 +261,9 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     }
                 }
                 if (ret < 0) {
+                    FlowSetSessionNoApplayerInspectionFlag(f);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
                     r = -1;
                     goto end;
                 }
@@ -289,13 +291,31 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 {
                     AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
                                                      APPLAYER_WRONG_DIRECTION_FIRST_DATA);
-                    r = -1;
-                    f->alproto = f->alproto_ts = f->alproto_tc = ALPROTO_UNKNOWN;
                     FlowSetSessionNoApplayerInspectionFlag(f);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
                     /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+                    r = -1;
+                    goto end;
+                }
+                /* This can happen if the current direction is not the
+                 * right direction, and the data from the other(also
+                 * the right direction) direction is available to be sent
+                 * to the app layer, but it is not ack'ed yet and hence
+                 * the forced call to STreamTcpAppLayerReassemble still
+                 * hasn't managed to send data from the other direction
+                 * to the app layer. */
+                if (al_proto_table[*alproto].first_data_dir &&
+                    !(al_proto_table[*alproto].first_data_dir & flags))
+                {
+                    BUG_ON(*alproto_otherdir != ALPROTO_UNKNOWN);
+                    AppLayerParserCleanupState(f);
+                    f->alproto = *alproto = ALPROTO_UNKNOWN;
+                    StreamTcpResetStreamFlagAppProtoDetectionCompleted(stream);
+                    FLOW_RESET_PM_DONE(f, flags);
+                    FLOW_RESET_PP_DONE(f, flags);
+                    r = 0;
                     goto end;
                 }
             }
@@ -309,6 +329,35 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             f->data_al_so_far[dir] = 0;
         } else {
             if (*alproto_otherdir != ALPROTO_UNKNOWN) {
+                /* this would handle this test case -
+                 * http parser which says it wants to see toserver data first only.
+                 * tcp handshake
+                 * toclient data first received. - RUBBISH DATA which
+                 *                                 we don't detect as http
+                 * toserver data next sent - we detect this as http.
+                 * at this stage we see that toclient is the first data seen
+                 * for this session and we try and redetect the app protocol,
+                 * but we are unable to detect the app protocol like before.
+                 * But since we have managed to detect the protocol for the
+                 * other direction as http, we try to use that.  At this
+                 * stage we check if the direction of this stream matches
+                 * to that acceptable by the app parser.  If it is not the
+                 * acceptable direction we error out.
+                 */
+                if ((ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) &&
+                    (al_proto_table[*alproto_otherdir].first_data_dir) &&
+                    !(al_proto_table[*alproto_otherdir].first_data_dir & flags))
+                {
+                    r = -1;
+                    FlowSetSessionNoApplayerInspectionFlag(f);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    goto end;
+                }
+
+                if (data_len > 0)
+                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+
                 PACKET_PROFILING_APP_START(dp_ctx, *alproto_otherdir);
                 r = AppLayerParse(dp_ctx->alproto_local_storage[*alproto_otherdir], f, *alproto_otherdir, flags,
                                   data + data_al_so_far, data_len - data_al_so_far);
@@ -324,10 +373,10 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             } else {
                 if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
                     FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT)) {
+                    FlowSetSessionNoApplayerInspectionFlag(f);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
-                    FlowSetSessionNoApplayerInspectionFlag(f);
                 }
             }
         }
@@ -2003,9 +2052,9 @@ static int AppLayerTest06(void)
         goto end;
     if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
+        f.alproto != ALPROTO_HTTP ||
         f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
+        f.alproto_tc != ALPROTO_HTTP ||
         f.data_al_so_far[0] != 0 ||
         f.data_al_so_far[1] != 0 ||
         !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
@@ -2246,7 +2295,7 @@ static int AppLayerTest07(void)
         f.alproto_tc != ALPROTO_HTTP ||
         f.data_al_so_far[0] != 0 ||
         f.data_al_so_far[1] != 0 ||
-        !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
+        (f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
