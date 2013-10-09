@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -39,6 +39,7 @@
 #include "host.h"
 #include "host-storage.h"
 
+#include "conf.h"
 #include "detect.h"
 #include "detect-parse.h"
 
@@ -67,6 +68,7 @@ static pcre_extra *parse_regex_study;
 
 static int DetectThresholdMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 static int DetectThresholdSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectThresholdSetupDisabled(DetectEngineCtx *, Signature *, char *);
 static void DetectThresholdFree(void *);
 
 /**
@@ -83,6 +85,22 @@ void DetectThresholdRegister (void) {
     sigmatch_table[DETECT_THRESHOLD].RegisterTests = ThresholdRegisterTests;
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_THRESHOLD].flags |= SIGMATCH_IPONLY_COMPAT;
+
+    /* Check if Detection Filter has been disabled for testing. */
+    char *disabled_conf = NULL;
+    if (ConfGet("testing.detect.threshold", &disabled_conf) == 1) {
+        if (strcasecmp("disable", disabled_conf) == 0) {
+            sigmatch_table[DETECT_THRESHOLD].Setup = DetectThresholdSetupDisabled;
+            SCLogInfo("Detect-engine: Threshold disabled");
+        } else if (strcasecmp("enable", disabled_conf) == 0) {
+            ;
+        } else {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid value found "
+                       "for testing.detect.threshold - \"%s\".  Valid values are "
+                       "\"enable\" OR \"disable\".", disabled_conf);
+            goto error;
+        }
+    }
 
     const char *eb;
     int opts = 0;
@@ -270,6 +288,11 @@ error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
     return -1;
+}
+
+static int DetectThresholdSetupDisabled(DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+{
+    return 0;
 }
 
 /**

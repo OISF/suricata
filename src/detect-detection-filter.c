@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
   *
   * You can copy, redistribute or modify this Program under the terms of
   * the GNU General Public License version 2 as published by the Free
@@ -30,6 +30,7 @@
 #include "detect.h"
 
 #include "host.h"
+#include "conf.h"
 
 #include "detect-detection-filter.h"
 #include "detect-threshold.h"
@@ -53,6 +54,7 @@ static pcre_extra *parse_regex_study;
 
 int DetectDetectionFilterMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 static int DetectDetectionFilterSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectDetectionFilterSetupDisabled(DetectEngineCtx *de_ctx, Signature *s, char *rawstr);
 void DetectDetectionFilterRegisterTests(void);
 void DetectDetectionFilterFree(void *);
 
@@ -69,6 +71,23 @@ void DetectDetectionFilterRegister (void) {
     sigmatch_table[DETECT_DETECTION_FILTER].RegisterTests = DetectDetectionFilterRegisterTests;
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_DETECTION_FILTER].flags |= SIGMATCH_IPONLY_COMPAT;
+
+    /* Check if Detection Filter has been disabled for testing. */
+    char *disabled_conf = NULL;
+    if (ConfGet("testing.detect.detection-filter", &disabled_conf) == 1) {
+        if (strcasecmp("disable", disabled_conf) == 0) {
+            sigmatch_table[DETECT_DETECTION_FILTER].Setup = DetectDetectionFilterSetupDisabled;
+            SCLogInfo("Detect-engine: Detection Filter disabled");
+
+        } else if (strcasecmp("enable", disabled_conf) == 0) {
+            ;
+        } else {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid value found "
+                       "for testing.detect.detection-filter - \"%s\".  Valid values are "
+                       "\"enable\" OR \"disable\".", disabled_conf);
+            goto error;
+        }
+    }
 
     const char *eb;
     int eo;
@@ -219,7 +238,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectDetectionFilterSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr) {
+static int DetectDetectionFilterSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr) {
     SCEnter();
     DetectThresholdData *df = NULL;
     SigMatch *sm = NULL;
@@ -259,6 +278,24 @@ error:
     if (df) SCFree(df);
     if (sm) SCFree(sm);
     return -1;
+}
+
+/**
+ * \internal
+ * \brief this function is used to diable all parsed detection_filter
+ *
+ * \param de_ctx pointer to the Detection Engine Context
+ * \param s pointer to the Current Signature
+ * \param m pointer to the Current SigMatch
+ * \param rawstr pointer to the user provided detection_filter options
+ *
+ * \retval 0 on Success
+ * \retval -1 on Failure
+ */
+static int DetectDetectionFilterSetupDisabled(DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+{
+    SCEnter();
+    SCReturnInt(0);
 }
 
 /**

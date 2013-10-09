@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,6 +24,7 @@
 #include "suricata-common.h"
 #include "threads.h"
 #include "decode.h"
+#include "conf.h"
 
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
@@ -50,6 +51,7 @@ int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 int DetectAppLayerEventAppMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
                                 uint8_t, void *, Signature *, SigMatch *);
 int DetectAppLayerEventSetup(DetectEngineCtx *, Signature *, char *);
+int DetectAppLayerEventSetupDisabled(DetectEngineCtx *, Signature *, char *);
 void DetectAppLayerEventRegisterTests(void);
 void DetectAppLayerEventFree(void *);
 
@@ -67,6 +69,21 @@ void DetectAppLayerEventRegister(void)
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].Free = DetectAppLayerEventFree;
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].RegisterTests =
         DetectAppLayerEventRegisterTests;
+
+    /* Check if Detection Filter has been disabled for testing. */
+    char *disabled_conf = NULL;
+    if (ConfGet("testing.detect.app-layer-event", &disabled_conf) == 1) {
+        if (strcasecmp("disable", disabled_conf) == 0) {
+            sigmatch_table[DETECT_AL_APP_LAYER_EVENT].Setup = DetectAppLayerEventSetupDisabled;
+            SCLogInfo("Detect-engine: App Layer Events disabled");
+        } else if (strcasecmp("enable", disabled_conf) == 0) {
+            ;
+        } else {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid value found "
+                       "for testing.detect.app-layer-event - \"%s\".  Valid values are "
+                       "\"enable\" OR \"disable\".", disabled_conf);
+        }
+    }
 
     return;
 }
@@ -245,6 +262,12 @@ error:
         SigMatchFree(sm);
     }
     return -1;
+}
+
+int DetectAppLayerEventSetupDisabled(DetectEngineCtx *de_ctx, Signature *s, 
+                                     char *arg)
+{
+    return 0;
 }
 
 void DetectAppLayerEventFree(void *ptr)

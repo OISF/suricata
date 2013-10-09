@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -48,6 +48,7 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 #include "threads.h"
+#include "conf.h"
 
 SC_ATOMIC_EXTERN(unsigned int, num_tags);
 
@@ -59,6 +60,7 @@ static pcre_extra *parse_regex_study;
 
 int DetectTagMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 static int DetectTagSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectTagSetupDisabled(DetectEngineCtx *, Signature *, char *);
 void DetectTagRegisterTests(void);
 void DetectTagDataFree(void *);
 
@@ -72,6 +74,22 @@ void DetectTagRegister (void) {
     sigmatch_table[DETECT_TAG].Free  = DetectTagDataFree;
     sigmatch_table[DETECT_TAG].RegisterTests = DetectTagRegisterTests;
     sigmatch_table[DETECT_TAG].flags |= SIGMATCH_IPONLY_COMPAT;
+
+    /* Check if Detection Filter has been disabled for testing. */
+    char *disabled_conf = NULL;
+    if (ConfGet("testing.detect.tag", &disabled_conf) == 1) {
+        if (strcasecmp("disable", disabled_conf) == 0) {
+            sigmatch_table[DETECT_TAG].Setup = DetectTagSetupDisabled;
+            SCLogInfo("Detect-engine: Tag disabled for Testing");
+        } else if (strcasecmp("enable", disabled_conf) == 0) {
+            ;
+        } else {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid value found "
+                       "for testing.detection.tag - \"%s\".  Valid values are "
+                       "\"enable\" OR \"disable\".", disabled_conf);
+            goto error;
+        }
+    }
 
     const char *eb;
     int eo;
@@ -321,6 +339,11 @@ error:
     if (sm != NULL) SCFree(sm);
     return -1;
 
+}
+
+static int DetectTagSetupDisabled(DetectEngineCtx *de_ctx, Signature *s, char *tagstr)
+{
+    return 0;
 }
 
 /** \internal
