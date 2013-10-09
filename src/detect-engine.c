@@ -403,7 +403,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
 
-    SCLogInfo("===== Starting live rule swap triggered by user signal USR2 =====");
+    SCLogNotice("rule reload starting");
 
     ThreadVars *tv_local = (ThreadVars *)arg;
 
@@ -457,8 +457,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
             if (suricata_ctl_flags != 0) {
                 TmThreadsSetFlag(tv_local, THV_CLOSED);
 
-                SCLogInfo("===== Live rule swap premature exit, since "
-                          "engine is in shutdown phase =====");
+                SCLogInfo("rule reload interupted by engine shutdown");
 
                 UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
                 SCMutexUnlock(&tv_root_lock);
@@ -503,7 +502,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
         DetectEngineCtxFree(de_ctx);
         SCLogError(SC_ERR_LIVE_RULE_SWAP,  "Failure encountered while "
                    "loading new ruleset with live swap.");
-        SCLogInfo("===== Live rule swap FAILURE =====");
+        SCLogError(SC_ERR_LIVE_RULE_SWAP, "rule reload failed");
         TmThreadsSetFlag(tv_local, THV_CLOSED);
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
         pthread_exit(NULL);
@@ -526,8 +525,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
             if (suricata_ctl_flags != 0) {
                 TmThreadsSetFlag(tv_local, THV_CLOSED);
 
-                SCLogInfo("===== Live rule swap premature exit, since "
-                          "engine is in shutdown phase =====");
+                SCLogInfo("rule reload interupted by engine shutdown");
 
                 UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
                 SCMutexUnlock(&tv_root_lock);
@@ -566,8 +564,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
             if (suricata_ctl_flags != 0) {
                 TmThreadsSetFlag(tv_local, THV_CLOSED);
 
-                SCLogInfo("===== Live rule swap premature exit, since "
-                          "engine is in shutdown phase =====");
+                SCLogInfo("rule reload interupted by engine shutdown");
 
                 UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
                 SCMutexUnlock(&tv_root_lock);
@@ -669,7 +666,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
 
     TmThreadsSetFlag(tv_local, THV_CLOSED);
 
-    SCLogInfo("===== Live rule swap DONE =====");
+    SCLogNotice("rule reload complete");
 
     pthread_exit(NULL);
 
