@@ -204,8 +204,8 @@ int DetectIPRepMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, 
             break;
 
         case DETECT_IPREP_CMD_SRC:
-            SCLogDebug("checking src");
             val = GetHostRepSrc(p, rd->cat, version);
+            SCLogDebug("checking src -- val %u (looking for cat %u, val %u)", val, rd->cat, rd->val);
             if (val > 0) {
                 return RepMatch(rd->op, val, rd->val);
             }
@@ -335,7 +335,7 @@ int DetectIPRepSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     cd->cat = cat;
     cd->op = op;
     cd->val = val;
-    //SCLogInfo("cmd %u, cat %u, op %u, val %u", cd->cmd, cd->cat, cd->op, cd->val);
+    SCLogDebug("cmd %u, cat %u, op %u, val %u", cd->cmd, cd->cat, cd->op, cd->val);
 
     pcre_free_substring(name);
     name = NULL;
