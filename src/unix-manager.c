@@ -192,7 +192,8 @@ int UnixNew(UnixCommand * this)
     return 1;
 }
 
-void UnixCommandSetMaxFD(UnixCommand *this) {
+void UnixCommandSetMaxFD(UnixCommand *this)
+{
     UnixClient *item;
 
     if (this == NULL) {
@@ -508,7 +509,7 @@ int UnixMain(UnixCommand * this)
 
     /* catch select() error */
     if (ret == -1) {
-        /* Signal was catched: just ignore it */
+        /* Signal was caught: just ignore it */
         if (errno == EINTR) {
             return 1;
         }
@@ -607,7 +608,7 @@ TmEcode UnixManagerVersionCommand(json_t *cmd,
 }
 
 TmEcode UnixManagerUptimeCommand(json_t *cmd,
-                                   json_t *server_msg, void *data)
+                                 json_t *server_msg, void *data)
 {
     SCEnter();
     int uptime;
@@ -619,7 +620,7 @@ TmEcode UnixManagerUptimeCommand(json_t *cmd,
 }
 
 TmEcode UnixManagerRunningModeCommand(json_t *cmd,
-                                   json_t *server_msg, void *data)
+                                      json_t *server_msg, void *data)
 {
     SCEnter();
     json_object_set_new(server_msg, "message", json_string(RunmodeGetActive()));
@@ -627,7 +628,7 @@ TmEcode UnixManagerRunningModeCommand(json_t *cmd,
 }
 
 TmEcode UnixManagerCaptureModeCommand(json_t *cmd,
-                                   json_t *server_msg, void *data)
+                                      json_t *server_msg, void *data)
 {
     SCEnter();
     json_object_set_new(server_msg, "message", json_string(RunModeGetMainMode()));
@@ -635,7 +636,7 @@ TmEcode UnixManagerCaptureModeCommand(json_t *cmd,
 }
 
 TmEcode UnixManagerConfGetCommand(json_t *cmd,
-                                   json_t *server_msg, void *data)
+                                  json_t *server_msg, void *data)
 {
     SCEnter();
 
@@ -701,12 +702,13 @@ TmEcode UnixManagerListCommand(json_t *cmd,
 
 #if 0
 TmEcode UnixManagerReloadRules(json_t *cmd,
-                                   json_t *server_msg, void *data)
+                               json_t *server_msg, void *data)
 {
     SCEnter();
     if (suricata_ctl_flags != 0) {
         json_object_set_new(server_msg, "message",
-                json_string("Live rule swap no longer possible. Engine in shutdown mode."));
+                            json_string("Live rule swap no longer possible."
+                                        " Engine in shutdown mode."));
         SCReturn(TM_ECODE_FAILED);
     } else {
         /* FIXME : need to check option value */
@@ -732,13 +734,13 @@ static UnixCommand command;
  *
  * \param keyword name of the command
  * \param Func function to run when command is received
- * \param data a pointer to data that are pass to Func when runned
+ * \param data a pointer to data that are passed to Func when it is run
  * \param flags a flag now used to tune the command type
  * \retval TM_ECODE_OK in case of success, TM_ECODE_FAILED in case of failure
  */
 TmEcode UnixManagerRegisterCommand(const char * keyword,
-        TmEcode (*Func)(json_t *, json_t *, void *),
-        void *data, int flags)
+                                   TmEcode (*Func)(json_t *, json_t *, void *),
+                                   void *data, int flags)
 {
     SCEnter();
     Command *cmd = NULL;
@@ -784,16 +786,15 @@ TmEcode UnixManagerRegisterCommand(const char * keyword,
 /**
  * \brief Add a task to the list of tasks
  *
- * This function adds a task to run in background. The task is runned
- * each time the UnixMain() function exit from select.
+ * This function adds a task to run in the background. The task is run
+ * each time the UnixMain() function exits from select.
  * 
- * \param Func function to run when command is received
- * \param data a pointer to data that are pass to Func when runned
+ * \param Func function to run when a command is received
+ * \param data a pointer to data that are passed to Func when it is run
  * \retval TM_ECODE_OK in case of success, TM_ECODE_FAILED in case of failure
  */
-TmEcode UnixManagerRegisterBackgroundTask(
-        TmEcode (*Func)(void *),
-        void *data)
+TmEcode UnixManagerRegisterBackgroundTask(TmEcode (*Func)(void *),
+                                          void *data)
 {
     SCEnter();
     Task *task = NULL;
@@ -816,8 +817,6 @@ TmEcode UnixManagerRegisterBackgroundTask(
     SCReturnInt(TM_ECODE_OK);
 }
 
-
-
 void *UnixManagerThread(void *td)
 {
     ThreadVars *th_v = (ThreadVars *)td;
@@ -833,7 +832,7 @@ void *UnixManagerThread(void *td)
     if (UnixNew(&command) == 0) {
         int failure_fatal = 0;
         SCLogError(SC_ERR_INITIALIZATION,
-                     "Unable to create unix command socket");
+                   "Unable to create unix command socket");
         if (ConfGetBool("engine.init-failure-fatal", &failure_fatal) != 1) {
             SCLogDebug("ConfGetBool could not load the value.");
         }
@@ -890,7 +889,7 @@ void *UnixManagerThread(void *td)
 }
 
 
-/** \brief spawn the unix socket manager thread
+/** \brief Spawn the unix socket manager thread
  *
  * \param de_ctx context for detection engine
  * \param mode if set to 1, init failure cause suricata exit
@@ -939,8 +938,9 @@ void UnixSocketKillSocketThread(void)
 
     while (tv != NULL) {
         if (strcasecmp(tv->name, "UnixManagerThread") == 0) {
-            /* If thread die during init it will have THV_RUNNING_DONE
-             * set. So we can set the correct flag and exit.
+            /* If the thread dies during init it will have
+             * THV_RUNNING_DONE set, so we can set the correct flag
+             * and exit.
              */
             if (TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
                 TmThreadsSetFlag(tv, THV_KILL);
@@ -950,7 +950,7 @@ void UnixSocketKillSocketThread(void)
             }
             TmThreadsSetFlag(tv, THV_KILL);
             TmThreadsSetFlag(tv, THV_DEINIT);
-            /* be sure it has shut down */
+            /* Be sure it has shut down */
             while (!TmThreadsCheckFlag(tv, THV_CLOSED)) {
                 usleep(100);
             }
