@@ -26,6 +26,7 @@
  */
 
 #include "suricata-common.h"
+#include "detect-engine.h"
 #include "util-hash.h"
 #include "util-atomic.h"
 #include "util-time.h"
@@ -35,6 +36,11 @@
 #include "host.h"
 #include "host-storage.h"
 #include "flow-storage.h"
+
+#include "util-unittest.h"
+#include "util-unittest-helper.h"
+#include "flow-util.h"
+#include "stream-tcp-private.h"
 
 SC_ATOMIC_DECLARE(unsigned int, num_tags);  /**< Atomic counter, to know if we
                                                  have tagged hosts/sessions,
@@ -193,6 +199,7 @@ int TagHashAddTag(DetectTagDataEntry *tde, Packet *p)
     }
     /* no host for us */
     if (host == NULL) {
+        SCLogDebug("host tag not added: no host");
         return -1;
     }
 
@@ -203,9 +210,11 @@ int TagHashAddTag(DetectTagDataEntry *tde, Packet *p)
         if (new_tde != NULL) {
             HostSetStorageById(host, host_tag_id, new_tde);
             (void) SC_ATOMIC_ADD(num_tags, 1);
+            SCLogDebug("host tag added");
         }
     } else {
         /* Append the tag to the list of this host */
+        SCLogDebug("updating existing host");
 
         /* First iterate installed entries searching a duplicated sid/gid */
         DetectTagDataEntry *iter = NULL;
@@ -277,6 +286,8 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
             switch (iter->metric) {
                 case DETECT_TAG_METRIC_PACKET:
                     if (iter->packets > iter->count) {
+                        SCLogDebug("flow tag expired: packets %u > %u",
+                            iter->packets, iter->count);
                         /* tag expired */
                         if (prev != NULL) {
                             tde = iter;
@@ -303,6 +314,8 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
                 case DETECT_TAG_METRIC_BYTES:
                     if (iter->bytes > iter->count) {
                         /* tag expired */
+                        SCLogDebug("flow tag expired: bytes %u > %u",
+                            iter->bytes, iter->count);
                         if (prev != NULL) {
                             tde = iter;
                             prev->next = iter->next;
@@ -394,6 +407,7 @@ void TagHandlePacketHost(Host *host, Packet *p)
             switch (iter->metric) {
                 case DETECT_TAG_METRIC_PACKET:
                     if (iter->packets > iter->count) {
+                        SCLogDebug("host tag expired: packets %u > %u", iter->packets, iter->count);
                         /* tag expired */
                         if (prev != NULL) {
                             tde = iter;
@@ -419,6 +433,7 @@ void TagHandlePacketHost(Host *host, Packet *p)
                     break;
                 case DETECT_TAG_METRIC_BYTES:
                     if (iter->bytes > iter->count) {
+                        SCLogDebug("host tag expired: bytes %u > %u", iter->bytes, iter->count);
                         /* tag expired */
                         if (prev != NULL) {
                             tde = iter;
@@ -446,6 +461,9 @@ void TagHandlePacketHost(Host *host, Packet *p)
                     /* last_ts handles this metric, but also a generic time based
                      * expiration to prevent dead sessions/hosts */
                     if (iter->last_ts - iter->first_ts > iter->count) {
+                        SCLogDebug("host tag expired: %u - %u = %u > %u",
+                            iter->last_ts, iter->first_ts,
+                            (iter->last_ts - iter->first_ts), iter->count);
                         /* tag expired */
                         if (prev != NULL) {
                             tde = iter;
@@ -570,5 +588,924 @@ int TagTimeoutCheck(Host *host, struct timeval *tv)
         }
     }
     return retval;
+}
+
+#ifdef UNITTESTS
+
+/**
+ * \test host tagging: packets
+ */
+int DetectTagTestPacket01 (void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint8_t *buf2 = (uint8_t *)"lalala!";
+    uint16_t buf_len = strlen((char *)buf);
+    uint16_t buf_len2 = strlen((char *)buf2);
+
+    Packet *p[7];
+    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.9",
+                              41424, 80);
+    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.9",
+                              41424, 80);
+    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.1", "192.168.1.9",
+                              41424, 80);
+    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.1", "192.168.1.11",
+                              41424, 80);
+    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.11",
+                              41424, 80);
+
+    char *sigs[5];
+    sigs[0]= "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; tag:host,3,packets,src; sid:1;)";
+    sigs[1]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"Hi all\"; tag:host,4,packets,dst; sid:2;)";
+    sigs[2]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
+    sigs[3]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
+    sigs[4]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
+
+    /* Please, Notice that tagged data goes with sig_id = 1 and tag sig generator = 2 */
+    uint32_t sid[5] = {1,2,3,4,5};
+
+    int32_t results[7][5] = {
+                              {1, 1, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0}
+                             };
+    StorageInit();
+    TagInitCtx();
+    StorageFinalize();
+    HostInitConfig(1);
+
+    SCLogDebug("running tests");
+    result = UTHGenericTest(p, 7, sigs, sid, (uint32_t *) results, 5);
+    SCLogDebug("running tests done");
+
+    Host *src = HostLookupHostFromHash(&p[1]->src);
+    if (src) {
+        void *tag = HostGetStorageById(src, host_tag_id);
+        if (tag != NULL) {
+            printf("tag should have been expired: ");
+            result = 0;
+        }
+
+        HostRelease(src);
+    }
+    Host *dst = HostLookupHostFromHash(&p[1]->dst);
+    if (dst) {
+        void *tag = HostGetStorageById(dst, host_tag_id);
+        BUG_ON(tag == NULL);
+
+        DetectTagDataEntry *iter = tag;
+
+        /* check internal state */
+        if (!(iter->gid == 1 && iter->sid == 2 && iter->packets == 4 && iter->count == 4)) {
+            printf("gid %u sid %u packets %u count %u: ", iter->gid, iter->sid, iter->packets, iter->count);
+            result = 0;
+        }
+
+        HostRelease(dst);
+    }
+    BUG_ON(src == NULL || dst == NULL);
+
+    UTHFreePackets(p, 7);
+
+    HostShutdown();
+    TagDestroyCtx();
+    StorageCleanup();
+    return result;
+}
+
+/**
+ * \test host tagging: seconds
+ */
+int DetectTagTestPacket02 (void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint8_t *buf2 = (uint8_t *)"lalala!";
+    uint16_t buf_len = strlen((char *)buf);
+    uint16_t buf_len2 = strlen((char *)buf2);
+
+    DecodeThreadVars dtv;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
+
+    StorageInit();
+    TagInitCtx();
+    StorageFinalize();
+    HostInitConfig(1);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->flags |= DE_QUIET;
+
+    Packet *p[7];
+    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.9",
+                              41424, 80);
+    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.9",
+                              41424, 80);
+    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.1", "192.168.1.9",
+                              41424, 80);
+    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.1", "192.168.1.11",
+                              41424, 80);
+    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.11",
+                              41424, 80);
+
+    char *sigs[5];
+    sigs[0]= "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; tag:host,3,seconds,src; sid:1;)";
+    sigs[1]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"Hi all\"; tag:host,8,seconds,dst; sid:2;)";
+    sigs[2]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
+    sigs[3]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
+    sigs[4]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
+
+    /* Please, Notice that tagged data goes with sig_id = 1 and tag sig generator = 2 */
+    uint32_t sid[5] = {1,2,3,4,5};
+    int numsigs = 5;
+
+    if (UTHAppendSigs(de_ctx, sigs, numsigs) == 0)
+        goto cleanup;
+
+    //de_ctx->flags |= DE_QUIET;
+
+    int32_t results[7][5] = {
+                              {1, 1, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0}
+                             };
+
+    int num_packets = 7;
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int i = 0;
+    for (; i < num_packets; i++) {
+        SCLogDebug("packet %d", i);
+        TimeGet(&p[i]->ts);
+        SigMatchSignatures(&th_v, de_ctx, det_ctx, p[i]);
+        if (UTHCheckPacketMatchResults(p[i], sid, (uint32_t *)&results[i][0], numsigs) == 0)
+            goto cleanup;
+
+        TimeSetIncrementTime(2);
+        SCLogDebug("packet %d flag %s", i, p[i]->flags & PKT_HAS_TAG ? "true" : "false");
+
+        /* see if the PKT_HAS_TAG is set on the packet if needed */
+        int expect;
+        if (i == 0 || i == 2 || i == 3 || i == 5 || i == 6)
+            expect = FALSE;
+        else
+            expect = TRUE;
+        if (((p[i]->flags & PKT_HAS_TAG) ? TRUE : FALSE) != expect)
+            goto cleanup;
+    }
+
+    result = 1;
+
+cleanup:
+    UTHFreePackets(p, 7);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+end:
+    HostShutdown();
+    TagDestroyCtx();
+    StorageCleanup();
+    return result;
+}
+
+/**
+ * \test host tagging: bytes
+ */
+static int DetectTagTestPacket03 (void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint8_t *buf2 = (uint8_t *)"lalala!";
+    uint16_t buf_len = strlen((char *)buf);
+    uint16_t buf_len2 = strlen((char *)buf2);
+
+    DecodeThreadVars dtv;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
+
+    StorageInit();
+    TagInitCtx();
+    StorageFinalize();
+    HostInitConfig(1);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->flags |= DE_QUIET;
+
+    Packet *p[7];
+    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.9",
+                              41424, 80);
+    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.9",
+                              41424, 80);
+    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.1", "192.168.1.9",
+                              41424, 80);
+    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.1", "192.168.1.11",
+                              41424, 80);
+    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.11",
+                              41424, 80);
+
+    char *sigs[5];
+    sigs[0]= "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; tag:host, 150, bytes, src; sid:1;)";
+    sigs[1]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"Hi all\"; tag:host, 150, bytes, dst; sid:2;)";
+    sigs[2]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
+    sigs[3]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
+    sigs[4]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
+
+    /* Please, Notice that tagged data goes with sig_id = 1 and tag sig generator = 2 */
+    uint32_t sid[5] = {1,2,3,4,5};
+    int numsigs = 5;
+
+    if (UTHAppendSigs(de_ctx, sigs, numsigs) == 0)
+        goto cleanup;
+
+    int32_t results[7][5] = {
+                              {1, 1, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0}
+                             };
+
+    int num_packets = 7;
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int i = 0;
+    for (; i < num_packets; i++) {
+        SigMatchSignatures(&th_v, de_ctx, det_ctx, p[i]);
+
+        if (UTHCheckPacketMatchResults(p[i], sid, (uint32_t *)&results[i][0], numsigs) == 0)
+            goto cleanup;
+
+        SCLogDebug("packet %d flag %s", i, p[i]->flags & PKT_HAS_TAG ? "true" : "false");
+
+        /* see if the PKT_HAS_TAG is set on the packet if needed */
+        int expect;
+        if (i == 0 || i == 3 || i == 5 || i == 6)
+            expect = FALSE;
+        else
+            expect = TRUE;
+        if (((p[i]->flags & PKT_HAS_TAG) ? TRUE : FALSE) != expect)
+            goto cleanup;
+    }
+
+    result = 1;
+
+cleanup:
+    UTHFreePackets(p, 7);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+end:
+    HostShutdown();
+    TagDestroyCtx();
+    StorageCleanup();
+    return result;
+}
+
+/**
+ * \test session tagging: packets
+ */
+static int DetectTagTestPacket04 (void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint8_t *buf2 = (uint8_t *)"lalala!";
+    uint16_t buf_len = strlen((char *)buf);
+    uint16_t buf_len2 = strlen((char *)buf2);
+
+    Flow *f = NULL;
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    StorageInit();
+    TagInitCtx();
+    StorageFinalize();
+    HostInitConfig(1);
+    FlowInitConfig(1);
+
+    f = FlowAlloc();
+    BUG_ON(f == NULL);
+    FLOW_INITIALIZE(f);
+    f->protoctx = (void *)&ssn;
+    f->flags |= FLOW_IPV4;
+    if (inet_pton(AF_INET, "192.168.1.5", f->src.addr_data32) != 1)
+        goto end;
+    if (inet_pton(AF_INET, "192.168.1.1", f->dst.addr_data32) != 1)
+        goto end;
+
+    DecodeThreadVars dtv;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->flags |= DE_QUIET;
+
+    Packet *p[7];
+    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.1", "192.168.1.5",
+                              80, 41424);
+    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.1", "192.168.1.5",
+                              80, 41424);
+    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              80, 41424);
+
+    char *sigs[5];
+    sigs[0]= "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; tag:session,4,packets; sid:1;)";
+    sigs[1]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"blahblah\"; sid:2;)";
+    sigs[2]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
+    sigs[3]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
+    sigs[4]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
+
+    /* Please, Notice that tagged data goes with sig_id = 1 and tag sig generator = 2 */
+    uint32_t sid[5] = {1,2,3,4,5};
+    int numsigs = 5;
+
+    if (UTHAppendSigs(de_ctx, sigs, numsigs) == 0)
+        goto cleanup;
+
+    int32_t results[7][5] = {
+                              {1, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0}
+                             };
+
+    int num_packets = 7;
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int i = 0;
+    for (; i < num_packets; i++) {
+        p[i]->flow = f;
+        p[i]->flow->protoctx = &ssn;
+        SigMatchSignatures(&th_v, de_ctx, det_ctx, p[i]);
+
+        if (UTHCheckPacketMatchResults(p[i], sid, (uint32_t *)&results[i][0], numsigs) == 0)
+            goto cleanup;
+
+        SCLogDebug("packet %d flag %s", i, p[i]->flags & PKT_HAS_TAG ? "true" : "false");
+        /* see if the PKT_HAS_TAG is set on the packet if needed */
+        int expect;
+        if (i == 0 || i == 4 || i == 5 || i == 6)
+            expect = FALSE;
+        else
+            expect = TRUE;
+        if (((p[i]->flags & PKT_HAS_TAG) ? TRUE : FALSE) != expect)
+            goto cleanup;
+    }
+
+    result = 1;
+
+cleanup:
+    UTHFreePackets(p, 7);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    /* clean up flow */
+    uint8_t proto_map = FlowGetProtoMapping(f->proto);
+    FlowClearMemory(f, proto_map);
+    FLOW_DESTROY(f);
+end:
+    FlowShutdown();
+    HostShutdown();
+    TagDestroyCtx();
+    StorageCleanup();
+    return result;
+}
+
+/**
+ * \test session tagging: seconds
+ */
+static int DetectTagTestPacket05 (void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint8_t *buf2 = (uint8_t *)"lalala!";
+    uint16_t buf_len = strlen((char *)buf);
+    uint16_t buf_len2 = strlen((char *)buf2);
+
+    Flow *f = NULL;
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    StorageInit();
+    TagInitCtx();
+    StorageFinalize();
+    HostInitConfig(1);
+    FlowInitConfig(1);
+
+    f = FlowAlloc();
+    BUG_ON(f == NULL);
+    FLOW_INITIALIZE(f);
+    f->protoctx = (void *)&ssn;
+    f->flags |= FLOW_IPV4;
+    if (inet_pton(AF_INET, "192.168.1.5", f->src.addr_data32) != 1)
+        goto end;
+    if (inet_pton(AF_INET, "192.168.1.1", f->dst.addr_data32) != 1)
+        goto end;
+
+    DecodeThreadVars dtv;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->flags |= DE_QUIET;
+
+    Packet *p[7];
+    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.1", "192.168.1.5",
+                              80, 41424);
+    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.1", "192.168.1.5",
+                              80, 41424);
+    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              80, 41424);
+
+    char *sigs[5];
+    sigs[0]= "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; tag:session,8,seconds; sid:1;)";
+    sigs[1]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"blahblah\"; sid:2;)";
+    sigs[2]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
+    sigs[3]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
+    sigs[4]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
+
+    /* Please, Notice that tagged data goes with sig_id = 1 and tag sig generator = 2 */
+    uint32_t sid[5] = {1,2,3,4,5};
+    int numsigs = 5;
+
+    if (UTHAppendSigs(de_ctx, sigs, numsigs) == 0)
+        goto cleanup;
+
+    int32_t results[7][5] = {
+                              {1, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0}
+                             };
+
+    int num_packets = 7;
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int i = 0;
+    for (; i < num_packets; i++) {
+        p[i]->flow = f;
+        p[i]->flow->protoctx = &ssn;
+
+        SCLogDebug("packet %d", i);
+        TimeGet(&p[i]->ts);
+        SigMatchSignatures(&th_v, de_ctx, det_ctx, p[i]);
+
+        if (UTHCheckPacketMatchResults(p[i], sid, (uint32_t *)&results[i][0], numsigs) == 0)
+            goto cleanup;
+
+        TimeSetIncrementTime(2);
+
+        SCLogDebug("packet %d flag %s", i, p[i]->flags & PKT_HAS_TAG ? "true" : "false");
+        /* see if the PKT_HAS_TAG is set on the packet if needed */
+        int expect;
+        if (i == 0 || i == 5 || i == 6)
+            expect = FALSE;
+        else
+            expect = TRUE;
+        if (((p[i]->flags & PKT_HAS_TAG) ? TRUE : FALSE) != expect)
+            goto cleanup;
+    }
+
+    result = 1;
+
+cleanup:
+    UTHFreePackets(p, 7);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    /* clean up flow */
+    uint8_t proto_map = FlowGetProtoMapping(f->proto);
+    FlowClearMemory(f, proto_map);
+    FLOW_DESTROY(f);
+end:
+    FlowShutdown();
+    HostShutdown();
+    TagDestroyCtx();
+    StorageCleanup();
+    return result;
+}
+
+/**
+ * \test session tagging: bytes
+ */
+static int DetectTagTestPacket06 (void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint8_t *buf2 = (uint8_t *)"lalala!";
+    uint16_t buf_len = strlen((char *)buf);
+    uint16_t buf_len2 = strlen((char *)buf2);
+
+    Flow *f = NULL;
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    StorageInit();
+    TagInitCtx();
+    StorageFinalize();
+    HostInitConfig(1);
+    FlowInitConfig(1);
+
+    f = FlowAlloc();
+    BUG_ON(f == NULL);
+    FLOW_INITIALIZE(f);
+    f->protoctx = (void *)&ssn;
+    f->flags |= FLOW_IPV4;
+    if (inet_pton(AF_INET, "192.168.1.5", f->src.addr_data32) != 1)
+        goto end;
+    if (inet_pton(AF_INET, "192.168.1.1", f->dst.addr_data32) != 1)
+        goto end;
+
+    DecodeThreadVars dtv;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->flags |= DE_QUIET;
+
+    Packet *p[7];
+    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.1", "192.168.1.5",
+                              80, 41424);
+    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.1", "192.168.1.5",
+                              80, 41424);
+    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              80, 41424);
+
+    char *sigs[5];
+    sigs[0]= "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; tag:session,150,bytes; sid:1;)";
+    sigs[1]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"blahblah\"; sid:2;)";
+    sigs[2]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
+    sigs[3]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
+    sigs[4]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
+
+    /* Please, Notice that tagged data goes with sig_id = 1 and tag sig generator = 2 */
+    uint32_t sid[5] = {1,2,3,4,5};
+    int numsigs = 5;
+
+    if (UTHAppendSigs(de_ctx, sigs, numsigs) == 0)
+        goto cleanup;
+
+    int32_t results[7][5] = {
+                              {1, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0}
+                             };
+
+    int num_packets = 7;
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int i = 0;
+    for (; i < num_packets; i++) {
+        p[i]->flow = f;
+        p[i]->flow->protoctx = &ssn;
+        SigMatchSignatures(&th_v, de_ctx, det_ctx, p[i]);
+
+        if (UTHCheckPacketMatchResults(p[i], sid, (uint32_t *)&results[i][0], numsigs) == 0)
+            goto cleanup;
+
+        SCLogDebug("packet %d flag %s", i, p[i]->flags & PKT_HAS_TAG ? "true" : "false");
+
+        /* see if the PKT_HAS_TAG is set on the packet if needed */
+        int expect;
+        if (i == 0 || i == 3 || i == 4 || i == 5 || i == 6)
+            expect = FALSE;
+        else
+            expect = TRUE;
+        if (((p[i]->flags & PKT_HAS_TAG) ? TRUE : FALSE) != expect)
+            goto cleanup;
+    }
+
+    result = 1;
+
+cleanup:
+    UTHFreePackets(p, 7);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    /* clean up flow */
+    uint8_t proto_map = FlowGetProtoMapping(f->proto);
+    FlowClearMemory(f, proto_map);
+    FLOW_DESTROY(f);
+end:
+    FlowShutdown();
+    HostShutdown();
+    TagDestroyCtx();
+    StorageCleanup();
+    return result;
+}
+
+/**
+ * \test session tagging: bytes, where a 2nd match makes us tag more
+ */
+static int DetectTagTestPacket07 (void) {
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint8_t *buf2 = (uint8_t *)"lalala!";
+    uint16_t buf_len = strlen((char *)buf);
+    uint16_t buf_len2 = strlen((char *)buf2);
+
+    Flow *f = NULL;
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    StorageInit();
+    TagInitCtx();
+    StorageFinalize();
+    HostInitConfig(1);
+    FlowInitConfig(1);
+
+    f = FlowAlloc();
+    BUG_ON(f == NULL);
+    FLOW_INITIALIZE(f);
+    f->protoctx = (void *)&ssn;
+    f->flags |= FLOW_IPV4;
+    if (inet_pton(AF_INET, "192.168.1.5", f->src.addr_data32) != 1)
+        goto end;
+    if (inet_pton(AF_INET, "192.168.1.1", f->dst.addr_data32) != 1)
+        goto end;
+
+    DecodeThreadVars dtv;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->flags |= DE_QUIET;
+
+    Packet *p[7];
+    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[3] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              41424, 80);
+    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.1", "192.168.1.5",
+                              80, 41424);
+    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.1", "192.168.1.5",
+                              80, 41424);
+    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
+                              "192.168.1.5", "192.168.1.1",
+                              80, 41424);
+
+    char *sigs[5];
+    sigs[0]= "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; tag:session,150,bytes; sid:1;)";
+    sigs[1]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"blahblah\"; sid:2;)";
+    sigs[2]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
+    sigs[3]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
+    sigs[4]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
+
+    /* Please, Notice that tagged data goes with sig_id = 1 and tag sig generator = 2 */
+    uint32_t sid[5] = {1,2,3,4,5};
+    int numsigs = 5;
+
+    if (UTHAppendSigs(de_ctx, sigs, numsigs) == 0)
+        goto cleanup;
+
+    int32_t results[7][5] = {
+                              {1, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {1, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0},
+                              {0, 0, 0, 0, 0}
+                             };
+
+    int num_packets = 7;
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int i = 0;
+    for (; i < num_packets; i++) {
+        p[i]->flow = f;
+        p[i]->flow->protoctx = &ssn;
+        SigMatchSignatures(&th_v, de_ctx, det_ctx, p[i]);
+
+        if (UTHCheckPacketMatchResults(p[i], sid, (uint32_t *)&results[i][0], numsigs) == 0)
+            goto cleanup;
+
+        SCLogDebug("packet %d flag %s", i, p[i]->flags & PKT_HAS_TAG ? "true" : "false");
+#if 1
+        /* see if the PKT_HAS_TAG is set on the packet if needed */
+        int expect;
+        if (i == 0 || i == 6)
+            expect = FALSE;
+        else
+            expect = TRUE;
+        if (((p[i]->flags & PKT_HAS_TAG) ? TRUE : FALSE) != expect)
+            goto cleanup;
+#endif
+    }
+
+    result = 1;
+
+cleanup:
+    UTHFreePackets(p, 7);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    /* clean up flow */
+    uint8_t proto_map = FlowGetProtoMapping(f->proto);
+    FlowClearMemory(f, proto_map);
+    FLOW_DESTROY(f);
+end:
+    FlowShutdown();
+    HostShutdown();
+    TagDestroyCtx();
+    StorageCleanup();
+    return result;
+}
+
+#endif /* UNITTESTS */
+
+/**
+ * \brief this function registers unit tests for DetectTag
+ */
+void DetectEngineTagRegisterTests(void) {
+#ifdef UNITTESTS
+    UtRegisterTest("DetectTagTestPacket01", DetectTagTestPacket01, 1);
+    UtRegisterTest("DetectTagTestPacket02", DetectTagTestPacket02, 1);
+    UtRegisterTest("DetectTagTestPacket03", DetectTagTestPacket03, 1);
+    UtRegisterTest("DetectTagTestPacket04", DetectTagTestPacket04, 1);
+    UtRegisterTest("DetectTagTestPacket05", DetectTagTestPacket05, 1);
+    UtRegisterTest("DetectTagTestPacket06", DetectTagTestPacket06, 1);
+    UtRegisterTest("DetectTagTestPacket07", DetectTagTestPacket07, 1);
+#endif /* UNITTESTS */
 }
 
