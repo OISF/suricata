@@ -137,7 +137,7 @@ int DetectTagMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
                 /* If it already exists it will be updated */
                 tde.sid = s->id;
                 tde.gid = s->gid;
-                tde.last_ts = tde.first_ts = p->ts.tv_usec;
+                tde.last_ts = tde.first_ts = p->ts.tv_sec;
                 tde.metric = td->metric;
                 tde.count = td->count;
 
