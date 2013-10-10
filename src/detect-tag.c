@@ -135,6 +135,7 @@ int DetectTagMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
             break;
         case DETECT_TAG_TYPE_SESSION:
             if (p->flow != NULL) {
+                SCLogDebug("Setting up tag for flow");
                 /* If it already exists it will be updated */
                 tde.sid = s->id;
                 tde.gid = s->gid;
@@ -142,6 +143,8 @@ int DetectTagMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
                 tde.metric = td->metric;
                 tde.count = td->count;
 
+                SCLogDebug("Adding to or updating flow; first_ts %u count %u",
+                    tde.first_ts, tde.count);
                 TagFlowAdd(p, &tde);
             } else {
                 SCLogDebug("No flow to append the session tag");

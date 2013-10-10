@@ -120,7 +120,7 @@ static DetectTagDataEntry *DetectTagDataCopy(DetectTagDataEntry *dtd)
 int TagFlowAdd(Packet *p, DetectTagDataEntry *tde)
 {
     uint8_t updated = 0;
-    uint16_t num_tags = 0;
+    uint16_t tag_cnt = 0;
     DetectTagDataEntry *iter = NULL;
 
     if (p->flow == NULL)
@@ -131,7 +131,7 @@ int TagFlowAdd(Packet *p, DetectTagDataEntry *tde)
     if (iter != NULL) {
         /* First iterate installed entries searching a duplicated sid/gid */
         for (; iter != NULL; iter = iter->next) {
-            num_tags++;
+            tag_cnt++;
 
             if (iter->sid == tde->sid && iter->gid == tde->gid) {
                 iter->cnt_match++;
@@ -151,15 +151,16 @@ int TagFlowAdd(Packet *p, DetectTagDataEntry *tde)
     }
 
     /* If there was no entry of this rule, prepend the new tde */
-    if (updated == 0 && num_tags < DETECT_TAG_MAX_TAGS) {
+    if (updated == 0 && tag_cnt < DETECT_TAG_MAX_TAGS) {
         DetectTagDataEntry *new_tde = DetectTagDataCopy(tde);
         if (new_tde != NULL) {
             new_tde->next = FlowGetStorageById(p->flow, flow_tag_id);
             FlowSetStorageById(p->flow, flow_tag_id, new_tde);
+            SCLogDebug("adding tag with first_ts %u", new_tde->first_ts);
             (void) SC_ATOMIC_ADD(num_tags, 1);
         }
-    } else if (num_tags == DETECT_TAG_MAX_TAGS) {
-        SCLogDebug("Max tags for sessions reached (%"PRIu16")", num_tags);
+    } else if (tag_cnt == DETECT_TAG_MAX_TAGS) {
+        SCLogDebug("Max tags for sessions reached (%"PRIu16")", tag_cnt);
     }
 
     FLOWLOCK_UNLOCK(p->flow);
@@ -328,6 +329,9 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
                     /* last_ts handles this metric, but also a generic time based
                      * expiration to prevent dead sessions/hosts */
                     if (iter->last_ts - iter->first_ts > iter->count) {
+                        SCLogDebug("flow tag expired: %u - %u = %u > %u",
+                            iter->last_ts, iter->first_ts,
+                            (iter->last_ts - iter->first_ts), iter->count);
                         /* tag expired */
                         if (prev != NULL) {
                             tde = iter;
@@ -485,10 +489,12 @@ void TagHandlePacketHost(Host *host, Packet *p)
 void TagHandlePacket(DetectEngineCtx *de_ctx,
                      DetectEngineThreadCtx *det_ctx, Packet *p)
 {
+    SCEnter();
+
     /* If there's no tag, get out of here */
     unsigned int current_tags = SC_ATOMIC_GET(num_tags);
     if (current_tags == 0)
-        return;
+        SCReturn;
 
     /* First update and get session tags */
     if (p->flow != NULL) {
@@ -511,6 +517,7 @@ void TagHandlePacket(DetectEngineCtx *de_ctx,
         }
         HostRelease(dst);
     }
+    SCReturn;
 }
 
 /**
