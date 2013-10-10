@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -42,7 +42,9 @@
  *  time out code will use it to check if a host's
  *  reputation info is outdated. */
 SC_ATOMIC_DECLARE(uint32_t, srep_eversion);
-/** reputation version set to the host's reputation */
+/** reputation version set to the host's reputation,
+ *  this will be set to 1 before rep files are loaded,
+ *  so hosts will always have a minial value of 1 */
 static uint32_t srep_version = 0;
 
 static uint32_t SRepIncrVersion(void) {
@@ -351,14 +353,29 @@ static int SRepLoadFile(char *filename) {
                 if (h->iprep != NULL) {
                     SReputation *rep = h->iprep;
 
-                    /* if version is 0, it has been used before, so
-                     * clear it */
-                    if (rep->version != 0) {
+                    /* if version is outdated, it's an older entry that we'll
+                     * now replace. */
+                    if (rep->version != SRepGetVersion()) {
                         memset(rep, 0x00, sizeof(SReputation));
                     }
 
                     rep->version = SRepGetVersion();
                     rep->rep[cat] = value;
+
+                    SCLogDebug("host %p iprep %p setting cat %u to value %u",
+                        h, h->iprep, cat, value);
+#ifdef DEBUG
+                    if (SCLogDebugEnabled()) {
+                        int i;
+                        for (i = 0; i < SREP_MAX_CATS; i++) {
+                            if (rep->rep[i] == 0)
+                                continue;
+
+                            SCLogDebug("--> host %p iprep %p cat %d to value %u",
+                                    h, h->iprep, i, rep->rep[i]);
+                        }
+                    }
+#endif
                 }
 
                 HostRelease(h);
