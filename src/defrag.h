@@ -111,6 +111,7 @@ typedef struct DefragTracker_ {
     Address dst_addr; /**< Destination address for this tracker. */
 
     uint32_t timeout; /**< When this tracker will timeout. */
+    uint32_t host_timeout;  /**< Host timeout, statically assigned from the yaml */
 
     /** use cnt, reference counter */
     SC_ATOMIC_DECLARE(unsigned int, use_cnt);
