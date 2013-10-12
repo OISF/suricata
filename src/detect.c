@@ -2167,6 +2167,7 @@ static int SignatureCreateMask(Signature *s) {
     for (sm = s->sm_lists[DETECT_SM_LIST_AMATCH] ; sm != NULL; sm = sm->next) {
         switch(sm->type) {
             case DETECT_AL_URILEN:
+                /* fall through */
             case DETECT_AL_HTTP_URI:
                 s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
                 SCLogDebug("sig requires dce http state");
@@ -2237,6 +2238,7 @@ static int SignatureCreateMask(Signature *s) {
                          * flag will be set anyway. */
                         break;
                     case DETECTDSIZE_RA:
+                        /* fall through */
                     case DETECTDSIZE_GT:
                         s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
                         SCLogDebug("sig requires payload");
@@ -2357,11 +2359,13 @@ static int SigParseGetMaxDsize(Signature *s) {
 
         switch (dd->mode) {
             case DETECTDSIZE_LT:
+                /* fall through */
             case DETECTDSIZE_EQ:
                 return dd->dsize;
             case DETECTDSIZE_RA:
                 return dd->dsize2;
             case DETECTDSIZE_GT:
+                /* fall through */
             default:
                 SCReturnInt(-2);
         }
