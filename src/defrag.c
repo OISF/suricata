@@ -53,6 +53,7 @@
 #include "defrag.h"
 #include "defrag-hash.h"
 #include "defrag-queue.h"
+#include "defrag-config.h"
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
@@ -541,7 +542,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
     }
 
     /* Update timeout. */
-    tracker->timeout = p->ts.tv_sec + defrag_context->timeout;
+    tracker->timeout = p->ts.tv_sec + tracker->host_timeout;
 
     Frag *prev = NULL, *next;
     int overlap = 0;
@@ -879,6 +880,9 @@ DefragInit(void)
         tracker_pool_size = DEFAULT_DEFRAG_HASH_SIZE;
     }
 
+    /* Load the defrag-per-host lookup. */
+    DefragPolicyLoadFromConfig();
+
     /* Allocate the DefragContext. */
     defrag_context = DefragContextNew();
     if (defrag_context == NULL) {
@@ -887,6 +891,7 @@ DefragInit(void)
         exit(EXIT_FAILURE);
     }
 
+    DefragSetDefaultTimeout(defrag_context->timeout);
     DefragInitConfig(FALSE);
 }
 
