@@ -1206,7 +1206,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         /* reset because of ruleswap */
         if (reset_de_state) {
             SCMutexLock(&p->flow->de_state_m);
-            DetectEngineStateReset(p->flow->de_state, flags);
+            DetectEngineStateReset(p->flow->de_state, (STREAM_TOSERVER|STREAM_TOCLIENT));
             SCMutexUnlock(&p->flow->de_state_m);
         }
 
