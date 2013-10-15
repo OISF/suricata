@@ -28,6 +28,8 @@
 #include "detect.h"
 #include "host.h"
 
+void ThresholdInit(void);
+
 int ThresholdHostStorageId(void);
 int ThresholdHostHasThreshold(Host *);
 
