@@ -371,7 +371,9 @@ win32-misc.c win32-misc.h \
 win32-service.c win32-service.h \
 win32-syslog.h \
 util-ipwatchlist.c \
-util-ipwatchlist.h
+util-ipwatchlist.h \
+detect-watchlist.h\
+detect-watchlist.c 
 
 EXTRA_DIST = util-mpm-ac-cuda-kernel.cu ptxdump.py
 

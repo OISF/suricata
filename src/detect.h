@@ -1141,6 +1141,8 @@ enum {
 
     DETECT_AL_DNS_QUERY,
 
+    DETECT_STIX_IPWATCH,
+
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };
