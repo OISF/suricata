@@ -161,6 +161,8 @@
 #include "util-daemon.h"
 #include "reputation.h"
 
+#include "detect-watchlist.h"
+
 #include "output.h"
 #include "output-packet.h"
 #include "output-tx.h"
