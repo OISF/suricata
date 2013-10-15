@@ -58,6 +58,7 @@
 #include "detect-parse.h"
 #include "detect-fast-pattern.h"
 #include "detect-engine-tag.h"
+#include "detect-engine-threshold.h"
 #include "detect-engine-address.h"
 #include "detect-engine-port.h"
 #include "detect-engine-mpm.h"
@@ -1984,6 +1985,7 @@ int main(int argc, char **argv)
     SCProtoNameInit();
 
     TagInitCtx();
+    ThresholdInit();
 
     if (DetectAddressTestConfVars() < 0) {
         SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
