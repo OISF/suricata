@@ -153,6 +153,9 @@
 #include "detect-dns-query.h"
 #include "detect-app-layer-protocol.h"
 
+
+#include "detect-watchlist.h"
+
 #include "util-rule-vars.h"
 
 #include "app-layer.h"
@@ -4771,6 +4774,7 @@ void SigTableSetup(void) {
     DetectIPRepRegister();
     DetectDnsQueryRegister();
     DetectAppLayerProtocolRegister();
+    DetectIPWatchListRegister();
 }
 
 void SigTableRegisterTests(void)
