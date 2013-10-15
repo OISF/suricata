@@ -36,3 +36,15 @@ src/suricata
 stamp-h1
 src/build-info.h
 qa/log/
+.cproject
+.project
+.settings/
+Default/
+depcomp
+install-sh
+libhtp/
+missing
+scripts/suricatasc/build/
+scripts/suricatasc/suricatasc
+src/tags
+suricata.yaml
