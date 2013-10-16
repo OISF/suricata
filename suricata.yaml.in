@@ -554,10 +554,10 @@ flow:
   prealloc: 10000
   emergency-recovery: 30
 
-# This option controls the use of vlan ids in the flow hashing. Normally this
-# should be enabled, but in some (broken) setups where both sides of a flow are
-# not tagged with the same vlan tag, we can ignore the vlan id's in the flow
-# hashing.
+# This option controls the use of vlan ids in the flow (and defrag)
+# hashing. Normally this should be enabled, but in some (broken)
+# setups where both sides of a flow are not tagged with the same vlan
+# tag, we can ignore the vlan id's in the flow hashing.
 vlan:
   use-for-tracking: true
 

@@ -86,6 +86,8 @@ static void DefragTrackerInit(DefragTracker *dt, Packet *p) {
         dt->id = (int32_t)IPV6_EXTHDR_GET_FH_ID(p);
         dt->af = AF_INET6;
     }
+    dt->vlan_id[0] = p->vlan_id[0];
+    dt->vlan_id[1] = p->vlan_id[1];
     dt->policy = DefragGetOsPolicy(p);
     TAILQ_INIT(&dt->frags);
     (void) DefragTrackerIncrUsecnt(dt);
@@ -318,8 +320,9 @@ typedef struct DefragHashKey4_ {
         struct {
             uint32_t src, dst;
             uint32_t id;
+            uint16_t vlan_id[2];
         };
-        uint32_t u32[3];
+        uint32_t u32[4];
     };
 } DefragHashKey4;
 
@@ -328,8 +331,9 @@ typedef struct DefragHashKey6_ {
         struct {
             uint32_t src[4], dst[4];
             uint32_t id;
+            uint16_t vlan_id[2];
         };
-        uint32_t u32[9];
+        uint32_t u32[10];
     };
 } DefragHashKey6;
 
@@ -340,6 +344,7 @@ typedef struct DefragHashKey6_ {
  *  source address
  *  destination address
  *  id
+ *  vlan_id
  */
 static inline uint32_t DefragHashGetKey(Packet *p) {
     uint32_t key;
@@ -354,8 +359,10 @@ static inline uint32_t DefragHashGetKey(Packet *p) {
             dhk.dst = p->src.addr_data32[0];
         }
         dhk.id = (uint32_t)IPV4_GET_IPID(p);
+        dhk.vlan_id[0] = p->vlan_id[0];
+        dhk.vlan_id[1] = p->vlan_id[1];
 
-        uint32_t hash = hashword(dhk.u32, 3, defrag_config.hash_rand);
+        uint32_t hash = hashword(dhk.u32, 4, defrag_config.hash_rand);
         key = hash % defrag_config.hash_size;
     } else if (p->ip6h != NULL) {
         DefragHashKey6 dhk;
@@ -379,8 +386,10 @@ static inline uint32_t DefragHashGetKey(Packet *p) {
             dhk.dst[3] = p->src.addr_data32[3];
         }
         dhk.id = IPV6_EXTHDR_GET_FH_ID(p);
+        dhk.vlan_id[0] = p->vlan_id[0];
+        dhk.vlan_id[1] = p->vlan_id[1];
 
-        uint32_t hash = hashword(dhk.u32, 9, defrag_config.hash_rand);
+        uint32_t hash = hashword(dhk.u32, 10, defrag_config.hash_rand);
         key = hash % defrag_config.hash_size;
     } else
         key = 0;
@@ -395,7 +404,9 @@ static inline uint32_t DefragHashGetKey(Packet *p) {
        CMP_ADDR(&(d1)->dst_addr, &(d2)->dst)) || \
       (CMP_ADDR(&(d1)->src_addr, &(d2)->dst) && \
        CMP_ADDR(&(d1)->dst_addr, &(d2)->src))) && \
-     (d1)->id == (id))
+     (d1)->id == (id) && \
+     (d1)->vlan_id[0] == (d2)->vlan_id[0] && \
+     (d1)->vlan_id[1] == (d2)->vlan_id[1])
 
 static inline int DefragTrackerCompare(DefragTracker *t, Packet *p) {
     uint32_t id;
