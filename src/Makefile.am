@@ -374,7 +374,8 @@ SUFFIXES = \
 .ptx_sm_13 \
 .ptx_sm_20 \
 .ptx_sm_21 \
-.ptx_sm_30
+.ptx_sm_30 \
+.ptx_sm_35
 
 PTXS =  $(suricata_CUDA_KERNELS:.cu=.ptx_sm_10)
 PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_11)
@@ -383,6 +384,7 @@ PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_13)
 PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_20)
 PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_21)
 PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_30)
+PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_35)
 
 .cu.ptx_sm_10:
 	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_10 -ptx $<
@@ -404,6 +406,9 @@ PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_30)
 
 .cu.ptx_sm_30:
 	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_30 -ptx $<
+
+.cu.ptx_sm_35:
+	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_35 -ptx $<
 
 cuda-ptxdump.h: $(PTXS)
 	$(PYTHON) ptxdump.py cuda-ptxdump $(PTXS)
