@@ -111,7 +111,7 @@
     } while (0)
 
 #define FLOW_COPY_IPV6_ADDR_TO_PACKET(fa, pa) do {      \
-        (pa)->family = AF_INET;                         \
+        (pa)->family = AF_INET6;                        \
         (pa)->addr_data32[0] = (fa)->addr_data32[0];    \
         (pa)->addr_data32[1] = (fa)->addr_data32[1];    \
         (pa)->addr_data32[2] = (fa)->addr_data32[2];    \
