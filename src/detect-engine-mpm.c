@@ -2072,7 +2072,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             sh->mpm_stream_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
             sh->mpm_stream_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 1);
         }
-        if (sh->mpm_stream_ctx_tc == NULL || sh->mpm_stream_ctx_tc == NULL) {
+        if (sh->mpm_stream_ctx_tc == NULL || sh->mpm_stream_ctx_ts == NULL) {
             SCLogDebug("sh->mpm_stream_ctx == NULL. This should never happen");
             exit(EXIT_FAILURE);
         }
