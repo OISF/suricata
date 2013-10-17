@@ -651,8 +651,8 @@ static int DetectHttpMethodSigTest03(void)
     int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
         SCMutexUnlock(&f.m);
+        goto end;
     }
     SCMutexUnlock(&f.m);
 

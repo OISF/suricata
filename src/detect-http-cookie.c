@@ -820,8 +820,8 @@ static int DetectHttpCookieSigTest06(void) {
     int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
         SCMutexUnlock(&f.m);
+        goto end;
     }
     SCMutexUnlock(&f.m);
 
