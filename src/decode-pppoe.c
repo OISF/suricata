@@ -55,7 +55,6 @@ void DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint
         ENGINE_SET_EVENT(p, PPPOE_PKT_TOO_SMALL);
         return;
     }
-    p->pppoedh = NULL;
 
     p->pppoedh = (PPPOEDiscoveryHdr *)pkt;
     if (p->pppoedh == NULL)
