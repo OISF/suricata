@@ -357,7 +357,7 @@ void DetectEngineRegisterAppInspectionEngine(uint16_t alproto,
                                              DetectEngineAppInspectionEngine *list[][2])
 {
     if ((list == NULL) ||
-        (alproto <= ALPROTO_UNKNOWN && alproto >= ALPROTO_FAILED) ||
+        (alproto <= ALPROTO_UNKNOWN || alproto >= ALPROTO_FAILED) ||
         (dir > 1) ||
         (sm_list < DETECT_SM_LIST_MATCH || sm_list >= DETECT_SM_LIST_MAX) ||
         (Callback == NULL)) {
