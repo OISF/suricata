@@ -207,6 +207,9 @@ void DetectExitPrintStats(ThreadVars *tv, void *data);
 void DbgPrintSigs(DetectEngineCtx *, SigGroupHead *);
 void DbgPrintSigs2(DetectEngineCtx *, SigGroupHead *);
 static void PacketCreateMask(Packet *, SignatureMask *, uint16_t, void *, StreamMsg *, int);
+static void DetectDisableSigKeywords(void);
+static int DetectSetupDisabledForTesting(DetectEngineCtx *de_ctx, Signature *s, char *tagstr);
+
 
 /* tm module api functions */
 TmEcode Detect(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
@@ -4763,6 +4766,40 @@ void SigTableSetup(void) {
     DetectIPRepRegister();
     DetectDnsQueryRegister();
     DetectAppLayerProtocolRegister();
+
+    /* Check disabled Sig keywords */
+    DetectDisableSigKeywords();
+}
+
+/* For testing, allow disabling detection by keywords. */
+static void DetectDisableSigKeywords(void)
+{
+    ConfNode *keywords_node;
+    ConfNode *keyword;
+
+    /* Walk down the list from config file of Detect keywords to disable. */
+    keywords_node = ConfGetNode("testing.detect-disable-keywords");
+    if (keywords_node != NULL) {
+        TAILQ_FOREACH(keyword, &keywords_node->head, next) {
+            SigTableElmt *sig = SigTableGet(keyword->val);
+            if (sig == NULL) {
+                SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, 
+                           "Unknown signature keyword '%s'", keyword->val);
+            } else {
+                sig->Setup = DetectSetupDisabledForTesting;
+                SCLogInfo("Detect keyword '%s' disabled for Testing",
+			  keyword->val);
+            }
+        }
+    }
+}
+
+/* Disable the Detect Signature entry. The keyword is still parsed, but not added to any
+ * packets signature matching.
+ */
+static int DetectSetupDisabledForTesting(DetectEngineCtx *de_ctx, Signature *s, char *tagstr)
+{
+    return 0;
 }
 
 void SigTableRegisterTests(void)
