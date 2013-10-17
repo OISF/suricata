@@ -442,7 +442,7 @@ void StreamTcpInitConfig(char quiet)
     }
 
     if ((ConfGetInt("stream.max-synack-queued", &value)) == 1) {
-        if (value >= 0 || value <= 255) {
+        if (value >= 0 && value <= 255) {
             stream_config.max_synack_queued = (uint8_t)value;
         } else {
             stream_config.max_synack_queued = (uint8_t)STREAMTCP_DEFAULT_MAX_SYNACK_QUEUED;
