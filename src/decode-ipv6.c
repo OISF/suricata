@@ -44,6 +44,8 @@
 #include "util-profiling.h"
 #include "host.h"
 
+#include "util-device.h"
+
 #define IPV6_EXTHDRS     ip6eh.ip6_exthdrs
 #define IPV6_EH_CNT      ip6eh.ip6_exthdrs_cnt
 
@@ -55,7 +57,7 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
 {
 
     if (unlikely(plen < IPV4_HEADER_LEN)) {
-        ENGINE_SET_EVENT(p, IPV4_IN_IPV6_PKT_TOO_SMALL);
+        ENGINE_SET_INVALID_EVENT(p, IPV4_IN_IPV6_PKT_TOO_SMALL);
         return;
     }
     if (IP_GET_RAW_VER(pkt) == 4) {
@@ -84,7 +86,7 @@ static void DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uin
 {
 
     if (unlikely(plen < IPV6_HEADER_LEN)) {
-        ENGINE_SET_EVENT(p, IPV6_IN_IPV6_PKT_TOO_SMALL);
+        ENGINE_SET_INVALID_EVENT(p, IPV6_IN_IPV6_PKT_TOO_SMALL);
         return;
     }
     if (IP_GET_RAW_VER(pkt) == 6) {
@@ -510,7 +512,7 @@ static int DecodeIPV6Packet (ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
 
     if (IP_GET_RAW_VER(pkt) != 6) {
         SCLogDebug("wrong ip version %" PRIu8 "",IP_GET_RAW_VER(pkt));
-        ENGINE_SET_EVENT(p,IPV6_WRONG_IP_VER);
+        ENGINE_SET_INVALID_EVENT(p, IPV6_WRONG_IP_VER);
         return -1;
     }
 
@@ -518,7 +520,7 @@ static int DecodeIPV6Packet (ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
 
     if (len < (IPV6_HEADER_LEN + IPV6_GET_PLEN(p)))
     {
-        ENGINE_SET_EVENT(p,IPV6_TRUNC_PKT);
+        ENGINE_SET_INVALID_EVENT(p, IPV6_TRUNC_PKT);
         return -1;
     }
 
@@ -634,6 +636,10 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
             IPV6_EXTHDR_GET_DH2_HDRLEN(p), IPV6_EXTHDR_GET_DH2_NH(p));
     }
 #endif
+
+    if ((p->flags & PKT_IS_INVALID) && p->livedev)
+        SC_ATOMIC_ADD(p->livedev->invalid_pkts, 1);
+
     return;
 }
 

@@ -63,7 +63,7 @@ void DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
     SCPerfCounterIncr(dtv->counter_vlan, tv->sc_perf_pca);
 
     if(len < VLAN_HEADER_LEN)    {
-        ENGINE_SET_EVENT(p,VLAN_HEADER_TOO_SMALL);
+        ENGINE_SET_INVALID_EVENT(p, VLAN_HEADER_TOO_SMALL);
         return;
     }
     if (p->vlan_idx >= 2) {

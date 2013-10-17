@@ -71,6 +71,8 @@
 #include "util-misc.h"
 #include "util-validate.h"
 
+#include "source-pcap-file.h"
+
 //#define DEBUG
 
 #define STREAMTCP_DEFAULT_PREALLOC              2048
@@ -4429,6 +4431,8 @@ static inline int StreamTcpValidateChecksum(Packet *p)
         SCLogDebug("Checksum of received packet %p is invalid",p);
         if (p->livedev) {
             (void) SC_ATOMIC_ADD(p->livedev->invalid_checksums, 1);
+        } else if (p->pcap_cnt) {
+            PcapIncreaseInvalidChecksum();
         }
     }
 
