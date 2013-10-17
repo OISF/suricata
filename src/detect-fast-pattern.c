@@ -1180,7 +1180,7 @@ int DetectFastPatternTest17(void)
     if (sm->type == DETECT_CONTENT) {
         if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
             cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
-            !(cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
+            !(cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
             cd->fp_chop_offset == 0 &&
             cd->fp_chop_len == 0) {
             result = 1;
@@ -1216,7 +1216,7 @@ int DetectFastPatternTest18(void)
     if (sm->type == DETECT_CONTENT) {
         if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
             !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
-            cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+            cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
             cd->fp_chop_offset == 3 &&
             cd->fp_chop_len == 4) {
             result = 1;
@@ -1446,7 +1446,7 @@ int DetectFastPatternTest28(void)
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
-        !(cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
+        !(cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
         cd->fp_chop_offset == 0 &&
         cd->fp_chop_len == 0) {
         result = 1;
@@ -1476,7 +1476,7 @@ int DetectFastPatternTest29(void)
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
-        !(cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
+        !(cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
         cd->fp_chop_offset == 0 &&
         cd->fp_chop_len == 0) {
         result = 1;
@@ -1506,7 +1506,7 @@ int DetectFastPatternTest30(void)
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
-        !(cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
+        !(cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
         cd->fp_chop_offset == 0 &&
         cd->fp_chop_len == 0) {
         result = 1;
@@ -1536,7 +1536,7 @@ int DetectFastPatternTest31(void)
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
-        !(cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
+        !(cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
         cd->fp_chop_offset == 0 &&
         cd->fp_chop_len == 0) {
         result = 1;
@@ -1567,7 +1567,7 @@ int DetectFastPatternTest32(void)
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         cd->flags & DETECT_CONTENT_NEGATED &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
-        !(cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
+        !(cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
         cd->fp_chop_offset == 0 &&
         cd->fp_chop_len == 0) {
         result = 1;
@@ -1685,7 +1685,7 @@ int DetectFastPatternTest37(void)
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
-        cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
         cd->fp_chop_offset == 3 &&
         cd->fp_chop_len == 4) {
         result = 1;
@@ -1715,7 +1715,7 @@ int DetectFastPatternTest38(void)
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
-        cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
         cd->fp_chop_offset == 3 &&
         cd->fp_chop_len == 4) {
         result = 1;
@@ -1745,7 +1745,7 @@ int DetectFastPatternTest39(void)
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
-        cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
         cd->fp_chop_offset == 3 &&
         cd->fp_chop_len == 4) {
         result = 1;
@@ -1775,7 +1775,7 @@ int DetectFastPatternTest40(void)
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
-        cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
         cd->fp_chop_offset == 3 &&
         cd->fp_chop_len == 4) {
         result = 1;
@@ -1805,7 +1805,7 @@ int DetectFastPatternTest41(void)
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
-        cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
         cd->fp_chop_offset == 3 &&
         cd->fp_chop_len == 4) {
         result = 1;
@@ -1835,7 +1835,7 @@ int DetectFastPatternTest42(void)
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
-        cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
         cd->fp_chop_offset == 3 &&
         cd->fp_chop_len == 4) {
         result = 1;
@@ -1865,7 +1865,7 @@ int DetectFastPatternTest43(void)
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
-        cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
         cd->fp_chop_offset == 3 &&
         cd->fp_chop_len == 4) {
         result = 1;
@@ -1895,7 +1895,7 @@ int DetectFastPatternTest44(void)
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
-        cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
         cd->fp_chop_offset == 3 &&
         cd->fp_chop_len == 4) {
         result = 1;
@@ -1925,7 +1925,7 @@ int DetectFastPatternTest45(void)
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
-        cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
         cd->fp_chop_offset == 3 &&
         cd->fp_chop_len == 4) {
         result = 1;
@@ -2022,7 +2022,7 @@ int DetectFastPatternTest49(void)
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         cd->flags & DETECT_CONTENT_NEGATED &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
-        cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
         cd->fp_chop_offset == 3 &&
         cd->fp_chop_len == 4) {
         result = 1;
