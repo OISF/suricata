@@ -99,6 +99,12 @@ int DetectProtoParse(DetectProto *dp, char *str)
     } else if (strcasecmp(str, "udp") == 0) {
         dp->proto[IPPROTO_UDP / 8] |= 1 << (IPPROTO_UDP % 8);
         SCLogDebug("UDP protocol detected");
+    } else if (strcasecmp(str, "icmpv4") == 0) {
+        dp->proto[IPPROTO_ICMP / 8] |= 1 << (IPPROTO_ICMP % 8);
+        SCLogDebug("ICMPv4 protocol detected");
+    } else if (strcasecmp(str, "icmpv6") == 0) {
+        dp->proto[IPPROTO_ICMPV6 / 8] |= 1 << (IPPROTO_ICMPV6 % 8);
+        SCLogDebug("ICMPv6 protocol detected");
     } else if (strcasecmp(str, "icmp") == 0) {
         dp->proto[IPPROTO_ICMP / 8] |= 1 << (IPPROTO_ICMP % 8);
         dp->proto[IPPROTO_ICMPV6 / 8] |= 1 << (IPPROTO_ICMPV6 % 8);
@@ -393,6 +399,88 @@ end:
 }
 
 /**
+ * \test DetectrotoTestSetup02 is a test for a icmpv4 and icmpv6
+ *       protocol setting up in signature.
+ */
+static int DetectProtoTestSetup02(void)
+{
+    DetectProto dp;
+    Signature *sig_icmpv4 = NULL;
+    Signature *sig_icmpv6 = NULL;
+    Signature *sig_icmp = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    int i;
+
+    memset(&dp, 0, sizeof(dp));
+
+    if (DetectProtoInitTest(&de_ctx, &sig_icmpv4, &dp, "icmpv4") == 0) {
+        printf("failure - imcpv4.\n");
+        goto end;
+    }
+
+    if (DetectProtoInitTest(&de_ctx, &sig_icmpv6, &dp, "icmpv6") == 0) {
+        printf("failure - imcpv6.\n");
+        goto end;
+    }
+
+    if (DetectProtoInitTest(&de_ctx, &sig_icmp, &dp, "icmp") == 0) {
+        printf("failure - imcp.\n");
+        goto end;
+    }
+
+    for (i = 0; i < 256 / 8; i++) {
+        if (i == IPPROTO_ICMP) {
+            if (!(sig_icmpv4->proto.proto[i / 8] & (1 << (i % 8)))) {
+                printf("failed in sig matching - icmpv4 - icmpv4.\n");
+                goto end;
+            }
+            continue;
+        }
+        if (sig_icmpv4->proto.proto[i / 8] & (1 << (i % 8))) {
+            printf("failed in sig matching - icmpv4 - others.\n");
+            goto end;
+        }
+    }
+
+    for (i = 0; i < 256 / 8; i++) {
+        if (i == IPPROTO_ICMPV6) {
+            if (!(sig_icmpv6->proto.proto[i / 8] & (1 << (i % 8)))) {
+                printf("failed in sig matching - icmpv6 - icmpv6.\n");
+                goto end;
+            }
+            continue;
+        }
+        if (sig_icmpv6->proto.proto[i / 8] & (1 << (i % 8))) {
+            printf("failed in sig matching - icmpv6 - others.\n");
+            goto end;
+        }
+    }
+
+    for (i = 0; i < 256 / 8; i++) {
+        if (i == IPPROTO_ICMP || i == IPPROTO_ICMPV6) {
+            if (!(sig_icmp->proto.proto[i / 8] & (1 << (i % 8)))) {
+                printf("failed in sig matching - icmp - icmp.\n");
+                goto end;
+            }
+            continue;
+        }
+        if (sig_icmpv6->proto.proto[i / 8] & (1 << (i % 8))) {
+            printf("failed in sig matching - icmp - others.\n");
+            goto end;
+        }
+    }
+
+    result = 1;
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
  * \test DetectProtoTestSig01 is a test for checking the working of protocol
  *       detection by setting up the signature and later testing its working
  *       by matching the received packet against the sig.
@@ -524,7 +612,10 @@ void DetectProtoTests(void)
     UtRegisterTest("ProtoTestParse05", ProtoTestParse05, 1);
     UtRegisterTest("ProtoTestParse06", ProtoTestParse06, 1);
     UtRegisterTest("ProtoTestParse07", ProtoTestParse07, 1);
+
     UtRegisterTest("DetectProtoTestSetup01", DetectProtoTestSetup01, 1);
+    UtRegisterTest("DetectProtoTestSetup02", DetectProtoTestSetup02, 1);
+
     UtRegisterTest("DetectProtoTestSig01", DetectProtoTestSig01, 1);
     UtRegisterTest("DetectProtoTestSig02", DetectProtoTestSig02, 1);
 #endif /* UNITTESTS */
