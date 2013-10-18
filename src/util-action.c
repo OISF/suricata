@@ -1559,7 +1559,6 @@ void UtilActionRegisterTests(void) {
     /* Generic tests */
     UtRegisterTest("UtilActionTest01", UtilActionTest01, 1);
     UtRegisterTest("UtilActionTest02", UtilActionTest02, 1);
-    UtRegisterTest("UtilActionTest02", UtilActionTest02, 1);
     UtRegisterTest("UtilActionTest03", UtilActionTest03, 1);
     UtRegisterTest("UtilActionTest04", UtilActionTest04, 1);
     UtRegisterTest("UtilActionTest05", UtilActionTest05, 1);

@@ -187,12 +187,12 @@ int RunUnittests(int list_unittests, char *regex_arg)
     SCPerfRegisterTests();
     DecodePPPRegisterTests();
     DecodeVLANRegisterTests();
-    HTPParserRegisterTests();
-    SSHParserRegisterTests();
-    SMBParserRegisterTests();
-    DCERPCParserRegisterTests();
-    DCERPCUDPParserRegisterTests();
-    FTPParserRegisterTests();
+    //HTPParserRegisterTests();
+    //SSHParserRegisterTests();
+    //SMBParserRegisterTests();
+    //DCERPCParserRegisterTests();
+    //DCERPCUDPParserRegisterTests();
+    //FTPParserRegisterTests();
     DecodeRawRegisterTests();
     DecodePPPOERegisterTests();
     DecodeICMPV4RegisterTests();
@@ -247,7 +247,7 @@ int RunUnittests(int list_unittests, char *regex_arg)
     DetectEngineHttpHRHRegisterTests();
     DetectEngineRegisterTests();
     SCLogRegisterTests();
-    SMTPParserRegisterTests();
+    //SMTPParserRegisterTests();
     MagicRegisterTests();
     UtilMiscRegisterTests();
     DetectAddressTests();
