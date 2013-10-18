@@ -27,9 +27,10 @@
 #include <tmc/spin.h>
 #include <arch/cycle.h>
 
-/* NOTE: On Tilera datapath threads use the tmc library for mutexes
- * while the control threads use pthread mutexes.  So the pthread
- * mutex types are split out so they their use can be differentiated.
+/* NOTE: On Tilera datapath threads use the TMC (Tilera Multicore
+ * Components) library spin mutexes while the control threads use
+ * pthread mutexes.  So the pthread mutex types are split out so that
+ * their use can be differentiated.
  */
 
 /* ctrl mutex */
