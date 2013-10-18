@@ -288,11 +288,11 @@ void StorageFreeById(Storage *storage, StorageEnum type, int id)
 #endif
     SCLogDebug("storage %p id %d", storage, id);
 
-    StorageMapping *map = &storage_map[type][id];
     Storage *store = storage;
     if (store != NULL) {
         SCLogDebug("store %p", store);
         if (store[id] != NULL) {
+            StorageMapping *map = &storage_map[type][id];
             map->Free(store[id]);
             store[id] = NULL;
         }
@@ -314,8 +314,8 @@ void StorageFreeAll(Storage *storage, StorageEnum type)
     Storage *store = storage;
     int i;
     for (i = 0; i < storage_max_id[type]; i++) {
-        StorageMapping *map = &storage_map[type][i];
         if (store[i] != NULL) {
+            StorageMapping *map = &storage_map[type][i];
             map->Free(store[i]);
             store[i] = NULL;
         }
@@ -338,14 +338,14 @@ void StorageFree(Storage **storage, StorageEnum type)
     Storage *store = *storage;
     int i;
     for (i = 0; i < storage_max_id[type]; i++) {
-        StorageMapping *map = &storage_map[type][i];
         if (store[i] != NULL) {
+            StorageMapping *map = &storage_map[type][i];
             map->Free(store[i]);
             store[i] = NULL;
         }
     }
     SCFree(*storage);
-    storage = NULL;
+    *storage = NULL;
 }
 
 #ifdef UNITTESTS
