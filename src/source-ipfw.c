@@ -417,8 +417,6 @@ TmEcode ReceiveIPFWThreadDeinit(ThreadVars *tv, void *data)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    data = (void *)ptv;
-
     SCReturnInt(TM_ECODE_OK);
 }
 

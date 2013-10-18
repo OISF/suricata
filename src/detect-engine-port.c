@@ -181,8 +181,6 @@ void DetectPortCleanupList (DetectPort *head) {
         DetectPortFree(cur);
         cur = next;
     }
-
-    head = NULL;
 }
 
 /**
