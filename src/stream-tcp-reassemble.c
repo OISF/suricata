@@ -1856,6 +1856,14 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
 
     uint8_t flags = 0;
 
+    /* this function can be directly called by app layer protocol
+     * detection. */
+    if (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) {
+        SCLogDebug("stream no reassembly flag set.  Mostly called via "
+                   "app proto detection.");
+        SCReturnInt(0);
+    }
+
     SCLogDebug("pcap_cnt %"PRIu64", len %u", p->pcap_cnt, p->payload_len);
 
     SCLogDebug("stream->seg_list %p", stream->seg_list);
@@ -2596,6 +2604,14 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                                  Packet *p)
 {
     SCEnter();
+
+    /* this function can be directly called by app layer protocol
+     * detection. */
+    if (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) {
+        SCLogDebug("stream no reassembly flag set.  Mostly called via "
+                   "app proto detection.");
+        SCReturnInt(0);
+    }
 
     uint8_t flags = 0;
 
