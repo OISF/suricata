@@ -148,6 +148,7 @@ static uint16_t AlpProtoMatchSignature(AlpProtoSignature *s, uint8_t *buf,
 {
     SCEnter();
     uint16_t proto = ALPROTO_UNKNOWN;
+    uint8_t *found = NULL;
 
     if (s->ip_proto != ip_proto) {
         goto end;
@@ -170,10 +171,12 @@ static uint16_t AlpProtoMatchSignature(AlpProtoSignature *s, uint8_t *buf,
     SCLogDebug("s->co->offset (%"PRIu16") s->co->depth (%"PRIu16")",
                 s->co->offset, s->co->depth);
 
-    uint8_t *found = SpmSearch(sbuf, sbuflen, s->co->content, s->co->content_len);
-    if (found != NULL) {
+    if (s->co->flags & DETECT_CONTENT_NOCASE)
+        found = SpmNocaseSearch(sbuf, sbuflen, s->co->content, s->co->content_len);
+    else
+        found = SpmSearch(sbuf, sbuflen, s->co->content, s->co->content_len);
+    if (found != NULL)
         proto = s->proto;
-    }
 
 end:
     SCReturnInt(proto);
@@ -189,8 +192,11 @@ end:
  *  \param depth Depth setting for the content. E.g. 4 means that the content has to match in the first 4 bytes of the stream.
  *  \param offset Offset setting for the content. E.g. 4 mean that the content has to match after the first 4 bytes of the stream.
  *  \param flags Set STREAM_TOCLIENT or STREAM_TOSERVER for the direction in which to try to match the content.
+ *  \param ci Pattern is case-insensitive.
  */
-void AlpProtoAdd(AlpProtoDetectCtx *ctx, char *name, uint16_t ip_proto, uint16_t al_proto, char *content, uint16_t depth, uint16_t offset, uint8_t flags)
+void AlpProtoAddPattern(AlpProtoDetectCtx *ctx, char *name, uint16_t ip_proto,
+                        uint16_t al_proto, char *content, uint16_t depth,
+                        uint16_t offset, uint8_t flags, uint8_t ci)
 {
     if (al_proto_table[al_proto].name != NULL) {
         BUG_ON(strcmp(al_proto_table[al_proto].name, name) != 0);
@@ -218,8 +224,17 @@ void AlpProtoAdd(AlpProtoDetectCtx *ctx, char *name, uint16_t ip_proto, uint16_t
         dir = &ctx->toserver;
     }
 
-    mpm_table[dir->mpm_ctx.mpm_type].AddPattern(&dir->mpm_ctx, cd->content, cd->content_len,
-                                cd->offset, cd->depth, cd->id, cd->id, 0);
+    if (ci == 1) {
+        cd->flags |= DETECT_CONTENT_NOCASE;
+        mpm_table[dir->mpm_ctx.mpm_type].
+            AddPatternNocase(&dir->mpm_ctx, cd->content, cd->content_len,
+                             cd->offset, cd->depth, cd->id, cd->id, 0);
+    } else {
+        mpm_table[dir->mpm_ctx.mpm_type].
+            AddPattern(&dir->mpm_ctx, cd->content, cd->content_len,
+                       cd->offset, cd->depth, cd->id, cd->id, 0);
+    }
+
     BUG_ON(dir->id == ALP_DETECT_MAX);
     dir->map[dir->id] = al_proto;
     dir->id++;
@@ -234,6 +249,27 @@ void AlpProtoAdd(AlpProtoDetectCtx *ctx, char *name, uint16_t ip_proto, uint16_t
 
     /* finally turn into a signature and add to the ctx */
     AlpProtoAddSignature(ctx, cd, ip_proto, al_proto);
+}
+
+
+void AlpProtoAddCI(AlpProtoDetectCtx *ctx, char *name, uint16_t ip_proto,
+                   uint16_t al_proto, char *content, uint16_t depth,
+                   uint16_t offset, uint8_t flags)
+{
+    AlpProtoAddPattern(ctx, name, ip_proto, al_proto, content, depth,
+                       offset, flags, 1);
+
+    return;
+}
+
+void AlpProtoAdd(AlpProtoDetectCtx *ctx, char *name, uint16_t ip_proto,
+                 uint16_t al_proto, char *content, uint16_t depth,
+                 uint16_t offset, uint8_t flags)
+{
+    AlpProtoAddPattern(ctx, name, ip_proto, al_proto, content, depth,
+                       offset, flags, 0);
+
+    return;
 }
 
 #ifdef UNITTESTS
