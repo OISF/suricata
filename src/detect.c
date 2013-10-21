@@ -4763,6 +4763,7 @@ void SigTableSetup(void) {
     DetectIPRepRegister();
     DetectDnsQueryRegister();
     DetectAppLayerProtocolRegister();
+    DetectIPRepRegister();
 }
 
 void SigTableRegisterTests(void)
