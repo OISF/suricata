@@ -95,7 +95,6 @@ enum {
 typedef struct FtpState_ {
     FtpRequestCommand command;
     FtpRequestCommandArgOfs arg_offset;
-    FtpResponseCode response_code;
     uint32_t port_line_len;
     uint8_t *port_line;
 } FtpState;
