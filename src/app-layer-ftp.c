@@ -199,31 +199,6 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
                             uint8_t *input, uint32_t input_len,
                             void *local_data, AppLayerParserResult *output)
 {
-    SCEnter();
-    //PrintRawDataFp(stdout, input,input_len);
-
-    uint32_t offset = 0;
-    FtpState *fstate = (FtpState *)ftp_state;
-
-    if (pstate == NULL)
-        return -1;
-
-
-    const uint8_t delim[] = { 0x0D, 0x0A };
-    int r = AlpParseFieldByDelimiter(output, pstate, FTP_FIELD_RESPONSE_LINE,
-                                     delim, sizeof(delim), input, input_len,
-                                     &offset);
-    if (r == 0) {
-        pstate->parse_field = 0;
-        return 0;
-    }
-    char rcode[5];
-    memcpy(rcode, input, 4);
-    rcode[4] = '\0';
-    fstate->response_code = atoi(rcode);
-    SCLogDebug("Response: %u\n", fstate->response_code);
-
-    pstate->parse_field = 0;
     return 1;
 }
 
