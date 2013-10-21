@@ -93,6 +93,33 @@ enum {
 
 /** FTP State for app layer parser */
 typedef struct FtpState_ {
+    uint8_t *input;
+    int32_t input_len;
+    uint8_t direction;
+
+    /* --parser details-- */
+    /** current line extracted by the parser from the call to FTPGetline() */
+    uint8_t *current_line;
+    /** length of the line in current_line.  Doesn't include the delimiter */
+    int32_t current_line_len;
+    uint8_t current_line_delimiter_len;
+
+    /** used to indicate if the current_line buffer is a malloced buffer.  We
+     * use a malloced buffer, if a line is fragmented */
+    uint8_t *tc_db;
+    int32_t tc_db_len;
+    uint8_t tc_current_line_db;
+    /** we have see LF for the currently parsed line */
+    uint8_t tc_current_line_lf_seen;
+
+    /** used to indicate if the current_line buffer is a malloced buffer.  We
+     * use a malloced buffer, if a line is fragmented */
+    uint8_t *ts_db;
+    int32_t ts_db_len;
+    uint8_t ts_current_line_db;
+    /** we have see LF for the currently parsed line */
+    uint8_t ts_current_line_lf_seen;
+
     FtpRequestCommand command;
     FtpRequestCommandArgOfs arg_offset;
     uint32_t port_line_len;
