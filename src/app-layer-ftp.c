@@ -49,6 +49,117 @@
 #include "util-debug.h"
 #include "util-memcmp.h"
 
+static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
+{
+    if (line_state->current_line_lf_seen == 1) {
+        /* we have seen the lf for the previous line.  Clear the parser
+         * details to parse new line */
+        line_state->current_line_lf_seen = 0;
+        if (line_state->current_line_db == 1) {
+            line_state->current_line_db = 0;
+            SCFree(line_state->db);
+            line_state->db = NULL;
+            line_state->db_len = 0;
+            state->current_line = NULL;
+            state->current_line_len = 0;
+        }
+    }
+
+    uint8_t *lf_idx = memchr(state->input, 0x0a, state->input_len);
+
+    if (lf_idx == NULL) {
+        /* fragmented lines.  Decoder event for special cases.  Not all
+         * fragmented lines should be treated as a possible evasion
+         * attempt.  With multi payload ftp chunks we can have valid
+         * cases of fragmentation.  But within the same segment chunk
+         * if we see fragmentation then it's definitely something you
+         * should alert about */
+        if (line_state->current_line_db == 0) {
+            line_state->db = SCMalloc(state->input_len);
+            if (line_state->db == NULL) {
+                return -1;
+            }
+            line_state->current_line_db = 1;
+            memcpy(line_state->db, state->input, state->input_len);
+            line_state->db_len = state->input_len;
+        } else {
+            line_state->db = SCRealloc(line_state->db,
+                                                (line_state->db_len +
+                                                 state->input_len));
+            if (line_state->db == NULL) {
+                return -1;
+            }
+            memcpy(line_state->db + line_state->db_len,
+                   state->input, state->input_len);
+            line_state->db_len += state->input_len;
+        }
+        state->input += state->input_len;
+        state->input_len = 0;
+
+        return -1;
+
+    } else {
+        line_state->current_line_lf_seen = 1;
+
+        if (line_state->current_line_db == 1) {
+            line_state->db = SCRealloc(line_state->db,
+                                                (line_state->db_len +
+                                                 (lf_idx + 1 - state->input)));
+            if (line_state->db == NULL) {
+                return -1;
+            }
+            memcpy(line_state->db + line_state->db_len,
+                   state->input, (lf_idx + 1 - state->input));
+            line_state->db_len += (lf_idx + 1 - state->input);
+
+            if (line_state->db_len > 1 &&
+                line_state->db[line_state->db_len - 2] == 0x0D) {
+                line_state->db_len -= 2;
+                state->current_line_delimiter_len = 2;
+            } else {
+                line_state->db_len -= 1;
+                state->current_line_delimiter_len = 1;
+            }
+
+            state->current_line = line_state->db;
+            state->current_line_len = line_state->db_len;
+
+        } else {
+            state->current_line = state->input;
+            state->current_line_len = lf_idx - state->input;
+
+            if (state->input != lf_idx &&
+                *(lf_idx - 1) == 0x0D) {
+                state->current_line_len--;
+                state->current_line_delimiter_len = 2;
+            } else {
+                state->current_line_delimiter_len = 1;
+            }
+        }
+
+        state->input_len -= (lf_idx - state->input) + 1;
+        state->input = (lf_idx + 1);
+
+        return 0;
+    }
+
+}
+
+static int FTPGetLine(FtpState *state)
+{
+    SCEnter();
+
+    /* we have run out of input */
+    if (state->input_len <= 0)
+        return -1;
+
+    /* toserver */
+    if (state->direction == 0)
+        return FTPGetLineForDirection(state, &state->line_state[0]);
+    else
+        return FTPGetLineForDirection(state, &state->line_state[1]);
+}
+
 /**
  * \brief This function is called to determine and set which command is being
  * transfered to the ftp server
@@ -62,6 +173,7 @@ static int FTPParseRequestCommand(void *ftp_state, uint8_t *input,
                                   uint32_t input_len) {
     SCEnter();
     FtpState *fstate = (FtpState *)ftp_state;
+    fstate->command = FTP_COMMAND_UNKNOWN;
 
     if (input_len >= 4) {
         if (SCMemcmpLowercase("port", input, 4) == 0) {
@@ -73,76 +185,6 @@ static int FTPParseRequestCommand(void *ftp_state, uint8_t *input,
          * }
          */
     }
-    return 1;
-}
-
-/**
- * \brief This function is called to retrieve the request line and parse it
- * \param ftp_state the ftp state structure for the parser
- * \param input input line of the command
- * \param input_len length of the request
- * \param output the resulting output
- *
- * \retval 1 when the command is parsed, 0 otherwise
- */
-static int FTPParseRequestCommandLine(Flow *f, void *ftp_state, AppLayerParserState
-                                      *pstate, uint8_t *input,uint32_t input_len,
-                                      void *local_data, AppLayerParserResult *output) {
-    SCEnter();
-    //PrintRawDataFp(stdout, input,input_len);
-
-    FtpState *fstate = (FtpState *)ftp_state;
-    uint16_t max_fields = 2;
-    uint16_t u = 0;
-    uint32_t offset = 0;
-
-    if (pstate == NULL)
-        return -1;
-
-    for (u = pstate->parse_field; u < max_fields; u++) {
-
-        switch(u) {
-            case 0: /* REQUEST COMMAND */
-            {
-                const uint8_t delim[] = { 0x20, };
-                int r = AlpParseFieldByDelimiter(output, pstate,
-                                FTP_FIELD_REQUEST_COMMAND, delim, sizeof(delim),
-                                input, input_len, &offset);
-
-                if (r == 0) {
-                    pstate->parse_field = 0;
-                    return 0;
-                }
-                fstate->arg_offset = offset;
-                FTPParseRequestCommand(ftp_state, input, input_len);
-                break;
-            }
-            case 1: /* REQUEST COMMAND ARG */
-            {
-                switch (fstate->command) {
-                    case FTP_COMMAND_PORT:
-                        /* We don't need to parse args, we are going to check
-                        * the ftpbounce condition directly from detect-ftpbounce
-                        */
-                        if (fstate->port_line != NULL)
-                            SCFree(fstate->port_line);
-                        fstate->port_line = SCMalloc(input_len);
-                        if (fstate->port_line == NULL)
-                            return 0;
-                        fstate->port_line = memcpy(fstate->port_line, input,
-                                                   input_len);
-                        fstate->port_line_len = input_len;
-                        break;
-                    default:
-                        break;
-                } /* end switch command specified args */
-
-                break;
-            }
-        }
-    }
-
-    pstate->parse_field = 0;
     return 1;
 }
 
@@ -163,26 +205,32 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
     SCEnter();
     /* PrintRawDataFp(stdout, input,input_len); */
 
-    uint32_t offset = 0;
+    FtpState *state = (FtpState *)ftp_state;
 
-    if (pstate == NULL)
-        return -1;
+    state->input = input;
+    state->input_len = input_len;
+    /* toserver stream */
+    state->direction = 0;
 
-
-    //PrintRawDataFp(stdout, pstate->store, pstate->store_len);
-
-    const uint8_t delim[] = { 0x0D, 0x0A };
-    int r = AlpParseFieldByDelimiter(output, pstate, FTP_FIELD_REQUEST_LINE,
-                                     delim, sizeof(delim), input, input_len,
-                                     &offset);
-    if (r == 0) {
-        pstate->parse_field = 0;
-        return 0;
+    while (FTPGetLine(state) >= 0) {
+        FTPParseRequestCommand(state,
+                               state->current_line, state->current_line_len);
+        if (state->command == FTP_COMMAND_PORT) {
+            if (state->current_line_len > state->port_line_size) {
+                state->port_line = SCRealloc(state->port_line,
+                                             state->current_line_len);
+                if (state->port_line == NULL) {
+                    state->port_line_size = 0;
+                    return 0;
+                }
+                state->port_line_size = state->current_line_len;
+            }
+            memcpy(state->port_line, state->current_line,
+                   state->current_line_len);
+            state->port_line_len = state->current_line_len;
+        }
     }
-    if (pstate->store_len)
-        PrintRawDataFp(stdout, pstate->store, pstate->store_len);
 
-    pstate->parse_field = 0;
     return 1;
 }
 
@@ -253,9 +301,6 @@ void RegisterFTPParsers(void) {
                               FTPParseRequest);
         AppLayerRegisterProto(proto_name, ALPROTO_FTP, STREAM_TOCLIENT,
                               FTPParseResponse);
-        AppLayerRegisterParser("ftp.request_command_line", ALPROTO_FTP,
-                               FTP_FIELD_REQUEST_LINE, FTPParseRequestCommandLine,
-                               "ftp");
         AppLayerRegisterStateFuncs(ALPROTO_FTP, FTPStateAlloc, FTPStateFree);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
@@ -479,8 +524,9 @@ int FTPParserTest07(void) {
         goto end;
     }
 
-    if (ftp_state->command != FTP_COMMAND_UNKNOWN) {
-        SCLogDebug("expected command %" PRIu32 ", got %" PRIu32 ": ", FTP_COMMAND_UNKNOWN, ftp_state->command);
+    if (ftp_state->command != FTP_COMMAND_PORT) {
+        SCLogDebug("expected command %" PRIu32 ", got %" PRIu32 ": ",
+                   FTP_COMMAND_PORT, ftp_state->command);
         result = 0;
         goto end;
     }
