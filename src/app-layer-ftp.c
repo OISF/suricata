@@ -267,9 +267,9 @@ void RegisterFTPParsers(void) {
 
     /** FTP */
     if (AppLayerProtoDetectionEnabled(proto_name)) {
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "USER ", 5, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "PASS ", 5, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "PORT ", 5, 0, STREAM_TOSERVER);
+        AlpProtoAddCI(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "USER ", 5, 0, STREAM_TOSERVER);
+        AlpProtoAddCI(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "PASS ", 5, 0, STREAM_TOSERVER);
+        AlpProtoAddCI(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "PORT ", 5, 0, STREAM_TOSERVER);
         AppLayerRegisterParserAcceptableDataDirection(ALPROTO_FTP, STREAM_TOSERVER | STREAM_TOCLIENT);
     }
 
