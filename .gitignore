@@ -47,5 +47,4 @@ missing
 scripts/suricatasc/build/
 scripts/suricatasc/suricatasc
 src/tags
-src/util-ipwatchlist.h
 suricata.yaml
