@@ -19,6 +19,7 @@
 #include "util-debug.h"
 
 #include "reputation.h"
+#include "util-ipwatchlist.h"
 #include "host.h"
 
 
@@ -33,8 +34,6 @@ void DetectWatchlistFree (void *);
 void WatchListRegisterTests(void);
 
 
-IPReputationCtx *_watchlistCtx = 0;
-
 void DetectIPRepRegister (void) {
     sigmatch_table[DETECT_IPREP].name = "ipwatch";
     sigmatch_table[DETECT_IPREP].Match = DetectWatchListMatch;
@@ -46,22 +45,9 @@ void DetectIPRepRegister (void) {
 
 static int DetectWatchlistSetup(DetectEngineCtx *, Signature *, char *) 
 {
-	if (_watchlistCtx == 0) {
-		_watchlistCtx = (IPReputationCtx *)SCMalloc(sizeof(IPReputationCtx));
-		memset(_watchlistCtx,0,sizeof(IPReputationCtx));
 
-		 sm = SigMatchAlloc();
-		 if (sm == NULL)
-		        goto error;
-
-		sm->type = DETECT_IPWATCH;
-		SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-
-	}
 	return 0;
-error:
-	free(_watchlistCtx);
-	return -1;
+
 }
 
 int DetectWatchListMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *){

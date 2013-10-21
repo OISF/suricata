@@ -148,6 +148,8 @@
 #include "util-daemon.h"
 #include "reputation.h"
 
+#include "util-ipwatchlist.h"
+
 #include "output.h"
 #include "util-privs.h"
 
@@ -1987,6 +1989,9 @@ int main(int argc, char **argv)
 #endif /* PROFILING */
     SCReputationInitCtx();
     SCProtoNameInit();
+
+    CreateIpWatchListCtx();
+
 
     TagInitCtx();
     ThresholdInit();
