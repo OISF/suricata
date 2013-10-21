@@ -192,48 +192,6 @@ int DetectFtpbounceALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 }
 
 /**
- * \brief This function is used to match ftpbounce attacks
- *
- * \param t pointer to thread vars
- * \param det_ctx pointer to the pattern matcher thread
- * \param p pointer to the current packet
- * \param m pointer to the sigmatch but we don't use it since ftpbounce
- *          has no options
- * \retval 0 no match, 1 if match
- */
-int DetectFtpbounceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                          Packet *p, Signature *s, SigMatch *m)
-{
-/** \todo VJ broken and no longer used */
-#if 0
-    SCEnter();
-    uint16_t offset = 0;
-    if (!(PKT_IS_TCP(p)))
-        return 0;
-
-    SigMatch *sm = SigMatchGetLastSMFromLists(s, 2,
-                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
-    if (sm == NULL)
-        return 0;
-
-    DetectContentData *co = sm->ctx;
-    if (co == NULL)
-        return 0;
-
-    MpmMatch *mm = det_ctx->mtc.match[co->id].top;
-    SCLogDebug("Starting Offset: %u",mm->offset + co->content_len);
-
-    offset = mm->offset + co->content_len;
-    SCLogDebug("Payload: \"%s\"\nLen: %u Offset: %u\n", p->payload,
-               p->payload_len, offset);
-
-    return DetectFtpbounceMatchArgs(p->payload, p->payload_len,
-                                    p->src.addr_data32[0], offset);
-#endif
-    return 0;
-}
-
-/**
  * \brief this function is used to add the parsed ftpbounce
  *
  * \param de_ctx pointer to the Detection Engine Context
