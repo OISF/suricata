@@ -369,7 +369,9 @@ util-var-name.c util-var-name.h \
 util-vector.h \
 win32-misc.c win32-misc.h \
 win32-service.c win32-service.h \
-win32-syslog.h
+win32-syslog.h \
+util-ipwatchlist.c \
+util-ipwatchlist.h
 
 EXTRA_DIST = util-mpm-ac-cuda-kernel.cu ptxdump.py
 
