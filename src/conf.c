@@ -814,22 +814,33 @@ ConfGetEnvVarPcre(void)
  *    must be free'd by the caller.
  */
 char *
-ConfExpandEnvVar(char *string)
+ConfExpandEnvVar(char *input)
 {
+    char *string = NULL;
     const char *var_name;
     const char *var_val = NULL;
     int var_val_len = 0;
     int segment_start;
     int segment_end;
     const char *default_val = NULL;
-    char *new_str;
+    char *pre_string = NULL;
+    char *post_string = NULL;
+    char *new_str = NULL;
     int new_str_len;
     int ovector[12];
+    
+    /* Make a copy of the input string as we're destructive. */
+    string = strdup(input);
+    if (unlikely(string == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+            "Error allocating memory for variable expansion");
+        exit(EXIT_FAILURE);
+    }
 
     int match = pcre_exec(ConfGetEnvVarPcre(), NULL, string, strlen(string), 0, 
         0, ovector, 12);
     if (match < 2) {
-        return NULL;
+        goto end;
     }
     segment_start = ovector[0];
     segment_end = ovector[1];
@@ -864,18 +875,26 @@ ConfExpandEnvVar(char *string)
         var_val_len + 1;
     BUG_ON(new_str_len < 1);
     new_str = SCCalloc(1, new_str_len);
+    if (unlikely(new_str == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+            "Error allocating memory for variable expansion");
+        exit(EXIT_FAILURE);
+    }
 
     /* Build the new string. */
-    if (segment_start)
-        strncat(new_str, string, segment_start);
+    if ((size_t)segment_end < strlen(string)) {
+        post_string = string + segment_end;
+    }
+    if (segment_start) {
+        pre_string = string;
+        pre_string[segment_start] = '\0';
+    }
+    if (pre_string)
+        strlcat(new_str, pre_string, new_str_len);
     if (var_val != NULL)
-        strncat(new_str, var_val, var_val_len);
-    if (strlen(string) > (size_t)segment_end)
-        strcat(new_str, string + segment_end);
-
-    pcre_free_substring(var_name);
-    if (default_val != NULL)
-        pcre_free_substring(default_val);
+        strlcat(new_str, var_val, new_str_len);
+    if (post_string != NULL)
+        strlcat(new_str, post_string, new_str_len);
 
     /* Recurse to expand other variables. */
     char *new_new_str = ConfExpandEnvVar(new_str);
@@ -883,6 +902,9 @@ ConfExpandEnvVar(char *string)
         SCFree(new_str);
         new_str = new_new_str;
     }
+
+end:
+    SCFree(string);
 
     return new_str;
 }
