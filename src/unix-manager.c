@@ -266,6 +266,7 @@ int UnixCommandSendCallback(const char *buffer, size_t size, void *data)
 int UnixCommandAccept(UnixCommand *this)
 {
     char buffer[UNIX_PROTO_VERSION_LENGTH + 1];
+    //char buffer[10 + 1];
     json_t *client_msg;
     json_t *server_msg;
     json_t *version;
@@ -408,18 +409,35 @@ int UnixCommandExecute(UnixCommand * this, char *command, UnixClient *client)
         goto error_cmd;
     }
     value = json_string_value(cmd);
+    SCLogWarning(SC_ERR_INVALID_VALUE, "CES: Command Value sent from client: %s\n", value);
 
+    /*
+     * loop through the list of commands that were registered when the Unix Socket started up
+     * and compare each command to the command that was written to the Unix Socket; once
+     * the command is found in the list, retrieve the arguments to the command.
+     * Then call the function that was registered when the command was registered.
+     * This function should implement the command.
+     */
     TAILQ_FOREACH(lcmd, &this->commands, next) {
         if (!strcmp(value, lcmd->name)) {
+        	//found the command
             int fret = TM_ECODE_OK;
             found = 1;
+            //if the command expects arguments, retrieve them from the JSON
             if (lcmd->flags & UNIX_CMD_TAKE_ARGS) {
                 cmd = json_object_get(jsoncmd, "arguments");
                 if(!json_is_object(cmd)) {
+
+                    char *ai_string = json_dumps(jsoncmd, JSON_ENSURE_ASCII);
+                    SCLogWarning(SC_ERR_INITIALIZATION, "22 ai_string is : %s", ai_string);
+
                     SCLogInfo("error: argument is not an object");
+                    SCLogWarning(SC_ERR_INVALID_VALUE, "CES: error: argument is not an object\n");
                     goto error_cmd;
                 }
             }
+            //call the function that was registered with the command; this function
+            //should process the command (see calls to UnixManagerRegisterCommand())
             fret = lcmd->Func(cmd, server_msg, lcmd->data);
             if (fret != TM_ECODE_OK) {
                 ret = 0;
@@ -462,7 +480,7 @@ error:
 
 void UnixCommandRun(UnixCommand * this, UnixClient *client)
 {
-    char buffer[4096];
+    char buffer[4096]; //TODO Hard-coded buffer size - modify this?
     int ret;
     ret = recv(client->fd, buffer, sizeof(buffer) - 1, 0);
     if (ret <= 0) {
@@ -699,6 +717,58 @@ TmEcode UnixManagerListCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
+/*
+ * Possible Values for <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.0">
+ * - Malicious E-mail
+ * - IP Watchlist
+ * - URL Watchlist
+ */
+TmEcode UnixManagerAddIndicator(json_t *cmd,
+                                json_t *answer, void *data)
+{
+    char *title_str = NULL;
+
+    SCEnter();
+    SCLogWarning(SC_ERR_INITIALIZATION, "Entering UnixManagerStixMessage");
+
+    //verify that the cmd send over is a JSON object
+    int is_obj = json_is_object(cmd);
+    SCLogWarning(SC_ERR_INITIALIZATION, "is_obj is : %d", is_obj);
+
+    int is_ary = json_is_array(cmd);
+    SCLogWarning(SC_ERR_INITIALIZATION, "is_ary is : %d", is_ary);
+
+    //dump the JSON object to a string, and then output this string
+    char *ai_string = json_dumps(cmd, 0);
+    SCLogWarning(SC_ERR_INITIALIZATION, "ai_string is : %s", ai_string);
+
+    json_t *title2 = json_object_get(cmd, "indicator:Title");
+    char *title_str2 = (char *)json_string_value(title2);
+    SCLogWarning(SC_ERR_INITIALIZATION, "title_str2 is : %s", title_str2);
+
+    //from the JSON object sent in, retrieve the stix:Indicator JSON object
+    json_t *indicator = json_object_get(cmd, "stix:Indicator");
+    int is_obj2 = json_is_object(indicator);
+    SCLogWarning(SC_ERR_INITIALIZATION, "is_obj2 is : %d", is_obj2);
+
+    //from the indicator JSON object, dump these contents to a string for output
+    char *ai_string2 = json_dumps(indicator, 0);
+    SCLogWarning(SC_ERR_INITIALIZATION, "ai_string2 is : %s", ai_string2);
+
+    //retrieve the Indicator title from the JSON object and verify it is a string
+    json_t *title = json_object_get(indicator, "indicator:Title");
+    if(!json_is_string(title)) {
+        SCLogInfo("error: title is not a string");
+        json_object_set_new(answer, "message", json_string("title is not a string"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    //return the title as an answer to the add-indicator request
+    title_str = (char *)json_string_value(title);
+    json_object_set_new(answer, "message", json_string(title_str));
+
+    SCReturnInt(TM_ECODE_OK);
+}
 
 #if 0
 TmEcode UnixManagerReloadRules(json_t *cmd,
@@ -857,6 +927,7 @@ void *UnixManagerThread(void *td)
     UnixManagerRegisterCommand("running-mode", UnixManagerRunningModeCommand, &command, 0);
     UnixManagerRegisterCommand("capture-mode", UnixManagerCaptureModeCommand, &command, 0);
     UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("add-indicator", UnixManagerAddIndicator, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("dump-counters", SCPerfOutputCounterSocket, NULL, 0);
 #if 0
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);

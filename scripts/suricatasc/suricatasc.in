@@ -23,6 +23,8 @@ parser.add_argument('-v', '--verbose', action='store_const', const=True, help='v
 parser.add_argument('socket', metavar='socket', nargs='?', help='socket file to connnect to', default=None)
 args = parser.parse_args()
 
+print "args.socket %s" % args.socket
+
 if args.socket != None:
     SOCKET_PATH = "@e_localstatedir@/" + args.socket[0]
 else:

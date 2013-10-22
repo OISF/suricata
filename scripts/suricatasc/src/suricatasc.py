@@ -160,6 +160,7 @@ class SuricataSC:
             while True:
                 command = raw_input(">>> ").strip()
                 arguments = None
+                print "Command IS '%s'" % (command)
                 if command.split(' ', 2)[0] in self.cmd_list:
                     if command == "quit":
                         break;
@@ -200,6 +201,8 @@ class SuricataSC:
                         else:
                             arguments = {}
                             arguments["variable"] = variable
+                    elif "add-indicator" in command:
+                        print "found add-indicator"
                     else:
                         cmd = command
                 else:
