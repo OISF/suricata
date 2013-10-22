@@ -17,17 +17,20 @@ typedef struct IPWatchListCtx_ {
     SCMutex watchlistIPV6_lock;
 }IPWatchListCtx;
 
+#define MAX_WACTCH_LIST_MSG 25
 
 typedef struct WatchListData_ {
-    char* msgs[REPUTATION_NUMBER]; /**< array of strings */
+    char* msgs[MAX_WACTCH_LIST_MSG]; /**< array of strings */
     uint8_t blacklisted; /**< 0 == true **/
+    int msg_cnt;
 } WatchListData;
 
 
 IPWatchListCtx* _ipwatchlistCtx = NULL;
 
  int CreateIpWatchListCtx();
- void SCReputationFreeData(void *);
+ void SCWatchListFreeData(void *);
+
 
 
 #endif  /*__UTIL_IPWATCHLIST_H__*/
