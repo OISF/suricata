@@ -50,8 +50,6 @@
 #include "alert-json.h"
 
 #include "util-byte.h"
-#include "util-mpm-b2g-cuda.h"
-#include "util-cuda-handlers.h"
 #include "util-privs.h"
 #include "util-print.h"
 #include "util-proto-name.h"
@@ -152,16 +150,6 @@ typedef struct AlertJsonThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
 } AlertJsonThread;
-
-static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
-    time_t time = ts->tv_sec;
-    struct tm local_tm;
-    struct tm *t = (struct tm *)SCLocalTime(time, &local_tm);
-
-    snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
-            t->tm_mon + 1, t->tm_mday, t->tm_year + 1900, t->tm_hour,
-            t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
-}
 
 TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
