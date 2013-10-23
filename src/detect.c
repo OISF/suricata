@@ -4735,9 +4735,15 @@ void SigTableSetup(void) {
     DetectHttpUriRegister();
     DetectHttpRawUriRegister();
     DetectAsn1Register();
+/* we are disabling the ssh parser temporarily, since we are moving away
+ * from some of the archaic features we use in the app layer.  We will
+ * reintroduce this parser.  Also do note that keywords that rely on
+ * the ssh parser would now be disabled */
+#if 0
     DetectSshVersionRegister();
-    DetectSslStateRegister();
     DetectSshSoftwareVersionRegister();
+#endif
+    DetectSslStateRegister();
     DetectHttpStatCodeRegister();
     DetectSslVersionRegister();
     DetectByteExtractRegister();
