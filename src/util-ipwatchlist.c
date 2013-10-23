@@ -1,6 +1,10 @@
 #include "util-ipwatchlist.h"
 #include "util-ip.h"
 
+IPWatchListCtx* _ipwatchlistCtx = NULL;
+
+static int
+addIpaddressToWatchList(const char* adr, WatchListData* data);
 int
 CreateIpWatchListCtx()
 {
@@ -19,7 +23,7 @@ CreateIpWatchListCtx()
                 {
                     SCLogDebug(
                             "Error initializing STIX IP Watchlist IPV4 module");
-                    return NULL;
+                    return 1;
                 }
 
             SCLogDebug("STIX IP Watchlist IPV4 module initialized");
@@ -30,7 +34,7 @@ CreateIpWatchListCtx()
                 {
                     SCLogDebug(
                             "Error initializing STIX IP Watchlist IPV6 module");
-                    return NULL;
+                    return 1;
                 }
 
             SCLogDebug("STIX IP Watchlist IPV6 module initialized");
@@ -51,7 +55,7 @@ CreateIpWatchListCtx()
     error:
     SCFree(_ipwatchlistCtx);
     _ipwatchlistCtx = NULL;
-    return -1;
+    return 0;
 }
 
 int
@@ -59,24 +63,27 @@ CreateIpWatchListCtxFree()
 {
     SCRadixReleaseRadixTree(_ipwatchlistCtx->watchListIPV4_tree);
     SCRadixReleaseRadixTree(_ipwatchlistCtx->watchListIPV6_tree);
-    SCMutexDestroy(_ipwatchlistCtx->watchlistIPV4_lock);
-    SCMutexDestroy(_ipwatchlistCtx->watchlistIPV6_lock);
+    SCMutexDestroy(&_ipwatchlistCtx->watchlistIPV4_lock);
+    SCMutexDestroy(&_ipwatchlistCtx->watchlistIPV6_lock);
     SCFree(_ipwatchlistCtx);
     _ipwatchlistCtx = NULL;
     return 1;
 }
 
 int
-addIpaddressesToWatchList(const char * msg, const char** adr)
+addIpaddressesToWatchList(char * msg,  char* adr[], int len)
 {
-    WatchListData *data = NULL;
     WatchListData * data = SCMalloc(sizeof(WatchListData));
     memset(data, 0, sizeof(WatchListData));
     Signature* s = SCMalloc(sizeof(Signature));
     memset(data, 0, sizeof(Signature));
     data->sig = s;
     data->sig->msg = msg;
-    addIpaddressToWatchList(adr, data)
+    for (int i = 0; i < len; i++)
+        {
+            addIpaddressToWatchList(adr[i], data);
+        }
+    return 0;
 }
 /**
  * \brief Converts an IP address into a int, subnet masking is ignored
@@ -94,7 +101,7 @@ IpStrToINt(const char* ip, Address* a)
     if (strchr(ip, ':') != NULL)
         {
             a->family = AF_INET6;
-            if (inet_pton(AF_INET6, ip, a->address) <= 0)
+            if (inet_pton(AF_INET6, ip, a->address.address_un_data32) <= 0)
                 {
                     return 1;
                 }
@@ -102,7 +109,7 @@ IpStrToINt(const char* ip, Address* a)
     else
         {
             a->family = AF_INET;
-            if (inet_pton(AF_INET, adr, a->address) <= 0)
+            if (inet_pton(AF_INET, ip, a->address.address_un_data32) <= 0)
                 {
                     return 1;
                 }
@@ -112,27 +119,27 @@ IpStrToINt(const char* ip, Address* a)
 }
 
 static int
-addIpaddressToWatchList(const char* adr, const WatchListData* data)
+addIpaddressToWatchList(const char* adr, WatchListData* data)
 {
     int returnVal = 0;
     if (_ipwatchlistCtx == NULL)
         {
-            SCLogWarning(
-                    "STIX Add to IP Watch List was called when Context was Null %s",
-                    ".");
+            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+                    "STIX Add to IP Watch List was called when Context was Null.");
             return 0;
         }
-    SCMutex mutex = NULL;
+    SCMutex mutex;
 
     Address * a = SCMalloc(sizeof(Address));
-    IpStrToINt(adr, a );
+    IpStrToINt(adr, a);
     /* IPV6 or IPV4? */
 
-    switch(a->family)
-    {
+    switch (a->family)
+        {
     case AF_INET6:
+        {
             mutex = _ipwatchlistCtx->watchlistIPV6_lock;
-            SCMutexLock(mutex);
+            SCMutexLock(&mutex);
             SCRadixNode* node = SCRadixFindKeyIPV6ExactMatch(
                     (uint8_t *) a->address.address_un_data32,
                     _ipwatchlistCtx->watchListIPV6_tree);
@@ -141,7 +148,8 @@ addIpaddressToWatchList(const char* adr, const WatchListData* data)
                     data->ref_count++;
 
                     if (SCRadixAddKeyIPV6String(adr,
-                            _ipwatchlistCtx->watchListIPV6_tree, data) == NULL)
+                            _ipwatchlistCtx->watchListIPV6_tree,
+                            (void *) data) == NULL)
                         {
                             SCLogWarning(SC_ERR_INVALID_VALUE, "STIX failed to "
                                     "add %s to watch list, ignoring", adr);
@@ -149,11 +157,13 @@ addIpaddressToWatchList(const char* adr, const WatchListData* data)
                         }
                 }
             break;
+        }
     case AF_INET:
+        {
             SCLogDebug("STIX IP Watch Lust adding ipv4 address %s", adr);
             mutex = _ipwatchlistCtx->watchlistIPV6_lock;
 
-            SCMutexLock(mutex);
+            SCMutexLock(&mutex);
             SCRadixNode* node = SCRadixFindKeyIPV4ExactMatch(
                     (uint8_t *) a->address.address_un_data32,
                     _ipwatchlistCtx->watchListIPV4_tree);
@@ -169,9 +179,11 @@ addIpaddressToWatchList(const char* adr, const WatchListData* data)
                             returnVal = 1;
                         }
                 }
+            break;
+        }
         }
 
-    SCMutexUnlock(mutex);
+    SCMutexUnlock(&mutex);
     SCFree(a);
     return returnVal;
 }
@@ -205,44 +217,61 @@ SCWatchListFreeData(void * user)
 
 }
 
-char *
-isIPWatched(uint8_t* addr, char* ipType)
+Signature *
+isIPWatched(uint8_t* addr, char ipType)
 {
     switch (ipType)
         {
     case AF_INET:
-        SCRadixNode *node = SCRadixFindKeyIPV4BestMatch(addr,
-                _ipwatchlistCtx->watchListIPV4_tree);
-        if (node != NULL)
-            {
-                return SC_RADIX_NODE_USERDATA(node, WatchListData)->msgs[0];
-            }
-        else
-            {
-                return NULL;
-            }
+        {
+            SCRadixNode *node = SCRadixFindKeyIPV4BestMatch(addr,
+                    _ipwatchlistCtx->watchListIPV4_tree);
+            if (node != NULL)
+                {
+                    return SC_RADIX_NODE_USERDATA(node, WatchListData)->sig;
+                }
+            else
+                {
+                    return NULL;
+                }
+            break;
+        }
     case AF_INET6:
-        SCRadixNode *node = SCRadixFindKeyIPV4BestMatch(addr,
-                _ipwatchlistCtx->watchListIPV6_tree);
-        if (node != NULL)
-            {
-                return SC_RADIX_NODE_USERDATA(node, WatchListData)->msgs[0];
-            }
-        else
-            {
-                return NULL;
-            }
+        {
+            SCRadixNode *node = SCRadixFindKeyIPV4BestMatch(addr,
+                    _ipwatchlistCtx->watchListIPV6_tree);
+            if (node != NULL)
+                {
+                    return SC_RADIX_NODE_USERDATA(node, WatchListData)->sig;
+                }
+            else
+                {
+                    return NULL;
+                }
+        }
+        break;
         }
     return NULL;
 }
 
+WatchListData * getWatchListData(char * ip) {
+    Address* a = SCMalloc(sizeof(Address));
+    IpStrToINt(ip, a);
+    SCRadixNode *n = SCRadixFindKeyIPV4BestMatch(
+                       (uint8_t*) a->address.address_un_data32,
+                        _ipwatchlistCtx->watchListIPV4_tree);
+    SCFree(a);
+    return SC_RADIX_NODE_USERDATA(n,WatchListData);
+}
+
+#if 0
 int
 DetectMatch(Packet *p)
 {
     uint8_t * src = GET_IPV4_SRC_ADDR_PTR(p);
-    char src_type = p->src->family;
-    uint8_t * dst = GET_IPV4_DST_ADDR_PTR(p)
-    char dst_type = p->dst->family;
+    char src_type = p->src.family;
+    uint8_t * dst = GET_IPV4_DST_ADDR_PTR(p);
+    char dst_type = p->dst.family;
 
     if (isIPWatched(src, src_type) != NULL)
         {
@@ -256,3 +285,4 @@ DetectMatch(Packet *p)
 
     return 0;
 }
+#endif

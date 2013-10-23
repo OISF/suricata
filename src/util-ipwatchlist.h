@@ -26,11 +26,14 @@ typedef struct WatchListData_ {
 
 
 
-IPWatchListCtx* _ipwatchlistCtx = NULL;
+
 
  int CreateIpWatchListCtx();
+ int CreateIpWatchListCtxFree();
  void SCWatchListFreeData(void *);
-
-
+ int IpStrToINt(const char* ip, Address* a);
+ Signature * isIPWatched(uint8_t* addr, char ipType);
+ int addIpaddressesToWatchList(char * msg,  char* adr[], int len);
+ WatchListData * getWatchListData(char * ip) ;
 
 #endif  /*__UTIL_IPWATCHLIST_H__*/

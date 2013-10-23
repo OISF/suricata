@@ -19,8 +19,16 @@
 #include "util-radix-tree.h"
 
 #include "util-ipwatchlist.h"
-#include "util-ipwatchlist.h"
 #include "host.h"
+
+
+#include "util-unittest.h"
+
+#ifdef UNITTESTS
+static int addToWatchListTest01(void);
+static int isInWatchListTest01(void);
+#endif
+
 
 int
 DetectWatchListMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
@@ -29,11 +37,11 @@ static int
 DetectWatchlistSetup(DetectEngineCtx *, Signature *, char *);
 void
 DetectWatchlistFree(void *);
-void
+ static void
 WatchListRegisterTests(void);
 
 void
-DetectIPRepRegister(void)
+DetectIPWatchListRegister(void)
 {
     sigmatch_table[DETECT_STIX_IPWATCH].name = "stixip";
     sigmatch_table[DETECT_STIX_IPWATCH].Match = DetectWatchListMatch;
@@ -53,13 +61,7 @@ DetectWatchlistSetup(DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     if (sm == NULL)
         goto error;
 
-    if (_ipwatchlistCtx == NULL)
-        {
-            if (unlikely(CreateIpWatchListCtx))
-                {
-                    goto error;
-                }
-        }
+    CreateIpWatchListCtx();
     sm->type = DETECT_STIX_IPWATCH;
     SigMatchAppendSMToList(s, NULL, DETECT_SM_LIST_MATCH);
     return 0;
@@ -75,9 +77,9 @@ DetectWatchListMatch(ThreadVars * tv, DetectEngineThreadCtx * de_ctx,
 {
 
     uint8_t * src = GET_IPV4_SRC_ADDR_PTR(p);
-    char src_type = p->src->family;
+    char src_type = p->src.family;
     uint8_t * dst = GET_IPV4_DST_ADDR_PTR(p);
-    char dst_type = p->dst->family;
+    char dst_type = p->dst.family;
 
     if (isIPWatched(src, src_type) != NULL)
         {
@@ -94,16 +96,16 @@ DetectWatchListMatch(ThreadVars * tv, DetectEngineThreadCtx * de_ctx,
 }
 
 static void
-WatchListRegisterTests(void)
+ WatchListRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("addToWatchList", addToWatchList, 1);
+    UtRegisterTest("addToWatchList", addToWatchListTest01, 1);
     UtRegisterTest("isInWatchListTest01", isInWatchListTest01, 1);
 #endif
 }
 #ifdef UNITTESTS
 int
-addToWatchList(void)
+addToWatchListTest01(void)
 {
 
     int result = 1;
@@ -116,14 +118,14 @@ addToWatchList(void)
     addresses[2] = "10.0.0.1";
     addresses[3] = "10.0.0.0/16";
 
-    if (addIpaddressesToWatchList("Test Watch List", addresses))
+    if (addIpaddressesToWatchList("Test Watch List", addresses,4))
         result = 0;
 
     CreateIpWatchListCtxFree();
     return result;
 }
 
-int
+static int
 isInWatchListTest01(void)
 {
 
@@ -137,12 +139,12 @@ isInWatchListTest01(void)
     addresses[2] = "10.0.0.1";
     addresses[3] = "10.0.0.0/16";
 
-    if (addIpaddressesToWatchList("Test Watch List", addresses))
+    if (addIpaddressesToWatchList("Test Watch List", addresses, 4))
         result = 0;
     Address* a = SCMalloc(sizeof(Address));
     IpStrToINt(addresses[0], a);
 
-    if (isIPWatched(a->address.address_un_data32, a->family) != NULL)
+    if (isIPWatched((uint8_t*) a->address.address_un_data32, a->family) != NULL)
         {
             result = 1;
 
@@ -153,17 +155,10 @@ isInWatchListTest01(void)
             goto end;
         }
     IpStrToINt(addresses[3], a);
-    if (isIPWatched(a->address.address_un_data32, a->family) != NULL)
+    if (isIPWatched((uint8_t*)  a->address.address_un_data32, a->family) != NULL)
         {
-            SCRadixNode n = SCRadixFindKeyIPV4BestMatch(
-                    a->address.address_un_data32,
-                    _ipwatchlistCtx->watchListIPV4_tree);
-            if (n == NULL)
-                {
-                    result = -1;
-                    goto end;
-                }
-            WatchListData *d = SC_RADIX_NODE_USERDATA(n,WatchListData);
+
+            WatchListData *d = getWatchListData(addresses[3]);
             if (d->ref_count != 2) {
                     result = -2;
                     goto end;
