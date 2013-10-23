@@ -16,6 +16,7 @@
 #include "detect-engine-state.h"
 
 #include "util-debug.h"
+#include "util-radix-tree.h"
 
 #include "util-ipwatchlist.h"
 #include "util-ipwatchlist.h"
@@ -38,7 +39,7 @@ DetectIPRepRegister(void)
     sigmatch_table[DETECT_STIX_IPWATCH].Match = DetectWatchListMatch;
     sigmatch_table[DETECT_STIX_IPWATCH].Setup = DetectWatchlistSetup;
     sigmatch_table[DETECT_STIX_IPWATCH].Free = NULL;
-    sigmatch_table[DETECT_STIX_IPWATCH].RegisterTests = NULL; //WatchListRegisterTests;
+    sigmatch_table[DETECT_STIX_IPWATCH].RegisterTests = WatchListRegisterTests;
     sigmatch_table[DETECT_STIX_IPWATCH].flags |= SIGMATCH_IPONLY_COMPAT;
 }
 
@@ -92,3 +93,90 @@ DetectWatchListMatch(ThreadVars * tv, DetectEngineThreadCtx * de_ctx,
 
 }
 
+static void
+WatchListRegisterTests(void)
+{
+#ifdef UNITTESTS
+    UtRegisterTest("addToWatchList", addToWatchList, 1);
+    UtRegisterTest("isInWatchListTest01", isInWatchListTest01, 1);
+#endif
+}
+#ifdef UNITTESTS
+int
+addToWatchList(void)
+{
+
+    int result = 1;
+    CreateIpWatchListCtx();
+
+    char* addresses[4];
+
+    addresses[0] = "192.168.0.1";
+    addresses[1] = "192.168.0.2";
+    addresses[2] = "10.0.0.1";
+    addresses[3] = "10.0.0.0/16";
+
+    if (addIpaddressesToWatchList("Test Watch List", addresses))
+        result = 0;
+
+    CreateIpWatchListCtxFree();
+    return result;
+}
+
+int
+isInWatchListTest01(void)
+{
+
+    int result = 1;
+    CreateIpWatchListCtx();
+
+    char* addresses[4];
+
+    addresses[0] = "192.168.0.1";
+    addresses[1] = "192.168.0.2";
+    addresses[2] = "10.0.0.1";
+    addresses[3] = "10.0.0.0/16";
+
+    if (addIpaddressesToWatchList("Test Watch List", addresses))
+        result = 0;
+    Address* a = SCMalloc(sizeof(Address));
+    IpStrToINt(addresses[0], a);
+
+    if (isIPWatched(a->address.address_un_data32, a->family) != NULL)
+        {
+            result = 1;
+
+        }
+    else
+        {
+            result = 0;
+            goto end;
+        }
+    IpStrToINt(addresses[3], a);
+    if (isIPWatched(a->address.address_un_data32, a->family) != NULL)
+        {
+            SCRadixNode n = SCRadixFindKeyIPV4BestMatch(
+                    a->address.address_un_data32,
+                    _ipwatchlistCtx->watchListIPV4_tree);
+            if (n == NULL)
+                {
+                    result = -1;
+                    goto end;
+                }
+            WatchListData *d = SC_RADIX_NODE_USERDATA(n,WatchListData);
+            if (d->ref_count != 2) {
+                    result = -2;
+                    goto end;
+            }
+            result = 1;
+        }
+    else
+        {
+            result = 0;
+            goto end;
+        }
+
+    end: CreateIpWatchListCtxFree();
+    return result;
+}
+#endif

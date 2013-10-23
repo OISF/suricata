@@ -20,10 +20,10 @@ typedef struct IPWatchListCtx_ {
 #define MAX_WACTCH_LIST_MSG 25
 
 typedef struct WatchListData_ {
-    char* msgs[MAX_WACTCH_LIST_MSG]; /**< array of strings */
-    uint8_t blacklisted; /**< 0 == true **/
-    int msg_cnt;
+    Signature* sig;
+    int ref_count;
 } WatchListData;
+
 
 
 IPWatchListCtx* _ipwatchlistCtx = NULL;
