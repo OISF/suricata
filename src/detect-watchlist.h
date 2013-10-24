@@ -10,7 +10,7 @@
 
 void
 DetectIPWatchListRegister(void);
-
+void WatchListRegisterTests(void);
 
 
 #endif /* DETECT_WATCHLIST_H_ */

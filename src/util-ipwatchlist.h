@@ -22,6 +22,7 @@ typedef struct IPWatchListCtx_ {
 typedef struct WatchListData_ {
     Signature* sig;
     int ref_count;
+    int inited;
 } WatchListData;
 
 
@@ -32,7 +33,7 @@ typedef struct WatchListData_ {
  int CreateIpWatchListCtxFree();
  void SCWatchListFreeData(void *);
  int IpStrToINt(const char* ip, Address* a);
- Signature * isIPWatched(uint8_t* addr, char ipType);
+ Signature * isIPWatched(uint8_t* addr, char ipType,char* msgHeader);
  int addIpaddressesToWatchList(char * msg,  char* adr[], int len);
  WatchListData * getWatchListData(char * ip) ;
 

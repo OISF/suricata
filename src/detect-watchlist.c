@@ -15,20 +15,22 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 
+#include "detect-watchlist.h"
+
 #include "util-debug.h"
 #include "util-radix-tree.h"
 
 #include "util-ipwatchlist.h"
 #include "host.h"
 
-
 #include "util-unittest.h"
 
 #ifdef UNITTESTS
-static int addToWatchListTest01(void);
-static int isInWatchListTest01(void);
+static int
+addToWatchListTest01(void);
+static int
+isInWatchListTest01(void);
 #endif
-
 
 int
 DetectWatchListMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
@@ -37,8 +39,6 @@ static int
 DetectWatchlistSetup(DetectEngineCtx *, Signature *, char *);
 void
 DetectWatchlistFree(void *);
- static void
-WatchListRegisterTests(void);
 
 void
 DetectIPWatchListRegister(void)
@@ -63,7 +63,22 @@ DetectWatchlistSetup(DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 
     CreateIpWatchListCtx();
     sm->type = DETECT_STIX_IPWATCH;
-    SigMatchAppendSMToList(s, NULL, DETECT_SM_LIST_MATCH);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+
+    char * Address[2];
+    char * Address2[1];
+    Address[0] = "74.125.131.0/24";
+    Address[1] = "204.68.144.233";
+
+    char *firstName = SCMalloc(sizeof(char) * 5);
+    strcpy(firstName, "Test");
+    addIpaddressesToWatchList(firstName, Address, 2);
+
+    Address2[0] = "10.0.64.44";
+    char *secName = SCMalloc(sizeof(char) * 7);
+    strcpy(secName, "GitLab");
+    addIpaddressesToWatchList(secName, Address2, 1);
+
     return 0;
     error: if (sm != NULL)
         SCFree(sm);
@@ -71,6 +86,22 @@ DetectWatchlistSetup(DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 
 }
 
+#define STIX_HEADER "STIX IP Watch List was matched"
+
+char *
+makeAlertMsg(char * header, char* list)
+{
+
+    int size = strlen(header) + strlen(list) + 2 + 1;
+    char *msg;
+    msg = SCMalloc(sizeof(char) * size);
+    char *old;
+    strcat(msg, header);
+    strcat(msg, "(");
+    strcat(msg, list);
+    strcat(msg, ")");
+    return msg;
+}
 int
 DetectWatchListMatch(ThreadVars * tv, DetectEngineThreadCtx * de_ctx,
         Packet * p, Signature * s, SigMatch *sm)
@@ -80,14 +111,19 @@ DetectWatchListMatch(ThreadVars * tv, DetectEngineThreadCtx * de_ctx,
     char src_type = p->src.family;
     uint8_t * dst = GET_IPV4_DST_ADDR_PTR(p);
     char dst_type = p->dst.family;
+    Signature *sl;
+    sl = isIPWatched(src, src_type, STIX_HEADER);
 
-    if (isIPWatched(src, src_type) != NULL)
+    if (sl != NULL)
         {
+
+            s->msg = sl->msg;
             return 1;
         }
-
-    if (isIPWatched(dst, dst_type) != NULL)
+    sl = isIPWatched(dst, dst_type, STIX_HEADER);
+    if (sl != NULL)
         {
+            s->msg = sl->msg;
             return 1;
         }
 
@@ -95,8 +131,8 @@ DetectWatchListMatch(ThreadVars * tv, DetectEngineThreadCtx * de_ctx,
 
 }
 
-static void
- WatchListRegisterTests(void)
+void
+WatchListRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("addToWatchList", addToWatchListTest01, 1);
@@ -118,7 +154,7 @@ addToWatchListTest01(void)
     addresses[2] = "10.0.0.1";
     addresses[3] = "10.0.0.0/16";
 
-    if (addIpaddressesToWatchList("Test Watch List", addresses,4))
+    if (addIpaddressesToWatchList("Test Watch List", addresses, 4))
         result = 0;
 
     CreateIpWatchListCtxFree();
@@ -136,7 +172,7 @@ isInWatchListTest01(void)
 
     addresses[0] = "192.168.0.1";
     addresses[1] = "192.168.0.2";
-    addresses[2] = "10.0.0.1";
+    addresses[2] = "10.1.0.1";
     addresses[3] = "10.0.0.0/16";
 
     if (addIpaddressesToWatchList("Test Watch List", addresses, 4))
@@ -144,7 +180,8 @@ isInWatchListTest01(void)
     Address* a = SCMalloc(sizeof(Address));
     IpStrToINt(addresses[0], a);
 
-    if (isIPWatched((uint8_t*) a->address.address_un_data32, a->family) != NULL)
+    if (isIPWatched((uint8_t*) a->address.address_un_data32, a->family,
+            "Test Header") != NULL)
         {
             result = 1;
 
@@ -154,15 +191,19 @@ isInWatchListTest01(void)
             result = 0;
             goto end;
         }
-    IpStrToINt(addresses[3], a);
-    if (isIPWatched((uint8_t*)  a->address.address_un_data32, a->family) != NULL)
+    IpStrToINt("10.0.0.1", a);
+    if (isIPWatched((uint8_t*) a->address.address_un_data32, a->family,
+            "Test Header") != NULL)
         {
 
-            WatchListData *d = getWatchListData(addresses[3]);
-            if (d->ref_count != 2) {
+            WatchListData *d = getWatchListData("10.0.0.1");
+            if (d == NULL || d->ref_count != 4)
+                {
+                    int ref = d->ref_count;
+                    SCLogDebug("Ref Count was %i", ref);
                     result = -2;
                     goto end;
-            }
+                }
             result = 1;
         }
     else
