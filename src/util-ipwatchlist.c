@@ -71,12 +71,12 @@ CreateIpWatchListCtxFree()
 }
 
 int
-addIpaddressesToWatchList(char * msg,  char* adr[], int len)
+addIpaddressesToWatchList(char * msg, char* adr[], int len)
 {
     WatchListData * data = SCMalloc(sizeof(WatchListData));
     memset(data, 0, sizeof(WatchListData));
     Signature* s = SCMalloc(sizeof(Signature));
-    memset(data, 0, sizeof(Signature));
+    memset(s, 0, sizeof(Signature));
     data->sig = s;
     data->sig->msg = msg;
     for (int i = 0; i < len; i++)
@@ -218,7 +218,33 @@ SCWatchListFreeData(void * user)
 }
 
 Signature *
-isIPWatched(uint8_t* addr, char ipType)
+initWatchDataFully(char* msgHeader, WatchListData* data)
+{
+    if (!data->inited)
+        {
+
+            if (msgHeader != NULL)
+                {
+                    int size = strlen(msgHeader) + strlen(data->sig->msg)+2+1;
+                    char *msg;
+                    msg = SCMalloc(sizeof(char) * size);
+                    memset(msg,0,sizeof(char) * size);
+                    char *old;
+                    strcat(msg, msgHeader);
+                    strcat(msg, "(");
+                    strcat(msg, data->sig->msg);
+                    strcat(msg, ")");
+                    old = data->sig->msg;
+                    data->sig->msg = msg;
+                    SCFree(old);
+                }
+
+            data->inited = 1;
+        }
+    return data->sig;
+}
+Signature *
+isIPWatched(uint8_t* addr, char ipType, char* msgHeader)
 {
     switch (ipType)
         {
@@ -228,7 +254,7 @@ isIPWatched(uint8_t* addr, char ipType)
                     _ipwatchlistCtx->watchListIPV4_tree);
             if (node != NULL)
                 {
-                    return SC_RADIX_NODE_USERDATA(node, WatchListData)->sig;
+                    return initWatchDataFully(msgHeader,SC_RADIX_NODE_USERDATA(node, WatchListData));
                 }
             else
                 {
@@ -242,7 +268,7 @@ isIPWatched(uint8_t* addr, char ipType)
                     _ipwatchlistCtx->watchListIPV6_tree);
             if (node != NULL)
                 {
-                    return SC_RADIX_NODE_USERDATA(node, WatchListData)->sig;
+                    return initWatchDataFully(msgHeader,SC_RADIX_NODE_USERDATA(node, WatchListData));
                 }
             else
                 {
@@ -254,35 +280,37 @@ isIPWatched(uint8_t* addr, char ipType)
     return NULL;
 }
 
-WatchListData * getWatchListData(char * ip) {
+WatchListData *
+getWatchListData(char * ip)
+{
     Address* a = SCMalloc(sizeof(Address));
     IpStrToINt(ip, a);
     SCRadixNode *n = SCRadixFindKeyIPV4BestMatch(
-                       (uint8_t*) a->address.address_un_data32,
-                        _ipwatchlistCtx->watchListIPV4_tree);
+            (uint8_t*) a->address.address_un_data32,
+            _ipwatchlistCtx->watchListIPV4_tree);
     SCFree(a);
-    return SC_RADIX_NODE_USERDATA(n,WatchListData);
+    return SC_RADIX_NODE_USERDATA(n, WatchListData);
 }
 
 #if 0
 int
 DetectMatch(Packet *p)
-{
-    uint8_t * src = GET_IPV4_SRC_ADDR_PTR(p);
-    char src_type = p->src.family;
-    uint8_t * dst = GET_IPV4_DST_ADDR_PTR(p);
-    char dst_type = p->dst.family;
+    {
+        uint8_t * src = GET_IPV4_SRC_ADDR_PTR(p);
+        char src_type = p->src.family;
+        uint8_t * dst = GET_IPV4_DST_ADDR_PTR(p);
+        char dst_type = p->dst.family;
 
-    if (isIPWatched(src, src_type) != NULL)
-        {
-            return 1;
-        }
+        if (isIPWatched(src, src_type) != NULL)
+            {
+                return 1;
+            }
 
-    if (isIPWatched(dst, dst_type) != NULL)
-        {
-            return 1;
-        }
+        if (isIPWatched(dst, dst_type) != NULL)
+            {
+                return 1;
+            }
 
-    return 0;
-}
+        return 0;
+    }
 #endif
