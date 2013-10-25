@@ -1846,8 +1846,6 @@ int main(int argc, char **argv)
 
     RunModeRegisterRunModes();
 
-    RunModeListRunmodes();
-
     /* By default use IDS mode, but if nfq or ipfw
      * are specified, IPS mode will overwrite this */
     SET_ENGINE_MODE_IDS(engine_mode);
@@ -1920,7 +1918,6 @@ int main(int argc, char **argv)
 #endif
 
     suri.rule_reload = IsRuleReloadSet(FALSE);
-    SCLogError(SC_ERR_LOGDIR_CONFIG, "CES: suri.rule_reload = %d", suri.rule_reload);
 
     AppLayerDetectProtoThreadInit();
     AppLayerParsersInitPostProcess();
