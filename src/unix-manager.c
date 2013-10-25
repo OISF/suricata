@@ -352,7 +352,7 @@ int UnixCommandAccept(UnixCommand *this)
 
     uclient = SCMalloc(sizeof(UnixClient));
     if (unlikely(uclient == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate new cient");
+        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate new client");
         return 0;
     }
     uclient->fd = client;
@@ -415,8 +415,6 @@ int UnixCommandExecute(UnixCommand * this, char *command, UnixClient *client)
             if (lcmd->flags & UNIX_CMD_TAKE_ARGS) {
                 cmd = json_object_get(jsoncmd, "arguments");
                 if(!json_is_object(cmd)) {
-//                    char *ai_string = json_dumps(jsoncmd, JSON_ENSURE_ASCII);
-//                    SCLogWarning(SC_ERR_INITIALIZATION, "22 ai_string is : %s", ai_string);
                     SCLogInfo("error: argument is not an object");
                     SCLogWarning(SC_ERR_INVALID_VALUE, "CES: error: argument is not an object\n");
                     goto error_cmd;
@@ -452,11 +450,13 @@ int UnixCommandExecute(UnixCommand * this, char *command, UnixClient *client)
         goto error_cmd;
     }
 
+    SCLogWarning(SC_ERR_INVALID_VALUE, "CES: calling decref here......\n");
     json_decref(jsoncmd);
     json_decref(server_msg);
     return ret;
 
 error_cmd:
+    SCLogWarning(SC_ERR_INVALID_VALUE, "CES2: calling decref here......\n");
     json_decref(jsoncmd);
 error:
     json_decref(server_msg);
@@ -754,7 +754,7 @@ TmEcode UnixManagerAddIndicator(json_t *cmd, json_t *answer, void *data)
     const char *cybox_relation_type = NULL;
     const char *cybox_relation_text = NULL;
 
-    char **ip_list = 0;
+    char **ip_list = NULL;
     size_t ip_count = 1;
     char *ip_tmp = NULL;
     char *ip_last_delim = 0;
@@ -767,8 +767,9 @@ TmEcode UnixManagerAddIndicator(json_t *cmd, json_t *answer, void *data)
 //    SCLogWarning(SC_ERR_INITIALIZATION, "unpack_success is : %d", unpack_success);
 
     json_t *add_indic_cmd = json_object_get(cmd, "stix:Indicators");
-    char *sis_string = json_dumps(add_indic_cmd, 0);
-    SCLogWarning(SC_ERR_INITIALIZATION, "sis_string is : %s", sis_string);
+//    char *sis_string = json_dumps(add_indic_cmd, 0);
+//    SCLogWarning(SC_ERR_INITIALIZATION, "sis_string is : %s", sis_string);
+//    free(sis_string);
 
     /*Pull the Observable from the JSON Indicator*/
     json_t *observable = NULL;
@@ -796,8 +797,9 @@ TmEcode UnixManagerAddIndicator(json_t *cmd, json_t *answer, void *data)
     SCLogWarning(SC_ERR_INITIALIZATION, "indic_title is : '%s'", indic_title);
     SCLogWarning(SC_ERR_INITIALIZATION, "indic_type is : '%s'", indic_type);
     SCLogWarning(SC_ERR_INITIALIZATION, "indic_type_text is : '%s'", indic_type_text);
-    char *obs_str = json_dumps(observable, 0);
-    SCLogWarning(SC_ERR_INITIALIZATION, "obs_str is : %s", obs_str);
+//    char *obs_str = json_dumps(observable, 0);
+//    SCLogWarning(SC_ERR_INITIALIZATION, "obs_str is : %s", obs_str);
+//    free(obs_str);
 
     /*Process the Observable based on Indicator Type in the JSON*/
     if (strcmp(indic_type, "stixVocabs:IndicatorTypeVocab-1.0") == 0) {
@@ -828,26 +830,43 @@ TmEcode UnixManagerAddIndicator(json_t *cmd, json_t *answer, void *data)
                     }
                     SCLogWarning(SC_ERR_INITIALIZATION, "ip_count is : '%d'", ip_count);
 
-                    ip_list = malloc(sizeof(char*) * ip_count);
+                    char *tmp_ip_values = calloc(strlen(ip_values) + 1, sizeof(char));
+                    strcpy(tmp_ip_values, ip_values);
+                    //TODO when to free tmp_ip_values??
+
+                    ip_list = malloc(ip_count * sizeof(char *));
                     if (ip_list) {
                         size_t ip_index  = 0;
-                        char *ip_token = strtok(ip_values, "##comma##");
+                        char *ip_token = strtok(tmp_ip_values, "##comma##");
                         while (ip_token != NULL) {
                             *(ip_list + ip_index++) = strdup(ip_token);
+                            printf("ip_index = %d" + ip_index);
                             ip_token = strtok(NULL, "##comma##");
                         }
-                        *(ip_list + ip_index) = 0;
+                        *(ip_list + ip_index) = NULL;
                     }
+                    free(tmp_ip_values);
+                    //TODO free tmp_ip_values here???
 
                     if (ip_list) {
                         int i;
-                        for (i = 0; (*(ip_list + i) != NULL); i++) {
-                            printf("ip=[%s]\n", *(ip_list + i));
-                            //free(*(ip_list + i));
+                        for (i = 0; i < ip_count; i++) {
+                            printf("ip[%d]=[%s]\n", i, ip_list[i]);
+                            free(ip_list[i]);
                         }
                         printf("\n");
-                        //free(ip_list);
+                        free(ip_list);
                     }
+
+//                    if (ip_list) {
+//                        int i;
+//                        for (i = 0; (*(ip_list + i) != NULL); i++) {
+//                            printf("ip=[%s]\n", *(ip_list + i));
+//                            free(*(ip_list + i));
+//                        }
+//                        printf("\n");
+//                        free(ip_list);
+//                    }
                 }
             }
         } else if (strcmp(indic_type_text, "URL Watchlist") == 0) {
@@ -895,94 +914,94 @@ TmEcode UnixManagerAddIndicator(json_t *cmd, json_t *answer, void *data)
  * - IP Watchlist
  * - URL Watchlist
  */
-TmEcode UnixManagerAddIndicator_OLD(json_t *cmd,
-                                json_t *answer, void *data)
-{
-    char *title_str = NULL;
-
-    SCEnter();
-    SCLogWarning(SC_ERR_INITIALIZATION, "Entering UnixManagerStixMessage");
-
-    //verify that the cmd send over is a JSON object
-//    int is_obj = json_is_object(cmd);
-//    SCLogWarning(SC_ERR_INITIALIZATION, "is_obj is : %d", is_obj);
-
-//    int is_ary = json_is_array(cmd);
-//    SCLogWarning(SC_ERR_INITIALIZATION, "is_ary is : %d", is_ary);
-
-    //dump the JSON object to a string, and then output this string
-//    char *ai_string = json_dumps(cmd, 0);
-//    SCLogWarning(SC_ERR_INITIALIZATION, "ai_string is : %s", ai_string);
-//    json_error_t new_error;
-//    json_t *new_cmd = json_loads(ai_string, 0, &new_error);
-
-    json_t *stix_indicators = json_object_get(cmd, "stix:Indicators");
-    char *sis_string = json_dumps(stix_indicators, 0);
-    SCLogWarning(SC_ERR_INITIALIZATION, "sis_string is : %s", sis_string);
-
-    //from the JSON object sent in, retrieve the stix:Indicator JSON object
-    json_t *indicator = json_object_get(stix_indicators, "stix:Indicator");
-    int is_obj2 = json_is_object(indicator);
-    SCLogWarning(SC_ERR_INITIALIZATION, "is_obj2 is : %d", is_obj2);
-    char *si_string = json_dumps(indicator, 0);
-    SCLogWarning(SC_ERR_INITIALIZATION, "si_string is : %s", si_string);
-
-    json_t *indicator_type = json_object_get(indicator, "indicator:Type");
-    int is_obj3 = json_is_object(indicator_type);
-    SCLogWarning(SC_ERR_INITIALIZATION, "is_obj3 is : %d", is_obj3);
-    char *it_string = json_dumps(indicator_type, 0);
-    SCLogWarning(SC_ERR_INITIALIZATION, "it_string is : %s", it_string);
-
-    json_t *title2 = json_object_get(indicator, "indicator:Title");
-    char *title_str2 = (char *)json_string_value(title2);
-    SCLogWarning(SC_ERR_INITIALIZATION, "title_str2 is : %s", title_str2);
-
-
-
-//    const char *key2;
-//    json_t *value2;
-//    void *iter2 = json_object_iter_at(new_cmd, "stix:Indicators");  //"stix:Indicator"
-//    while (iter2) {
-//        key2 = json_object_iter_key(iter2);
-//        value2 = json_object_iter_value(iter2);
-//        SCLogWarning(SC_ERR_INITIALIZATION, "key2 is : %s", key2);
-//        char *iter_string2 = json_dumps(value2, 0);
-//        SCLogWarning(SC_ERR_INITIALIZATION, "iter_string2 is : %s", iter_string2);
-//        iter2 = json_object_iter_next(new_cmd, iter2);
-//    }
+//TmEcode UnixManagerAddIndicator_OLD(json_t *cmd,
+//                                json_t *answer, void *data)
+//{
+//    char *title_str = NULL;
 //
-//    const char *key;
-//    json_t *value;
-//    void *iter = json_object_iter(cmd);
-//    while(iter) {
-//        key = json_object_iter_key(iter);
-//        value = json_object_iter_value(iter);
-//        SCLogWarning(SC_ERR_INITIALIZATION, "key is : %s", key);
-//        //char *iter_string = json_dumps(value, 0);
-//        //SCLogWarning(SC_ERR_INITIALIZATION, "iter_string is : %s", iter_string);
-//        iter = json_object_iter_next(cmd, iter);
-//        //json_decref(value);
-//    }
-
-
-    //from the indicator JSON object, dump these contents to a string for output
-//    char *ai_string2 = json_dumps(indicator, 0);
-//    SCLogWarning(SC_ERR_INITIALIZATION, "ai_string2 is : %s", ai_string2);
+//    SCEnter();
+//    SCLogWarning(SC_ERR_INITIALIZATION, "Entering UnixManagerStixMessage");
 //
-//    //retrieve the Indicator title from the JSON object and verify it is a string
-//    json_t *title = json_object_get(indicator, "indicator:Title");
-//    if(!json_is_string(title)) {
-//        SCLogInfo("error: title is not a string");
-//        json_object_set_new(answer, "message", json_string("title is not a string"));
-//        SCReturnInt(TM_ECODE_FAILED);
-//    }
+//    //verify that the cmd send over is a JSON object
+////    int is_obj = json_is_object(cmd);
+////    SCLogWarning(SC_ERR_INITIALIZATION, "is_obj is : %d", is_obj);
 //
-//    //return the title as an answer to the add-indicator request
-//    title_str = (char *)json_string_value(title);
-//    json_object_set_new(answer, "message", json_string(title_str));
-
-    SCReturnInt(TM_ECODE_OK);
-}
+////    int is_ary = json_is_array(cmd);
+////    SCLogWarning(SC_ERR_INITIALIZATION, "is_ary is : %d", is_ary);
+//
+//    //dump the JSON object to a string, and then output this string
+////    char *ai_string = json_dumps(cmd, 0);
+////    SCLogWarning(SC_ERR_INITIALIZATION, "ai_string is : %s", ai_string);
+////    json_error_t new_error;
+////    json_t *new_cmd = json_loads(ai_string, 0, &new_error);
+//
+//    json_t *stix_indicators = json_object_get(cmd, "stix:Indicators");
+//    char *sis_string = json_dumps(stix_indicators, 0);
+//    SCLogWarning(SC_ERR_INITIALIZATION, "sis_string is : %s", sis_string);
+//
+//    //from the JSON object sent in, retrieve the stix:Indicator JSON object
+//    json_t *indicator = json_object_get(stix_indicators, "stix:Indicator");
+//    int is_obj2 = json_is_object(indicator);
+//    SCLogWarning(SC_ERR_INITIALIZATION, "is_obj2 is : %d", is_obj2);
+//    char *si_string = json_dumps(indicator, 0);
+//    SCLogWarning(SC_ERR_INITIALIZATION, "si_string is : %s", si_string);
+//
+//    json_t *indicator_type = json_object_get(indicator, "indicator:Type");
+//    int is_obj3 = json_is_object(indicator_type);
+//    SCLogWarning(SC_ERR_INITIALIZATION, "is_obj3 is : %d", is_obj3);
+//    char *it_string = json_dumps(indicator_type, 0);
+//    SCLogWarning(SC_ERR_INITIALIZATION, "it_string is : %s", it_string);
+//
+//    json_t *title2 = json_object_get(indicator, "indicator:Title");
+//    char *title_str2 = (char *)json_string_value(title2);
+//    SCLogWarning(SC_ERR_INITIALIZATION, "title_str2 is : %s", title_str2);
+//
+//
+//
+////    const char *key2;
+////    json_t *value2;
+////    void *iter2 = json_object_iter_at(new_cmd, "stix:Indicators");  //"stix:Indicator"
+////    while (iter2) {
+////        key2 = json_object_iter_key(iter2);
+////        value2 = json_object_iter_value(iter2);
+////        SCLogWarning(SC_ERR_INITIALIZATION, "key2 is : %s", key2);
+////        char *iter_string2 = json_dumps(value2, 0);
+////        SCLogWarning(SC_ERR_INITIALIZATION, "iter_string2 is : %s", iter_string2);
+////        iter2 = json_object_iter_next(new_cmd, iter2);
+////    }
+////
+////    const char *key;
+////    json_t *value;
+////    void *iter = json_object_iter(cmd);
+////    while(iter) {
+////        key = json_object_iter_key(iter);
+////        value = json_object_iter_value(iter);
+////        SCLogWarning(SC_ERR_INITIALIZATION, "key is : %s", key);
+////        //char *iter_string = json_dumps(value, 0);
+////        //SCLogWarning(SC_ERR_INITIALIZATION, "iter_string is : %s", iter_string);
+////        iter = json_object_iter_next(cmd, iter);
+////        //json_decref(value);
+////    }
+//
+//
+//    //from the indicator JSON object, dump these contents to a string for output
+////    char *ai_string2 = json_dumps(indicator, 0);
+////    SCLogWarning(SC_ERR_INITIALIZATION, "ai_string2 is : %s", ai_string2);
+////
+////    //retrieve the Indicator title from the JSON object and verify it is a string
+////    json_t *title = json_object_get(indicator, "indicator:Title");
+////    if(!json_is_string(title)) {
+////        SCLogInfo("error: title is not a string");
+////        json_object_set_new(answer, "message", json_string("title is not a string"));
+////        SCReturnInt(TM_ECODE_FAILED);
+////    }
+////
+////    //return the title as an answer to the add-indicator request
+////    title_str = (char *)json_string_value(title);
+////    json_object_set_new(answer, "message", json_string(title_str));
+//
+//    SCReturnInt(TM_ECODE_OK);
+//}
 
 #if 0
 TmEcode UnixManagerReloadRules(json_t *cmd,
