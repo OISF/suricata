@@ -108,7 +108,7 @@ typedef struct Address_ {
         (b)->addr_data32[3] = (a)->addr_data32[3]; \
     } while (0)
 
-/* Set the IPv4 addressesinto the Addrs of the Packet.
+/* Set the IPv4 addresses into the Addrs of the Packet.
  * Make sure p->ip4h is initialized and validated.
  *
  * We set the rest of the struct to 0 so we can

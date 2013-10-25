@@ -143,6 +143,7 @@ void *ParseAFPConfig(const char *iface)
     aconf->flags = 0;
     aconf->bpf_filter = NULL;
     aconf->out_iface = NULL;
+    aconf->copy_mode = AFP_COPY_MODE_NONE;
 
     if (ConfGet("bpf-filter", &bpf_filter) == 1) {
         if (strlen(bpf_filter) > 0) {
