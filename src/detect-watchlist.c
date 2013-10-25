@@ -37,8 +37,8 @@ DetectWatchListMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
         Signature *, SigMatch *);
 static int
 DetectWatchlistSetup(DetectEngineCtx *, Signature *, char *);
-void
-DetectWatchlistFree(void *);
+
+
 
 void
 DetectIPWatchListRegister(void)
@@ -55,7 +55,7 @@ static int
 DetectWatchlistSetup(DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
 
-    s->msg = "STIX IP Watch List was matched";
+//s->msg = "STIX IP Watch List was matched";
     SigMatch *sm = NULL;
     sm = SigMatchAlloc();
     if (sm == NULL)
@@ -64,20 +64,6 @@ DetectWatchlistSetup(DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     CreateIpWatchListCtx();
     sm->type = DETECT_STIX_IPWATCH;
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-
-    char * Address[2];
-    char * Address2[1];
-    Address[0] = "74.125.131.0/24";
-    Address[1] = "204.68.144.233";
-
-    char *firstName = SCMalloc(sizeof(char) * 5);
-    strcpy(firstName, "Test");
-    addIpaddressesToWatchList(firstName, Address, 2);
-
-    Address2[0] = "10.0.64.44";
-    char *secName = SCMalloc(sizeof(char) * 7);
-    strcpy(secName, "GitLab");
-    addIpaddressesToWatchList(secName, Address2, 1);
 
     return 0;
     error: if (sm != NULL)
