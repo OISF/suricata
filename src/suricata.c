@@ -148,6 +148,8 @@
 #include "util-daemon.h"
 #include "reputation.h"
 
+#include "detect-watchlist.h"
+
 #include "output.h"
 #include "util-privs.h"
 
