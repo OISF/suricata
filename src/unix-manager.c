@@ -32,6 +32,7 @@
 #include "util-privs.h"
 #include "util-debug.h"
 #include "util-signal.h"
+#include "util-ipwatchlist.h"
 
 #include <sys/un.h>
 #include <sys/stat.h>
@@ -701,7 +702,9 @@ TmEcode UnixManagerListCommand(json_t *cmd,
 }
 
 /*
- * Possible Values for <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.0">
+ * Process add-indicator command sent to the Unix Socket.  Update detect rules/values based on
+ * indicator type specified in the JSON command.
+ * Note: Possible Values for <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.0">
  * - Malicious E-mail
  * - IP Watchlist
  * - URL Watchlist
@@ -743,13 +746,13 @@ TmEcode UnixManagerAddIndicator(json_t *cmd, json_t *answer, void *data)
 
     /*Pull the Observable from the JSON Indicator*/
     json_t *observable = NULL;
-        if (json_unpack(cmd,
-                    "{s: {s: {s: s,s: {s: s, s: s }, s: o}}}",
-                    "stix:Indicators", "stix:Indicator", "indicator:Title", &indic_title, "indicator:Type",
-                    "@xsi:type", &indic_type, "#text", &indic_type_text, "indicator:Observable", &observable) != 0) {
-            json_object_set_new(answer, "message", json_string("internal error: json validation failed"));
-            return TM_ECODE_FAILED;
-        }
+    if (json_unpack(cmd,
+                "{s: {s: {s: s,s: {s: s, s: s }, s: o}}}",
+                "stix:Indicators", "stix:Indicator", "indicator:Title", &indic_title, "indicator:Type",
+                "@xsi:type", &indic_type, "#text", &indic_type_text, "indicator:Observable", &observable) != 0) {
+        json_object_set_new(answer, "message", json_string("internal error: json validation failed"));
+        return TM_ECODE_FAILED;
+    }
 
     if (indic_title == NULL || indic_type == NULL || indic_type_text == NULL || observable == NULL) {
         json_object_set_new(answer, "message", json_string("internal error: json parsing failed"));
@@ -776,9 +779,10 @@ TmEcode UnixManagerAddIndicator(json_t *cmd, json_t *answer, void *data)
                     }
 
                     /*create array of IP lists to send to detect engine*/
-                    char *tmp_ip_values = malloc((strlen(ip_values) + 1) * sizeof(char));
+                    char *tmp_ip_values = SCMalloc((strlen(ip_values) + 1) * sizeof(char));
+                    memset(tmp_ip_values, 0, (strlen(ip_values) + 1) * sizeof(char));
                     strcpy(tmp_ip_values, ip_values);
-                    ip_list = malloc((ip_count+1) * sizeof(char *));
+                    ip_list = SCMalloc((ip_count+1) * sizeof(char *));
                     if (ip_list != NULL) {
                         size_t ip_index  = 0;
                         char *ip_token = strtok(tmp_ip_values, "##comma##");
@@ -788,35 +792,22 @@ TmEcode UnixManagerAddIndicator(json_t *cmd, json_t *answer, void *data)
                         }
                         *(ip_list + ip_index) = NULL;
                     }
-                    free(tmp_ip_values);
+                    SCFree(tmp_ip_values);
 
-                    /*insert IPs into detect engine*/
+                    char *indicator_title_copy = SCMalloc((strlen(indic_title) + 1) * sizeof(char));
+                    memset(indicator_title_copy, 0, (strlen(indic_title) + 1) * sizeof(char));
+                    strcpy(indicator_title_copy, indic_title);
 
-
-                    if (ip_list != NULL) {
-                        int i;
-                        for (i = 0; i < ip_count; i++) {
-                            printf("ip[%d]=[%s]\n", i, ip_list[i]);
-                            free(ip_list[i]);
-                        }
-                        printf("\n");
-                        free(ip_list);
-                    }
+                    /*add IPs to watch list*/
+                    addIpaddressesToWatchList(indicator_title_copy, ip_list, ip_count);
                 }
             }
         } else if (strcmp(indic_type_text, "URL Watchlist") == 0) {
             //TODO Implement parsing of URL Watchlist STIX JSON message
 
         } else if (strcmp(indic_type_text, "Malicious E-mail") == 0) {
-
-            /*
-            {s:{s:s,s:{s:s,s:{s:{s:s,s:{s:s,s:s}}}},s:{s:{s:{s:s,s:s,s:s,s:{s:{s:{s:s,s:s},s:s}}},s:{s:s, s:s}}}}}
-            "cybox:Object", "@id", &cybox_id, "cybox:Properties", "@xsi:type", &cybox_type, "EmailMessageObj:Header", "EmailMessageObj:From", "@category", &category,
-            "AddressObj:Address_Value", "@condition", &addr_cond, "#text", &addr_text, "cybox:Related_Objects", "cybox:Related_Object", "cybox:Properties",
-            "@xsi:type", &related_obj_type, "FileObj:File_Extension", &file_ext, "FileObj:Size_In_Bytes", &file_size, "FileObj:Hashes", "cyboxCommon:Hash",
-            "cyboxCommon:Type", "@xsi:type", &cybox_hash_type, "#text", cybox_hash_text, "cyboxCommon:Simple_Hash_Value", &cybox_simple_hash,
-            "cybox:Relationship", "@xsi:type", &cybox_relation_type, "#text", &cybox_relation_text)
-                         */
+            //untested
+#if 0
             json_unpack(observable, "{s:{s:s,s:{s:s,s:{s:{s:s,s:{s:s,s:s}}}},s:{s:{s:{s:s,s:s,s:s,s:{s:{s:{s:s,s:s},s:s}}},s:{s:s, s:s}}}}}",
                     "cybox:Object", "@id", &cybox_id, "cybox:Properties", "@xsi:type", &cybox_obj_type,
                     "EmailMessageObj:Header", "EmailMessageObj:From", "@category", &category,
@@ -830,6 +821,7 @@ TmEcode UnixManagerAddIndicator(json_t *cmd, json_t *answer, void *data)
             SCLogWarning(SC_ERR_INITIALIZATION, "cybox_id is : '%s'", cybox_id);
             SCLogWarning(SC_ERR_INITIALIZATION, "cybox_obj_type is : '%s'", cybox_obj_type);
             SCLogWarning(SC_ERR_INITIALIZATION, "category is : '%s'", category);
+#endif
         }
     } else {
         SCLogWarning(SC_ERR_INITIALIZATION, "wrong indicator type");
