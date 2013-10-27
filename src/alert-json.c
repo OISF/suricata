@@ -134,7 +134,7 @@ void TmModuleAlertJsonRegister (void) {
     tmm_modules[TMM_ALERTJSON].RegisterTests = AlertJsonRegisterTests;
     tmm_modules[TMM_ALERTJSON].cap_flags = 0;
 
-    OutputRegisterModule(MODULE_NAME, "json", AlertJsonInitCtx);
+    OutputRegisterModule(MODULE_NAME, "json-alert", AlertJsonInitCtx);
 }
 
 /* Default Sensor ID value */
@@ -168,7 +168,6 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
     PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
-        json_t *js;
         if (unlikely(pa->s == NULL)) {
             continue;
         }
@@ -185,6 +184,40 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
         } else {
             snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IPV4_GET_IPPROTO(p));
         }
+#if 1
+        json_t *js = json_object();
+        if (js == NULL)
+            return;
+
+        json_t *ajs = json_object();
+        if (ajs == NULL) {
+            free(js);
+            return;
+        }
+
+        /* time & tx */
+        json_object_set_new(js, "time", json_string(timebuf));
+
+        /* tuple */
+        json_object_set_new(js, "srcip", json_string(srcip));
+        json_object_set_new(js, "sp", json_integer(p->sp));
+        json_object_set_new(js, "dstip", json_string(dstip));
+        json_object_set_new(js, "dp", json_integer(p->dp));
+        json_object_set_new(js, "proto", json_integer(proto));
+
+        json_object_set_new(ajs, "action", json_string(action));
+        json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
+        json_object_set_new(ajs, "id", json_integer(pa->s->id));
+        json_object_set_new(ajs, "rev", json_integer(pa->s->rev));
+        json_object_set_new(ajs, "msg",
+                            json_string((pa->s->msg) ? pa->s->msg : ""));
+        json_object_set_new(ajs, "class",
+                            json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
+        json_object_set_new(ajs, "pri", json_integer(pa->s->prio));
+   
+        /* alert */ 
+        json_object_set_new(js, "alert", ajs);
+#else
         json_error_t error;
         js = json_pack_ex(
                        &error, 0,
@@ -221,7 +254,7 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
             SCLogInfo("json_pack error %s", error.text);
             return TM_ECODE_OK;
         }
-
+#endif
         SCMutexLock(&aft->file_ctx->fp_mutex);
         if (json_out == ALERT_FILE) {
             json_dumpf(js, aft->file_ctx->fp,
@@ -240,6 +273,7 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
         }
         aft->file_ctx->alerts++;
         SCMutexUnlock(&aft->file_ctx->fp_mutex);
+        free(ajs);
         free(js);
     }
 
