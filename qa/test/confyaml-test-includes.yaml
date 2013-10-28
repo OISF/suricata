@@ -1,0 +1,8 @@
+%YAML 1.1
+---
+
+# Include something at the root level.
+include: confyamltest-somedefaults.yaml
+
+# Test including under a mapping.
+mapping: !include confyamltest-somedefaults.yaml

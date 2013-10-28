@@ -26,6 +26,7 @@
 #include <yaml.h>
 #include "suricata-common.h"
 #include "conf.h"
+#include "util-path.h"
 #include "util-debug.h"
 #include "util-unittest.h"
 
@@ -40,10 +41,15 @@
 #define MANGLE_ERRORS_MAX 10
 static int mangle_errors = 0;
 
+static char *conf_dirname = NULL;
+
+static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq);
+
 /* Configuration processing states. */
 enum conf_state {
     CONF_KEY = 0,
     CONF_VAL,
+    CONF_INCLUDE,
 };
 
 /**
@@ -65,6 +71,90 @@ Mangle(char *string)
 }
 
 /**
+ * \brief Set the directory name of the configuration file.
+ *
+ * \param filename The configuration filename.
+ */
+static void
+ConfYamlSetConfDirname(const char *filename)
+{
+    char *ep;
+
+    ep = strrchr(filename, '\\');
+    if (ep == NULL)
+        ep = strrchr(filename, '/');
+
+    if (ep == NULL) {
+        conf_dirname = SCStrdup(".");
+        if (conf_dirname == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC,
+               "ERROR: Failed to allocate memory while loading configuration.");
+            exit(EXIT_FAILURE);
+        }
+    }
+    else {
+        conf_dirname = SCStrdup(filename);
+        if (conf_dirname == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC,
+               "ERROR: Failed to allocate memory while loading configuration.");
+            exit(EXIT_FAILURE);
+        }
+        conf_dirname[ep - filename] = '\0';
+    }
+}
+
+/**
+ * \brief Include a file in the configuration.
+ *
+ * \param parent The configuration node the included configuration will be
+ *          placed at.
+ * \param filename The filename to include.
+ *
+ * \retval 0 on success, -1 on failure.
+ */
+static int
+ConfYamlHandleInclude(ConfNode *parent, const char *filename)
+{
+    yaml_parser_t parser;
+    char include_filename[PATH_MAX];
+    FILE *file;
+
+    if (yaml_parser_initialize(&parser) != 1) {
+        SCLogError(SC_ERR_CONF_YAML_ERROR, "Failed to initialize YAML parser");
+        return -1;
+    }
+
+    if (PathIsAbsolute(filename)) {
+        strlcpy(include_filename, filename, sizeof(include_filename));
+    }
+    else {
+        snprintf(include_filename, sizeof(include_filename), "%s/%s",
+            conf_dirname, filename);
+    }
+
+    file = fopen(include_filename, "r");
+    if (file == NULL) {
+        SCLogError(SC_ERR_FOPEN,
+            "Failed to open configuration include file %s: %s",
+            include_filename, strerror(errno));
+        return -1;
+    }
+
+    yaml_parser_set_input_file(&parser, file);
+
+    if (ConfYamlParse(&parser, parent, 0) != 0) {
+        SCLogError(SC_ERR_CONF_YAML_ERROR,
+            "Failed to include configuration file %s", filename);
+        return -1;
+    }
+
+    yaml_parser_delete(&parser);
+    fclose(file);
+
+    return 0;
+}
+
+/**
  * \brief Parse a YAML layer.
  *
  * \param parser A pointer to an active yaml_parser_t.
@@ -83,13 +173,14 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
 
     while (!done) {
         if (!yaml_parser_parse(parser, &event)) {
-            fprintf(stderr,
+            SCLogError(SC_ERR_CONF_YAML_ERROR,
                 "Failed to parse configuration file at line %" PRIuMAX ": %s\n",
                 (uintmax_t)parser->problem_mark.line, parser->problem);
             return -1;
         }
 
         if (event.type == YAML_DOCUMENT_START_EVENT) {
+            SCLogDebug("event.type=YAML_DOCUMENT_START_EVENT; state=%d", state);
             /* Verify YAML version - its more likely to be a valid
              * Suricata configuration file if the version is
              * correct. */
@@ -110,8 +201,9 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
         }
         else if (event.type == YAML_SCALAR_EVENT) {
             char *value = (char *)event.data.scalar.value;
-            SCLogDebug("event.type = YAML_SCALAR_EVENT (%s) inseq=%d",
-                value, inseq);
+            char *tag = (char *)event.data.scalar.tag;
+            SCLogDebug("event.type=YAML_SCALAR_EVENT; state=%d; value=%s; "
+                "tag=%s; inseq=%d", state, value, tag, inseq);
             if (inseq) {
                 ConfNode *seq_node = ConfNodeNew();
                 seq_node->name = SCCalloc(1, DEFAULT_NAME_LEN);
@@ -122,7 +214,22 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                 TAILQ_INSERT_TAIL(&parent->head, seq_node, next);
             }
             else {
-                if (state == CONF_KEY) {
+                if (state == CONF_INCLUDE) {
+                    SCLogInfo("Including configuration file %s.", value);
+                    if (ConfYamlHandleInclude(parent, value) != 0) {
+                        goto fail;
+                    }
+                    state = CONF_KEY;
+                }
+                else if (state == CONF_KEY) {
+
+                    /* Top level include statements. */
+                    if ((strcmp(value, "include") == 0) && 
+                        (parent == ConfGetRootNode())) {
+                        state = CONF_INCLUDE;
+                        goto next;
+                    }
+
                     if (parent->is_seq) {
                         if (parent->val == NULL) {
                             parent->val = SCStrdup(value);
@@ -158,7 +265,13 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                     state = CONF_VAL;
                 }
                 else {
-                    if (node->allow_override) {
+                    if ((tag != NULL) && (strcmp(tag, "!include") == 0)) {
+                        SCLogInfo("Including configuration file %s at "
+                            "parent node %s.", value, node->name);
+                        if (ConfYamlHandleInclude(node, value) != 0)
+                            goto fail;
+                    }
+                    else if (node->allow_override) {
                         if (node->val != NULL)
                             SCFree(node->val);
                         node->val = SCStrdup(value);
@@ -168,17 +281,17 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
             }
         }
         else if (event.type == YAML_SEQUENCE_START_EVENT) {
-            SCLogDebug("event.type = YAML_SEQUENCE_START_EVENT");
+            SCLogDebug("event.type=YAML_SEQUENCE_START_EVENT; state=%d", state);
             if (ConfYamlParse(parser, node, 1) != 0)
                 goto fail;
             state = CONF_KEY;
         }
         else if (event.type == YAML_SEQUENCE_END_EVENT) {
-            SCLogDebug("event.type = YAML_SEQUENCE_END_EVENT");
+            SCLogDebug("event.type=YAML_SEQUENCE_END_EVENT; state=%d", state);
             return 0;
         }
         else if (event.type == YAML_MAPPING_START_EVENT) {
-            SCLogDebug("event.type = YAML_MAPPING_START_EVENT");
+            SCLogDebug("event.type=YAML_MAPPING_START_EVENT; state=%d", state);
             if (inseq) {
                 ConfNode *seq_node = ConfNodeNew();
                 seq_node->is_seq = 1;
@@ -197,13 +310,15 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
             state = CONF_KEY;
         }
         else if (event.type == YAML_MAPPING_END_EVENT) {
-            SCLogDebug("event.type = YAML_MAPPING_END_EVENT");
+            SCLogDebug("event.type=YAML_MAPPING_END_EVENT; state=%d", state);
             done = 1;
         }
         else if (event.type == YAML_STREAM_END_EVENT) {
+            SCLogDebug("event.type=YAML_STREAM_END_EVENT; state=%d", state);
             done = 1;
         }
 
+    next:
         yaml_event_delete(&event);
         continue;
 
@@ -256,6 +371,11 @@ ConfYamlLoadFile(const char *filename)
         yaml_parser_delete(&parser);
         return -1;
     }
+
+    if (conf_dirname == NULL) {
+        ConfYamlSetConfDirname(filename);
+    }
+
     yaml_parser_set_input_file(&parser, infile);
     ret = ConfYamlParse(&parser, root, 0);
     yaml_parser_delete(&parser);
@@ -286,6 +406,9 @@ ConfYamlLoadString(const char *string, size_t len)
 }
 
 #ifdef UNITTESTS
+
+/** The top directory of the source tree. */
+static char *top_dir = NULL;
 
 static int
 ConfYamlRuleFileTest(void)
@@ -519,17 +642,84 @@ libhtp:\n\
     return 1;
 }
 
+/**
+ * Test file inclusion support.
+ */
+static int
+ConfYamlFileIncludeTest(void)
+{
+    char config_filename[PATH_MAX];
+
+    ConfCreateContextBackup();
+    ConfInit();
+
+    /* Reset conf_dirname. */
+    conf_dirname = NULL;
+
+    if (top_dir == NULL) {
+        return 0;
+    }
+    snprintf(config_filename, sizeof(config_filename), 
+        "%s/qa/test/confyaml-test-includes.yaml", top_dir);
+    if (ConfYamlLoadFile(config_filename) != 0)
+        return 0;
+
+    /* Check values that should have been loaded into the root of the
+     * configuration. */
+    ConfNode *node;
+    node = ConfGetNode("host-mode");
+    if (node == NULL) return 0;
+    if (strcmp(node->val, "auto") != 0) return 0;
+    node = ConfGetNode("unix-command.enabled");
+    if (node == NULL) return 0;
+    if (strcmp(node->val, "no") != 0) return 0;
+
+    /* Check for values that were included under a mapping. */
+    node = ConfGetNode("mapping.host-mode");
+    if (node == NULL) return 0;
+    if (strcmp(node->val, "auto") != 0) return 0;
+    node = ConfGetNode("mapping.unix-command.enabled");
+    if (node == NULL) return 0;
+    if (strcmp(node->val, "no") != 0) return 0;
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return 1;
+}
+
 #endif /* UNITTESTS */
 
 void
 ConfYamlRegisterTests(void)
 {
 #ifdef UNITTESTS
+
+    /* Find the top source directory. */
+    static char *locations[] = {
+        ".",
+        "../../../../source"
+    };
+    char path[PATH_MAX];
+    struct stat stat_buf;
+    for (size_t i = 0; i < sizeof(locations) / sizeof(locations[0]); i++) {
+        snprintf(path, sizeof(path), "%s/qa/test", locations[i]);
+        if (stat(path, &stat_buf) == 0) {
+            top_dir = locations[i];
+            break;
+        }
+    }
+    if (top_dir == NULL) {
+        SCLogError(SC_ERR_OPENING_FILE,
+            "Couldn't find top source directory.  Tests likely to fail.");
+    }
+
     UtRegisterTest("ConfYamlRuleFileTest", ConfYamlRuleFileTest, 1);
     UtRegisterTest("ConfYamlLoggingOutputTest", ConfYamlLoggingOutputTest, 1);
     UtRegisterTest("ConfYamlNonYamlFileTest", ConfYamlNonYamlFileTest, 1);
     UtRegisterTest("ConfYamlBadYamlVersionTest", ConfYamlBadYamlVersionTest, 1);
     UtRegisterTest("ConfYamlSecondLevelSequenceTest",
         ConfYamlSecondLevelSequenceTest, 1);
+    UtRegisterTest("ConfYamlFileIncludeTest", ConfYamlFileIncludeTest, 1);
 #endif /* UNITTESTS */
 }

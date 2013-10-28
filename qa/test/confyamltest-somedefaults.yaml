@@ -1,0 +1,6 @@
+%YAML 1.1
+---
+
+host-mode: auto
+unix-command:
+  enabled: no
