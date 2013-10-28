@@ -988,7 +988,7 @@ TmEcode ReceiveNFQLoop(ThreadVars *tv, void *data, void *slot)
         }
         NFQRecvPkt(nq, ntv);
 
-        SCPerfSyncCountersIfSignalled(tv, 0);
+        SCPerfSyncCountersIfSignalled(tv);
     }
     SCReturnInt(TM_ECODE_OK);
 }

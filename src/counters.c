@@ -601,10 +601,8 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
  *
  * \param pcae     Pointer to the SCPerfCounterArray which holds the local
  *                 versions of the counters
- * \param reset_lc Flag which indicates if the values of the local counters
- *                 in the SCPerfCounterArray has to be reset or not
  */
-static void SCPerfCopyCounterValue(SCPCAElem *pcae, int reset_lc)
+static void SCPerfCopyCounterValue(SCPCAElem *pcae)
 {
     SCPerfCounter *pc = NULL;
     uint64_t ui64_temp = 0;
@@ -619,9 +617,6 @@ static void SCPerfCopyCounterValue(SCPCAElem *pcae, int reset_lc)
     } else {
         *((uint64_t *)pc->value->cvalue) = ui64_temp;
     }
-
-    if (reset_lc)
-        pcae->ui64_cnt = 0;
 
     return;
 }
@@ -1246,8 +1241,7 @@ SCPerfCounterArray *SCPerfGetAllCountersArray(SCPerfContext *pctx)
  * \retval  0 on success
  * \retval -1 on error
  */
-int SCPerfUpdateCounterArray(SCPerfCounterArray *pca, SCPerfContext *pctx,
-                             int reset_lc)
+int SCPerfUpdateCounterArray(SCPerfCounterArray *pca, SCPerfContext *pctx)
 {
     SCPerfCounter  *pc = NULL;
     SCPCAElem *pcae = NULL;
@@ -1270,7 +1264,7 @@ int SCPerfUpdateCounterArray(SCPerfCounterArray *pca, SCPerfContext *pctx,
                 continue;
             }
 
-            SCPerfCopyCounterValue(&pcae[i], reset_lc);
+            SCPerfCopyCounterValue(&pcae[i]);
 
             pc->updated++;
 
@@ -1579,7 +1573,7 @@ static int SCPerfTestUpdateGlobalCounter10()
     SCPerfCounterIncr(id3, pca);
     SCPerfCounterAddUI64(id3, pca, 100);
 
-    SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
+    SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx);
 
     result = (1 == *((uint64_t *)tv.sc_perf_pctx.head->value->cvalue) );
     result &= (100 == *((uint64_t *)tv.sc_perf_pctx.head->next->value->cvalue) );
@@ -1617,7 +1611,7 @@ static int SCPerfTestCounterValues11()
     SCPerfCounterAddUI64(id3, pca, 257);
     SCPerfCounterAddUI64(id4, pca, 16843024);
 
-    SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
+    SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx);
 
     uint64_t *u64p = (uint64_t *)tv.sc_perf_pctx.head->value->cvalue;
     result &= (1 == *u64p);

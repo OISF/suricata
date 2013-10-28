@@ -388,7 +388,7 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
             /* Move forward M packets in ingress ring. */
             gxio_mpipe_iqueue_advance(iqueue, m);
         }
-        SCPerfSyncCountersIfSignalled(tv, 0);
+        SCPerfSyncCountersIfSignalled(tv);
     }
     SCReturnInt(TM_ECODE_OK);
 }

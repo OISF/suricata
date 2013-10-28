@@ -195,7 +195,7 @@ int SCPerfAddToClubbedTMTable(char *, SCPerfContext *);
 SCPerfCounterArray *SCPerfGetCounterArrayRange(uint16_t, uint16_t, SCPerfContext *);
 SCPerfCounterArray * SCPerfGetAllCountersArray(SCPerfContext *);
 
-int SCPerfUpdateCounterArray(SCPerfCounterArray *, SCPerfContext *, int);
+int SCPerfUpdateCounterArray(SCPerfCounterArray *, SCPerfContext *);
 double SCPerfGetLocalCounterValue(uint16_t, SCPerfCounterArray *);
 
 void SCPerfOutputCounters(void);
@@ -213,14 +213,14 @@ void SCPerfRegisterTests(void);
 /* functions used to update local counter values */
 void SCPerfCounterAddUI64(uint16_t, SCPerfCounterArray *, uint64_t);
 
-#define SCPerfSyncCounters(tv, reset_lc) \
-    SCPerfUpdateCounterArray((tv)->sc_perf_pca, &(tv)->sc_perf_pctx, (reset_lc)); \
+#define SCPerfSyncCounters(tv) \
+    SCPerfUpdateCounterArray((tv)->sc_perf_pca, &(tv)->sc_perf_pctx);           \
 
-#define SCPerfSyncCountersIfSignalled(tv, reset_lc)                        \
-    do {                                                        \
-        if ((tv)->sc_perf_pctx.perf_flag == 1) {                            \
-            SCPerfUpdateCounterArray((tv)->sc_perf_pca, &(tv)->sc_perf_pctx, (reset_lc)); \
-        }                                                               \
+#define SCPerfSyncCountersIfSignalled(tv)                                       \
+    do {                                                                        \
+        if ((tv)->sc_perf_pctx.perf_flag == 1) {                                \
+            SCPerfUpdateCounterArray((tv)->sc_perf_pca, &(tv)->sc_perf_pctx);   \
+        }                                                                       \
     } while (0)
 
 #ifdef BUILD_UNIX_SOCKET
@@ -230,3 +230,4 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
 #endif
 
 #endif /* __COUNTERS_H__ */
+

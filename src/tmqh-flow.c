@@ -85,7 +85,7 @@ Packet *TmqhInputFlow(ThreadVars *tv)
 {
     PacketQueue *q = &trans_q[tv->inq->id];
 
-    SCPerfSyncCountersIfSignalled(tv, 0);
+    SCPerfSyncCountersIfSignalled(tv);
 
     SCMutexLock(&q->mutex_q);
     if (q->len == 0) {

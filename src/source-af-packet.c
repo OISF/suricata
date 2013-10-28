@@ -1082,7 +1082,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
             AFPSwitchState(ptv, AFP_STATE_DOWN);
             continue;
         }
-        SCPerfSyncCountersIfSignalled(tv, 0);
+        SCPerfSyncCountersIfSignalled(tv);
     }
 
     SCReturnInt(TM_ECODE_OK);

@@ -532,7 +532,7 @@ void *FlowManagerThread(void *td)
         }
 
         if (TmThreadsCheckFlag(th_v, THV_KILL)) {
-            SCPerfSyncCounters(th_v, 0);
+            SCPerfSyncCounters(th_v);
             break;
         }
 
@@ -545,7 +545,7 @@ void *FlowManagerThread(void *td)
 
         SCLogDebug("woke up... %s", SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY ? "emergency":"");
 
-        SCPerfSyncCountersIfSignalled(th_v, 0);
+        SCPerfSyncCountersIfSignalled(th_v);
     }
 
     TmThreadsSetFlag(th_v, THV_RUNNING_DONE);

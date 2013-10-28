@@ -305,7 +305,7 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
             SCReturnInt(TM_ECODE_FAILED);
         }
 
-        SCPerfSyncCountersIfSignalled(tv, 0);
+        SCPerfSyncCountersIfSignalled(tv);
     }
 
     SCReturnInt(TM_ECODE_OK);
