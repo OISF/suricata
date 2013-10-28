@@ -1054,7 +1054,7 @@ int StreamTcp3whsQueueSynAck(TcpSession *ssn, Packet *p) {
     }
 
     TcpStateQueue *q = SCMalloc(sizeof(*q));
-    if (q == NULL) {
+    if (unlikely(q == NULL)) {
         SCLogDebug("ssn %p: =~ SYN/ACK queue failed: alloc failed", ssn);
         return -1;
     }

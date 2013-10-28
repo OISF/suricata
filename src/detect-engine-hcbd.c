@@ -3502,7 +3502,7 @@ static int DetectEngineHttpClientBodyTest29(void)
 
 #define TOTAL_REQUESTS 45
     uint8_t *http_buf = SCMalloc(TOTAL_REQUESTS * strlen(request_buffer));
-    if (http_buf == NULL)
+    if (unlikely(http_buf == NULL))
         goto end;
     for (int i = 0; i < TOTAL_REQUESTS; i++) {
         memcpy(http_buf + i * strlen(request_buffer), request_buffer,

@@ -2838,7 +2838,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
 
     /* array hash buffer - i've run out of ideas to name it */
     uint8_t *ahb = SCMalloc(sizeof(uint8_t) * (struct_total_size + content_total_size));
-    if (ahb == NULL)
+    if (unlikely(ahb == NULL))
         return -1;
 
     uint8_t *content = NULL;

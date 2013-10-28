@@ -129,7 +129,7 @@ void DNSSetEvent(DNSState *s, uint8_t e) {
  *  \retval tx or NULL */
 DNSTransaction *DNSTransactionAlloc(const uint16_t tx_id) {
     DNSTransaction *tx = SCMalloc(sizeof(DNSTransaction));
-    if (tx == NULL)
+    if (unlikely(tx == NULL))
         return NULL;
     memset(tx, 0x00, sizeof(DNSTransaction));
 
@@ -329,7 +329,7 @@ void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16
     }
 
     DNSQueryEntry *q = SCMalloc(sizeof(DNSQueryEntry) + fqdn_len);
-    if (q == NULL)
+    if (unlikely(q == NULL))
         return;
     q->type = type;
     q->class = class;
@@ -357,7 +357,7 @@ void DNSStoreAnswerInState(DNSState *dns_state, const int rtype, const uint8_t *
     }
 
     DNSAnswerEntry *q = SCMalloc(sizeof(DNSAnswerEntry) + fqdn_len + data_len);
-    if (q == NULL)
+    if (unlikely(q == NULL))
         return;
     q->type = type;
     q->class = class;

@@ -2002,7 +2002,7 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
         return HTP_OK;
 
     tx_ud = SCMalloc(sizeof(*tx_ud));
-    if (tx_ud == NULL) {
+    if (unlikely(tx_ud == NULL)) {
         bstr_free(request_uri_normalized);
         return HTP_OK;
     }
@@ -2047,7 +2047,7 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
     if (tx_ud == NULL) {
         tx_ud = SCMalloc(sizeof(*tx_ud));
-        if (tx_ud == NULL)
+        if (unlikely(tx_ud == NULL))
             return HTP_OK;
         memset(tx_ud, 0, sizeof(*tx_ud));
         htp_tx_set_user_data(tx_data->tx, tx_ud);
@@ -2079,7 +2079,7 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
     if (tx_ud == NULL) {
         tx_ud = SCMalloc(sizeof(*tx_ud));
-        if (tx_ud == NULL)
+        if (unlikely(tx_ud == NULL))
             return HTP_OK;
         memset(tx_ud, 0, sizeof(*tx_ud));
         htp_tx_set_user_data(tx_data->tx, tx_ud);
@@ -4966,7 +4966,7 @@ libhtp:\n\
     HTPConfigure();
 
     httpbuf = SCMalloc(len);
-    if (httpbuf == NULL)
+    if (unlikely(httpbuf == NULL))
         goto end;
     memset(httpbuf, 0x00, len);
 

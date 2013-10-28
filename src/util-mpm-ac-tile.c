@@ -826,7 +826,7 @@ static inline void SCACTileCreateDeltaTable(MpmCtx *mpm_ctx)
         }
         int size = ctx->state_count * sizeof(SC_AC_TILE_STATE_TYPE_U16) * alpha_size;
         SC_AC_TILE_STATE_TYPE_U16 *state_table = SCMalloc(size);
-        if (state_table == NULL) {
+        if (unlikely(state_table == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
         }

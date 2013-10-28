@@ -1154,7 +1154,7 @@ void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
             else
                 line = SCRealloc(line, strlen(line) + len + 1);
 
-            if (line == NULL) {
+            if (unlikely(line == NULL)) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
                 break;
             }

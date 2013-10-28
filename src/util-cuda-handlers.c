@@ -83,7 +83,7 @@ void CudaHandlerAddCudaProfileFromConf(const char *name,
     }
 
     CudaHandlerConfProfile *new_cp = SCMalloc(sizeof(CudaHandlerConfProfile));
-    if (new_cp == NULL)
+    if (unlikely(new_cp == NULL))
         exit(EXIT_FAILURE);
     memset(new_cp, 0, sizeof(CudaHandlerConfProfile));
     new_cp->name = SCStrdup(name);
@@ -188,7 +188,7 @@ CUcontext CudaHandlerModuleGetContext(const char *name, int device_id)
     }
 
     CudaHandlerModule *new_module = SCMalloc(sizeof(CudaHandlerModule));
-    if (new_module == NULL)
+    if (unlikely(new_module == NULL))
         exit(EXIT_FAILURE);
     memset(new_module, 0, sizeof(CudaHandlerModule));
     new_module->device_id = device_id;
@@ -204,7 +204,7 @@ CUcontext CudaHandlerModuleGetContext(const char *name, int device_id)
 
     if (no_of_cuda_contexts <= device_id) {
         cuda_contexts = SCRealloc(cuda_contexts, sizeof(CUcontext) * (device_id + 1));
-        if (cuda_contexts == NULL)
+        if (unlikely(cuda_contexts == NULL))
             exit(EXIT_FAILURE);
         memset(cuda_contexts + no_of_cuda_contexts, 0,
                sizeof(CUcontext) * ((device_id + 1) - no_of_cuda_contexts));
@@ -253,7 +253,7 @@ void CudaHandlerModuleStoreData(const char *module_name,
     }
 
     CudaHandlerModuleData *new_data = SCMalloc(sizeof(CudaHandlerModuleData));
-    if (new_data == NULL)
+    if (unlikely(new_data == NULL))
         exit(EXIT_FAILURE);
     memset(new_data, 0, sizeof(CudaHandlerModuleData));
     new_data->name = SCStrdup(data_name);

@@ -46,7 +46,7 @@ PoolThread *PoolThreadInit(int threads, uint32_t size, uint32_t prealloc_size, u
     }
 
     pt = SCMalloc(sizeof(*pt));
-    if (pt == NULL) {
+    if (unlikely(pt == NULL)) {
         SCLogDebug("memory alloc error");
         goto error;
     }

@@ -144,7 +144,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         /* let's make the new entry */
         items = SCRealloc(items,
                           (de_ctx->mpm_ctx_factory_container->no_of_items + 1) * sizeof(MpmCtxFactoryItem));
-        if (items == NULL) {
+        if (unlikely(items == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
         }
@@ -283,7 +283,7 @@ static void *MpmCudaConfParse(ConfNode *node)
     const char *value;
 
     MpmCudaConf *conf = SCMalloc(sizeof(MpmCudaConf));
-    if (conf == NULL)
+    if (unlikely(conf == NULL))
         exit(EXIT_FAILURE);
     memset(conf, 0, sizeof(*conf));
 

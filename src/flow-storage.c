@@ -174,7 +174,7 @@ static int FlowStorageTest02(void) {
     }
 
     void *ptr1a = SCMalloc(128);
-    if (ptr1a == NULL) {
+    if (unlikely(ptr1a == NULL)) {
         goto error;
     }
     FlowSetStorageById(f, id1, ptr1a);
@@ -230,13 +230,13 @@ static int FlowStorageTest03(void) {
     }
 
     void *ptr1a = SCMalloc(128);
-    if (ptr1a == NULL) {
+    if (unlikely(ptr1a == NULL)) {
         goto error;
     }
     FlowSetStorageById(f, id1, ptr1a);
 
     void *ptr2a = SCMalloc(256);
-    if (ptr2a == NULL) {
+    if (unlikely(ptr2a == NULL)) {
         goto error;
     }
     FlowSetStorageById(f, id2, ptr2a);

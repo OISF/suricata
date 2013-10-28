@@ -787,7 +787,7 @@ TmEcode ReceiveMpipeThreadInit(ThreadVars *tv, void *initdata, void **data)
     }
 
     MpipeThreadVars *ptv = SCMalloc(sizeof(MpipeThreadVars));
-    if (ptv == NULL)
+    if (unlikely(ptv == NULL))
         SCReturnInt(TM_ECODE_FAILED);
 
     memset(ptv, 0, sizeof(MpipeThreadVars));
@@ -863,7 +863,7 @@ TmEcode ReceiveMpipeThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     /* Allocate some ingress queues. */
     iqueues = SCCalloc(num_workers, sizeof(*iqueues));
-    if (iqueues == NULL)
+    if (unlikely(iqueues == NULL))
         SCReturnInt(TM_ECODE_FAILED);
 
     /* Allocate some NotifRings. */
@@ -984,7 +984,7 @@ TmEcode DecodeMpipe(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 int MpipeLiveRegisterDevice(char *dev)
 {
     MpipeDevice *nd = SCMalloc(sizeof(MpipeDevice));
-    if (nd == NULL) {
+    if (unlikely(nd == NULL)) {
         return -1;
     }
 

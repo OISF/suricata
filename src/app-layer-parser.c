@@ -1777,7 +1777,7 @@ static uint32_t AppLayerProbingParserGetMask(uint16_t al_proto)
 static inline AppLayerProbingParserElement *AllocAppLayerProbingParserElement(void)
 {
     AppLayerProbingParserElement *p = SCMalloc(sizeof(AppLayerProbingParserElement));
-    if (p == NULL) {
+    if (unlikely(p == NULL)) {
         exit(EXIT_FAILURE);
     }
     memset(p, 0, sizeof(AppLayerProbingParserElement));
@@ -1796,7 +1796,7 @@ static inline void DeAllocAppLayerProbingParserElement(AppLayerProbingParserElem
 static inline AppLayerProbingParserPort *AllocAppLayerProbingParserPort(void)
 {
     AppLayerProbingParserPort *p = SCMalloc(sizeof(AppLayerProbingParserPort));
-    if (p == NULL) {
+    if (unlikely(p == NULL)) {
         exit(EXIT_FAILURE);
     }
     memset(p, 0, sizeof(AppLayerProbingParserPort));
@@ -1830,7 +1830,7 @@ static inline void DeAllocAppLayerProbingParserPort(AppLayerProbingParserPort *p
 static inline AppLayerProbingParser *AllocAppLayerProbingParser(void)
 {
     AppLayerProbingParser *p = SCMalloc(sizeof(AppLayerProbingParser));
-    if (p == NULL) {
+    if (unlikely(p == NULL)) {
         exit(EXIT_FAILURE);
     }
     memset(p, 0, sizeof(AppLayerProbingParser));

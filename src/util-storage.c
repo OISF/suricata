@@ -114,7 +114,7 @@ int StorageRegister(const StorageEnum type, const char *name, const unsigned int
     }
 
     StorageList *entry = SCMalloc(sizeof(StorageList));
-    if (entry == NULL)
+    if (unlikely(entry == NULL))
         return -1;
 
     memset(entry, 0x00, sizeof(StorageList));
@@ -147,7 +147,7 @@ int StorageFinalize(void)
         return 0;
 
     storage_map = SCMalloc(sizeof(StorageMapping *) * STORAGE_MAX);
-    if (storage_map == NULL) {
+    if (unlikely(storage_map == NULL)) {
         return -1;
     }
     memset(storage_map, 0x00, sizeof(StorageMapping *) * STORAGE_MAX);
@@ -258,8 +258,8 @@ void *StorageAllocById(Storage **storage, StorageEnum type, int id)
     Storage *store = *storage;
     if (store == NULL) {
         store = SCMalloc(sizeof(void *) * storage_max_id[type]);
-        if (store == NULL)
-            return NULL;
+        if (unlikely(store == NULL))
+        return NULL;
         memset(store, 0x00, sizeof(void *) * storage_max_id[type]);
     }
     SCLogDebug("store %p", store);
