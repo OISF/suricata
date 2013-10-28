@@ -428,11 +428,14 @@ typedef struct Packet_
     EthernetHdr *ethh;
 
     IPV4Hdr *ip4h;
-    IPV4Vars ip4vars;
-
+    union {
+        IPV4Vars ip4vars;
+        struct {
+            IPV6Vars ip6vars;
+            IPV6ExtHdrs ip6eh;
+        };
+    };
     IPV6Hdr *ip6h;
-    IPV6Vars ip6vars;
-    IPV6ExtHdrs ip6eh;
 
     TCPHdr *tcph;
     TCPVars tcpvars;
