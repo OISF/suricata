@@ -172,10 +172,6 @@ typedef struct SCPerfOPIfaceContext_ {
     /* more interfaces to be supported later.  For now just a file */
     FILE *fp;
 
-    /* indicates whether the counter values from the same threading module
-     * should be clubbed or not, during output */
-    uint32_t club_tm;
-
     SCPerfClubTMInst *pctmi;
     SCMutex pctmi_lock;
 } SCPerfOPIfaceContext;

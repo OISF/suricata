@@ -239,9 +239,6 @@ static void SCPerfInitOPCtx(void)
         }
     }
 
-    /* club the counter from multiple instances of the tm before o/p */
-    sc_perf_op_ctx->club_tm = 1;
-
     /* init the lock used by SCPerfClubTMInst */
     if (SCMutexInit(&sc_perf_op_ctx->pctmi_lock, NULL) != 0) {
         SCLogError(SC_ERR_INITIALIZATION, "error initializing pctmi mutex");
@@ -653,14 +650,12 @@ static void SCPerfOutputCalculateCounterValue(SCPerfCounter *pc, void *cvalue_op
  */
 static int SCPerfOutputCounterFileIface()
 {
-    ThreadVars *tv = NULL;
     SCPerfClubTMInst *pctmi = NULL;
     SCPerfCounter *pc = NULL;
     SCPerfCounter **pc_heads = NULL;
 
     uint64_t ui64_temp = 0;
     uint64_t ui64_result = 0;
-
 
     struct timeval tval;
     struct tm *tms;
@@ -701,40 +696,6 @@ static int SCPerfOutputCounterFileIface()
     fprintf(sc_perf_op_ctx->fp, "----------------------------------------------"
             "---------------------\n");
 
-    if (sc_perf_op_ctx->club_tm == 0) {
-        for (u = 0; u < TVT_MAX; u++) {
-            tv = tv_root[u];
-            //if (pc_heads == NULL || pc_heads[u] == NULL)
-            //    continue;
-
-            while (tv != NULL) {
-                SCMutexLock(&tv->sc_perf_pctx.m);
-                pc = tv->sc_perf_pctx.head;
-
-                while (pc != NULL) {
-                    if (pc->value == NULL) {
-                        pc = pc->next;
-                        continue;
-                    }
-
-                    SCPerfOutputCalculateCounterValue(pc,
-                            &ui64_temp);
-                    fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | "
-                            "%-" PRIu64 "\n", pc->name->cname,
-                            pc->name->tm_name, ui64_temp);
-
-                    pc = pc->next;
-                }
-
-                SCMutexUnlock(&tv->sc_perf_pctx.m);
-                tv = tv->next;
-            }
-            fflush(sc_perf_op_ctx->fp);
-        }
-
-        return 1;
-    }
-
     pctmi = sc_perf_op_ctx->pctmi;
     while (pctmi != NULL) {
         if ((pc_heads = SCMalloc(pctmi->size * sizeof(SCPerfCounter *))) == NULL)
@@ -764,12 +725,8 @@ static int SCPerfOutputCounterFileIface()
 
                 if (pc_heads[u] != NULL)
                     pc_heads[u] = pc_heads[u]->next;
-
-                if (pc_heads[u] == NULL ||
-                    (pc_heads[0] != NULL &&
-                        strcmp(pctmi->tm_name, pc_heads[0]->name->tm_name))) {
-                    flag = 0;
-                }
+                if (pc_heads[u] == NULL)
+                    flag = 1;
             }
 
             if (pc->value == NULL)
@@ -817,62 +774,6 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
         json_object_set_new(answer, "message",
                 json_string("No performance counter context"));
         return TM_ECODE_FAILED;
-    }
-
-    if (sc_perf_op_ctx->club_tm == 0) {
-        json_t *tm_array;
-
-        tm_array = json_object();
-        if (tm_array == NULL) {
-            json_object_set_new(answer, "message",
-                    json_string("internal error at json object creation"));
-            return TM_ECODE_FAILED;
-        }
-
-
-        for (u = 0; u < TVT_MAX; u++) {
-            tv = tv_root[u];
-            //if (pc_heads == NULL || pc_heads[u] == NULL)
-            //    continue;
-
-
-            while (tv != NULL) {
-                SCMutexLock(&tv->sc_perf_pctx.m);
-                pc = tv->sc_perf_pctx.head;
-                json_t *jdata;
-                int filled = 0;
-                jdata = json_object();
-                if (jdata == NULL) {
-                    json_decref(tm_array);
-                    json_object_set_new(answer, "message",
-                            json_string("internal error at json object creation"));
-                    SCMutexUnlock(&tv->sc_perf_pctx.m);
-                    return TM_ECODE_FAILED;
-                }
-
-                while (pc != NULL) {
-                    if (pc->value == NULL) {
-                        pc = pc->next;
-                        continue;
-                    }
-
-                    SCPerfOutputCalculateCounterValue(pc,
-                            &ui64_temp);
-                    json_object_set_new(jdata, pc->name->cname, json_integer(ui64_temp));
-                    filled = 1;
-                    pc = pc->next;
-                }
-
-                SCMutexUnlock(&tv->sc_perf_pctx.m);
-                if (filled == 1) {
-                    json_object_set_new(tm_array, tv->name, jdata);
-                }
-                tv = tv->next;
-            }
-        }
-
-        json_object_set_new(answer, "message", tm_array);
-        return TM_ECODE_OK;
     }
 
     json_t *tm_array;
@@ -927,12 +828,8 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
 
                 if (pc_heads[u] != NULL)
                     pc_heads[u] = pc_heads[u]->next;
-
-                if (pc_heads[u] == NULL ||
-                    (pc_heads[0] != NULL &&
-                        strcmp(pctmi->tm_name, pc_heads[0]->name->tm_name))) {
+                if (pc_heads[u] == NULL)
                     flag = 0;
-                }
             }
 
             if (pc->value == NULL)
