@@ -1203,3 +1203,8 @@ napatech:
 
     # The streams to listen on
     streams: [1, 2, 3]
+
+# Includes.  Files included here will be handled as if they were
+# inlined in this configuration file.
+#include: include1.yaml
+#include: include2.yaml
