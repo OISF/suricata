@@ -2079,7 +2079,7 @@ int DetectContentParseTest41(void)
     DetectContentData *cd = NULL;
     int patlen = 257;
     char *teststring = SCMalloc(sizeof(char) * (patlen + 1));
-    if (teststring == NULL)
+    if (unlikely(teststring == NULL))
         return 0;
     int idx = 0;
     teststring[idx++] = '\"';
@@ -2106,7 +2106,7 @@ int DetectContentParseTest42(void)
     DetectContentData *cd = NULL;
     int patlen = 258;
     char *teststring = SCMalloc(sizeof(char) * (patlen + 1));
-    if (teststring == NULL)
+    if (unlikely(teststring == NULL))
         return 0;
     int idx = 0;
     teststring[idx++] = '\"';
@@ -2133,7 +2133,7 @@ int DetectContentParseTest43(void)
     DetectContentData *cd = NULL;
     int patlen = 260;
     char *teststring = SCMalloc(sizeof(char) * (patlen + 1));
-    if (teststring == NULL)
+    if (unlikely(teststring == NULL))
         return 0;
     int idx = 0;
     teststring[idx++] = '\"';
@@ -2164,7 +2164,7 @@ int DetectContentParseTest44(void)
     DetectContentData *cd = NULL;
     int patlen = 261;
     char *teststring = SCMalloc(sizeof(char) * (patlen + 1));
-    if (teststring == NULL)
+    if (unlikely(teststring == NULL))
         return 0;
     int idx = 0;
     teststring[idx++] = '\"';

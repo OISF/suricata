@@ -382,7 +382,7 @@ CudaBufferData *CudaBufferRegisterNew(uint8_t *d_buffer, uint32_t d_buffer_len,
     }
 
     CudaBufferData *new = SCMalloc(sizeof(CudaBufferData));
-    if (new == NULL) {
+    if (unlikely(new == NULL)) {
         return NULL;
     }
     memset(new, 0, sizeof(CudaBufferData));
@@ -406,7 +406,7 @@ CudaBufferData *CudaBufferRegisterNew(uint8_t *d_buffer, uint32_t d_buffer_len,
 static void *CudaBufferSlicePoolAlloc(void *null)
 {
     void *ptr = SCMalloc(sizeof(CudaBufferSlice));
-    if (ptr == NULL)
+    if (unlikely(ptr == NULL))
         return NULL;
     memset(ptr, 0, sizeof(CudaBufferSlice));
 

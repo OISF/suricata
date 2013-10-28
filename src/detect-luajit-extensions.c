@@ -250,7 +250,7 @@ int LuajitSetFlowvar(lua_State *luastate) {
     }
 
     buffer = SCMalloc(len+1);
-    if (buffer == NULL) {
+    if (unlikely(buffer == NULL)) {
         lua_pushnil(luastate);
         lua_pushstring(luastate, "out of memory");
         return 2;

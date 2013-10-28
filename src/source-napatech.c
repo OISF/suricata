@@ -156,9 +156,8 @@ TmEcode NapatechStreamThreadInit(ThreadVars *tv, void *initdata, void **data)
     SCLogInfo("Napatech  Thread Stream ID:%lu", stream_id);
 
     NapatechThreadVars *ntv = SCMalloc(sizeof(NapatechThreadVars));
-    if (ntv == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-                "Failed to allocate memory for NAPATECH  thread vars.");
+    if (unlikely(ntv == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for NAPATECH  thread vars.");
         exit(EXIT_FAILURE);
     }
 

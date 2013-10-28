@@ -796,7 +796,7 @@ int SCCudaDeviceTotalMem(size_t *bytes, CUdevice dev)
 static SCCudaDevice *SCCudaAllocSCCudaDevice(void)
 {
     SCCudaDevice *device = SCMalloc(sizeof(SCCudaDevice));
-    if (device == NULL)
+    if (unlikely(device == NULL))
         return NULL;
     memset(device, 0 , sizeof(SCCudaDevice));
 
@@ -825,7 +825,7 @@ static void SCCudaDeAllocSCCudaDevice(SCCudaDevice *device)
 static SCCudaDevices *SCCudaAllocSCCudaDevices(void)
 {
     SCCudaDevices *devices = SCMalloc(sizeof(SCCudaDevices));
-    if (devices == NULL)
+    if (unlikely(devices == NULL))
         return NULL;
     memset(devices, 0 , sizeof(SCCudaDevices));
 

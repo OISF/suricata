@@ -157,7 +157,7 @@ static uint8_t *DetectEngineHHDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
 
         /* the extra 4 bytes if for ": " and "\r\n" */
         headers_buffer = SCRealloc(headers_buffer, headers_buffer_len + size1 + size2 + 4);
-        if (headers_buffer == NULL) {
+        if (unlikely(headers_buffer == NULL)) {
             det_ctx->hhd_buffers[index] = NULL;
             det_ctx->hhd_buffers_len[index] = 0;
             goto end;

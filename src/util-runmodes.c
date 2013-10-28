@@ -299,7 +299,7 @@ char *RunmodeAutoFpCreatePickupQueuesString(int n) {
     char qname[TM_QUEUE_NAME_MAX];
 
     queues = SCMalloc(queues_size);
-    if (queues == NULL) {
+    if (unlikely(queues == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "failed to alloc queues buffer: %s", strerror(errno));
         return NULL;
     }

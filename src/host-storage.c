@@ -173,7 +173,7 @@ static int HostStorageTest02(void) {
     }
 
     void *ptr1a = SCMalloc(128);
-    if (ptr1a == NULL) {
+    if (unlikely(ptr1a == NULL)) {
         goto error;
     }
     HostSetStorageById(h, id1, ptr1a);
@@ -228,13 +228,13 @@ static int HostStorageTest03(void) {
     }
 
     void *ptr1a = SCMalloc(128);
-    if (ptr1a == NULL) {
+    if (unlikely(ptr1a == NULL)) {
         goto error;
     }
     HostSetStorageById(h, id1, ptr1a);
 
     void *ptr2a = SCMalloc(256);
-    if (ptr2a == NULL) {
+    if (unlikely(ptr2a == NULL)) {
         goto error;
     }
     HostSetStorageById(h, id2, ptr2a);
