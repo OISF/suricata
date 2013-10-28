@@ -406,10 +406,10 @@ void *FlowManagerThread(void *td)
             SC_PERF_TYPE_UINT64,
             "NULL");
     uint16_t flow_mgr_memuse = SCPerfTVRegisterCounter("flow.memuse", th_v,
-            SC_PERF_TYPE_Q_NORMAL,
+            SC_PERF_TYPE_UINT64,
             "NULL");
     uint16_t flow_mgr_spare = SCPerfTVRegisterCounter("flow.spare", th_v,
-            SC_PERF_TYPE_Q_NORMAL,
+            SC_PERF_TYPE_UINT64,
             "NULL");
     uint16_t flow_emerg_mode_enter = SCPerfTVRegisterCounter("flow.emerg_mode_entered", th_v,
             SC_PERF_TYPE_UINT64,

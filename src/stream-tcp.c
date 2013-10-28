@@ -4500,7 +4500,7 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");
     stt->counter_tcp_memuse = SCPerfTVRegisterCounter("tcp.memuse", tv,
-                                                        SC_PERF_TYPE_Q_NORMAL,
+                                                        SC_PERF_TYPE_UINT64,
                                                         "NULL");
     stt->counter_tcp_syn = SCPerfTVRegisterCounter("tcp.syn", tv,
                                                         SC_PERF_TYPE_UINT64,
@@ -4524,7 +4524,7 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");
     stt->ra_ctx->counter_tcp_reass_memuse = SCPerfTVRegisterCounter("tcp.reassembly_memuse", tv,
-                                                        SC_PERF_TYPE_Q_NORMAL,
+                                                        SC_PERF_TYPE_UINT64,
                                                         "NULL");
     stt->ra_ctx->counter_tcp_reass_gap = SCPerfTVRegisterCounter("tcp.reassembly_gap", tv,
                                                         SC_PERF_TYPE_UINT64,
