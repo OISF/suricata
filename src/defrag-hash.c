@@ -19,6 +19,7 @@
 #include "conf.h"
 #include "defrag-hash.h"
 #include "defrag-queue.h"
+#include "defrag-config.h"
 #include "util-random.h"
 #include "util-byte.h"
 #include "util-misc.h"
@@ -89,6 +90,8 @@ static void DefragTrackerInit(DefragTracker *dt, Packet *p) {
     dt->vlan_id[0] = p->vlan_id[0];
     dt->vlan_id[1] = p->vlan_id[1];
     dt->policy = DefragGetOsPolicy(p);
+    dt->host_timeout = DefragPolicyGetHostTimeout(p);
+
     TAILQ_INIT(&dt->frags);
     (void) DefragTrackerIncrUsecnt(dt);
 }
