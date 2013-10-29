@@ -71,25 +71,17 @@ typedef struct SCPerfCounterName_ {
 } SCPerfCounterName;
 
 /**
- * \brief Holds the counter value, type, and the size of the type
- */
-typedef struct SCPerfCounterValue_ {
-    void *cvalue;
-    uint32_t size;
-    uint32_t type;
-} SCPerfCounterValue;
-
-/**
  * \brief Container to hold the counter variable
  */
 typedef struct SCPerfCounter_ {
     int type;
 
-    SCPerfCounterName *name;
-    SCPerfCounterValue *value;
-
     /* local id for this counter in this tm */
     uint16_t id;
+
+    uint64_t value;
+
+    SCPerfCounterName *name;
 
     /* no of times the local counter has been synced with this counter */
     uint64_t updated;

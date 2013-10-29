@@ -472,14 +472,6 @@ static void SCPerfReleaseCounter(SCPerfCounter *pc)
 
             SCFree(pc->name);
         }
-
-        if (pc->value != NULL) {
-            if (pc->value->cvalue != NULL)
-                SCFree(pc->value->cvalue);
-
-            SCFree(pc->value);
-        }
-
         if (pc->desc != NULL)
             SCFree(pc->desc);
 
@@ -549,14 +541,6 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
         return 0;
     }
     memset(pc->name, 0, sizeof(SCPerfCounterName));
-
-    if ( (pc->value = SCMalloc(sizeof(SCPerfCounterValue))) == NULL) {
-        SCFree(pc->name);
-        SCFree(pc);
-        return 0;
-    }
-    memset(pc->value, 0, sizeof(SCPerfCounterValue));
-
     if ( (pc->name->cname = SCStrdup(cname)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
@@ -577,13 +561,6 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
     }
 
     pc->type = type_q;
-    /* allocate memory to hold this counter value */
-    pc->value->type = type;
-    pc->value->size = sizeof(uint64_t);
-
-    if ( (pc->value->cvalue = SCMalloc(pc->value->size)) == NULL)
-        return 0;
-    memset(pc->value->cvalue, 0, pc->value->size);
 
     /* we now add the counter to the list */
     if (prev == NULL)
@@ -613,9 +590,9 @@ static void SCPerfCopyCounterValue(SCPCAElem *pcae)
     if (pc->type == SC_PERF_TYPE_Q_AVERAGE) {
         if (pcae->syncs != 0)
             ui64_temp /= pcae->syncs;
-        *((uint64_t *)pc->value->cvalue) = ui64_temp;
+        pc->value = ui64_temp;
     } else {
-        *((uint64_t *)pc->value->cvalue) = ui64_temp;
+        pc->value = ui64_temp;
     }
 
     return;
@@ -634,10 +611,9 @@ static void SCPerfCopyCounterValue(SCPCAElem *pcae)
  * \param pc Pointer to the PerfCounter for which the timebased counter has to
  *           be calculated
  */
-static void SCPerfOutputCalculateCounterValue(SCPerfCounter *pc, void *cvalue_op)
+static uint64_t SCPerfOutputCalculateCounterValue(SCPerfCounter *pc)
 {
-    *((uint64_t *)cvalue_op) = *((uint64_t *)pc->value->cvalue);
-    return;
+    return pc->value;
 }
 
 /**
@@ -715,7 +691,7 @@ static int SCPerfOutputCounterFileIface()
             pc = pc_heads[0];
 
             for (u = 0; u < pctmi->size; u++) {
-                SCPerfOutputCalculateCounterValue(pc_heads[u], &ui64_temp);
+                ui64_temp = SCPerfOutputCalculateCounterValue(pc_heads[u]);
                 ui64_result += ui64_temp;
 
                 if (pc_heads[u] != NULL)
@@ -723,9 +699,6 @@ static int SCPerfOutputCounterFileIface()
                 if (pc_heads[u] == NULL)
                     flag = 1;
             }
-
-            if (pc->value == NULL)
-                continue;
 
             fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | %-" PRIu64 "\n",
                     pc->name->cname, pctmi->tm_name, ui64_result);
@@ -818,7 +791,7 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
             pc = pc_heads[0];
 
             for (u = 0; u < pctmi->size; u++) {
-                SCPerfOutputCalculateCounterValue(pc_heads[u], &ui64_temp);
+                ui64_temp = SCPerfOutputCalculateCounterValue(pc_heads[u]);
                 ui64_result += ui64_temp;
 
                 if (pc_heads[u] != NULL)
@@ -826,9 +799,6 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
                 if (pc_heads[u] == NULL)
                     flag = 0;
             }
-
-            if (pc->value == NULL)
-                continue;
 
             filled = 1;
             json_object_set_new(jdata, pc->name->cname, json_integer(ui64_result));
@@ -1575,9 +1545,9 @@ static int SCPerfTestUpdateGlobalCounter10()
 
     SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx);
 
-    result = (1 == *((uint64_t *)tv.sc_perf_pctx.head->value->cvalue) );
-    result &= (100 == *((uint64_t *)tv.sc_perf_pctx.head->next->value->cvalue) );
-    result &= (101 == *((uint64_t *)tv.sc_perf_pctx.head->next->next->value->cvalue) );
+    result = (1 == tv.sc_perf_pctx.head->value);
+    result &= (100 == tv.sc_perf_pctx.head->next->value);
+    result &= (101 == tv.sc_perf_pctx.head->next->next->value);
 
     SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
     SCPerfReleasePCA(pca);
@@ -1613,17 +1583,13 @@ static int SCPerfTestCounterValues11()
 
     SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx);
 
-    uint64_t *u64p = (uint64_t *)tv.sc_perf_pctx.head->value->cvalue;
-    result &= (1 == *u64p);
+    result &= (1 == tv.sc_perf_pctx.head->value);
 
-    u64p = (uint64_t *)tv.sc_perf_pctx.head->next->value->cvalue;
-    result &= (256 == *u64p);
+    result &= (256 == tv.sc_perf_pctx.head->next->value);
 
-    u64p = (uint64_t *)tv.sc_perf_pctx.head->next->next->value->cvalue;
-    result &= (257 == *u64p);
+    result &= (257 == tv.sc_perf_pctx.head->next->next->value);
 
-    u64p = (uint64_t *)tv.sc_perf_pctx.head->next->next->next->value->cvalue;
-    result &= (16843024 == *u64p);
+    result &= (16843024 == tv.sc_perf_pctx.head->next->next->next->value);
 
     SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
     SCPerfReleasePCA(pca);
