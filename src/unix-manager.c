@@ -876,7 +876,7 @@ void *UnixManagerThread(void *td)
                 close(item->fd);
                 SCFree(item);
             }
-            SCPerfSyncCounters(th_v, 0);
+            SCPerfSyncCounters(th_v);
             break;
         }
 

@@ -724,9 +724,6 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
     uint64_t ui64_temp = 0;
     uint64_t ui64_result = 0;
 
-    double double_temp = 0;
-    double double_result = 0;
-
     uint32_t u = 0;
     int flag = 0;
 
@@ -769,7 +766,7 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
 
             SCMutexLock(&pctmi->head[u]->m);
 
-            while(pc_heads[u] != NULL && strcmp(pctmi->tm_name, pc_heads[u]->name->tm_name)) {
+            while(pc_heads[u] != NULL && strcmp(pctmi->tm_name, pc_heads[u]->tm_name)) {
                 pc_heads[u] = pc_heads[u]->next;
             }
         }
@@ -777,7 +774,6 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
         flag = 1;
         while(flag) {
             ui64_result = 0;
-            double_result = 0;
             if (pc_heads[0] == NULL)
                 break;
             pc = pc_heads[0];
@@ -793,7 +789,7 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
             }
 
             filled = 1;
-            json_object_set_new(jdata, pc->name->cname, json_integer(ui64_result));
+            json_object_set_new(jdata, pc->cname, json_integer(ui64_result));
         }
 
         for (u = 0; u < pctmi->size; u++)

@@ -63,14 +63,6 @@ enum {
 };
 
 /**
- * \brief Name of the counter.  Basically like a primary key for a counter
- */
-typedef struct SCPerfCounterName_ {
-    char *cname;
-    char *tm_name;
-} SCPerfCounterName;
-
-/**
  * \brief Container to hold the counter variable
  */
 typedef struct SCPerfCounter_ {
