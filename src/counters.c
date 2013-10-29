@@ -667,19 +667,15 @@ static int SCPerfOutputCounterFileIface()
 
         for (u = 0; u < pctmi->size; u++) {
             pc_heads[u] = pctmi->head[u]->head;
-
             SCMutexLock(&pctmi->head[u]->m);
-
-            while(pc_heads[u] != NULL && strcmp(pctmi->tm_name, pc_heads[u]->tm_name)) {
-                pc_heads[u] = pc_heads[u]->next;
-            }
         }
 
         flag = 1;
-        while(flag) {
+        while (flag) {
             ui64_result = 0;
             if (pc_heads[0] == NULL)
                 break;
+            /* keep ptr to first pc to we can use it to print the cname */
             pc = pc_heads[0];
 
             for (u = 0; u < pctmi->size; u++) {
@@ -716,7 +712,6 @@ static int SCPerfOutputCounterFileIface()
 TmEcode SCPerfOutputCounterSocket(json_t *cmd,
                                json_t *answer, void *data)
 {
-    ThreadVars *tv = NULL;
     SCPerfClubTMInst *pctmi = NULL;
     SCPerfCounter *pc = NULL;
     SCPerfCounter **pc_heads = NULL;
@@ -765,10 +760,6 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
             pc_heads[u] = pctmi->head[u]->head;
 
             SCMutexLock(&pctmi->head[u]->m);
-
-            while(pc_heads[u] != NULL && strcmp(pctmi->tm_name, pc_heads[u]->tm_name)) {
-                pc_heads[u] = pc_heads[u]->next;
-            }
         }
 
         flag = 1;
@@ -794,6 +785,7 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
 
         for (u = 0; u < pctmi->size; u++)
             SCMutexUnlock(&pctmi->head[u]->m);
+
         if (filled == 1) {
             json_object_set_new(tm_array, pctmi->tm_name, jdata);
         }
