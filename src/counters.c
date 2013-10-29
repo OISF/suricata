@@ -463,15 +463,12 @@ static void *SCPerfWakeupThread(void *arg)
 static void SCPerfReleaseCounter(SCPerfCounter *pc)
 {
     if (pc != NULL) {
-        if (pc->name != NULL) {
-            if (pc->name->cname != NULL)
-                SCFree(pc->name->cname);
+        if (pc->cname != NULL)
+            SCFree(pc->cname);
 
-            if (pc->name->tm_name != NULL)
-                SCFree(pc->name->tm_name);
+        if (pc->tm_name != NULL)
+            SCFree(pc->tm_name);
 
-            SCFree(pc->name);
-        }
         if (pc->desc != NULL)
             SCFree(pc->desc);
 
@@ -519,8 +516,8 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
     while (temp != NULL) {
         prev = temp;
 
-        if (strcmp(cname, temp->name->cname) == 0 &&
-            strcmp(tm_name, temp->name->tm_name) == 0) {
+        if (strcmp(cname, temp->cname) == 0 &&
+            strcmp(tm_name, temp->tm_name) == 0) {
             break;
         }
 
@@ -536,17 +533,12 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
         return 0;
     memset(pc, 0, sizeof(SCPerfCounter));
 
-    if ( (pc->name = SCMalloc(sizeof(SCPerfCounterName))) == NULL) {
-        SCFree(pc);
-        return 0;
-    }
-    memset(pc->name, 0, sizeof(SCPerfCounterName));
-    if ( (pc->name->cname = SCStrdup(cname)) == NULL) {
+    if ( (pc->cname = SCStrdup(cname)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
 
-    if ( (pc->name->tm_name = SCStrdup(tm_name)) == NULL) {
+    if ( (pc->tm_name = SCStrdup(tm_name)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
@@ -678,7 +670,7 @@ static int SCPerfOutputCounterFileIface()
 
             SCMutexLock(&pctmi->head[u]->m);
 
-            while(pc_heads[u] != NULL && strcmp(pctmi->tm_name, pc_heads[u]->name->tm_name)) {
+            while(pc_heads[u] != NULL && strcmp(pctmi->tm_name, pc_heads[u]->tm_name)) {
                 pc_heads[u] = pc_heads[u]->next;
             }
         }
@@ -701,7 +693,7 @@ static int SCPerfOutputCounterFileIface()
             }
 
             fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | %-" PRIu64 "\n",
-                    pc->name->cname, pctmi->tm_name, ui64_result);
+                    pc->cname, pctmi->tm_name, ui64_result);
         }
 
         for (u = 0; u < pctmi->size; u++)

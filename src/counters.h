@@ -81,10 +81,13 @@ typedef struct SCPerfCounter_ {
 
     uint64_t value;
 
-    SCPerfCounterName *name;
-
     /* no of times the local counter has been synced with this counter */
     uint64_t updated;
+
+    /* name of the counter */
+    char *cname;
+    /* name of the thread module this counter is registered to */
+    char *tm_name;
 
     /* the next perfcounter for this tv's tm instance */
     struct SCPerfCounter_ *next;
