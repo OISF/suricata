@@ -168,7 +168,7 @@ Packet *PacketGetFromQueueOrAlloc(void)
  */
 inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datalen)
 {
-    if (offset + datalen > MAX_PAYLOAD_SIZE) {
+    if (unlikely(offset + datalen > MAX_PAYLOAD_SIZE)) {
         /* too big */
         return -1;
     }
@@ -181,7 +181,7 @@ inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datale
         } else {
             /* here we need a dynamic allocation */
             p->ext_pkt = SCMalloc(MAX_PAYLOAD_SIZE);
-            if (p->ext_pkt == NULL) {
+            if (unlikely(p->ext_pkt == NULL)) {
                 SET_PKT_LEN(p, 0);
                 return -1;
             }
@@ -225,7 +225,7 @@ Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
 
     /* get us a packet */
     Packet *p = PacketGetFromQueueOrAlloc();
-    if (p == NULL) {
+    if (unlikely(p == NULL)) {
         SCReturnPtr(NULL, "Packet");
     }
 
@@ -279,7 +279,7 @@ Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
 
     /* get us a packet */
     Packet *p = PacketGetFromQueueOrAlloc();
-    if (p == NULL) {
+    if (unlikely(p == NULL)) {
         SCReturnPtr(NULL, "Packet");
     }
 
@@ -454,7 +454,7 @@ DecodeThreadVars *DecodeThreadVarsAlloc()
 inline int PacketSetData(Packet *p, uint8_t *pktdata, int pktlen)
 {
     SET_PKT_LEN(p, (size_t)pktlen);
-    if (!pktdata) {
+    if (unlikely(!pktdata)) {
         return -1;
     }
     p->ext_pkt = pktdata;

@@ -63,7 +63,7 @@ static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
             /* we already know that the total options len is valid,
              * so here the len of the specific option must be bad.
              * Also check for invalid lengths 0 and 1. */
-            if (*(pkt+1) > plen || *(pkt+1) < 2) {
+            if (unlikely(*(pkt+1) > plen || *(pkt+1) < 2)) {
                 ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                 return -1;
             }

@@ -42,13 +42,13 @@ void DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *p
 {
     SCPerfCounterIncr(dtv->counter_eth, tv->sc_perf_pca);
 
-    if (len < ETHERNET_HEADER_LEN) {
+    if (unlikely(len < ETHERNET_HEADER_LEN)) {
         ENGINE_SET_EVENT(p,ETHERNET_PKT_TOO_SMALL);
         return;
     }
 
     p->ethh = (EthernetHdr *)pkt;
-    if (p->ethh == NULL)
+    if (unlikely(p->ethh == NULL))
         return;
 
     SCLogDebug("p %p pkt %p ether type %04x", p, pkt, ntohs(p->ethh->eth_type));

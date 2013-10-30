@@ -88,9 +88,9 @@ static void DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uin
         return;
     }
     if (IP_GET_RAW_VER(pkt) == 6) {
-        if (pq != NULL) {
+        if (unlikely(pq != NULL)) {
             Packet *tp = PacketPseudoPktSetup(p, pkt, plen, IPPROTO_IPV6);
-            if (tp != NULL) {
+            if (unlikely(tp != NULL)) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
                 DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
                              GET_PKT_LEN(tp), pq, IPPROTO_IPV6);
@@ -504,11 +504,11 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
 
 static int DecodeIPV6Packet (ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len)
 {
-    if (len < IPV6_HEADER_LEN) {
+    if (unlikely(len < IPV6_HEADER_LEN)) {
         return -1;
     }
 
-    if (IP_GET_RAW_VER(pkt) != 6) {
+    if (unlikely(IP_GET_RAW_VER(pkt) != 6)) {
         SCLogDebug("wrong ip version %" PRIu8 "",IP_GET_RAW_VER(pkt));
         ENGINE_SET_EVENT(p,IPV6_WRONG_IP_VER);
         return -1;
@@ -516,7 +516,7 @@ static int DecodeIPV6Packet (ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
 
     p->ip6h = (IPV6Hdr *)pkt;
 
-    if (len < (IPV6_HEADER_LEN + IPV6_GET_PLEN(p)))
+    if (unlikely(len < (IPV6_HEADER_LEN + IPV6_GET_PLEN(p))))
     {
         ENGINE_SET_EVENT(p,IPV6_TRUNC_PKT);
         return -1;
@@ -536,7 +536,7 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
 
     /* do the actual decoding */
     ret = DecodeIPV6Packet (tv, dtv, p, pkt, len);
-    if (ret < 0) {
+    if (unlikely(ret < 0)) {
         p->ip6h = NULL;
         return;
     }

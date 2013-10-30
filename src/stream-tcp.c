@@ -4763,23 +4763,23 @@ int StreamTcpGetFlowState(void *s)
     SCEnter();
 
     TcpSession *ssn = (TcpSession *)s;
-    if (ssn == NULL) {
+    if (unlikely(ssn == NULL)) {
         SCReturnInt(FLOW_STATE_CLOSED);
     }
 
+    /* sorted most likely to least likely */
     switch(ssn->state) {
-        case TCP_NONE:
-        case TCP_SYN_SENT:
-        case TCP_SYN_RECV:
-        case TCP_LISTEN:
-            SCReturnInt(FLOW_STATE_NEW);
-
         case TCP_ESTABLISHED:
         case TCP_FIN_WAIT1:
         case TCP_FIN_WAIT2:
         case TCP_CLOSING:
         case TCP_CLOSE_WAIT:
             SCReturnInt(FLOW_STATE_ESTABLISHED);
+        case TCP_NONE:
+        case TCP_SYN_SENT:
+        case TCP_SYN_RECV:
+        case TCP_LISTEN:
+            SCReturnInt(FLOW_STATE_NEW);
         case TCP_LAST_ACK:
         case TCP_TIME_WAIT:
         case TCP_CLOSED:
