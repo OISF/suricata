@@ -73,9 +73,6 @@ typedef struct SCPerfCounter_ {
 
     uint64_t value;
 
-    /* no of times the local counter has been synced with this counter */
-    uint64_t updated;
-
     /* name of the counter */
     char *cname;
     /* name of the thread module this counter is registered to */

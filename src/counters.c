@@ -1216,8 +1216,6 @@ int SCPerfUpdateCounterArray(SCPerfCounterArray *pca, SCPerfContext *pctx)
 
             SCPerfCopyCounterValue(&pcae[i]);
 
-            pc->updated++;
-
             pc = pc->next;
             break;
         }
