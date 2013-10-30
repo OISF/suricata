@@ -685,7 +685,7 @@ static int SCPerfOutputCounterFileIface()
                 if (pc_heads[u] != NULL)
                     pc_heads[u] = pc_heads[u]->next;
                 if (pc_heads[u] == NULL)
-                    flag = 1;
+                    flag = 0;
             }
 
             fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | %-" PRIu64 "\n",
