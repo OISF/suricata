@@ -102,13 +102,13 @@ static int IPV4OptValidateRoute(Packet *p, const IPV4Opt *o) {
     uint8_t ptr;
 
     /* Check length */
-    if (o->len < IPV4_OPT_ROUTE_MIN) {
+    if (unlikely(o->len < IPV4_OPT_ROUTE_MIN)) {
         ENGINE_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
         return -1;
     }
 
     /* Data is required */
-    if (o->data == NULL) {
+    if (unlikely(o->data == NULL)) {
         ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
         return -1;
     }
@@ -118,7 +118,7 @@ static int IPV4OptValidateRoute(Packet *p, const IPV4Opt *o) {
      * must be a incremented by 4 bytes (address size) and cannot extend
      * past option length.
      */
-    if ((ptr < 4) || (ptr % 4) || (ptr > o->len + 1)) {
+    if (unlikely((ptr < 4) || (ptr % 4) || (ptr > o->len + 1))) {
         ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
         return -1;
     }
@@ -139,20 +139,20 @@ static int IPV4OptValidateTimestamp(Packet *p, const IPV4Opt *o) {
     uint8_t rec_size;
 
     /* Check length */
-    if (o->len < IPV4_OPT_TS_MIN) {
+    if (unlikely(o->len < IPV4_OPT_TS_MIN)) {
         ENGINE_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
         return -1;
     }
 
     /* Data is required */
-    if (o->data == NULL) {
+    if (unlikely(o->data == NULL)) {
         ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
         return -1;
     }
     ptr = *o->data;
 
     /* We need the flag to determine what is in the option payload */
-    if (ptr < 5) {
+    if (unlikely(ptr < 5)) {
         ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
         return -1;
     }
@@ -165,7 +165,7 @@ static int IPV4OptValidateTimestamp(Packet *p, const IPV4Opt *o) {
      * type+len+ptr+ovfl+flag, must be incremented by by the rec_size
      * and cannot extend past option length.
      */
-    if (((ptr - 5) % rec_size) || (ptr > o->len + 1)) {
+    if (unlikely(((ptr - 5) % rec_size) || (ptr > o->len + 1))) {
         ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
         return -1;
     }
@@ -186,13 +186,13 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
     uint16_t len;
 
     /* Check length */
-    if (o->len < IPV4_OPT_CIPSO_MIN) {
+    if (unlikely(o->len < IPV4_OPT_CIPSO_MIN)) {
         ENGINE_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
         return -1;
     }
 
     /* Data is required */
-    if (o->data == NULL) {
+    if (unlikely(o->data == NULL)) {
         ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
         return -1;
     }
@@ -201,14 +201,14 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
     len = o->len - 1 - 1 - 4; /* Length of tags after header */
 
 
+#if 0
     /* Domain of Interest (DOI) of 0 is reserved and thus invalid */
     /** \todo Aparently a DOI of zero is fine in practice - verify. */
     if (doi == 0) {
-#if 0
         ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
         return -1;
-#endif
     }
+#endif
 
     /* NOTE: We know len has passed min tests prior to this call */
 
@@ -220,7 +220,7 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
         uint8_t tlen;
 
         /* Tag header must fit within option length */
-        if (len < 2) {
+        if (unlikely(len < 2)) {
             //printf("CIPSO tag header too large %" PRIu16 " < 2\n", len);
             ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
             return -1;
@@ -231,25 +231,20 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
         tlen = *(tag++);
 
         /* Tag length must fit within the option length */
-        if (tlen > len) {
+        if (unlikely(tlen > len)) {
             //printf("CIPSO tag len too large %" PRIu8 " > %" PRIu16 "\n", tlen, len);
             ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
             return -1;
         }
 
         switch(ttype) {
-            case 0:
-                /* Tag type 0 is reserved and thus invalid */
-                /** \todo Wireshark marks this a padding, but spec says reserved. */
-                ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
-                return -1;
             case 1:
             case 2:
             case 5:
             case 6:
             case 7:
                 /* Tag is at least 4 and at most the remainder of option len */
-                if ((tlen < 4) || (tlen > len)) {
+                if (unlikely((tlen < 4) || (tlen > len))) {
                     //printf("CIPSO tag %" PRIu8 " bad tlen=%" PRIu8 " len=%" PRIu8 "\n", ttype, tlen, len);
                     ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
                     return -1;
@@ -258,7 +253,7 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
                 /* The alignment octet is always 0 except tag
                  * type 7, which has no such field.
                  */
-                if ((ttype != 7) && (*tag != 0)) {
+                if (unlikely((ttype != 7) && (*tag != 0))) {
                     //printf("CIPSO tag %" PRIu8 " ao=%" PRIu8 "\n", ttype, tlen);
                     ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
                     return -1;
@@ -269,6 +264,11 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
                 len -= tlen;
 
                 continue;
+            case 0:
+                /* Tag type 0 is reserved and thus invalid */
+                /** \todo Wireshark marks this a padding, but spec says reserved. */
+                ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
+                return -1;
             default:
                 //printf("CIPSO tag %" PRIu8 " unknown tag\n", ttype);
                 ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
@@ -324,7 +324,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
 
         /* multibyte options */
         } else {
-            if (plen < 2) {
+            if (unlikely(plen < 2)) {
                 /** \todo What if padding is non-zero (possible covert channel or data leakage)? */
                 /** \todo Spec seems to indicate EOL required if there is padding */
                 ENGINE_SET_EVENT(p,IPV4_OPT_EOL_REQUIRED);
@@ -332,7 +332,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
             }
 
             /* Option length is too big for packet */
-            if (*(pkt+1) > plen) {
+            if (unlikely(*(pkt+1) > plen)) {
                 ENGINE_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
                 return -1;
             }
@@ -351,8 +351,8 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
             /* we already know that the total options len is valid,
              * so here the len of the specific option must be bad.
              * Also check for invalid lengths 0 and 1. */
-            if (p->IPV4_OPTS[p->IPV4_OPTS_CNT].len > plen ||
-                p->IPV4_OPTS[p->IPV4_OPTS_CNT].len < 2) {
+            if (unlikely(p->IPV4_OPTS[p->IPV4_OPTS_CNT].len > plen ||
+                         p->IPV4_OPTS[p->IPV4_OPTS_CNT].len < 2)) {
                 ENGINE_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
                 return -1;
             }

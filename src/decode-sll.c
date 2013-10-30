@@ -40,13 +40,13 @@ void DecodeSll(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 {
     SCPerfCounterIncr(dtv->counter_sll, tv->sc_perf_pca);
 
-    if (len < SLL_HEADER_LEN) {
+    if (unlikely(len < SLL_HEADER_LEN)) {
         ENGINE_SET_EVENT(p,SLL_PKT_TOO_SMALL);
         return;
     }
 
     SllHdr *sllh = (SllHdr *)pkt;
-    if (sllh == NULL)
+    if (unlikely(sllh == NULL))
         return;
 
     SCLogDebug("p %p pkt %p sll_protocol %04x", p, pkt, ntohs(sllh->sll_protocol));

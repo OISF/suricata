@@ -42,19 +42,19 @@
 
 static int DecodeUDPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 {
-    if (len < UDP_HEADER_LEN) {
+    if (unlikely(len < UDP_HEADER_LEN)) {
         ENGINE_SET_EVENT(p, UDP_HLEN_TOO_SMALL);
         return -1;
     }
 
     p->udph = (UDPHdr *)pkt;
 
-    if (len < UDP_GET_LEN(p)) {
+    if (unlikely(len < UDP_GET_LEN(p))) {
         ENGINE_SET_EVENT(p, UDP_PKT_TOO_SMALL);
         return -1;
     }
 
-    if (len != UDP_GET_LEN(p)) {
+    if (unlikely(len != UDP_GET_LEN(p))) {
         ENGINE_SET_EVENT(p, UDP_HLEN_INVALID);
         return -1;
     }
@@ -74,7 +74,7 @@ void DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 {
     SCPerfCounterIncr(dtv->counter_udp, tv->sc_perf_pca);
 
-    if (DecodeUDPPacket(tv, p,pkt,len) < 0) {
+    if (unlikely(DecodeUDPPacket(tv, p,pkt,len) < 0)) {
         p->udph = NULL;
         return;
     }
@@ -82,7 +82,7 @@ void DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     SCLogDebug("UDP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 "",
         UDP_GET_SRC_PORT(p), UDP_GET_DST_PORT(p), UDP_HEADER_LEN, p->payload_len);
 
-    if (DecodeTeredo(tv, dtv, p, p->payload, p->payload_len, pq) == 1) {
+    if (unlikely(DecodeTeredo(tv, dtv, p, p->payload, p->payload_len, pq) == 1)) {
         /* Here we have a Teredo packet and don't need to handle app
          * layer */
         FlowHandlePacket(tv, p);
@@ -93,7 +93,7 @@ void DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     FlowHandlePacket(tv, p);
 
     /* handle the app layer part of the UDP packet payload */
-    if (p->flow != NULL) {
+    if (unlikely(p->flow != NULL)) {
         AppLayerHandleUdp(&dtv->udp_dp_ctx, p->flow, p);
     }
 

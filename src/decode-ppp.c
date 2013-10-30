@@ -44,13 +44,13 @@ void DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 {
     SCPerfCounterIncr(dtv->counter_ppp, tv->sc_perf_pca);
 
-    if(len < PPP_HEADER_LEN)    {
+    if (unlikely(len < PPP_HEADER_LEN)) {
         ENGINE_SET_EVENT(p,PPP_PKT_TOO_SMALL);
         return;
     }
 
     p->ppph = (PPPHdr *)pkt;
-    if(p->ppph == NULL)
+    if (unlikely(p->ppph == NULL))
         return;
 
     SCLogDebug("p %p pkt %p PPP protocol %04x Len: %" PRId32 "",
@@ -58,6 +58,36 @@ void DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
     switch (ntohs(p->ppph->protocol))
     {
+        case PPP_VJ_UCOMP:
+            if (unlikely(len < (PPP_HEADER_LEN + IPV4_HEADER_LEN))) {
+                ENGINE_SET_EVENT(p,PPPVJU_PKT_TOO_SMALL);
+                return;
+            }
+
+            if (likely(IPV4_GET_RAW_VER((IPV4Hdr *)(pkt + PPP_HEADER_LEN)) == 4)) {
+                DecodeIPV4(tv, dtv, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN, pq);
+            }
+            break;
+
+        case PPP_IP:
+            if (unlikely(len < (PPP_HEADER_LEN + IPV4_HEADER_LEN))) {
+                ENGINE_SET_EVENT(p,PPPIPV4_PKT_TOO_SMALL);
+                return;
+            }
+
+            DecodeIPV4(tv, dtv, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN, pq);
+            break;
+
+            /* PPP IPv6 was not tested */
+        case PPP_IPV6:
+            if (unlikely(len < (PPP_HEADER_LEN + IPV6_HEADER_LEN))) {
+                ENGINE_SET_EVENT(p,PPPIPV6_PKT_TOO_SMALL);
+                return;
+            }
+
+            DecodeIPV6(tv, dtv, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN, pq);
+            break;
+
         case PPP_VJ_COMP:
         case PPP_IPX:
         case PPP_OSI:
@@ -87,37 +117,6 @@ void DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
         case PPP_LQM:
         case PPP_CHAP:
             ENGINE_SET_EVENT(p,PPP_UNSUP_PROTO);
-            break;
-
-        case PPP_VJ_UCOMP:
-
-            if(len < (PPP_HEADER_LEN + IPV4_HEADER_LEN))    {
-                ENGINE_SET_EVENT(p,PPPVJU_PKT_TOO_SMALL);
-                return;
-            }
-
-            if(IPV4_GET_RAW_VER((IPV4Hdr *)(pkt + PPP_HEADER_LEN)) == 4) {
-                DecodeIPV4(tv, dtv, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN, pq);
-            }
-            break;
-
-        case PPP_IP:
-            if(len < (PPP_HEADER_LEN + IPV4_HEADER_LEN))    {
-                ENGINE_SET_EVENT(p,PPPIPV4_PKT_TOO_SMALL);
-                return;
-            }
-
-            DecodeIPV4(tv, dtv, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN, pq);
-            break;
-
-            /* PPP IPv6 was not tested */
-        case PPP_IPV6:
-            if(len < (PPP_HEADER_LEN + IPV6_HEADER_LEN))    {
-                ENGINE_SET_EVENT(p,PPPIPV6_PKT_TOO_SMALL);
-                return;
-            }
-
-            DecodeIPV6(tv, dtv, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN, pq);
             break;
 
         default:

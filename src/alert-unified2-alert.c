@@ -406,7 +406,7 @@ TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, Pa
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
     aun->xff_flags = UNIFIED2_ALERT_XFF_DISABLED;
 
-    if (p->alerts.cnt == 0 && !(p->flags & PKT_HAS_TAG))
+    if (likely(p->alerts.cnt == 0 && !(p->flags & PKT_HAS_TAG)))
         return TM_ECODE_OK;
 
     /* overwrite mode can only work per u2 block, not per individual
@@ -878,16 +878,18 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
 {
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
     Unified2AlertFileHeader hdr;
-    AlertIPv6Unified2 *phdr = (AlertIPv6Unified2 *)(aun->data +
-                                sizeof(Unified2AlertFileHeader));
+    AlertIPv6Unified2 *phdr;
     AlertIPv6Unified2 gphdr;
     PacketAlert *pa;
     int offset, length;
     int ret;
     unsigned int event_id;
 
-    if (p->alerts.cnt == 0 && !(p->flags & PKT_HAS_TAG))
+    if (likely(p->alerts.cnt == 0 && !(p->flags & PKT_HAS_TAG)))
         return 0;
+
+    phdr = (AlertIPv6Unified2 *)(aun->data +
+                                sizeof(Unified2AlertFileHeader));
 
     length = (sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv6Unified2));
     offset = length;
@@ -1062,16 +1064,18 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
 {
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
     Unified2AlertFileHeader hdr;
-    AlertIPv4Unified2 *phdr = (AlertIPv4Unified2 *)(aun->data +
-                                sizeof(Unified2AlertFileHeader));
+    AlertIPv4Unified2 *phdr;
     AlertIPv4Unified2 gphdr;
     PacketAlert *pa;
     int offset, length;
     int ret;
     unsigned int event_id;
 
-    if (p->alerts.cnt == 0 && !(p->flags & PKT_HAS_TAG))
+    if (likely(p->alerts.cnt == 0 && !(p->flags & PKT_HAS_TAG)))
         return 0;
+
+    phdr = (AlertIPv4Unified2 *)(aun->data +
+                                sizeof(Unified2AlertFileHeader));
 
     length = (sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv4Unified2));
     offset = length;
