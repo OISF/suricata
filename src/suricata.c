@@ -2139,6 +2139,7 @@ int main(int argc, char **argv)
     if (suri.delayed_detect) {
         if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
             exit(EXIT_FAILURE);
+        de_ctx->delayed_detect_initialized = 1;
         TmThreadActivateDummySlot();
         SCLogNotice("Signature(s) loaded, Detect thread(s) activated.");
     }

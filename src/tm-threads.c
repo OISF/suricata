@@ -1063,7 +1063,6 @@ void TmSlotSetFuncAppendDelayed(ThreadVars *tv, TmModule *tm, void *data,
     dslot->SlotFunc = SC_ATOMIC_GET(slot->SlotFunc);
     (void)SC_ATOMIC_SET(slot->SlotFunc, TmDummyFunc);
     dslot->SlotThreadInit = slot->SlotThreadInit;
-    slot->SlotThreadInit = NULL;
     dslot->slot = slot;
 
     TAILQ_INSERT_TAIL(&dummy_slots, dslot, next);

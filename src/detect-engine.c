@@ -1210,11 +1210,37 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
     return TM_ECODE_OK;
 }
 
+/** \brief initialize thread specific detection engine context
+ *
+ *  \note there is a special case when using delayed detect. In this case the
+ *        function is called twice per thread. The first time the rules are not
+ *        yet loaded. de_ctx->delayed_detect_initialized will be 0. The 2nd
+ *        time they will be loaded. de_ctx->delayed_detect_initialized will be 1.
+ *        This is needed to do the per thread counter registration before the
+ *        packet runtime starts. In delayed detect mode, the first call will
+ *        return a NULL ptr through the data ptr.
+ *
+ *  \param tv ThreadVars for this thread
+ *  \param initdata pointer to de_ctx
+ *  \param data[out] pointer to store our thread detection ctx
+ *
+ *  \retval TM_ECODE_OK if all went well
+ *  \retval TM_ECODE_FAILED on serious erro
+ */
 TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
 {
     DetectEngineCtx *de_ctx = (DetectEngineCtx *)initdata;
     if (de_ctx == NULL)
         return TM_ECODE_FAILED;
+
+    /* first register the counter. In delayed detect mode we exit right after if the
+     * rules haven't been loaded yet. */
+    uint16_t counter_alerts = SCPerfTVRegisterCounter("detect.alert", tv,
+                                                      SC_PERF_TYPE_UINT64, "NULL");
+    if (de_ctx->delayed_detect == 1 && de_ctx->delayed_detect_initialized == 0) {
+        *data = NULL;
+        return TM_ECODE_OK;
+    }
 
     DetectEngineThreadCtx *det_ctx = SCMalloc(sizeof(DetectEngineThreadCtx));
     if (unlikely(det_ctx == NULL))
@@ -1228,8 +1254,7 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
         return TM_ECODE_FAILED;
 
     /** alert counter setup */
-    det_ctx->counter_alerts = SCPerfTVRegisterCounter("detect.alert", tv,
-                                                      SC_PERF_TYPE_UINT64, "NULL");
+    det_ctx->counter_alerts = counter_alerts;
 
     /* pass thread data back to caller */
     *data = (void *)det_ctx;
