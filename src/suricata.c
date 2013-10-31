@@ -1917,8 +1917,7 @@ int main(int argc, char **argv)
 
     suri.rule_reload = IsRuleReloadSet(FALSE);
 
-    AppLayerDetectProtoThreadInit();
-    AppLayerParsersInitPostProcess();
+    AppLayerSetup();
 
     if (suri.run_mode == RUNMODE_DUMP_CONFIG) {
         ConfDump();

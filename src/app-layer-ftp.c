@@ -285,14 +285,37 @@ static void FTPStateFree(void *s) {
 #endif
 }
 
+static int FTPRegisterPatternsForProtocolDetection(void)
+{
+    if (AlpdPMRegisterPatternCI(alpd_ctx, IPPROTO_TCP, ALPROTO_FTP,
+                                "USER ", 5, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCI(alpd_ctx, IPPROTO_TCP, ALPROTO_FTP,
+                                "PASS ", 5, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCI(alpd_ctx, IPPROTO_TCP, ALPROTO_FTP,
+                                "PORT ", 5, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
 void RegisterFTPParsers(void) {
     char *proto_name = "ftp";
 
     /** FTP */
     if (AppLayerProtoDetectionEnabled(proto_name)) {
-        AlpProtoAddCI(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "USER ", 5, 0, STREAM_TOSERVER);
-        AlpProtoAddCI(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "PASS ", 5, 0, STREAM_TOSERVER);
-        AlpProtoAddCI(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "PORT ", 5, 0, STREAM_TOSERVER);
+        if (AlpdRegisterProtocol(alpd_ctx, ALPROTO_FTP, proto_name) < 0)
+            return;
+        if (FTPRegisterPatternsForProtocolDetection() < 0 )
+            return;
+
         AppLayerRegisterParserAcceptableDataDirection(ALPROTO_FTP, STREAM_TOSERVER | STREAM_TOCLIENT);
     }
 

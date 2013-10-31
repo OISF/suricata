@@ -55,6 +55,7 @@
 #include "stream-tcp.h"
 #include "stream.h"
 
+#include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-detect-proto.h"
@@ -65,26 +66,53 @@
 
 #define INSPECT_BYTES  32
 
-/** global app layer detection context */
-AlpProtoDetectCtx alp_proto_ctx;
+/**
+ * \brief Signature for proto detection.
+ */
+typedef struct AlpdPMSignature_ {
+    uint16_t alproto;
+    DetectContentData cd;
+    struct AlpdPMSignature_ *next;
+} AlpdPMSignature;
 
-/** \brief Initialize the app layer proto detection */
-void AlpProtoInit(AlpProtoDetectCtx *ctx) {
-    memset(ctx, 0x00, sizeof(AlpProtoDetectCtx));
+typedef struct AlpdPMCtx_ {
+    MpmCtx mpm_ctx;
 
-    MpmInitCtx(&ctx->toserver.mpm_ctx, MPM_B2G);
-    MpmInitCtx(&ctx->toclient.mpm_ctx, MPM_B2G);
+    /** Mapping between pattern id and signature.  As each signature has a
+     *  unique pattern with a unique id, we can lookup the signature by
+     *  the pattern id. */
+    AlpdPMSignature **map;
+    AlpdPMSignature *head;
+} AlpdPMCtx;
 
-    memset(&ctx->toserver.map, 0x00, sizeof(ctx->toserver.map));
-    memset(&ctx->toclient.map, 0x00, sizeof(ctx->toclient.map));
+/**
+ * \brief The alpd context per ipproto.
+ */
+typedef struct AlpdCtxIpproto_ {
+    /* 0 - toserver, 1 - toclient */
+    AlpdPMCtx pm_ctx[2];
+    AppLayerProbingParser *probing_parsers;
+};
 
-    ctx->toserver.id = 0;
-    ctx->toclient.id = 0;
-    ctx->toclient.min_len = INSPECT_BYTES;
-    ctx->toserver.min_len = INSPECT_BYTES;
+/**
+ * \brief The app layer protocol detection context.
+ */
+typedef struct AlpdCtx_ {
+    /* context per ip_proto */
+    AlpdCtxIpproto ctx_ipp[FLOW_PROTO_MAX];
 
-    ctx->mpm_pattern_id_store = MpmPatternIdTableInitHash();
-}
+    /* Indicates the protocols that have registered themselves
+     * for protocol detection.  This table is independent of the
+     * ipproto. */
+    const char *[ALPROTO_MAX];
+} AlpdCtx;
+
+typedef struct AlpdCtxThread_ {
+    PatternMatcherQueue pmq;
+    MpmThreadCtx mpm_tctx[FLOW_PROTO_MAX][2];
+} AlpdCtxThread;
+
+/***** API *****/
 
 /**
  *  \brief Turn a proto detection into a AlpProtoSignature and store it
@@ -95,7 +123,9 @@ void AlpProtoInit(AlpProtoDetectCtx *ctx) {
  *  \param proto the proto id
  *  \initonly
  */
-static void AlpProtoAddSignature(AlpProtoDetectCtx *ctx, DetectContentData *co, uint16_t ip_proto, uint16_t proto) {
+static void AlpdAddPMSignature(AlpdCtx *ctx, DetectContentData *cd,
+                               uint16_t ipproto, uint16_t alproto)
+{
     AlpProtoSignature *s = SCMalloc(sizeof(AlpProtoSignature));
     if (unlikely(s == NULL)) {
         SCLogError(SC_ERR_FATAL, "Error allocating memory. Signature not loaded. Not enough memory so.. exiting..");
@@ -117,8 +147,7 @@ static void AlpProtoAddSignature(AlpProtoDetectCtx *ctx, DetectContentData *co, 
     ctx->sigs++;
 }
 
-/** \brief free a AlpProtoSignature, recursively free any next sig */
-static void AlpProtoFreeSignature(AlpProtoSignature *s)
+static void AlpdFreePMSignature(AlpdPMSignature *s)
 {
     if (s == NULL)
         return;
@@ -237,7 +266,6 @@ void AlpProtoAddPattern(AlpProtoDetectCtx *ctx, char *name, uint16_t ip_proto,
     }
 
     BUG_ON(dir->id == ALP_DETECT_MAX);
-    dir->map[dir->id] = al_proto;
     dir->id++;
 
     if (depth > dir->max_len)
@@ -322,62 +350,10 @@ void AlpProtoFinalizeThread(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx *tct
     return;
 }
 
-void AlpProtoDeFinalize2Thread(AlpProtoDetectThreadCtx *tctx) {
-    if (alp_proto_ctx.toclient.id > 0) {
-        mpm_table[alp_proto_ctx.toclient.mpm_ctx.mpm_type].DestroyThreadCtx
-                    (&alp_proto_ctx.toclient.mpm_ctx, &tctx->toclient.mpm_ctx);
-        PmqFree(&tctx->toclient.pmq);
-    }
-    if (alp_proto_ctx.toserver.id > 0) {
-        mpm_table[alp_proto_ctx.toserver.mpm_ctx.mpm_type].DestroyThreadCtx
-                    (&alp_proto_ctx.toserver.mpm_ctx, &tctx->toserver.mpm_ctx);
-        PmqFree(&tctx->toserver.pmq);
-    }
-
-}
 /** \brief to be called by ReassemblyThreadInit
  *  \todo this is a hack, we need a proper place to store the global ctx */
 void AlpProtoFinalize2Thread(AlpProtoDetectThreadCtx *tctx) {
     AlpProtoFinalizeThread(&alp_proto_ctx, tctx);
-    return;
-}
-
-void AlpProtoFinalizeGlobal(AlpProtoDetectCtx *ctx) {
-    if (ctx == NULL)
-        return;
-
-    mpm_table[ctx->toclient.mpm_ctx.mpm_type].Prepare(&ctx->toclient.mpm_ctx);
-    mpm_table[ctx->toserver.mpm_ctx.mpm_type].Prepare(&ctx->toserver.mpm_ctx);
-
-    /* allocate and initialize the mapping between pattern id and signature */
-    ctx->map = (AlpProtoSignature **)SCMalloc(ctx->sigs * sizeof(AlpProtoSignature *));
-    if (ctx->map == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "%s", strerror(errno));
-        return;
-    }
-    memset(ctx->map, 0x00, ctx->sigs * sizeof(AlpProtoSignature *));
-
-    AlpProtoSignature *s = ctx->head;
-    AlpProtoSignature *temp = NULL;
-    for ( ; s != NULL; s = s->next) {
-        BUG_ON(s->co == NULL);
-
-        if (ctx->map[s->co->id] == NULL) {
-            ctx->map[s->co->id] = s;
-        } else {
-            temp = ctx->map[s->co->id];
-            while (temp->map_next != NULL)
-                temp = temp->map_next;
-            temp->map_next = s;
-        }
-    }
-}
-
-void AppLayerDetectProtoThreadInit(void) {
-    AlpProtoInit(&alp_proto_ctx);
-    RegisterAppLayerParsers();
-    AlpProtoFinalizeGlobal(&alp_proto_ctx);
-
     return;
 }
 
@@ -603,10 +579,9 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
  *
  *  \retval proto App Layer proto, or ALPROTO_UNKNOWN if unknown
  */
-uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx,
-                                AlpProtoDetectThreadCtx *tctx, Flow *f,
-                                uint8_t *buf, uint32_t buflen,
-                                uint8_t flags, uint8_t ipproto)
+uint16_t AlpdGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx *tctx,
+                      Flow *f, uint8_t *buf, uint32_t buflen,
+                      uint8_t flags, uint8_t ipproto)
 {
     if (!FLOW_IS_PM_DONE(f, flags)) {
         uint16_t pm_results[ALPROTO_MAX];
@@ -626,6 +601,224 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx,
     if (!FLOW_IS_PP_DONE(f, flags))
         return AppLayerDetectGetProtoProbingParser(ctx, f, buf, buflen, flags, ipproto);
     return ALPROTO_UNKNOWN;
+}
+
+/***** Anoop *****/
+
+static int AlpdPMRegisterPattern(void *ctx,
+                                 uint16_t ipproto, uint16_t alproto,
+                                 const char *pattern,
+                                 uint16_t depth, uint16_t offset,
+                                 uint8_t direction,
+                                 uint8_t is_cs)
+{
+    SCEnter();
+
+    AlpProtoDetectDirection *dir;
+    DetectContentData *cd;
+
+    cd = DetectContentParseEncloseQuotes(content);
+    if (cd == NULL)
+        SCReturnInt(-1);
+    cd->depth = depth;
+    cd->offset = offset;
+    cd->id = DetectContentGetId(ctx->mpm_pattern_id_store, cd);
+
+    if (direction & STREAM_TOCLIENT)
+        dir = &ctx->toclient;
+    else
+        dir = &ctx->toserver;
+
+    /* is_case-sensitive */
+    if (is_cs) {
+        cd->flags |= DETECT_CONTENT_NOCASE;
+        mpm_table[dir->mpm_ctx.mpm_type].
+            AddPatternNocase(&dir->mpm_ctx, cd->content, cd->content_len,
+                             cd->offset, cd->depth, cd->id, cd->id, 0);
+    } else {
+        mpm_table[dir->mpm_ctx.mpm_type].
+            AddPattern(&dir->mpm_ctx, cd->content, cd->content_len,
+                       cd->offset, cd->depth, cd->id, cd->id, 0);
+    }
+
+    /* Measures the no of patterns that we have added. */
+    BUG_ON(dir->id == ALP_DETECT_MAX);
+    dir->id++;
+
+    if (depth > dir->max_len)
+        dir->max_len = depth;
+    if (depth < dir->min_len)
+        dir->min_len = depth;
+
+    /* finally turn into a signature and add to the ctx */
+    AlpProtoAddSignature(ctx, cd, ip_proto, al_proto);
+
+    SCReturnInt(0);
+}
+
+void *AlpdGetCtx(void)
+{
+    SCEnter();
+
+    int i;
+    AlpdCtx *ctx;
+
+    ctx = SCMalloc(sizeof(*ctx));
+    if (ctx == NULL)
+        SCReturnPtr(NULL, "void *");
+    memset(ctx, 0, sizeof(*ctx));
+
+    /* we initialize tcp and udp only. */
+    for (i = 0; i < FLOW_PROTO_MAX; i++) {
+        MpmInitCtx(&ctx->ctx_ipp[i].pm_ctx[0].mpm_ctx);
+        MpmInitCtx(&ctx->ctx_ipp[i].pm_ctx[1].mpm_ctx);
+    }
+
+    SCReturnPtr(ctx, "void *");
+}
+
+void AlpdDestoryCtx(void *ctx)
+{
+    SCFree(ctx);
+
+    return;
+}
+
+void *AlpdGetCtxThread(void *ctx)
+{
+    int i, j;
+    MpmCtx *mpm_ctx;
+    MpmThreadCtx *mpm_tctx;
+    AlpdCtx *alpd_ctx = (AlpdCtx *)ctx;
+    AlpdCtxThread *alpd_tctx = SCMalloc(sizeof(*alpd_ctx));
+    if (alpd_ctx == NULL)
+        return NULL;
+    memset(alpd_ctx, 0, sizeof(*alpd_ctx));
+
+    /* Get the max pat id for all the mpm ctxs. */
+    PmqSetup(&alpd_tctx->pmq, sig_maxid, pat_maxid);
+
+    for (i = 0; i < FLOW_PROTO_MAX; i++) {
+        for (j = 0; j < 2; j++) {
+            mpm_ctx = &alpd_ctx->ctx_ipp[i].pm_ctx[j].mpm_ctx;
+            mpm_tctx = &alpd_tctx->mpm_tctx[i][j];
+            mpm_table[mpm_ctx->mpm_type].InitThreadCtx(mpm_ctx, mpm_tctx,
+                                                       sig_maxid);
+        }
+    }
+
+    return alpd_tctx;
+}
+
+void AlpdDestroyCtxThread(void *ctx, void *tctx)
+{
+    int i, j;
+    MpmCtx *mpm_ctx;
+    MpmThreadCtx *mpm_tctx;
+    AlpdCtx *alpd_ctx = (AlpdCtx *)ctx;
+    AlpdCtxThread *alpd_tctx = (AlpdCtxThread *)tctx;
+
+    for (i = 0; i < FLOW_PROTO_MAX; i++) {
+        for (j = 0; j < 2; j++) {
+            mpm_ctx = &alpd_ctx->ctx_ipp[i].pm_ctx[j].mpm_ctx;
+            mpm_tctx = &alpd_tctx->mpm_tctx[i][j];
+            mpm_table[mpm_ctx->mpm_type].DestroyThreadCtx(mpm_ctx, mpm_tctx);
+        }
+    }
+
+    PmqFree(&alpd_tctx->pmq);
+
+    return;
+}
+
+
+/**
+ * \brief Registers the protocol for protocol detection.
+ */
+int AlpdRegisterProtocol(void *ctx,
+                         uint16_t alproto, const char *alproto_str);
+{
+    SCEnter();
+
+    AlpdCtx *alpd_ctx = (AlpdCtx *)ctx;
+
+    if (alpd_ctx->alproto[alproto] != NULL) {
+        SCLogError(SC_ERR_APP_LAYER_PROTOCOL_DETECTION, "Protocol \"%s("
+                   "%"PRIu16"\" already registered for protocol detection.");
+        SCReturnInt(-1);
+    }
+    ctx->alproto[alproto] = alproto_str;
+
+    SCReturnInt(0);
+}
+
+
+int AlpdPMRegisterPatternCS(void *ctx,
+                            uint16_t ipproto, uint16_t alproto,
+                            const char *pattern,
+                            uint16_t depth, uint16_t offset,
+                            uint8_t direction)
+{
+    SCEnter();
+    SCReturn(AlpdPMRegisterPattern(ctx,
+                                   alproto, ipproto,
+                                   pattern,
+                                   depth, offset,
+                                   direction,
+                                   1 /* case-sensitive */));
+}
+
+int AlpdPMRegisterPatternCI(void *ctx,
+                            uint16_t ipproto, uint16_t alproto,
+                            const char *pattern,
+                            uint16_t depth, uint16_t offset,
+                            uint8_t direction)
+{
+    SCEnter();
+    SCReturn(AlpdPMRegisterPattern(ctx,
+                                   alproto, ipproto,
+                                   pattern,
+                                   depth, offset,
+                                   direction,
+                                   0 /* !case-sensitive */));
+}
+
+void AlpdPrepareState(void *ctx)
+{
+    AlpdCtx *alpd_ctx = (AlpdCtx *)ctx;
+    MpmCtx *mpm_ctx;
+    int i;
+
+    for (i = 0; i < FLOW_PROTO_MAX; i++) {
+        mpm_ctx = &alpd_ctx->ctx_ipp[i].pm_ctx[0].mpm_ctx;
+        mpm_table_table[mpm_ctx->mpm_type].Prepare(mpm_ctx);
+
+        mpm_ctx = &alpd_ctx->ctx_ipp[i].pm_ctx[1].mpm_ctx;
+        mpm_table_table[mpm_ctx->mpm_type].Prepare(mpm_ctx);
+    }
+
+    /* allocate and initialize the mapping between pattern id and signature */
+    ctx->map = (AlpProtoSignature **)SCMalloc(ctx->sigs * sizeof(AlpProtoSignature *));
+    if (ctx->map == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "%s", strerror(errno));
+        return;
+    }
+    memset(ctx->map, 0x00, ctx->sigs * sizeof(AlpProtoSignature *));
+
+    AlpProtoSignature *s = ctx->head;
+    AlpProtoSignature *temp = NULL;
+    for ( ; s != NULL; s = s->next) {
+        BUG_ON(s->co == NULL);
+
+        if (ctx->map[s->co->id] == NULL) {
+            ctx->map[s->co->id] = s;
+        } else {
+            temp = ctx->map[s->co->id];
+            while (temp->map_next != NULL)
+                temp = temp->map_next;
+            temp->map_next = s;
+        }
+    }
 }
 
 /*****Unittests*****/
@@ -672,19 +865,11 @@ int AlpDetectTest02(void) {
         r = 0;
     }
 
-    if (ctx.toclient.map[ctx.toclient.id - 1] != ALPROTO_HTTP) {
-        r = 0;
-    }
-
     buf = SCStrdup("220 ");
     AlpProtoAdd(&ctx, "ftp", IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 2) {
-        r = 0;
-    }
-
-    if (ctx.toclient.map[ctx.toclient.id - 1] != ALPROTO_FTP) {
         r = 0;
     }
 
@@ -709,19 +894,11 @@ int AlpDetectTest03(void) {
         r = 0;
     }
 
-    if (ctx.toclient.map[ctx.toclient.id - 1] != ALPROTO_HTTP) {
-        r = 0;
-    }
-
     buf = SCStrdup("220 ");
     AlpProtoAdd(&ctx, "ftp", IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 2) {
-        r = 0;
-    }
-
-    if (ctx.toclient.map[ctx.toclient.id - 1] != ALPROTO_FTP) {
         r = 0;
     }
 
@@ -752,10 +929,6 @@ int AlpDetectTest04(void) {
     SCFree(buf);
 
     if (ctx.toclient.id != 1) {
-        r = 0;
-    }
-
-    if (ctx.toclient.map[ctx.toclient.id - 1] != ALPROTO_HTTP) {
         r = 0;
     }
 
@@ -790,19 +963,11 @@ int AlpDetectTest05(void) {
         r = 0;
     }
 
-    if (ctx.toclient.map[ctx.toclient.id - 1] != ALPROTO_HTTP) {
-        r = 0;
-    }
-
     buf = SCStrdup("220 ");
     AlpProtoAdd(&ctx, "ftp", IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 2) {
-        r = 0;
-    }
-
-    if (ctx.toclient.map[ctx.toclient.id - 1] != ALPROTO_FTP) {
         r = 0;
     }
 
@@ -838,19 +1003,11 @@ int AlpDetectTest06(void) {
         r = 0;
     }
 
-    if (ctx.toclient.map[ctx.toclient.id - 1] != ALPROTO_HTTP) {
-        r = 0;
-    }
-
     buf = SCStrdup("220 ");
     AlpProtoAdd(&ctx, "ftp", IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 2) {
-        r = 0;
-    }
-
-    if (ctx.toclient.map[ctx.toclient.id - 1] != ALPROTO_FTP) {
         r = 0;
     }
 
@@ -883,10 +1040,6 @@ int AlpDetectTest07(void) {
     SCFree(buf);
 
     if (ctx.toclient.id != 1) {
-        r = 0;
-    }
-
-    if (ctx.toclient.map[ctx.toclient.id - 1] != ALPROTO_HTTP) {
         r = 0;
     }
 
@@ -933,10 +1086,6 @@ int AlpDetectTest08(void) {
         r = 0;
     }
 
-    if (ctx.toclient.map[ctx.toclient.id - 1] != ALPROTO_SMB) {
-        r = 0;
-    }
-
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
@@ -977,10 +1126,6 @@ int AlpDetectTest09(void) {
         r = 0;
     }
 
-    if (ctx.toclient.map[ctx.toclient.id - 1] != ALPROTO_SMB2) {
-        r = 0;
-    }
-
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
@@ -1014,10 +1159,6 @@ int AlpDetectTest10(void) {
     SCFree(buf);
 
     if (ctx.toclient.id != 1) {
-        r = 0;
-    }
-
-    if (ctx.toclient.map[ctx.toclient.id - 1] != ALPROTO_DCERPC) {
         r = 0;
     }
 
@@ -1057,11 +1198,6 @@ int AlpDetectTest11(void) {
 
     if (ctx.toserver.id != 6) {
         printf("ctx.toserver.id %u != 6: ", ctx.toserver.id);
-        r = 0;
-    }
-
-    if (ctx.toserver.map[ctx.toserver.id - 1] != ALPROTO_HTTP) {
-        printf("ctx.toserver.id %u != %u: ", ctx.toserver.map[ctx.toserver.id - 1],ALPROTO_HTTP);
         r = 0;
     }
 
@@ -1110,16 +1246,6 @@ int AlpDetectTest12(void) {
         goto end;
     }
 
-    if (ctx.map == NULL) {
-        printf("no mapping: ");
-        goto end;
-    }
-
-    if (ctx.map[ctx.head->co->id] != ctx.head) {
-        printf("wrong sig: ");
-        goto end;
-    }
-
     r = 1;
 end:
     return r;
@@ -1148,11 +1274,6 @@ int AlpDetectTest13(void) {
 
     if (ctx.toserver.id != 6) {
         printf("ctx.toserver.id %u != 6: ", ctx.toserver.id);
-        r = 0;
-    }
-
-    if (ctx.toserver.map[ctx.toserver.id - 1] != ALPROTO_HTTP) {
-        printf("ctx.toserver.id %u != %u: ", ctx.toserver.map[ctx.toserver.id - 1],ALPROTO_HTTP);
         r = 0;
     }
 
@@ -1201,11 +1322,6 @@ int AlpDetectTest14(void) {
 
     if (ctx.toserver.id != 6) {
         printf("ctx.toserver.id %u != 6: ", ctx.toserver.id);
-        r = 0;
-    }
-
-    if (ctx.toserver.map[ctx.toserver.id - 1] != ALPROTO_HTTP) {
-        printf("ctx.toserver.id %u != %u: ", ctx.toserver.map[ctx.toserver.id - 1],ALPROTO_HTTP);
         r = 0;
     }
 
@@ -1694,7 +1810,8 @@ end:
 
 #endif /* UNITTESTS */
 
-void AlpDetectRegisterTests(void) {
+void AlpdRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("AlpDetectTest01", AlpDetectTest01, 1);
     UtRegisterTest("AlpDetectTest02", AlpDetectTest02, 1);
@@ -1716,4 +1833,6 @@ void AlpDetectRegisterTests(void) {
     UtRegisterTest("AlpDetectTestSig4", AlpDetectTestSig4, 1);
     UtRegisterTest("AlpDetectTestSig5", AlpDetectTestSig5, 1);
 #endif /* UNITTESTS */
+
+    return;
 }

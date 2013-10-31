@@ -299,6 +299,9 @@ void RegisterDNSUDPParsers(void) {
 
     /** DNS */
     if (AppLayerProtoDetectionEnabled(proto_name)) {
+        if (AlpdRegisterProtocol(alpd_ctx, ALPROTO_DNS_UDP, proto_name) < 0)
+            return;
+
         if (RunmodeIsUnittests()) {
             AppLayerRegisterProbingParser(&alp_proto_ctx,
                                           IPPROTO_UDP,

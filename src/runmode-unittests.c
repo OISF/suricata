@@ -138,7 +138,7 @@ int RunUnittests(int list_unittests, char *regex_arg)
     MpmCudaEnvironmentSetup();
 #endif
 
-    AppLayerDetectProtoThreadInit();
+    AppLayerSetup();
     AppLayerParsersInitPostProcess();
 
     /* hardcoded initialization code */

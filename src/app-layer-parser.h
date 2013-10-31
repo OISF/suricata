@@ -473,6 +473,10 @@ void AppLayerParseProbingParserPorts(const char *al_proto_name, uint16_t al_prot
                                      ProbingParserFPtr ProbingParser);
 
 
+/***** Anoop *****/
+void *AlpGetCtxThread(void);
+void AlpDestroyCtxThread(void *tctx)
+
 /***** Unittests *****/
 
 /**

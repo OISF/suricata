@@ -1025,6 +1025,132 @@ int SSLStateGetEventInfo(const char *event_name,
     return 0;
 }
 
+static int SSLRegisterPatternsForProtocolDetection(void)
+{
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|01 00 02|", 5, 2, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    /** SSLv3 */
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|01 03 00|", 3, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|16 03 00|", 3, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    /** TLSv1 */
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|01 03 01|", 3, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|16 03 01|", 3, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    /** TLSv1.1 */
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|01 03 02|", 3, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|16 03 02|", 3, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    /** TLSv1.2 */
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|01 03 03|", 3, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|16 03 03|", 3, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    /***** toclient direction *****/
+
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|16 03 00|", 3, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|17 03 00|", 3, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+
+    /** TLSv1 */
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|16 03 01|", 3, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|17 03 01|", 3, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+
+    /** TLSv1.1 */
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|16 03 02|", 3, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|17 03 02|", 3, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+
+    /** TLSv1.2 */
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|16 03 03|", 3, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|17 03 03|", 3, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+
+    /* Subsection - SSLv2 style record by client, but informing the server
+     * the max version it supports.
+     * Updated by Anoop Saldanha.  Disabled it for now.  We'll get back to
+     * it after some tests */
+#if 0
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|01 03 00|", 5, 2, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_TLS,
+                                "|00 02|", 7, 5, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+#endif
+
+    return 0;
+}
+
+
 /**
  * \brief Function to register the SSL protocol parser and other functions
  */
@@ -1034,42 +1160,11 @@ void RegisterSSLParsers(void)
 
     /** SSLv2  and SSLv23*/
     if (AppLayerProtoDetectionEnabled(proto_name)) {
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|01 00 02|", 5, 2, STREAM_TOSERVER);
-        /* subsection - SSLv2 style record by client, but informing the server the max
-         * version it supports */
-        /* Updated by Anoop Saldanha.  Disabled it for now.  We'll get back to it
-         * after some tests */
-        //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|01 03 00|", 5, 2, STREAM_TOSERVER);
-        //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|00 02|", 7, 5, STREAM_TOCLIENT);
+        if (AlpdRegisterProtocol(alpd_ctx, ALPROTO_TLS, proto_name) < 0)
+            return;
 
-        /** SSLv3 */
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|01 03 00|", 3, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 00|", 3, 0, STREAM_TOSERVER); /* client hello */
-    /** TLSv1 */
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|01 03 01|", 3, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 01|", 3, 0, STREAM_TOSERVER); /* client hello */
-    /** TLSv1.1 */
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|01 03 02|", 3, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 02|", 3, 0, STREAM_TOSERVER); /* client hello */
-    /** TLSv1.2 */
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|01 03 03|", 3, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 03|", 3, 0, STREAM_TOSERVER); /* client hello */
-
-        /* toclient direction */
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 00|", 3, 0, STREAM_TOCLIENT); /* server hello */
-        /** TLSv1 */
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 01|", 3, 0, STREAM_TOCLIENT); /* server hello */
-        /** TLSv1.1 */
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 02|", 3, 0, STREAM_TOCLIENT); /* server hello */
-        /** TLSv1.2 */
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|16 03 03|", 3, 0, STREAM_TOCLIENT); /* server hello */
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|17 03 00|", 3, 0, STREAM_TOCLIENT); /* server hello */
-        /** TLSv1 */
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|17 03 01|", 3, 0, STREAM_TOCLIENT); /* server hello */
-        /** TLSv1.1 */
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|17 03 02|", 3, 0, STREAM_TOCLIENT); /* server hello */
-        /** TLSv1.2 */
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_TLS, "|17 03 03|", 3, 0, STREAM_TOCLIENT); /* server hello */
+        if (SSLRegisterPatternsForProtocolDetection() < 0)
+            return;
 
         if (RunmodeIsUnittests()) {
             AppLayerRegisterProbingParser(&alp_proto_ctx,
@@ -2798,7 +2893,6 @@ static int SSLParserTest22(void)
         0x2f, 0x34, 0x84, 0x20, 0xc5};
     uint32_t buf_len = sizeof(buf);
     TcpSession ssn;
-    //AppLayerDetectProtoThreadInit();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -3098,7 +3192,6 @@ static int SSLParserTest23(void)
     uint32_t toserver_app_data_buf_len = sizeof(toserver_app_data_buf);
 
     TcpSession ssn;
-    //AppLayerDetectProtoThreadInit();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));

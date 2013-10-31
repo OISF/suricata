@@ -849,17 +849,36 @@ int SMTPStateGetEventInfo(const char *event_name,
 /**
  * \brief Register the SMPT Protocol parser.
  */
+static int SMTPRegisterPatternsForProtocolDetection(void)
+{
+    if (AlpdPMRegisterPatternCI(alpd_ctx, IPPROTO_TCP, ALPROTO_SMTP,
+                                "EHLO ", 4, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCI(alpd_ctx, IPPROTO_TCP, ALPROTO_SMTP,
+                                "HELO", 4, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCI(alpd_ctx, IPPROTO_TCP, ALPROTO_SMTP,
+                                "QUIT", 4, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
 void RegisterSMTPParsers(void)
 {
     char *proto_name = "smtp";
 
     if (AppLayerProtoDetectionEnabled(proto_name)) {
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMTP, "EHLO", 4, 0,
-                    STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMTP, "HELO", 4, 0,
-                    STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMTP, "QUIT", 4, 0,
-                STREAM_TOSERVER);
+        if (AlpdRegisterProtocol(alpd_ctx, ALPROTO_SMTP, proto_name) < 0)
+            return;
+        if (SMTPRegisterPatternsForProtocolDetection() < 0)
+            return;
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",
                   proto_name);

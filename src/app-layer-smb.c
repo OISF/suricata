@@ -1510,14 +1510,30 @@ static uint16_t SMBProbingParser(uint8_t *input, uint32_t ilen, uint32_t *offset
     return ALPROTO_UNKNOWN;
 }
 
+static int SMBRegisterPatternsForProtocolDetection(void)
+{
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_SMB,
+                                "|ff|SMB", 8, 4, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_SMB2,
+                                "|fe|SMB", 8, 4, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
 void RegisterSMBParsers(void) {
     char *proto_name = "smb";
 
     if (AppLayerProtoDetectionEnabled(proto_name)) {
-        /** SMB */
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOSERVER);
-        /** SMB2 */
-        AlpProtoAdd(&alp_proto_ctx, "smb2", IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
+        if (AlpdRegisterProtocol(alpd_ctx, ALPROTO_SMB, proto_name) < 0)
+            return;
+        if (SMBRegisterPatternsForProtocolDetection() < 0)
+            return;
 
         if (RunmodeIsUnittests()) {
             AppLayerRegisterProbingParser(&alp_proto_ctx,
@@ -2187,18 +2203,18 @@ int SMBParserTest05(void)
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    alproto = AppLayerDetectGetProto(&ctx, &tctx, &f,
-                                     smbbuf1, smblen1,
-                                     STREAM_TOSERVER, IPPROTO_TCP);
+    alproto = AlpdGetProto(&ctx, &tctx, &f,
+                           smbbuf1, smblen1,
+                           STREAM_TOSERVER, IPPROTO_TCP);
     if (alproto != ALPROTO_UNKNOWN) {
         printf("alproto is %"PRIu16 ".  Should be ALPROTO_UNKNOWN\n",
                alproto);
         goto end;
     }
 
-    alproto = AppLayerDetectGetProto(&ctx, &tctx, &f,
-                                     smbbuf2, smblen2,
-                                     STREAM_TOSERVER, IPPROTO_TCP);
+    alproto = AlpdGetProto(&ctx, &tctx, &f,
+                           smbbuf2, smblen2,
+                           STREAM_TOSERVER, IPPROTO_TCP);
     if (alproto != ALPROTO_SMB) {
         printf("alproto is %"PRIu16 ".  Should be ALPROTO_SMB\n",
                alproto);
@@ -2269,18 +2285,18 @@ int SMBParserTest06(void)
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    alproto = AppLayerDetectGetProto(&ctx, &tctx, &f,
-                                     smbbuf1, smblen1,
-                                     STREAM_TOSERVER, IPPROTO_TCP);
+    alproto = AlpdGetProto(&ctx, &tctx, &f,
+                           smbbuf1, smblen1,
+                           STREAM_TOSERVER, IPPROTO_TCP);
     if (alproto != ALPROTO_UNKNOWN) {
         printf("alproto is %"PRIu16 ".  Should be ALPROTO_UNKNOWN\n",
                alproto);
         goto end;
     }
 
-    alproto = AppLayerDetectGetProto(&ctx, &tctx, &f,
-                                     smbbuf2, smblen2,
-                                     STREAM_TOSERVER, IPPROTO_TCP);
+    alproto = AlpdGetProto(&ctx, &tctx, &f,
+                           smbbuf2, smblen2,
+                           STREAM_TOSERVER, IPPROTO_TCP);
     if (alproto != ALPROTO_SMB) {
         printf("alproto is %"PRIu16 ".  Should be ALPROTO_SMB\n",
                alproto);

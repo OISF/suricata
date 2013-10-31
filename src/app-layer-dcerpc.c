@@ -1978,13 +1978,31 @@ static void DCERPCStateFree(void *s) {
     }
 }
 
+static int DCERPCRegisterPatternsForProtocolDetection(void)
+{
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_DCERPC,
+                                "|05 00|", 2, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_DCERPC,
+                                "|05 00|", 2, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
 void RegisterDCERPCParsers(void) {
     char *proto_name = "dcerpc";
 
     if (AppLayerProtoDetectionEnabled(proto_name)) {
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_DCERPC, "|05 00|", 2, 0, STREAM_TOSERVER);
-        /* toclient direction */
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_DCERPC, "|05 00|", 2, 0, STREAM_TOCLIENT);
+        if (AlpdRegisterProtocol(alpd_ctx, ALPROTO_DCERPC, proto_name) < 0)
+            return;
+        if (DCERPCRegisterPatternsForProtocolDetection() < 0)
+            return;
+
         AppLayerRegisterParserAcceptableDataDirection(ALPROTO_DCERPC, STREAM_TOSERVER);
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",
