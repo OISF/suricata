@@ -89,11 +89,11 @@ typedef struct SCPerfCounter_ {
  * \brief Holds the Perf Context for a ThreadVars instance
  */
 typedef struct SCPerfContext_ {
-    /* pointer to the head of a list of counters assigned under this context */
-    SCPerfCounter *head;
-
     /* flag set by the wakeup thread, to inform the client threads to sync */
     uint32_t perf_flag;
+
+    /* pointer to the head of a list of counters assigned under this context */
+    SCPerfCounter *head;
 
     /* holds the total no of counters already assigned for this perf context */
     uint16_t curr_id;
