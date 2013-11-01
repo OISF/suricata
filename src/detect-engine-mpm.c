@@ -1189,31 +1189,27 @@ static void PopulateMpmHelperAddPatternToPktCtx(MpmCtx *mpm_ctx,
 {
     if (cd->flags & DETECT_CONTENT_NOCASE) {
         if (chop) {
-            mpm_table[mpm_ctx->mpm_type].
-                AddPatternNocase(mpm_ctx,
-                                 cd->content + cd->fp_chop_offset,
-                                 cd->fp_chop_len,
-                                 0, 0, cd->id, s->num, flags);
+            MpmAddPatternCI(mpm_ctx,
+                            cd->content + cd->fp_chop_offset, cd->fp_chop_len,
+                            0, 0,
+                            cd->id, s->num, flags);
         } else {
-            mpm_table[mpm_ctx->mpm_type].
-                AddPatternNocase(mpm_ctx,
-                                 cd->content,
-                                 cd->content_len,
-                                 0, 0, cd->id, s->num, flags);
+            MpmAddPatternCI(mpm_ctx,
+                            cd->content, cd->content_len,
+                            0, 0,
+                            cd->id, s->num, flags);
         }
     } else {
         if (chop) {
-            mpm_table[mpm_ctx->mpm_type].
-                AddPattern(mpm_ctx,
-                           cd->content + cd->fp_chop_offset,
-                           cd->fp_chop_len,
-                           0, 0, cd->id, s->num, flags);
+            MpmAddPatternCS(mpm_ctx,
+                            cd->content + cd->fp_chop_offset, cd->fp_chop_len,
+                            0, 0,
+                            cd->id, s->num, flags);
         } else {
-            mpm_table[mpm_ctx->mpm_type].
-                AddPattern(mpm_ctx,
-                           cd->content,
-                           cd->content_len,
-                           0, 0, cd->id, s->num, flags);
+            MpmAddPatternCS(mpm_ctx,
+                            cd->content, cd->content_len,
+                            0, 0,
+                            cd->id, s->num, flags);
         }
     }
 
@@ -1295,33 +1291,29 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 if (SignatureHasStreamContent(s)) {
                     if (cd->flags & DETECT_CONTENT_NOCASE) {
                         if (s->flags & SIG_FLAG_TOSERVER) {
-                            mpm_table[sgh->mpm_stream_ctx_ts->mpm_type].
-                                AddPatternNocase(sgh->mpm_stream_ctx_ts,
-                                                 cd->content + cd->fp_chop_offset,
-                                                 cd->fp_chop_len,
-                                                 0, 0, cd->id, s->num, flags);
+                            MpmAddPatternCI(sgh->mpm_stream_ctx_ts,
+                                            cd->content + cd->fp_chop_offset, cd->fp_chop_len,
+                                            0, 0,
+                                            cd->id, s->num, flags);
                         }
                         if (s->flags & SIG_FLAG_TOCLIENT) {
-                            mpm_table[sgh->mpm_stream_ctx_tc->mpm_type].
-                                AddPatternNocase(sgh->mpm_stream_ctx_tc,
-                                                 cd->content + cd->fp_chop_offset,
-                                                 cd->fp_chop_len,
-                                                 0, 0, cd->id, s->num, flags);
+                            MpmAddPatternCI(sgh->mpm_stream_ctx_tc,
+                                            cd->content + cd->fp_chop_offset, cd->fp_chop_len,
+                                            0, 0,
+                                            cd->id, s->num, flags);
                         }
                     } else {
                         if (s->flags & SIG_FLAG_TOSERVER) {
-                            mpm_table[sgh->mpm_stream_ctx_ts->mpm_type].
-                                AddPattern(sgh->mpm_stream_ctx_ts,
-                                           cd->content + cd->fp_chop_offset,
-                                           cd->fp_chop_len,
-                                           0, 0, cd->id, s->num, flags);
+                            MpmAddPatternCS(sgh->mpm_stream_ctx_ts,
+                                            cd->content + cd->fp_chop_offset, cd->fp_chop_len,
+                                            0, 0,
+                                            cd->id, s->num, flags);
                         }
                         if (s->flags & SIG_FLAG_TOCLIENT) {
-                            mpm_table[sgh->mpm_stream_ctx_tc->mpm_type].
-                                AddPattern(sgh->mpm_stream_ctx_tc,
-                                           cd->content + cd->fp_chop_offset,
-                                           cd->fp_chop_len,
-                                           0, 0, cd->id, s->num, flags);
+                            MpmAddPatternCS(sgh->mpm_stream_ctx_tc,
+                                            cd->content + cd->fp_chop_offset, cd->fp_chop_len,
+                                            0, 0,
+                                            cd->id, s->num, flags);
                         }
                     }
                     /* tell matcher we are inspecting stream */
@@ -1385,29 +1377,29 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                     /* add the content to the "packet" mpm */
                     if (cd->flags & DETECT_CONTENT_NOCASE) {
                         if (s->flags & SIG_FLAG_TOSERVER) {
-                            mpm_table[sgh->mpm_stream_ctx_ts->mpm_type].
-                                AddPatternNocase(sgh->mpm_stream_ctx_ts,
-                                                 cd->content, cd->content_len,
-                                                 0, 0, cd->id, s->num, flags);
+                            MpmAddPatternCI(sgh->mpm_stream_ctx_ts,
+                                            cd->content, cd->content_len,
+                                            0, 0,
+                                            cd->id, s->num, flags);
                         }
                         if (s->flags & SIG_FLAG_TOCLIENT) {
-                            mpm_table[sgh->mpm_stream_ctx_tc->mpm_type].
-                                AddPatternNocase(sgh->mpm_stream_ctx_tc,
-                                                 cd->content, cd->content_len,
-                                                 0, 0, cd->id, s->num, flags);
+                            MpmAddPatternCI(sgh->mpm_stream_ctx_tc,
+                                            cd->content, cd->content_len,
+                                            0, 0,
+                                            cd->id, s->num, flags);
                         }
                     } else {
                         if (s->flags & SIG_FLAG_TOSERVER) {
-                            mpm_table[sgh->mpm_stream_ctx_ts->mpm_type].
-                                AddPattern(sgh->mpm_stream_ctx_ts,
-                                           cd->content, cd->content_len,
-                                           0, 0, cd->id, s->num, flags);
+                            MpmAddPatternCS(sgh->mpm_stream_ctx_ts,
+                                            cd->content, cd->content_len,
+                                            0, 0,
+                                            cd->id, s->num, flags);
                         }
                         if (s->flags & SIG_FLAG_TOCLIENT) {
-                            mpm_table[sgh->mpm_stream_ctx_tc->mpm_type].
-                                AddPattern(sgh->mpm_stream_ctx_tc,
-                                           cd->content, cd->content_len,
-                                           0, 0, cd->id, s->num, flags);
+                            MpmAddPatternCS(sgh->mpm_stream_ctx_tc,
+                                            cd->content, cd->content_len,
+                                            0, 0,
+                                            cd->id, s->num, flags);
                         }
                     }
                     /* tell matcher we are inspecting stream */
@@ -1569,33 +1561,29 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 /* add the content to the mpm */
                 if (cd->flags & DETECT_CONTENT_NOCASE) {
                     if (mpm_ctx_ts != NULL) {
-                        mpm_table[mpm_ctx_ts->mpm_type].
-                            AddPatternNocase(mpm_ctx_ts,
-                                             cd->content + cd->fp_chop_offset,
-                                             cd->fp_chop_len,
-                                             0, 0, cd->id, s->num, flags);
+                        MpmAddPatternCI(mpm_ctx_ts,
+                                        cd->content + cd->fp_chop_offset, cd->fp_chop_len,
+                                        0, 0,
+                                        cd->id, s->num, flags);
                     }
                     if (mpm_ctx_tc != NULL) {
-                        mpm_table[mpm_ctx_tc->mpm_type].
-                            AddPatternNocase(mpm_ctx_tc,
-                                             cd->content + cd->fp_chop_offset,
-                                             cd->fp_chop_len,
-                                             0, 0, cd->id, s->num, flags);
+                        MpmAddPatternCI(mpm_ctx_tc,
+                                        cd->content + cd->fp_chop_offset, cd->fp_chop_len,
+                                        0, 0,
+                                        cd->id, s->num, flags);
                     }
                 } else {
                     if (mpm_ctx_ts != NULL) {
-                        mpm_table[mpm_ctx_ts->mpm_type].
-                            AddPattern(mpm_ctx_ts,
-                                       cd->content + cd->fp_chop_offset,
-                                       cd->fp_chop_len,
-                                       0, 0, cd->id, s->num, flags);
+                        MpmAddPatternCS(mpm_ctx_ts,
+                                        cd->content + cd->fp_chop_offset,
+                                        cd->fp_chop_len,
+                                        0, 0, cd->id, s->num, flags);
                     }
                     if (mpm_ctx_tc != NULL) {
-                        mpm_table[mpm_ctx_tc->mpm_type].
-                            AddPattern(mpm_ctx_tc,
-                                       cd->content + cd->fp_chop_offset,
-                                       cd->fp_chop_len,
-                                       0, 0, cd->id, s->num, flags);
+                        MpmAddPatternCS(mpm_ctx_tc,
+                                        cd->content + cd->fp_chop_offset,
+                                        cd->fp_chop_len,
+                                        0, 0, cd->id, s->num, flags);
                     }
                 }
             } else {
@@ -1608,29 +1596,29 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 /* add the content to the "uri" mpm */
                 if (cd->flags & DETECT_CONTENT_NOCASE) {
                     if (mpm_ctx_ts != NULL) {
-                        mpm_table[mpm_ctx_ts->mpm_type].
-                            AddPatternNocase(mpm_ctx_ts,
-                                             cd->content, cd->content_len,
-                                             0, 0, cd->id, s->num, flags);
+                        MpmAddPatternCI(mpm_ctx_ts,
+                                        cd->content, cd->content_len,
+                                        0, 0,
+                                        cd->id, s->num, flags);
                     }
                     if (mpm_ctx_tc != NULL) {
-                        mpm_table[mpm_ctx_tc->mpm_type].
-                            AddPatternNocase(mpm_ctx_tc,
-                                             cd->content, cd->content_len,
-                                             0, 0, cd->id, s->num, flags);
+                        MpmAddPatternCI(mpm_ctx_tc,
+                                        cd->content, cd->content_len,
+                                        0, 0,
+                                        cd->id, s->num, flags);
                     }
                 } else {
                     if (mpm_ctx_ts != NULL) {
-                        mpm_table[mpm_ctx_ts->mpm_type].
-                            AddPattern(mpm_ctx_ts,
-                                       cd->content, cd->content_len,
-                                       0, 0, cd->id, s->num, flags);
+                        MpmAddPatternCS(mpm_ctx_ts,
+                                        cd->content, cd->content_len,
+                                        0, 0,
+                                        cd->id, s->num, flags);
                     }
                     if (mpm_ctx_tc != NULL) {
-                        mpm_table[mpm_ctx_tc->mpm_type].
-                            AddPattern(mpm_ctx_tc,
-                                       cd->content, cd->content_len,
-                                       0, 0, cd->id, s->num, flags);
+                        MpmAddPatternCS(mpm_ctx_tc,
+                                        cd->content, cd->content_len,
+                                        0, 0,
+                                        cd->id, s->num, flags);
                     }
                 }
             }
