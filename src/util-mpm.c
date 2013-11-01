@@ -557,19 +557,6 @@ void PmqFree(PatternMatcherQueue *pmq) {
     PmqCleanup(pmq);
 }
 
-/**
- * \brief Return the pattern max length of a registered matcher
- * \retval 0 if it has no limit
- * \retval max_pattern_length of the specified matcher type
- * \retval -1 if the type is not registered return -1
- */
-int32_t MpmMatcherGetMaxPatternLength(uint16_t matcher) {
-    if (matcher < MPM_TABLE_SIZE)
-        return mpm_table[matcher].max_pattern_length;
-    else
-        return -1;
-}
-
 void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t matcher, uint32_t max_id) {
     mpm_table[matcher].InitThreadCtx(NULL, mpm_thread_ctx, max_id);
 }

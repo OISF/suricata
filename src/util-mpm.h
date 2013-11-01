@@ -112,11 +112,14 @@ typedef struct MpmCtx_ {
     void *ctx;
     uint16_t mpm_type;
 
-    /* used uint16_t here to avoiding using a pad.  You can use a uint8_t
-     * here as well */
+    /* Indicates if this a global mpm_ctx.  Global mpm_ctx is the one that
+     * is instantiated when we use "single".  Non-global is "full", i.e.
+     * one per sgh.  We are using a uint16_t here to avoiding using a pad.
+     * You can use a uint8_t here as well. */
     uint16_t global;
 
-    uint32_t pattern_cnt;       /* unique patterns */
+    /* unique patterns */
+    uint32_t pattern_cnt;
 
     uint16_t minlen;
     uint16_t maxlen;
@@ -239,9 +242,6 @@ void PmqFree(PatternMatcherQueue *);
 
 void MpmTableSetup(void);
 void MpmRegisterTests(void);
-
-/** Return the max pattern length of a Matcher type given as arg */
-int32_t MpmMatcherGetMaxPatternLength(uint16_t);
 
 int MpmVerifyMatch(MpmThreadCtx *, PatternMatcherQueue *, uint32_t);
 void MpmInitCtx(MpmCtx *mpm_ctx, uint16_t matcher);
