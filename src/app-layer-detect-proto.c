@@ -41,6 +41,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 
+#include "util-mpm.h"
 #include "util-print.h"
 #include "util-pool.h"
 #include "util-unittest.h"
@@ -251,13 +252,13 @@ void AlpProtoAddPattern(AlpProtoDetectCtx *ctx, char *name, uint16_t ip_proto,
 
     if (ci == 1) {
         cd->flags |= DETECT_CONTENT_NOCASE;
-        mpm_table[dir->mpm_ctx.mpm_type].
-            AddPatternNocase(&dir->mpm_ctx, cd->content, cd->content_len,
-                             cd->offset, cd->depth, cd->id, cd->id, 0);
+        MpmAddPatternCI(&dir->mpm_ctx, cd->content, cd->content_len,
+                        cd->offset, cd->depth,
+                        cd->id, cd->id, 0);
     } else {
-        mpm_table[dir->mpm_ctx.mpm_type].
-            AddPattern(&dir->mpm_ctx, cd->content, cd->content_len,
-                       cd->offset, cd->depth, cd->id, cd->id, 0);
+        MpmAddPatternCS(&dir->mpm_ctx, cd->content, cd->content_len,
+                        cd->offset, cd->depth,
+                        cd->id, cd->id, 0);
     }
 
     BUG_ON(dir->id == ALP_DETECT_MAX);
