@@ -54,6 +54,7 @@
 #include "util-print.h"
 #include "util-proto-name.h"
 #include "util-optimize.h"
+#include "util-buffer.h"
 #include "util-logopenfile.h"
 
 /*#undef HAVE_LIBJANSSON for testing without messing with config */
@@ -111,6 +112,8 @@ void AlertJsonRegisterTests (void) {
 #define DEFAULT_ALERT_SYSLOG_LEVEL              LOG_INFO
 #define MODULE_NAME "AlertJSON"
 
+#define OUTPUT_BUFFER_SIZE 65535
+
 extern uint8_t engine_mode;
 #ifndef OS_WIN32
 static int alert_syslog_level = DEFAULT_ALERT_SYSLOG_LEVEL;
@@ -149,6 +152,8 @@ static enum json_format format = COMPACT;
 typedef struct AlertJsonThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
+
+    MemBuffer *buffer;
 } AlertJsonThread;
 
 TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
@@ -160,6 +165,8 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
+
+    MemBufferReset(aft->buffer);
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
@@ -257,12 +264,21 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
 #endif
         SCMutexLock(&aft->file_ctx->fp_mutex);
         if (json_out == ALERT_FILE) {
+#if 1
+            char *s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
+            MemBufferWriteString(aft->buffer, "%s", s);
+            MemBufferWriteString(aft->buffer, "\n");
+            free(s);          
+            (void)MemBufferPrintToFPAsString(aft->buffer, aft->file_ctx->fp);
+            fflush(aft->file_ctx->fp);
+#else
             json_dumpf(js, aft->file_ctx->fp,
                        ((format == INDENT) ? JSON_INDENT(2) : 0) |
                        JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
             if (format == INDENT) {
                 fputs("\n", aft->file_ctx->fp);
             }
+#endif
         } else {
             char *js_s;
             js_s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
@@ -290,6 +306,8 @@ TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
+    MemBufferReset(aft->buffer);
+
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     char srcip[46], dstip[46];
@@ -297,7 +315,6 @@ TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
     PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
-        json_t *js;
         if (unlikely(pa->s == NULL)) {
             continue;
         }
@@ -314,6 +331,40 @@ TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
         } else {
             snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IP_GET_IPPROTO(p));
         }
+#if 1
+        json_t *js = json_object();
+        if (js == NULL)
+            return;
+
+        json_t *ajs = json_object();
+        if (ajs == NULL) {
+            free(js);
+            return;
+        }
+
+        /* time & tx */
+        json_object_set_new(js, "time", json_string(timebuf));
+
+        /* tuple */
+        json_object_set_new(js, "srcip", json_string(srcip));
+        json_object_set_new(js, "sp", json_integer(p->sp));
+        json_object_set_new(js, "dstip", json_string(dstip));
+        json_object_set_new(js, "dp", json_integer(p->dp));
+        json_object_set_new(js, "proto", json_integer(proto));
+
+        json_object_set_new(ajs, "action", json_string(action));
+        json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
+        json_object_set_new(ajs, "id", json_integer(pa->s->id));
+        json_object_set_new(ajs, "rev", json_integer(pa->s->rev));
+        json_object_set_new(ajs, "msg",
+                            json_string((pa->s->msg) ? pa->s->msg : ""));
+        json_object_set_new(ajs, "class",
+                            json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
+        json_object_set_new(ajs, "pri", json_integer(pa->s->prio));
+   
+        /* alert */ 
+        json_object_set_new(js, "alert", ajs);
+#else
         json_error_t error;
         js = json_pack_ex(
                        &error, 0,
@@ -350,15 +401,24 @@ TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
             SCLogInfo("json_pack error %s", error.text);
             return TM_ECODE_OK;
         }
-
+#endif
         SCMutexLock(&aft->file_ctx->fp_mutex);
         if (json_out == ALERT_FILE) {
+#if 1
+            char *s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
+            MemBufferWriteString(aft->buffer, "%s", s);
+            MemBufferWriteString(aft->buffer, "\n");
+            free(s);          
+            (void)MemBufferPrintToFPAsString(aft->buffer, aft->file_ctx->fp);
+            fflush(aft->file_ctx->fp);
+#else
             json_dumpf(js, aft->file_ctx->fp,
                        ((format == INDENT) ? JSON_INDENT(2) : 0) |
                        JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
             if (format == INDENT) {
                 fputs("\n", aft->file_ctx->fp);
             }
+#endif
         } else {
             char *js_s;
             js_s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
@@ -385,11 +445,12 @@ TmEcode AlertJsonDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
+    MemBufferReset(aft->buffer);
+
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
-        json_t *js;
         if (unlikely(pa->s == NULL)) {
             continue;
         }
@@ -403,6 +464,40 @@ TmEcode AlertJsonDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue
         char buf[(32 * 3) + 1];
         PrintRawLineHexBuf(buf, sizeof(buf), GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
 
+#if 1
+        json_t *js = json_object();
+        if (js == NULL)
+            return;
+
+        json_t *ajs = json_object();
+        if (ajs == NULL) {
+            free(js);
+            return;
+        }
+
+        /* time & tx */
+        json_object_set_new(js, "time", json_string(timebuf));
+
+        /* tuple */
+        //json_object_set_new(js, "srcip", json_string(srcip));
+        //json_object_set_new(js, "sp", json_integer(p->sp));
+        //json_object_set_new(js, "dstip", json_string(dstip));
+        //json_object_set_new(js, "dp", json_integer(p->dp));
+        //json_object_set_new(js, "proto", json_integer(proto));
+
+        json_object_set_new(ajs, "action", json_string(action));
+        json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
+        json_object_set_new(ajs, "id", json_integer(pa->s->id));
+        json_object_set_new(ajs, "rev", json_integer(pa->s->rev));
+        json_object_set_new(ajs, "msg",
+                            json_string((pa->s->msg) ? pa->s->msg : ""));
+        json_object_set_new(ajs, "class",
+                            json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
+        json_object_set_new(ajs, "pri", json_integer(pa->s->prio));
+   
+        /* alert */ 
+        json_object_set_new(js, "alert", ajs);
+#else
         json_error_t error;
         js = json_pack_ex(
                        &error, 0,
@@ -431,15 +526,25 @@ TmEcode AlertJsonDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue
             SCLogInfo("json_pack error %s", error.text);
             return TM_ECODE_OK;
         }
+#endif
 
         SCMutexLock(&aft->file_ctx->fp_mutex);
         if (json_out == ALERT_FILE) {
+#if 1
+            char *s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
+            MemBufferWriteString(aft->buffer, "%s", s);
+            MemBufferWriteString(aft->buffer, "\n");
+            free(s);          
+            (void)MemBufferPrintToFPAsString(aft->buffer, aft->file_ctx->fp);
+            fflush(aft->file_ctx->fp);
+#else
             json_dumpf(js, aft->file_ctx->fp,
                        ((format == INDENT) ? JSON_INDENT(2) : 0) |
                        JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
-            if (format == INDENT) {
+            //if (format == INDENT) {
                 fputs("\n", aft->file_ctx->fp);
-            }
+            //}
+#endif
         } else {
             char *js_s;
             js_s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
@@ -481,6 +586,12 @@ TmEcode AlertJsonThreadInit(ThreadVars *t, void *initdata, void **data)
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
+    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    if (aft->buffer == NULL) {
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
     /** Use the Ouptut Context (file pointer and mutex) */
     //aft->ctx = ((OutputCtx *)initdata)->data;
     aft->file_ctx = ((OutputCtx *)initdata)->data;

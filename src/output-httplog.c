@@ -40,7 +40,7 @@
 #include "util-debug.h"
 
 #include "output.h"
-#include "log-httplog.h"
+#include "output-httplog.h"
 #include "app-layer-htp.h"
 #include "app-layer.h"
 #include "util-privs.h"
@@ -49,48 +49,63 @@
 #include "util-logopenfile.h"
 #include "util-time.h"
 
+#ifdef HAVE_LIBJANSSON
+#include <jansson.h>
+
+#define DEFAULT_HTTP_SYSLOG_FACILITY_STR       "local0"
+#define DEFAULT_HTTP_SYSLOG_FACILITY           LOG_LOCAL0
+#define DEFAULT_HTTP_SYSLOG_LEVEL              LOG_INFO
+
+#ifndef OS_WIN32
+static int http_syslog_level = DEFAULT_HTTP_SYSLOG_LEVEL;
+#endif
+#endif
+
 #define DEFAULT_LOG_FILENAME "http.log"
 
-#define MODULE_NAME "LogHttpLog"
+#define MODULE_NAME "HttpJson"
 
 #define OUTPUT_BUFFER_SIZE 65535
 
-TmEcode LogHttpLog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogHttpLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogHttpLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogHttpLogThreadInit(ThreadVars *, void *, void **);
-TmEcode LogHttpLogThreadDeinit(ThreadVars *, void *);
-void LogHttpLogExitPrintStats(ThreadVars *, void *);
-static void LogHttpLogDeInitCtx(OutputCtx *);
+TmEcode HttpJson (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode HttpJsonIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode HttpJsonIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode HttpJsonThreadInit(ThreadVars *, void *, void **);
+TmEcode HttpJsonThreadDeinit(ThreadVars *, void *);
+void HttpJsonExitPrintStats(ThreadVars *, void *);
+static void HttpJsonDeInitCtx(OutputCtx *);
 
-void TmModuleLogHttpLogRegister (void) {
-    tmm_modules[TMM_LOGHTTPLOG].name = MODULE_NAME;
-    tmm_modules[TMM_LOGHTTPLOG].ThreadInit = LogHttpLogThreadInit;
-    tmm_modules[TMM_LOGHTTPLOG].Func = LogHttpLog;
-    tmm_modules[TMM_LOGHTTPLOG].ThreadExitPrintStats = LogHttpLogExitPrintStats;
-    tmm_modules[TMM_LOGHTTPLOG].ThreadDeinit = LogHttpLogThreadDeinit;
-    tmm_modules[TMM_LOGHTTPLOG].RegisterTests = NULL;
-    tmm_modules[TMM_LOGHTTPLOG].cap_flags = 0;
+void TmModuleHttpJsonRegister (void) {
+    tmm_modules[TMM_LOGHTTPJSON].name = MODULE_NAME;
+    tmm_modules[TMM_LOGHTTPJSON].ThreadInit = HttpJsonThreadInit;
+    tmm_modules[TMM_LOGHTTPJSON].Func = HttpJson;
+    tmm_modules[TMM_LOGHTTPJSON].ThreadExitPrintStats = HttpJsonExitPrintStats;
+    tmm_modules[TMM_LOGHTTPJSON].ThreadDeinit = HttpJsonThreadDeinit;
+    tmm_modules[TMM_LOGHTTPJSON].RegisterTests = NULL;
+    tmm_modules[TMM_LOGHTTPJSON].cap_flags = 0;
 
-    OutputRegisterModule(MODULE_NAME, "http-log", LogHttpLogInitCtx);
+    OutputRegisterModule(MODULE_NAME, "http-log-json", HttpJsonInitCtx);
+
+    /* enable the logger for the app layer */
+    AppLayerRegisterLogger(ALPROTO_HTTP);
 }
 
-void TmModuleLogHttpLogIPv4Register (void) {
-    tmm_modules[TMM_LOGHTTPLOG4].name = "LogHttpLogIPv4";
-    tmm_modules[TMM_LOGHTTPLOG4].ThreadInit = LogHttpLogThreadInit;
-    tmm_modules[TMM_LOGHTTPLOG4].Func = LogHttpLogIPv4;
-    tmm_modules[TMM_LOGHTTPLOG4].ThreadExitPrintStats = LogHttpLogExitPrintStats;
-    tmm_modules[TMM_LOGHTTPLOG4].ThreadDeinit = LogHttpLogThreadDeinit;
-    tmm_modules[TMM_LOGHTTPLOG4].RegisterTests = NULL;
+void TmModuleHttpJsonIPv4Register (void) {
+    tmm_modules[TMM_LOGHTTPJSON4].name = "HttpJsonIPv4";
+    tmm_modules[TMM_LOGHTTPJSON4].ThreadInit = HttpJsonThreadInit;
+    tmm_modules[TMM_LOGHTTPJSON4].Func = HttpJsonIPv4;
+    tmm_modules[TMM_LOGHTTPJSON4].ThreadExitPrintStats = HttpJsonExitPrintStats;
+    tmm_modules[TMM_LOGHTTPJSON4].ThreadDeinit = HttpJsonThreadDeinit;
+    tmm_modules[TMM_LOGHTTPJSON4].RegisterTests = NULL;
 }
 
-void TmModuleLogHttpLogIPv6Register (void) {
-    tmm_modules[TMM_LOGHTTPLOG6].name = "LogHttpLogIPv6";
-    tmm_modules[TMM_LOGHTTPLOG6].ThreadInit = LogHttpLogThreadInit;
-    tmm_modules[TMM_LOGHTTPLOG6].Func = LogHttpLogIPv6;
-    tmm_modules[TMM_LOGHTTPLOG6].ThreadExitPrintStats = LogHttpLogExitPrintStats;
-    tmm_modules[TMM_LOGHTTPLOG6].ThreadDeinit = LogHttpLogThreadDeinit;
-    tmm_modules[TMM_LOGHTTPLOG6].RegisterTests = NULL;
+void TmModuleHttpJsonIPv6Register (void) {
+    tmm_modules[TMM_LOGHTTPJSON6].name = "HttpJsonIPv6";
+    tmm_modules[TMM_LOGHTTPJSON6].ThreadInit = HttpJsonThreadInit;
+    tmm_modules[TMM_LOGHTTPJSON6].Func = HttpJsonIPv6;
+    tmm_modules[TMM_LOGHTTPJSON6].ThreadExitPrintStats = HttpJsonExitPrintStats;
+    tmm_modules[TMM_LOGHTTPJSON6].ThreadDeinit = HttpJsonThreadDeinit;
+    tmm_modules[TMM_LOGHTTPJSON6].RegisterTests = NULL;
 }
 
 #define LOG_HTTP_MAXN_NODES 64
@@ -134,6 +149,7 @@ typedef struct LogHttpFileCtx_ {
 #define LOG_HTTP_DEFAULT 0
 #define LOG_HTTP_EXTENDED 1
 #define LOG_HTTP_CUSTOM 2
+#define LOG_HTTP_JSON_SYSLOG 8 /* JSON output via syslog */
 
 typedef struct LogHttpLogThread_ {
     LogHttpFileCtx *httplog_ctx;
@@ -169,7 +185,7 @@ static uint32_t GetCookieValue(uint8_t *rawcookies, uint32_t rawcookies_len, cha
 }
 
 /* Custom format logging */
-static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct timeval *ts,
+static void LogHttpLogJSONCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct timeval *ts,
                                             char *srcip, Port sp, char *dstip, Port dp)
 {
     LogHttpFileCtx *httplog_ctx = aft->httplog_ctx;
@@ -362,6 +378,155 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
     MemBufferWriteString(aft->buffer, "\n");
 }
 
+#ifdef HAVE_LIBJANSSON
+/* JSON format logging */
+static void LogHttpLogJSON(LogHttpLogThread *aft, htp_tx_t *tx, char * timebuf,
+                           char *srcip, Port sp, char *dstip, Port dp)
+{
+    LogHttpFileCtx *hlog = aft->httplog_ctx;
+    json_t *js = json_object();
+    if (js == NULL)
+        return;
+#if 0
+    json_t *hjs = js;
+#else
+    json_t *hjs = json_object();
+    if (hjs == NULL) {
+        free(js);
+        return;
+    }
+#endif
+
+    /* time */
+    json_object_set_new(js, "time", json_string(timebuf));
+
+    /* tuple */
+    json_object_set_new(js, "srcip", json_string(srcip));
+    json_object_set_new(js, "sp", json_integer(sp));
+    json_object_set_new(js, "dstip", json_string(dstip));
+    json_object_set_new(js, "dp", json_integer(dp));
+
+
+    char *c;
+    /* hostname */
+    if (tx->request_hostname != NULL)
+    {
+        json_object_set_new(hjs, "hostname",
+            json_string(c = strndup(bstr_ptr(tx->request_hostname),
+                                    bstr_len(tx->request_hostname))));
+            if (c) free(c);
+    } else {
+        json_object_set_new(hjs, "hostname", json_string("<hostname unknown>"));
+    }
+
+    /* uri */
+    if (tx->request_uri != NULL)
+    {
+        json_object_set_new(hjs, "uri",
+                            json_string(c = strndup(bstr_ptr(tx->request_uri),
+                                                    bstr_len(tx->request_uri))));
+        if (c) free(c);
+    }
+
+    /* user agent */
+    htp_header_t *h_user_agent = NULL;
+    if (tx->request_headers != NULL) {
+        h_user_agent = htp_table_get_c(tx->request_headers, "user-agent");
+    }
+    if (h_user_agent != NULL) {
+        json_object_set_new(hjs, "user-agent",
+            json_string(c = strndup(bstr_ptr(h_user_agent->value),
+                                    bstr_len(h_user_agent->value))));
+        if (c) free(c);
+    } else {
+        json_object_set_new(hjs, "user-agent", json_string("<useragent unknown>"));
+    }
+
+    /* x-forwarded-for */
+    htp_header_t *h_x_forwarded_for = NULL;
+    if (tx->request_headers != NULL) {
+        h_x_forwarded_for = htp_table_get_c(tx->request_headers, "x-forwarded-for");
+    }
+    if (h_x_forwarded_for != NULL) {
+        json_object_set_new(hjs, "xff",
+            json_string(c = strndup(bstr_ptr(h_x_forwarded_for->value),
+                                    bstr_len(h_x_forwarded_for->value))));
+        if (c) free(c);
+    }
+
+    /* content-type */
+    htp_header_t *h_content_type = NULL;
+    if (tx->response_headers != NULL) {
+        h_content_type = htp_table_get_c(tx->response_headers, "content-type");
+    }
+    if (h_content_type != NULL) {
+        char *p;
+        c = strndup(bstr_ptr(h_content_type->value),
+                    bstr_len(h_content_type->value));
+        p = strchrnul(c, ';');
+        *p = '\0';
+        json_object_set_new(hjs, "content-type", json_string(c));
+        if (c) free(c);
+    }
+
+    if (hlog->flags & LOG_HTTP_EXTENDED) {
+        /* referer */
+        htp_header_t *h_referer = NULL;
+        if (tx->request_headers != NULL) {
+            h_referer = htp_table_get_c(tx->request_headers, "referer");
+        }
+        if (h_referer != NULL) {
+            json_object_set_new(hjs, "referer",
+                json_string(c = strndup(bstr_ptr(h_referer->value),
+                                        bstr_len(h_referer->value))));
+            if (c) free(c);
+        }
+
+        /* method */
+        if (tx->request_method != NULL) {
+            json_object_set_new(hjs, "method",
+                json_string(c = strndup(bstr_ptr(tx->request_method),
+                                        bstr_len(tx->request_method))));
+            if (c) free(c);
+        }
+
+        /* protocol */
+        if (tx->request_protocol != NULL) {
+            json_object_set_new(hjs, "protocol",
+                json_string(c = strndup(bstr_ptr(tx->request_protocol),
+                                        bstr_len(tx->request_protocol))));
+            if (c) free(c);
+        }
+
+        /* response status */
+        if (tx->response_status != NULL) {
+            json_object_set_new(hjs, "status",
+                 json_string(c = strndup(bstr_ptr(tx->response_status),
+                                         bstr_len(tx->response_status))));
+            if (c) free(c);
+
+            htp_header_t *h_location = htp_table_get_c(tx->response_headers, "location");
+            if (h_location != NULL) {
+                json_object_set_new(hjs, "redirect",
+                    json_string(c = strndup(bstr_ptr(h_location->value),
+                                            bstr_len(h_location->value))));
+                if (c) free(c);
+            }
+        }
+
+        /* length */
+        json_object_set_new(hjs, "length", json_integer(tx->response_message_len));
+    }
+
+    json_object_set_new(js, "http", hjs);
+    char *s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
+    MemBufferWriteRaw(aft->buffer, s, strlen(s));
+    free(s);
+    free(hjs);
+    free(js);
+}
+#endif
+
 static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
 {
     MemBufferWriteString(aft->buffer, " [**] ");
@@ -422,7 +587,7 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
     MemBufferWriteString(aft->buffer, " [**] %"PRIuMAX" bytes", (uintmax_t)tx->response_message_len);
 }
 
-static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
+static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
                             PacketQueue *postpq, int ipproto)
 {
     SCEnter();
@@ -520,56 +685,29 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
         MemBufferReset(aft->buffer);
 
         if (hlog->flags & LOG_HTTP_CUSTOM) {
-            LogHttpLogCustom(aft, tx, &p->ts, srcip, sp, dstip, dp);
+            LogHttpLogJSONCustom(aft, tx, &p->ts, srcip, sp, dstip, dp);
+        //} else if (hlog->flags & LOG_HTTP_JSON) {
         } else {
-            /* time */
-            MemBufferWriteString(aft->buffer, "%s ", timebuf);
-
-            /* hostname */
-            if (tx->request_hostname != NULL) {
-                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                               (uint8_t *)bstr_ptr(tx->request_hostname),
-                               bstr_len(tx->request_hostname));
-            } else {
-                MemBufferWriteString(aft->buffer, "<hostname unknown>");
-            }
-            MemBufferWriteString(aft->buffer, " [**] ");
-
-            /* uri */
-            if (tx->request_uri != NULL) {
-                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                               (uint8_t *)bstr_ptr(tx->request_uri),
-                               bstr_len(tx->request_uri));
-            }
-            MemBufferWriteString(aft->buffer, " [**] ");
-
-            /* user agent */
-            htp_header_t *h_user_agent = NULL;
-            if (tx->request_headers != NULL) {
-                h_user_agent = htp_table_get_c(tx->request_headers, "user-agent");
-            }
-            if (h_user_agent != NULL) {
-                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                                (uint8_t *)bstr_ptr(h_user_agent->value),
-                                bstr_len(h_user_agent->value));
-            } else {
-                MemBufferWriteString(aft->buffer, "<useragent unknown>");
-            }
-            if (hlog->flags & LOG_HTTP_EXTENDED) {
-                LogHttpLogExtended(aft, tx);
-            }
-
-            /* ip/tcp header info */
-            MemBufferWriteString(aft->buffer,
-                                 " [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
-                                 srcip, sp, dstip, dp);
+            LogHttpLogJSON(aft, tx, timebuf, srcip, sp, dstip, dp);
         }
 
         aft->uri_cnt ++;
 
         SCMutexLock(&hlog->file_ctx->fp_mutex);
-        (void)MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
-        fflush(hlog->file_ctx->fp);
+#ifdef HAVE_LIBJANSSON
+        if (hlog->flags & LOG_HTTP_JSON_SYSLOG) {
+            syslog(http_syslog_level, "%s", (char *)aft->buffer->buffer);
+        } else {
+            //if (hlog->flags & LOG_HTTP_JSON) {
+            if (TRUE) {
+                MemBufferWriteString(aft->buffer, "\n");
+            }
+#endif
+            (void)MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
+            fflush(hlog->file_ctx->fp);
+#ifdef HAVE_LIBJANSSON
+        }
+#endif
         SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 
         AppLayerTransactionUpdateLogId(ALPROTO_HTTP, p->flow);
@@ -581,17 +719,17 @@ end:
 
 }
 
-TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode HttpJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
-    return LogHttpLogIPWrapper(tv, p, data, pq, postpq, AF_INET);
+    return HttpJsonIPWrapper(tv, p, data, pq, postpq, AF_INET);
 }
 
-TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode HttpJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
-    return LogHttpLogIPWrapper(tv, p, data, pq, postpq, AF_INET6);
+    return HttpJsonIPWrapper(tv, p, data, pq, postpq, AF_INET6);
 }
 
-TmEcode LogHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode HttpJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     SCEnter();
 
@@ -605,15 +743,15 @@ TmEcode LogHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
     }
 
     if (PKT_IS_IPV4(p)) {
-        SCReturnInt(LogHttpLogIPv4(tv, p, data, pq, postpq));
+        SCReturnInt(HttpJsonIPv4(tv, p, data, pq, postpq));
     } else if (PKT_IS_IPV6(p)) {
-        SCReturnInt(LogHttpLogIPv6(tv, p, data, pq, postpq));
+        SCReturnInt(HttpJsonIPv6(tv, p, data, pq, postpq));
     }
 
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode LogHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
+TmEcode HttpJsonThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     LogHttpLogThread *aft = SCMalloc(sizeof(LogHttpLogThread));
     if (unlikely(aft == NULL))
@@ -640,7 +778,7 @@ TmEcode LogHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
     return TM_ECODE_OK;
 }
 
-TmEcode LogHttpLogThreadDeinit(ThreadVars *t, void *data)
+TmEcode HttpJsonThreadDeinit(ThreadVars *t, void *data)
 {
     LogHttpLogThread *aft = (LogHttpLogThread *)data;
     if (aft == NULL) {
@@ -655,7 +793,7 @@ TmEcode LogHttpLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void LogHttpLogExitPrintStats(ThreadVars *tv, void *data) {
+void HttpJsonExitPrintStats(ThreadVars *tv, void *data) {
     LogHttpLogThread *aft = (LogHttpLogThread *)data;
     if (aft == NULL) {
         return;
@@ -668,7 +806,7 @@ void LogHttpLogExitPrintStats(ThreadVars *tv, void *data) {
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
+OutputCtx *HttpJsonInitCtx(ConfNode *conf)
 {
     LogFileCtx* file_ctx = LogFileNewCtx();
     const char *p, *np;
@@ -696,6 +834,7 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
     const char *extended = ConfNodeLookupChildValue(conf, "extended");
     const char *custom = ConfNodeLookupChildValue(conf, "custom");
     const char *customformat = ConfNodeLookupChildValue(conf, "customformat");
+    const char *json = ConfNodeLookupChildValue(conf, "json");
 
     /* If custom logging format is selected, lets parse it */
     if (custom != NULL && customformat != NULL && ConfValIsTrue(custom)) {
@@ -776,6 +915,13 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
             }
         }
     }
+#ifdef HAVE_LIBJANSSON
+    if (json) {
+        if (strcmp(json, "syslog") == 0) {
+            httplog_ctx->flags |= LOG_HTTP_JSON_SYSLOG;
+        }
+    }
+#endif
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
@@ -783,12 +929,9 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
     }
 
     output_ctx->data = httplog_ctx;
-    output_ctx->DeInit = LogHttpLogDeInitCtx;
+    output_ctx->DeInit = HttpJsonDeInitCtx;
 
     SCLogDebug("HTTP log output initialized");
-
-    /* enable the logger for the app layer */
-    AppLayerRegisterLogger(ALPROTO_HTTP);
 
     return output_ctx;
 
@@ -803,7 +946,7 @@ parsererror:
 
 }
 
-static void LogHttpLogDeInitCtx(OutputCtx *output_ctx)
+static void HttpJsonDeInitCtx(OutputCtx *output_ctx)
 {
     LogHttpFileCtx *httplog_ctx = (LogHttpFileCtx *)output_ctx->data;
     uint32_t i;
