@@ -435,18 +435,20 @@ static uint16_t DNSResponseGetNameByOffset(const uint8_t * const input, const ui
         }
         qdata++;
 
-        if (length > 0) {
-            if (input + input_len < qdata + length) {
-                SCLogDebug("input buffer too small for domain of len %u", length);
-                goto insufficient_data;
-            }
-            //PrintRawDataFp(stdout, qdata, length);
+        if (length == 0) {
+            break;
+        }
 
-            if ((size_t)(fqdn_offset + length + 1) < fqdn_size) {
-                memcpy(fqdn + fqdn_offset, qdata, length);
-                fqdn_offset += length;
-                fqdn[fqdn_offset++] = '.';
-            }
+        if (input + input_len < qdata + length) {
+            SCLogDebug("input buffer too small for domain of len %u", length);
+            goto insufficient_data;
+        }
+        //PrintRawDataFp(stdout, qdata, length);
+
+        if ((size_t)(fqdn_offset + length + 1) < fqdn_size) {
+            memcpy(fqdn + fqdn_offset, qdata, length);
+            fqdn_offset += length;
+            fqdn[fqdn_offset++] = '.';
         }
         qdata += length;
 
@@ -681,7 +683,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
 
                 uint8_t pmail[DNS_MAX_SIZE];
                 uint16_t pmail_len = 0;
-
+                SCLogDebug("getting pmail");
                 if ((pmail_len = DNSResponseGetNameByOffset(input, input_len,
                                 sdata - input, pmail, sizeof(pmail))) == 0)
                 {
@@ -691,6 +693,8 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
 #endif
                     goto insufficient_data;
                 }
+                SCLogDebug("pmail_len %u", pmail_len);
+                //PrintRawDataFp(stdout, (uint8_t *)pmail, pmail_len);
 
                 const uint8_t *tdata = SkipDomain(input, input_len, sdata);
                 if (tdata == NULL) {
