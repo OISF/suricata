@@ -88,6 +88,9 @@
 #include "log-file.h"
 #include "log-filestore.h"
 
+#include "output-dnslog.h"
+#include "output-httplog.h"
+
 #include "stream-tcp.h"
 
 #include "source-nfq.h"
