@@ -45,7 +45,7 @@
 #include "app-layer.h"
 #include "util-privs.h"
 #include "util-buffer.h"
-
+#include "util-proto-name.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
 
@@ -381,7 +381,8 @@ static void LogHttpLogJSONCustom(LogHttpLogThread *aft, htp_tx_t *tx, const stru
 #ifdef HAVE_LIBJANSSON
 /* JSON format logging */
 static void LogHttpLogJSON(LogHttpLogThread *aft, htp_tx_t *tx, char * timebuf,
-                           char *srcip, Port sp, char *dstip, Port dp)
+                           char *srcip, Port sp, char *dstip, Port dp,
+                           char *proto)
 {
     LogHttpFileCtx *hlog = aft->httplog_ctx;
     json_t *js = json_object();
@@ -405,6 +406,7 @@ static void LogHttpLogJSON(LogHttpLogThread *aft, htp_tx_t *tx, char * timebuf,
     json_object_set_new(js, "sp", json_integer(sp));
     json_object_set_new(js, "dstip", json_string(dstip));
     json_object_set_new(js, "dp", json_integer(dp));
+    json_object_set_new(js, "proto", json_string(proto));
 
 
     char *c;
@@ -412,7 +414,7 @@ static void LogHttpLogJSON(LogHttpLogThread *aft, htp_tx_t *tx, char * timebuf,
     if (tx->request_hostname != NULL)
     {
         json_object_set_new(hjs, "hostname",
-            json_string(c = strndup(bstr_ptr(tx->request_hostname),
+            json_string(c = strndup((char *)bstr_ptr(tx->request_hostname),
                                     bstr_len(tx->request_hostname))));
             if (c) free(c);
     } else {
@@ -423,7 +425,7 @@ static void LogHttpLogJSON(LogHttpLogThread *aft, htp_tx_t *tx, char * timebuf,
     if (tx->request_uri != NULL)
     {
         json_object_set_new(hjs, "uri",
-                            json_string(c = strndup(bstr_ptr(tx->request_uri),
+                            json_string(c = strndup((char *)bstr_ptr(tx->request_uri),
                                                     bstr_len(tx->request_uri))));
         if (c) free(c);
     }
@@ -435,7 +437,7 @@ static void LogHttpLogJSON(LogHttpLogThread *aft, htp_tx_t *tx, char * timebuf,
     }
     if (h_user_agent != NULL) {
         json_object_set_new(hjs, "user-agent",
-            json_string(c = strndup(bstr_ptr(h_user_agent->value),
+            json_string(c = strndup((char *)bstr_ptr(h_user_agent->value),
                                     bstr_len(h_user_agent->value))));
         if (c) free(c);
     } else {
@@ -449,7 +451,7 @@ static void LogHttpLogJSON(LogHttpLogThread *aft, htp_tx_t *tx, char * timebuf,
     }
     if (h_x_forwarded_for != NULL) {
         json_object_set_new(hjs, "xff",
-            json_string(c = strndup(bstr_ptr(h_x_forwarded_for->value),
+            json_string(c = strndup((char *)bstr_ptr(h_x_forwarded_for->value),
                                     bstr_len(h_x_forwarded_for->value))));
         if (c) free(c);
     }
@@ -461,7 +463,7 @@ static void LogHttpLogJSON(LogHttpLogThread *aft, htp_tx_t *tx, char * timebuf,
     }
     if (h_content_type != NULL) {
         char *p;
-        c = strndup(bstr_ptr(h_content_type->value),
+        c = strndup((char *)bstr_ptr(h_content_type->value),
                     bstr_len(h_content_type->value));
         p = strchrnul(c, ';');
         *p = '\0';
@@ -477,7 +479,7 @@ static void LogHttpLogJSON(LogHttpLogThread *aft, htp_tx_t *tx, char * timebuf,
         }
         if (h_referer != NULL) {
             json_object_set_new(hjs, "referer",
-                json_string(c = strndup(bstr_ptr(h_referer->value),
+                json_string(c = strndup((char *)bstr_ptr(h_referer->value),
                                         bstr_len(h_referer->value))));
             if (c) free(c);
         }
@@ -485,7 +487,7 @@ static void LogHttpLogJSON(LogHttpLogThread *aft, htp_tx_t *tx, char * timebuf,
         /* method */
         if (tx->request_method != NULL) {
             json_object_set_new(hjs, "method",
-                json_string(c = strndup(bstr_ptr(tx->request_method),
+                json_string(c = strndup((char *)bstr_ptr(tx->request_method),
                                         bstr_len(tx->request_method))));
             if (c) free(c);
         }
@@ -493,7 +495,7 @@ static void LogHttpLogJSON(LogHttpLogThread *aft, htp_tx_t *tx, char * timebuf,
         /* protocol */
         if (tx->request_protocol != NULL) {
             json_object_set_new(hjs, "protocol",
-                json_string(c = strndup(bstr_ptr(tx->request_protocol),
+                json_string(c = strndup((char *)bstr_ptr(tx->request_protocol),
                                         bstr_len(tx->request_protocol))));
             if (c) free(c);
         }
@@ -501,14 +503,14 @@ static void LogHttpLogJSON(LogHttpLogThread *aft, htp_tx_t *tx, char * timebuf,
         /* response status */
         if (tx->response_status != NULL) {
             json_object_set_new(hjs, "status",
-                 json_string(c = strndup(bstr_ptr(tx->response_status),
+                 json_string(c = strndup((char *)bstr_ptr(tx->response_status),
                                          bstr_len(tx->response_status))));
             if (c) free(c);
 
             htp_header_t *h_location = htp_table_get_c(tx->response_headers, "location");
             if (h_location != NULL) {
                 json_object_set_new(hjs, "redirect",
-                    json_string(c = strndup(bstr_ptr(h_location->value),
+                    json_string(c = strndup((char *)bstr_ptr(h_location->value),
                                             bstr_len(h_location->value))));
                 if (c) free(c);
             }
@@ -602,6 +604,7 @@ static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQu
     LogHttpLogThread *aft = (LogHttpLogThread *)data;
     LogHttpFileCtx *hlog = aft->httplog_ctx;
     char timebuf[64];
+    char proto_s[16];
 
     /* no flow, no htp state */
     if (p->flow == NULL) {
@@ -660,6 +663,11 @@ static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQu
         sp = p->dp;
         dp = p->sp;
     }
+    if (SCProtoNameValid(IPV4_GET_IPPROTO(p)) == TRUE) {
+        strlcpy(proto_s, known_proto[IPV4_GET_IPPROTO(p)], sizeof(proto_s));
+    } else {
+        snprintf(proto_s, sizeof(proto), "PROTO:%03" PRIu32, IPV4_GET_IPPROTO(p));
+    }
 
     for (; tx_id < total_txs; tx_id++)
     {
@@ -688,7 +696,7 @@ static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQu
             LogHttpLogJSONCustom(aft, tx, &p->ts, srcip, sp, dstip, dp);
         //} else if (hlog->flags & LOG_HTTP_JSON) {
         } else {
-            LogHttpLogJSON(aft, tx, timebuf, srcip, sp, dstip, dp);
+            LogHttpLogJSON(aft, tx, timebuf, srcip, sp, dstip, dp, proto_s);
         }
 
         aft->uri_cnt ++;

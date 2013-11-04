@@ -44,7 +44,7 @@
 #include "app-layer.h"
 #include "util-privs.h"
 #include "util-buffer.h"
-
+#include "util-proto-name.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
 
@@ -139,7 +139,7 @@ static void CreateTypeString(uint16_t type, char *str, size_t str_size) {
     }
 }
 
-static void LogQuery(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dstip, Port sp, Port dp, DNSTransaction *tx, DNSQueryEntry *entry) {
+static void LogQuery(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dstip, Port sp, Port dp, char *proto, DNSTransaction *tx, DNSQueryEntry *entry) {
     LogDnsFileCtx *hlog = aft->dnslog_ctx;
 
     SCLogDebug("got a DNS request and now logging !!");
@@ -165,6 +165,7 @@ static void LogQuery(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dst
     json_object_set_new(js, "sp", json_integer(sp));
     json_object_set_new(js, "dstip", json_string(dstip));
     json_object_set_new(js, "dp", json_integer(dp));
+    json_object_set_new(js, "proto", json_string(proto));
 
     /* type */
     json_object_set_new(djs, "type", json_string("query"));
@@ -347,7 +348,7 @@ static void AppendAnswer(json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry)
     json_array_append_new(djs, js);
 }
 
-static void LogAnswers(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dstip, Port sp, Port dp, DNSTransaction *tx) {
+static void LogAnswers(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dstip, Port sp, Port dp, char *proto, DNSTransaction *tx) {
     LogDnsFileCtx *hlog = aft->dnslog_ctx;
 
     SCLogDebug("got a DNS response and now logging !!");
@@ -373,6 +374,7 @@ static void LogAnswers(LogDnsLogThread *aft, char *timebuf, char *srcip, char *d
     json_object_set_new(js, "sp", json_integer(sp));
     json_object_set_new(js, "dstip", json_string(dstip));
     json_object_set_new(js, "dp", json_integer(dp));
+    json_object_set_new(js, "proto", json_string(proto));
 
 #if 1
     if (tx->no_such_name) {
@@ -523,13 +525,20 @@ static TmEcode DnsJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQue
         sp = p->dp;
         dp = p->sp;
     }
+    char proto_s[16];
+    if (SCProtoNameValid(IPV4_GET_IPPROTO(p)) == TRUE) {
+        strlcpy(proto_s, known_proto[IPV4_GET_IPPROTO(p)], sizeof(proto_s));
+    } else {
+        snprintf(proto_s, sizeof(proto), "PROTO:%03" PRIu32, IPV4_GET_IPPROTO(p));
+    }
+
 #if QUERY
     if (PKT_IS_TOSERVER(p)) {
         DNSTransaction *tx = NULL;
         TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
             DNSQueryEntry *entry = NULL;
             TAILQ_FOREACH(entry, &tx->query_list, next) {
-                LogQuery(aft, timebuf, srcip, dstip, sp, dp, tx, entry);
+                LogQuery(aft, timebuf, srcip, dstip, sp, dp, tx, proto_s, entry);
             }
         }
     } else
@@ -544,11 +553,11 @@ static TmEcode DnsJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQue
 
             DNSQueryEntry *query = NULL;
             TAILQ_FOREACH(query, &tx->query_list, next) {
-                LogQuery(aft, timebuf, dstip, srcip, dp, sp, tx, query);
+                LogQuery(aft, timebuf, dstip, srcip, dp, sp, proto_s, tx, query);
             }
 
 #if 1
-            LogAnswers(aft, timebuf, srcip, dstip, sp, dp, tx);
+            LogAnswers(aft, timebuf, srcip, dstip, sp, dp, proto_s, tx);
 #else
             if (tx->no_such_name) {
                 LogAnswer(aft, timebuf, srcip, dstip, sp, dp, tx, NULL);
