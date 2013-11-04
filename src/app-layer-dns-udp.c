@@ -95,21 +95,23 @@ static int DNSUDPRequestParse(Flow *f, void *dstate,
 
             data++;
 
-            if (length > 0) {
-                if (input + input_len < data + length) {
-                    SCLogDebug("input buffer too small for domain of len %u", length);
-                    goto insufficient_data;
-                }
-                //PrintRawDataFp(stdout, data, qry->length);
+            if (length == 0) {
+                break;
+            }
 
-                if ((size_t)(fqdn_offset + length + 1) < sizeof(fqdn)) {
-                    memcpy(fqdn + fqdn_offset, data, length);
-                    fqdn_offset += length;
-                    fqdn[fqdn_offset++] = '.';
-                } else {
-                    /** \todo set event? */
-                    goto insufficient_data;
-                }
+            if (input + input_len < data + length) {
+                SCLogDebug("input buffer too small for domain of len %u", length);
+                goto insufficient_data;
+            }
+            //PrintRawDataFp(stdout, data, qry->length);
+
+            if ((size_t)(fqdn_offset + length + 1) < sizeof(fqdn)) {
+                memcpy(fqdn + fqdn_offset, data, length);
+                fqdn_offset += length;
+                fqdn[fqdn_offset++] = '.';
+            } else {
+                /** \todo set event? */
+                goto insufficient_data;
             }
 
             data += length;
@@ -173,7 +175,7 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
     }
 
     DNSHeader *dns_header = (DNSHeader *)input;
-    SCLogDebug("DNS %p", dns_header);
+    SCLogDebug("DNS %p %04x %04x", dns_header, ntohs(dns_header->tx_id), dns_header->flags);
 
     DNSTransaction *tx = NULL;
     int found = 0;
@@ -185,6 +187,8 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
     }
     if (DNSValidateResponseHeader(dns_state, dns_header) < 0)
         goto bad_data;
+
+    SCLogDebug("queries %04x", ntohs(dns_header->questions));
 
     uint16_t q;
     const uint8_t *data = input + sizeof(DNSHeader);
@@ -202,18 +206,19 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
             uint8_t length = *data;
             data++;
 
-            if (length > 0) {
-                if (input + input_len < data + length) {
-                    SCLogDebug("input buffer too small for domain of len %u", length);
-                    goto insufficient_data;
-                }
-                //PrintRawDataFp(stdout, data, length);
+            if (length == 0)
+                break;
 
-                if ((size_t)(fqdn_offset + length + 1) < sizeof(fqdn)) {
-                    memcpy(fqdn + fqdn_offset, data, length);
-                    fqdn_offset += length;
-                    fqdn[fqdn_offset++] = '.';
-                }
+            if (input + input_len < data + length) {
+                SCLogDebug("input buffer too small for domain of len %u", length);
+                goto insufficient_data;
+            }
+            //PrintRawDataFp(stdout, data, length);
+
+            if ((size_t)(fqdn_offset + length + 1) < sizeof(fqdn)) {
+                memcpy(fqdn + fqdn_offset, data, length);
+                fqdn_offset += length;
+                fqdn[fqdn_offset++] = '.';
             }
 
             data += length;
@@ -242,6 +247,7 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
         data += sizeof(DNSQueryTrailer);
     }
 
+    SCLogDebug("answer_rr %04x", ntohs(dns_header->answer_rr));
     for (q = 0; q < ntohs(dns_header->answer_rr); q++) {
         data = DNSReponseParse(dns_state, dns_header, q, DNS_LIST_ANSWER,
                 input, input_len, data);
@@ -250,6 +256,7 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
         }
     }
 
+    SCLogDebug("authority_rr %04x", ntohs(dns_header->authority_rr));
     for (q = 0; q < ntohs(dns_header->authority_rr); q++) {
         data = DNSReponseParse(dns_state, dns_header, q, DNS_LIST_AUTHORITY,
                 input, input_len, data);
@@ -346,11 +353,53 @@ void RegisterDNSUDPParsers(void) {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
     }
+#ifdef UNITTESTS
+    AppLayerParserRegisterUnittests(ALPROTO_DNS_UDP, DNSUDPParserRegisterTests);
+#endif
 }
 
 /* UNITTESTS */
 #ifdef UNITTESTS
+#include "util-unittest-helper.h"
+
+static int DNSUDPParserTest01 (void) {
+    int result = 0;
+    /* query: abcdefghijk.com
+     * TTL: 86400
+     * serial 20130422 refresh 28800 retry 7200 exp 604800 min ttl 86400
+     * ns, hostmaster */
+    uint8_t buf[] = { 0x00, 0x3c, 0x85, 0x00, 0x00, 0x01, 0x00, 0x00,
+                      0x00, 0x01, 0x00, 0x00, 0x0b, 0x61, 0x62, 0x63,
+                      0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b,
+                      0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x0f, 0x00,
+                      0x01, 0x00, 0x00, 0x06, 0x00, 0x01, 0x00, 0x01,
+                      0x51, 0x80, 0x00, 0x25, 0x02, 0x6e, 0x73, 0x00,
+                      0x0a, 0x68, 0x6f, 0x73, 0x74, 0x6d, 0x61, 0x73,
+                      0x74, 0x65, 0x72, 0xc0, 0x2f, 0x01, 0x33, 0x2a,
+                      0x76, 0x00, 0x00, 0x70, 0x80, 0x00, 0x00, 0x1c,
+                      0x20, 0x00, 0x09, 0x3a, 0x80, 0x00, 0x01, 0x51,
+                      0x80};
+    size_t buflen = sizeof(buf);
+    Flow *f = NULL;
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 53);
+    if (f == NULL)
+        goto end;
+    f->proto = IPPROTO_UDP;
+    f->alproto = ALPROTO_DNS_UDP;
+    f->alstate = DNSStateAlloc();
+
+    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL, NULL);
+    if (r != 1)
+        goto end;
+
+    result = 1;
+end:
+    UTHFreeFlow(f);
+    return (result);
+}
+
 void DNSUDPParserRegisterTests(void) {
-//	UtRegisterTest("DNSUDPParserTest01", DNSUDPParserTest01, 1);
+	UtRegisterTest("DNSUDPParserTest01", DNSUDPParserTest01, 1);
 }
 #endif
