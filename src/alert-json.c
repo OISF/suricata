@@ -141,9 +141,12 @@ void TmModuleAlertJsonRegister (void) {
 }
 
 /* Default Sensor ID value */
-static uint64_t sensor_id = 0;
+static int64_t sensor_id = -1; /* -1 = not defined */
 
-enum json_output { ALERT_FILE, ALERT_SYSLOG };
+enum json_output { ALERT_FILE,
+                   ALERT_SYSLOG,
+                   ALERT_UNIX_DGRAM,
+                   ALERT_UNIX_STREAM };
 static enum json_output json_out = ALERT_FILE;
 
 enum json_format { COMPACT, INDENT };
@@ -204,6 +207,11 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
 
         /* time & tx */
         json_object_set_new(js, "time", json_string(timebuf));
+
+        /* sensor id */
+        if (sensor_id >= 0)
+            json_object_set_new(js, "sensor-id", json_integer(sensor_id));
+     
 
         /* tuple */
         json_object_set_new(js, "srcip", json_string(srcip));
@@ -507,12 +515,16 @@ OutputCtx *AlertJsonInitCtx(ConfNode *conf)
     output_ctx->DeInit = AlertJsonDeInitCtx;
 
     if (conf) {
-        const char *output_s = ConfNodeLookupChildValue(conf, "output");
+        const char *output_s = ConfNodeLookupChildValue(conf, "type");
         if (output_s != NULL) {
             if (strcmp(output_s, "file") == 0) {
                 json_out = ALERT_FILE;
             } else if (strcmp(output_s, "syslog") == 0) {
                 json_out = ALERT_SYSLOG;
+            } else if (strcmp(output_s, "unix_dgram") == 0) {
+                json_out = ALERT_UNIX_DGRAM;
+            } else if (strcmp(output_s, "unix_stream") == 0) {
+                json_out = ALERT_UNIX_STREAM;
             } else {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                            "Invalid JSON output option: %s", output_s);
@@ -539,7 +551,7 @@ OutputCtx *AlertJsonInitCtx(ConfNode *conf)
                     exit(EXIT_FAILURE);
                 }
             }
-        } else {
+        } else if (json_out == ALERT_SYSLOG) {
             const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
             if (facility_s == NULL) {
                 facility_s = DEFAULT_ALERT_SYSLOG_FACILITY_STR;
@@ -571,13 +583,13 @@ OutputCtx *AlertJsonInitCtx(ConfNode *conf)
 
         const char *sensor_id_s = ConfNodeLookupChildValue(conf, "sensor-id");
         if (sensor_id_s != NULL) {
-            if (ByteExtractStringUint64(&sensor_id, 10, 0, sensor_id_s) == -1) {
+            if (ByteExtractStringUint64((uint64_t *)&sensor_id, 10, 0, sensor_id_s) == -1) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
-                           "Failed to initialize broccoli output, "
+                           "Failed to initialize JSON output, "
                            "invalid sensor-is: %s", sensor_id_s);
                 exit(EXIT_FAILURE);
             }
-            sensor_id = htonl(sensor_id);
+            //sensor_id = htonl(sensor_id);
         }
     }
 
