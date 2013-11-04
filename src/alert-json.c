@@ -225,26 +225,23 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
         /* alert */ 
         json_object_set_new(js, "alert", ajs);
 
+        char *js_s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
+        if (unlikely(js_s == NULL))
+            return TM_ECODE_OK;
+
         SCMutexLock(&aft->file_ctx->fp_mutex);
         if (json_out == ALERT_FILE) {
-            char *s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
-            MemBufferWriteString(aft->buffer, "%s", s);
-            MemBufferWriteString(aft->buffer, "\n");
-            free(s);          
+            MemBufferWriteString(aft->buffer, "%s\n", js_s);
             (void)MemBufferPrintToFPAsString(aft->buffer, aft->file_ctx->fp);
             fflush(aft->file_ctx->fp);
         } else {
-            char *js_s;
-            js_s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
-            if (js_s) {
-                syslog(alert_syslog_level, "%s", js_s);
-                free(js_s);
-            }
+            syslog(alert_syslog_level, "%s", js_s);
         }
         aft->file_ctx->alerts++;
         SCMutexUnlock(&aft->file_ctx->fp_mutex);
         free(ajs);
         free(js);
+        free(js_s);
     }
 
     return TM_ECODE_OK;
