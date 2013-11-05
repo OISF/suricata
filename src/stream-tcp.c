@@ -5283,10 +5283,10 @@ static void StreamTcpPseudoPacketSetupHeader(Packet *np, Packet *p)
         PSEUDO_PKT_SET_TCPHDR(np->tcph, p->tcph);
 
         /* Setup the adress and port details */
-        SET_IPV6_SRC_ADDR(p, &np->src);
-        SET_IPV6_DST_ADDR(p, &np->dst);
-        SET_TCP_SRC_PORT(p, &np->sp);
-        SET_TCP_DST_PORT(p, &np->dp);
+        SET_IPV6_SRC_ADDR(p, &np->dst);
+        SET_IPV6_DST_ADDR(p, &np->src);
+        SET_TCP_SRC_PORT(p, &np->dp);
+        SET_TCP_DST_PORT(p, &np->sp);
     }
 
     /* we don't need a payload (if any) */
