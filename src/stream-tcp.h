@@ -206,6 +206,7 @@ TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data);
 int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                      PacketQueue *pq);
 void StreamTcpSessionClear(void *ssnptr);
+uint32_t StreamTcpGetStreamSize(TcpStream *stream);
 
 #endif /* __STREAM_TCP_H__ */
 

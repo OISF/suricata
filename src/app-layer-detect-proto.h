@@ -46,12 +46,14 @@ typedef struct AlpProtoDetectDirection_ {
     uint32_t id;
     uint16_t map[ALP_DETECT_MAX];   /**< a mapping between condition id's and
                                          protocol */
-    uint16_t max_len;              /**< max length of all patterns, so we can
+    uint16_t max_len;               /**< max length of all patterns, so we can
                                          limit the search */
-    uint16_t min_len;              /**< min length of all patterns, so we can
+    uint16_t min_len;               /**< min length of all patterns, so we can
                                          tell the stream engine to feed data
                                          to app layer as soon as it has min
                                          size data */
+    uint32_t async_max;             /**< max bytes in this direction while 0 in
+                                         the other, before we give up. */
 } AlpProtoDetectDirection;
 
 typedef struct AlpProtoDetectCtx_ {
