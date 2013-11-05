@@ -2590,6 +2590,39 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags) {
     }
 }
 
+#ifdef DEBUG
+static uint64_t GetStreamSize(TcpStream *stream) {
+    if (stream) {
+        uint64_t size = 0;
+        uint32_t cnt = 0;
+
+        TcpSegment *seg = stream->seg_list;
+        while (seg) {
+            cnt++;
+            size += (uint64_t)seg->payload_len;
+
+            seg = seg->next;
+        }
+
+        SCLogDebug("size %"PRIu64", cnt %"PRIu32, size, cnt);
+        return size;
+    }
+    return (uint64_t)0;
+}
+
+static void GetSessionSize(TcpSession *ssn, Packet *p) {
+    uint64_t size = 0;
+    if (ssn) {
+        size = GetStreamSize(&ssn->client);
+        size += GetStreamSize(&ssn->server);
+
+        //if (size > 900000)
+        //    SCLogInfo("size %"PRIu64", packet %"PRIu64, size, p->pcap_cnt);
+        SCLogDebug("size %"PRIu64", packet %"PRIu64, size, p->pcap_cnt);
+    }
+}
+#endif
+
 /**
  *  \brief Update the stream reassembly upon receiving an ACK packet.
  *
@@ -2623,6 +2656,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     SCLogDebug("stream->seg_list %p", stream->seg_list);
 #ifdef DEBUG
     PrintList(stream->seg_list);
+    GetSessionSize(ssn, p);
 #endif
 
     /* if no segments are in the list or all are already processed,
