@@ -111,7 +111,6 @@ void StreamTcpIncrMemuse(uint64_t);
 void StreamTcpDecrMemuse(uint64_t);
 int StreamTcpCheckMemcap(uint64_t);
 
-void StreamTcpPseudoPacketSetupHeader(Packet *, Packet *);
 Packet *StreamTcpPseudoSetup(Packet *, uint8_t *, uint32_t);
 
 int StreamTcpSegmentForEach(Packet *p, uint8_t flag,
