@@ -62,7 +62,10 @@
 #include "util-cuda.h"
 #include "util-debug.h"
 
+#include "conf.h"
+
 #define INSPECT_BYTES  32
+#define ASYNC_MAX 75000
 
 /** global app layer detection context */
 AlpProtoDetectCtx alp_proto_ctx;
@@ -81,6 +84,28 @@ void AlpProtoInit(AlpProtoDetectCtx *ctx) {
     ctx->toclient.id = 0;
     ctx->toclient.min_len = INSPECT_BYTES;
     ctx->toserver.min_len = INSPECT_BYTES;
+
+    intmax_t value = 0;
+    if ((ConfGetInt("app-layer.proto-detect.toclient-async-max", &value)) == 1) {
+        if (value >= 0 && value <= 1048576) {
+            ctx->toclient.async_max = (uint32_t)value;
+        } else {
+            ctx->toclient.async_max = (uint32_t)ASYNC_MAX;
+        }
+    } else {
+        ctx->toclient.async_max = (uint32_t)ASYNC_MAX;
+    }
+    if ((ConfGetInt("app-layer.proto-detect.toserver-async-max", &value)) == 1) {
+        if (value >= 0 && value <= 1048576) {
+            ctx->toserver.async_max = (uint32_t)value;
+        } else {
+            ctx->toserver.async_max = (uint32_t)ASYNC_MAX;
+        }
+    } else {
+        ctx->toserver.async_max = (uint32_t)ASYNC_MAX;
+    }
+    SCLogDebug("toclient.async_max %u toserver.async_max %u",
+            ctx->toclient.async_max, ctx->toserver.async_max);
 
     ctx->mpm_pattern_id_store = MpmPatternIdTableInitHash();
 }

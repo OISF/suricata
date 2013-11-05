@@ -156,6 +156,9 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         alproto_otherdir = &f->alproto_ts;
         dir = 1;
     }
+    SCLogDebug("dir %u alproto %u alproto_other_dir %u",
+            dir, *alproto, *alproto_otherdir);
+    //PrintRawDataFp(stdout, data, data_len);
 
     /* if we don't know the proto yet and we have received a stream
      * initializer message, we run proto detection.
@@ -187,6 +190,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         *alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx, f,
                                           data, data_len, flags, IPPROTO_TCP);
         PACKET_PROFILING_APP_PD_END(dp_ctx);
+        SCLogDebug("alproto %u", *alproto);
 
         if (*alproto != ALPROTO_UNKNOWN) {
             if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto_otherdir != *alproto) {
@@ -204,6 +208,9 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             }
 
             f->alproto = *alproto;
+            SCLogDebug("calling StreamTcpSetStreamFlagAppProtoDetectionCompleted "
+                    "on stream %p (%s)", stream, (stream == &ssn->client) ?
+                    "ssn->client" : "ssn->server");
             StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
 
             /* if we have seen data from the other direction first, send
@@ -215,6 +222,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
              * will now call shortly for the opposing direction. */
             if ((ssn->data_first_seen_dir & (STREAM_TOSERVER | STREAM_TOCLIENT)) &&
                 !(flags & ssn->data_first_seen_dir)) {
+                SCLogDebug("entering opposing dir hack");
                 TcpStream *opposing_stream = NULL;
                 if (stream == &ssn->client) {
                     opposing_stream = &ssn->server;
@@ -260,8 +268,11 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                         p->flowflags |= FLOW_PKT_TOSERVER;
                     }
                 }
+                SCLogDebug("ret %d", ret);
                 if (ret < 0) {
                     FlowSetSessionNoApplayerInspectionFlag(f);
+                    SCLogDebug("calling StreamTcpSetStreamFlagAppProtoDetectionCompleted "
+                            "on both streams");
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
                     r = -1;
@@ -292,6 +303,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
                                                      APPLAYER_WRONG_DIRECTION_FIRST_DATA);
                     FlowSetSessionNoApplayerInspectionFlag(f);
+                    SCLogDebug("calling StreamTcpSetStreamFlagAppProtoDetectionCompleted "
+                            "on both streams");
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
                     /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
@@ -328,6 +341,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             PACKET_PROFILING_APP_END(dp_ctx, *alproto);
             f->data_al_so_far[dir] = 0;
         } else {
+            SCLogDebug("alproto == ALPROTO_UNKNOWN (%u)", *alproto);
             if (*alproto_otherdir != ALPROTO_UNKNOWN) {
                 /* this would handle this test case -
                  * http parser which says it wants to see toserver data first only.
@@ -350,6 +364,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 {
                     r = -1;
                     FlowSetSessionNoApplayerInspectionFlag(f);
+                    SCLogDebug("calling StreamTcpSetStreamFlagAppProtoDetectionCompleted "
+                            "on both streams");
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
                     goto end;
@@ -365,14 +381,48 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 if (FLOW_IS_PM_DONE(f, flags) && FLOW_IS_PP_DONE(f, flags)) {
                     AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
                                                      APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION);
+                    SCLogDebug("calling StreamTcpSetStreamFlagAppProtoDetectionCompleted "
+                            "on stream %p (%s)", stream, (stream == &ssn->client) ?
+                            "ssn->client" : "ssn->server");
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
                     f->data_al_so_far[dir] = 0;
                 } else {
                     f->data_al_so_far[dir] = data_len;
+                    SCLogDebug("data_len %u stored in flow for dir %u", data_len, dir);
                 }
             } else {
+
+                SCLogDebug("both unknown FLOW_IS_PM_DONE(f, STREAM_TOSERVER) %s "
+                                        "FLOW_IS_PP_DONE(f, STREAM_TOSERVER) %s "
+                                        "FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) %s "
+                                        "FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) %s,"
+                                        " stream ts %u stream tc %u",
+                        FLOW_IS_PM_DONE(f, STREAM_TOSERVER)?"true":"false",
+                        FLOW_IS_PP_DONE(f, STREAM_TOSERVER)?"true":"false",
+                        FLOW_IS_PM_DONE(f, STREAM_TOCLIENT)?"true":"false",
+                        FLOW_IS_PP_DONE(f, STREAM_TOCLIENT)?"true":"false",
+                        StreamTcpGetStreamSize(&ssn->client), StreamTcpGetStreamSize(&ssn->server));
+
+                int flow_done = 0;
                 if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
                     FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT)) {
+                    SCLogDebug("proto detection failed for both streams");
+                    flow_done = 1;
+                } else if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
+                           StreamTcpGetStreamSize(&ssn->server) == 0 &&
+                           StreamTcpGetStreamSize(&ssn->client) > alp_proto_ctx.toserver.async_max) {
+                    SCLogDebug("%u bytes toserver and no proto, no data to "
+                               "client, giving up", alp_proto_ctx.toserver.async_max);
+                    flow_done = 1;
+                } else if (FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) &&
+                           StreamTcpGetStreamSize(&ssn->client) == 0 &&
+                           StreamTcpGetStreamSize(&ssn->server) > alp_proto_ctx.toclient.async_max) {
+                    SCLogDebug("%u bytes toclient and no proto, no data to "
+                               "server, giving up", alp_proto_ctx.toclient.async_max);
+                    flow_done = 1;
+                }
+
+                if (flow_done) {
                     FlowSetSessionNoApplayerInspectionFlag(f);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
