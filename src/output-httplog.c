@@ -18,10 +18,9 @@
 /**
  * \file
  *
- * \author Victor Julien <victor@inliniac.net>
- * \author Ignacio Sanchez <sanchezmartin.ji@gmail.com>
+ * \author Tom DeCanio <td@npulsetech.com>
  *
- * Implements http logging portion of the engine.
+ * Implements HTTP JSON logging portion of the engine.
  */
 
 #include "suricata-common.h"
@@ -48,65 +47,10 @@
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
+#include "alert-json.h"
 
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>
-
-#define DEFAULT_HTTP_SYSLOG_FACILITY_STR       "local0"
-#define DEFAULT_HTTP_SYSLOG_FACILITY           LOG_LOCAL0
-#define DEFAULT_HTTP_SYSLOG_LEVEL              LOG_INFO
-
-#ifndef OS_WIN32
-static int http_syslog_level = DEFAULT_HTTP_SYSLOG_LEVEL;
-#endif
-#endif
-
-#define DEFAULT_LOG_FILENAME "http.log"
-
-#define MODULE_NAME "HttpJson"
-
-#define OUTPUT_BUFFER_SIZE 65535
-
-TmEcode HttpJson (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode HttpJsonIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode HttpJsonIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode HttpJsonThreadInit(ThreadVars *, void *, void **);
-TmEcode HttpJsonThreadDeinit(ThreadVars *, void *);
-void HttpJsonExitPrintStats(ThreadVars *, void *);
-static void HttpJsonDeInitCtx(OutputCtx *);
-
-void TmModuleHttpJsonRegister (void) {
-    tmm_modules[TMM_LOGHTTPJSON].name = MODULE_NAME;
-    tmm_modules[TMM_LOGHTTPJSON].ThreadInit = HttpJsonThreadInit;
-    tmm_modules[TMM_LOGHTTPJSON].Func = HttpJson;
-    tmm_modules[TMM_LOGHTTPJSON].ThreadExitPrintStats = HttpJsonExitPrintStats;
-    tmm_modules[TMM_LOGHTTPJSON].ThreadDeinit = HttpJsonThreadDeinit;
-    tmm_modules[TMM_LOGHTTPJSON].RegisterTests = NULL;
-    tmm_modules[TMM_LOGHTTPJSON].cap_flags = 0;
-
-    OutputRegisterModule(MODULE_NAME, "http-log-json", HttpJsonInitCtx);
-
-    /* enable the logger for the app layer */
-    AppLayerRegisterLogger(ALPROTO_HTTP);
-}
-
-void TmModuleHttpJsonIPv4Register (void) {
-    tmm_modules[TMM_LOGHTTPJSON4].name = "HttpJsonIPv4";
-    tmm_modules[TMM_LOGHTTPJSON4].ThreadInit = HttpJsonThreadInit;
-    tmm_modules[TMM_LOGHTTPJSON4].Func = HttpJsonIPv4;
-    tmm_modules[TMM_LOGHTTPJSON4].ThreadExitPrintStats = HttpJsonExitPrintStats;
-    tmm_modules[TMM_LOGHTTPJSON4].ThreadDeinit = HttpJsonThreadDeinit;
-    tmm_modules[TMM_LOGHTTPJSON4].RegisterTests = NULL;
-}
-
-void TmModuleHttpJsonIPv6Register (void) {
-    tmm_modules[TMM_LOGHTTPJSON6].name = "HttpJsonIPv6";
-    tmm_modules[TMM_LOGHTTPJSON6].ThreadInit = HttpJsonThreadInit;
-    tmm_modules[TMM_LOGHTTPJSON6].Func = HttpJsonIPv6;
-    tmm_modules[TMM_LOGHTTPJSON6].ThreadExitPrintStats = HttpJsonExitPrintStats;
-    tmm_modules[TMM_LOGHTTPJSON6].ThreadDeinit = HttpJsonThreadDeinit;
-    tmm_modules[TMM_LOGHTTPJSON6].RegisterTests = NULL;
-}
 
 #define LOG_HTTP_MAXN_NODES 64
 #define LOG_HTTP_NODE_STRLEN 256
@@ -185,10 +129,13 @@ static uint32_t GetCookieValue(uint8_t *rawcookies, uint32_t rawcookies_len, cha
 }
 
 /* Custom format logging */
-static void LogHttpLogJSONCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct timeval *ts,
-                                            char *srcip, Port sp, char *dstip, Port dp)
+static void LogHttpLogJSONCustom(AlertJsonThread *aft, json_t *js, htp_tx_t *tx, const struct timeval *ts /*,
+                                            char *srcip, Port sp, char *dstip, Port dp*/)
 {
+#if 0
     LogHttpFileCtx *httplog_ctx = aft->httplog_ctx;
+#endif
+#if 0
     uint32_t i;
     uint32_t datalen;
     char buf[128];
@@ -227,6 +174,7 @@ static void LogHttpLogJSONCustom(LogHttpLogThread *aft, htp_tx_t *tx, const stru
                 PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
                             aft->buffer->size, (uint8_t *)buf,strlen(buf));
                 break;
+#ifdef NOTYET
             case LOG_HTTP_CF_CLIENT_IP:
             /* CLIENT IP ADDRESS */
                 PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
@@ -245,6 +193,7 @@ static void LogHttpLogJSONCustom(LogHttpLogThread *aft, htp_tx_t *tx, const stru
             /* SERVER PORT */
                 MemBufferWriteString(aft->buffer, "%" PRIu16 "", dp);
                 break;
+#endif
             case LOG_HTTP_CF_REQUEST_METHOD:
             /* METHOD */
                 if (tx->request_method != NULL) {
@@ -376,38 +325,20 @@ static void LogHttpLogJSONCustom(LogHttpLogThread *aft, htp_tx_t *tx, const stru
         }
     }
     MemBufferWriteString(aft->buffer, "\n");
+#endif
 }
 
 #ifdef HAVE_LIBJANSSON
 /* JSON format logging */
-static void LogHttpLogJSON(LogHttpLogThread *aft, htp_tx_t *tx, char * timebuf,
+static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx /*, char * timebuf,
                            char *srcip, Port sp, char *dstip, Port dp,
-                           char *proto)
+                           char *proto*/)
 {
-    LogHttpFileCtx *hlog = aft->httplog_ctx;
-    json_t *js = json_object();
-    if (js == NULL)
-        return;
-#if 0
-    json_t *hjs = js;
-#else
     json_t *hjs = json_object();
     if (hjs == NULL) {
         free(js);
         return;
     }
-#endif
-
-    /* time */
-    json_object_set_new(js, "time", json_string(timebuf));
-
-    /* tuple */
-    json_object_set_new(js, "srcip", json_string(srcip));
-    json_object_set_new(js, "sp", json_integer(sp));
-    json_object_set_new(js, "dstip", json_string(dstip));
-    json_object_set_new(js, "dp", json_integer(dp));
-    json_object_set_new(js, "proto", json_string(proto));
-
 
     char *c;
     /* hostname */
@@ -471,7 +402,7 @@ static void LogHttpLogJSON(LogHttpLogThread *aft, htp_tx_t *tx, char * timebuf,
         if (c) free(c);
     }
 
-    if (hlog->flags & LOG_HTTP_EXTENDED) {
+    if (aft->http_flags & LOG_HTTP_EXTENDED) {
         /* referer */
         htp_header_t *h_referer = NULL;
         if (tx->request_headers != NULL) {
@@ -521,11 +452,6 @@ static void LogHttpLogJSON(LogHttpLogThread *aft, htp_tx_t *tx, char * timebuf,
     }
 
     json_object_set_new(js, "http", hjs);
-    char *s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
-    MemBufferWriteRaw(aft->buffer, s, strlen(s));
-    free(s);
-    free(hjs);
-    free(js);
 }
 #endif
 
@@ -590,7 +516,7 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
 }
 
 static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-                            PacketQueue *postpq, int ipproto)
+                            PacketQueue *postpq/*, int ipproto*/)
 {
     SCEnter();
 
@@ -601,10 +527,8 @@ static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQu
     int tx_progress = 0;
     int tx_progress_done_value_ts = 0;
     int tx_progress_done_value_tc = 0;
-    LogHttpLogThread *aft = (LogHttpLogThread *)data;
-    LogHttpFileCtx *hlog = aft->httplog_ctx;
-    char timebuf[64];
-    char proto_s[16];
+    AlertJsonThread *aft = (AlertJsonThread *)data;
+    MemBuffer *buffer = (MemBuffer *)aft->buffer;
 
     /* no flow, no htp state */
     if (p->flow == NULL) {
@@ -628,46 +552,9 @@ static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQu
     tx_progress_done_value_ts = AppLayerGetAlstateProgressCompletionStatus(ALPROTO_HTTP, 0);
     tx_progress_done_value_tc = AppLayerGetAlstateProgressCompletionStatus(ALPROTO_HTTP, 1);
 
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
-
-    char srcip[46], dstip[46];
-    Port sp, dp;
-    if ((PKT_IS_TOSERVER(p))) {
-        switch (ipproto) {
-            case AF_INET:
-                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
-                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
-                break;
-            case AF_INET6:
-                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
-                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
-                break;
-            default:
-                goto end;
-        }
-        sp = p->sp;
-        dp = p->dp;
-    } else {
-        switch (ipproto) {
-            case AF_INET:
-                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), srcip, sizeof(srcip));
-                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), dstip, sizeof(dstip));
-                break;
-            case AF_INET6:
-                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), srcip, sizeof(srcip));
-                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), dstip, sizeof(dstip));
-                break;
-            default:
-                goto end;
-        }
-        sp = p->dp;
-        dp = p->sp;
-    }
-    if (SCProtoNameValid(IPV4_GET_IPPROTO(p)) == TRUE) {
-        strlcpy(proto_s, known_proto[IPV4_GET_IPPROTO(p)], sizeof(proto_s));
-    } else {
-        snprintf(proto_s, sizeof(proto), "PROTO:%03" PRIu32, IPV4_GET_IPPROTO(p));
-    }
+    json_t *js = CreateJSONHeader(p, 1);
+    if (unlikely(js == NULL))
+        return TM_ECODE_OK;
 
     for (; tx_id < total_txs; tx_id++)
     {
@@ -690,36 +577,21 @@ static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQu
         SCLogDebug("got a HTTP request and now logging !!");
 
         /* reset */
-        MemBufferReset(aft->buffer);
+        MemBufferReset(buffer);
 
-        if (hlog->flags & LOG_HTTP_CUSTOM) {
-            LogHttpLogJSONCustom(aft, tx, &p->ts, srcip, sp, dstip, dp);
-        //} else if (hlog->flags & LOG_HTTP_JSON) {
+        if (aft->http_flags & LOG_HTTP_CUSTOM) {
+            LogHttpLogJSONCustom(aft, js, tx, &p->ts/*, srcip, sp, dstip, dp*/);
         } else {
-            LogHttpLogJSON(aft, tx, timebuf, srcip, sp, dstip, dp, proto_s);
+            LogHttpLogJSON(aft, js, tx /*, timebuf, srcip, sp, dstip, dp, proto_s*/);
         }
 
-        aft->uri_cnt ++;
-
-        SCMutexLock(&hlog->file_ctx->fp_mutex);
-#ifdef HAVE_LIBJANSSON
-        if (hlog->flags & LOG_HTTP_JSON_SYSLOG) {
-            syslog(http_syslog_level, "%s", (char *)aft->buffer->buffer);
-        } else {
-            //if (hlog->flags & LOG_HTTP_JSON) {
-            if (TRUE) {
-                MemBufferWriteString(aft->buffer, "\n");
-            }
-#endif
-            (void)MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
-            fflush(hlog->file_ctx->fp);
-#ifdef HAVE_LIBJANSSON
-        }
-#endif
-        SCMutexUnlock(&hlog->file_ctx->fp_mutex);
+        OutputJSON(js, aft, &aft->http_cnt);
+        json_object_del(js, "http");
 
         AppLayerTransactionUpdateLogId(ALPROTO_HTTP, p->flow);
     }
+    json_object_clear(js);
+    free(js);
 
 end:
     FLOWLOCK_UNLOCK(p->flow);
@@ -727,241 +599,10 @@ end:
 
 }
 
-TmEcode HttpJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    return HttpJsonIPWrapper(tv, p, data, pq, postpq, AF_INET);
-}
-
-TmEcode HttpJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    return HttpJsonIPWrapper(tv, p, data, pq, postpq, AF_INET6);
-}
-
-TmEcode HttpJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode OutputHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     SCEnter();
-
-    /* no flow, no htp state */
-    if (p->flow == NULL) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    if (!(PKT_IS_TCP(p))) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    if (PKT_IS_IPV4(p)) {
-        SCReturnInt(HttpJsonIPv4(tv, p, data, pq, postpq));
-    } else if (PKT_IS_IPV6(p)) {
-        SCReturnInt(HttpJsonIPv6(tv, p, data, pq, postpq));
-    }
-
+    HttpJsonIPWrapper(tv, p, data, pq, postpq);
     SCReturnInt(TM_ECODE_OK);
 }
-
-TmEcode HttpJsonThreadInit(ThreadVars *t, void *initdata, void **data)
-{
-    LogHttpLogThread *aft = SCMalloc(sizeof(LogHttpLogThread));
-    if (unlikely(aft == NULL))
-        return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(LogHttpLogThread));
-
-    if(initdata == NULL)
-    {
-        SCLogDebug("Error getting context for HTTPLog.  \"initdata\" argument NULL");
-        SCFree(aft);
-        return TM_ECODE_FAILED;
-    }
-
-    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
-    if (aft->buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
-    }
-
-    /* Use the Ouptut Context (file pointer and mutex) */
-    aft->httplog_ctx= ((OutputCtx *)initdata)->data;
-
-    *data = (void *)aft;
-    return TM_ECODE_OK;
-}
-
-TmEcode HttpJsonThreadDeinit(ThreadVars *t, void *data)
-{
-    LogHttpLogThread *aft = (LogHttpLogThread *)data;
-    if (aft == NULL) {
-        return TM_ECODE_OK;
-    }
-
-    MemBufferFree(aft->buffer);
-    /* clear memory */
-    memset(aft, 0, sizeof(LogHttpLogThread));
-
-    SCFree(aft);
-    return TM_ECODE_OK;
-}
-
-void HttpJsonExitPrintStats(ThreadVars *tv, void *data) {
-    LogHttpLogThread *aft = (LogHttpLogThread *)data;
-    if (aft == NULL) {
-        return;
-    }
-
-    SCLogInfo("HTTP logger logged %" PRIu32 " requests", aft->uri_cnt);
-}
-
-/** \brief Create a new http log LogFileCtx.
- *  \param conf Pointer to ConfNode containing this loggers configuration.
- *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
- * */
-OutputCtx *HttpJsonInitCtx(ConfNode *conf)
-{
-    LogFileCtx* file_ctx = LogFileNewCtx();
-    const char *p, *np;
-    uint32_t n;
-    if(file_ctx == NULL) {
-        SCLogError(SC_ERR_HTTP_LOG_GENERIC, "couldn't create new file_ctx");
-        return NULL;
-    }
-
-    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME) < 0) {
-        LogFileFreeCtx(file_ctx);
-        return NULL;
-    }
-
-    LogHttpFileCtx *httplog_ctx = SCMalloc(sizeof(LogHttpFileCtx));
-    if (unlikely(httplog_ctx == NULL)) {
-        LogFileFreeCtx(file_ctx);
-        return NULL;
-    }
-    memset(httplog_ctx, 0x00, sizeof(LogHttpFileCtx));
-
-    httplog_ctx->file_ctx = file_ctx;
-    httplog_ctx->cf_n=0;
-
-    const char *extended = ConfNodeLookupChildValue(conf, "extended");
-    const char *custom = ConfNodeLookupChildValue(conf, "custom");
-    const char *customformat = ConfNodeLookupChildValue(conf, "customformat");
-    const char *json = ConfNodeLookupChildValue(conf, "json");
-
-    /* If custom logging format is selected, lets parse it */
-    if (custom != NULL && customformat != NULL && ConfValIsTrue(custom)) {
-        p=customformat;
-        httplog_ctx->flags |= LOG_HTTP_CUSTOM;
-        for (httplog_ctx->cf_n = 0; httplog_ctx->cf_n < LOG_HTTP_MAXN_NODES-1 && p && *p != '\0';
-                                                    httplog_ctx->cf_n++){
-            httplog_ctx->cf_nodes[httplog_ctx->cf_n] = SCMalloc(sizeof(LogHttpCustomFormatNode));
-            httplog_ctx->cf_nodes[httplog_ctx->cf_n]->maxlen=0;
-            if (httplog_ctx->cf_nodes[httplog_ctx->cf_n] == NULL) {
-                for (n = 0; n < httplog_ctx->cf_n; n++) {
-                    SCFree(httplog_ctx->cf_nodes[n]);
-                }
-                LogFileFreeCtx(file_ctx);
-                SCFree(httplog_ctx);
-                return NULL;
-            }
-            if (*p != '%'){
-                /* Literal found in format string */
-                httplog_ctx->cf_nodes[httplog_ctx->cf_n]->type = LOG_HTTP_CF_LITERAL;
-                np = strchr(p, '%');
-                if (np == NULL){
-                    n = LOG_HTTP_NODE_STRLEN-2;
-                    np = NULL; /* End */
-                }else{
-                    n = np-p;
-                }
-                strlcpy(httplog_ctx->cf_nodes[httplog_ctx->cf_n]->data,p,n+1);
-                p = np;
-            } else {
-                /* Non Literal found in format string */
-                p++;
-                if (*p == '[') { /* Check if maxlength has been specified (ie: [25]) */
-                    p++;
-                    np = strchr(p, ']');
-                    if (np != NULL) {
-                        if (np-p > 0 && np-p < 10){
-                            long maxlen = strtol(p,NULL,10);
-                            if (maxlen > 0 && maxlen < LOG_HTTP_NODE_MAXOUTPUTLEN) {
-                                httplog_ctx->cf_nodes[httplog_ctx->cf_n]->maxlen = (uint32_t) maxlen;
-                            }
-                        } else {
-                            goto parsererror;
-                        }
-                        p = np + 1;
-                    } else {
-                        goto parsererror;
-                    }
-                }
-                if (*p == '{') { /* Simple format char */
-                    np = strchr(p, '}');
-                    if (np != NULL && np-p > 1 && np-p < LOG_HTTP_NODE_STRLEN-2) {
-                        p++;
-                        n = np-p;
-                        strlcpy(httplog_ctx->cf_nodes[httplog_ctx->cf_n]->data, p, n+1);
-                        p = np;
-                    } else {
-                        goto parsererror;
-                    }
-                    p++;
-                } else {
-                    httplog_ctx->cf_nodes[httplog_ctx->cf_n]->data[0] = '\0';
-                }
-                httplog_ctx->cf_nodes[httplog_ctx->cf_n]->type = *p;
-                if (*p == '%'){
-                    httplog_ctx->cf_nodes[httplog_ctx->cf_n]->type = LOG_HTTP_CF_LITERAL;
-                    strlcpy(httplog_ctx->cf_nodes[httplog_ctx->cf_n]->data, "%", 2);
-                }
-                p++;
-            }
-        }
-    } else {
-        if (extended == NULL) {
-            httplog_ctx->flags |= LOG_HTTP_DEFAULT;
-        } else {
-            if (ConfValIsTrue(extended)) {
-                httplog_ctx->flags |= LOG_HTTP_EXTENDED;
-            }
-        }
-    }
-#ifdef HAVE_LIBJANSSON
-    if (json) {
-        if (strcmp(json, "syslog") == 0) {
-            httplog_ctx->flags |= LOG_HTTP_JSON_SYSLOG;
-        }
-    }
 #endif
-
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL)) {
-        goto parsererror;
-    }
-
-    output_ctx->data = httplog_ctx;
-    output_ctx->DeInit = HttpJsonDeInitCtx;
-
-    SCLogDebug("HTTP log output initialized");
-
-    return output_ctx;
-
-parsererror:
-    for (n = 0;n < httplog_ctx->cf_n;n++) {
-        SCFree(httplog_ctx->cf_nodes[n]);
-    }
-    LogFileFreeCtx(file_ctx);
-    SCFree(httplog_ctx);
-    SCLogError(SC_ERR_INVALID_ARGUMENT,"Syntax error in custom http log format string.");
-    return NULL;
-
-}
-
-static void HttpJsonDeInitCtx(OutputCtx *output_ctx)
-{
-    LogHttpFileCtx *httplog_ctx = (LogHttpFileCtx *)output_ctx->data;
-    uint32_t i;
-    for (i = 0; i < httplog_ctx->cf_n; i++) {
-        SCFree(httplog_ctx->cf_nodes[i]);
-    }
-    LogFileFreeCtx(httplog_ctx->file_ctx);
-    SCFree(httplog_ctx);
-    SCFree(output_ctx);
-}
