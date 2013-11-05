@@ -47,7 +47,8 @@
 #include "util-syslog.h"
 
 #include "output.h"
-#include "alert-json.h"
+#include "output-dnslog.h"
+#include "output-httplog.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -56,6 +57,8 @@
 #include "util-optimize.h"
 #include "util-buffer.h"
 #include "util-logopenfile.h"
+
+#include "alert-json.h"
 
 /*#undef HAVE_LIBJANSSON for testing without messing with config */
 #ifndef HAVE_LIBJANSSON
@@ -75,7 +78,12 @@ void TmModuleAlertJsonRegister (void) {
     tmm_modules[TMM_ALERTJSON].Func = AlertJson;
     tmm_modules[TMM_ALERTJSON].ThreadDeinit = AlertJsonThreadDeinit;
     tmm_modules[TMM_ALERTJSON].RegisterTests = AlertJsonRegisterTests;
-}
+
+    /* enable the logger for the app layer */
+    AppLayerRegisterLogger(ALPROTO_DNS_UDP);
+    AppLayerRegisterLogger(ALPROTO_DNS_TCP);
+
+    AppLayerRegisterLogger(ALPROTO_HTTP);
 
 OutputCtx *AlertJsonInitCtx(ConfNode *conf)
 {
@@ -106,7 +114,7 @@ void AlertJsonRegisterTests (void) {
 
 #include <jansson.h>
 
-#define DEFAULT_LOG_FILENAME "json.log"
+#define DEFAULT_LOG_FILENAME "eve.json"
 #define DEFAULT_ALERT_SYSLOG_FACILITY_STR       "local0"
 #define DEFAULT_ALERT_SYSLOG_FACILITY           LOG_LOCAL0
 #define DEFAULT_ALERT_SYSLOG_LEVEL              LOG_INFO
@@ -137,7 +145,7 @@ void TmModuleAlertJsonRegister (void) {
     tmm_modules[TMM_ALERTJSON].RegisterTests = AlertJsonRegisterTests;
     tmm_modules[TMM_ALERTJSON].cap_flags = 0;
 
-    OutputRegisterModule(MODULE_NAME, "json-alert", AlertJsonInitCtx);
+    OutputRegisterModule(MODULE_NAME, "eve-log", AlertJsonInitCtx);
 }
 
 /* Default Sensor ID value */
@@ -149,33 +157,125 @@ enum json_output { ALERT_FILE,
                    ALERT_UNIX_STREAM };
 static enum json_output json_out = ALERT_FILE;
 
+#define OUTPUT_ALERTS (1<<0)
+#define OUTPUT_DNS    (1<<1)
+#define OUTPUT_HTTP   (1<<2)
+
+static uint32_t outputFlags = 0;
+
 enum json_format { COMPACT, INDENT };
 static enum json_format format = COMPACT;
 
-typedef struct AlertJsonThread_ {
-    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    LogFileCtx* file_ctx;
+json_t *CreateJSONHeader(Packet *p, int direction_sensative)
+{
+    char timebuf[64];
+    char srcip[46], dstip[46];
+    Port sp, dp;
 
-    MemBuffer *buffer;
-} AlertJsonThread;
+    json_t *js = json_object();
+    if (unlikely(js == NULL))
+        return NULL;
+
+    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+
+    srcip[0] = '\0';
+    dstip[0] = '\0';
+    if (direction_sensative) {
+        if ((PKT_IS_TOCLIENT(p))) {
+            if (PKT_IS_IPV4(p)) {
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+            } else if (PKT_IS_IPV6(p)) {
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+            }
+            sp = p->sp;
+            dp = p->dp;
+        } else {
+            if (PKT_IS_IPV4(p)) {
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), dstip, sizeof(dstip));
+            } else if (PKT_IS_IPV6(p)) {
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), dstip, sizeof(dstip));
+            }
+            sp = p->dp;
+            dp = p->sp;
+        }
+    } else {
+        if (PKT_IS_IPV4(p)) {
+            PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+            PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+        } else if (PKT_IS_IPV6(p)) {
+            PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+            PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+        }
+        sp = p->sp;
+        dp = p->dp;
+    }
+
+    char proto[16] = "";
+    if (SCProtoNameValid(IPV4_GET_IPPROTO(p)) == TRUE) {
+        strlcpy(proto, known_proto[IPV4_GET_IPPROTO(p)], sizeof(proto));
+    } else {
+        snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IPV4_GET_IPPROTO(p));
+    }
+
+    /* time & tx */
+    json_object_set_new(js, "time", json_string(timebuf));
+
+    /* sensor id */
+    if (sensor_id >= 0)
+        json_object_set_new(js, "sensor-id", json_integer(sensor_id));
+     
+
+    /* tuple */
+    json_object_set_new(js, "srcip", json_string(srcip));
+    json_object_set_new(js, "sp", json_integer(sp));
+    json_object_set_new(js, "dstip", json_string(dstip));
+    json_object_set_new(js, "dp", json_integer(dp));
+    json_object_set_new(js, "proto", json_string(proto));
+
+    return js;
+}
+
+TmEcode OutputJSON(json_t *js, void *data, uint64_t *count)
+{
+    AlertJsonThread *aft = (AlertJsonThread *)data;
+    MemBuffer *buffer = (MemBuffer *)aft->buffer;
+    char *js_s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
+    if (unlikely(js_s == NULL))
+        return TM_ECODE_OK;
+
+    SCMutexLock(&aft->file_ctx->fp_mutex);
+    if (json_out == ALERT_FILE) {
+        MemBufferWriteString(buffer, "%s\n", js_s);
+        (void)MemBufferPrintToFPAsString(buffer, aft->file_ctx->fp);
+        fflush(aft->file_ctx->fp);
+    } else {
+        syslog(alert_syslog_level, "%s", js_s);
+    }
+    *count += 1;
+    SCMutexUnlock(&aft->file_ctx->fp_mutex);
+    return TM_ECODE_OK;
+}
 
 TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertJsonThread *aft = (AlertJsonThread *)data;
+    MemBuffer *buffer = (MemBuffer *)aft->buffer;
     int i;
-    char timebuf[64];
     char *action = "Pass";
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
-    MemBufferReset(aft->buffer);
+    MemBufferReset(buffer);
 
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+    json_t *js = CreateJSONHeader(p, 0);
+    if (unlikely(js == NULL))
+        return TM_ECODE_OK;
 
-    char srcip[16], dstip[16];
-    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
-    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
@@ -188,37 +288,11 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
             action = "wDrop";
         }
 
-        char proto[16] = "";
-        if (SCProtoNameValid(IPV4_GET_IPPROTO(p)) == TRUE) {
-            strlcpy(proto, known_proto[IPV4_GET_IPPROTO(p)], sizeof(proto));
-        } else {
-            snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IPV4_GET_IPPROTO(p));
-        }
-
-        json_t *js = json_object();
-        if (js == NULL)
-            return TM_ECODE_OK;
-
         json_t *ajs = json_object();
         if (ajs == NULL) {
             free(js);
             return TM_ECODE_OK;
         }
-
-        /* time & tx */
-        json_object_set_new(js, "time", json_string(timebuf));
-
-        /* sensor id */
-        if (sensor_id >= 0)
-            json_object_set_new(js, "sensor-id", json_integer(sensor_id));
-     
-
-        /* tuple */
-        json_object_set_new(js, "srcip", json_string(srcip));
-        json_object_set_new(js, "sp", json_integer(p->sp));
-        json_object_set_new(js, "dstip", json_string(dstip));
-        json_object_set_new(js, "dp", json_integer(p->dp));
-        json_object_set_new(js, "proto", json_string(proto));
 
         json_object_set_new(ajs, "action", json_string(action));
         json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
@@ -233,24 +307,11 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
         /* alert */ 
         json_object_set_new(js, "alert", ajs);
 
-        char *js_s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
-        if (unlikely(js_s == NULL))
-            return TM_ECODE_OK;
-
-        SCMutexLock(&aft->file_ctx->fp_mutex);
-        if (json_out == ALERT_FILE) {
-            MemBufferWriteString(aft->buffer, "%s\n", js_s);
-            (void)MemBufferPrintToFPAsString(aft->buffer, aft->file_ctx->fp);
-            fflush(aft->file_ctx->fp);
-        } else {
-            syslog(alert_syslog_level, "%s", js_s);
-        }
-        aft->file_ctx->alerts++;
-        SCMutexUnlock(&aft->file_ctx->fp_mutex);
-        free(ajs);
-        free(js);
-        free(js_s);
+        OutputJSON(js, aft, &aft->file_ctx->alerts);
+        json_object_del(js, "alert");
     }
+    json_object_clear(js);
+    free(js);
 
     return TM_ECODE_OK;
 }
@@ -258,20 +319,19 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
 TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertJsonThread *aft = (AlertJsonThread *)data;
+    MemBuffer *buffer = (MemBuffer *)aft->buffer;
     int i;
-    char timebuf[64];
     char *action = "Pass";
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
-    MemBufferReset(aft->buffer);
+    MemBufferReset(buffer);
 
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+    json_t *js = CreateJSONHeader(p, 0);
+    if (unlikely(js == NULL))
+        return TM_ECODE_OK;
 
-    char srcip[46], dstip[46];
-    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
-    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
@@ -284,32 +344,11 @@ TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
             action = "wDrop";
         }
 
-        char proto[16] = "";
-        if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
-            strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
-        } else {
-            snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IP_GET_IPPROTO(p));
-        }
-
-        json_t *js = json_object();
-        if (js == NULL)
-            return TM_ECODE_OK;
-
         json_t *ajs = json_object();
         if (ajs == NULL) {
             free(js);
             return TM_ECODE_OK;
         }
-
-        /* time & tx */
-        json_object_set_new(js, "time", json_string(timebuf));
-
-        /* tuple */
-        json_object_set_new(js, "srcip", json_string(srcip));
-        json_object_set_new(js, "sp", json_integer(p->sp));
-        json_object_set_new(js, "dstip", json_string(dstip));
-        json_object_set_new(js, "dp", json_integer(p->dp));
-        json_object_set_new(js, "proto", json_string(proto));
 
         json_object_set_new(ajs, "action", json_string(action));
         json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
@@ -324,26 +363,11 @@ TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
         /* alert */ 
         json_object_set_new(js, "alert", ajs);
 
-        SCMutexLock(&aft->file_ctx->fp_mutex);
-        if (json_out == ALERT_FILE) {
-            char *s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
-            MemBufferWriteString(aft->buffer, "%s", s);
-            MemBufferWriteString(aft->buffer, "\n");
-            free(s);          
-            (void)MemBufferPrintToFPAsString(aft->buffer, aft->file_ctx->fp);
-            fflush(aft->file_ctx->fp);
-        } else {
-            char *js_s;
-            js_s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
-            if (js_s) {
-                syslog(alert_syslog_level, "%s", js_s);
-                free(js_s);
-            }
-        }
-        aft->file_ctx->alerts++;
-        SCMutexUnlock(&aft->file_ctx->fp_mutex);
-        free(js);
+        OutputJSON(js, aft, &aft->file_ctx->alerts);
+        json_object_del(js, "alert");
     }
+    json_object_clear(js);
+    free(js);
 
     return TM_ECODE_OK;
 }
@@ -351,14 +375,16 @@ TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
 TmEcode AlertJsonDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertJsonThread *aft = (AlertJsonThread *)data;
+    MemBuffer *buffer = (MemBuffer *)aft->buffer;
     int i;
     char timebuf[64];
     char *action = "Pass";
+    json_t *js;
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
-    MemBufferReset(aft->buffer);
+    MemBufferReset(buffer);
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
@@ -377,7 +403,7 @@ TmEcode AlertJsonDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue
         char buf[(32 * 3) + 1];
         PrintRawLineHexBuf(buf, sizeof(buf), GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
 
-        json_t *js = json_object();
+        js = json_object();
         if (js == NULL)
             return TM_ECODE_OK;
 
@@ -409,25 +435,8 @@ TmEcode AlertJsonDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue
    
         /* alert */ 
         json_object_set_new(js, "alert", ajs);
-
-        SCMutexLock(&aft->file_ctx->fp_mutex);
-        if (json_out == ALERT_FILE) {
-            char *s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
-            MemBufferWriteString(aft->buffer, "%s", s);
-            MemBufferWriteString(aft->buffer, "\n");
-            free(s);          
-            (void)MemBufferPrintToFPAsString(aft->buffer, aft->file_ctx->fp);
-            fflush(aft->file_ctx->fp);
-        } else {
-            char *js_s;
-            js_s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
-            if (js_s) {
-                syslog(alert_syslog_level, "%s", js_s);
-                free(js_s);
-            }
-        }
-        aft->file_ctx->alerts++;
-        SCMutexUnlock(&aft->file_ctx->fp_mutex);
+        OutputJSON(js, aft, &aft->file_ctx->alerts);
+        json_object_clear(js);
         free(js);
     }
 
@@ -436,12 +445,25 @@ TmEcode AlertJsonDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue
 
 TmEcode AlertJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
-    if (PKT_IS_IPV4(p)) {
-        return AlertJsonIPv4(tv, p, data, pq, postpq);
-    } else if (PKT_IS_IPV6(p)) {
-        return AlertJsonIPv6(tv, p, data, pq, postpq);
-    } else if (p->events.cnt > 0) {
-        return AlertJsonDecoderEvent(tv, p, data, pq, postpq);
+    if (outputFlags & OUTPUT_ALERTS) {
+
+        if (PKT_IS_IPV4(p)) {
+            AlertJsonIPv4(tv, p, data, pq, postpq);
+        } else if (PKT_IS_IPV6(p)) {
+            AlertJsonIPv6(tv, p, data, pq, postpq);
+        } else if (p->events.cnt > 0) {
+            AlertJsonDecoderEvent(tv, p, data, pq, postpq);
+        }
+    }
+
+    if (outputFlags & OUTPUT_DNS) {
+        if (OutputDnsNeedsLog(p)) {
+            OutputDnsLog(tv, p, data, pq, postpq);
+        }
+    }
+
+    if (outputFlags & OUTPUT_HTTP) {
+        OutputHttpLog(tv, p, data, pq, postpq);
     }
 
     return TM_ECODE_OK;
@@ -466,7 +488,6 @@ TmEcode AlertJsonThreadInit(ThreadVars *t, void *initdata, void **data)
     }
 
     /** Use the Ouptut Context (file pointer and mutex) */
-    //aft->ctx = ((OutputCtx *)initdata)->data;
     aft->file_ctx = ((OutputCtx *)initdata)->data;
 
     *data = (void *)aft;
@@ -503,7 +524,7 @@ OutputCtx *AlertJsonInitCtx(ConfNode *conf)
 {
     LogFileCtx *logfile_ctx = LogFileNewCtx();
     if (logfile_ctx == NULL) {
-        SCLogDebug("AlertJsonInitCtx: Could not create nnew LogFileCtx");
+        SCLogDebug("AlertJsonInitCtx: Could not create new LogFileCtx");
         return NULL;
     }
 
@@ -589,7 +610,32 @@ OutputCtx *AlertJsonInitCtx(ConfNode *conf)
                            "invalid sensor-is: %s", sensor_id_s);
                 exit(EXIT_FAILURE);
             }
-            //sensor_id = htonl(sensor_id);
+        }
+
+        ConfNode *outputs, *output;
+        outputs = ConfNodeLookupChild(conf, "types");
+        if (outputs) {
+            /*
+             * TODO: make this more general with some sort of 
+             * registration capability
+             */
+            TAILQ_FOREACH(output, &outputs->head, next) {
+                if (strcmp(output->val, "alert") == 0) {
+                    SCLogDebug("Enabling alert output");
+                    outputFlags |= OUTPUT_ALERTS;
+                    continue;
+                }
+                if (strcmp(output->val, "dns") == 0) {
+                    SCLogDebug("Enabling DNS output");
+                    outputFlags |= OUTPUT_DNS;
+                    continue;
+                }
+                if (strcmp(output->val, "http") == 0) {
+                    SCLogDebug("Enabling HTTP output");
+                    outputFlags |= OUTPUT_HTTP;
+                    continue;
+                }
+            }
         }
     }
 

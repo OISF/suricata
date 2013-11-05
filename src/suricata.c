@@ -802,11 +802,13 @@ void RegisterAllModules()
     TmModuleLogFilestoreRegister();
     /* dns log */
     TmModuleLogDnsLogRegister();
+#if 0
     /* dns json log */
     TmModuleDnsJsonRegister();
     TmModuleHttpJsonRegister();
     TmModuleHttpJsonIPv4Register();
     TmModuleHttpJsonIPv6Register();
+#endif
     /* cuda */
     TmModuleDebugList();
 
