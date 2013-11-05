@@ -181,7 +181,7 @@ static int IPV4OptValidateTimestamp(Packet *p, const IPV4Opt *o) {
  * See: FIPS 188 (tags 6 & 7)
  */
 static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
-    uint32_t doi;
+//    uint32_t doi;
     uint8_t *tag;
     uint16_t len;
 
@@ -196,7 +196,7 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
         ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
         return -1;
     }
-    doi = *o->data;
+//    doi = *o->data;
     tag = o->data + 4;
     len = o->len - 1 - 1 - 4; /* Length of tags after header */
 
