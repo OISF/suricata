@@ -5256,7 +5256,7 @@ Packet *StreamTcpPseudoSetup(Packet *parent, uint8_t *pkt, uint32_t len)
  * @param np    pointer to the pseudo packet
  * @param p     pointer to the original packet
  */
-void StreamTcpPseudoPacketSetupHeader(Packet *np, Packet *p)
+static void StreamTcpPseudoPacketSetupHeader(Packet *np, Packet *p)
 {
     /* Setup the IP header */
     if (PKT_IS_IPV4(p)) {
