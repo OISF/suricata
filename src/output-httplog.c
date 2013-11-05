@@ -83,18 +83,24 @@ typedef struct LogHttpCustomFormatNode_ {
     char data[LOG_HTTP_NODE_STRLEN]; /** optional data. ie: http header name */
 } LogHttpCustomFormatNode;
 
+#if 1
+typedef struct OutputHttpCtx_ {
+    uint32_t flags; /** Store mode */
+} OutputHttpCtx;
+#else
 typedef struct LogHttpFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
     uint32_t cf_n; /** Total number of custom string format nodes */
     LogHttpCustomFormatNode *cf_nodes[LOG_HTTP_MAXN_NODES]; /** Custom format string nodes */
 } LogHttpFileCtx;
+#endif
 
 #define LOG_HTTP_DEFAULT 0
 #define LOG_HTTP_EXTENDED 1
 #define LOG_HTTP_CUSTOM 2
-#define LOG_HTTP_JSON_SYSLOG 8 /* JSON output via syslog */
 
+#if 0
 typedef struct LogHttpLogThread_ {
     LogHttpFileCtx *httplog_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
@@ -102,6 +108,7 @@ typedef struct LogHttpLogThread_ {
 
     MemBuffer *buffer;
 } LogHttpLogThread;
+#endif
 
 /* Retrieves the selected cookie value */
 static uint32_t GetCookieValue(uint8_t *rawcookies, uint32_t rawcookies_len, char *cookiename,
@@ -328,12 +335,13 @@ static void LogHttpLogJSONCustom(AlertJsonThread *aft, json_t *js, htp_tx_t *tx,
 #endif
 }
 
-#ifdef HAVE_LIBJANSSON
 /* JSON format logging */
 static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx /*, char * timebuf,
                            char *srcip, Port sp, char *dstip, Port dp,
                            char *proto*/)
 {
+    //OutputHttpCtx *http_ctx = aft->http_ctx;
+    OutputHttpCtx *http_ctx = aft->http_ctx->data;
     json_t *hjs = json_object();
     if (hjs == NULL) {
         free(js);
@@ -402,7 +410,7 @@ static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx /*, ch
         if (c) free(c);
     }
 
-    if (aft->http_flags & LOG_HTTP_EXTENDED) {
+    if (http_ctx->flags & LOG_HTTP_EXTENDED) {
         /* referer */
         htp_header_t *h_referer = NULL;
         if (tx->request_headers != NULL) {
@@ -453,8 +461,8 @@ static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx /*, ch
 
     json_object_set_new(js, "http", hjs);
 }
-#endif
 
+#if 0
 static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
 {
     MemBufferWriteString(aft->buffer, " [**] ");
@@ -514,6 +522,7 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
     /* length */
     MemBufferWriteString(aft->buffer, " [**] %"PRIuMAX" bytes", (uintmax_t)tx->response_message_len);
 }
+#endif
 
 static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
                             PacketQueue *postpq/*, int ipproto*/)
@@ -529,6 +538,7 @@ static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQu
     int tx_progress_done_value_tc = 0;
     AlertJsonThread *aft = (AlertJsonThread *)data;
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
+    OutputHttpCtx *http_ctx = aft->http_ctx->data;
 
     /* no flow, no htp state */
     if (p->flow == NULL) {
@@ -579,7 +589,8 @@ static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQu
         /* reset */
         MemBufferReset(buffer);
 
-        if (aft->http_flags & LOG_HTTP_CUSTOM) {
+        //if (aft->http_flags & LOG_HTTP_CUSTOM) {
+        if (http_ctx->flags & LOG_HTTP_CUSTOM) {
             LogHttpLogJSONCustom(aft, js, tx, &p->ts/*, srcip, sp, dstip, dp*/);
         } else {
             LogHttpLogJSON(aft, js, tx /*, timebuf, srcip, sp, dstip, dp, proto_s*/);
@@ -605,4 +616,30 @@ TmEcode OutputHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     HttpJsonIPWrapper(tv, p, data, pq, postpq);
     SCReturnInt(TM_ECODE_OK);
 }
+
+OutputCtx *OutputHttpLogInit(ConfNode *conf)
+{
+    OutputHttpCtx *http_ctx = SCMalloc(sizeof(OutputHttpCtx));
+    if (unlikely(http_ctx == NULL))
+        return NULL;
+
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (unlikely(output_ctx == NULL))
+        return NULL;
+
+    const char *extended = ConfNodeLookupChildValue(conf, "extended");
+
+    http_ctx->flags = LOG_HTTP_DEFAULT;
+
+    if (extended != NULL) {
+        if (ConfValIsTrue(extended)) {
+            http_ctx->flags = LOG_HTTP_EXTENDED;
+        }
+    }
+    output_ctx->data = http_ctx;
+    output_ctx->DeInit = NULL;
+
+    return output_ctx;
+}
+
 #endif

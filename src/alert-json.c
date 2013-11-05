@@ -516,7 +516,11 @@ TmEcode AlertJsonThreadInit(ThreadVars *t, void *initdata, void **data)
     }
 
     /** Use the Ouptut Context (file pointer and mutex) */
-    aft->file_ctx = ((OutputCtx *)initdata)->data;
+    OutputJsonCtx *json_ctx = ((OutputCtx *)initdata)->data;
+    if (json_ctx != NULL) {
+        aft->file_ctx = json_ctx->file_ctx;
+        aft->http_ctx = json_ctx->http_ctx;
+    }
 
     *data = (void *)aft;
     return TM_ECODE_OK;
@@ -550,17 +554,24 @@ void AlertJsonExitPrintStats(ThreadVars *tv, void *data) {
  */
 OutputCtx *AlertJsonInitCtx(ConfNode *conf)
 {
-    LogFileCtx *logfile_ctx = LogFileNewCtx();
-    if (logfile_ctx == NULL) {
+    OutputJsonCtx *json_ctx = SCCalloc(1, sizeof(OutputJsonCtx));;
+    if (unlikely(json_ctx == NULL)) {
         SCLogDebug("AlertJsonInitCtx: Could not create new LogFileCtx");
         return NULL;
     }
 
+    json_ctx->file_ctx = LogFileNewCtx();
+    if (unlikely(json_ctx->file_ctx == NULL)) {
+        SCLogDebug("AlertJsonInitCtx: Could not create new LogFileCtx");
+        SCFree(json_ctx);
+        return NULL;
+    }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
         return NULL;
-    output_ctx->data = logfile_ctx;
+
+    output_ctx->data = json_ctx;
     output_ctx->DeInit = AlertJsonDeInitCtx;
 
     if (conf) {
@@ -583,8 +594,8 @@ OutputCtx *AlertJsonInitCtx(ConfNode *conf)
 
         if (json_out == ALERT_FILE) {
 
-            if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME) < 0) {
-                LogFileFreeCtx(logfile_ctx);
+            if (SCConfLogOpenGeneric(conf, json_ctx->file_ctx, DEFAULT_LOG_FILENAME) < 0) {
+                LogFileFreeCtx(json_ctx->file_ctx);
                 return NULL;
             }
 
@@ -660,7 +671,15 @@ OutputCtx *AlertJsonInitCtx(ConfNode *conf)
                 }
                 if (strcmp(output->val, "http") == 0) {
                     SCLogDebug("Enabling HTTP output");
-                    outputFlags |= OUTPUT_HTTP;
+                    /* Yuck.  there has to be a better way */
+                    ConfNode *child = ConfNodeLookupChild(output, "http"); 
+                    if (child) {
+                        json_ctx->http_ctx = OutputHttpLogInit(child);
+                        if (json_ctx->http_ctx != NULL)
+                            outputFlags |= OUTPUT_HTTP;
+                    } else {
+                        outputFlags |= OUTPUT_HTTP;
+                    }
                     continue;
                 }
             }
@@ -672,7 +691,8 @@ OutputCtx *AlertJsonInitCtx(ConfNode *conf)
 
 static void AlertJsonDeInitCtx(OutputCtx *output_ctx)
 {
-    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+    OutputJsonCtx *json_ctx = (OutputJsonCtx *)output_ctx->data;
+    LogFileCtx *logfile_ctx = json_ctx->file_ctx;
     LogFileFreeCtx(logfile_ctx);
     SCFree(output_ctx);
 }
