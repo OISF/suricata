@@ -24,10 +24,25 @@
 #ifndef __ALERT_JSON_H__
 #define __ALERT_JSON_H__
 
+json_t *CreateJSONHeader(Packet *p, int direction_sensative);
+TmEcode OutputJSON(json_t *js, void *data, uint64_t *count);
+
 void TmModuleAlertJsonRegister (void);
 void TmModuleAlertJsonIPv4Register (void);
 void TmModuleAlertJsonPv6Register (void);
 OutputCtx *AlertJsonInitCtx(ConfNode *);
+
+typedef struct AlertJsonThread_ {
+    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
+    LogFileCtx* file_ctx;
+
+    void *buffer; /* pointer to MemBuffer */
+
+    uint64_t alert_cnt;
+    uint64_t dns_cnt;
+    uint64_t http_cnt;
+    uint32_t http_flags;
+} AlertJsonThread;
 
 #endif /* __ALERT_JSON_H__ */
 

@@ -23,6 +23,7 @@
 
 #ifndef __OUTPUT_HTTPLOG_H__
 #define __OUTPUT_HTTPLOG_H__
+TmEcode OutputHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq);
 
 void TmModuleHttpJsonRegister (void);
 void TmModuleHttpJsonIPv4Register (void);

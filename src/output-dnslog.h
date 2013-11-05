@@ -27,6 +27,8 @@
 void TmModuleDnsJsonRegister (void);
 void TmModuleDnsJsonIPv4Register (void);
 void TmModuleDnsJsonIPv6Register (void);
+int OutputDnsNeedsLog(Packet *p);
+TmEcode OutputDnsLog(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq);
 OutputCtx *DnsJsonInitCtx(ConfNode *);
 
 #endif /* __OUTPUT_DNSLOG_H__ */
