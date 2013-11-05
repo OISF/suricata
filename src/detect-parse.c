@@ -41,6 +41,7 @@
 #include "detect-flow.h"
 #include "detect-app-layer-protocol.h"
 #include "detect-engine-apt-event.h"
+#include "detect-luajit.h"
 
 #include "pkt-var.h"
 #include "host.h"
@@ -1330,6 +1331,10 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
             }
         }
     }
+
+#ifdef HAVE_LUAJIT
+    DetectLuajitPostSetup(s);
+#endif
 
 #ifdef DEBUG
     int i;

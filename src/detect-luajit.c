@@ -499,6 +499,13 @@ static void *DetectLuajitThreadInit(void *data) {
 
     LuajitRegisterExtensions(t->luastate);
 
+    lua_pushinteger(t->luastate, (lua_Integer)(luajit->sid));
+    lua_setglobal(t->luastate, "SCRuleSid");
+    lua_pushinteger(t->luastate, (lua_Integer)(luajit->rev));
+    lua_setglobal(t->luastate, "SCRuleRev");
+    lua_pushinteger(t->luastate, (lua_Integer)(luajit->gid));
+    lua_setglobal(t->luastate, "SCRuleGid");
+
     /* hackish, needed to allow unittests to pass buffers as scripts instead of files */
 #ifdef UNITTESTS
     if (ut_script != NULL) {
@@ -867,6 +874,26 @@ error:
     if (sm != NULL)
         SCFree(sm);
     return -1;
+}
+
+/** \brief post-sig parse function to set the sid,rev,gid into the
+ *         ctx, as this isn't available yet during parsing.
+ */
+void DetectLuajitPostSetup(Signature *s) {
+    int i;
+    SigMatch *sm;
+
+    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+        for (sm = s->sm_lists[i]; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_LUAJIT)
+                continue;
+
+            DetectLuajitData *ld = sm->ctx;
+            ld->sid = s->id;
+            ld->rev = s->rev;
+            ld->gid = s->gid;
+        }
+    }
 }
 
 /**

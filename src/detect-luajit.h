@@ -50,6 +50,9 @@ typedef struct DetectLuajitData {
     uint16_t flowints;
     uint16_t flowvar[DETECT_LUAJIT_MAX_FLOWVARS];
     uint16_t flowvars;
+    uint32_t sid;
+    uint32_t rev;
+    uint32_t gid;
 } DetectLuajitData;
 #endif
 
@@ -60,5 +63,6 @@ int DetectLuajitMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMat
         Flow *f, int need_flow_lock);
 
 int DetectLuajitSetupStatesPool(int num, int reloads);
+void DetectLuajitPostSetup(Signature *s);
 
 #endif /* __DETECT_FILELUAJIT_H__ */
