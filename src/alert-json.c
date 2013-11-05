@@ -228,6 +228,34 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensative)
     if (sensor_id >= 0)
         json_object_set_new(js, "sensor-id", json_integer(sensor_id));
      
+    /* pcap_cnt */
+    if (p->pcap_cnt != 0) {
+        json_object_set_new(js, "pcap_cnt", json_integer(p->pcap_cnt));
+    }
+
+    /* vlan */
+    if (p->vlan_idx > 0) {
+        json_t *js_vlan;
+        switch (p->vlan_idx) {
+        case 1:
+            json_object_set_new(js, "vlan",
+                                json_integer(ntohs(GET_VLAN_ID(p->vlanh[0]))));
+            break;
+        case 2:
+            js_vlan = json_array();
+            if (unlikely(js != NULL)) {
+                json_array_append_new(js_vlan,
+                                json_integer(ntohs(GET_VLAN_ID(p->vlanh[0]))));
+                json_array_append_new(js_vlan,
+                                json_integer(ntohs(GET_VLAN_ID(p->vlanh[1]))));
+                json_object_set_new(js, "vlan", js_vlan);
+            }
+            break;
+        default:
+            /* shouldn't get here */
+            break;
+        }
+    }
 
     /* tuple */
     json_object_set_new(js, "srcip", json_string(srcip));
