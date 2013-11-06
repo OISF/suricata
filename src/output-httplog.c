@@ -344,7 +344,6 @@ static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx /*, ch
     OutputHttpCtx *http_ctx = aft->http_ctx->data;
     json_t *hjs = json_object();
     if (hjs == NULL) {
-        free(js);
         return;
     }
 
@@ -602,7 +601,7 @@ static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQu
         AppLayerTransactionUpdateLogId(ALPROTO_HTTP, p->flow);
     }
     json_object_clear(js);
-    free(js);
+    json_decref(js);
 
 end:
     FLOWLOCK_UNLOCK(p->flow);
