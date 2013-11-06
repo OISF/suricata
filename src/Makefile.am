@@ -221,6 +221,7 @@ output-packet.c output-packet.h \
 output-tx.c output-tx.h \
 output-dnslog.c output-dnslog.h \
 output-httplog.c output-httplog.h \
+output-tlslog.c output-tlslog.h \
 packet-queue.c packet-queue.h \
 pkt-var.c pkt-var.h \
 reputation.c reputation.h \
