@@ -378,12 +378,16 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
                 smb_state = (SMBState *)alstate;
                 if (smb_state->dcerpc_present) {
+                    KEYWORD_PROFILING_START;
                     match = sigmatch_table[sm->type].
                         AppLayerMatch(tv, det_ctx, f, flags, &smb_state->dcerpc, s, sm);
+                    KEYWORD_PROFILING_END(det_ctx, sm->type, (match > 0));
                 }
             } else {
+                KEYWORD_PROFILING_START;
                 match = sigmatch_table[sm->type].
                     AppLayerMatch(tv, det_ctx, f, flags, alstate, s, sm);
+                KEYWORD_PROFILING_END(det_ctx, sm->type, (match > 0));
             }
 
             if (match == 0)
@@ -618,12 +622,16 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                         if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
                             smb_state = (SMBState *)alstate;
                             if (smb_state->dcerpc_present) {
+                                KEYWORD_PROFILING_START;
                                 match = sigmatch_table[sm->type].
                                     AppLayerMatch(tv, det_ctx, f, flags, &smb_state->dcerpc, s, sm);
+                                KEYWORD_PROFILING_END(det_ctx, sm->type, (match > 0));
                             }
                         } else {
+                            KEYWORD_PROFILING_START;
                             match = sigmatch_table[sm->type].
                                 AppLayerMatch(tv, det_ctx, f, flags, alstate, s, sm);
+                            KEYWORD_PROFILING_END(det_ctx, sm->type, (match > 0));
                         }
 
                         if (match == 0)

@@ -53,6 +53,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-print.h"
+#include "util-profiling.h"
 
 #ifdef OS_WIN32
 #include <winsock.h>
@@ -937,11 +938,13 @@ int IPOnlyMatchCompatSMs(ThreadVars *tv,
 
     while (sm != NULL) {
         BUG_ON(!(sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT));
-
+        KEYWORD_PROFILING_START;
         if (sigmatch_table[sm->type].Match(tv, det_ctx, p, s, sm) > 0) {
+            KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
             sm = sm->next;
             continue;
         }
+        KEYWORD_PROFILING_END(det_ctx, sm->type, 0);
         return 0;
     }
 
@@ -1079,7 +1082,9 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                         SCLogDebug("running match functions, sm %p", sm);
 
                         for ( ; sm != NULL; sm = sm->next) {
+                            KEYWORD_PROFILING_START;
                             (void)sigmatch_table[sm->type].Match(tv, det_ctx, p, s, sm);
+                            KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
                         }
                     }
                     if (!(s->flags & SIG_FLAG_NOALERT)) {
