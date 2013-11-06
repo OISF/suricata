@@ -38,6 +38,9 @@
 #include "util-profiling.h"
 #include "util-profiling-locks.h"
 
+int profiling_rulessm_enabled = 1;
+__thread int profiling_rulessm_entered = 0;
+
 #ifdef PROFILING
 
 #ifndef MIN
