@@ -259,10 +259,44 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensative)
 
     /* tuple */
     json_object_set_new(js, "srcip", json_string(srcip));
-    json_object_set_new(js, "sp", json_integer(sp));
+    switch(p->proto) {
+        case IPPROTO_ICMP:
+            break;
+        case IPPROTO_UDP:
+        case IPPROTO_TCP:
+        case IPPROTO_SCTP:
+            json_object_set_new(js, "sp", json_integer(sp));
+            break;
+    }
     json_object_set_new(js, "dstip", json_string(dstip));
-    json_object_set_new(js, "dp", json_integer(dp));
+    switch(p->proto) {
+        case IPPROTO_ICMP:
+            break;
+        case IPPROTO_UDP:
+        case IPPROTO_TCP:
+        case IPPROTO_SCTP:
+            json_object_set_new(js, "dp", json_integer(dp));
+            break;
+    }
     json_object_set_new(js, "proto", json_string(proto));
+    switch (p->proto) {
+        case IPPROTO_ICMP:
+            if (p->icmpv4h) {
+                json_object_set_new(js, "icmp_type",
+                                    json_integer(p->icmpv4h->type));
+                json_object_set_new(js, "icmp_code",
+                                    json_integer(p->icmpv4h->code));
+            }
+            break;
+        case IPPROTO_ICMPV6:
+            if (p->icmpv6h) {
+                json_object_set_new(js, "icmp_type",
+                                    json_integer(p->icmpv6h->type));
+                json_object_set_new(js, "icmp_code",
+                                    json_integer(p->icmpv6h->code));
+            }
+            break;
+    }
 
     return js;
 }
@@ -318,7 +352,7 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
 
         json_t *ajs = json_object();
         if (ajs == NULL) {
-            free(js);
+            json_decref(js);
             return TM_ECODE_OK;
         }
 
@@ -339,7 +373,7 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
         json_object_del(js, "alert");
     }
     json_object_clear(js);
-    free(js);
+    json_decref(js);
 
     return TM_ECODE_OK;
 }
@@ -374,7 +408,7 @@ TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
 
         json_t *ajs = json_object();
         if (ajs == NULL) {
-            free(js);
+            json_decref(js);
             return TM_ECODE_OK;
         }
 
@@ -395,7 +429,7 @@ TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
         json_object_del(js, "alert");
     }
     json_object_clear(js);
-    free(js);
+    json_decref(js);
 
     return TM_ECODE_OK;
 }
@@ -437,7 +471,7 @@ TmEcode AlertJsonDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue
 
         json_t *ajs = json_object();
         if (ajs == NULL) {
-            free(js);
+            json_decref(js);
             return TM_ECODE_OK;
         }
 
@@ -465,7 +499,7 @@ TmEcode AlertJsonDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue
         json_object_set_new(js, "alert", ajs);
         OutputJSON(js, aft, &aft->file_ctx->alerts);
         json_object_clear(js);
-        free(js);
+        json_decref(js);
     }
 
     return TM_ECODE_OK;

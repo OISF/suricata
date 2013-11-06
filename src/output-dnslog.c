@@ -95,7 +95,6 @@ static void LogQuery(AlertJsonThread/*LogDnsLogThread*/ *aft, json_t *js, /*char
 
     json_t *djs = json_object();
     if (djs == NULL) {
-        free(js);
         return;
     }
 
@@ -180,7 +179,6 @@ static void LogAnswers(AlertJsonThread/*LogDnsLogThread*/ *aft, json_t *js, /*ch
 
     json_t *djs = json_array();
     if (djs == NULL) {
-        free(js);
         return;
     }
 
@@ -270,6 +268,7 @@ static TmEcode DnsJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQue
             AppLayerTransactionUpdateLogId(ALPROTO_DNS_UDP, p->flow);
         }
     }
+    json_decref(js);
 
 end:
     FLOWLOCK_UNLOCK(p->flow);
