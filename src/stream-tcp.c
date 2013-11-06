@@ -5256,7 +5256,7 @@ Packet *StreamTcpPseudoSetup(Packet *parent, uint8_t *pkt, uint32_t len)
  * @param np    pointer to the pseudo packet
  * @param p     pointer to the original packet
  */
-void StreamTcpPseudoPacketSetupHeader(Packet *np, Packet *p)
+static void StreamTcpPseudoPacketSetupHeader(Packet *np, Packet *p)
 {
     /* Setup the IP header */
     if (PKT_IS_IPV4(p)) {
@@ -5283,10 +5283,10 @@ void StreamTcpPseudoPacketSetupHeader(Packet *np, Packet *p)
         PSEUDO_PKT_SET_TCPHDR(np->tcph, p->tcph);
 
         /* Setup the adress and port details */
-        SET_IPV6_SRC_ADDR(p, &np->src);
-        SET_IPV6_DST_ADDR(p, &np->dst);
-        SET_TCP_SRC_PORT(p, &np->sp);
-        SET_TCP_DST_PORT(p, &np->dp);
+        SET_IPV6_SRC_ADDR(p, &np->dst);
+        SET_IPV6_DST_ADDR(p, &np->src);
+        SET_TCP_SRC_PORT(p, &np->dp);
+        SET_TCP_DST_PORT(p, &np->sp);
     }
 
     /* we don't need a payload (if any) */
