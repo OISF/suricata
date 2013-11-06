@@ -52,6 +52,8 @@
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
+#include "util-cpu.h"
+#include "util-profiling.h"
 
 /**
  * \brief Run the actual payload match functions
@@ -100,15 +102,18 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                                   uint8_t inspection_mode, void *data)
 {
     SCEnter();
+    KEYWORD_PROFILING_START;
 
     det_ctx->inspection_recursion_counter++;
 
     if (det_ctx->inspection_recursion_counter == de_ctx->inspection_recursion_limit) {
         det_ctx->discontinue_matching = 1;
+        KEYWORD_PROFILING_END(det_ctx, sm->type, 0);
         SCReturnInt(0);
     }
 
     if (sm == NULL || buffer_len == 0) {
+        KEYWORD_PROFILING_END(det_ctx, sm->type, 0);
         SCReturnInt(0);
     }
 
@@ -176,7 +181,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
                     if (stream_start_offset != 0 && prev_buffer_offset == 0) {
                         if (depth <= stream_start_offset) {
-                            SCReturnInt(0);
+                            goto no_match;
                         } else if (depth >= (stream_start_offset + buffer_len)) {
                             ;
                         } else {
@@ -220,7 +225,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
                 if (stream_start_offset != 0 && cd->flags & DETECT_CONTENT_DEPTH) {
                     if (depth <= stream_start_offset) {
-                        SCReturnInt(0);
+                        goto no_match;
                     } else if (depth >= (stream_start_offset + buffer_len)) {
                         ;
                     } else {
@@ -253,7 +258,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 if (cd->flags & DETECT_CONTENT_NEGATED) {
                     goto match;
                 } else {
-                    SCReturnInt(0);
+                    goto no_match;
                 }
             }
 
@@ -279,7 +284,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
             SCLogDebug("found %p cd negated %s", found, cd->flags & DETECT_CONTENT_NEGATED ? "true" : "false");
 
             if (found == NULL && !(cd->flags & DETECT_CONTENT_NEGATED)) {
-                SCReturnInt(0);
+                goto no_match;
             } else if (found == NULL && (cd->flags & DETECT_CONTENT_NEGATED)) {
                 goto match;
             } else if (found != NULL && (cd->flags & DETECT_CONTENT_NEGATED)) {
@@ -288,7 +293,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                  * relative keywords */
                 if (DETECT_CONTENT_IS_SINGLE(cd))
                     det_ctx->discontinue_matching = 1;
-                SCReturnInt(0);
+                goto no_match;
             } else {
                 match_offset = (uint32_t)((found - buffer) + cd->content_len);
                 SCLogDebug("content %"PRIu32" matched at offset %"PRIu32"", cd->id, match_offset);
@@ -312,10 +317,11 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                  * error, as the current cd has the DETECT_CONTENT_RELATIVE_NEXT
                  * flag set. */
                 if (sm->next == NULL) {
-                    SCReturnInt(0);
+                    goto no_match;
                 }
 
                 SCLogDebug("content %"PRIu32, cd->id);
+                KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
 
                 /* see if the next buffer keywords match. If not, we will
                  * search for another occurence of this content and see
@@ -326,7 +332,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 }
 
                 if (det_ctx->discontinue_matching)
-                    SCReturnInt(0);
+                    goto no_match;
 
                 /* set the previous match offset to the start of this match + 1 */
                 prev_offset = (match_offset - (cd->content_len - 1));
@@ -344,24 +350,26 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 SCLogDebug("det_ctx->buffer_offset + id->dataat %"PRIu32" > %"PRIu32, det_ctx->buffer_offset + id->dataat, buffer_len);
                 if (id->flags & ISDATAAT_NEGATED)
                     goto match;
-                SCReturnInt(0);
+                goto no_match;
             } else {
                 SCLogDebug("relative isdataat match");
-                if (id->flags & ISDATAAT_NEGATED)
-                    SCReturnInt(0);
+                if (id->flags & ISDATAAT_NEGATED) {
+                    goto no_match;
+                }
                 goto match;
             }
         } else {
             if (id->dataat < buffer_len) {
                 SCLogDebug("absolute isdataat match");
-                if (id->flags & ISDATAAT_NEGATED)
-                    SCReturnInt(0);
+                if (id->flags & ISDATAAT_NEGATED) {
+                    goto no_match;
+                }
                 goto match;
             } else {
                 SCLogDebug("absolute isdataat mismatch, id->isdataat %"PRIu32", buffer_len %"PRIu32"", id->dataat, buffer_len);
                 if (id->flags & ISDATAAT_NEGATED)
                     goto match;
-                SCReturnInt(0);
+                goto no_match;
             }
         }
 
@@ -380,13 +388,14 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
             r = DetectPcrePayloadMatch(det_ctx, s, sm, p, f,
                                        buffer, buffer_len);
             if (r == 0) {
-                SCReturnInt(0);
+                goto no_match;
             }
 
             if (!(pe->flags & DETECT_PCRE_RELATIVE_NEXT)) {
                 SCLogDebug("no relative match coming up, so this is a match");
                 goto match;
             }
+            KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
 
             /* save it, in case we need to do a pcre match once again */
             prev_offset = det_ctx->pcre_match_start_offset;
@@ -400,8 +409,9 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 SCReturnInt(1);
             }
 
-            if (det_ctx->discontinue_matching)
-                SCReturnInt(0);
+            if (det_ctx->discontinue_matching) {
+                goto no_match;
+            }
 
             det_ctx->buffer_offset = prev_buffer_offset;
             det_ctx->pcre_match_start_offset = prev_offset;
@@ -431,7 +441,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         if (DetectBytetestDoMatch(det_ctx, s, sm, buffer, buffer_len, flags,
                                   offset, value) != 1) {
-            SCReturnInt(0);
+            goto no_match;
         }
 
         goto match;
@@ -457,7 +467,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         if (DetectBytejumpDoMatch(det_ctx, s, sm, buffer, buffer_len,
                                   flags, offset) != 1) {
-            SCReturnInt(0);
+            goto no_match;
         }
 
         goto match;
@@ -483,7 +493,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                                      buffer_len,
                                      &det_ctx->bj_values[bed->local_id],
                                      endian) != 1) {
-            SCReturnInt(0);
+            goto no_match;
         }
 
         goto match;
@@ -522,7 +532,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         det_ctx->discontinue_matching = 0;
 
-        SCReturnInt(0);
+        goto no_match;
 #ifdef HAVE_LUAJIT
     }
     else if (sm->type == DETECT_LUAJIT) {
@@ -534,7 +544,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         if (DetectLuajitMatchBuffer(det_ctx, s, sm, buffer, buffer_len,
                     det_ctx->buffer_offset, f, need_flow_lock) != 1)
         {
-            SCReturnInt(0);
+            goto no_match;
         }
         goto match;
 #endif
@@ -545,15 +555,19 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 #endif
     }
 
+no_match:
+    KEYWORD_PROFILING_END(det_ctx, sm->type, 0);
     SCReturnInt(0);
 
 match:
     /* this sigmatch matched, inspect the next one. If it was the last,
      * the buffer portion of the signature matched. */
     if (sm->next != NULL) {
+        KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
         int r = DetectEngineContentInspection(de_ctx, det_ctx, s, sm->next, f, buffer, buffer_len, stream_start_offset, inspection_mode, data);
         SCReturnInt(r);
     } else {
+        KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
         SCReturnInt(1);
     }
 }

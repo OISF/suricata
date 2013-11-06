@@ -1980,6 +1980,7 @@ int main(int argc, char **argv)
     }
 #ifdef PROFILING
     SCProfilingRulesGlobalInit();
+    SCProfilingKeywordsGlobalInit();
     SCProfilingInit();
 #endif /* PROFILING */
     SCReputationInitCtx();
