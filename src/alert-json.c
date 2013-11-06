@@ -49,6 +49,7 @@
 #include "output.h"
 #include "output-dnslog.h"
 #include "output-httplog.h"
+#include "output-tlslog.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -160,6 +161,7 @@ static enum json_output json_out = ALERT_FILE;
 #define OUTPUT_ALERTS (1<<0)
 #define OUTPUT_DNS    (1<<1)
 #define OUTPUT_HTTP   (1<<2)
+#define OUTPUT_TLS    (1<<3)
 
 static uint32_t outputFlags = 0;
 
@@ -528,6 +530,10 @@ TmEcode AlertJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
         OutputHttpLog(tv, p, data, pq, postpq);
     }
 
+    if (outputFlags & OUTPUT_TLS) {
+        OutputTlsLog(tv, p, data, pq, postpq);
+    }
+
     return TM_ECODE_OK;
 }
 
@@ -554,6 +560,7 @@ TmEcode AlertJsonThreadInit(ThreadVars *t, void *initdata, void **data)
     if (json_ctx != NULL) {
         aft->file_ctx = json_ctx->file_ctx;
         aft->http_ctx = json_ctx->http_ctx;
+        aft->tls_ctx = json_ctx->tls_ctx;
     }
 
     *data = (void *)aft;
@@ -714,6 +721,23 @@ OutputCtx *AlertJsonInitCtx(ConfNode *conf)
                     } else {
                         outputFlags |= OUTPUT_HTTP;
                     }
+                    continue;
+                }
+                if (strcmp(output->val, "tls") == 0) {
+                    SCLogDebug("Enabling TLS output");
+                    ConfNode *child = ConfNodeLookupChild(output, "tls"); 
+#if 1
+                    json_ctx->tls_ctx = OutputTlsLogInit(child);
+                    outputFlags |= OUTPUT_TLS;
+#else
+                    if (child) {
+                        json_ctx->tls_ctx = OutputTlsLogInit(child);
+                        if (json_ctx->tls_ctx != NULL)
+                            outputFlags |= OUTPUT_TLS;
+                    } else {
+                        outputFlags |= OUTPUT_TLS;
+                    }
+#endif
                     continue;
                 }
             }
