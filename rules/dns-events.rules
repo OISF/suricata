@@ -9,3 +9,5 @@ alert dns any any -> any any (msg:"SURICATA DNS Not a request"; flow:to_server; 
 alert dns any any -> any any (msg:"SURICATA DNS Not a response"; flow:to_client; app-layer-event:dns.not_a_response; sid:2240005; rev:1;)
 # Z flag (reserved) not 0
 alert dns any any -> any any (msg:"SURICATA DNS Z flag set"; app-layer-event:dns.z_flag_set; sid:2240006; rev:1;)
+# Request Flood Detected
+alert dns any any -> any any (msg:"SURICATA DNS request flood detected"; flow:to_server; app-layer-event:dns.flooded; sid:2240007; rev:1;)

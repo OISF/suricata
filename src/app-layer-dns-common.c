@@ -28,12 +28,26 @@
 #include "util-print.h"
 #endif
 
+typedef struct DNSConfig_ {
+    uint32_t request_flood;
+} DNSConfig;
+static DNSConfig dns_config;
+
+void DNSConfigInit(void) {
+    memset(&dns_config, 0x00, sizeof(dns_config));
+}
+
+void DNSConfigSetRequestFlood(uint32_t value) {
+    dns_config.request_flood = value;
+}
+
 SCEnumCharMap dns_decoder_event_table[ ] = {
     { "UNSOLLICITED_RESPONSE",      DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE, },
     { "MALFORMED_DATA",             DNS_DECODER_EVENT_MALFORMED_DATA, },
     { "NOT_A_REQUEST",              DNS_DECODER_EVENT_NOT_A_REQUEST, },
     { "NOT_A_RESPONSE",             DNS_DECODER_EVENT_NOT_A_RESPONSE, },
     { "Z_FLAG_SET",                 DNS_DECODER_EVENT_Z_FLAG_SET, },
+    { "FLOODED",                    DNS_DECODER_EVENT_FLOODED, },
 
     { NULL,                         -1 },
 };
@@ -312,8 +326,21 @@ bad_data:
 void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16_t fqdn_len,
         const uint16_t type, const uint16_t class, const uint16_t tx_id)
 {
-    if (dns_state->curr != NULL && dns_state->curr->replied == 0)
+    /* flood protection */
+    if (dns_state->givenup)
+        return;
+
+    if (dns_state->curr != NULL && dns_state->curr->replied == 0) {
         dns_state->curr->reply_lost = 1;
+        dns_state->unreplied_cnt++;
+
+        /* check flood limit */
+        if (dns_config.request_flood != 0 &&
+            dns_state->unreplied_cnt > dns_config.request_flood) {
+            DNSSetEvent(dns_state, DNS_DECODER_EVENT_FLOODED);
+            dns_state->givenup = 1;
+        }
+    }
 
     DNSTransaction *tx = DNSTransactionFindByTxId(dns_state, tx_id);
     if (tx == NULL) {
@@ -353,7 +380,6 @@ void DNSStoreAnswerInState(DNSState *dns_state, const int rtype, const uint8_t *
         TAILQ_INSERT_TAIL(&dns_state->tx_list, tx, next);
         dns_state->curr = tx;
         tx->tx_num = dns_state->transaction_max;
-
     }
 
     DNSAnswerEntry *q = SCMalloc(sizeof(DNSAnswerEntry) + fqdn_len + data_len);
@@ -381,6 +407,9 @@ void DNSStoreAnswerInState(DNSState *dns_state, const int rtype, const uint8_t *
 
     /* mark tx is as replied so we can log it */
     tx->replied = 1;
+
+    /* reset unreplied counter */
+    dns_state->unreplied_cnt = 0;
 }
 
 /** \internal

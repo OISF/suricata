@@ -268,6 +268,7 @@ typedef enum {
     SC_WARN_XFF_INVALID_MODE,
     SC_WARN_XFF_INVALID_HEADER,
     SC_ERR_THRESHOLD_SETUP,
+    SC_ERR_DNS_CONFIG,
 } SCError;
 
 const char *SCErrorToString(SCError);
