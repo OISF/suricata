@@ -27,6 +27,8 @@
 #include "flow.h"
 #include "flow-private.h"
 
+#include "util-profiling.h"
+
 /** tag signature we use for tag alerts */
 static Signature g_tag_signature;
 /** tag packet alert structure for tag alerts */
@@ -77,6 +79,7 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
 
     /* handle suppressions first */
     if (s->sm_lists[DETECT_SM_LIST_SUPPRESS] != NULL) {
+        KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_SUPPRESS);
         sm = NULL;
         do {
             td = SigGetThresholdTypeIter(s, p, &sm, DETECT_SM_LIST_SUPPRESS);
@@ -85,17 +88,21 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
 
                 /* PacketAlertThreshold returns 2 if the alert is suppressed but
                  * we do need to apply rule actions to the packet. */
+                KEYWORD_PROFILING_START;
                 ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s);
                 if (ret == 0 || ret == 2) {
+                    KEYWORD_PROFILING_END(det_ctx, DETECT_THRESHOLD, 0);
                     /* It doesn't match threshold, remove it */
                     SCReturnInt(ret);
                 }
+                KEYWORD_PROFILING_END(det_ctx, DETECT_THRESHOLD, 1);
             }
         } while (sm != NULL);
     }
 
     /* if we're still here, consider thresholding */
     if (s->sm_lists[DETECT_SM_LIST_THRESHOLD] != NULL) {
+        KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_THRESHOLD);
         sm = NULL;
         do {
             td = SigGetThresholdTypeIter(s, p, &sm, DETECT_SM_LIST_THRESHOLD);
@@ -104,11 +111,14 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
 
                 /* PacketAlertThreshold returns 2 if the alert is suppressed but
                  * we do need to apply rule actions to the packet. */
+                KEYWORD_PROFILING_START;
                 ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s);
                 if (ret == 0 || ret == 2) {
+                    KEYWORD_PROFILING_END(det_ctx, DETECT_THRESHOLD ,0);
                     /* It doesn't match threshold, remove it */
                     SCReturnInt(ret);
                 }
+                KEYWORD_PROFILING_END(det_ctx, DETECT_THRESHOLD, 1);
             }
         } while (sm != NULL);
     }
@@ -238,10 +248,13 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         if (res > 0) {
             /* Now, if we have an alert, we have to check if we want
              * to tag this session or src/dst host */
+            KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_TMATCH);
             sm = s->sm_lists[DETECT_SM_LIST_TMATCH];
             while (sm) {
                 /* tags are set only for alerts */
+                KEYWORD_PROFILING_START;
                 sigmatch_table[sm->type].Match(NULL, det_ctx, p, s, sm);
+                KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
                 sm = sm->next;
             }
 

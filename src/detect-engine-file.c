@@ -80,6 +80,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     int match = 0;
     int store_r = 0;
 
+    KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_FILEMATCH);
     SCLogDebug("file inspection... %p", ffc);
 
     if (ffc != NULL) {
@@ -137,8 +138,10 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                 SCLogDebug("sm %p, sm->next %p", sm, sm->next);
 
                 if (sigmatch_table[sm->type].FileMatch != NULL) {
+                    KEYWORD_PROFILING_START;
                     match = sigmatch_table[sm->type].
                         FileMatch(tv, det_ctx, f, flags, file, s, sm);
+                    KEYWORD_PROFILING_END(det_ctx, sm->type, (match > 0));
                     if (match == 0) {
                         r = 2;
                         break;
@@ -172,8 +175,11 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         {
             DetectFilestoreData *fd = sm->ctx;
             if (fd->scope > FILESTORE_SCOPE_DEFAULT) {
+                KEYWORD_PROFILING_START;
                 match = sigmatch_table[sm->type].
                     FileMatch(tv, det_ctx, f, flags, /* no file */NULL, s, sm);
+                KEYWORD_PROFILING_END(det_ctx, sm->type, (match > 0));
+
                 if (match == 1) {
                     r = 1;
                 }

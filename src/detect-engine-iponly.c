@@ -934,6 +934,7 @@ int IPOnlyMatchCompatSMs(ThreadVars *tv,
                          DetectEngineThreadCtx *det_ctx,
                          Signature *s, Packet *p)
 {
+    KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_MATCH);
     SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
 
     while (sm != NULL) {
@@ -1077,6 +1078,7 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                                u * 8 + i, s->id, s->msg);
 
                     if (s->sm_lists[DETECT_SM_LIST_POSTMATCH] != NULL) {
+                        KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_POSTMATCH);
                         SigMatch *sm = s->sm_lists[DETECT_SM_LIST_POSTMATCH];
 
                         SCLogDebug("running match functions, sm %p", sm);

@@ -342,6 +342,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB ||
                 alproto == ALPROTO_SMB2))
     {
+        KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_DMATCH);
         if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
             smb_state = (SMBState *)alstate;
             if (smb_state->dcerpc_present &&

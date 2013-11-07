@@ -28,7 +28,7 @@
 #include "detect-engine-state.h"
 #include "stream.h"
 #include "detect-engine-apt-event.h"
-
+#include "util-profiling.h"
 #include "util-unittest.h"
 
 int DetectEngineAptEventInspect(ThreadVars *tv,
@@ -52,8 +52,13 @@ int DetectEngineAptEventInspect(ThreadVars *tv,
 
     for (sm = s->sm_lists[DETECT_SM_LIST_APP_EVENT]; sm != NULL; sm = sm->next) {
         aled = (DetectAppLayerEventData *)sm->ctx;
-        if (AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id))
+        KEYWORD_PROFILING_START;
+        if (AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
+            KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
             continue;
+        }
+
+        KEYWORD_PROFILING_END(det_ctx, sm->type, 0);
         goto end;
     }
 
@@ -73,3 +78,4 @@ int DetectEngineAptEventInspect(ThreadVars *tv,
         }
     }
 }
+
