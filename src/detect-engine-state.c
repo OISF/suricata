@@ -287,6 +287,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             inspect_flags = 0;
             while (engine != NULL) {
                 if (s->sm_lists[engine->sm_list] != NULL) {
+                    KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
                     match = engine->Callback(tv, de_ctx, det_ctx, s, f,
                                              flags, alstate,
                                              tx, tx_id);
@@ -372,6 +373,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     }
 
     sm = s->sm_lists[DETECT_SM_LIST_AMATCH];
+    KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_AMATCH);
     for (match = 0; sm != NULL; sm = sm->next) {
         match = 0;
         if (sigmatch_table[sm->type].AppLayerMatch != NULL) {
@@ -587,6 +589,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     if (!(item->flags & engine->inspect_flags) &&
                         s->sm_lists[engine->sm_list] != NULL)
                     {
+                        KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
                         match = engine->Callback(tv, de_ctx, det_ctx, s, f,
                                                  flags, alstate, inspect_tx, inspect_tx_id);
                         if (match == 1) {
@@ -615,6 +618,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 FLOWLOCK_UNLOCK(f);
             }
 
+            KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_AMATCH);
             for (sm = item->nm; sm != NULL; sm = sm->next) {
                 if (sigmatch_table[sm->type].AppLayerMatch != NULL &&
                     (alproto == s->alproto || alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2))

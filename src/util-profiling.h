@@ -60,6 +60,10 @@ void SCProfilingAddPacket(Packet *);
 extern int profiling_keyword_enabled;
 extern __thread int profiling_keyword_entered;
 
+#define KEYWORD_PROFILING_SET_LIST(ctx, list) { \
+    (ctx)->keyword_perf_list = (list); \
+}
+
 #define KEYWORD_PROFILING_START \
     uint64_t profile_keyword_start_ = 0; \
     uint64_t profile_keyword_end_ = 0; \
@@ -228,7 +232,7 @@ void SCProfilingRuleThreadSetup(struct SCProfileDetectCtx_ *, DetectEngineThread
 void SCProfilingRuleThreadCleanup(DetectEngineThreadCtx *);
 
 void SCProfilingKeywordsGlobalInit(void);
-void SCProfilingKeywordDestroyCtx(struct SCProfileKeywordDetectCtx_ *);
+void SCProfilingKeywordDestroyCtx(DetectEngineCtx *);//struct SCProfileKeywordDetectCtx_ *);
 void SCProfilingKeywordInitCounters(DetectEngineCtx *);
 void SCProfilingKeywordUpdateCounter(DetectEngineThreadCtx *det_ctx, int id, uint64_t ticks, int match);
 void SCProfilingKeywordThreadSetup(struct SCProfileKeywordDetectCtx_ *, DetectEngineThreadCtx *);
@@ -244,6 +248,7 @@ void SCProfilingDump(void);
 #define RULE_PROFILING_START
 #define RULE_PROFILING_END(a,b,c)
 
+#define KEYWORD_PROFILING_SET_LIST(a,b)
 #define KEYWORD_PROFILING_START
 #define KEYWORD_PROFILING_END(a,b,c)
 

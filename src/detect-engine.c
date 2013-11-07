@@ -841,8 +841,8 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
         de_ctx->profile_ctx = NULL;
     }
     if (de_ctx->profile_keyword_ctx != NULL) {
-        SCProfilingKeywordDestroyCtx(de_ctx->profile_keyword_ctx);
-        de_ctx->profile_keyword_ctx = NULL;
+        SCProfilingKeywordDestroyCtx(de_ctx);//->profile_keyword_ctx);
+//        de_ctx->profile_keyword_ctx = NULL;
     }
 #endif
 

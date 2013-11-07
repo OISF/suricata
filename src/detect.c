@@ -608,8 +608,9 @@ int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
 {
     /* run the packet match functions */
     if (s->sm_lists[DETECT_SM_LIST_POSTMATCH] != NULL) {
-        SigMatch *sm = s->sm_lists[DETECT_SM_LIST_POSTMATCH];
+        KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_POSTMATCH);
 
+        SigMatch *sm = s->sm_lists[DETECT_SM_LIST_POSTMATCH];
         SCLogDebug("running match functions, sm %p", sm);
 
         for ( ; sm != NULL; sm = sm->next) {
@@ -1391,6 +1392,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         /* Check the payload keywords. If we are a MPM sig and we've made
          * to here, we've had at least one of the patterns match */
         if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+            KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_PMATCH);
             /* if we have stream msgs, inspect against those first,
              * but not for a "dsize" signature */
             if (s->flags & SIG_FLAG_REQUIRE_STREAM) {
@@ -1467,6 +1469,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* run the packet match functions */
         if (s->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+            KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_MATCH);
             sm = s->sm_lists[DETECT_SM_LIST_MATCH];
 
             SCLogDebug("running match functions, sm %p", sm);

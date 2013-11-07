@@ -27,6 +27,7 @@
 #include "suricata-common.h"
 #include "decode.h"
 #include "detect.h"
+#include "detect-engine.h"
 #include "conf.h"
 
 #include "tm-threads.h"
@@ -98,40 +99,11 @@ void SCProfilingKeywordsGlobalInit(void) {
     }
 }
 
-void
-SCProfilingKeywordDump(SCProfileKeywordDetectCtx *rules_ctx)
-{
+void DoDump(SCProfileKeywordDetectCtx *rules_ctx, FILE *fp, const char *name) {
     int i;
-    FILE *fp;
-
-    if (rules_ctx == NULL)
-        return;
-
-    struct timeval tval;
-    struct tm *tms;
-    if (profiling_keywords_output_to_file == 1) {
-SCLogInfo("file %s mode %s", profiling_file_name, profiling_file_mode);
-
-        fp = fopen(profiling_file_name, profiling_file_mode);
-
-        if (fp == NULL) {
-            SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", profiling_file_name,
-                    strerror(errno));
-            return;
-        }
-    } else {
-       fp = stdout;
-    }
-
-    gettimeofday(&tval, NULL);
-    struct tm local_tm;
-    tms = SCLocalTime(tval.tv_sec, &local_tm);
-
     fprintf(fp, "  ----------------------------------------------"
             "----------------------------\n");
-    fprintf(fp, "  Date: %" PRId32 "/%" PRId32 "/%04d -- "
-            "%02d:%02d:%02d\n", tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900,
-            tms->tm_hour,tms->tm_min, tms->tm_sec);
+    fprintf(fp, "  Stats for: %s\n", name);
     fprintf(fp, "  ----------------------------------------------"
             "----------------------------\n");
     fprintf(fp, "  %-16s %-11s %-8s %-8s %-11s %-11s %-11s %-11s\n", "Keyword", "Ticks", "Checks", "Matches", "Max Ticks", "Avg", "Avg Match", "Avg No Match");
@@ -173,6 +145,53 @@ SCLogInfo("file %s mode %s", profiling_file_name, profiling_file_mode);
             avgticks_match,
             avgticks_no_match);
     }
+}
+
+void
+SCProfilingKeywordDump(DetectEngineCtx *de_ctx) {
+    int i;
+    FILE *fp;
+    struct timeval tval;
+    struct tm *tms;
+    struct tm local_tm;
+
+    gettimeofday(&tval, NULL);
+    tms = SCLocalTime(tval.tv_sec, &local_tm);
+
+    if (profiling_keywords_output_to_file == 1) {
+        SCLogInfo("file %s mode %s", profiling_file_name, profiling_file_mode);
+
+        fp = fopen(profiling_file_name, profiling_file_mode);
+
+        if (fp == NULL) {
+            SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", profiling_file_name,
+                    strerror(errno));
+            return;
+        }
+    } else {
+       fp = stdout;
+    }
+
+    fprintf(fp, "  ----------------------------------------------"
+            "----------------------------\n");
+    fprintf(fp, "  Date: %" PRId32 "/%" PRId32 "/%04d -- "
+            "%02d:%02d:%02d\n", tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900,
+            tms->tm_hour,tms->tm_min, tms->tm_sec);
+
+    /* global stats first */
+    DoDump(de_ctx->profile_keyword_ctx, fp, "total");
+    /* per buffer stats next, but only if there are stats to print */
+    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+        int j;
+        uint64_t checks = 0;
+        for (j = 0; j < DETECT_TBLSIZE; j++) {
+            checks += de_ctx->profile_keyword_ctx_per_list[i]->data[j].checks;
+        }
+
+        if (checks)
+            DoDump(de_ctx->profile_keyword_ctx_per_list[i], fp,
+                    DetectSigmatchListEnumToString(i));
+    }
 
     fprintf(fp,"\n");
     if (fp != stdout)
@@ -202,6 +221,19 @@ SCProfilingKeywordUpdateCounter(DetectEngineThreadCtx *det_ctx, int id, uint64_t
             p->ticks_match += ticks;
         else
             p->ticks_no_match += ticks;
+
+        /* store per list (buffer type) as well */
+        if (det_ctx->keyword_perf_list >= 0 && det_ctx->keyword_perf_list < DETECT_SM_LIST_MAX) {
+            p = &det_ctx->keyword_perf_data_per_list[det_ctx->keyword_perf_list][id];
+            p->checks++;
+            p->matches += match;
+            if (ticks > p->max)
+                p->max = ticks;
+            if (match == 1)
+                p->ticks_match += ticks;
+            else
+                p->ticks_no_match += ticks;
+        }
     }
 }
 
@@ -220,14 +252,24 @@ SCProfileKeywordDetectCtx *SCProfilingKeywordInitCtx(void) {
     return ctx;
 }
 
-void SCProfilingKeywordDestroyCtx(SCProfileKeywordDetectCtx *ctx) {
-    SCLogInfo("ctx %p", ctx);
-    if (ctx != NULL) {
-        SCProfilingKeywordDump(ctx);
+static void DetroyCtx(SCProfileKeywordDetectCtx *ctx) {
+    if (ctx) {
         if (ctx->data != NULL)
             SCFree(ctx->data);
         pthread_mutex_destroy(&ctx->data_m);
         SCFree(ctx);
+    }
+}
+
+void SCProfilingKeywordDestroyCtx(DetectEngineCtx *de_ctx) {
+    if (de_ctx != NULL) {
+        SCProfilingKeywordDump(de_ctx);
+
+        DetroyCtx(de_ctx->profile_keyword_ctx);
+        int i;
+        for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+            DetroyCtx(de_ctx->profile_keyword_ctx_per_list[i]);
+        }
     }
 }
 
@@ -239,6 +281,16 @@ void SCProfilingKeywordThreadSetup(SCProfileKeywordDetectCtx *ctx, DetectEngineT
     if (a != NULL) {
         memset(a, 0x00, sizeof(SCProfileKeywordData) * DETECT_TBLSIZE);
         det_ctx->keyword_perf_data = a;
+    }
+
+    int i;
+    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+        SCProfileKeywordData *b = SCMalloc(sizeof(SCProfileKeywordData) * DETECT_TBLSIZE);
+        if (b != NULL) {
+            memset(b, 0x00, sizeof(SCProfileKeywordData) * DETECT_TBLSIZE);
+            det_ctx->keyword_perf_data_per_list[i] = b;
+        }
+
     }
 }
 
@@ -257,6 +309,18 @@ static void SCProfilingKeywordThreadMerge(DetectEngineCtx *de_ctx, DetectEngineT
         if (det_ctx->keyword_perf_data[i].max > de_ctx->profile_keyword_ctx->data[i].max)
             de_ctx->profile_keyword_ctx->data[i].max = det_ctx->keyword_perf_data[i].max;
     }
+
+    int j;
+    for (j = 0; j < DETECT_SM_LIST_MAX; j++) {
+        for (i = 0; i < DETECT_TBLSIZE; i++) {
+            de_ctx->profile_keyword_ctx_per_list[j]->data[i].checks += det_ctx->keyword_perf_data_per_list[j][i].checks;
+            de_ctx->profile_keyword_ctx_per_list[j]->data[i].matches += det_ctx->keyword_perf_data_per_list[j][i].matches;
+            de_ctx->profile_keyword_ctx_per_list[j]->data[i].ticks_match += det_ctx->keyword_perf_data_per_list[j][i].ticks_match;
+            de_ctx->profile_keyword_ctx_per_list[j]->data[i].ticks_no_match += det_ctx->keyword_perf_data_per_list[j][i].ticks_no_match;
+            if (det_ctx->keyword_perf_data_per_list[j][i].max > de_ctx->profile_keyword_ctx_per_list[j]->data[i].max)
+                de_ctx->profile_keyword_ctx_per_list[j]->data[i].max = det_ctx->keyword_perf_data_per_list[j][i].max;
+        }
+    }
 }
 
 void SCProfilingKeywordThreadCleanup(DetectEngineThreadCtx *det_ctx) {
@@ -269,6 +333,13 @@ void SCProfilingKeywordThreadCleanup(DetectEngineThreadCtx *det_ctx) {
 
     SCFree(det_ctx->keyword_perf_data);
     det_ctx->keyword_perf_data = NULL;
+
+    int i;
+    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+        SCFree(det_ctx->keyword_perf_data_per_list[i]);
+        det_ctx->keyword_perf_data_per_list[i] = NULL;
+    }
+
 }
 
 /**
@@ -285,6 +356,15 @@ SCProfilingKeywordInitCounters(DetectEngineCtx *de_ctx)
     de_ctx->profile_keyword_ctx->data = SCMalloc(sizeof(SCProfileKeywordData) * DETECT_TBLSIZE);
     BUG_ON(de_ctx->profile_keyword_ctx->data == NULL);
     memset(de_ctx->profile_keyword_ctx->data, 0x00, sizeof(SCProfileKeywordData) * DETECT_TBLSIZE);
+
+    int i;
+    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+        de_ctx->profile_keyword_ctx_per_list[i] = SCProfilingKeywordInitCtx();
+        BUG_ON(de_ctx->profile_keyword_ctx_per_list[i] == NULL);
+        de_ctx->profile_keyword_ctx_per_list[i]->data = SCMalloc(sizeof(SCProfileKeywordData) * DETECT_TBLSIZE);
+        BUG_ON(de_ctx->profile_keyword_ctx_per_list[i]->data == NULL);
+        memset(de_ctx->profile_keyword_ctx_per_list[i]->data, 0x00, sizeof(SCProfileKeywordData) * DETECT_TBLSIZE);
+    }
 
     SCLogInfo("Registered %"PRIu32" keyword profiling counters.", DETECT_TBLSIZE);
 }
