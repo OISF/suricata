@@ -1435,6 +1435,71 @@ void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, int id)
     return det_ctx->keyword_ctxs_array[id];
 }
 
+const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type) {
+    switch (type) {
+        case DETECT_SM_LIST_MATCH:
+            return "packet";
+        case DETECT_SM_LIST_PMATCH:
+            return "packet/stream payload";
+
+        case DETECT_SM_LIST_UMATCH:
+            return "http uri";
+        case DETECT_SM_LIST_HRUDMATCH:
+            return "http raw uri";
+        case DETECT_SM_LIST_HCBDMATCH:
+            return "http client body";
+        case DETECT_SM_LIST_HSBDMATCH:
+            return "http server body";
+        case DETECT_SM_LIST_HHDMATCH:
+            return "http headers";
+        case DETECT_SM_LIST_HRHDMATCH:
+            return "http raw headers";
+        case DETECT_SM_LIST_HSMDMATCH:
+            return "http stat msg";
+        case DETECT_SM_LIST_HSCDMATCH:
+            return "http stat code";
+        case DETECT_SM_LIST_HHHDMATCH:
+            return "http host";
+        case DETECT_SM_LIST_HRHHDMATCH:
+            return "http raw host header";
+        case DETECT_SM_LIST_HMDMATCH:
+            return "http method";
+        case DETECT_SM_LIST_HCDMATCH:
+            return "http cookie";
+        case DETECT_SM_LIST_HUADMATCH:
+            return "http user-agent";
+        case DETECT_SM_LIST_APP_EVENT:
+            return "app layer events";
+
+        case DETECT_SM_LIST_AMATCH:
+            return "generic app layer";
+        case DETECT_SM_LIST_DMATCH:
+            return "dcerpc";
+        case DETECT_SM_LIST_TMATCH:
+            return "tag";
+
+        case DETECT_SM_LIST_FILEMATCH:
+            return "file";
+
+        case DETECT_SM_LIST_DNSQUERY_MATCH:
+            return "dns query";
+
+        case DETECT_SM_LIST_POSTMATCH:
+            return "post-match";
+
+        case DETECT_SM_LIST_SUPPRESS:
+            return "suppress";
+        case DETECT_SM_LIST_THRESHOLD:
+            return "threshold";
+
+        case DETECT_SM_LIST_MAX:
+            return "max (internal)";
+        case DETECT_SM_LIST_NOTSET:
+            return "not set (internal)";
+    }
+    return "error";
+}
+
 
 /*************************************Unittest*********************************/
 

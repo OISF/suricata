@@ -65,6 +65,7 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);
 #define DetectEngineGetMaxSigId(de_ctx) ((de_ctx)->signum)
 void DetectEngineResetMaxSigId(DetectEngineCtx *);
 void DetectEngineRegisterTests(void);
+const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type);
 
 /**
  * \brief Registers an app inspection engine.

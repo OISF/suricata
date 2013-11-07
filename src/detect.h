@@ -79,7 +79,7 @@ struct SCSigSignatureWrapper_;
 /* holds the values for different possible lists in struct Signature.
  * These codes are access points to particular lists in the array
  * Signature->sm_lists[DETECT_SM_LIST_MAX]. */
-enum {
+enum DetectSigmatchListEnum {
     DETECT_SM_LIST_MATCH = 0,
     DETECT_SM_LIST_PMATCH,
     /* list for http_uri keyword and the ones relative to it */
