@@ -359,11 +359,12 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
 
     DNSTransaction *tx = NULL;
     int found = 0;
-    TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
-        if (tx->tx_id == ntohs(dns_header->tx_id)) {
-            found = 1;
-            break;
-        }
+    if ((tx = DNSTransactionFindByTxId(dns_state, ntohs(dns_header->tx_id))) != NULL)
+        found = 1;
+
+    if (!found) {
+        SCLogDebug("DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE");
+        DNSSetEvent(dns_state, DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE);
     }
 
     uint16_t q;
@@ -437,11 +438,6 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
         if (data == NULL) {
             goto insufficient_data;
         }
-    }
-
-    if (!found) {
-        SCLogDebug("DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE");
-        DNSSetEvent(dns_state, DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE);
     }
 
 	SCReturnInt(1);

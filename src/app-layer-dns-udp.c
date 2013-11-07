@@ -23,6 +23,9 @@
 #include "suricata-common.h"
 #include "suricata.h"
 
+#include "conf.h"
+#include "util-misc.h"
+
 #include "debug.h"
 #include "decode.h"
 
@@ -179,12 +182,14 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
 
     DNSTransaction *tx = NULL;
     int found = 0;
-    TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
-        if (tx->tx_id == ntohs(dns_header->tx_id)) {
-            found = 1;
-            break;
-        }
+    if ((tx = DNSTransactionFindByTxId(dns_state, ntohs(dns_header->tx_id))) != NULL)
+        found = 1;
+
+    if (!found) {
+        SCLogDebug("DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE");
+        DNSSetEvent(dns_state, DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE);
     }
+
     if (DNSValidateResponseHeader(dns_state, dns_header) < 0)
         goto bad_data;
 
@@ -269,17 +274,12 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
     if (ntohs(dns_header->flags) & 0x0003) {
         SCLogDebug("no such name");
 
-        if (dns_state->curr != NULL) {
-            dns_state->curr->no_such_name = 1;
+        if (tx != NULL) {
+            tx->no_such_name = 1;
         }
     }
 
-    if (!found) {
-        SCLogDebug("DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE");
-        DNSSetEvent(dns_state, DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE);
-    }
-
-	SCReturnInt(1);
+    SCReturnInt(1);
 
 bad_data:
 insufficient_data:
@@ -300,6 +300,21 @@ static uint16_t DNSUdpProbingParser(uint8_t *input, uint32_t ilen, uint32_t *off
     return ALPROTO_DNS_UDP;
 }
 
+static void DNSUDPConfigure(void) {
+    uint32_t request_flood = DNS_CONFIG_DEFAULT_REQUEST_FLOOD;
+
+    ConfNode *p = ConfGetNode("app-layer.protocols.dnsudp.request-flood");
+    if (p != NULL) {
+        uint32_t value;
+        if (ParseSizeStringU32(p->val, &value) < 0) {
+            SCLogError(SC_ERR_DNS_CONFIG, "invalid value for request-flood %s", p->val);
+        } else {
+            request_flood = value;
+        }
+    }
+    SCLogInfo("DNS request flood protection level: %u", request_flood);
+    DNSConfigSetRequestFlood(request_flood);
+}
 
 void RegisterDNSUDPParsers(void) {
     char *proto_name = "dnsudp";
@@ -349,6 +364,8 @@ void RegisterDNSUDPParsers(void) {
                                                            DNSGetAlstateProgressCompletionStatus);
 
         DNSAppLayerRegisterGetEventInfo(ALPROTO_DNS_UDP);
+
+        DNSUDPConfigure();
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);

@@ -56,6 +56,7 @@ enum {
     DNS_DECODER_EVENT_NOT_A_REQUEST,
     DNS_DECODER_EVENT_NOT_A_RESPONSE,
     DNS_DECODER_EVENT_Z_FLAG_SET,
+    DNS_DECODER_EVENT_FLOODED,
 };
 
 /** \brief DNS packet header */
@@ -143,13 +144,20 @@ typedef struct DNSState_ {
     TAILQ_HEAD(, DNSTransaction_) tx_list;  /**< transaction list */
     DNSTransaction *curr;                   /**< ptr to current tx */
     uint64_t transaction_max;
+    uint32_t unreplied_cnt;                 /**< number of unreplied requests in a row */
     uint16_t events;
+    uint16_t givenup;
 
     /* used by TCP only */
     uint16_t offset;
     uint16_t record_len;
     uint8_t *buffer;
 } DNSState;
+
+#define DNS_CONFIG_DEFAULT_REQUEST_FLOOD 500
+
+void DNSConfigInit(void);
+void DNSConfigSetRequestFlood(uint32_t value);
 
 void RegisterDNSParsers(void);
 void DNSParserTests(void);
