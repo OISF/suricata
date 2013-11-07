@@ -36,6 +36,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-smtp.h"
 
+#include "util-mpm.h"
 #include "util-debug.h"
 #include "util-byte.h"
 #include "util-unittest.h"
@@ -808,27 +809,22 @@ static void SMTPSetMpmState(void)
         exit(EXIT_FAILURE);
     }
     memset(smtp_mpm_ctx, 0, sizeof(MpmCtx));
+    MpmInitCtx(smtp_mpm_ctx, SMTP_MPM);
 
     smtp_mpm_thread_ctx = SCMalloc(sizeof(MpmThreadCtx));
     if (unlikely(smtp_mpm_thread_ctx == NULL)) {
         exit(EXIT_FAILURE);
     }
     memset(smtp_mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
-
-    mpm_table[SMTP_MPM].InitCtx(smtp_mpm_ctx);
-    mpm_table[SMTP_MPM].InitThreadCtx(smtp_mpm_ctx, smtp_mpm_thread_ctx, 0);
+    MpmInitThreadCtx(smtp_mpm_thread_ctx, SMTP_MPM, 0);
 
     uint32_t i = 0;
     for (i = 0; i < sizeof(smtp_reply_map)/sizeof(SCEnumCharMap) - 1; i++) {
         SCEnumCharMap *map = &smtp_reply_map[i];
-        mpm_table[SMTP_MPM].AddPatternNocase(smtp_mpm_ctx,
-                                             (uint8_t *)map->enum_name,
-                                             3 /* reply codes always 3 bytes */,
-                                             0 /* now defunct option */,
-                                             0 /* now defunct option */,
-                                             i /* pattern id */,
-                                             0 /* no sid */,
-                                             0 /* no flags */);
+        /* The third argument is 3, because reply code is always 3 bytes. */
+        MpmAddPatternCI(smtp_mpm_ctx, (uint8_t *)map->enum_name, 3,
+                        0 /* defunct */, 0 /* defunct */,
+                        i /* pattern id */, 0, 0 /* no flags */);
     }
 
     mpm_table[SMTP_MPM].Prepare(smtp_mpm_ctx);
@@ -853,17 +849,36 @@ int SMTPStateGetEventInfo(const char *event_name,
 /**
  * \brief Register the SMPT Protocol parser.
  */
+static int SMTPRegisterPatternsForProtocolDetection(void)
+{
+    if (AlpdPMRegisterPatternCI(alpd_ctx, IPPROTO_TCP, ALPROTO_SMTP,
+                                "EHLO ", 4, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCI(alpd_ctx, IPPROTO_TCP, ALPROTO_SMTP,
+                                "HELO", 4, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCI(alpd_ctx, IPPROTO_TCP, ALPROTO_SMTP,
+                                "QUIT", 4, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
 void RegisterSMTPParsers(void)
 {
     char *proto_name = "smtp";
 
     if (AppLayerProtoDetectionEnabled(proto_name)) {
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMTP, "EHLO", 4, 0,
-                    STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMTP, "HELO", 4, 0,
-                    STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMTP, "QUIT", 4, 0,
-                STREAM_TOSERVER);
+        if (AlpdRegisterProtocol(alpd_ctx, ALPROTO_SMTP, proto_name) < 0)
+            return;
+        if (SMTPRegisterPatternsForProtocolDetection() < 0)
+            return;
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",
                   proto_name);

@@ -65,6 +65,10 @@
 #include "util-unittest-helper.h"
 #include "util-validate.h"
 
+typedef struct AlpCtxThread_ {
+    void *alproto_local_storage[ALPROTO_MAX];
+} AlpCtxThread;
+
 AppLayerProto al_proto_table[ALPROTO_MAX];   /**< Application layer protocol
                                                 table mapped to their
                                                 corresponding parsers */
@@ -1386,13 +1390,6 @@ void RegisterAppLayerParsers(void)
     memset(&al_proto_table, 0, sizeof(al_proto_table));
     memset(&al_parser_table, 0, sizeof(al_parser_table));
 
-    /** setup result pool
-     * \todo Per thread pool */
-    al_result_pool = PoolInit(1000, 250,
-            sizeof(AppLayerParserResultElmt),
-            AlpResultElmtPoolAlloc, NULL, NULL,
-            AlpResultElmtPoolCleanup, NULL);
-
     RegisterHTPParsers();
     RegisterSSLParsers();
     RegisterSMBParsers();
@@ -1401,15 +1398,29 @@ void RegisterAppLayerParsers(void)
     RegisterDCERPCParsers();
     RegisterDCERPCUDPParsers();
     RegisterFTPParsers();
+    /* we are disabling the ssh parser temporarily, since we are moving away
+     * from some of the archaic features we use in the app layer.  We will
+     * reintroduce this parser.  Also do note that keywords that rely on
+     * the ssh parser would now be disabled */
+#if 0
     RegisterSSHParsers();
+#endif
     RegisterSMTPParsers();
     RegisterDNSUDPParsers();
     RegisterDNSTCPParsers();
 
     /** IMAP */
     if (AppLayerProtoDetectionEnabled("imap")) {
-        //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_IMAP, "|2A 20|OK|20|", 5, 0, STREAM_TOCLIENT);
-        AlpProtoAdd(&alp_proto_ctx, "imap", IPPROTO_TCP, ALPROTO_IMAP, "1|20|capability", 12, 0, STREAM_TOSERVER);
+        if (AlpdRegisterProtocol(alpd_ctx, ALPROTO_IMAP, "imap") < 0)
+            return;
+        if (AlpdPMRegisterPatternCI(alpd_ctx, IPPROTO_TCP, ALPROTO_IMAP,
+                                    "1|20|capability", 12, 0, STREAM_TOSERVER) < 0)
+        {
+            return -1;
+        }
+#if 0
+        AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_IMAP, "|2A 20|OK|20|", 5, 0, STREAM_TOCLIENT);
+#endif
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",
                   "imap");
@@ -1418,8 +1429,16 @@ void RegisterAppLayerParsers(void)
 
     /** MSN Messenger */
     if (AppLayerProtoDetectionEnabled("msn")) {
-        //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_MSN, "MSNP", 10, 6, STREAM_TOCLIENT);
-        AlpProtoAdd(&alp_proto_ctx, "msn", IPPROTO_TCP, ALPROTO_MSN, "MSNP", 10, 6, STREAM_TOSERVER);
+        if (AlpdRegisterProtocol(alpd_ctx, ALPROTO_MSN, "msn") < 0)
+            return;
+        if (AlpdPMRegisterPatternCI(alpd_ctx, IPPROTO_TCP, ALPROTO_MSN,
+                                    "MSNP", 10, 6, STREAM_TOSERVER) < 0)
+        {
+            return -1;
+        }
+#if 0
+        AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_MSN, "MSNP", 10, 6, STREAM_TOCLIENT);
+#endif
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",
                   "msn");
@@ -1429,6 +1448,14 @@ void RegisterAppLayerParsers(void)
 #if 0
     /** Jabber */
     if (AppLayerProtoDetectionEnabled("jabber")) {
+        if (AlpRegisterProtocolForDetection(&alp_proto_ctx,
+                                            ALPROTO_JABBER, jabber) < 0)
+        {
+            /* We need to overload the exit function to figure out where
+             * we exited from. */
+            exit(EXIT_FAILURE);
+        }
+
         AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOCLIENT);
         AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOSERVER);
     } else {
@@ -1466,87 +1493,6 @@ void AppLayerParserCleanupState(Flow *f)
         SCLogDebug("calling AppLayerParserStateStoreFree");
         AppLayerParserStateStoreFree(f->alparser);
         f->alparser = NULL;
-    }
-}
-
-/** \brief Create a mapping between the individual parsers local field id's
- *         and the global field parser id's.
- *
- */
-void AppLayerParsersInitPostProcess(void)
-{
-    uint16_t u16 = 0;
-
-    /* build local->global mapping */
-    for (u16 = 1; u16 <= al_max_parsers; u16++) {
-        /* no local parser */
-        if (al_parser_table[u16].parser_local_id == 0)
-            continue;
-
-        if (al_parser_table[u16].parser_local_id >
-                al_proto_table[al_parser_table[u16].proto].map_size)
-        {
-            al_proto_table[al_parser_table[u16].proto].map_size =
-                                           al_parser_table[u16].parser_local_id;
-        }
-        SCLogDebug("map_size %" PRIu32 "", al_proto_table
-                                        [al_parser_table[u16].proto].map_size);
-    }
-
-    /* for each proto, alloc the map array */
-    for (u16 = 0; u16 < ALPROTO_MAX; u16++) {
-        if (al_proto_table[u16].map_size == 0)
-            continue;
-
-        al_proto_table[u16].map_size++;
-        al_proto_table[u16].map = (AppLayerLocalMap **)SCMalloc
-                                    (al_proto_table[u16].map_size *
-                                        sizeof(AppLayerLocalMap *));
-        if (al_proto_table[u16].map == NULL) {
-            SCLogError(SC_ERR_FATAL, "Fatal error encountered in AppLayerParsersInitPostProcess. Exiting...");
-            exit(EXIT_FAILURE);
-        }
-        memset(al_proto_table[u16].map, 0, al_proto_table[u16].map_size *
-                sizeof(AppLayerLocalMap *));
-
-        uint16_t u = 0;
-        for (u = 1; u <= al_max_parsers; u++) {
-            /* no local parser */
-            if (al_parser_table[u].parser_local_id == 0)
-                continue;
-
-            if (al_parser_table[u].proto != u16)
-                continue;
-
-            uint16_t parser_local_id = al_parser_table[u].parser_local_id;
-            SCLogDebug("parser_local_id: %" PRIu32 "", parser_local_id);
-
-            if (parser_local_id < al_proto_table[u16].map_size) {
-                al_proto_table[u16].map[parser_local_id] = SCMalloc(sizeof(AppLayerLocalMap));
-                if (al_proto_table[u16].map[parser_local_id] == NULL) {
-                    exit(EXIT_FAILURE);
-                }
-
-                al_proto_table[u16].map[parser_local_id]->parser_id = u;
-            }
-        }
-    }
-
-    for (u16 = 0; u16 < ALPROTO_MAX; u16++) {
-        if (al_proto_table[u16].map_size == 0)
-            continue;
-
-        if (al_proto_table[u16].map == NULL)
-            continue;
-
-        uint16_t x = 0;
-        for (x = 0; x < al_proto_table[u16].map_size; x++) {
-            if (al_proto_table[u16].map[x] == NULL)
-                continue;
-
-           SCLogDebug("al_proto_table[%" PRIu32 "].map[%" PRIu32 "]->parser_id:"
-                      " %" PRIu32 "", u16, x, al_proto_table[u16].map[x]->parser_id);
-        }
     }
 }
 
@@ -2355,6 +2301,30 @@ void AppLayerFreeProbingParsers(AppLayerProbingParser *pp)
 
     return;
 }
+
+/***** Anoop *****/
+void *AlpGetCtxThread(void)
+{
+    AppProto *alproto = 0;
+    AlpCtxThread *alp_tctx = SCMalloc(sizeof(*alp_tctx));
+    if (alp_tctx == NULL)
+        return NULL;
+    memset(alp_tctx, 0, sizeof(*alp_tctx));
+
+    for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        alp_tctx->alproto_local_storage[alproto] =
+            AppLayerGetProtocolParserLocalStorage(alproto);
+    }
+
+    return alp_tctx;
+}
+
+void AlpDestroyCtxThread(void *tctx)
+{
+    AlpCtxThread *alp_tctx = (AlpCtxThread *)tctx;
+    SCFree(alp_tctx);
+}
+
 
 /**************************************Unittests*******************************/
 

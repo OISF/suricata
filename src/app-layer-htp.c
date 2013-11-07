@@ -2467,6 +2467,100 @@ static void HTPStateTruncate(void *state, uint8_t flags) {
     }
 }
 
+static int HTPRegisterPatternsForProtocolDetection(void)
+{
+    /* toserver */
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_HTTP,
+                                "GET|20|", 4, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_HTTP,
+                                "GET|09|", 4, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_HTTP,
+                                "PUT|20|", 4, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_HTTP,
+                                "PUT|09|", 4, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_HTTP,
+                                "POST|20|", 5, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_HTTP,
+                                "POST|09|", 5, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_HTTP,
+                                "HEAD|20|", 5, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_HTTP,
+                                "HEAD|09|", 5, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_HTTP,
+                                "TRACE|20|", 6, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_HTTP,
+                                "TRACE|09|", 6, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_HTTP,
+                                "OPTIONS|20|", 8, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_HTTP,
+                                "OPTIONS|09|", 8, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_HTTP,
+                                "CONNECT|20|", 8, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_HTTP,
+                                "CONNECT|09|", 8, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    /* toclient */
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_HTTP,
+                                "HTTP/0.9", 8, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_HTTP,
+                                "HTTP/1.0", 8, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_HTTP,
+                                "HTTP/1.1", 8, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
 /**
  *  \brief  Register the HTTP protocol and state handling functions to APP layer
  *          of the engine.
@@ -2477,27 +2571,12 @@ void RegisterHTPParsers(void)
 
     char *proto_name = "http";
 
-    /** HTTP */
+    /* HTTP */
     if (AppLayerProtoDetectionEnabled(proto_name)) {
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "GET|20|", 4, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "GET|09|", 4, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "PUT|20|", 4, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "PUT|09|", 4, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "POST|20|", 5, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "POST|09|", 5, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "HEAD|20|", 5, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "HEAD|09|", 5, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "TRACE|20|", 6, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "TRACE|09|", 6, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "OPTIONS|20|", 8, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "OPTIONS|09|", 8, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "CONNECT|20|", 8, 0, STREAM_TOSERVER);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "CONNECT|09|", 8, 0, STREAM_TOSERVER);
-
-        /* toclient direction */
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "HTTP/0.9", 8, 0, STREAM_TOCLIENT);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "HTTP/1.0", 8, 0, STREAM_TOCLIENT);
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_HTTP, "HTTP/1.1", 8, 0, STREAM_TOCLIENT);
+        if (AlpdRegisterProtocol(alpd_ctx, ALPROTO_HTTP, proto_name) < 0)
+            return;
+        if (HTPRegisterPatternsForProtocolDetection() < 0)
+            return;
         AppLayerRegisterParserAcceptableDataDirection(ALPROTO_HTTP, STREAM_TOSERVER);
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol",

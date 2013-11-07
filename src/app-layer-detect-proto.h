@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,7 +18,10 @@
 /**
  * \file
  *
+ * Alpd - App Layer Protocol Detection.
+ *
  * \author Victor Julien <victor@inliniac.net>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
 #ifndef __APP_LAYER_DETECT_PROTO_H__
@@ -27,50 +30,13 @@
 #include "stream.h"
 #include "detect-content.h"
 #include "app-layer-parser.h"
+#include "app-layer-protos.h"
+#include "flow-proto-private.h"
 
-/** \brief Signature for proto detection
- *  \todo we might just use SigMatch here
+/**
+ * \brief The global app layer protocol detection context used by suricata.
  */
-typedef struct AlpProtoSignature_ {
-    uint16_t ip_proto;                     /**< protocol (TCP/UDP) */
-    uint16_t proto;                     /**< protocol */
-    DetectContentData *co;              /**< content match that needs to match */
-    struct AlpProtoSignature_ *next;    /**< next signature */
-    struct AlpProtoSignature_ *map_next;    /**< next signature with same id */
-} AlpProtoSignature;
-
-#define ALP_DETECT_MAX 256
-
-typedef struct AlpProtoDetectDirection_ {
-    MpmCtx mpm_ctx;
-    uint32_t id;
-    uint16_t map[ALP_DETECT_MAX];   /**< a mapping between condition id's and
-                                         protocol */
-    uint16_t max_len;              /**< max length of all patterns, so we can
-                                         limit the search */
-    uint16_t min_len;              /**< min length of all patterns, so we can
-                                         tell the stream engine to feed data
-                                         to app layer as soon as it has min
-                                         size data */
-} AlpProtoDetectDirection;
-
-typedef struct AlpProtoDetectCtx_ {
-    AlpProtoDetectDirection toserver;
-    AlpProtoDetectDirection toclient;
-
-    MpmPatternIdStore *mpm_pattern_id_store;    /** pattern id store */
-
-    /** Mapping between pattern id and signature. As each signature has a
-     *  unique pattern with a unique id, we can lookup the signature by
-     *  the pattern id. */
-    AlpProtoSignature **map;
-
-    AlpProtoSignature *head;    /**< list of sigs */
-    AppLayerProbingParser *probing_parsers;
-    uint16_t sigs;              /**< number of sigs */
-} AlpProtoDetectCtx;
-
-extern AlpProtoDetectCtx alp_proto_ctx;
+extern AlpProtoDetectCtx alpd_ctx;
 
 #define FLOW_IS_PM_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags & FLOW_TS_PM_ALPROTO_DETECT_DONE) : ((f)->flags & FLOW_TC_PM_ALPROTO_DETECT_DONE))
 #define FLOW_IS_PP_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags & FLOW_TS_PP_ALPROTO_DETECT_DONE) : ((f)->flags & FLOW_TC_PP_ALPROTO_DETECT_DONE))
@@ -81,35 +47,83 @@ extern AlpProtoDetectCtx alp_proto_ctx;
 #define FLOW_RESET_PM_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags &= ~FLOW_TS_PM_ALPROTO_DETECT_DONE) : ((f)->flags &= ~FLOW_TC_PM_ALPROTO_DETECT_DONE))
 #define FLOW_RESET_PP_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags &= ~FLOW_TS_PP_ALPROTO_DETECT_DONE) : ((f)->flags &= ~FLOW_TC_PP_ALPROTO_DETECT_DONE))
 
-void AlpProtoInit(AlpProtoDetectCtx *);
-void *AppLayerDetectProtoThread(void *td);
-
-void AppLayerDetectProtoThreadInit(void);
-
-uint16_t AppLayerDetectGetProtoPMParser(AlpProtoDetectCtx *ctx,
-                                        AlpProtoDetectThreadCtx *tctx,
-                                        Flow *f,
-                                        uint8_t *buf, uint16_t buflen,
-                                        uint8_t flags, uint8_t ipproto,
-                                        uint16_t *pm_results);
-uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *, Flow *,
-                                             uint8_t *, uint32_t,
-                                             uint8_t, uint8_t);
-uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *, AlpProtoDetectThreadCtx *,
-                                Flow *, uint8_t *, uint32_t,
-                                uint8_t, uint8_t);
-void AlpProtoAddCI(AlpProtoDetectCtx *, char *, uint16_t, uint16_t, char *, uint16_t, uint16_t, uint8_t);
-void AlpProtoAdd(AlpProtoDetectCtx *, char *, uint16_t, uint16_t, char *, uint16_t, uint16_t, uint8_t);
-
-void AppLayerDetectProtoThreadSpawn(void);
-void AlpDetectRegisterTests(void);
-
-void AlpProtoFinalizeGlobal(AlpProtoDetectCtx *);
 void AlpProtoFinalizeThread(AlpProtoDetectCtx *, AlpProtoDetectThreadCtx *);
 void AlpProtoFinalize2Thread(AlpProtoDetectThreadCtx *);
 void AlpProtoDeFinalize2Thread (AlpProtoDetectThreadCtx *);
-void AlpProtoTestDestroy(AlpProtoDetectCtx *);
-void AlpProtoDestroy(void);
+
+/***** Anoop *****/
+
+/**
+ * \brief Inits and returns an app layer protocol detection context.
+ *
+ * \retval On success, pointer to the context; NULL on failure.
+ */
+void *AlpdGetCtx(void);
+/**
+ * \brief Destroys the app layer protocol detection context.
+ *
+ * \param ctx Pointer to the app layer protocol detection context.
+ */
+void AlpdDestoryCtx(void *ctx);
+
+/**
+ * \brief Inits and returns an app layer protocol detection thread context.
+
+ * \param ctx Pointer to the app layer protocol detection context.
+ *
+ * \retval On success, pointer to the thread context; NULL on failure.
+ */
+void *AlpdGetCtxThread(void *ctx);
+/**
+ * \brief Destroys the app layer protocol detection thread context.
+ *
+ * \param ctx  Pointer to the app layer protocol detection context.
+ * \param tctx Pointer to the app layer protocol detection thread context.
+ */
+void AlpdDestroyCtxThread(void *ctx, void *tctx);
+
+/**
+ * \brief Registers a protocol for protocol detection phase.
+ *
+ *        This is the first function to be called before adding patterns
+ *        for protocol detection, setting the probing parser for protocol
+ *        detection and registering the protocol parser callbacks.
+ *        With this function you are also associating/registering a string
+ *        that can be used by users to write rules, i.e.
+ *        you register the http protocol for protocol detection using
+ *        AlpdRegisterProtocol(ctx, ALPROTO_HTTP, "http");
+ *        Following which you can write rules like this -
+ *        alert http any any -> any any (sid:1;)
+ *        Which basically matches on the protocol.
+ *
+ * \param ctx Pointer to the app layer protocol detection context.
+ * \param alproto The protocol.
+ * \param alproto_str The string to associate with the above "alproto".
+ *
+ * \retval  0 On success;
+ *         -1 on failure.
+ */
+int AlpdRegisterProtocol(void *ctx,
+                         AppProto alproto, const char *alproto_str);
+/**
+ * \brief Registers
+int AlpdPMRegisterPatternCS(void *ctx,
+                            uint16_t ipproto, uint16_t alproto,
+                            const char *pattern,
+                            uint16_t depth, uint16_t offset,
+                            uint8_t direction);
+int AlpdPMRegisterPatternCI(void *ctx,
+                            uint16_t ipproto, uint16_t alproto,
+                            const char *pattern,
+                            uint16_t depth, uint16_t offset,
+                            uint8_t direction);
+void AlpdPrepareState(void *ctx);
+
+uint16_t AlpdGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx *tctx,
+                      Flow *f, uint8_t *buf, uint32_t buflen,
+                      uint8_t flags, uint8_t ipproto);
+
+
+void AlpDetectRegisterTests(void);
 
 #endif /* __APP_LAYER_DETECT_PROTO_H__ */
-

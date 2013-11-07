@@ -579,6 +579,12 @@ void RegisterDNSTCPParsers(void) {
 
     /** DNS */
     if (AppLayerProtoDetectionEnabled(proto_name)) {
+        /* by the time we are done this will disappear */
+        if (AlpdRegisterProtocol(alpd_ctx, ALPROTO_DNS, "dns") < 0)
+            return;
+        if (AlpdRegisterProtocol(alpd_ctx, ALPROTO_DNS_TCP, proto_name) < 0)
+            return;
+
         if (RunmodeIsUnittests()) {
             AppLayerRegisterProbingParser(&alp_proto_ctx,
                                           IPPROTO_TCP,

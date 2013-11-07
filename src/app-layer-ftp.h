@@ -91,12 +91,37 @@ enum {
     FTP_FIELD_MAX,
 };
 
+/** used to hold the line state when we have fragmentation. */
+typedef struct FtpLineState_ {
+    /** used to indicate if the current_line buffer is a malloced buffer.  We
+     * use a malloced buffer, if a line is fragmented */
+    uint8_t *db;
+    uint32_t db_len;
+    uint8_t current_line_db;
+    /** we have see LF for the currently parsed line */
+    uint8_t current_line_lf_seen;
+} FtpLineState;
+
 /** FTP State for app layer parser */
 typedef struct FtpState_ {
+    uint8_t *input;
+    int32_t input_len;
+    uint8_t direction;
+
+    /* --parser details-- */
+    /** current line extracted by the parser from the call to FTPGetline() */
+    uint8_t *current_line;
+    /** length of the line in current_line.  Doesn't include the delimiter */
+    uint32_t current_line_len;
+    uint8_t current_line_delimiter_len;
+
+    /* 0 for toserver, 1 for toclient */
+    FtpLineState line_state[2];
+
     FtpRequestCommand command;
     FtpRequestCommandArgOfs arg_offset;
-    FtpResponseCode response_code;
     uint32_t port_line_len;
+    uint32_t port_line_size;
     uint8_t *port_line;
 } FtpState;
 

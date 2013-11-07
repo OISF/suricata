@@ -796,11 +796,26 @@ static void DCERPCUDPStateFree(void *s) {
 	}
 }
 
+static int DCERPCUDPRegisterPatternsForProtocolDetection(void)
+{
+    if (AlpdPMRegisterPatternCS(alpd_ctx, IPPROTO_TCP, ALPROTO_DCERPC_UDP,
+                                "|04 00|", 2, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
 void RegisterDCERPCUDPParsers(void) {
     char *proto_name = "dcerpcudp";
 
     if (AppLayerProtoDetectionEnabled("dcerpc")) {
-        AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_UDP, ALPROTO_DCERPC_UDP, "|04 00|", 2, 0, STREAM_TOSERVER);
+        if (AlpdRegisterProtocol(alpd_ctx, ALPROTO_DCERPC_UDP, proto_name) < 0)
+            return;
+        if (DCERPCUDPRegisterPatternsForProtocolDetection() < 0)
+            return;
+
         AppLayerRegisterParserAcceptableDataDirection(ALPROTO_DCERPC_UDP, STREAM_TOSERVER);
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",

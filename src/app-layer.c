@@ -19,6 +19,7 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  *
  * Generic App-layer functions
  */
@@ -40,91 +41,281 @@
 #include "decode-events.h"
 
 //#define PRINT
-extern uint8_t engine_mode;
 
-/** \brief Get the active app layer proto from the packet
- *  \param p packet pointer with a LOCKED flow
- *  \retval alstate void pointer to the state
- *  \retval proto (ALPROTO_UNKNOWN if no proto yet) */
-uint16_t AppLayerGetProtoFromPacket(Packet *p) {
-    SCEnter();
+/* Global app layer protocol detection context */
+void *alpd_ctx = NULL;
 
-    if (p == NULL || p->flow == NULL) {
-        SCReturnUInt(ALPROTO_UNKNOWN);
-    }
+/**
+ * \brief This is for the app layer in general and it contains per thread
+ *        context relevant to both the alpd and the app layer parser.
+ */
+typedef struct AppLayerCtxThread_ {
+    /* App layer protocol detection thread context, from AlpdGetCtxThread(). */
+    void *alpd_tctx;
+    /* App layer parser thread context, from AlpGetCtxThread(). */
+    void *alp_tctx;
 
-    DEBUG_ASSERT_FLOW_LOCKED(p->flow);
-
-    SCLogDebug("p->flow->alproto %"PRIu16"", p->flow->alproto);
-
-    SCReturnUInt(p->flow->alproto);
-}
-
-/** \brief Get the active app layer state from the packet
- *  \param p packet pointer with a LOCKED flow
- *  \retval alstate void pointer to the state
- *  \retval NULL in case we have no state */
-void *AppLayerGetProtoStateFromPacket(Packet *p) {
-    SCEnter();
-
-    if (p == NULL || p->flow == NULL) {
-        SCReturnPtr(NULL, "void");
-    }
-
-    DEBUG_ASSERT_FLOW_LOCKED(p->flow);
-
-    SCLogDebug("p->flow->alproto %"PRIu16"", p->flow->alproto);
-
-    SCLogDebug("p->flow %p", p->flow);
-    SCReturnPtr(p->flow->alstate, "void");
-}
-
-/** \brief Get the active app layer state from the flow
- *  \param f flow pointer to a LOCKED flow
- *  \retval alstate void pointer to the state
- *  \retval NULL in case we have no state */
-void *AppLayerGetProtoStateFromFlow(Flow *f) {
-    SCEnter();
-
-    DEBUG_ASSERT_FLOW_LOCKED(f);
-
-    if (f == NULL) {
-        SCReturnPtr(NULL, "void");
-    }
-
-    SCLogDebug("f->alproto %"PRIu16"", f->alproto);
-
-    SCReturnPtr(f->alstate, "void");
-}
+#ifdef PROFILING
+    uint64_t ticks_start;
+    uint64_t ticks_end;
+    uint64_t ticks_spent;
+    uint16_t alproto;
+    uint64_t proto_detect_ticks_start;
+    uint64_t proto_detect_ticks_end;
+    uint64_t proto_detect_ticks_spent;
+#endif
+} AppLayerCtxThread;
 
 /** global app layer detection context */
 extern AlpProtoDetectCtx alp_proto_ctx;
 
 /**
- *  \brief Handle a chunk of TCP data
- *
- *  If the protocol is yet unknown, the proto detection code is run first.
+ *  \brief Attach a stream message to the TCP session for inspection
+ *         in the detection engine.
  *
  *  \param dp_ctx Thread app layer detect context
- *  \param f Flow
- *  \param ssn TCP Session
- *  \param data ptr to reassembled data
- *  \param data_len length of the data chunk
- *  \param flags control flags
- *
- *  During detection this function can call the stream reassembly,
- *  inline or non-inline for the opposing direction, while already
- *  being called by the same stream reassembly for a particular
- *  direction.  This should cause any issues, since processing of
- *  each stream is independent of the other stream.
+ *  \param smsg Stream message
  *
  *  \retval 0 ok
  *  \retval -1 error
  */
+int AppLayerHandleTCPMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
+{
+    SCEnter();
+
+#ifdef PRINT
+    printf("=> Stream Data (raw reassembly) -- start %s%s\n",
+            smsg->flags & STREAM_TOCLIENT ? "toclient" : "",
+            smsg->flags & STREAM_TOSERVER ? "toserver" : "");
+    PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+    printf("=> Stream Data -- end\n");
+#endif
+    SCLogDebug("smsg %p", smsg);
+    BUG_ON(smsg->flow == NULL);
+
+    TcpSession *ssn = smsg->flow->protoctx;
+    if (ssn != NULL) {
+        SCLogDebug("storing smsg %p in the tcp session", smsg);
+
+        /* store the smsg in the tcp stream */
+        if (smsg->flags & STREAM_TOSERVER) {
+            SCLogDebug("storing smsg in the to_server");
+
+            /* put the smsg in the stream list */
+            if (ssn->toserver_smsg_head == NULL) {
+                ssn->toserver_smsg_head = smsg;
+                ssn->toserver_smsg_tail = smsg;
+                smsg->next = NULL;
+                smsg->prev = NULL;
+            } else {
+                StreamMsg *cur = ssn->toserver_smsg_tail;
+                cur->next = smsg;
+                smsg->prev = cur;
+                smsg->next = NULL;
+                ssn->toserver_smsg_tail = smsg;
+            }
+        } else {
+            SCLogDebug("storing smsg in the to_client");
+
+            /* put the smsg in the stream list */
+            if (ssn->toclient_smsg_head == NULL) {
+                ssn->toclient_smsg_head = smsg;
+                ssn->toclient_smsg_tail = smsg;
+                smsg->next = NULL;
+                smsg->prev = NULL;
+            } else {
+                StreamMsg *cur = ssn->toclient_smsg_tail;
+                cur->next = smsg;
+                smsg->prev = cur;
+                smsg->next = NULL;
+                ssn->toclient_smsg_tail = smsg;
+            }
+        }
+
+        FlowDeReference(&smsg->flow);
+    } else { /* no ssn ptr */
+        /* if there is no ssn ptr we won't
+         * be inspecting this msg in detect
+         * so return it to the pool. */
+
+        FlowDeReference(&smsg->flow);
+
+        /* return the used message to the queue */
+        StreamMsgReturnToPool(smsg);
+    }
+
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief Handle a app layer UDP message
+ *
+ *  If the protocol is yet unknown, the proto detection code is run first.
+ *
+ *  \param dp_ctx Thread app layer detect context
+ *  \param f unlocked flow
+ *  \param p UDP packet
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
+int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
+{
+    SCEnter();
+
+    int r = 0;
+
+    if (f == NULL) {
+        SCReturnInt(r);
+    }
+
+    FLOWLOCK_WRLOCK(f);
+
+    uint8_t flags = 0;
+    if (p->flowflags & FLOW_PKT_TOSERVER) {
+        flags |= STREAM_TOSERVER;
+    } else {
+        flags |= STREAM_TOCLIENT;
+    }
+
+    /* if we don't know the proto yet and we have received a stream
+     * initializer message, we run proto detection.
+     * We receive 2 stream init msgs (one for each direction) but we
+     * only run the proto detection once. */
+    if (f->alproto == ALPROTO_UNKNOWN && !(f->flags & FLOW_ALPROTO_DETECT_DONE)) {
+        SCLogDebug("Detecting AL proto on udp mesg (len %" PRIu32 ")",
+                    p->payload_len);
+
+        PACKET_PROFILING_APP_PD_START(dp_ctx);
+        f->alproto = AlpdGetProto(&alp_proto_ctx, dp_ctx, f,
+                                  p->payload, p->payload_len, flags, IPPROTO_UDP);
+        PACKET_PROFILING_APP_PD_END(dp_ctx);
+
+        if (f->alproto != ALPROTO_UNKNOWN) {
+            f->flags |= FLOW_ALPROTO_DETECT_DONE;
+
+            PACKET_PROFILING_APP_START(dp_ctx, f->alproto);
+            r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags,
+                              p->payload, p->payload_len);
+            PACKET_PROFILING_APP_END(dp_ctx, f->alproto);
+        } else {
+            f->flags |= FLOW_ALPROTO_DETECT_DONE;
+            SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
+        }
+    } else {
+        SCLogDebug("stream data (len %" PRIu32 " ), alproto "
+                  "%"PRIu16" (flow %p)", p->payload_len, f->alproto, f);
+
+        /* if we don't have a data object here we are not getting it
+         * a start msg should have gotten us one */
+        if (f->alproto != ALPROTO_UNKNOWN) {
+            PACKET_PROFILING_APP_START(dp_ctx, f->alproto);
+            r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags,
+                              p->payload, p->payload_len);
+            PACKET_PROFILING_APP_END(dp_ctx, f->alproto);
+        } else {
+            SCLogDebug("udp session has started, but failed to detect alproto "
+                       "for l7");
+        }
+    }
+
+    FLOWLOCK_UNLOCK(f);
+    PACKET_PROFILING_APP_STORE(dp_ctx, p);
+    SCReturnInt(r);
+}
+
+/***** Anoop *****/
+
+int AppLayerSetup(void)
+{
+    alpd_ctx = AlpdGetCtx();
+    if (alpd_ctx == NULL)
+        return -1;
+
+    /* \todo Split below function into PD and parser registration. */
+    RegisterAppLayerParsers();
+    AlpdPrepareState(alpd_ctx);
+
+    return;
+}
+
+void *AppLayerGetCtxThread(void)
+{
+    AppLayerCtxThread *app_tctx = NULL;
+
+    app_tctx = SCMalloc(sizeof(*app_tctx));
+    if (app_tctx == NULL)
+        goto failure;
+    memset(app_tctx, 0, sizeof(*app_tctx));
+    if ((app_tctx->alpd_tctx = AlpdGetCtxThread()) == NULL)
+        goto failure;
+    if ((app_tctx->alp_tctx = AlpGetCtxThread()) == NULL)
+        goto failure;
+
+    goto done;
+
+ failure:
+    if (app_tctx == NULL)
+        goto done;
+    if (app_tctx->alpd != NULL)
+        AlpdDestroyCtxThread(app_tctx->alpd);
+    if (app_tctx->alp != NULL)
+        AlpDestroyCtxThread(app_tctx->alp);
+    app_tctx = NULL;
+ done:
+    return app_tctx;
+}
+
+void AppLayerDestoryCtxThread(void *tctx)
+{
+    AppLayerCtxThread *app_tctx = (AppLayerCtxThread *)tctx;
+    if (app_tctx->alpd != NULL)
+        AlpdDestroyCtxThread(app_tctx->alpd);
+    if (app_tctx->alp != NULL)
+        AlpDestroyCtxThread(app_tctx->alp);
+    SCFree(tctx);
+}
+
+uint16_t AppLayerGetProtoFromPacket(Packet *p)
+{
+    SCEnter();
+
+    DEBUG_ASSERT_FLOW_LOCKED(p->flow);
+    if (p == NULL || p->flow == NULL)
+        SCReturnUInt(ALPROTO_UNKNOWN);
+    SCLogDebug("p->flow->alproto %"PRIu16"", p->flow->alproto);
+
+    SCReturnUInt(p->flow->alproto);
+}
+
+void *AppLayerGetProtoStateFromPacket(Packet *p)
+{
+    SCEnter();
+
+    DEBUG_ASSERT_FLOW_LOCKED(p->flow);
+    if (p == NULL || p->flow == NULL)
+        SCReturnPtr(NULL, "void");
+    SCLogDebug("p->flow %p, p->flow->alstate %p.", p->flow, p->flow->alstate);
+
+    SCReturnPtr(p->flow->alstate, "void");
+}
+
+void *AppLayerGetProtoStateFromFlow(Flow *f)
+{
+    SCEnter();
+
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+    if (f == NULL)
+        SCReturnPtr(NULL, "void");
+    SCLogDebug("f %p, f->alproto %"PRIu16"", f, f->alproto);
+
+    SCReturnPtr(f->alstate, "void");
+}
+
 int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                           Flow *f, TcpSession *ssn, TcpStream *stream,
-                          uint8_t *data, uint32_t data_len, Packet *p,
-                          uint8_t flags)
+                          uint8_t *data, uint32_t data_len,
+                          Packet *p, uint8_t flags)
 {
     SCEnter();
     AlpProtoDetectThreadCtx *dp_ctx = &ra_ctx->dp_ctx;
@@ -184,8 +375,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 #endif
 
         PACKET_PROFILING_APP_PD_START(dp_ctx);
-        *alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx, f,
-                                          data, data_len, flags, IPPROTO_TCP);
+        *alproto = AlpdGetProto(&alp_proto_ctx, dp_ctx, f,
+                                data, data_len, flags, IPPROTO_TCP);
         PACKET_PROFILING_APP_PD_END(dp_ctx);
 
         if (*alproto != ALPROTO_UNKNOWN) {
@@ -404,161 +595,6 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     }
 
  end:
-    SCReturnInt(r);
-}
-
-/**
- *  \brief Attach a stream message to the TCP session for inspection
- *         in the detection engine.
- *
- *  \param dp_ctx Thread app layer detect context
- *  \param smsg Stream message
- *
- *  \retval 0 ok
- *  \retval -1 error
- */
-int AppLayerHandleTCPMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
-{
-    SCEnter();
-
-#ifdef PRINT
-    printf("=> Stream Data (raw reassembly) -- start %s%s\n",
-            smsg->flags & STREAM_TOCLIENT ? "toclient" : "",
-            smsg->flags & STREAM_TOSERVER ? "toserver" : "");
-    PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
-    printf("=> Stream Data -- end\n");
-#endif
-    SCLogDebug("smsg %p", smsg);
-    BUG_ON(smsg->flow == NULL);
-
-    TcpSession *ssn = smsg->flow->protoctx;
-    if (ssn != NULL) {
-        SCLogDebug("storing smsg %p in the tcp session", smsg);
-
-        /* store the smsg in the tcp stream */
-        if (smsg->flags & STREAM_TOSERVER) {
-            SCLogDebug("storing smsg in the to_server");
-
-            /* put the smsg in the stream list */
-            if (ssn->toserver_smsg_head == NULL) {
-                ssn->toserver_smsg_head = smsg;
-                ssn->toserver_smsg_tail = smsg;
-                smsg->next = NULL;
-                smsg->prev = NULL;
-            } else {
-                StreamMsg *cur = ssn->toserver_smsg_tail;
-                cur->next = smsg;
-                smsg->prev = cur;
-                smsg->next = NULL;
-                ssn->toserver_smsg_tail = smsg;
-            }
-        } else {
-            SCLogDebug("storing smsg in the to_client");
-
-            /* put the smsg in the stream list */
-            if (ssn->toclient_smsg_head == NULL) {
-                ssn->toclient_smsg_head = smsg;
-                ssn->toclient_smsg_tail = smsg;
-                smsg->next = NULL;
-                smsg->prev = NULL;
-            } else {
-                StreamMsg *cur = ssn->toclient_smsg_tail;
-                cur->next = smsg;
-                smsg->prev = cur;
-                smsg->next = NULL;
-                ssn->toclient_smsg_tail = smsg;
-            }
-        }
-
-        FlowDeReference(&smsg->flow);
-    } else { /* no ssn ptr */
-        /* if there is no ssn ptr we won't
-         * be inspecting this msg in detect
-         * so return it to the pool. */
-
-        FlowDeReference(&smsg->flow);
-
-        /* return the used message to the queue */
-        StreamMsgReturnToPool(smsg);
-    }
-
-    SCReturnInt(0);
-}
-
-/**
- *  \brief Handle a app layer UDP message
- *
- *  If the protocol is yet unknown, the proto detection code is run first.
- *
- *  \param dp_ctx Thread app layer detect context
- *  \param f unlocked flow
- *  \param p UDP packet
- *
- *  \retval 0 ok
- *  \retval -1 error
- */
-int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
-{
-    SCEnter();
-
-    int r = 0;
-
-    if (f == NULL) {
-        SCReturnInt(r);
-    }
-
-    FLOWLOCK_WRLOCK(f);
-
-    uint8_t flags = 0;
-    if (p->flowflags & FLOW_PKT_TOSERVER) {
-        flags |= STREAM_TOSERVER;
-    } else {
-        flags |= STREAM_TOCLIENT;
-    }
-
-    /* if we don't know the proto yet and we have received a stream
-     * initializer message, we run proto detection.
-     * We receive 2 stream init msgs (one for each direction) but we
-     * only run the proto detection once. */
-    if (f->alproto == ALPROTO_UNKNOWN && !(f->flags & FLOW_ALPROTO_DETECT_DONE)) {
-        SCLogDebug("Detecting AL proto on udp mesg (len %" PRIu32 ")",
-                    p->payload_len);
-
-        PACKET_PROFILING_APP_PD_START(dp_ctx);
-        f->alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx, f,
-                        p->payload, p->payload_len, flags, IPPROTO_UDP);
-        PACKET_PROFILING_APP_PD_END(dp_ctx);
-
-        if (f->alproto != ALPROTO_UNKNOWN) {
-            f->flags |= FLOW_ALPROTO_DETECT_DONE;
-
-            PACKET_PROFILING_APP_START(dp_ctx, f->alproto);
-            r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags,
-                              p->payload, p->payload_len);
-            PACKET_PROFILING_APP_END(dp_ctx, f->alproto);
-        } else {
-            f->flags |= FLOW_ALPROTO_DETECT_DONE;
-            SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
-        }
-    } else {
-        SCLogDebug("stream data (len %" PRIu32 " ), alproto "
-                  "%"PRIu16" (flow %p)", p->payload_len, f->alproto, f);
-
-        /* if we don't have a data object here we are not getting it
-         * a start msg should have gotten us one */
-        if (f->alproto != ALPROTO_UNKNOWN) {
-            PACKET_PROFILING_APP_START(dp_ctx, f->alproto);
-            r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags,
-                              p->payload, p->payload_len);
-            PACKET_PROFILING_APP_END(dp_ctx, f->alproto);
-        } else {
-            SCLogDebug("udp session has started, but failed to detect alproto "
-                       "for l7");
-        }
-    }
-
-    FLOWLOCK_UNLOCK(f);
-    PACKET_PROFILING_APP_STORE(dp_ctx, p);
     SCReturnInt(r);
 }
 
