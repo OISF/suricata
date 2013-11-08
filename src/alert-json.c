@@ -712,32 +712,16 @@ OutputCtx *AlertJsonInitCtx(ConfNode *conf)
                 }
                 if (strcmp(output->val, "http") == 0) {
                     SCLogDebug("Enabling HTTP output");
-                    /* Yuck.  there has to be a better way */
                     ConfNode *child = ConfNodeLookupChild(output, "http"); 
-                    if (child) {
-                        json_ctx->http_ctx = OutputHttpLogInit(child);
-                        if (json_ctx->http_ctx != NULL)
-                            outputFlags |= OUTPUT_HTTP;
-                    } else {
-                        outputFlags |= OUTPUT_HTTP;
-                    }
+                    json_ctx->http_ctx = OutputHttpLogInit(child);
+                    outputFlags |= OUTPUT_HTTP;
                     continue;
                 }
                 if (strcmp(output->val, "tls") == 0) {
                     SCLogDebug("Enabling TLS output");
                     ConfNode *child = ConfNodeLookupChild(output, "tls"); 
-#if 1
                     json_ctx->tls_ctx = OutputTlsLogInit(child);
                     outputFlags |= OUTPUT_TLS;
-#else
-                    if (child) {
-                        json_ctx->tls_ctx = OutputTlsLogInit(child);
-                        if (json_ctx->tls_ctx != NULL)
-                            outputFlags |= OUTPUT_TLS;
-                    } else {
-                        outputFlags |= OUTPUT_TLS;
-                    }
-#endif
                     continue;
                 }
             }
@@ -759,128 +743,6 @@ static void AlertJsonDeInitCtx(OutputCtx *output_ctx)
 
 #ifdef UNITTESTS
 
-int AlertBroccoliTest01()
-{
-    int result = 0;
-    uint8_t *buf = (uint8_t *) "GET /one/ HTTP/1.1\r\n"
-        "Host: one.example.org\r\n";
-
-    uint16_t buflen = strlen((char *)buf);
-    Packet *p = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
-
-    memset(&th_v, 0, sizeof(th_v));
-    p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        return result;
-    }
-
-    de_ctx->flags |= DE_QUIET;
-
-    SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFD();
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"FastLog test\"; content:\"GET\"; "
-            "Classtype:unknown; sid:1;)");
-    result = (de_ctx->sig_list != NULL);
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt == 1)
-        result = (strcmp(p->alerts.alerts[0].s->class_msg, "Unknown are we") == 0);
-    else
-        result = 0;
-
-#ifdef __SC_CUDA_SUPPORT__
-    B2gCudaKillDispatcherThreadRC();
-    if (SCCudaHlPushCudaContextFromModule("SC_RULES_CONTENT_B2G_CUDA") == -1) {
-        printf("Call to SCCudaHlPushCudaContextForModule() failed\n");
-        return 0;
-    }
-#endif
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    UTHFreePackets(&p, 1);
-    return result;
-}
-
-int AlertBroccoliTest02()
-{
-    int result = 0;
-    uint8_t *buf = (uint8_t *) "GET /one/ HTTP/1.1\r\n"
-        "Host: one.example.org\r\n";
-    uint16_t buflen = strlen((char *)buf);
-    Packet *p = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
-
-    memset(&th_v, 0, sizeof(th_v));
-
-    p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        return result;
-    }
-
-    de_ctx->flags |= DE_QUIET;
-
-    SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFD();
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"FastLog test\"; content:\"GET\"; "
-            "Classtype:unknown; sid:1;)");
-    result = (de_ctx->sig_list != NULL);
-    if (result == 0)
-        printf("sig parse failed: ");
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (p->alerts.cnt == 1) {
-        result = (strcmp(p->alerts.alerts[0].s->class_msg, "Unknown Traffic") != 0);
-        if (result == 0)
-            printf("p->alerts.alerts[0].class_msg %s: ", p->alerts.alerts[0].s->class_msg);
-
-        result = (strcmp(p->alerts.alerts[0].s->class_msg,
-                    "Unknown are we") == 0);
-        if (result == 0)
-            printf("p->alerts.alerts[0].class_msg %s: ", p->alerts.alerts[0].s->class_msg);
-    } else {
-        result = 0;
-    }
-
-#ifdef __SC_CUDA_SUPPORT__
-    B2gCudaKillDispatcherThreadRC();
-    if (SCCudaHlPushCudaContextFromModule("SC_RULES_CONTENT_B2G_CUDA") == -1) {
-        printf("Call to SCCudaHlPushCudaContextForModule() failed\n");
-        return 0;
-    }
-#endif
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    UTHFreePackets(&p, 1);
-    return result;
-}
-
 #endif /* UNITTESTS */
 
 /**
@@ -891,18 +753,6 @@ void AlertJsonRegisterTests(void)
 
 #ifdef UNITTESTS
 
-#ifdef __SC_CUDA_SUPPORT__
-    UtRegisterTest("AlertFastLogCudaContextInit",
-            SCCudaHlTestEnvCudaContextInit, 1);
-#endif
-
-    UtRegisterTest("AlertBroccoliLogTest01", AlertBroccoliLogTest01, 1);
-    UtRegisterTest("AlertBroccoliLogTest02", AlertBroccoliLogTest02, 1);
-
-#ifdef __SC_CUDA_SUPPORT__
-    UtRegisterTest("AlertFastLogCudaContextDeInit",
-            SCCudaHlTestEnvCudaContextDeInit, 1);
-#endif
 
 #endif /* UNITTESTS */
 

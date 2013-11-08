@@ -626,13 +626,15 @@ OutputCtx *OutputHttpLogInit(ConfNode *conf)
     if (unlikely(output_ctx == NULL))
         return NULL;
 
-    const char *extended = ConfNodeLookupChildValue(conf, "extended");
-
     http_ctx->flags = LOG_HTTP_DEFAULT;
 
-    if (extended != NULL) {
-        if (ConfValIsTrue(extended)) {
-            http_ctx->flags = LOG_HTTP_EXTENDED;
+    if (conf) {
+        const char *extended = ConfNodeLookupChildValue(conf, "extended");
+
+        if (extended != NULL) {
+            if (ConfValIsTrue(extended)) {
+                http_ctx->flags = LOG_HTTP_EXTENDED;
+            }
         }
     }
     output_ctx->data = http_ctx;
