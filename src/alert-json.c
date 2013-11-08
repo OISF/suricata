@@ -312,12 +312,12 @@ TmEcode OutputJSON(json_t *js, void *data, uint64_t *count)
         return TM_ECODE_OK;
 
     SCMutexLock(&aft->file_ctx->fp_mutex);
-    if (json_out == ALERT_FILE) {
+    if (json_out == ALERT_SYSLOG) {
+        syslog(alert_syslog_level, "%s", js_s);
+    } else if (json_out == ALERT_FILE) {
         MemBufferWriteString(buffer, "%s\n", js_s);
         (void)MemBufferPrintToFPAsString(buffer, aft->file_ctx->fp);
         fflush(aft->file_ctx->fp);
-    } else {
-        syslog(alert_syslog_level, "%s", js_s);
     }
     *count += 1;
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
