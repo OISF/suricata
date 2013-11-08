@@ -200,6 +200,7 @@ OutputCtx *OutputTlsLogInit(ConfNode *conf)
         return NULL;
 
     tls_ctx->flags = LOG_TLS_DEFAULT;
+
     if (conf) {
         const char *extended = ConfNodeLookupChildValue(conf, "extended");
 
