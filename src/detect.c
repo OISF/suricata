@@ -6536,8 +6536,8 @@ int SigTest24IPV4Keyword(void)
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
     memset(p2, 0, SIZE_OF_PACKET);
-    p1->ip4vars.comp_csum = -1;
-    p2->ip4vars.comp_csum = -1;
+    PACKET_RESET_CHECKSUMS(p1);
+    PACKET_RESET_CHECKSUMS(p2);
 
     p1->ip4h = (IPV4Hdr *)valid_raw_ipv4;
 
@@ -6640,8 +6640,8 @@ int SigTest25NegativeIPV4Keyword(void)
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
     memset(p2, 0, SIZE_OF_PACKET);
-    p1->ip4vars.comp_csum = -1;
-    p2->ip4vars.comp_csum = -1;
+    PACKET_RESET_CHECKSUMS(p1);
+    PACKET_RESET_CHECKSUMS(p2);
 
     p1->ip4h = (IPV4Hdr *)valid_raw_ipv4;
 
@@ -6861,9 +6861,7 @@ static int SigTest26TCPV4AndNegativeIPV4Keyword(void)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     PacketCopyData(p1, raw_ipv4, sizeof(raw_ipv4));
     PacketCopyDataOffset(p1, GET_PKT_LEN(p1), valid_raw_tcp, sizeof(valid_raw_tcp));
@@ -6989,9 +6987,7 @@ static int SigTest26TCPV4AndIPV4Keyword(void)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     PacketCopyData(p1, raw_ipv4, sizeof(raw_ipv4));
     PacketCopyDataOffset(p1, GET_PKT_LEN(p1), valid_raw_tcp, sizeof(valid_raw_tcp));
