@@ -295,36 +295,39 @@ static TmEcode LogDnsLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQ
         }
     } else
 #endif
-    if ((PKT_IS_TOCLIENT(p))) {
-        DNSTransaction *tx = NULL;
-        for (; tx_id < total_txs; tx_id++)
-        {
-            tx = AppLayerGetTx(proto, dns_state, tx_id);
-            if (tx == NULL)
-                continue;
 
-            DNSQueryEntry *query = NULL;
-            TAILQ_FOREACH(query, &tx->query_list, next) {
-                LogQuery(aft, timebuf, dstip, srcip, dp, sp, tx, query);
-            }
+    DNSTransaction *tx = NULL;
+    for (; tx_id < total_txs; tx_id++)
+    {
+        tx = AppLayerGetTx(proto, dns_state, tx_id);
+        if (tx == NULL)
+            continue;
 
-            if (tx->no_such_name) {
-                LogAnswer(aft, timebuf, srcip, dstip, sp, dp, tx, NULL);
-            }
+        /* only consider toserver logging if tx has reply lost set */
+        if (PKT_IS_TOSERVER(p) && tx->reply_lost == 0)
+            continue;
 
-            DNSAnswerEntry *entry = NULL;
-            TAILQ_FOREACH(entry, &tx->answer_list, next) {
-                LogAnswer(aft, timebuf, srcip, dstip, sp, dp, tx, entry);
-            }
-
-            entry = NULL;
-            TAILQ_FOREACH(entry, &tx->authority_list, next) {
-                LogAnswer(aft, timebuf, srcip, dstip, sp, dp, tx, entry);
-            }
-
-            SCLogDebug("calling AppLayerTransactionUpdateLoggedId");
-            AppLayerTransactionUpdateLogId(p->flow);
+        DNSQueryEntry *query = NULL;
+        TAILQ_FOREACH(query, &tx->query_list, next) {
+            LogQuery(aft, timebuf, dstip, srcip, dp, sp, tx, query);
         }
+
+        if (tx->no_such_name) {
+            LogAnswer(aft, timebuf, srcip, dstip, sp, dp, tx, NULL);
+        }
+
+        DNSAnswerEntry *entry = NULL;
+        TAILQ_FOREACH(entry, &tx->answer_list, next) {
+            LogAnswer(aft, timebuf, srcip, dstip, sp, dp, tx, entry);
+        }
+
+        entry = NULL;
+        TAILQ_FOREACH(entry, &tx->authority_list, next) {
+            LogAnswer(aft, timebuf, srcip, dstip, sp, dp, tx, entry);
+        }
+
+        SCLogDebug("calling AppLayerTransactionUpdateLoggedId");
+        AppLayerTransactionUpdateLogId(p->flow);
     }
 
 end:
