@@ -228,6 +228,11 @@ void SignalHandlerSigusr2Disabled(int sig)
     return;
 }
 
+void SignalHandlerSigusr2DelayedDetect(int sig)
+{
+    SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload blocked while delayed detect is still loading.");
+}
+
 void SignalHandlerSigusr2SigFileStartup(int sig)
 {
     SCLogInfo("Live rule reload not possible if -s or -S option used at runtime.");
@@ -2007,10 +2012,12 @@ int main(int argc, char **argv)
     DetectEngineRegisterAppInspectionEngines();
 
     if (suri.rule_reload) {
-        if (suri.sig_file == NULL)
-            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
-        else
+        if (suri.sig_file != NULL)
             UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
+        else if (suri.delayed_detect)
+            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2DelayedDetect);
+        else
+            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
     } else {
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Disabled);
     }
@@ -2142,6 +2149,13 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
         de_ctx->delayed_detect_initialized = 1;
         TmThreadActivateDummySlot();
+
+        if (suri.rule_reload) {
+            if (suri.sig_file != NULL)
+                UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
+            else
+                UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
+        }
         SCLogNotice("Signature(s) loaded, Detect thread(s) activated.");
     }
 
