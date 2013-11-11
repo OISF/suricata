@@ -694,6 +694,8 @@ static int ReceiveMpipeRegisterRules(int bucket, int num_buckets)
     gxio_mpipe_rules_t rules;
     gxio_mpipe_rules_init(&rules, context);
     gxio_mpipe_rules_begin(&rules, bucket, num_buckets, NULL);
+    /* Give Suricata priority over Linux to receive packets. */
+    gxio_mpipe_rules_set_priority(&rules, -100);
     return gxio_mpipe_rules_commit(&rules);
 }
 
