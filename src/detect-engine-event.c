@@ -355,7 +355,6 @@ int EngineEventTestParse06 (void) {
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
 
     ENGINE_SET_EVENT(p,PPP_PKT_TOO_SMALL);
 
