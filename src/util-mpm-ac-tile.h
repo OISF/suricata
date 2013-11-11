@@ -66,10 +66,13 @@ typedef struct SCACTileCtx_ {
     /* Convert input character to matching alphabet */
     uint8_t translate_table[256];
 
-    /* the all important memory hungry state_table */
-    SC_AC_TILE_STATE_TYPE_U16 *state_table_u16;
-    /* the all important memory hungry state_table */
-    SC_AC_TILE_STATE_TYPE_U32 (*state_table_u32)[256];
+    /* Only one state tatble is used for each MPM */
+    union {
+        /* the all important memory hungry state_table */
+        SC_AC_TILE_STATE_TYPE_U16 *state_table_u16;
+        /* the all important memory hungry state_table */
+        SC_AC_TILE_STATE_TYPE_U32 (*state_table_u32)[256];
+    };
 
     /* Specialized search function based on size of data in delta
      * tables.  The alphabet size determines address shifting and the

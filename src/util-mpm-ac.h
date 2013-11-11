@@ -73,10 +73,14 @@ typedef struct SCACCtx_ {
 
     /* no of states used by ac */
     uint32_t state_count;
-    /* the all important memory hungry state_table */
-    SC_AC_STATE_TYPE_U16 (*state_table_u16)[256];
-    /* the all important memory hungry state_table */
-    SC_AC_STATE_TYPE_U32 (*state_table_u32)[256];
+
+    /* Only one state tatble is used for each MPM */
+    union {
+        /* the all important memory hungry state_table */
+        SC_AC_STATE_TYPE_U16 (*state_table_u16)[256];
+        /* the all important memory hungry state_table */
+        SC_AC_STATE_TYPE_U32 (*state_table_u32)[256];
+    };
 
     /* goto_table, failure table and output table.  Needed to create state_table.
      * Will be freed, once we have created the state_table */
