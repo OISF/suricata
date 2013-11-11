@@ -647,7 +647,6 @@ static int AppLayerTest01(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
-    p->pkt = (uint8_t *)(p + 1);
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -885,7 +884,6 @@ static int AppLayerTest02(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
-    p->pkt = (uint8_t *)(p + 1);
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -1172,7 +1170,6 @@ end:
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
-    p->pkt = (uint8_t *)(p + 1);
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -1409,7 +1406,6 @@ static int AppLayerTest04(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
-    p->pkt = (uint8_t *)(p + 1);
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -1695,7 +1691,6 @@ static int AppLayerTest05(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
-    p->pkt = (uint8_t *)(p + 1);
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -1933,7 +1928,6 @@ static int AppLayerTest06(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
-    p->pkt = (uint8_t *)(p + 1);
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -2147,7 +2141,6 @@ static int AppLayerTest07(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
-    p->pkt = (uint8_t *)(p + 1);
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -2385,7 +2378,6 @@ static int AppLayerTest08(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
-    p->pkt = (uint8_t *)(p + 1);
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -2625,7 +2617,6 @@ static int AppLayerTest09(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
-    p->pkt = (uint8_t *)(p + 1);
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -2904,7 +2895,6 @@ static int AppLayerTest10(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
-    p->pkt = (uint8_t *)(p + 1);
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -3159,7 +3149,6 @@ static int AppLayerTest11(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
-    p->pkt = (uint8_t *)(p + 1);
     p->flow = &f;
     p->tcph = &tcph;
 

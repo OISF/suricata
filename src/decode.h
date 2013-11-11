@@ -198,8 +198,8 @@ typedef struct Address_ {
 #define GET_TCP_DST_PORT(p)  ((p)->dp)
 
 #define GET_PKT_LEN(p) ((p)->pktlen)
-#define GET_PKT_DATA(p) ((((p)->ext_pkt) == NULL ) ? (p)->pkt : (p)->ext_pkt)
-#define GET_PKT_DIRECT_DATA(p) ((p)->pkt)
+#define GET_PKT_DATA(p) ((((p)->ext_pkt) == NULL ) ? (uint8_t *)((p) + 1) : (p)->ext_pkt)
+#define GET_PKT_DIRECT_DATA(p) (uint8_t *)((p) + 1)
 #define GET_PKT_DIRECT_MAX_SIZE(p) (default_packet_size)
 
 #define SET_PKT_LEN(p, len) do { \
@@ -470,7 +470,6 @@ typedef struct Packet_
 
     /* storage: set to pointer to heap and extended via allocation if necessary */
     uint32_t pktlen;
-    uint8_t *pkt;
     uint8_t *ext_pkt;
 
     /* Incoming interface */
@@ -638,7 +637,6 @@ typedef struct DecodeThreadVars_
         memset((p), 0x00, SIZE_OF_PACKET);                              \
         SCMutexInit(&(p)->tunnel_mutex, NULL);                          \
         PACKET_RESET_CHECKSUMS((p));                                    \
-        (p)->pkt = ((uint8_t *)(p)) + sizeof(Packet);                   \
         (p)->livedev = NULL;                                            \
         SCMutexInit(&(p)->cuda_pkt_vars.cuda_mutex, NULL);            \
         SCCondInit(&(p)->cuda_pkt_vars.cuda_cond, NULL);                \
@@ -647,7 +645,6 @@ typedef struct DecodeThreadVars_
 #define PACKET_INITIALIZE(p) {         \
     SCMutexInit(&(p)->tunnel_mutex, NULL); \
     PACKET_RESET_CHECKSUMS((p)); \
-    (p)->pkt = ((uint8_t *)(p)) + sizeof(Packet); \
     (p)->livedev = NULL; \
 }
 #endif

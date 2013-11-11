@@ -722,7 +722,6 @@ int DetectDsizeIcmpv6Test01 (void) {
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ip6h, 0, sizeof(IPV6Hdr));
     memset(&th_v, 0, sizeof(ThreadVars));
