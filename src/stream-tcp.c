@@ -4410,21 +4410,21 @@ static inline int StreamTcpValidateChecksum(Packet *p)
     if (p->flags & PKT_IGNORE_CHECKSUM)
         return ret;
 
-    if (p->tcpvars.comp_csum == -1) {
+    if (p->comp_csum == -1) {
         if (PKT_IS_IPV4(p)) {
-            p->tcpvars.comp_csum = TCPCalculateChecksum(p->ip4h->s_ip_addrs,
-                                                 (uint16_t *)p->tcph,
-                                                 (p->payload_len +
-                                                  TCP_GET_HLEN(p)));
+            p->comp_csum = TCPCalculateChecksum(p->ip4h->s_ip_addrs,
+                                                (uint16_t *)p->tcph,
+                                                (p->payload_len +
+                                                 TCP_GET_HLEN(p)));
         } else if (PKT_IS_IPV6(p)) {
-            p->tcpvars.comp_csum = TCPV6CalculateChecksum(p->ip6h->s_ip6_addrs,
-                                                   (uint16_t *)p->tcph,
-                                                   (p->payload_len +
-                                                    TCP_GET_HLEN(p)));
+            p->comp_csum = TCPV6CalculateChecksum(p->ip6h->s_ip6_addrs,
+                                                  (uint16_t *)p->tcph,
+                                                  (p->payload_len +
+                                                   TCP_GET_HLEN(p)));
         }
     }
 
-    if (p->tcpvars.comp_csum != p->tcph->th_sum) {
+    if (p->comp_csum != p->tcph->th_sum) {
         ret = 0;
         SCLogDebug("Checksum of received packet %p is invalid",p);
         if (p->livedev) {
@@ -8375,7 +8375,7 @@ static int StreamTcpTest29(void)
     p.payload = packet;
     p.ip4h = &ipv4h;
     p.tcpc = tcpc;
-    p.tcpc.comp_csum = -1;
+    p.comp_csum = -1;
     tcpvars.hlen = 20;
     p.tcpvars = tcpvars;
     ssn.state = TCP_ESTABLISHED;
@@ -8519,7 +8519,7 @@ static int StreamTcpTest30(void)
     p.payload = payload;
     p.ip4h = &ipv4h;
     p.tcpc = tcpc;
-    p.tcpc.comp_csum = -1;
+    p.comp_csum = -1;
     p.tcpvars = tcpvars;
     ssn.state = TCP_ESTABLISHED;
     addr.s_addr = inet_addr("10.1.3.53");
@@ -8657,7 +8657,7 @@ static int StreamTcpTest31(void)
     p.tcph = &tcph;
     p.ip4h = &ipv4h;
     p.tcpc = tcpc;
-    p.tcpc.comp_csum = -1;
+    p.comp_csum = -1;
     p.tcpvars = tcpvars;
     p.tcpvars.ts = &tcpopt;
     addr.s_addr = inet_addr("10.1.3.53");
@@ -8699,7 +8699,7 @@ static int StreamTcpTest31(void)
     p.payload_len = 0;
     p.ip4h->ip_src = addr1;
     p.tcpc.ts1 = 10;
-    p.tcpc.comp_csum = -1;
+    p.comp_csum = -1;
     p.tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p.ip4h->ip_src),
                                                  (uint16_t *)p.tcph,
                                                  (p.payload_len +
@@ -8719,7 +8719,7 @@ static int StreamTcpTest31(void)
     p.payload_len = 0;
     p.tcpc.ts1 = 10;
     p.ip4h->ip_src = addr;
-    p.tcpc.comp_csum = -1;
+    p.comp_csum = -1;
     p.tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p.ip4h->ip_src),
                                                  (uint16_t *)p.tcph,
                                                  (p.payload_len +
@@ -8738,7 +8738,7 @@ static int StreamTcpTest31(void)
     p.payload_len = 0;
     p.tcpc.ts1 = 10;
     p.ip4h->ip_src = addr1;
-    p.tcpc.comp_csum = -1;
+    p.comp_csum = -1;
     p.tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p.ip4h->ip_src),
                                                  (uint16_t *)p.tcph,
                                                  (p.payload_len +
