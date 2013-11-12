@@ -74,11 +74,11 @@ int AlertJsonOpenFileCtx(LogFileCtx *, char *);
 void AlertJsonRegisterTests(void);
 
 void TmModuleAlertJsonRegister (void) {
-    tmm_modules[TMM_ALERTJSON].name = "AlertJSON";
-    tmm_modules[TMM_ALERTJSON].ThreadInit = AlertJsonThreadInit;
-    tmm_modules[TMM_ALERTJSON].Func = AlertJson;
-    tmm_modules[TMM_ALERTJSON].ThreadDeinit = AlertJsonThreadDeinit;
-    tmm_modules[TMM_ALERTJSON].RegisterTests = AlertJsonRegisterTests;
+    tmm_modules[TMM_OUTPUTJSON].name = "AlertJSON";
+    tmm_modules[TMM_OUTPUTJSON].ThreadInit = AlertJsonThreadInit;
+    tmm_modules[TMM_OUTPUTJSON].Func = AlertJson;
+    tmm_modules[TMM_OUTPUTJSON].ThreadDeinit = AlertJsonThreadDeinit;
+    tmm_modules[TMM_OUTPUTJSON].RegisterTests = AlertJsonRegisterTests;
 
     /* enable the logger for the app layer */
     AppLayerRegisterLogger(ALPROTO_DNS_UDP);
@@ -138,13 +138,13 @@ void AlertJsonRegisterTests(void);
 static void AlertJsonDeInitCtx(OutputCtx *);
 
 void TmModuleAlertJsonRegister (void) {
-    tmm_modules[TMM_ALERTJSON].name = MODULE_NAME;
-    tmm_modules[TMM_ALERTJSON].ThreadInit = AlertJsonThreadInit;
-    tmm_modules[TMM_ALERTJSON].Func = AlertJson;
-    tmm_modules[TMM_ALERTJSON].ThreadExitPrintStats = AlertJsonExitPrintStats;
-    tmm_modules[TMM_ALERTJSON].ThreadDeinit = AlertJsonThreadDeinit;
-    tmm_modules[TMM_ALERTJSON].RegisterTests = AlertJsonRegisterTests;
-    tmm_modules[TMM_ALERTJSON].cap_flags = 0;
+    tmm_modules[TMM_OUTPUTJSON].name = MODULE_NAME;
+    tmm_modules[TMM_OUTPUTJSON].ThreadInit = AlertJsonThreadInit;
+    tmm_modules[TMM_OUTPUTJSON].Func = AlertJson;
+    tmm_modules[TMM_OUTPUTJSON].ThreadExitPrintStats = AlertJsonExitPrintStats;
+    tmm_modules[TMM_OUTPUTJSON].ThreadDeinit = AlertJsonThreadDeinit;
+    tmm_modules[TMM_OUTPUTJSON].RegisterTests = AlertJsonRegisterTests;
+    tmm_modules[TMM_OUTPUTJSON].cap_flags = 0;
 
     OutputRegisterModule(MODULE_NAME, "eve-log", AlertJsonInitCtx);
 }
