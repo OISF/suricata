@@ -2125,6 +2125,9 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     htp_config_set_parse_request_cookies(cfg_prec->cfg, 0);
     htp_config_set_parse_request_auth(cfg_prec->cfg, 0);
 
+    /* don't convert + to space by default */
+    htp_config_set_plusspace_decode(cfg_prec->cfg, HTP_DECODER_URLENCODED, 0);
+
     return;
 }
 
@@ -2316,6 +2319,10 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
         } else if (strcasecmp("path-utf8-convert-bestfit", p->name) == 0) {
             htp_config_set_utf8_convert_bestfit(cfg_prec->cfg,
                                                 HTP_DECODER_URL_PATH,
+                                                ConfValIsTrue(p->val));
+        } else if (strcasecmp("query-plusspace-decode", p->name) == 0) {
+            htp_config_set_plusspace_decode(cfg_prec->cfg,
+                                                HTP_DECODER_URLENCODED,
                                                 ConfValIsTrue(p->val));
         } else {
             SCLogWarning(SC_ERR_UNKNOWN_VALUE, "LIBHTP Ignoring unknown "
@@ -4795,6 +4802,223 @@ end:
     return result;
 }
 
+/** \test Test + char in query. Bug 1035
+ */
+static int HTPParserDecodingTest06(void)
+{
+    int result = 0;
+    Flow *f = NULL;
+    uint8_t httpbuf1[] =
+        "GET /put.php?ip=1.2.3.4&port=+6000 HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+
+    HtpState *htp_state =  NULL;
+    int r = 0;
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: IDS\n\
+    double-decode-path: yes\n\
+    double-decode-query: yes\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    HtpConfigCreateBackup();
+    ConfYamlLoadString(input, strlen(input));
+    HTPConfigure();
+    char *addr = "4.3.2.1";
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", addr, 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    uint32_t u;
+    for (u = 0; u < httplen1; u++) {
+        uint8_t flags = 0;
+
+        if (u == 0) flags = STREAM_TOSERVER|STREAM_START;
+        else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
+        else flags = STREAM_TOSERVER;
+
+        SCMutexLock(&f->m);
+        r = AppLayerParse(NULL, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        if (r != 0) {
+            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
+                    " 0: ", u, r);
+            result = 0;
+            SCMutexUnlock(&f->m);
+            goto end;
+        }
+        SCMutexUnlock(&f->m);
+    }
+
+    htp_state = f->alstate;
+    if (htp_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    uint8_t ref1[] = "/put.php?ip=1.2.3.4&port=+6000";
+    size_t reflen = sizeof(ref1) - 1;
+
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
+    if (tx == NULL)
+        goto end;
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
+        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
+            printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
+                   (uintmax_t)reflen,
+                   bstr_len(tx_ud->request_uri_normalized));
+            goto end;
+        }
+
+        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
+                   bstr_len(tx_ud->request_uri_normalized)) != 0)
+        {
+            printf("normalized uri \"");
+            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            printf("\" != \"");
+            PrintRawUriFp(stdout, ref1, reflen);
+            printf("\": ");
+            goto end;
+        }
+    }
+
+    result = 1;
+
+end:
+    HTPFreeConfig();
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
+
+    StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
+    UTHFreeFlow(f);
+    return result;
+}
+
+/** \test Test + char in query. Bug 1035
+ */
+static int HTPParserDecodingTest07(void)
+{
+    int result = 0;
+    Flow *f = NULL;
+    uint8_t httpbuf1[] =
+        "GET /put.php?ip=1.2.3.4&port=+6000 HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+
+    HtpState *htp_state =  NULL;
+    int r = 0;
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: IDS\n\
+    double-decode-path: yes\n\
+    double-decode-query: yes\n\
+    query-plusspace-decode: yes\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    HtpConfigCreateBackup();
+    ConfYamlLoadString(input, strlen(input));
+    HTPConfigure();
+    char *addr = "4.3.2.1";
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", addr, 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    uint32_t u;
+    for (u = 0; u < httplen1; u++) {
+        uint8_t flags = 0;
+
+        if (u == 0) flags = STREAM_TOSERVER|STREAM_START;
+        else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
+        else flags = STREAM_TOSERVER;
+
+        SCMutexLock(&f->m);
+        r = AppLayerParse(NULL, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        if (r != 0) {
+            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
+                    " 0: ", u, r);
+            result = 0;
+            SCMutexUnlock(&f->m);
+            goto end;
+        }
+        SCMutexUnlock(&f->m);
+    }
+
+    htp_state = f->alstate;
+    if (htp_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    uint8_t ref1[] = "/put.php?ip=1.2.3.4&port= 6000";
+    size_t reflen = sizeof(ref1) - 1;
+
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
+    if (tx == NULL)
+        goto end;
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
+        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
+            printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
+                   (uintmax_t)reflen,
+                   bstr_len(tx_ud->request_uri_normalized));
+            goto end;
+        }
+
+        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
+                   bstr_len(tx_ud->request_uri_normalized)) != 0)
+        {
+            printf("normalized uri \"");
+            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            printf("\" != \"");
+            PrintRawUriFp(stdout, ref1, reflen);
+            printf("\": ");
+            goto end;
+        }
+    }
+
+    result = 1;
+
+end:
+    HTPFreeConfig();
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
+
+    StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
+    UTHFreeFlow(f);
+    return result;
+}
+
 /** \test BG box crash -- chunks are messed up. Observed for real. */
 static int HTPBodyReassemblyTest01(void)
 {
@@ -5103,6 +5327,8 @@ void HTPParserRegisterTests(void) {
     UtRegisterTest("HTPParserDecodingTest03", HTPParserDecodingTest03, 1);
     UtRegisterTest("HTPParserDecodingTest04", HTPParserDecodingTest04, 1);
     UtRegisterTest("HTPParserDecodingTest05", HTPParserDecodingTest05, 1);
+    UtRegisterTest("HTPParserDecodingTest06", HTPParserDecodingTest06, 1);
+    UtRegisterTest("HTPParserDecodingTest07", HTPParserDecodingTest07, 1);
 
     UtRegisterTest("HTPBodyReassemblyTest01", HTPBodyReassemblyTest01, 1);
 
