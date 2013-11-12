@@ -2338,8 +2338,8 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
                 smsg_offset = 0;
 
                 StreamTcpSetupMsg(ssn, stream, p, smsg);
+                smsg->data.seq = ra_base_seq + 1;
             }
-            smsg->data.seq = ra_base_seq+1;
 
             /* copy the data into the smsg */
             uint16_t copy_size = sizeof (smsg->data.data) - smsg_offset;
@@ -2402,7 +2402,7 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
                     smsg_offset = 0;
 
                     StreamTcpSetupMsg(ssn, stream,p,smsg);
-                    smsg->data.seq = ra_base_seq+1;
+                    smsg->data.seq = ra_base_seq + 1;
 
                     copy_size = sizeof(smsg->data.data) - smsg_offset;
                     if (copy_size > (seg->payload_len - payload_offset)) {
@@ -3201,9 +3201,9 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                 smsg_offset = 0;
 
                 StreamTcpSetupMsg(ssn, stream, p, smsg);
+                smsg->data.seq = ra_base_seq + 1;
+                SCLogDebug("smsg->data.seq %u", smsg->data.seq);
             }
-            smsg->data.seq = ra_base_seq+1;
-
 
             /* copy the data into the smsg */
             uint16_t copy_size = sizeof (smsg->data.data) - smsg_offset;
@@ -3261,7 +3261,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                     smsg_offset = 0;
 
                     StreamTcpSetupMsg(ssn, stream,p,smsg);
-                    smsg->data.seq = ra_base_seq+1;
+                    smsg->data.seq = ra_base_seq + 1;
 
                     copy_size = sizeof(smsg->data.data) - smsg_offset;
                     if (copy_size > payload_len) {
@@ -6489,7 +6489,7 @@ static int StreamTcpReassembleTest39 (void) {
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->client.seg_list == NULL ||
-        ssn->client.seg_list->next != NULL ||
+        ssn->client.seg_list->next == NULL ||
         ssn->server.seg_list == NULL ||
         ssn->server.seg_list->next != NULL ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -6517,7 +6517,7 @@ static int StreamTcpReassembleTest39 (void) {
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->client.seg_list == NULL ||
-        ssn->client.seg_list->next != NULL ||
+        ssn->client.seg_list->next == NULL ||
         ssn->server.seg_list == NULL ||
         ssn->server.seg_list->next != NULL ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -6545,7 +6545,7 @@ static int StreamTcpReassembleTest39 (void) {
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->client.seg_list == NULL ||
-        ssn->client.seg_list->next != NULL ||
+        ssn->client.seg_list->next == NULL ||
         ssn->server.seg_list == NULL ||
         ssn->server.seg_list->next != NULL ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -6576,7 +6576,7 @@ static int StreamTcpReassembleTest39 (void) {
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->client.seg_list == NULL ||
         ssn->client.seg_list->next == NULL ||
-        ssn->client.seg_list->next->next != NULL ||
+        ssn->client.seg_list->next->next == NULL ||
         ssn->server.seg_list == NULL ||
         ssn->server.seg_list->next != NULL ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -6606,7 +6606,7 @@ static int StreamTcpReassembleTest39 (void) {
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->client.seg_list == NULL ||
         ssn->client.seg_list->next == NULL ||
-        ssn->client.seg_list->next->next != NULL ||
+        ssn->client.seg_list->next->next == NULL ||
         ssn->server.seg_list == NULL ||
         ssn->server.seg_list->next != NULL ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -6636,7 +6636,7 @@ static int StreamTcpReassembleTest39 (void) {
         ssn->client.seg_list == NULL ||
         ssn->client.seg_list->next == NULL ||
         ssn->client.seg_list->next->next == NULL ||
-        ssn->client.seg_list->next->next->next != NULL ||
+        ssn->client.seg_list->next->next->next == NULL ||
         ssn->server.seg_list == NULL ||
         ssn->server.seg_list->next != NULL ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -6665,7 +6665,7 @@ static int StreamTcpReassembleTest39 (void) {
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->client.seg_list->next == NULL ||
         ssn->client.seg_list->next->next == NULL ||
-        ssn->client.seg_list->next->next->next != NULL ||
+        ssn->client.seg_list->next->next->next == NULL ||
         ssn->server.seg_list == NULL ||
         ssn->server.seg_list->next != NULL ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
