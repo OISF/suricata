@@ -2355,8 +2355,8 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
                 smsg_offset = 0;
 
                 StreamTcpSetupMsg(ssn, stream, p, smsg);
+                smsg->data.seq = ra_base_seq + 1;
             }
-            smsg->data.seq = ra_base_seq+1;
 
             /* copy the data into the smsg */
             uint16_t copy_size = sizeof (smsg->data.data) - smsg_offset;
@@ -3211,8 +3211,8 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                 smsg_offset = 0;
 
                 StreamTcpSetupMsg(ssn, stream, p, smsg);
+                smsg->data.seq = ra_base_seq + 1;
             }
-            smsg->data.seq = ra_base_seq+1;
 
 
             /* copy the data into the smsg */
@@ -6846,12 +6846,12 @@ static int StreamTcpReassembleTest41 (void) {
     }
 
     /* last_ack is in the middle of this segment */
-    if ((ssn.client.seg_list->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) {
+    if ((ssn.client.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) {
         printf("segment should not have flags SEGMENTTCP_FLAG_APPLAYER_PROCESSED set: ");
         goto end;
     }
 
-    if (!(ssn.client.seg_list->flags & SEGMENTTCP_FLAG_RAW_PROCESSED)) {
+    if (!(ssn.client.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED)) {
         printf("segment should have flags SEGMENTTCP_FLAG_RAW_PROCESSED set: ");
         goto end;
     }
