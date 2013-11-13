@@ -88,8 +88,6 @@
 #include "log-filestore.h"
 
 #include "output-json.h"
-#include "output-dnslog.h"
-#include "output-httplog.h"
 
 #include "stream-tcp.h"
 
@@ -783,13 +781,6 @@ void RegisterAllModules()
     TmModuleLogFilestoreRegister();
     /* dns log */
     TmModuleLogDnsLogRegister();
-#if 0
-    /* dns json log */
-    TmModuleDnsJsonRegister();
-    TmModuleHttpJsonRegister();
-    TmModuleHttpJsonIPv4Register();
-    TmModuleHttpJsonIPv6Register();
-#endif
     /* cuda */
     TmModuleDebugList();
 
