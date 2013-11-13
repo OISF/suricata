@@ -24,10 +24,13 @@
 #ifndef __ALERT_JSON_H__
 #define __ALERT_JSON_H__
 
+void TmModuleAlertJsonRegister (void);
+
+#ifdef HAVE_LIBJANSSON
+
 json_t *CreateJSONHeader(Packet *p, int direction_sensative);
 TmEcode OutputJSON(json_t *js, void *data, uint64_t *count);
 
-void TmModuleAlertJsonRegister (void);
 void TmModuleAlertJsonIPv4Register (void);
 void TmModuleAlertJsonPv6Register (void);
 OutputCtx *AlertJsonInitCtx(ConfNode *);
@@ -56,6 +59,8 @@ typedef struct AlertJsonThread_ {
     OutputCtx *http_ctx;
     OutputCtx *tls_ctx;
 } AlertJsonThread;
+
+#endif /* HAVE_LIBJANSSON */
 
 #endif /* __ALERT_JSON_H__ */
 

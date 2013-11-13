@@ -43,6 +43,7 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-reference.h"
+#include "app-layer-parser.h"
 #include "util-classification-config.h"
 #include "util-syslog.h"
 
@@ -61,8 +62,8 @@
 
 #include "alert-json.h"
 
-/*#undef HAVE_LIBJANSSON for testing without messing with config */
 #ifndef HAVE_LIBJANSSON
+
 /** Handle the case where no JSON support is compiled in.
  *
  */
@@ -79,12 +80,7 @@ void TmModuleAlertJsonRegister (void) {
     tmm_modules[TMM_OUTPUTJSON].Func = AlertJson;
     tmm_modules[TMM_OUTPUTJSON].ThreadDeinit = AlertJsonThreadDeinit;
     tmm_modules[TMM_OUTPUTJSON].RegisterTests = AlertJsonRegisterTests;
-
-    /* enable the logger for the app layer */
-    AppLayerRegisterLogger(ALPROTO_DNS_UDP);
-    AppLayerRegisterLogger(ALPROTO_DNS_TCP);
-
-    AppLayerRegisterLogger(ALPROTO_HTTP);
+}
 
 OutputCtx *AlertJsonInitCtx(ConfNode *conf)
 {
@@ -108,7 +104,8 @@ TmEcode AlertJsonThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_FAILED;
 }
 
-void AlertJsonRegisterTests (void) {
+void AlertJsonRegisterTests (void)
+{
 }
 
 #else /* implied we do have JSON support */
@@ -147,6 +144,12 @@ void TmModuleAlertJsonRegister (void) {
     tmm_modules[TMM_OUTPUTJSON].cap_flags = 0;
 
     OutputRegisterModule(MODULE_NAME, "eve-log", AlertJsonInitCtx);
+
+    /* enable the logger for the app layer */
+    AppLayerRegisterLogger(ALPROTO_DNS_UDP);
+    AppLayerRegisterLogger(ALPROTO_DNS_TCP);
+    AppLayerRegisterLogger(ALPROTO_HTTP);
+    AppLayerRegisterLogger(ALPROTO_TLS);
 }
 
 /* Default Sensor ID value */
@@ -752,7 +755,6 @@ void AlertJsonRegisterTests(void)
 {
 
 #ifdef UNITTESTS
-
 
 #endif /* UNITTESTS */
 
