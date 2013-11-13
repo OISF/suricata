@@ -25,12 +25,7 @@
 #define __OUTPUT_HTTPLOG_H__
 
 TmEcode OutputHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq);
-
-//void TmModuleHttpJsonRegister (void);
-//void TmModuleHttpJsonIPv4Register (void);
-//void TmModuleHttpJsonIPv6Register (void);
-//OutputCtx *HttpJsonInitCtx(ConfNode *);
-
 OutputCtx *OutputHttpLogInit(ConfNode *);
+
 #endif /* __OUTPUT_HTTPLOG_H__ */
 
