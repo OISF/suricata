@@ -51,6 +51,8 @@
 #include "output-dnslog.h"
 #include "output-httplog.h"
 #include "output-tlslog.h"
+#include "output-file.h"
+#include "output-json.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -60,7 +62,6 @@
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 
-#include "output-json.h"
 
 #ifndef HAVE_LIBJANSSON
 
@@ -163,8 +164,9 @@ static enum json_output json_out = ALERT_FILE;
 
 #define OUTPUT_ALERTS (1<<0)
 #define OUTPUT_DNS    (1<<1)
-#define OUTPUT_HTTP   (1<<2)
-#define OUTPUT_TLS    (1<<3)
+#define OUTPUT_FILES  (1<<2)
+#define OUTPUT_HTTP   (1<<3)
+#define OUTPUT_TLS    (1<<4)
 
 static uint32_t outputFlags = 0;
 
@@ -527,6 +529,10 @@ TmEcode AlertJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
         OutputDnsLog(tv, p, data, pq, postpq);
     }
 
+    if (outputFlags & OUTPUT_FILES) {
+        OutputFileLog(tv, p, data, pq, postpq);
+    }
+
     if (outputFlags & OUTPUT_HTTP) {
         OutputHttpLog(tv, p, data, pq, postpq);
     }
@@ -709,6 +715,11 @@ OutputCtx *AlertJsonInitCtx(ConfNode *conf)
                 if (strcmp(output->val, "dns") == 0) {
                     SCLogDebug("Enabling DNS output");
                     outputFlags |= OUTPUT_DNS;
+                    continue;
+                }
+                if (strcmp(output->val, "files") == 0) {
+                    SCLogDebug("Enabling files output");
+                    outputFlags |= OUTPUT_FILES;
                     continue;
                 }
                 if (strcmp(output->val, "http") == 0) {
