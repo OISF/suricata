@@ -27,7 +27,7 @@
 
 
 /* This function handles (ctx->state_count < 32767) */
-uint32_t FUNC_NAME(SCACTileCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+uint32_t FUNC_NAME(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                    PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen)
 {
     int i = 0;
