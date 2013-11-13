@@ -42,6 +42,7 @@ OutputCtx *AlertJsonInitCtx(ConfNode *);
 typedef struct OutputJsonCtx_ {
     LogFileCtx *file_ctx;
     OutputCtx *http_ctx;
+    OutputCtx *files_ctx;
     OutputCtx *tls_ctx;
 } OutputJsonCtx;
 
@@ -53,9 +54,11 @@ typedef struct AlertJsonThread_ {
 
     uint64_t alert_cnt;
     uint64_t dns_cnt;
+    uint64_t files_cnt;
     uint64_t http_cnt;
     uint64_t tls_cnt;
     OutputCtx *http_ctx;
+    OutputCtx *files_ctx;
     OutputCtx *tls_ctx;
 } AlertJsonThread;
 
