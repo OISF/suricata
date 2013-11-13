@@ -47,7 +47,7 @@
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
-#include "alert-json.h"
+#include "output-json.h"
 
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>

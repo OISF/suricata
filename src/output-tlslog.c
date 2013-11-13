@@ -48,7 +48,7 @@
 #include "util-logopenfile.h"
 #include "util-crypt.h"
 
-#include "alert-json.h"
+#include "output-json.h"
 
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>

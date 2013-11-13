@@ -78,7 +78,6 @@
 #include "alert-prelude.h"
 #include "alert-syslog.h"
 #include "alert-pcapinfo.h"
-#include "alert-json.h"
 
 #include "log-droplog.h"
 #include "log-httplog.h"
@@ -88,6 +87,7 @@
 #include "log-file.h"
 #include "log-filestore.h"
 
+#include "output-json.h"
 #include "output-dnslog.h"
 #include "output-httplog.h"
 
