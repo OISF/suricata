@@ -85,7 +85,7 @@ static void CreateTypeString(uint16_t type, char *str, size_t str_size) {
     }
 }
 
-static void LogQuery(AlertJsonThread/*LogDnsLogThread*/ *aft, json_t *js, /*char *timebuf, char *srcip, char *dstip, Port sp, Port dp, char *proto, */ DNSTransaction *tx, DNSQueryEntry *entry) {
+static void LogQuery(AlertJsonThread *aft, json_t *js, DNSTransaction *tx, DNSQueryEntry *entry) {
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
 
     SCLogDebug("got a DNS request and now logging !!");
@@ -169,7 +169,7 @@ static void AppendAnswer(json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry)
     json_array_append_new(djs, js);
 }
 
-static void LogAnswers(AlertJsonThread/*LogDnsLogThread*/ *aft, json_t *js, /*char *timebuf, char *srcip, char *dstip, Port sp, Port dp, char *proto,*/ DNSTransaction *tx) {
+static void LogAnswers(AlertJsonThread *aft, json_t *js, DNSTransaction *tx) {
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
 
     SCLogDebug("got a DNS response and now logging !!");
