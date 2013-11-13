@@ -84,7 +84,7 @@ outputs:
 
   # "United" event log in JSON format
   - eve-log:
-      enabled: yes
+      enabled: no
       type: file #file|syslog|unix_dgram|unix_stream
       filename: eve.json
       # the following are valid when type: syslog above
@@ -99,9 +99,9 @@ outputs:
         - dns
         - tls:
             extended: yes     # enable this for extended logging information
-        #- files
-        #  force-magic: no   # force logging magic on all logged files
-        #  force-md5: no     # force logging of md5 checksums
+        - files:
+            force-magic: no   # force logging magic on all logged files
+            force-md5: no     # force logging of md5 checksums
         #- drop
         #- ssh
 
