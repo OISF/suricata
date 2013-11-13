@@ -48,7 +48,7 @@
 #include "util-logopenfile.h"
 #include "util-time.h"
 
-#include "alert-json.h"
+#include "output-json.h"
 
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>
@@ -209,12 +209,6 @@ static TmEcode DnsJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQue
 
     AlertJsonThread *aft = (AlertJsonThread *)data;
 
-    /* no flow, no htp state */
-    if (p->flow == NULL) {
-        SCLogDebug("no flow");
-        SCReturnInt(TM_ECODE_OK);
-    }
-
     /* check if we have DNS state or not */
     FLOWLOCK_WRLOCK(p->flow); /* WRITE lock before we updated flow logged id */
     uint16_t proto = AppLayerGetProtoFromPacket(p);
@@ -275,6 +269,7 @@ end:
     SCReturnInt(TM_ECODE_OK);
 }
 
+#if 0
 int OutputDnsNeedsLog(Packet *p)
 {
     SCEnter();
@@ -306,10 +301,20 @@ end:
 
     SCReturnInt(1);
 }
+#endif
 
 TmEcode OutputDnsLog(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     SCEnter();
+
+    /* no flow, no htp state */
+    if (p->flow == NULL) {
+        SCReturnInt(TM_ECODE_OK);
+    }
+
+    if (!(PKT_IS_UDP(p)) && !(PKT_IS_TCP(p))) {
+        SCReturnInt(TM_ECODE_OK);
+    }
 
     DnsJsonIPWrapper(tv, p, data, pq, postpq, AF_INET);
 

@@ -9,7 +9,6 @@ bin_PROGRAMS = suricata
 suricata_SOURCES = \
 alert-debuglog.c alert-debuglog.h \
 alert-fastlog.c alert-fastlog.h \
-alert-json.c alert-json.h \
 alert-pcapinfo.c alert-pcapinfo.h \
 alert-prelude.c alert-prelude.h \
 alert-syslog.c alert-syslog.h \
@@ -221,6 +220,7 @@ output-packet.c output-packet.h \
 output-tx.c output-tx.h \
 output-dnslog.c output-dnslog.h \
 output-httplog.c output-httplog.h \
+output-json.c output-json.h \
 output-tlslog.c output-tlslog.h \
 packet-queue.c packet-queue.h \
 pkt-var.c pkt-var.h \

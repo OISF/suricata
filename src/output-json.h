@@ -63,4 +63,3 @@ typedef struct AlertJsonThread_ {
 #endif /* HAVE_LIBJANSSON */
 
 #endif /* __ALERT_JSON_H__ */
-

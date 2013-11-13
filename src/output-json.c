@@ -60,7 +60,7 @@
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 
-#include "alert-json.h"
+#include "output-json.h"
 
 #ifndef HAVE_LIBJANSSON
 
@@ -524,9 +524,7 @@ TmEcode AlertJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
     }
 
     if (outputFlags & OUTPUT_DNS) {
-        if (OutputDnsNeedsLog(p)) {
-            OutputDnsLog(tv, p, data, pq, postpq);
-        }
+        OutputDnsLog(tv, p, data, pq, postpq);
     }
 
     if (outputFlags & OUTPUT_HTTP) {
