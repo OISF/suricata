@@ -843,6 +843,8 @@ SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThre
 
 /** \brief Get the smsgs relevant to this packet
  *
+ *  Only for TCP, packets part of ESTABLISHED ssn (PKT_STREAM_EST set)
+ *
  *  \param f LOCKED flow
  *  \param p packet
  *  \param flags stream flags
@@ -854,7 +856,7 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags) {
 
     StreamMsg *smsg = NULL;
 
-    if (p->proto == IPPROTO_TCP && f->protoctx != NULL) {
+    if (p->proto == IPPROTO_TCP && f->protoctx != NULL && (p->flags & PKT_STREAM_EST)) {
         TcpSession *ssn = (TcpSession *)f->protoctx;
 
         /* at stream eof, or in inline mode, inspect all smsg's */
