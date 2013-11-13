@@ -212,6 +212,7 @@ log-pcap.c log-pcap.h \
 log-tlslog.c log-tlslog.h \
 output.c output.h \
 output-dnslog.c output-dnslog.h \
+output-file.c output-file.h \
 output-httplog.c output-httplog.h \
 output-json.c output-json.h \
 output-tlslog.c output-tlslog.h \
