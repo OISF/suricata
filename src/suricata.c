@@ -88,8 +88,6 @@
 #include "log-filestore.h"
 
 #include "output-json.h"
-#include "output-dnslog.h"
-#include "output-httplog.h"
 
 #include "stream-tcp.h"
 
