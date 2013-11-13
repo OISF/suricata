@@ -77,39 +77,23 @@
 #define LOG_HTTP_CF_CLIENT_PORT 'p'
 #define LOG_HTTP_CF_SERVER_PORT 'P'
 
+#if 0
 typedef struct LogHttpCustomFormatNode_ {
     uint32_t type; /** Node format type. ie: LOG_HTTP_CF_LITERAL, LOG_HTTP_CF_REQUEST_HEADER */
     uint32_t maxlen; /** Maximun length of the data */
     char data[LOG_HTTP_NODE_STRLEN]; /** optional data. ie: http header name */
 } LogHttpCustomFormatNode;
+#endif
 
-#if 1
 typedef struct OutputHttpCtx_ {
     uint32_t flags; /** Store mode */
 } OutputHttpCtx;
-#else
-typedef struct LogHttpFileCtx_ {
-    LogFileCtx *file_ctx;
-    uint32_t flags; /** Store mode */
-    uint32_t cf_n; /** Total number of custom string format nodes */
-    LogHttpCustomFormatNode *cf_nodes[LOG_HTTP_MAXN_NODES]; /** Custom format string nodes */
-} LogHttpFileCtx;
-#endif
 
 #define LOG_HTTP_DEFAULT 0
 #define LOG_HTTP_EXTENDED 1
 #define LOG_HTTP_CUSTOM 2
 
 #if 0
-typedef struct LogHttpLogThread_ {
-    LogHttpFileCtx *httplog_ctx;
-    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    uint32_t uri_cnt;
-
-    MemBuffer *buffer;
-} LogHttpLogThread;
-#endif
-
 /* Retrieves the selected cookie value */
 static uint32_t GetCookieValue(uint8_t *rawcookies, uint32_t rawcookies_len, char *cookiename,
                                                         uint8_t **cookievalue) {
@@ -134,6 +118,7 @@ static uint32_t GetCookieValue(uint8_t *rawcookies, uint32_t rawcookies_len, cha
     }
     return 0;
 }
+#endif
 
 /* Custom format logging */
 static void LogHttpLogJSONCustom(AlertJsonThread *aft, json_t *js, htp_tx_t *tx, const struct timeval *ts /*,
@@ -336,11 +321,8 @@ static void LogHttpLogJSONCustom(AlertJsonThread *aft, json_t *js, htp_tx_t *tx,
 }
 
 /* JSON format logging */
-static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx /*, char * timebuf,
-                           char *srcip, Port sp, char *dstip, Port dp,
-                           char *proto*/)
+static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx)
 {
-    //OutputHttpCtx *http_ctx = aft->http_ctx;
     OutputHttpCtx *http_ctx = aft->http_ctx->data;
     json_t *hjs = json_object();
     if (hjs == NULL) {
@@ -461,70 +443,8 @@ static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx /*, ch
     json_object_set_new(js, "http", hjs);
 }
 
-#if 0
-static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
-{
-    MemBufferWriteString(aft->buffer, " [**] ");
-
-    /* referer */
-    htp_header_t *h_referer = NULL;
-    if (tx->request_headers != NULL) {
-        h_referer = htp_table_get_c(tx->request_headers, "referer");
-    }
-    if (h_referer != NULL) {
-        PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                       (uint8_t *)bstr_ptr(h_referer->value),
-                       bstr_len(h_referer->value));
-    } else {
-        MemBufferWriteString(aft->buffer, "<no referer>");
-    }
-    MemBufferWriteString(aft->buffer, " [**] ");
-
-    /* method */
-    if (tx->request_method != NULL) {
-        PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                       (uint8_t *)bstr_ptr(tx->request_method),
-                       bstr_len(tx->request_method));
-    }
-    MemBufferWriteString(aft->buffer, " [**] ");
-
-    /* protocol */
-    if (tx->request_protocol != NULL) {
-        PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                       (uint8_t *)bstr_ptr(tx->request_protocol),
-                       bstr_len(tx->request_protocol));
-    } else {
-        MemBufferWriteString(aft->buffer, "<no protocol>");
-    }
-    MemBufferWriteString(aft->buffer, " [**] ");
-
-    /* response status */
-    if (tx->response_status != NULL) {
-        PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                       (uint8_t *)bstr_ptr(tx->response_status),
-                       bstr_len(tx->response_status));
-        /* Redirect? */
-        if ((tx->response_status_number > 300) && ((tx->response_status_number) < 303)) {
-            htp_header_t *h_location = htp_table_get_c(tx->response_headers, "location");
-            if (h_location != NULL) {
-                MemBufferWriteString(aft->buffer, " => ");
-
-                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                               (uint8_t *)bstr_ptr(h_location->value),
-                               bstr_len(h_location->value));
-            }
-        }
-    } else {
-        MemBufferWriteString(aft->buffer, "<no status>");
-    }
-
-    /* length */
-    MemBufferWriteString(aft->buffer, " [**] %"PRIuMAX" bytes", (uintmax_t)tx->response_message_len);
-}
-#endif
-
 static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-                            PacketQueue *postpq/*, int ipproto*/)
+                            PacketQueue *postpq)
 {
     SCEnter();
 
@@ -588,12 +508,15 @@ static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQu
         /* reset */
         MemBufferReset(buffer);
 
-        //if (aft->http_flags & LOG_HTTP_CUSTOM) {
+        /* Maybe we'll do a "custom" later
         if (http_ctx->flags & LOG_HTTP_CUSTOM) {
-            LogHttpLogJSONCustom(aft, js, tx, &p->ts/*, srcip, sp, dstip, dp*/);
+            LogHttpLogJSONCustom(aft, js, tx, &p->ts);
         } else {
-            LogHttpLogJSON(aft, js, tx /*, timebuf, srcip, sp, dstip, dp, proto_s*/);
+        */
+            LogHttpLogJSON(aft, js, tx);
+        /*
         }
+        */
 
         OutputJSON(js, aft, &aft->http_cnt);
         json_object_del(js, "http");
