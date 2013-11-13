@@ -269,40 +269,6 @@ end:
     SCReturnInt(TM_ECODE_OK);
 }
 
-#if 0
-int OutputDnsNeedsLog(Packet *p)
-{
-    SCEnter();
-
-    /* no flow, no htp state */
-    if (p->flow == NULL) {
-        SCReturnInt(0);
-    }
-
-    if (!(PKT_IS_UDP(p)) && !(PKT_IS_TCP(p))) {
-        SCReturnInt(0);
-    }
-
-    /* check if we have DNS state or not */
-    FLOWLOCK_WRLOCK(p->flow);
-    uint16_t proto = AppLayerGetProtoFromPacket(p);
-    if (proto != ALPROTO_DNS_UDP && proto != ALPROTO_DNS_TCP) {
-        SCLogDebug("proto not ALPROTO_DNS_UDP: %u", proto);
-        goto end;
-    }
-
-    DNSState *dns_state = (DNSState *)AppLayerGetProtoStateFromPacket(p);
-    if (dns_state == NULL) {
-        SCLogDebug("no dns state, so no request logging");
-        goto end;
-    }
-end:
-    FLOWLOCK_UNLOCK(p->flow);
-
-    SCReturnInt(1);
-}
-#endif
-
 TmEcode OutputDnsLog(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     SCEnter();
