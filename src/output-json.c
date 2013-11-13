@@ -312,7 +312,14 @@ TmEcode OutputJSON(json_t *js, void *data, uint64_t *count)
 {
     AlertJsonThread *aft = (AlertJsonThread *)data;
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
-    char *js_s = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
+    char *js_s = json_dumps(js,
+                            JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
+#ifdef JSON_ESCAPE_SLASH
+                            JSON_ESCAPE_SLASH
+#else
+                            0
+#endif
+                            );
     if (unlikely(js_s == NULL))
         return TM_ECODE_OK;
 
@@ -719,6 +726,8 @@ OutputCtx *AlertJsonInitCtx(ConfNode *conf)
                 }
                 if (strcmp(output->val, "files") == 0) {
                     SCLogDebug("Enabling files output");
+                    ConfNode *child = ConfNodeLookupChild(output, "files"); 
+                    json_ctx->files_ctx = OutputFileLogInit(child);
                     outputFlags |= OUTPUT_FILES;
                     continue;
                 }
