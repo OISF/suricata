@@ -140,9 +140,6 @@ typedef struct TCPHdr_
 
 typedef struct TCPVars_
 {
-    /* checksum computed over the tcp(for both ipv4 and ipv6) packet */
-    int32_t comp_csum;
-
     uint8_t tcp_opt_cnt;
     TCPOpt tcp_opts[TCP_OPTMAX];
 
@@ -156,7 +153,7 @@ typedef struct TCPVars_
 
 #define CLEAR_TCP_PACKET(p) { \
     (p)->tcph = NULL; \
-    (p)->tcpvars.comp_csum = -1; \
+    (p)->comp_csum = -1; \
     (p)->tcpvars.tcp_opt_cnt = 0; \
     (p)->tcpvars.ts = NULL; \
     (p)->tcpvars.sack = NULL; \

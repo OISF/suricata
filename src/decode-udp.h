@@ -46,13 +46,11 @@ typedef struct UDPHdr_
 
 typedef struct UDPVars_
 {
-    /* checksum computed over the udp(for both ipv4 and ipv6) packet */
-    int32_t comp_csum;
 } UDPVars;
 
 #define CLEAR_UDP_PACKET(p) do { \
     (p)->udph = NULL; \
-    (p)->udpvars.comp_csum = -1; \
+    (p)->comp_csum = -1; \
 } while (0)
 
 void DecodeUDPV4RegisterTests(void);

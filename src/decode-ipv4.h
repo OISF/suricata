@@ -150,7 +150,7 @@ typedef struct IPV4Hdr_
 
 #define CLEAR_IPV4_PACKET(p) do { \
     (p)->ip4h = NULL; \
-    (p)->ip4vars.comp_csum = 0; \
+    (p)->comp_csum = 0; \
     (p)->ip4vars.ip_src_u32 = 0; \
     (p)->ip4vars.ip_dst_u32 = 0; \
     (p)->ip4vars.ip_opt_cnt = 0; \
@@ -168,7 +168,6 @@ typedef struct IPV4Hdr_
 /* helper structure with parsed ipv4 info */
 typedef struct IPV4Vars_
 {
-    int32_t comp_csum;     /* checksum computed over the ipv4 packet */
     uint32_t ip_src_u32;   /* source IP */
     uint32_t ip_dst_u32;   /* dest IP */
 
