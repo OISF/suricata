@@ -1008,6 +1008,9 @@ static void AppLayerTransactionsCleanup(AppLayerProto *p, AppLayerParserStateSto
         inspect = parser_state_store->inspect_id[1];
     log = parser_state_store->log_id;
 
+    SCLogDebug("inspect %"PRIu64", log %"PRIu64", logger: %s",
+            inspect, log, p->logger ? "true" : "false");
+
     if (p->logger == TRUE) {
         uint64_t min = log < inspect ? log : inspect;
         if (min > 0) {

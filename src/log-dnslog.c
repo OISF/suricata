@@ -78,8 +78,6 @@ void TmModuleLogDnsLogRegister (void) {
     OutputRegisterModule(MODULE_NAME, "dns-log", LogDnsLogInitCtx);
 
     /* enable the logger for the app layer */
-    AppLayerRegisterLogger(ALPROTO_DNS_UDP);
-    AppLayerRegisterLogger(ALPROTO_DNS_TCP);
     SCLogDebug("registered %s", MODULE_NAME);
 }
 
@@ -459,6 +457,9 @@ OutputCtx *LogDnsLogInitCtx(ConfNode *conf)
     output_ctx->DeInit = LogDnsLogDeInitCtx;
 
     SCLogDebug("DNS log output initialized");
+
+    AppLayerRegisterLogger(ALPROTO_DNS_UDP);
+    AppLayerRegisterLogger(ALPROTO_DNS_TCP);
 
     return output_ctx;
 }
