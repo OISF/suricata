@@ -66,6 +66,12 @@ static inline int SCMemcmp(void *s1, void *s2, size_t n)
     size_t m = 0;
 
     do {
+        /* apparently we can't just read 16 bytes even though
+         * it almost always works fine :) */
+        if (likely(n - m < 16)) {
+            return memcmp(s1, s2, n - m) ? 1 : 0;
+        }
+
         /* load the buffers into the 128bit vars */
         b1 = _mm_loadu_si128((const __m128i *) s1);
         b2 = _mm_loadu_si128((const __m128i *) s2);
@@ -102,6 +108,12 @@ static inline int SCMemcmpLowercase(void *s1, void *s2, size_t n)
     __m128i uplow = _mm_set1_epi8(0x20);
 
     do {
+        /* apparently we can't just read 16 bytes even though
+         * it almost always works fine :) */
+        if (likely(n - m < 16)) {
+            return MemcmpLowercase(s1, s2, n - m);
+        }
+
         b1 = _mm_loadu_si128((const __m128i *) s1);
         b2 = _mm_loadu_si128((const __m128i *) s2);
         size_t len = n - m;
