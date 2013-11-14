@@ -4410,21 +4410,21 @@ static inline int StreamTcpValidateChecksum(Packet *p)
     if (p->flags & PKT_IGNORE_CHECKSUM)
         return ret;
 
-    if (p->tcpvars.comp_csum == -1) {
+    if (p->comp_csum == -1) {
         if (PKT_IS_IPV4(p)) {
-            p->tcpvars.comp_csum = TCPCalculateChecksum(p->ip4h->s_ip_addrs,
-                                                 (uint16_t *)p->tcph,
-                                                 (p->payload_len +
-                                                  TCP_GET_HLEN(p)));
+            p->comp_csum = TCPCalculateChecksum(p->ip4h->s_ip_addrs,
+                                                (uint16_t *)p->tcph,
+                                                (p->payload_len +
+                                                 TCP_GET_HLEN(p)));
         } else if (PKT_IS_IPV6(p)) {
-            p->tcpvars.comp_csum = TCPV6CalculateChecksum(p->ip6h->s_ip6_addrs,
-                                                   (uint16_t *)p->tcph,
-                                                   (p->payload_len +
-                                                    TCP_GET_HLEN(p)));
+            p->comp_csum = TCPV6CalculateChecksum(p->ip6h->s_ip6_addrs,
+                                                  (uint16_t *)p->tcph,
+                                                  (p->payload_len +
+                                                   TCP_GET_HLEN(p)));
         }
     }
 
-    if (p->tcpvars.comp_csum != p->tcph->th_sum) {
+    if (p->comp_csum != p->tcph->th_sum) {
         ret = 0;
         SCLogDebug("Checksum of received packet %p is invalid",p);
         if (p->livedev) {

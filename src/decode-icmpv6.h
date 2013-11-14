@@ -127,9 +127,6 @@ typedef struct ICMPV6Hdr_
 
 /** Data available from the decoded packet */
 typedef struct ICMPV6Vars_ {
-    /* checksum computed over the icmpv6 packet */
-    int32_t comp_csum;
-
     /* checksum of the icmpv6 packet */
     uint16_t  id;
     uint16_t  seq;
@@ -155,7 +152,7 @@ typedef struct ICMPV6Vars_ {
 
 
 #define CLEAR_ICMPV6_PACKET(p) do { \
-    (p)->icmpv6vars.comp_csum = -1; \
+    (p)->comp_csum = -1; \
     (p)->icmpv6vars.id = 0; \
     (p)->icmpv6vars.seq = 0; \
     (p)->icmpv6vars.mtu = 0; \
