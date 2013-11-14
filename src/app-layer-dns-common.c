@@ -159,6 +159,8 @@ DNSTransaction *DNSTransactionAlloc(const uint16_t tx_id) {
  *  \brief Free a DNS TX
  *  \param tx DNS TX to free */
 static void DNSTransactionFree(DNSTransaction *tx) {
+    SCEnter();
+
     DNSQueryEntry *q = NULL;
     while ((q = TAILQ_FIRST(&tx->query_list))) {
         TAILQ_REMOVE(&tx->query_list, q, next);
@@ -177,6 +179,7 @@ static void DNSTransactionFree(DNSTransaction *tx) {
 
     AppLayerDecoderEventsFreeEvents(tx->decoder_events);
     SCFree(tx);
+    SCReturn;
 }
 
 /**
@@ -211,6 +214,7 @@ void DNSStateTransactionFree(void *state, uint64_t tx_id) {
         DNSTransactionFree(tx);
         break;
     }
+    SCReturn;
 }
 
 /** \internal
@@ -252,6 +256,7 @@ void *DNSStateAlloc(void) {
 }
 
 void DNSStateFree(void *s) {
+    SCEnter();
     if (s) {
         DNSState *dns_state = (DNSState *) s;
 
@@ -267,6 +272,7 @@ void DNSStateFree(void *s) {
         SCFree(s);
         s = NULL;
     }
+    SCReturn;
 }
 
 /** \brief Validation checks for DNS request header
