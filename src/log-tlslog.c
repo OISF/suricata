@@ -83,9 +83,6 @@ void TmModuleLogTlsLogRegister(void)
 
     OutputRegisterModule(MODULE_NAME, "tls-log", LogTlsLogInitCtx);
 
-    /* enable the logger for the app layer */
-    AppLayerRegisterLogger(ALPROTO_TLS);
-
     SC_ATOMIC_INIT(cert_id);
 }
 
@@ -592,6 +589,9 @@ OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
     output_ctx->DeInit = LogTlsLogDeInitCtx;
 
     SCLogDebug("TLS log output initialized");
+
+    /* enable the logger for the app layer */
+    AppLayerRegisterLogger(ALPROTO_TLS);
 
     return output_ctx;
 
