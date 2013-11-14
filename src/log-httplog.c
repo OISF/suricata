@@ -73,9 +73,6 @@ void TmModuleLogHttpLogRegister (void) {
     tmm_modules[TMM_LOGHTTPLOG].cap_flags = 0;
 
     OutputRegisterModule(MODULE_NAME, "http-log", LogHttpLogInitCtx);
-
-    /* enable the logger for the app layer */
-    AppLayerRegisterLogger(ALPROTO_HTTP);
 }
 
 void TmModuleLogHttpLogIPv4Register (void) {
@@ -789,6 +786,9 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
     output_ctx->DeInit = LogHttpLogDeInitCtx;
 
     SCLogDebug("HTTP log output initialized");
+
+    /* enable the logger for the app layer */
+    AppLayerRegisterLogger(ALPROTO_HTTP);
 
     return output_ctx;
 
