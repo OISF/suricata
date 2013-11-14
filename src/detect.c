@@ -6851,6 +6851,253 @@ end:
     return result;
 }
 
+/* Test SigTest26TCPV4Keyword but also check for invalid IPV4 checksum */
+static int SigTest26TCPV4AndNegativeIPV4Keyword(void)
+{
+    uint8_t raw_ipv4[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x40, 0x8e, 0x7e, 0xb2,
+        0xc0, 0xa8, 0x01, 0x03};
+
+    uint8_t valid_raw_tcp[] = {
+        0x00, 0x50, 0x8e, 0x16, 0x0d, 0x59, 0xcd, 0x3c,
+        0xcf, 0x0d, 0x21, 0x80, 0x50, 0x12, 0x16, 0xa0,
+        0x4A, 0x04, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
+        0x04, 0x02, 0x08, 0x0a, 0x6e, 0x18, 0x78, 0x73,
+        0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 0x02};
+
+    uint8_t invalid_raw_tcp[] = {
+        0x00, 0x50, 0x8e, 0x16, 0x0d, 0x59, 0xcd, 0x3c,
+        0xcf, 0x0d, 0x21, 0x80, 0x50, 0x12, 0x16, 0xa0,
+        0xfa, 0x03, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
+        0x04, 0x02, 0x08, 0x0a, 0x6e, 0x18, 0x78, 0x73,
+        0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 0x03};
+
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (unlikely(p1 == NULL))
+        return 0;
+
+    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    if (unlikely(p2 == NULL)) {
+        SCFree(p1);
+        return 0;
+    }
+
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
+    memset(p2, 0, SIZE_OF_PACKET);
+    p2->pkt = (uint8_t *)(p2 + 1);
+
+    PacketCopyData(p1, raw_ipv4, sizeof(raw_ipv4));
+    PacketCopyDataOffset(p1, GET_PKT_LEN(p1), valid_raw_tcp, sizeof(valid_raw_tcp));
+
+    PacketCopyData(p2, raw_ipv4, sizeof(raw_ipv4));
+    PacketCopyDataOffset(p2, GET_PKT_LEN(p2), invalid_raw_tcp, sizeof(invalid_raw_tcp));
+
+    PACKET_RESET_CHECKSUMS(p1);
+    p1->tcpvars.comp_csum = -1;
+    p1->ip4h = (IPV4Hdr *)GET_PKT_DATA(p1);
+    p1->tcph = (TCPHdr *)(GET_PKT_DATA(p1) + sizeof(raw_ipv4));
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->payload = (uint8_t *)GET_PKT_DATA(p1) + sizeof(raw_ipv4) + 20;
+    p1->payload_len = 20;
+    p1->proto = IPPROTO_TCP;
+
+    PACKET_RESET_CHECKSUMS(p2);
+    p2->ip4h = (IPV4Hdr *)GET_PKT_DATA(p2);
+    p2->tcph = (TCPHdr *)(GET_PKT_DATA(p2) + sizeof(raw_ipv4));
+    p2->src.family = AF_INET;
+    p2->dst.family = AF_INET;
+    p2->payload = (uint8_t *)GET_PKT_DATA(p2) + sizeof(raw_ipv4) + 20;
+    p2->payload_len = 20;
+    p2->proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert ip any any -> any any "
+                               "(content:\"|DE 01 03|\"; tcpv4-csum:valid; dsize:20; "
+                               "ipv4-csum:invalid; "
+                               "msg:\"tcpv4-csum and ipv4-csum keyword check(1)\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        goto end;
+    }
+
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert ip any any -> any any "
+                                     "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; "
+                                     "ipv4-csum:invalid; "
+                                     "msg:\"tcpv4-csum keyword check(1)\"; "
+                                     "sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (!(PacketAlertCheck(p1, 1))) {
+        printf("sig 1 didn't match: ");
+        goto end;
+    }
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (!(PacketAlertCheck(p2, 2))) {
+        printf("sig 2 didn't match: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    SCFree(p1);
+    SCFree(p2);
+    return result;
+}
+
+/* Similar to SigTest26, but with different packet */
+static int SigTest26TCPV4AndIPV4Keyword(void)
+{
+    /* IPV4: src:192.168.176.67 dst: 192.168.176.116
+     * TTL: 64 Flags: Don't Fragment
+     */
+    uint8_t raw_ipv4[] = {
+        0x45, 0x00, 0x00, 0x40, 0x9b, 0xa4, 0x40, 0x00,
+        0x40, 0x06, 0xbd, 0x0a, 0xc0, 0xa8, 0xb0, 0x43,
+        0xc0, 0xa8, 0xb0, 0x74};
+
+    /* TCP: sport: 49517 dport: 445 Flags: SYN
+     * Window size: 65535, checksum: 0x2009,
+     * MTU: 1460, Window scale: 4, TSACK permitted,
+     * 24 bytes of options, no payload.
+     */
+    uint8_t valid_raw_tcp[] = {
+        0xc1, 0x6d, 0x01, 0xbd, 0x03, 0x10, 0xd3, 0xc9,
+        0x00, 0x00, 0x00, 0x00, 0xb0, 0x02, 0xff, 0xff,
+        0x20, 0x09, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
+        0x01, 0x03, 0x03, 0x04, 0x01, 0x01, 0x08, 0x0a,
+        0x19, 0x69, 0x81, 0x7e, 0x00, 0x00, 0x00, 0x00,
+        0x04, 0x02, 0x00, 0x00};
+
+    uint8_t invalid_raw_tcp[] = {
+        0xc1, 0x6d, 0x01, 0xbd, 0x03, 0x10, 0xd3, 0xc9,
+        0x00, 0x00, 0x00, 0x00, 0xb0, 0x02, 0xff, 0xff,
+        0x20, 0x09, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
+        0x01, 0x03, 0x03, 0x04, 0x01, 0x01, 0x08, 0x0a,
+        0x19, 0x69, 0x81, 0x7e, 0xFF, 0xAA, 0x00, 0x00,
+        0x04, 0x02, 0x00, 0x00};
+
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (unlikely(p1 == NULL))
+        return 0;
+
+    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    if (unlikely(p2 == NULL)) {
+        SCFree(p1);
+        return 0;
+    }
+
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
+    memset(p2, 0, SIZE_OF_PACKET);
+    p2->pkt = (uint8_t *)(p2 + 1);
+
+    PacketCopyData(p1, raw_ipv4, sizeof(raw_ipv4));
+    PacketCopyDataOffset(p1, GET_PKT_LEN(p1), valid_raw_tcp, sizeof(valid_raw_tcp));
+
+    PacketCopyData(p2, raw_ipv4, sizeof(raw_ipv4));
+    PacketCopyDataOffset(p2, GET_PKT_LEN(p2), invalid_raw_tcp, sizeof(invalid_raw_tcp));
+
+    PACKET_RESET_CHECKSUMS(p1);
+    p1->ip4h = (IPV4Hdr *)GET_PKT_DATA(p1);
+    p1->tcph = (TCPHdr *)(GET_PKT_DATA(p1) + sizeof(raw_ipv4));
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->payload = (uint8_t *)GET_PKT_DATA(p1) + sizeof(raw_ipv4) + 20 + 24;
+    p1->payload_len = 0;
+    p1->proto = IPPROTO_TCP;
+
+    PACKET_RESET_CHECKSUMS(p2);
+    p2->ip4h = (IPV4Hdr *)GET_PKT_DATA(p2);
+    p2->tcph = (TCPHdr *)(GET_PKT_DATA(p2) + sizeof(raw_ipv4));
+    p2->src.family = AF_INET;
+    p2->dst.family = AF_INET;
+    p2->payload = (uint8_t *)GET_PKT_DATA(p2) + sizeof(raw_ipv4) + 20 + 24;
+    p2->payload_len = 0;
+    p2->proto = IPPROTO_TCP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert ip any any -> any any "
+                               "(tcpv4-csum:valid; "
+                               "ipv4-csum:valid; "
+                               "msg:\"tcpv4-csum and ipv4-csum keyword check(1)\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        goto end;
+    }
+
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert ip any any -> any any "
+                                     "(tcpv4-csum:invalid; "
+                                     "ipv4-csum:valid; "
+                                     "msg:\"tcpv4-csum and ipv4-csum keyword check(1)\"; "
+                                     "sid:2;)");
+    if (de_ctx->sig_list->next == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (!(PacketAlertCheck(p1, 1))) {
+        printf("sig 1 didn't match: ");
+        goto end;
+    }
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (!(PacketAlertCheck(p2, 2))) {
+        printf("sig 2 didn't match: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    SCFree(p1);
+    SCFree(p2);
+    return result;
+}
+
 static int SigTest27NegativeTCPV4Keyword(void)
 {
     uint8_t raw_ipv4[] = {
@@ -11185,6 +11432,8 @@ void SigRegisterTests(void) {
                    SigTest25NegativeIPV4Keyword, 1);
 
     UtRegisterTest("SigTest26TCPV4Keyword", SigTest26TCPV4Keyword, 1);
+    UtRegisterTest("SigTest26TCPV4AndNegativeIPV4Keyword", SigTest26TCPV4AndNegativeIPV4Keyword, 1);
+    UtRegisterTest("SigTest26TCPV4AndIPV4Keyword", SigTest26TCPV4AndIPV4Keyword, 1);
     UtRegisterTest("SigTest27NegativeTCPV4Keyword",
                    SigTest27NegativeTCPV4Keyword, 1);
 
