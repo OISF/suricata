@@ -49,6 +49,7 @@
 
 #include "output.h"
 #include "output-dnslog.h"
+#include "output-droplog.h"
 #include "output-httplog.h"
 #include "output-tlslog.h"
 #include "output-file.h"
@@ -164,9 +165,10 @@ static enum json_output json_out = ALERT_FILE;
 
 #define OUTPUT_ALERTS (1<<0)
 #define OUTPUT_DNS    (1<<1)
-#define OUTPUT_FILES  (1<<2)
-#define OUTPUT_HTTP   (1<<3)
-#define OUTPUT_TLS    (1<<4)
+#define OUTPUT_DROP   (1<<2)
+#define OUTPUT_FILES  (1<<3)
+#define OUTPUT_HTTP   (1<<4)
+#define OUTPUT_TLS    (1<<5)
 
 static uint32_t outputFlags = 0;
 
@@ -536,6 +538,10 @@ TmEcode AlertJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
         OutputDnsLog(tv, p, data, pq, postpq);
     }
 
+    if (outputFlags & OUTPUT_DROP) {
+        OutputDropLog(tv, p, data, pq, postpq);
+    }
+
     if (outputFlags & OUTPUT_FILES) {
         OutputFileLog(tv, p, data, pq, postpq);
     }
@@ -722,6 +728,11 @@ OutputCtx *AlertJsonInitCtx(ConfNode *conf)
                 if (strcmp(output->val, "dns") == 0) {
                     SCLogDebug("Enabling DNS output");
                     outputFlags |= OUTPUT_DNS;
+                    continue;
+                }
+                if (strcmp(output->val, "drop") == 0) {
+                    SCLogDebug("Enabling drop output");
+                    outputFlags |= OUTPUT_DROP;
                     continue;
                 }
                 if (strcmp(output->val, "files") == 0) {
