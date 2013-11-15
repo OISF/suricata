@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -88,8 +88,8 @@ void FlowFree(Flow *f)
  *  \param   proto  protocol which is needed to be mapped
  */
 
-uint8_t FlowGetProtoMapping(uint8_t proto) {
-
+uint8_t FlowGetProtoMapping(uint8_t proto)
+{
     switch (proto) {
         case IPPROTO_TCP:
             return FLOW_PROTO_TCP;

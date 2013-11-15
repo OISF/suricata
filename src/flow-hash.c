@@ -86,7 +86,8 @@ static SCSpinlock flow_hash_count_lock;
 #define FlowHashCountInit uint64_t _flow_hash_counter = 0
 #define FlowHashCountIncr _flow_hash_counter++;
 
-void FlowHashDebugInit(void) {
+void FlowHashDebugInit(void)
+{
 #ifdef FLOW_DEBUG_STATS
     SCSpinInit(&flow_hash_count_lock, 0);
 #endif
@@ -96,7 +97,8 @@ void FlowHashDebugInit(void) {
     }
 }
 
-void FlowHashDebugPrint(uint32_t ts) {
+void FlowHashDebugPrint(uint32_t ts)
+{
 #ifdef FLOW_DEBUG_STATS
     if (flow_hash_count_fp == NULL)
         return;
@@ -121,7 +123,8 @@ void FlowHashDebugPrint(uint32_t ts) {
 #endif
 }
 
-void FlowHashDebugDeinit(void) {
+void FlowHashDebugDeinit(void)
+{
 #ifdef FLOW_DEBUG_STATS
     struct timeval ts;
     memset(&ts, 0, sizeof(ts));
@@ -204,7 +207,8 @@ typedef struct FlowHashKey6_ {
  *
  *  For ICMP we only consider UNREACHABLE errors atm.
  */
-static inline uint32_t FlowGetKey(Packet *p) {
+static inline uint32_t FlowGetKey(Packet *p)
+{
     uint32_t key;
 
     if (p->ip4h != NULL) {
@@ -342,7 +346,8 @@ static inline uint32_t FlowGetKey(Packet *p) {
  *  \retval 1 match
  *  \retval 0 no match
  */
-static inline int FlowCompareICMPv4(Flow *f, Packet *p) {
+static inline int FlowCompareICMPv4(Flow *f, Packet *p)
+{
     if (ICMPV4_DEST_UNREACH_IS_VALID(p)) {
         /* first check the direction of the flow, in other words, the client ->
          * server direction as it's most likely the ICMP error will be a
@@ -381,7 +386,8 @@ static inline int FlowCompareICMPv4(Flow *f, Packet *p) {
     return 0;
 }
 
-static inline int FlowCompare(Flow *f, Packet *p) {
+static inline int FlowCompare(Flow *f, Packet *p)
+{
     if (p->proto == IPPROTO_ICMP) {
         return FlowCompareICMPv4(f, p);
     } else {
@@ -399,7 +405,8 @@ static inline int FlowCompare(Flow *f, Packet *p) {
  *  \retval 1 true
  *  \retval 0 false
  */
-static inline int FlowCreateCheck(Packet *p) {
+static inline int FlowCreateCheck(Packet *p)
+{
     if (PKT_IS_ICMPV4(p)) {
         if (ICMPV4_IS_ERROR_MSG(p)) {
             return 0;
@@ -417,9 +424,9 @@ static inline int FlowCreateCheck(Packet *p) {
  *
  *  \retval f *LOCKED* flow on succes, NULL on error.
  */
-static Flow *FlowGetNew(Packet *p) {
+static Flow *FlowGetNew(Packet *p)
+{
     Flow *f = NULL;
-
 
     if (FlowCreateCheck(p) == 0) {
         return NULL;
@@ -476,9 +483,11 @@ static Flow *FlowGetNew(Packet *p) {
  * the queue. FlowDequeue() will alloc new flows as long as we stay within our
  * memcap limit.
  *
+ * The p->flow pointer is updated to point to the flow.
+ *
  * returns a *LOCKED* flow or NULL
  */
-Flow *FlowGetFlowFromHash (Packet *p)
+Flow *FlowGetFlowFromHash(Packet *p)
 {
     Flow *f = NULL;
     FlowHashCountInit;
@@ -506,10 +515,11 @@ Flow *FlowGetFlowFromHash (Packet *p)
         fb->head = f;
         fb->tail = f;
 
+        /* Point the Packet at the Flow */
         FlowReference(&p->flow, f);
 
         /* got one, now lock, initialize and return */
-        FlowInit(f,p);
+        FlowInit(f, p);
         f->fb = fb;
 
         FBLOCK_UNLOCK(fb);
@@ -543,10 +553,11 @@ Flow *FlowGetFlowFromHash (Packet *p)
 
                 f->hprev = pf;
 
+                /* Point the Packet at the Flow */
                 FlowReference(&p->flow, f);
 
                 /* initialize and return */
-                FlowInit(f,p);
+                FlowInit(f, p);
                 f->fb = fb;
 
                 FBLOCK_UNLOCK(fb);
@@ -572,6 +583,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
                 fb->head->hprev = f;
                 fb->head = f;
 
+                /* Point the Packet at the Flow */
                 FlowReference(&p->flow, f);
 
                 /* found our flow, lock & return */
@@ -583,8 +595,9 @@ Flow *FlowGetFlowFromHash (Packet *p)
         }
     }
 
-    /* lock & return */
+    /* Point the Packet at the Flow */
     FlowReference(&p->flow, f);
+    /* lock & return */
     FLOWLOCK_WRLOCK(f);
     FBLOCK_UNLOCK(fb);
     FlowHashCountUpdate;
@@ -603,7 +616,8 @@ Flow *FlowGetFlowFromHash (Packet *p)
  *
  *  \retval f flow or NULL
  */
-static Flow *FlowGetUsedFlow(void) {
+static Flow *FlowGetUsedFlow(void)
+{
     uint32_t idx = SC_ATOMIC_GET(flow_prune_idx) % flow_config.hash_size;
     uint32_t cnt = flow_config.hash_size;
 
@@ -650,7 +664,7 @@ static Flow *FlowGetUsedFlow(void) {
         f->fb = NULL;
         FBLOCK_UNLOCK(fb);
 
-        FlowClearMemory (f, f->protomap);
+        FlowClearMemory(f, f->protomap);
 
         FLOWLOCK_UNLOCK(f);
 

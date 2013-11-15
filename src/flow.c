@@ -833,8 +833,8 @@ int FlowSetProtoEmergencyTimeout(uint8_t proto, uint32_t emerg_new_timeout,
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int FlowTest01 (void) {
-
+static int FlowTest01 (void)
+{
     uint8_t proto_map;
 
     FlowInitFlowProto();
@@ -872,7 +872,7 @@ static int FlowTest01 (void) {
 
 /*Test function for the unit test FlowTest02*/
 
-void test(void *f){}
+void test(void *f) {}
 
 /**
  *  \test   Test the setting of the per protocol free function to free the
@@ -881,8 +881,8 @@ void test(void *f){}
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int FlowTest02 (void) {
-
+static int FlowTest02 (void)
+{
     FlowSetProtoFreeFunc(IPPROTO_DCCP, test);
     FlowSetProtoFreeFunc(IPPROTO_TCP, test);
     FlowSetProtoFreeFunc(IPPROTO_UDP, test);
@@ -914,8 +914,8 @@ static int FlowTest02 (void) {
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int FlowTest07 (void) {
-
+static int FlowTest07 (void)
+{
     int result = 0;
 
     FlowInitConfig(FLOW_QUIET);
@@ -961,8 +961,8 @@ static int FlowTest07 (void) {
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int FlowTest08 (void) {
-
+static int FlowTest08 (void)
+{
     int result = 0;
 
     FlowInitConfig(FLOW_QUIET);
@@ -1008,8 +1008,8 @@ static int FlowTest08 (void) {
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int FlowTest09 (void) {
-
+static int FlowTest09 (void)
+{
     int result = 0;
 
     FlowInitConfig(FLOW_QUIET);
@@ -1052,7 +1052,8 @@ static int FlowTest09 (void) {
 /**
  *  \brief   Function to register the Flow Unitests.
  */
-void FlowRegisterTests (void) {
+void FlowRegisterTests (void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("FlowTest01 -- Protocol Specific Timeouts", FlowTest01, 1);
     UtRegisterTest("FlowTest02 -- Setting Protocol Specific Free Function", FlowTest02, 1);
