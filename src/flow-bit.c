@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -43,7 +43,8 @@
 #include "util-unittest.h"
 
 /* get the flowbit with idx from the flow */
-static FlowBit *FlowBitGet(Flow *f, uint16_t idx) {
+static FlowBit *FlowBitGet(Flow *f, uint16_t idx)
+{
     GenericVar *gv = f->flowvar;
     for ( ; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_FLOWBITS && gv->idx == idx) {
@@ -55,7 +56,8 @@ static FlowBit *FlowBitGet(Flow *f, uint16_t idx) {
 }
 
 /* add a flowbit to the flow */
-static void FlowBitAdd(Flow *f, uint16_t idx) {
+static void FlowBitAdd(Flow *f, uint16_t idx)
+{
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb == NULL) {
         fb = SCMalloc(sizeof(FlowBit));
@@ -79,7 +81,8 @@ static void FlowBitAdd(Flow *f, uint16_t idx) {
     }
 }
 
-static void FlowBitRemove(Flow *f, uint16_t idx) {
+static void FlowBitRemove(Flow *f, uint16_t idx)
+{
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb == NULL)
         return;
@@ -100,7 +103,8 @@ static void FlowBitRemove(Flow *f, uint16_t idx) {
 #endif /* FLOWBITS_STATS */
 }
 
-void FlowBitSet(Flow *f, uint16_t idx) {
+void FlowBitSet(Flow *f, uint16_t idx)
+{
     FLOWLOCK_WRLOCK(f);
 
     FlowBit *fb = FlowBitGet(f, idx);
@@ -111,7 +115,8 @@ void FlowBitSet(Flow *f, uint16_t idx) {
     FLOWLOCK_UNLOCK(f);
 }
 
-void FlowBitUnset(Flow *f, uint16_t idx) {
+void FlowBitUnset(Flow *f, uint16_t idx)
+{
     FLOWLOCK_WRLOCK(f);
 
     FlowBit *fb = FlowBitGet(f, idx);
@@ -122,7 +127,8 @@ void FlowBitUnset(Flow *f, uint16_t idx) {
     FLOWLOCK_UNLOCK(f);
 }
 
-void FlowBitToggle(Flow *f, uint16_t idx) {
+void FlowBitToggle(Flow *f, uint16_t idx)
+{
     FLOWLOCK_WRLOCK(f);
 
     FlowBit *fb = FlowBitGet(f, idx);
@@ -135,7 +141,8 @@ void FlowBitToggle(Flow *f, uint16_t idx) {
     FLOWLOCK_UNLOCK(f);
 }
 
-int FlowBitIsset(Flow *f, uint16_t idx) {
+int FlowBitIsset(Flow *f, uint16_t idx)
+{
     int r = 0;
     FLOWLOCK_RDLOCK(f);
 
@@ -148,7 +155,8 @@ int FlowBitIsset(Flow *f, uint16_t idx) {
     return r;
 }
 
-int FlowBitIsnotset(Flow *f, uint16_t idx) {
+int FlowBitIsnotset(Flow *f, uint16_t idx)
+{
     int r = 0;
     FLOWLOCK_RDLOCK(f);
 
@@ -161,7 +169,8 @@ int FlowBitIsnotset(Flow *f, uint16_t idx) {
     return r;
 }
 
-void FlowBitFree(FlowBit *fb) {
+void FlowBitFree(FlowBit *fb)
+{
     if (fb == NULL)
         return;
 
@@ -183,7 +192,8 @@ void FlowBitFree(FlowBit *fb) {
 
 /* TESTS */
 #ifdef UNITTESTS
-static int FlowBitTest01 (void) {
+static int FlowBitTest01 (void)
+{
     int ret = 0;
 
     Flow f;
@@ -199,7 +209,8 @@ static int FlowBitTest01 (void) {
     return ret;
 }
 
-static int FlowBitTest02 (void) {
+static int FlowBitTest02 (void)
+{
     int ret = 0;
 
     Flow f;
@@ -213,7 +224,8 @@ static int FlowBitTest02 (void) {
     return ret;
 }
 
-static int FlowBitTest03 (void) {
+static int FlowBitTest03 (void)
+{
     int ret = 0;
 
     Flow f;
@@ -241,7 +253,8 @@ end:
     return ret;
 }
 
-static int FlowBitTest04 (void) {
+static int FlowBitTest04 (void)
+{
     int ret = 0;
 
     Flow f;
@@ -260,7 +273,8 @@ static int FlowBitTest04 (void) {
     return ret;
 }
 
-static int FlowBitTest05 (void) {
+static int FlowBitTest05 (void)
+{
     int ret = 0;
 
     Flow f;
@@ -279,7 +293,8 @@ static int FlowBitTest05 (void) {
     return ret;
 }
 
-static int FlowBitTest06 (void) {
+static int FlowBitTest06 (void)
+{
     int ret = 0;
 
     Flow f;
@@ -298,7 +313,8 @@ static int FlowBitTest06 (void) {
     return ret;
 }
 
-static int FlowBitTest07 (void) {
+static int FlowBitTest07 (void)
+{
     int ret = 0;
 
     Flow f;
@@ -317,7 +333,8 @@ static int FlowBitTest07 (void) {
     return ret;
 }
 
-static int FlowBitTest08 (void) {
+static int FlowBitTest08 (void)
+{
     int ret = 0;
 
     Flow f;
@@ -346,7 +363,8 @@ end:
     return ret;
 }
 
-static int FlowBitTest09 (void) {
+static int FlowBitTest09 (void)
+{
     int ret = 0;
 
     Flow f;
@@ -375,7 +393,8 @@ end:
     return ret;
 }
 
-static int FlowBitTest10 (void) {
+static int FlowBitTest10 (void)
+{
     int ret = 0;
 
     Flow f;
@@ -404,7 +423,8 @@ end:
     return ret;
 }
 
-static int FlowBitTest11 (void) {
+static int FlowBitTest11 (void)
+{
     int ret = 0;
 
     Flow f;
@@ -435,7 +455,8 @@ end:
 
 #endif /* UNITTESTS */
 
-void FlowBitRegisterTests(void) {
+void FlowBitRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("FlowBitTest01", FlowBitTest01, 1);
     UtRegisterTest("FlowBitTest02", FlowBitTest02, 1);
