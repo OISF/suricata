@@ -68,7 +68,7 @@ typedef struct FlowBucket_ {
 
 /* prototypes */
 
-Flow *FlowGetFlowFromHash(Packet *);
+Flow *FlowGetFlowFromHash(const Packet *);
 
 /** enable to print stats on hash lookups in flow-debug.log */
 //#define FLOW_DEBUG_STATS

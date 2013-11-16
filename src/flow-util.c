@@ -106,7 +106,7 @@ uint8_t FlowGetProtoMapping(uint8_t proto)
 
 /* initialize the flow from the first packet
  * we see from it. */
-void FlowInit(Flow *f, Packet *p)
+void FlowInit(Flow *f, const Packet *p)
 {
     SCEnter();
     SCLogDebug("flow %p", f);

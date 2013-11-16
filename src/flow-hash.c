@@ -154,7 +154,7 @@ void FlowHashDebugDeinit(void)
  *           detect-engine-address-ipv6.c's AddressIPv6GtU32 is likely
  *           what you are looking for.
  */
-static inline int FlowHashRawAddressIPv6GtU32(uint32_t *a, uint32_t *b)
+static inline int FlowHashRawAddressIPv6GtU32(const uint32_t *a, const uint32_t *b)
 {
     int i;
 
@@ -207,7 +207,7 @@ typedef struct FlowHashKey6_ {
  *
  *  For ICMP we only consider UNREACHABLE errors atm.
  */
-static inline uint32_t FlowGetKey(Packet *p)
+static inline uint32_t FlowGetKey(const Packet *p)
 {
     uint32_t key;
 
@@ -346,7 +346,7 @@ static inline uint32_t FlowGetKey(Packet *p)
  *  \retval 1 match
  *  \retval 0 no match
  */
-static inline int FlowCompareICMPv4(Flow *f, Packet *p)
+static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
 {
     if (ICMPV4_DEST_UNREACH_IS_VALID(p)) {
         /* first check the direction of the flow, in other words, the client ->
@@ -386,7 +386,7 @@ static inline int FlowCompareICMPv4(Flow *f, Packet *p)
     return 0;
 }
 
-static inline int FlowCompare(Flow *f, Packet *p)
+static inline int FlowCompare(Flow *f, const Packet *p)
 {
     if (p->proto == IPPROTO_ICMP) {
         return FlowCompareICMPv4(f, p);
@@ -405,7 +405,7 @@ static inline int FlowCompare(Flow *f, Packet *p)
  *  \retval 1 true
  *  \retval 0 false
  */
-static inline int FlowCreateCheck(Packet *p)
+static inline int FlowCreateCheck(const Packet *p)
 {
     if (PKT_IS_ICMPV4(p)) {
         if (ICMPV4_IS_ERROR_MSG(p)) {
@@ -424,7 +424,7 @@ static inline int FlowCreateCheck(Packet *p)
  *
  *  \retval f *LOCKED* flow on succes, NULL on error.
  */
-static Flow *FlowGetNew(Packet *p)
+static Flow *FlowGetNew(const Packet *p)
 {
     Flow *f = NULL;
 
@@ -487,7 +487,7 @@ static Flow *FlowGetNew(Packet *p)
  *
  * returns a *LOCKED* flow or NULL
  */
-Flow *FlowGetFlowFromHash(Packet *p)
+Flow *FlowGetFlowFromHash(const Packet *p)
 {
     Flow *f = NULL;
     FlowHashCountInit;
@@ -514,9 +514,6 @@ Flow *FlowGetFlowFromHash(Packet *p)
         /* flow is locked */
         fb->head = f;
         fb->tail = f;
-
-        /* Point the Packet at the Flow */
-        FlowReference(&p->flow, f);
 
         /* got one, now lock, initialize and return */
         FlowInit(f, p);
@@ -553,9 +550,6 @@ Flow *FlowGetFlowFromHash(Packet *p)
 
                 f->hprev = pf;
 
-                /* Point the Packet at the Flow */
-                FlowReference(&p->flow, f);
-
                 /* initialize and return */
                 FlowInit(f, p);
                 f->fb = fb;
@@ -583,9 +577,6 @@ Flow *FlowGetFlowFromHash(Packet *p)
                 fb->head->hprev = f;
                 fb->head = f;
 
-                /* Point the Packet at the Flow */
-                FlowReference(&p->flow, f);
-
                 /* found our flow, lock & return */
                 FLOWLOCK_WRLOCK(f);
                 FBLOCK_UNLOCK(fb);
@@ -595,8 +586,6 @@ Flow *FlowGetFlowFromHash(Packet *p)
         }
     }
 
-    /* Point the Packet at the Flow */
-    FlowReference(&p->flow, f);
     /* lock & return */
     FLOWLOCK_WRLOCK(f);
     FBLOCK_UNLOCK(fb);
