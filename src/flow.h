@@ -412,7 +412,7 @@ static inline void FlowLockSetNoPayloadInspectionFlag(Flow *);
 static inline void FlowSetNoPayloadInspectionFlag(Flow *);
 static inline void FlowSetSessionNoApplayerInspectionFlag(Flow *);
 
-int FlowGetPacketDirection(Flow *, Packet *);
+int FlowGetPacketDirection(Flow *, const Packet *);
 
 void FlowCleanupAppLayer(Flow *);
 
