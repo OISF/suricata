@@ -279,6 +279,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_WARN_XFF_INVALID_MODE);
         CASE_CODE (SC_WARN_XFF_INVALID_HEADER);
         CASE_CODE (SC_ERR_THRESHOLD_SETUP);
+        CASE_CODE (SC_ERR_DNS_CONFIG);
     }
 
     return "UNKNOWN_ERROR";
