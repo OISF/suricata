@@ -37,6 +37,7 @@
 #include "util-unittest.h"
 
 #include "util-debug.h"
+#include "util-mem.h"
 
 #include "output.h"
 #include "output-dnslog.h"
@@ -90,13 +91,13 @@ static void LogQuery(AlertJsonThread *aft, json_t *js, DNSTransaction *tx, DNSQu
 
     SCLogDebug("got a DNS request and now logging !!");
 
-    /* reset */
-    MemBufferReset(buffer);
-
     json_t *djs = json_object();
     if (djs == NULL) {
         return;
     }
+
+    /* reset */
+    MemBufferReset(buffer);
 
     /* type */
     json_object_set_new(djs, "type", json_string("query"));
@@ -106,11 +107,10 @@ static void LogQuery(AlertJsonThread *aft, json_t *js, DNSTransaction *tx, DNSQu
 
     /* query */
     char *c;
-    json_object_set_new(djs, "query",
-                        json_string(c = strndup(
-            (char *)((char *)entry + sizeof(DNSQueryEntry)),
-            entry->len)));
-    if (c) free(c);
+    c = SCStrndup((char *)((char *)entry + sizeof(DNSQueryEntry)), entry->len);
+    json_object_set_new(djs, "query", json_string(c));
+    if (c != NULL)
+        SCFree(c);
 
     /* name */
     char record[16] = "";
@@ -138,11 +138,12 @@ static void AppendAnswer(json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry)
         /* query */
         if (entry->fqdn_len > 0) {
             char *c;
-            json_object_set_new(js, "query",
-                            json_string(c = strndup(
-                (char *)((char *)entry + sizeof(DNSAnswerEntry)),
-                entry->fqdn_len)));
-            if (c) free(c);
+            c = SCStrndup((char *)((char *)entry + sizeof(DNSAnswerEntry)),
+                        entry->fqdn_len);
+            json_object_set_new(js, "query", json_string(c));
+            if (c != NULL) {
+                SCFree(c);
+            }
         }
 
         /* name */
@@ -174,13 +175,13 @@ static void LogAnswers(AlertJsonThread *aft, json_t *js, DNSTransaction *tx) {
 
     SCLogDebug("got a DNS response and now logging !!");
 
-    /* reset */
-    MemBufferReset(buffer);
-
     json_t *djs = json_array();
     if (djs == NULL) {
         return;
     }
+
+    /* reset */
+    MemBufferReset(buffer);
 
     if (tx->no_such_name) {
         AppendAnswer(djs, tx, NULL);
@@ -253,10 +254,10 @@ static TmEcode DnsJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQue
 
             DNSQueryEntry *query = NULL;
             TAILQ_FOREACH(query, &tx->query_list, next) {
-                LogQuery(aft, js, /*timebuf, dstip, srcip, dp, sp, proto_s,*/ tx, query);
+                LogQuery(aft, js, tx, query);
             }
 
-            LogAnswers(aft, js, /*timebuf, srcip, dstip, sp, dp, proto_s,*/ tx);
+            LogAnswers(aft, js, tx);
 
             SCLogDebug("calling AppLayerTransactionUpdateLoggedId");
             AppLayerTransactionUpdateLogId(ALPROTO_DNS_UDP, p->flow);

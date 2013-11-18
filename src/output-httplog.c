@@ -98,10 +98,11 @@ static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx)
     /* hostname */
     if (tx->request_hostname != NULL)
     {
-        json_object_set_new(hjs, "hostname",
-            json_string(c = strndup((char *)bstr_ptr(tx->request_hostname),
-                                    bstr_len(tx->request_hostname))));
-            if (c) free(c);
+        c = SCStrndup((char *)bstr_ptr(tx->request_hostname),
+                      bstr_len(tx->request_hostname));
+        json_object_set_new(hjs, "hostname", json_string(c));
+        if (c != NULL)
+            SCFree(c);
     } else {
         json_object_set_new(hjs, "hostname", json_string("<hostname unknown>"));
     }
@@ -109,10 +110,11 @@ static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx)
     /* uri */
     if (tx->request_uri != NULL)
     {
-        json_object_set_new(hjs, "uri",
-                            json_string(c = strndup((char *)bstr_ptr(tx->request_uri),
-                                                    bstr_len(tx->request_uri))));
-        if (c) free(c);
+        c = SCStrndup((char *)bstr_ptr(tx->request_uri),
+                      bstr_len(tx->request_uri));
+        json_object_set_new(hjs, "uri", json_string(c));
+        if (c != NULL)
+            SCFree(c);
     }
 
     /* user agent */
@@ -121,10 +123,11 @@ static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx)
         h_user_agent = htp_table_get_c(tx->request_headers, "user-agent");
     }
     if (h_user_agent != NULL) {
-        json_object_set_new(hjs, "user-agent",
-            json_string(c = strndup((char *)bstr_ptr(h_user_agent->value),
-                                    bstr_len(h_user_agent->value))));
-        if (c) free(c);
+        c = SCStrndup((char *)bstr_ptr(h_user_agent->value),
+                      bstr_len(h_user_agent->value));
+        json_object_set_new(hjs, "user-agent", json_string(c));
+        if (c != NULL)
+            SCFree(c);
     } else {
         json_object_set_new(hjs, "user-agent", json_string("<useragent unknown>"));
     }
@@ -135,10 +138,11 @@ static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx)
         h_x_forwarded_for = htp_table_get_c(tx->request_headers, "x-forwarded-for");
     }
     if (h_x_forwarded_for != NULL) {
-        json_object_set_new(hjs, "xff",
-            json_string(c = strndup((char *)bstr_ptr(h_x_forwarded_for->value),
-                                    bstr_len(h_x_forwarded_for->value))));
-        if (c) free(c);
+        c = SCStrndup((char *)bstr_ptr(h_x_forwarded_for->value),
+                      bstr_len(h_x_forwarded_for->value));
+        json_object_set_new(hjs, "xff", json_string(c));
+        if (c != NULL)
+            SCFree(c);
     }
 
     /* content-type */
@@ -148,12 +152,13 @@ static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx)
     }
     if (h_content_type != NULL) {
         char *p;
-        c = strndup((char *)bstr_ptr(h_content_type->value),
-                    bstr_len(h_content_type->value));
+        c = SCStrndup((char *)bstr_ptr(h_content_type->value),
+                      bstr_len(h_content_type->value));
         p = strchrnul(c, ';');
         *p = '\0';
         json_object_set_new(hjs, "content-type", json_string(c));
-        if (c) free(c);
+        if (c != NULL)
+            SCFree(c);
     }
 
     if (http_ctx->flags & LOG_HTTP_EXTENDED) {
@@ -163,41 +168,46 @@ static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx)
             h_referer = htp_table_get_c(tx->request_headers, "referer");
         }
         if (h_referer != NULL) {
-            json_object_set_new(hjs, "referer",
-                json_string(c = strndup((char *)bstr_ptr(h_referer->value),
-                                        bstr_len(h_referer->value))));
-            if (c) free(c);
+            c = SCStrndup((char *)bstr_ptr(h_referer->value),
+                          bstr_len(h_referer->value));
+            json_object_set_new(hjs, "referer", json_string(c));
+            if (c != NULL)
+                SCFree(c);
         }
 
         /* method */
         if (tx->request_method != NULL) {
-            json_object_set_new(hjs, "method",
-                json_string(c = strndup((char *)bstr_ptr(tx->request_method),
-                                        bstr_len(tx->request_method))));
-            if (c) free(c);
+            c = SCStrndup((char *)bstr_ptr(tx->request_method),
+                          bstr_len(tx->request_method));
+            json_object_set_new(hjs, "method", json_string(c));
+            if (c != NULL)
+                SCFree(c);
         }
 
         /* protocol */
         if (tx->request_protocol != NULL) {
-            json_object_set_new(hjs, "protocol",
-                json_string(c = strndup((char *)bstr_ptr(tx->request_protocol),
-                                        bstr_len(tx->request_protocol))));
-            if (c) free(c);
+            c = SCStrndup((char *)bstr_ptr(tx->request_protocol),
+                          bstr_len(tx->request_protocol));
+            json_object_set_new(hjs, "protocol", json_string(c));
+            if (c != NULL)
+                SCFree(c);
         }
 
         /* response status */
         if (tx->response_status != NULL) {
-            json_object_set_new(hjs, "status",
-                 json_string(c = strndup((char *)bstr_ptr(tx->response_status),
-                                         bstr_len(tx->response_status))));
-            if (c) free(c);
+            c = SCStrndup((char *)bstr_ptr(tx->response_status),
+                          bstr_len(tx->response_status));
+            json_object_set_new(hjs, "status", json_string(c));
+            if (c != NULL)
+                SCFree(c);
 
             htp_header_t *h_location = htp_table_get_c(tx->response_headers, "location");
             if (h_location != NULL) {
-                json_object_set_new(hjs, "redirect",
-                    json_string(c = strndup((char *)bstr_ptr(h_location->value),
-                                            bstr_len(h_location->value))));
-                if (c) free(c);
+                c = SCStrndup((char *)bstr_ptr(h_location->value),
+                              bstr_len(h_location->value));
+                json_object_set_new(hjs, "redirect", json_string(c));
+                if (c != NULL)
+                    SCFree(c);
             }
         }
 

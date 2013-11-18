@@ -794,7 +794,7 @@ void RegisterAllModules()
     /* drop log */
     TmModuleLogDropLogRegister();
     /* json log */
-    TmModuleAlertJsonRegister();
+    TmModuleOutputJsonRegister();
     /* http log */
     TmModuleLogHttpLogRegister();
     TmModuleLogTlsLogRegister();

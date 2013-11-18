@@ -24,16 +24,14 @@
 #ifndef __ALERT_JSON_H__
 #define __ALERT_JSON_H__
 
-void TmModuleAlertJsonRegister (void);
+void TmModuleOutputJsonRegister (void);
 
 #ifdef HAVE_LIBJANSSON
 
 json_t *CreateJSONHeader(Packet *p, int direction_sensative);
 TmEcode OutputJSON(json_t *js, void *data, uint64_t *count);
 
-void TmModuleAlertJsonIPv4Register (void);
-void TmModuleAlertJsonPv6Register (void);
-OutputCtx *AlertJsonInitCtx(ConfNode *);
+OutputCtx *OutputJsonInitCtx(ConfNode *);
 
 /* TODO: I think the following structures can be made private again */
 /*
