@@ -152,7 +152,7 @@ typedef struct ICMPV6Vars_ {
 
 
 #define CLEAR_ICMPV6_PACKET(p) do { \
-    (p)->comp_csum = -1; \
+    (p)->level4_comp_csum = -1; \
     (p)->icmpv6vars.id = 0; \
     (p)->icmpv6vars.seq = 0; \
     (p)->icmpv6vars.mtu = 0; \

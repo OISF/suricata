@@ -427,8 +427,10 @@ typedef struct Packet_
     /* header pointers */
     EthernetHdr *ethh;
 
+    /* Checksum for IP packets. */
+    int32_t level3_comp_csum;
     /* Check sum for TCP, UDP or ICMP packets */
-    int32_t comp_csum;
+    int32_t level4_comp_csum;
 
     IPV4Hdr *ip4h;
     IPV4Vars ip4vars;
@@ -612,8 +614,8 @@ typedef struct DecodeThreadVars_
  *  \brief reset these to -1(indicates that the packet is fresh from the queue)
  */
 #define PACKET_RESET_CHECKSUMS(p) do { \
-        (p)->ip4vars.comp_csum = -1;   \
-        (p)->comp_csum = -1;   \
+        (p)->level3_comp_csum = -1;   \
+        (p)->level4_comp_csum = -1;   \
     } while (0)
 
 /**
