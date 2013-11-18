@@ -32,7 +32,7 @@
 const char *RunModeTileMpipeGetDefaultMode(void);
 void RunModeTileMpipeRegister(void);
 
-extern unsigned int tile_num_pipelines;
+extern int tile_num_pipelines;
 
 int RunModeTileMpipeWorkers(DetectEngineCtx *);
 

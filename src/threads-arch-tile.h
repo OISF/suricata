@@ -80,8 +80,8 @@
 /* Ignore signals when using spin locks */
 #define SCCondT uint8_t
 #define SCCondInit(x,y) ({ 0; })
-#define SCCondSignal(x)
-#define SCCondDestroy(x)
+#define SCCondSignal(x) ({ 0; })
+#define SCCondDestroy(x) ({ 0; })
 
 static inline void cycle_sleep(int cycles)
 {
