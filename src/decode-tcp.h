@@ -153,7 +153,7 @@ typedef struct TCPVars_
 
 #define CLEAR_TCP_PACKET(p) { \
     (p)->tcph = NULL; \
-    (p)->comp_csum = -1; \
+    (p)->level4_comp_csum = -1; \
     (p)->tcpvars.tcp_opt_cnt = 0; \
     (p)->tcpvars.ts = NULL; \
     (p)->tcpvars.sack = NULL; \

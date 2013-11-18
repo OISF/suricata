@@ -200,7 +200,7 @@ typedef struct ICMPV4Vars_
 } ICMPV4Vars;
 
 #define CLEAR_ICMPV4_PACKET(p) do { \
-    (p)->comp_csum = -1; \
+    (p)->level4_comp_csum = -1; \
     (p)->icmpv4vars.id = 0; \
     (p)->icmpv4vars.seq = 0; \
     (p)->icmpv4vars.mtu = 0; \
