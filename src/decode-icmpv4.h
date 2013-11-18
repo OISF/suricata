@@ -177,9 +177,6 @@ typedef struct ICMPV4ExtHdr_
 /* ICMPv4 vars */
 typedef struct ICMPV4Vars_
 {
-    /* checksum computed over the icmpv4 packet */
-    int32_t comp_csum;
-
     uint16_t  id;
     uint16_t  seq;
     uint32_t  mtu;
@@ -203,7 +200,7 @@ typedef struct ICMPV4Vars_
 } ICMPV4Vars;
 
 #define CLEAR_ICMPV4_PACKET(p) do { \
-    (p)->icmpv4vars.comp_csum = -1; \
+    (p)->comp_csum = -1; \
     (p)->icmpv4vars.id = 0; \
     (p)->icmpv4vars.seq = 0; \
     (p)->icmpv4vars.mtu = 0; \
