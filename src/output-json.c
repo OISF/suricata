@@ -70,43 +70,43 @@
  *
  */
 
-TmEcode AlertJson (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode AlertJsonThreadInit(ThreadVars *, void *, void **);
-TmEcode AlertJsonThreadDeinit(ThreadVars *, void *);
-int AlertJsonOpenFileCtx(LogFileCtx *, char *);
-void AlertJsonRegisterTests(void);
+TmEcode OutputJson (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode OutputJsonThreadInit(ThreadVars *, void *, void **);
+TmEcode OutputJsonThreadDeinit(ThreadVars *, void *);
+int OutputJsonOpenFileCtx(LogFileCtx *, char *);
+void OutputJsonRegisterTests(void);
 
-void TmModuleAlertJsonRegister (void) {
-    tmm_modules[TMM_OUTPUTJSON].name = "AlertJSON";
-    tmm_modules[TMM_OUTPUTJSON].ThreadInit = AlertJsonThreadInit;
-    tmm_modules[TMM_OUTPUTJSON].Func = AlertJson;
-    tmm_modules[TMM_OUTPUTJSON].ThreadDeinit = AlertJsonThreadDeinit;
-    tmm_modules[TMM_OUTPUTJSON].RegisterTests = AlertJsonRegisterTests;
+void TmModuleOutputJsonRegister (void) {
+    tmm_modules[TMM_OUTPUTJSON].name = "OutputJSON";
+    tmm_modules[TMM_OUTPUTJSON].ThreadInit = OutputJsonThreadInit;
+    tmm_modules[TMM_OUTPUTJSON].Func = OutputJson;
+    tmm_modules[TMM_OUTPUTJSON].ThreadDeinit = OutputJsonThreadDeinit;
+    tmm_modules[TMM_OUTPUTJSON].RegisterTests = OutputJsonRegisterTests;
 }
 
-OutputCtx *AlertJsonInitCtx(ConfNode *conf)
+OutputCtx *OutputJsonInitCtx(ConfNode *conf)
 {
     SCLogDebug("Can't init JSON output - JSON support was disabled during build.");
     return NULL;
 }
 
-TmEcode AlertJsonThreadInit(ThreadVars *t, void *initdata, void **data)
+TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     SCLogDebug("Can't init JSON output thread - JSON support was disabled during build.");
     return TM_ECODE_FAILED;
 }
 
-TmEcode AlertJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode OutputJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     return TM_ECODE_OK;
 }
 
-TmEcode AlertJsonThreadDeinit(ThreadVars *t, void *data)
+TmEcode OutputJsonThreadDeinit(ThreadVars *t, void *data)
 {
     return TM_ECODE_FAILED;
 }
 
-void AlertJsonRegisterTests (void)
+void OutputJsonRegisterTests (void)
 {
 }
 
@@ -118,7 +118,7 @@ void AlertJsonRegisterTests (void)
 #define DEFAULT_ALERT_SYSLOG_FACILITY_STR       "local0"
 #define DEFAULT_ALERT_SYSLOG_FACILITY           LOG_LOCAL0
 #define DEFAULT_ALERT_SYSLOG_LEVEL              LOG_INFO
-#define MODULE_NAME "AlertJSON"
+#define MODULE_NAME "OutputJSON"
 
 #define OUTPUT_BUFFER_SIZE 65535
 
@@ -127,25 +127,25 @@ extern uint8_t engine_mode;
 static int alert_syslog_level = DEFAULT_ALERT_SYSLOG_LEVEL;
 #endif /* OS_WIN32 */
 
-TmEcode AlertJson (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode AlertJsonIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode AlertJsonIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode AlertJsonThreadInit(ThreadVars *, void *, void **);
-TmEcode AlertJsonThreadDeinit(ThreadVars *, void *);
-void AlertJsonExitPrintStats(ThreadVars *, void *);
-void AlertJsonRegisterTests(void);
-static void AlertJsonDeInitCtx(OutputCtx *);
+TmEcode OutputJson (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode AlertJsonIPv4(ThreadVars *, Packet *, void *);
+TmEcode AlertJsonIPv6(ThreadVars *, Packet *, void *);
+TmEcode OutputJsonThreadInit(ThreadVars *, void *, void **);
+TmEcode OutputJsonThreadDeinit(ThreadVars *, void *);
+void OutputJsonExitPrintStats(ThreadVars *, void *);
+void OutputJsonRegisterTests(void);
+static void OutputJsonDeInitCtx(OutputCtx *);
 
-void TmModuleAlertJsonRegister (void) {
+void TmModuleOutputJsonRegister (void) {
     tmm_modules[TMM_OUTPUTJSON].name = MODULE_NAME;
-    tmm_modules[TMM_OUTPUTJSON].ThreadInit = AlertJsonThreadInit;
-    tmm_modules[TMM_OUTPUTJSON].Func = AlertJson;
-    tmm_modules[TMM_OUTPUTJSON].ThreadExitPrintStats = AlertJsonExitPrintStats;
-    tmm_modules[TMM_OUTPUTJSON].ThreadDeinit = AlertJsonThreadDeinit;
-    tmm_modules[TMM_OUTPUTJSON].RegisterTests = AlertJsonRegisterTests;
+    tmm_modules[TMM_OUTPUTJSON].ThreadInit = OutputJsonThreadInit;
+    tmm_modules[TMM_OUTPUTJSON].Func = OutputJson;
+    tmm_modules[TMM_OUTPUTJSON].ThreadExitPrintStats = OutputJsonExitPrintStats;
+    tmm_modules[TMM_OUTPUTJSON].ThreadDeinit = OutputJsonThreadDeinit;
+    tmm_modules[TMM_OUTPUTJSON].RegisterTests = OutputJsonRegisterTests;
     tmm_modules[TMM_OUTPUTJSON].cap_flags = 0;
 
-    OutputRegisterModule(MODULE_NAME, "eve-log", AlertJsonInitCtx);
+    OutputRegisterModule(MODULE_NAME, "eve-log", OutputJsonInitCtx);
 
     /* enable the logger for the app layer */
     AppLayerRegisterLogger(ALPROTO_DNS_UDP);
@@ -157,11 +157,11 @@ void TmModuleAlertJsonRegister (void) {
 /* Default Sensor ID value */
 static int64_t sensor_id = -1; /* -1 = not defined */
 
-enum json_output { ALERT_FILE,
+enum JsonOutput { ALERT_FILE,
                    ALERT_SYSLOG,
                    ALERT_UNIX_DGRAM,
                    ALERT_UNIX_STREAM };
-static enum json_output json_out = ALERT_FILE;
+static enum JsonOutput json_out = ALERT_FILE;
 
 #define OUTPUT_ALERTS (1<<0)
 #define OUTPUT_DNS    (1<<1)
@@ -170,12 +170,12 @@ static enum json_output json_out = ALERT_FILE;
 #define OUTPUT_HTTP   (1<<4)
 #define OUTPUT_TLS    (1<<5)
 
-static uint32_t outputFlags = 0;
+static uint32_t output_flags = 0;
 
-enum json_format { COMPACT, INDENT };
-static enum json_format format = COMPACT;
+enum JsonFormat { COMPACT, INDENT };
+static enum JsonFormat format = COMPACT;
 
-json_t *CreateJSONHeader(Packet *p, int direction_sensative)
+json_t *CreateJSONHeader(Packet *p, int direction_sensitive)
 {
     char timebuf[64];
     char srcip[46], dstip[46];
@@ -189,7 +189,7 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensative)
 
     srcip[0] = '\0';
     dstip[0] = '\0';
-    if (direction_sensative) {
+    if (direction_sensitive) {
         if ((PKT_IS_TOCLIENT(p))) {
             if (PKT_IS_IPV4(p)) {
                 PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
@@ -223,11 +223,11 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensative)
         dp = p->dp;
     }
 
-    char proto[16] = "";
-    if (SCProtoNameValid(IPV4_GET_IPPROTO(p)) == TRUE) {
-        strlcpy(proto, known_proto[IPV4_GET_IPPROTO(p)], sizeof(proto));
+    char proto[16];
+    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
+        strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
     } else {
-        snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IPV4_GET_IPPROTO(p));
+        snprintf(proto, sizeof(proto), "%03" PRIu32, IP_GET_IPPROTO(p));
     }
 
     /* time & tx */
@@ -246,23 +246,23 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensative)
     if (p->vlan_idx > 0) {
         json_t *js_vlan;
         switch (p->vlan_idx) {
-        case 1:
-            json_object_set_new(js, "vlan",
-                                json_integer(ntohs(GET_VLAN_ID(p->vlanh[0]))));
-            break;
-        case 2:
-            js_vlan = json_array();
-            if (unlikely(js != NULL)) {
-                json_array_append_new(js_vlan,
-                                json_integer(ntohs(GET_VLAN_ID(p->vlanh[0]))));
-                json_array_append_new(js_vlan,
-                                json_integer(ntohs(GET_VLAN_ID(p->vlanh[1]))));
-                json_object_set_new(js, "vlan", js_vlan);
-            }
-            break;
-        default:
-            /* shouldn't get here */
-            break;
+            case 1:
+                json_object_set_new(js, "vlan",
+                                    json_integer(ntohs(GET_VLAN_ID(p->vlanh[0]))));
+                break;
+            case 2:
+                js_vlan = json_array();
+                if (unlikely(js != NULL)) {
+                    json_array_append_new(js_vlan,
+                                    json_integer(ntohs(GET_VLAN_ID(p->vlanh[0]))));
+                    json_array_append_new(js_vlan,
+                                    json_integer(ntohs(GET_VLAN_ID(p->vlanh[1]))));
+                    json_object_set_new(js, "vlan", js_vlan);
+                }
+                break;
+            default:
+                /* shouldn't get here */
+                break;
         }
     }
 
@@ -338,7 +338,7 @@ TmEcode OutputJSON(json_t *js, void *data, uint64_t *count)
     return TM_ECODE_OK;
 }
 
-TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data)
 {
     AlertJsonThread *aft = (AlertJsonThread *)data;
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
@@ -394,7 +394,7 @@ TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
     return TM_ECODE_OK;
 }
 
-TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data)
 {
     AlertJsonThread *aft = (AlertJsonThread *)data;
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
@@ -450,7 +450,7 @@ TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
     return TM_ECODE_OK;
 }
 
-TmEcode AlertJsonDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode AlertJsonDecoderEvent(ThreadVars *tv, Packet *p, void *data)
 {
     AlertJsonThread *aft = (AlertJsonThread *)data;
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
@@ -521,43 +521,43 @@ TmEcode AlertJsonDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue
     return TM_ECODE_OK;
 }
 
-TmEcode AlertJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode OutputJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
-    if (outputFlags & OUTPUT_ALERTS) {
+    if (output_flags & OUTPUT_ALERTS) {
 
         if (PKT_IS_IPV4(p)) {
-            AlertJsonIPv4(tv, p, data, pq, postpq);
+            AlertJsonIPv4(tv, p, data);
         } else if (PKT_IS_IPV6(p)) {
-            AlertJsonIPv6(tv, p, data, pq, postpq);
+            AlertJsonIPv6(tv, p, data);
         } else if (p->events.cnt > 0) {
-            AlertJsonDecoderEvent(tv, p, data, pq, postpq);
+            AlertJsonDecoderEvent(tv, p, data);
         }
     }
 
-    if (outputFlags & OUTPUT_DNS) {
+    if (output_flags & OUTPUT_DNS) {
         OutputDnsLog(tv, p, data, pq, postpq);
     }
 
-    if (outputFlags & OUTPUT_DROP) {
+    if (output_flags & OUTPUT_DROP) {
         OutputDropLog(tv, p, data, pq, postpq);
     }
 
-    if (outputFlags & OUTPUT_FILES) {
+    if (output_flags & OUTPUT_FILES) {
         OutputFileLog(tv, p, data, pq, postpq);
     }
 
-    if (outputFlags & OUTPUT_HTTP) {
+    if (output_flags & OUTPUT_HTTP) {
         OutputHttpLog(tv, p, data, pq, postpq);
     }
 
-    if (outputFlags & OUTPUT_TLS) {
+    if (output_flags & OUTPUT_TLS) {
         OutputTlsLog(tv, p, data, pq, postpq);
     }
 
     return TM_ECODE_OK;
 }
 
-TmEcode AlertJsonThreadInit(ThreadVars *t, void *initdata, void **data)
+TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     AlertJsonThread *aft = SCMalloc(sizeof(AlertJsonThread));
     if (unlikely(aft == NULL))
@@ -587,7 +587,7 @@ TmEcode AlertJsonThreadInit(ThreadVars *t, void *initdata, void **data)
     return TM_ECODE_OK;
 }
 
-TmEcode AlertJsonThreadDeinit(ThreadVars *t, void *data)
+TmEcode OutputJsonThreadDeinit(ThreadVars *t, void *data)
 {
     AlertJsonThread *aft = (AlertJsonThread *)data;
     if (aft == NULL) {
@@ -598,7 +598,7 @@ TmEcode AlertJsonThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void AlertJsonExitPrintStats(ThreadVars *tv, void *data) {
+void OutputJsonExitPrintStats(ThreadVars *tv, void *data) {
     AlertJsonThread *aft = (AlertJsonThread *)data;
     if (aft == NULL) {
         return;
@@ -613,7 +613,7 @@ void AlertJsonExitPrintStats(ThreadVars *tv, void *data) {
  * \param conf The configuration node for this output.
  * \return A LogFileCtx pointer on success, NULL on failure.
  */
-OutputCtx *AlertJsonInitCtx(ConfNode *conf)
+OutputCtx *OutputJsonInitCtx(ConfNode *conf)
 {
     OutputJsonCtx *json_ctx = SCCalloc(1, sizeof(OutputJsonCtx));;
     if (unlikely(json_ctx == NULL)) {
@@ -633,7 +633,7 @@ OutputCtx *AlertJsonInitCtx(ConfNode *conf)
         return NULL;
 
     output_ctx->data = json_ctx;
-    output_ctx->DeInit = AlertJsonDeInitCtx;
+    output_ctx->DeInit = OutputJsonDeInitCtx;
 
     if (conf) {
         const char *output_s = ConfNodeLookupChildValue(conf, "type");
@@ -722,38 +722,38 @@ OutputCtx *AlertJsonInitCtx(ConfNode *conf)
             TAILQ_FOREACH(output, &outputs->head, next) {
                 if (strcmp(output->val, "alert") == 0) {
                     SCLogDebug("Enabling alert output");
-                    outputFlags |= OUTPUT_ALERTS;
+                    output_flags |= OUTPUT_ALERTS;
                     continue;
                 }
                 if (strcmp(output->val, "dns") == 0) {
                     SCLogDebug("Enabling DNS output");
-                    outputFlags |= OUTPUT_DNS;
+                    output_flags |= OUTPUT_DNS;
                     continue;
                 }
                 if (strcmp(output->val, "drop") == 0) {
                     SCLogDebug("Enabling drop output");
-                    outputFlags |= OUTPUT_DROP;
+                    output_flags |= OUTPUT_DROP;
                     continue;
                 }
                 if (strcmp(output->val, "files") == 0) {
                     SCLogDebug("Enabling files output");
                     ConfNode *child = ConfNodeLookupChild(output, "files"); 
                     json_ctx->files_ctx = OutputFileLogInit(child);
-                    outputFlags |= OUTPUT_FILES;
+                    output_flags |= OUTPUT_FILES;
                     continue;
                 }
                 if (strcmp(output->val, "http") == 0) {
                     SCLogDebug("Enabling HTTP output");
                     ConfNode *child = ConfNodeLookupChild(output, "http"); 
                     json_ctx->http_ctx = OutputHttpLogInit(child);
-                    outputFlags |= OUTPUT_HTTP;
+                    output_flags |= OUTPUT_HTTP;
                     continue;
                 }
                 if (strcmp(output->val, "tls") == 0) {
                     SCLogDebug("Enabling TLS output");
                     ConfNode *child = ConfNodeLookupChild(output, "tls"); 
                     json_ctx->tls_ctx = OutputTlsLogInit(child);
-                    outputFlags |= OUTPUT_TLS;
+                    output_flags |= OUTPUT_TLS;
                     continue;
                 }
             }
@@ -763,7 +763,7 @@ OutputCtx *AlertJsonInitCtx(ConfNode *conf)
     return output_ctx;
 }
 
-static void AlertJsonDeInitCtx(OutputCtx *output_ctx)
+static void OutputJsonDeInitCtx(OutputCtx *output_ctx)
 {
     OutputJsonCtx *json_ctx = (OutputJsonCtx *)output_ctx->data;
     LogFileCtx *logfile_ctx = json_ctx->file_ctx;
@@ -780,7 +780,7 @@ static void AlertJsonDeInitCtx(OutputCtx *output_ctx)
 /**
  * \brief This function registers unit tests for AlertFastLog API.
  */
-void AlertJsonRegisterTests(void)
+void OutputJsonRegisterTests(void)
 {
 
 #ifdef UNITTESTS

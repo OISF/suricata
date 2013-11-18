@@ -150,6 +150,30 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     (void*)ptrmem; \
 })
 
+#define SCStrndup(a, maxlen) ({ \
+    char *ptrmem = NULL; \
+    extern size_t global_mem; \
+    extern uint8_t print_mem_flag; \
+    size_t len = strnlen((a), (maxlen)); \
+    \
+    ptrmem = strndup((a), (maxlen)); \
+    if (ptrmem == NULL) { \
+        SCLogError(SC_ERR_MEM_ALLOC, "SCStrndup failed: %s, while trying " \
+            "to allocate %"PRIuMAX" bytes", strerror(errno), (uintmax_t)len); \
+        if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
+            SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
+            exit(EXIT_FAILURE); \
+        } \
+    } \
+    \
+    global_mem += len; \
+    if (print_mem_flag == 1) {                              \
+        SCLogInfo("SCStrndup return at %p of size %"PRIuMAX, \
+            ptrmem, (uintmax_t)len); \
+    }                                \
+    (void*)ptrmem; \
+})
+
 #define SCFree(a) ({ \
     extern uint8_t print_mem_flag; \
     if (print_mem_flag == 1) {          \
@@ -213,6 +237,22 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     if (ptrmem == NULL) { \
         if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
             size_t len = strlen((a)); \
+            SCLogError(SC_ERR_MEM_ALLOC, "SCStrdup failed: %s, while trying " \
+                "to allocate %"PRIuMAX" bytes", strerror(errno), (uintmax_t)len); \
+            SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
+            exit(EXIT_FAILURE); \
+        } \
+    } \
+    (void*)ptrmem; \
+})
+
+#define SCStrndup(a, maxlen) ({ \
+    char *ptrmem = NULL; \
+    \
+    ptrmem = strndup((a), (maxlen)); \
+    if (ptrmem == NULL) { \
+        if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
+            size_t len = strnlen((a), (maxlen)); \
             SCLogError(SC_ERR_MEM_ALLOC, "SCStrdup failed: %s, while trying " \
                 "to allocate %"PRIuMAX" bytes", strerror(errno), (uintmax_t)len); \
             SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
