@@ -1817,6 +1817,32 @@ static int PostConfLoadedSetup(SCInstance *suri)
 {
     char *hostmode = NULL;
 
+    /* load the pattern matchers */
+    MpmTableSetup();
+#ifdef __SC_CUDA_SUPPORT__
+    MpmCudaEnvironmentSetup();
+#endif
+
+    suri->rule_reload = IsRuleReloadSet(FALSE);
+
+    AppLayerDetectProtoThreadInit();
+    AppLayerParsersInitPostProcess();
+
+    /* Check for the existance of the default logging directory which we pick
+     * from suricata.yaml.  If not found, shut the engine down */
+    suri->log_dir = ConfigGetLogDirectory();
+
+    if (ConfigCheckLogDirectory(suri->log_dir) != TM_ECODE_OK) {
+        SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
+                "supplied by %s (default-log-dir) doesn't exist. "
+                "Shutting down the engine", suri->log_dir, conf_filename);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    if (ConfigGetCaptureValue(suri) != TM_ECODE_OK) {
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
     if (ConfGet("host-mode", &hostmode) == 1) {
         if (!strcmp(hostmode, "router")) {
             host_mode = SURI_HOST_IS_ROUTER;
@@ -1843,7 +1869,82 @@ static int PostConfLoadedSetup(SCInstance *suri)
                       "default setting 'sniffer-only'");
         }
     }
-    return TM_ECODE_OK;
+
+#ifdef NFQ
+    if (suri->run_mode == RUNMODE_NFQ)
+        NFQInitConfig(FALSE);
+#endif
+
+    /* Load the Host-OS lookup. */
+    SCHInfoLoadFromConfig();
+    if (suri->run_mode != RUNMODE_UNIX_SOCKET) {
+        DefragInit();
+    }
+
+    if (suri->run_mode == RUNMODE_ENGINE_ANALYSIS) {
+        SCLogInfo("== Carrying out Engine Analysis ==");
+        char *temp = NULL;
+        if (ConfGet("engine-analysis", &temp) == 0) {
+            SCLogInfo("no engine-analysis parameter(s) defined in conf file.  "
+                      "Please define/enable them in the conf to use this "
+                      "feature.");
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+    }
+
+    /* hardcoded initialization code */
+    SigTableSetup(); /* load the rule keywords */
+    TmqhSetup();
+
+    StorageInit();
+    CIDRInit();
+    SigParsePrepare();
+    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
+    if (suri->run_mode != RUNMODE_UNIX_SOCKET) {
+        SCPerfInitCounterApi();
+    }
+#ifdef PROFILING
+    SCProfilingRulesGlobalInit();
+    SCProfilingKeywordsGlobalInit();
+    SCProfilingInit();
+#endif /* PROFILING */
+    SCReputationInitCtx();
+    SCProtoNameInit();
+
+    TagInitCtx();
+    ThresholdInit();
+
+    if (DetectAddressTestConfVars() < 0) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                "basic address vars test failed. Please check %s for errors", conf_filename);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    if (DetectPortTestConfVars() < 0) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                "basic port vars test failed. Please check %s for errors", conf_filename);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    RegisterAllModules();
+
+    AppLayerHtpNeedFileInspection();
+
+    DetectEngineRegisterAppInspectionEngines();
+
+    if (suri->rule_reload) {
+        if (suri->sig_file != NULL)
+            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
+        else
+            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
+    } else {
+        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Disabled);
+    }
+
+    StorageFinalize();
+
+    TmModuleRunInit();
+
+    SCReturnInt(TM_ECODE_OK);
 }
 
 
@@ -1933,115 +2034,14 @@ int main(int argc, char **argv)
 
     UtilCpuPrintSummary();
 
-    /* load the pattern matchers */
-    MpmTableSetup();
-#ifdef __SC_CUDA_SUPPORT__
-    MpmCudaEnvironmentSetup();
-#endif
-
-    suri.rule_reload = IsRuleReloadSet(FALSE);
-
-    AppLayerDetectProtoThreadInit();
-    AppLayerParsersInitPostProcess();
-
     if (suri.run_mode == RUNMODE_DUMP_CONFIG) {
         ConfDump();
         exit(EXIT_SUCCESS);
     }
 
-    /* Check for the existance of the default logging directory which we pick
-     * from suricata.yaml.  If not found, shut the engine down */
-    suri.log_dir = ConfigGetLogDirectory();
-
-    if (ConfigCheckLogDirectory(suri.log_dir) != TM_ECODE_OK) {
-        SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
-                "supplied by %s (default-log-dir) doesn't exist. "
-                "Shutting down the engine", suri.log_dir, conf_filename);
-        exit(EXIT_FAILURE);
-    }
-
-    if (ConfigGetCaptureValue(&suri) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
-
-
     if (PostConfLoadedSetup(&suri) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
-
-#ifdef NFQ
-    if (suri.run_mode == RUNMODE_NFQ)
-        NFQInitConfig(FALSE);
-#endif
-
-    /* Load the Host-OS lookup. */
-    SCHInfoLoadFromConfig();
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
-        DefragInit();
-    }
-
-    if (suri.run_mode == RUNMODE_ENGINE_ANALYSIS) {
-        SCLogInfo("== Carrying out Engine Analysis ==");
-        char *temp = NULL;
-        if (ConfGet("engine-analysis", &temp) == 0) {
-            SCLogInfo("no engine-analysis parameter(s) defined in conf file.  "
-                      "Please define/enable them in the conf to use this "
-                      "feature.");
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    /* hardcoded initialization code */
-    SigTableSetup(); /* load the rule keywords */
-    TmqhSetup();
-
-    StorageInit();
-    CIDRInit();
-    SigParsePrepare();
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
-        SCPerfInitCounterApi();
-    }
-#ifdef PROFILING
-    SCProfilingRulesGlobalInit();
-    SCProfilingKeywordsGlobalInit();
-    SCProfilingInit();
-#endif /* PROFILING */
-    SCReputationInitCtx();
-    SCProtoNameInit();
-
-    TagInitCtx();
-    ThresholdInit();
-
-    if (DetectAddressTestConfVars() < 0) {
-        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                "basic address vars test failed. Please check %s for errors", conf_filename);
-        exit(EXIT_FAILURE);
-    }
-    if (DetectPortTestConfVars() < 0) {
-        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                "basic port vars test failed. Please check %s for errors", conf_filename);
-        exit(EXIT_FAILURE);
-    }
-
-    RegisterAllModules();
-
-    AppLayerHtpNeedFileInspection();
-
-    DetectEngineRegisterAppInspectionEngines();
-
-    if (suri.rule_reload) {
-        if (suri.sig_file != NULL)
-            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
-        else
-            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
-    } else {
-        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Disabled);
-    }
-
-    StorageFinalize();
-
-    TmModuleRunInit();
 
     if (MayDaemonize(&suri) != TM_ECODE_OK)
             exit(EXIT_FAILURE);
