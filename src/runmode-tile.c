@@ -46,7 +46,7 @@
 
 #ifdef HAVE_MPIPE
 /* Number of configured parallel pipelines. */
-unsigned int tile_num_pipelines;
+int tile_num_pipelines;
 #endif
 
 /*
