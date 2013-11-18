@@ -21,25 +21,28 @@
  * \author Giuseppe Longo <giuseppelng@gmail.com>
  *
  * Example config:
- *
  * defrag:
- *      memcap: 32mb
- *      hash-size: 65536
- *      trackers: 65535
- *      max-frags: 65535
- *      prealloc: yes
+ *    memcap: 32mb
+ *    hash-size: 65536
+ *    trackers: 65535
+ *    max-frags: 65535
+ *    prealloc: yes
  *
- *      default-config:
- *              timeout: 60
- *      host-config:
- *              - dmz:
- *                      timeout: 30
- *                      address: [192.168.1.0/24, 127.0.0.0/8, "::1"]
- *              - lan:
- *                      timeout: 45
- *                      address:
- *                              - 192.168.0.0/24
- *                              - 192.168.10.0/24
+ *    default-config:
+ *       timeout: 40
+ *
+ *    host-config:
+ *
+ *      - dmz:
+ *          timeout: 30
+ *          address: [192.168.1.0/24, 127.0.0.0/8, 1.1.1.0/24, 2.2.2.0/24, "1.1.1.1", "2.2.2.2", "::1"]
+ *
+ *      - lan:
+ *          timeout: 45
+ *          address:
+ *            - 192.168.0.0/24
+ *            - 192.168.10.0/24
+ *            - 172.16.14.0/24
  */
 
 #include "suricata-common.h"
@@ -78,7 +81,7 @@ static int DefragPolicyGetIPv4HostTimeout(uint8_t *ipv4_addr)
     SCRadixNode *node = SCRadixFindKeyIPV4BestMatch(ipv4_addr, defrag_tree);
 
     if (node == NULL)
-    	return -1;
+        return -1;
     else
         return *((int *)node->prefix->user_data_result);
 }
@@ -156,7 +159,7 @@ void DefragPolicyLoadFromConfig(void)
 
         TAILQ_FOREACH(p, &sc->head, next) {
             SCLogDebug("Defrag: parsing configuration for %s", p->name);
-	        DefragParseParameters(p);
-	    }
+            DefragParseParameters(p);
+        }
     }
 }
