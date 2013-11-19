@@ -526,6 +526,9 @@ void SCProfilingRuleThreadCleanup(DetectEngineThreadCtx *det_ctx) {
 void
 SCProfilingRuleInitCounters(DetectEngineCtx *de_ctx)
 {
+    if (profiling_rules_enabled == 0)
+        return;
+
     de_ctx->profile_ctx = SCProfilingRuleInitCtx();
     BUG_ON(de_ctx->profile_ctx == NULL);
 
