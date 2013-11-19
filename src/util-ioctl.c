@@ -28,6 +28,15 @@
 #include <sys/ioctl.h>
 #endif
 
+#ifdef HAVE_LINUX_ETHTOOL_H
+#include <linux/ethtool.h>
+#ifdef HAVE_LINUX_SOCKIOS_H
+#include <linux/sockios.h>
+#else
+#error "ethtool.h present but sockios.h is missing"
+#endif /* HAVE_LINUX_SOCKIOS_H */
+#endif /* HAVE_LINUX_ETHTOOL_H */
+
 #ifdef HAVE_NET_IF_H
 #include <net/if.h>
 #endif
@@ -119,3 +128,78 @@ int GetIfaceMaxPacketSize(char *pcap_dev)
     }
     return ll_header + mtu;
 }
+
+/**
+ * \brief output offloading status of the link
+ *
+ * Test interface for GRO and LRO features. If one of them is
+ * activated then suricata mays received packets merge at reception.
+ * The result is oversized packets and this may cause some serious
+ * problem in some capture mode where the size of the packet is
+ * limited (AF_PACKET in V2 more for example).
+ *
+ * ETHTOOL_GGRO ETH_FLAG_LRO
+ *
+ * \param Name of link
+ * \retval -1 in case of error, 0 if none, 1 if some
+ */
+int GetIfaceOffloading(char *pcap_dev)
+{
+#ifdef ETHTOOL_GGRO
+    struct ifreq ifr;
+    int fd;
+    struct ethtool_value ethv;
+    int ret = 0;
+
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd == -1) {
+        return -1;
+    }
+    (void)strlcpy(ifr.ifr_name, pcap_dev, sizeof(ifr.ifr_name));
+
+    /* First get GRO */
+    ethv.cmd = ETHTOOL_GGRO;
+    ifr.ifr_data = (void *) &ethv;
+    if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
+        SCLogWarning(SC_ERR_SYSCALL,
+                  "Failure when trying to get feature via ioctl: %s (%d)",
+                  strerror(errno), errno);
+        close(fd);
+        return -1;
+    } else {
+        if (ethv.data) {
+            SCLogInfo("Generic Receive Offload is set on %s", pcap_dev);
+            ret = 1;
+        } else {
+            SCLogInfo("Generic Receive Offload is unset on %s", pcap_dev);
+        }
+    }
+
+    /* Then get LRO which is set in a flag */
+    ethv.data = 0;
+    ethv.cmd = ETHTOOL_GFLAGS;
+    ifr.ifr_data = (void *) &ethv;
+    if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
+        SCLogWarning(SC_ERR_SYSCALL,
+                  "Failure when trying to get feature via ioctl: %s (%d)",
+                  strerror(errno), errno);
+        close(fd);
+        return -1;
+    } else {
+        if (ethv.data & ETH_FLAG_LRO) {
+            SCLogInfo("Large Receive Offload is set on %s", pcap_dev);
+            ret = 1;
+        } else {
+            SCLogInfo("Large Receive Offload is unset on %s", pcap_dev);
+        }
+    }
+
+    close(fd);
+
+    return ret;
+#else
+    /* ioctl is not defined, let's pretend returning 0 is ok */
+    return 0;
+#endif
+}
+
