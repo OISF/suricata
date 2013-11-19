@@ -405,7 +405,9 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     ptv->pd = pfring_open(ptv->interface, LIBPFRING_PROMISC, (uint32_t)default_packet_size, LIBPFRING_REENTRANT);
 #endif
     if (ptv->pd == NULL) {
-        SCLogError(SC_ERR_PF_RING_OPEN,"opening %s failed: pfring_open error",
+        SCLogError(SC_ERR_PF_RING_OPEN,"Failed to open %s: pfring_open error."
+                " Check if %s exists and pf_ring module is loaded.",
+                ptv->interface,
                 ptv->interface);
         pfconf->DerefFunc(pfconf);
         return TM_ECODE_FAILED;
