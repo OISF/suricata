@@ -375,14 +375,12 @@ typedef struct Packet_
     uint16_t vlan_id[2];
     uint8_t vlan_idx;
 
-    /* Pkt Flags */
-    uint32_t flags;
-
     /* flow */
     uint8_t flowflags;
     /* coccinelle: Packet:flowflags:FLOW_PKT_ */
 
-    uint8_t pkt_src;
+    /* Pkt Flags */
+    uint32_t flags;
 
     struct Flow_ *flow;
 
@@ -408,16 +406,6 @@ typedef struct Packet_
         PcapPacketVars pcap_v;
     };
 
-    /** data linktype in host order */
-    int datalink;
-
-    /* IPS action to take */
-    uint8_t action;
-
-    /* used to hold flowbits only if debuglog is enabled */
-    int debuglog_flowbits_names_len;
-    const char **debuglog_flowbits_names;
-
     /** The release function for packet structure and data */
     void (*ReleasePacket)(struct Packet_ *);
 
@@ -433,25 +421,34 @@ typedef struct Packet_
     int32_t level4_comp_csum;
 
     IPV4Hdr *ip4h;
-    IPV4Vars ip4vars;
 
     IPV6Hdr *ip6h;
-    IPV6Vars ip6vars;
-    IPV6ExtHdrs ip6eh;
+
+    /* IPv4 and IPv6 are mutually exclusive */
+    union {
+        IPV4Vars ip4vars;
+        struct {
+            IPV6Vars ip6vars;
+            IPV6ExtHdrs ip6eh;
+        };
+    };
+    /* Can only be one of TCP, UDP, ICMP at any given time */
+    union {
+        TCPVars tcpvars;
+        UDPVars udpvars;
+        ICMPV4Vars icmpv4vars;
+        ICMPV6Vars icmpv6vars;
+    };
 
     TCPHdr *tcph;
-    TCPVars tcpvars;
 
     UDPHdr *udph;
-    UDPVars udpvars;
 
     SCTPHdr *sctph;
 
     ICMPV4Hdr *icmpv4h;
-    ICMPV4Vars icmpv4vars;
 
     ICMPV6Hdr *icmpv6h;
-    ICMPV6Vars icmpv6vars;
 
     PPPHdr *ppph;
     PPPOESessionHdr *pppoesh;
@@ -466,10 +463,15 @@ typedef struct Packet_
     uint8_t *payload;
     uint16_t payload_len;
 
+    /* IPS action to take */
+    uint8_t action;
+
+    uint8_t pkt_src;
+
     /* storage: set to pointer to heap and extended via allocation if necessary */
+    uint32_t pktlen;
     uint8_t *pkt;
     uint8_t *ext_pkt;
-    uint32_t pktlen;
 
     /* Incoming interface */
     struct LiveDevice_ *livedev;
@@ -482,15 +484,6 @@ typedef struct Packet_
     /** packet number in the pcap file, matches wireshark */
     uint64_t pcap_cnt;
 
-    /** mutex to protect access to:
-     *  - tunnel_rtv_cnt
-     *  - tunnel_tpr_cnt
-     */
-    SCMutex tunnel_mutex;
-    /* ready to set verdict counter, only set in root */
-    uint16_t tunnel_rtv_cnt;
-    /* tunnel packet ref count */
-    uint16_t tunnel_tpr_cnt;
 
     /* engine events */
     PacketEngineEvents events;
@@ -501,12 +494,30 @@ typedef struct Packet_
     struct Packet_ *next;
     struct Packet_ *prev;
 
+    /** data linktype in host order */
+    int datalink;
+
+    /* used to hold flowbits only if debuglog is enabled */
+    int debuglog_flowbits_names_len;
+    const char **debuglog_flowbits_names;
+
     /* tunnel/encapsulation handling */
     struct Packet_ *root; /* in case of tunnel this is a ptr
                            * to the 'real' packet, the one we
                            * need to set the verdict on --
                            * It should always point to the lowest
                            * packet in a encapsulated packet */
+
+    /** mutex to protect access to:
+     *  - tunnel_rtv_cnt
+     *  - tunnel_tpr_cnt
+     */
+    SCMutex tunnel_mutex;
+    /* ready to set verdict counter, only set in root */
+    uint16_t tunnel_rtv_cnt;
+    /* tunnel packet ref count */
+    uint16_t tunnel_tpr_cnt;
+
 
 #ifdef PROFILING
     PktProfiling profile;
