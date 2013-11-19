@@ -24,7 +24,7 @@
 #ifndef __OUTPUT_DNSLOG_H__
 #define __OUTPUT_DNSLOG_H__
 
-TmEcode OutputDnsLog(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq);
+TmEcode OutputDnsLog(ThreadVars *tv, Packet *p, void *data);
 OutputCtx *DnsJsonInitCtx(ConfNode *);
 
 #endif /* __OUTPUT_DNSLOG_H__ */

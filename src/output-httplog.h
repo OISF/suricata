@@ -24,7 +24,7 @@
 #ifndef __OUTPUT_HTTPLOG_H__
 #define __OUTPUT_HTTPLOG_H__
 
-TmEcode OutputHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq);
+TmEcode OutputHttpLog (ThreadVars *tv, Packet *p, void *data);
 OutputCtx *OutputHttpLogInit(ConfNode *);
 
 #endif /* __OUTPUT_HTTPLOG_H__ */

@@ -26,7 +26,7 @@
 #ifndef OUTPUT_DROPLOG_H
 #define	OUTPUT_DROPLOG_H
 
-TmEcode OutputDropLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq);
+TmEcode OutputDropLog (ThreadVars *tv, Packet *p, void *data);
 OutputCtx *OutputDropLogInit(ConfNode *);
 
 #endif	/* OUTPUT_DROPLOG_H */

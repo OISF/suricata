@@ -218,8 +218,7 @@ static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx)
     json_object_set_new(js, "http", hjs);
 }
 
-static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-                            PacketQueue *postpq)
+static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
 
@@ -306,10 +305,10 @@ end:
 
 }
 
-TmEcode OutputHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode OutputHttpLog (ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
-    HttpJsonIPWrapper(tv, p, data, pq, postpq);
+    HttpJsonIPWrapper(tv, p, data);
     SCReturnInt(TM_ECODE_OK);
 }
 

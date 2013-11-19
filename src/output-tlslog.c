@@ -104,7 +104,7 @@ static void LogTlsLogExtendedJSON(json_t *tjs, SSLState * state)
 }
 
 
-static TmEcode LogTlsLogIPWrapperJSON(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode LogTlsLogIPWrapperJSON(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
     AlertJsonThread *aft = (AlertJsonThread *)data;
@@ -171,7 +171,7 @@ end:
 
 }
 
-TmEcode OutputTlsLog(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode OutputTlsLog(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
 
@@ -184,7 +184,7 @@ TmEcode OutputTlsLog(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pac
         SCReturnInt(TM_ECODE_OK);
     }
 
-    LogTlsLogIPWrapperJSON(tv, p, data, pq, postpq);
+    LogTlsLogIPWrapperJSON(tv, p, data);
 
     SCReturnInt(TM_ECODE_OK);
 }
