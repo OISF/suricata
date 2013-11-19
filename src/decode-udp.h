@@ -50,7 +50,7 @@ typedef struct UDPVars_
 
 #define CLEAR_UDP_PACKET(p) do { \
     (p)->udph = NULL; \
-    (p)->comp_csum = -1; \
+    (p)->level4_comp_csum = -1; \
 } while (0)
 
 void DecodeUDPV4RegisterTests(void);
