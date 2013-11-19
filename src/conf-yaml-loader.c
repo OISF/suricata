@@ -407,9 +407,6 @@ ConfYamlLoadString(const char *string, size_t len)
 
 #ifdef UNITTESTS
 
-/** The top directory of the source tree. */
-static char *top_dir = NULL;
-
 static int
 ConfYamlRuleFileTest(void)
 {
@@ -648,44 +645,81 @@ libhtp:\n\
 static int
 ConfYamlFileIncludeTest(void)
 {
-    char config_filename[PATH_MAX];
+    int ret = 0;
+    FILE *config_file;
+
+    const char config_filename[] = "ConfYamlFileIncludeTest-config.yaml";
+    const char config_file_contents[] =
+        "%YAML 1.1\n"
+        "---\n"
+        "# Include something at the root level.\n"
+        "include: ConfYamlFileIncludeTest-include.yaml\n"
+        "# Test including under a mapping.\n"
+        "mapping: !include ConfYamlFileIncludeTest-include.yaml\n";
+
+    const char include_filename[] = "ConfYamlFileIncludeTest-include.yaml";
+    const char include_file_contents[] = 
+        "%YAML 1.1\n"
+        "---\n"
+        "host-mode: auto\n"
+        "unix-command:\n"
+        "  enabled: no\n";
 
     ConfCreateContextBackup();
     ConfInit();
 
+    /* Write out the test files. */
+    if ((config_file = fopen(config_filename, "w")) == NULL) {
+        goto cleanup;
+    }
+    if (fwrite(config_file_contents, strlen(config_file_contents), 1,
+            config_file) != 1) {
+        goto cleanup;
+    }
+    fclose(config_file);
+    if ((config_file = fopen(include_filename, "w")) == NULL) {
+        goto cleanup;
+    }
+    if (fwrite(include_file_contents, strlen(include_file_contents), 1,
+            config_file) != 1) {
+        goto cleanup;
+    }
+    fclose(config_file);
+
     /* Reset conf_dirname. */
     conf_dirname = NULL;
 
-    if (top_dir == NULL) {
-        return 0;
-    }
-    snprintf(config_filename, sizeof(config_filename), 
-        "%s/qa/test/confyaml-test-includes.yaml", top_dir);
-    if (ConfYamlLoadFile(config_filename) != 0)
-        return 0;
+    if (ConfYamlLoadFile("ConfYamlFileIncludeTest-config.yaml") != 0)
+        goto cleanup;
 
     /* Check values that should have been loaded into the root of the
      * configuration. */
     ConfNode *node;
     node = ConfGetNode("host-mode");
-    if (node == NULL) return 0;
-    if (strcmp(node->val, "auto") != 0) return 0;
+    if (node == NULL) goto cleanup;
+    if (strcmp(node->val, "auto") != 0) goto cleanup;
     node = ConfGetNode("unix-command.enabled");
-    if (node == NULL) return 0;
-    if (strcmp(node->val, "no") != 0) return 0;
+    if (node == NULL) goto cleanup;
+    if (strcmp(node->val, "no") != 0) goto cleanup;
 
     /* Check for values that were included under a mapping. */
     node = ConfGetNode("mapping.host-mode");
-    if (node == NULL) return 0;
-    if (strcmp(node->val, "auto") != 0) return 0;
+    if (node == NULL) goto cleanup;
+    if (strcmp(node->val, "auto") != 0) goto cleanup;
     node = ConfGetNode("mapping.unix-command.enabled");
-    if (node == NULL) return 0;
-    if (strcmp(node->val, "no") != 0) return 0;
+    if (node == NULL) goto cleanup;
+    if (strcmp(node->val, "no") != 0) goto cleanup;
 
     ConfDeInit();
     ConfRestoreContextBackup();
 
-    return 1;
+    ret = 1;
+
+cleanup:
+    unlink(config_filename);
+    unlink(include_filename);
+
+    return ret;
 }
 
 #endif /* UNITTESTS */
@@ -694,26 +728,6 @@ void
 ConfYamlRegisterTests(void)
 {
 #ifdef UNITTESTS
-
-    /* Find the top source directory. */
-    static char *locations[] = {
-        ".",
-        "../../../../source"
-    };
-    char path[PATH_MAX];
-    struct stat stat_buf;
-    for (size_t i = 0; i < sizeof(locations) / sizeof(locations[0]); i++) {
-        snprintf(path, sizeof(path), "%s/qa/test", locations[i]);
-        if (stat(path, &stat_buf) == 0) {
-            top_dir = locations[i];
-            break;
-        }
-    }
-    if (top_dir == NULL) {
-        SCLogError(SC_ERR_OPENING_FILE,
-            "Couldn't find top source directory.  Tests likely to fail.");
-    }
-
     UtRegisterTest("ConfYamlRuleFileTest", ConfYamlRuleFileTest, 1);
     UtRegisterTest("ConfYamlLoggingOutputTest", ConfYamlLoggingOutputTest, 1);
     UtRegisterTest("ConfYamlNonYamlFileTest", ConfYamlNonYamlFileTest, 1);
