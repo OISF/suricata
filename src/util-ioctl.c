@@ -18,7 +18,7 @@
 /**
  * \file
  *
- * \author Eric Leblond <eleblond@edenwall.com>
+ * \author Eric Leblond <eric@regit.org>
  */
 
 #include "suricata-common.h"
@@ -51,12 +51,10 @@ int GetIfaceMaxHWHeaderLength(char *pcap_dev)
             ||
             (!strcmp("tap", pcap_dev))
             ||
-            (!strcmp("lo", pcap_dev))
-       )
+            (!strcmp("lo", pcap_dev)))
         return ETHERNET_HEADER_LEN;
-    if (
-            (!strcmp("ppp", pcap_dev))
-       )
+
+    if (!strcmp("ppp", pcap_dev))
         return SLL_HEADER_LEN;
     /* SLL_HEADER_LEN is the biggest one */
     return SLL_HEADER_LEN;
