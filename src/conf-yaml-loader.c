@@ -272,8 +272,11 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                             goto fail;
                     }
                     else if (node->allow_override) {
-                        if (node->val != NULL)
+                        if (node->val != NULL) {
+                            SCLogInfo("Configuration node '%s' reassigned.",
+                                node->name);
                             SCFree(node->val);
+                        }
                         node->val = SCStrdup(value);
                     }
                     state = CONF_KEY;
@@ -282,6 +285,10 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
         }
         else if (event.type == YAML_SEQUENCE_START_EVENT) {
             SCLogDebug("event.type=YAML_SEQUENCE_START_EVENT; state=%d", state);
+            if (!TAILQ_EMPTY(&node->head)) {
+                SCLogInfo("Sequence '%s' reassigned.", node->name);
+                ConfNodeRemoveChildren(node);
+            }
             if (ConfYamlParse(parser, node, 1) != 0)
                 goto fail;
             state = CONF_KEY;
@@ -687,6 +694,7 @@ ConfYamlFileIncludeTest(void)
     fclose(config_file);
 
     /* Reset conf_dirname. */
+    SCFree(conf_dirname);
     conf_dirname = NULL;
 
     if (ConfYamlLoadFile("ConfYamlFileIncludeTest-config.yaml") != 0)
@@ -722,6 +730,93 @@ cleanup:
     return ret;
 }
 
+/**
+ * Test that a simple value will get the value of the last occurrence.
+ *
+ * For example:
+ *   key: value0
+ *   key: value1
+ * Should result with key = value1.
+ */
+static int
+ConfYamlValueReassignTest(void)
+{
+    char *value;
+    const char config[] =
+        "%YAML 1.1\n"
+        "---\n"
+        "key: value0\n"
+        "key: value1\n"
+        "parent:\n"
+        "  child:\n"
+        "    key: value3\n"
+        ;
+
+    ConfCreateContextBackup();
+    ConfInit();
+
+    if (ConfYamlLoadString(config, strlen(config)) != 0) return 0;
+
+    /* Top level configuration node. */
+    if (ConfGet("key", &value) != 1) return 0;
+    if (strcmp("value1", value) != 0) return 0;
+
+    /* A child node. */
+    if (ConfGet("parent.child.key", &value) != 1) return 0;
+    if (strcmp("value3", value) != 0) return 0;
+
+    return 1;
+}
+
+/**
+ * Test the subsequent occurrences of a sequence replace the previous
+ * occcurrence.
+ */
+static int
+ConfYamlSequenceReassignTest(void)
+{
+    const char config[] =
+        "%YAML 1.1\n"
+        "---\n"
+        "list: [1,2,3]\n"
+        "list: [3,4,5]\n"
+        "parent:\n"
+        "  child:\n"
+        "    - one\n"
+        "    - two\n"
+        "parent:\n"
+        "  child: [1,2]\n"
+        ;
+
+    ConfCreateContextBackup();
+    ConfInit();
+
+    if (ConfYamlLoadString(config, strlen(config)) != 0) return 0;
+
+    /* Top level list. */
+    ConfNode *node = ConfGetNode("list");
+    if (node == NULL) return 0;
+    ConfNode *item = TAILQ_FIRST(&node->head);
+    if (item == NULL) return 0;
+    if (strcmp(item->val, "3") != 0) return 0;
+    if ((item = TAILQ_NEXT(item, next)) == NULL) return 0;
+    if (strcmp(item->val, "4") != 0) return 0;
+    if ((item = TAILQ_NEXT(item, next)) == NULL) return 0;
+    if (strcmp(item->val, "5") != 0) return 0;
+    if ((item = TAILQ_NEXT(item, next)) != NULL) return 0;
+
+    /* The nested list. */
+    node = ConfGetNode("parent.child");
+    if (node == NULL) return 0;
+    if ((item = TAILQ_FIRST(&node->head)) == NULL) return 0;
+    if (strcmp(item->val, "1") != 0) return 0;
+    if ((item = TAILQ_NEXT(item, next)) == NULL) return 0;
+    if (strcmp(item->val, "2") != 0) return 0;
+    if ((item = TAILQ_NEXT(item, next)) != NULL) return 0;
+
+    return 1;
+}
+
 #endif /* UNITTESTS */
 
 void
@@ -735,5 +830,8 @@ ConfYamlRegisterTests(void)
     UtRegisterTest("ConfYamlSecondLevelSequenceTest",
         ConfYamlSecondLevelSequenceTest, 1);
     UtRegisterTest("ConfYamlFileIncludeTest", ConfYamlFileIncludeTest, 1);
+    UtRegisterTest("ConfYamlValueReassignTest", ConfYamlValueReassignTest, 1);
+    UtRegisterTest("ConfYamlSequenceReassignTest",
+        ConfYamlSequenceReassignTest, 1);
 #endif /* UNITTESTS */
 }
