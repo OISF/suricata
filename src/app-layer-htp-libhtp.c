@@ -102,8 +102,11 @@ int64_t SC_htp_parse_content_length(bstr *b)
  *        Keep an eye out on the tx->parsed_uri struct and how the parameters
  *        in it are generated, just in case some modifications are made to
  *        them in the future.
+ *
+ * \param uri_include_all boolean to indicate if scheme, username/password,
+                          hostname and port should be part of the buffer
  */
-bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri)
+bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, int uri_include_all)
 {
     if (uri == NULL)
         return NULL;
@@ -111,32 +114,34 @@ bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri)
     // On the first pass determine the length of the final string
     size_t len = 0;
 
-    if (uri->scheme != NULL) {
-        len += bstr_len(uri->scheme);
-        len += 3; // "://"
-    }
-
-    if ((uri->username != NULL) || (uri->password != NULL)) {
-        if (uri->username != NULL) {
-            len += bstr_len(uri->username);
+    if (uri_include_all) {
+        if (uri->scheme != NULL) {
+            len += bstr_len(uri->scheme);
+            len += 3; // "://"
         }
 
-        len += 1; // ":"
+        if ((uri->username != NULL) || (uri->password != NULL)) {
+            if (uri->username != NULL) {
+                len += bstr_len(uri->username);
+            }
 
-        if (uri->password != NULL) {
-            len += bstr_len(uri->password);
+            len += 1; // ":"
+
+            if (uri->password != NULL) {
+                len += bstr_len(uri->password);
+            }
+
+            len += 1; // "@"
         }
 
-        len += 1; // "@"
-    }
+        if (uri->hostname != NULL) {
+            len += bstr_len(uri->hostname);
+        }
 
-    if (uri->hostname != NULL) {
-        len += bstr_len(uri->hostname);
-    }
-
-    if (uri->port != NULL) {
-        len += 1; // ":"
-        len += bstr_len(uri->port);
+        if (uri->port != NULL) {
+            len += 1; // ":"
+            len += bstr_len(uri->port);
+        }
     }
 
     if (uri->path != NULL) {
@@ -159,32 +164,34 @@ bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri)
         return NULL;
     }
 
-    if (uri->scheme != NULL) {
-        bstr_add_noex(r, uri->scheme);
-        bstr_add_c_noex(r, "://");
-    }
-
-    if ((uri->username != NULL) || (uri->password != NULL)) {
-        if (uri->username != NULL) {
-            bstr_add_noex(r, uri->username);
+    if (uri_include_all) {
+        if (uri->scheme != NULL) {
+            bstr_add_noex(r, uri->scheme);
+            bstr_add_c_noex(r, "://");
         }
 
-        bstr_add_c(r, ":");
+        if ((uri->username != NULL) || (uri->password != NULL)) {
+            if (uri->username != NULL) {
+                bstr_add_noex(r, uri->username);
+            }
 
-        if (uri->password != NULL) {
-            bstr_add_noex(r, uri->password);
+            bstr_add_c(r, ":");
+
+            if (uri->password != NULL) {
+                bstr_add_noex(r, uri->password);
+            }
+
+            bstr_add_c_noex(r, "@");
         }
 
-        bstr_add_c_noex(r, "@");
-    }
+        if (uri->hostname != NULL) {
+            bstr_add_noex(r, uri->hostname);
+        }
 
-    if (uri->hostname != NULL) {
-        bstr_add_noex(r, uri->hostname);
-    }
-
-    if (uri->port != NULL) {
-        bstr_add_c(r, ":");
-        bstr_add_noex(r, uri->port);
+        if (uri->port != NULL) {
+            bstr_add_c(r, ":");
+            bstr_add_noex(r, uri->port);
+        }
     }
 
     if (uri->path != NULL) {

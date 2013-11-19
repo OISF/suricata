@@ -1057,6 +1057,16 @@ app-layer:
       #   double-decode-path:     Double decode path section of the URI
       #   double-decode-query:    Double decode query section of the URI
       #
+      #   uri-include-all:        Include all parts of the URI. By default the
+      #                           'scheme', username/password, hostname and port
+      #                           are excluded. Setting this option to true adds
+      #                           all of them to the normalized uri as inspected
+      #                           by http_uri, urilen, pcre with /U and the other
+      #                           keywords that inspect the normalized uri.
+      #                           Note that this does not affect http_raw_uri.
+      #                           Also, note that including all was the default in
+      #                           1.4 and 2.0beta1.
+      #
       # Currently Available Personalities:
       #   Minimal
       #   Generic

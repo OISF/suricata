@@ -1996,8 +1996,10 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
 {
     HtpTxUserData *tx_ud;
     bstr *request_uri_normalized;
+    HtpState *hstate = htp_connp_get_user_data(tx->connp);
+    HTPCfgRec *cfg = hstate->cfg;
 
-    request_uri_normalized = SCHTPGenerateNormalizedUri(tx, tx->parsed_uri);
+    request_uri_normalized = SCHTPGenerateNormalizedUri(tx, tx->parsed_uri, cfg->uri_include_all);
     if (request_uri_normalized == NULL)
         return HTP_OK;
 
@@ -2011,7 +2013,6 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
     htp_tx_set_user_data(tx, tx_ud);
 
     if (tx->flags) {
-        HtpState *hstate = htp_connp_get_user_data(tx->connp);
         HTPErrorCheckTxRequestFlags(hstate, tx);
     }
     return HTP_OK;
@@ -2104,6 +2105,7 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
  */
 static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
 {
+    cfg_prec->uri_include_all = FALSE;
     cfg_prec->request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
     cfg_prec->response_body_limit = HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT;
     cfg_prec->request_inspect_min_size = HTP_CONFIG_DEFAULT_REQUEST_INSPECT_MIN_SIZE;
@@ -2320,6 +2322,10 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             htp_config_set_utf8_convert_bestfit(cfg_prec->cfg,
                                                 HTP_DECODER_URL_PATH,
                                                 ConfValIsTrue(p->val));
+        } else if (strcasecmp("uri-include-all", p->name) == 0) {
+            cfg_prec->uri_include_all = ConfValIsTrue(p->val);
+            SCLogDebug("uri-include-all %s",
+                    cfg_prec->uri_include_all ? "enabled" : "disabled");
         } else if (strcasecmp("query-plusspace-decode", p->name) == 0) {
             htp_config_set_plusspace_decode(cfg_prec->cfg,
                                                 HTP_DECODER_URLENCODED,
@@ -2386,6 +2392,8 @@ void HTPConfigure(void)
         HTPCfgRec *htprec = cfglist.next = SCMalloc(sizeof(HTPCfgRec));
         if (NULL == htprec)
             exit(EXIT_FAILURE);
+        memset(htprec, 0x00, sizeof(*htprec));
+
         cfglist.next->next = nextrec;
         cfglist.next->cfg = htp_config_create();
         if (NULL == cfglist.next->cfg) {
@@ -5019,6 +5027,219 @@ end:
     return result;
 }
 
+/** \test Test 'proxy' URI normalization. Ticket 1008
+ */
+static int HTPParserDecodingTest08(void)
+{
+    int result = 0;
+    Flow *f = NULL;
+    uint8_t httpbuf1[] =
+        "GET http://suricata-ids.org/blah/ HTTP/1.1\r\nHost: suricata-ids.org\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+
+    HtpState *htp_state =  NULL;
+    int r = 0;
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: IDS\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    HtpConfigCreateBackup();
+    ConfYamlLoadString(input, strlen(input));
+    HTPConfigure();
+    char *addr = "4.3.2.1";
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", addr, 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    uint32_t u;
+    for (u = 0; u < httplen1; u++) {
+        uint8_t flags = 0;
+
+        if (u == 0) flags = STREAM_TOSERVER|STREAM_START;
+        else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
+        else flags = STREAM_TOSERVER;
+
+        SCMutexLock(&f->m);
+        r = AppLayerParse(NULL, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        if (r != 0) {
+            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
+                    " 0: ", u, r);
+            result = 0;
+            SCMutexUnlock(&f->m);
+            goto end;
+        }
+        SCMutexUnlock(&f->m);
+    }
+
+    htp_state = f->alstate;
+    if (htp_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    uint8_t ref1[] = "/blah/";
+    size_t reflen = sizeof(ref1) - 1;
+
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
+    if (tx == NULL)
+        goto end;
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
+        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
+            printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
+                   (uintmax_t)reflen,
+                   bstr_len(tx_ud->request_uri_normalized));
+            goto end;
+        }
+
+        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
+                   bstr_len(tx_ud->request_uri_normalized)) != 0)
+        {
+            printf("normalized uri \"");
+            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            printf("\" != \"");
+            PrintRawUriFp(stdout, ref1, reflen);
+            printf("\": ");
+            goto end;
+        }
+    }
+
+    result = 1;
+
+end:
+    HTPFreeConfig();
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
+
+    StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
+    UTHFreeFlow(f);
+    return result;
+}
+
+/** \test Test 'proxy' URI normalization. Ticket 1008
+ */
+static int HTPParserDecodingTest09(void)
+{
+    int result = 0;
+    Flow *f = NULL;
+    uint8_t httpbuf1[] =
+        "GET http://suricata-ids.org/blah/ HTTP/1.1\r\nHost: suricata-ids.org\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+
+    HtpState *htp_state =  NULL;
+    int r = 0;
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: IDS\n\
+    uri-include-all: true\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    HtpConfigCreateBackup();
+    ConfYamlLoadString(input, strlen(input));
+    HTPConfigure();
+    char *addr = "4.3.2.1";
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", addr, 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    uint32_t u;
+    for (u = 0; u < httplen1; u++) {
+        uint8_t flags = 0;
+
+        if (u == 0) flags = STREAM_TOSERVER|STREAM_START;
+        else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
+        else flags = STREAM_TOSERVER;
+
+        SCMutexLock(&f->m);
+        r = AppLayerParse(NULL, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        if (r != 0) {
+            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
+                    " 0: ", u, r);
+            result = 0;
+            SCMutexUnlock(&f->m);
+            goto end;
+        }
+        SCMutexUnlock(&f->m);
+    }
+
+    htp_state = f->alstate;
+    if (htp_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    uint8_t ref1[] = "http://suricata-ids.org/blah/";
+    size_t reflen = sizeof(ref1) - 1;
+
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
+    if (tx == NULL)
+        goto end;
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
+        if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
+            printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
+                   (uintmax_t)reflen,
+                   bstr_len(tx_ud->request_uri_normalized));
+            goto end;
+        }
+
+        if (memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
+                   bstr_len(tx_ud->request_uri_normalized)) != 0)
+        {
+            printf("normalized uri \"");
+            PrintRawUriFp(stdout, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+            printf("\" != \"");
+            PrintRawUriFp(stdout, ref1, reflen);
+            printf("\": ");
+            goto end;
+        }
+    }
+
+    result = 1;
+
+end:
+    HTPFreeConfig();
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
+
+    StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
+    UTHFreeFlow(f);
+    return result;
+}
+
 /** \test BG box crash -- chunks are messed up. Observed for real. */
 static int HTPBodyReassemblyTest01(void)
 {
@@ -5329,6 +5550,8 @@ void HTPParserRegisterTests(void) {
     UtRegisterTest("HTPParserDecodingTest05", HTPParserDecodingTest05, 1);
     UtRegisterTest("HTPParserDecodingTest06", HTPParserDecodingTest06, 1);
     UtRegisterTest("HTPParserDecodingTest07", HTPParserDecodingTest07, 1);
+    UtRegisterTest("HTPParserDecodingTest08", HTPParserDecodingTest08, 1);
+    UtRegisterTest("HTPParserDecodingTest09", HTPParserDecodingTest09, 1);
 
     UtRegisterTest("HTPBodyReassemblyTest01", HTPBodyReassemblyTest01, 1);
 
