@@ -203,8 +203,8 @@ static void LogAnswers(AlertJsonThread *aft, json_t *js, DNSTransaction *tx) {
     json_object_del(js, "dns");
 }
 
-static TmEcode DnsJsonIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-                            PacketQueue *postpq, int ipproto)
+static TmEcode DnsJsonIPWrapper(ThreadVars *tv, Packet *p, void *data,
+                                int ipproto)
 {
     SCEnter();
 
@@ -270,7 +270,7 @@ end:
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode OutputDnsLog(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode OutputDnsLog(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
 
@@ -283,7 +283,7 @@ TmEcode OutputDnsLog(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pac
         SCReturnInt(TM_ECODE_OK);
     }
 
-    DnsJsonIPWrapper(tv, p, data, pq, postpq, AF_INET);
+    DnsJsonIPWrapper(tv, p, data, AF_INET);
 
     SCReturnInt(TM_ECODE_OK);
 }

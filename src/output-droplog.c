@@ -64,14 +64,10 @@
  *
  * \param tv    Pointer the current thread variables
  * \param p     Pointer the packet which is being logged
- * \param data  Pointer to the droplog struct
- * \param pq    Pointer the packet queue
- * \param postpq Pointer the packet queue where this packet will be sent
  *
  * \return return TM_EODE_OK on success
  */
-TmEcode OutputDropLogJSON (AlertJsonThread *aft, Packet *p, PacketQueue *pq,
-                      PacketQueue *postpq)
+TmEcode OutputDropLogJSON (AlertJsonThread *aft, Packet *p)
 {
     uint16_t proto = 0;
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
@@ -143,13 +139,10 @@ TmEcode OutputDropLogJSON (AlertJsonThread *aft, Packet *p, PacketQueue *pq,
  * \param tv    Pointer the current thread variables
  * \param p     Pointer the packet which is being logged
  * \param data  Pointer to the droplog struct
- * \param pq    Pointer the packet queue
- * \param postpq Pointer the packet queue where this packet will be sent
  *
  * \return return TM_EODE_OK on success
  */
-TmEcode OutputDropLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-                      PacketQueue *postpq)
+TmEcode OutputDropLog (ThreadVars *tv, Packet *p, void *data)
 {
     AlertJsonThread *aft = (AlertJsonThread *)data;
 
@@ -163,14 +156,14 @@ TmEcode OutputDropLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     if ((p->flow != NULL) && (p->flow->flags & FLOW_ACTION_DROP)) {
         if (PKT_IS_TOSERVER(p) && !(p->flow->flags & FLOW_TOSERVER_DROP_LOGGED)) {
             p->flow->flags |= FLOW_TOSERVER_DROP_LOGGED;
-            return OutputDropLogJSON(aft, p, pq, NULL);
+            return OutputDropLogJSON(aft, p);
 
         } else if (PKT_IS_TOCLIENT(p) && !(p->flow->flags & FLOW_TOCLIENT_DROP_LOGGED)) {
             p->flow->flags |= FLOW_TOCLIENT_DROP_LOGGED;
-            return OutputDropLogJSON(aft, p, pq, NULL);
+            return OutputDropLogJSON(aft, p);
         }
     } else {
-        return OutputDropLogJSON(aft, p, pq, postpq);
+        return OutputDropLogJSON(aft, p);
     }
 
     return TM_ECODE_OK;

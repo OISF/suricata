@@ -24,7 +24,7 @@
 #ifndef __OUTPUT_TLSLOG_H__
 #define __OUTPUT_TLSLOG_H__
 
-TmEcode OutputTlsLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq);
+TmEcode OutputTlsLog (ThreadVars *tv, Packet *p, void *data);
 OutputCtx *OutputTlsLogInit(ConfNode *);
 
 #endif /* __OUTPUT_TLSLOG_H__ */

@@ -128,8 +128,7 @@ static int alert_syslog_level = DEFAULT_ALERT_SYSLOG_LEVEL;
 #endif /* OS_WIN32 */
 
 TmEcode OutputJson (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode AlertJsonIPv4(ThreadVars *, Packet *, void *);
-TmEcode AlertJsonIPv6(ThreadVars *, Packet *, void *);
+TmEcode AlertJson(ThreadVars *, Packet *, void *);
 TmEcode OutputJsonThreadInit(ThreadVars *, void *, void **);
 TmEcode OutputJsonThreadDeinit(ThreadVars *, void *);
 void OutputJsonExitPrintStats(ThreadVars *, void *);
@@ -146,12 +145,6 @@ void TmModuleOutputJsonRegister (void) {
     tmm_modules[TMM_OUTPUTJSON].cap_flags = 0;
 
     OutputRegisterModule(MODULE_NAME, "eve-log", OutputJsonInitCtx);
-
-    /* enable the logger for the app layer */
-    AppLayerRegisterLogger(ALPROTO_DNS_UDP);
-    AppLayerRegisterLogger(ALPROTO_DNS_TCP);
-    AppLayerRegisterLogger(ALPROTO_HTTP);
-    AppLayerRegisterLogger(ALPROTO_TLS);
 }
 
 /* Default Sensor ID value */
@@ -338,63 +331,7 @@ TmEcode OutputJSON(json_t *js, void *data, uint64_t *count)
     return TM_ECODE_OK;
 }
 
-TmEcode AlertJsonIPv4(ThreadVars *tv, Packet *p, void *data)
-{
-    AlertJsonThread *aft = (AlertJsonThread *)data;
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
-    int i;
-    char *action = "Pass";
-
-    if (p->alerts.cnt == 0)
-        return TM_ECODE_OK;
-
-    MemBufferReset(buffer);
-
-    json_t *js = CreateJSONHeader(p, 0);
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
-
-    for (i = 0; i < p->alerts.cnt; i++) {
-        PacketAlert *pa = &p->alerts.alerts[i];
-        if (unlikely(pa->s == NULL)) {
-            continue;
-        }
-
-        if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
-            action = "Drop";
-        } else if (pa->action & ACTION_DROP) {
-            action = "wDrop";
-        }
-
-        json_t *ajs = json_object();
-        if (ajs == NULL) {
-            json_decref(js);
-            return TM_ECODE_OK;
-        }
-
-        json_object_set_new(ajs, "action", json_string(action));
-        json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
-        json_object_set_new(ajs, "id", json_integer(pa->s->id));
-        json_object_set_new(ajs, "rev", json_integer(pa->s->rev));
-        json_object_set_new(ajs, "msg",
-                            json_string((pa->s->msg) ? pa->s->msg : ""));
-        json_object_set_new(ajs, "class",
-                            json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
-        json_object_set_new(ajs, "pri", json_integer(pa->s->prio));
-   
-        /* alert */ 
-        json_object_set_new(js, "alert", ajs);
-
-        OutputJSON(js, aft, &aft->file_ctx->alerts);
-        json_object_del(js, "alert");
-    }
-    json_object_clear(js);
-    json_decref(js);
-
-    return TM_ECODE_OK;
-}
-
-TmEcode AlertJsonIPv6(ThreadVars *tv, Packet *p, void *data)
+TmEcode AlertJson(ThreadVars *tv, Packet *p, void *data)
 {
     AlertJsonThread *aft = (AlertJsonThread *)data;
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
@@ -525,33 +462,31 @@ TmEcode OutputJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
 {
     if (output_flags & OUTPUT_ALERTS) {
 
-        if (PKT_IS_IPV4(p)) {
-            AlertJsonIPv4(tv, p, data);
-        } else if (PKT_IS_IPV6(p)) {
-            AlertJsonIPv6(tv, p, data);
+        if (PKT_IS_IPV4(p) || PKT_IS_IPV6(p)) {
+            AlertJson(tv, p, data);
         } else if (p->events.cnt > 0) {
             AlertJsonDecoderEvent(tv, p, data);
         }
     }
 
     if (output_flags & OUTPUT_DNS) {
-        OutputDnsLog(tv, p, data, pq, postpq);
+        OutputDnsLog(tv, p, data);
     }
 
     if (output_flags & OUTPUT_DROP) {
-        OutputDropLog(tv, p, data, pq, postpq);
+        OutputDropLog(tv, p, data);
     }
 
     if (output_flags & OUTPUT_FILES) {
-        OutputFileLog(tv, p, data, pq, postpq);
+        OutputFileLog(tv, p, data);
     }
 
     if (output_flags & OUTPUT_HTTP) {
-        OutputHttpLog(tv, p, data, pq, postpq);
+        OutputHttpLog(tv, p, data);
     }
 
     if (output_flags & OUTPUT_TLS) {
-        OutputTlsLog(tv, p, data, pq, postpq);
+        OutputTlsLog(tv, p, data);
     }
 
     return TM_ECODE_OK;
@@ -727,6 +662,8 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                 }
                 if (strcmp(output->val, "dns") == 0) {
                     SCLogDebug("Enabling DNS output");
+                    AppLayerRegisterLogger(ALPROTO_DNS_UDP);
+                    AppLayerRegisterLogger(ALPROTO_DNS_TCP);
                     output_flags |= OUTPUT_DNS;
                     continue;
                 }
@@ -746,6 +683,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                     SCLogDebug("Enabling HTTP output");
                     ConfNode *child = ConfNodeLookupChild(output, "http"); 
                     json_ctx->http_ctx = OutputHttpLogInit(child);
+                    AppLayerRegisterLogger(ALPROTO_HTTP);
                     output_flags |= OUTPUT_HTTP;
                     continue;
                 }
@@ -753,6 +691,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                     SCLogDebug("Enabling TLS output");
                     ConfNode *child = ConfNodeLookupChild(output, "tls"); 
                     json_ctx->tls_ctx = OutputTlsLogInit(child);
+                    AppLayerRegisterLogger(ALPROTO_TLS);
                     output_flags |= OUTPUT_TLS;
                     continue;
                 }

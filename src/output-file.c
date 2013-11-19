@@ -223,7 +223,7 @@ static void LogFileWriteJsonRecord(AlertJsonThread /*LogFileLogThread*/ *aft, Pa
     json_decref(js);
 }
 
-static TmEcode OutputFileLogWrap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq, int ipver)
+static TmEcode OutputFileLogWrap(ThreadVars *tv, Packet *p, void *data, int ipver)
 {
     SCEnter();
     AlertJsonThread *aft = (AlertJsonThread *)data;
@@ -279,15 +279,17 @@ static TmEcode OutputFileLogWrap(ThreadVars *tv, Packet *p, void *data, PacketQu
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode OutputFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
-    return OutputFileLogWrap(tv, p, data, NULL, NULL, AF_INET);
+TmEcode OutputFileLogIPv4(ThreadVars *tv, Packet *p, void *data)
+{
+    return OutputFileLogWrap(tv, p, data, AF_INET);
 }
 
-TmEcode OutputFileLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
-    return OutputFileLogWrap(tv, p, data, NULL, NULL, AF_INET6);
+TmEcode OutputFileLogIPv6(ThreadVars *tv, Packet *p, void *data)
+{
+    return OutputFileLogWrap(tv, p, data, AF_INET6);
 }
 
-TmEcode OutputFileLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode OutputFileLog (ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
     int r = TM_ECODE_OK;
@@ -304,9 +306,9 @@ TmEcode OutputFileLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     SCLogDebug("p->pcap_cnt %"PRIu64, p->pcap_cnt);
 
     if (PKT_IS_IPV4(p)) {
-        r = OutputFileLogIPv4(tv, p, data, pq, postpq);
+        r = OutputFileLogIPv4(tv, p, data);
     } else if (PKT_IS_IPV6(p)) {
-        r = OutputFileLogIPv6(tv, p, data, pq, postpq);
+        r = OutputFileLogIPv6(tv, p, data);
     }
 
     SCReturnInt(r);

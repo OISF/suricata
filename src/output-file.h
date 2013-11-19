@@ -24,7 +24,7 @@
 #ifndef __OUTPUT_FILELOG_H__
 #define __OUTPUT_FILELOG_H__
 
-TmEcode OutputFileLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq);
+TmEcode OutputFileLog (ThreadVars *tv, Packet *p, void *data);
 OutputCtx *OutputFileLogInit(ConfNode *);
 
 #endif /* __OUTPUT_FILELOG_H__ */
