@@ -81,8 +81,8 @@ void DetectIPProtoRegister(void)
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (parse_regex_study == NULL || eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb ? eb : "unknown");
+    if (eb != NULL) {
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
 
