@@ -61,7 +61,7 @@ typedef struct SCProfileKeywordDetectCtx_ {
 } SCProfileKeywordDetectCtx;
 
 static int profiling_keywords_output_to_file = 0;
-int profiling_keyword_enabled = 1;
+int profiling_keyword_enabled = 0;
 __thread int profiling_keyword_entered = 0;
 static char *profiling_file_name = "";
 static const char *profiling_file_mode = "a";
@@ -154,6 +154,9 @@ SCProfilingKeywordDump(DetectEngineCtx *de_ctx) {
     struct timeval tval;
     struct tm *tms;
     struct tm local_tm;
+
+    if (profiling_keyword_enabled == 0)
+        return;
 
     gettimeofday(&tval, NULL);
     tms = SCLocalTime(tval.tv_sec, &local_tm);
@@ -350,6 +353,9 @@ void SCProfilingKeywordThreadCleanup(DetectEngineThreadCtx *det_ctx) {
 void
 SCProfilingKeywordInitCounters(DetectEngineCtx *de_ctx)
 {
+    if (profiling_keyword_enabled == 0)
+        return;
+
     de_ctx->profile_keyword_ctx = SCProfilingKeywordInitCtx();
     BUG_ON(de_ctx->profile_keyword_ctx == NULL);
 

@@ -643,6 +643,25 @@ void SCPrintBuildInfo(void) {
 
     printf("Features: %s\n", features);
 
+    /* SIMD stuff */
+    memset(features, 0x00, sizeof(features));
+#if defined(__SSE4_2__)
+    strlcat(features, "SSE_4_2 ", sizeof(features));
+#endif
+#if defined(__SSE4_1__)
+    strlcat(features, "SSE_4_1 ", sizeof(features));
+#endif
+#if defined(__SSE3__)
+    strlcat(features, "SSE_3 ", sizeof(features));
+#endif
+#if defined(__tile__)
+    strlcat(features, "Tilera ", sizeof(features));
+#endif
+    if (strlen(features) == 0) {
+        strlcat(features, "none", sizeof(features));
+    }
+    printf("SIMD support: %s\n", features);
+
 #if __WORDSIZE == 64
     bits = "64-bits";
 #elif __WORDSIZE == 32
