@@ -87,9 +87,9 @@ static inline int SCMemcmp(void *s1, void *s2, size_t n)
     return ((m == n) ? 0 : 1);
 }
 
-/* Range of values of uppercase characters */
-static char scmemcmp_uppercase[2] __attribute__((aligned(16))) = {
-    'A', 'Z' };
+/* Range of values of uppercase characters. We only use the first 2 bytes. */
+static char scmemcmp_uppercase[16] __attribute__((aligned(16))) = {
+    'A', 'Z', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, };
 
 /** \brief compare two buffers in a case insensitive way
  *  \param s1 buffer already in lowercase
