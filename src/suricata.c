@@ -662,6 +662,30 @@ void SCPrintBuildInfo(void) {
     }
     printf("SIMD support: %s\n", features);
 
+    /* atomics stuff */
+    memset(features, 0x00, sizeof(features));
+#if defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1)
+    strlcat(features, "1 ", sizeof(features));
+#endif
+#if defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2)
+    strlcat(features, "2 ", sizeof(features));
+#endif
+#if defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4)
+    strlcat(features, "4 ", sizeof(features));
+#endif
+#if defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8)
+    strlcat(features, "8 ", sizeof(features));
+#endif
+#if defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_16)
+    strlcat(features, "16 ", sizeof(features));
+#endif
+    if (strlen(features) == 0) {
+        strlcat(features, "none", sizeof(features));
+    } else {
+        strlcat(features, "byte(s)", sizeof(features));
+    }
+    printf("Atomic intrisics: %s\n", features);
+
 #if __WORDSIZE == 64
     bits = "64-bits";
 #elif __WORDSIZE == 32
@@ -679,22 +703,6 @@ void SCPrintBuildInfo(void) {
     printf("GCC version %s, C version %"PRIiMAX"\n", __VERSION__, (intmax_t)__STDC_VERSION__);
 #else
     printf("C version %"PRIiMAX"\n", (intmax_t)__STDC_VERSION__);
-#endif
-
-#ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_1
-    printf("  __GCC_HAVE_SYNC_COMPARE_AND_SWAP_1\n");
-#endif
-#ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_2
-    printf("  __GCC_HAVE_SYNC_COMPARE_AND_SWAP_2\n");
-#endif
-#ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-    printf("  __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4\n");
-#endif
-#ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8
-    printf("  __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8\n");
-#endif
-#ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_16
-    printf("  __GCC_HAVE_SYNC_COMPARE_AND_SWAP_16\n");
 #endif
 
 #if __SSP__ == 1
