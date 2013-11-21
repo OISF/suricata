@@ -88,7 +88,8 @@ int GetIfaceMTU(char *pcap_dev)
     }
 
     if (ioctl(fd, SIOCGIFMTU, (char *)&ifr) < 0) {
-        SCLogInfo("Failure when trying to get MTU via ioctl: %d",
+        SCLogWarning(SC_ERR_SYSCALL,
+                "Failure when trying to get MTU via ioctl: %d",
                 errno);
         close(fd);
         return -1;
