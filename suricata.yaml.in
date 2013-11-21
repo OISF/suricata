@@ -1067,6 +1067,12 @@ app-layer:
       #                           Also, note that including all was the default in
       #                           1.4 and 2.0beta1.
       #
+      #   meta-field-limit:       Hard size limit for request and response size
+      #                           limits. Applies to request line and headers,
+      #                           response line and headers. Does not apply to
+      #                           request or response bodies. Default is 18k.
+      #                           If this limit is reached an event is raised.
+      #
       # Currently Available Personalities:
       #   Minimal
       #   Generic
