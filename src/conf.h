@@ -34,7 +34,9 @@ typedef struct ConfNode_ {
     char *val;
 
     int is_seq;
-    int allow_override;
+
+    /**< Flag that sets this nodes value as final. */
+    int final;
 
     struct ConfNode_ *parent;
     TAILQ_HEAD(, ConfNode_) head;
@@ -59,7 +61,8 @@ int ConfGetInt(char *name, intmax_t *val);
 int ConfGetBool(char *name, int *val);
 int ConfGetDouble(char *name, double *val);
 int ConfGetFloat(char *name, float *val);
-int ConfSet(char *name, char *val, int allow_override);
+int ConfSet(char *name, char *val);
+int ConfSetFinal(char *name, char *val);
 void ConfDump(void);
 void ConfNodeDump(ConfNode *node, const char *prefix);
 ConfNode *ConfNodeNew(void);
