@@ -770,8 +770,41 @@ char *ConfLoadCompleteIncludePath(char *file)
     return path;
 }
 
+/**
+ * \brief Prune a configuration node.
+ *
+ * Pruning a configuration is similar to freeing, but only fields that
+ * may be overridden are, leaving final type parameters.  Additional
+ * the value of the provided node is also free'd, but the node itself
+ * is left.
+ *
+ * \param node The configuration node to prune.
+ */
+void
+ConfNodePrune(ConfNode *node)
+{
+    ConfNode *item, *it;
 
+    for (item = TAILQ_FIRST(&node->head); item != NULL; item = it) {
+        it = TAILQ_NEXT(item, next);
+        if (!item->final) {
+            ConfNodePrune(item);
+            if (TAILQ_EMPTY(&item->head)) {
+                TAILQ_REMOVE(&node->head, item, next);
+                if (item->name != NULL)
+                    SCFree(item->name);
+                if (item->val != NULL)
+                    SCFree(item->val);
+                SCFree(item);
+            }
+        }
+    }
 
+    if (node->val != NULL) {
+        SCFree(node->val);
+        node->val = NULL;
+    }
+}
 
 #ifdef UNITTESTS
 
@@ -1283,6 +1316,54 @@ end:
     return ret;
 }
 
+static int
+ConfNodePruneTest(void)
+{
+    int ret = 0;
+    ConfNode *node;
+
+    ConfCreateContextBackup();
+    ConfInit();
+
+    /* Test that final nodes exist after a prune. */
+    if (ConfSet("node.notfinal", "notfinal") != 1)
+        goto end;
+    if (ConfSetFinal("node.final", "final") != 1)
+        goto end;
+    if (ConfGetNode("node.notfinal") == NULL)
+        goto end;
+    if (ConfGetNode("node.final") == NULL)
+        goto end;
+    if ((node = ConfGetNode("node")) == NULL)
+        goto end;
+    ConfNodePrune(node);
+    if (ConfGetNode("node.notfinal") != NULL)
+        goto end;
+    if (ConfGetNode("node.final") == NULL)
+        goto end;
+
+    /* Test that everything under a final node exists after a prune. */
+    if (ConfSet("node.final.one", "one") != 1)
+        goto end;
+    if (ConfSet("node.final.two", "two") != 1)
+        goto end;
+    ConfNodePrune(node);
+    if (ConfNodeLookupChild(node, "final") == NULL)
+        goto end;
+    if (ConfGetNode("node.final.one") == NULL)
+        goto end;
+    if (ConfGetNode("node.final.two") == NULL)
+        goto end;
+
+    ret = 1;
+
+end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return ret;
+}
+
 void
 ConfRegisterTests(void)
 {
@@ -1300,6 +1381,7 @@ ConfRegisterTests(void)
     UtRegisterTest("ConfGetChildValueIntWithDefaultTest", ConfGetChildValueIntWithDefaultTest, 1);
     UtRegisterTest("ConfGetChildValueBoolWithDefaultTest", ConfGetChildValueBoolWithDefaultTest, 1);
     UtRegisterTest("ConfGetNodeOrCreateTest", ConfGetNodeOrCreateTest, 1);
+    UtRegisterTest("ConfNodePruneTest", ConfNodePruneTest, 1);
 }
 
 #endif /* UNITTESTS */
