@@ -131,8 +131,6 @@ ConfNodeNew(void)
     if (unlikely(new == NULL)) {
         return NULL;
     }
-    /* By default we allow an override. */
-    new->allow_override = 1;
     TAILQ_INIT(&new->head);
 
     return new;
@@ -215,16 +213,29 @@ ConfGetRootNode(void)
  * \retval 1 if the value was set otherwise 0.
  */
 int
-ConfSet(char *name, char *val, int allow_override)
+ConfSet(char *name, char *val)
 {
     ConfNode *node = ConfGetNodeOrCreate(name);
-    if (node == NULL || !node->allow_override) {
+    if (node == NULL || node->final) {
         return 0;
     }
     if (node->val != NULL)
         SCFree(node->val);
     node->val = SCStrdup(val);
-    node->allow_override = allow_override;
+    return 1;
+}
+
+int
+ConfSetFinal(char *name, char *val)
+{
+    ConfNode *node = ConfGetNodeOrCreate(name);
+    if (node == NULL) {
+        return 0;
+    }
+    if (node->val != NULL)
+        SCFree(node->val);
+    node->val = SCStrdup(val);
+    node->final = 1;
     return 1;
 }
 
@@ -786,7 +797,7 @@ ConfTestSetAndGet(void)
     char value[] = "some-value";
     char *value0;
 
-    if (ConfSet(name, value, 1) != 1)
+    if (ConfSet(name, value) != 1)
         return 0;
     if (ConfGet(name, &value0) != 1)
         return 0;
@@ -812,9 +823,9 @@ ConfTestOverrideValue1(void)
     char *val;
     int rc;
 
-    if (ConfSet(name, value0, 1) != 1)
+    if (ConfSet(name, value0) != 1)
         return 0;
-    if (ConfSet(name, value1, 1) != 1)
+    if (ConfSet(name, value1) != 1)
         return 0;
     if (ConfGet(name, &val) != 1)
         return 0;
@@ -828,8 +839,7 @@ ConfTestOverrideValue1(void)
 }
 
 /**
- * Test that overriding a value is not allowed provided that
- * allow_override is false and make sure the value was not overrided.
+ * Test that a final value will not be overrided by a ConfSet.
  */
 static int
 ConfTestOverrideValue2(void)
@@ -840,9 +850,9 @@ ConfTestOverrideValue2(void)
     char *val;
     int rc;
 
-    if (ConfSet(name, value0, 0) != 1)
+    if (ConfSetFinal(name, value0) != 1)
         return 0;
-    if (ConfSet(name, value1, 1) != 0)
+    if (ConfSet(name, value1) != 0)
         return 0;
     if (ConfGet(name, &val) != 1)
         return 0;
@@ -864,7 +874,7 @@ ConfTestGetInt(void)
     char name[] = "some-int.x";
     intmax_t val;
 
-    if (ConfSet(name, "0", 1) != 1)
+    if (ConfSet(name, "0") != 1)
         return 0;
     if (ConfGetInt(name, &val) != 1)
         return 0;
@@ -872,21 +882,21 @@ ConfTestGetInt(void)
     if (val != 0)
         return 0;
 
-    if (ConfSet(name, "-1", 1) != 1)
+    if (ConfSet(name, "-1") != 1)
         return 0;
     if (ConfGetInt(name, &val) != 1)
         return 0;
     if (val != -1)
         return 0;
 
-    if (ConfSet(name, "0xffff", 1) != 1)
+    if (ConfSet(name, "0xffff") != 1)
         return 0;
     if (ConfGetInt(name, &val) != 1)
         return 0;
     if (val != 0xffff)
         return 0;
 
-    if (ConfSet(name, "not-an-int", 1) != 1)
+    if (ConfSet(name, "not-an-int") != 1)
         return 0;
     if (ConfGetInt(name, &val) != 0)
         return 0;
@@ -918,7 +928,7 @@ ConfTestGetBool(void)
     size_t u;
 
     for (u = 0; u < sizeof(trues) / sizeof(trues[0]); u++) {
-        if (ConfSet(name, trues[u], 1) != 1)
+        if (ConfSet(name, trues[u]) != 1)
             return 0;
         if (ConfGetBool(name, &val) != 1)
             return 0;
@@ -927,7 +937,7 @@ ConfTestGetBool(void)
     }
 
     for (u = 0; u < sizeof(falses) / sizeof(falses[0]); u++) {
-        if (ConfSet(name, falses[u], 1) != 1)
+        if (ConfSet(name, falses[u]) != 1)
             return 0;
         if (ConfGetBool(name, &val) != 1)
             return 0;
@@ -1037,9 +1047,9 @@ static int ConfGetChildValueWithDefaultTest(void)
     int ret = 1;
     ConfCreateContextBackup();
     ConfInit();
-    ConfSet("af-packet.0.interface", "eth0", 1);
-    ConfSet("af-packet.1.interface", "default", 1);
-    ConfSet("af-packet.1.cluster-type", "cluster_cpu", 1);
+    ConfSet("af-packet.0.interface", "eth0");
+    ConfSet("af-packet.1.interface", "default");
+    ConfSet("af-packet.1.cluster-type", "cluster_cpu");
 
     ConfNode *root = ConfGetNode("af-packet.0");
     ConfNode *dflt = ConfGetNode("af-packet.1");
@@ -1050,7 +1060,7 @@ static int ConfGetChildValueWithDefaultTest(void)
         return 0;
     }
 
-    ConfSet("af-packet.0.cluster-type", "cluster_flow", 1);
+    ConfSet("af-packet.0.cluster-type", "cluster_flow");
     ConfGetChildValueWithDefault(root, dflt, "cluster-type", &val);
 
     if (strcmp(val, "cluster_flow")) {
@@ -1066,9 +1076,9 @@ static int ConfGetChildValueIntWithDefaultTest(void)
     intmax_t val;
     ConfCreateContextBackup();
     ConfInit();
-    ConfSet("af-packet.0.interface", "eth0", 1);
-    ConfSet("af-packet.1.interface", "default", 1);
-    ConfSet("af-packet.1.threads", "2", 1);
+    ConfSet("af-packet.0.interface", "eth0");
+    ConfSet("af-packet.1.interface", "default");
+    ConfSet("af-packet.1.threads", "2");
 
     ConfNode *root = ConfGetNode("af-packet.0");
     ConfNode *dflt = ConfGetNode("af-packet.1");
@@ -1079,7 +1089,7 @@ static int ConfGetChildValueIntWithDefaultTest(void)
         return 0;
     }
 
-    ConfSet("af-packet.0.threads", "1", 1);
+    ConfSet("af-packet.0.threads", "1");
     ConfGetChildValueIntWithDefault(root, dflt, "threads", &val);
 
     ConfDeInit();
@@ -1095,9 +1105,9 @@ static int ConfGetChildValueBoolWithDefaultTest(void)
     int val;
     ConfCreateContextBackup();
     ConfInit();
-    ConfSet("af-packet.0.interface", "eth0", 1);
-    ConfSet("af-packet.1.interface", "default", 1);
-    ConfSet("af-packet.1.use-mmap", "yes", 1);
+    ConfSet("af-packet.0.interface", "eth0");
+    ConfSet("af-packet.1.interface", "default");
+    ConfSet("af-packet.1.use-mmap", "yes");
 
     ConfNode *root = ConfGetNode("af-packet.0");
     ConfNode *dflt = ConfGetNode("af-packet.1");
@@ -1108,7 +1118,7 @@ static int ConfGetChildValueBoolWithDefaultTest(void)
         return 0;
     }
 
-    ConfSet("af-packet.0.use-mmap", "no", 1);
+    ConfSet("af-packet.0.use-mmap", "no");
     ConfGetChildValueBoolWithDefault(root, dflt, "use-mmap", &val);
 
     ConfDeInit();
@@ -1128,7 +1138,7 @@ ConfNodeRemoveTest(void)
     ConfCreateContextBackup();
     ConfInit();
 
-    if (ConfSet("some.nested.parameter", "blah", 1) != 1)
+    if (ConfSet("some.nested.parameter", "blah") != 1)
         return 0;
 
     ConfNode *node = ConfGetNode("some.nested.parameter");
@@ -1153,7 +1163,7 @@ ConfSetTest(void)
     ConfInit();
 
     /* Set some value with 2 levels. */
-    if (ConfSet("one.two", "three", 1) != 1)
+    if (ConfSet("one.two", "three") != 1)
         return 0;
     ConfNode *n = ConfGetNode("one.two");
     if (n == NULL)
@@ -1162,7 +1172,7 @@ ConfSetTest(void)
     /* Set another 2 level parameter with the same first level, this
      * used to trigger a bug that caused the second level of the name
      * to become a first level node. */
-    if (ConfSet("one.three", "four", 1) != 1)
+    if (ConfSet("one.three", "four") != 1)
         return 0;
 
     n = ConfGetNode("one.three");
