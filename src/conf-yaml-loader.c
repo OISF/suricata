@@ -271,7 +271,7 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                         if (ConfYamlHandleInclude(node, value) != 0)
                             goto fail;
                     }
-                    else if (node->allow_override) {
+                    else if (!node->final) {
                         if (node->val != NULL)
                             SCFree(node->val);
                         node->val = SCStrdup(value);
