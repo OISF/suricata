@@ -280,6 +280,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_WARN_XFF_INVALID_HEADER);
         CASE_CODE (SC_ERR_THRESHOLD_SETUP);
         CASE_CODE (SC_ERR_DNS_CONFIG);
+        CASE_CODE (SC_ERR_CONF_YAML_ERROR);
     }
 
     return "UNKNOWN_ERROR";
