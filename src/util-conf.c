@@ -28,7 +28,7 @@
 
 TmEcode ConfigSetLogDirectory(char *name)
 {
-    return ConfSet("default-log-dir", name, 0) ? TM_ECODE_OK : TM_ECODE_FAILED;
+    return ConfSetFinal("default-log-dir", name) ? TM_ECODE_OK : TM_ECODE_FAILED;
 }
 
 char *ConfigGetLogDirectory()
