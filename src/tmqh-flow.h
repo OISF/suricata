@@ -29,7 +29,7 @@ typedef struct TmqhFlowMode_ {
 
     SC_ATOMIC_DECLARE(uint64_t, total_packets);
     SC_ATOMIC_DECLARE(uint64_t, total_flows);
-} TmqhFlowMode;
+} TmqhFlowMode __attribute__((aligned(CLS)));
 
 /** \brief Ctx for the flow queue handler
  *  \param size number of queues to output to
