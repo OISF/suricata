@@ -94,18 +94,29 @@ ConfNodeNew(void)
 void
 ConfNodeFree(ConfNode *node)
 {
-    ConfNode *tmp;
-
-    while ((tmp = TAILQ_FIRST(&node->head))) {
-        TAILQ_REMOVE(&node->head, tmp, next);
-        ConfNodeFree(tmp);
-    }
+    ConfNodeRemoveChildren(node);
 
     if (node->name != NULL)
         SCFree(node->name);
     if (node->val != NULL)
         SCFree(node->val);
     SCFree(node);
+}
+
+/**
+ * \brief Remove (and free) all of the configuration nodes childrent.
+ *
+ * \param node The parent configuration node.
+ */
+void
+ConfNodeRemoveChildren(ConfNode *node)
+{
+    ConfNode *child;
+
+    while ((child = TAILQ_FIRST(&node->head))) {
+        TAILQ_REMOVE(&node->head, child, next);
+        ConfNodeFree(child);
+    }
 }
 
 /**

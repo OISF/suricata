@@ -74,7 +74,7 @@ void ConfRegisterTests();
 int ConfNodeChildValueIsTrue(ConfNode *node, const char *key);
 int ConfValIsTrue(const char *val);
 int ConfValIsFalse(const char *val);
-
+void ConfNodeRemoveChildren(ConfNode *node);
 
 ConfNode *ConfNodeLookupKeyValue(ConfNode *base, const char *key, const char *value);
 int ConfGetChildValue(ConfNode *base, char *name, char **vptr);
