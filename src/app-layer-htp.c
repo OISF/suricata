@@ -2130,6 +2130,15 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     /* don't convert + to space by default */
     htp_config_set_plusspace_decode(cfg_prec->cfg, HTP_DECODER_URLENCODED, 0);
 
+    /* libhtp <= 0.5.9 doesn't use soft limit, but it's impossible to set
+     * only the hard limit. So we set both here to the (current) htp defaults.
+     * The reason we do this is that if the user sets the hard limit in the
+     * config, we have to set the soft limit as well. If libhtp starts using
+     * the soft limit in the future, we at least make sure we control what
+     * it's value is. */
+    htp_config_set_field_limits(cfg_prec->cfg,
+            (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT,
+            (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT_HARD);
     return;
 }
 
@@ -2330,6 +2339,22 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             htp_config_set_plusspace_decode(cfg_prec->cfg,
                                                 HTP_DECODER_URLENCODED,
                                                 ConfValIsTrue(p->val));
+        } else if (strcasecmp("meta-field-limit", p->name) == 0) {
+            uint32_t limit = 0;
+            if (ParseSizeStringU32(p->val, &limit) < 0) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Error meta-field-limit "
+                           "from conf file - %s.  Killing engine", p->val);
+                exit(EXIT_FAILURE);
+            }
+            if (limit == 0) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Error meta-field-limit "
+                           "from conf file cannot be 0.  Killing engine");
+                exit(EXIT_FAILURE);
+            }
+            /* set default soft-limit with our new hard limit */
+            htp_config_set_field_limits(cfg_prec->cfg,
+                    (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT,
+                    (size_t)limit);
         } else {
             SCLogWarning(SC_ERR_UNKNOWN_VALUE, "LIBHTP Ignoring unknown "
                          "default config: %s", p->name);
@@ -5516,6 +5541,126 @@ end:
     HtpConfigRestoreBackup();
     return result;
 }
+
+/** \test Test really long request (same as HTPParserTest14), now with config
+ *        update to allow it */
+int HTPParserTest15(void) {
+    int result = 0;
+    Flow *f = NULL;
+    char *httpbuf = NULL;
+    size_t len = 18887;
+    TcpSession ssn;
+    HtpState *htp_state =  NULL;
+    int r = 0;
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: IDS\n\
+    double-decode-path: no\n\
+    double-decode-query: no\n\
+    request-body-limit: 0\n\
+    response-body-limit: 0\n\
+    meta-field-limit: 20000\n\
+";
+
+    memset(&ssn, 0, sizeof(ssn));
+
+    ConfCreateContextBackup();
+    ConfInit();
+    HtpConfigCreateBackup();
+    ConfYamlLoadString(input, strlen(input));
+    HTPConfigure();
+
+    httpbuf = SCMalloc(len);
+    if (unlikely(httpbuf == NULL))
+        goto end;
+    memset(httpbuf, 0x00, len);
+
+    /* create the request with a longer than 18k cookie */
+    strlcpy(httpbuf, "GET /blah/ HTTP/1.1\r\n"
+                     "Host: myhost.lan\r\n"
+                     "Connection: keep-alive\r\n"
+                     "Accept: */*\r\n"
+                     "User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.76 Safari/537.36\r\n"
+                     "Referer: http://blah.lan/\r\n"
+                     "Accept-Encoding: gzip,deflate,sdch\r\nAccept-Language: en-US,en;q=0.8\r\n"
+                     "Cookie: ", len);
+    size_t o = strlen(httpbuf);
+    for ( ; o < len - 4; o++) {
+        httpbuf[o] = 'A';
+    }
+    httpbuf[len - 4] = '\r';
+    httpbuf[len - 3] = '\n';
+    httpbuf[len - 2] = '\r';
+    httpbuf[len - 1] = '\n';
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    uint32_t u;
+    for (u = 0; u < len; u++) {
+        uint8_t flags = 0;
+
+        if (u == 0) flags = STREAM_TOSERVER|STREAM_START;
+        else if (u == (len - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
+        else flags = STREAM_TOSERVER;
+
+        SCMutexLock(&f->m);
+        r = AppLayerParse(NULL, f, ALPROTO_HTTP, flags, (uint8_t *)&httpbuf[u], 1);
+        if (r != 0) {
+            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
+                    " 0: ", u, r);
+            result = 0;
+            SCMutexUnlock(&f->m);
+            goto end;
+        }
+        SCMutexUnlock(&f->m);
+    }
+    htp_state = f->alstate;
+    if (htp_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
+    if (tx == NULL || tx->request_method_number != HTP_M_GET || tx->request_protocol_number != HTP_PROTOCOL_1_1)
+    {
+        printf("expected method M_GET and got %s: , expected protocol "
+                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
+                bstr_util_strdup_to_c(tx->request_protocol));
+        goto end;
+    }
+
+    SCMutexLock(&f->m);
+    AppLayerDecoderEvents *decoder_events = AppLayerGetDecoderEventsForFlow(f);
+    if (decoder_events != NULL) {
+        printf("app events: ");
+        SCMutexUnlock(&f->m);
+        goto end;
+    }
+    SCMutexUnlock(&f->m);
+
+    result = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
+    UTHFreeFlow(f);
+    if (httpbuf != NULL)
+        SCFree(httpbuf);
+    HTPFreeConfig();
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
+    return result;
+}
 #endif /* UNITTESTS */
 
 /**
@@ -5556,7 +5701,9 @@ void HTPParserRegisterTests(void) {
     UtRegisterTest("HTPBodyReassemblyTest01", HTPBodyReassemblyTest01, 1);
 
     UtRegisterTest("HTPSegvTest01", HTPSegvTest01, 1);
+
     UtRegisterTest("HTPParserTest14", HTPParserTest14, 1);
+    UtRegisterTest("HTPParserTest15", HTPParserTest15, 1);
 
     HTPFileParserRegisterTests();
 #endif /* UNITTESTS */
