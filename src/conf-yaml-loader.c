@@ -237,9 +237,14 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                                 Mangle(parent->val);
                         }
                     }
-                    ConfNode *n0 = ConfNodeLookupChild(parent, value);
-                    if (n0 != NULL) {
-                        node = n0;
+                    ConfNode *existing = ConfNodeLookupChild(parent, value);
+                    if (existing != NULL) {
+                        if (!existing->final) {
+                            SCLogInfo("Configuration node '%s' redefined.",
+                                existing->name);
+                            ConfNodePrune(existing);
+                        }
+                        node = existing;
                     }
                     else {
                         node = ConfNodeNew();
@@ -725,6 +730,59 @@ cleanup:
     return ret;
 }
 
+static int
+ConfYamlOverrideTest(void)
+{
+    ConfCreateContextBackup();
+    ConfInit();
+
+    char config[] =
+        "%YAML 1.1\n"
+        "---\n"
+        "default-log-dir: /var/log\n";
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return 1;
+}
+
+/**
+ * Test that a configuration parameter loaded from YAML doesn't
+ * override a 'final' value that may be set on the command line.
+ */
+static int
+ConfYamlOverrideFinalTest(void)
+{
+    ConfCreateContextBackup();
+    ConfInit();
+
+    char config[] =
+        "%YAML 1.1\n"
+        "---\n"
+        "default-log-dir: /var/log\n";
+
+    /* Set the log directory as if it was set on the command line. */
+    if (!ConfSetFinal("default-log-dir", "/tmp"))
+        return 0;
+    if (ConfYamlLoadString(config, strlen(config)) != 0)
+        return 0;
+
+    char *default_log_dir;
+
+    if (!ConfGet("default-log-dir", &default_log_dir))
+        return 0;
+    if (strcmp(default_log_dir, "/tmp") != 0) {
+        fprintf(stderr, "final value was reassigned\n");
+        return 0;
+    }
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return 1;
+}
+
 #endif /* UNITTESTS */
 
 void
@@ -738,5 +796,7 @@ ConfYamlRegisterTests(void)
     UtRegisterTest("ConfYamlSecondLevelSequenceTest",
         ConfYamlSecondLevelSequenceTest, 1);
     UtRegisterTest("ConfYamlFileIncludeTest", ConfYamlFileIncludeTest, 1);
+    UtRegisterTest("ConfYamlOverrideTest", ConfYamlOverrideTest, 1);
+    UtRegisterTest("ConfYamlOverrideFinalTest", ConfYamlOverrideFinalTest, 1);
 #endif /* UNITTESTS */
 }
