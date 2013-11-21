@@ -26,10 +26,13 @@
 
 typedef struct TmqhFlowMode_ {
     PacketQueue *q;
-
+#if __WORDSIZE == 32
+    uint32_t pad1;
+#endif
     SC_ATOMIC_DECLARE(uint64_t, total_packets);
     SC_ATOMIC_DECLARE(uint64_t, total_flows);
-} TmqhFlowMode __attribute__((aligned(CLS)));
+    uint32_t pad[10];
+} TmqhFlowMode __attribute__((aligned(64)));
 
 /** \brief Ctx for the flow queue handler
  *  \param size number of queues to output to
