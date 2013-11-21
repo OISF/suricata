@@ -46,6 +46,58 @@ static ConfNode *root = NULL;
 static ConfNode *root_backup = NULL;
 
 /**
+ * \brief Helper function to get a node, creating it if it does not
+ * exist.
+ *
+ * This function exits on memory failure as creating configuration
+ * nodes is usually part of application initialization.
+ *
+ * \param name The name of the configuration node to get.
+ *
+ * \retval The existing configuration node if it exists, or a newly
+ *   created node for the provided name.
+ */
+static ConfNode *
+ConfGetNodeOrCreate(char *name)
+{
+    ConfNode *parent = root;
+    ConfNode *node = NULL;
+    char *tmpname;
+    char *key;
+    char *next;
+
+    tmpname = SCStrdup(name);
+    if (unlikely(tmpname == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+            "Failed to allocate memory for configuration.");
+        exit(EXIT_FAILURE);
+    }
+    key = tmpname;
+
+    do {
+        if ((next = strchr(key, '.')) != NULL)
+            *next++ = '\0';
+        if ((node = ConfNodeLookupChild(parent, key)) == NULL) {
+            node = ConfNodeNew();
+            if (unlikely(node == NULL)) {
+                SCLogError(SC_ERR_MEM_ALLOC,
+                    "Failed to allocate memory for configuration.");
+                exit(EXIT_FAILURE);
+            }
+            node->name = SCStrdup(key);
+            node->parent = parent;
+            TAILQ_INSERT_TAIL(&parent->head, node, next);
+        }
+        key = next;
+        parent = node;
+    } while (next != NULL);
+
+    SCFree(tmpname);
+
+    return node;
+}
+
+/**
  * \brief Initialize the configuration system.
  */
 void
@@ -111,45 +163,36 @@ ConfNodeFree(ConfNode *node)
 /**
  * \brief Get a ConfNode by name.
  *
- * \param key The full name of the configuration node to lookup.
+ * \param name The full name of the configuration node to lookup.
  *
  * \retval A pointer to ConfNode is found or NULL if the configuration
  *    node does not exist.
  */
 ConfNode *
-ConfGetNode(char *key)
+ConfGetNode(char *name)
 {
     ConfNode *node = root;
-#if !defined(__WIN32) && !defined(_WIN32)
-    char *saveptr = NULL;
-#endif /* __WIN32 */
-    char *token;
+    char *tmpname;
+    char *key;
+    char *next;
 
-    /* Need to dup the key for tokenization... */
-    char *tokstr = SCStrdup(key);
-    if (unlikely(tokstr == NULL)) {
+    tmpname = SCStrdup(name);
+    if (unlikely(tmpname == NULL)) {
+        SCLogWarning(SC_ERR_MEM_ALLOC,
+            "Failed to allocate temp. memory while getting config node.");
         return NULL;
     }
+    key = tmpname;
 
-#if defined(__WIN32) || defined(_WIN32)
-    token = strtok(tokstr, ".");
-#else
-    token = strtok_r(tokstr, ".", &saveptr);
-#endif /* __WIN32 */
-    for (;;) {
-        node = ConfNodeLookupChild(node, token);
-        if (node == NULL)
-            break;
+    do {
+        if ((next = strchr(key, '.')) != NULL)
+            *next++ = '\0';
+        node = ConfNodeLookupChild(node, key);
+        key = next;
+    } while (next != NULL && node != NULL);
 
-#if defined(__WIN32) || defined(_WIN32)
-        token = strtok(NULL, ".");
-#else
-        token = strtok_r(NULL, ".", &saveptr);
-#endif /* __WIN32 */
-        if (token == NULL)
-            break;
-    }
-    SCFree(tokstr);
+    SCFree(tmpname);
+
     return node;
 }
 
@@ -174,71 +217,14 @@ ConfGetRootNode(void)
 int
 ConfSet(char *name, char *val, int allow_override)
 {
-    ConfNode *parent = root;
-    ConfNode *node;
-    char *token;
-#if !defined(__WIN32) && !defined(_WIN32)
-    char *saveptr = NULL;
-#endif /* __WIN32 */
-    /* First check if the node already exists. */
-    node = ConfGetNode(name);
-    if (node != NULL) {
-        if (!node->allow_override) {
-            return 0;
-        }
-        else {
-            if (node->val != NULL)
-                SCFree(node->val);
-            node->val = SCStrdup(val);
-            node->allow_override = allow_override;
-            return 1;
-        }
+    ConfNode *node = ConfGetNodeOrCreate(name);
+    if (node == NULL || !node->allow_override) {
+        return 0;
     }
-    else {
-        char *tokstr = SCStrdup(name);
-        if (unlikely(tokstr == NULL)) {
-            return 0;
-        }
-#if defined(__WIN32) || defined(_WIN32)
-        token = strtok(tokstr, ".");
-#else
-        token = strtok_r(tokstr, ".", &saveptr);
-#endif /* __WIN32 */
-        node = ConfNodeLookupChild(parent, token);
-        for (;;) {
-            if (node == NULL) {
-                node = ConfNodeNew();
-                node->name = SCStrdup(token);
-                node->parent = parent;
-                TAILQ_INSERT_TAIL(&parent->head, node, next);
-                parent = node;
-            }
-            else {
-                parent = node;
-            }
-#if defined(__WIN32) || defined(_WIN32)
-            token = strtok(NULL, ".");
-#else
-            token = strtok_r(NULL, ".", &saveptr);
-#endif /* __WIN32 */
-            if (token == NULL) {
-                if (!node->allow_override)
-                    break;
-                if (node->val != NULL)
-                    SCFree(node->val);
-                node->val = SCStrdup(val);
-                node->allow_override = allow_override;
-                break;
-            }
-            else {
-                node = ConfNodeLookupChild(parent, token);
-            }
-        }
-        SCFree(tokstr);
-    }
-
-    SCLogDebug("configuration parameter '%s' set", name);
-
+    if (node->val != NULL)
+        SCFree(node->val);
+    node->val = SCStrdup(val);
+    node->allow_override = allow_override;
     return 1;
 }
 
@@ -1194,6 +1180,98 @@ ConfSetTest(void)
     return 1;
 }
 
+static int
+ConfGetNodeOrCreateTest(void)
+{
+    ConfNode *node;
+    int ret = 0;
+
+    ConfCreateContextBackup();
+    ConfInit();
+
+    /* Get a node that should not exist, give it a value, re-get it
+     * and make sure the second time it returns the existing node. */
+    node = ConfGetNodeOrCreate("node0");
+    if (node == NULL) {
+        fprintf(stderr, "returned null\n");
+        goto end;
+    }
+    if (node->parent == NULL || node->parent != root) {
+        fprintf(stderr, "unexpected parent node\n");
+        goto end;
+    }
+    if (node->val != NULL) {
+        fprintf(stderr, "node already existed\n");
+        goto end;
+    }
+    node->val = SCStrdup("node0");
+    node = ConfGetNodeOrCreate("node0");
+    if (node == NULL) {
+        fprintf(stderr, "returned null\n");
+        goto end;
+    }
+    if (node->val == NULL) {
+        fprintf(stderr, "new node was allocated\n");
+        goto end;
+    }
+    if (strcmp(node->val, "node0") != 0) {
+        fprintf(stderr, "node did not have expected value\n");
+        goto end;
+    }
+
+    /* Do the same, but for something deeply nested. */
+    node = ConfGetNodeOrCreate("parent.child.grandchild");
+    if (node == NULL) {
+        fprintf(stderr, "returned null\n");
+        goto end;
+    }
+    if (node->parent == NULL || node->parent == root) {
+        fprintf(stderr, "unexpected parent node\n");
+        goto end;
+    }
+    if (node->val != NULL) {
+        fprintf(stderr, "node already existed\n");
+        goto end;
+    }
+    node->val = SCStrdup("parent.child.grandchild");
+    node = ConfGetNodeOrCreate("parent.child.grandchild");
+    if (node == NULL) {
+        fprintf(stderr, "returned null\n");
+        goto end;
+    }
+    if (node->val == NULL) {
+        fprintf(stderr, "new node was allocated\n");
+        goto end;
+    }
+    if (strcmp(node->val, "parent.child.grandchild") != 0) {
+        fprintf(stderr, "node did not have expected value\n");
+        goto end;
+    }
+
+    /* Test that 2 child nodes have the same root. */
+    ConfNode *child1 = ConfGetNodeOrCreate("parent.kids.child1");
+    ConfNode *child2 = ConfGetNodeOrCreate("parent.kids.child2");
+    if (child1 == NULL || child2 == NULL) {
+        fprintf(stderr, "returned null\n");
+        goto end;
+    }
+    if (child1->parent != child2->parent) {
+        fprintf(stderr, "child nodes have different parents\n");
+        goto end;
+    }
+    if (strcmp(child1->parent->name, "kids") != 0) {
+        fprintf(stderr, "parent node had unexpected name\n");
+        goto end;
+    }
+
+    ret = 1;
+
+end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return ret;
+}
 
 void
 ConfRegisterTests(void)
@@ -1211,6 +1289,7 @@ ConfRegisterTests(void)
     UtRegisterTest("ConfGetChildValueWithDefaultTest", ConfGetChildValueWithDefaultTest, 1);
     UtRegisterTest("ConfGetChildValueIntWithDefaultTest", ConfGetChildValueIntWithDefaultTest, 1);
     UtRegisterTest("ConfGetChildValueBoolWithDefaultTest", ConfGetChildValueBoolWithDefaultTest, 1);
+    UtRegisterTest("ConfGetNodeOrCreateTest", ConfGetNodeOrCreateTest, 1);
 }
 
 #endif /* UNITTESTS */
