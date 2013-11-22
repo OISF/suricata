@@ -1764,6 +1764,11 @@ static int StreamTcpReassembleRawCheckLimit(TcpSession *ssn, TcpStream *stream,
 {
     SCEnter();
 
+    if (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) {
+        SCLogDebug("reassembling now as STREAMTCP_STREAM_FLAG_NOREASSEMBLY is set, so not expecting any new packets");
+        SCReturnInt(1);
+    }
+
     if (ssn->flags & STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY) {
         SCLogDebug("reassembling now as STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY is set");
         ssn->flags &= ~STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY;
