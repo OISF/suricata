@@ -2045,7 +2045,8 @@ static void
 PacketCreateMask(Packet *p, SignatureMask *mask, uint16_t alproto, void *alstate, StreamMsg *smsg,
         int app_decoder_events)
 {
-    if (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && (p->payload_len > 0 || smsg != NULL)) {
+    /* no payload inspect flag doesn't apply to smsg */
+    if (smsg != NULL || (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && p->payload_len > 0)) {
         SCLogDebug("packet has payload");
         (*mask) |= SIG_MASK_REQUIRE_PAYLOAD;
     } else {
