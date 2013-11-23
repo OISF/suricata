@@ -138,7 +138,7 @@
     AC_CHECK_HEADERS([sys/ioctl.h linux/if_ether.h linux/if_packet.h linux/filter.h])
     AC_CHECK_HEADERS([linux/ethtool.h linux/sockios.h])
 
-    AC_CHECK_HEADERS([sys/socket.h net/if.h sys/mman.h linux/if_arp.h], [], [],
+    AC_CHECK_HEADERS([sys/socket.h net/if.h net/if_arp.h sys/mman.h linux/if_arp.h], [], [],
     [[#ifdef HAVE_SYS_SOCKET_H
         #include <sys/types.h>
         #include <sys/socket.h>
@@ -1049,6 +1049,24 @@
             [[#include <linux/if_packet.h>]])
     ])
 
+  # Netmap support
+    AC_ARG_ENABLE(netmap,
+           AS_HELP_STRING([--enable-netmap], [Enable Netmap support]),,[enable_netmap=no])
+    AC_ARG_WITH(netmap_includes,
+        [  --with-netmap-includes=DIR  netmap include directory],
+        [with_netmap_includes="$withval"],[with_netmap_includes=no])
+
+    AS_IF([test "x$enable_netmap" = "xyes"], [
+        CFLAGS="$CFLAGS -DHAVE_NETMAP"
+
+        if test "$with_netmap_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_netmap_includes}"
+        fi
+
+        AC_CHECK_HEADER(net/netmap.h,,[AC_ERROR(net/netmap.h not found ...)],
+            [[#include <inttypes.h>
+              #include <net/if.h>]])
+    ])
 
   # libhtp
     AC_ARG_ENABLE(non-bundled-htp,
@@ -1629,6 +1647,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   IPFW support:                            ${enable_ipfw}
   DAG enabled:                             ${enable_dag}
   Napatech enabled:                        ${enable_napatech}
+  Netmap enabled:                          ${enable_netmap}
   Unix socket enabled:                     ${enable_unixsocket}
 
   libnss support:                          ${enable_nss}
