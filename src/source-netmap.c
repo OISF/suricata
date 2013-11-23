@@ -516,7 +516,7 @@ TmEcode NetmapWritePacket(Packet *p)
     u_int j, k;
 
     if (p->netmap_v.copy_mode == NETMAP_COPY_MODE_IPS) {
-        if (p->action & ACTION_DROP) {
+        if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
             return TM_ECODE_OK;
         }
     }
