@@ -79,6 +79,8 @@ typedef enum {
 #endif
     TMM_RECEIVENAPATECH,
     TMM_DECODENAPATECH,
+    TMM_RECEIVENETMAP,
+    TMM_DECODENETMAP,
     TMM_SIZE,
 } TmmId;
 
