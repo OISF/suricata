@@ -1217,8 +1217,6 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         goto socket_err;
     }
 
-
-
     if (ptv->promisc != 0) {
         /* Force promiscuous mode */
         memset(&sock_params, 0, sizeof(sock_params));
@@ -1313,6 +1311,11 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
                        "Can't activate TPACKET_V2 on packet socket: %s",
                        strerror(errno));
             goto socket_err;
+        }
+
+        if (GetIfaceOffloading(devname) == 1) {
+            SCLogWarning(SC_ERR_AFP_CREATE,
+                         "Using mmap mode with GRO or LRO activated can lead to capture problems");
         }
 
         /* Allocate RX ring */
