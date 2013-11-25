@@ -47,6 +47,7 @@ typedef struct AppLayerProto_ {
     uint16_t to_server;
     uint16_t to_client;
     uint16_t map_size;
+    uint16_t logger_cnt; /* count of loggers for this protocol */
     char logger; /**< does this proto have a logger enabled? */
 
     AppLayerLocalMap **map;
@@ -143,6 +144,7 @@ typedef struct AppLayerParserStateStore_ {
      * we don't need a var per direction since we don't log a transaction
      * unless we have the entire transaction. */
     uint64_t log_id;
+    uint16_t log_cnt;       /* count for multiple loggers */
     uint16_t version;       /**< state version, incremented for each update,
                              *   can wrap around */
 
@@ -317,7 +319,7 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *, AppLayerParserState *,
  *
  * \param f Flow.
  */
-void AppLayerTransactionUpdateLogId(Flow *f);
+int AppLayerTransactionUpdateLogId(uint16_t proto, Flow *f);
 
 /**
  * \brief Get the current log id.

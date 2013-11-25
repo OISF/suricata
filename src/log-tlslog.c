@@ -401,7 +401,7 @@ static TmEcode LogTlsLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQ
                          timebuf, srcip, sp, dstip, dp,
                          ssl_state->server_connp.cert0_subject, ssl_state->server_connp.cert0_issuerdn);
 
-    AppLayerTransactionUpdateLogId(p->flow);
+    AppLayerTransactionUpdateLogId(ALPROTO_TLS, p->flow);
 
     if (hlog->flags & LOG_TLS_EXTENDED) {
         LogTlsLogExtended(aft, ssl_state);
