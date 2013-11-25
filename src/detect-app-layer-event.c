@@ -123,6 +123,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParsePkt(const char *arg,
     aled = SCMalloc(sizeof(DetectAppLayerEventData));
     if (unlikely(aled == NULL))
         return NULL;
+    memset(aled,0x00,sizeof(*aled));
     aled->event_id = event_id;
     *event_type = APP_LAYER_EVENT_TYPE_PACKET;
 
@@ -168,6 +169,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParseApp(const char *arg,
     aled = SCMalloc(sizeof(DetectAppLayerEventData));
     if (unlikely(aled == NULL))
         return NULL;
+    memset(aled,0x00,sizeof(*aled));
     aled->alproto = alproto;
     aled->event_id = event_id;
 
