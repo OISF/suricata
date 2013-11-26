@@ -307,13 +307,13 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         SCLogInfo("Starting run for '%s'", cfile->filename);
         unix_manager_file_task_running = 1;
         this->running = 1;
-        if (ConfSet("pcap-file.file", cfile->filename, 1) != 1) {
+        if (ConfSet("pcap-file.file", cfile->filename) != 1) {
             SCLogInfo("Can not set working file to '%s'", cfile->filename);
             PcapFilesFree(cfile);
             return TM_ECODE_FAILED;
         }
         if (cfile->output_dir) {
-            if (ConfSet("default-log-dir", cfile->output_dir, 1) != 1) {
+            if (ConfSet("default-log-dir", cfile->output_dir) != 1) {
                 SCLogInfo("Can not set output dir to '%s'", cfile->output_dir);
                 PcapFilesFree(cfile);
                 return TM_ECODE_FAILED;
