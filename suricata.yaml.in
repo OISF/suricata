@@ -15,6 +15,11 @@
 # pattern matcher buffers and scans as many packets as possible in parallel.
 #max-pending-packets: 1024
 
+# Don't use packet pool but allocate packets instead (default: no). This seems to
+# improve performance on some systems where reinjecting packet to the pool consume
+# too much ressources.
+#no-packet-pool: yes
+
 # Runmode the engine should use. Please check --list-runmodes to get the available
 # runmodes for each packet acquisition method. Defaults to "autofp" (auto flow pinned
 # load balancing).

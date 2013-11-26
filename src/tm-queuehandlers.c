@@ -41,7 +41,6 @@ void TmqhSetup (void) {
 
     TmqhSimpleRegister();
     TmqhNfqRegister();
-    TmqhPacketpoolRegister();
     TmqhFlowRegister();
     TmqhRingBufferRegister();
 }

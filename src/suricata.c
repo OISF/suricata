@@ -939,6 +939,7 @@ static void SCInstanceInit(SCInstance *suri)
     suri->daemon = 0;
     suri->offline = 0;
     suri->verbose = 0;
+    suri->no_packet_pool = 0;
 }
 
 static TmEcode PrintVersion()
@@ -1900,9 +1901,17 @@ static int PostConfLoadedSetup(SCInstance *suri)
         }
     }
 
+    if (ConfGetBool("no-packet-pool", &suri->no_packet_pool) != 1)
+        suri->no_packet_pool = 0;
+
     /* hardcoded initialization code */
     SigTableSetup(); /* load the rule keywords */
     TmqhSetup();
+
+    if (suri->no_packet_pool) {
+        SCLogInfo("Will use direct allocation instead of packet pool");
+    }
+    TmqhPacketpoolRegister(! suri->no_packet_pool);
 
     StorageInit();
     CIDRInit();
@@ -2063,7 +2072,9 @@ int main(int argc, char **argv)
     NSS_NoDB_Init(NULL);
 #endif
 
-    PacketPoolInit(max_pending_packets);
+    if (! suri.no_packet_pool)
+        PacketPoolInit(max_pending_packets);
+
     HostInitConfig(HOST_VERBOSE);
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         FlowInitConfig(FLOW_VERBOSE);
