@@ -144,7 +144,9 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
 
     /* inspect the body if the transfer is complete or we have hit
      * our body size limit */
-    if (htud->request_body.content_len_so_far < htp_state->cfg->request_inspect_min_size &&
+    if ((htp_state->cfg->request_body_limit == 0 ||
+         htud->request_body.content_len_so_far < htp_state->cfg->request_body_limit) &&
+        htud->request_body.content_len_so_far < htp_state->cfg->request_inspect_min_size &&
         !(AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0) > HTP_REQUEST_BODY) &&
         !(flags & STREAM_EOF)) {
         SCLogDebug("we still haven't seen the entire request body.  "
