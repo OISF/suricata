@@ -1,0 +1,14 @@
+{
+   Known issue with libmagic
+   Memcheck:Addr1
+   obj:/usr/lib/x86_64-linux-gnu/libmagic.so.1.0.0
+   fun:file_softmagic
+   fun:file_buffer
+   fun:magic_buffer
+   fun:MagicGlobalLookup
+   fun:MagicDetectTest10ValgrindError
+   fun:UtRunTests
+   fun:RunUnittests
+   fun:main
+}
+
