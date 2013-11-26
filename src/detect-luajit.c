@@ -273,7 +273,16 @@ int DetectLuajitMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMat
     lua_settable(tluajit->luastate, -3);
 
     lua_pushstring (tluajit->luastate, luajit->buffername); /* stack at -2 */
-    lua_pushlstring (tluajit->luastate, (const char *)buffer, (size_t)buffer_len);
+    if (buffer_len % 4) {
+        size_t tmpbuflen = buffer_len + (buffer_len % 4);
+        uint8_t tmpbuf[tmpbuflen];
+        memset(tmpbuf, 0x00, tmpbuflen);
+        memcpy(tmpbuf, buffer, buffer_len);
+        tmpbuf[buffer_len] = '\0';
+        lua_pushlstring (tluajit->luastate, (const char *)tmpbuf, (size_t)buffer_len);
+    } else {
+        lua_pushlstring (tluajit->luastate, (const char *)buffer, (size_t)buffer_len);
+    }
     lua_settable(tluajit->luastate, -3);
 
     int retval = lua_pcall(tluajit->luastate, 1, 1, 0);

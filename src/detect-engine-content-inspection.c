@@ -532,6 +532,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 #ifdef HAVE_LUAJIT
     }
     else if (sm->type == DETECT_LUAJIT) {
+        SCLogDebug("luajit starting");
         /* for flowvar gets and sets we need to know the flow's lock status */
         int need_flow_lock = 0;
         if (inspection_mode <= DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM)
@@ -540,8 +541,10 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         if (DetectLuajitMatchBuffer(det_ctx, s, sm, buffer, buffer_len,
                     det_ctx->buffer_offset, f, need_flow_lock) != 1)
         {
+            SCLogDebug("luajit no_match");
             goto no_match;
         }
+        SCLogDebug("luajit match");
         goto match;
 #endif
     } else {

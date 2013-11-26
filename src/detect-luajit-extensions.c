@@ -140,6 +140,7 @@ static int LuajitGetFlowvar(lua_State *luastate) {
      * invalid read errors in valgrind otherwise. Adding in a nul to be sure.
      *
      * Buffer size = len + 1 (for nul) + whatever makes it a multiple of 4 */
+    size_t reallen = fv->data.fv_str.value_len;
     size_t buflen = fv->data.fv_str.value_len + 1 + ((fv->data.fv_str.value_len + 1) % 4);
     uint8_t buf[buflen];
     memset(buf, 0x00, buflen);
@@ -150,7 +151,7 @@ static int LuajitGetFlowvar(lua_State *luastate) {
         FLOWLOCK_UNLOCK(f);
 
     /* return value through luastate, as a luastring */
-    lua_pushlstring(luastate, (char *)buf, buflen);
+    lua_pushlstring(luastate, (char *)buf, reallen);
 
     return 1;
 
