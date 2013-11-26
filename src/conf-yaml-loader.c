@@ -699,19 +699,27 @@ ConfYamlFileIncludeTest(void)
      * configuration. */
     ConfNode *node;
     node = ConfGetNode("host-mode");
-    if (node == NULL) goto cleanup;
-    if (strcmp(node->val, "auto") != 0) goto cleanup;
+    if (node == NULL)
+        goto cleanup;
+    if (strcmp(node->val, "auto") != 0)
+        goto cleanup;
     node = ConfGetNode("unix-command.enabled");
-    if (node == NULL) goto cleanup;
-    if (strcmp(node->val, "no") != 0) goto cleanup;
+    if (node == NULL)
+        goto cleanup;
+    if (strcmp(node->val, "no") != 0)
+        goto cleanup;
 
     /* Check for values that were included under a mapping. */
     node = ConfGetNode("mapping.host-mode");
-    if (node == NULL) goto cleanup;
-    if (strcmp(node->val, "auto") != 0) goto cleanup;
+    if (node == NULL)
+        goto cleanup;
+    if (strcmp(node->val, "auto") != 0)
+        goto cleanup;
     node = ConfGetNode("mapping.unix-command.enabled");
-    if (node == NULL) goto cleanup;
-    if (strcmp(node->val, "no") != 0) goto cleanup;
+    if (node == NULL)
+        goto cleanup;
+    if (strcmp(node->val, "no") != 0)
+        goto cleanup;
 
     ConfDeInit();
     ConfRestoreContextBackup();
