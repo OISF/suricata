@@ -59,13 +59,13 @@ static int DecodeSCTPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t le
     return 0;
 }
 
-void DecodeSCTP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeSCTP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     SCPerfCounterIncr(dtv->counter_sctp, tv->sc_perf_pca);
 
     if (unlikely(DecodeSCTPPacket(tv, p,pkt,len) < 0)) {
         p->sctph = NULL;
-        return;
+        return TM_ECODE_FAILED;
     }
 
 #ifdef DEBUG
@@ -76,7 +76,7 @@ void DecodeSCTP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
     /* Flow is an integral part of us */
     FlowHandlePacket(tv, p);
 
-    return;
+    return TM_ECODE_OK;
 }
 /**
  * @}

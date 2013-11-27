@@ -43,14 +43,14 @@
 #include "host.h"
 
 
-void DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     SCPerfCounterIncr(dtv->counter_raw, tv->sc_perf_pca);
 
     /* If it is ipv4 or ipv6 it should at least be the size of ipv4 */
     if (unlikely(len < IPV4_HEADER_LEN)) {
         ENGINE_SET_EVENT(p,IPV4_PKT_TOO_SMALL);
-        return;
+        return TM_ECODE_FAILED;
     }
 
     if (IP_GET_RAW_VER(pkt) == 4) {
@@ -63,7 +63,7 @@ void DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
         SCLogDebug("Unknown ip version %" PRIu8 "", IP_GET_RAW_VER(pkt));
         ENGINE_SET_EVENT(p,IPRAW_INVALID_IPV);
     }
-    return;
+    return TM_ECODE_OK;
 }
 
 #ifdef UNITTESTS

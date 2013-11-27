@@ -164,7 +164,7 @@ void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
  *
  * \retval void No return value
  */
-void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                   uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     int full_hdr = 0;
@@ -173,7 +173,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     if (len < ICMPV6_HEADER_LEN) {
         SCLogDebug("ICMPV6_PKT_TOO_SMALL");
         ENGINE_SET_EVENT(p, ICMPV6_PKT_TOO_SMALL);
-        return;
+        return TM_ECODE_FAILED;
     }
 
     p->icmpv6h = (ICMPV6Hdr *)pkt;
@@ -291,7 +291,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     /* Flow is an integral part of us */
     FlowHandlePacket(tv, p);
 
-    return;
+    return TM_ECODE_OK;
 }
 
 #ifdef UNITTESTS

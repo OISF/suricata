@@ -56,7 +56,7 @@
  * \param pq pointer to the packet queue
  *
  */
-void DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     uint32_t proto;
 
@@ -64,16 +64,16 @@ void DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
 
     if(len < VLAN_HEADER_LEN)    {
         ENGINE_SET_EVENT(p,VLAN_HEADER_TOO_SMALL);
-        return;
+        return TM_ECODE_FAILED;
     }
     if (p->vlan_idx >= 2) {
         ENGINE_SET_EVENT(p,VLAN_HEADER_TOO_MANY_LAYERS);
-        return;
+        return TM_ECODE_FAILED;
     }
 
     p->vlanh[p->vlan_idx] = (VLANHdr *)pkt;
     if(p->vlanh[p->vlan_idx] == NULL)
-        return;
+        return TM_ECODE_FAILED;
 
     proto = GET_VLAN_PROTO(p->vlanh[p->vlan_idx]);
 
@@ -107,7 +107,7 @@ void DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
         case ETHERNET_TYPE_VLAN:
             if (p->vlan_idx >= 2) {
                 ENGINE_SET_EVENT(p,VLAN_HEADER_TOO_MANY_LAYERS);
-                return;
+                return TM_ECODE_OK;
             } else {
                 DecodeVLAN(tv, dtv, p, pkt + VLAN_HEADER_LEN,
                         len - VLAN_HEADER_LEN, pq);
@@ -116,10 +116,10 @@ void DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
         default:
             SCLogDebug("unknown VLAN type: %" PRIx32 "", proto);
             ENGINE_SET_EVENT(p,VLAN_UNKNOWN_TYPE);
-            return;
+            return TM_ECODE_OK;
     }
 
-    return;
+    return TM_ECODE_OK;
 }
 
 #ifdef UNITTESTS
