@@ -1402,11 +1402,9 @@ error:
 DetectPort *PortParse(char *str) {
     char *port2 = NULL;
     DetectPort *dp = NULL;
-    char *portdup = SCStrdup(str);
 
-    if (unlikely(portdup == NULL)) {
-        return NULL;
-    }
+    char portstr[16];
+    strlcpy(portstr, str, sizeof(portstr));
 
     dp = DetectPortInit();
     if (dp == NULL)
@@ -1415,7 +1413,7 @@ DetectPort *PortParse(char *str) {
     /* XXX better input validation */
 
     /* we dup so we can put a nul-termination in it later */
-    char *port = portdup;
+    char *port = portstr;
 
     /* handle the negation case */
     if (port[0] == '!') {
@@ -1457,14 +1455,11 @@ DetectPort *PortParse(char *str) {
         }
     }
 
-    SCFree(portdup);
     return dp;
 
 error:
     if (dp != NULL)
         DetectPortCleanupList(dp);
-
-    if (portdup) SCFree(portdup);
     return NULL;
 }
 

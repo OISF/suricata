@@ -600,27 +600,24 @@ int DetectAddressParseString(DetectAddress *dd, char *str)
     char *ip2 = NULL;
     char *mask = NULL;
     int r = 0;
+    char ipstr[256];
 
     while (*str != '\0' && *str == ' ')
         str++;
 
-    char *ipdup = SCStrdup(str);
-    if (unlikely(ipdup == NULL))
-        return -1;
-    SCLogDebug("str %s", str);
-
     /* first handle 'any' */
     if (strcasecmp(str, "any") == 0) {
         dd->flags |= ADDRESS_FLAG_ANY;
-        SCFree(ipdup);
-
         SCLogDebug("address is \'any\'");
-
         return 0;
     }
 
-    /* we dup so we can put a nul-termination in it later */
-    ip = ipdup;
+    strlcpy(ipstr, str, sizeof(ipstr));
+    SCLogDebug("str %s", str);
+
+    /* we work with a copy so that we can put a
+     * nul-termination in it later */
+    ip = ipstr;
 
     /* handle the negation case */
     if (ip[0] == '!') {
@@ -757,14 +754,11 @@ int DetectAddressParseString(DetectAddress *dd, char *str)
 
     }
 
-    SCFree(ipdup);
-
     BUG_ON(dd->ip.family == 0);
 
     return 0;
 
 error:
-    SCFree(ipdup);
     return -1;
 }
 
