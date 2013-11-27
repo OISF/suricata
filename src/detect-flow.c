@@ -168,6 +168,7 @@ DetectFlowData *DetectFlowParse (char *flowstr)
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
+    char str1[16] = "", str2[16] = "", str3[16] = "";
 
     ret = pcre_exec(parse_regex, parse_regex_study, flowstr, strlen(flowstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
@@ -176,29 +177,28 @@ DetectFlowData *DetectFlowParse (char *flowstr)
     }
 
     if (ret > 1) {
-        const char *str_ptr;
-        res = pcre_get_substring((char *)flowstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+        res = pcre_copy_substring((char *)flowstr, ov, MAX_SUBSTRINGS, 1, str1, sizeof(str1));
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
             goto error;
         }
-        args[0] = (char *)str_ptr;
+        args[0] = (char *)str1;
 
         if (ret > 2) {
-            res = pcre_get_substring((char *)flowstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+            res = pcre_copy_substring((char *)flowstr, ov, MAX_SUBSTRINGS, 2, str2, sizeof(str2));
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
                 goto error;
             }
-            args[1] = (char *)str_ptr;
+            args[1] = (char *)str2;
         }
         if (ret > 3) {
-            res = pcre_get_substring((char *)flowstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
+            res = pcre_copy_substring((char *)flowstr, ov, MAX_SUBSTRINGS, 3, str3, sizeof(str3));
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
                 goto error;
             }
-            args[2] = (char *)str_ptr;
+            args[2] = (char *)str3;
         }
     }
 
@@ -275,19 +275,9 @@ DetectFlowData *DetectFlowParse (char *flowstr)
             //printf("args[%" PRId32 "]: %s match_cnt: %" PRId32 " flags: 0x%02X\n", i, args[i], fd->match_cnt, fd->flags);
         }
     }
-    for (i = 0; i < (ret -1); i++){
-        if (args[i] != NULL)
-            SCFree(args[i]);
-    }
     return fd;
 
 error:
-    /* ret can be higher than 3 */
-    for (i = 0; i < (ret - 1) && i < 3; i++){
-        if (args[i] != NULL)
-            SCFree(args[i]);
-    }
-
     if (fd != NULL)
         DetectFlowFree(fd);
     return NULL;
