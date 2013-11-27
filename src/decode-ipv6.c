@@ -44,6 +44,8 @@
 #include "util-profiling.h"
 #include "host.h"
 
+#include "tmqh-packetpool.h"
+
 #define IPV6_EXTHDRS     ip6eh.ip6_exthdrs
 #define IPV6_EH_CNT      ip6eh.ip6_exthdrs_cnt
 
@@ -62,11 +64,18 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
         if (pq != NULL) {
             Packet *tp = PacketPseudoPktSetup(p, pkt, plen, IPPROTO_IP);
             if (tp != NULL) {
+                int ret;
+
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
-                DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
-                             GET_PKT_LEN(tp), pq, IPPROTO_IP);
-                PacketEnqueue(pq,tp);
-                SCPerfCounterIncr(dtv->counter_ipv4inipv6, tv->sc_perf_pca);
+                ret = DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
+                                   GET_PKT_LEN(tp), pq, IPPROTO_IP);
+                if (unlikely(ret != TM_ECODE_OK)) {
+                    TmqhOutputPacketpool(tv, tp);
+                } else {
+                    /* add the tp to the packet queue. */
+                    PacketEnqueue(pq,tp);
+                    SCPerfCounterIncr(dtv->counter_ipv4inipv6, tv->sc_perf_pca);
+                }
                 return;
             }
         }
@@ -77,32 +86,34 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
 }
 
 /**
- * \brief Function to decode IPv4 in IPv6 packets
+ * \brief Function to decode IPv6 in IPv6 packets
  *
  */
-static void DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t plen, PacketQueue *pq)
+static int DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t plen, PacketQueue *pq)
 {
 
     if (unlikely(plen < IPV6_HEADER_LEN)) {
         ENGINE_SET_EVENT(p, IPV6_IN_IPV6_PKT_TOO_SMALL);
-        return;
+        return TM_ECODE_FAILED;
     }
     if (IP_GET_RAW_VER(pkt) == 6) {
         if (unlikely(pq != NULL)) {
             Packet *tp = PacketPseudoPktSetup(p, pkt, plen, IPPROTO_IPV6);
             if (unlikely(tp != NULL)) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
-                DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
-                             GET_PKT_LEN(tp), pq, IPPROTO_IPV6);
-                PacketEnqueue(pq,tp);
-                SCPerfCounterIncr(dtv->counter_ipv6inipv6, tv->sc_perf_pca);
-                return;
+                if (DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
+                            GET_PKT_LEN(tp), pq, IPPROTO_IPV6) == TM_ECODE_OK) {
+                    PacketEnqueue(pq,tp);
+                    SCPerfCounterIncr(dtv->counter_ipv6inipv6, tv->sc_perf_pca);
+                } else {
+                    TmqhOutputPacketpool(tv, tp);
+                }
             }
         }
     } else {
         ENGINE_SET_EVENT(p, IPV6_IN_IPV6_WRONG_IP_VER);
     }
-    return;
+    return TM_ECODE_OK;
 }
 
 static void
@@ -528,7 +539,7 @@ static int DecodeIPV6Packet (ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
     return 0;
 }
 
-void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     int ret;
 
@@ -538,7 +549,7 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
     ret = DecodeIPV6Packet (tv, dtv, p, pkt, len);
     if (unlikely(ret < 0)) {
         p->ip6h = NULL;
-        return;
+        return TM_ECODE_FAILED;
     }
 
 #ifdef DEBUG
@@ -558,27 +569,26 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
         case IPPROTO_TCP:
             IPV6_SET_L4PROTO (p, IPPROTO_TCP);
             DecodeTCP(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq);
-            return;
+            return TM_ECODE_OK;
         case IPPROTO_UDP:
             IPV6_SET_L4PROTO (p, IPPROTO_UDP);
             DecodeUDP(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq);
-            return;
-            break;
+            return TM_ECODE_OK;
         case IPPROTO_ICMPV6:
             IPV6_SET_L4PROTO (p, IPPROTO_ICMPV6);
             DecodeICMPV6(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq);
-            return;
+            return TM_ECODE_OK;
         case IPPROTO_SCTP:
             IPV6_SET_L4PROTO (p, IPPROTO_SCTP);
             DecodeSCTP(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq);
-            return;
+            return TM_ECODE_OK;
         case IPPROTO_IPIP:
             IPV6_SET_L4PROTO(p, IPPROTO_IPIP);
             DecodeIPv4inIPv6(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq);
-            return;
+            return TM_ECODE_OK;
         case IPPROTO_IPV6:
             DecodeIP6inIP6(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq);
-            return;
+            return TM_ECODE_OK;
         case IPPROTO_FRAGMENT:
         case IPPROTO_HOPOPTS:
         case IPPROTO_ROUTING:
@@ -601,12 +611,16 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
     if (IPV6_EXTHDR_ISSET_FH(p)) {
         Packet *rp = Defrag(tv, dtv, p);
         if (rp != NULL) {
-            DecodeIPV6(tv, dtv, rp, (uint8_t *)rp->ip6h, IPV6_GET_PLEN(rp) + IPV6_HEADER_LEN, pq);
-            PacketEnqueue(pq, rp);
-
-            /* Not really a tunnel packet, but we're piggybacking that
-             * functionality for now. */
-            SET_TUNNEL_PKT(p);
+            ret = DecodeIPV6(tv, dtv, rp, (uint8_t *)rp->ip6h, IPV6_GET_PLEN(rp) + IPV6_HEADER_LEN, pq);
+            if (unlikely(ret != TM_ECODE_OK)) {
+                TmqhOutputPacketpool(tv, rp);
+            } else {
+                /* add the tp to the packet queue. */
+                PacketEnqueue(pq,rp);
+                /* Not really a tunnel packet, but we're piggybacking that
+                 * functionality for now. */
+                SET_TUNNEL_PKT(p);
+            }
         }
     }
 
@@ -634,7 +648,7 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
             IPV6_EXTHDR_GET_DH2_HDRLEN(p), IPV6_EXTHDR_GET_DH2_NH(p));
     }
 #endif
-    return;
+    return TM_ECODE_OK;
 }
 
 #ifdef UNITTESTS
