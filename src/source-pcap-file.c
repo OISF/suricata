@@ -358,7 +358,8 @@ void ReceivePcapFileThreadExitStats(ThreadVars *tv, void *data) {
         if (chrate < CHECKSUM_INVALID_RATIO)
             SCLogWarning(SC_ERR_INVALID_CHECKSUM,
                          "1/%" PRIu64 "th of packets have an invalid checksum,"
-                         " consider setting pcap-file.checksum-checks variable to no",
+                         " consider setting pcap-file.checksum-checks variable to no"
+                         " or use '-k none' option on command line.",
                          chrate);
         else
             SCLogInfo("1/%" PRIu64 "th of packets have an invalid checksum",
