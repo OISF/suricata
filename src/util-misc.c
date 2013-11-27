@@ -67,8 +67,8 @@ static int ParseSizeString(const char *size, double *res)
     int r;
     int ov[MAX_SUBSTRINGS];
     int retval = 0;
-    const char *str_ptr = NULL;
-    const char *str_ptr2 = NULL;
+    char str[128];
+    char str2[128];
 
     *res = 0;
 
@@ -86,15 +86,15 @@ static int ParseSizeString(const char *size, double *res)
         goto end;
     }
 
-    r = pcre_get_substring((char *)size, ov, MAX_SUBSTRINGS, 1,
-                             &str_ptr);
+    r = pcre_copy_substring((char *)size, ov, MAX_SUBSTRINGS, 1,
+                             str, sizeof(str));
     if (r < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
         retval = -2;
         goto end;
     }
 
-    char *endptr;
+    char *endptr, *str_ptr = str;
     errno = 0;
     *res = strtod(str_ptr, &endptr);
     if (errno == ERANGE) {
@@ -108,19 +108,19 @@ static int ParseSizeString(const char *size, double *res)
     }
 
     if (pcre_exec_ret == 3) {
-        r = pcre_get_substring((char *)size, ov, MAX_SUBSTRINGS, 2,
-                                 &str_ptr2);
+        r = pcre_copy_substring((char *)size, ov, MAX_SUBSTRINGS, 2,
+                                 str2, sizeof(str2));
         if (r < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
             retval = -2;
             goto end;
         }
 
-        if (strcasecmp(str_ptr2, "kb") == 0) {
+        if (strcasecmp(str2, "kb") == 0) {
             *res *= 1024;
-        } else if (strcasecmp(str_ptr2, "mb") == 0) {
+        } else if (strcasecmp(str2, "mb") == 0) {
             *res *= 1024 * 1024;
-        } else if (strcasecmp(str_ptr2, "gb") == 0) {
+        } else if (strcasecmp(str2, "gb") == 0) {
             *res *= 1024 * 1024 * 1024;
         } else {
             /* not possible */
@@ -130,10 +130,6 @@ static int ParseSizeString(const char *size, double *res)
 
     retval = 0;
 end:
-    if (str_ptr != NULL)
-        pcre_free_substring(str_ptr);
-    if (str_ptr2 != NULL)
-        pcre_free_substring(str_ptr2);
     return retval;
 }
 
