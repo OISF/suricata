@@ -37,6 +37,8 @@
 #include "decode-ipv6.h"
 #include "util-debug.h"
 
+#include "tmqh-packetpool.h"
+
 #define TEREDO_ORIG_INDICATION_LENGTH    8
 
 /**
@@ -48,6 +50,7 @@ int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
 {
 
     uint8_t *start = pkt;
+    int ret;
 
     /* Is this packet to short to contain an IPv6 packet ? */
     if (len < IPV6_HEADER_LEN)
@@ -95,12 +98,17 @@ int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
                 if (tp != NULL) {
                     PKT_SET_SRC(tp, PKT_SRC_DECODER_TEREDO);
                     /* send that to the Tunnel decoder */
-                    DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp), GET_PKT_LEN(tp),
+                    ret = DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp), GET_PKT_LEN(tp),
                                  pq, IPPROTO_IPV6);
-                    /* add the tp to the packet queue. */
-                    PacketEnqueue(pq,tp);
-                    SCPerfCounterIncr(dtv->counter_teredo, tv->sc_perf_pca);
-                    return 1;
+                    if (unlikely(ret != TM_ECODE_OK)) {
+                        TmqhOutputPacketpool(tv, tp);
+                        return 0;
+                    } else {
+                        /* add the tp to the packet queue. */
+                        PacketEnqueue(pq,tp);
+                        SCPerfCounterIncr(dtv->counter_teredo, tv->sc_perf_pca);
+                        return 1;
+                    }
                 }
             }
         }
