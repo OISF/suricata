@@ -39,11 +39,13 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
+#include "tmqh-packetpool.h"
+
 /**
  * \brief Function to decode GRE packets
  */
 
-void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     uint16_t header_len = GRE_HDR_LEN;
     GRESreHdr *gsre = NULL;
@@ -52,12 +54,12 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
     if(len < GRE_HDR_LEN)    {
         ENGINE_SET_EVENT(p,GRE_PKT_TOO_SMALL);
-        return;
+        return TM_ECODE_FAILED;
     }
 
     p->greh = (GREHdr *)pkt;
     if(p->greh == NULL)
-        return;
+        return TM_ECODE_FAILED;
 
     SCLogDebug("p %p pkt %p GRE protocol %04x Len: %d GRE version %x",
         p, pkt, GRE_GET_PROTO(p->greh), len,GRE_GET_VERSION(p->greh));
@@ -77,12 +79,12 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
             if (GRE_FLAG_ISSET_RECUR(p->greh)) {
                 ENGINE_SET_EVENT(p,GRE_VERSION0_RECUR);
-                return;
+                return TM_ECODE_OK;
             }
 
             if (GREV1_FLAG_ISSET_FLAGS(p->greh))   {
                 ENGINE_SET_EVENT(p,GRE_VERSION0_FLAGS);
-                return;
+                return TM_ECODE_OK;
             }
 
             /* Adjust header length based on content */
@@ -98,7 +100,7 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
             if (header_len > len)   {
                 ENGINE_SET_EVENT(p,GRE_VERSION0_HDR_TOO_BIG);
-                return;
+                return TM_ECODE_OK;
             }
 
             if (GRE_FLAG_ISSET_ROUTE(p->greh))
@@ -107,7 +109,7 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                 {
                     if ((header_len + GRE_SRE_HDR_LEN) > len) {
                         ENGINE_SET_EVENT(p, GRE_VERSION0_MALFORMED_SRE_HDR);
-                        return;
+                        return TM_ECODE_OK;
                     }
 
                     gsre = (GRESreHdr *)(pkt + header_len);
@@ -120,7 +122,7 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                     header_len += gsre->sre_length;
                     if (header_len > len) {
                         ENGINE_SET_EVENT(p, GRE_VERSION0_MALFORMED_SRE_HDR);
-                        return;
+                        return TM_ECODE_OK;
                     }
                 }
             }
@@ -139,37 +141,37 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
             if (GRE_FLAG_ISSET_CHKSUM(p->greh))    {
                 ENGINE_SET_EVENT(p,GRE_VERSION1_CHKSUM);
-                return;
+                return TM_ECODE_OK;
             }
 
             if (GRE_FLAG_ISSET_ROUTE(p->greh)) {
                 ENGINE_SET_EVENT(p,GRE_VERSION1_ROUTE);
-                return;
+                return TM_ECODE_OK;
             }
 
             if (GRE_FLAG_ISSET_SSR(p->greh))   {
                 ENGINE_SET_EVENT(p,GRE_VERSION1_SSR);
-                return;
+                return TM_ECODE_OK;
             }
 
             if (GRE_FLAG_ISSET_RECUR(p->greh)) {
                 ENGINE_SET_EVENT(p,GRE_VERSION1_RECUR);
-                return;
+                return TM_ECODE_OK;
             }
 
             if (GREV1_FLAG_ISSET_FLAGS(p->greh))   {
                 ENGINE_SET_EVENT(p,GRE_VERSION1_FLAGS);
-                return;
+                return TM_ECODE_OK;
             }
 
             if (GRE_GET_PROTO(p->greh) != GRE_PROTO_PPP)  {
                 ENGINE_SET_EVENT(p,GRE_VERSION1_WRONG_PROTOCOL);
-                return;
+                return TM_ECODE_OK;
             }
 
             if (!(GRE_FLAG_ISSET_KY(p->greh))) {
                 ENGINE_SET_EVENT(p,GRE_VERSION1_NO_KEY);
-                return;
+                return TM_ECODE_OK;
             }
 
             header_len += GRE_KEY_LEN;
@@ -184,13 +186,13 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
             if (header_len > len)   {
                 ENGINE_SET_EVENT(p,GRE_VERSION1_HDR_TOO_BIG);
-                return;
+                return TM_ECODE_OK;
             }
 
             break;
         default:
             ENGINE_SET_EVENT(p,GRE_WRONG_VERSION);
-            return;
+            return TM_ECODE_OK;
     }
 
     switch (GRE_GET_PROTO(p->greh))
@@ -202,9 +204,12 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                             len - header_len, IPPROTO_IP);
                     if (tp != NULL) {
                         PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
-                                GET_PKT_LEN(tp), pq, IPPROTO_IP);
-                        PacketEnqueue(pq,tp);
+                        if (DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
+                                GET_PKT_LEN(tp), pq, IPPROTO_IP) == TM_ECODE_OK) {
+                            PacketEnqueue(pq,tp);
+                        } else {
+                            TmqhOutputPacketpool(tv, tp);
+                        }
                     }
                 }
                 break;
@@ -217,9 +222,12 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                             len - header_len, PPP_OVER_GRE);
                     if (tp != NULL) {
                         PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
-                                GET_PKT_LEN(tp), pq, PPP_OVER_GRE);
-                        PacketEnqueue(pq,tp);
+                        if (DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
+                                GET_PKT_LEN(tp), pq, PPP_OVER_GRE) == TM_ECODE_OK) {
+                            PacketEnqueue(pq,tp);
+                        } else {
+                            TmqhOutputPacketpool(tv, tp);
+                        }
                     }
                 }
                 break;
@@ -232,9 +240,12 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                             len - header_len, IPPROTO_IPV6);
                     if (tp != NULL) {
                         PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
-                                GET_PKT_LEN(tp), pq, IPPROTO_IPV6);
-                        PacketEnqueue(pq,tp);
+                        if (DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
+                                GET_PKT_LEN(tp), pq, IPPROTO_IPV6) == TM_ECODE_OK) {
+                            PacketEnqueue(pq,tp);
+                        } else {
+                            TmqhOutputPacketpool(tv, tp);
+                        }
                     }
                 }
                 break;
@@ -247,18 +258,21 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                             len - header_len, VLAN_OVER_GRE);
                     if (tp != NULL) {
                         PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
-                                GET_PKT_LEN(tp), pq, VLAN_OVER_GRE);
-                        PacketEnqueue(pq,tp);
+                        if (DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
+                                GET_PKT_LEN(tp), pq, VLAN_OVER_GRE) == TM_ECODE_OK) {
+                            PacketEnqueue(pq,tp);
+                        } else {
+                            TmqhOutputPacketpool(tv, tp);
+                        }
                     }
                 }
                 break;
             }
 
         default:
-            return;
+            return TM_ECODE_OK;
     }
-
+    return TM_ECODE_OK;
 }
 
 

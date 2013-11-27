@@ -36,18 +36,18 @@
 #include "decode-events.h"
 #include "util-debug.h"
 
-void DecodeSll(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeSll(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     SCPerfCounterIncr(dtv->counter_sll, tv->sc_perf_pca);
 
     if (unlikely(len < SLL_HEADER_LEN)) {
         ENGINE_SET_EVENT(p,SLL_PKT_TOO_SMALL);
-        return;
+        return TM_ECODE_FAILED;
     }
 
     SllHdr *sllh = (SllHdr *)pkt;
     if (unlikely(sllh == NULL))
-        return;
+        return TM_ECODE_FAILED;
 
     SCLogDebug("p %p pkt %p sll_protocol %04x", p, pkt, ntohs(sllh->sll_protocol));
 
@@ -68,6 +68,8 @@ void DecodeSll(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
             SCLogDebug("p %p pkt %p sll type %04x not supported", p,
                        pkt, ntohs(sllh->sll_protocol));
     }
+
+    return TM_ECODE_OK;
 }
 /**
  * @}
