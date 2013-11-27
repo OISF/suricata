@@ -497,6 +497,7 @@ void usage(const char *progname)
 	printf("\t--service-remove                     : remove service\n");
 	printf("\t--service-change-params              : change service startup parameters\n");
 #endif /* OS_WIN32 */
+    printf("\t-k [all|none]                        : force checksum check (all) or disabled it (none)\n");
     printf("\t-V                                   : display Suricata version\n");
     printf("\t-v[v]                                : increase default Suricata verbosity\n");
 #ifdef UNITTESTS
@@ -939,6 +940,8 @@ static void SCInstanceInit(SCInstance *suri)
     suri->daemon = 0;
     suri->offline = 0;
     suri->verbose = 0;
+    /* use -1 as unknown */
+    suri->checksum_validation = -1;
 }
 
 static TmEcode PrintVersion()
@@ -1046,7 +1049,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    char short_opts[] = "c:TDhi:l:q:d:r:us:S:U:VF:v";
+    char short_opts[] = "c:TDhi:l:q:d:r:us:S:U:VF:vk:";
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
@@ -1509,6 +1512,20 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         case 'v':
             suri->verbose++;
             break;
+        case 'k':
+            if (optarg == NULL) {
+                SCLogError(SC_ERR_INITIALIZATION, "no option argument (optarg) for -k");
+                return TM_ECODE_FAILED;
+            }
+            if (!strcmp("all", optarg))
+                suri->checksum_validation = 1;
+            else if (!strcmp("none", optarg))
+                suri->checksum_validation = 0;
+            else {
+                SCLogError(SC_ERR_INITIALIZATION, "option '%s' invalid for -k", optarg);
+                return TM_ECODE_FAILED;
+            }
+            break;
         default:
             usage(argv[0]);
             return TM_ECODE_FAILED;
@@ -1832,6 +1849,15 @@ static int PostConfLoadedSetup(SCInstance *suri)
 #endif
 
     suri->rule_reload = IsRuleReloadSet(FALSE);
+
+    switch (suri->checksum_validation) {
+        case 0:
+            ConfSet("stream.checksum-validation", "0", 0);
+            break;
+        case 1:
+            ConfSet("stream.checksum-validation", "1", 1);
+            break;
+    }
 
     AppLayerDetectProtoThreadInit();
     AppLayerParsersInitPostProcess();
