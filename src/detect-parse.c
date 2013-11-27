@@ -480,16 +480,13 @@ void SigParsePrepare(void) {
     }
 }
 
-static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr) {
+static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, char *output, size_t output_size) {
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
-    int ret = 0, i = 0;
+    int ret = 0;
     SigTableElmt *st = NULL;
-    char *optname = NULL, *optvalue = NULL, *optmore = NULL;
-
-    const char **arr = SCCalloc(OPTION_PARTS+1, sizeof(char *));
-    if (unlikely(arr == NULL))
-    return -1;
+    char optname[64];
+    char optvalue[8192];
 
     ret = pcre_exec(option_pcre, option_pcre_extra, optstr, strlen(optstr), 0, 0, ov, MAX_SUBSTRINGS);
     /* if successful, we either have:
@@ -503,64 +500,49 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr) 
     }
 
     /* extract the substrings */
-    for (i = 1; i <= ret-1; i++) {
-        if (pcre_get_substring(optstr, ov, MAX_SUBSTRINGS, i, &arr[i-1]) < 0) {
-            goto error;
-        }
-        //printf("SigParseOptions: arr[%" PRId32 "] = \"%s\"\n", i-1, arr[i-1]);
-    }
-    arr[i-1]=NULL;
-
-    /* Call option parsing */
-    st = SigTableGet((char *)arr[0]);
-    if (st == NULL) {
-        SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "unknown rule keyword '%s'.", (char *)arr[0]);
+    if (pcre_copy_substring(optstr, ov, MAX_SUBSTRINGS, 1, optname, sizeof(optname)) < 0) {
         goto error;
     }
 
-    if (st->flags & SIGMATCH_NOOPT) {
-        optname = (char *)arr[0];
-        optvalue = NULL;
-        if (ret == 3) optmore = (char *)arr[1];
-        else if (ret == 4) optmore = (char *)arr[2];
-        else optmore = NULL;
-    } else {
-        optname = (char *)arr[0];
-        optvalue = (char *)arr[1];
-        if (ret == 4) optmore = (char *)arr[2];
-        else optmore = NULL;
+    /* Call option parsing */
+    st = SigTableGet(optname);
+    if (st == NULL) {
+        SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "unknown rule keyword '%s'.", optname);
+        goto error;
+    }
+
+    if (ret == 3) {
+        if (st->flags & SIGMATCH_NOOPT) {
+            if (pcre_copy_substring(optstr, ov, MAX_SUBSTRINGS, 2, output, output_size) < 0) {
+                goto error;
+            }
+        } else {
+            if (pcre_copy_substring(optstr, ov, MAX_SUBSTRINGS, 2, optvalue, sizeof(optvalue)) < 0) {
+                goto error;
+            }
+        }
+    } else if (ret == 4) {
+        if (pcre_copy_substring(optstr, ov, MAX_SUBSTRINGS, 2, optvalue, sizeof(optvalue)) < 0) {
+            goto error;
+        }
+        if (pcre_copy_substring(optstr, ov, MAX_SUBSTRINGS, 3, output, output_size) < 0) {
+            goto error;
+        }
     }
 
     /* setup may or may not add a new SigMatch to the list */
-    if (st->Setup(de_ctx, s, optvalue) < 0) {
+    if (st->Setup(de_ctx, s, strlen(optvalue) ? optvalue : NULL) < 0) {
         SCLogDebug("\"%s\" failed to setup", st->name);
         goto error;
     }
 
-    if (ret == 4 && optmore != NULL) {
-        //printf("SigParseOptions: recursive call for more options... (s:%p,m:%p)\n", s, m);
-
-        if (optname) pcre_free_substring(optname);
-        if (optvalue) pcre_free_substring(optvalue);
-        if (optstr) SCFree(optstr);
-        //if (optmore) pcre_free_substring(optmore);
-        if (arr != NULL) pcre_free_substring_list(arr);
-        return SigParseOptions(de_ctx, s, optmore);
+    if (ret == 4) {
+        return 1;
     }
 
-    if (optname) pcre_free_substring(optname);
-    if (optvalue) pcre_free_substring(optvalue);
-    if (optmore) pcre_free_substring(optmore);
-    if (optstr) SCFree(optstr);
-    if (arr != NULL) pcre_free_substring_list(arr);
     return 0;
 
 error:
-    if (optname) pcre_free_substring(optname);
-    if (optvalue) pcre_free_substring(optvalue);
-    if (optmore) pcre_free_substring(optmore);
-    if (optstr) SCFree(optstr);
-    if (arr != NULL) pcre_free_substring_list(arr);
     return -1;
 }
 
@@ -891,8 +873,23 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
 
     /* we can have no options, so make sure we have them */
     if (basics[CONFIG_OPTS] != NULL) {
-        ret = SigParseOptions(de_ctx, s, SCStrdup(basics[CONFIG_OPTS]));
-        SCLogDebug("ret from SigParseOptions %d", ret);
+        size_t buffer_size = strlen(basics[CONFIG_OPTS]) + 1;
+        char input[buffer_size];
+        char output[buffer_size];
+        memset(input, 0x00, buffer_size);
+        memcpy(input, basics[CONFIG_OPTS], strlen(basics[CONFIG_OPTS])+1);
+
+        /* loop the option parsing. Each run processes one option
+         * and returns the rest of the option string through the
+         * output variable. */
+        do {
+            memset(output, 0x00, buffer_size);
+            ret = SigParseOptions(de_ctx, s, input, output, buffer_size);
+            if (ret == 1) {
+                memcpy(input, output, buffer_size);
+            }
+
+        } while (ret == 1);
     }
 
     /* cleanup */
