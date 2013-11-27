@@ -11328,6 +11328,191 @@ end:
 
     return result;
 }
+
+static const char *dummy_conf_string2 =
+    "%YAML 1.1\n"
+    "---\n"
+    "vars:\n"
+    "\n"
+    "  address-groups:\n"
+    "\n"
+    "    HOME_NET: \"[10.10.10.0/24, !10.10.10.247]\"\n"
+    "\n"
+    "    EXTERNAL_NET: \"any\"\n"
+    "\n"
+    "  port-groups:\n"
+    "\n"
+    "    HTTP_PORTS: \"80:81,88\"\n"
+    "\n";
+
+static int DetectAddressYamlParsing01 (void) {
+    int result = 0;
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string2, strlen(dummy_conf_string2));
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> any any (sid:1;)")) == NULL)
+        goto end;
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp any any -> $HOME_NET any (sid:2;)")) == NULL)
+        goto end;
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> $HOME_NET any (sid:3;)")) == NULL)
+        goto end;
+
+    result = 1;
+
+    DetectEngineCtxFree(de_ctx);
+end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    return result;
+}
+
+static const char *dummy_conf_string3 =
+    "%YAML 1.1\n"
+    "---\n"
+    "vars:\n"
+    "\n"
+    "  address-groups:\n"
+    "\n"
+    "    HOME_NET: \"[10.10.10.0/24, !10.10.10.247/32]\"\n"
+    "\n"
+    "    EXTERNAL_NET: \"any\"\n"
+    "\n"
+    "  port-groups:\n"
+    "\n"
+    "    HTTP_PORTS: \"80:81,88\"\n"
+    "\n";
+
+static int DetectAddressYamlParsing02 (void) {
+    int result = 0;
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string3, strlen(dummy_conf_string3));
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> any any (sid:1;)")) == NULL)
+        goto end;
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp any any -> $HOME_NET any (sid:2;)")) == NULL)
+        goto end;
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> $HOME_NET any (sid:3;)")) == NULL)
+        goto end;
+
+    result = 1;
+
+    DetectEngineCtxFree(de_ctx);
+end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    return result;
+}
+
+static const char *dummy_conf_string4 =
+    "%YAML 1.1\n"
+    "---\n"
+    "vars:\n"
+    "\n"
+    "  address-groups:\n"
+    "\n"
+    "    HOME_NET: \"[10.10.10.0/24,       !10.10.10.247/32]\"\n"
+    "\n"
+    "    EXTERNAL_NET: \"any\"\n"
+    "\n"
+    "  port-groups:\n"
+    "\n"
+    "    HTTP_PORTS: \"80:81,88\"\n"
+    "\n";
+
+static int DetectAddressYamlParsing03 (void) {
+    int result = 0;
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string4, strlen(dummy_conf_string4));
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> any any (sid:1;)")) == NULL)
+        goto end;
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp any any -> $HOME_NET any (sid:2;)")) == NULL)
+        goto end;
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> $HOME_NET any (sid:3;)")) == NULL)
+        goto end;
+
+    result = 1;
+
+    DetectEngineCtxFree(de_ctx);
+end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    return result;
+}
+
+static const char *dummy_conf_string5 =
+    "%YAML 1.1\n"
+    "---\n"
+    "vars:\n"
+    "\n"
+    "  address-groups:\n"
+    "\n"
+    "    HOME_NET: \"[10.196.0.0/24, !10.196.0.15]\"\n"
+    "\n"
+    "    EXTERNAL_NET: \"any\"\n"
+    "\n"
+    "  port-groups:\n"
+    "\n"
+    "    HTTP_PORTS: \"80:81,88\"\n"
+    "\n";
+
+/** \test bug #815 */
+static int DetectAddressYamlParsing04 (void) {
+    int result = 0;
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string5, strlen(dummy_conf_string5));
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> any any (sid:1;)")) == NULL)
+        goto end;
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp any any -> $HOME_NET any (sid:2;)")) == NULL)
+        goto end;
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> $HOME_NET any (sid:3;)")) == NULL)
+        goto end;
+
+    result = 1;
+
+    DetectEngineCtxFree(de_ctx);
+end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    return result;
+}
 #endif /* UNITTESTS */
 
 void SigRegisterTests(void) {
@@ -11536,6 +11721,11 @@ void SigRegisterTests(void) {
     UtRegisterTest("SigTestDropFlow02", SigTestDropFlow02, 1);
     UtRegisterTest("SigTestDropFlow03", SigTestDropFlow03, 1);
     UtRegisterTest("SigTestDropFlow04", SigTestDropFlow04, 1);
+
+    UtRegisterTest("DetectAddressYamlParsing01", DetectAddressYamlParsing01, 1);
+    UtRegisterTest("DetectAddressYamlParsing02", DetectAddressYamlParsing02, 1);
+    UtRegisterTest("DetectAddressYamlParsing03", DetectAddressYamlParsing03, 1);
+    UtRegisterTest("DetectAddressYamlParsing04", DetectAddressYamlParsing04, 1);
 
     DetectSimdRegisterTests();
 #endif /* UNITTESTS */

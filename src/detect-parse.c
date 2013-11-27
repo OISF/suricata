@@ -99,8 +99,30 @@ typedef struct SigDuplWrapper_ {
 #define CONFIG_DP     6
 #define CONFIG_OPTS   7
 
-//                    action       protocol       src                                      sp                        dir              dst                                    dp                            options
-#define CONFIG_PCRE "^([A-z]+)\\s+([A-z0-9\\-]+)\\s+([\\[\\]A-z0-9\\.\\:_\\$\\!\\-,\\/]+)\\s+([\\:A-z0-9_\\$\\!,]+)\\s+(-\\>|\\<\\>|\\<\\-)\\s+([\\[\\]A-z0-9\\.\\:_\\$\\!\\-,/]+)\\s+([\\:A-z0-9_\\$\\!,]+)(?:\\s+\\((.*)?(?:\\s*)\\))?(?:(?:\\s*)\\n)?\\s*$"
+/* if enclosed in [], spaces are allowed */
+#define CONFIG_PCRE_SRCDST "(" \
+                            "[\\[\\]A-z0-9\\.\\:_\\$\\!\\-,\\/]+" \
+                           "|" \
+                            "\\[[\\[\\]A-z0-9\\.\\:_\\$\\!\\-,\\/\\s]+\\]"\
+                           ")"
+
+/* if enclosed in [], spaces are allowed */
+#define CONFIG_PCRE_PORT   "(" \
+                            "[\\:A-z0-9_\\$\\!,]+"\
+                           "|"\
+                            "\\[[\\:A-z0-9_\\$\\!,\\s]+\\]"\
+                           ")"
+
+/* format: action space(s) protocol spaces(s) src space(s) sp spaces(s) dir spaces(s) dst spaces(s) dp spaces(s) options */
+#define CONFIG_PCRE "^([A-z]+)\\s+([A-z0-9\\-]+)\\s+" \
+                    CONFIG_PCRE_SRCDST \
+                    "\\s+"\
+                    CONFIG_PCRE_PORT \
+                    "\\s+(-\\>|\\<\\>|\\<\\-)\\s+" \
+                    CONFIG_PCRE_SRCDST \
+                    "\\s+" \
+                    CONFIG_PCRE_PORT \
+                    "(?:\\s+\\((.*)?(?:\\s*)\\))?(?:(?:\\s*)\\n)?\\s*$"
 #define OPTION_PARTS 3
 #define OPTION_PCRE "^\\s*([A-z_0-9-\\.]+)(?:\\s*\\:\\s*(.*)(?<!\\\\))?\\s*;\\s*(?:\\s*(.*))?\\s*$"
 
@@ -2462,6 +2484,42 @@ end:
     return result;
 }
 
+/** \test address parsing */
+static int SigParseTest21 (void) {
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    if (DetectEngineAppendSig(de_ctx, "alert tcp [1.2.3.4, 1.2.3.5] any -> !1.2.3.4 any (sid:1;)") == NULL)
+        goto end;
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/** \test address parsing */
+static int SigParseTest22 (void) {
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    if (DetectEngineAppendSig(de_ctx, "alert tcp [10.10.10.0/24, !10.10.10.247] any -> [10.10.10.0/24, !10.10.10.247] any (sid:1;)") == NULL)
+        goto end;
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 /** \test Direction operator validation (invalid) */
 int SigParseBidirecTest06 (void) {
     int result = 1;
@@ -3349,6 +3407,8 @@ void SigParseRegisterTests(void) {
     UtRegisterTest("SigParseTest18", SigParseTest18, 1);
     UtRegisterTest("SigParseTest19", SigParseTest19, 1);
     UtRegisterTest("SigParseTest20", SigParseTest20, 1);
+    UtRegisterTest("SigParseTest21 -- address with space", SigParseTest21, 1);
+    UtRegisterTest("SigParseTest22 -- address with space", SigParseTest22, 1);
 
     UtRegisterTest("SigParseBidirecTest06", SigParseBidirecTest06, 1);
     UtRegisterTest("SigParseBidirecTest07", SigParseBidirecTest07, 1);
