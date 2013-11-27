@@ -486,7 +486,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
     int ret = 0;
     SigTableElmt *st = NULL;
     char optname[64];
-    char optvalue[8192];
+    char optvalue[8192] = "";
 
     ret = pcre_exec(option_pcre, option_pcre_extra, optstr, strlen(optstr), 0, 0, ov, MAX_SUBSTRINGS);
     /* if successful, we either have:
