@@ -308,13 +308,17 @@ Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
     SCReturnPtr(p, "Packet");
 }
 
-void PacketDefragPktFinishSetup(Packet *p, Packet *parent)
+/**
+ *  \brief inform defrag "parent" that a pseudo packet is
+ *         now assosiated to it.
+ */
+void PacketDefragPktSetupParent(Packet *parent)
 {
     /* tell parent packet it's part of a tunnel */
     SET_TUNNEL_PKT(parent);
 
     /* increment tunnel packet refcnt in the root packet */
-    TUNNEL_INCR_PKT_TPR(p);
+    TUNNEL_INCR_PKT_TPR(parent);
 
     /* disable payload (not packet) inspection on the parent, as the payload
      * is the packet we will now run through the system separately. We do

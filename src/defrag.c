@@ -721,7 +721,7 @@ insert:
                                IPV4_GET_IPLEN(r), pq) != TM_ECODE_OK) {
                     TmqhOutputPacketpool(tv, r);
                 } else {
-                    PacketDefragPktFinishSetup(r, p);
+                    PacketDefragPktSetupParent(p);
                 }
             }
         }
@@ -735,7 +735,7 @@ insert:
                                pq) != TM_ECODE_OK) {
                     TmqhOutputPacketpool(tv, r);
                 } else {
-                    PacketDefragPktFinishSetup(r, p);
+                    PacketDefragPktSetupParent(p);
                 }
             }
         }
