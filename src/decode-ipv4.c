@@ -513,7 +513,7 @@ static int DecodeIPV4Packet(Packet *p, uint8_t *pkt, uint16_t len)
     return 0;
 }
 
-void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     SCPerfCounterIncr(dtv->counter_ipv4, tv->sc_perf_pca);
 
@@ -523,20 +523,18 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
     if (unlikely(DecodeIPV4Packet (p, pkt, len) < 0)) {
         SCLogDebug("decoding IPv4 packet failed");
         p->ip4h = NULL;
-        return;
+        return TM_ECODE_FAILED;
     }
     p->proto = IPV4_GET_IPPROTO(p);
 
     /* If a fragment, pass off for re-assembly. */
     if (unlikely(IPV4_GET_IPOFFSET(p) > 0 || IPV4_GET_MF(p) == 1)) {
-        Packet *rp = Defrag(tv, dtv, p);
+        Packet *rp = Defrag(tv, dtv, p, pq);
         if (rp != NULL) {
-            /* Got re-assembled packet, re-run through decoder. */
-            DecodeIPV4(tv, dtv, rp, (void *)rp->ip4h, IPV4_GET_IPLEN(rp), pq);
             PacketEnqueue(pq, rp);
         }
         p->flags |= PKT_IS_FRAGMENT;
-        return;
+        return TM_ECODE_OK;
     }
 
     /* do hdr test, process hdr rules */
@@ -579,16 +577,11 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
             {
                 if (pq != NULL) {
                     /* spawn off tunnel packet */
-                    Packet *tp = PacketPseudoPktSetup(p, pkt + IPV4_GET_HLEN(p),
+                    Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
                             IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p),
-                            IPV4_GET_IPPROTO(p));
+                            IPV4_GET_IPPROTO(p), pq);
                     if (tp != NULL) {
                         PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV4);
-                        /* send that to the Tunnel decoder */
-                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
-                                GET_PKT_LEN(tp), pq, IPV4_GET_IPPROTO(p));
-
-                        /* add the tp to the packet queue. */
                         PacketEnqueue(pq,tp);
                     }
                 }
@@ -603,7 +596,7 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
             break;
     }
 
-    return;
+    return TM_ECODE_OK;
 }
 
 /* UNITTESTS */

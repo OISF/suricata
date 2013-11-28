@@ -62,7 +62,7 @@ extern int max_pending_packets;
 
 typedef struct PcapFileGlobalVars_ {
     pcap_t *pcap_handle;
-    void (*Decoder)(ThreadVars *, DecodeThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
+    int (*Decoder)(ThreadVars *, DecodeThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
     int datalink;
     struct bpf_program filter;
     uint64_t cnt; /** packet counter */

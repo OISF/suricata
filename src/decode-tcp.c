@@ -184,14 +184,14 @@ static int DecodeTCPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len
     return 0;
 }
 
-void DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     SCPerfCounterIncr(dtv->counter_tcp, tv->sc_perf_pca);
 
     if (unlikely(DecodeTCPPacket(tv, p,pkt,len) < 0)) {
         SCLogDebug("invalid TCP packet");
         p->tcph = NULL;
-        return;
+        return TM_ECODE_FAILED;
     }
 
 #ifdef DEBUG
@@ -205,7 +205,7 @@ void DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     /* Flow is an integral part of us */
     FlowHandlePacket(tv, p);
 
-    return;
+    return TM_ECODE_OK;
 }
 
 #ifdef UNITTESTS
