@@ -126,6 +126,18 @@ typedef struct SigDuplWrapper_ {
 #define OPTION_PARTS 3
 #define OPTION_PCRE "^\\s*([A-z_0-9-\\.]+)(?:\\s*\\:\\s*(.*)(?<!\\\\))?\\s*;\\s*(?:\\s*(.*))?\\s*$"
 
+/** helper structure for sig parsing */
+typedef struct SignatureParser_ {
+    char action[DETECT_MAX_RULE_SIZE];
+    char protocol[DETECT_MAX_RULE_SIZE];
+    char direction[DETECT_MAX_RULE_SIZE];
+    char src[DETECT_MAX_RULE_SIZE];
+    char dst[DETECT_MAX_RULE_SIZE];
+    char sp[DETECT_MAX_RULE_SIZE];
+    char dp[DETECT_MAX_RULE_SIZE];
+    char opts[DETECT_MAX_RULE_SIZE];
+} SignatureParser;
+
 int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg,
                                            uint8_t sm_type, uint8_t sm_list,
                                            uint16_t alproto,  void (*CustomCallback)(Signature *s))
@@ -751,10 +763,10 @@ int SigParseAction(Signature *s, const char *action) {
  *  \internal
  *  \brief split a signature string into a few blocks for further parsing
  */
-static int SigParseBasics(Signature *s, char *sigstr, const char **basics, uint8_t addrs_direction) {
+static int SigParseBasics(Signature *s, char *sigstr, SignatureParser *parser, uint8_t addrs_direction) {
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
-    int ret = 0, i = 0;
+    int ret = 0;
 
     ret = pcre_exec(config_pcre, config_pcre_extra, sigstr, strlen(sigstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 8 && ret != 9) {
@@ -762,19 +774,31 @@ static int SigParseBasics(Signature *s, char *sigstr, const char **basics, uint8
         goto error;
     }
 
-    for (i = 1; i <= ret - 1; i++) {
-        if (pcre_get_substring(sigstr, ov, MAX_SUBSTRINGS, i, &basics[i - 1]) < 0)
+    if (pcre_copy_substring(sigstr, ov, MAX_SUBSTRINGS, 1, parser->action, sizeof(parser->action)) < 0)
+        goto error;
+    if (pcre_copy_substring(sigstr, ov, MAX_SUBSTRINGS, 2, parser->protocol, sizeof(parser->protocol)) < 0)
+        goto error;
+    if (pcre_copy_substring(sigstr, ov, MAX_SUBSTRINGS, 3, parser->src, sizeof(parser->src)) < 0)
+        goto error;
+    if (pcre_copy_substring(sigstr, ov, MAX_SUBSTRINGS, 4, parser->sp, sizeof(parser->sp)) < 0)
+        goto error;
+    if (pcre_copy_substring(sigstr, ov, MAX_SUBSTRINGS, 5, parser->direction, sizeof(parser->direction)) < 0)
+        goto error;
+    if (pcre_copy_substring(sigstr, ov, MAX_SUBSTRINGS, 6, parser->dst, sizeof(parser->dst)) < 0)
+        goto error;
+    if (pcre_copy_substring(sigstr, ov, MAX_SUBSTRINGS, 7, parser->dp, sizeof(parser->dp)) < 0)
+        goto error;
+    if (ret == 9) {
+        if (pcre_copy_substring(sigstr, ov, MAX_SUBSTRINGS, 8, parser->opts, sizeof(parser->opts)) < 0)
             goto error;
-        //printf("SigParseBasics: arr[%" PRId32 "] = \"%s\"\n", i-1, arr[i-1]);
     }
-    basics[i - 1] = NULL;
 
     /* Parse Action */
-    if (SigParseAction(s, basics[CONFIG_ACTION]) < 0)
+    if (SigParseAction(s, parser->action) < 0)
         goto error;
 
     /* Parse Proto */
-    if (strcasecmp(basics[CONFIG_PROTO], "dns") == 0) {
+    if (strcasecmp(parser->protocol, "dns") == 0) {
         /** XXX HACK */
         if (SigParseProto(s, "dnstcp") < 0)
             goto error;
@@ -782,53 +806,44 @@ static int SigParseBasics(Signature *s, char *sigstr, const char **basics, uint8
             goto error;
         s->alproto = ALPROTO_DNS;
     } else {
-        if (SigParseProto(s, basics[CONFIG_PROTO]) < 0)
+        if (SigParseProto(s, parser->protocol) < 0)
             goto error;
     }
 
-    if (strcmp(basics[CONFIG_DIREC], "<-") == 0) {
+    if (strcmp(parser->direction, "<-") == 0) {
         SCLogError(SC_ERR_INVALID_DIRECTION, "\"<-\" is not a valid direction modifier, \"->\" and \"<>\" are supported.");
         goto error;
     }
-
     /* Check if it is bidirectional */
-    if (strcmp(basics[CONFIG_DIREC], "<>") == 0)
+    if (strcmp(parser->direction, "<>") == 0)
         s->init_flags |= SIG_FLAG_INIT_BIDIREC;
 
     /* Parse Address & Ports */
-    if (SigParseAddress(s, basics[CONFIG_SRC], SIG_DIREC_SRC ^ addrs_direction) < 0)
+    if (SigParseAddress(s, parser->src, SIG_DIREC_SRC ^ addrs_direction) < 0)
        goto error;
 
-    if (SigParseAddress(s, basics[CONFIG_DST], SIG_DIREC_DST ^ addrs_direction) < 0)
+    if (SigParseAddress(s, parser->dst, SIG_DIREC_DST ^ addrs_direction) < 0)
         goto error;
 
     /* For IPOnly */
-    if (IPOnlySigParseAddress(s, basics[CONFIG_SRC], SIG_DIREC_SRC ^ addrs_direction) < 0)
+    if (IPOnlySigParseAddress(s, parser->src, SIG_DIREC_SRC ^ addrs_direction) < 0)
         goto error;
 
-    if (IPOnlySigParseAddress(s, basics[CONFIG_DST], SIG_DIREC_DST ^ addrs_direction) < 0)
+    if (IPOnlySigParseAddress(s, parser->dst, SIG_DIREC_DST ^ addrs_direction) < 0)
         goto error;
 
     /* By AWS - Traditionally we should be doing this only for tcp/udp/sctp,
      * but we do it for regardless of ip proto, since the dns/dnstcp/dnsudp
      * changes that we made sees to it that at this point of time we don't
      * set the ip proto for the sig.  We do it a bit later. */
-    if (SigParsePort(s, basics[CONFIG_SP], SIG_DIREC_SRC ^ addrs_direction) < 0)
+    if (SigParsePort(s, parser->sp, SIG_DIREC_SRC ^ addrs_direction) < 0)
         goto error;
-    if (SigParsePort(s, basics[CONFIG_DP], SIG_DIREC_DST ^ addrs_direction) < 0)
+    if (SigParsePort(s, parser->dp, SIG_DIREC_DST ^ addrs_direction) < 0)
         goto error;
 
     return 0;
 
 error:
-    if (basics != NULL) {
-        for (i = 1; i <= ret - 1; i++) {
-            if (basics[i - 1] == NULL)
-                continue;
-
-            pcre_free_substring(basics[i - 1]);
-        }
-    }
     return -1;
 }
 
@@ -846,32 +861,24 @@ error:
 int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_direction) {
     SCEnter();
 
-    const char *basics[CONFIG_PARTS + 1];
-    memset(basics, 0x00, sizeof(basics));
+    SignatureParser parser;
+    memset(&parser, 0x00, sizeof(parser));
+
     s->sig_str = sigstr;
 
-    int ret = SigParseBasics(s, sigstr, basics, addrs_direction);
+    int ret = SigParseBasics(s, sigstr, &parser, addrs_direction);
     if (ret < 0) {
         SCLogDebug("SigParseBasics failed");
         SCReturnInt(-1);
     }
 
-#ifdef DEBUG
-    if (SCLogDebugEnabled()) {
-        int i;
-        for (i = 0; basics[i] != NULL; i++) {
-            SCLogDebug("basics[%" PRId32 "]: %p, %s", i, basics[i], basics[i]);
-        }
-    }
-#endif /* DEBUG */
-
     /* we can have no options, so make sure we have them */
-    if (basics[CONFIG_OPTS] != NULL) {
-        size_t buffer_size = strlen(basics[CONFIG_OPTS]) + 1;
+    if (strlen(parser.opts) > 0) {
+        size_t buffer_size = strlen(parser.opts) + 1;
         char input[buffer_size];
         char output[buffer_size];
         memset(input, 0x00, buffer_size);
-        memcpy(input, basics[CONFIG_OPTS], strlen(basics[CONFIG_OPTS])+1);
+        memcpy(input, parser.opts, strlen(parser.opts)+1);
 
         /* loop the option parsing. Each run processes one option
          * and returns the rest of the option string through the
@@ -884,13 +891,6 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
             }
 
         } while (ret == 1);
-    }
-
-    /* cleanup */
-    int i = 0;
-    while (basics[i] != NULL) {
-        pcre_free_substring(basics[i]);
-        i++;
     }
 
     s->sig_str = NULL;
