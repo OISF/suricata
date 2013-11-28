@@ -48,6 +48,9 @@ typedef struct TcpStreamCnf_ {
     uint64_t memcap;
     uint64_t reassembly_memcap; /**< max memory usage for stream reassembly */
 
+    uint32_t ssn_init_flags; /**< new ssn flags will be initialized to this */
+    uint8_t segment_init_flags; /**< new seg flags will be initialized to this */
+
     uint32_t prealloc_sessions; /**< ssns to prealloc per stream thread */
     int midstream;
     int async_oneside;

@@ -2211,6 +2211,8 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
     SCEnter();
     SCLogDebug("start p %p, seq %"PRIu32, p, TCP_GET_SEQ(p));
 
+    if (ssn->flags & STREAMTCP_FLAG_DISABLE_RAW)
+        SCReturnInt(0);
     if (stream->seg_list == NULL) {
         SCReturnInt(0);
     }
@@ -3043,6 +3045,9 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
     SCEnter();
     SCLogDebug("start p %p", p);
 
+    if (ssn->flags & STREAMTCP_FLAG_DISABLE_RAW)
+        SCReturnInt(0);
+
     if (stream->seg_list == NULL) {
         /* send an empty EOF msg if we have no segments but TCP state
          * is beyond ESTABLISHED */
@@ -3673,7 +3678,7 @@ TcpSegment* StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, 
            segment request due to memcap limit */
         SCPerfCounterIncr(ra_ctx->counter_tcp_segment_memcap, tv->sc_perf_pca);
     } else {
-        seg->flags = 0;
+        seg->flags = stream_config.segment_init_flags;
         seg->next = NULL;
         seg->prev = NULL;
     }
