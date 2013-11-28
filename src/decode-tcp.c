@@ -64,7 +64,7 @@ static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
              * so here the len of the specific option must be bad.
              * Also check for invalid lengths 0 and 1. */
             if (unlikely(*(pkt+1) > plen || *(pkt+1) < 2)) {
-                ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
+                ENGINE_SET_INVALID_EVENT(p, TCP_OPT_INVALID_LEN);
                 return -1;
             }
 
@@ -151,7 +151,7 @@ static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
 static int DecodeTCPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len)
 {
     if (unlikely(len < TCP_HEADER_LEN)) {
-        ENGINE_SET_EVENT(p, TCP_PKT_TOO_SMALL);
+        ENGINE_SET_INVALID_EVENT(p, TCP_PKT_TOO_SMALL);
         return -1;
     }
 
@@ -159,13 +159,13 @@ static int DecodeTCPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len
 
     uint8_t hlen = TCP_GET_HLEN(p);
     if (unlikely(len < hlen)) {
-        ENGINE_SET_EVENT(p, TCP_HLEN_TOO_SMALL);
+        ENGINE_SET_INVALID_EVENT(p, TCP_HLEN_TOO_SMALL);
         return -1;
     }
 
     uint8_t tcp_opt_len = hlen - TCP_HEADER_LEN;
     if (unlikely(tcp_opt_len > TCP_OPTLENMAX)) {
-        ENGINE_SET_EVENT(p, TCP_INVALID_OPTLEN);
+        ENGINE_SET_INVALID_EVENT(p, TCP_INVALID_OPTLEN);
         return -1;
     }
 
