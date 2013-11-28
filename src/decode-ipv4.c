@@ -46,6 +46,8 @@
 #include "util-print.h"
 #include "util-profiling.h"
 
+#include "tmqh-packetpool.h"
+
 /* Generic validation
  *
  * [--type--][--len---]
@@ -513,8 +515,10 @@ static int DecodeIPV4Packet(Packet *p, uint8_t *pkt, uint16_t len)
     return 0;
 }
 
-void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
+    int ret;
+
     SCPerfCounterIncr(dtv->counter_ipv4, tv->sc_perf_pca);
 
     SCLogDebug("pkt %p len %"PRIu16"", pkt, len);
@@ -523,7 +527,7 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
     if (unlikely(DecodeIPV4Packet (p, pkt, len) < 0)) {
         SCLogDebug("decoding IPv4 packet failed");
         p->ip4h = NULL;
-        return;
+        return TM_ECODE_FAILED;
     }
     p->proto = IPV4_GET_IPPROTO(p);
 
@@ -532,11 +536,15 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
         Packet *rp = Defrag(tv, dtv, p);
         if (rp != NULL) {
             /* Got re-assembled packet, re-run through decoder. */
-            DecodeIPV4(tv, dtv, rp, (void *)rp->ip4h, IPV4_GET_IPLEN(rp), pq);
-            PacketEnqueue(pq, rp);
+            ret = DecodeIPV4(tv, dtv, rp, (void *)rp->ip4h, IPV4_GET_IPLEN(rp), pq);
+            if (unlikely(ret != TM_ECODE_OK)) {
+                TmqhOutputPacketpool(tv, rp);
+            } else {
+                PacketEnqueue(pq, rp);
+            }
         }
         p->flags |= PKT_IS_FRAGMENT;
-        return;
+        return TM_ECODE_OK;
     }
 
     /* do hdr test, process hdr rules */
@@ -585,11 +593,15 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
                     if (tp != NULL) {
                         PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV4);
                         /* send that to the Tunnel decoder */
-                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
+                        ret = DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
                                 GET_PKT_LEN(tp), pq, IPV4_GET_IPPROTO(p));
 
-                        /* add the tp to the packet queue. */
-                        PacketEnqueue(pq,tp);
+                        if (unlikely(ret != TM_ECODE_OK)) {
+                            TmqhOutputPacketpool(tv, tp);
+                        } else {
+                            /* add the tp to the packet queue. */
+                            PacketEnqueue(pq,tp);
+                        }
                     }
                 }
                 break;
@@ -603,7 +615,7 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
             break;
     }
 
-    return;
+    return TM_ECODE_OK;
 }
 
 /* UNITTESTS */

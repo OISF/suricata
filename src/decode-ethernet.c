@@ -38,18 +38,18 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-void DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     SCPerfCounterIncr(dtv->counter_eth, tv->sc_perf_pca);
 
     if (unlikely(len < ETHERNET_HEADER_LEN)) {
         ENGINE_SET_EVENT(p,ETHERNET_PKT_TOO_SMALL);
-        return;
+        return TM_ECODE_FAILED;
     }
 
     p->ethh = (EthernetHdr *)pkt;
     if (unlikely(p->ethh == NULL))
-        return;
+        return TM_ECODE_FAILED;
 
     SCLogDebug("p %p pkt %p ether type %04x", p, pkt, ntohs(p->ethh->eth_type));
 
@@ -83,7 +83,7 @@ void DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *p
                        pkt, ntohs(p->ethh->eth_type));
     }
 
-    return;
+    return TM_ECODE_OK;
 }
 
 #ifdef UNITTESTS
