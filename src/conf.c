@@ -55,7 +55,7 @@ static ConfNode *root_backup = NULL;
  * \param name The name of the configuration node to get.
  *
  * \retval The existing configuration node if it exists, or a newly
- *   created node for the provided name.
+ *   created node for the provided name.  On error, NULL will be returned.
  */
 static ConfNode *
 ConfGetNodeOrCreate(char *name)
@@ -68,9 +68,9 @@ ConfGetNodeOrCreate(char *name)
 
     tmpname = SCStrdup(name);
     if (unlikely(tmpname == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC,
+        SCLogWarning(SC_ERR_MEM_ALLOC,
             "Failed to allocate memory for configuration.");
-        exit(EXIT_FAILURE);
+        goto end;
     }
     key = tmpname;
 
@@ -80,9 +80,9 @@ ConfGetNodeOrCreate(char *name)
         if ((node = ConfNodeLookupChild(parent, key)) == NULL) {
             node = ConfNodeNew();
             if (unlikely(node == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC,
+                SCLogWarning(SC_ERR_MEM_ALLOC,
                     "Failed to allocate memory for configuration.");
-                exit(EXIT_FAILURE);
+                goto end;
             }
             node->name = SCStrdup(key);
             node->parent = parent;
@@ -92,7 +92,9 @@ ConfGetNodeOrCreate(char *name)
         parent = node;
     } while (next != NULL);
 
-    SCFree(tmpname);
+end:
+    if (tmpname != NULL)
+        SCFree(tmpname);
 
     return node;
 }
