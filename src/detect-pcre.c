@@ -271,12 +271,13 @@ DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr)
     int eo;
     int opts = 0;
     DetectPcreData *pd = NULL;
-    char *re = NULL, *op_ptr = NULL, *op = NULL;
+    char *op = NULL;
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    uint16_t slen = strlen(regexstr);
+    size_t slen = strlen(regexstr);
+    char re[slen], op_str[64] = "";
     uint16_t pos = 0;
     uint8_t negate = 0;
     uint16_t re_len = 0;
@@ -296,25 +297,23 @@ DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr)
     if (ret <= 0) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre parse error: %s", regexstr);
         goto error;
-    } else {
-        const char *str_ptr;
-        res = pcre_get_substring((char *)regexstr + pos, ov, MAX_SUBSTRINGS,
-                                 1, &str_ptr);
+    }
+
+    res = pcre_copy_substring((char *)regexstr + pos, ov, MAX_SUBSTRINGS,
+            1, re, slen);
+    if (res < 0) {
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        return NULL;
+    }
+
+    if (ret > 2) {
+        res = pcre_copy_substring((char *)regexstr + pos, ov, MAX_SUBSTRINGS,
+                2, op_str, sizeof(op_str));
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
             return NULL;
         }
-        re = (char *)str_ptr;
-
-        if (ret > 2) {
-            res = pcre_get_substring((char *)regexstr + pos, ov, MAX_SUBSTRINGS,
-                                     2, &str_ptr);
-            if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-                return NULL;
-            }
-            op_ptr = op = (char *)str_ptr;
-        }
+        op = op_str;
     }
     //printf("ret %" PRId32 " re \'%s\', op \'%s\'\n", ret, re, op);
 
@@ -510,7 +509,7 @@ DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr)
      */
     pd->re = pcre_compile2(re, opts | PCRE_NO_AUTO_CAPTURE, &ec, &eb, &eo, NULL);
     if (pd->re == NULL && ec == 15) { // reference to non-existent subpattern
-      pd->re = pcre_compile(re, opts, &eb, &eo, NULL);
+        pd->re = pcre_compile(re, opts, &eb, &eo, NULL);
     }
 
     if(pd->re == NULL)  {
@@ -574,27 +573,29 @@ DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr)
         goto error;
     }
 
-    if (re != NULL) SCFree(re);
-    if (op_ptr != NULL) SCFree(op_ptr);
     return pd;
 
 error:
-    if (re != NULL) SCFree(re);
-    if (op_ptr != NULL) SCFree(op_ptr);
-    if (pd != NULL && pd->re != NULL) pcre_free(pd->re);
-    if (pd != NULL && pd->sd != NULL) pcre_free(pd->sd);
-    if (pd) SCFree(pd);
+    if (pd != NULL && pd->re != NULL)
+        pcre_free(pd->re);
+    if (pd != NULL && pd->sd != NULL)
+        pcre_free(pd->sd);
+    if (pd)
+        SCFree(pd);
     return NULL;
 }
 
-DetectPcreData *DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, DetectPcreData *pd)
+/** \internal
+ *  \brief check if we need to extract capture settings and set them up if needed
+ */
+static int DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, DetectPcreData *pd)
 {
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
-    const char *capture_str_ptr = NULL, *type_str_ptr = NULL;
-
-    if (pd == NULL)
-        goto error;
+    char type_str[16] = "";
+    size_t cap_buffer_len = strlen(regexstr);
+    char capture_str[cap_buffer_len];
+    memset(capture_str, 0x00, cap_buffer_len);
 
     if (de_ctx == NULL)
         goto error;
@@ -602,53 +603,53 @@ DetectPcreData *DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, 
     SCLogDebug("\'%s\'", regexstr);
 
     ret = pcre_exec(parse_capture_regex, parse_capture_regex_study, regexstr, strlen(regexstr), 0, 0, ov, MAX_SUBSTRINGS);
-    if (ret > 1) {
-        res = pcre_get_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 1, &type_str_ptr);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-            goto error;
-        }
-        res = pcre_get_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 2, &capture_str_ptr);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-            goto error;
-        }
-    }
-    SCLogDebug("type \'%s\'", type_str_ptr ? type_str_ptr : "NULL");
-    SCLogDebug("capture \'%s\'", capture_str_ptr ? capture_str_ptr : "NULL");
-
-    if (capture_str_ptr != NULL) {
-        pd->capname = SCStrdup((char *)capture_str_ptr);
+    if (ret < 3) {
+        return 0;
     }
 
-    if (type_str_ptr != NULL) {
-        if (strcmp(type_str_ptr,"pkt") == 0) {
-            pd->flags |= DETECT_PCRE_CAPTURE_PKT;
-        } else if (strcmp(type_str_ptr,"flow") == 0) {
-            pd->flags |= DETECT_PCRE_CAPTURE_FLOW;
-            SCLogDebug("flow capture");
-        }
-        if (capture_str_ptr != NULL) {
-            if (pd->flags & DETECT_PCRE_CAPTURE_PKT)
-                pd->capidx = VariableNameGetIdx(de_ctx, (char *)capture_str_ptr, DETECT_PKTVAR);
-            else if (pd->flags & DETECT_PCRE_CAPTURE_FLOW)
-                pd->capidx = VariableNameGetIdx(de_ctx, (char *)capture_str_ptr, DETECT_FLOWVAR);
-        }
+    res = pcre_copy_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 1, type_str, sizeof(type_str));
+    if (res < 0) {
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        goto error;
     }
-    SCLogDebug("pd->capname %s", pd->capname ? pd->capname : "NULL");
+    res = pcre_copy_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 2, capture_str, cap_buffer_len);
+    if (res < 0) {
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        goto error;
+    }
+    if (strlen(capture_str) == 0 || strlen(type_str) == 0) {
+        goto error;
+    }
 
-    if (type_str_ptr != NULL)
-        pcre_free((char *)type_str_ptr);
-    if (capture_str_ptr != NULL)
-        pcre_free((char *)capture_str_ptr);
-    return pd;
+    SCLogDebug("type \'%s\'", type_str);
+    SCLogDebug("capture \'%s\'", capture_str);
+
+    pd->capname = SCStrdup(capture_str);
+    if (unlikely(pd->capname == NULL))
+        goto error;
+
+    if (strcmp(type_str, "pkt") == 0) {
+        pd->flags |= DETECT_PCRE_CAPTURE_PKT;
+    } else if (strcmp(type_str, "flow") == 0) {
+        pd->flags |= DETECT_PCRE_CAPTURE_FLOW;
+        SCLogDebug("flow capture");
+    }
+    if (pd->capname != NULL) {
+        if (pd->flags & DETECT_PCRE_CAPTURE_PKT)
+            pd->capidx = VariableNameGetIdx(de_ctx, (char *)pd->capname, DETECT_PKTVAR);
+        else if (pd->flags & DETECT_PCRE_CAPTURE_FLOW)
+            pd->capidx = VariableNameGetIdx(de_ctx, (char *)pd->capname, DETECT_FLOWVAR);
+    }
+
+    SCLogDebug("pd->capname %s", pd->capname);
+    return 0;
 
 error:
-    if (pd != NULL && pd->capname != NULL)
+    if (pd->capname != NULL) {
         SCFree(pd->capname);
-    if (pd)
-        SCFree(pd);
-    return NULL;
+        pd->capname = NULL;
+    }
+    return -1;
 }
 
 static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexstr)
@@ -661,8 +662,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     pd = DetectPcreParse(de_ctx, regexstr);
     if (pd == NULL)
         goto error;
-    pd = DetectPcreParseCapture(regexstr, de_ctx, pd);
-    if (pd == NULL)
+    if (DetectPcreParseCapture(regexstr, de_ctx, pd) < 0)
         goto error;
 
     if ((pd->flags & DETECT_PCRE_URI) ||
