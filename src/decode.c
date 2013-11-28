@@ -61,26 +61,23 @@
 #include "util-profiling.h"
 #include "pkt-var.h"
 
-void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         uint8_t *pkt, uint16_t len, PacketQueue *pq, uint8_t proto)
 {
     switch (proto) {
         case PPP_OVER_GRE:
-            DecodePPP(tv, dtv, p, pkt, len, pq);
-            return;
+            return DecodePPP(tv, dtv, p, pkt, len, pq);
         case IPPROTO_IP:
-            DecodeIPV4(tv, dtv, p, pkt, len, pq);
-            return;
+            return DecodeIPV4(tv, dtv, p, pkt, len, pq);
         case IPPROTO_IPV6:
-            DecodeIPV6(tv, dtv, p, pkt, len, pq);
-            return;
+            return DecodeIPV6(tv, dtv, p, pkt, len, pq);
        case VLAN_OVER_GRE:
-            DecodeVLAN(tv, dtv, p, pkt, len, pq);
-            return;
+            return DecodeVLAN(tv, dtv, p, pkt, len, pq);
         default:
             SCLogInfo("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", proto);
             break;
     }
+    return TM_ECODE_OK;
 }
 
 /**
@@ -257,6 +254,35 @@ Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
      * check it against the ip/port/other header checks though */
     DecodeSetNoPayloadInspectionFlag(parent);
     SCReturnPtr(p, "Packet");
+}
+
+
+/**
+ * \brief restore a Packet if its attached pseudo packet is invalid
+ *
+ * \param tv The ThreadVars of calling thread
+ * \param tp the pseudo Packet
+ *
+ * \return TM_ECODE_OK in case of success, TM_ECODE_FAILED if not
+ *
+ */
+
+int PacketPseudoPktRemove(ThreadVars *tv, Packet *tp)
+{
+    if (tp->root == NULL)
+        return TM_ECODE_FAILED;
+
+    TUNNEL_DECR_PKT_TPR_NOLOCK(tp);
+    DecodeUnsetNoPayloadInspectionFlag(tp->root);
+    UNSET_TUNNEL_PKT(tp);
+    if (TUNNEL_PKT_TPR(tp->root) == 0)
+        UNSET_TUNNEL_PKT(tp->root);
+
+    tp->root = NULL;
+
+    TmqhOutputPacketpool(tv, tp);
+
+    return TM_ECODE_OK;
 }
 
 /**

@@ -40,18 +40,18 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-void DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     SCPerfCounterIncr(dtv->counter_ppp, tv->sc_perf_pca);
 
     if (unlikely(len < PPP_HEADER_LEN)) {
         ENGINE_SET_EVENT(p,PPP_PKT_TOO_SMALL);
-        return;
+        return TM_ECODE_FAILED;
     }
 
     p->ppph = (PPPHdr *)pkt;
     if (unlikely(p->ppph == NULL))
-        return;
+        return TM_ECODE_FAILED;
 
     SCLogDebug("p %p pkt %p PPP protocol %04x Len: %" PRId32 "",
         p, pkt, ntohs(p->ppph->protocol), len);
@@ -61,32 +61,34 @@ void DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
         case PPP_VJ_UCOMP:
             if (unlikely(len < (PPP_HEADER_LEN + IPV4_HEADER_LEN))) {
                 ENGINE_SET_EVENT(p,PPPVJU_PKT_TOO_SMALL);
-                return;
+                p->ppph = NULL;
+                return TM_ECODE_FAILED;
             }
 
             if (likely(IPV4_GET_RAW_VER((IPV4Hdr *)(pkt + PPP_HEADER_LEN)) == 4)) {
-                DecodeIPV4(tv, dtv, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN, pq);
-            }
+                return DecodeIPV4(tv, dtv, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN, pq);
+            } else
+                return TM_ECODE_FAILED;
             break;
 
         case PPP_IP:
             if (unlikely(len < (PPP_HEADER_LEN + IPV4_HEADER_LEN))) {
                 ENGINE_SET_EVENT(p,PPPIPV4_PKT_TOO_SMALL);
-                return;
+                p->ppph = NULL;
+                return TM_ECODE_FAILED;
             }
 
-            DecodeIPV4(tv, dtv, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN, pq);
-            break;
+            return DecodeIPV4(tv, dtv, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN, pq);
 
             /* PPP IPv6 was not tested */
         case PPP_IPV6:
             if (unlikely(len < (PPP_HEADER_LEN + IPV6_HEADER_LEN))) {
                 ENGINE_SET_EVENT(p,PPPIPV6_PKT_TOO_SMALL);
-                return;
+                p->ppph = NULL;
+                return TM_ECODE_FAILED;
             }
 
-            DecodeIPV6(tv, dtv, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN, pq);
-            break;
+            return DecodeIPV6(tv, dtv, p, pkt + PPP_HEADER_LEN, len - PPP_HEADER_LEN, pq);
 
         case PPP_VJ_COMP:
         case PPP_IPX:
@@ -117,15 +119,14 @@ void DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
         case PPP_LQM:
         case PPP_CHAP:
             ENGINE_SET_EVENT(p,PPP_UNSUP_PROTO);
-            break;
+            return TM_ECODE_OK;
 
         default:
             SCLogDebug("unknown PPP protocol: %" PRIx32 "",ntohs(p->ppph->protocol));
             ENGINE_SET_EVENT(p,PPP_WRONG_TYPE);
-            return;
+            return TM_ECODE_OK;
     }
 
-    return;
 }
 
 /* TESTS BELOW */
