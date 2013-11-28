@@ -139,11 +139,13 @@ int DetectDsizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, 
 DetectDsizeData *DetectDsizeParse (char *rawstr)
 {
     DetectDsizeData *dd = NULL;
-    char *value1 = NULL, *value2 = NULL,
-         *mode = NULL, *range = NULL;
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
+    char mode[2] = "";
+    char value1[6] = "";
+    char value2[6] = "";
+    char range[3] = "";
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 5) {
@@ -151,40 +153,34 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
         goto error;
     }
 
-    const char *str_ptr;
-
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, mode, sizeof(mode));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_copy_substring failed");
         goto error;
     }
-    mode = (char *)str_ptr;
     SCLogDebug("mode \"%s\"", mode);
 
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, value1, sizeof(value1));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_copy_substring failed");
         goto error;
     }
-    value1 = (char *)str_ptr;
     SCLogDebug("value1 \"%s\"", value1);
 
     if (ret > 3) {
-        res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
+        res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 3, range, sizeof(range));
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_copy_substring failed");
             goto error;
         }
-        range = (char *)str_ptr;
         SCLogDebug("range \"%s\"", range);
 
         if (ret > 4) {
-            res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 4, &str_ptr);
+            res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 4, value2, sizeof(value2));
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_copy_substring failed");
                 goto error;
             }
-            value2 = (char *)str_ptr;
             SCLogDebug("value2 \"%s\"", value2);
         }
     }
@@ -196,7 +192,7 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
     dd->dsize2 = 0;
     dd->mode = DETECTDSIZE_EQ; // default
 
-    if (mode != NULL) {
+    if (strlen(mode) > 0) {
         if (mode[0] == '<')
             dd->mode = DETECTDSIZE_LT;
         else if (mode[0] == '>')
@@ -205,8 +201,8 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
             dd->mode = DETECTDSIZE_EQ;
     }
 
-    if (range != NULL && strcmp("<>", range) == 0) {
-        if (mode != NULL && strlen(mode) != 0) {
+    if (strcmp("<>", range) == 0) {
+        if (strlen(mode) != 0) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,"Range specified but mode also set");
             goto error;
         }
@@ -220,7 +216,7 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
     }
 
     /** set the second dsize value if specified */
-    if (value2 != NULL && strlen(value2) > 0) {
+    if (strlen(value2) > 0) {
         if (dd->mode != DETECTDSIZE_RA) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,"Multiple dsize values specified but mode is not range");
             goto error;
@@ -238,27 +234,11 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
     }
 
     SCLogDebug("dsize parsed successfully dsize: %"PRIu16" dsize2: %"PRIu16"",dd->dsize,dd->dsize2);
-
-    SCFree(value1);
-    SCFree(mode);
-
-    if (value2)
-        SCFree(value2);
-    if (range)
-        SCFree(range);
     return dd;
 
 error:
     if (dd)
         SCFree(dd);
-    if (value1)
-        SCFree(value1);
-    if (value2)
-        SCFree(value2);
-    if (mode)
-        SCFree(mode);
-    if (range)
-        SCFree(range);
     return NULL;
 }
 
