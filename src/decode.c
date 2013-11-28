@@ -256,6 +256,17 @@ Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
     SCReturnPtr(p, "Packet");
 }
 
+
+/**
+ * \brief restore a Packet if its attached pseudo packet is invalid
+ *
+ * \param tv The ThreadVars of calling thread
+ * \param tp the pseudo Packet
+ *
+ * \return TM_ECODE_OK in case of success, TM_ECODE_FAILED if not
+ *
+ */
+
 int PacketPseudoPktRemove(ThreadVars *tv, Packet *tp)
 {
     if (tp->root == NULL)
