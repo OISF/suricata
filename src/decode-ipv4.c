@@ -587,21 +587,12 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
             {
                 if (pq != NULL) {
                     /* spawn off tunnel packet */
-                    Packet *tp = PacketPseudoPktSetup(p, pkt + IPV4_GET_HLEN(p),
+                    Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
                             IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p),
-                            IPV4_GET_IPPROTO(p));
+                            IPV4_GET_IPPROTO(p), pq);
                     if (tp != NULL) {
                         PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV4);
-                        /* send that to the Tunnel decoder */
-                        ret = DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
-                                GET_PKT_LEN(tp), pq, IPV4_GET_IPPROTO(p));
-
-                        if (unlikely(ret != TM_ECODE_OK)) {
-                            TmqhOutputPacketpool(tv, tp);
-                        } else {
-                            /* add the tp to the packet queue. */
-                            PacketEnqueue(pq,tp);
-                        }
+                        PacketEnqueue(pq,tp);
                     }
                 }
                 break;

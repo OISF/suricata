@@ -39,8 +39,6 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-#include "tmqh-packetpool.h"
-
 /**
  * \brief Function to decode GRE packets
  */
@@ -200,16 +198,11 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
         case ETHERNET_TYPE_IP:
             {
                 if (pq != NULL) {
-                    Packet *tp = PacketPseudoPktSetup(p, pkt + header_len,
-                            len - header_len, IPPROTO_IP);
+                    Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
+                            len - header_len, IPPROTO_IP, pq);
                     if (tp != NULL) {
                         PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                        if (DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
-                                GET_PKT_LEN(tp), pq, IPPROTO_IP) == TM_ECODE_OK) {
-                            PacketEnqueue(pq,tp);
-                        } else {
-                            TmqhOutputPacketpool(tv, tp);
-                        }
+                        PacketEnqueue(pq,tp);
                     }
                 }
                 break;
@@ -218,16 +211,11 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
         case GRE_PROTO_PPP:
             {
                 if (pq != NULL) {
-                    Packet *tp = PacketPseudoPktSetup(p, pkt + header_len,
-                            len - header_len, PPP_OVER_GRE);
+                    Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
+                            len - header_len, PPP_OVER_GRE, pq);
                     if (tp != NULL) {
                         PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                        if (DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
-                                GET_PKT_LEN(tp), pq, PPP_OVER_GRE) == TM_ECODE_OK) {
-                            PacketEnqueue(pq,tp);
-                        } else {
-                            TmqhOutputPacketpool(tv, tp);
-                        }
+                        PacketEnqueue(pq,tp);
                     }
                 }
                 break;
@@ -236,16 +224,11 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
         case ETHERNET_TYPE_IPV6:
             {
                 if (pq != NULL) {
-                    Packet *tp = PacketPseudoPktSetup(p, pkt + header_len,
-                            len - header_len, IPPROTO_IPV6);
+                    Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
+                            len - header_len, IPPROTO_IPV6, pq);
                     if (tp != NULL) {
                         PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                        if (DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
-                                GET_PKT_LEN(tp), pq, IPPROTO_IPV6) == TM_ECODE_OK) {
-                            PacketEnqueue(pq,tp);
-                        } else {
-                            TmqhOutputPacketpool(tv, tp);
-                        }
+                        PacketEnqueue(pq,tp);
                     }
                 }
                 break;
@@ -254,16 +237,11 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
         case ETHERNET_TYPE_VLAN:
             {
                 if (pq != NULL) {
-                    Packet *tp = PacketPseudoPktSetup(p, pkt + header_len,
-                            len - header_len, VLAN_OVER_GRE);
+                    Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
+                            len - header_len, VLAN_OVER_GRE, pq);
                     if (tp != NULL) {
                         PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                        if (DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
-                                GET_PKT_LEN(tp), pq, VLAN_OVER_GRE) == TM_ECODE_OK) {
-                            PacketEnqueue(pq,tp);
-                        } else {
-                            TmqhOutputPacketpool(tv, tp);
-                        }
+                        PacketEnqueue(pq,tp);
                     }
                 }
                 break;

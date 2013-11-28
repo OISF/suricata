@@ -62,20 +62,12 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
     }
     if (IP_GET_RAW_VER(pkt) == 4) {
         if (pq != NULL) {
-            Packet *tp = PacketPseudoPktSetup(p, pkt, plen, IPPROTO_IP);
+            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt, plen, IPPROTO_IP, pq);
             if (tp != NULL) {
-                int ret;
-
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
-                ret = DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
-                                   GET_PKT_LEN(tp), pq, IPPROTO_IP);
-                if (unlikely(ret != TM_ECODE_OK)) {
-                    TmqhOutputPacketpool(tv, tp);
-                } else {
-                    /* add the tp to the packet queue. */
-                    PacketEnqueue(pq,tp);
-                    SCPerfCounterIncr(dtv->counter_ipv4inipv6, tv->sc_perf_pca);
-                }
+                /* add the tp to the packet queue. */
+                PacketEnqueue(pq,tp);
+                SCPerfCounterIncr(dtv->counter_ipv4inipv6, tv->sc_perf_pca);
                 return;
             }
         }
@@ -98,16 +90,11 @@ static int DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint
     }
     if (IP_GET_RAW_VER(pkt) == 6) {
         if (unlikely(pq != NULL)) {
-            Packet *tp = PacketPseudoPktSetup(p, pkt, plen, IPPROTO_IPV6);
-            if (unlikely(tp != NULL)) {
+            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt, plen, IPPROTO_IPV6, pq);
+            if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
-                if (DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
-                            GET_PKT_LEN(tp), pq, IPPROTO_IPV6) == TM_ECODE_OK) {
-                    PacketEnqueue(pq,tp);
-                    SCPerfCounterIncr(dtv->counter_ipv6inipv6, tv->sc_perf_pca);
-                } else {
-                    TmqhOutputPacketpool(tv, tp);
-                }
+                PacketEnqueue(pq,tp);
+                SCPerfCounterIncr(dtv->counter_ipv6inipv6, tv->sc_perf_pca);
             }
         }
     } else {

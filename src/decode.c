@@ -216,8 +216,11 @@ inline int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen)
  *
  *  \retval p the pseudo packet or NULL if out of memory
  */
-Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto)
+Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
+                             uint8_t *pkt, uint16_t len, uint8_t proto, PacketQueue *pq)
 {
+    int ret;
+
     SCEnter();
 
     /* get us a packet */
@@ -239,10 +242,17 @@ Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
     p->ts.tv_usec = parent->ts.tv_usec;
     p->datalink = DLT_RAW;
 
-    /* set tunnel flags */
-
     /* tell new packet it's part of a tunnel */
     SET_TUNNEL_PKT(p);
+
+    ret = DecodeTunnel(tv, dtv, p, GET_PKT_DATA(p),
+                       GET_PKT_LEN(p), pq, proto);
+
+    if (unlikely(ret != TM_ECODE_OK)) {
+        TmqhOutputPacketpool(tv, p);
+        SCReturnPtr(NULL, "Packet");
+    }
+
     /* tell parent packet it's part of a tunnel */
     SET_TUNNEL_PKT(parent);
 
