@@ -2450,7 +2450,7 @@ static void SigParseApplyDsizeToContent(Signature *s) {
 }
 
 /**
- * \brief Add all signatures to their own source address group
+ * \brief Preprocess signature, classify ip-only, etc, build sig array
  *
  * \param de_ctx Pointer to the Detection Engine Context
  *
@@ -2459,8 +2459,7 @@ static void SigParseApplyDsizeToContent(Signature *s) {
  */
 int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     Signature *tmp_s = NULL;
-    DetectAddress *gr = NULL;
-    uint32_t cnt = 0, cnt_iponly = 0;
+    uint32_t cnt_iponly = 0;
     uint32_t cnt_payload = 0;
     uint32_t cnt_applayer = 0;
     uint32_t cnt_deonly = 0;
@@ -2471,7 +2470,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
 
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogDebug("building signature grouping structure, stage 1: "
-                   "adding signatures to signature source addresses...");
+                   "preprocessing rules...");
     }
 
 #ifdef HAVE_LUAJIT
@@ -2552,27 +2551,6 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
 #endif /* DEBUG */
 
         SignatureCreateMask(tmp_s);
-
-        for (gr = tmp_s->src.ipv4_head; gr != NULL; gr = gr->next) {
-            if (SigGroupHeadAppendSig(de_ctx, &gr->sh, tmp_s) < 0) {
-                goto error;
-            }
-            cnt++;
-        }
-
-        for (gr = tmp_s->src.ipv6_head; gr != NULL; gr = gr->next) {
-            if (SigGroupHeadAppendSig(de_ctx, &gr->sh, tmp_s) < 0) {
-                goto error;
-            }
-            cnt++;
-        }
-        for (gr = tmp_s->src.any_head; gr != NULL; gr = gr->next) {
-            if (SigGroupHeadAppendSig(de_ctx, &gr->sh, tmp_s) < 0) {
-                goto error;
-            }
-            cnt++;
-        }
-
         SigParseApplyDsizeToContent(tmp_s);
 
         de_ctx->sig_cnt++;
@@ -2590,7 +2568,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
                 cnt_deonly);
 
         SCLogInfo("building signature grouping structure, stage 1: "
-               "adding signatures to signature source addresses... complete");
+               "preprocessing rules... complete");
     }
     return 0;
 
@@ -2648,9 +2626,6 @@ static int DetectEngineLookupBuildSourceAddressList(DetectEngineCtx *de_ctx, Det
                 }
             }
         }
-        SCLogDebug("calling SigGroupHeadFree gr %p, gr->sh %p", gr, gr->sh);
-        SigGroupHeadFree(gr->sh);
-        gr->sh = NULL;
     }
 
     return 0;
@@ -4327,6 +4302,7 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
         SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
         exit(EXIT_FAILURE);
     }
+//exit(0);
     if (SigAddressPrepareStage2(de_ctx) != 0) {
         SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
         exit(EXIT_FAILURE);
