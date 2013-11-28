@@ -283,7 +283,7 @@ char *DetectLoadCompleteSigPath(char *sig_file)
 int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
     Signature *sig = NULL;
     int good = 0, bad = 0;
-    char line[8192] = "";
+    char line[DETECT_MAX_RULE_SIZE] = "";
     size_t offset = 0;
     int lineno = 0, multiline = 0;
 

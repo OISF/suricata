@@ -44,6 +44,8 @@
 
 #define COUNTER_DETECT_ALERTS 1
 
+#define DETECT_MAX_RULE_SIZE 8192
+
 /* forward declarations for the structures from detect-engine-sigorder.h */
 struct SCSigOrderFunc_;
 struct SCSigSignatureWrapper_;
