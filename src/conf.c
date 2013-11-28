@@ -206,9 +206,12 @@ ConfGetRootNode(void)
 /**
  * \brief Set a configuration value.
  *
+ * Configuration values set with this function may be overridden by
+ * subsequent calls, or if the value appears multiple times in a
+ * configuration file.
+ *
  * \param name The name of the configuration parameter to set.
  * \param val The value of the configuration parameter.
- * \param allow_override Can a subsequent set override this value.
  *
  * \retval 1 if the value was set otherwise 0.
  */
@@ -225,6 +228,20 @@ ConfSet(char *name, char *val)
     return 1;
 }
 
+/**
+ * \brief Set a final configuration value.
+ *
+ * A final configuration value is a value that cannot be overridden by
+ * the configuration file.  Its mainly useful for setting values that
+ * are supplied on the command line prior to the configuration file
+ * being loaded.  However, a subsequent call to this function can
+ * override a previously set value.
+ *
+ * \param name The name of the configuration parameter to set.
+ * \param val The value of the configuration parameter.
+ *
+ * \retval 1 if the value was set otherwise 0.
+ */
 int
 ConfSetFinal(char *name, char *val)
 {
