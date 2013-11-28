@@ -815,6 +815,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *, ThreadVars *);
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
                              uint8_t *pkt, uint16_t len, uint8_t proto, PacketQueue *pq);
 Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto);
+void PacketDefragPktFinishSetup(Packet *p, Packet *parent);
 Packet *PacketGetFromQueueOrAlloc(void);
 Packet *PacketGetFromAlloc(void);
 void PacketFree(Packet *p);

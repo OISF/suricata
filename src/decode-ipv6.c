@@ -44,8 +44,6 @@
 #include "util-profiling.h"
 #include "host.h"
 
-#include "tmqh-packetpool.h"
-
 #define IPV6_EXTHDRS     ip6eh.ip6_exthdrs
 #define IPV6_EH_CNT      ip6eh.ip6_exthdrs_cnt
 
@@ -596,18 +594,9 @@ int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
     /* Pass to defragger if a fragment. */
     if (IPV6_EXTHDR_ISSET_FH(p)) {
-        Packet *rp = Defrag(tv, dtv, p);
+        Packet *rp = Defrag(tv, dtv, p, pq);
         if (rp != NULL) {
-            ret = DecodeIPV6(tv, dtv, rp, (uint8_t *)rp->ip6h, IPV6_GET_PLEN(rp) + IPV6_HEADER_LEN, pq);
-            if (unlikely(ret != TM_ECODE_OK)) {
-                TmqhOutputPacketpool(tv, rp);
-            } else {
-                /* add the tp to the packet queue. */
-                PacketEnqueue(pq,rp);
-                /* Not really a tunnel packet, but we're piggybacking that
-                 * functionality for now. */
-                SET_TUNNEL_PKT(p);
-            }
+            PacketEnqueue(pq,rp);
         }
     }
 

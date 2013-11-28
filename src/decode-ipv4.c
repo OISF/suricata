@@ -46,8 +46,6 @@
 #include "util-print.h"
 #include "util-profiling.h"
 
-#include "tmqh-packetpool.h"
-
 /* Generic validation
  *
  * [--type--][--len---]
@@ -517,8 +515,6 @@ static int DecodeIPV4Packet(Packet *p, uint8_t *pkt, uint16_t len)
 
 int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    int ret;
-
     SCPerfCounterIncr(dtv->counter_ipv4, tv->sc_perf_pca);
 
     SCLogDebug("pkt %p len %"PRIu16"", pkt, len);
@@ -533,15 +529,9 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
     /* If a fragment, pass off for re-assembly. */
     if (unlikely(IPV4_GET_IPOFFSET(p) > 0 || IPV4_GET_MF(p) == 1)) {
-        Packet *rp = Defrag(tv, dtv, p);
+        Packet *rp = Defrag(tv, dtv, p, pq);
         if (rp != NULL) {
-            /* Got re-assembled packet, re-run through decoder. */
-            ret = DecodeIPV4(tv, dtv, rp, (void *)rp->ip4h, IPV4_GET_IPLEN(rp), pq);
-            if (unlikely(ret != TM_ECODE_OK)) {
-                TmqhOutputPacketpool(tv, rp);
-            } else {
-                PacketEnqueue(pq, rp);
-            }
+            PacketEnqueue(pq, rp);
         }
         p->flags |= PKT_IS_FRAGMENT;
         return TM_ECODE_OK;

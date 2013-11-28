@@ -302,11 +302,14 @@ Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
     p->ts.tv_sec = parent->ts.tv_sec;
     p->ts.tv_usec = parent->ts.tv_usec;
     p->datalink = DLT_RAW;
-
-    /* set tunnel flags */
-
     /* tell new packet it's part of a tunnel */
     SET_TUNNEL_PKT(p);
+
+    SCReturnPtr(p, "Packet");
+}
+
+void PacketDefragPktFinishSetup(Packet *p, Packet *parent)
+{
     /* tell parent packet it's part of a tunnel */
     SET_TUNNEL_PKT(parent);
 
@@ -317,7 +320,6 @@ Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
      * is the packet we will now run through the system separately. We do
      * check it against the ip/port/other header checks though */
     DecodeSetNoPayloadInspectionFlag(parent);
-    SCReturnPtr(p, "Packet");
 }
 
 void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
