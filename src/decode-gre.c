@@ -208,7 +208,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
                                 GET_PKT_LEN(tp), pq, IPPROTO_IP) == TM_ECODE_OK) {
                             PacketEnqueue(pq,tp);
                         } else {
-                            TmqhOutputPacketpool(tv, tp);
+                            PacketPseudoPktRemove(tv, tp);
                         }
                     }
                 }
@@ -226,7 +226,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
                                 GET_PKT_LEN(tp), pq, PPP_OVER_GRE) == TM_ECODE_OK) {
                             PacketEnqueue(pq,tp);
                         } else {
-                            TmqhOutputPacketpool(tv, tp);
+                            PacketPseudoPktRemove(tv, tp);
                         }
                     }
                 }
@@ -244,7 +244,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
                                 GET_PKT_LEN(tp), pq, IPPROTO_IPV6) == TM_ECODE_OK) {
                             PacketEnqueue(pq,tp);
                         } else {
-                            TmqhOutputPacketpool(tv, tp);
+                            PacketPseudoPktRemove(tv, tp);
                         }
                     }
                 }
@@ -262,7 +262,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
                                 GET_PKT_LEN(tp), pq, VLAN_OVER_GRE) == TM_ECODE_OK) {
                             PacketEnqueue(pq,tp);
                         } else {
-                            TmqhOutputPacketpool(tv, tp);
+                            PacketPseudoPktRemove(tv, tp);
                         }
                     }
                 }

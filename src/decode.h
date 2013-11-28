@@ -805,6 +805,7 @@ typedef struct DecodeThreadVars_
 
 #define IS_TUNNEL_PKT(p)            (((p)->flags & PKT_TUNNEL))
 #define SET_TUNNEL_PKT(p)           ((p)->flags |= PKT_TUNNEL)
+#define UNSET_TUNNEL_PKT(p)         ((p)->flags &= ~PKT_TUNNEL)
 #define IS_TUNNEL_ROOT_PKT(p)       (IS_TUNNEL_PKT(p) && (p)->root == NULL)
 
 #define IS_TUNNEL_PKT_VERDICTED(p)  (((p)->flags & PKT_TUNNEL_VERDICTED))
@@ -813,6 +814,7 @@ typedef struct DecodeThreadVars_
 
 void DecodeRegisterPerfCounters(DecodeThreadVars *, ThreadVars *);
 Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto);
+int PacketPseudoPktRemove(ThreadVars *tv, Packet *tp);
 Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto);
 Packet *PacketGetFromQueueOrAlloc(void);
 Packet *PacketGetFromAlloc(void);
@@ -852,6 +854,15 @@ void AddressDebugPrint(Address *);
 #define DecodeSetNoPayloadInspectionFlag(p) do { \
         (p)->flags |= PKT_NOPAYLOAD_INSPECTION;  \
     } while (0)
+
+/** \brief Unset the No payload inspection Flag for the packet.
+ *
+ * \param p Packet to set the flag in
+ */
+#define DecodeUnsetNoPayloadInspectionFlag(p) do { \
+        (p)->flags &= ~PKT_NOPAYLOAD_INSPECTION;  \
+    } while (0)
+
 
 /** \brief Set the No packet inspection Flag for the packet.
  *

@@ -597,7 +597,7 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                                 GET_PKT_LEN(tp), pq, IPV4_GET_IPPROTO(p));
 
                         if (unlikely(ret != TM_ECODE_OK)) {
-                            TmqhOutputPacketpool(tv, tp);
+                            PacketPseudoPktRemove(tv, tp);
                         } else {
                             /* add the tp to the packet queue. */
                             PacketEnqueue(pq,tp);

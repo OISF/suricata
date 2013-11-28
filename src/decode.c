@@ -256,6 +256,24 @@ Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
     SCReturnPtr(p, "Packet");
 }
 
+int PacketPseudoPktRemove(ThreadVars *tv, Packet *tp)
+{
+    if (tp->root == NULL)
+        return TM_ECODE_FAILED;
+
+    TUNNEL_DECR_PKT_TPR_NOLOCK(tp);
+    DecodeUnsetNoPayloadInspectionFlag(tp->root);
+    UNSET_TUNNEL_PKT(tp);
+    if (TUNNEL_PKT_TPR(tp->root) == 0)
+        UNSET_TUNNEL_PKT(tp->root);
+
+    tp->root = NULL;
+
+    TmqhOutputPacketpool(tv, tp);
+
+    return TM_ECODE_OK;
+}
+
 /**
  *  \brief Setup a pseudo packet (reassembled frags)
  *

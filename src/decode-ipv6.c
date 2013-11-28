@@ -70,7 +70,7 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
                 ret = DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
                                    GET_PKT_LEN(tp), pq, IPPROTO_IP);
                 if (unlikely(ret != TM_ECODE_OK)) {
-                    TmqhOutputPacketpool(tv, tp);
+                    PacketPseudoPktRemove(tv, tp);
                 } else {
                     /* add the tp to the packet queue. */
                     PacketEnqueue(pq,tp);
@@ -106,7 +106,7 @@ static int DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint
                     PacketEnqueue(pq,tp);
                     SCPerfCounterIncr(dtv->counter_ipv6inipv6, tv->sc_perf_pca);
                 } else {
-                    TmqhOutputPacketpool(tv, tp);
+                    PacketPseudoPktRemove(tv, tp);
                 }
             }
         }

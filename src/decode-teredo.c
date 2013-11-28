@@ -101,7 +101,7 @@ int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
                     ret = DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp), GET_PKT_LEN(tp),
                                  pq, IPPROTO_IPV6);
                     if (unlikely(ret != TM_ECODE_OK)) {
-                        TmqhOutputPacketpool(tv, tp);
+                        PacketPseudoPktRemove(tv, tp);
                         return TM_ECODE_FAILED;
                     } else {
                         /* add the tp to the packet queue. */
