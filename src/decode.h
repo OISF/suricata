@@ -812,7 +812,8 @@ typedef struct DecodeThreadVars_
 
 
 void DecodeRegisterPerfCounters(DecodeThreadVars *, ThreadVars *);
-Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto);
+Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
+                             uint8_t *pkt, uint16_t len, uint8_t proto, PacketQueue *pq);
 Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto);
 Packet *PacketGetFromQueueOrAlloc(void);
 Packet *PacketGetFromAlloc(void);
