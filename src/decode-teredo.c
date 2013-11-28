@@ -42,7 +42,7 @@
 /**
  * \brief Function to decode Teredo packets
  *
- * \retval 0 if packet is not a Teredo packet, 1 if it is
+ * \retval TM_ECODE_FAILED if packet is not a Teredo packet, TM_ECODE_OK if it is
  */
 int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
@@ -51,7 +51,7 @@ int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
 
     /* Is this packet to short to contain an IPv6 packet ? */
     if (len < IPV6_HEADER_LEN)
-        return 0;
+        return TM_ECODE_FAILED;
 
     /* Teredo encapsulate IPv6 in UDP and can add some custom message
      * part before the IPv6 packet. In our case, we just want to get
@@ -64,14 +64,14 @@ int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
                 if (len >= TEREDO_ORIG_INDICATION_LENGTH + IPV6_HEADER_LEN)
                     start += TEREDO_ORIG_INDICATION_LENGTH;
                 else
-                    return 0;
+                    return TM_ECODE_FAILED;
                 break;
             /* authentication: negotiation not real tunnel */
             case 0x1:
-                return 0;
+                return TM_ECODE_FAILED;
             /* this case is not possible in Teredo: not that protocol */
             default:
-                return 0;
+                return TM_ECODE_FAILED;
         }
     }
 
@@ -90,24 +90,21 @@ int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
             if (pq != NULL) {
                 int blen = len - (start - pkt);
                 /* spawn off tunnel packet */
-                Packet *tp = PacketPseudoPktSetup(p, start, blen,
-                                                  IPPROTO_IPV6);
+                Packet *tp = PacketTunnelPktSetup(tv, dtv, p, start, blen,
+                                                  IPPROTO_IPV6, pq);
                 if (tp != NULL) {
                     PKT_SET_SRC(tp, PKT_SRC_DECODER_TEREDO);
-                    /* send that to the Tunnel decoder */
-                    DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp), GET_PKT_LEN(tp),
-                                 pq, IPPROTO_IPV6);
                     /* add the tp to the packet queue. */
                     PacketEnqueue(pq,tp);
                     SCPerfCounterIncr(dtv->counter_teredo, tv->sc_perf_pca);
-                    return 1;
+                    return TM_ECODE_OK;
                 }
             }
         }
-        return 0;
+        return TM_ECODE_FAILED;
     }
 
-    return 0;
+    return TM_ECODE_FAILED;
 }
 
 /**

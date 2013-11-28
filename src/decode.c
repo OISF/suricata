@@ -61,26 +61,23 @@
 #include "util-profiling.h"
 #include "pkt-var.h"
 
-void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         uint8_t *pkt, uint16_t len, PacketQueue *pq, uint8_t proto)
 {
     switch (proto) {
         case PPP_OVER_GRE:
-            DecodePPP(tv, dtv, p, pkt, len, pq);
-            return;
+            return DecodePPP(tv, dtv, p, pkt, len, pq);
         case IPPROTO_IP:
-            DecodeIPV4(tv, dtv, p, pkt, len, pq);
-            return;
+            return DecodeIPV4(tv, dtv, p, pkt, len, pq);
         case IPPROTO_IPV6:
-            DecodeIPV6(tv, dtv, p, pkt, len, pq);
-            return;
+            return DecodeIPV6(tv, dtv, p, pkt, len, pq);
        case VLAN_OVER_GRE:
-            DecodeVLAN(tv, dtv, p, pkt, len, pq);
-            return;
+            return DecodeVLAN(tv, dtv, p, pkt, len, pq);
         default:
             SCLogInfo("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", proto);
             break;
     }
+    return TM_ECODE_OK;
 }
 
 /**
@@ -219,8 +216,11 @@ inline int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen)
  *
  *  \retval p the pseudo packet or NULL if out of memory
  */
-Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto)
+Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
+                             uint8_t *pkt, uint16_t len, uint8_t proto, PacketQueue *pq)
 {
+    int ret;
+
     SCEnter();
 
     /* get us a packet */
@@ -242,10 +242,17 @@ Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
     p->ts.tv_usec = parent->ts.tv_usec;
     p->datalink = DLT_RAW;
 
-    /* set tunnel flags */
-
     /* tell new packet it's part of a tunnel */
     SET_TUNNEL_PKT(p);
+
+    ret = DecodeTunnel(tv, dtv, p, GET_PKT_DATA(p),
+                       GET_PKT_LEN(p), pq, proto);
+
+    if (unlikely(ret != TM_ECODE_OK)) {
+        TmqhOutputPacketpool(tv, p);
+        SCReturnPtr(NULL, "Packet");
+    }
+
     /* tell parent packet it's part of a tunnel */
     SET_TUNNEL_PKT(parent);
 
