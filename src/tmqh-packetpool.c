@@ -58,10 +58,13 @@ static RingBuffer16 *ringbuffer = NULL;
  * \brief TmqhPacketpoolRegister
  * \initonly
  */
-void TmqhPacketpoolRegister (void) {
+void TmqhPacketpoolRegister (int use_ring) {
     tmqh_table[TMQH_PACKETPOOL].name = "packetpool";
     tmqh_table[TMQH_PACKETPOOL].InHandler = TmqhInputPacketpool;
     tmqh_table[TMQH_PACKETPOOL].OutHandler = TmqhOutputPacketpool;
+
+    if (! use_ring)
+        return;
 
     ringbuffer = RingBufferInit();
     if (ringbuffer == NULL) {
@@ -76,15 +79,22 @@ void TmqhPacketpoolDestroy (void) {
 }
 
 int PacketPoolIsEmpty(void) {
-    return RingBufferIsEmpty(ringbuffer);
+    if (ringbuffer)
+        return RingBufferIsEmpty(ringbuffer);
+    else
+        return 0;
 }
 
 uint16_t PacketPoolSize(void) {
-    return RingBufferSize(ringbuffer);
+    if (ringbuffer)
+        return RingBufferSize(ringbuffer);
+    else
+        return 1;
 }
 
 void PacketPoolWait(void) {
-    RingBufferWait(ringbuffer);
+    if (ringbuffer)
+        RingBufferWait(ringbuffer);
 }
 
 /** \brief a initialized packet
@@ -109,6 +119,8 @@ void PacketPoolStorePacket(Packet *p) {
  *         pool is empty, don't wait, just return NULL
  */
 Packet *PacketPoolGetPacket(void) {
+    if (!ringbuffer)
+        return NULL;
     if (RingBufferIsEmpty(ringbuffer))
         return NULL;
 
