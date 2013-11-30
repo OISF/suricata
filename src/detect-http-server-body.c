@@ -2244,7 +2244,7 @@ int DetectHttpServerBodyTest34(void)
 
     DetectPcreData *pd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->prev->ctx;
     DetectContentData *hsbd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->ctx;
-    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT | DETECT_PCRE_HTTP_SERVER_BODY) ||
+    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
         hsbd2->flags != DETECT_CONTENT_WITHIN ||
         memcmp(hsbd2->content, "two", hsbd2->content_len) != 0) {
         goto end;
@@ -2295,7 +2295,7 @@ int DetectHttpServerBodyTest35(void)
 
     DetectContentData *hsbd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->prev->ctx;
     DetectPcreData *pd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->ctx;
-    if (pd2->flags != (DETECT_PCRE_RELATIVE | DETECT_PCRE_HTTP_SERVER_BODY) ||
+    if (pd2->flags != (DETECT_PCRE_RELATIVE) ||
         hsbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(hsbd1->content, "two", hsbd1->content_len) != 0) {
         goto end;
@@ -2346,7 +2346,7 @@ int DetectHttpServerBodyTest36(void)
 
     DetectPcreData *pd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->prev->ctx;
     DetectContentData *hsbd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->ctx;
-    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT | DETECT_PCRE_HTTP_SERVER_BODY) ||
+    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
         hsbd2->flags != DETECT_CONTENT_DISTANCE ||
         memcmp(hsbd2->content, "two", hsbd2->content_len) != 0) {
         goto end;

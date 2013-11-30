@@ -1916,7 +1916,7 @@ int DetectHttpUATest34(void)
 
     DetectPcreData *pd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->prev->ctx;
     DetectContentData *huad2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->ctx;
-    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT | DETECT_PCRE_HTTP_USER_AGENT) ||
+    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
         huad2->flags != DETECT_CONTENT_WITHIN ||
         memcmp(huad2->content, "two", huad2->content_len) != 0) {
         goto end;
@@ -1967,7 +1967,7 @@ int DetectHttpUATest35(void)
 
     DetectContentData *huad1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->prev->ctx;
     DetectPcreData *pd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->ctx;
-    if (pd2->flags != (DETECT_PCRE_RELATIVE | DETECT_PCRE_HTTP_USER_AGENT) ||
+    if (pd2->flags != (DETECT_PCRE_RELATIVE) ||
         huad1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(huad1->content, "two", huad1->content_len) != 0) {
         goto end;
@@ -2018,7 +2018,7 @@ int DetectHttpUATest36(void)
 
     DetectPcreData *pd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->prev->ctx;
     DetectContentData *huad2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->ctx;
-    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT | DETECT_PCRE_HTTP_USER_AGENT) ||
+    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
         huad2->flags != DETECT_CONTENT_DISTANCE ||
         memcmp(huad2->content, "two", huad2->content_len) != 0) {
         goto end;
