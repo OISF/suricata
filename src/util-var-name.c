@@ -31,8 +31,8 @@
 typedef struct VariableName_ {
     char *name;
     uint8_t type; /* flowbit, pktvar, etc */
-    uint16_t idx;
     uint8_t flags;
+    uint16_t idx;
 } VariableName;
 
 static uint32_t VariableNameHash(HashListTable *ht, void *buf, uint16_t buflen) {

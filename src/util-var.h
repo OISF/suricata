@@ -26,8 +26,8 @@
 
 typedef struct GenericVar_ {
     uint8_t type;
-    struct GenericVar_ *next;
     uint16_t idx;
+    struct GenericVar_ *next;
 } GenericVar;
 
 void GenericVarFree(GenericVar *);

@@ -29,10 +29,10 @@
 
 typedef struct FlowBit_ {
     uint8_t type; /* type, DETECT_FLOWBITS in this case */
+    uint16_t idx; /* name idx */
     GenericVar *next; /* right now just implement this as a list,
                        * in the long run we have think of something
                        * faster. */
-    uint16_t idx; /* name idx */
 } FlowBit;
 
 void FlowBitFree(FlowBit *);
