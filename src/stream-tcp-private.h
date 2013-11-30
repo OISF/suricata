@@ -206,6 +206,7 @@ typedef struct TcpSession_ {
     PoolThreadReserved res;
     uint8_t state;
     uint8_t queue_len;                      /**< length of queue list below */
+    int8_t data_first_seen_dir;
     /* coccinelle: TcpSession:flags:STREAMTCP_FLAG */
     uint16_t flags;
     TcpStream server;
@@ -214,8 +215,6 @@ typedef struct TcpSession_ {
     struct StreamMsg_ *toserver_smsg_tail;  /**< list of stream msgs (for detection inspection) */
     struct StreamMsg_ *toclient_smsg_head;  /**< list of stream msgs (for detection inspection) */
     struct StreamMsg_ *toclient_smsg_tail;  /**< list of stream msgs (for detection inspection) */
-
-    int8_t data_first_seen_dir;
 
     TcpStateQueue *queue;                   /**< list of SYN/ACK candidates */
 } TcpSession;
