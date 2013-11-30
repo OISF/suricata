@@ -66,6 +66,9 @@
 typedef struct DetectContentData_ {
     uint8_t *content;
     uint8_t content_len;
+    uint8_t replace_len;
+    /* for chopped fast pattern, the length */
+    uint16_t fp_chop_len;
     /* would want to move PatIntId here and flags down to remove the padding
      * gap, but I think the first four members was used as a template for
      * casting.  \todo check this and fix it if posssible */
@@ -73,17 +76,14 @@ typedef struct DetectContentData_ {
     PatIntId id;
     uint16_t depth;
     uint16_t offset;
+    /* for chopped fast pattern, the offset */
+    uint16_t fp_chop_offset;
     int32_t distance;
     int32_t within;
     /* Boyer Moore context (for spm search) */
     BmCtx *bm_ctx;
-    /* for chopped fast pattern, the offset */
-    uint16_t fp_chop_offset;
-    /* for chopped fast pattern, the length */
-    uint16_t fp_chop_len;
     /* pointer to replacement data */
     uint8_t *replace;
-    uint8_t replace_len;
 } DetectContentData;
 
 /* prototypes */
