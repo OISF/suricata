@@ -1000,88 +1000,128 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
 
         case ENGINE_PROFILE_CUSTOM:
             TAILQ_FOREACH(opt, &de_ctx_custom->head, next) {
-                if (strncmp(opt->val, "custom-values", 3) == 0) {
+                if (strcmp(opt->val, "custom-values") == 0) {
                     max_uniq_toclient_src_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "toclient_src_groups");
+                            (opt->head.tqh_first, "toclient-src-groups");
                     max_uniq_toclient_dst_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "toclient_dst_groups");
+                            (opt->head.tqh_first, "toclient-dst-groups");
                     max_uniq_toclient_sp_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "toclient_sp_groups");
+                            (opt->head.tqh_first, "toclient-sp-groups");
                     max_uniq_toclient_dp_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "toclient_dp_groups");
+                            (opt->head.tqh_first, "toclient-dp-groups");
                     max_uniq_toserver_src_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "toserver_src_groups");
+                            (opt->head.tqh_first, "toserver-src-groups");
                     max_uniq_toserver_dst_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "toserver_dst_groups");
+                            (opt->head.tqh_first, "toserver-dst-groups");
                     max_uniq_toserver_sp_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "toserver_sp_groups");
+                            (opt->head.tqh_first, "toserver-sp-groups");
                     max_uniq_toserver_dp_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "toserver_dp_groups");
+                            (opt->head.tqh_first, "toserver-dp-groups");
                 }
             }
             if (max_uniq_toclient_src_groups_str != NULL) {
                 if (ByteExtractStringUint16(&de_ctx->max_uniq_toclient_src_groups, 10,
                     strlen(max_uniq_toclient_src_groups_str),
-                    (const char *)max_uniq_toclient_src_groups_str) <= 0)
-                        de_ctx->max_uniq_toclient_src_groups = 2;
+                    (const char *)max_uniq_toclient_src_groups_str) <= 0) {
+                    de_ctx->max_uniq_toclient_src_groups = 4;
+                    SCLogWarning(SC_ERR_SIZE_PARSE, "parsing '%s' for "
+                            "toclient-src-groups failed, using %u",
+                            max_uniq_toclient_src_groups_str,
+                            de_ctx->max_uniq_toclient_src_groups);
+                }
             } else {
-                de_ctx->max_uniq_toclient_src_groups = 2;
+                de_ctx->max_uniq_toclient_src_groups = 4;
             }
             if (max_uniq_toclient_dst_groups_str != NULL) {
                 if (ByteExtractStringUint16(&de_ctx->max_uniq_toclient_dst_groups, 10,
                     strlen(max_uniq_toclient_dst_groups_str),
-                    (const char *)max_uniq_toclient_dst_groups_str) <= 0)
-                        de_ctx->max_uniq_toclient_dst_groups = 2;
+                    (const char *)max_uniq_toclient_dst_groups_str) <= 0) {
+                    de_ctx->max_uniq_toclient_dst_groups = 4;
+                    SCLogWarning(SC_ERR_SIZE_PARSE, "parsing '%s' for "
+                            "toclient-dst-groups failed, using %u",
+                            max_uniq_toclient_dst_groups_str,
+                            de_ctx->max_uniq_toclient_dst_groups);
+                }
             } else {
-                de_ctx->max_uniq_toclient_dst_groups = 2;
+                de_ctx->max_uniq_toclient_dst_groups = 4;
             }
             if (max_uniq_toclient_sp_groups_str != NULL) {
                 if (ByteExtractStringUint16(&de_ctx->max_uniq_toclient_sp_groups, 10,
                     strlen(max_uniq_toclient_sp_groups_str),
-                    (const char *)max_uniq_toclient_sp_groups_str) <= 0)
-                        de_ctx->max_uniq_toclient_sp_groups = 2;
+                    (const char *)max_uniq_toclient_sp_groups_str) <= 0) {
+                    de_ctx->max_uniq_toclient_sp_groups = 4;
+                    SCLogWarning(SC_ERR_SIZE_PARSE, "parsing '%s' for "
+                            "toclient-sp-groups failed, using %u",
+                            max_uniq_toclient_sp_groups_str,
+                            de_ctx->max_uniq_toclient_sp_groups);
+                }
             } else {
-                de_ctx->max_uniq_toclient_sp_groups = 2;
+                de_ctx->max_uniq_toclient_sp_groups = 4;
             }
             if (max_uniq_toclient_dp_groups_str != NULL) {
                 if (ByteExtractStringUint16(&de_ctx->max_uniq_toclient_dp_groups, 10,
                     strlen(max_uniq_toclient_dp_groups_str),
-                    (const char *)max_uniq_toclient_dp_groups_str) <= 0)
-                        de_ctx->max_uniq_toclient_dp_groups = 2;
+                    (const char *)max_uniq_toclient_dp_groups_str) <= 0) {
+                    de_ctx->max_uniq_toclient_dp_groups = 6;
+                    SCLogWarning(SC_ERR_SIZE_PARSE, "parsing '%s' for "
+                            "toclient-dp-groups failed, using %u",
+                            max_uniq_toclient_dp_groups_str,
+                            de_ctx->max_uniq_toclient_dp_groups);
+                }
             } else {
-                de_ctx->max_uniq_toclient_dp_groups = 2;
+                de_ctx->max_uniq_toclient_dp_groups = 6;
             }
             if (max_uniq_toserver_src_groups_str != NULL) {
                 if (ByteExtractStringUint16(&de_ctx->max_uniq_toserver_src_groups, 10,
                     strlen(max_uniq_toserver_src_groups_str),
-                    (const char *)max_uniq_toserver_src_groups_str) <= 0)
-                        de_ctx->max_uniq_toserver_src_groups = 2;
+                    (const char *)max_uniq_toserver_src_groups_str) <= 0) {
+                    de_ctx->max_uniq_toserver_src_groups = 4;
+                    SCLogWarning(SC_ERR_SIZE_PARSE, "parsing '%s' for "
+                            "toserver-src-groups failed, using %u",
+                            max_uniq_toserver_src_groups_str,
+                            de_ctx->max_uniq_toserver_src_groups);
+                }
             } else {
-                de_ctx->max_uniq_toserver_src_groups = 2;
+                de_ctx->max_uniq_toserver_src_groups = 4;
             }
             if (max_uniq_toserver_dst_groups_str != NULL) {
                 if (ByteExtractStringUint16(&de_ctx->max_uniq_toserver_dst_groups, 10,
                     strlen(max_uniq_toserver_dst_groups_str),
-                    (const char *)max_uniq_toserver_dst_groups_str) <= 0)
-                        de_ctx->max_uniq_toserver_dst_groups = 2;
+                    (const char *)max_uniq_toserver_dst_groups_str) <= 0) {
+                    de_ctx->max_uniq_toserver_dst_groups = 8;
+                    SCLogWarning(SC_ERR_SIZE_PARSE, "parsing '%s' for "
+                            "toserver-dst-groups failed, using %u",
+                            max_uniq_toserver_dst_groups_str,
+                            de_ctx->max_uniq_toserver_dst_groups);
+                }
             } else {
-                de_ctx->max_uniq_toserver_dst_groups = 2;
+                de_ctx->max_uniq_toserver_dst_groups = 8;
             }
             if (max_uniq_toserver_sp_groups_str != NULL) {
                 if (ByteExtractStringUint16(&de_ctx->max_uniq_toserver_sp_groups, 10,
                     strlen(max_uniq_toserver_sp_groups_str),
-                    (const char *)max_uniq_toserver_sp_groups_str) <= 0)
-                        de_ctx->max_uniq_toserver_sp_groups = 2;
+                    (const char *)max_uniq_toserver_sp_groups_str) <= 0) {
+                    de_ctx->max_uniq_toserver_sp_groups = 4;
+                    SCLogWarning(SC_ERR_SIZE_PARSE, "parsing '%s' for "
+                            "toserver-sp-groups failed, using %u",
+                            max_uniq_toserver_sp_groups_str,
+                            de_ctx->max_uniq_toserver_sp_groups);
+                }
             } else {
-                de_ctx->max_uniq_toserver_sp_groups = 2;
+                de_ctx->max_uniq_toserver_sp_groups = 4;
             }
             if (max_uniq_toserver_dp_groups_str != NULL) {
                 if (ByteExtractStringUint16(&de_ctx->max_uniq_toserver_dp_groups, 10,
                     strlen(max_uniq_toserver_dp_groups_str),
-                    (const char *)max_uniq_toserver_dp_groups_str) <= 0)
-                        de_ctx->max_uniq_toserver_dp_groups = 2;
+                    (const char *)max_uniq_toserver_dp_groups_str) <= 0) {
+                    de_ctx->max_uniq_toserver_dp_groups = 30;
+                    SCLogWarning(SC_ERR_SIZE_PARSE, "parsing '%s' for "
+                            "toserver-dp-groups failed, using %u",
+                            max_uniq_toserver_dp_groups_str,
+                            de_ctx->max_uniq_toserver_dp_groups);
+                }
             } else {
-                de_ctx->max_uniq_toserver_dp_groups = 2;
+                de_ctx->max_uniq_toserver_dp_groups = 30;
             }
             break;
 
@@ -1975,6 +2015,98 @@ int DetectEngineTest07(void)
     return result;
 }
 
+static int DetectEngineTest08(void)
+{
+    char *conf =
+        "%YAML 1.1\n"
+        "---\n"
+        "detect-engine:\n"
+        "  - profile: custom\n"
+        "  - custom-values:\n"
+        "      toclient-src-groups: 20\n"
+        "      toclient-dst-groups: 21\n"
+        "      toclient-sp-groups: 22\n"
+        "      toclient-dp-groups: 23\n"
+        "      toserver-src-groups: 24\n"
+        "      toserver-dst-groups: 25\n"
+        "      toserver-sp-groups: 26\n"
+        "      toserver-dp-groups: 27\n";
+
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if (DetectEngineInitYamlConf(conf) == -1)
+        return 0;
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    if (de_ctx->max_uniq_toclient_src_groups == 20 &&
+        de_ctx->max_uniq_toclient_dst_groups == 21 &&
+        de_ctx->max_uniq_toclient_sp_groups ==  22 &&
+        de_ctx->max_uniq_toclient_dp_groups ==  23 &&
+        de_ctx->max_uniq_toserver_src_groups == 24 &&
+        de_ctx->max_uniq_toserver_dst_groups == 25 &&
+        de_ctx->max_uniq_toserver_sp_groups == 26 &&
+        de_ctx->max_uniq_toserver_dp_groups == 27)
+        result = 1;
+
+ end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    DetectEngineDeInitYamlConf();
+
+    return result;
+}
+
+/** \test bug 892 bad values */
+static int DetectEngineTest09(void)
+{
+    char *conf =
+        "%YAML 1.1\n"
+        "---\n"
+        "detect-engine:\n"
+        "  - profile: custom\n"
+        "  - custom-values:\n"
+        "      toclient-src-groups: BA\n"
+        "      toclient-dst-groups: BA\n"
+        "      toclient-sp-groups: BA\n"
+        "      toclient-dp-groups: BA\n"
+        "      toserver-src-groups: BA\n"
+        "      toserver-dst-groups: BA\n"
+        "      toserver-sp-groups: BA\n"
+        "      toserver-dp-groups: BA\n"
+        "  - inspection-recursion-limit: 10\n";
+
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if (DetectEngineInitYamlConf(conf) == -1)
+        return 0;
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    if (de_ctx->max_uniq_toclient_src_groups == 4 &&
+        de_ctx->max_uniq_toclient_dst_groups == 4 &&
+        de_ctx->max_uniq_toclient_sp_groups ==  4 &&
+        de_ctx->max_uniq_toclient_dp_groups ==  6 &&
+        de_ctx->max_uniq_toserver_src_groups == 4 &&
+        de_ctx->max_uniq_toserver_dst_groups == 8 &&
+        de_ctx->max_uniq_toserver_sp_groups == 4 &&
+        de_ctx->max_uniq_toserver_dp_groups == 30)
+        result = 1;
+
+ end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    DetectEngineDeInitYamlConf();
+
+    return result;
+}
+
 #endif
 
 void DetectEngineRegisterTests()
@@ -1988,6 +2120,8 @@ void DetectEngineRegisterTests()
     UtRegisterTest("DetectEngineTest05", DetectEngineTest05, 1);
     UtRegisterTest("DetectEngineTest06", DetectEngineTest06, 1);
     UtRegisterTest("DetectEngineTest07", DetectEngineTest07, 1);
+    UtRegisterTest("DetectEngineTest08", DetectEngineTest08, 1);
+    UtRegisterTest("DetectEngineTest09", DetectEngineTest09, 1);
 #endif
 
     return;
