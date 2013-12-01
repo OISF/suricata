@@ -528,6 +528,20 @@ defrag:
   prealloc: yes
   timeout: 60
 
+# Enable defrag per host settings
+#  host-config:
+#
+#    - dmz:
+#        timeout: 30
+#        address: [192.168.1.0/24, 127.0.0.0/8, 1.1.1.0/24, 2.2.2.0/24, "1.1.1.1", "2.2.2.2", "::1"]
+#
+#    - lan:
+#        timeout: 45
+#        address:
+#          - 192.168.0.0/24
+#          - 192.168.10.0/24
+#          - 172.16.14.0/24
+
 # Flow settings:
 # By default, the reserved memory (memcap) for flows is 32MB. This is the limit
 # for flow allocation inside the engine. You can change this value to allow
