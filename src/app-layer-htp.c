@@ -2150,7 +2150,7 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
  * before the callback set by Phase2() is called.  We need this, since
  * the callback in Phase2() generates the normalized uri which utilizes
  * the query and path. */
-static void HTPConfigSetDefaultsPhase2(HTPCfgRec *cfg_prec)
+static void HTPConfigSetDefaultsPhase2(char *name, HTPCfgRec *cfg_prec)
 {
     /* randomize inspection size if needed */
     if (cfg_prec->randomize) {
@@ -2162,6 +2162,13 @@ static void HTPConfigSetDefaultsPhase2(HTPCfgRec *cfg_prec)
         cfg_prec->request_inspect_window +=
             (int) (cfg_prec->request_inspect_window *
                    (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+        SCLogInfo("'%s' server has 'request-body-minimal-inspect-size' set to"
+                  " %d and 'request-body-inspect-window' set to %d after"
+                  " randomization.",
+                  name,
+                  cfg_prec->request_inspect_min_size,
+                  cfg_prec->request_inspect_window);
+
 
         cfg_prec->response_inspect_min_size +=
             (int) (cfg_prec->response_inspect_min_size *
@@ -2169,6 +2176,13 @@ static void HTPConfigSetDefaultsPhase2(HTPCfgRec *cfg_prec)
         cfg_prec->response_inspect_window +=
             (int) (cfg_prec->response_inspect_window *
                    (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+
+        SCLogInfo("'%s' server has 'response-body-minimal-inspect-size' set to"
+                  " %d and 'response-body-inspect-window' set to %d after"
+                  " randomization.",
+                  name,
+                  cfg_prec->response_inspect_min_size,
+                  cfg_prec->response_inspect_window);
     }
 
     htp_config_register_request_line(cfg_prec->cfg, HTPCallbackRequestLine);
@@ -2422,7 +2436,7 @@ void HTPConfigure(void)
     } else {
         HTPConfigParseParameters(&cfglist, ConfGetNode("app-layer.protocols.http.libhtp.default-config"), cfgtree);
     }
-    HTPConfigSetDefaultsPhase2(&cfglist);
+    HTPConfigSetDefaultsPhase2("default", &cfglist);
 
     /* Read server config and create a parser for each IP in radix tree */
     ConfNode *server_config = ConfGetNode("app-layer.protocols.http.libhtp.server-config");
@@ -2462,7 +2476,7 @@ void HTPConfigure(void)
 
         HTPConfigSetDefaultsPhase1(htprec);
         HTPConfigParseParameters(htprec, s, cfgtree);
-        HTPConfigSetDefaultsPhase2(htprec);
+        HTPConfigSetDefaultsPhase2(s->name, htprec);
     }
 
     SCReturn;
