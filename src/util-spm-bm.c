@@ -159,11 +159,7 @@ void BoyerMooreSuffixes(const uint8_t *x, uint16_t m, uint16_t *suff) {
  */
 int PreBmGs(const uint8_t *x, uint16_t m, uint16_t *bmGs) {
     int32_t i, j;
-    uint16_t *suff;
-
-    suff = SCMalloc(sizeof(uint16_t) * (m + 1));
-    if (unlikely(suff == NULL))
-        return -1;
+    uint16_t suff[m + 1];
 
     BoyerMooreSuffixes(x, m, suff);
 
@@ -180,7 +176,6 @@ int PreBmGs(const uint8_t *x, uint16_t m, uint16_t *bmGs) {
 
     for (i = 0; i <= m - 2; ++i)
         bmGs[m - 1 - suff[i]] = m - 1 - i;
-    SCFree(suff);
     return 0;
 }
 
@@ -234,11 +229,7 @@ void BoyerMooreSuffixesNocase(const uint8_t *x, uint16_t m, uint16_t *suff) {
  */
 void PreBmGsNocase(const uint8_t *x, uint16_t m, uint16_t *bmGs) {
     int32_t i, j;
-    uint16_t* suff;
-
-    suff = SCMalloc(sizeof(uint16_t) * (m + 1));
-    if (unlikely(suff == NULL))
-        return;
+    uint16_t suff[m + 1];
 
     BoyerMooreSuffixesNocase(x, m, suff);
 
@@ -258,8 +249,6 @@ void PreBmGsNocase(const uint8_t *x, uint16_t m, uint16_t *bmGs) {
     for (i = 0; i <= m - 2; ++i) {
         bmGs[m - 1 - suff[i]] = m - 1 - i;
     }
-
-    SCFree(suff);
 }
 
 /**
