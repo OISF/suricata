@@ -543,14 +543,15 @@ void SCClassConfLoadClassficationConfigFile(DetectEngineCtx *de_ctx)
 SCClassConfClasstype *SCClassConfGetClasstype(const char *ct_name,
                                               DetectEngineCtx *de_ctx)
 {
-    SCClassConfClasstype *ct_info = SCClassConfAllocClasstype(0, ct_name, NULL,
-                                                              0);
-    if (ct_info == NULL)
-        return NULL;
-    SCClassConfClasstype *lookup_ct_info = HashTableLookup(de_ctx->class_conf_ht,
-                                                           ct_info, 0);
+    char name[strlen(ct_name) + 1];
+    size_t s;
+    for (s = 0; s < strlen(ct_name); s++)
+        name[s] = tolower((unsigned char)ct_name[s]);
+    name[s] = '\0';
 
-    SCClassConfDeAllocClasstype(ct_info);
+    SCClassConfClasstype ct_lookup = {0, name, NULL, 0 };
+    SCClassConfClasstype *lookup_ct_info = HashTableLookup(de_ctx->class_conf_ht,
+                                                           &ct_lookup, 0);
     return lookup_ct_info;
 }
 
