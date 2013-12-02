@@ -118,8 +118,8 @@ static DetectReference *DetectReferenceParse(char *rawstr, DetectEngineCtx *de_c
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
-    const char *key = NULL;
-    const char *content = NULL;
+    char key[64] = "";
+    char content[1024] = "";
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr),
                     0, 0, ov, MAX_SUBSTRINGS);
@@ -135,19 +135,19 @@ static DetectReference *DetectReferenceParse(char *rawstr, DetectEngineCtx *de_c
     }
     memset(ref, 0, sizeof(DetectReference));
 
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, &key);
+    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, key, sizeof(key));
+    if (res < 0) {
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        goto error;
+    }
+
+    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, content, sizeof(content));
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         goto error;
     }
 
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &content);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-        goto error;
-    }
-
-    if (key == NULL || content == NULL)
+    if (strlen(key) == 0 || strlen(content) == 0)
         goto error;
 
     SCRConfReference *lookup_ref_conf = SCRConfGetReference(key, de_ctx);
@@ -168,15 +168,9 @@ static DetectReference *DetectReferenceParse(char *rawstr, DetectEngineCtx *de_c
     }
 
     /* free the substrings */
-    pcre_free_substring(key);
-    pcre_free_substring(content);
     SCReturnPtr(ref, "Reference");
 
 error:
-    if (key != NULL)
-        pcre_free_substring(key);
-    if (content != NULL)
-        pcre_free_substring(content);
     if (ref != NULL)
         DetectReferenceFree(ref);
 
