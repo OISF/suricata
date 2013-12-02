@@ -48,6 +48,9 @@
 #define HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT             9000U
 #define HTP_CONFIG_DEFAULT_FIELD_LIMIT_HARD             18000U
 
+#define HTP_CONFIG_DEFAULT_RANDOMIZE                    1
+#define HTP_CONFIG_DEFAULT_RANDOMIZE_RANGE              10
+
 /** a boundary should be smaller in size */
 #define HTP_BOUNDARY_MAX                            200U
 
@@ -147,6 +150,8 @@ typedef struct HTPCfgRec_ {
 
     uint32_t            response_inspect_min_size;
     uint32_t            response_inspect_window;
+    int                 randomize;
+    int                 randomize_range;
 } HTPCfgRec;
 
 /** Struct used to hold chunks of a body on a request */
