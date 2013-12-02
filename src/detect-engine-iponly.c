@@ -103,19 +103,17 @@ static uint8_t IPOnlyCIDRItemCompare(IPOnlyCIDRItem *head,
  */
 static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, char *str)
 {
-    char *ip = NULL;
-    char *ip2 = NULL;
+    char buf[256] = "";
+    char *ip = NULL, *ip2 = NULL;
     char *mask = NULL;
     int r = 0;
 
     while (*str != '\0' && *str == ' ')
         str++;
 
-    char *ipdup = SCStrdup(str);
-
-    if (unlikely(ipdup == NULL))
-        return -1;
     SCLogDebug("str %s", str);
+    strlcpy(buf, str, sizeof(buf));
+    ip = buf;
 
     /* first handle 'any' */
     if (strcasecmp(str, "any") == 0) {
@@ -132,14 +130,9 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, char *str)
         IPOnlyCIDRItemParseSingle(dd->next, "::/0");
         BUG_ON(dd->family == 0);
 
-        SCFree(ipdup);
-
         SCLogDebug("address is \'any\'");
         return 0;
     }
-
-    /* we dup so we can put a nul-termination in it later */
-    ip = ipdup;
 
     /* handle the negation case */
     if (ip[0] == '!') {
@@ -279,14 +272,10 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, char *str)
 
     }
 
-    SCFree(ipdup);
-
     BUG_ON(dd->family == 0);
     return 0;
 
 error:
-    if (ipdup)
-        SCFree(ipdup);
     return -1;
 }
 
