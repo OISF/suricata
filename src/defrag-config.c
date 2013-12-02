@@ -20,29 +20,6 @@
  *
  * \author Giuseppe Longo <giuseppelng@gmail.com>
  *
- * Example config:
- * defrag:
- *    memcap: 32mb
- *    hash-size: 65536
- *    trackers: 65535
- *    max-frags: 65535
- *    prealloc: yes
- *
- *    default-config:
- *       timeout: 40
- *
- *    host-config:
- *
- *      - dmz:
- *          timeout: 30
- *          address: [192.168.1.0/24, 127.0.0.0/8, 1.1.1.0/24, 2.2.2.0/24, "1.1.1.1", "2.2.2.2", "::1"]
- *
- *      - lan:
- *          timeout: 45
- *          address:
- *            - 192.168.0.0/24
- *            - 192.168.10.0/24
- *            - 172.16.14.0/24
  */
 
 #include "suricata-common.h"
