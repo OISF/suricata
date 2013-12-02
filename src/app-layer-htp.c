@@ -2112,6 +2112,8 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     cfg_prec->request_inspect_window = HTP_CONFIG_DEFAULT_REQUEST_INSPECT_WINDOW;
     cfg_prec->response_inspect_min_size = HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_MIN_SIZE;
     cfg_prec->response_inspect_window = HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_WINDOW;
+    cfg_prec->randomize = HTP_CONFIG_DEFAULT_RANDOMIZE;
+    cfg_prec->randomize_range = HTP_CONFIG_DEFAULT_RANDOMIZE_RANGE;
 
     htp_config_register_request_header_data(cfg_prec->cfg, HTPCallbackRequestHeaderData);
     htp_config_register_request_trailer_data(cfg_prec->cfg, HTPCallbackRequestHeaderData);
@@ -2150,6 +2152,25 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
  * the query and path. */
 static void HTPConfigSetDefaultsPhase2(HTPCfgRec *cfg_prec)
 {
+    /* randomize inspection size if needed */
+    if (cfg_prec->randomize) {
+        int rdrange = cfg_prec->randomize_range;
+
+        cfg_prec->request_inspect_min_size +=
+            (int) (cfg_prec->request_inspect_min_size *
+                   (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+        cfg_prec->request_inspect_window +=
+            (int) (cfg_prec->request_inspect_window *
+                   (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+
+        cfg_prec->response_inspect_min_size +=
+            (int) (cfg_prec->response_inspect_min_size *
+                   (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+        cfg_prec->response_inspect_window +=
+            (int) (cfg_prec->response_inspect_window *
+                   (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+    }
+
     htp_config_register_request_line(cfg_prec->cfg, HTPCallbackRequestLine);
 
     return;
@@ -2355,6 +2376,19 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             htp_config_set_field_limits(cfg_prec->cfg,
                     (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT,
                     (size_t)limit);
+        } else if (strcasecmp("randomize-inspection-sizes", p->name) == 0) {
+            cfg_prec->randomize = ConfValIsTrue(p->val);
+        } else if (strcasecmp("randomize-inspection-range", p->name) == 0) {
+            uint32_t range = atoi(p->val);
+            if (range > 100) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Invalid value for randomize"
+                           " inspection range setting from conf file - %s."
+                           " It should be inferior to 100."
+                           " Killing engine",
+                           p->val);
+                exit(EXIT_FAILURE);
+            }
+            cfg_prec->randomize_range = range;
         } else {
             SCLogWarning(SC_ERR_UNKNOWN_VALUE, "LIBHTP Ignoring unknown "
                          "default config: %s", p->name);
