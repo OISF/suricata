@@ -1675,6 +1675,14 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     seg->payload_len = size;
     seg->seq = TCP_GET_SEQ(p);
 
+    /* proto detection skipped, but now we do get data. Set event. */
+    if (stream->seg_list == NULL &&
+        stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED) {
+
+        AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
+                APPLAYER_PROTO_DETECTION_SKIPPED);
+    }
+
     if (StreamTcpReassembleInsertSegment(tv, ra_ctx, stream, seg, p) != 0) {
         SCLogDebug("StreamTcpReassembleInsertSegment failed");
         SCReturnInt(-1);

@@ -164,6 +164,8 @@ enum
 #define STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP    0x40
 /** App proto detection completed */
 #define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED 0x80
+/** App proto detection skipped */
+#define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED 0x100
 
 /*
  * Per SEGMENT flags

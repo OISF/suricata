@@ -413,12 +413,14 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                            StreamTcpGetStreamSize(&ssn->client) > alp_proto_ctx.toserver.async_max) {
                     SCLogDebug("%u bytes toserver and no proto, no data to "
                                "client, giving up", alp_proto_ctx.toserver.async_max);
+                    ssn->server.flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED;
                     flow_done = 1;
                 } else if (FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) &&
                            StreamTcpGetStreamSize(&ssn->client) == 0 &&
                            StreamTcpGetStreamSize(&ssn->server) > alp_proto_ctx.toclient.async_max) {
                     SCLogDebug("%u bytes toclient and no proto, no data to "
                                "server, giving up", alp_proto_ctx.toclient.async_max);
+                    ssn->client.flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED;
                     flow_done = 1;
                 }
 
