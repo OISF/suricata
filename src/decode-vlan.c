@@ -63,7 +63,7 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     SCPerfCounterIncr(dtv->counter_vlan, tv->sc_perf_pca);
 
     if(len < VLAN_HEADER_LEN)    {
-        ENGINE_SET_EVENT(p,VLAN_HEADER_TOO_SMALL);
+        ENGINE_SET_INVALID_EVENT(p, VLAN_HEADER_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
     if (p->vlan_idx >= 2) {
@@ -115,7 +115,7 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
             break;
         default:
             SCLogDebug("unknown VLAN type: %" PRIx32 "", proto);
-            ENGINE_SET_EVENT(p,VLAN_UNKNOWN_TYPE);
+            ENGINE_SET_INVALID_EVENT(p, VLAN_UNKNOWN_TYPE);
             return TM_ECODE_OK;
     }
 

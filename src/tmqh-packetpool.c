@@ -52,6 +52,7 @@
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-profiling.h"
+#include "util-device.h"
 
 static RingBuffer16 *ringbuffer = NULL;
 /**
