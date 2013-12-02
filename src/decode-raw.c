@@ -49,7 +49,7 @@ int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
 
     /* If it is ipv4 or ipv6 it should at least be the size of ipv4 */
     if (unlikely(len < IPV4_HEADER_LEN)) {
-        ENGINE_SET_EVENT(p,IPV4_PKT_TOO_SMALL);
+        ENGINE_SET_INVALID_EVENT(p, IPV4_PKT_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
 

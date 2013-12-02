@@ -1220,6 +1220,8 @@ TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
         SCLogDebug("packet unsupported by NFQ, first byte: %02x", *GET_PKT_DATA(p));
     }
 
+    PacketDecodeFinalize(tv, dtv, p);
+
     return TM_ECODE_OK;
 }
 
