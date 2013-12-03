@@ -120,7 +120,7 @@ enum
 /** Server supports wscale (even though it can be 0) */
 #define STREAMTCP_FLAG_SERVER_WSCALE                0x0010
 
-/** vacancy at 0x0020 */
+#define STREAMTCP_FLAG_DISABLE_RAW                  0x0020
 
 /** Flag to indicate that the session is handling asynchronous stream.*/
 #define STREAMTCP_FLAG_ASYNC                        0x0040
