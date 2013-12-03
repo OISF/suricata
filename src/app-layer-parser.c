@@ -1220,6 +1220,23 @@ error:
     SCReturnInt(-1);
 }
 
+/**
+ *  \brief Get 'active' tx id, meaning the lowest id that still need work.
+ *
+ *  \retval id tx id
+ */
+uint64_t AppLayerTransactionGetActive(Flow *f, uint8_t flags) {
+    AppLayerProto *p = &al_proto_table[f->alproto];
+    uint64_t log_id = ((AppLayerParserStateStore *)f->alparser)->log_id;
+    uint64_t inspect_id = ((AppLayerParserStateStore *)f->alparser)->
+        inspect_id[flags & STREAM_TOSERVER ? 0 : 1];
+    if (p->logger == TRUE) {
+        return (log_id < inspect_id) ? log_id : inspect_id;
+    } else {
+        return inspect_id;
+    }
+}
+
 void AppLayerTransactionUpdateLogId(Flow *f)
 {
     DEBUG_ASSERT_FLOW_LOCKED(f);
