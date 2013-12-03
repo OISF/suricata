@@ -834,7 +834,7 @@ ipfw:
 
 # Set the default rule path here to search for the files.
 # if not set, it will look at the current working dir
-default-rule-path: @e_sysconfdir@rules
+default-rule-path: ${SURICATA_RULE_PATH:-@e_sysconfdir@rules}
 rule-files:
  - botcc.rules
  - ciarmy.rules
