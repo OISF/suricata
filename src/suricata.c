@@ -493,9 +493,9 @@ void usage(const char *progname)
 #ifndef OS_WIN32
     printf("\t-D                                   : run as daemon\n");
 #else
-	printf("\t--service-install                    : install as service\n");
-	printf("\t--service-remove                     : remove service\n");
-	printf("\t--service-change-params              : change service startup parameters\n");
+    printf("\t--service-install                    : install as service\n");
+    printf("\t--service-remove                     : remove service\n");
+    printf("\t--service-change-params              : change service startup parameters\n");
 #endif /* OS_WIN32 */
     printf("\t-k [all|none]                        : force checksum check (all) or disabled it (none)\n");
     printf("\t-V                                   : display Suricata version\n");
@@ -548,10 +548,10 @@ void usage(const char *progname)
     printf("\t--napatech                           : run Napatech Streams using the API\n");
 #endif
 #ifdef BUILD_UNIX_SOCKET
-    printf("\t--unix-socket[=<file>]       : use unix socket to control suricata work\n");
+    printf("\t--unix-socket[=<file>]               : use unix socket to control suricata work\n");
 #endif
 #ifdef HAVE_MPIPE
-    printf("\t--mpipe                      : run with tilegx mpipe interface(s)\n");
+    printf("\t--mpipe                              : run with tilegx mpipe interface(s)\n");
 #endif
     printf("\n");
     printf("\nTo run the engine with default configuration on "
