@@ -512,7 +512,6 @@ static inline void FlowForceReassemblyForHash(void)
     TcpSession *ssn;
     int client_ok;
     int server_ok;
-    int tcp_needs_inspection;
 
     uint32_t idx = 0;
 
@@ -584,16 +583,10 @@ static inline void FlowForceReassemblyForHash(void)
                 }
             }
 
-            if (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED)
-                tcp_needs_inspection = 1;
-            else
-                tcp_needs_inspection = 0;
-
             FLOWLOCK_UNLOCK(f);
 
             /* insert a pseudo packet in the toserver direction */
-            if (client_ok || tcp_needs_inspection)
-            {
+            if (client_ok) {
                 FLOWLOCK_WRLOCK(f);
                 Packet *p = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
                 FLOWLOCK_UNLOCK(f);
@@ -624,9 +617,8 @@ static inline void FlowForceReassemblyForHash(void)
                         TmqhOutputPacketpool(NULL, p);
                     }
                 }
-            } /* if (ssn->client.seg_list != NULL) */
-            if (server_ok || tcp_needs_inspection)
-            {
+            }
+            if (server_ok) {
                 FLOWLOCK_WRLOCK(f);
                 Packet *p = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
                 FLOWLOCK_UNLOCK(f);
@@ -657,11 +649,11 @@ static inline void FlowForceReassemblyForHash(void)
                         TmqhOutputPacketpool(NULL, p);
                     }
                 }
-            } /* if (ssn->server.seg_list != NULL) */
+            }
 
             /* next flow in the queue */
             f = f->hnext;
-        } /* while (f != NULL) */
+        }
         FBLOCK_UNLOCK(fb);
     }
 
