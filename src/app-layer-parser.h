@@ -344,6 +344,7 @@ void AppLayerTransactionUpdateInspectId(Flow *f, uint8_t direction);
  */
 uint64_t AppLayerTransactionGetInspectId(Flow *f, uint8_t flags);
 
+uint64_t AppLayerTransactionGetActive(Flow *f, uint8_t flags);
 
 
 void AppLayerSetEOF(Flow *);
