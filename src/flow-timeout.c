@@ -308,15 +308,18 @@ int FlowForceReassemblyNeedReassmbly(Flow *f, int *server, int *client) {
 
     /* if state is not fully closed we assume that we haven't fully
      * inspected the app layer state yet */
-    if (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED) {
-        if (*client != 1)
-            *client = 2;
-        if (*server != 1)
-            *server = 2;
+    if (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED)
+    {
+        if (*client != STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY)
+            *client = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
+
+        if (*server != STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY)
+            *server = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
     }
 
     /* nothing to do */
-    if (*client == 0 && *server == 0) {
+    if (*client == STREAM_HAS_UNPROCESSED_SEGMENTS_NONE &&
+        *server == STREAM_HAS_UNPROCESSED_SEGMENTS_NONE) {
         return 0;
     }
 
@@ -360,14 +363,14 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
      * toclient which is now dummy since all we need it for is detection */
 
     /* insert a pseudo packet in the toserver direction */
-    if (client == 1) {
+    if (client == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
         p1 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 0);
         if (p1 == NULL) {
             return 1;
         }
         PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
 
-        if (server == 1) {
+        if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
             p2 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
             if (p2 == NULL) {
                 FlowDeReference(&p1->flow);
@@ -395,8 +398,8 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
             PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
         }
 
-    } else if (client == 2) {
-        if (server == 1) {
+    } else if (client == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
+        if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
             p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
             if (p1 == NULL) {
                 return 1;
@@ -417,7 +420,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
             }
             PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
 
-            if (server == 2) {
+            if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
                 p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
                 if (p2 == NULL) {
                     FlowDeReference(&p1->flow);
@@ -429,7 +432,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
         }
 
     } else {
-        if (server == 1) {
+        if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
             p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
             if (p1 == NULL) {
                 return 1;
@@ -443,7 +446,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                 return 1;
             }
             PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
-        } else if (server == 2) {
+        } else if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
             p1 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p1 == NULL) {
                 return 1;
@@ -526,7 +529,7 @@ static inline void FlowForceReassemblyForHash(void)
             }
 
             /* ah ah!  We have some unattended toserver segments */
-            if ((client_ok = StreamNeedsReassembly(ssn, 0)) == 1) {
+            if ((client_ok = StreamNeedsReassembly(ssn, 0)) == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
                 StreamTcpThread *stt = SC_ATOMIC_GET(stream_pseudo_pkt_stream_tm_slot->slot_data);
 
                 ssn->client.last_ack = (ssn->client.seg_list_tail->seq +
@@ -544,7 +547,7 @@ static inline void FlowForceReassemblyForHash(void)
                 }
             }
             /* oh oh!  We have some unattended toclient segments */
-            if ((server_ok = StreamNeedsReassembly(ssn, 1)) == 1) {
+            if ((server_ok = StreamNeedsReassembly(ssn, 1)) == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
                 StreamTcpThread *stt = SC_ATOMIC_GET(stream_pseudo_pkt_stream_tm_slot->slot_data);
 
                 ssn->server.last_ack = (ssn->server.seg_list_tail->seq +
