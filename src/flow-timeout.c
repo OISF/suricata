@@ -280,7 +280,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketGet(int direction,
 }
 
 /**
- *  \brief Check if a flow needs forced reassembly
+ *  \brief Check if a flow needs forced reassembly, or any other processing
  *
  *  \param f *LOCKED* flow
  *  \param server ptr to int that should be set to 1 or 2 if we return 1
@@ -289,7 +289,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketGet(int direction,
  *  \retval 0 no
  *  \retval 1 yes
  */
-int FlowForceReassemblyNeedReassmbly(Flow *f, int *server, int *client) {
+int FlowForceReassemblyNeedReassembly(Flow *f, int *server, int *client) {
     TcpSession *ssn;
 
     if (f == NULL) {
@@ -545,7 +545,7 @@ static inline void FlowForceReassemblyForHash(void)
                 continue;
             }
 
-            (void)FlowForceReassemblyNeedReassmbly(f, &server_ok, &client_ok);
+            (void)FlowForceReassemblyNeedReassembly(f, &server_ok, &client_ok);
 
             /* ah ah!  We have some unattended toserver segments */
             if (client_ok == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
