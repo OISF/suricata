@@ -42,6 +42,9 @@
 #include "util-debug.h"
 #include "util-path.h"
 
+/** Maximum size of a complete domain name. */
+#define NODE_NAME_MAX 1024
+
 static ConfNode *root = NULL;
 static ConfNode *root_backup = NULL;
 
@@ -63,17 +66,17 @@ ConfGetNodeOrCreate(char *name, int final)
 {
     ConfNode *parent = root;
     ConfNode *node = NULL;
-    char *tmpname;
+    char node_name[NODE_NAME_MAX];
     char *key;
     char *next;
 
-    tmpname = SCStrdup(name);
-    if (unlikely(tmpname == NULL)) {
-        SCLogWarning(SC_ERR_MEM_ALLOC,
-            "Failed to allocate memory for configuration.");
-        goto end;
+    if (strlcpy(node_name, name, sizeof(node_name)) >= sizeof(node_name)) {
+        SCLogError(SC_ERR_CONF_NAME_TOO_LONG,
+            "Configuration name too long: %s", name);
+        return NULL;
     }
-    key = tmpname;
+
+    key = node_name;
 
     do {
         if ((next = strchr(key, '.')) != NULL)
@@ -95,9 +98,6 @@ ConfGetNodeOrCreate(char *name, int final)
     } while (next != NULL);
 
 end:
-    if (tmpname != NULL)
-        SCFree(tmpname);
-
     return node;
 }
 
@@ -174,26 +174,23 @@ ConfNode *
 ConfGetNode(char *name)
 {
     ConfNode *node = root;
-    char *tmpname;
+    char node_name[NODE_NAME_MAX];
     char *key;
     char *next;
 
-    tmpname = SCStrdup(name);
-    if (unlikely(tmpname == NULL)) {
-        SCLogWarning(SC_ERR_MEM_ALLOC,
-            "Failed to allocate temp. memory while getting config node.");
+    if (strlcpy(node_name, name, sizeof(node_name)) >= sizeof(node_name)) {
+        SCLogError(SC_ERR_CONF_NAME_TOO_LONG,
+            "Configuration name too long: %s", name);
         return NULL;
     }
-    key = tmpname;
 
+    key = node_name;
     do {
         if ((next = strchr(key, '.')) != NULL)
             *next++ = '\0';
         node = ConfNodeLookupChild(node, key);
         key = next;
     } while (next != NULL && node != NULL);
-
-    SCFree(tmpname);
 
     return node;
 }

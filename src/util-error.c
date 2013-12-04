@@ -281,6 +281,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_THRESHOLD_SETUP);
         CASE_CODE (SC_ERR_DNS_CONFIG);
         CASE_CODE (SC_ERR_CONF_YAML_ERROR);
+        CASE_CODE (SC_ERR_CONF_NAME_TOO_LONG);
     }
 
     return "UNKNOWN_ERROR";

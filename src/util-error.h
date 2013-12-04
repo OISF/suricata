@@ -270,6 +270,7 @@ typedef enum {
     SC_ERR_THRESHOLD_SETUP,
     SC_ERR_DNS_CONFIG,
     SC_ERR_CONF_YAML_ERROR,
+    SC_ERR_CONF_NAME_TOO_LONG,
 } SCError;
 
 const char *SCErrorToString(SCError);
