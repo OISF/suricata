@@ -250,18 +250,18 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
         SCReturnPtr(NULL, "Packet");
     }
 
-    /* set the root ptr to the lowest layer */
-    if (parent->root != NULL)
-        p->root = parent->root;
-    else
-        p->root = parent;
-
     /* copy packet and set lenght, proto */
     PacketCopyData(p, pkt, len);
     p->recursion_level = parent->recursion_level + 1;
     p->ts.tv_sec = parent->ts.tv_sec;
     p->ts.tv_usec = parent->ts.tv_usec;
     p->datalink = DLT_RAW;
+
+    /* set the root ptr to the lowest layer */
+    if (parent->root != NULL)
+        p->root = parent->root;
+    else
+        p->root = parent;
 
     /* tell new packet it's part of a tunnel */
     SET_TUNNEL_PKT(p);
@@ -270,9 +270,13 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
                        GET_PKT_LEN(p), pq, proto);
 
     if (unlikely(ret != TM_ECODE_OK)) {
+        /* Not a tunnel packet, just a pseudo packet */
+        p->root = NULL;
+        UNSET_TUNNEL_PKT(p);
         TmqhOutputPacketpool(tv, p);
         SCReturnPtr(NULL, "Packet");
     }
+
 
     /* tell parent packet it's part of a tunnel */
     SET_TUNNEL_PKT(parent);

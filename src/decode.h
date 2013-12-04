@@ -803,6 +803,7 @@ typedef struct DecodeThreadVars_
 
 #define IS_TUNNEL_PKT(p)            (((p)->flags & PKT_TUNNEL))
 #define SET_TUNNEL_PKT(p)           ((p)->flags |= PKT_TUNNEL)
+#define UNSET_TUNNEL_PKT(p)         ((p)->flags &= ~PKT_TUNNEL)
 #define IS_TUNNEL_ROOT_PKT(p)       (IS_TUNNEL_PKT(p) && (p)->root == NULL)
 
 #define IS_TUNNEL_PKT_VERDICTED(p)  (((p)->flags & PKT_TUNNEL_VERDICTED))
