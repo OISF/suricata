@@ -1852,10 +1852,10 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     switch (suri->checksum_validation) {
         case 0:
-            ConfSet("stream.checksum-validation", "0", 0);
+            ConfSet("stream.checksum-validation", "0");
             break;
         case 1:
-            ConfSet("stream.checksum-validation", "1", 1);
+            ConfSet("stream.checksum-validation", "1");
             break;
     }
 
