@@ -87,6 +87,8 @@
 #include "log-file.h"
 #include "log-filestore.h"
 
+#include "output-json.h"
+
 #include "stream-tcp.h"
 
 #include "source-nfq.h"
@@ -791,6 +793,8 @@ void RegisterAllModules()
     TmModuleAlertPcapInfoRegister();
     /* drop log */
     TmModuleLogDropLogRegister();
+    /* json log */
+    TmModuleOutputJsonRegister();
     /* http log */
     TmModuleLogHttpLogRegister();
     TmModuleLogHttpLogIPv4Register();

@@ -572,7 +572,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
         fflush(hlog->file_ctx->fp);
         SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 
-        AppLayerTransactionUpdateLogId(p->flow);
+        AppLayerTransactionUpdateLogId(ALPROTO_HTTP, p->flow);
     }
 
 end:
