@@ -321,6 +321,11 @@ int DetectLuajitMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMat
         SCLogDebug("no stack");
     }
 
+    /* clear the stack */
+    while (lua_gettop(tluajit->luastate) > 0) {
+        lua_pop(tluajit->luastate, 1);
+    }
+
     if (luajit->negated) {
         if (ret == 1)
             ret = 0;
@@ -456,6 +461,9 @@ static int DetectLuajitMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
             /* pop the table */
             lua_pop(tluajit->luastate, 1);
         }
+    }
+    while (lua_gettop(tluajit->luastate) > 0) {
+        lua_pop(tluajit->luastate, 1);
     }
 
     if (luajit->negated) {
