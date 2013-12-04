@@ -53,12 +53,13 @@ static ConfNode *root_backup = NULL;
  * nodes is usually part of application initialization.
  *
  * \param name The name of the configuration node to get.
+ * \param final Flag to set created nodes as final or not.
  *
  * \retval The existing configuration node if it exists, or a newly
  *   created node for the provided name.  On error, NULL will be returned.
  */
 static ConfNode *
-ConfGetNodeOrCreate(char *name)
+ConfGetNodeOrCreate(char *name, int final)
 {
     ConfNode *parent = root;
     ConfNode *node = NULL;
@@ -86,6 +87,7 @@ ConfGetNodeOrCreate(char *name)
             }
             node->name = SCStrdup(key);
             node->parent = parent;
+            node->final = final;
             TAILQ_INSERT_TAIL(&parent->head, node, next);
         }
         key = next;
@@ -220,7 +222,7 @@ ConfGetRootNode(void)
 int
 ConfSet(char *name, char *val)
 {
-    ConfNode *node = ConfGetNodeOrCreate(name);
+    ConfNode *node = ConfGetNodeOrCreate(name, 0);
     if (node == NULL || node->final) {
         return 0;
     }
@@ -247,7 +249,7 @@ ConfSet(char *name, char *val)
 int
 ConfSetFinal(char *name, char *val)
 {
-    ConfNode *node = ConfGetNodeOrCreate(name);
+    ConfNode *node = ConfGetNodeOrCreate(name, 1);
     if (node == NULL) {
         return 0;
     }
@@ -1253,7 +1255,7 @@ ConfGetNodeOrCreateTest(void)
 
     /* Get a node that should not exist, give it a value, re-get it
      * and make sure the second time it returns the existing node. */
-    node = ConfGetNodeOrCreate("node0");
+    node = ConfGetNodeOrCreate("node0", 0);
     if (node == NULL) {
         fprintf(stderr, "returned null\n");
         goto end;
@@ -1267,7 +1269,7 @@ ConfGetNodeOrCreateTest(void)
         goto end;
     }
     node->val = SCStrdup("node0");
-    node = ConfGetNodeOrCreate("node0");
+    node = ConfGetNodeOrCreate("node0", 0);
     if (node == NULL) {
         fprintf(stderr, "returned null\n");
         goto end;
@@ -1282,7 +1284,7 @@ ConfGetNodeOrCreateTest(void)
     }
 
     /* Do the same, but for something deeply nested. */
-    node = ConfGetNodeOrCreate("parent.child.grandchild");
+    node = ConfGetNodeOrCreate("parent.child.grandchild", 0);
     if (node == NULL) {
         fprintf(stderr, "returned null\n");
         goto end;
@@ -1296,7 +1298,7 @@ ConfGetNodeOrCreateTest(void)
         goto end;
     }
     node->val = SCStrdup("parent.child.grandchild");
-    node = ConfGetNodeOrCreate("parent.child.grandchild");
+    node = ConfGetNodeOrCreate("parent.child.grandchild", 0);
     if (node == NULL) {
         fprintf(stderr, "returned null\n");
         goto end;
@@ -1311,8 +1313,8 @@ ConfGetNodeOrCreateTest(void)
     }
 
     /* Test that 2 child nodes have the same root. */
-    ConfNode *child1 = ConfGetNodeOrCreate("parent.kids.child1");
-    ConfNode *child2 = ConfGetNodeOrCreate("parent.kids.child2");
+    ConfNode *child1 = ConfGetNodeOrCreate("parent.kids.child1", 0);
+    ConfNode *child2 = ConfGetNodeOrCreate("parent.kids.child2", 0);
     if (child1 == NULL || child2 == NULL) {
         fprintf(stderr, "returned null\n");
         goto end;
