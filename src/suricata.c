@@ -389,7 +389,7 @@ static int SetBpfString(int optind, char *argv[]) {
     }
 
     if(strlen(bpf_filter) > 0) {
-        if (ConfSet("bpf-filter", bpf_filter, 0) != 1) {
+        if (ConfSetFinal("bpf-filter", bpf_filter) != 1) {
             SCLogError(SC_ERR_FATAL, "Failed to set bpf filter.");
             return TM_ECODE_FAILED;
         }
@@ -459,7 +459,7 @@ static void SetBpfStringFromFile(char *filename) {
         while((bpf_comment_tmp = strchr(bpf_filter, '\n')) != NULL) {
             *bpf_comment_tmp = ' ';
         }
-        if(ConfSet("bpf-filter", bpf_filter, 0) != 1) {
+        if(ConfSetFinal("bpf-filter", bpf_filter) != 1) {
             SCLogError(SC_ERR_FOPEN, "ERROR: Failed to set bpf filter!");
             SCFree(bpf_filter);
             exit(EXIT_FAILURE);
@@ -873,7 +873,7 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
 #ifdef HAVE_MPIPE
     } else if (run_mode == RUNMODE_TILERA_MPIPE) {
         if (strlen(pcap_dev)) {
-            if (ConfSet("mpipe.single_mpipe_dev", pcap_dev, 0) != 1) {
+            if (ConfSetFinal("mpipe.single_mpipe_dev", pcap_dev) != 1) {
                 fprintf(stderr, "ERROR: Failed to set mpipe.single_mpipe_dev\n");
                 SCReturnInt(TM_ECODE_FAILED);
             }
@@ -889,7 +889,7 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
         /* FIXME add backward compat support */
         /* iface has been set on command line */
         if (strlen(pcap_dev)) {
-            if (ConfSet("pfring.live-interface", pcap_dev, 0) != 1) {
+            if (ConfSetFinal("pfring.live-interface", pcap_dev) != 1) {
                 SCLogError(SC_ERR_INITIALIZATION, "Failed to set pfring.live-interface");
                 SCReturnInt(TM_ECODE_FAILED);
             }
@@ -900,7 +900,7 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
     } else if (run_mode == RUNMODE_AFP_DEV) {
         /* iface has been set on command line */
         if (strlen(pcap_dev)) {
-            if (ConfSet("af-packet.live-interface", pcap_dev, 0) != 1) {
+            if (ConfSetFinal("af-packet.live-interface", pcap_dev) != 1) {
                 SCLogError(SC_ERR_INITIALIZATION, "Failed to set af-packet.live-interface");
                 SCReturnInt(TM_ECODE_FAILED);
             }
@@ -1073,7 +1073,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             else if(strcmp((long_opts[option_index]).name , "pfring-cluster-id") == 0){
 #ifdef HAVE_PFRING
-                if (ConfSet("pfring.cluster-id", optarg, 0) != 1) {
+                if (ConfSetFinal("pfring.cluster-id", optarg) != 1) {
                     fprintf(stderr, "ERROR: Failed to set pfring.cluster-id.\n");
                     return TM_ECODE_FAILED;
                 }
@@ -1085,7 +1085,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             else if(strcmp((long_opts[option_index]).name , "pfring-cluster-type") == 0){
 #ifdef HAVE_PFRING
-                if (ConfSet("pfring.cluster-type", optarg, 0) != 1) {
+                if (ConfSetFinal("pfring.cluster-type", optarg) != 1) {
                     fprintf(stderr, "ERROR: Failed to set pfring.cluster-type.\n");
                     return TM_ECODE_FAILED;
                 }
@@ -1154,7 +1154,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     return TM_ECODE_FAILED;
                 }
             } else if(strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
-                if (ConfSet("engine.init-failure-fatal", "1", 0) != 1) {
+                if (ConfSetFinal("engine.init-failure-fatal", "1") != 1) {
                     fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
                     return TM_ECODE_FAILED;
                 }
@@ -1163,7 +1163,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
                     suri->run_mode = RUNMODE_UNIX_SOCKET;
                     if (optarg) {
-                        if (ConfSet("unix-command.filename", optarg, 0) != 1) {
+                        if (ConfSetFinal("unix-command.filename", optarg) != 1) {
                             fprintf(stderr, "ERROR: Failed to set unix-command.filename.\n");
                             return TM_ECODE_FAILED;
                         }
@@ -1226,7 +1226,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             else if(strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
 #ifdef UNITTESTS
-                if (ConfSet("unittests.failure-fatal", "1", 0) != 1) {
+                if (ConfSetFinal("unittests.failure-fatal", "1") != 1) {
                     fprintf(stderr, "ERROR: Failed to set unittests failure-fatal.\n");
                     return TM_ECODE_FAILED;
                 }
@@ -1257,7 +1257,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
                 suri->run_mode = RUNMODE_ERF_FILE;
-                if (ConfSet("erf-file.file", optarg, 0) != 1) {
+                if (ConfSetFinal("erf-file.file", optarg) != 1) {
                     fprintf(stderr, "ERROR: Failed to set erf-file.file\n");
                     return TM_ECODE_FAILED;
                 }
@@ -1291,7 +1291,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 			}
             else if(strcmp((long_opts[option_index]).name, "pcap-buffer-size") == 0) {
 #ifdef HAVE_PCAP_SET_BUFF
-                if (ConfSet("pcap.buffer-size", optarg, 0) != 1) {
+                if (ConfSetFinal("pcap.buffer-size", optarg) != 1) {
                     fprintf(stderr, "ERROR: Failed to set pcap-buffer-size.\n");
                     return TM_ECODE_FAILED;
                 }
@@ -1330,7 +1330,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         case 'T':
             SCLogInfo("Running suricata under test mode");
             conf_test = 1;
-            if (ConfSet("engine.init-failure-fatal", "1", 0) != 1) {
+            if (ConfSetFinal("engine.init-failure-fatal", "1") != 1) {
                 fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
                 return TM_ECODE_FAILED;
             }
@@ -1455,7 +1455,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 usage(argv[0]);
                 return TM_ECODE_FAILED;
             }
-            if (ConfSet("pcap-file.file", optarg, 0) != 1) {
+            if (ConfSetFinal("pcap-file.file", optarg) != 1) {
                 fprintf(stderr, "ERROR: Failed to set pcap-file.file\n");
                 return TM_ECODE_FAILED;
             }
