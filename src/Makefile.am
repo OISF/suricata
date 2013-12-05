@@ -215,6 +215,7 @@ log-pcap.c log-pcap.h \
 log-tlslog.c log-tlslog.h \
 output.c output.h \
 output-packet.c output-packet.h \
+output-tx.c output-tx.h \
 packet-queue.c packet-queue.h \
 pkt-var.c pkt-var.h \
 reputation.c reputation.h \

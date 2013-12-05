@@ -424,6 +424,7 @@ void RunModeInitializeOutputs(void)
     ConfNode *output, *output_config;
     TmModule *tm_module;
     TmModule *pkt_logger_module = NULL;
+    TmModule *tx_logger_module = NULL;
     const char *enabled;
 
     TAILQ_FOREACH(output, &outputs->head, next) {
@@ -507,7 +508,28 @@ void RunModeInitializeOutputs(void)
                 TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
                 SCLogDebug("__packet_logger__ added");
             }
+        } else if (module->TxLogFunc) {
+            SCLogDebug("%s is a tx logger", module->name);
+            OutputRegisterTxLogger(module->name, module->alproto,
+                    module->TxLogFunc, output_ctx);
 
+            /* need one instance of the tx logger module */
+            if (tx_logger_module == NULL) {
+                tx_logger_module = TmModuleGetByName("__tx_logger__");
+                if (tx_logger_module == NULL) {
+                    SCLogError(SC_ERR_INVALID_ARGUMENT,
+                            "TmModuleGetByName for __tx_logger__ failed");
+                    exit(EXIT_FAILURE);
+                }
+
+                RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
+                if (unlikely(runmode_output == NULL))
+                    return;
+                runmode_output->tm_module = tx_logger_module;
+                runmode_output->output_ctx = NULL;
+                TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
+                SCLogDebug("__tx_logger__ added");
+            }
         } else {
             SCLogDebug("%s is a regular logger", module->name);
 
