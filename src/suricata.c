@@ -786,8 +786,6 @@ void RegisterAllModules()
     TmModuleLogDropLogRegister();
     /* http log */
     TmModuleLogHttpLogRegister();
-    TmModuleLogHttpLogIPv4Register();
-    TmModuleLogHttpLogIPv6Register();
     TmModuleLogTlsLogRegister();
     TmModuleLogTlsLogIPv4Register();
     TmModuleLogTlsLogIPv6Register();
