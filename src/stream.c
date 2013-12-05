@@ -249,7 +249,7 @@ void StreamMsgReturnListToPool(void *list) {
  *
  * \return -1 in case of error, the number of segment in case of success
  */
-int StreamSegmentForEach(Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data)
+int StreamSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data)
 {
     switch(p->proto) {
         case IPPROTO_TCP:
