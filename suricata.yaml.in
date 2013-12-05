@@ -886,7 +886,6 @@ rule-files:
  - emerging-tftp.rules
  - emerging-trojan.rules
  - emerging-user_agents.rules
- - emerging-virus.rules
  - emerging-voip.rules
  - emerging-web_client.rules
  - emerging-web_server.rules
