@@ -40,6 +40,7 @@ endif
 	@test -e "$(e_sysconfrulesdir)stream-events.rules" || install -m 600 "$(top_srcdir)/rules/stream-events.rules" "$(e_sysconfrulesdir)"
 	@test -e "$(e_sysconfrulesdir)smtp-events.rules" || install -m 600 "$(top_srcdir)/rules/smtp-events.rules" "$(e_sysconfrulesdir)"
 	@test -e "$(e_sysconfrulesdir)http-events.rules" || install -m 600 "$(top_srcdir)/rules/http-events.rules" "$(e_sysconfrulesdir)"
+	@test -e "$(e_sysconfrulesdir)dns-events.rules" || install -m 600 "$(top_srcdir)/rules/dns-events.rules" "$(e_sysconfrulesdir)"
 	@echo ""
 	@echo "You can now start suricata by running as root something like '$(bindir)/suricata -c $(e_sysconfdir)/suricata.yaml -i eth0'."
 	@echo ""
