@@ -37,8 +37,8 @@ typedef struct OutputModule_ {
     char *conf_name;
     OutputCtx *(*InitFunc)(ConfNode *);
 
-    PacketLogger LogFunc;
-    PacketLogCondition ConditionFunc;
+    PacketLogger PacketLogFunc;
+    PacketLogCondition PacketConditionFunc;
 
     TAILQ_ENTRY(OutputModule_) entries;
 } OutputModule;

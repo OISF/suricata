@@ -466,10 +466,10 @@ void RunModeInitializeOutputs(void)
         if (strcmp(tmm_modules[TMM_ALERTDEBUGLOG].name, tm_module->name) == 0)
             debuglog_enabled = 1;
 
-        if (module->LogFunc) {
+        if (module->PacketLogFunc) {
             SCLogInfo("%s is a packet logger", module->name);
-            OutputRegisterPacketLogger(module->name, module->LogFunc,
-                    module->ConditionFunc, output_ctx);
+            OutputRegisterPacketLogger(module->name, module->PacketLogFunc,
+                    module->PacketConditionFunc, output_ctx);
 
             /* need one instance of the packet logger module */
             if (pkt_logger_module == NULL) {

@@ -71,9 +71,9 @@ OutputRegisterModule(char *name, char *conf_name,
 void
 OutputRegisterPacketModule(char *name, char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *),
-    PacketLogger LogFunc, PacketLogCondition ConditionFunc)
+    PacketLogger PacketLogFunc, PacketLogCondition PacketConditionFunc)
 {
-    if (unlikely(LogFunc == NULL || ConditionFunc == NULL)) {
+    if (unlikely(PacketLogFunc == NULL || PacketConditionFunc == NULL)) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in OutputRegisterModule. Exiting...");
         exit(EXIT_FAILURE);
     }
@@ -87,8 +87,8 @@ OutputRegisterPacketModule(char *name, char *conf_name,
     module->name = SCStrdup(name);
     module->conf_name = SCStrdup(conf_name);
     module->InitFunc = InitFunc;
-    module->LogFunc = LogFunc;
-    module->ConditionFunc = ConditionFunc;
+    module->PacketLogFunc = PacketLogFunc;
+    module->PacketConditionFunc = PacketConditionFunc;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogInfo("Packet logger \"%s\" registered.", name);
