@@ -80,6 +80,7 @@ typedef enum {
     TMM_RECEIVENAPATECH,
     TMM_DECODENAPATECH,
     TMM_PACKETLOGGER,
+    TMM_TXLOGGER,
     TMM_SIZE,
 } TmmId;
 
