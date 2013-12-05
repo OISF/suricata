@@ -30,15 +30,25 @@
 #define DEFAULT_LOG_MODE_APPEND     "yes"
 #define DEFAULT_LOG_FILETYPE        "regular"
 
+#include "output-packet.h"
+
 typedef struct OutputModule_ {
     char *name;
     char *conf_name;
     OutputCtx *(*InitFunc)(ConfNode *);
 
+    PacketLogger PacketLogFunc;
+    PacketLogCondition PacketConditionFunc;
+
     TAILQ_ENTRY(OutputModule_) entries;
 } OutputModule;
 
 void OutputRegisterModule(char *, char *, OutputCtx *(*)(ConfNode *));
+
+void OutputRegisterPacketModule(char *name, char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *),
+    PacketLogger LogFunc, PacketLogCondition ConditionFunc);
+
 OutputModule *OutputGetModuleByConfName(char *name);
 void OutputDeregisterAll(void);
 
