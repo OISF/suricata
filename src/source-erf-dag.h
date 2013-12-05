@@ -22,7 +22,7 @@
  * \author Jason MacLulich <jason.maclulich@endace.com>
  */
 
-#ifndef __SOURCE_ERR_DAG_H__
+#ifndef __SOURCE_ERF_DAG_H__
 #define __SOURCE_ERF_DAG_H__
 
 void TmModuleReceiveErfDagRegister(void);
