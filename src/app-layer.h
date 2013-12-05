@@ -37,8 +37,8 @@
 
 #define APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER (~STREAM_TOSERVER & ~STREAM_TOCLIENT)
 
-uint16_t AppLayerGetProtoFromPacket(Packet *);
-void *AppLayerGetProtoStateFromPacket(Packet *);
+uint16_t AppLayerGetProtoFromPacket(const Packet *);
+void *AppLayerGetProtoStateFromPacket(const Packet *);
 void *AppLayerGetProtoStateFromFlow(Flow *);
 int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Flow *f,
                           TcpSession *ssn, TcpStream *stream, uint8_t *data, uint32_t data_len, Packet *p, uint8_t flags);
