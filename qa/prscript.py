@@ -68,12 +68,12 @@ def OpenBuildbotSession():
     return cookie
 
 
-def SubmitBuild(branch):
+def SubmitBuild(branch, extension = ""):
     raw_params = {'branch':branch,'reason':'Testing ' + branch, 'name':'force_build', 'forcescheduler':'force'}
     params = urllib.urlencode(raw_params)
     opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie))
     urllib2.install_opener(opener)
-    request = urllib2.Request(BUILDERS_URI + username + '/force', params)
+    request = urllib2.Request(BUILDERS_URI + username + extension + '/force', params)
     page = urllib2.urlopen(request)
 
     result = page.read()
@@ -88,8 +88,8 @@ def SubmitBuild(branch):
         return -1
 
 # TODO honor the branch argument
-def FindBuild(branch):
-    request = urllib2.Request(JSON_BUILDERS_URI + username + '/')
+def FindBuild(branch, extension = ""):
+    request = urllib2.Request(JSON_BUILDERS_URI + username + extension + '/')
     page = urllib2.urlopen(request)
     json_result = json.loads(page.read())
     # Pending build is unnumbered
@@ -101,9 +101,9 @@ def FindBuild(branch):
         return json_result["cachedBuilds"][-1]
     return -2
 
-def GetBuildStatus(builder, buildid):
+def GetBuildStatus(builder, buildid, extension=""):
     # https://buildbot.suricata-ids.org/json/builders/build%20deb6/builds/11
-    request = urllib2.Request(JSON_BUILDERS_URI + username + '/builds/' + str(buildid))
+    request = urllib2.Request(JSON_BUILDERS_URI + username + extension + '/builds/' + str(buildid))
     page = urllib2.urlopen(request)
     result = page.read()
     if args.verbose:
@@ -116,6 +116,21 @@ def GetBuildStatus(builder, buildid):
     if 'successful' in json_result["text"]:
         return 0
     return -1
+
+def WaitForBuildResult(builder, buildid, extension=""):
+    # fetch result every 10 secs till task is over
+    res = 1
+    while res == 1:
+        res = GetBuildStatus(username,buildid, extension=extension)
+        if res == 1:
+            time.sleep(10)
+
+    # return the result
+    if res == 0:
+        print "Build successful"
+    else:
+        print "Build failure: " + BUILDERS_URI + username + extension + '/builds/' + str(buildid)
+    return res
 
 # check that github branch and inliniac master branch are sync
 if TestRepoSync(args.branch) == -1:
@@ -132,29 +147,42 @@ if not args.check:
     if res == -1:
         print "Unable to start build. Check command line parameters"
         sys.exit(-1)
+    res = SubmitBuild(args.branch, extension="-pcap")
+    if res == -1:
+        print "Unable to start pcap build. Check command line parameters"
+        sys.exit(-1)
 
 # get build number and exit if we don't have
 buildid = FindBuild(args.branch)
 if buildid == -1:
     print "Pending build tracking is not supported. Follow build by browsing " + BUILDERS_URI + username
-    sys.exit(-1)
-if buildid == -2:
+elif buildid == -2:
     print "No build found for " + BUILDERS_URI + username
     sys.exit(0)
-print "You can watch build progress at " + BUILDERS_URI + username + "/builds/" + str(buildid)
-print "Waiting for build completion"
+else:
+    print "You can watch build progress at " + BUILDERS_URI + username + "/builds/" + str(buildid)
 
-# fetch result every 10 secs till task is over
-res = 1
-while res == 1:
-    res = GetBuildStatus(username,buildid)
-    if res == 1:
-        time.sleep(10)
-
-# return the result
-if res == 0:
-    print "Build successful"
+# get build number and exit if we don't have
+buildidpcap = FindBuild(args.branch, extension = "-pcap")
+if buildidpcap == -1:
+    print "Pending build tracking is not supported. Follow build by browsing " + BUILDERS_URI + username + "-pcap"
+elif buildidpcap == -2:
+    print "No build found for " + BUILDERS_URI + username + "-pcap"
     sys.exit(0)
 else:
-    print "Build failure: " + BUILDERS_URI + username + '/builds/' + str(buildid)
+    print "You can watch build progress at " + BUILDERS_URI + username + "-pcap/builds/" + str(buildidpcap)
+
+if buildid != -1 or buildidpcap != -1:
+    print "Waiting for build completion"
+
+res = 0
+if buildid != -1:
+    res = WaitForBuildResult(username, buildid)
+
+if buildidpcap != -1:
+    res += WaitForBuildResult(username, buildidpcap, extension="-pcap")
+
+if res == 0:
+    sys.exit(0)
+else:
     sys.exit(-1)
