@@ -162,6 +162,8 @@ void ConfNodeFree(ConfNode *node)
         SCFree(node->name);
     if (node->val != NULL)
         SCFree(node->val);
+    if (node->anchor != NULL)
+        SCFree(node->anchor);
     SCFree(node);
 }
 
@@ -860,6 +862,8 @@ void ConfNodePrune(ConfNode *node)
                     SCFree(item->name);
                 if (item->val != NULL)
                     SCFree(item->val);
+                if (item->anchor != NULL)
+                    SCFree(item->anchor);
                 SCFree(item);
             }
         }
@@ -886,6 +890,13 @@ int ConfNodeIsSequence(const ConfNode *node)
 /*
  * \brief Deeply copy a ConfNode.
  *
+ * Builds a complete copy of a configuration node, including copies
+ * (not references) of all its children.
+ *
+ * Note that anchors are not copied as anchors should exist only once.
+ * Perhaps this is reason enough put anchor lookups into its own list,
+ * but this will do for now.
+ *
  * \param src The source ConfNode.
  *
  * \retval Returns a copy of the src node, or NULL on failure.
@@ -905,6 +916,10 @@ ConfNodeDeepCopy(ConfNode *src)
     if (src->val != NULL)
         copy->val = SCStrdup(src->val);
     copy->final = src->final;
+
+    /* Anchor intentionally not copied - this might be reason enough
+     * to to keep anchors confined to the YAML code, its just easier
+     * code if done here. */
 
     TAILQ_FOREACH(src, &src->head, next) {
         ConfNode *child = ConfNodeDeepCopy(src);
@@ -926,6 +941,28 @@ fail:
     SCFree(copy);
     return NULL;
 
+}
+
+ConfNode *
+ConfNodeLookupAnchor(char *anchor, ConfNode *root) {
+    ConfNode *node, *child;
+
+    /* If the root node is null, start at the configuration root. */
+    if (root == NULL) {
+        root = ConfGetRootNode();
+    }
+
+    if (root->anchor != NULL && strcmp(root->anchor, anchor) == 0) {
+        return root;
+    }
+
+    TAILQ_FOREACH(node, &root->head, next) {
+        child = ConfNodeLookupAnchor(anchor, node);
+        if (child != NULL)
+            return child;
+    }
+
+    return NULL;
 }
 
 #ifdef UNITTESTS
@@ -1634,6 +1671,78 @@ ConfNodeDeepCopyTest(void)
     return 1;
 }
 
+static int
+ConfNodeLookupAnchorTest(void)
+{
+    ConfNode *node;
+    int ret = 0;
+
+    ConfCreateContextBackup();
+    ConfInit();
+
+    /* Set some values. */
+    if (!ConfSet("a", "a-value")) {
+        return 0;
+    }
+    if (!ConfSet("a.b", "a-b-value")) {
+        return 0;
+    }
+    if (!ConfSet("a.b.1", "a-b-1-value")) {
+        return 0;
+    }
+    if (!ConfSet("a.b.2", "a-b-2-value")) {
+        return 0;
+    }
+    if (!ConfSet("b", "b-value")) {
+        return 0;
+    }
+
+    /* Set some anchors. */
+    if ((node = ConfGetNode("a")) == NULL)
+        return 0;
+    node->anchor = SCStrdup("a-value-anchor");
+
+    if ((node = ConfGetNode("a.b")) == NULL)
+        return 0;
+    node->anchor = SCStrdup("a-b-value-anchor");
+
+    if ((node = ConfGetNode("a.b.2")) == NULL)
+        return 0;
+    node->anchor = SCStrdup("a-b-2-value-anchor");
+
+    if ((node = ConfGetNode("b")) == NULL)
+        return 0;
+    node->anchor = SCStrdup("b-value-anchor");
+
+    /* Lookup by anchor. */
+    if ((node = ConfNodeLookupAnchor("a-value-anchor", NULL)) == NULL)
+        return 0;
+    if (strcmp(node->val, "a-value") != 0)
+        return 0;
+
+    if ((node = ConfNodeLookupAnchor("a-b-value-anchor", NULL)) == NULL)
+        return 0;
+    if (strcmp(node->val, "a-b-value") != 0)
+        return 0;
+
+    if ((node = ConfNodeLookupAnchor("a-b-2-value-anchor", NULL)) == NULL)
+        return 0;
+    if (strcmp(node->val, "a-b-2-value") != 0)
+        return 0;
+
+    if ((node = ConfNodeLookupAnchor("b-value-anchor", NULL)) == NULL)
+        return 0;
+    if (strcmp(node->val, "b-value") != 0)
+        return 0;
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    ret = 1;
+
+    return ret;
+}
+
 void ConfRegisterTests(void)
 {
     UtRegisterTest("ConfTestGetNonExistant", ConfTestGetNonExistant, 1);
@@ -1654,6 +1763,7 @@ void ConfRegisterTests(void)
     UtRegisterTest("ConfNodeIsSequenceTest", ConfNodeIsSequenceTest, 1);
     UtRegisterTest("ConfSetFromStringTest", ConfSetFromStringTest, 1);
     UtRegisterTest("ConfNodeDeepCopyTest", ConfNodeDeepCopyTest, 1);
+    UtRegisterTest("ConfNodeLookupAnchorTest", ConfNodeLookupAnchorTest, 1);
 }
 
 #endif /* UNITTESTS */
