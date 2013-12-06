@@ -815,20 +815,6 @@ TmEcode LoadYamlConfig(char *conf_filename) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    ConfNode *file;
-    ConfNode *includes = ConfGetNode("include");
-    if (includes != NULL) {
-        TAILQ_FOREACH(file, &includes->head, next) {
-            char *ifile = ConfLoadCompleteIncludePath(file->val);
-            SCLogInfo("Including: %s", ifile);
-
-            if (ConfYamlLoadFile(ifile) != 0) {
-                /* Error already displayed. */
-                SCReturnInt(TM_ECODE_FAILED);
-            }
-        }
-    }
-
     SCReturnInt(TM_ECODE_OK);
 }
 
