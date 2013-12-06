@@ -58,29 +58,6 @@
  * TX id handling doesn't expect it */
 #define QUERY 0
 
-TmEcode LogDnsLog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogDnsLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogDnsLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogDnsLogThreadInit(ThreadVars *, void *, void **);
-TmEcode LogDnsLogThreadDeinit(ThreadVars *, void *);
-void LogDnsLogExitPrintStats(ThreadVars *, void *);
-static void LogDnsLogDeInitCtx(OutputCtx *);
-
-void TmModuleLogDnsLogRegister (void) {
-    tmm_modules[TMM_LOGDNSLOG].name = MODULE_NAME;
-    tmm_modules[TMM_LOGDNSLOG].ThreadInit = LogDnsLogThreadInit;
-    tmm_modules[TMM_LOGDNSLOG].Func = LogDnsLog;
-    tmm_modules[TMM_LOGDNSLOG].ThreadExitPrintStats = LogDnsLogExitPrintStats;
-    tmm_modules[TMM_LOGDNSLOG].ThreadDeinit = LogDnsLogThreadDeinit;
-    tmm_modules[TMM_LOGDNSLOG].RegisterTests = NULL;
-    tmm_modules[TMM_LOGDNSLOG].cap_flags = 0;
-
-    OutputRegisterModule(MODULE_NAME, "dns-log", LogDnsLogInitCtx);
-
-    /* enable the logger for the app layer */
-    SCLogDebug("registered %s", MODULE_NAME);
-}
-
 typedef struct LogDnsFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
@@ -330,12 +307,12 @@ end:
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode LogDnsLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode LogDnsLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     return LogDnsLogIPWrapper(tv, p, data, pq, postpq, AF_INET);
 }
 
-TmEcode LogDnsLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode LogDnsLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     return LogDnsLogIPWrapper(tv, p, data, pq, postpq, AF_INET6);
 }
@@ -365,7 +342,7 @@ TmEcode LogDnsLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode LogDnsLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode LogDnsLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     LogDnsLogThread *aft = SCMalloc(sizeof(LogDnsLogThread));
     if (unlikely(aft == NULL))
@@ -392,7 +369,7 @@ TmEcode LogDnsLogThreadInit(ThreadVars *t, void *initdata, void **data)
     return TM_ECODE_OK;
 }
 
-TmEcode LogDnsLogThreadDeinit(ThreadVars *t, void *data)
+static TmEcode LogDnsLogThreadDeinit(ThreadVars *t, void *data)
 {
     LogDnsLogThread *aft = (LogDnsLogThread *)data;
     if (aft == NULL) {
@@ -407,7 +384,7 @@ TmEcode LogDnsLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void LogDnsLogExitPrintStats(ThreadVars *tv, void *data) {
+static void LogDnsLogExitPrintStats(ThreadVars *tv, void *data) {
     LogDnsLogThread *aft = (LogDnsLogThread *)data;
     if (aft == NULL) {
         return;
@@ -416,11 +393,19 @@ void LogDnsLogExitPrintStats(ThreadVars *tv, void *data) {
     SCLogInfo("DNS logger logged %" PRIu32 " requests", aft->dns_cnt);
 }
 
+static void LogDnsLogDeInitCtx(OutputCtx *output_ctx)
+{
+    LogDnsFileCtx *dnslog_ctx = (LogDnsFileCtx *)output_ctx->data;
+    LogFileFreeCtx(dnslog_ctx->file_ctx);
+    SCFree(dnslog_ctx);
+    SCFree(output_ctx);
+}
+
 /** \brief Create a new dns log LogFileCtx.
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-OutputCtx *LogDnsLogInitCtx(ConfNode *conf)
+static OutputCtx *LogDnsLogInitCtx(ConfNode *conf)
 {
     LogFileCtx* file_ctx = LogFileNewCtx();
 
@@ -461,10 +446,17 @@ OutputCtx *LogDnsLogInitCtx(ConfNode *conf)
     return output_ctx;
 }
 
-static void LogDnsLogDeInitCtx(OutputCtx *output_ctx)
-{
-    LogDnsFileCtx *dnslog_ctx = (LogDnsFileCtx *)output_ctx->data;
-    LogFileFreeCtx(dnslog_ctx->file_ctx);
-    SCFree(dnslog_ctx);
-    SCFree(output_ctx);
+void TmModuleLogDnsLogRegister (void) {
+    tmm_modules[TMM_LOGDNSLOG].name = MODULE_NAME;
+    tmm_modules[TMM_LOGDNSLOG].ThreadInit = LogDnsLogThreadInit;
+    tmm_modules[TMM_LOGDNSLOG].Func = LogDnsLog;
+    tmm_modules[TMM_LOGDNSLOG].ThreadExitPrintStats = LogDnsLogExitPrintStats;
+    tmm_modules[TMM_LOGDNSLOG].ThreadDeinit = LogDnsLogThreadDeinit;
+    tmm_modules[TMM_LOGDNSLOG].RegisterTests = NULL;
+    tmm_modules[TMM_LOGDNSLOG].cap_flags = 0;
+
+    OutputRegisterModule(MODULE_NAME, "dns-log", LogDnsLogInitCtx);
+
+    /* enable the logger for the app layer */
+    SCLogDebug("registered %s", MODULE_NAME);
 }
