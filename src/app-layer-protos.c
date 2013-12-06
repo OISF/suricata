@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,24 +19,26 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
 #include "suricata-common.h"
+#include "app-layer-protos.h"
 
 #define CASE_CODE(E)  case E: return #E
 
 /**
- * \brief Maps the ALPROTO_*, to its string equivalent
+ * \brief Maps the ALPROTO_*, to its string equivalent.
  *
- * \param proto app layer protocol id
+ * \param alproto App layer protocol id.
  *
- * \retval string equivalent for the alproto
+ * \retval String equivalent for the alproto.
  */
-const char *TmModuleAlprotoToString(enum AppProto proto)
+const char *AppProtoToString(AppProto alproto)
 {
     const char *proto_name = NULL;
 
-    switch (proto) {
+    switch (alproto) {
         case ALPROTO_HTTP:
             proto_name = "http";
             break;
@@ -96,4 +98,3 @@ const char *TmModuleAlprotoToString(enum AppProto proto)
 
     return proto_name;
 }
-

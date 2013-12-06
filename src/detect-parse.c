@@ -1238,7 +1238,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
             } else {
                 if (al_proto_table[s->alproto].to_server == 0 ||
                     al_proto_table[s->alproto].to_client == 0) {
-                    const char *proto_name = TmModuleAlprotoToString(s->alproto);
+                    const char *proto_name = AppProtoToString(s->alproto);
                     SCLogInfo("Signature uses options that need the app layer "
                               "parser for \"%s\", but the parser's disabled "
                               "for the protocol.  Please check if you have "

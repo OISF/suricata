@@ -199,7 +199,7 @@ SCProfilingInit(void)
                 }
                 fprintf(packet_profile_csv_fp, "threading,");
                 for (i = 0; i < ALPROTO_MAX; i++) {
-                    fprintf(packet_profile_csv_fp, "%s,", TmModuleAlprotoToString(i));
+                    fprintf(packet_profile_csv_fp, "%s,", AppProtoToString(i));
                 }
                 fprintf(packet_profile_csv_fp, "STREAM (no app),proto detect,");
                 for (i = 0; i < PROF_DETECT_SIZE; i++) {
@@ -455,7 +455,7 @@ void SCProfilingDumpPacketStats(void) {
                 (long double)total * 100;
 
             fprintf(fp, "%-20s    IPv4     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"  %12s  %-6.2f\n",
-                    TmModuleAlprotoToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
+                    AppProtoToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
         }
     }
 
@@ -473,7 +473,7 @@ void SCProfilingDumpPacketStats(void) {
                 (long double)total * 100;
 
             fprintf(fp, "%-20s    IPv6     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"  %12s  %-6.2f\n",
-                    TmModuleAlprotoToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
+                    AppProtoToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
         }
     }
 
