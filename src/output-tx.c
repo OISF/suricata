@@ -113,6 +113,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
         AppLayerGetAlstateProgressCompletionStatus(alproto, 0);
     int tx_progress_done_value_tc =
         AppLayerGetAlstateProgressCompletionStatus(alproto, 1);
+    int proto_logged = 0;
 
     for (; tx_id < total_txs; tx_id++)
     {
@@ -147,6 +148,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
             if (logger->alproto == alproto) {
                 SCLogDebug("alproto match, logging tx_id %ju", tx_id);
                 logger->LogFunc(tv, store->thread_data, p, f, alstate, tx, tx_id);
+                proto_logged = 1;
             }
 
             logger = logger->next;
@@ -156,8 +158,10 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
             BUG_ON(logger != NULL && store == NULL);
         }
 
-        SCLogDebug("updating log tx_id %ju", tx_id);
-        AppLayerTransactionUpdateLogId(f);
+        if (proto_logged) {
+            SCLogDebug("updating log tx_id %ju", tx_id);
+            AppLayerTransactionUpdateLogId(f);
+        }
     }
 
 end:
