@@ -38,6 +38,9 @@ typedef struct ConfNode_ {
     /**< Flag that sets this nodes value as final. */
     int final;
 
+    /**< Anchor, for alias resolution. */
+    char *anchor;
+
     struct ConfNode_ *parent;
     TAILQ_HEAD(, ConfNode_) head;
     TAILQ_ENTRY(ConfNode_) next;
@@ -88,5 +91,6 @@ int ConfGetChildValueIntWithDefault(ConfNode *base, ConfNode *dflt, char *name, 
 int ConfGetChildValueBoolWithDefault(ConfNode *base, ConfNode *dflt, char *name, int *val);
 char *ConfLoadCompleteIncludePath(char *);
 ConfNode *ConfNodeDeepCopy(ConfNode *src);
+ConfNode *ConfNodeLookupAnchor(char *anchor, ConfNode *root);
 
 #endif /* ! __CONF_H__ */
