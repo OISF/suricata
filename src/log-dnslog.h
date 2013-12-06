@@ -25,8 +25,5 @@
 #define __LOG_DNSLOG_H__
 
 void TmModuleLogDnsLogRegister (void);
-void TmModuleLogDnsLogIPv4Register (void);
-void TmModuleLogDnsLogIPv6Register (void);
-OutputCtx *LogDnsLogInitCtx(ConfNode *);
 
 #endif /* __LOG_DNSLOG_H__ */
