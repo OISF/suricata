@@ -120,12 +120,15 @@ uint64_t DNSGetTxCnt(void *alstate) {
 
 int DNSGetAlstateProgress(void *tx, uint8_t direction) {
     DNSTransaction *dns_tx = (DNSTransaction *)tx;
-    return dns_tx->replied|dns_tx->reply_lost;
+    if (direction == 1)
+        return dns_tx->replied|dns_tx->reply_lost;
+    else
+        return (TAILQ_FIRST(&dns_tx->query_list) != NULL);
 }
 
 /* value for tx->replied value */
 int DNSGetAlstateProgressCompletionStatus(uint8_t direction) {
-    return (direction == 0) ? 0 : 1;
+    return 1;//(direction == 0) ? 0 : 1;
 }
 
 void DNSSetEvent(DNSState *s, uint8_t e) {

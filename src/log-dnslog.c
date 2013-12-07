@@ -122,7 +122,7 @@ static void LogQuery(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dst
             " [**] %s [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
             record, srcip, sp, dstip, dp);
 
-    aft->dns_cnt++;
+//    aft->dns_cnt++;
 
     SCMutexLock(&hlog->file_ctx->fp_mutex);
     (void)MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
@@ -182,14 +182,87 @@ static void LogAnswer(LogDnsLogThread *aft, char *timebuf, char *srcip, char *ds
             " [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
             srcip, sp, dstip, dp);
 
-    aft->dns_cnt++;
+//    aft->dns_cnt++;
 
     SCMutexLock(&hlog->file_ctx->fp_mutex);
     (void)MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
     fflush(hlog->file_ctx->fp);
     SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 }
+#if 1
+static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p, Flow *f,
+    void *state, void *tx, uint64_t tx_id)
+{
+    LogDnsLogThread *aft = (LogDnsLogThread *)data;
+    DNSTransaction *dns_tx = (DNSTransaction *)tx;
+SCLogDebug("pcap_cnt %ju", p->pcap_cnt);
+    char timebuf[64];
+    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
+    int ipproto = 0;
+    if (PKT_IS_IPV4(p))
+        ipproto = AF_INET;
+    else if (PKT_IS_IPV6(p))
+        ipproto = AF_INET6;
+
+    char srcip[46], dstip[46];
+    Port sp, dp;
+    if ((PKT_IS_TOCLIENT(p))) {
+        switch (ipproto) {
+            case AF_INET:
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+                break;
+            case AF_INET6:
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+                break;
+            default:
+                goto end;
+        }
+        sp = p->sp;
+        dp = p->dp;
+    } else {
+        switch (ipproto) {
+            case AF_INET:
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), dstip, sizeof(dstip));
+                break;
+            case AF_INET6:
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), dstip, sizeof(dstip));
+                break;
+            default:
+                goto end;
+        }
+        sp = p->dp;
+        dp = p->sp;
+    }
+
+    DNSQueryEntry *query = NULL;
+    TAILQ_FOREACH(query, &dns_tx->query_list, next) {
+        LogQuery(aft, timebuf, dstip, srcip, dp, sp, dns_tx, query);
+    }
+
+    if (dns_tx->no_such_name) {
+        LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, NULL);
+    }
+
+    DNSAnswerEntry *entry = NULL;
+    TAILQ_FOREACH(entry, &dns_tx->answer_list, next) {
+        LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, entry);
+    }
+
+    entry = NULL;
+    TAILQ_FOREACH(entry, &dns_tx->authority_list, next) {
+        LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, entry);
+    }
+
+    aft->dns_cnt++;
+end:
+    return 0;
+}
+#endif
 static TmEcode LogDnsLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
                             PacketQueue *postpq, int ipproto)
 {
@@ -303,6 +376,7 @@ static TmEcode LogDnsLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQ
 
         SCLogDebug("calling AppLayerTransactionUpdateLoggedId");
         AppLayerTransactionUpdateLogId(p->flow);
+        aft->dns_cnt++;
     }
 
 end:
@@ -393,7 +467,7 @@ static void LogDnsLogExitPrintStats(ThreadVars *tv, void *data) {
         return;
     }
 
-    SCLogInfo("DNS logger logged %" PRIu32 " requests", aft->dns_cnt);
+    SCLogInfo("DNS logger logged %" PRIu32 " transactions", aft->dns_cnt);
 }
 
 static void LogDnsLogDeInitCtx(OutputCtx *output_ctx)
@@ -458,7 +532,9 @@ void TmModuleLogDnsLogRegister (void) {
     tmm_modules[TMM_LOGDNSLOG].RegisterTests = NULL;
     tmm_modules[TMM_LOGDNSLOG].cap_flags = 0;
 
-    OutputRegisterModule(MODULE_NAME, "dns-log", LogDnsLogInitCtx);
+//    OutputRegisterModule(MODULE_NAME, "dns-log", LogDnsLogInitCtx);
+    OutputRegisterTxModule(MODULE_NAME, "dns-log", LogDnsLogInitCtx,
+            ALPROTO_DNS_UDP, LogDnsLogger);
 
     /* enable the logger for the app layer */
     SCLogDebug("registered %s", MODULE_NAME);
