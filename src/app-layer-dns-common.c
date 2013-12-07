@@ -185,12 +185,20 @@ uint64_t DNSGetTxCnt(void *alstate) {
 
 int DNSGetAlstateProgress(void *tx, uint8_t direction) {
     DNSTransaction *dns_tx = (DNSTransaction *)tx;
-    return dns_tx->replied|dns_tx->reply_lost;
+    if (direction == 1)
+        return dns_tx->replied|dns_tx->reply_lost;
+    else {
+        /* toserver/query is complete if we have stored a query */
+        return (TAILQ_FIRST(&dns_tx->query_list) != NULL);
+    }
 }
 
-/* value for tx->replied value */
+/** \brief get value for 'complete' status in DNS
+ *
+ *  For DNS we use a simple bool.
+ */
 int DNSGetAlstateProgressCompletionStatus(uint8_t direction) {
-    return (direction & STREAM_TOSERVER) ? 0 : 1;
+    return 1;
 }
 
 void DNSSetEvent(DNSState *s, uint8_t e) {
