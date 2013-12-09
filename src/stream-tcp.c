@@ -577,6 +577,17 @@ void StreamTcpInitConfig(char quiet)
             stream_config.reassembly_toclient_chunk_size);
     }
 
+    int enable_raw = 1;
+    if (ConfGetBool("stream.reassembly.raw", &enable_raw) == 1) {
+        if (!enable_raw) {
+            stream_config.ssn_init_flags = STREAMTCP_FLAG_DISABLE_RAW;
+            stream_config.segment_init_flags = SEGMENTTCP_FLAG_RAW_PROCESSED;
+        }
+    } else {
+        enable_raw = 1;
+    }
+    SCLogInfo("stream.reassembly.raw: %s", enable_raw ? "enabled" : "disabled");
+
     /* init the memcap/use tracking */
     SC_ATOMIC_INIT(st_memuse);
 
@@ -646,6 +657,7 @@ TcpSession *StreamTcpNewSession (Packet *p, int id)
         }
 
         ssn->state = TCP_NONE;
+        ssn->flags = stream_config.ssn_init_flags;
     }
 
     return ssn;

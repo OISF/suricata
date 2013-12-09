@@ -280,7 +280,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketGet(int direction,
 }
 
 /**
- *  \brief Check if a flow needs forced reassembly
+ *  \brief Check if a flow needs forced reassembly, or any other processing
  *
  *  \param f *LOCKED* flow
  *  \param server ptr to int that should be set to 1 or 2 if we return 1
@@ -289,18 +289,19 @@ static inline Packet *FlowForceReassemblyPseudoPacketGet(int direction,
  *  \retval 0 no
  *  \retval 1 yes
  */
-int FlowForceReassemblyNeedReassmbly(Flow *f, int *server, int *client) {
+int FlowForceReassemblyNeedReassembly(Flow *f, int *server, int *client) {
     TcpSession *ssn;
 
-    /* looks like we have no flows in this queue */
-    if (f == NULL || (f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE)) {
-        return 0;
+    if (f == NULL) {
+        *server = *client = STREAM_HAS_UNPROCESSED_SEGMENTS_NONE;
+        SCReturnInt(0);
     }
 
     /* Get the tcp session for the flow */
     ssn = (TcpSession *)f->protoctx;
     if (ssn == NULL) {
-        return 0;
+        *server = *client = STREAM_HAS_UNPROCESSED_SEGMENTS_NONE;
+        SCReturnInt(0);
     }
 
     *client = StreamNeedsReassembly(ssn, 0);
@@ -308,19 +309,38 @@ int FlowForceReassemblyNeedReassmbly(Flow *f, int *server, int *client) {
 
     /* if state is not fully closed we assume that we haven't fully
      * inspected the app layer state yet */
-    if (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED) {
-        if (*client != 1)
-            *client = 2;
-        if (*server != 1)
-            *server = 2;
+    if (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED)
+    {
+        if (*client != STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY)
+            *client = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
+
+        if (*server != STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY)
+            *server = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
+    }
+
+    /* if app layer still needs some love, push through */
+    if (f->alproto != ALPROTO_UNKNOWN && f->alstate != NULL &&
+        AppLayerAlprotoSupportsTxs(f->alproto))
+    {
+        uint64_t total_txs = AppLayerGetTxCnt(f->alproto, f->alstate);
+
+        if (AppLayerTransactionGetActive(f, STREAM_TOCLIENT) < total_txs) {
+            if (*server != STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY)
+                *server = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
+        }
+        if (AppLayerTransactionGetActive(f, STREAM_TOSERVER) < total_txs) {
+            if (*client != STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY)
+                *client = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
+        }
     }
 
     /* nothing to do */
-    if (*client == 0 && *server == 0) {
-        return 0;
+    if (*client == STREAM_HAS_UNPROCESSED_SEGMENTS_NONE &&
+        *server == STREAM_HAS_UNPROCESSED_SEGMENTS_NONE) {
+        SCReturnInt(0);
     }
 
-    return 1;
+    SCReturnInt(1);
 }
 
 /**
@@ -360,14 +380,14 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
      * toclient which is now dummy since all we need it for is detection */
 
     /* insert a pseudo packet in the toserver direction */
-    if (client == 1) {
+    if (client == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
         p1 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 0);
         if (p1 == NULL) {
             return 1;
         }
         PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
 
-        if (server == 1) {
+        if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
             p2 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
             if (p2 == NULL) {
                 FlowDeReference(&p1->flow);
@@ -395,8 +415,8 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
             PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
         }
 
-    } else if (client == 2) {
-        if (server == 1) {
+    } else if (client == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
+        if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
             p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
             if (p1 == NULL) {
                 return 1;
@@ -417,7 +437,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
             }
             PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
 
-            if (server == 2) {
+            if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
                 p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
                 if (p2 == NULL) {
                     FlowDeReference(&p1->flow);
@@ -429,7 +449,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
         }
 
     } else {
-        if (server == 1) {
+        if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
             p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
             if (p1 == NULL) {
                 return 1;
@@ -443,7 +463,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                 return 1;
             }
             PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
-        } else if (server == 2) {
+        } else if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
             p1 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p1 == NULL) {
                 return 1;
@@ -492,7 +512,6 @@ static inline void FlowForceReassemblyForHash(void)
     TcpSession *ssn;
     int client_ok;
     int server_ok;
-    int tcp_needs_inspection;
 
     uint32_t idx = 0;
 
@@ -525,8 +544,10 @@ static inline void FlowForceReassemblyForHash(void)
                 continue;
             }
 
+            (void)FlowForceReassemblyNeedReassembly(f, &server_ok, &client_ok);
+
             /* ah ah!  We have some unattended toserver segments */
-            if ((client_ok = StreamNeedsReassembly(ssn, 0)) == 1) {
+            if (client_ok == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
                 StreamTcpThread *stt = SC_ATOMIC_GET(stream_pseudo_pkt_stream_tm_slot->slot_data);
 
                 ssn->client.last_ack = (ssn->client.seg_list_tail->seq +
@@ -544,7 +565,7 @@ static inline void FlowForceReassemblyForHash(void)
                 }
             }
             /* oh oh!  We have some unattended toclient segments */
-            if ((server_ok = StreamNeedsReassembly(ssn, 1)) == 1) {
+            if (server_ok == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
                 StreamTcpThread *stt = SC_ATOMIC_GET(stream_pseudo_pkt_stream_tm_slot->slot_data);
 
                 ssn->server.last_ack = (ssn->server.seg_list_tail->seq +
@@ -562,16 +583,10 @@ static inline void FlowForceReassemblyForHash(void)
                 }
             }
 
-            if (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED)
-                tcp_needs_inspection = 1;
-            else
-                tcp_needs_inspection = 0;
-
             FLOWLOCK_UNLOCK(f);
 
             /* insert a pseudo packet in the toserver direction */
-            if (client_ok || tcp_needs_inspection)
-            {
+            if (client_ok) {
                 FLOWLOCK_WRLOCK(f);
                 Packet *p = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
                 FLOWLOCK_UNLOCK(f);
@@ -602,9 +617,8 @@ static inline void FlowForceReassemblyForHash(void)
                         TmqhOutputPacketpool(NULL, p);
                     }
                 }
-            } /* if (ssn->client.seg_list != NULL) */
-            if (server_ok || tcp_needs_inspection)
-            {
+            }
+            if (server_ok) {
                 FLOWLOCK_WRLOCK(f);
                 Packet *p = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
                 FLOWLOCK_UNLOCK(f);
@@ -635,11 +649,11 @@ static inline void FlowForceReassemblyForHash(void)
                         TmqhOutputPacketpool(NULL, p);
                     }
                 }
-            } /* if (ssn->server.seg_list != NULL) */
+            }
 
             /* next flow in the queue */
             f = f->hnext;
-        } /* while (f != NULL) */
+        }
         FBLOCK_UNLOCK(fb);
     }
 
