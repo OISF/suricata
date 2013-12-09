@@ -1213,12 +1213,10 @@ error:
     SCReturnInt(-1);
 }
 
-/**
- *  \brief Get 'active' tx id, meaning the lowest id that still need work.
+/** \brief active TX retrieval for normal ops: so with detection and logging
  *
- *  \retval id tx id
- */
-uint64_t AppLayerTransactionGetActive(Flow *f, uint8_t flags) {
+ *  \retval tx_id lowest tx_id that still needs work */
+uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags) {
     AppLayerProto *p = &al_proto_table[f->alproto];
     uint64_t log_id = ((AppLayerParserStateStore *)f->alparser)->log_id;
     uint64_t inspect_id = ((AppLayerParserStateStore *)f->alparser)->
@@ -1228,6 +1226,24 @@ uint64_t AppLayerTransactionGetActive(Flow *f, uint8_t flags) {
     } else {
         return inspect_id;
     }
+}
+
+static GetActiveTxIdFunc AppLayerGetActiveTxIdFuncPtr = NULL;
+
+void RegisterAppLayerGetActiveTxIdFunc(GetActiveTxIdFunc FuncPtr) {
+    BUG_ON(AppLayerGetActiveTxIdFuncPtr != NULL);
+    AppLayerGetActiveTxIdFuncPtr = FuncPtr;
+}
+
+/**
+ *  \brief Get 'active' tx id, meaning the lowest id that still need work.
+ *
+ *  \retval id tx id
+ */
+uint64_t AppLayerTransactionGetActive(Flow *f, uint8_t flags) {
+    BUG_ON(AppLayerGetActiveTxIdFuncPtr == NULL);
+
+    return AppLayerGetActiveTxIdFuncPtr(f, flags);
 }
 
 void AppLayerTransactionUpdateLogId(Flow *f)
@@ -1560,6 +1576,11 @@ void AppLayerParsersInitPostProcess(void)
            SCLogDebug("al_proto_table[%" PRIu32 "].map[%" PRIu32 "]->parser_id:"
                       " %" PRIu32 "", u16, x, al_proto_table[u16].map[x]->parser_id);
         }
+    }
+
+    /* set the default tx handler if none was set explicitly */
+    if (AppLayerGetActiveTxIdFuncPtr == NULL) {
+        RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveDetectLog);
     }
 }
 
