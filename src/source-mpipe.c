@@ -1014,6 +1014,10 @@ int MpipeLiveRegisterDevice(char *dev)
     }
 
     nd->dev = SCStrdup(dev);
+    if (unlikely(nd->dev == NULL)) {
+        SCFree(nd);
+        return -1;
+    }
     TAILQ_INSERT_TAIL(&mpipe_devices, nd, next);
 
     SCLogDebug("Mpipe device \"%s\" registered.", dev);

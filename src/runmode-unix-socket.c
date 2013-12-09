@@ -320,6 +320,10 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
             }
         }
         this->currentfile = SCStrdup(cfile->filename);
+        if (unlikely(this->currentfile == NULL)) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed file name allocation");
+            return TM_ECODE_FAILED;
+        }
         PcapFilesFree(cfile);
         SCPerfInitCounterApi();
         DefragInit();

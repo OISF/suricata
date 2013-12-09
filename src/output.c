@@ -47,17 +47,25 @@ OutputRegisterModule(char *name, char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *))
 {
     OutputModule *module = SCCalloc(1, sizeof(*module));
-    if (unlikely(module == NULL)) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in OutputRegisterModule. Exiting...");
-        exit(EXIT_FAILURE);
-    }
+    if (unlikely(module == NULL))
+        goto error;
 
     module->name = SCStrdup(name);
+    if (unlikely(module->name == NULL))
+        goto error;
     module->conf_name = SCStrdup(conf_name);
+    if (unlikely(module->conf_name == NULL))
+        goto error;
     module->InitFunc = InitFunc;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Output module \"%s\" registered.", name);
+
+    return;
+
+error:
+    SCLogError(SC_ERR_FATAL, "Fatal error encountered in OutputRegisterModule. Exiting...");
+    exit(EXIT_FAILURE);
 }
 
 /**

@@ -48,6 +48,10 @@ int LiveRegisterDevice(char *dev)
     }
 
     pd->dev = SCStrdup(dev);
+    if (unlikely(pd->dev == NULL)) {
+        SCFree(pd);
+        return -1;
+    }
     SC_ATOMIC_INIT(pd->pkts);
     SC_ATOMIC_INIT(pd->drop);
     SC_ATOMIC_INIT(pd->invalid_checksums);

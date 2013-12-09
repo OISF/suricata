@@ -76,6 +76,10 @@ void SCProtoNameInit()
             } else {
                 known_proto[proto] = SCStrdup(name);
             }
+            if (unlikely(known_proto[proto] == NULL)) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Failed proto name allocation");
+                continue;
+            }
             int proto_len = strlen(known_proto[proto]);
             if (proto_len > 0 && known_proto[proto][proto_len - 1] == '\n')
                 known_proto[proto][proto_len - 1] = '\0';

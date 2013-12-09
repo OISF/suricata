@@ -258,7 +258,7 @@ static DetectTlsData *DetectTlsSubjectParse (char *str)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr;
-    char *orig;
+    char *orig = NULL;
     char *tmp_str;
     uint32_t flag = 0;
 
@@ -304,6 +304,9 @@ static DetectTlsData *DetectTlsSubjectParse (char *str)
     }
 
     tls->subject = SCStrdup(tmp_str);
+    if (unlikely(tls->subject == NULL)) {
+        goto error;
+    }
 
     SCFree(orig);
 
@@ -312,6 +315,8 @@ static DetectTlsData *DetectTlsSubjectParse (char *str)
     return tls;
 
 error:
+    if (orig != NULL)
+        SCFree(orig);
     if (tls != NULL)
         DetectTlsSubjectFree(tls);
     return NULL;
@@ -459,7 +464,7 @@ static DetectTlsData *DetectTlsIssuerDNParse(char *str)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr;
-    char *orig;
+    char *orig = NULL;
     char *tmp_str;
     uint32_t flag = 0;
 
@@ -506,6 +511,9 @@ static DetectTlsData *DetectTlsIssuerDNParse(char *str)
     }
 
     tls->issuerdn = SCStrdup(tmp_str);
+    if (unlikely(tls->issuerdn == NULL)) {
+        goto error;
+    }
 
     SCFree(orig);
 
@@ -514,6 +522,8 @@ static DetectTlsData *DetectTlsIssuerDNParse(char *str)
     return tls;
 
 error:
+    if (orig != NULL)
+        SCFree(orig);
     if (tls != NULL)
         DetectTlsIssuerDNFree(tls);
     return NULL;

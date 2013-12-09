@@ -1064,6 +1064,10 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
         }
         temp->head[0] = pctx;
         temp->tm_name = SCStrdup(tm_name);
+        if (unlikely(temp->tm_name == NULL)) {
+            SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
+            return 0;
+        }
 
         if (prev == NULL)
             sc_perf_op_ctx->pctmi = temp;
