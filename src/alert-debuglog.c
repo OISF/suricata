@@ -168,7 +168,7 @@ static void AlertDebugLogPktVars(AlertDebugLogThread *aft, Packet *p)
 
 /** \todo doc
  * assume we have aft lock */
-static int AlertDebugPrintStreamSegmentCallback(Packet *p, void *data, uint8_t *buf, uint32_t buflen)
+static int AlertDebugPrintStreamSegmentCallback(const Packet *p, void *data, uint8_t *buf, uint32_t buflen)
 {
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
 
@@ -332,7 +332,7 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             } else {
                 flag = FLOW_PKT_TOSERVER;
             }
-            ret = StreamSegmentForEach(p, flag,
+            ret = StreamSegmentForEach((const Packet *)p, flag,
                                  AlertDebugPrintStreamSegmentCallback,
                                  (void *)aft);
             if (ret < 0) {
