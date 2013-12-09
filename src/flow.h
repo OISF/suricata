@@ -28,6 +28,7 @@
 #include "util-var.h"
 #include "util-atomic.h"
 #include "detect-tag.h"
+#include "util-optimize.h"
 
 #define FLOW_QUIET      TRUE
 #define FLOW_VERBOSE    FALSE
@@ -507,19 +508,19 @@ static inline void FlowDecrUsecnt(Flow *f)
     (void) SC_ATOMIC_SUB(f->use_cnt, 1);
 }
 
-#define FlowReference(dst_f_ptr, f) do {            \
-        if ((f) != NULL) {                          \
-            FlowIncrUsecnt((f));                    \
-            *(dst_f_ptr) = f;                       \
-        }                                           \
-    } while (0)
+static inline void FlowReference(Flow **d, Flow *f) {
+    if (likely(f != NULL)) {
+        FlowIncrUsecnt(f);
+        *d = f;
+    }
+}
 
-#define FlowDeReference(src_f_ptr) do {               \
-        if (*(src_f_ptr) != NULL) {                   \
-            FlowDecrUsecnt(*(src_f_ptr));             \
-            *(src_f_ptr) = NULL;                      \
-        }                                             \
-    } while (0)
+static inline void FlowDeReference(Flow **d) {
+    if (likely(*d != NULL)) {
+        FlowDecrUsecnt(*d);
+        *d = NULL;
+    }
+}
 
 int FlowClearMemory(Flow *,uint8_t );
 
