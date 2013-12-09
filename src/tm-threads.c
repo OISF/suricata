@@ -1012,6 +1012,11 @@ static inline TmSlot * _TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *
     return slot;
 }
 
+void TmSlotFree(TmSlot *tms) {
+    SC_ATOMIC_DESTROY(slot->slot_data);
+    SCFree(tms);
+}
+
 /**
  * \brief Appends a new entry to the slots.
  *
@@ -1055,9 +1060,9 @@ void TmSlotSetFuncAppendDelayed(ThreadVars *tv, TmModule *tm, void *data,
 
     dslot = SCMalloc(sizeof(TmDummySlot));
     if (unlikely(dslot == NULL)) {
+        TmSlotFree(slot);
         return;
     }
-
     memset(dslot, 0, sizeof(*dslot));
 
     dslot->SlotFunc = SC_ATOMIC_GET(slot->SlotFunc);
