@@ -75,6 +75,8 @@ typedef struct PcapThreadVars_
     /* ptr to string from config */
     char *bpf_filter;
 
+    time_t last_stats_dump;
+
     /* data link type for the thread */
     int datalink;
 
@@ -229,7 +231,6 @@ void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {
 
     PcapThreadVars *ptv = (PcapThreadVars *)user;
     Packet *p = PacketGetFromQueueOrAlloc();
-    time_t last_dump = 0;
     struct timeval current_time;
 
     if (unlikely(p == NULL)) {
@@ -277,9 +278,9 @@ void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {
 
     /* Trigger one dump of stats every second */
     TimeGet(&current_time);
-    if (current_time.tv_sec != last_dump) {
+    if (current_time.tv_sec != ptv->last_stats_dump) {
         PcapDumpCounters(ptv);
-        last_dump = current_time.tv_sec;
+        ptv->last_stats_dump = current_time.tv_sec;
     }
 
     SCReturn;
