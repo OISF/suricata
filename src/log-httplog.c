@@ -704,7 +704,6 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
         for (httplog_ctx->cf_n = 0; httplog_ctx->cf_n < LOG_HTTP_MAXN_NODES-1 && p && *p != '\0';
                                                     httplog_ctx->cf_n++){
             httplog_ctx->cf_nodes[httplog_ctx->cf_n] = SCMalloc(sizeof(LogHttpCustomFormatNode));
-            httplog_ctx->cf_nodes[httplog_ctx->cf_n]->maxlen=0;
             if (httplog_ctx->cf_nodes[httplog_ctx->cf_n] == NULL) {
                 for (n = 0; n < httplog_ctx->cf_n; n++) {
                     SCFree(httplog_ctx->cf_nodes[n]);
@@ -713,6 +712,8 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
                 SCFree(httplog_ctx);
                 return NULL;
             }
+            httplog_ctx->cf_nodes[httplog_ctx->cf_n]->maxlen = 0;
+
             if (*p != '%'){
                 /* Literal found in format string */
                 httplog_ctx->cf_nodes[httplog_ctx->cf_n]->type = LOG_HTTP_CF_LITERAL;
