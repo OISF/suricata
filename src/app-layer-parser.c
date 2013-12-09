@@ -138,37 +138,6 @@ struct AppLayerParserState_ {
  * Post 2.0 let's look at changing this to move it out to app-layer.c. */
 static AppLayerParserCtx alp_ctx;
 
-static void AppLayerParserTransactionsCleanup(uint8_t ipproto, AppProto alproto,
-                                              void *alstate, AppLayerParserState *parser_state_store)
-{
-    SCEnter();
-
-    uint64_t inspect = 0, log = 0;
-    uint64_t min;
-    AppLayerParserProtoCtx *ctx = &alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto];
-
-    if (ctx->StateTransactionFree == NULL)
-        goto end;
-
-    if (parser_state_store->inspect_id[0] < parser_state_store->inspect_id[1])
-        inspect = parser_state_store->inspect_id[0];
-    else
-        inspect = parser_state_store->inspect_id[1];
-    log = parser_state_store->log_id;
-
-    if (ctx->logger == TRUE) {
-        min = log < inspect ? log : inspect;
-        if (min > 0)
-            ctx->StateTransactionFree(alstate, min - 1);
-    } else {
-        if (inspect > 0)
-            ctx->StateTransactionFree(alstate, inspect - 1);
-    }
-
- end:
-    SCReturn;
-}
-
 AppLayerParserState *AppLayerParserStateAlloc(void)
 {
     SCEnter();
@@ -623,6 +592,47 @@ FileContainer *AppLayerParserGetFiles(uint8_t ipproto, AppProto alproto,
     SCReturnPtr(ptr, "FileContainer *");
 }
 
+/**
+ *  \brief Get 'active' tx id, meaning the lowest id that still need work.
+ *
+ *  \retval id tx id
+ */
+static uint64_t AppLayerTransactionGetActive(Flow *f, uint8_t flags) {
+    AppLayerParserProtoCtx *p = &alp_ctx.ctxs[FlowGetProtoMapping(f->proto)][f->alproto];
+    uint64_t log_id = f->alparser->log_id;
+    uint64_t inspect_id = f->alparser->inspect_id[flags & STREAM_TOSERVER ? 0 : 1];
+    if (p->logger == TRUE) {
+        return (log_id < inspect_id) ? log_id : inspect_id;
+    } else {
+        return inspect_id;
+    }
+}
+
+#ifndef MIN
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#endif
+
+/**
+ * \brief remove obsolete (inspected and logged) transactions
+ */
+static void AppLayerParserTransactionsCleanup(Flow *f)
+{
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
+    AppLayerParserProtoCtx *p = &alp_ctx.ctxs[FlowGetProtoMapping(f->proto)][f->alproto];
+    if (p->StateTransactionFree == NULL)
+        return;
+
+    uint64_t tx_id_ts = AppLayerTransactionGetActive(f, STREAM_TOSERVER);
+    uint64_t tx_id_tc = AppLayerTransactionGetActive(f, STREAM_TOCLIENT);
+
+    uint64_t min = MIN(tx_id_ts, tx_id_tc);
+    if (min > 0) {
+        SCLogDebug("freeing %"PRIu64" %p", min - 1, p->StateTransactionFree);
+        p->StateTransactionFree(f->alstate, min - 1);
+    }
+}
+
 int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
                         void *alstate, uint8_t direction)
 {
@@ -773,7 +783,7 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
     }
 
     /* next, see if we can get rid of transactions now */
-    AppLayerParserTransactionsCleanup(f->proto, alproto, alstate, pstate);
+    AppLayerParserTransactionsCleanup(f);
 
     /* stream truncated, inform app layer */
     if (flags & STREAM_DEPTH)
