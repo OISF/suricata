@@ -1013,7 +1013,6 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
     size_t size = strlen(s);
     char address[1024] = "";
     char *rule_var_port = NULL;
-    char *temp_rule_var_port = NULL;
     int r = 0;
 
     SCLogDebug("head %p, *head %p, negate %d", head, *head, negate);
@@ -1056,6 +1055,9 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
             if (o_set == 1) {
                 o_set = 0;
             } else if (d_set == 1) {
+                char *temp_rule_var_port = NULL,
+                     *alloc_rule_var_port = NULL;
+
                 address[x - 1] = '\0';
 
                 rule_var_port = SCRuleVarsGetConfVar(address,
@@ -1071,11 +1073,12 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                 }
                 temp_rule_var_port = rule_var_port;
                 if (negate == 1 || n_set == 1) {
-                    temp_rule_var_port = SCMalloc(strlen(rule_var_port) + 3);
-                    if (unlikely(temp_rule_var_port == NULL))
+                    alloc_rule_var_port = SCMalloc(strlen(rule_var_port) + 3);
+                    if (unlikely(alloc_rule_var_port == NULL))
                         goto error;
-                    snprintf(temp_rule_var_port, strlen(rule_var_port) + 3,
+                    snprintf(alloc_rule_var_port, strlen(rule_var_port) + 3,
                              "[%s]", rule_var_port);
+                    temp_rule_var_port = alloc_rule_var_port;
                 }
                 r = DetectPortParseDo(head, nhead, temp_rule_var_port,
                                   (negate + n_set) % 2);//negate? negate: n_set);
@@ -1084,8 +1087,8 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
 
                 d_set = 0;
                 n_set = 0;
-                if (temp_rule_var_port != rule_var_port)
-                    SCFree(temp_rule_var_port);
+                if (alloc_rule_var_port != NULL)
+                    SCFree(alloc_rule_var_port);
             } else {
                 address[x - 1] = '\0';
                 SCLogDebug("Parsed port from DetectPortParseDo - %s", address);
@@ -1114,6 +1117,9 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
             SCLogDebug("%s", address);
             x = 0;
             if (d_set == 1) {
+                char *temp_rule_var_port = NULL,
+                     *alloc_rule_var_port = NULL;
+
                 rule_var_port = SCRuleVarsGetConfVar(address,
                                                      SC_RULE_VARS_PORT_GROUPS);
                 if (rule_var_port == NULL)
@@ -1127,11 +1133,12 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                 }
                 temp_rule_var_port = rule_var_port;
                 if ((negate + n_set) % 2) {
-                    temp_rule_var_port = SCMalloc(strlen(rule_var_port) + 3);
-                    if (unlikely(temp_rule_var_port == NULL))
+                    alloc_rule_var_port = SCMalloc(strlen(rule_var_port) + 3);
+                    if (unlikely(alloc_rule_var_port == NULL))
                         goto error;
-                    snprintf(temp_rule_var_port, strlen(rule_var_port) + 3,
+                    snprintf(alloc_rule_var_port, strlen(rule_var_port) + 3,
                             "[%s]", rule_var_port);
+                    temp_rule_var_port = alloc_rule_var_port;
                 }
                 r = DetectPortParseDo(head, nhead, temp_rule_var_port,
                                   (negate + n_set) % 2);
@@ -1139,8 +1146,8 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                     goto error;
 
                 d_set = 0;
-                if (temp_rule_var_port != rule_var_port)
-                    SCFree(temp_rule_var_port);
+                if (alloc_rule_var_port != NULL)
+                    SCFree(alloc_rule_var_port);
             } else {
                 if (!((negate + n_set) % 2)) {
                     r = DetectPortParseInsertString(head,address);
