@@ -89,6 +89,12 @@ ConfGetNodeOrCreate(char *name, int final)
                 goto end;
             }
             node->name = SCStrdup(key);
+            if (unlikely(node->name == NULL)) {
+                ConfNodeFree(node);
+                SCLogWarning(SC_ERR_MEM_ALLOC,
+                    "Failed to allocate memory for configuration.");
+                goto end;
+            }
             node->parent = parent;
             node->final = final;
             TAILQ_INSERT_TAIL(&parent->head, node, next);
@@ -226,6 +232,9 @@ ConfSet(char *name, char *val)
     if (node->val != NULL)
         SCFree(node->val);
     node->val = SCStrdup(val);
+    if (unlikely(node->val == NULL)) {
+        return 0;
+    }
     return 1;
 }
 
@@ -253,6 +262,9 @@ ConfSetFinal(char *name, char *val)
     if (node->val != NULL)
         SCFree(node->val);
     node->val = SCStrdup(val);
+    if (unlikely(node->val == NULL)) {
+        return 0;
+    }
     node->final = 1;
     return 1;
 }
@@ -638,6 +650,9 @@ ConfNodeDump(ConfNode *node, const char *prefix)
     level++;
     TAILQ_FOREACH(child, &node->head, next) {
         name[level] = SCStrdup(child->name);
+        if (unlikely(name[level] == NULL)) {
+            continue;
+        }
         if (prefix == NULL) {
             printf("%s = %s\n", ConfPrintNameArray(name, level),
                 child->val);

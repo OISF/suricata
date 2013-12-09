@@ -211,6 +211,10 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                     return -1;
                 snprintf(seq_node->name, DEFAULT_NAME_LEN, "%d", seq_idx++);
                 seq_node->val = SCStrdup(value);
+                if (unlikely(seq_node->val == NULL)) {
+                    SCFree(seq_node->name);
+                    return -1;
+                }
                 TAILQ_INSERT_TAIL(&parent->head, seq_node, next);
             }
             else {

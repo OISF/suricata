@@ -184,6 +184,8 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
     fd->flags = contentflags;
 
     fd->name = SCStrdup(varname);
+    if (unlikely(fd->name == NULL))
+        goto error;
     fd->idx = VariableNameGetIdx(de_ctx, varname, DETECT_FLOWVAR);
 
     /* Okay so far so good, lets get this into a SigMatch

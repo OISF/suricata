@@ -592,10 +592,11 @@ int PcapLogOpenFileCtx(PcapLogData *pl)
     if (pl->filename != NULL)
         filename = pl->filename;
     else {
-        filename = pl->filename = SCMalloc(PATH_MAX);
-        if (filename == NULL) {
+        filename = SCMalloc(PATH_MAX);
+        if (unlikely(filename == NULL)) {
             return -1;
         }
+        pl->filename = filename;
     }
 
     /** get the time so we can have a filename with seconds since epoch */

@@ -154,7 +154,7 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
                 ssl_state->curr_connp->trec_len = ssl_state->curr_connp->trec_len + 2 * input_len + 1;
                 ssl_state->curr_connp->trec = SCRealloc( ssl_state->curr_connp->trec, ssl_state->curr_connp->trec_len );
             }
-            if (ssl_state->curr_connp->trec == NULL) {
+            if (unlikely(ssl_state->curr_connp->trec == NULL)) {
                 ssl_state->curr_connp->trec_len = 0;
                 /* error, skip packet */
                 parsed += input_len;

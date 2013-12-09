@@ -374,7 +374,15 @@ void RunModeRegisterNewRunMode(int runmode, const char *name,
 
     mode->runmode = runmode;
     mode->name = SCStrdup(name);
+    if (unlikely(mode->name == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate string");
+        exit(EXIT_FAILURE);
+    }
     mode->description = SCStrdup(description);
+    if (unlikely(mode->description == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate string");
+        exit(EXIT_FAILURE);
+    }
     mode->RunModeFunc = RunModeFunc;
 
     return;

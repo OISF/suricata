@@ -1332,6 +1332,10 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
     if (filename == NULL)
         filename = DEFAULT_LOG_FILENAME;
     file_ctx->prefix = SCStrdup(filename);
+    if (unlikely(file_ctx->prefix == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate file prefix");
+        exit(EXIT_FAILURE);
+    }
 
     const char *s_limit = NULL;
     file_ctx->size_limit = DEFAULT_LIMIT;
@@ -1462,9 +1466,10 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
     if (file_ctx->filename != NULL)
         filename = file_ctx->filename;
     else {
-        filename = file_ctx->filename = SCMalloc(PATH_MAX); /* XXX some sane default? */
-        if (filename == NULL)
+        filename = SCMalloc(PATH_MAX); /* XXX some sane default? */
+        if (unlikely(filename == NULL))
             return -1;
+        file_ctx->filename =  filename;
 
         memset(filename, 0x00, PATH_MAX);
     }

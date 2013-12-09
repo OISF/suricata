@@ -895,8 +895,13 @@ static inline void SCLogSetOPFilter(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
 
     if (filter != NULL && strcmp(filter, "") != 0) {
         sc_lc->op_filter = SCStrdup(filter);
+        if (sc_lc->op_filter == NULL) {
+            printf("pcre filter alloc failed\n");
+            return;
+        }
         sc_lc->op_filter_regex = pcre_compile(filter, opts, &ep, &eo, NULL);
         if (sc_lc->op_filter_regex == NULL) {
+            SCFree(sc_lc->op_filter);
             printf("pcre compile of \"%s\" failed at offset %d : %s\n", filter,
                    eo, ep);
             return;

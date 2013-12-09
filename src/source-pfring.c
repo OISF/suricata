@@ -377,6 +377,10 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     ptv->threads = 1;
 
     ptv->interface = SCStrdup(pfconf->iface);
+    if (unlikely(ptv->interface == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate device string");
+        SCReturnInt(TM_ECODE_FAILED);
+    }
 
     ptv->livedev = LiveGetDevice(pfconf->iface);
     if (ptv->livedev == NULL) {
@@ -452,13 +456,17 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
 #ifdef HAVE_PFRING_SET_BPF_FILTER
     if (pfconf->bpf_filter) {
         ptv->bpf_filter = SCStrdup(pfconf->bpf_filter);
+        if (unlikely(ptv->bpf_filter == NULL)) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Set PF_RING bpf filter failed.");
+        } else {
+            SCMutexLock(&pfring_bpf_set_filter_lock);
+            rc = pfring_set_bpf_filter(ptv->pd, ptv->bpf_filter);
+            SCMutexUnlock(&pfring_bpf_set_filter_lock);
 
-        SCMutexLock(&pfring_bpf_set_filter_lock);
-        rc = pfring_set_bpf_filter(ptv->pd, ptv->bpf_filter);
-        SCMutexUnlock(&pfring_bpf_set_filter_lock);
-
-        if (rc < 0) {
-            SCLogInfo("Set PF_RING bpf filter \"%s\" failed.", ptv->bpf_filter);
+            if (rc < 0) {
+                SCLogInfo("Set PF_RING bpf filter \"%s\" failed.",
+                          ptv->bpf_filter);
+            }
         }
     }
 #endif /* HAVE_PFRING_SET_BPF_FILTER */
