@@ -222,6 +222,7 @@ runmode-erf-dag.c runmode-erf-dag.h \
 runmode-erf-file.c runmode-erf-file.h \
 runmode-ipfw.c runmode-ipfw.h \
 runmode-napatech.c runmode-napatech.h \
+runmode-netmap.c runmode-netmap.h \
 runmode-nfq.c runmode-nfq.h \
 runmode-pcap.c runmode-pcap.h \
 runmode-pcap-file.c runmode-pcap-file.h \
@@ -236,6 +237,7 @@ source-erf-file.c source-erf-file.h \
 source-ipfw.c source-ipfw.h \
 source-mpipe.c source-mpipe.h \
 source-napatech.c source-napatech.h \
+source-netmap.c source-netmap.h \
 source-nfq.c source-nfq.h \
 source-pcap.c source-pcap.h \
 source-pcap-file.c source-pcap-file.h \
