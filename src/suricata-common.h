@@ -202,11 +202,15 @@
 #endif
 #endif /* !__CYGWIN__ */
 
+#if CPPCHECK==1
+#define BUG_ON(x) if (((x))) exit(1)
+#else
 #ifdef HAVE_ASSERT_H
 #include <assert.h>
 #define BUG_ON(x) assert(!(x))
 #else
 #define BUG_ON(x)
+#endif
 #endif
 
 /* we need this to stringify the defines which are supplied at compiletime see:

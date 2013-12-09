@@ -24,11 +24,16 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
+#if CPPCHECK==1
+#define likely
+#define unlikely
+#else
 #ifndef likely
 #define likely(expr) __builtin_expect(!!(expr), 1)
 #endif
 #ifndef unlikely
 #define unlikely(expr) __builtin_expect(!!(expr), 0)
+#endif
 #endif
 
 /** from http://en.wikipedia.org/wiki/Memory_ordering

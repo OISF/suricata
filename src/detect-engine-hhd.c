@@ -156,12 +156,15 @@ static uint8_t *DetectEngineHHDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
         }
 
         /* the extra 4 bytes if for ": " and "\r\n" */
-        headers_buffer = SCRealloc(headers_buffer, headers_buffer_len + size1 + size2 + 4);
-        if (unlikely(headers_buffer == NULL)) {
+        uint8_t *new_headers_buffer = SCRealloc(headers_buffer, headers_buffer_len + size1 + size2 + 4);
+        if (unlikely(new_headers_buffer == NULL)) {
+            if (headers_buffer != NULL)
+                SCFree(headers_buffer);
             det_ctx->hhd_buffers[index] = NULL;
             det_ctx->hhd_buffers_len[index] = 0;
             goto end;
         }
+        headers_buffer = new_headers_buffer;
 
         memcpy(headers_buffer + headers_buffer_len, bstr_ptr(h->name), size1);
         headers_buffer_len += size1;

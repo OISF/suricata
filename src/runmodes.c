@@ -245,6 +245,8 @@ void RunModeListRunmodes(void)
 
 void RunModeDispatch(int runmode, const char *custom_mode, DetectEngineCtx *de_ctx)
 {
+    char *local_custom_mode = NULL;
+
     if (custom_mode == NULL) {
         char *val = NULL;
         if (ConfGet("runmode", &val) != 1) {
@@ -300,11 +302,12 @@ void RunModeDispatch(int runmode, const char *custom_mode, DetectEngineCtx *de_c
         if (!strcmp("worker", custom_mode)) {
             SCLogWarning(SC_ERR_RUNMODE, "'worker' mode have been renamed "
                          "to 'workers', please modify your setup.");
-            custom_mode = SCStrdup("workers");
-            if (unlikely(custom_mode == NULL)) {
+            local_custom_mode = SCStrdup("workers");
+            if (unlikely(local_custom_mode == NULL)) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup custom mode");
                 exit(EXIT_FAILURE);
             }
+            custom_mode = local_custom_mode;
         }
     }
 
@@ -335,6 +338,8 @@ void RunModeDispatch(int runmode, const char *custom_mode, DetectEngineCtx *de_c
 
     mode->RunModeFunc(de_ctx);
 
+    if (local_custom_mode != NULL)
+        SCFree(local_custom_mode);
     return;
 }
 
