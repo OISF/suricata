@@ -93,17 +93,16 @@ static int DetectClasstypeParseRawString(char *rawstr, char *out, size_t outsize
 #define MAX_SUBSTRINGS 30
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
+    size_t len = strlen(rawstr);
 
     /* get rid of the double quotes if present */
     if (rawstr[0] == '\"' && rawstr[strlen(rawstr) - 1] == '\"') {
-        if ( (rawstr = SCStrdup(rawstr + 1)) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            goto end;
-        }
+        rawstr++;
         rawstr[strlen(rawstr) - 1] = '\0';
+        len -= 2;
     }
 
-    ret = pcre_exec(regex, regex_study, rawstr, strlen(rawstr), 0, 0, ov, 30);
+    ret = pcre_exec(regex, regex_study, rawstr, len, 0, 0, ov, 30);
     if (ret < 0) {
         SCLogError(SC_ERR_PCRE_MATCH, "Invalid Classtype in Signature");
         goto end;
