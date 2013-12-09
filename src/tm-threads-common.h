@@ -79,6 +79,7 @@ typedef enum {
 #endif
     TMM_RECEIVENAPATECH,
     TMM_DECODENAPATECH,
+    TMM_PACKETLOGGER,
     TMM_SIZE,
 } TmmId;
 
