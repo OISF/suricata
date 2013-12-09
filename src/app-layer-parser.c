@@ -68,6 +68,8 @@
 
 #include "runmodes.h"
 
+static GetActiveTxIdFunc AppLayerGetActiveTxIdFuncPtr = NULL;
+
 struct AppLayerParserThreadCtx_ {
     void *alproto_local_storage[FLOW_PROTO_MAX][ALPROTO_MAX];
 };
@@ -167,6 +169,11 @@ int AppLayerParserSetup(void)
     SCEnter();
 
     memset(&alp_ctx, 0, sizeof(alp_ctx));
+
+    /* set the default tx handler if none was set explicitly */
+    if (AppLayerGetActiveTxIdFuncPtr == NULL) {
+        RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveDetectLog);
+    }
 
     SCReturnInt(0);
 }
@@ -592,12 +599,10 @@ FileContainer *AppLayerParserGetFiles(uint8_t ipproto, AppProto alproto,
     SCReturnPtr(ptr, "FileContainer *");
 }
 
-/**
- *  \brief Get 'active' tx id, meaning the lowest id that still need work.
+/** \brief active TX retrieval for normal ops: so with detection and logging
  *
- *  \retval id tx id
- */
-static uint64_t AppLayerTransactionGetActive(Flow *f, uint8_t flags) {
+ *  \retval tx_id lowest tx_id that still needs work */
+uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags) {
     AppLayerParserProtoCtx *p = &alp_ctx.ctxs[FlowGetProtoMapping(f->proto)][f->alproto];
     uint64_t log_id = f->alparser->log_id;
     uint64_t inspect_id = f->alparser->inspect_id[flags & STREAM_TOSERVER ? 0 : 1];
@@ -606,6 +611,22 @@ static uint64_t AppLayerTransactionGetActive(Flow *f, uint8_t flags) {
     } else {
         return inspect_id;
     }
+}
+
+void RegisterAppLayerGetActiveTxIdFunc(GetActiveTxIdFunc FuncPtr) {
+    BUG_ON(AppLayerGetActiveTxIdFuncPtr != NULL);
+    AppLayerGetActiveTxIdFuncPtr = FuncPtr;
+}
+
+/**
+ *  \brief Get 'active' tx id, meaning the lowest id that still need work.
+ *
+ *  \retval id tx id
+ */
+static uint64_t AppLayerTransactionGetActive(Flow *f, uint8_t flags) {
+    BUG_ON(AppLayerGetActiveTxIdFuncPtr == NULL);
+
+    return AppLayerGetActiveTxIdFuncPtr(f, flags);
 }
 
 #ifndef MIN
@@ -661,7 +682,6 @@ int AppLayerParserGetStateProgressCompletionStatus(uint8_t ipproto, AppProto alp
     SCEnter();
     SCReturnInt(alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
                 StateGetProgressCompletionStatus(direction));
-
 }
 
 int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *event_name,
