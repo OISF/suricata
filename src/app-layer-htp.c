@@ -1975,14 +1975,12 @@ static int HTPCallbackResponse(htp_tx_t *tx) {
     /* Unset the body inspection (if any) */
     hstate->flags &=~ HTP_FLAG_NEW_BODY_SET;
 
-    if (tx != NULL) {
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-        if (htud != NULL) {
-            if (htud->tcflags & HTP_FILENAME_SET) {
-                SCLogDebug("closing file that was being stored");
-                (void)HTPFileClose(hstate, NULL, 0, 0, STREAM_TOCLIENT);
-                htud->tcflags &= ~HTP_FILENAME_SET;
-            }
+    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    if (htud != NULL) {
+        if (htud->tcflags & HTP_FILENAME_SET) {
+            SCLogDebug("closing file that was being stored");
+            (void)HTPFileClose(hstate, NULL, 0, 0, STREAM_TOCLIENT);
+            htud->tcflags &= ~HTP_FILENAME_SET;
         }
     }
 
