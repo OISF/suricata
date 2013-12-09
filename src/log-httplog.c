@@ -263,7 +263,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                     }
                     PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
                                 aft->buffer->size, (uint8_t *)bstr_ptr(tx->request_hostname),
-                                bstr_len(tx->request_hostname));
+                                datalen);
                 } else {
                     MemBufferWriteString(aft->buffer, LOG_HTTP_CF_NONE);
                 }
