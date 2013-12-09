@@ -1326,11 +1326,13 @@ int DetectPortTestConfVars(void)
                        "Port var \"%s\" probably has a sequence(something "
                        "in brackets) value set without any quotes. Please "
                        "quote it using \"..\".", seq_node->name);
+            DetectPortCleanupList(gh);
             goto error;
         }
 
         int r = DetectPortParseDo(&gh, &ghn, seq_node->val, /* start with negate no */0);
         if (r < 0) {
+            DetectPortCleanupList(gh);
             goto error;
         }
 
@@ -1340,6 +1342,8 @@ int DetectPortTestConfVars(void)
                        "with it's value \"%s\".  Port space range is NIL. "
                        "Probably have a !any or a port range that supplies "
                        "a NULL address range", seq_node->name, seq_node->val);
+            DetectPortCleanupList(gh);
+            DetectPortCleanupList(ghn);
             goto error;
         }
 
