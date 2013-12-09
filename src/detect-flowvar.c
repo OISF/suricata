@@ -173,6 +173,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
     fd = SCMalloc(sizeof(DetectFlowvarData));
     if (unlikely(fd == NULL))
         goto error;
+    memset(fd, 0x00, sizeof(*fd));
 
     fd->content = SCMalloc(contentlen);
     if (unlikely(fd->content == NULL))
