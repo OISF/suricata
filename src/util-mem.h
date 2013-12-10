@@ -32,6 +32,17 @@
 
 #include "util-atomic.h"
 
+#if CPPCHECK==1
+#define SCMalloc malloc
+#define SCCalloc calloc
+#define SCRealloc realloc
+#define SCFree free
+#define SCStrdup strdup
+#define SCMallocAligned _mm_malloc
+#define SCFreeAligned _mm_free
+#else /* CPPCHECK */
+
+
 #if defined(_WIN32) || defined(__WIN32)
 #include "mm_malloc.h"
 #endif
@@ -291,6 +302,8 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 #endif /* __WIN32 */
 
 #endif /* DBG_MEM_ALLOC */
+
+#endif /* CPPCHECK */
 
 #endif /* __UTIL_MEM_H__ */
 

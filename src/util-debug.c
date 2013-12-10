@@ -404,7 +404,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
             case SC_LOG_FMT_LINE:
                 temp_fmt[0] = '\0';
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
-                              "%s%d", substr, line);
+                              "%s%u", substr, line);
                 if (cw < 0)
                     goto error;
                 temp += cw;

@@ -1149,14 +1149,20 @@ void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
         len = SCThresholdConfLineLength(fd);
 
         if (len > 0) {
-            if (line == NULL)
-                line = SCRealloc(line, len + 1);
-            else
-                line = SCRealloc(line, strlen(line) + len + 1);
-
-            if (unlikely(line == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-                break;
+            if (line == NULL) {
+                line = SCMalloc(len + 1);
+                if (unlikely(line == NULL)) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                    return;
+                }
+            } else {
+                char *newline = SCRealloc(line, strlen(line) + len + 1);
+                if (unlikely(newline == NULL)) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                    SCFree(line);
+                    return;
+                }
+                line = newline;
             }
 
             if (fgets(line + esc_pos, len + 1, fd) == NULL)
