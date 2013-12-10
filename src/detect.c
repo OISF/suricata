@@ -1122,6 +1122,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         SCReturnInt(0);
     }
 
+    /* Load the Packet's flow early, even though it might not be needed */
+    Flow *pflow = p->flow;
+
     /* grab the protocol state we will detect on */
     if (p->flags & PKT_HAS_FLOW) {
         if (p->flags & PKT_STREAM_EOF) {
@@ -1129,45 +1132,45 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             SCLogDebug("STREAM_EOF set");
         }
 
-        FLOWLOCK_WRLOCK(p->flow);
+        FLOWLOCK_WRLOCK(pflow);
         {
             /* live ruleswap check for flow updates */
-            if (p->flow->de_ctx_id == 0) {
+            if (pflow->de_ctx_id == 0) {
                 /* first time this flow is inspected, set id */
-                p->flow->de_ctx_id = de_ctx->id;
-            } else if (p->flow->de_ctx_id != de_ctx->id) {
+                pflow->de_ctx_id = de_ctx->id;
+            } else if (pflow->de_ctx_id != de_ctx->id) {
                 /* first time we inspect flow with this de_ctx, reset */
-                p->flow->flags &= ~FLOW_SGH_TOSERVER;
-                p->flow->flags &= ~FLOW_SGH_TOCLIENT;
-                p->flow->sgh_toserver = NULL;
-                p->flow->sgh_toclient = NULL;
+                pflow->flags &= ~FLOW_SGH_TOSERVER;
+                pflow->flags &= ~FLOW_SGH_TOCLIENT;
+                pflow->sgh_toserver = NULL;
+                pflow->sgh_toclient = NULL;
                 reset_de_state = 1;
 
-                p->flow->de_ctx_id = de_ctx->id;
-                GenericVarFree(p->flow->flowvar);
-                p->flow->flowvar = NULL;
+                pflow->de_ctx_id = de_ctx->id;
+                GenericVarFree(pflow->flowvar);
+                pflow->flowvar = NULL;
             }
 
             /* set the iponly stuff */
-            if (p->flow->flags & FLOW_TOCLIENT_IPONLY_SET)
+            if (pflow->flags & FLOW_TOCLIENT_IPONLY_SET)
                 p->flowflags |= FLOW_PKT_TOCLIENT_IPONLY_SET;
-            if (p->flow->flags & FLOW_TOSERVER_IPONLY_SET)
+            if (pflow->flags & FLOW_TOSERVER_IPONLY_SET)
                 p->flowflags |= FLOW_PKT_TOSERVER_IPONLY_SET;
 
             /* Get the stored sgh from the flow (if any). Make sure we're not using
              * the sgh for icmp error packets part of the same stream. */
-            if (IP_GET_IPPROTO(p) == p->flow->proto) { /* filter out icmp */
+            if (IP_GET_IPPROTO(p) == pflow->proto) { /* filter out icmp */
                 PACKET_PROFILING_DETECT_START(p, PROF_DETECT_GETSGH);
-                if ((p->flowflags & FLOW_PKT_TOSERVER) && (p->flow->flags & FLOW_SGH_TOSERVER)) {
-                    det_ctx->sgh = p->flow->sgh_toserver;
+                if ((p->flowflags & FLOW_PKT_TOSERVER) && (pflow->flags & FLOW_SGH_TOSERVER)) {
+                    det_ctx->sgh = pflow->sgh_toserver;
                     sms_runflags |= SMS_USE_FLOW_SGH;
-                } else if ((p->flowflags & FLOW_PKT_TOCLIENT) && (p->flow->flags & FLOW_SGH_TOCLIENT)) {
-                    det_ctx->sgh = p->flow->sgh_toclient;
+                } else if ((p->flowflags & FLOW_PKT_TOCLIENT) && (pflow->flags & FLOW_SGH_TOCLIENT)) {
+                    det_ctx->sgh = pflow->sgh_toclient;
                     sms_runflags |= SMS_USE_FLOW_SGH;
                 }
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
 
-                smsg = SigMatchSignaturesGetSmsg(p->flow, p, flags);
+                smsg = SigMatchSignaturesGetSmsg(pflow, p, flags);
 #if 0
                 StreamMsg *tmpsmsg = smsg;
                 while (tmpsmsg) {
@@ -1187,15 +1190,15 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             {
                 alstate = AppLayerGetProtoStateFromPacket(p);
                 alproto = AppLayerGetProtoFromPacket(p);
-                alversion = AppLayerGetStateVersion(p->flow);
+                alversion = AppLayerGetStateVersion(pflow);
                 SCLogDebug("alstate %p, alproto %u", alstate, alproto);
             } else {
                 SCLogDebug("packet doesn't have established flag set (proto %d)", p->proto);
             }
 
-            app_decoder_events = AppLayerFlowHasDecoderEvents(p->flow, flags);
+            app_decoder_events = AppLayerFlowHasDecoderEvents(pflow, flags);
         }
-        FLOWLOCK_UNLOCK(p->flow);
+        FLOWLOCK_UNLOCK(pflow);
 
         if (p->flowflags & FLOW_PKT_TOSERVER) {
             flags |= STREAM_TOSERVER;
@@ -1208,9 +1211,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* reset because of ruleswap */
         if (reset_de_state) {
-            SCMutexLock(&p->flow->de_state_m);
-            DetectEngineStateReset(p->flow->de_state, (STREAM_TOSERVER|STREAM_TOCLIENT));
-            SCMutexUnlock(&p->flow->de_state_m);
+            SCMutexLock(&pflow->de_state_m);
+            DetectEngineStateReset(pflow->de_state, (STREAM_TOSERVER|STREAM_TOCLIENT));
+            SCMutexUnlock(&pflow->de_state_m);
         }
 
         if (((p->flowflags & FLOW_PKT_TOSERVER) && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
@@ -1224,17 +1227,17 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
             /* save in the flow that we scanned this direction... locking is
              * done in the FlowSetIPOnlyFlag function. */
-            FlowSetIPOnlyFlag(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
+            FlowSetIPOnlyFlag(pflow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
 
         } else if (((p->flowflags & FLOW_PKT_TOSERVER) &&
-                   (p->flow->flags & FLOW_TOSERVER_IPONLY_SET)) ||
+                   (pflow->flags & FLOW_TOSERVER_IPONLY_SET)) ||
                    ((p->flowflags & FLOW_PKT_TOCLIENT) &&
-                   (p->flow->flags & FLOW_TOCLIENT_IPONLY_SET)))
+                   (pflow->flags & FLOW_TOCLIENT_IPONLY_SET)))
         {
             /* If we have a drop from IP only module,
              * we will drop the rest of the flow packets
              * This will apply only to inline/IPS */
-            if (p->flow->flags & FLOW_ACTION_DROP)
+            if (pflow->flags & FLOW_ACTION_DROP)
             {
                 alert_flags = PACKET_ALERT_FLAG_DROP_FLOW;
                 PACKET_DROP(p);
@@ -1248,10 +1251,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
 
 #ifdef DEBUG
-        if (p->flow) {
-            SCMutexLock(&p->flow->m);
-            DebugInspectIds(p, p->flow, smsg);
-            SCMutexUnlock(&p->flow->m);
+        if (pflow) {
+            SCMutexLock(&pflow->m);
+            DebugInspectIds(p, pflow, smsg);
+            SCMutexUnlock(&pflow->m);
         }
 #endif
     } else { /* p->flags & PKT_HAS_FLOW */
@@ -1280,9 +1283,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     if ((p->flags & PKT_HAS_FLOW) && alstate != NULL) {
         /* initialize to 0(DE_STATE_MATCH_HAS_NEW_STATE) */
         memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
-        int has_state = DeStateFlowHasInspectableState(p->flow, alproto, alversion, flags);
+        int has_state = DeStateFlowHasInspectableState(pflow, alproto, alversion, flags);
         if (has_state == 1) {
-            DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p, p->flow,
+            DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p, pflow,
                                            flags, alstate, alproto, alversion);
         } else if (has_state == 2) {
             alstate = NULL;
@@ -1320,9 +1323,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
          * and if so, if we actually have any in the flow. If not, the sig
          * can't match and we skip it. */
         if ((p->flags & PKT_HAS_FLOW) && (s->flags & SIG_FLAG_REQUIRE_FLOWVAR)) {
-            FLOWLOCK_RDLOCK(p->flow);
-            int m  = p->flow->flowvar ? 1 : 0;
-            FLOWLOCK_UNLOCK(p->flow);
+            FLOWLOCK_RDLOCK(pflow);
+            int m  = pflow->flowvar ? 1 : 0;
+            FLOWLOCK_UNLOCK(pflow);
 
             /* no flowvars? skip this sig */
             if (m == 0) {
@@ -1409,7 +1412,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                             continue;
                         }
 
-                        if (DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, p->flow, smsg_inspect->data.data, smsg_inspect->data.data_len) == 1) {
+                        if (DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, pflow, smsg_inspect->data.data, smsg_inspect->data.data_len) == 1) {
                             SCLogDebug("match in smsg %p", smsg);
                             pmatch = 1;
                             det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH;
@@ -1440,11 +1443,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                               s->mpm_pattern_id_mod_8)) {
                             goto next;
                         }
-                        if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1) {
+                        if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, flags, alstate, p) != 1) {
                             goto next;
                         }
                     } else {
-                        if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1) {
+                        if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, flags, alstate, p) != 1) {
                             goto next;
                         }
                     }
@@ -1456,12 +1459,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                           s->mpm_pattern_id_mod_8)) {
                         goto next;
                     }
-                    if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1) {
+                    if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, flags, alstate, p) != 1) {
                         goto next;
                     }
 
                 } else {
-                    if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
+                    if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, flags, alstate, p) != 1)
                         goto next;
                 }
             }
@@ -1507,7 +1510,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
              * can store the tx_id with the alert */
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
             state_alert = DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
-                                                 p, p->flow, flags, alstate, alproto, alversion);
+                                                 p, pflow, flags, alstate, alproto, alversion);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
             if (state_alert == 0)
                 goto next;
@@ -1535,7 +1538,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
         alerts++;
 next:
-        DetectFlowvarProcessList(det_ctx, p->flow);
+        DetectFlowvarProcessList(det_ctx, pflow);
         DetectReplaceFree(det_ctx->replist);
         det_ctx->replist = NULL;
         RULE_PROFILING_END(det_ctx, s, smatch);
@@ -1549,7 +1552,7 @@ end:
     /* see if we need to increment the inspect_id and reset the de_state */
     if (alstate != NULL && AppLayerAlprotoSupportsTxs(alproto)) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
-        DeStateUpdateInspectTransactionId(p->flow, flags);
+        DeStateUpdateInspectTransactionId(pflow, flags);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
     }
 
@@ -1580,7 +1583,7 @@ end:
             StreamPatternCleanup(th_v, det_ctx, smsg);
         }
 
-        FLOWLOCK_WRLOCK(p->flow);
+        FLOWLOCK_WRLOCK(pflow);
         if (debuglog_enabled) {
             if (p->alerts.cnt > 0) {
                 AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(p, de_ctx);
@@ -1588,69 +1591,69 @@ end:
         }
 
         if (!(sms_runflags & SMS_USE_FLOW_SGH)) {
-            if ((p->flowflags & FLOW_PKT_TOSERVER) && !(p->flow->flags & FLOW_SGH_TOSERVER)) {
+            if ((p->flowflags & FLOW_PKT_TOSERVER) && !(pflow->flags & FLOW_SGH_TOSERVER)) {
                 /* first time we see this toserver sgh, store it */
-                p->flow->sgh_toserver = det_ctx->sgh;
-                p->flow->flags |= FLOW_SGH_TOSERVER;
+                pflow->sgh_toserver = det_ctx->sgh;
+                pflow->flags |= FLOW_SGH_TOSERVER;
 
                 /* see if this sgh requires us to consider file storing */
-                if (p->flow->sgh_toserver == NULL || p->flow->sgh_toserver->filestore_cnt == 0) {
-                    FileDisableStoring(p->flow, STREAM_TOSERVER);
+                if (pflow->sgh_toserver == NULL || pflow->sgh_toserver->filestore_cnt == 0) {
+                    FileDisableStoring(pflow, STREAM_TOSERVER);
                 }
 
                 /* see if this sgh requires us to consider file magic */
-                if (!FileForceMagic() && (p->flow->sgh_toserver == NULL ||
-                            !(p->flow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILEMAGIC)))
+                if (!FileForceMagic() && (pflow->sgh_toserver == NULL ||
+                            !(pflow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILEMAGIC)))
                 {
                     SCLogDebug("disabling magic for flow");
-                    FileDisableMagic(p->flow, STREAM_TOSERVER);
+                    FileDisableMagic(pflow, STREAM_TOSERVER);
                 }
 
                 /* see if this sgh requires us to consider file md5 */
-                if (!FileForceMd5() && (p->flow->sgh_toserver == NULL ||
-                            !(p->flow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILEMD5)))
+                if (!FileForceMd5() && (pflow->sgh_toserver == NULL ||
+                            !(pflow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILEMD5)))
                 {
                     SCLogDebug("disabling md5 for flow");
-                    FileDisableMd5(p->flow, STREAM_TOSERVER);
+                    FileDisableMd5(pflow, STREAM_TOSERVER);
                 }
 
                 /* see if this sgh requires us to consider filesize */
-                if (p->flow->sgh_toserver == NULL ||
-                            !(p->flow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILESIZE))
+                if (pflow->sgh_toserver == NULL ||
+                            !(pflow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILESIZE))
                 {
                     SCLogDebug("disabling filesize for flow");
-                    FileDisableFilesize(p->flow, STREAM_TOSERVER);
+                    FileDisableFilesize(pflow, STREAM_TOSERVER);
                 }
-            } else if ((p->flowflags & FLOW_PKT_TOCLIENT) && !(p->flow->flags & FLOW_SGH_TOCLIENT)) {
-                p->flow->sgh_toclient = det_ctx->sgh;
-                p->flow->flags |= FLOW_SGH_TOCLIENT;
+            } else if ((p->flowflags & FLOW_PKT_TOCLIENT) && !(pflow->flags & FLOW_SGH_TOCLIENT)) {
+                pflow->sgh_toclient = det_ctx->sgh;
+                pflow->flags |= FLOW_SGH_TOCLIENT;
 
-                if (p->flow->sgh_toclient == NULL || p->flow->sgh_toclient->filestore_cnt == 0) {
-                    FileDisableStoring(p->flow, STREAM_TOCLIENT);
+                if (pflow->sgh_toclient == NULL || pflow->sgh_toclient->filestore_cnt == 0) {
+                    FileDisableStoring(pflow, STREAM_TOCLIENT);
                 }
 
                 /* check if this flow needs magic, if not disable it */
-                if (!FileForceMagic() && (p->flow->sgh_toclient == NULL ||
-                            !(p->flow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILEMAGIC)))
+                if (!FileForceMagic() && (pflow->sgh_toclient == NULL ||
+                            !(pflow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILEMAGIC)))
                 {
                     SCLogDebug("disabling magic for flow");
-                    FileDisableMagic(p->flow, STREAM_TOCLIENT);
+                    FileDisableMagic(pflow, STREAM_TOCLIENT);
                 }
 
                 /* check if this flow needs md5, if not disable it */
-                if (!FileForceMd5() && (p->flow->sgh_toclient == NULL ||
-                            !(p->flow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILEMD5)))
+                if (!FileForceMd5() && (pflow->sgh_toclient == NULL ||
+                            !(pflow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILEMD5)))
                 {
                     SCLogDebug("disabling md5 for flow");
-                    FileDisableMd5(p->flow, STREAM_TOCLIENT);
+                    FileDisableMd5(pflow, STREAM_TOCLIENT);
                 }
 
                 /* see if this sgh requires us to consider filesize */
-                if (p->flow->sgh_toclient == NULL ||
-                            !(p->flow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILESIZE))
+                if (pflow->sgh_toclient == NULL ||
+                            !(pflow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILESIZE))
                 {
                     SCLogDebug("disabling filesize for flow");
-                    FileDisableFilesize(p->flow, STREAM_TOCLIENT);
+                    FileDisableFilesize(pflow, STREAM_TOCLIENT);
                 }
             }
         }
@@ -1659,7 +1662,7 @@ end:
          * we can get rid of them now. */
         StreamMsgReturnListToPool(smsg);
 
-        FLOWLOCK_UNLOCK(p->flow);
+        FLOWLOCK_UNLOCK(pflow);
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_CLEANUP);
 
