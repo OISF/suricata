@@ -183,6 +183,9 @@ if buildidpcap != -1:
     res += WaitForBuildResult(username, buildidpcap, extension="-pcap")
 
 if res == 0:
+    print "You can copy/paste following lines into github PR"
+    print "- PR build: " + BUILDERS_URI + username + "/builds/" + str(buildid)
+    print "- PR pcaps: " + BUILDERS_URI + username + "-pcap/builds/" + str(buildidpcap)
     sys.exit(0)
 else:
     sys.exit(-1)
