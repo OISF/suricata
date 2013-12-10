@@ -19,11 +19,26 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ *
+ * AppLayer TX Logger Output registration functions
  */
 
-#ifndef __LOG_DNSLOG_H__
-#define __LOG_DNSLOG_H__
+#ifndef __OUTPUT_TX_H__
+#define __OUTPUT_TX_H__
 
-void TmModuleLogDnsLogRegister (void);
+#include "decode.h"
 
-#endif /* __LOG_DNSLOG_H__ */
+/** packet logger function pointer type */
+typedef int (*TxLogger)(ThreadVars *, void *thread_data, const Packet *, Flow *f, void *state, void *tx, uint64_t tx_id);
+
+/** packet logger condition function pointer type,
+ *  must return true for packets that should be logged
+ */
+//typedef int (*TxLogCondition)(ThreadVars *, const Packet *);
+
+int OutputRegisterTxLogger(char *name, uint16_t alproto, TxLogger LogFunc, OutputCtx *);
+
+void TmModuleTxLoggerRegister (void);
+
+#endif /* __OUTPUT_PACKET_H__ */
+

@@ -55,42 +55,23 @@
 
 #define OUTPUT_BUFFER_SIZE 65535
 
-TmEcode LogHttpLog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogHttpLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogHttpLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode LogHttpLogThreadInit(ThreadVars *, void *, void **);
 TmEcode LogHttpLogThreadDeinit(ThreadVars *, void *);
 void LogHttpLogExitPrintStats(ThreadVars *, void *);
 static void LogHttpLogDeInitCtx(OutputCtx *);
 
+int LogHttpLogger(ThreadVars *tv, void *thread_data, const Packet *, Flow *f, void *state, void *tx, uint64_t tx_id);
+
 void TmModuleLogHttpLogRegister (void) {
     tmm_modules[TMM_LOGHTTPLOG].name = MODULE_NAME;
     tmm_modules[TMM_LOGHTTPLOG].ThreadInit = LogHttpLogThreadInit;
-    tmm_modules[TMM_LOGHTTPLOG].Func = LogHttpLog;
     tmm_modules[TMM_LOGHTTPLOG].ThreadExitPrintStats = LogHttpLogExitPrintStats;
     tmm_modules[TMM_LOGHTTPLOG].ThreadDeinit = LogHttpLogThreadDeinit;
     tmm_modules[TMM_LOGHTTPLOG].RegisterTests = NULL;
     tmm_modules[TMM_LOGHTTPLOG].cap_flags = 0;
 
-    OutputRegisterModule(MODULE_NAME, "http-log", LogHttpLogInitCtx);
-}
-
-void TmModuleLogHttpLogIPv4Register (void) {
-    tmm_modules[TMM_LOGHTTPLOG4].name = "LogHttpLogIPv4";
-    tmm_modules[TMM_LOGHTTPLOG4].ThreadInit = LogHttpLogThreadInit;
-    tmm_modules[TMM_LOGHTTPLOG4].Func = LogHttpLogIPv4;
-    tmm_modules[TMM_LOGHTTPLOG4].ThreadExitPrintStats = LogHttpLogExitPrintStats;
-    tmm_modules[TMM_LOGHTTPLOG4].ThreadDeinit = LogHttpLogThreadDeinit;
-    tmm_modules[TMM_LOGHTTPLOG4].RegisterTests = NULL;
-}
-
-void TmModuleLogHttpLogIPv6Register (void) {
-    tmm_modules[TMM_LOGHTTPLOG6].name = "LogHttpLogIPv6";
-    tmm_modules[TMM_LOGHTTPLOG6].ThreadInit = LogHttpLogThreadInit;
-    tmm_modules[TMM_LOGHTTPLOG6].Func = LogHttpLogIPv6;
-    tmm_modules[TMM_LOGHTTPLOG6].ThreadExitPrintStats = LogHttpLogExitPrintStats;
-    tmm_modules[TMM_LOGHTTPLOG6].ThreadDeinit = LogHttpLogThreadDeinit;
-    tmm_modules[TMM_LOGHTTPLOG6].RegisterTests = NULL;
+    OutputRegisterTxModule(MODULE_NAME, "http-log", LogHttpLogInitCtx,
+            ALPROTO_HTTP, LogHttpLogger);
 }
 
 #define LOG_HTTP_MAXN_NODES 64
@@ -422,44 +403,15 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
     MemBufferWriteString(aft->buffer, " [**] %"PRIuMAX" bytes", (uintmax_t)tx->response_message_len);
 }
 
-static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-                            PacketQueue *postpq, int ipproto)
+static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, void *data, const Packet *p, Flow *f, HtpState *htp_state, htp_tx_t *tx, uint64_t tx_id, int ipproto)
 {
     SCEnter();
 
-    uint64_t tx_id = 0;
-    uint64_t total_txs = 0;
-    htp_tx_t *tx = NULL;
-    HtpState *htp_state = NULL;
-    int tx_progress = 0;
-    int tx_progress_done_value_ts = 0;
-    int tx_progress_done_value_tc = 0;
     LogHttpLogThread *aft = (LogHttpLogThread *)data;
     LogHttpFileCtx *hlog = aft->httplog_ctx;
     char timebuf[64];
 
-    /* no flow, no htp state */
-    if (p->flow == NULL) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
     /* check if we have HTTP state or not */
-    FLOWLOCK_WRLOCK(p->flow); /* WRITE lock before we updated flow logged id */
-    uint16_t proto = AppLayerGetProtoFromPacket(p);
-    if (proto != ALPROTO_HTTP)
-        goto end;
-
-    htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
-    if (htp_state == NULL) {
-        SCLogDebug("no http state, so no request logging");
-        goto end;
-    }
-
-    total_txs = AppLayerGetTxCnt(ALPROTO_HTTP, htp_state);
-    tx_id = AppLayerTransactionGetLogId(p->flow);
-    tx_progress_done_value_ts = AppLayerGetAlstateProgressCompletionStatus(ALPROTO_HTTP, 0);
-    tx_progress_done_value_tc = AppLayerGetAlstateProgressCompletionStatus(ALPROTO_HTTP, 1);
-
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     char srcip[46], dstip[46];
@@ -496,121 +448,85 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
         dp = p->sp;
     }
 
-    for (; tx_id < total_txs; tx_id++)
-    {
-        tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, tx_id);
-        if (tx == NULL) {
-            SCLogDebug("tx is NULL not logging !!");
-            continue;
-        }
+    SCLogDebug("got a HTTP request and now logging !!");
 
-        if (!(((AppLayerParserStateStore *)p->flow->alparser)->id_flags & APP_LAYER_TRANSACTION_EOF)) {
-            tx_progress = AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0);
-            if (tx_progress < tx_progress_done_value_ts)
-                break;
+    /* reset */
+    MemBufferReset(aft->buffer);
 
-            tx_progress = AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 1);
-            if (tx_progress < tx_progress_done_value_tc)
-                break;
-        }
+    if (hlog->flags & LOG_HTTP_CUSTOM) {
+        LogHttpLogCustom(aft, tx, &p->ts, srcip, sp, dstip, dp);
+    } else {
+        /* time */
+        MemBufferWriteString(aft->buffer, "%s ", timebuf);
 
-        SCLogDebug("got a HTTP request and now logging !!");
-
-        /* reset */
-        MemBufferReset(aft->buffer);
-
-        if (hlog->flags & LOG_HTTP_CUSTOM) {
-            LogHttpLogCustom(aft, tx, &p->ts, srcip, sp, dstip, dp);
+        /* hostname */
+        if (tx->request_hostname != NULL) {
+            PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                    (uint8_t *)bstr_ptr(tx->request_hostname),
+                    bstr_len(tx->request_hostname));
         } else {
-            /* time */
-            MemBufferWriteString(aft->buffer, "%s ", timebuf);
+            MemBufferWriteString(aft->buffer, "<hostname unknown>");
+        }
+        MemBufferWriteString(aft->buffer, " [**] ");
 
-            /* hostname */
-            if (tx->request_hostname != NULL) {
-                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                               (uint8_t *)bstr_ptr(tx->request_hostname),
-                               bstr_len(tx->request_hostname));
-            } else {
-                MemBufferWriteString(aft->buffer, "<hostname unknown>");
-            }
-            MemBufferWriteString(aft->buffer, " [**] ");
+        /* uri */
+        if (tx->request_uri != NULL) {
+            PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                    (uint8_t *)bstr_ptr(tx->request_uri),
+                    bstr_len(tx->request_uri));
+        }
+        MemBufferWriteString(aft->buffer, " [**] ");
 
-            /* uri */
-            if (tx->request_uri != NULL) {
-                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                               (uint8_t *)bstr_ptr(tx->request_uri),
-                               bstr_len(tx->request_uri));
-            }
-            MemBufferWriteString(aft->buffer, " [**] ");
-
-            /* user agent */
-            htp_header_t *h_user_agent = NULL;
-            if (tx->request_headers != NULL) {
-                h_user_agent = htp_table_get_c(tx->request_headers, "user-agent");
-            }
-            if (h_user_agent != NULL) {
-                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                                (uint8_t *)bstr_ptr(h_user_agent->value),
-                                bstr_len(h_user_agent->value));
-            } else {
-                MemBufferWriteString(aft->buffer, "<useragent unknown>");
-            }
-            if (hlog->flags & LOG_HTTP_EXTENDED) {
-                LogHttpLogExtended(aft, tx);
-            }
-
-            /* ip/tcp header info */
-            MemBufferWriteString(aft->buffer,
-                                 " [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
-                                 srcip, sp, dstip, dp);
+        /* user agent */
+        htp_header_t *h_user_agent = NULL;
+        if (tx->request_headers != NULL) {
+            h_user_agent = htp_table_get_c(tx->request_headers, "user-agent");
+        }
+        if (h_user_agent != NULL) {
+            PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                    (uint8_t *)bstr_ptr(h_user_agent->value),
+                    bstr_len(h_user_agent->value));
+        } else {
+            MemBufferWriteString(aft->buffer, "<useragent unknown>");
+        }
+        if (hlog->flags & LOG_HTTP_EXTENDED) {
+            LogHttpLogExtended(aft, tx);
         }
 
-        aft->uri_cnt ++;
-
-        SCMutexLock(&hlog->file_ctx->fp_mutex);
-        (void)MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
-        fflush(hlog->file_ctx->fp);
-        SCMutexUnlock(&hlog->file_ctx->fp_mutex);
-
-        AppLayerTransactionUpdateLogId(p->flow);
+        /* ip/tcp header info */
+        MemBufferWriteString(aft->buffer,
+                " [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
+                srcip, sp, dstip, dp);
     }
+
+    aft->uri_cnt ++;
+
+    SCMutexLock(&hlog->file_ctx->fp_mutex);
+    (void)MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
+    fflush(hlog->file_ctx->fp);
+    SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 
 end:
-    FLOWLOCK_UNLOCK(p->flow);
-    SCReturnInt(TM_ECODE_OK);
+    SCReturnInt(0);
 
 }
 
-TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    return LogHttpLogIPWrapper(tv, p, data, pq, postpq, AF_INET);
-}
-
-TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    return LogHttpLogIPWrapper(tv, p, data, pq, postpq, AF_INET6);
-}
-
-TmEcode LogHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+int LogHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {
     SCEnter();
-
-    /* no flow, no htp state */
-    if (p->flow == NULL) {
-        SCReturnInt(TM_ECODE_OK);
-    }
 
     if (!(PKT_IS_TCP(p))) {
         SCReturnInt(TM_ECODE_OK);
     }
 
+    int r = 0;
     if (PKT_IS_IPV4(p)) {
-        SCReturnInt(LogHttpLogIPv4(tv, p, data, pq, postpq));
+        r = LogHttpLogIPWrapper(tv, thread_data, p, f, (HtpState *)state, (htp_tx_t *)tx, tx_id, AF_INET);
     } else if (PKT_IS_IPV6(p)) {
-        SCReturnInt(LogHttpLogIPv6(tv, p, data, pq, postpq));
+        r = LogHttpLogIPWrapper(tv, thread_data, p, f, (HtpState *)state, (htp_tx_t *)tx, tx_id, AF_INET6);
     }
 
-    SCReturnInt(TM_ECODE_OK);
+    SCReturnInt(r);
 }
 
 TmEcode LogHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
