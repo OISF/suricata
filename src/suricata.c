@@ -1887,6 +1887,8 @@ int main(int argc, char **argv)
         if (engine_analysis) {
             exit(EXIT_SUCCESS);
         }
+
+        SCThresholdConfInitContext(de_ctx,NULL);
     }
 
     /* registering singal handlers we use.  We register usr2 here, so that one
@@ -1898,7 +1900,6 @@ int main(int argc, char **argv)
     SCCudaPBSetUpQueuesAndBuffers();
 #endif /* __SC_CUDA_SUPPORT__ */
 
-    SCThresholdConfInitContext(de_ctx,NULL);
     SCAsn1LoadConfig();
 
     CoredumpLoadConfig();
@@ -2019,6 +2020,7 @@ int main(int argc, char **argv)
             if (de_ctx->failure_fatal)
                 exit(EXIT_FAILURE);
         }
+        SCThresholdConfInitContext(de_ctx,NULL);
         TmThreadActivateDummySlot();
         SCLogInfo("Signature(s) loaded, Detect thread(s) activated.");
     }
