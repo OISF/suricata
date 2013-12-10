@@ -650,17 +650,7 @@
 
     AS_IF([test "x$enable_unixsocket" = "xyes"], [AC_DEFINE([BUILD_UNIX_SOCKET], [1], [Unix socket support enabled])])
 
-    #enable support for NFQUEUE
-    AC_ARG_ENABLE(nfqueue,
-           AS_HELP_STRING([--enable-nfqueue], [Enable NFQUEUE support for inline IDP]),,[enable_nfqueue=no])
-    AS_IF([test "x$enable_nfqueue" = "xyes"], [
-        CFLAGS="$CFLAGS -DNFQ"
-
   # libnfnetlink
-    case $host in
-    *-*-mingw32*)
-        ;;
-    *)
         AC_ARG_WITH(libnfnetlink_includes,
                 [  --with-libnfnetlink-includes=DIR  libnfnetlink include directory],
                 [with_libnfnetlink_includes="$withval"],[with_libnfnetlink_includes=no])
@@ -691,8 +681,12 @@
             echo
             exit 1
         fi
-        ;;
-    esac
+
+    #enable support for NFQUEUE
+    AC_ARG_ENABLE(nfqueue,
+           AS_HELP_STRING([--enable-nfqueue], [Enable NFQUEUE support for inline IDP]),,[enable_nfqueue=no])
+    AS_IF([test "x$enable_nfqueue" = "xyes"], [
+        CFLAGS="$CFLAGS -DNFQ"
 
   #libnetfilter_queue
     AC_ARG_WITH(libnetfilter_queue_includes,
@@ -775,6 +769,44 @@
         exit 1
     fi
   ])
+
+  # libnetfilter_log
+    AC_ARG_ENABLE(nflog,
+            AS_HELP_STRING([--enable-nflog],[Enable libnetfilter_log support]),
+                           [ enable_nflog="yes"],
+                           [ enable_nflog="no"])
+    AC_ARG_WITH(libnetfilter_log_includes,
+            [  --with-libnetfilter_log-includes=DIR  libnetfilter_log include directory],
+            [with_libnetfilter_log_includes="$withval"],[with_libnetfilter_log_includes="no"])
+    AC_ARG_WITH(libnetfilter_log_libraries,
+            [  --with-libnetfilter_log-libraries=DIR    libnetfilter_log library directory],
+            [with_libnetfilter_log_libraries="$withval"],[with_libnetfilter_log_libraries="no"])
+
+    if test "$enable_nflog" = "yes"; then
+        if test "$with_libnetfilter_log_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_libnetfilter_log_includes}"
+        fi
+
+        AC_CHECK_HEADER(libnetfilter_log/libnetfilter_log.h,,[AC_ERROR(libnetfilter_log.h not found ...)])
+
+        if test "$with_libnetfilter_log_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS}  -L${with_libnetfilter_log_libraries}"
+        fi
+
+        NFLOG=""
+        AC_CHECK_LIB(netfilter_log, nflog_open,, NFLOG="no")
+
+        if test "$NFLOG" = "no"; then
+            echo
+            echo "   ERROR!  libnetfilter_log library not found, go get it"
+            echo "   from http://www.netfilter.org."
+            echo
+            exit 1
+        else
+            AC_DEFINE([HAVE_NFLOG],[1],[nflog available])
+            enable_nflog="yes"
+        fi
+    fi
 
   # prelude
     AC_ARG_ENABLE(prelude,
@@ -1636,6 +1668,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}
   PF_RING support:                         ${enable_pfring}
   NFQueue support:                         ${enable_nfqueue}
+  NFLOG support:                           ${enable_nflog}
   IPFW support:                            ${enable_ipfw}
   DAG enabled:                             ${enable_dag}
   Napatech enabled:                        ${enable_napatech}
