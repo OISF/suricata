@@ -27,6 +27,7 @@
 #include "detect.h"
 #include "detect-flowbits.h"
 #include "detect-flowint.h"
+#include "detect-parse.h"
 #include "detect-engine-sigorder.h"
 #include "detect-pcre.h"
 
@@ -160,11 +161,11 @@ static inline int SCSigGetFlowbitsType(Signature *sig)
         sm = sm->next;
     }
 
-    if (read == 1 && write == 0) {
+    if (read > 0 && write == 0) {
         flowbits_user_type = DETECT_FLOWBITS_TYPE_READ;
-    } else if (read == 0 && write == 1) {
+    } else if (read == 0 && write > 0) {
         flowbits_user_type = DETECT_FLOWBITS_TYPE_SET;
-    } else if (read == 1 && write == 1) {
+    } else if (read > 0 && write > 0) {
         flowbits_user_type = DETECT_FLOWBITS_TYPE_SET_READ;
     }
 
@@ -220,11 +221,11 @@ static inline int SCSigGetFlowintType(Signature *sig)
         sm = sm->next;
     }
 
-    if (read == 1 && write == 0) {
+    if (read > 0 && write == 0) {
         flowint_user_type = DETECT_FLOWINT_TYPE_READ;
-    } else if (read == 0 && write == 1) {
+    } else if (read == 0 && write > 0) {
         flowint_user_type = DETECT_FLOWINT_TYPE_SET;
-    } else if (read == 1 && write == 1) {
+    } else if (read > 0 && write > 0) {
         flowint_user_type = DETECT_FLOWINT_TYPE_SET_READ;
     }
 
@@ -274,11 +275,11 @@ static inline int SCSigGetFlowvarType(Signature *sig)
         sm = sm->next;
     }
 
-    if (read == 1 && write == 0) {
+    if (read > 0 && write == 0) {
         type = DETECT_FLOWVAR_TYPE_READ;
-    } else if (read == 0 && write == 1) {
+    } else if (read == 0 && write > 0) {
         type = DETECT_FLOWVAR_TYPE_SET;
-    } else if (read == 1 && write == 1) {
+    } else if (read > 0 && write > 0) {
         type = DETECT_FLOWVAR_TYPE_SET_READ;
     }
 
@@ -326,11 +327,11 @@ static inline int SCSigGetPktvarType(Signature *sig)
         sm = sm->next;
     }
 
-    if (read == 1 && write == 0) {
+    if (read > 0 && write == 0) {
         type = DETECT_PKTVAR_TYPE_READ;
-    } else if (read == 0 && write == 1) {
+    } else if (read == 0 && write > 0) {
         type = DETECT_PKTVAR_TYPE_SET;
-    } else if (read == 1 && write == 1) {
+    } else if (read > 0 && write > 0) {
         type = DETECT_PKTVAR_TYPE_SET_READ;
     }
 
@@ -2050,6 +2051,57 @@ end:
     return result;
 }
 
+/** \test Bug 1061 */
+static int SCSigOrderingTest13(void)
+{
+    int result = 0;
+    Signature *sig = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flowbits:isset,bit1; flowbits:set,bit2; flowbits:set,bit3; sid:6;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flowbits:set,bit1; flowbits:set,bit2; sid:7;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flowbits:isset,bit1; flowbits:isset,bit2; flowbits:isset,bit3; sid:5;)");
+    if (sig == NULL) {
+        goto end;
+    }
+
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
+    SCSigOrderSignatures(de_ctx);
+
+    result = 1;
+
+#ifdef DEBUG
+    sig = de_ctx->sig_list;
+    while (sig != NULL) {
+        printf("sid: %d\n", sig->id);
+        sig = sig->next;
+    }
+#endif
+
+    sig = de_ctx->sig_list;
+
+    result &= (sig->id == 7);
+    sig = sig->next;
+    result &= (sig->id == 6);
+    sig = sig->next;
+    result &= (sig->id == 5);
+    sig = sig->next;
+
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 #endif
 
 void SCSigRegisterSignatureOrderingTests(void)
@@ -2068,6 +2120,7 @@ void SCSigRegisterSignatureOrderingTests(void)
     UtRegisterTest("SCSigOrderingTest10", SCSigOrderingTest10, 1);
     UtRegisterTest("SCSigOrderingTest11", SCSigOrderingTest11, 1);
     UtRegisterTest("SCSigOrderingTest12", SCSigOrderingTest12, 1);
+    UtRegisterTest("SCSigOrderingTest13", SCSigOrderingTest13, 1);
 #endif
 
     return;
