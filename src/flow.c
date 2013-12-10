@@ -177,7 +177,7 @@ void FlowSetIPOnlyFlagNoLock(Flow *f, char direction)
  *  \retval 0 to_server
  *  \retval 1 to_client
  */
-int FlowGetPacketDirection(Flow *f, Packet *p)
+int FlowGetPacketDirection(Flow *f, const Packet *p)
 {
     if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP || p->proto == IPPROTO_SCTP) {
         if (!(CMP_PORT(p->sp,p->dp))) {
@@ -214,7 +214,7 @@ int FlowGetPacketDirection(Flow *f, Packet *p)
  *  \retval 1 true
  *  \retval 0 false
  */
-static inline int FlowUpdateSeenFlag(Packet *p)
+static inline int FlowUpdateSeenFlag(const Packet *p)
 {
     if (PKT_IS_ICMPV4(p)) {
         if (ICMPV4_IS_ERROR_MSG(p)) {
@@ -232,7 +232,7 @@ static inline int FlowUpdateSeenFlag(Packet *p)
  *  \param tv threadvars
  *  \param p packet to handle flow for
  */
-void FlowHandlePacket (ThreadVars *tv, Packet *p)
+void FlowHandlePacket(ThreadVars *tv, Packet *p)
 {
     /* Get this packet's flow from the hash. FlowHandlePacket() will setup
      * a new flow if nescesary. If we get NULL, we're out of flow memory.
@@ -241,11 +241,14 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
     if (f == NULL)
         return;
 
+    /* Point the Packet at the Flow */
+    FlowReference(&p->flow, f);
+
     /* update the last seen timestamp of this flow */
     f->lastts_sec = p->ts.tv_sec;
 
     /* update flags and counters */
-    if (FlowGetPacketDirection(f,p) == TOSERVER) {
+    if (FlowGetPacketDirection(f, p) == TOSERVER) {
         if (FlowUpdateSeenFlag(p)) {
             f->flags |= FLOW_TO_DST_SEEN;
         }
