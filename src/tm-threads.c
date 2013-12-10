@@ -1013,7 +1013,7 @@ static inline TmSlot * _TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *
 }
 
 void TmSlotFree(TmSlot *tms) {
-    SC_ATOMIC_DESTROY(slot->slot_data);
+    SC_ATOMIC_DESTROY(tms->slot_data);
     SCFree(tms);
 }
 
