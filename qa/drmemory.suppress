@@ -10,33 +10,6 @@ libmagic.so.1!magic_load
 suricata!main
 
 LEAK
-name=bug #979 (1)
-suricata!B2gAddPattern
-suricata!B2gAddPatternCS
-suricata!AlpProtoAdd
-suricata!Register*Parsers
-suricata!RegisterAppLayerParsers
-suricata!AppLayerDetectProtoThreadInit
-
-LEAK
-name=bug #979 (2)
-suricata!B2gAddPattern
-suricata!B2gAddPatternCS
-suricata!AlpProtoAdd
-suricata!RegisterAppLayerParsers
-suricata!AppLayerDetectProtoThreadInit
-
-LEAK
-name=bug #979 (3)
-*
-suricata!AppLayerInsertNewProbingParserSingleElement
-suricata!AppLayerInsertNewProbingParserElement
-suricata!AppLayerRegisterProbingParser
-suricata!RegisterSSLParsers
-suricata!RegisterAppLayerParsers
-suricata!AppLayerDetectProtoThreadInit
-
-LEAK
 name=bug #978
 *
 suricata!SMTPLocalStorageAlloc
