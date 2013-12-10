@@ -993,35 +993,28 @@ static int AppLayerDoParse(void *local_data, Flow *f,
     SCReturnInt(retval);
 }
 
+#ifndef MIN
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#endif
+
 /**
  * \brief remove obsolete (inspected and logged) transactions
  */
-static void AppLayerTransactionsCleanup(AppLayerProto *p, AppLayerParserStateStore *parser_state_store, void *app_layer_state)
+static void AppLayerTransactionsCleanup(Flow *f)
 {
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
+    AppLayerProto *p = &al_proto_table[f->alproto];
     if (p->StateTransactionFree == NULL)
         return;
 
-    uint64_t inspect = 0, log = 0;
-    if (parser_state_store->inspect_id[0] < parser_state_store->inspect_id[1])
-        inspect = parser_state_store->inspect_id[0];
-    else
-        inspect = parser_state_store->inspect_id[1];
-    log = parser_state_store->log_id;
+    uint64_t tx_id_ts = AppLayerTransactionGetActive(f, STREAM_TOSERVER);
+    uint64_t tx_id_tc = AppLayerTransactionGetActive(f, STREAM_TOCLIENT);
 
-    SCLogDebug("inspect %"PRIu64", log %"PRIu64", logger: %s",
-            inspect, log, p->logger ? "true" : "false");
-
-    if (p->logger == TRUE) {
-        uint64_t min = log < inspect ? log : inspect;
-        if (min > 0) {
-            SCLogDebug("freeing %"PRIu64" (with logger) %p", min - 1, p->StateTransactionFree);
-            p->StateTransactionFree(app_layer_state, min - 1);
-        }
-    } else {
-        if (inspect > 0) {
-            SCLogDebug("freeing %"PRIu64" (no logger) %p", inspect - 1, p->StateTransactionFree);
-            p->StateTransactionFree(app_layer_state, inspect - 1);
-        }
+    uint64_t min = MIN(tx_id_ts, tx_id_tc);
+    if (min > 0) {
+        SCLogDebug("freeing %"PRIu64" %p", min - 1, p->StateTransactionFree);
+        p->StateTransactionFree(f->alstate, min - 1);
     }
 }
 
@@ -1160,7 +1153,7 @@ int AppLayerParse(void *local_data, Flow *f, uint8_t proto,
     }
 
     /* next, see if we can get rid of transactions now */
-    AppLayerTransactionsCleanup(p, parser_state_store, app_layer_state);
+    AppLayerTransactionsCleanup(f);
 
     if (parser_state->flags & APP_LAYER_PARSER_EOF) {
         SCLogDebug("eof, flag Transaction id's");
