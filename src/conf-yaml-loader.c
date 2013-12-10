@@ -205,15 +205,32 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
             SCLogDebug("event.type=YAML_SCALAR_EVENT; state=%d; value=%s; "
                 "tag=%s; inseq=%d", state, value, tag, inseq);
             if (inseq) {
-                ConfNode *seq_node = ConfNodeNew();
-                seq_node->name = SCCalloc(1, DEFAULT_NAME_LEN);
-                if (seq_node->name == NULL)
-                    return -1;
-                snprintf(seq_node->name, DEFAULT_NAME_LEN, "%d", seq_idx++);
-                seq_node->val = SCStrdup(value);
-                if (unlikely(seq_node->val == NULL)) {
-                    SCFree(seq_node->name);
-                    return -1;
+                char sequence_node_name[DEFAULT_NAME_LEN];
+                snprintf(sequence_node_name, DEFAULT_NAME_LEN, "%d", seq_idx++);
+                ConfNode *seq_node = ConfNodeLookupChild(parent,
+                    sequence_node_name);
+                if (seq_node != NULL) {
+                    /* The sequence node has already been set, probably
+                     * from the command line.  Remove it so it gets
+                     * re-added in the expected order for iteration.
+                     */
+                    TAILQ_REMOVE(&parent->head, seq_node, next);
+                }
+                else {
+                    seq_node = ConfNodeNew();
+                    if (unlikely(seq_node == NULL)) {
+                        return -1;
+                    }
+                    seq_node->name = SCStrdup(sequence_node_name);
+                    if (unlikely(seq_node->name == NULL)) {
+                        SCFree(seq_node);
+                        return -1;
+                    }
+                    seq_node->val = SCStrdup(value);
+                    if (unlikely(seq_node->val == NULL)) {
+                        SCFree(seq_node->name);
+                        return -1;
+                    }
                 }
                 TAILQ_INSERT_TAIL(&parent->head, seq_node, next);
             }
@@ -302,12 +319,29 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
         else if (event.type == YAML_MAPPING_START_EVENT) {
             SCLogDebug("event.type=YAML_MAPPING_START_EVENT; state=%d", state);
             if (inseq) {
-                ConfNode *seq_node = ConfNodeNew();
-                seq_node->is_seq = 1;
-                seq_node->name = SCCalloc(1, DEFAULT_NAME_LEN);
-                if (seq_node->name == NULL)
-                    return -1;
-                snprintf(seq_node->name, DEFAULT_NAME_LEN, "%d", seq_idx++);
+                char sequence_node_name[DEFAULT_NAME_LEN];
+                snprintf(sequence_node_name, DEFAULT_NAME_LEN, "%d", seq_idx++);
+                ConfNode *seq_node = ConfNodeLookupChild(node,
+                    sequence_node_name);
+                if (seq_node != NULL) {
+                    /* The sequence node has already been set, probably
+                     * from the command line.  Remove it so it gets
+                     * re-added in the expected order for iteration.
+                     */
+                    TAILQ_REMOVE(&node->head, seq_node, next);
+                }
+                else {
+                    seq_node = ConfNodeNew();
+                    if (unlikely(seq_node == NULL)) {
+                        return -1;
+                    }
+                    seq_node->name = SCStrdup(sequence_node_name);
+                    if (unlikely(seq_node->name == NULL)) {
+                        SCFree(seq_node);
+                        return -1;
+                    }
+                    seq_node->is_seq = 1;
+                }
                 TAILQ_INSERT_TAIL(&node->head, seq_node, next);
                 if (ConfYamlParse(parser, seq_node, 0) != 0)
                     goto fail;
