@@ -1122,8 +1122,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         SCReturnInt(0);
     }
 
-    /* Load the Packet's flow early, even though it might not be needed */
-    Flow *pflow = p->flow;
+    /* Load the Packet's flow early, even though it might not be needed.
+     * Mark as a constant pointer, although the flow can change.
+     */
+    Flow * const pflow = p->flow;
 
     /* grab the protocol state we will detect on */
     if (p->flags & PKT_HAS_FLOW) {
