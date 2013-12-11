@@ -59,9 +59,10 @@ typedef struct SCACTileOutputTable_ {
     uint32_t no_of_entries;
 } SCACTileOutputTable;
 
+struct SCACTileSearchCtx_;
+
 /* Reordered for Tilera cache */
 typedef struct SCACTileCtx_ {
-    /* This stuff is used at search time */
 
     /* Convert input character to matching alphabet */
     uint8_t translate_table[256];
@@ -76,7 +77,7 @@ typedef struct SCACTileCtx_ {
      * number of states could make the next state could be 16 bits or
      * 32 bits.
      */
-    uint32_t (*search)(struct SCACTileCtx_ *ctx, struct MpmThreadCtx_ *,
+    uint32_t (*search)(struct SCACTileSearchCtx_ *ctx, struct MpmThreadCtx_ *,
                        PatternMatcherQueue *, uint8_t *, uint16_t);
 
 
@@ -108,6 +109,38 @@ typedef struct SCACTileCtx_ {
     uint16_t alphabet_size;
 
 } SCACTileCtx;
+
+
+/* Only the stuff used at search time. This
+ * structure is created after all the patterns are added.
+ */
+typedef struct SCACTileSearchCtx_ {
+
+    /* Specialized search function based on size of data in delta
+     * tables.  The alphabet size determines address shifting and the
+     * number of states could make the next state could be 16 bits or
+     * 32 bits.
+     */
+    uint32_t (*search)(struct SCACTileSearchCtx_ *ctx, struct MpmThreadCtx_ *,
+                       PatternMatcherQueue *, uint8_t *, uint16_t);
+
+    /* Convert input character to matching alphabet */
+    uint8_t translate_table[256];
+
+    /* the all important memory hungry state_table */
+    union {
+        SC_AC_TILE_STATE_TYPE_U16 *state_table_u16;
+        SC_AC_TILE_STATE_TYPE_U32 (*state_table_u32)[256];
+    };
+
+    SCACTileOutputTable *output_table;
+    SCACTilePatternList *pid_pat_list;
+
+    /* MPM Creation data */
+    SCACTileCtx *init_ctx;
+
+} SCACTileSearchCtx;
+
 
 typedef struct SCACTileThreadCtx_ {
     /* the total calls we make to the search function */

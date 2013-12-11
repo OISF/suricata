@@ -101,24 +101,27 @@ void SCACTilePrintInfo(MpmCtx *mpm_ctx);
 void SCACTilePrintSearchStats(MpmThreadCtx *mpm_thread_ctx);
 void SCACTileRegisterTests(void);
 
-uint32_t SCACTileSearchLarge(SCACTileCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+uint32_t SCACTileSearchLarge(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                              PatternMatcherQueue *pmq,
                              uint8_t *buf, uint16_t buflen);
-uint32_t SCACTileSearchSmall256(SCACTileCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+uint32_t SCACTileSearchSmall256(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                 PatternMatcherQueue *pmq,
                                 uint8_t *buf, uint16_t buflen);
-uint32_t SCACTileSearchSmall128(SCACTileCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+uint32_t SCACTileSearchSmall128(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                 PatternMatcherQueue *pmq,
                                 uint8_t *buf, uint16_t buflen);
-uint32_t SCACTileSearchSmall64(SCACTileCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+uint32_t SCACTileSearchSmall64(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                PatternMatcherQueue *pmq,
                                uint8_t *buf, uint16_t buflen);
-uint32_t SCACTileSearchSmall32(SCACTileCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+uint32_t SCACTileSearchSmall32(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                PatternMatcherQueue *pmq,
                                uint8_t *buf, uint16_t buflen);
-uint32_t SCACTileSearchSmall16(SCACTileCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+uint32_t SCACTileSearchSmall16(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                PatternMatcherQueue *pmq,
                                uint8_t *buf, uint16_t buflen);
+
+
+static void SCACTileDestroyInitCtx(MpmCtx *mpm_ctx);
 
 
 /* a placeholder to denote a failure transition in the goto table */
@@ -356,10 +359,8 @@ static inline void SCACTileHistogramAlphabet(SCACTileCtx *ctx,
 
 /* Use Alpahbet Histogram to create compressed alphabet.
  */
-static inline void SCACTileInitTranslateTable(MpmCtx *mpm_ctx)
+static inline void SCACTileInitTranslateTable(SCACTileCtx *ctx)
 {
-    SCACTileCtx *ctx = (SCACTileCtx *)mpm_ctx->ctx;
-
     /* Count the number of ASCII values actually appearing in any
      * pattern.  Create compressed mapping table with unused
      * characters mapping to zero.
@@ -413,7 +414,8 @@ static int SCACTileAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
                               uint16_t offset, uint16_t depth, uint32_t pid,
                               uint32_t sid, uint8_t flags)
 {
-    SCACTileCtx *ctx = (SCACTileCtx *)mpm_ctx->ctx;
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+    SCACTileCtx *ctx = search_ctx->init_ctx;
 
     SCLogDebug("Adding pattern for ctx %p, patlen %"PRIu16" and pid %" PRIu32,
                ctx, patlen, pid);
@@ -511,7 +513,8 @@ error:
  */
 static inline int SCACTileInitNewState(MpmCtx *mpm_ctx)
 {
-    SCACTileCtx *ctx = (SCACTileCtx *)mpm_ctx->ctx;
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+    SCACTileCtx *ctx = search_ctx->init_ctx;
     int aa = 0;
     int size = 0;
 
@@ -550,7 +553,9 @@ static inline int SCACTileInitNewState(MpmCtx *mpm_ctx)
  */
 static void SCACTileSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
 {
-    SCACTileCtx *ctx = (SCACTileCtx *)mpm_ctx->ctx;
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+    SCACTileCtx *ctx = search_ctx->init_ctx;
+
     SCACTileOutputTable *output_state = &ctx->output_table[state];
     uint32_t i = 0;
 
@@ -584,7 +589,9 @@ static void SCACTileSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
 static inline void SCACTileEnter(uint8_t *pattern, uint16_t pattern_len,
                                  uint32_t pid, MpmCtx *mpm_ctx)
 {
-    SCACTileCtx *ctx = (SCACTileCtx *)mpm_ctx->ctx;
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+    SCACTileCtx *ctx = search_ctx->init_ctx;
+
     int32_t state = 0;
     int32_t newstate = 0;
     int i = 0;
@@ -626,7 +633,9 @@ static inline void SCACTileEnter(uint8_t *pattern, uint16_t pattern_len,
  */
 static inline void SCACTileCreateGotoTable(MpmCtx *mpm_ctx)
 {
-    SCACTileCtx *ctx = (SCACTileCtx *)mpm_ctx->ctx;
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+    SCACTileCtx *ctx = search_ctx->init_ctx;
+
     uint32_t i = 0;
 
     /* add each pattern to create the goto table */
@@ -704,7 +713,9 @@ static inline void SCACTileClubOutputStates(int32_t dst_state,
                                             int32_t src_state,
                                             MpmCtx *mpm_ctx)
 {
-    SCACTileCtx *ctx = (SCACTileCtx *)mpm_ctx->ctx;
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+    SCACTileCtx *ctx = search_ctx->init_ctx;
+
     uint32_t i = 0;
     uint32_t j = 0;
 
@@ -744,7 +755,9 @@ static inline void SCACTileClubOutputStates(int32_t dst_state,
  */
 static inline void SCACTileCreateFailureTable(MpmCtx *mpm_ctx)
 {
-    SCACTileCtx *ctx = (SCACTileCtx *)mpm_ctx->ctx;
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+    SCACTileCtx *ctx = search_ctx->init_ctx;
+
     int aa = 0;
     int32_t state = 0;
     int32_t r_state = 0;
@@ -802,7 +815,9 @@ static inline void SCACTileCreateFailureTable(MpmCtx *mpm_ctx)
  */
 static inline void SCACTileCreateDeltaTable(MpmCtx *mpm_ctx)
 {
-    SCACTileCtx *ctx = (SCACTileCtx *)mpm_ctx->ctx;
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+    SCACTileCtx *ctx = search_ctx->init_ctx;
+
     int aa = 0;
     int32_t r_state = 0;
 
@@ -914,7 +929,9 @@ static inline void SCACTileCreateDeltaTable(MpmCtx *mpm_ctx)
 
 static inline void SCACTileClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
 {
-    SCACTileCtx *ctx = (SCACTileCtx*)mpm_ctx->ctx;
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+    SCACTileCtx *ctx = search_ctx->init_ctx;
+
     int aa = 0;
     uint32_t state = 0;
     uint32_t temp_state = 0;
@@ -944,7 +961,9 @@ static inline void SCACTileClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx
 
 static inline void SCACTileInsertCaseSensitiveEntriesForPatterns(MpmCtx *mpm_ctx)
 {
-    SCACTileCtx *ctx = (SCACTileCtx *)mpm_ctx->ctx;
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+    SCACTileCtx *ctx = search_ctx->init_ctx;
+
     uint32_t state = 0;
     uint32_t k = 0;
 
@@ -966,7 +985,9 @@ static inline void SCACTileInsertCaseSensitiveEntriesForPatterns(MpmCtx *mpm_ctx
 #if 0
 static void SCACTilePrintDeltaTable(MpmCtx *mpm_ctx)
 {
-    SCACTileCtx *ctx = (SCACTileCtx *)mpm_ctx->ctx;
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+    SCACTileCtx *ctx = search_ctx->init_ctx;
+
     int i = 0, j = 0;
 
     printf("##############Delta Table##############\n");
@@ -988,12 +1009,13 @@ static void SCACTilePrintDeltaTable(MpmCtx *mpm_ctx)
  *
  * \param mpm_ctx Pointer to the mpm context.
  */
-static inline void SCACTilePrepareStateTable(MpmCtx *mpm_ctx)
+static void SCACTilePrepareStateTable(MpmCtx *mpm_ctx)
 {
-    SCACTileCtx *ctx = (SCACTileCtx *)mpm_ctx->ctx;
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+    SCACTileCtx *ctx = search_ctx->init_ctx;
 
     /* Create Alphabet compression and Lower Case translation table. */
-    SCACTileInitTranslateTable(mpm_ctx);
+    SCACTileInitTranslateTable(ctx);
 
     /* create the 0th state in the goto table and output_table */
     SCACTileInitNewState(mpm_ctx);
@@ -1019,8 +1041,38 @@ static inline void SCACTilePrepareStateTable(MpmCtx *mpm_ctx)
     ctx->goto_table = NULL;
     SCFree(ctx->failure_table);
     ctx->failure_table = NULL;
+}
 
-    return;
+
+/**
+ * \brief Process Internal AC MPM tables to create the Search Context
+ *
+ * The search context is only the data needed to search the MPM.
+ *
+ * \param mpm_ctx Pointer to the mpm context.
+ */
+static void SCACTilePrepareSearch(MpmCtx *mpm_ctx)
+{
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+    SCACTileCtx *ctx = search_ctx->init_ctx;
+
+    search_ctx->search = ctx->search;
+    memcpy(search_ctx->translate_table, ctx->translate_table, sizeof(ctx->translate_table));
+
+    /* Move the state table from the Init context */
+    search_ctx->state_table_u16 = ctx->state_table_u16;
+    ctx->state_table_u16 = NULL;
+
+    /* Move the output_table from the Init context to the Search Context */
+    /* TODO: Could be made more compact */
+    search_ctx->output_table = ctx->output_table;
+    ctx->output_table = NULL;
+
+    search_ctx->pid_pat_list = ctx->pid_pat_list;
+    ctx->pid_pat_list = NULL;
+
+    /* Can now free the Initialization data */
+    SCACTileDestroyInitCtx(mpm_ctx);
 }
 
 /**
@@ -1030,21 +1082,24 @@ static inline void SCACTilePrepareStateTable(MpmCtx *mpm_ctx)
  */
 int SCACTilePreparePatterns(MpmCtx *mpm_ctx)
 {
-    SCACTileCtx *ctx = (SCACTileCtx *)mpm_ctx->ctx;
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
 
-    if (mpm_ctx->pattern_cnt == 0 || ctx->init_hash == NULL) {
+    if (mpm_ctx->pattern_cnt == 0 || search_ctx->init_ctx == NULL) {
+        SCLogDebug("no patterns supplied to this mpm_ctx");
+        return 0;
+    }
+    SCACTileCtx *ctx = search_ctx->init_ctx;
+    if (ctx->init_hash == NULL) {
         SCLogDebug("no patterns supplied to this mpm_ctx");
         return 0;
     }
 
     /* alloc the pattern array */
     ctx->parray = (SCACTilePattern **)SCMalloc(mpm_ctx->pattern_cnt *
-                                           sizeof(SCACTilePattern *));
+                                               sizeof(SCACTilePattern *));
     if (ctx->parray == NULL)
         goto error;
     memset(ctx->parray, 0, mpm_ctx->pattern_cnt * sizeof(SCACTilePattern *));
-    mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += (mpm_ctx->pattern_cnt * sizeof(SCACTilePattern *));
 
     /* populate it with the patterns in the hash */
     uint32_t i = 0, p = 0;
@@ -1100,16 +1155,8 @@ int SCACTilePreparePatterns(MpmCtx *mpm_ctx)
     /* prepare the state table required by AC */
     SCACTilePrepareStateTable(mpm_ctx);
 
-    /* free all the stored patterns.  Should save us a good 100-200 mbs */
-    for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
-        if (ctx->parray[i] != NULL) {
-            SCACTileFreePattern(mpm_ctx, ctx->parray[i]);
-        }
-    }
-    SCFree(ctx->parray);
-    ctx->parray = NULL;
-    mpm_ctx->memory_cnt--;
-    mpm_ctx->memory_size -= (mpm_ctx->pattern_cnt * sizeof(SCACTilePattern *));
+    /* Convert to the Search Context structure */
+    SCACTilePrepareSearch(mpm_ctx);
 
     return 0;
 
@@ -1150,17 +1197,30 @@ void SCACTileInitCtx(MpmCtx *mpm_ctx)
     if (mpm_ctx->ctx != NULL)
         return;
 
-    mpm_ctx->ctx = SCMalloc(sizeof(SCACTileCtx));
+    /* Search Context */
+    mpm_ctx->ctx = SCMalloc(sizeof(SCACTileSearchCtx));
     if (mpm_ctx->ctx == NULL) {
         exit(EXIT_FAILURE);
     }
-    memset(mpm_ctx->ctx, 0, sizeof(SCACTileCtx));
+    memset(mpm_ctx->ctx, 0, sizeof(SCACTileSearchCtx));
+
+    mpm_ctx->memory_cnt++;
+    mpm_ctx->memory_size += sizeof(SCACTileSearchCtx);
+
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+
+    /* MPM Creation context */
+    search_ctx->init_ctx = SCMalloc(sizeof(SCACTileCtx));
+    if (search_ctx->init_ctx == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    memset(search_ctx->init_ctx, 0, sizeof(SCACTileCtx));
 
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += sizeof(SCACTileCtx);
 
     /* initialize the hash we use to speed up pattern insertions */
-    SCACTileCtx *ctx = (SCACTileCtx *)mpm_ctx->ctx;
+    SCACTileCtx *ctx = search_ctx->init_ctx;
     ctx->init_hash = SCMalloc(sizeof(SCACTilePattern *) * INIT_HASH_SIZE);
     if (ctx->init_hash == NULL) {
         exit(EXIT_FAILURE);
@@ -1170,8 +1230,6 @@ void SCACTileInitCtx(MpmCtx *mpm_ctx)
     /* get conf values for AC from our yaml file.  We have no conf values for
      * now.  We will certainly need this, as we develop the algo */
     SCACTileGetConfig();
-
-    SCReturn;
 }
 
 /**
@@ -1190,26 +1248,19 @@ void SCACTileDestroyThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx)
         mpm_thread_ctx->memory_cnt--;
         mpm_thread_ctx->memory_size -= sizeof(SCACTileThreadCtx);
     }
-
-    return;
 }
 
-/**
- * \brief Destroy the mpm context.
- *
- * \param mpm_ctx Pointer to the mpm context.
- */
-void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
+static void SCACTileDestroyInitCtx(MpmCtx *mpm_ctx)
 {
-    SCACTileCtx *ctx = (SCACTileCtx *)mpm_ctx->ctx;
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+    SCACTileCtx *ctx = search_ctx->init_ctx;
+
     if (ctx == NULL)
         return;
 
     if (ctx->init_hash != NULL) {
         SCFree(ctx->init_hash);
         ctx->init_hash = NULL;
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (INIT_HASH_SIZE * sizeof(SCACTilePattern *));
     }
 
     if (ctx->parray != NULL) {
@@ -1222,15 +1273,13 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
 
         SCFree(ctx->parray);
         ctx->parray = NULL;
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (mpm_ctx->pattern_cnt * sizeof(SCACTilePattern *));
     }
 
     if (ctx->state_table_u16 != NULL) {
         SCFree(ctx->state_table_u16);
         ctx->state_table_u16 = NULL;
 
-        mpm_ctx->memory_cnt++;
+        mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (ctx->state_count *
                                  sizeof(SC_AC_TILE_STATE_TYPE_U16) * ctx->alphabet_size);
     } else if (ctx->state_table_u32 != NULL) {
@@ -1240,7 +1289,7 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
         SCFree(ctx->state_table_u32);
         ctx->state_table_u32 = NULL;
 
-        mpm_ctx->memory_cnt++;
+        mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (ctx->state_count *
                                  sizeof(SC_AC_TILE_STATE_TYPE_U32) * 256);
     }
@@ -1264,11 +1313,31 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
         SCFree(ctx->pid_pat_list);
     }
 
-    SCFree(mpm_ctx->ctx);
-    mpm_ctx->memory_cnt--;
-    mpm_ctx->memory_size -= sizeof(SCACTileCtx);
+    SCFree(ctx);
+    search_ctx->init_ctx = NULL;
+}
 
-    return;
+/**
+ * \brief Destroy the mpm context.
+ *
+ * \param mpm_ctx Pointer to the mpm context.
+ */
+void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
+{
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+    if (search_ctx == NULL)
+        return;
+
+    /* Destroy Initialization data */
+    SCACTileDestroyInitCtx(mpm_ctx);
+
+    // TODO: Free Search tables
+
+    SCFree(search_ctx);
+    mpm_ctx->ctx = NULL;
+
+    mpm_ctx->memory_cnt--;
+    mpm_ctx->memory_size -= sizeof(SCACTileSearchCtx);
 }
 
 /*
@@ -1286,7 +1355,7 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
 #define BYTE2(x) __insn_bfextu(x, 16, 23)
 #define BYTE3(x) __insn_bfextu(x, 24, 31)
 
-int CheckMatch(SCACTileCtx *ctx, PatternMatcherQueue *pmq,
+int CheckMatch(SCACTileSearchCtx *ctx, PatternMatcherQueue *pmq,
                uint8_t *buf, uint16_t buflen,
                STYPE state, int i, int matches)
 {
@@ -1344,16 +1413,17 @@ int CheckMatch(SCACTileCtx *ctx, PatternMatcherQueue *pmq,
 uint32_t SCACTileSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen)
 {
-    SCACTileCtx *ctx = (SCACTileCtx *)mpm_ctx->ctx;
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+
     if (buflen == 0)
         return 0;
 
     /* Context specific matching function. */
-    return ctx->search(ctx, mpm_thread_ctx, pmq, buf, buflen);
+    return search_ctx->search(search_ctx, mpm_thread_ctx, pmq, buf, buflen);
 }
 
 /* This function handles (ctx->state_count >= 32767) */
-uint32_t SCACTileSearchLarge(SCACTileCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+uint32_t SCACTileSearchLarge(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                              PatternMatcherQueue *pmq,
                              uint8_t *buf, uint16_t buflen)
 {
@@ -1508,7 +1578,8 @@ void SCACTilePrintSearchStats(MpmThreadCtx *mpm_thread_ctx)
 
 void SCACTilePrintInfo(MpmCtx *mpm_ctx)
 {
-    SCACTileCtx *ctx = (SCACTileCtx *)mpm_ctx->ctx;
+    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+    SCACTileCtx *ctx = search_ctx->init_ctx;
 
     printf("MPM AC Information:\n");
     printf("Memory allocs:   %" PRIu32 "\n", mpm_ctx->memory_cnt);

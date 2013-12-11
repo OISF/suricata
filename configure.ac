@@ -761,6 +761,10 @@
   # prelude
     AC_ARG_ENABLE(prelude,
             AS_HELP_STRING([--enable-prelude], [Enable Prelude support for alerts]),,[enable_prelude=no])
+    # Prelude doesn't work with -Werror
+    STORECFLAGS="${CFLAGS}"
+    CFLAGS="${CFLAGS} -Wno-error=unused-result"
+
     AS_IF([test "x$enable_prelude" = "xyes"], [
         CFLAGS="$CFLAGS -DPRELUDE"
         AM_PATH_LIBPRELUDE(0.9.9, , AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?), no)
@@ -776,6 +780,8 @@
             LDFLAGS="${LDFLAGS} ${LIBPRELUDE_LIBS}"
         fi
     ])
+    CFLAGS="${STORECFLAGS}"
+
 
   # libnet
     AC_ARG_WITH(libnet_includes,
@@ -876,12 +882,18 @@
         LIBPFRING=""
         AC_CHECK_LIB(pfring, pfring_open,, LIBPFRING="no", [-lpcap])
         if test "$LIBPFRING" = "no"; then
-            if test "x$enable_pfring" = "xyes"; then
-            echo
-            echo "   ERROR! --enable-pfring was passed but the library was not found or version is >4, go get it"
-            echo "   from http://www.ntop.org/PF_RING.html"
-            echo
-            exit 1
+            LIBPFRING=""
+            AC_CHECK_LIB(pfring, pfring_stats,, LIBPFRING="no", [-lpcap -lrt])
+            if test "$LIBPFRING" = "no"; then
+                if test "x$enable_pfring" = "xyes"; then
+                echo
+                echo "   ERROR! --enable-pfring was passed but the library was not found or version is >4, go get it"
+                echo "   from http://www.ntop.org/PF_RING.html"
+                echo
+                exit 1
+                fi
+            else
+                LIBS="${LIBS} -lrt"
             fi
         fi
 

@@ -272,13 +272,6 @@ void SignalHandlerSigusr2(int sig)
     return;
 }
 
-#if 0
-static void SignalHandlerSighup(/*@unused@*/ int sig) {
-    sighup_count = 1;
-    suricata_ctl_flags |= SURICATA_SIGHUP;
-}
-#endif
-
 #ifdef DBG_MEM_ALLOC
 #ifndef _GLOBAL_MEM_
 #define _GLOBAL_MEM_
@@ -1630,7 +1623,7 @@ static int InitSignalHandler(SCInstance *suri)
 
 #ifndef OS_WIN32
     /* SIGHUP is not implemented on WIN32 */
-    //UtilSignalHandlerSetup(SIGHUP, SignalHandlerSighup);
+    UtilSignalHandlerSetup(SIGHUP, SIG_IGN);
 
     /* Try to get user/group to run suricata as if
        command line as not decide of that */
