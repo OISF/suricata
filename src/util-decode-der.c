@@ -74,24 +74,28 @@ static Asn1Generic * Asn1GenericNew(void)
     return obj;
 }
 
-static void Asn1SequenceAppend(Asn1Generic *seq, Asn1Generic *node)
+/**
+ * \retval r 0 ok, -1 error
+ */
+static int Asn1SequenceAppend(Asn1Generic *seq, Asn1Generic *node)
 {
     Asn1Generic *it, *new_container;
 
     if (seq->data == NULL) {
         seq->data = node;
-        return;
+        return 0;
     }
 
     new_container = Asn1GenericNew();
     if (new_container == NULL)
-        return;
+        return -1;
     new_container->data = node;
 
     for (it=seq; it->next != NULL; it=it->next)
         ;
 
     it->next = new_container;
+    return 0;
 }
 
 static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer, uint32_t max_size, uint8_t depth, int seq_index, uint32_t *errcode)
@@ -586,7 +590,6 @@ static Asn1Generic * DecodeAsn1DerSequence(const unsigned char *buffer, uint32_t
     uint8_t c;
     uint32_t seq_index;
     Asn1Generic *node;
-    Asn1Generic *child;
 
     d_ptr++;
 
@@ -620,15 +623,22 @@ static Asn1Generic * DecodeAsn1DerSequence(const unsigned char *buffer, uint32_t
     /* decode child elements */
     while (parsed_bytes < d_length) {
         el_max_size = max_size - (d_ptr-buffer);
-        child = DecodeAsn1DerGeneric(d_ptr, el_max_size, depth, seq_index, errcode);
 
+        Asn1Generic *child = DecodeAsn1DerGeneric(d_ptr, el_max_size, depth, seq_index, errcode);
         if (child == NULL) {
             break;
         }
-        Asn1SequenceAppend(node, child);
+
+        int ret = Asn1SequenceAppend(node, child);
+        if (ret == -1) {
+            DerFree(child);
+            break;
+        }
+
         parsed_bytes += child->length;
         d_ptr += child->length;
         seq_index++;
+
     }
 
     return (Asn1Generic *)node;
