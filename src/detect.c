@@ -5845,7 +5845,6 @@ static int SigTest15Real (int mpm_type) {
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload = buf;
@@ -6053,7 +6052,6 @@ static int SigTest18Real (int mpm_type) {
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload = buf;
@@ -6117,7 +6115,6 @@ int SigTest19Real (int mpm_type) {
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->src.addr_data32[0] = UTHSetIPv4Address("192.168.0.1");
     p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
@@ -6188,7 +6185,6 @@ static int SigTest20Real (int mpm_type) {
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->src.addr_data32[0] = UTHSetIPv4Address("192.168.0.1");
     p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
@@ -6539,11 +6535,9 @@ int SigTest24IPV4Keyword(void)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
-    PACKET_RESET_CHECKSUMS(p1);
-    PACKET_RESET_CHECKSUMS(p2);
+    p1->ip4vars.comp_csum = -1;
+    p2->ip4vars.comp_csum = -1;
 
     p1->ip4h = (IPV4Hdr *)valid_raw_ipv4;
 
@@ -6645,11 +6639,9 @@ int SigTest25NegativeIPV4Keyword(void)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
-    PACKET_RESET_CHECKSUMS(p1);
-    PACKET_RESET_CHECKSUMS(p2);
+    p1->ip4vars.comp_csum = -1;
+    p2->ip4vars.comp_csum = -1;
 
     p1->ip4h = (IPV4Hdr *)valid_raw_ipv4;
 
@@ -6755,9 +6747,7 @@ int SigTest26TCPV4Keyword(void)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     PacketCopyData(p1, raw_ipv4, sizeof(raw_ipv4));
     PacketCopyDataOffset(p1, GET_PKT_LEN(p1), valid_raw_tcp, sizeof(valid_raw_tcp));
@@ -7115,9 +7105,7 @@ static int SigTest27NegativeTCPV4Keyword(void)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     PacketCopyData(p1, raw_ipv4, sizeof(raw_ipv4));
     PacketCopyDataOffset(p1, GET_PKT_LEN(p1), valid_raw_tcp, sizeof(valid_raw_tcp));
@@ -7243,9 +7231,7 @@ int SigTest28TCPV6Keyword(void)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     PACKET_RESET_CHECKSUMS(p1);
     p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -7373,9 +7359,7 @@ int SigTest29NegativeTCPV6Keyword(void)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     PACKET_RESET_CHECKSUMS(p1);
     p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -7501,9 +7485,7 @@ int SigTest30UDPV4Keyword(void)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     PACKET_RESET_CHECKSUMS(p1);
     p1->ip4h = (IPV4Hdr *)raw_ipv4;
@@ -7626,9 +7608,7 @@ int SigTest31NegativeUDPV4Keyword(void)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     PACKET_RESET_CHECKSUMS(p1);
     p1->ip4h = (IPV4Hdr *)raw_ipv4;
@@ -7745,9 +7725,7 @@ int SigTest32UDPV6Keyword(void)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     PACKET_RESET_CHECKSUMS(p1);
     p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -7862,9 +7840,7 @@ int SigTest33NegativeUDPV6Keyword(void)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     PACKET_RESET_CHECKSUMS(p1);
     p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -7982,9 +7958,7 @@ int SigTest34ICMPV4Keyword(void)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     PACKET_RESET_CHECKSUMS(p1);
     p1->ip4h = (IPV4Hdr *)(valid_raw_ipv4);
@@ -8104,9 +8078,7 @@ int SigTest35NegativeICMPV4Keyword(void)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     PACKET_RESET_CHECKSUMS(p1);
     p1->ip4h = (IPV4Hdr *)(valid_raw_ipv4);
@@ -8237,9 +8209,7 @@ int SigTest36ICMPV6Keyword(void)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     PACKET_RESET_CHECKSUMS(p1);
     p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -8367,9 +8337,7 @@ int SigTest37NegativeICMPV6Keyword(void)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
 
     PACKET_RESET_CHECKSUMS(p1);
     p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -8485,7 +8453,6 @@ int SigTest38Real(int mpm_type)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
 
     /* Copy raw data into packet */
     if (PacketCopyData(p1, raw_eth, ethlen) == -1) {
@@ -8628,7 +8595,6 @@ int SigTest39Real(int mpm_type)
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
 
     /* Copy raw data into packet */
     if (PacketCopyData(p1, raw_eth, ethlen) == -1) {
@@ -8784,7 +8750,6 @@ int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type) {
     DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
@@ -8906,7 +8871,6 @@ int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type) {
     DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
@@ -9034,7 +8998,6 @@ int SigTest40NoPacketInspection01(void) {
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&pq, 0, sizeof(pq));
     memset(&f, 0, sizeof(f));
     memset(&tcphdr, 0, sizeof(tcphdr));
@@ -9107,7 +9070,6 @@ int SigTest40NoPayloadInspection02(void) {
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload = buf;
@@ -9169,7 +9131,6 @@ static int SigTestMemory01 (void) {
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload = buf;
@@ -9637,7 +9598,6 @@ static int SigTestSgh03 (void) {
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload_len = 1;
@@ -9809,7 +9769,6 @@ static int SigTestSgh04 (void) {
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload_len = 1;
@@ -10002,7 +9961,6 @@ static int SigTestSgh05 (void) {
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload_len = 1;
@@ -10549,7 +10507,6 @@ static int SigTestWithinReal01 (int mpm_type) {
     if (unlikely(p1 == NULL))
         return 0;
     memset(p1, 0, SIZE_OF_PACKET);
-    p1->pkt = (uint8_t *)(p1 + 1);
     DecodeEthernet(&th_v, &dtv, p1, rawpkt1, sizeof(rawpkt1), NULL);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     if (!(PacketAlertCheck(p1, 556))) {
@@ -10562,7 +10519,6 @@ static int SigTestWithinReal01 (int mpm_type) {
     if (unlikely(p2 == NULL))
         return 0;
     memset(p2, 0, SIZE_OF_PACKET);
-    p2->pkt = (uint8_t *)(p2 + 1);
     DecodeEthernet(&th_v, &dtv, p2, rawpkt2, sizeof(rawpkt2), NULL);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
     if (!(PacketAlertCheck(p2, 556))) {
@@ -10575,7 +10531,6 @@ static int SigTestWithinReal01 (int mpm_type) {
     if (unlikely(p3 == NULL))
         return 0;
     memset(p3, 0, SIZE_OF_PACKET);
-    p3->pkt = (uint8_t *)(p3 + 1);
     DecodeEthernet(&th_v, &dtv, p3, rawpkt3, sizeof(rawpkt3), NULL);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
     if (!(PacketAlertCheck(p3, 556))) {
@@ -10588,7 +10543,6 @@ static int SigTestWithinReal01 (int mpm_type) {
     if (unlikely(p4 == NULL))
         return 0;
     memset(p4, 0, SIZE_OF_PACKET);
-    p4->pkt = (uint8_t *)(p4 + 1);
     DecodeEthernet(&th_v, &dtv, p4, rawpkt4, sizeof(rawpkt4), NULL);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p4);
     if (!(PacketAlertCheck(p4, 556))) {

@@ -195,7 +195,7 @@ inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datale
     if (! p->ext_pkt) {
         if (offset + datalen <= (int)default_packet_size) {
             /* data will fit in memory allocated with packet */
-            memcpy(p->pkt + offset, data, datalen);
+            memcpy(GET_PKT_DIRECT_DATA(p) + offset, data, datalen);
         } else {
             /* here we need a dynamic allocation */
             p->ext_pkt = SCMalloc(MAX_PAYLOAD_SIZE);

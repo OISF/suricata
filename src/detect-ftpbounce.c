@@ -425,7 +425,6 @@ static int DetectFtpbounceTestALMatch03(void) {
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 

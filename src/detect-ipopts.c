@@ -281,7 +281,6 @@ int IpOptsTestParse03 (void) {
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
     p->ip4h = &ip4h;
@@ -333,7 +332,6 @@ int IpOptsTestParse04 (void) {
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
     p->ip4h = &ip4h;
