@@ -313,7 +313,6 @@ int DetectFragOffsetMatchTest01 (void) {
     IPV4Hdr ip4h;
 
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(ThreadVars));

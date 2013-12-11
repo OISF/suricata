@@ -578,7 +578,6 @@ static int FlagsTestParse03 (void) {
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -633,7 +632,6 @@ static int FlagsTestParse04 (void) {
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -688,7 +686,6 @@ static int FlagsTestParse05 (void) {
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -743,7 +740,6 @@ static int FlagsTestParse06 (void) {
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -798,7 +794,6 @@ static int FlagsTestParse07 (void) {
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -853,7 +848,6 @@ static int FlagsTestParse08 (void) {
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -908,7 +902,6 @@ static int FlagsTestParse09 (void) {
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -963,7 +956,6 @@ static int FlagsTestParse10 (void) {
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -1018,7 +1010,6 @@ static int FlagsTestParse11 (void) {
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -1073,7 +1064,6 @@ static int FlagsTestParse12 (void) {
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -1159,7 +1149,6 @@ static int FlagsTestParse15(void)
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -1213,7 +1202,6 @@ static int FlagsTestParse16(void)
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
@@ -1270,7 +1258,6 @@ static int FlagsTestParse17(void)
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 

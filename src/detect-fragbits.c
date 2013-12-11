@@ -420,7 +420,6 @@ static int FragBitsTestParse03 (void) {
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     AlpProtoFinalize2Thread(&dtv.udp_dp_ctx);
@@ -517,7 +516,6 @@ static int FragBitsTestParse04 (void) {
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     AlpProtoFinalize2Thread(&dtv.udp_dp_ctx);

@@ -636,7 +636,6 @@ int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, ch
     DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 

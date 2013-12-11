@@ -6236,7 +6236,6 @@ static int StreamTcpReassembleTest39 (void) {
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
-    p->pkt = (uint8_t *)(p + 1);
     p->flow = &f;
     p->tcph = &tcph;
 

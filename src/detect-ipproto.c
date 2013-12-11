@@ -9293,7 +9293,6 @@ static int DetectIPProtoTestSig2(void)
     if (unlikely(p == NULL))
         return 0;
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
 
     DecodeThreadVars dtv;
     ThreadVars th_v;
@@ -9377,16 +9376,13 @@ static int DetectIPProtoTestSig3(void)
     };
 
     Packet *p = UTHBuildPacket((uint8_t *)"boom", 4, IPPROTO_TCP);
-    //Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         return 0;
-    //memset(p, 0, SIZE_OF_PACKET);
 
     DecodeThreadVars dtv;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
 
-    p->pkt = ((uint8_t *)p) + sizeof(*p);
     p->proto = 0;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));

@@ -2989,7 +2989,6 @@ int SigTestBidirec04 (void) {
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
-    p->pkt = (uint8_t *)(p + 1);
 
     FlowInitConfig(FLOW_QUIET);
     DecodeEthernet(&th_v, &dtv, p, rawpkt1_ether, sizeof(rawpkt1_ether), NULL);

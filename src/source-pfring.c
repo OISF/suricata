@@ -303,10 +303,17 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
 
         /* Depending on what compile time options are used for pfring we either return 0 or -1 on error and always 1 for success */
 #ifdef HAVE_PFRING_RECV_UCHAR
-        int r = pfring_recv(ptv->pd, (u_char**)&GET_PKT_DIRECT_DATA(p),
-                (u_int)GET_PKT_DIRECT_MAX_SIZE(p),
+        u_char *pkt_buffer = GET_PKT_DIRECT_DATA(p);
+        u_int buffer_size = GET_PKT_DIRECT_MAX_SIZE(p);
+        int r = pfring_recv(ptv->pd, &pkt_buffer,
+                buffer_size,
                 &hdr,
                 LIBPFRING_WAIT_FOR_INCOMING);
+
+        /* Check for Zero-copy if buffer size is zero */
+        if (buffer_size == 0) {
+            PacketSetData(p, pkt_buffer, hdr.caplen);
+        }
 #else
         int r = pfring_recv(ptv->pd, (char *)GET_PKT_DIRECT_DATA(p),
                 (u_int)GET_PKT_DIRECT_MAX_SIZE(p),
