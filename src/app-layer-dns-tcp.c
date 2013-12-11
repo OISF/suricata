@@ -404,8 +404,7 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
                 goto insufficient_data;
             }
 
-            length = *data;
-            SCLogDebug("length %u", length);
+            SCLogDebug("length %u", *data);
         }
         if (fqdn_offset) {
             fqdn_offset--;
