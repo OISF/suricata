@@ -1109,7 +1109,7 @@ ConfNodeLookupChildValueTest(void)
 
 static int ConfGetChildValueWithDefaultTest(void)
 {
-    char  *val;
+    char  *val = "";
     int ret = 1;
     ConfCreateContextBackup();
     ConfInit();
@@ -1139,7 +1139,7 @@ static int ConfGetChildValueWithDefaultTest(void)
 
 static int ConfGetChildValueIntWithDefaultTest(void)
 {
-    intmax_t val;
+    intmax_t val = 0;
     ConfCreateContextBackup();
     ConfInit();
     ConfSet("af-packet.0.interface", "eth0");
