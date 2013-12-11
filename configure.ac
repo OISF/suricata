@@ -855,12 +855,18 @@ AC_INIT(configure.ac)
         LIBPFRING=""
         AC_CHECK_LIB(pfring, pfring_open,, LIBPFRING="no", [-lpcap])
         if test "$LIBPFRING" = "no"; then
-            if test "x$enable_pfring" = "xyes"; then
-            echo
-            echo "   ERROR! --enable-pfring was passed but the library was not found or version is >4, go get it"
-            echo "   from http://www.ntop.org/PF_RING.html"
-            echo
-            exit 1
+            LIBPFRING=""
+            AC_CHECK_LIB(pfring, pfring_stats,, LIBPFRING="no", [-lpcap -lrt])
+            if test "$LIBPFRING" = "no"; then
+                if test "x$enable_pfring" = "xyes"; then
+                echo
+                echo "   ERROR! --enable-pfring was passed but the library was not found or version is >4, go get it"
+                echo "   from http://www.ntop.org/PF_RING.html"
+                echo
+                exit 1
+                fi
+            else
+                LIBS="${LIBS} -lrt"
             fi
         fi
 
