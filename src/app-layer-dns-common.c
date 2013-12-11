@@ -398,9 +398,13 @@ void DNSStoreAnswerInState(DNSState *dns_state, const int rtype, const uint8_t *
     q->data_len = data_len;
 
     uint8_t *ptr = (uint8_t *)q + sizeof(DNSAnswerEntry);
-    memcpy(ptr, fqdn, fqdn_len);
-    ptr += fqdn_len;
-    memcpy(ptr, data, data_len);
+    if (fqdn != NULL && fqdn_len > 0) {
+        memcpy(ptr, fqdn, fqdn_len);
+        ptr += fqdn_len;
+    }
+    if (data != NULL && data_len > 0) {
+        memcpy(ptr, data, data_len);
+    }
 
     if (rtype == DNS_LIST_ANSWER)
         TAILQ_INSERT_TAIL(&tx->answer_list, q, next);
