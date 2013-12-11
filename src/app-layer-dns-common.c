@@ -270,7 +270,6 @@ void DNSStateFree(void *s) {
             SCFree(dns_state->buffer);
 
         SCFree(s);
-        s = NULL;
     }
     SCReturn;
 }
