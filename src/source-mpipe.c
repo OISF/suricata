@@ -662,27 +662,27 @@ static TmEcode ReceiveMpipeCreateBuckets(int ring, int num_workers,
             int ceiling_log2 = 64 - __builtin_clz((int64_t)value - 1);
             min_buckets = 1 << (ceiling_log2);
         } else {
-          SCLogError(SC_ERR_INVALID_ARGUMENT,
+            SCLogError(SC_ERR_INVALID_ARGUMENT,
                      "Illegal min-mpipe.buckets value (%ld). must be between 1 and 4096.", value);
         }
     }
 
     /* Allocate buckets. Keep trying half the number of requested buckets until min-bucket is reached. */
     while (1) {
-      *first_bucket = gxio_mpipe_alloc_buckets(context, *num_buckets, 0, 0);
-      if (*first_bucket != GXIO_MPIPE_ERR_NO_BUCKET)
-        break;
-      /* Failed to allocate the requested number of buckets. Keep
-       * trying less buckets until min-buckets is reached.
-       */
-      if (*num_buckets <= min_buckets) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,
-                   "Could not allocate (%d) mpipe buckets. "
-                   "Try a smaller mpipe.buckets value in suricata.yaml", *num_buckets);
-        SCReturnInt(TM_ECODE_FAILED);
-      }
-      /* Cut the number of requested buckets in half and try again. */
-      *num_buckets /= 2;
+        *first_bucket = gxio_mpipe_alloc_buckets(context, *num_buckets, 0, 0);
+        if (*first_bucket != GXIO_MPIPE_ERR_NO_BUCKET)
+            break;
+        /* Failed to allocate the requested number of buckets. Keep
+         * trying less buckets until min-buckets is reached.
+         */
+        if (*num_buckets <= min_buckets) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT,
+                    "Could not allocate (%d) mpipe buckets. "
+                    "Try a smaller mpipe.buckets value in suricata.yaml", *num_buckets);
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+        /* Cut the number of requested buckets in half and try again. */
+        *num_buckets /= 2;
     }
 
     /* Init group and buckets, preserving packet order among flows. */
@@ -702,23 +702,23 @@ static TmEcode ReceiveMpipeCreateBuckets(int ring, int num_workers,
             } else if (strcmp(balance, "round-robin") == 0) {
                 mode = GXIO_MPIPE_BUCKET_ROUND_ROBIN;
             } else {
-                SCLogWarning(SC_ERR_INVALID_ARGUMENT, 
+                SCLogWarning(SC_ERR_INVALID_ARGUMENT,
                              "Illegal load balancing mode \"%s\"", balance);
                 balance = "static";
             }
         }
     } else {
-      balance = "static";
+        balance = "static";
     }
     SCLogInfo("Using \"%s\" load balancing with %d buckets.", balance, *num_buckets);
 
     result = gxio_mpipe_init_notif_group_and_buckets(context, group,
                                                      ring, num_workers,
-                                                     *first_bucket, 
-                                                     *num_buckets, 
+                                                     *first_bucket,
+                                                     *num_buckets,
                                                      mode);
     VERIFY(result, "gxio_mpipe_init_notif_group_and_buckets()");
-    
+
     SCReturnInt(TM_ECODE_OK);
 }
 
