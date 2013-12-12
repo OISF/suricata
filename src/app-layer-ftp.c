@@ -51,6 +51,7 @@
 
 static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
 {
+    void *ptmp;
     if (line_state->current_line_lf_seen == 1) {
         /* we have seen the lf for the previous line.  Clear the parser
          * details to parse new line */
@@ -83,12 +84,16 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
             memcpy(line_state->db, state->input, state->input_len);
             line_state->db_len = state->input_len;
         } else {
-            line_state->db = SCRealloc(line_state->db,
-                                                (line_state->db_len +
-                                                 state->input_len));
-            if (line_state->db == NULL) {
+            ptmp = SCRealloc(line_state->db,
+                             (line_state->db_len + state->input_len));
+            if (ptmp == NULL) {
+                SCFree(line_state->db);
+                line_state->db = NULL;
+                line_state->db_len = 0;
                 return -1;
             }
+            line_state->db = ptmp;
+
             memcpy(line_state->db + line_state->db_len,
                    state->input, state->input_len);
             line_state->db_len += state->input_len;
@@ -102,12 +107,16 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
         line_state->current_line_lf_seen = 1;
 
         if (line_state->current_line_db == 1) {
-            line_state->db = SCRealloc(line_state->db,
-                                                (line_state->db_len +
-                                                 (lf_idx + 1 - state->input)));
-            if (line_state->db == NULL) {
+            ptmp = SCRealloc(line_state->db,
+                             (line_state->db_len + (lf_idx + 1 - state->input)));
+            if (ptmp == NULL) {
+                SCFree(line_state->db);
+                line_state->db = NULL;
+                line_state->db_len = 0;
                 return -1;
             }
+            line_state->db = ptmp;
+
             memcpy(line_state->db + line_state->db_len,
                    state->input, (lf_idx + 1 - state->input));
             line_state->db_len += (lf_idx + 1 - state->input);
@@ -206,6 +215,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
     /* PrintRawDataFp(stdout, input,input_len); */
 
     FtpState *state = (FtpState *)ftp_state;
+    void *ptmp;
 
     state->input = input;
     state->input_len = input_len;
@@ -217,12 +227,15 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                                state->current_line, state->current_line_len);
         if (state->command == FTP_COMMAND_PORT) {
             if (state->current_line_len > state->port_line_size) {
-                state->port_line = SCRealloc(state->port_line,
-                                             state->current_line_len);
-                if (state->port_line == NULL) {
+                ptmp = SCRealloc(state->port_line, state->current_line_len);
+                if (ptmp == NULL) {
+                    SCFree(state->port_line);
+                    state->port_line = NULL;
                     state->port_line_size = 0;
                     return 0;
                 }
+                state->port_line = ptmp;
+
                 state->port_line_size = state->current_line_len;
             }
             memcpy(state->port_line, state->current_line,

@@ -53,6 +53,7 @@ static uint32_t FragmentDataParser(Flow *f, void *dcerpcudp_state,
     uint32_t *stub_data_buffer_len = NULL;
     uint8_t *stub_data_fresh = NULL;
     uint16_t stub_len = 0;
+    void *ptmp;
 
     /* request PDU.  Retrieve the request stub buffer */
     if (sstate->dcerpc.dcerpchdrudp.type == REQUEST) {
@@ -80,11 +81,15 @@ static uint32_t FragmentDataParser(Flow *f, void *dcerpcudp_state,
         *stub_data_buffer_len = 0;
     }
 
-    *stub_data_buffer = SCRealloc(*stub_data_buffer, *stub_data_buffer_len + stub_len);
-    if (*stub_data_buffer == NULL) {
+    ptmp = SCRealloc(*stub_data_buffer, *stub_data_buffer_len + stub_len);
+    if (ptmp == NULL) {
+        SCFree(*stub_data_buffer);
+        *stub_data_buffer = NULL;
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto end;
     }
+
+    *stub_data_buffer = ptmp;
     memcpy(*stub_data_buffer + *stub_data_buffer_len, input, stub_len);
 
     *stub_data_fresh = 1;

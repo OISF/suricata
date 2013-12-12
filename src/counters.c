@@ -1017,6 +1017,7 @@ uint16_t SCPerfRegisterMaxCounter(char *cname, char *tm_name, int type,
  */
 int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
 {
+    void *ptmp;
     if (sc_perf_op_ctx == NULL) {
         SCLogDebug("Counter module has been disabled");
         return 0;
@@ -1088,12 +1089,16 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
         return 1;
     }
 
-    pctmi->head = SCRealloc(pctmi->head,
-                          (pctmi->size + 1) * sizeof(SCPerfContext **));
-    if (pctmi->head == NULL) {
+    ptmp = SCRealloc(pctmi->head,
+                     (pctmi->size + 1) * sizeof(SCPerfContext **));
+    if (ptmp == NULL) {
+        SCFree(pctmi->head);
+        pctmi->head = NULL;
         SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
         return 0;
     }
+    pctmi->head = ptmp;
+
     hpctx = pctmi->head;
 
     hpctx[pctmi->size] = pctx;

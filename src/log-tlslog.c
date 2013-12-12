@@ -227,6 +227,7 @@ static void LogTlsLogPem(LogTlsLogThread *aft, Packet *p, SSLState *state, LogTl
     unsigned long pemlen;
     unsigned char* pembase64ptr = NULL;
     int ret;
+    uint8_t *ptmp;
     SSLCertsChain *cert;
 
     if ((state->server_connp.cert_input == NULL) || (state->server_connp.cert_input_len == 0))
@@ -247,11 +248,14 @@ static void LogTlsLogPem(LogTlsLogThread *aft, Packet *p, SSLState *state, LogTl
     TAILQ_FOREACH(cert, &state->server_connp.certs, next) {
         pemlen = (4 * (cert->cert_len + 2) / 3) +1;
         if (pemlen > aft->enc_buf_len) {
-            aft->enc_buf = (uint8_t*) SCRealloc(aft->enc_buf, sizeof(uint8_t) * pemlen);
-            if (aft->enc_buf == NULL) {
+            ptmp = (uint8_t*) SCRealloc(aft->enc_buf, sizeof(uint8_t) * pemlen);
+            if (ptmp == NULL) {
+                SCFree(aft->enc_buf);
+                aft->enc_buf = NULL;
                 SCLogWarning(SC_ERR_MEM_ALLOC, "Can't allocate data for base64 encoding");
                 goto end_fp;
             }
+            aft->enc_buf = ptmp;
             aft->enc_buf_len = pemlen;
         }
 

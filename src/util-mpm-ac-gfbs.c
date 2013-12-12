@@ -427,17 +427,22 @@ error:
  */
 static inline int SCACGfbsInitNewState(MpmCtx *mpm_ctx)
 {
+    void *ptmp;
     SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
     int ascii_code = 0;
     int size = 0;
 
     /* reallocate space in the goto table to include a new state */
     size = (ctx->state_count + 1) * 1024;
-    ctx->goto_table = SCRealloc(ctx->goto_table, size);
-    if (ctx->goto_table == NULL) {
+    ptmp = SCRealloc(ctx->goto_table, size);
+    if (ptmp == NULL) {
+        SCFree(ctx->goto_table);
+        ctx->goto_table = NULL;
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
+    ctx->goto_table = ptmp;
+
     /* set all transitions for the newly assigned state as FAIL transitions */
     for (ascii_code = 0; ascii_code < 256; ascii_code++) {
         ctx->goto_table[ctx->state_count][ascii_code] = SC_AC_GFBS_FAIL;
@@ -445,11 +450,15 @@ static inline int SCACGfbsInitNewState(MpmCtx *mpm_ctx)
 
     /* reallocate space in the output table for the new state */
     size = (ctx->state_count + 1) * sizeof(SCACGfbsOutputTable);
-    ctx->output_table = SCRealloc(ctx->output_table, size);
-    if (ctx->output_table == NULL) {
+    ptmp = SCRealloc(ctx->output_table, size);
+    if (ptmp == NULL) {
+        SCFree(ctx->output_table);
+        ctx->output_table = NULL;
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
+    ctx->output_table = ptmp;
+
     memset(ctx->output_table + ctx->state_count, 0, sizeof(SCACGfbsOutputTable));
 
     /* \todo using it temporarily now during dev, since I have restricted
@@ -472,6 +481,7 @@ static inline int SCACGfbsInitNewState(MpmCtx *mpm_ctx)
  */
 static void SCACGfbsSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
 {
+    void *ptmp;
     SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
     SCACGfbsOutputTable *output_state = &ctx->output_table[state];
     uint32_t i = 0;
@@ -482,12 +492,16 @@ static void SCACGfbsSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
     }
 
     output_state->no_of_entries++;
-    output_state->pids = SCRealloc(output_state->pids,
-                                   output_state->no_of_entries * sizeof(uint32_t));
-    if (output_state->pids == NULL) {
+    ptmp = SCRealloc(output_state->pids,
+                     output_state->no_of_entries * sizeof(uint32_t));
+    if (ptmp == NULL) {
+        SCFree(output_state->pids);
+        output_state->pids = NULL;
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
+    output_state->pids = ptmp;
+
     output_state->pids[output_state->no_of_entries - 1] = pid;
 
     return;
@@ -656,6 +670,7 @@ static inline int32_t SCACGfbsDequeue(StateQueue *q)
 static inline void SCACGfbsClubOutputStates(int32_t dst_state, int32_t src_state,
                                             MpmCtx *mpm_ctx)
 {
+    void *ptmp;
     SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
     uint32_t i = 0;
     uint32_t j = 0;
@@ -672,13 +687,15 @@ static inline void SCACGfbsClubOutputStates(int32_t dst_state, int32_t src_state
         if (j == output_dst_state->no_of_entries) {
             output_dst_state->no_of_entries++;
 
-            output_dst_state->pids = SCRealloc(output_dst_state->pids,
-                                               (output_dst_state->no_of_entries *
-                                                sizeof(uint32_t)) );
-            if (output_dst_state->pids == NULL) {
+            ptmp = SCRealloc(output_dst_state->pids,
+                             (output_dst_state->no_of_entries * sizeof(uint32_t)));
+            if (ptmp == NULL) {
+                SCFree(output_dst_state->pids);
+                output_dst_state->pids = NULL;
                 SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
                 exit(EXIT_FAILURE);
             }
+            output_dst_state->pids = ptmp;
 
             output_dst_state->pids[output_dst_state->no_of_entries - 1] =
                 output_src_state->pids[i];
