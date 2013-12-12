@@ -513,6 +513,7 @@ error:
  */
 static inline int SCACTileInitNewState(MpmCtx *mpm_ctx)
 {
+    void *ptmp;
     SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
     SCACTileCtx *ctx = search_ctx->init_ctx;
     int aa = 0;
@@ -520,11 +521,15 @@ static inline int SCACTileInitNewState(MpmCtx *mpm_ctx)
 
     /* reallocate space in the goto table to include a new state */
     size = (ctx->state_count + 1) * sizeof(int32_t) * 256;
-    ctx->goto_table = SCRealloc(ctx->goto_table, size);
-    if (ctx->goto_table == NULL) {
+    ptmp = SCRealloc(ctx->goto_table, size);
+    if (ptmp == NULL) {
+        SCFree(ctx->goto_table);
+        ctx->goto_table = NULL;
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
+    ctx->goto_table = ptmp;
+
     /* set all transitions for the newly assigned state as FAIL transitions */
     for (aa = 0; aa < ctx->alphabet_size; aa++) {
         ctx->goto_table[ctx->state_count][aa] = SC_AC_TILE_FAIL;
@@ -532,11 +537,15 @@ static inline int SCACTileInitNewState(MpmCtx *mpm_ctx)
 
     /* reallocate space in the output table for the new state */
     size = (ctx->state_count + 1) * sizeof(SCACTileOutputTable);
-    ctx->output_table = SCRealloc(ctx->output_table, size);
-    if (ctx->output_table == NULL) {
+    ptmp = SCRealloc(ctx->output_table, size);
+    if (ptmp == NULL) {
+        SCFree(ctx->output_table);
+        ctx->output_table = NULL;
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
+    ctx->output_table = ptmp;
+
     memset(ctx->output_table + ctx->state_count, 0,
            sizeof(SCACTileOutputTable));
 
@@ -553,6 +562,7 @@ static inline int SCACTileInitNewState(MpmCtx *mpm_ctx)
  */
 static void SCACTileSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
 {
+    void *ptmp;
     SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
     SCACTileCtx *ctx = search_ctx->init_ctx;
 
@@ -565,12 +575,16 @@ static void SCACTileSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
     }
 
     output_state->no_of_entries++;
-    output_state->pids = SCRealloc(output_state->pids,
-                                   output_state->no_of_entries * sizeof(uint32_t));
-    if (output_state->pids == NULL) {
+    ptmp = SCRealloc(output_state->pids,
+                     output_state->no_of_entries * sizeof(uint32_t));
+    if (ptmp == NULL) {
+        SCFree(output_state->pids);
+        output_state->pids = NULL;
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
+    output_state->pids = ptmp;
+
     output_state->pids[output_state->no_of_entries - 1] = pid;
 
     return;
@@ -713,6 +727,7 @@ static inline void SCACTileClubOutputStates(int32_t dst_state,
                                             int32_t src_state,
                                             MpmCtx *mpm_ctx)
 {
+    void *ptmp;
     SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
     SCACTileCtx *ctx = search_ctx->init_ctx;
 
@@ -731,13 +746,15 @@ static inline void SCACTileClubOutputStates(int32_t dst_state,
         if (j == output_dst_state->no_of_entries) {
             output_dst_state->no_of_entries++;
 
-            output_dst_state->pids = SCRealloc(output_dst_state->pids,
-                                               (output_dst_state->no_of_entries *
-                                                sizeof(uint32_t)) );
-            if (output_dst_state->pids == NULL) {
+            ptmp = SCRealloc(output_dst_state->pids,
+                             (output_dst_state->no_of_entries * sizeof(uint32_t)));
+            if (ptmp == NULL) {
+                SCFree(output_dst_state->pids);
+                output_dst_state->pids = NULL;
                 SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
                 exit(EXIT_FAILURE);
             }
+            output_dst_state->pids = ptmp;
 
             output_dst_state->pids[output_dst_state->no_of_entries - 1] =
                 output_src_state->pids[i];

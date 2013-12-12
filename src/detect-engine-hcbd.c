@@ -62,13 +62,19 @@
 
 static inline int HCBDCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size)
 {
+    void *ptmp;
     if (size > det_ctx->hcbd_buffers_size) {
-        det_ctx->hcbd = SCRealloc(det_ctx->hcbd, (det_ctx->hcbd_buffers_size + BUFFER_STEP) * sizeof(HttpReassembledBody));
-        if (det_ctx->hcbd == NULL) {
+        ptmp = SCRealloc(det_ctx->hcbd,
+                         (det_ctx->hcbd_buffers_size + BUFFER_STEP) * sizeof(HttpReassembledBody));
+        if (ptmp == NULL) {
+            SCFree(det_ctx->hcbd);
+            det_ctx->hcbd = NULL;
             det_ctx->hcbd_buffers_size = 0;
             det_ctx->hcbd_buffers_list_len = 0;
             return -1;
         }
+        det_ctx->hcbd = ptmp;
+
         memset(det_ctx->hcbd + det_ctx->hcbd_buffers_size, 0, BUFFER_STEP * sizeof(HttpReassembledBody));
         det_ctx->hcbd_buffers_size += BUFFER_STEP;
 
@@ -178,13 +184,17 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
 
         /* see if we need to grow the buffer */
         if (det_ctx->hcbd[index].buffer == NULL || (det_ctx->hcbd[index].buffer_len + cur->len) > det_ctx->hcbd[index].buffer_size) {
+            void *ptmp;
             det_ctx->hcbd[index].buffer_size += cur->len * 2;
 
-            if ((det_ctx->hcbd[index].buffer = SCRealloc(det_ctx->hcbd[index].buffer, det_ctx->hcbd[index].buffer_size)) == NULL) {
+            if ((ptmp = SCRealloc(det_ctx->hcbd[index].buffer, det_ctx->hcbd[index].buffer_size)) == NULL) {
+                SCFree(det_ctx->hcbd[index].buffer);
+                det_ctx->hcbd[index].buffer = NULL;
                 det_ctx->hcbd[index].buffer_size = 0;
                 det_ctx->hcbd[index].buffer_len = 0;
                 goto end;
             }
+            det_ctx->hcbd[index].buffer = ptmp;
         }
         memcpy(det_ctx->hcbd[index].buffer + det_ctx->hcbd[index].buffer_len, cur->data, cur->len);
         det_ctx->hcbd[index].buffer_len += cur->len;

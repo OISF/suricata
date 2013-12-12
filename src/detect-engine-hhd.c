@@ -59,20 +59,31 @@
 #define BUFFER_STEP 50
 
 static inline int HHDCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size) {
+    void *ptmp;
     if (size > det_ctx->hhd_buffers_size) {
-        det_ctx->hhd_buffers = SCRealloc(det_ctx->hhd_buffers, (det_ctx->hhd_buffers_size + BUFFER_STEP) * sizeof(uint8_t *));
-        if (det_ctx->hhd_buffers == NULL) {
+        ptmp = SCRealloc(det_ctx->hhd_buffers,
+                         (det_ctx->hhd_buffers_size + BUFFER_STEP) * sizeof(uint8_t *));
+        if (ptmp == NULL) {
+            SCFree(det_ctx->hhd_buffers);
+            det_ctx->hhd_buffers = NULL;
             det_ctx->hhd_buffers_size = 0;
             det_ctx->hhd_buffers_list_len = 0;
             return -1;
         }
+        det_ctx->hhd_buffers = ptmp;
+
         memset(det_ctx->hhd_buffers + det_ctx->hhd_buffers_size, 0, BUFFER_STEP * sizeof(uint8_t *));
-        det_ctx->hhd_buffers_len = SCRealloc(det_ctx->hhd_buffers_len, (det_ctx->hhd_buffers_size + BUFFER_STEP) * sizeof(uint32_t));
-        if (det_ctx->hhd_buffers_len == NULL) {
+        ptmp = SCRealloc(det_ctx->hhd_buffers_len,
+                         (det_ctx->hhd_buffers_size + BUFFER_STEP) * sizeof(uint32_t));
+        if (ptmp == NULL) {
+            SCFree(det_ctx->hhd_buffers_len);
+            det_ctx->hhd_buffers_len = NULL;
             det_ctx->hhd_buffers_size = 0;
             det_ctx->hhd_buffers_list_len = 0;
             return -1;
         }
+        det_ctx->hhd_buffers_len = ptmp;
+
         memset(det_ctx->hhd_buffers_len + det_ctx->hhd_buffers_size, 0, BUFFER_STEP * sizeof(uint32_t));
         det_ctx->hhd_buffers_size += BUFFER_STEP;
     }

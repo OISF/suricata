@@ -117,13 +117,20 @@ error:
 }
 
 void SigGroupHeadStore(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
+    void *ptmp;
     //printf("de_ctx->sgh_array_cnt %u, de_ctx->sgh_array_size %u, de_ctx->sgh_array %p\n", de_ctx->sgh_array_cnt, de_ctx->sgh_array_size, de_ctx->sgh_array);
     if (de_ctx->sgh_array_cnt < de_ctx->sgh_array_size) {
         de_ctx->sgh_array[de_ctx->sgh_array_cnt] = sgh;
     } else {
-        de_ctx->sgh_array = SCRealloc(de_ctx->sgh_array, sizeof(SigGroupHead *) * (16 + de_ctx->sgh_array_size));
-        if (de_ctx->sgh_array == NULL)
+        ptmp = SCRealloc(de_ctx->sgh_array,
+                         sizeof(SigGroupHead *) * (16 + de_ctx->sgh_array_size));
+        if (ptmp == NULL) {
+            SCFree(de_ctx->sgh_array);
+            de_ctx->sgh_array = NULL;
             return;
+        }
+        de_ctx->sgh_array = ptmp;
+
         de_ctx->sgh_array_size += 10;
         de_ctx->sgh_array[de_ctx->sgh_array_cnt] = sgh;
     }

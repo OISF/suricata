@@ -1184,6 +1184,7 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
     uint32_t *stub_data_buffer_len = NULL;
     uint8_t *stub_data_fresh = NULL;
     uint16_t stub_len = 0;
+    void *ptmp;
 
     /* request PDU.  Retrieve the request stub buffer */
     if (dcerpc->dcerpchdr.type == REQUEST) {
@@ -1230,11 +1231,15 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
         dcerpc->pdu_fragged = 1;
     }
 
-    *stub_data_buffer = SCRealloc(*stub_data_buffer, *stub_data_buffer_len + stub_len);
-    if (*stub_data_buffer == NULL) {
+    ptmp = SCRealloc(*stub_data_buffer, *stub_data_buffer_len + stub_len);
+    if (ptmp == NULL) {
+        SCFree(*stub_data_buffer);
+        *stub_data_buffer = NULL;
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto end;
     }
+    *stub_data_buffer = ptmp;
+
     memcpy(*stub_data_buffer + *stub_data_buffer_len, input, stub_len);
 
     *stub_data_fresh = 1;

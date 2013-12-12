@@ -325,6 +325,7 @@ int AlpParseFieldBySize(AppLayerParserResult *output, AppLayerParserState *pstat
                         uint32_t input_len, uint32_t *offset)
 {
     SCEnter();
+    void *ptmp;
 
     if ((pstate->store_len + input_len) < size) {
         if (pstate->store_len == 0) {
@@ -335,9 +336,13 @@ int AlpParseFieldBySize(AppLayerParserResult *output, AppLayerParserState *pstat
             memcpy(pstate->store, input, input_len);
             pstate->store_len = input_len;
         } else {
-            pstate->store = SCRealloc(pstate->store, (input_len + pstate->store_len));
-            if (pstate->store == NULL)
+            ptmp = SCRealloc(pstate->store, (input_len + pstate->store_len));
+            if (ptmp == NULL) {
+                SCFree(pstate->store);
+                pstate->store = NULL;
                 SCReturnInt(-1);
+            }
+            pstate->store = ptmp;
 
             memcpy(pstate->store+pstate->store_len, input, input_len);
             pstate->store_len += input_len;
@@ -355,9 +360,13 @@ int AlpParseFieldBySize(AppLayerParserResult *output, AppLayerParserState *pstat
         } else {
             uint32_t diff = size - pstate->store_len;
 
-            pstate->store = SCRealloc(pstate->store, (diff + pstate->store_len));
-            if (pstate->store == NULL)
+            ptmp = SCRealloc(pstate->store, (diff + pstate->store_len));
+            if (ptmp == NULL) {
+                SCFree(pstate->store);
+                pstate->store = NULL;
                 SCReturnInt(-1);
+            }
+            pstate->store = ptmp;
 
             memcpy(pstate->store+pstate->store_len, input, diff);
             pstate->store_len += diff;
@@ -391,6 +400,7 @@ int AlpParseFieldByEOF(AppLayerParserResult *output, AppLayerParserState *pstate
                        uint16_t field_idx, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
+    void *ptmp;
 
     if (pstate->store_len == 0) {
         if (pstate->flags & APP_LAYER_PARSER_EOF) {
@@ -418,9 +428,14 @@ int AlpParseFieldByEOF(AppLayerParserResult *output, AppLayerParserState *pstate
         if (pstate->flags & APP_LAYER_PARSER_EOF) {
             SCLogDebug("store_len %" PRIu32 " and EOF", pstate->store_len);
 
-            pstate->store = SCRealloc(pstate->store, (input_len + pstate->store_len));
-            if (pstate->store == NULL)
+            ptmp = SCRealloc(pstate->store, (input_len + pstate->store_len));
+            if (ptmp == NULL) {
+                SCFree(pstate->store);
+                pstate->store = NULL;
+                pstate->store_len = 0;
                 SCReturnInt(-1);
+            }
+            pstate->store = ptmp;
 
             memcpy(pstate->store+pstate->store_len, input, input_len);
             pstate->store_len += input_len;
@@ -439,9 +454,13 @@ int AlpParseFieldByEOF(AppLayerParserResult *output, AppLayerParserState *pstate
             SCLogDebug("store_len %" PRIu32 " but no EOF", pstate->store_len);
 
             /* delimiter field not found, so store the result for the next run */
-            pstate->store = SCRealloc(pstate->store, (input_len + pstate->store_len));
-            if (pstate->store == NULL)
+            ptmp = SCRealloc(pstate->store, (input_len + pstate->store_len));
+            if (ptmp == NULL) {
+                SCFree(pstate->store);
+                pstate->store = NULL;
                 SCReturnInt(-1);
+            }
+            pstate->store = ptmp;
 
             memcpy(pstate->store+pstate->store_len, input, input_len);
             pstate->store_len += input_len;
@@ -463,6 +482,7 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
                             uint8_t *input, uint32_t input_len, uint32_t *offset)
 {
     SCEnter();
+    void *ptmp;
     SCLogDebug("pstate->store_len %" PRIu32 ", delim_len %" PRIu32 "",
                 pstate->store_len, delim_len);
 
@@ -502,9 +522,13 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
             SCLogDebug("len %" PRIu32 " + %" PRIu32 " = %" PRIu32 "", len,
                         pstate->store_len, len + pstate->store_len);
 
-            pstate->store = SCRealloc(pstate->store, (len + pstate->store_len));
-            if (pstate->store == NULL)
+            ptmp = SCRealloc(pstate->store, (len + pstate->store_len));
+            if (ptmp == NULL) {
+                SCFree(pstate->store);
+                pstate->store = NULL;
                 SCReturnInt(-1);
+            }
+            pstate->store = ptmp;
 
             memcpy(pstate->store+pstate->store_len, input, len);
             pstate->store_len += len;
@@ -527,10 +551,14 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
                 if (delim_len > input_len) {
                     /* delimiter field not found, so store the result for the
                      * next run */
-                    pstate->store = SCRealloc(pstate->store, (input_len +
-                                            pstate->store_len));
-                    if (pstate->store == NULL)
+                    ptmp = SCRealloc(pstate->store,
+                                     (input_len + pstate->store_len));
+                    if (ptmp == NULL) {
+                        SCFree(pstate->store);
+                        pstate->store = NULL;
                         SCReturnInt(-1);
+                    }
+                    pstate->store = ptmp;
 
                     memcpy(pstate->store+pstate->store_len, input, input_len);
                     pstate->store_len += input_len;
@@ -572,9 +600,13 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
             }
 
             /* delimiter field not found, so store the result for the next run */
-            pstate->store = SCRealloc(pstate->store, (input_len + pstate->store_len));
-            if (pstate->store == NULL)
+            ptmp = SCRealloc(pstate->store, (input_len + pstate->store_len));
+            if (ptmp == NULL) {
+                SCFree(pstate->store);
+                pstate->store = NULL;
                 SCReturnInt(-1);
+            }
+            pstate->store = ptmp;
 
             memcpy(pstate->store+pstate->store_len, input, input_len);
             pstate->store_len += input_len;

@@ -447,6 +447,7 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectThresholdData *de = NULL;
+    void *ptmp;
 
     BUG_ON(parsed_type == TYPE_SUPPRESS);
 
@@ -499,11 +500,14 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
             sm->ctx = (void *)de;
 
             if (parsed_track == TRACK_RULE) {
-                de_ctx->ths_ctx.th_entry = SCRealloc(de_ctx->ths_ctx.th_entry, (de_ctx->ths_ctx.th_size + 1) * sizeof(DetectThresholdEntry *));
-                if (de_ctx->ths_ctx.th_entry == NULL) {
+                ptmp = SCRealloc(de_ctx->ths_ctx.th_entry, (de_ctx->ths_ctx.th_size + 1) * sizeof(DetectThresholdEntry *));
+                if (ptmp == NULL) {
+                    SCFree(de_ctx->ths_ctx.th_entry);
+                    de_ctx->ths_ctx.th_entry = NULL;
                     SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for threshold config"
                     " (tried to allocate %"PRIu32"th_entrys for rule tracking with rate_filter)", de_ctx->ths_ctx.th_size + 1);
                 } else {
+                    de_ctx->ths_ctx.th_entry = ptmp;
                     de_ctx->ths_ctx.th_entry[de_ctx->ths_ctx.th_size] = NULL;
                     de_ctx->ths_ctx.th_size++;
                 }
@@ -560,11 +564,14 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                 sm->ctx = (void *)de;
 
                 if (parsed_track == TRACK_RULE) {
-                    de_ctx->ths_ctx.th_entry = SCRealloc(de_ctx->ths_ctx.th_entry, (de_ctx->ths_ctx.th_size + 1) * sizeof(DetectThresholdEntry *));
-                    if (de_ctx->ths_ctx.th_entry == NULL) {
+                    ptmp = SCRealloc(de_ctx->ths_ctx.th_entry, (de_ctx->ths_ctx.th_size + 1) * sizeof(DetectThresholdEntry *));
+                    if (ptmp == NULL) {
+                        SCFree(de_ctx->ths_ctx.th_entry);
+                        de_ctx->ths_ctx.th_entry = NULL;
                         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for threshold config"
                         " (tried to allocate %"PRIu32"th_entrys for rule tracking with rate_filter)", de_ctx->ths_ctx.th_size + 1);
                     } else {
+                        de_ctx->ths_ctx.th_entry = ptmp;
                         de_ctx->ths_ctx.th_entry[de_ctx->ths_ctx.th_size] = NULL;
                         de_ctx->ths_ctx.th_size++;
                     }
@@ -648,11 +655,14 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
             sm->ctx = (void *)de;
 
             if (parsed_track == TRACK_RULE) {
-                de_ctx->ths_ctx.th_entry = SCRealloc(de_ctx->ths_ctx.th_entry, (de_ctx->ths_ctx.th_size + 1) * sizeof(DetectThresholdEntry *));
-                if (de_ctx->ths_ctx.th_entry == NULL) {
+                 ptmp = SCRealloc(de_ctx->ths_ctx.th_entry, (de_ctx->ths_ctx.th_size + 1) * sizeof(DetectThresholdEntry *));
+                if (ptmp == NULL) {
+                    SCFree(de_ctx->ths_ctx.th_entry);
+                    de_ctx->ths_ctx.th_entry = NULL;
                     SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for threshold config"
                     " (tried to allocate %"PRIu32"th_entrys for rule tracking with rate_filter)", de_ctx->ths_ctx.th_size + 1);
                 } else {
+                    de_ctx->ths_ctx.th_entry = ptmp;
                     de_ctx->ths_ctx.th_entry[de_ctx->ths_ctx.th_size] = NULL;
                     de_ctx->ths_ctx.th_size++;
                 }

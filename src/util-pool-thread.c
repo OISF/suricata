@@ -86,6 +86,7 @@ error:
  *
  */
 int PoolThreadGrow(PoolThread *pt, uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *(*Alloc)(), int (*Init)(void *, void *), void *InitData,  void (*Cleanup)(void *), void (*Free)(void *)) {
+    void *ptmp;
     size_t newsize;
     PoolThreadElement *e = NULL;
 
@@ -97,11 +98,15 @@ int PoolThreadGrow(PoolThread *pt, uint32_t size, uint32_t prealloc_size, uint32
     newsize = pt->size + 1;
     SCLogDebug("newsize %lu", newsize);
 
-    pt->array = SCRealloc(pt->array, (newsize * sizeof(PoolThreadElement)));
-    if (pt->array == NULL) {
+    ptmp = SCRealloc(pt->array, (newsize * sizeof(PoolThreadElement)));
+    if (ptmp == NULL) {
+        SCFree(pt->array);
+        pt->array = NULL;
         SCLogError(SC_ERR_POOL_INIT, "pool grow failed");
         return -1;
     }
+    pt->array = ptmp;
+
     pt->size = newsize;
 
     e = &pt->array[newsize - 1];

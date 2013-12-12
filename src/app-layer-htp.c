@@ -1166,6 +1166,7 @@ static void HtpRequestBodyReassemble(HtpTxUserData *htud,
         uint8_t **chunks_buffer, uint32_t *chunks_buffer_len)
 {
     uint8_t *buf = NULL;
+    uint8_t *pbuf = NULL;
     uint32_t buf_len = 0;
     HtpBodyChunk *cur = htud->request_body.first;
 
@@ -1187,22 +1188,29 @@ static void HtpRequestBodyReassemble(HtpTxUserData *htud,
 
             uint32_t toff = htud->request_body.body_parsed - cur->stream_offset;
             uint32_t tlen = (cur->stream_offset + cur->len) - htud->request_body.body_parsed;
+            uint8_t *pbuf = NULL;
 
             buf_len += tlen;
-            if ((buf = SCRealloc(buf, buf_len)) == NULL) {
+            if ((pbuf = SCRealloc(buf, buf_len)) == NULL) {
+                SCFree(buf);
+                buf = NULL;
                 buf_len = 0;
                 break;
             }
+            buf = pbuf;
             memcpy(buf + buf_len - tlen, cur->data + toff, tlen);
 
         } else {
             SCLogDebug("use entire chunk");
 
             buf_len += cur->len;
-            if ((buf = SCRealloc(buf, buf_len)) == NULL) {
+            if ((pbuf = SCRealloc(buf, buf_len)) == NULL) {
+                SCFree(buf);
+                buf = NULL;
                 buf_len = 0;
                 break;
             }
+            buf = pbuf;
             memcpy(buf + buf_len - cur->len, cur->data, cur->len);
         }
     }
@@ -2040,6 +2048,7 @@ static int HTPCallbackDoubleDecodePath(htp_tx_t *tx)
 
 static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
 {
+    void *ptmp;
     if (tx_data->len == 0)
         return HTP_OK;
 
@@ -2051,14 +2060,18 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
         memset(tx_ud, 0, sizeof(*tx_ud));
         htp_tx_set_user_data(tx_data->tx, tx_ud);
     }
-    tx_ud->request_headers_raw = SCRealloc(tx_ud->request_headers_raw,
-                                           tx_ud->request_headers_raw_len + tx_data->len);
-    if (tx_ud->request_headers_raw == NULL) {
+    ptmp = SCRealloc(tx_ud->request_headers_raw,
+                     tx_ud->request_headers_raw_len + tx_data->len);
+    if (ptmp == NULL) {
+        SCFree(tx_ud->request_headers_raw);
+        tx_ud->request_headers_raw = NULL;
         tx_ud->request_headers_raw_len = 0;
         HtpTxUserDataFree(tx_ud);
         htp_tx_set_user_data(tx_data->tx, NULL);
         return HTP_OK;
     }
+    tx_ud->request_headers_raw = ptmp;
+
     memcpy(tx_ud->request_headers_raw + tx_ud->request_headers_raw_len,
            tx_data->data, tx_data->len);
     tx_ud->request_headers_raw_len += tx_data->len;
@@ -2072,6 +2085,7 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
 
 static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
 {
+    void *ptmp;
     if (tx_data->len == 0)
         return HTP_OK;
 
@@ -2083,14 +2097,18 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
         memset(tx_ud, 0, sizeof(*tx_ud));
         htp_tx_set_user_data(tx_data->tx, tx_ud);
     }
-    tx_ud->response_headers_raw = SCRealloc(tx_ud->response_headers_raw,
-                                           tx_ud->response_headers_raw_len + tx_data->len);
-    if (tx_ud->response_headers_raw == NULL) {
+    ptmp = SCRealloc(tx_ud->response_headers_raw,
+                     tx_ud->response_headers_raw_len + tx_data->len);
+    if (ptmp == NULL) {
+        SCFree(tx_ud->response_headers_raw);
+        tx_ud->response_headers_raw = NULL;
         tx_ud->response_headers_raw_len = 0;
         HtpTxUserDataFree(tx_ud);
         htp_tx_set_user_data(tx_data->tx, NULL);
         return HTP_OK;
     }
+    tx_ud->response_headers_raw = ptmp;
+
     memcpy(tx_ud->response_headers_raw + tx_ud->response_headers_raw_len,
            tx_data->data, tx_data->len);
     tx_ud->response_headers_raw_len += tx_data->len;

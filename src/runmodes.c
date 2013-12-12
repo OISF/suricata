@@ -356,18 +356,21 @@ void RunModeRegisterNewRunMode(int runmode, const char *name,
                                const char *description,
                                int (*RunModeFunc)(DetectEngineCtx *))
 {
+    void *ptmp;
     if (RunModeGetCustomMode(runmode, name) != NULL) {
         SCLogError(SC_ERR_RUNMODE, "A runmode by this custom name has already "
                    "been registered.  Please use an unique name");
         return;
     }
 
-    runmodes[runmode].runmodes =
-        SCRealloc(runmodes[runmode].runmodes,
-                  (runmodes[runmode].no_of_runmodes + 1) * sizeof(RunMode));
-    if (runmodes[runmode].runmodes == NULL) {
+    ptmp = SCRealloc(runmodes[runmode].runmodes,
+                     (runmodes[runmode].no_of_runmodes + 1) * sizeof(RunMode));
+    if (ptmp == NULL) {
+        SCFree(runmodes[runmode].runmodes);
+        runmodes[runmode].runmodes = NULL;
         exit(EXIT_FAILURE);
     }
+    runmodes[runmode].runmodes = ptmp;
 
     RunMode *mode = &runmodes[runmode].runmodes[runmodes[runmode].no_of_runmodes];
     runmodes[runmode].no_of_runmodes++;
