@@ -154,10 +154,10 @@ void MagicDeinit(void)
 
 #ifdef UNITTESTS
 
-#ifndef OS_FREEBSD
-#define MICROSOFT_OFFICE_DOC "Microsoft Office Document"
-#else
+#if defined OS_FREEBSD || defined OS_DARWIN
 #define MICROSOFT_OFFICE_DOC "OLE 2 Compound Document"
+#else
+#define MICROSOFT_OFFICE_DOC "Microsoft Office Document"
 #endif
 
 /** \test magic lib calls -- init */
