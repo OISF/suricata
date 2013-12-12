@@ -129,6 +129,7 @@ typedef struct DNSTransaction_ {
                                                          replied to. */
     uint8_t reply_lost;
     uint8_t no_such_name;                           /**< server said "no such name" */
+    uint8_t recursion_desired;                      /**< server said "recursion desired" */
 
     TAILQ_HEAD(, DNSQueryEntry_) query_list;        /**< list for query/queries */
     TAILQ_HEAD(, DNSAnswerEntry_) answer_list;      /**< list for answers */

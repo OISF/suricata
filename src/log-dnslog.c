@@ -141,8 +141,10 @@ static void LogAnswer(LogDnsLogThread *aft, char *timebuf, char *srcip, char *ds
             "%s [**] Response TX %04x [**] ", timebuf, tx->tx_id);
 
     if (entry == NULL) {
-        MemBufferWriteString(aft->buffer,
-                "No Such Name");
+        if (tx->no_such_name)
+            MemBufferWriteString(aft->buffer, "No Such Name");
+        else if (tx->recursion_desired)
+            MemBufferWriteString(aft->buffer, "Recursion Desired");
     } else {
         /* query */
         if (entry->fqdn_len > 0) {
@@ -240,9 +242,10 @@ static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p, Flow *f,
         LogQuery(aft, timebuf, dstip, srcip, dp, sp, dns_tx, query);
     }
 
-    if (dns_tx->no_such_name) {
+    if (dns_tx->no_such_name)
         LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, NULL);
-    }
+    if (dns_tx->recursion_desired)
+        LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, NULL);
 
     DNSAnswerEntry *entry = NULL;
     TAILQ_FOREACH(entry, &dns_tx->answer_list, next) {
