@@ -439,6 +439,23 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
         }
     }
 
+    /* see if this is a "no such name" error */
+    if (ntohs(dns_header->flags) & 0x0003) {
+        SCLogDebug("no such name");
+        if (tx != NULL)
+            tx->no_such_name = 1;
+    }
+
+    if (ntohs(dns_header->flags) & 0x0080) {
+        SCLogDebug("recursion desired");
+        if (tx != NULL)
+            tx->recursion_desired = 1;
+    }
+
+    if (tx != NULL) {
+        tx->replied = 1;
+    }
+
 	SCReturnInt(1);
 bad_data:
 insufficient_data:
