@@ -60,6 +60,7 @@
  */
 int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *name, uint8_t flags)
 {
+    void *ptmp;
     /* the very first entry */
     if (de_ctx->mpm_ctx_factory_container == NULL) {
         de_ctx->mpm_ctx_factory_container = SCMalloc(sizeof(MpmCtxFactoryContainer));
@@ -142,11 +143,16 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         }
 
         /* let's make the new entry */
-        items = SCRealloc(items,
-                          (de_ctx->mpm_ctx_factory_container->no_of_items + 1) * sizeof(MpmCtxFactoryItem));
-        if (unlikely(items == NULL)) {
+        ptmp = SCRealloc(items,
+                         (de_ctx->mpm_ctx_factory_container->no_of_items + 1) * sizeof(MpmCtxFactoryItem));
+        if (unlikely(ptmp == NULL)) {
+            SCFree(items);
+            items = NULL;
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
+        }
+        else {
+            items = ptmp;
         }
 
         de_ctx->mpm_ctx_factory_container->items = items;
