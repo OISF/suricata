@@ -34,9 +34,9 @@ static SCRadixTree *defrag_tree = NULL;
 
 static int default_timeout = 0;
 
-static void DefragPolicyAddHostInfo(char *host_ip_range, uintmax_t *timeout)
+static void DefragPolicyAddHostInfo(char *host_ip_range, uint64_t *timeout)
 {
-    uintmax_t *user_data = timeout;
+    uint64_t *user_data = timeout;
 
     if (strchr(host_ip_range, ':') != NULL) {
         SCLogDebug("adding ipv6 host %s", host_ip_range);
