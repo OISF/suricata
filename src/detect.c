@@ -1027,6 +1027,7 @@ static void AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(Packet *p, DetectEn
 #define MALLOC_JUMP 5
 
     int i = 0;
+    void *ptmp;
 
     GenericVar *gv = p->flow->flowvar;
 
@@ -1067,11 +1068,15 @@ static void AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(Packet *p, DetectEn
 
         if (i == p->debuglog_flowbits_names_len) {
             p->debuglog_flowbits_names_len += MALLOC_JUMP;
-            p->debuglog_flowbits_names = SCRealloc(p->debuglog_flowbits_names,
-                                                   sizeof(char *) *
-                                                   p->debuglog_flowbits_names_len);
-            if (p->debuglog_flowbits_names == NULL) {
+            ptmp = SCRealloc(p->debuglog_flowbits_names,
+                             sizeof(char *) * p->debuglog_flowbits_names_len);
+            if (ptmp == NULL) {
+                SCFree(p->debuglog_flowbits_names);
+                p->debuglog_flowbits_names = NULL;
                 return;
+            }
+            else {
+                p->debuglog_flowbits_names = ptmp;
             }
             memset(p->debuglog_flowbits_names +
                    p->debuglog_flowbits_names_len - MALLOC_JUMP,

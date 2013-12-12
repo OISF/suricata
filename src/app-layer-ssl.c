@@ -119,6 +119,7 @@ static void SSLParserReset(SSLState *ssl_state)
 static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
                                    uint32_t input_len)
 {
+    void *ptmp;
     uint8_t *initial_input = input;
     uint32_t parsed = 0;
     int rc;
@@ -152,7 +153,12 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
             }
             if (ssl_state->curr_connp->trec_pos + input_len >= ssl_state->curr_connp->trec_len) {
                 ssl_state->curr_connp->trec_len = ssl_state->curr_connp->trec_len + 2 * input_len + 1;
-                ssl_state->curr_connp->trec = SCRealloc( ssl_state->curr_connp->trec, ssl_state->curr_connp->trec_len );
+                ptmp = SCRealloc(ssl_state->curr_connp->trec,
+                                 ssl_state->curr_connp->trec_len);
+                if (unlikely(ptmp == NULL)) {
+                    SCFree(ssl_state->curr_connp->trec);
+                }
+                ssl_state->curr_connp->trec = ptmp;
             }
             if (unlikely(ssl_state->curr_connp->trec == NULL)) {
                 ssl_state->curr_connp->trec_len = 0;
@@ -161,6 +167,7 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
                 ssl_state->curr_connp->bytes_processed += input_len;
                 return -1;
             }
+
             uint32_t write_len = 0;
             if ((ssl_state->curr_connp->bytes_processed + input_len) > ssl_state->curr_connp->record_length + (SSLV3_RECORD_HDR_LEN)) {
                 if ((ssl_state->curr_connp->record_length + SSLV3_RECORD_HDR_LEN) < ssl_state->curr_connp->bytes_processed) {
