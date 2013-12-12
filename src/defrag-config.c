@@ -34,19 +34,34 @@ static SCRadixTree *defrag_tree = NULL;
 
 static int default_timeout = 0;
 
-static void DefragPolicyAddHostInfo(char *host_ip_range, uint64_t *timeout)
+static void DefragPolicyFreeUserData(void *data)
 {
-    uint64_t *user_data = timeout;
+    if (data != NULL)
+        SCFree(data);
+
+    return;
+}
+
+static void DefragPolicyAddHostInfo(char *host_ip_range, uint64_t timeout)
+{
+    uint64_t *user_data = NULL;
+
+    if ( (user_data = SCMalloc(sizeof(uint64_t))) == NULL) {
+        SCLogError(SC_ERR_FATAL, "Error allocating memory. Exiting");
+        exit(EXIT_FAILURE);
+    }
+
+    *user_data = timeout;
 
     if (strchr(host_ip_range, ':') != NULL) {
         SCLogDebug("adding ipv6 host %s", host_ip_range);
-        if (SCRadixAddKeyIPV6String(host_ip_range, defrag_tree, user_data) == NULL) {
+        if (SCRadixAddKeyIPV6String(host_ip_range, defrag_tree, (void *)user_data) == NULL) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                         "failed to add ipv6 host %s", host_ip_range);
         }
     } else {
         SCLogDebug("adding ipv4 host %s", host_ip_range);
-        if (SCRadixAddKeyIPV4String(host_ip_range, defrag_tree, user_data) == NULL) {
+        if (SCRadixAddKeyIPV4String(host_ip_range, defrag_tree, (void *)user_data) == NULL) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                         "failed to add ipv4 host %s", host_ip_range);
         }
@@ -102,7 +117,7 @@ static void DefragParseParameters(ConfNode *n)
         if (strcasecmp("address", si->name) == 0) {
             ConfNode *pval;
             TAILQ_FOREACH(pval, &si->head, next) {
-                DefragPolicyAddHostInfo(pval->val, &timeout);
+                DefragPolicyAddHostInfo(pval->val, timeout);
             }
         }
     }
@@ -118,7 +133,7 @@ void DefragPolicyLoadFromConfig(void)
 {
     SCEnter();
 
-    defrag_tree = SCRadixCreateRadixTree(NULL, NULL);
+    defrag_tree = SCRadixCreateRadixTree(DefragPolicyFreeUserData, NULL);
     if (defrag_tree == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,
             "Can't alloc memory for the defrag config tree.");
