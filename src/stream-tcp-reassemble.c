@@ -2566,7 +2566,6 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags) {
                    (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
                    (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) {
             if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
-                seg = seg->next;
                 break;
             }
 
@@ -2584,7 +2583,6 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags) {
                 (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
         {
             if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
-                seg = seg->next;
                 break;
             }
 

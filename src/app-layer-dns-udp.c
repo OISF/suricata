@@ -233,8 +233,7 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
                 goto insufficient_data;
             }
 
-            length = *data;
-            SCLogDebug("length %u", length);
+            SCLogDebug("length %u", *data);
         }
         if (fqdn_offset) {
             fqdn_offset--;

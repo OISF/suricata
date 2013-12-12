@@ -268,7 +268,6 @@ DetectSslVersionData *DetectSslVersionParse(char *str)
                 break;
             } else {
                 SCLogError(SC_ERR_INVALID_VALUE, "Invalid value");
-                neg = 0;
                 SCFree(orig);
                 goto error;
             }

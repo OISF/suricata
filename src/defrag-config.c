@@ -89,23 +89,23 @@ int DefragPolicyGetHostTimeout(Packet *p)
 static void DefragParseParameters(ConfNode *n)
 {
     ConfNode *si;
-    uintmax_t timeout = 0;
+    uint64_t timeout = 0;
 
     TAILQ_FOREACH(si, &n->head, next) {
         if (strcasecmp("timeout", si->name) == 0) {
-                SCLogDebug("timeout value  %s", si->val);
-                if (ParseSizeStringU64(si->val, &timeout) < 0) {
-                    SCLogError(SC_ERR_SIZE_PARSE, "Error parsing timeout "
-                               "from conf file");
-                }
-            }
-            if (strcasecmp("address", si->name) == 0) {
-                ConfNode *pval;
-                TAILQ_FOREACH(pval, &si->head, next) {
-                    DefragPolicyAddHostInfo(pval->val, &timeout);
-                }
+            SCLogDebug("timeout value  %s", si->val);
+            if (ParseSizeStringU64(si->val, &timeout) < 0) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing timeout "
+                        "from conf file");
             }
         }
+        if (strcasecmp("address", si->name) == 0) {
+            ConfNode *pval;
+            TAILQ_FOREACH(pval, &si->head, next) {
+                DefragPolicyAddHostInfo(pval->val, &timeout);
+            }
+        }
+    }
 }
 
 void DefragSetDefaultTimeout(intmax_t timeout)

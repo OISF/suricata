@@ -1067,12 +1067,16 @@ static void AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(Packet *p, DetectEn
 
         if (i == p->debuglog_flowbits_names_len) {
             p->debuglog_flowbits_names_len += MALLOC_JUMP;
-            p->debuglog_flowbits_names = SCRealloc(p->debuglog_flowbits_names,
+            const char **names = SCRealloc(p->debuglog_flowbits_names,
                                                    sizeof(char *) *
                                                    p->debuglog_flowbits_names_len);
-            if (p->debuglog_flowbits_names == NULL) {
+            if (names == NULL) {
+                SCFree(p->debuglog_flowbits_names);
+                p->debuglog_flowbits_names = NULL;
+                p->debuglog_flowbits_names_len = 0;
                 return;
             }
+            p->debuglog_flowbits_names = names;
             memset(p->debuglog_flowbits_names +
                    p->debuglog_flowbits_names_len - MALLOC_JUMP,
                    0, sizeof(char *) * MALLOC_JUMP);

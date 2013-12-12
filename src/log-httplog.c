@@ -177,7 +177,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
     uint32_t datalen;
     char buf[128];
 
-    uint8_t *cvalue;
+    uint8_t *cvalue = NULL;
     uint32_t cvalue_len = 0;
 
     htp_header_t *h_request_hdr;
@@ -305,7 +305,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                                     &cvalue);
                     }
                 }
-                if (cvalue_len > 0) {
+                if (cvalue_len > 0 && cvalue != NULL) {
                     datalen = httplog_ctx->cf_nodes[i]->maxlen;
                     if (datalen == 0 || datalen > cvalue_len) {
                         datalen = cvalue_len;
