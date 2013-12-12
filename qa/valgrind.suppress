@@ -8,6 +8,6 @@
    fun:MagicGlobalLookup
    fun:MagicDetectTest10ValgrindError
    fun:UtRunTests
-   fun:RunUnittests
    fun:main
 }
+
