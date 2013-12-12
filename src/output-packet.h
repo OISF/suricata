@@ -19,11 +19,26 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ *
+ * Packet Logger Output registration functions
  */
 
-#ifndef __LOG_DNSLOG_H__
-#define __LOG_DNSLOG_H__
+#ifndef __OUTPUT_PACKET_H__
+#define __OUTPUT_PACKET_H__
 
-void TmModuleLogDnsLogRegister (void);
+#include "decode.h"
 
-#endif /* __LOG_DNSLOG_H__ */
+/** packet logger function pointer type */
+typedef int (*PacketLogger)(ThreadVars *, void *thread_data, const Packet *);
+
+/** packet logger condition function pointer type,
+ *  must return true for packets that should be logged
+ */
+typedef int (*PacketLogCondition)(ThreadVars *, const Packet *);
+
+int OutputRegisterPacketLogger(char *name, PacketLogger LogFunc,
+        PacketLogCondition ConditionFunc, OutputCtx *);
+
+void TmModulePacketLoggerRegister (void);
+
+#endif /* __OUTPUT_PACKET_H__ */

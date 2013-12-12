@@ -46,7 +46,7 @@ extern uint8_t engine_mode;
  *  \param p packet pointer with a LOCKED flow
  *  \retval alstate void pointer to the state
  *  \retval proto (ALPROTO_UNKNOWN if no proto yet) */
-uint16_t AppLayerGetProtoFromPacket(Packet *p) {
+uint16_t AppLayerGetProtoFromPacket(const Packet *p) {
     SCEnter();
 
     if (p == NULL || p->flow == NULL) {
@@ -64,7 +64,7 @@ uint16_t AppLayerGetProtoFromPacket(Packet *p) {
  *  \param p packet pointer with a LOCKED flow
  *  \retval alstate void pointer to the state
  *  \retval NULL in case we have no state */
-void *AppLayerGetProtoStateFromPacket(Packet *p) {
+void *AppLayerGetProtoStateFromPacket(const Packet *p) {
     SCEnter();
 
     if (p == NULL || p->flow == NULL) {
