@@ -171,6 +171,7 @@ static CudaHandlerModule *cudahl_modules = NULL;
 
 CUcontext CudaHandlerModuleGetContext(const char *name, int device_id)
 {
+    void *ptmp;
     SCMutexLock(&mutex);
 
     CudaHandlerModule *module = cudahl_modules;
@@ -203,9 +204,14 @@ CUcontext CudaHandlerModuleGetContext(const char *name, int device_id)
     }
 
     if (no_of_cuda_contexts <= device_id) {
-        cuda_contexts = SCRealloc(cuda_contexts, sizeof(CUcontext) * (device_id + 1));
-        if (unlikely(cuda_contexts == NULL))
+        ptmp = SCRealloc(cuda_contexts, sizeof(CUcontext) * (device_id + 1));
+        if (unlikely(ptmp == NULL)) {
+            SCFree(cuda_contexts);
+            cuda_contexts = NULL;
             exit(EXIT_FAILURE);
+        }
+        cuda_contexts = ptmp;
+
         memset(cuda_contexts + no_of_cuda_contexts, 0,
                sizeof(CUcontext) * ((device_id + 1) - no_of_cuda_contexts));
         no_of_cuda_contexts = device_id + 1;

@@ -199,6 +199,7 @@ SCEnumCharMap smtp_reply_map[ ] = {
 static int SMTPGetLine(SMTPState *state)
 {
     SCEnter();
+    void *ptmp;
 
     /* we have run out of input */
     if (state->input_len <= 0)
@@ -238,11 +239,16 @@ static int SMTPGetLine(SMTPState *state)
                 memcpy(state->ts_db, state->input, state->input_len);
                 state->ts_db_len = state->input_len;
             } else {
-                state->ts_db = SCRealloc(state->ts_db, (state->ts_db_len +
-                                                        state->input_len));
-                if (state->ts_db == NULL) {
+                ptmp = SCRealloc(state->ts_db,
+                                 (state->ts_db_len + state->input_len));
+                if (ptmp == NULL) {
+                    SCFree(state->ts_db);
+                    state->ts_db = NULL;
+                    state->ts_db_len = 0;
                     return -1;
                 }
+                state->ts_db = ptmp;
+
                 memcpy(state->ts_db + state->ts_db_len,
                        state->input, state->input_len);
                 state->ts_db_len += state->input_len;
@@ -256,12 +262,16 @@ static int SMTPGetLine(SMTPState *state)
             state->ts_current_line_lf_seen = 1;
 
             if (state->ts_current_line_db == 1) {
-                state->ts_db = SCRealloc(state->ts_db,
-                                         (state->ts_db_len +
-                                          (lf_idx + 1 - state->input)));
-                if (state->ts_db == NULL) {
+                ptmp = SCRealloc(state->ts_db,
+                                 (state->ts_db_len + (lf_idx + 1 - state->input)));
+                if (ptmp == NULL) {
+                    SCFree(state->ts_db);
+                    state->ts_db = NULL;
+                    state->ts_db_len = 0;
                     return -1;
                 }
+                state->ts_db = ptmp;
+
                 memcpy(state->ts_db + state->ts_db_len,
                        state->input, (lf_idx + 1 - state->input));
                 state->ts_db_len += (lf_idx + 1 - state->input);
@@ -331,11 +341,16 @@ static int SMTPGetLine(SMTPState *state)
                 memcpy(state->tc_db, state->input, state->input_len);
                 state->tc_db_len = state->input_len;
             } else {
-                state->tc_db = SCRealloc(state->tc_db, (state->tc_db_len +
-                                                        state->input_len));
-                if (state->tc_db == NULL) {
+                ptmp = SCRealloc(state->tc_db,
+                                 (state->tc_db_len + state->input_len));
+                if (ptmp == NULL) {
+                    SCFree(state->tc_db);
+                    state->tc_db = NULL;
+                    state->tc_db_len = 0;
                     return -1;
                 }
+                state->tc_db = ptmp;
+
                 memcpy(state->tc_db + state->tc_db_len,
                        state->input, state->input_len);
                 state->tc_db_len += state->input_len;
@@ -349,12 +364,16 @@ static int SMTPGetLine(SMTPState *state)
             state->tc_current_line_lf_seen = 1;
 
             if (state->tc_current_line_db == 1) {
-                state->tc_db = SCRealloc(state->tc_db,
-                                         (state->tc_db_len +
-                                          (lf_idx + 1 - state->input)));
-                if (state->tc_db == NULL) {
+                ptmp = SCRealloc(state->tc_db,
+                                 (state->tc_db_len + (lf_idx + 1 - state->input)));
+                if (ptmp == NULL) {
+                    SCFree(state->tc_db);
+                    state->tc_db = NULL;
+                    state->tc_db_len = 0;
                     return -1;
                 }
+                state->tc_db = ptmp;
+
                 memcpy(state->tc_db + state->tc_db_len,
                        state->input, (lf_idx + 1 - state->input));
                 state->tc_db_len += (lf_idx + 1 - state->input);
@@ -396,6 +415,7 @@ static int SMTPGetLine(SMTPState *state)
 static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state, Flow *f)
 {
     SCEnter();
+    void *ptmp;
 
     if (state->cmds_cnt >= state->cmds_buffer_len) {
         int increment = SMTP_COMMAND_BUFFER_STEPS;
@@ -403,14 +423,16 @@ static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state,
             increment = USHRT_MAX - state->cmds_buffer_len;
         }
 
-        state->cmds = SCRealloc(state->cmds,
-                                sizeof(uint8_t) *
-                                (state->cmds_buffer_len +
-                                 increment));
-        if (state->cmds == NULL) {
-            SCLogDebug("SCRalloc failure");
+        ptmp = SCRealloc(state->cmds,
+                         sizeof(uint8_t) * (state->cmds_buffer_len + increment));
+        if (ptmp == NULL) {
+            SCFree(state->cmds);
+            state->cmds = NULL;
+            SCLogDebug("SCRealloc failure");
             return -1;
         }
+        state->cmds = ptmp;
+
         state->cmds_buffer_len += increment;
     }
     if (state->cmds_cnt >= 1 &&

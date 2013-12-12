@@ -494,6 +494,8 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
 
     SCRadixPrefix *prefix = NULL;
 
+    void *ptmp;
+
     uint8_t *stream = NULL;
     uint8_t bitlen = 0;
 
@@ -538,11 +540,14 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
          * chopping the incoming search ip key using the netmask values added
          * into the tree and then verify for a match */
         node->netmask_cnt++;
-        if ( (node->netmasks = SCRealloc(node->netmasks, (node->netmask_cnt *
+        if ( (ptmp = SCRealloc(node->netmasks, (node->netmask_cnt *
                                                         sizeof(uint8_t)))) == NULL) {
+            SCFree(node->netmasks);
+            node->netmasks = NULL;
             SCLogError(SC_ERR_MEM_ALLOC, "Fatal error encountered in SCRadixAddKey. Mem not allocated");
             return NULL;
         }
+        node->netmasks = ptmp;
         node->netmasks[0] = netmask;
         return node;
     }
@@ -658,11 +663,14 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
                 node->netmask_cnt++;
                 new_node = node;
 
-                if ( (node->netmasks = SCRealloc(node->netmasks, (node->netmask_cnt *
+                if ( (ptmp = SCRealloc(node->netmasks, (node->netmask_cnt *
                                                                 sizeof(uint8_t)))) == NULL) {
+                    SCFree(node->netmasks);
+                    node->netmasks = NULL;
                     SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixAddKey. Mem not allocated...");
                     return NULL;
                 }
+                node->netmasks = ptmp;
 
                 if (node->netmask_cnt == 1) {
                     node->netmasks[0] = netmask;
@@ -778,11 +786,14 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
         }
 
         node->netmask_cnt++;
-        if ( (node->netmasks = SCRealloc(node->netmasks, (node->netmask_cnt *
+        if ( (ptmp = SCRealloc(node->netmasks, (node->netmask_cnt *
                                                         sizeof(uint8_t)))) == NULL) {
+            SCFree(node->netmasks);
+            node->netmasks = NULL;
             SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCRadixAddKey. Exiting...");
             exit(EXIT_FAILURE);
         }
+        node->netmasks = ptmp;
 
         if (node->netmask_cnt == 1) {
             node->netmasks[0] = netmask;
@@ -1000,6 +1011,7 @@ SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *u
 static void SCRadixTransferNetmasksBWNodes(SCRadixNode *dest, SCRadixNode *src)
 {
     int i = 0, j = 0;
+    void *ptmp = NULL;
 
     if (src == NULL || dest == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "src or dest NULL");
@@ -1010,10 +1022,14 @@ static void SCRadixTransferNetmasksBWNodes(SCRadixNode *dest, SCRadixNode *src)
     if (src->netmasks == NULL)
         return;
 
-    if ( (dest->netmasks = SCRealloc(dest->netmasks,
-                                   (src->netmask_cnt + dest->netmask_cnt) *
-                                   sizeof(uint8_t))) == NULL)
+    if ( (ptmp = SCRealloc(dest->netmasks,
+                           (src->netmask_cnt + dest->netmask_cnt) *
+                           sizeof(uint8_t))) == NULL) {
+        SCFree(dest->netmasks);
+        dest->netmasks = NULL;
         return;
+    }
+    dest->netmasks = ptmp;
 
     for (i = dest->netmask_cnt, j = 0; j < src->netmask_cnt; i++, j++)
         dest->netmasks[i] = src->netmasks[j];
@@ -1032,6 +1048,7 @@ static void SCRadixTransferNetmasksBWNodes(SCRadixNode *dest, SCRadixNode *src)
  */
 static void SCRadixRemoveNetblockEntry(SCRadixNode *node, uint8_t netmask)
 {
+    void *ptmp;
     SCRadixNode *parent = NULL;
     int i = 0;
 
@@ -1071,9 +1088,13 @@ static void SCRadixRemoveNetblockEntry(SCRadixNode *node, uint8_t netmask)
         return;
     }
 
-    node->netmasks = SCRealloc(node->netmasks, node->netmask_cnt * sizeof(uint8_t));
-    if (node->netmasks == NULL)
+    ptmp = SCRealloc(node->netmasks, node->netmask_cnt * sizeof(uint8_t));
+    if (ptmp == NULL) {
+        SCFree(node->netmasks);
+        node->netmasks = NULL;
         return;
+    }
+    node->netmasks = ptmp;
 
     return;
 }

@@ -106,6 +106,7 @@ Packet *TmqhInputFlow(ThreadVars *tv)
 
 static int StoreQueueId(TmqhFlowCtx *ctx, char *name)
 {
+    void *ptmp;
     Tmq *tmq = TmqGetQueueByName(name);
     if (tmq == NULL) {
         tmq = TmqCreateQueue(SCStrdup(name));
@@ -125,10 +126,14 @@ static int StoreQueueId(TmqhFlowCtx *ctx, char *name)
         memset(ctx->queues, 0, ctx->size * sizeof(TmqhFlowMode));
     } else {
         ctx->size++;
-        ctx->queues = SCRealloc(ctx->queues, ctx->size * sizeof(TmqhFlowMode));
-        if (ctx->queues == NULL) {
+        ptmp = SCRealloc(ctx->queues, ctx->size * sizeof(TmqhFlowMode));
+        if (ptmp == NULL) {
+            SCFree(ctx->queues);
+            ctx->queues = NULL;
             return -1;
         }
+        ctx->queues = ptmp;
+
         memset(ctx->queues + (ctx->size - 1), 0, sizeof(TmqhFlowMode));
     }
     ctx->queues[ctx->size - 1].q = &trans_q[id];
