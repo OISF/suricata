@@ -161,7 +161,7 @@ addIpaddressToWatchList(const char* adr, WatchListData* data)
     case AF_INET:
         {
             SCLogDebug("STIX IP Watch Lust adding ipv4 address %s", adr);
-            mutex = _ipwatchlistCtx->watchlistIPV6_lock;
+            mutex = _ipwatchlistCtx->watchlistIPV4_lock;
 
             SCMutexLock(&mutex);
             SCRadixNode* node = SCRadixFindKeyIPV4ExactMatch(
