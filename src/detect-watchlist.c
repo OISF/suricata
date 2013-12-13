@@ -81,7 +81,7 @@ makeAlertMsg(char * header, char* list)
     int size = strlen(header) + strlen(list) + 2 + 1;
     char *msg;
     msg = SCMalloc(sizeof(char) * size);
-    char *old;
+
     strcat(msg, header);
     strcat(msg, "(");
     strcat(msg, list);
@@ -92,10 +92,9 @@ int
 DetectWatchListMatch(ThreadVars * tv, DetectEngineThreadCtx * de_ctx,
         Packet * p, Signature * s, SigMatch *sm)
 {
-
-    uint8_t * src = GET_IPV4_SRC_ADDR_PTR(p);
+    uint8_t * src = (uint8_t *)GET_IPV4_SRC_ADDR_PTR(p);
     char src_type = p->src.family;
-    uint8_t * dst = GET_IPV4_DST_ADDR_PTR(p);
+    uint8_t * dst = (uint8_t *)GET_IPV4_DST_ADDR_PTR(p);
     char dst_type = p->dst.family;
     Signature *sl;
     sl = isIPWatched(src, src_type, STIX_HEADER);
