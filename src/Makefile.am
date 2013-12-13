@@ -351,6 +351,7 @@ util-rule-vars.c util-rule-vars.h \
 util-runmodes.c util-runmodes.h \
 util-running-modes.c util-running-modes.h \
 util-signal.c util-signal.h \
+util-smtp-indicators.c util-smtp-indicators.h \
 util-spm-bm.c util-spm-bm.h \
 util-spm-bs2bm.c util-spm-bs2bm.h \
 util-spm-bs.c util-spm-bs.h \

@@ -1,1 +1,2 @@
 alert ip any any <> any any (stixip;classtype:bad-unknown;rev:1;)
+alert smtp any any <> any any (stixsmtp; sid:3330009; rev:1;)
