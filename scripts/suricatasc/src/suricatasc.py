@@ -114,7 +114,19 @@ class SuricataSC:
             print "RCV: "+ json.dumps(cmdret)
 
         return cmdret
+    
+    def send_string(self, json_string):
+        self.socket.send(json_string)
+        cmdret = self.json_recv()
 
+        if cmdret == None:
+            raise SuricataReturnException("Unable to get message from server")
+
+        if self.verbose:
+            print "RCV: "+ json.dumps(cmdret)
+
+        return cmdret
+    
     def connect(self):
         try:
             self.socket = socket(AF_UNIX)
@@ -147,9 +159,9 @@ class SuricataSC:
             self.cmd_list = cmdret["message"]["commands"]
             self.cmd_list.append("quit")
 
-
     def close(self):
         self.socket.close()
+        
 
     def interactive(self):
         print "Command list: " + ", ".join(self.cmd_list)
@@ -159,8 +171,8 @@ class SuricataSC:
             readline.parse_and_bind('tab: complete')
             while True:
                 command = raw_input(">>> ").strip()
+                print "COMMAND IS '%s' " % (command)
                 arguments = None
-                print "Command IS '%s'" % (command)
                 if command.split(' ', 2)[0] in self.cmd_list:
                     if command == "quit":
                         break;
@@ -202,14 +214,20 @@ class SuricataSC:
                             arguments = {}
                             arguments["variable"] = variable
                     elif "add-indicator" in command:
-                        print "found add-indicator"
+                        print "Got add-indicator here!!"
+                        cmd = command
+                        json_str = "{\"command\":\"add-indicator\", \"arguments\" : {\"stix:Indicator\":{\"indicator:Title\":\"NO_TITLE\"}}}";
+                        print "json_str %s " % (json_str)
                     else:
                         cmd = command
                 else:
                     print "Error: unknown command '%s'" % (command)
                     continue
 
-                cmdret = self.send_command(cmd, arguments)
+                if "add-indicator" in cmd:
+                    cmdret = self.send_string(json_str)
+                else: 
+                    cmdret = self.send_command(cmd, arguments)
                 #decode json message
                 if cmdret["return"] == "NOK":
                     print "Error:"
