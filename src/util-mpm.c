@@ -151,9 +151,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
         }
-        else {
-            items = ptmp;
-        }
+        items = ptmp;
 
         de_ctx->mpm_ctx_factory_container->items = items;
 
