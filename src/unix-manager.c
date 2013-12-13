@@ -33,6 +33,7 @@
 #include "util-debug.h"
 #include "util-signal.h"
 #include "util-ipwatchlist.h"
+#include <util-smtp-indicators.h>
 
 #include <sys/un.h>
 #include <sys/stat.h>
@@ -717,7 +718,6 @@ TmEcode UnixManagerAddIndicator(json_t *cmd, json_t *answer, void *data)
     const char *indic_title = NULL;
     const char *indic_type = NULL;
     const char *indic_type_text = NULL;
-    const char *obs_id = NULL;
     const char *cybox_id = NULL;
     const char *cybox_obj_type = NULL;
 
@@ -806,8 +806,7 @@ TmEcode UnixManagerAddIndicator(json_t *cmd, json_t *answer, void *data)
             //TODO Implement parsing of URL Watchlist STIX JSON message
 
         } else if (strcmp(indic_type_text, "Malicious E-mail") == 0) {
-            //untested
-#if 0
+
             json_unpack(observable, "{s:{s:s,s:{s:s,s:{s:{s:s,s:{s:s,s:s}}}},s:{s:{s:{s:s,s:s,s:s,s:{s:{s:{s:s,s:s},s:s}}},s:{s:s, s:s}}}}}",
                     "cybox:Object", "@id", &cybox_id, "cybox:Properties", "@xsi:type", &cybox_obj_type,
                     "EmailMessageObj:Header", "EmailMessageObj:From", "@category", &category,
@@ -821,7 +820,19 @@ TmEcode UnixManagerAddIndicator(json_t *cmd, json_t *answer, void *data)
             SCLogWarning(SC_ERR_INITIALIZATION, "cybox_id is : '%s'", cybox_id);
             SCLogWarning(SC_ERR_INITIALIZATION, "cybox_obj_type is : '%s'", cybox_obj_type);
             SCLogWarning(SC_ERR_INITIALIZATION, "category is : '%s'", category);
-#endif
+
+            enum SMTPIndicatorAddressValueCondition addressCondition = contains;
+
+            if(strcmp(category, "Contains") ==  0){
+            	addressCondition = contains;
+            } else if(strcmp(category, "Equals") == 0){
+            	addressCondition = equals;
+
+            }
+            SMTPAddressIndicator *addressIndicator = SMTPIndicatorCreateAddressIndicator((uint8_t*)addr_text, addressCondition);
+            SMTPIndicatorsFileObject *fileObject = SMTPIndicatorCreateFileObject((uint8_t*)file_ext, (uint8_t**)&cybox_simple_hash, 1, atol(file_size), 1);
+            SMTPIndicator *indicator = SMTPIndicatorCreateIndicator((uint8_t*)cybox_id, addressIndicator, fileObject);
+            SMTPIndicatorAddIndicator(indicator);
         }
     } else {
         SCLogWarning(SC_ERR_INITIALIZATION, "wrong indicator type");
