@@ -115,6 +115,7 @@ SslConfig ssl_config;
 static void SSLParserReset(SSLState *ssl_state)
 {
     ssl_state->curr_connp->bytes_processed = 0;
+    ssl_state->curr_connp->hs_bytes_processed = 0;
 }
 
 static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
