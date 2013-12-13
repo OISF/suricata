@@ -33,6 +33,7 @@
 #include "util-debug.h"
 #include "util-signal.h"
 #include "util-ipwatchlist.h"
+#include <util-smtp-indicators.h>
 
 #include <sys/un.h>
 #include <sys/stat.h>
@@ -267,7 +268,6 @@ int UnixCommandSendCallback(const char *buffer, size_t size, void *data)
 int UnixCommandAccept(UnixCommand *this)
 {
     char buffer[UNIX_PROTO_VERSION_LENGTH + 1];
-    //char buffer[10 + 1];
     json_t *client_msg;
     json_t *server_msg;
     json_t *version;
@@ -706,9 +706,7 @@ TmEcode UnixManagerListCommand(json_t *cmd,
 }
 
 /*
- * Process add-indicator command sent to the Unix Socket.  Update detect rules/values based on
- * indicator type specified in the JSON command.
- * Note: Possible Values for <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.0">
+ * Possible Values for <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.0">
  * - Malicious E-mail
  * - IP Watchlist
  * - URL Watchlist
@@ -818,7 +816,7 @@ TmEcode UnixManagerAddIndicator(json_t *cmd, json_t *answer, void *data)
             //TODO Implement parsing of URL Watchlist STIX JSON message
 
         } else if (strcmp(indic_type_text, "Malicious E-mail") == 0) {
-#if 0
+
             json_unpack(observable, "{s:{s:s,s:{s:s,s:{s:{s:s,s:{s:s,s:s}}}},s:{s:{s:{s:s,s:s,s:s,s:{s:{s:{s:s,s:s},s:s}}},s:{s:s, s:s}}}}}",
                     "cybox:Object", "@id", &cybox_id, "cybox:Properties", "@xsi:type", &cybox_obj_type,
                     "EmailMessageObj:Header", "EmailMessageObj:From", "@category", &category,
@@ -832,7 +830,19 @@ TmEcode UnixManagerAddIndicator(json_t *cmd, json_t *answer, void *data)
             SCLogWarning(SC_ERR_INITIALIZATION, "cybox_id is : '%s'", cybox_id);
             SCLogWarning(SC_ERR_INITIALIZATION, "cybox_obj_type is : '%s'", cybox_obj_type);
             SCLogWarning(SC_ERR_INITIALIZATION, "category is : '%s'", category);
-#endif
+
+            enum SMTPIndicatorAddressValueCondition address_condition = contains;
+
+            if(strcmp(category, "Contains") ==  0){
+                address_condition = contains;
+            } else if(strcmp(category, "Equals") == 0){
+                address_condition = equals;
+
+            }
+            SMTPAddressIndicator *address_indicator = SMTPIndicatorCreateAddressIndicator((uint8_t*)addr_text, address_condition);
+            SMTPIndicatorsFileObject *file_object = SMTPIndicatorCreateFileObject((uint8_t*)file_ext, (uint8_t**)&cybox_simple_hash, 1, atol(file_size), 1);
+            SMTPIndicator *indicator = SMTPIndicatorCreateIndicator((uint8_t*)cybox_id, address_indicator, file_object);
+            SMTPIndicatorAddIndicator(indicator);
         }
     } else {
         SCLogWarning(SC_ERR_INITIALIZATION, "wrong indicator type");
@@ -1120,3 +1130,4 @@ void UnixSocketKillSocketThread(void)
 }
 
 #endif /* BUILD_UNIX_SOCKET */
+
