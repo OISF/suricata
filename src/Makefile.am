@@ -311,6 +311,7 @@ util-host-os-info.c util-host-os-info.h \
 util-host-info.c util-host-info.h \
 util-ioctl.h util-ioctl.c \
 util-ip.h util-ip.c \
+util-libhtp.h util-libhtp.c \
 util-logopenfile.h util-logopenfile.c \
 util-logopenfile-tile.h util-logopenfile-tile.c \
 util-magic.c util-magic.h \
@@ -351,6 +352,7 @@ util-rule-vars.c util-rule-vars.h \
 util-runmodes.c util-runmodes.h \
 util-running-modes.c util-running-modes.h \
 util-signal.c util-signal.h \
+util-smtp-indicators.c util-smtp-indicators.h \
 util-spm-bm.c util-spm-bm.h \
 util-spm-bs2bm.c util-spm-bs2bm.h \
 util-spm-bs.c util-spm-bs.h \
@@ -373,7 +375,9 @@ win32-syslog.h \
 util-ipwatchlist.c \
 util-ipwatchlist.h \
 detect-watchlist.h\
-detect-watchlist.c 
+detect-watchlist.c \
+detect-smtp-indicators.h \
+detect-smtp-indicators.c
 
 EXTRA_DIST = util-mpm-ac-cuda-kernel.cu ptxdump.py
 
