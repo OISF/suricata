@@ -152,6 +152,7 @@
 #include "detect-geoip.h"
 #include "detect-dns-query.h"
 #include "detect-app-layer-protocol.h"
+#include "detect-smtp-indicators.h"
 
 
 #include "detect-watchlist.h"
@@ -4767,6 +4768,7 @@ void SigTableSetup(void) {
     DetectDnsQueryRegister();
     DetectAppLayerProtocolRegister();
     DetectIPWatchListRegister();
+    DetectSMPTIndicatorsRegister();
 }
 
 void SigTableRegisterTests(void)

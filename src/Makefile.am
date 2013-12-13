@@ -329,6 +329,7 @@ util-rule-vars.c util-rule-vars.h \
 util-runmodes.c util-runmodes.h \
 util-running-modes.c util-running-modes.h \
 util-signal.c util-signal.h \
+util-smtp-indicators.c util-smtp-indicators.h \
 util-spm-bm.c util-spm-bm.h \
 util-spm-bs2bm.c util-spm-bs2bm.h \
 util-spm-bs.c util-spm-bs.h \
@@ -351,7 +352,9 @@ win32-syslog.h \
 util-ipwatchlist.c \
 util-ipwatchlist.h \
 detect-watchlist.h\
-detect-watchlist.c 
+detect-watchlist.c \
+detect-smtp-indicators.h \
+detect-smtp-indicators.c
 
 EXTRA_DIST = util-mpm-ac-cuda-kernel.cu ptxdump.py
 

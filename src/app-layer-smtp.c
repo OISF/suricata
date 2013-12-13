@@ -44,6 +44,15 @@
 #include "util-memcmp.h"
 #include "flow-util.h"
 
+#include <htp/htp.h>
+#include <htp/bstr.h>
+#include <htp/htp_config.h>
+#include <htp/htp_multipart.h>
+#include <stdio.h>
+#include <string.h>
+
+#include <app-layer-htp-libhtp.h>
+
 #include "detect-engine.h"
 #include "detect-engine-state.h"
 #include "detect-parse.h"
@@ -69,6 +78,8 @@
 #define SMTP_PARSER_STATE_FIRST_REPLY_SEEN        0x04
 /* Used to indicate that the parser is parsing a multiline reply */
 #define SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY 0x08
+/* Used to indicate that the parser has completed */
+#define SMTP_PARSER_STATE_TXN_COMPLETE            0x10
 
 /* Various SMTP commands
  * We currently have var-ified just STARTTLS and DATA, since we need to them
@@ -454,6 +465,12 @@ static int SMTPProcessCommandBDAT(SMTPState *state, Flow *f,
     SCReturnInt(0);
 }
 
+/** I don't want to shove all of my new stuff above the original */
+static htp_status_t SMTPUnfoldHeader(const uint8_t *folded, size_t len, htp_table_t ** headers, uint64_t *flags);
+static htp_status_t SMTPGetHeader(SMTPState *state, uint8_t **header, size_t *length);
+static int SMTPFullHeaderRead(SMTPState *state);
+static htp_status_t SMTPAddHeaderChunk(SMTPState *state, uint8_t *chunk, size_t len);
+
 static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
                                   AppLayerParserState *pstate)
 {
@@ -466,11 +483,81 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
 
     if (state->current_line_len == 1 && state->current_line[0] == '.') {
         state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
+
+        state->parser_state |= SMTP_PARSER_STATE_TXN_COMPLETE;
+
         /* kinda like a hack.  The mail sent in DATA mode, would be
          * acknowledged with a reply.  We insert a dummy command to
          * the command buffer to be used by the reply handler to match
          * the reply received */
+
+    	// call this once all data has been collected!
+    	if(state->lastMpartParseStatus == HTP_OK && state->mpartp_parser != NULL){
+    		state->finalizeStatus = htp_mpartp_finalize(state->mpartp_parser);
+    	}
+
         SMTPInsertCommandIntoCommandBuffer(SMTP_COMMAND_DATA_MODE, state, f);
+
+    } else {
+    	if(SMTPFullHeaderRead(state)){
+    		if(state->lastMpartParseStatus == HTP_OK && state->mpartp_parser != NULL){
+    			state->lastMpartParseStatus = htp_mpartp_parse(state->mpartp_parser, state->current_line, state->current_line_len+state->current_line_delimiter_len);
+    		}
+    	} else {
+    		SMTPAddHeaderChunk(state, state->current_line, state->current_line_len+state->current_line_delimiter_len);
+    		if(SMTPFullHeaderRead(state)){
+    			uint8_t* header = NULL;
+    			size_t headerLength = 0;
+
+    			// memory returned is part of the state, do not free it!
+    			htp_status_t getHeaderStatus = SMTPGetHeader(state, &header, &headerLength);
+
+    			if(getHeaderStatus == HTP_OK){
+
+					uint64_t mailHeaderFlags = 0;
+
+					// attempt to extract the smtp header folling RFC rules
+					htp_status_t unfoldStatus = SMTPUnfoldHeader(header, headerLength, &state->mailHeader, &mailHeaderFlags);
+
+					if(unfoldStatus == HTP_OK){
+
+						// these are elements from the table, no memory to be freed
+						htp_header_t *mimeVersion = htp_table_get_c(state->mailHeader, "mime-version");
+						htp_header_t *contentType = htp_table_get_c(state->mailHeader, "content-type");
+
+						// must be multipart if I got a mime version and content-type, no?
+						if(mimeVersion != NULL && contentType != NULL){
+							bstr *bstrBoundary = NULL;
+							uint64_t multipart_flags = 0;
+
+							// attempt to extract the multipart boundary from the content type
+							htp_status_t status = htp_mpartp_find_boundary(contentType->value, &bstrBoundary, &multipart_flags);
+
+							// the above bstrBoundary is allocated off of the heap, free it later using bstr_free
+							state->findBoundaryStatus = status;
+
+							if(status == HTP_OK){
+								// create a config, so, if there is a mpartp_config then this is multi-part
+								state->mpartp_config = htp_config_create();
+
+								// create the multi-part parser
+								state->mpartp_parser = htp_mpartp_create(state->mpartp_config, bstrBoundary, multipart_flags);
+
+								state->lastMpartParseStatus = HTP_OK;
+							} else {
+								state->lastMpartParseStatus = HTP_ERROR;
+							}
+
+						}
+
+						state->lastMpartParseStatus = HTP_OK;
+					}
+
+    			}
+
+
+    		}
+    	}
     }
 
     return 0;
@@ -618,6 +705,62 @@ static int SMTPParseCommandBDAT(SMTPState *state)
     return 0;
 }
 
+static uint8_t *copyCurrentLineAfterColon(SMTPState *state, int start){
+	uint8_t *colonPos = state->current_line + start;
+	uint8_t *answer = NULL;
+
+	if(colonPos < state->current_line + state->current_line_len){
+		// trim any whitesapce up front
+		while(colonPos < state->current_line + state->current_line_len && (*colonPos == '\t' || *colonPos == ' ') ) colonPos++;
+
+		int fromLen = state->current_line_len - (colonPos - state->current_line);
+
+		if(fromLen > 0){
+			answer = SCMalloc(fromLen+1);
+			if(answer != NULL){
+				memcpy(answer, colonPos, fromLen);
+				answer[fromLen] = '\0';
+			}
+		}
+	}
+
+	return answer;
+
+}
+
+static int SMTPSetFromField(SMTPState *state, int start){
+	if(state->from != NULL) return 0;
+
+	state->from = copyCurrentLineAfterColon(state, start);
+
+	return 0;
+}
+
+static int SMTPAddToField(SMTPState *state, int start){
+	if(state->to_len >= state->to_len_allocated){
+		int more = state->to_len_allocated += 5;
+		uint8_t **newTo = SCMalloc(sizeof(char*)*more);
+		if(newTo != NULL){
+			if(state->to != NULL){
+				memcpy(newTo, state->to, sizeof(uint8_t*)*state->to_len);
+				SCFree(state->to);
+			}
+			state->to = newTo;
+			state->to_len_allocated = more;
+		} else{
+			return -1;
+		}
+
+		uint8_t * newValue = copyCurrentLineAfterColon(state, start);
+		if(newValue != NULL){
+			state->to[state->to_len++] = newValue;
+		}
+	}
+
+	return 0;
+
+}
+
 static int SMTPProcessRequest(SMTPState *state, Flow *f,
                               AppLayerParserState *pstate)
 {
@@ -648,6 +791,13 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
         } else {
             state->current_command = SMTP_COMMAND_OTHER_CMD;
+        }
+
+        if(strncasecmp("mail from:", (char*)(state->current_line), 10) == 0){
+        	SMTPSetFromField(state, 10);
+
+        } else if(strncasecmp("rcpt to:", (char*)(state->current_line), 8) == 0){
+        	SMTPAddToField(state, 8);
         }
 
         /* Every command is inserted into a command buffer, to be matched
@@ -778,6 +928,364 @@ static void SMTPLocalStorageFree(void *pmq)
     return;
 }
 
+static htp_status_t SMTPAddHeaderChunk(SMTPState *state, uint8_t *chunk, size_t len){
+	// make sure I have the room
+
+
+	if(state->header_bytes == NULL){
+		int toAlloc = 256;
+		if(len >= 256) toAlloc = len + 256;
+		state->header_bytes = SCMalloc(toAlloc * sizeof(uint8_t));
+		if(state->header_bytes == NULL)
+			return HTP_ERROR;
+		if(state->header_bytes == NULL) return -1;
+		state->header_allocated = toAlloc;
+		state->header_size = 0;
+	}
+
+	// allocate more in the event that there isn't enough space for len plus a null terminator
+	// I want the null terminator so I can use strstr later
+	if(state->header_allocated - state->header_size < len+1){
+		int newSize = state->header_allocated + len + 256;
+		uint8_t *newBuffer = SCMalloc(newSize * sizeof(uint8_t));
+		if(newBuffer == NULL) return HTP_ERROR;
+		memcpy(newBuffer, state->header_bytes, state->header_size);
+		state->header_bytes = newBuffer;
+	}
+
+	memcpy(state->header_bytes+state->header_size, chunk, len);
+	state->header_size += len;
+	// null terminate the beast...there is always more room than is needed
+	state->header_bytes[state->header_size] = '\0';
+
+	if(strstr((char*)(state->header_bytes), "\r\n\r\n") != NULL){
+		state->headerPortion = state->header_size;
+	} else if(strstr((char*)(state->header_bytes), "\n\n") != NULL){
+		state->headerPortion = state->header_size;
+	}
+
+	return HTP_OK;
+}
+
+
+
+static int SMTPFullHeaderRead(SMTPState *state){
+	return state->headerPortion > 0;
+}
+
+static htp_status_t SMTPGetHeader(SMTPState *state, uint8_t **header, size_t *length){
+	if(state->headerPortion == 0){
+		*header = NULL;
+		*length = 0;
+		return HTP_DECLINED;
+	}
+
+	*header = state->header_bytes;
+	*length = state->headerPortion;
+
+	return HTP_OK;
+}
+
+
+/**
+ * \brief A direct flick off libhtp-0.5.x htp_is_lws().
+ */
+static int SC_htp_is_lws(int c)
+{
+    if ((c == ' ') || (c == '\t')) return 1;
+    else return 0;
+}
+
+/**
+ * Is character a white space character?
+ *
+ * @param[in] c
+ * @return 0 or 1
+ */
+static int SC_htp_is_space(int c) {
+    switch (c) {
+        case ' ':
+        case '\f':
+        case '\v':
+        case '\t':
+        case '\r':
+        case '\n':
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+/**
+ * Is character a separator character?
+ *
+ * @param[in] c
+ * @return 0 or 1
+ */
+static int SC_htp_is_separator(int c) {
+    /* separators = "(" | ")" | "<" | ">" | "@"
+                  | "," | ";" | ":" | "\" | <">
+                  | "/" | "[" | "]" | "?" | "="
+                  | "{" | "}" | SP | HT         */
+    switch (c) {
+        case '(':
+        case ')':
+        case '<':
+        case '>':
+        case '@':
+        case ',':
+        case ';':
+        case ':':
+        case '\\':
+        case '"':
+        case '/':
+        case '[':
+        case ']':
+        case '?':
+        case '=':
+        case '{':
+        case '}':
+        case ' ':
+        case '\t':
+            return 1;
+            break;
+        default:
+            return 0;
+    }
+}
+
+
+/**
+ * Is character a token character?
+ *
+ * @param[in] c
+ * @return 0 or 1
+ */
+static int SC_htp_is_token(int c) {
+    /* token = 1*<any CHAR except CTLs or separators> */
+    /* CHAR  = <any US-ASCII character (octets 0 - 127)> */
+    if ((c < 32) || (c > 126)) return 0;
+    if (SC_htp_is_separator(c)) return 0;
+    return 1;
+}
+
+/**
+ * Parses one part header.
+ *
+ * @param[in] part
+ * @param[in] data
+ * @param[in] len
+ * @return HTP_OK on success, HTP_DECLINED on parsing error, HTP_ERROR on fatal error.
+ */
+static htp_status_t SMTPParseHeaderLine(const unsigned char *data, size_t len, htp_table_t ** headers, uint64_t *flags) {
+	if(*headers == NULL)
+		*headers = htp_table_create(4);
+
+    size_t name_start, name_end;
+    size_t value_start, value_end;
+
+    // We do not allow NUL bytes here.
+    if (memchr(data, '\0', len) != NULL) {
+        *flags |= HTP_MULTIPART_NUL_BYTE;
+        return HTP_DECLINED;
+    }
+
+    name_start = 0;
+
+    // Look for the starting position of the name first.
+    size_t colon_pos = 0;
+
+    while ((colon_pos < len)&&(SC_htp_is_space(data[colon_pos]))) colon_pos++;
+    if (colon_pos != 0) {
+        // Whitespace before header name.
+        *flags |= HTP_MULTIPART_PART_HEADER_INVALID;
+        return HTP_DECLINED;
+    }
+
+    // Now look for the colon.
+    while ((colon_pos < len) && (data[colon_pos] != ':')) colon_pos++;
+
+    if (colon_pos == len) {
+        // Missing colon.
+        *flags |= HTP_MULTIPART_PART_HEADER_INVALID;
+        return HTP_DECLINED;
+    }
+
+    if (colon_pos == 0) {
+        // Empty header name.
+        *flags |= HTP_MULTIPART_PART_HEADER_INVALID;
+        return HTP_DECLINED;
+    }
+
+    name_end = colon_pos;
+
+    // Ignore LWS after header name.
+    size_t prev = name_end;
+    while ((prev > name_start) && (SC_htp_is_lws(data[prev - 1]))) {
+        prev--;
+        name_end--;
+
+        // LWS after field name. Not allowing for now.
+        *flags |= HTP_MULTIPART_PART_HEADER_INVALID;
+        return HTP_DECLINED;
+    }
+
+    // Header value.
+
+    value_start = colon_pos + 1;
+
+    // Ignore LWS before value.
+    while ((value_start < len) && (SC_htp_is_lws(data[value_start]))) value_start++;
+
+    if (value_start == len) {
+        // No header value.
+        *flags |= HTP_MULTIPART_PART_HEADER_INVALID;
+        return HTP_DECLINED;
+    }
+
+    // Assume the value is at the end.
+    value_end = len;
+
+    // Check that the header name is a token.
+    size_t i = name_start;
+    while (i < name_end) {
+        if (!SC_htp_is_token(data[i])) {
+            *flags |= HTP_MULTIPART_PART_HEADER_INVALID;
+            return HTP_DECLINED;
+        }
+
+        i++;
+    }
+
+    // Now extract the name and the value.
+    htp_header_t *h = calloc(1, sizeof (htp_header_t));
+    if (h == NULL) return HTP_ERROR;
+
+    h->name = bstr_dup_mem(data + name_start, name_end - name_start);
+    if (h->name == NULL) {
+        free(h);
+        return HTP_ERROR;
+    }
+
+    h->value = bstr_dup_mem(data + value_start, value_end - value_start);
+    if (h->value == NULL) {
+        bstr_free(h->name);
+        free(h);
+        return HTP_ERROR;
+    }
+
+    if ((bstr_cmp_c_nocase(h->name, "content-disposition") != 0) && (bstr_cmp_c_nocase(h->name, "content-type") != 0)) {
+        *flags |= HTP_MULTIPART_PART_HEADER_UNKNOWN;
+    }
+
+    // Check if the header already exists.
+    htp_header_t * h_existing = htp_table_get(*headers, h->name);
+    if (h_existing != NULL) {
+        // Add to the existing header.
+        bstr *new_value = bstr_expand(h_existing->value, bstr_len(h_existing->value)
+                + 2 + bstr_len(h->value));
+        if (new_value == NULL) {
+            bstr_free(h->name);
+            bstr_free(h->value);
+            free(h);
+            return HTP_ERROR;
+        }
+
+        h_existing->value = new_value;
+        bstr_add_mem_noex(h_existing->value, ", ", 2);
+        bstr_add_noex(h_existing->value, h->value);
+
+        // The header is no longer needed.
+        bstr_free(h->name);
+        bstr_free(h->value);
+        free(h);
+
+        // Keep track of same-name headers.
+        h_existing->flags |= HTP_MULTIPART_PART_HEADER_REPEATED;
+        *flags |= HTP_MULTIPART_PART_HEADER_REPEATED;
+    } else {
+        // Add as a new header.
+        if (htp_table_add(*headers, h->name, h) != HTP_OK) {
+            bstr_free(h->value);
+            bstr_free(h->name);
+            free(h);
+            return HTP_ERROR;
+        }
+    }
+
+    return HTP_OK;
+}
+
+static htp_status_t SMTPUnfoldHeader(const uint8_t *folded, size_t len, htp_table_t ** headers, uint64_t *flags){
+	const uint8_t *currentPos = folded;
+	const uint8_t *endPos = folded + len;
+
+	// allocate current line, will be freed right before the return below
+	unsigned char *currentLine = SCMalloc(1000);
+	size_t currentAllocated = 1000;
+	size_t currentLineLen = 0;
+
+	// skip all leading whitespace...should be none...
+	while(currentPos != endPos && (*currentPos == '\r' || *currentPos == '\n' || *currentPos == '\t' || *currentPos == ' ')) currentPos++;
+
+	int newLine = 0;
+	int doAppend = 0;
+	int truncateAppend = 0;
+	while(currentPos <= endPos){
+		// pitch /r complete.y
+		if(*currentPos == '\r');
+		// record the passing of \n
+		else if(*currentPos == '\n') newLine++;
+		// newlines followed by non-linear whitespace signal truncate append
+		else if(*currentPos != ' ' && *currentPos != '\t' && newLine > 0){
+			truncateAppend = 1;
+			newLine = 0;
+		} else {
+			doAppend = 1;
+			newLine = 0;
+		}
+
+		if(truncateAppend){
+			while(currentLineLen > 0 && (currentLine[currentLineLen] == '\t' || currentLine[currentLineLen] == ' ')) currentLineLen--;
+			if(currentLineLen > 0) SMTPParseHeaderLine(currentLine, currentLineLen, headers, flags);
+			currentLineLen = 1;
+			currentLine[0] = *currentPos;
+			truncateAppend = 0;
+		}else if(doAppend){
+			// check if current line has space then append
+			if(currentLineLen >= currentAllocated){
+				currentAllocated += 50;
+				unsigned char *newCurrentLine = SCMalloc(currentAllocated);
+				if(newCurrentLine == NULL){
+					if(currentLine != NULL) SCFree(currentLine);
+					return HTP_ERROR;
+				}
+				memcpy(newCurrentLine, currentLine, currentLineLen);
+				SCFree(currentLine);
+				currentLine = newCurrentLine;
+			}
+			currentLine[currentLineLen++] = *currentPos;
+			doAppend = 0;
+		}
+
+		// advance the current position
+		currentPos++;
+
+	}
+
+	// append the last line...
+	while(currentLineLen > 0 && (currentLine[currentLineLen] == '\t' || currentLine[currentLineLen] == ' ')) currentLineLen--;
+	if(currentLineLen > 0) SMTPParseHeaderLine(currentLine, currentLineLen, headers, flags);
+
+	// free currentLine
+	if(currentLine != NULL)
+		SCFree(currentLine);
+
+	return HTP_OK;
+
+}
+
+
 /**
  * \internal
  * \brief Function to free SMTP state memory.
@@ -794,6 +1302,29 @@ static void SMTPStateFree(void *p)
     }
     if (smtp_state->tc_current_line_db) {
         SCFree(smtp_state->tc_db);
+    }
+    if (smtp_state->header_bytes) {
+    	SCFree(smtp_state->header_bytes);
+    }
+    if (smtp_state->mpartp_config) {
+    	htp_config_destroy(smtp_state->mpartp_config);
+    }
+    if (smtp_state->mpartp_parser) {
+    	htp_mpartp_destroy(smtp_state->mpartp_parser);
+    }
+    if (smtp_state->mailHeader) {
+    	htp_table_destroy(smtp_state->mailHeader);
+    }
+    if (smtp_state->from) {
+    	SCFree(smtp_state->from);
+    }
+    if (smtp_state->to_len > 0 && smtp_state->to){
+    	size_t toIdx = 0;
+    	for(toIdx = 0; toIdx < smtp_state->to_len; toIdx++){
+    		if(smtp_state->to[toIdx])
+    			SCFree(smtp_state->to[toIdx]);
+    	}
+    	SCFree(smtp_state->to);
     }
 
     SCFree(smtp_state);
