@@ -290,6 +290,23 @@ nfq:
 #  batchcount: 20
 #  fail-open: yes
 
+#nflog support
+nflog:
+    # netlink multicast group
+    # (the same as the iptables --nflog-group param)
+    # Group 0 is used by the kernel, so you can't use it
+  - group: 2
+    # netlink buffer size
+    buffer-size: 18432
+    # put default value here
+  - group: default
+    # set number of packet to queue inside kernel
+    qthreshold: 1
+    # set the delay before flushing packet in the queue inside kernel
+    qtimeout: 100
+    # netlink max buffer size
+    max-size: 20000
+
 # af-packet support
 # Set threads to > 1 to use PACKET_FANOUT support
 af-packet:
