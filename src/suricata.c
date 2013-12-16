@@ -223,6 +223,9 @@ int run_mode = RUNMODE_UNKNOWN;
   * running the engine with --engine-analysis */
 int engine_analysis = 0;
 
+/** Suricata verbosity */
+int suri_verbose = 0;
+
 /** Engine mode: inline (ENGINE_MODE_IPS) or just
   * detection mode (ENGINE_MODE_IDS by default) */
 uint8_t engine_mode = ENGINE_MODE_IDS;
@@ -509,6 +512,7 @@ void usage(const char *progname)
 	printf("\t--service-change-params              : change service startup parameters\n");
 #endif /* OS_WIN32 */
     printf("\t-V                                   : display Suricata version\n");
+    printf("\t-v[v]                                : increase default Suricata verbosity\n");
 #ifdef UNITTESTS
     printf("\t-u                                   : run the unittests and exit\n");
     printf("\t-U, --unittest-filter=REGEX          : filter unittests with a regex\n");
@@ -828,7 +832,7 @@ int main(int argc, char **argv)
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    char short_opts[] = "c:TDhi:l:q:d:r:us:S:U:VF:";
+    char short_opts[] = "c:TDhi:l:q:d:r:us:S:U:VF:v";
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
@@ -1271,6 +1275,9 @@ int main(int argc, char **argv)
         case 'F':
             SetBpfStringFromFile(optarg);
             break;
+        case 'v':
+            suri_verbose++;
+            break;
         default:
             usage(argv[0]);
             exit(EXIT_FAILURE);
@@ -1450,7 +1457,7 @@ int main(int argc, char **argv)
 
     /* Since our config is now loaded we can finish configurating the
      * logging module. */
-    SCLogLoadConfig(daemon);
+    SCLogLoadConfig(daemon, suri_verbose);
 
 #ifdef __SC_CUDA_SUPPORT__
     /* load the cuda configuration */
