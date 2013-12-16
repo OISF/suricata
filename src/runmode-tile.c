@@ -249,12 +249,14 @@ int RunModeTileMpipeWorkers(DetectEngineCtx *de_ctx)
         }
         TmSlotSetFuncAppend(tv_worker, tm_module, NULL);
 
-        tm_module = TmModuleGetByName("Detect");
-        if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName Detect failed\n");
-            exit(EXIT_FAILURE);
+        if (de_ctx != NULL) {
+            tm_module = TmModuleGetByName("Detect");
+            if (tm_module == NULL) {
+                printf("ERROR: TmModuleGetByName Detect failed\n");
+                exit(EXIT_FAILURE);
+            }
+            TmSlotSetFuncAppend(tv_worker, tm_module, (void *)de_ctx);
         }
-        TmSlotSetFuncAppend(tv_worker, tm_module, (void *)de_ctx);
 
         tm_module = TmModuleGetByName("RespondReject");
         if (tm_module == NULL) {

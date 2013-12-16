@@ -243,6 +243,9 @@ void RunModeListRunmodes(void)
     return;
 }
 
+/**
+ *  \param de_ctx Detection engine ctx. Can be NULL is detect is disabled.
+ */
 void RunModeDispatch(int runmode, const char *custom_mode, DetectEngineCtx *de_ctx)
 {
     char *local_custom_mode = NULL;
