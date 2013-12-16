@@ -2083,41 +2083,47 @@ int main(int argc, char **argv)
         FlowInitConfig(FLOW_VERBOSE);
     }
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
-            "context failed.");
-        exit(EXIT_FAILURE);
-    }
+    DetectEngineCtx *de_ctx = NULL;
+    if (!suri.disabled_detect) {
+        de_ctx = DetectEngineCtxInit();
+        if (de_ctx == NULL) {
+            SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
+                    "context failed.");
+            exit(EXIT_FAILURE);
+        }
 #ifdef __SC_CUDA_SUPPORT__
-    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
-        CudaVarsSetDeCtx(de_ctx);
+        if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
+            CudaVarsSetDeCtx(de_ctx);
 #endif /* __SC_CUDA_SUPPORT__ */
 
-    SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCRConfLoadReferenceConfigFile(de_ctx);
+        SCClassConfLoadClassficationConfigFile(de_ctx);
+        SCRConfLoadReferenceConfigFile(de_ctx);
 
-    if (ActionInitConfig() < 0) {
-        exit(EXIT_FAILURE);
+        if (ActionInitConfig() < 0) {
+            exit(EXIT_FAILURE);
+        }
     }
 
     if (MagicInit() != 0)
         exit(EXIT_FAILURE);
 
-    SetupDelayedDetect(de_ctx, &suri);
 
-    if (!suri.delayed_detect) {
-        if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
-            exit(EXIT_FAILURE);
-        if (suri.run_mode == RUNMODE_ENGINE_ANALYSIS) {
-            exit(EXIT_SUCCESS);
+    if (de_ctx != NULL) {
+        SetupDelayedDetect(de_ctx, &suri);
+
+        if (!suri.delayed_detect) {
+            if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
+                exit(EXIT_FAILURE);
+            if (suri.run_mode == RUNMODE_ENGINE_ANALYSIS) {
+                exit(EXIT_SUCCESS);
+            }
         }
-    }
 
-    /* registering singal handlers we use.  We register usr2 here, so that one
-     * can't call it during the first sig load phase */
-    if (suri.sig_file == NULL && suri.rule_reload == 1 && suri.delayed_detect == 0)
-        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
+        /* registering singal handlers we use.  We register usr2 here, so that one
+         * can't call it during the first sig load phase */
+        if (suri.sig_file == NULL && suri.rule_reload == 1 && suri.delayed_detect == 0)
+            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
+    }
 
     SCAsn1LoadConfig();
 
@@ -2183,7 +2189,7 @@ int main(int argc, char **argv)
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();
 
-    if (suri.delayed_detect) {
+    if (de_ctx != NULL && suri.delayed_detect) {
         if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
             exit(EXIT_FAILURE);
         de_ctx->delayed_detect_initialized = 1;
@@ -2257,7 +2263,7 @@ int main(int argc, char **argv)
     }
 
     DetectEngineCtx *global_de_ctx = DetectEngineGetGlobalDeCtx();
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET && de_ctx != NULL) {
         BUG_ON(global_de_ctx == NULL);
     }
 
