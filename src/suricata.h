@@ -152,6 +152,7 @@ typedef struct SCInstance_ {
 #endif /* OS_WIN32 */
     int delayed_detect;
     int rule_reload;
+    int disabled_detect;
     int daemon;
     int offline;
     int verbose;

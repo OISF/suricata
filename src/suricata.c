@@ -515,6 +515,7 @@ void usage(const char *progname)
            "\t                                       can be printed\n");
     printf("\t--pidfile <file>                     : write pid to this file (only for daemon mode)\n");
     printf("\t--init-errors-fatal                  : enable fatal failure on signature init error\n");
+    printf("\t--disable-detection                  : disable detection engine\n");
     printf("\t--dump-config                        : show the running configuration\n");
     printf("\t--build-info                         : display build information\n");
     printf("\t--pcap[=<dev>]                       : run in pcap mode, no value select interfaces from suricata.yaml\n");
@@ -922,6 +923,7 @@ static void SCInstanceInit(SCInstance *suri)
     suri->verbose = 0;
     /* use -1 as unknown */
     suri->checksum_validation = -1;
+    suri->disabled_detect = 0;
 }
 
 static TmEcode PrintVersion()
@@ -1012,6 +1014,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif /* OS_WIN32 */
         {"pidfile", required_argument, 0, 0},
         {"init-errors-fatal", 0, 0, 0},
+        {"disable-detection", 0, 0, 0},
         {"fatal-unittests", 0, 0, 0},
         {"unittests-coverage", 0, &coverage_unittests, 1},
         {"user", required_argument, 0, 0},
@@ -1203,6 +1206,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif /* OS_WIN32 */
             else if(strcmp((long_opts[option_index]).name, "pidfile") == 0) {
                 suri->pid_filename = optarg;
+            }
+            else if(strcmp((long_opts[option_index]).name, "disable-detection") == 0) {
+                suri->disabled_detect = 1;
+                SCLogInfo("detection engine disabled");
             }
             else if(strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
 #ifdef UNITTESTS
