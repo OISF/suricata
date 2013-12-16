@@ -134,7 +134,7 @@
         #endif
     ]])
 
-    AC_CHECK_HEADERS([windows.h winsock2.h ws2tcpip.h], [], [],
+    AC_CHECK_HEADERS([windows.h winsock2.h ws2tcpip.h w32api/wtypes.h], [], [],
                     [[#define _X86_
                      ]])
     AC_CHECK_HEADERS([w32api/winbase.h], [], [],

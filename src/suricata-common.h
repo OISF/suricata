@@ -193,6 +193,10 @@
 #include <w32api/winbase.h>
 #endif
 
+#ifdef HAVE_W32API_WTYPES_H
+#include <w32api/wtypes.h>
+#endif
+
 #if !__CYGWIN__
 #ifdef HAVE_WINSOCK2_H
 #include <winsock2.h>
