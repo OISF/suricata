@@ -196,6 +196,9 @@ uint8_t host_mode = SURI_HOST_IS_SNIFFER_ONLY;
 /** Maximum packets to simultaneously process. */
 intmax_t max_pending_packets;
 
+/** global indicating if detection is enabled */
+int g_detect_disabled = 0;
+
 /** set caps or not */
 int sc_set_caps;
 
@@ -1208,7 +1211,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 suri->pid_filename = optarg;
             }
             else if(strcmp((long_opts[option_index]).name, "disable-detection") == 0) {
-                suri->disabled_detect = 1;
+                g_detect_disabled = suri->disabled_detect = 1;
                 SCLogInfo("detection engine disabled");
             }
             else if(strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
