@@ -109,12 +109,14 @@ int RunModeFilePcapSingle(DetectEngineCtx *de_ctx)
     }
     TmSlotSetFuncAppend(tv, tm_module, NULL);
 
-    tm_module = TmModuleGetByName("Detect");
-    if (tm_module == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
-        exit(EXIT_FAILURE);
+    if (de_ctx) {
+        tm_module = TmModuleGetByName("Detect");
+        if (tm_module == NULL) {
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv, tm_module, (void *)de_ctx);
     }
-    TmSlotSetFuncAppend(tv, tm_module, (void *)de_ctx);
 
     SetupOutputs(tv);
 
@@ -152,6 +154,11 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx)
     uint16_t cpu = 0;
     TmModule *tm_module;
     RunModeInitialize();
+
+    if (de_ctx == NULL) {
+        SCLogError(SC_ERR_RUNMODE, "can't mix runmode 'auto' and disabled detect");
+        return -1;
+    }
 
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
@@ -404,13 +411,14 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx)
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
-        tm_module = TmModuleGetByName("Detect");
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
-            exit(EXIT_FAILURE);
+        if (de_ctx) {
+            tm_module = TmModuleGetByName("Detect");
+            if (tm_module == NULL) {
+                SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
+                exit(EXIT_FAILURE);
+            }
+            TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
         }
-        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
-
 
         char *thread_group_name = SCStrdup("Detect");
         if (unlikely(thread_group_name == NULL)) {
