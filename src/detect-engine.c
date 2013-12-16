@@ -851,6 +851,11 @@ static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx) {
     de_ctx->keyword_list = NULL;
 }
 
+/**
+ * \brief Free a DetectEngineCtx::
+ *
+ * \param de_ctx DetectEngineCtx:: to be freed
+ */
 void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
 
     if (de_ctx == NULL)

@@ -262,6 +262,11 @@ SCProfileSummarySortByMaxTicks(const void *a, const void *b)
     return s1->max - s0->max;
 }
 
+/**
+ * \brief Dump rule profiling information to file
+ *
+ * \param de_ctx The active DetectEngineCtx, used to get at the loaded rules.
+ */
 void
 SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx)
 {
