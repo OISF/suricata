@@ -478,7 +478,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
         } else {
             re_len = strlen(re);
             for (u = 0; u < re_len; u++) {
-                if (isupper(re[u])) {
+                if (isupper((unsigned char)re[u])) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre host(\"W\") "
                                "specified has an uppercase char.  "
                                "Since the hostname buffer we match against "
