@@ -1,3 +1,12 @@
+1.4.7 -- 2013-12-16
+
+Bug #996: tag keyword: tagging sessions per time is broken
+Bug #1000: delayed detect inits thresholds before de_ctx
+Bug #1001: ip_rep loading problem with multiple values for a single ip
+Bug #1022: StreamTcpPseudoPacketSetupHeader : port swap logic isn't consistent
+Bug #1047: detect-engine.profile - custom value parsing broken
+Bug #1063: rule ordering with multiple vars
+
 1.4.6 -- 2013-09-24
 
 Bug #955: SSL parsing issue
