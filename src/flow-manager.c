@@ -365,6 +365,8 @@ next:
     return cnt;
 }
 
+extern int g_detect_disabled;
+
 /** \brief Thread that manages the flow table and times out flows.
  *
  *  \param td ThreadVars casted to void ptr
@@ -424,7 +426,7 @@ void *FlowManagerThread(void *td)
 
     memset(&ts, 0, sizeof(ts));
 
-    FlowForceReassemblySetup();
+    FlowForceReassemblySetup(g_detect_disabled);
 
     /* set the thread name */
     if (SCSetThreadName(th_v->name) < 0) {

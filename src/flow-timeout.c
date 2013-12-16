@@ -718,7 +718,10 @@ void FlowForceReassembly(void)
     return;
 }
 
-void FlowForceReassemblySetup(void)
+/**
+ *  \param detect_disabled bool, indicating if we use a detection engine (true)
+ */
+void FlowForceReassemblySetup(int detect_disabled)
 {
     /* get StreamTCP TM's slot and TV containing this slot */
     stream_pseudo_pkt_stream_tm_slot = TmSlotGetSlotForTM(TMM_STREAMTCP);
@@ -737,27 +740,29 @@ void FlowForceReassemblySetup(void)
         exit(EXIT_FAILURE);
     }
 
-    /* get detect TM's slot and TV containing this slot */
-    stream_pseudo_pkt_detect_tm_slot = TmSlotGetSlotForTM(TMM_DETECT);
-    if (stream_pseudo_pkt_detect_tm_slot == NULL) {
-        /* yes, this is fatal! */
-        SCLogError(SC_ERR_TM_MODULES_ERROR, "Looks like we have failed to "
-                   "retrieve a slot for DETECT TM");
-        exit(EXIT_FAILURE);
-    }
-    stream_pseudo_pkt_detect_TV =
-        TmThreadsGetTVContainingSlot(stream_pseudo_pkt_detect_tm_slot);
-    if (stream_pseudo_pkt_detect_TV == NULL) {
-        /* yes, this is fatal! */
-        SCLogError(SC_ERR_TM_MODULES_ERROR, "Looks like we have failed to "
-                   "retrieve the TV containing the Detect TM slot");
-        exit(EXIT_FAILURE);
-    }
-    if (stream_pseudo_pkt_detect_TV->tm_slots == stream_pseudo_pkt_detect_tm_slot) {
-        stream_pseudo_pkt_detect_prev_TV = stream_pseudo_pkt_detect_TV->prev;
-    }
-    if (strcasecmp(stream_pseudo_pkt_detect_TV->outqh_name, "packetpool") == 0) {
-        stream_pseudo_pkt_detect_TV = NULL;
+    if (!detect_disabled) {
+        /* get detect TM's slot and TV containing this slot */
+        stream_pseudo_pkt_detect_tm_slot = TmSlotGetSlotForTM(TMM_DETECT);
+        if (stream_pseudo_pkt_detect_tm_slot == NULL) {
+            /* yes, this is fatal! */
+            SCLogError(SC_ERR_TM_MODULES_ERROR, "Looks like we have failed to "
+                    "retrieve a slot for DETECT TM");
+            exit(EXIT_FAILURE);
+        }
+        stream_pseudo_pkt_detect_TV =
+            TmThreadsGetTVContainingSlot(stream_pseudo_pkt_detect_tm_slot);
+        if (stream_pseudo_pkt_detect_TV == NULL) {
+            /* yes, this is fatal! */
+            SCLogError(SC_ERR_TM_MODULES_ERROR, "Looks like we have failed to "
+                    "retrieve the TV containing the Detect TM slot");
+            exit(EXIT_FAILURE);
+        }
+        if (stream_pseudo_pkt_detect_TV->tm_slots == stream_pseudo_pkt_detect_tm_slot) {
+            stream_pseudo_pkt_detect_prev_TV = stream_pseudo_pkt_detect_TV->prev;
+        }
+        if (strcasecmp(stream_pseudo_pkt_detect_TV->outqh_name, "packetpool") == 0) {
+            stream_pseudo_pkt_detect_TV = NULL;
+        }
     }
 
     SCMutexLock(&tv_root_lock);
