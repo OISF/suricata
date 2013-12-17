@@ -736,9 +736,9 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags) {
 
                 /* if the smsg is bigger than the current packet, we will
                  * process the smsg in a later run */
-                if ((head->data.seq + head->data.data_len) > (TCP_GET_SEQ(p) + p->payload_len)) {
+                if ((head->seq + head->data_len) > (TCP_GET_SEQ(p) + p->payload_len)) {
                     SCLogDebug("smsg ends beyond current packet, skipping for now %"PRIu32">%"PRIu32,
-                            (head->data.seq + head->data.data_len), (TCP_GET_SEQ(p) + p->payload_len));
+                            (head->seq + head->data_len), (TCP_GET_SEQ(p) + p->payload_len));
                     goto end;
                 }
 
@@ -755,9 +755,9 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags) {
 
                 /* if the smsg is bigger than the current packet, we will
                  * process the smsg in a later run */
-                if ((head->data.seq + head->data.data_len) > (TCP_GET_SEQ(p) + p->payload_len)) {
+                if ((head->seq + head->data_len) > (TCP_GET_SEQ(p) + p->payload_len)) {
                     SCLogDebug("smsg ends beyond current packet, skipping for now %"PRIu32">%"PRIu32,
-                            (head->data.seq + head->data.data_len), (TCP_GET_SEQ(p) + p->payload_len));
+                            (head->seq + head->data_len), (TCP_GET_SEQ(p) + p->payload_len));
                     goto end;
                 }
 
@@ -1418,7 +1418,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                             continue;
                         }
 
-                        if (DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, pflow, smsg_inspect->data.data, smsg_inspect->data.data_len) == 1) {
+                        if (DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, pflow, smsg_inspect->data, smsg_inspect->data_len) == 1) {
                             SCLogDebug("match in smsg %p", smsg);
                             pmatch = 1;
                             det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH;

@@ -595,8 +595,8 @@ static int DetectTlsVersionTestDetect03(void) {
         goto end;
     }
 
-    memcpy(stream_msg->data.data, tlsbuf4, tlslen4);
-    stream_msg->data.data_len = tlslen4;
+    memcpy(stream_msg->data, tlsbuf4, tlslen4);
+    stream_msg->data_len = tlslen4;
 
     ssn.toserver_smsg_head = stream_msg;
     ssn.toserver_smsg_tail = stream_msg;

@@ -1665,8 +1665,8 @@ static int AlpDetectTestSig5(void)
         goto end;
     }
 
-    memcpy(stream_msg->data.data, http_buf1, http_buf1_len);
-    stream_msg->data.data_len = http_buf1_len;
+    memcpy(stream_msg->data, http_buf1, http_buf1_len);
+    stream_msg->data_len = http_buf1_len;
 
     ssn.toserver_smsg_head = stream_msg;
     ssn.toserver_smsg_tail = stream_msg;
