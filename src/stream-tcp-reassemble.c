@@ -1750,7 +1750,7 @@ static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
         SCLogDebug("stream mesage is to_server");
     }
 
-    smsg->data.data_len = 0;
+    smsg->data_len = 0;
     FlowReference(&smsg->flow, p->flow);
     BUG_ON(smsg->flow == NULL);
 
@@ -2293,7 +2293,7 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
          * queue it so the next chunk (if any) is in a new smsg */
         if (SEQ_GT(seg->seq, next_seq)) {
             /* pass on pre existing smsg (if any) */
-            if (smsg != NULL && smsg->data.data_len > 0) {
+            if (smsg != NULL && smsg->data_len > 0) {
                 StreamMsgPutInQueue(ra_ctx->stream_q, smsg);
                 stream->ra_raw_base_seq = ra_base_seq;
                 smsg = NULL;
@@ -2350,19 +2350,19 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
                 smsg_offset = 0;
 
                 StreamTcpSetupMsg(ssn, stream, p, smsg);
-                smsg->data.seq = ra_base_seq + 1;
+                smsg->seq = ra_base_seq + 1;
             }
 
             /* copy the data into the smsg */
-            uint16_t copy_size = sizeof (smsg->data.data) - smsg_offset;
+            uint16_t copy_size = sizeof (smsg->data) - smsg_offset;
             if (copy_size > payload_len) {
                 copy_size = payload_len;
             }
             if (SCLogDebugEnabled()) {
-                BUG_ON(copy_size > sizeof(smsg->data.data));
+                BUG_ON(copy_size > sizeof(smsg->data));
             }
             SCLogDebug("copy_size is %"PRIu16"", copy_size);
-            memcpy(smsg->data.data + smsg_offset, seg->payload + payload_offset,
+            memcpy(smsg->data + smsg_offset, seg->payload + payload_offset,
                     copy_size);
             smsg_offset += copy_size;
 
@@ -2374,10 +2374,10 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
             }
             SCLogDebug("ra_base_seq %"PRIu32, ra_base_seq);
 
-            smsg->data.data_len += copy_size;
+            smsg->data_len += copy_size;
 
             /* queue the smsg if it's full */
-            if (smsg->data.data_len == sizeof (smsg->data.data)) {
+            if (smsg->data_len == sizeof (smsg->data)) {
                 StreamMsgPutInQueue(ra_ctx->stream_q, smsg);
                 stream->ra_raw_base_seq = ra_base_seq;
                 smsg = NULL;
@@ -2414,31 +2414,31 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
                     smsg_offset = 0;
 
                     StreamTcpSetupMsg(ssn, stream,p,smsg);
-                    smsg->data.seq = ra_base_seq + 1;
+                    smsg->seq = ra_base_seq + 1;
 
-                    copy_size = sizeof(smsg->data.data) - smsg_offset;
+                    copy_size = sizeof(smsg->data) - smsg_offset;
                     if (copy_size > (seg->payload_len - payload_offset)) {
                         copy_size = (seg->payload_len - payload_offset);
                     }
                     if (SCLogDebugEnabled()) {
-                        BUG_ON(copy_size > sizeof(smsg->data.data));
+                        BUG_ON(copy_size > sizeof(smsg->data));
                     }
 
                     SCLogDebug("copy payload_offset %" PRIu32 ", smsg_offset "
                                 "%" PRIu32 ", copy_size %" PRIu32 "",
                                 payload_offset, smsg_offset, copy_size);
-                    memcpy(smsg->data.data + smsg_offset, seg->payload +
+                    memcpy(smsg->data + smsg_offset, seg->payload +
                             payload_offset, copy_size);
                     smsg_offset += copy_size;
                     if (gap == 0 && SEQ_GT((seg->seq + payload_offset + copy_size),ra_base_seq+1)) {
                         ra_base_seq += copy_size;
                     }
                     SCLogDebug("ra_base_seq %"PRIu32, ra_base_seq);
-                    smsg->data.data_len += copy_size;
+                    smsg->data_len += copy_size;
                     SCLogDebug("copied payload_offset %" PRIu32 ", "
                                "smsg_offset %" PRIu32 ", copy_size %" PRIu32 "",
                                payload_offset, smsg_offset, copy_size);
-                    if (smsg->data.data_len == sizeof (smsg->data.data)) {
+                    if (smsg->data_len == sizeof (smsg->data)) {
                         StreamMsgPutInQueue(ra_ctx->stream_q, smsg);
                         stream->ra_raw_base_seq = ra_base_seq;
                         smsg = NULL;
@@ -2517,12 +2517,12 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
 static inline int StreamTcpReturnSegmentCheck(TcpSession *ssn, TcpStream *stream, TcpSegment *seg) {
     if (stream == &ssn->client && ssn->toserver_smsg_head != NULL) {
         /* not (seg is entirely before first smsg, skip) */
-        if (!(SEQ_LEQ(seg->seq + seg->payload_len, ssn->toserver_smsg_head->data.seq))) {
+        if (!(SEQ_LEQ(seg->seq + seg->payload_len, ssn->toserver_smsg_head->seq))) {
             SCReturnInt(0);
         }
     } else if (stream == &ssn->server && ssn->toclient_smsg_head != NULL) {
         /* not (seg is entirely before first smsg, skip) */
-        if (!(SEQ_LEQ(seg->seq + seg->payload_len, ssn->toclient_smsg_head->data.seq))) {
+        if (!(SEQ_LEQ(seg->seq + seg->payload_len, ssn->toclient_smsg_head->seq))) {
             SCReturnInt(0);
         }
     }
@@ -3146,7 +3146,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
         if (SEQ_GT(seg->seq, next_seq)) {
 
             /* pass on pre existing smsg (if any) */
-            if (smsg != NULL && smsg->data.data_len > 0) {
+            if (smsg != NULL && smsg->data_len > 0) {
                 /* if app layer protocol has not been detected till yet,
                    then check did we have sent message to app layer already
                    or not. If not then sent the message and set flag that first
@@ -3237,29 +3237,29 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                 smsg_offset = 0;
 
                 StreamTcpSetupMsg(ssn, stream, p, smsg);
-                smsg->data.seq = ra_base_seq + 1;
-                SCLogDebug("smsg->data.seq %u", smsg->data.seq);
+                smsg->seq = ra_base_seq + 1;
+                SCLogDebug("smsg->seq %u", smsg->seq);
             }
 
             /* copy the data into the smsg */
-            uint16_t copy_size = sizeof (smsg->data.data) - smsg_offset;
+            uint16_t copy_size = sizeof (smsg->data) - smsg_offset;
             if (copy_size > payload_len) {
                 copy_size = payload_len;
             }
             if (SCLogDebugEnabled()) {
-                BUG_ON(copy_size > sizeof(smsg->data.data));
+                BUG_ON(copy_size > sizeof(smsg->data));
             }
             SCLogDebug("copy_size is %"PRIu16"", copy_size);
-            memcpy(smsg->data.data + smsg_offset, seg->payload + payload_offset,
+            memcpy(smsg->data + smsg_offset, seg->payload + payload_offset,
                     copy_size);
             smsg_offset += copy_size;
             ra_base_seq += copy_size;
             SCLogDebug("ra_base_seq %"PRIu32, ra_base_seq);
 
-            smsg->data.data_len += copy_size;
+            smsg->data_len += copy_size;
 
             /* queue the smsg if it's full */
-            if (smsg->data.data_len == sizeof (smsg->data.data)) {
+            if (smsg->data_len == sizeof (smsg->data)) {
                 StreamMsgPutInQueue(ra_ctx->stream_q, smsg);
                 stream->ra_raw_base_seq = ra_base_seq;
                 smsg = NULL;
@@ -3297,29 +3297,29 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                     smsg_offset = 0;
 
                     StreamTcpSetupMsg(ssn, stream,p,smsg);
-                    smsg->data.seq = ra_base_seq + 1;
+                    smsg->seq = ra_base_seq + 1;
 
-                    copy_size = sizeof(smsg->data.data) - smsg_offset;
+                    copy_size = sizeof(smsg->data) - smsg_offset;
                     if (copy_size > payload_len) {
                         copy_size = payload_len;
                     }
                     if (SCLogDebugEnabled()) {
-                        BUG_ON(copy_size > sizeof(smsg->data.data));
+                        BUG_ON(copy_size > sizeof(smsg->data));
                     }
 
                     SCLogDebug("copy payload_offset %" PRIu32 ", smsg_offset "
                                 "%" PRIu32 ", copy_size %" PRIu32 "",
                                 payload_offset, smsg_offset, copy_size);
-                    memcpy(smsg->data.data + smsg_offset, seg->payload +
+                    memcpy(smsg->data + smsg_offset, seg->payload +
                             payload_offset, copy_size);
                     smsg_offset += copy_size;
                     ra_base_seq += copy_size;
                     SCLogDebug("ra_base_seq %"PRIu32, ra_base_seq);
-                    smsg->data.data_len += copy_size;
+                    smsg->data_len += copy_size;
                     SCLogDebug("copied payload_offset %" PRIu32 ", "
                                "smsg_offset %" PRIu32 ", copy_size %" PRIu32 "",
                                payload_offset, smsg_offset, copy_size);
-                    if (smsg->data.data_len == sizeof (smsg->data.data)) {
+                    if (smsg->data_len == sizeof (smsg->data)) {
                         StreamMsgPutInQueue(ra_ctx->stream_q, smsg);
                         stream->ra_raw_base_seq = ra_base_seq;
                         smsg = NULL;
@@ -3404,15 +3404,15 @@ int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx)
             smsg = StreamMsgGetFromQueue(ra_ctx->stream_q);
             if (smsg != NULL) {
                 SCLogDebug("smsg %p, next %p, prev %p, flow %p, q->len %u, "
-                        "smsg->data.datalen %u, direction %s%s",
+                        "smsg->datalen %u, direction %s%s",
                         smsg, smsg->next, smsg->prev, smsg->flow,
-                        ra_ctx->stream_q->len, smsg->data.data_len,
+                        ra_ctx->stream_q->len, smsg->data_len,
                         smsg->flags & STREAM_TOSERVER ? "toserver":"",
                         smsg->flags & STREAM_TOCLIENT ? "toclient":"");
 
                 BUG_ON(smsg->flow == NULL);
 
-                //PrintRawDataFp(stderr, smsg->data.data, smsg->data.data_len);
+                //PrintRawDataFp(stderr, smsg->data, smsg->data_len);
 
                 /* Handle the stream msg. No need to use locking, flow is
                  * already locked at this point. Don't break out of the
@@ -4013,10 +4013,10 @@ static int StreamTcpCheckQueue (uint8_t *stream_contents, StreamMsgQueue *q) {
     while(msg != NULL) {
         cnt++;
         j = 0;
-        for (; j < msg->data.data_len; j++) {
-            SCLogDebug("i is %" PRIu32 " and len is %" PRIu32 "  and temp is %" PRIx32 "", i, msg->data.data_len, msg->data.data[j]);
+        for (; j < msg->data_len; j++) {
+            SCLogDebug("i is %" PRIu32 " and len is %" PRIu32 "  and temp is %" PRIx32 "", i, msg->data_len, msg->data[j]);
 
-            if (stream_contents[i] == msg->data.data[j]) {
+            if (stream_contents[i] == msg->data[j]) {
                 i++;
                 continue;
             } else {
@@ -7645,16 +7645,16 @@ static int StreamTcpReassembleInlineTest01(void) {
     }
 
     StreamMsg *smsg = ra_ctx->stream_q->top;
-    if (smsg->data.data_len != 15) {
-        printf("expected data length to be 15, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 15) {
+        printf("expected data length to be 15, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload, smsg->data.data, 15) == 0)) {
+    if (!(memcmp(stream_payload, smsg->data, 15) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload, 15);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
@@ -7723,16 +7723,16 @@ static int StreamTcpReassembleInlineTest02(void) {
     }
 
     StreamMsg *smsg = ra_ctx->stream_q->top;
-    if (smsg->data.data_len != 15) {
-        printf("expected data length to be 15, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 15) {
+        printf("expected data length to be 15, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload1, smsg->data.data, 15) == 0)) {
+    if (!(memcmp(stream_payload1, smsg->data, 15) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload1, 15);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
@@ -7754,16 +7754,16 @@ static int StreamTcpReassembleInlineTest02(void) {
     }
 
     smsg = ra_ctx->stream_q->top;
-    if (smsg->data.data_len != 20) {
-        printf("expected data length to be 20, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 20) {
+        printf("expected data length to be 20, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload2, smsg->data.data, 20) == 0)) {
+    if (!(memcmp(stream_payload2, smsg->data, 20) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload2, 20);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
@@ -7836,16 +7836,16 @@ static int StreamTcpReassembleInlineTest03(void) {
     }
 
     StreamMsg *smsg = ra_ctx->stream_q->top;
-    if (smsg->data.data_len != 15) {
-        printf("expected data length to be 15, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 15) {
+        printf("expected data length to be 15, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload1, smsg->data.data, 15) == 0)) {
+    if (!(memcmp(stream_payload1, smsg->data, 15) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload1, 15);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
@@ -7869,16 +7869,16 @@ static int StreamTcpReassembleInlineTest03(void) {
     }
 
     smsg = ra_ctx->stream_q->top;
-    if (smsg->data.data_len != 15) {
-        printf("expected data length to be 15, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 15) {
+        printf("expected data length to be 15, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload2, smsg->data.data, 15) == 0)) {
+    if (!(memcmp(stream_payload2, smsg->data, 15) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload2, 15);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
@@ -7951,16 +7951,16 @@ static int StreamTcpReassembleInlineTest04(void) {
     }
 
     StreamMsg *smsg = ra_ctx->stream_q->top;
-    if (smsg->data.data_len != 15) {
-        printf("expected data length to be 15, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 15) {
+        printf("expected data length to be 15, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload1, smsg->data.data, 15) == 0)) {
+    if (!(memcmp(stream_payload1, smsg->data, 15) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload1, 15);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
@@ -7984,16 +7984,16 @@ static int StreamTcpReassembleInlineTest04(void) {
     }
 
     smsg = ra_ctx->stream_q->top;
-    if (smsg->data.data_len != 16) {
-        printf("expected data length to be 16, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 16) {
+        printf("expected data length to be 16, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload2, smsg->data.data, 16) == 0)) {
+    if (!(memcmp(stream_payload2, smsg->data, 16) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload2, 16);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
@@ -8063,30 +8063,30 @@ static int StreamTcpReassembleInlineTest05(void) {
     }
 
     StreamMsg *smsg = ra_ctx->stream_q->top->next;
-    if (smsg->data.data_len != 10) {
-        printf("expected data length to be 10, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 10) {
+        printf("expected data length to be 10, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload1, smsg->data.data, 10) == 0)) {
+    if (!(memcmp(stream_payload1, smsg->data, 10) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload2, 10);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
     smsg = ra_ctx->stream_q->top;
-    if (smsg->data.data_len != 5) {
-        printf("expected data length to be 5, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 5) {
+        printf("expected data length to be 5, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload2, smsg->data.data, 5) == 0)) {
+    if (!(memcmp(stream_payload2, smsg->data, 5) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload2, 5);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
@@ -8157,30 +8157,30 @@ static int StreamTcpReassembleInlineTest06(void) {
     }
 
     StreamMsg *smsg = ra_ctx->stream_q->top->next;
-    if (smsg->data.data_len != 10) {
-        printf("expected data length to be 10, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 10) {
+        printf("expected data length to be 10, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload1, smsg->data.data, 10) == 0)) {
+    if (!(memcmp(stream_payload1, smsg->data, 10) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload2, 10);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
     smsg = ra_ctx->stream_q->top;
-    if (smsg->data.data_len != 5) {
-        printf("expected data length to be 5, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 5) {
+        printf("expected data length to be 5, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload2, smsg->data.data, 5) == 0)) {
+    if (!(memcmp(stream_payload2, smsg->data, 5) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload2, 5);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
@@ -8204,16 +8204,16 @@ static int StreamTcpReassembleInlineTest06(void) {
     }
 
     smsg = ra_ctx->stream_q->top;
-    if (smsg->data.data_len != 20) {
-        printf("expected data length to be 20, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 20) {
+        printf("expected data length to be 20, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload3, smsg->data.data, 20) == 0)) {
+    if (!(memcmp(stream_payload3, smsg->data, 20) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload3, 20);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
@@ -8288,30 +8288,30 @@ static int StreamTcpReassembleInlineTest07(void) {
     }
 
     StreamMsg *smsg = ra_ctx->stream_q->top->next;
-    if (smsg->data.data_len != 6) {
-        printf("expected data length to be 6, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 6) {
+        printf("expected data length to be 6, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload1, smsg->data.data, 6) == 0)) {
+    if (!(memcmp(stream_payload1, smsg->data, 6) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload1, 6);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
     smsg = ra_ctx->stream_q->top;
-    if (smsg->data.data_len != 5) {
-        printf("expected data length to be 5, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 5) {
+        printf("expected data length to be 5, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload2, smsg->data.data, 5) == 0)) {
+    if (!(memcmp(stream_payload2, smsg->data, 5) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload2, 5);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
@@ -8335,16 +8335,16 @@ static int StreamTcpReassembleInlineTest07(void) {
     }
 
     smsg = ra_ctx->stream_q->top;
-    if (smsg->data.data_len != 16) {
-        printf("expected data length to be 16, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 16) {
+        printf("expected data length to be 16, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload3, smsg->data.data, 16) == 0)) {
+    if (!(memcmp(stream_payload3, smsg->data, 16) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload3, 16);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
@@ -8419,16 +8419,16 @@ static int StreamTcpReassembleInlineTest08(void) {
     }
 
     StreamMsg *smsg = ra_ctx->stream_q->top;
-    if (smsg->data.data_len != 15) {
-        printf("expected data length to be 15, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 15) {
+        printf("expected data length to be 15, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload1, smsg->data.data, 15) == 0)) {
+    if (!(memcmp(stream_payload1, smsg->data, 15) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload1, 15);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
@@ -8457,16 +8457,16 @@ static int StreamTcpReassembleInlineTest08(void) {
     }
 
     smsg = ra_ctx->stream_q->top;
-    if (smsg->data.data_len != 15) {
-        printf("expected data length to be 15, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 15) {
+        printf("expected data length to be 15, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload2, smsg->data.data, 15) == 0)) {
+    if (!(memcmp(stream_payload2, smsg->data, 15) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload2, 15);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
@@ -8552,30 +8552,30 @@ static int StreamTcpReassembleInlineTest09(void) {
     }
 
     StreamMsg *smsg = ra_ctx->stream_q->bot;
-    if (smsg->data.data_len != 10) {
-        printf("expected data length to be 10, got %u (bot): ", smsg->data.data_len);
+    if (smsg->data_len != 10) {
+        printf("expected data length to be 10, got %u (bot): ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload1, smsg->data.data, 10) == 0)) {
+    if (!(memcmp(stream_payload1, smsg->data, 10) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload1, 10);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
     smsg = ra_ctx->stream_q->top;
-    if (smsg->data.data_len != 5) {
-        printf("expected data length to be 5, got %u (top): ", smsg->data.data_len);
+    if (smsg->data_len != 5) {
+        printf("expected data length to be 5, got %u (top): ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload2, smsg->data.data, 5) == 0)) {
+    if (!(memcmp(stream_payload2, smsg->data, 5) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload2, 5);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
@@ -8605,16 +8605,16 @@ static int StreamTcpReassembleInlineTest09(void) {
     }
 
     smsg = ra_ctx->stream_q->top;
-    if (smsg->data.data_len != 20) {
-        printf("expected data length to be 20, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 20) {
+        printf("expected data length to be 20, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload3, smsg->data.data, 20) == 0)) {
+    if (!(memcmp(stream_payload3, smsg->data, 20) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload3, 20);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
@@ -8784,16 +8784,16 @@ static int StreamTcpReassembleInsertTest01(void) {
     }
 
     StreamMsg *smsg = ra_ctx->stream_q->top;
-    if (smsg->data.data_len != 20) {
-        printf("expected data length to be 20, got %u: ", smsg->data.data_len);
+    if (smsg->data_len != 20) {
+        printf("expected data length to be 20, got %u: ", smsg->data_len);
         goto end;
     }
 
-    if (!(memcmp(stream_payload1, smsg->data.data, 20) == 0)) {
+    if (!(memcmp(stream_payload1, smsg->data, 20) == 0)) {
         printf("data is not what we expected:\nExpected:\n");
         PrintRawDataFp(stdout, stream_payload1, 20);
         printf("Got:\n");
-        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        PrintRawDataFp(stdout, smsg->data, smsg->data_len);
         goto end;
     }
 
