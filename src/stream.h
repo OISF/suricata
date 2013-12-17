@@ -38,7 +38,6 @@
 
 typedef struct StreamMsg_ {
     uint8_t flags;  /**< msg flags */
-    Flow *flow;     /**< parent flow */
 
     struct StreamMsg_ *next;
     struct StreamMsg_ *prev;

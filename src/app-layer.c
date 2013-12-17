@@ -375,7 +375,6 @@ int AppLayerHandleTCPMsg(StreamMsg *smsg, TcpSession *ssn)
     printf("=> Stream Data -- end\n");
 #endif
     SCLogDebug("smsg %p", smsg);
-    BUG_ON(smsg->flow == NULL);
 
     if (ssn != NULL) {
         SCLogDebug("storing smsg %p in the tcp session", smsg);
@@ -415,13 +414,10 @@ int AppLayerHandleTCPMsg(StreamMsg *smsg, TcpSession *ssn)
             }
         }
 
-        FlowDeReference(&smsg->flow);
     } else { /* no ssn ptr */
         /* if there is no ssn ptr we won't
          * be inspecting this msg in detect
          * so return it to the pool. */
-
-        FlowDeReference(&smsg->flow);
 
         /* return the used message to the queue */
         StreamMsgReturnToPool(smsg);
