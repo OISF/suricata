@@ -2104,6 +2104,9 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }
     } else {
+        /* disable raw reassembly */
+        (void)ConfSetFinal("stream.reassembly.raw", "false");
+
         /* tell the app layer to consider only the log id */
         RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);
     }
