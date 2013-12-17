@@ -469,7 +469,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
  *  \retval 0 ok
  *  \retval -1 error
  */
-int AppLayerHandleTCPMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
+int AppLayerHandleTCPMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg, TcpSession *ssn)
 {
     SCEnter();
 
@@ -483,7 +483,6 @@ int AppLayerHandleTCPMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
     SCLogDebug("smsg %p", smsg);
     BUG_ON(smsg->flow == NULL);
 
-    TcpSession *ssn = smsg->flow->protoctx;
     if (ssn != NULL) {
         SCLogDebug("storing smsg %p in the tcp session", smsg);
 

@@ -4373,7 +4373,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         }
 
         /* Process stream smsgs we may have in queue */
-        if (StreamTcpReassembleProcessAppLayer(stt->ra_ctx) < 0) {
+        if (StreamTcpReassembleProcessAppLayer(stt->ra_ctx, ssn) < 0) {
             goto error;
         }
 
