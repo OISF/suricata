@@ -352,80 +352,17 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 }
 
 /**
- *  \brief Attach a stream message to the TCP session for inspection
- *         in the detection engine.
+ *  \brief Handle a app layer UDP message
+ *
+ *  If the protocol is yet unknown, the proto detection code is run first.
  *
  *  \param dp_ctx Thread app layer detect context
- *  \param smsg Stream message
+ *  \param f unlocked flow
+ *  \param p UDP packet
  *
  *  \retval 0 ok
  *  \retval -1 error
  */
-int AppLayerHandleTCPMsg(StreamMsg *smsg, TcpSession *ssn)
-{
-    SCEnter();
-
-    StreamMsg *cur;
-
-#ifdef PRINT
-    printf("=> Stream Data (raw reassembly) -- start %s%s\n",
-            smsg->flags & STREAM_TOCLIENT ? "toclient" : "",
-            smsg->flags & STREAM_TOSERVER ? "toserver" : "");
-    PrintRawDataFp(stdout, smsg->data, smsg->data_len);
-    printf("=> Stream Data -- end\n");
-#endif
-    SCLogDebug("smsg %p", smsg);
-
-    if (ssn != NULL) {
-        SCLogDebug("storing smsg %p in the tcp session", smsg);
-
-        /* store the smsg in the tcp stream */
-        if (smsg->flags & STREAM_TOSERVER) {
-            SCLogDebug("storing smsg in the to_server");
-
-            /* put the smsg in the stream list */
-            if (ssn->toserver_smsg_head == NULL) {
-                ssn->toserver_smsg_head = smsg;
-                ssn->toserver_smsg_tail = smsg;
-                smsg->next = NULL;
-                smsg->prev = NULL;
-            } else {
-                cur = ssn->toserver_smsg_tail;
-                cur->next = smsg;
-                smsg->prev = cur;
-                smsg->next = NULL;
-                ssn->toserver_smsg_tail = smsg;
-            }
-        } else {
-            SCLogDebug("storing smsg in the to_client");
-
-            /* put the smsg in the stream list */
-            if (ssn->toclient_smsg_head == NULL) {
-                ssn->toclient_smsg_head = smsg;
-                ssn->toclient_smsg_tail = smsg;
-                smsg->next = NULL;
-                smsg->prev = NULL;
-            } else {
-                cur = ssn->toclient_smsg_tail;
-                cur->next = smsg;
-                smsg->prev = cur;
-                smsg->next = NULL;
-                ssn->toclient_smsg_tail = smsg;
-            }
-        }
-
-    } else { /* no ssn ptr */
-        /* if there is no ssn ptr we won't
-         * be inspecting this msg in detect
-         * so return it to the pool. */
-
-        /* return the used message to the queue */
-        StreamMsgReturnToPool(smsg);
-    }
-
-    SCReturnInt(0);
-}
-
 int AppLayerHandleUdp(AppLayerThreadCtx *tctx, Packet *p, Flow *f)
 {
     SCEnter();
