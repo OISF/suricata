@@ -52,7 +52,7 @@ enum
 };
 
 typedef struct TcpReassemblyThreadCtx_ {
-    StreamMsgQueue *stream_q;
+//    StreamMsgQueue *stream_q;
     AlpProtoDetectThreadCtx dp_ctx;   /**< proto detection thread data */
     /** TCP segments which are not being reassembled due to memcap was reached */
     uint16_t counter_tcp_segment_memcap;
@@ -79,7 +79,6 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
                                       TcpReassemblyThreadCtx *ra_ctx,
                                       TcpSession *ssn, TcpStream *stream,
                                       Packet *p);
-int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *, TcpSession *);
 
 void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
 

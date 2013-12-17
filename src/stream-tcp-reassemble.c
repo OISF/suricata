@@ -367,7 +367,6 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(void)
         return NULL;
 
     memset(ra_ctx, 0x00, sizeof(TcpReassemblyThreadCtx));
-    ra_ctx->stream_q = StreamMsgQueueGetNew();
 
     AlpProtoFinalize2Thread(&ra_ctx->dp_ctx);
     SCReturnPtr(ra_ctx, "TcpReassemblyThreadCtx");
@@ -376,16 +375,6 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(void)
 void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *ra_ctx)
 {
     SCEnter();
-    if (ra_ctx->stream_q != NULL) {
-        StreamMsg *smsg;
-        while ((smsg = StreamMsgGetFromQueue(ra_ctx->stream_q)) != NULL) {
-            StreamMsgReturnToPool(smsg);
-        }
-
-        StreamMsgQueueFree(ra_ctx->stream_q);
-    }
-
-    ra_ctx->stream_q = NULL;
     AlpProtoDeFinalize2Thread(&ra_ctx->dp_ctx);
     SCFree(ra_ctx);
     SCReturn;
@@ -1615,6 +1604,55 @@ static uint32_t StreamTcpReassembleCheckDepth(TcpStream *stream,
     SCReturnUInt(0);
 }
 
+static void StreamTcpStoreStreamChunk(TcpSession *ssn, StreamMsg *smsg, const Packet *p, int streaminline) {
+    uint8_t direction = 0;
+
+    if ((!streaminline && (p->flowflags & FLOW_PKT_TOSERVER)) ||
+        ( streaminline && (p->flowflags & FLOW_PKT_TOCLIENT)))
+    {
+        direction = STREAM_TOCLIENT;
+        SCLogDebug("stream chunk is to_client");
+    } else {
+        direction = STREAM_TOSERVER;
+        SCLogDebug("stream chunk is to_server");
+    }
+
+    /* store the smsg in the tcp stream */
+    if (direction == STREAM_TOSERVER) {
+        SCLogDebug("storing smsg in the to_server");
+
+        /* put the smsg in the stream list */
+        if (ssn->toserver_smsg_head == NULL) {
+            ssn->toserver_smsg_head = smsg;
+            ssn->toserver_smsg_tail = smsg;
+            smsg->next = NULL;
+            smsg->prev = NULL;
+        } else {
+            StreamMsg *cur = ssn->toserver_smsg_tail;
+            cur->next = smsg;
+            smsg->prev = cur;
+            smsg->next = NULL;
+            ssn->toserver_smsg_tail = smsg;
+        }
+    } else {
+        SCLogDebug("storing smsg in the to_client");
+
+        /* put the smsg in the stream list */
+        if (ssn->toclient_smsg_head == NULL) {
+            ssn->toclient_smsg_head = smsg;
+            ssn->toclient_smsg_tail = smsg;
+            smsg->next = NULL;
+            smsg->prev = NULL;
+        } else {
+            StreamMsg *cur = ssn->toclient_smsg_tail;
+            cur->next = smsg;
+            smsg->prev = cur;
+            smsg->next = NULL;
+            ssn->toclient_smsg_tail = smsg;
+        }
+    }
+}
+
 /**
  *  \brief Insert a packets TCP data into the stream reassembly engine.
  *
@@ -1742,17 +1780,6 @@ static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
         SCLogDebug("setting STREAM_EOF");
         smsg->flags |= STREAM_EOF;
     }
-
-    if ((!StreamTcpInlineMode() && (p->flowflags & FLOW_PKT_TOSERVER)) ||
-        ( StreamTcpInlineMode() && (p->flowflags & FLOW_PKT_TOCLIENT)))
-    {
-        smsg->flags |= STREAM_TOCLIENT;
-        SCLogDebug("stream mesage is to_client");
-    } else {
-        smsg->flags |= STREAM_TOSERVER;
-        SCLogDebug("stream mesage is to_server");
-    }
-
     smsg->data_len = 0;
 
     SCLogDebug("smsg %p", smsg);
@@ -2295,7 +2322,7 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
         if (SEQ_GT(seg->seq, next_seq)) {
             /* pass on pre existing smsg (if any) */
             if (smsg != NULL && smsg->data_len > 0) {
-                StreamMsgPutInQueue(ra_ctx->stream_q, smsg);
+                StreamTcpStoreStreamChunk(ssn, smsg, p, 1);
                 stream->ra_raw_base_seq = ra_base_seq;
                 smsg = NULL;
             }
@@ -2379,7 +2406,7 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
 
             /* queue the smsg if it's full */
             if (smsg->data_len == sizeof (smsg->data)) {
-                StreamMsgPutInQueue(ra_ctx->stream_q, smsg);
+                StreamTcpStoreStreamChunk(ssn, smsg, p, 1);
                 stream->ra_raw_base_seq = ra_base_seq;
                 smsg = NULL;
             }
@@ -2440,7 +2467,7 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
                                "smsg_offset %" PRIu32 ", copy_size %" PRIu32 "",
                                payload_offset, smsg_offset, copy_size);
                     if (smsg->data_len == sizeof (smsg->data)) {
-                        StreamMsgPutInQueue(ra_ctx->stream_q, smsg);
+                        StreamTcpStoreStreamChunk(ssn, smsg, p, 1);
                         stream->ra_raw_base_seq = ra_base_seq;
                         smsg = NULL;
                     }
@@ -2479,7 +2506,7 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
 
     /* put the partly filled smsg in the queue */
     if (smsg != NULL) {
-        StreamMsgPutInQueue(ra_ctx->stream_q, smsg);
+        StreamTcpStoreStreamChunk(ssn, smsg, p, 1);
         smsg = NULL;
         stream->ra_raw_base_seq = ra_base_seq;
     }
@@ -3054,7 +3081,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                 SCReturnInt(-1);
             }
             StreamTcpSetupMsg(ssn, stream, p, smsg);
-            StreamMsgPutInQueue(ra_ctx->stream_q,smsg);
+            StreamTcpStoreStreamChunk(ssn, smsg, p, 0);
 
         } else {
             SCLogDebug("no segments in the list to reassemble");
@@ -3153,7 +3180,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                    or not. If not then sent the message and set flag that first
                    message has been sent. No more data till proto has not
                    been detected */
-                StreamMsgPutInQueue(ra_ctx->stream_q, smsg);
+                StreamTcpStoreStreamChunk(ssn, smsg, p, 0);
                 stream->ra_raw_base_seq = ra_base_seq;
                 smsg = NULL;
             }
@@ -3261,7 +3288,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
 
             /* queue the smsg if it's full */
             if (smsg->data_len == sizeof (smsg->data)) {
-                StreamMsgPutInQueue(ra_ctx->stream_q, smsg);
+                StreamTcpStoreStreamChunk(ssn, smsg, p, 0);
                 stream->ra_raw_base_seq = ra_base_seq;
                 smsg = NULL;
             }
@@ -3321,7 +3348,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                                "smsg_offset %" PRIu32 ", copy_size %" PRIu32 "",
                                payload_offset, smsg_offset, copy_size);
                     if (smsg->data_len == sizeof (smsg->data)) {
-                        StreamMsgPutInQueue(ra_ctx->stream_q, smsg);
+                        StreamTcpStoreStreamChunk(ssn, smsg, p, 0);
                         stream->ra_raw_base_seq = ra_base_seq;
                         smsg = NULL;
                     }
@@ -3351,7 +3378,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
 
     /* put the partly filled smsg in the queue to the l7 handler */
     if (smsg != NULL) {
-        StreamMsgPutInQueue(ra_ctx->stream_q, smsg);
+        StreamTcpStoreStreamChunk(ssn, smsg, p, 0);
         smsg = NULL;
         stream->ra_raw_base_seq = ra_base_seq;
     }
@@ -3379,50 +3406,6 @@ int StreamTcpReassembleHandleSegmentUpdateACK (ThreadVars *tv,
     }
 
     SCLogDebug("stream->seg_list %p", stream->seg_list);
-    SCReturnInt(r);
-}
-
-/** \brief Handle the queue'd smsgs containing reassembled app layer data when
- *         we're running the app layer handling as part of the stream threads.
- *
- *  \param ra_ctx Reassembly thread ctx, contains the queue with stream msgs
- *
- *  \todo Currently we process all msgs even if we encounter an error in one
- *        of them. We do this to make sure the thread ctx's queue is emptied.
- *        Maybe we should just clear & return the msgs in case of error.
- *
- *  \retval 0 ok
- *  \retval -1 error
- */
-int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn)
-{
-    SCEnter();
-
-    int r = 0;
-    if (ra_ctx != NULL && ra_ctx->stream_q && ra_ctx->stream_q->len > 0) {
-        StreamMsg *smsg = NULL;
-        do {
-            smsg = StreamMsgGetFromQueue(ra_ctx->stream_q);
-            if (smsg != NULL) {
-                SCLogDebug("smsg %p, next %p, prev %p, q->len %u, "
-                        "smsg->datalen %u, direction %s%s",
-                        smsg, smsg->next, smsg->prev,
-                        ra_ctx->stream_q->len, smsg->data_len,
-                        smsg->flags & STREAM_TOSERVER ? "toserver":"",
-                        smsg->flags & STREAM_TOCLIENT ? "toclient":"");
-
-                //PrintRawDataFp(stderr, smsg->data, smsg->data_len);
-
-                /* Handle the stream msg. No need to use locking, flow is
-                 * already locked at this point. Don't break out of the
-                 * loop if we encounter an error. */
-                if (AppLayerHandleTCPMsg(&ra_ctx->dp_ctx, smsg, ssn) != 0)
-                    r = -1;
-            }
-
-        } while (ra_ctx->stream_q->len > 0);
-    }
-
     SCReturnInt(r);
 }
 
@@ -3696,6 +3679,18 @@ void StreamTcpReassembleTriggerRawReassembly(TcpSession *ssn) {
 
 #ifdef UNITTESTS
 /** unit tests and it's support functions below */
+
+static uint32_t UtSsnSmsgCnt(TcpSession *ssn, uint8_t direction) {
+    uint32_t cnt = 0;
+    StreamMsg *smsg = (direction == STREAM_TOSERVER) ?
+                            ssn->toserver_smsg_head :
+                            ssn->toclient_smsg_head;
+    while (smsg) {
+        cnt++;
+        smsg = smsg->next;
+    }
+    return cnt;
+}
 
 /** \brief  The Function tests the reassembly engine working for different
  *          OSes supported. It includes all the OS cases and send
@@ -3989,7 +3984,7 @@ int StreamTcpCheckStreamContents(uint8_t *stream_policy, uint16_t sp_size, TcpSt
  *
  *  \retval On success the function returns 1, on failure 0.
  */
-static int StreamTcpCheckQueue (uint8_t *stream_contents, StreamMsgQueue *q) {
+static int StreamTcpCheckChunks (TcpSession *ssn, uint8_t *stream_contents) {
     SCEnter();
 
     StreamMsg *msg;
@@ -3997,17 +3992,17 @@ static int StreamTcpCheckQueue (uint8_t *stream_contents, StreamMsgQueue *q) {
     uint8_t j;
     uint8_t cnt = 0;
 
-    if (q == NULL) {
-        printf("q == NULL, ");
+    if (ssn == NULL) {
+        printf("ssn == NULL, ");
         SCReturnInt(0);
     }
 
-    if (q->len == 0) {
-        printf("q->len == 0, ");
+    if (ssn->toserver_smsg_head == NULL) {
+        printf("ssn->toserver_smsg_head == NULL, ");
         SCReturnInt(0);
     }
 
-    msg = StreamMsgGetFromQueue(q);
+    msg = ssn->toserver_smsg_head;
     while(msg != NULL) {
         cnt++;
         j = 0;
@@ -4021,11 +4016,7 @@ static int StreamTcpCheckQueue (uint8_t *stream_contents, StreamMsgQueue *q) {
                 SCReturnInt(0);
             }
         }
-        if (q->len > 0) {
-            msg = StreamMsgGetFromQueue(q);
-        } else {
-            SCReturnInt(1);
-        }
+        msg = msg->next;
     }
     SCReturnInt(1);
 }
@@ -5243,7 +5234,6 @@ static int StreamTcpReassembleTest28 (void) {
     TcpSession ssn;
     memset(&ssn, 0, sizeof (TcpSession));
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    StreamMsgQueue *q = ra_ctx->stream_q;
 
     StreamTcpInitConfig(TRUE);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
@@ -5274,12 +5264,6 @@ static int StreamTcpReassembleTest28 (void) {
         goto end;
     }
 
-    /* Process stream smsgs we may have in queue */
-    if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
-        printf("failed in processing stream smsgs (3): ");
-        goto end;
-    }
-
     flowflags = FLOW_PKT_TOSERVER;
     StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     seq = 12;
@@ -5298,7 +5282,7 @@ static int StreamTcpReassembleTest28 (void) {
         goto end;
     }
 
-    if (StreamTcpCheckQueue(check_contents, q) == 0) {
+    if (StreamTcpCheckChunks(&ssn, check_contents) == 0) {
         printf("failed in stream matching (6): ");
         goto end;
     }
@@ -5328,7 +5312,6 @@ static int StreamTcpReassembleTest29 (void) {
     uint8_t flowflags;
     uint8_t check_contents[5] = {0x41, 0x41, 0x42, 0x42, 0x42};
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    StreamMsgQueue *q = ra_ctx->stream_q;
     TcpSession ssn;
     memset(&ssn, 0, sizeof (TcpSession));
 
@@ -5358,12 +5341,6 @@ static int StreamTcpReassembleTest29 (void) {
         goto end;
     }
 
-    /* Process stream smsgs we may have in queue */
-    if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
-        printf("failed in processing stream smsgs\n");
-        goto end;
-    }
-
     flowflags = FLOW_PKT_TOSERVER;
     StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     seq = 15;
@@ -5382,7 +5359,7 @@ static int StreamTcpReassembleTest29 (void) {
         goto end;
     }
 
-    if (StreamTcpCheckQueue(check_contents, q) == 0) {
+    if (StreamTcpCheckChunks(&ssn, check_contents) == 0) {
         printf("failed in stream matching: ");
         goto end;
     }
@@ -5415,7 +5392,6 @@ static int StreamTcpReassembleTest30 (void) {
     memset(&ssn, 0, sizeof (TcpSession));
 
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    StreamMsgQueue *q = ra_ctx->stream_q;
 
     flowflags = FLOW_PKT_TOSERVER;
     th_flag = TH_ACK|TH_PUSH;
@@ -5443,12 +5419,6 @@ static int StreamTcpReassembleTest30 (void) {
         goto end;
     }
 
-    /* Process stream smsgs we may have in queue */
-    if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
-        printf("failed in processing stream smsgs\n");
-        goto end;
-    }
-
     flowflags = FLOW_PKT_TOSERVER;
     StreamTcpCreateTestPacket(payload, 0x42, 3, 4); /*BBB*/
     seq = 12;
@@ -5464,12 +5434,6 @@ static int StreamTcpReassembleTest30 (void) {
     ack = 18;
     if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 0, th_flags, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly: ");
-        goto end;
-    }
-
-    /* Process stream smsgs we may have in queue */
-    if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
-        printf("failed in processing stream smsgs\n");
         goto end;
     }
 
@@ -5492,7 +5456,7 @@ static int StreamTcpReassembleTest30 (void) {
         goto end;
     }
 
-    if (StreamTcpCheckQueue(check_contents, q) == 0) {
+    if (StreamTcpCheckChunks(&ssn, check_contents) == 0) {
         printf("failed in stream matching: ");
         goto end;
     }
@@ -6132,7 +6096,7 @@ static int StreamTcpReassembleTest38 (void) {
     }
 
     /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len > 0) {
+    if (ssn.toserver_smsg_head != NULL) {
         printf("there shouldn't be any stream smsgs in the queue (2): ");
         goto end;
     }
@@ -6150,7 +6114,7 @@ static int StreamTcpReassembleTest38 (void) {
     }
 
     /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len != 1) {
+    if (ssn.toserver_smsg_head == NULL) {
         printf("there should one stream smsg in the queue (6): ");
         goto end;
     }
@@ -6219,7 +6183,8 @@ static int StreamTcpReassembleTest39 (void) {
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->client.seg_list != NULL ||
         ssn->server.seg_list != NULL ||
-        stt->ra_ctx->stream_q->len != 0 ||
+        ssn->toserver_smsg_head != NULL ||
+        ssn->toclient_smsg_head != NULL ||
         ssn->data_first_seen_dir != 0) {
         printf("failure 1\n");
         goto end;
@@ -6245,7 +6210,8 @@ static int StreamTcpReassembleTest39 (void) {
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->client.seg_list != NULL ||
         ssn->server.seg_list != NULL ||
-        stt->ra_ctx->stream_q->len != 0 ||
+        ssn->toserver_smsg_head != NULL ||
+        ssn->toclient_smsg_head != NULL ||
         ssn->data_first_seen_dir != 0) {
         printf("failure 2\n");
         goto end;
@@ -6272,7 +6238,8 @@ static int StreamTcpReassembleTest39 (void) {
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->client.seg_list != NULL ||
         ssn->server.seg_list != NULL ||
-        stt->ra_ctx->stream_q->len != 0 ||
+        ssn->toserver_smsg_head != NULL ||
+        ssn->toclient_smsg_head != NULL ||
         ssn->data_first_seen_dir != 0) {
         printf("failure 3\n");
         goto end;
@@ -6301,7 +6268,8 @@ static int StreamTcpReassembleTest39 (void) {
         ssn->client.seg_list == NULL ||
         ssn->client.seg_list->next != NULL ||
         ssn->server.seg_list != NULL ||
-        stt->ra_ctx->stream_q->len != 0 ||
+        ssn->toserver_smsg_head != NULL ||
+        ssn->toclient_smsg_head != NULL ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
         printf("failure 4\n");
         goto end;
@@ -6330,7 +6298,8 @@ static int StreamTcpReassembleTest39 (void) {
         ssn->client.seg_list == NULL ||
         ssn->client.seg_list->next != NULL ||
         ssn->server.seg_list != NULL ||
-        stt->ra_ctx->stream_q->len != 0 ||
+        ssn->toserver_smsg_head != NULL ||
+        ssn->toclient_smsg_head != NULL ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
         printf("failure 5\n");
         goto end;
@@ -6371,7 +6340,8 @@ static int StreamTcpReassembleTest39 (void) {
         ssn->client.seg_list->next == NULL ||
         ssn->client.seg_list->next->next != NULL ||
         ssn->server.seg_list != NULL ||
-        stt->ra_ctx->stream_q->len != 0 ||
+        ssn->toserver_smsg_head != NULL ||
+        ssn->toclient_smsg_head != NULL ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
         printf("failure 6\n");
         goto end;
@@ -6832,7 +6802,7 @@ static int StreamTcpReassembleTest40 (void) {
     }
 
     /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len > 0) {
+    if (ssn.toserver_smsg_head || ssn.toclient_smsg_head) {
         printf("there shouldn't be any stream smsgs in the queue, as we didn't"
                 " processed any smsg from toserver side till yet (2): ");
         goto end;
@@ -6848,12 +6818,6 @@ static int StreamTcpReassembleTest40 (void) {
 
     if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
         printf("failed in segments reassembly, while processing toserver packet (3): ");
-        goto end;
-    }
-
-    /* Process stream smsgs we may have in queue */
-    if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
-        printf("failed in processing stream smsgs (4): ");
         goto end;
     }
 
@@ -6891,19 +6855,6 @@ static int StreamTcpReassembleTest40 (void) {
         goto end;
     }
 
-    /* Check if we have stream smsgs in queue */
-#if 0
-    if (ra_ctx->stream_q->len == 0) {
-        printf("there should be a stream smsgs in the queue, as we have detected"
-                " the app layer protocol and one smsg from toserver side has "
-                "been sent (8): ");
-        goto end;
-    /* Process stream smsgs we may have in queue */
-    } else if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
-        printf("failed in processing stream smsgs (9): ");
-        goto end;
-    }
-#endif
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload = httpbuf4;
     p->payload_len = httplen4;
@@ -6930,19 +6881,6 @@ static int StreamTcpReassembleTest40 (void) {
         goto end;
     }
 
-    /* Check if we have stream smsgs in queue */
-#if 0
-    if (ra_ctx->stream_q->len == 0) {
-        printf("there should be a stream smsgs in the queue, as we have detected"
-                " the app layer protocol and one smsg from toserver side has "
-                "been sent (12): ");
-        goto end;
-    /* Process stream smsgs we may have in queue */
-    } else if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
-        printf("failed in processing stream smsgs (13): ");
-        goto end;
-    }
-#endif
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload = httpbuf5;
     p->payload_len = httplen5;
@@ -6970,16 +6908,10 @@ static int StreamTcpReassembleTest40 (void) {
     }
 
     /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len == 0) {
+    if (ssn.toserver_smsg_head == NULL) {
         printf("there should be a stream smsgs in the queue, as we have detected"
                 " the app layer protocol and one smsg from toserver side has "
                 "been sent (16): ");
-        goto end;
-    /* Process stream smsgs we may have in queue */
-    }
-
-    if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
-        printf("failed in processing stream smsgs (17): ");
         goto end;
     }
 
@@ -7073,7 +7005,7 @@ static int StreamTcpReassembleTest43 (void) {
     }
 
     /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len > 0) {
+    if (ssn.toserver_smsg_head) {
         printf("there shouldn't be any stream smsgs in the queue (2): ");
         goto end;
     }
@@ -7091,7 +7023,7 @@ static int StreamTcpReassembleTest43 (void) {
     }
 
     /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len > 0) {
+    if (ssn.toclient_smsg_head) {
         printf("there shouldn't be any stream smsgs in the queue, as we didn't"
                 " processed any smsg from toserver side till yet (4): ");
         goto end;
@@ -7108,17 +7040,6 @@ static int StreamTcpReassembleTest43 (void) {
         printf("failed in segments reassembly, while processing toserver packet (5): ");
         goto end;
     }
-#if 0
-    /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len == 0) {
-        printf("there should be a stream smsgs in the queue (6): ");
-        goto end;
-    /* Process stream smsgs we may have in queue */
-    } else if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
-        printf("failed in processing stream smsgs (7): ");
-        goto end;
-    }
-#endif
     if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn.client)) {
         printf("app layer detected flag isn't set, it should be (8): ");
         goto end;
@@ -7144,7 +7065,7 @@ static int StreamTcpReassembleTest43 (void) {
     }
 
     /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len > 0) {
+    if (ssn.toclient_smsg_head) {
         printf("there shouldn't be any stream smsgs in the queue, as we didn't"
                 " detected the app layer protocol till yet (10): ");
         goto end;
@@ -7161,18 +7082,6 @@ static int StreamTcpReassembleTest43 (void) {
         printf("failed in segments reassembly, while processing toserver packet (11): ");
         goto end;
     }
-#if 0
-    /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len == 0) {
-        printf("there should be a stream smsgs in the queue, as reassembling has"
-                " been unpaused now (12): ");
-        goto end;
-    /* Process stream smsgs we may have in queue */
-    } else if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
-        printf("failed in processing stream smsgs (13): ");
-        goto end;
-    }
-#endif
     /* the flag should be set, as the smsg scanned size has crossed the max.
        signature size for app proto detection */
     if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn.client)) {
@@ -7551,12 +7460,6 @@ static int StreamTcpReassembleTest47 (void) {
                     "packet\n");
             goto end;
         }
-
-        /* Process stream smsgs we may have in queue */
-        if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
-            printf("failed in processing stream smsgs\n");
-            goto end;
-        }
     }
 
     if (f->alproto != ALPROTO_HTTP) {
@@ -7620,12 +7523,12 @@ static int StreamTcpReassembleInlineTest01(void) {
         goto end;
     }
 
-    if (ra_ctx->stream_q->len != 1) {
-        printf("expected a single stream message, got %u: ", ra_ctx->stream_q->len);
+    if (ssn.toserver_smsg_head == NULL || ssn.toserver_smsg_head->next) {
+        printf("expected a single stream message: ");
         goto end;
     }
 
-    StreamMsg *smsg = ra_ctx->stream_q->top;
+    StreamMsg *smsg = ssn.toserver_smsg_head;
     if (smsg->data_len != 15) {
         printf("expected data length to be 15, got %u: ", smsg->data_len);
         goto end;
@@ -7698,12 +7601,12 @@ static int StreamTcpReassembleInlineTest02(void) {
         goto end;
     }
 
-    if (ra_ctx->stream_q->len != 1) {
-        printf("expected a single stream message, got %u: ", ra_ctx->stream_q->len);
+    if (ssn.toserver_smsg_head == NULL || ssn.toserver_smsg_head->next) {
+        printf("expected a single stream message: ");
         goto end;
     }
 
-    StreamMsg *smsg = ra_ctx->stream_q->top;
+    StreamMsg *smsg = ssn.toserver_smsg_head;
     if (smsg->data_len != 15) {
         printf("expected data length to be 15, got %u: ", smsg->data_len);
         goto end;
@@ -7729,12 +7632,12 @@ static int StreamTcpReassembleInlineTest02(void) {
         goto end;
     }
 
-    if (ra_ctx->stream_q->len != 2) {
-        printf("expected a single stream message, got %u: ", ra_ctx->stream_q->len);
+    if (ssn.toserver_smsg_head == NULL || ssn.toserver_smsg_head->next == NULL || ssn.toserver_smsg_head->next->next) {
+        printf("expected a single stream message: ");
         goto end;
     }
 
-    smsg = ra_ctx->stream_q->top;
+    smsg = ssn.toserver_smsg_head->next;
     if (smsg->data_len != 20) {
         printf("expected data length to be 20, got %u: ", smsg->data_len);
         goto end;
@@ -7811,12 +7714,12 @@ static int StreamTcpReassembleInlineTest03(void) {
         goto end;
     }
 
-    if (ra_ctx->stream_q->len != 1) {
-        printf("expected a single stream message, got %u: ", ra_ctx->stream_q->len);
+    if (ssn.toserver_smsg_head == NULL || ssn.toserver_smsg_head->next) {
+        printf("expected a single stream message 1: ");
         goto end;
     }
 
-    StreamMsg *smsg = ra_ctx->stream_q->top;
+    StreamMsg *smsg = ssn.toserver_smsg_head;
     if (smsg->data_len != 15) {
         printf("expected data length to be 15, got %u: ", smsg->data_len);
         goto end;
@@ -7844,12 +7747,12 @@ static int StreamTcpReassembleInlineTest03(void) {
         goto end;
     }
 
-    if (ra_ctx->stream_q->len != 2) {
-        printf("expected a single stream message, got %u: ", ra_ctx->stream_q->len);
+    if (ssn.toserver_smsg_head == NULL || ssn.toserver_smsg_head->next == NULL || ssn.toserver_smsg_head->next->next) {
+        printf("expected two stream messages: ");
         goto end;
     }
 
-    smsg = ra_ctx->stream_q->top;
+    smsg = ssn.toserver_smsg_head->next;
     if (smsg->data_len != 15) {
         printf("expected data length to be 15, got %u: ", smsg->data_len);
         goto end;
@@ -7926,12 +7829,12 @@ static int StreamTcpReassembleInlineTest04(void) {
         goto end;
     }
 
-    if (ra_ctx->stream_q->len != 1) {
-        printf("expected a single stream message, got %u: ", ra_ctx->stream_q->len);
+    if (ssn.toserver_smsg_head == NULL || ssn.toserver_smsg_head->next) {
+        printf("expected a single stream message: ");
         goto end;
     }
 
-    StreamMsg *smsg = ra_ctx->stream_q->top;
+    StreamMsg *smsg = ssn.toserver_smsg_head;
     if (smsg->data_len != 15) {
         printf("expected data length to be 15, got %u: ", smsg->data_len);
         goto end;
@@ -7959,12 +7862,12 @@ static int StreamTcpReassembleInlineTest04(void) {
         goto end;
     }
 
-    if (ra_ctx->stream_q->len != 2) {
-        printf("expected a single stream message, got %u: ", ra_ctx->stream_q->len);
+    if (ssn.toserver_smsg_head == NULL || ssn.toserver_smsg_head->next == NULL || ssn.toserver_smsg_head->next->next) {
+        printf("expected a single stream message: ");
         goto end;
     }
 
-    smsg = ra_ctx->stream_q->top;
+    smsg = ssn.toserver_smsg_head->next;
     if (smsg->data_len != 16) {
         printf("expected data length to be 16, got %u: ", smsg->data_len);
         goto end;
@@ -8038,12 +7941,12 @@ static int StreamTcpReassembleInlineTest05(void) {
         goto end;
     }
 
-    if (ra_ctx->stream_q->len != 2) {
-        printf("expected a single stream message, got %u: ", ra_ctx->stream_q->len);
+    if (ssn.toserver_smsg_head == NULL || ssn.toserver_smsg_head->next == NULL || ssn.toserver_smsg_head->next->next) {
+        printf("expected a single stream message: ");
         goto end;
     }
 
-    StreamMsg *smsg = ra_ctx->stream_q->top->next;
+    StreamMsg *smsg = ssn.toserver_smsg_head;
     if (smsg->data_len != 10) {
         printf("expected data length to be 10, got %u: ", smsg->data_len);
         goto end;
@@ -8057,7 +7960,7 @@ static int StreamTcpReassembleInlineTest05(void) {
         goto end;
     }
 
-    smsg = ra_ctx->stream_q->top;
+    smsg = ssn.toserver_smsg_head->next;
     if (smsg->data_len != 5) {
         printf("expected data length to be 5, got %u: ", smsg->data_len);
         goto end;
@@ -8132,12 +8035,12 @@ static int StreamTcpReassembleInlineTest06(void) {
         goto end;
     }
 
-    if (ra_ctx->stream_q->len != 2) {
-        printf("expected a single stream message, got %u: ", ra_ctx->stream_q->len);
+    if (ssn.toserver_smsg_head == NULL || ssn.toserver_smsg_head->next == NULL || ssn.toserver_smsg_head->next->next) {
+        printf("expected a single stream message: ");
         goto end;
     }
 
-    StreamMsg *smsg = ra_ctx->stream_q->top->next;
+    StreamMsg *smsg = ssn.toserver_smsg_head;
     if (smsg->data_len != 10) {
         printf("expected data length to be 10, got %u: ", smsg->data_len);
         goto end;
@@ -8151,7 +8054,7 @@ static int StreamTcpReassembleInlineTest06(void) {
         goto end;
     }
 
-    smsg = ra_ctx->stream_q->top;
+    smsg = ssn.toserver_smsg_head->next;
     if (smsg->data_len != 5) {
         printf("expected data length to be 5, got %u: ", smsg->data_len);
         goto end;
@@ -8179,12 +8082,12 @@ static int StreamTcpReassembleInlineTest06(void) {
         goto end;
     }
 
-    if (ra_ctx->stream_q->len != 3) {
-        printf("expected a single stream message, got %u: ", ra_ctx->stream_q->len);
+    if (UtSsnSmsgCnt(&ssn, STREAM_TOSERVER) != 3) {
+        printf("expected a single stream message, got %u: ", UtSsnSmsgCnt(&ssn, STREAM_TOSERVER));
         goto end;
     }
 
-    smsg = ra_ctx->stream_q->top;
+    smsg = ssn.toserver_smsg_head->next->next;
     if (smsg->data_len != 20) {
         printf("expected data length to be 20, got %u: ", smsg->data_len);
         goto end;
@@ -8263,12 +8166,12 @@ static int StreamTcpReassembleInlineTest07(void) {
         goto end;
     }
 
-    if (ra_ctx->stream_q->len != 2) {
-        printf("expected a single stream message, got %u: ", ra_ctx->stream_q->len);
+    if (UtSsnSmsgCnt(&ssn, STREAM_TOSERVER) != 2) {
+        printf("expected a single stream message, got %u: ", UtSsnSmsgCnt(&ssn, STREAM_TOSERVER));
         goto end;
     }
 
-    StreamMsg *smsg = ra_ctx->stream_q->top->next;
+    StreamMsg *smsg = ssn.toserver_smsg_head;
     if (smsg->data_len != 6) {
         printf("expected data length to be 6, got %u: ", smsg->data_len);
         goto end;
@@ -8282,7 +8185,7 @@ static int StreamTcpReassembleInlineTest07(void) {
         goto end;
     }
 
-    smsg = ra_ctx->stream_q->top;
+    smsg = ssn.toserver_smsg_head->next;
     if (smsg->data_len != 5) {
         printf("expected data length to be 5, got %u: ", smsg->data_len);
         goto end;
@@ -8310,12 +8213,12 @@ static int StreamTcpReassembleInlineTest07(void) {
         goto end;
     }
 
-    if (ra_ctx->stream_q->len != 3) {
-        printf("expected a single stream message, got %u: ", ra_ctx->stream_q->len);
+    if (UtSsnSmsgCnt(&ssn, STREAM_TOSERVER) != 3) {
+        printf("expected a single stream message, got %u: ", UtSsnSmsgCnt(&ssn, STREAM_TOSERVER));
         goto end;
     }
 
-    smsg = ra_ctx->stream_q->top;
+    smsg = ssn.toserver_smsg_head->next->next;
     if (smsg->data_len != 16) {
         printf("expected data length to be 16, got %u: ", smsg->data_len);
         goto end;
@@ -8394,12 +8297,12 @@ static int StreamTcpReassembleInlineTest08(void) {
         goto end;
     }
 
-    if (ra_ctx->stream_q->len != 1) {
-        printf("expected a single stream message, got %u: ", ra_ctx->stream_q->len);
+    if (ssn.toserver_smsg_head == NULL || ssn.toserver_smsg_head->next) {
+        printf("expected a single stream message: ");
         goto end;
     }
 
-    StreamMsg *smsg = ra_ctx->stream_q->top;
+    StreamMsg *smsg = ssn.toserver_smsg_head;
     if (smsg->data_len != 15) {
         printf("expected data length to be 15, got %u: ", smsg->data_len);
         goto end;
@@ -8432,12 +8335,12 @@ static int StreamTcpReassembleInlineTest08(void) {
         goto end;
     }
 
-    if (ra_ctx->stream_q->len != 2) {
-        printf("expected a single stream message, got %u: ", ra_ctx->stream_q->len);
+    if (UtSsnSmsgCnt(&ssn, STREAM_TOSERVER) != 2) {
+        printf("expected a single stream message, got %u: ", UtSsnSmsgCnt(&ssn, STREAM_TOSERVER));
         goto end;
     }
 
-    smsg = ra_ctx->stream_q->top;
+    smsg = ssn.toserver_smsg_head->next;
     if (smsg->data_len != 15) {
         printf("expected data length to be 15, got %u: ", smsg->data_len);
         goto end;
@@ -8527,12 +8430,12 @@ static int StreamTcpReassembleInlineTest09(void) {
         goto end;
     }
 
-    if (ra_ctx->stream_q->len != 2) {
-        printf("expected 2 stream message2, got %u: ", ra_ctx->stream_q->len);
+    if (UtSsnSmsgCnt(&ssn, STREAM_TOSERVER) != 2) {
+        printf("expected 2 stream message2, got %u: ", UtSsnSmsgCnt(&ssn, STREAM_TOSERVER));
         goto end;
     }
 
-    StreamMsg *smsg = ra_ctx->stream_q->bot;
+    StreamMsg *smsg = ssn.toserver_smsg_head;
     if (smsg->data_len != 10) {
         printf("expected data length to be 10, got %u (bot): ", smsg->data_len);
         goto end;
@@ -8546,7 +8449,7 @@ static int StreamTcpReassembleInlineTest09(void) {
         goto end;
     }
 
-    smsg = ra_ctx->stream_q->top;
+    smsg = ssn.toserver_smsg_head->next;
     if (smsg->data_len != 5) {
         printf("expected data length to be 5, got %u (top): ", smsg->data_len);
         goto end;
@@ -8580,12 +8483,12 @@ static int StreamTcpReassembleInlineTest09(void) {
         goto end;
     }
 
-    if (ra_ctx->stream_q->len != 3) {
-        printf("expected 3 stream messages, got %u: ", ra_ctx->stream_q->len);
+    if (UtSsnSmsgCnt(&ssn, STREAM_TOSERVER) != 3) {
+        printf("expected 3 stream messages: ");
         goto end;
     }
 
-    smsg = ra_ctx->stream_q->top;
+    smsg = ssn.toserver_smsg_head->next->next;
     if (smsg->data_len != 20) {
         printf("expected data length to be 20, got %u: ", smsg->data_len);
         goto end;
@@ -8758,12 +8661,12 @@ static int StreamTcpReassembleInsertTest01(void) {
         goto end;
     }
 
-    if (ra_ctx->stream_q->len != 1) {
-        printf("expected a single stream message, got %u: ", ra_ctx->stream_q->len);
+    if (ssn.toserver_smsg_head == NULL || ssn.toserver_smsg_head->next) {
+        printf("expected a single stream message: ");
         goto end;
     }
 
-    StreamMsg *smsg = ra_ctx->stream_q->top;
+    StreamMsg *smsg = ssn.toserver_smsg_head;
     if (smsg->data_len != 20) {
         printf("expected data length to be 20, got %u: ", smsg->data_len);
         goto end;
