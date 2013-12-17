@@ -699,8 +699,7 @@ uint32_t StreamPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p,
         for ( ; smsg != NULL; smsg = smsg->next) {
             r = mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].
                 Search(det_ctx->sgh->mpm_stream_ctx_ts, &det_ctx->mtcs,
-                       &det_ctx->smsg_pmq[cnt], smsg->data.data,
-                       smsg->data.data_len);
+                       &det_ctx->smsg_pmq[cnt], smsg->data, smsg->data_len);
             if (r > 0) {
                 ret += r;
 
@@ -716,8 +715,7 @@ uint32_t StreamPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p,
         for ( ; smsg != NULL; smsg = smsg->next) {
             r = mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
                 Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtcs,
-                       &det_ctx->smsg_pmq[cnt], smsg->data.data,
-                       smsg->data.data_len);
+                       &det_ctx->smsg_pmq[cnt], smsg->data, smsg->data_len);
             if (r > 0) {
                 ret += r;
 
