@@ -360,9 +360,9 @@ int AppLayerHandleTCPMsg(StreamMsg *smsg)
 
 #ifdef PRINT
     printf("=> Stream Data (raw reassembly) -- start %s%s\n",
-           smsg->flags & STREAM_TOCLIENT ? "toclient" : "",
-           smsg->flags & STREAM_TOSERVER ? "toserver" : "");
-    PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+            smsg->flags & STREAM_TOCLIENT ? "toclient" : "",
+            smsg->flags & STREAM_TOSERVER ? "toserver" : "");
+    PrintRawDataFp(stdout, smsg->data, smsg->data_len);
     printf("=> Stream Data -- end\n");
 #endif
     SCLogDebug("smsg %p", smsg);

@@ -43,13 +43,9 @@ typedef struct StreamMsg_ {
     struct StreamMsg_ *next;
     struct StreamMsg_ *prev;
 
-    /* case !STREAM_EOF && !STREAM_GAP */
-    struct {
-        uint32_t seq;               /**< sequence number */
-        uint32_t data_len;          /**< length of the data */
-        uint8_t data[MSG_DATA_SIZE];/**< reassembled data */
-    } data;
-
+    uint32_t seq;                   /**< sequence number */
+    uint32_t data_len;              /**< length of the data */
+    uint8_t data[MSG_DATA_SIZE];    /**< reassembled data */
 } StreamMsg;
 
 typedef struct StreamMsgQueue_ {
