@@ -1769,19 +1769,7 @@ static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
                               StreamMsg *smsg)
 {
     SCEnter();
-
-    smsg->flags = 0;
-
-    if (stream->ra_raw_base_seq == stream->isn) {
-        SCLogDebug("setting STREAM_START");
-        smsg->flags = STREAM_START;
-    }
-    if (stream->flags & STREAMTCP_STREAM_FLAG_CLOSE_INITIATED) {
-        SCLogDebug("setting STREAM_EOF");
-        smsg->flags |= STREAM_EOF;
-    }
     smsg->data_len = 0;
-
     SCLogDebug("smsg %p", smsg);
     SCReturn;
 }
