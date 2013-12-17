@@ -46,18 +46,6 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                           uint8_t flags);
 
 /**
- * \brief Attach a stream message to the TCP session for inspection
- *        in the detection engine.
- *
- * \param app_layer_tctx Pointer to the app layer thread context.
- * \param smsg Stream message.
- *
- * \retval 0 On success.
- * \retval -1 On failure.
- */
-int AppLayerHandleTCPMsg(StreamMsg *smsg, TcpSession *ssn);
-
-/**
  * \brief Handles an udp chunk.
  */
 int AppLayerHandleUdp(AppLayerThreadCtx *app_tctx, Packet *p, Flow *f);
