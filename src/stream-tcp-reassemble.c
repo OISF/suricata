@@ -1754,8 +1754,6 @@ static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
     }
 
     smsg->data_len = 0;
-    FlowReference(&smsg->flow, p->flow);
-    BUG_ON(smsg->flow == NULL);
 
     SCLogDebug("smsg %p", smsg);
     SCReturn;
@@ -3406,14 +3404,12 @@ int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx, TcpSessio
         do {
             smsg = StreamMsgGetFromQueue(ra_ctx->stream_q);
             if (smsg != NULL) {
-                SCLogDebug("smsg %p, next %p, prev %p, flow %p, q->len %u, "
+                SCLogDebug("smsg %p, next %p, prev %p, q->len %u, "
                         "smsg->datalen %u, direction %s%s",
-                        smsg, smsg->next, smsg->prev, smsg->flow,
+                        smsg, smsg->next, smsg->prev,
                         ra_ctx->stream_q->len, smsg->data_len,
                         smsg->flags & STREAM_TOSERVER ? "toserver":"",
                         smsg->flags & STREAM_TOCLIENT ? "toclient":"");
-
-                BUG_ON(smsg->flow == NULL);
 
                 //PrintRawDataFp(stderr, smsg->data, smsg->data_len);
 
