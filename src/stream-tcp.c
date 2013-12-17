@@ -196,7 +196,6 @@ void StreamTcpSessionClear(void *ssnptr)
         SCLogDebug("returning smsg %p to pool", smsg);
         smsg->next = NULL;
         smsg->prev = NULL;
-        FlowDeReference(&smsg->flow);
         StreamMsgReturnToPool(smsg);
         smsg = smsg_next;
     }
@@ -208,7 +207,6 @@ void StreamTcpSessionClear(void *ssnptr)
         SCLogDebug("returning smsg %p to pool", smsg);
         smsg->next = NULL;
         smsg->prev = NULL;
-        FlowDeReference(&smsg->flow);
         StreamMsgReturnToPool(smsg);
         smsg = smsg_next;
     }
@@ -306,7 +304,6 @@ void StreamTcpSessionPoolCleanup(void *s)
         SCLogDebug("returning smsg %p to pool", smsg);
         smsg->next = NULL;
         smsg->prev = NULL;
-        FlowDeReference(&smsg->flow);
         StreamMsgReturnToPool(smsg);
         smsg = smsg_next;
     }
@@ -318,7 +315,6 @@ void StreamTcpSessionPoolCleanup(void *s)
         SCLogDebug("returning smsg %p to pool", smsg);
         smsg->next = NULL;
         smsg->prev = NULL;
-        FlowDeReference(&smsg->flow);
         StreamMsgReturnToPool(smsg);
         smsg = smsg_next;
     }
