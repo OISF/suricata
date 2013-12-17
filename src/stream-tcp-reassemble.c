@@ -3393,7 +3393,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (ThreadVars *tv,
  *  \retval 0 ok
  *  \retval -1 error
  */
-int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx)
+int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn)
 {
     SCEnter();
 
@@ -3417,7 +3417,7 @@ int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx)
                 /* Handle the stream msg. No need to use locking, flow is
                  * already locked at this point. Don't break out of the
                  * loop if we encounter an error. */
-                if (AppLayerHandleTCPMsg(smsg) != 0)
+                if (AppLayerHandleTCPMsg(smsg, ssn) != 0)
                     r = -1;
             }
 
@@ -5281,7 +5281,7 @@ static int StreamTcpReassembleTest28 (void) {
     }
 
     /* Process stream smsgs we may have in queue */
-    if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
+    if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
         printf("failed in processing stream smsgs (3): ");
         goto end;
     }
@@ -5365,7 +5365,7 @@ static int StreamTcpReassembleTest29 (void) {
     }
 
     /* Process stream smsgs we may have in queue */
-    if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
+    if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
         printf("failed in processing stream smsgs\n");
         goto end;
     }
@@ -5450,7 +5450,7 @@ static int StreamTcpReassembleTest30 (void) {
     }
 
     /* Process stream smsgs we may have in queue */
-    if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
+    if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
         printf("failed in processing stream smsgs\n");
         goto end;
     }
@@ -5474,7 +5474,7 @@ static int StreamTcpReassembleTest30 (void) {
     }
 
     /* Process stream smsgs we may have in queue */
-    if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
+    if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
         printf("failed in processing stream smsgs\n");
         goto end;
     }
@@ -6867,7 +6867,7 @@ static int StreamTcpReassembleTest40 (void) {
     }
 
     /* Process stream smsgs we may have in queue */
-    if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
+    if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
         printf("failed in processing stream smsgs (4): ");
         goto end;
     }
@@ -6914,7 +6914,7 @@ static int StreamTcpReassembleTest40 (void) {
                 "been sent (8): ");
         goto end;
     /* Process stream smsgs we may have in queue */
-    } else if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
+    } else if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
         printf("failed in processing stream smsgs (9): ");
         goto end;
     }
@@ -6953,7 +6953,7 @@ static int StreamTcpReassembleTest40 (void) {
                 "been sent (12): ");
         goto end;
     /* Process stream smsgs we may have in queue */
-    } else if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
+    } else if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
         printf("failed in processing stream smsgs (13): ");
         goto end;
     }
@@ -6993,7 +6993,7 @@ static int StreamTcpReassembleTest40 (void) {
     /* Process stream smsgs we may have in queue */
     }
 
-    if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
+    if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
         printf("failed in processing stream smsgs (17): ");
         goto end;
     }
@@ -7130,7 +7130,7 @@ static int StreamTcpReassembleTest43 (void) {
         printf("there should be a stream smsgs in the queue (6): ");
         goto end;
     /* Process stream smsgs we may have in queue */
-    } else if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
+    } else if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
         printf("failed in processing stream smsgs (7): ");
         goto end;
     }
@@ -7184,7 +7184,7 @@ static int StreamTcpReassembleTest43 (void) {
                 " been unpaused now (12): ");
         goto end;
     /* Process stream smsgs we may have in queue */
-    } else if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
+    } else if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
         printf("failed in processing stream smsgs (13): ");
         goto end;
     }
@@ -7572,7 +7572,7 @@ static int StreamTcpReassembleTest47 (void) {
         }
 
         /* Process stream smsgs we may have in queue */
-        if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
+        if (StreamTcpReassembleProcessAppLayer(ra_ctx, &ssn) < 0) {
             printf("failed in processing stream smsgs\n");
             goto end;
         }

@@ -351,11 +351,20 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     SCReturnInt(r);
 }
 
-int AppLayerHandleTCPMsg(StreamMsg *smsg)
+/**
+ *  \brief Attach a stream message to the TCP session for inspection
+ *         in the detection engine.
+ *
+ *  \param dp_ctx Thread app layer detect context
+ *  \param smsg Stream message
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
+int AppLayerHandleTCPMsg(StreamMsg *smsg, TcpSession *ssn)
 {
     SCEnter();
 
-    TcpSession *ssn;
     StreamMsg *cur;
 
 #ifdef PRINT
@@ -368,7 +377,6 @@ int AppLayerHandleTCPMsg(StreamMsg *smsg)
     SCLogDebug("smsg %p", smsg);
     BUG_ON(smsg->flow == NULL);
 
-    ssn = smsg->flow->protoctx;
     if (ssn != NULL) {
         SCLogDebug("storing smsg %p in the tcp session", smsg);
 
