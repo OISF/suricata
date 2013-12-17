@@ -4368,11 +4368,6 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
             SCLogDebug("processing pseudo packet / stream end done");
         }
 
-        /* Process stream smsgs we may have in queue */
-        if (StreamTcpReassembleProcessAppLayer(stt->ra_ctx, ssn) < 0) {
-            goto error;
-        }
-
         /* recalc the csum on the packet if it was modified */
         if (p->flags & PKT_STREAM_MODIFIED) {
             ReCalculateChecksum(p);
@@ -5489,10 +5484,8 @@ static int StreamTcpTest02 (void) {
     uint8_t payload[4];
     TCPHdr tcph;
     TcpReassemblyThreadCtx ra_ctx;
-    StreamMsgQueue stream_q;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
-    memset(&stream_q, 0, sizeof(StreamMsgQueue));
     memset(&ra_ctx, 0, sizeof(TcpReassemblyThreadCtx));
     memset(p, 0, SIZE_OF_PACKET);
     memset (&f, 0, sizeof(Flow));
@@ -5505,7 +5498,6 @@ static int StreamTcpTest02 (void) {
     p->tcph = &tcph;
     p->flowflags = FLOW_PKT_TOSERVER;
     int ret = 0;
-    ra_ctx.stream_q = &stream_q;
     stt.ra_ctx = &ra_ctx;
 
     StreamTcpInitConfig(TRUE);
@@ -9300,10 +9292,8 @@ static int StreamTcpTest38 (void) {
     uint8_t payload[4];
     TCPHdr tcph;
     TcpReassemblyThreadCtx ra_ctx;
-    StreamMsgQueue stream_q;
     PacketQueue pq;
 
-    memset(&stream_q, 0, sizeof(StreamMsgQueue));
     memset(&ra_ctx, 0, sizeof(TcpReassemblyThreadCtx));
     memset (&f, 0, sizeof(Flow));
     memset(&tv, 0, sizeof (ThreadVars));
@@ -9321,7 +9311,6 @@ static int StreamTcpTest38 (void) {
     tcph.th_flags = TH_SYN;
     p->tcph = &tcph;
     p->flowflags = FLOW_PKT_TOSERVER;
-    ra_ctx.stream_q = &stream_q;
     stt.ra_ctx = &ra_ctx;
 
     StreamTcpInitConfig(TRUE);
@@ -9418,10 +9407,8 @@ static int StreamTcpTest39 (void) {
     uint8_t payload[4];
     TCPHdr tcph;
     TcpReassemblyThreadCtx ra_ctx;
-    StreamMsgQueue stream_q;
     PacketQueue pq;
 
-    memset(&stream_q, 0, sizeof(StreamMsgQueue));
     memset(&ra_ctx, 0, sizeof(TcpReassemblyThreadCtx));
     memset (&f, 0, sizeof(Flow));
     memset(&tv, 0, sizeof (ThreadVars));
@@ -9440,7 +9427,6 @@ static int StreamTcpTest39 (void) {
     p->tcph = &tcph;
     p->flowflags = FLOW_PKT_TOSERVER;
     int ret = 0;
-    ra_ctx.stream_q = &stream_q;
     stt.ra_ctx = &ra_ctx;
 
     StreamTcpInitConfig(TRUE);

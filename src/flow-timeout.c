@@ -558,11 +558,6 @@ static inline void FlowForceReassemblyForHash(void)
                         stt->ra_ctx, ssn, &ssn->server,
                         reassemble_p, NULL);
                 FlowDeReference(&reassemble_p->flow);
-                if (StreamTcpReassembleProcessAppLayer(stt->ra_ctx, ssn) < 0) {
-                    SCLogDebug("shutdown flow timeout "
-                               "StreamTcpReassembleProcessAppLayer() erroring "
-                               "over something");
-                }
             }
             /* oh oh!  We have some unattended toclient segments */
             if (server_ok == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
@@ -576,11 +571,6 @@ static inline void FlowForceReassemblyForHash(void)
                         stt->ra_ctx, ssn, &ssn->client,
                         reassemble_p, NULL);
                 FlowDeReference(&reassemble_p->flow);
-                if (StreamTcpReassembleProcessAppLayer(stt->ra_ctx, ssn) < 0) {
-                    SCLogDebug("shutdown flow timeout "
-                               "StreamTcpReassembleProcessAppLayer() erroring "
-                               "over something");
-                }
             }
 
             FLOWLOCK_UNLOCK(f);
