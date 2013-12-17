@@ -682,8 +682,8 @@ static int DetectSslVersionTestDetect03(void)
         goto end;
     }
 
-    memcpy(stream_msg->data.data, sslbuf4, ssllen4);
-    stream_msg->data.data_len = ssllen4;
+    memcpy(stream_msg->data, sslbuf4, ssllen4);
+    stream_msg->data_len = ssllen4;
 
     ssn.toserver_smsg_head = stream_msg;
     ssn.toserver_smsg_tail = stream_msg;
