@@ -563,7 +563,7 @@ static inline void FlowForceReassemblyForHash(void)
                         stt->ra_ctx, ssn, &ssn->server,
                         reassemble_p, NULL);
                 FlowDeReference(&reassemble_p->flow);
-                if (StreamTcpReassembleProcessAppLayer(stt->ra_ctx) < 0) {
+                if (StreamTcpReassembleProcessAppLayer(stt->ra_ctx, ssn) < 0) {
                     SCLogDebug("shutdown flow timeout "
                                "StreamTcpReassembleProcessAppLayer() erroring "
                                "over something");
@@ -581,7 +581,7 @@ static inline void FlowForceReassemblyForHash(void)
                         stt->ra_ctx, ssn, &ssn->client,
                         reassemble_p, NULL);
                 FlowDeReference(&reassemble_p->flow);
-                if (StreamTcpReassembleProcessAppLayer(stt->ra_ctx) < 0) {
+                if (StreamTcpReassembleProcessAppLayer(stt->ra_ctx, ssn) < 0) {
                     SCLogDebug("shutdown flow timeout "
                                "StreamTcpReassembleProcessAppLayer() erroring "
                                "over something");

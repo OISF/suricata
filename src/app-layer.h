@@ -55,7 +55,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
  * \retval 0 On success.
  * \retval -1 On failure.
  */
-int AppLayerHandleTCPMsg(StreamMsg *smsg);
+int AppLayerHandleTCPMsg(StreamMsg *smsg, TcpSession *ssn);
 
 /**
  * \brief Handles an udp chunk.
