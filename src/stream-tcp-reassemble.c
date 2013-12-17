@@ -3164,35 +3164,19 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
             {
                 /* see what the length of the gap is, gap length is seg->seq -
                  * (ra_base_seq +1) */
+#ifdef DEBUG
                 uint32_t gap_len = seg->seq - next_seq;
                 SCLogDebug("expected next_seq %" PRIu32 ", got %" PRIu32 " , "
                         "stream->last_ack %" PRIu32 ". Seq gap %" PRIu32"",
                         next_seq, seg->seq, stream->last_ack, gap_len);
-
-                if (smsg == NULL) {
-                    smsg = StreamMsgGetFromPool();
-                    if (smsg == NULL) {
-                        SCLogDebug("stream_msg_pool is empty");
-                        return -1;
-                    }
-                }
+#endif
                 stream->ra_raw_base_seq = ra_base_seq;
-
-                StreamTcpSetupMsg(ssn, stream, p, smsg);
 
                 /* We have missed the packet and end host has ack'd it, so
                  * IDS should advance it's ra_base_seq and should not consider this
                  * packet any longer, even if it is retransmitted, as end host will
                  * drop it anyway */
                 ra_base_seq = seg->seq - 1;
-
-                SCLogDebug("setting STREAM_GAP");
-                smsg->flags |= STREAM_GAP;
-                smsg->gap.gap_size = gap_len;
-
-                StreamMsgPutInQueue(ra_ctx->stream_q,smsg);
-                smsg = NULL;
-                smsg_offset = 0;
             } else {
                 SCLogDebug("possible GAP, but waiting to see if out of order "
                         "packets might solve that");
@@ -4000,14 +3984,14 @@ int StreamTcpCheckStreamContents(uint8_t *stream_policy, uint16_t sp_size, TcpSt
 }
 
 /** \brief  The Function Checks the Stream Queue contents against predefined
- *          stream contents and the gap lentgh.
+ *          stream contents.
  *
  *  \param  stream_contents     Predefined value of stream contents
  *  \param  stream              Queue which has the stream contents
  *
  *  \retval On success the function returns 1, on failure 0.
  */
-static int StreamTcpCheckQueue (uint8_t *stream_contents, StreamMsgQueue *q, uint8_t test_case) {
+static int StreamTcpCheckQueue (uint8_t *stream_contents, StreamMsgQueue *q) {
     SCEnter();
 
     StreamMsg *msg;
@@ -4028,32 +4012,6 @@ static int StreamTcpCheckQueue (uint8_t *stream_contents, StreamMsgQueue *q, uin
     msg = StreamMsgGetFromQueue(q);
     while(msg != NULL) {
         cnt++;
-        switch (test_case) {
-            /* Gap at start */
-            case 1:
-                if (cnt == 1 && msg->gap.gap_size != 3) {
-                    printf("msg->gap.gap_size %u, msg->flags %02X, ", msg->gap.gap_size, msg->flags);
-                    SCReturnInt(0);
-                }
-                break;
-            /* Gap at middle */
-            case 2:
-                if (cnt == 2 && msg->gap.gap_size != 3) {
-                    SCReturnInt(0);
-                }
-                break;
-            /* Gap at end */
-            case 3:
-                if (cnt == 3 && msg->gap.gap_size != 3 &&
-                        msg->flags & STREAM_GAP)
-                {
-                    SCReturnInt(0);
-                }
-                break;
-        }
-
-        SCLogDebug("gap is %" PRIu32"", msg->gap.gap_size);
-
         j = 0;
         for (; j < msg->data.data_len; j++) {
             SCLogDebug("i is %" PRIu32 " and len is %" PRIu32 "  and temp is %" PRIx32 "", i, msg->data.data_len, msg->data.data[j]);
@@ -5346,7 +5304,7 @@ static int StreamTcpReassembleTest28 (void) {
         goto end;
     }
 
-    if (StreamTcpCheckQueue(check_contents, q, 1) == 0) {
+    if (StreamTcpCheckQueue(check_contents, q) == 0) {
         printf("failed in stream matching (6): ");
         goto end;
     }
@@ -5430,7 +5388,7 @@ static int StreamTcpReassembleTest29 (void) {
         goto end;
     }
 
-    if (StreamTcpCheckQueue(check_contents, q, 2) == 0) {
+    if (StreamTcpCheckQueue(check_contents, q) == 0) {
         printf("failed in stream matching: ");
         goto end;
     }
@@ -5540,7 +5498,7 @@ static int StreamTcpReassembleTest30 (void) {
         goto end;
     }
 
-    if (StreamTcpCheckQueue(check_contents, q, 3) == 0) {
+    if (StreamTcpCheckQueue(check_contents, q) == 0) {
         printf("failed in stream matching: ");
         goto end;
     }
