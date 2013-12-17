@@ -37,8 +37,6 @@
 #define MSG_DATA_SIZE       4024 /* 4096 - 72 (size of rest of the struct) */
 
 typedef struct StreamMsg_ {
-    uint8_t flags;  /**< msg flags */
-
     struct StreamMsg_ *next;
     struct StreamMsg_ *prev;
 
