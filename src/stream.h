@@ -34,7 +34,7 @@
 #define STREAM_DEPTH            0x20    /* depth reached */
 
 /** size of the data chunks sent to the app layer parser. */
-#define MSG_DATA_SIZE       4024 /* 4096 - 72 (size of rest of the struct) */
+#define MSG_DATA_SIZE       4072    /* 4096 - 24 (size of rest of the struct) */
 
 typedef struct StreamMsg_ {
     struct StreamMsg_ *next;
