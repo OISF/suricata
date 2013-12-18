@@ -3057,21 +3057,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
         SCReturnInt(0);
 
     if (stream->seg_list == NULL) {
-        /* send an empty EOF msg if we have no segments but TCP state
-         * is beyond ESTABLISHED */
-        if (ssn->state > TCP_ESTABLISHED) {
-            StreamMsg *smsg = StreamMsgGetFromPool();
-            if (smsg == NULL) {
-                SCLogDebug("stream_msg_pool is empty");
-                SCReturnInt(-1);
-            }
-            StreamTcpSetupMsg(ssn, stream, p, smsg);
-            StreamTcpStoreStreamChunk(ssn, smsg, p, 0);
-
-        } else {
-            SCLogDebug("no segments in the list to reassemble");
-        }
-
+        SCLogDebug("no segments in the list to reassemble");
         SCReturnInt(0);
     }
 
