@@ -1,3 +1,91 @@
+2.0beta2 -- 2013-12-18
+
+Bug #463: Suricata not fire on http reply detect if request are not http
+Bug #640: app-layer-event:http.host_header_ambiguous set when it shouldn't
+Bug #714: some logs not created in daemon mode
+Bug #810: Alerts on http traffic storing the wrong packet as the IDS event payload
+Bug #815: address parsing with negation
+Bug #820: several issues found by clang 3.2
+Bug #837: Af-packet statistics inconsistent under very high traffic
+Bug #882: MpmACCudaRegister shouldn't call PatternMatchDefaultMatcher
+Bug #887: http.log printing unknown hostname most of the time
+Bug #890: af-packet segv
+Bug #892: detect-engine.profile - custom - does not err out in incorrect toclient/srv values - suricata.yaml
+Bug #895: response: rst packet bug
+Bug #896: pfring dna mode issue
+Bug #897: make install-full fails if wget is missing
+Bug #903: libhtp valgrind warning
+Bug #907: icmp_seq and icmp_id keyword with icmpv6 traffic (master)
+Bug #910: make check fails w/o sudo/root privs
+Bug #911: HUP signal
+Bug #912: 1.4.3: Unit test in util-debug.c: line too long.
+Bug #914: Having a high number of pickup queues (216+) makes suricata crash
+Bug #915: 1.4.3: log-pcap.c: crash on printing a null filename
+Bug #917: 1.4.5: decode-ipv6.c: void function cannot return value
+Bug #920: Suricata failed to parse address
+Bug #922: trackers value in suricata.yaml
+Bug #925: prealloc-sessions value bigger than allowed in suricata.yaml
+Bug #926: prealloc host value in suricata.yaml
+Bug #927: detect-thread-ratio given a non numeric value in suricata.yaml
+Bug #928: Max number of threads
+Bug #932: wrong IP version - on stacked layers
+Bug #939: thread name buffers are sized inconsistently
+Bug #943: pfring: see if we can report that the module is not loaded
+Bug #948: apple ppc64 build broken: thread-local storage not supported for this target
+Bug #958: SSL parsing issue (master)
+Bug #963: XFF compile failure on OSX
+Bug #964: Modify negated content handling
+Bug #967: threshold rule clobbers suppress rules
+Bug #968: unified2 not logging tagged packets
+Bug #970: AC memory read error
+Bug #973: Use different ids for content patterns which are the same, but one of them has a fast_pattern chop set on it.
+Bug #976: ip_rep supplying different no of alerts for 2 different but semantically similar rules
+Bug #979: clean up app layer protocol detection memory
+Bug #982: http events missing
+Bug #987: default config generates error(s)
+Bug #988: suricata don't exit in live mode
+Bug #989: Segfault in HTPStateGetTxCnt after a few minutes
+Bug #991: threshold mem leak
+Bug #994: valgrind warnings in unittests
+Bug #995: tag keyword: tagging sessions per time is broken
+Bug #998: rule reload triggers app-layer-event FP's
+Bug #999: delayed detect inits thresholds before de_ctx
+Bug #1003: Segmentation fault
+Bug #1023: block rule reloads during delayed detect init
+Bug #1026: pfring: update configure to link with -lrt
+Bug #1031: Fix IPv6 stream pseudo packets
+Bug #1035: http uri/query normalization normalizes 'plus' sign to space
+Bug #1042: Can't match "emailAddress" field in tls.subject and tls.issuerdn
+Bug #1061: Multiple flowbit set in one rule
+Feature #234: add option disable/enable individual app layer protocol inspection modules
+Feature #417: ip fragmentation time out feature in yaml
+Feature #478: XFF (X-Forwarded-For)
+Feature #602: availability for http.log output - identical to apache log format
+Feature #622: Specify number of pf_ring/af_packet receive threads on the command line
+Feature #727: Explore the support for negated alprotos in sigs.
+Feature #746: Decoding API modification
+Feature #751: Add invalid packet counter
+Feature #752: Improve checksum detection algorithm
+Feature #789: Clean-up start and stop code
+Feature #813: VLAN flow support
+Feature #878: add storage api
+Feature #901: VLAN defrag support
+Feature #904: store tx id when generating an alert
+Feature #940: randomize http body chunks sizes
+Feature #944: detect nic offloading
+Feature #956: Implement IPv6 reject
+Feature #957: reject: iface setup
+Feature #959: Move post config initialisation code to PostConfLoadedSetup
+Feature #981: Update all switch case fall throughs with comments on false throughs
+Feature #983: Provide rule support for specifying icmpv4 and icmpv6.
+Feature #986: set htp request and response size limits
+Feature #1008: Optionally have http_uri buffer start with uri path for use in proxied environments
+Feature #1009: Yaml file inclusion support
+Feature #1032: profiling: per keyword stats
+Optimization #583: improve Packet_ structure layout
+Optimization #1018: clean up counters api
+Optimization #1041: remove mkinstalldirs from git
+
 2.0beta1 -- 2013-07-18
 
 - Luajit flow vars and flow ints support (#593)
