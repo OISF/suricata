@@ -5244,8 +5244,12 @@ Packet *StreamTcpPseudoSetup(Packet *parent, uint8_t *pkt, uint32_t len)
 {
     SCEnter();
 
+    if (len == 0) {
+        SCReturnPtr(NULL, "Packet");
+    }
+
     Packet *p = PacketGetFromQueueOrAlloc();
-    if (p == NULL || len == 0) {
+    if (p == NULL) {
         SCReturnPtr(NULL, "Packet");
     }
 
