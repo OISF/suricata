@@ -119,6 +119,28 @@ uint32_t SCACTileSearchSmall32(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_
 uint32_t SCACTileSearchSmall16(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                PatternMatcherQueue *pmq,
                                uint8_t *buf, uint16_t buflen);
+uint32_t SCACTileSearchSmall8(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                              PatternMatcherQueue *pmq,
+                              uint8_t *buf, uint16_t buflen);
+
+uint32_t SCACTileSearchTiny256(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                                PatternMatcherQueue *pmq,
+                                uint8_t *buf, uint16_t buflen);
+uint32_t SCACTileSearchTiny128(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                                PatternMatcherQueue *pmq,
+                                uint8_t *buf, uint16_t buflen);
+uint32_t SCACTileSearchTiny64(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                               PatternMatcherQueue *pmq,
+                               uint8_t *buf, uint16_t buflen);
+uint32_t SCACTileSearchTiny32(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                               PatternMatcherQueue *pmq,
+                               uint8_t *buf, uint16_t buflen);
+uint32_t SCACTileSearchTiny16(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                               PatternMatcherQueue *pmq,
+                               uint8_t *buf, uint16_t buflen);
+uint32_t SCACTileSearchTiny8(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                              PatternMatcherQueue *pmq,
+                              uint8_t *buf, uint16_t buflen);
 
 
 static void SCACTileDestroyInitCtx(MpmCtx *mpm_ctx);
@@ -383,17 +405,22 @@ static inline void SCACTileInitTranslateTable(SCACTileCtx *ctx)
 
     SCLogDebug("  Alphabet size %d", ctx->alphabet_size);
 
-    /* Round alphabet size up to next power-of-two and translate
-     * Uppercase to lowercase. Leave one extra space For the
-     * unused-chararacters = 0 mapping. */
-    if (ctx->alphabet_size + 1 <= 16) {
-        ctx->alphabet_size = 16;
-    } else if (ctx->alphabet_size + 1 <= 64) {
-        ctx->alphabet_size = 64;
-    } else if (ctx->alphabet_size + 1 <= 128) {
-        ctx->alphabet_size = 128;
+    /* Round alphabet size up to next power-of-two Leave one extra
+     * space For the unused-chararacters = 0 mapping.
+     */
+    ctx->alphabet_size += 1; /* Extra space for unused-character */
+    if (ctx->alphabet_size  <= 8) {
+        ctx->alphabet_storage = 8;
+    } else if (ctx->alphabet_size  <= 16) {
+        ctx->alphabet_storage = 16;
+    } else if (ctx->alphabet_size  <= 32) {
+        ctx->alphabet_storage = 32;
+    } else if (ctx->alphabet_size <= 64) {
+        ctx->alphabet_storage = 64;
+    } else if (ctx->alphabet_size <= 128) {
+        ctx->alphabet_storage = 128;
     } else
-        ctx->alphabet_size = 256;
+        ctx->alphabet_storage = 256;
 }
 
 /**
@@ -425,7 +452,7 @@ static int SCACTileAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
         return 0;
     }
 
-    /* check if we have already inserted this pattern */
+    /* Check if we have already inserted this pattern. */
     SCACTilePattern *p = SCACTileInitHashLookup(ctx, pat, patlen, flags, pid);
     if (p == NULL) {
         SCLogDebug("Allocing new pattern");
@@ -823,7 +850,66 @@ static inline void SCACTileCreateFailureTable(MpmCtx *mpm_ctx)
     return;
 }
 
-#define NEXT_STATE(table,x,y) ((table) + (x) * ctx->alphabet_size + (y))
+/*
+ * Set the next state for 1 byte next-state.
+ */
+static void SCACTileSetState1Byte(SCACTileCtx *ctx, int state, int aa,
+                                  int next_state, int outputs)
+{
+    uint8_t *state_table = (uint8_t*)ctx->state_table;
+    uint8_t encoded_next_state = next_state;
+
+    if (next_state == SC_AC_TILE_FAIL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error FAIL state in output");
+        exit(EXIT_FAILURE);
+    }
+
+    if (outputs == 0)
+        encoded_next_state |= (1 << 7);
+
+    state_table[state * ctx->alphabet_storage + aa] = encoded_next_state;
+}
+
+/*
+ * Set the next state for 2 byte next-state.
+ */
+static void SCACTileSetState2Bytes(SCACTileCtx *ctx, int state, int aa,
+                                   int next_state, int outputs)
+{
+    uint16_t *state_table = (uint16_t*)ctx->state_table;
+    uint16_t encoded_next_state = next_state;
+
+    if (next_state == SC_AC_TILE_FAIL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error FAIL state in output");
+        exit(EXIT_FAILURE);
+    }
+
+    if (outputs == 0)
+        encoded_next_state |= (1 << 15);
+
+    state_table[state * ctx->alphabet_storage + aa] = encoded_next_state;
+}
+
+/*
+ * Set the next state for 4 byte next-state.
+ */
+static void SCACTileSetState4Bytes(SCACTileCtx *ctx, int state, int aa,
+                                   int next_state, int outputs)
+{
+    uint32_t *state_table = (uint32_t*)ctx->state_table;
+    uint32_t encoded_next_state = next_state;
+
+    if (next_state == SC_AC_TILE_FAIL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error FAIL state in output");
+        exit(EXIT_FAILURE);
+    }
+
+    if (outputs == 0)
+        encoded_next_state |= (1 << 31);
+
+    state_table[state * ctx->alphabet_storage + aa] = encoded_next_state;
+}
+
 /**
  * \internal
  * \brief Create the delta table.
@@ -839,109 +925,85 @@ static inline void SCACTileCreateDeltaTable(MpmCtx *mpm_ctx)
     int32_t r_state = 0;
 
     if (ctx->state_count < 32767) {
-        int alpha_size = ctx->alphabet_size;
-        switch(alpha_size) {
-        case 16:
+        if (ctx->state_count < 128) {
+            ctx->bytes_per_state = 1;
+            ctx->set_next_state = SCACTileSetState1Byte;
+
+            switch(ctx->alphabet_storage) {
+            case 8:
+                ctx->search = SCACTileSearchTiny8;
+                break;
+            case 16:
+                ctx->search = SCACTileSearchTiny16;
+                break;
+            case 32:
+                ctx->search = SCACTileSearchTiny32;
+                break;
+            case 64:
+                ctx->search = SCACTileSearchTiny64;
+                break;
+            case 128:
+                ctx->search = SCACTileSearchTiny128;
+                break;
+            default:
+                ctx->search = SCACTileSearchTiny256;
+            }
+        } else {
+            /* 16-bit state needed */
+            ctx->bytes_per_state = 2;
+            ctx->set_next_state = SCACTileSetState2Bytes;
+
+            switch(ctx->alphabet_storage) {
+            case 8:
+                ctx->search = SCACTileSearchSmall8;
+                break;
+            case 16:
                 ctx->search = SCACTileSearchSmall16;
                 break;
-        case 32:
+            case 32:
                 ctx->search = SCACTileSearchSmall32;
                 break;
-        case 64:
+            case 64:
                 ctx->search = SCACTileSearchSmall64;
                 break;
-        case 128:
+            case 128:
                 ctx->search = SCACTileSearchSmall128;
                 break;
-        default:
+            default:
                 ctx->search = SCACTileSearchSmall256;
-        }
-        int size = ctx->state_count * sizeof(SC_AC_TILE_STATE_TYPE_U16) * alpha_size;
-        SC_AC_TILE_STATE_TYPE_U16 *state_table = SCMalloc(size);
-        if (unlikely(state_table == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
-        }
-        memset(state_table, 0, size);
-        ctx->state_table_u16 = state_table;
-
-        mpm_ctx->memory_cnt++;
-        mpm_ctx->memory_size += size;
-
-        SCLogInfo("Delta Table size %d,  16-bit states: %d",
-                  size, ctx->state_count);
-
-        StateQueue q;
-        memset(&q, 0, sizeof(StateQueue));
-
-        for (aa = 0; aa < ctx->alphabet_size; aa++) {
-            SC_AC_TILE_STATE_TYPE_U16 temp_state = ctx->goto_table[0][aa];
-            *NEXT_STATE(state_table, 0, aa) = temp_state;
-            if (temp_state != 0)
-                SCACTileEnqueue(&q, temp_state);
-        }
-
-        while (!SCACTileStateQueueIsEmpty(&q)) {
-            r_state = SCACTileDequeue(&q);
-
-            for (aa = 0; aa < alpha_size; aa++) {
-                int32_t temp_state = ctx->goto_table[r_state][aa];
-                if (temp_state != SC_AC_TILE_FAIL) {
-                    SCACTileEnqueue(&q, temp_state);
-                    *NEXT_STATE(state_table, r_state, aa) = temp_state;
-                } else {
-                    uint16_t f_state = ctx->failure_table[r_state];
-                    *NEXT_STATE(state_table, r_state, aa) =
-                        *NEXT_STATE(state_table, f_state, aa);
-                }
             }
         }
     } else {
-        /* create space for the state table.  We could have used the
-         * existing goto table, but since we have it set to hold 32
-         * bit state values, we will create a new state table here of
-         * type SC_AC_TILE_STATE_TYPE(current set to uint16_t) */
+        /* 32-bit next state */
         ctx->search = SCACTileSearchLarge;
-        int size = ctx->state_count * sizeof(SC_AC_TILE_STATE_TYPE_U32) * 256;
-        ctx->state_table_u32 = SCMalloc(size);
-        if (ctx->state_table_u32 == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
-        }
-        memset(ctx->state_table_u32, 0, size);
+        ctx->bytes_per_state = 4;
+        ctx->set_next_state = SCACTileSetState4Bytes;
 
-        mpm_ctx->memory_cnt++;
-        mpm_ctx->memory_size += size;
+        ctx->alphabet_storage = 256; /* Change? */
+    }
 
-        SCLogInfo("Delta Table size %u, 32-bit states: %u", size, ctx->state_count);
+    StateQueue q;
+    memset(&q, 0, sizeof(StateQueue));
 
-        StateQueue q;
-        memset(&q, 0, sizeof(StateQueue));
+    for (aa = 0; aa < ctx->alphabet_size; aa++) {
+        int temp_state = ctx->goto_table[0][aa];
+        if (temp_state != 0)
+            SCACTileEnqueue(&q, temp_state);
+    }
+
+    while (!SCACTileStateQueueIsEmpty(&q)) {
+        r_state = SCACTileDequeue(&q);
 
         for (aa = 0; aa < ctx->alphabet_size; aa++) {
-            SC_AC_TILE_STATE_TYPE_U32 temp_state = ctx->goto_table[0][aa];
-            ctx->state_table_u32[0][aa] = temp_state;
-            if (temp_state != 0)
+            int temp_state = ctx->goto_table[r_state][aa];
+            if (temp_state != SC_AC_TILE_FAIL) {
                 SCACTileEnqueue(&q, temp_state);
-        }
-
-        while (!SCACTileStateQueueIsEmpty(&q)) {
-            r_state = SCACTileDequeue(&q);
-
-            for (aa = 0; aa < ctx->alphabet_size; aa++) {
-                int32_t temp_state = ctx->goto_table[r_state][aa];
-                if (temp_state != SC_AC_TILE_FAIL) {
-                    SCACTileEnqueue(&q, temp_state);
-                    ctx->state_table_u32[r_state][aa] = temp_state;
-                } else {
-                    ctx->state_table_u32[r_state][aa] =
-                        ctx->state_table_u32[ctx->failure_table[r_state]][aa];
-                }
+            } else {
+                int f_state = ctx->failure_table[r_state];
+                ctx->goto_table[r_state][aa] = ctx->goto_table[f_state][aa];
             }
         }
     }
-
-    return;
 }
 
 static inline void SCACTileClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
@@ -950,30 +1012,35 @@ static inline void SCACTileClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx
     SCACTileCtx *ctx = search_ctx->init_ctx;
 
     int aa = 0;
-    uint32_t state = 0;
-    uint32_t temp_state = 0;
+    int state = 0;
 
-    if (ctx->state_count < 32767) {
-        for (state = 0; state < ctx->state_count; state++) {
-            for (aa = 0; aa < ctx->alphabet_size; aa++) {
-                temp_state = *NEXT_STATE(ctx->state_table_u16, state & 0x7FFF, aa);
-                if (ctx->output_table[temp_state & 0x7FFF].no_of_entries != 0)
-                        *NEXT_STATE(ctx->state_table_u16, state & 0x7FFF, aa) |= (1 << 15);
-            }
+    /* Allocate next-state table. */
+    int size = ctx->state_count * ctx->bytes_per_state * ctx->alphabet_storage;
+    void *state_table = SCMalloc(size);
+    if (unlikely(state_table == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(state_table, 0, size);
+    ctx->state_table = state_table;
+
+    mpm_ctx->memory_cnt++;
+    mpm_ctx->memory_size += size;
+
+    SCLogInfo("Delta Table size %d,  alphabet: %d, %d-byte states: %d",
+              size, ctx->alphabet_size, ctx->bytes_per_state, ctx->state_count);
+
+    /* Copy next state from Goto table, which is 32 bits and encode it into the next
+     * state table, which can be 1, 2 or 4 bytes each and include if there is an
+     * output.
+     */
+    for (state = 0; state < ctx->state_count; state++) {
+        for (aa = 0; aa < ctx->alphabet_size; aa++) {
+            int next_state = ctx->goto_table[state][aa];
+            int next_state_outputs = ctx->output_table[next_state].no_of_entries;
+            ctx->set_next_state(ctx, state, aa, next_state, next_state_outputs);
         }
     }
-
-    if (!(ctx->state_count < 32767)) {
-        for (state = 0; state < ctx->state_count; state++) {
-            for (aa = 0; aa < ctx->alphabet_size; aa++) {
-                temp_state = ctx->state_table_u32[state & 0x00FFFFFF][aa];
-                if (ctx->output_table[temp_state & 0x00FFFFFF].no_of_entries != 0)
-                    ctx->state_table_u32[state & 0x00FFFFFF][aa] |= (1 << 24);
-            }
-        }
-    }
-
-    return;
 }
 
 static inline void SCACTileInsertCaseSensitiveEntriesForPatterns(MpmCtx *mpm_ctx)
@@ -981,7 +1048,7 @@ static inline void SCACTileInsertCaseSensitiveEntriesForPatterns(MpmCtx *mpm_ctx
     SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
     SCACTileCtx *ctx = search_ctx->init_ctx;
 
-    uint32_t state = 0;
+    int state = 0;
     uint32_t k = 0;
 
     for (state = 0; state < ctx->state_count; state++) {
@@ -995,8 +1062,6 @@ static inline void SCACTileInsertCaseSensitiveEntriesForPatterns(MpmCtx *mpm_ctx
             }
         }
     }
-
-    return;
 }
 
 #if 0
@@ -1016,8 +1081,6 @@ static void SCACTilePrintDeltaTable(MpmCtx *mpm_ctx)
             }
         }
     }
-
-    return;
 }
 #endif
 
@@ -1077,8 +1140,8 @@ static void SCACTilePrepareSearch(MpmCtx *mpm_ctx)
     memcpy(search_ctx->translate_table, ctx->translate_table, sizeof(ctx->translate_table));
 
     /* Move the state table from the Init context */
-    search_ctx->state_table_u16 = ctx->state_table_u16;
-    ctx->state_table_u16 = NULL;
+    search_ctx->state_table = ctx->state_table;
+    ctx->state_table = NULL; /* So that it won't get freed twice. */
 
     /* Move the output_table from the Init context to the Search Context */
     /* TODO: Could be made more compact */
@@ -1292,30 +1355,19 @@ static void SCACTileDestroyInitCtx(MpmCtx *mpm_ctx)
         ctx->parray = NULL;
     }
 
-    if (ctx->state_table_u16 != NULL) {
-        SCFree(ctx->state_table_u16);
-        ctx->state_table_u16 = NULL;
+    if (ctx->state_table != NULL) {
+        SCFree(ctx->state_table);
 
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= (ctx->state_count *
-                                 sizeof(SC_AC_TILE_STATE_TYPE_U16) * ctx->alphabet_size);
-    } else if (ctx->state_table_u32 != NULL) {
-        /* Not currently reducing the table row size for smaller
-         * alphabet sizes from 256.  That would require specializing
-         * SCACTileSearchLarge by alphabet size. */
-        SCFree(ctx->state_table_u32);
-        ctx->state_table_u32 = NULL;
-
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (ctx->state_count *
-                                 sizeof(SC_AC_TILE_STATE_TYPE_U32) * 256);
+                                 ctx->bytes_per_state * ctx->alphabet_storage);
     }
 
     if (ctx->output_table != NULL) {
-        uint32_t state_count;
-        for (state_count = 0; state_count < ctx->state_count; state_count++) {
-            if (ctx->output_table[state_count].pids != NULL) {
-                SCFree(ctx->output_table[state_count].pids);
+        int state;
+        for (state = 0; state < ctx->state_count; state++) {
+            if (ctx->output_table[state].pids != NULL) {
+                SCFree(ctx->output_table[state].pids);
             }
         }
         SCFree(ctx->output_table);
@@ -1361,10 +1413,7 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
  * Heavily optimized pattern matching routine for TILE-Gx.
  */
 
-#define STYPE int16_t
-#define SCHECK(x) ((x) < 0)
-// Hint to compiler to expect L2 hit latency for Load int16_t
-#define SLOAD(x) __insn_ld2s_L2((int16_t* restrict)(x))
+#define SCHECK(x) ((x) > 0)
 #define BTYPE int32_t
 // Extract byte N=0,1,2,3 from x
 #define BYTE0(x) __insn_bfextu(x, 0, 7)
@@ -1374,12 +1423,12 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
 
 int CheckMatch(SCACTileSearchCtx *ctx, PatternMatcherQueue *pmq,
                uint8_t *buf, uint16_t buflen,
-               STYPE state, int i, int matches)
+               uint16_t state, int i, int matches)
 {
     SCACTilePatternList *pid_pat_list = ctx->pid_pat_list;
     uint8_t *buf_offset = buf + i + 1; // Lift out of loop
-    uint32_t no_of_entries = ctx->output_table[state & 0x7FFF].no_of_entries;
-    uint32_t *pids = ctx->output_table[state & 0x7FFF].pids;
+    uint32_t no_of_entries = ctx->output_table[state].no_of_entries;
+    uint32_t *pids = ctx->output_table[state].pids;
     uint8_t *bitarray = pmq->pattern_id_bitarray;
     uint32_t k;
 
@@ -1450,13 +1499,13 @@ uint32_t SCACTileSearchLarge(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ct
     SCACTilePatternList *pid_pat_list = ctx->pid_pat_list;
 
     uint8_t* restrict xlate = ctx->translate_table;
-    register SC_AC_TILE_STATE_TYPE_U32 state = 0;
-    SC_AC_TILE_STATE_TYPE_U32 (*state_table_u32)[256] = ctx->state_table_u32;
+    register int state = 0;
+    int32_t (*state_table_u32)[256] = ctx->state_table;
     for (i = 0; i < buflen; i++) {
         state = state_table_u32[state & 0x00FFFFFF][xlate[buf[i]]];
-        if (state & 0xFF000000) {
-            uint32_t no_of_entries = ctx->output_table[state & 0x00FFFFFF].no_of_entries;
-            uint32_t *pids = ctx->output_table[state & 0x00FFFFFF].pids;
+        if (SCHECK(state)) {
+            uint32_t no_of_entries = ctx->output_table[state].no_of_entries;
+            uint32_t *pids = ctx->output_table[state].pids;
             uint32_t k;
             for (k = 0; k < no_of_entries; k++) {
                 if (pids[k] & 0xFFFF0000) {
@@ -1494,38 +1543,119 @@ uint32_t SCACTileSearchLarge(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ct
     return matches;
 }
 
-/* Search with Alphabet size of 256 */
+/*
+ * Search with Alphabet size of 256 and 16-bit next-state entries.
+ * Next state entry has MSB as "match" and 15 LSB bits as next-state index.
+ */
+// y = 1<<log_mult * (x & (1<<width -1))
+#define SINDEX_INTERNAL(y, x, log_mult, width) \
+    __insn_bfins(y, x, log_mult, log_mult + (width - 1))
+
+/* Type of next_state */
+#define STYPE int16_t
+// Hint to compiler to expect L2 hit latency for Load int16_t
+#define SLOAD(x) __insn_ld2s_L2((STYPE* restrict)(x))
+
 #define FUNC_NAME SCACTileSearchSmall256
-// y = 2 * 256 * (x & 0x7FFF)
-#define SINDEX(y,x) __insn_bfins(y, x, 9, 23)
+// y = 256 * (x & 0x7FFF)
+#define SINDEX(y,x) SINDEX_INTERNAL(y, x, 8, 15)
 #include "util-mpm-ac-tile-small.c"
 
 /* Search with Alphabet size of 128 */
 #undef FUNC_NAME
 #undef SINDEX
 #define FUNC_NAME SCACTileSearchSmall128
-#define SINDEX(y,x) __insn_bfins(y, x, 8, 22)
+// y = 128 * (x & 0x7FFF)
+#define SINDEX(y,x) SINDEX_INTERNAL(y, x, 7, 15)
 #include "util-mpm-ac-tile-small.c"
 
 /* Search with Alphabet size of 64 */
 #undef FUNC_NAME
 #undef SINDEX
 #define FUNC_NAME SCACTileSearchSmall64
-#define SINDEX(y,x) __insn_bfins(y, x, 7, 21)
+// y = 64 * (x & 0x7FFF)
+#define SINDEX(y,x) SINDEX_INTERNAL(y, x, 6, 15)
 #include "util-mpm-ac-tile-small.c"
 
 /* Search with Alphabet size of 32 */
 #undef FUNC_NAME
 #undef SINDEX
 #define FUNC_NAME SCACTileSearchSmall32
-#define SINDEX(y,x) __insn_bfins(y, x, 6, 20)
+// y = 32 * (x & 0x7FFF)
+#define SINDEX(y,x) SINDEX_INTERNAL(y, x, 5, 15)
 #include "util-mpm-ac-tile-small.c"
 
 /* Search with Alphabet size of 16 */
 #undef FUNC_NAME
 #undef SINDEX
 #define FUNC_NAME SCACTileSearchSmall16
-#define SINDEX(y,x) __insn_bfins(y, x, 5, 19)
+// y = 16 * (x & 0x7FFF)
+#define SINDEX(y,x) SINDEX_INTERNAL(y, x, 4, 15)
+#include "util-mpm-ac-tile-small.c"
+
+/* Search with Alphabet size of 8 */
+#undef FUNC_NAME
+#undef SINDEX
+#define FUNC_NAME SCACTileSearchSmall8
+// y = 8 * (x & 0x7FFF)
+#define SINDEX(y,x) SINDEX_INTERNAL(y, x, 3, 15)
+#include "util-mpm-ac-tile-small.c"
+
+/*
+ * Search with Alphabet size of 256 and 8-bit next-state entries.
+ * Next state entry has MSB as "match" and 15 LSB bits as next-state index.
+ */
+#undef STYPE
+#define STYPE int8_t
+// Hint to compiler to expect L2 hit latency for Load int8_t
+#undef SLOAD
+#define SLOAD(x) __insn_ld1s_L2((STYPE* restrict)(x))
+
+#undef FUNC_NAME
+#undef SINDEX
+#define FUNC_NAME SCACTileSearchTiny256
+// y = 256 * (x & 0x7F)
+#define SINDEX(y,x) SINDEX_INTERNAL(y, x, 8, 7)
+#include "util-mpm-ac-tile-small.c"
+
+/* Search with Alphabet size of 128 */
+#undef FUNC_NAME
+#undef SINDEX
+#define FUNC_NAME SCACTileSearchTiny128
+// y = 128 * (x & 0x7F)
+#define SINDEX(y,x) SINDEX_INTERNAL(y, x, 7, 7)
+#include "util-mpm-ac-tile-small.c"
+
+/* Search with Alphabet size of 64 */
+#undef FUNC_NAME
+#undef SINDEX
+#define FUNC_NAME SCACTileSearchTiny64
+// y = 64 * (x & 0x7F)
+#define SINDEX(y,x) SINDEX_INTERNAL(y, x, 6, 7)
+#include "util-mpm-ac-tile-small.c"
+
+/* Search with Alphabet size of 32 */
+#undef FUNC_NAME
+#undef SINDEX
+#define FUNC_NAME SCACTileSearchTiny32
+// y = 32 * (x & 0x7F)
+#define SINDEX(y,x) SINDEX_INTERNAL(y, x, 5, 7)
+#include "util-mpm-ac-tile-small.c"
+
+/* Search with Alphabet size of 16 */
+#undef FUNC_NAME
+#undef SINDEX
+#define FUNC_NAME SCACTileSearchTiny16
+// y = 16 * (x & 0x7F)
+#define SINDEX(y,x) SINDEX_INTERNAL(y, x, 4, 7)
+#include "util-mpm-ac-tile-small.c"
+
+/* Search with Alphabet size of 8 */
+#undef FUNC_NAME
+#undef SINDEX
+#define FUNC_NAME SCACTileSearchTiny8
+// y = 8 * (x & 0x7F)
+#define SINDEX(y,x) SINDEX_INTERNAL(y, x, 3, 7)
 #include "util-mpm-ac-tile-small.c"
 
 
@@ -1609,7 +1739,7 @@ void SCACTilePrintInfo(MpmCtx *mpm_ctx)
     printf("Unique Patterns: %" PRIu32 "\n", mpm_ctx->pattern_cnt);
     printf("Smallest:        %" PRIu32 "\n", mpm_ctx->minlen);
     printf("Largest:         %" PRIu32 "\n", mpm_ctx->maxlen);
-    printf("Total states in the state table:    %" PRIu32 "\n", ctx->state_count);
+    printf("Total states in the state table:    %d\n", ctx->state_count);
     printf("\n");
 
     return;

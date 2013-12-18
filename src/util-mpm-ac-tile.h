@@ -26,9 +26,6 @@
 #ifndef __UTIL_MPM_AC_TILE__H__
 #define __UTIL_MPM_AC_TILE__H__
 
-#define SC_AC_TILE_STATE_TYPE_U16 uint16_t
-#define SC_AC_TILE_STATE_TYPE_U32 uint32_t
-
 typedef struct SCACTilePattern_ {
     /* length of the pattern */
     uint16_t len;
@@ -67,10 +64,10 @@ typedef struct SCACTileCtx_ {
     /* Convert input character to matching alphabet */
     uint8_t translate_table[256];
 
-    /* the all important memory hungry state_table */
-    SC_AC_TILE_STATE_TYPE_U16 *state_table_u16;
-    /* the all important memory hungry state_table */
-    SC_AC_TILE_STATE_TYPE_U32 (*state_table_u32)[256];
+    /* The all important memory hungry state_table.
+     * The size of each next-state is determined by bytes_per_state.
+     */
+    void *state_table;
 
     /* Specialized search function based on size of data in delta
      * tables.  The alphabet size determines address shifting and the
@@ -80,6 +77,11 @@ typedef struct SCACTileCtx_ {
     uint32_t (*search)(struct SCACTileSearchCtx_ *ctx, struct MpmThreadCtx_ *,
                        PatternMatcherQueue *, uint8_t *, uint16_t);
 
+    /* Function to set the next state based on size of next state
+     * (bytes_per_state).
+     */
+    void (*set_next_state)(struct SCACTileCtx_ *ctx, int state, int aa,
+                           int new_state, int outputs);
 
     SCACTileOutputTable *output_table;
     SCACTilePatternList *pid_pat_list;
@@ -99,14 +101,22 @@ typedef struct SCACTileCtx_ {
     int32_t (*goto_table)[256];
     int32_t *failure_table;
 
-    /* no of states used by ac */
-    uint32_t state_count;
+    /* Number of states used by ac-tile */
+    int state_count;
 
-    /* the size of each state */
+    /* Largest Pattern Identifier. */
     uint16_t max_pat_id;
 
     uint32_t alpha_hist[256];
+    /* Number of characters in the compressed alphabet. */
     uint16_t alphabet_size;
+    /* Space used to store compressed alphabet is the next
+     * larger or equal power-of-2.
+     */
+    uint16_t alphabet_storage;
+
+    /* How many bytes are used to store the next state. */
+    uint8_t bytes_per_state;
 
 } SCACTileCtx;
 
@@ -128,15 +138,12 @@ typedef struct SCACTileSearchCtx_ {
     uint8_t translate_table[256];
 
     /* the all important memory hungry state_table */
-    union {
-        SC_AC_TILE_STATE_TYPE_U16 *state_table_u16;
-        SC_AC_TILE_STATE_TYPE_U32 (*state_table_u32)[256];
-    };
+    void *state_table;
 
     SCACTileOutputTable *output_table;
     SCACTilePatternList *pid_pat_list;
 
-    /* MPM Creation data */
+    /* MPM Creation data, only used at initialization. */
     SCACTileCtx *init_ctx;
 
 } SCACTileSearchCtx;
