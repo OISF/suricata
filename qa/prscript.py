@@ -35,6 +35,7 @@ parser.add_argument('-u', '--username', dest='username', help='github and buildb
 parser.add_argument('-p', '--password', dest='password', help='buildbot password')
 parser.add_argument('-c', '--check', action='store_const', const=True, help='only check last build', default=False)
 parser.add_argument('-v', '--verbose', action='store_const', const=True, help='verbose output', default=False)
+parser.add_argument('--norebase', action='store_const', const=True, help='do not test if branch is in sync with master', default=False)
 parser.add_argument('-r', '--repository', dest='repository', default='suricata', help='name of suricata repository on github')
 parser.add_argument('branch', metavar='branch', help='github branch to build')
 args = parser.parse_args()
@@ -132,10 +133,13 @@ def WaitForBuildResult(builder, buildid, extension=""):
         print "Build failure: " + BUILDERS_URI + username + extension + '/builds/' + str(buildid)
     return res
 
-# check that github branch and inliniac master branch are sync
+    # check that github branch and inliniac master branch are sync
 if TestRepoSync(args.branch) == -1:
-    print "Branch " + args.branch + " is not in sync with inliniac's master branch. Rebase needed."
-    sys.exit(-1)
+    if args.norebase:
+        print "Branch " + args.branch + " is not in sync with inliniac's master branch. Continuing due to --norebase option."
+    else:
+        print "Branch " + args.branch + " is not in sync with inliniac's master branch. Rebase needed."
+        sys.exit(-1)
 
 # submit buildbot form to build current branch on the devel builder
 if not args.check:
@@ -183,9 +187,10 @@ if buildidpcap != -1:
     res += WaitForBuildResult(username, buildidpcap, extension="-pcap")
 
 if res == 0:
-    print "You can copy/paste following lines into github PR"
-    print "- PR build: " + BUILDERS_URI + username + "/builds/" + str(buildid)
-    print "- PR pcaps: " + BUILDERS_URI + username + "-pcap/builds/" + str(buildidpcap)
+    if not args.norebase:
+        print "You can copy/paste following lines into github PR"
+        print "- PR build: " + BUILDERS_URI + username + "/builds/" + str(buildid)
+        print "- PR pcaps: " + BUILDERS_URI + username + "-pcap/builds/" + str(buildidpcap)
     sys.exit(0)
 else:
     sys.exit(-1)
