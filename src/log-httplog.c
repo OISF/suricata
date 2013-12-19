@@ -259,8 +259,8 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                 if (tx->request_hostname != NULL)
                 {
                     datalen = httplog_ctx->cf_nodes[i]->maxlen;
-                    if (datalen == 0 || datalen > bstr_len(tx->parsed_uri->hostname)) {
-                        datalen = bstr_len(tx->parsed_uri->hostname);
+                    if (datalen == 0 || datalen > bstr_len(tx->request_hostname)) {
+                        datalen = bstr_len(tx->request_hostname);
                     }
                     PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
                                 aft->buffer->size, (uint8_t *)bstr_ptr(tx->request_hostname),
