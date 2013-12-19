@@ -1025,35 +1025,28 @@ static int AppLayerDoParse(void *local_data, Flow *f,
     SCReturnInt(retval);
 }
 
+#ifndef MIN
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#endif
+
 /**
  * \brief remove obsolete (inspected and logged) transactions
  */
-static void AppLayerTransactionsCleanup(AppLayerProto *p, AppLayerParserStateStore *parser_state_store, void *app_layer_state)
+static void AppLayerTransactionsCleanup(Flow *f)
 {
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
+    AppLayerProto *p = &al_proto_table[f->alproto];
     if (p->StateTransactionFree == NULL)
         return;
 
-    uint64_t inspect = 0, log = 0;
-    if (parser_state_store->inspect_id[0] < parser_state_store->inspect_id[1])
-        inspect = parser_state_store->inspect_id[0];
-    else
-        inspect = parser_state_store->inspect_id[1];
-    log = parser_state_store->log_id;
+    uint64_t tx_id_ts = AppLayerTransactionGetActive(f, STREAM_TOSERVER);
+    uint64_t tx_id_tc = AppLayerTransactionGetActive(f, STREAM_TOCLIENT);
 
-    SCLogDebug("inspect %"PRIu64", log %"PRIu64", logger: %s",
-            inspect, log, p->logger ? "true" : "false");
-
-    if (p->logger == TRUE) {
-        uint64_t min = log < inspect ? log : inspect;
-        if (min > 0) {
-            SCLogDebug("freeing %"PRIu64" (with logger) %p", min - 1, p->StateTransactionFree);
-            p->StateTransactionFree(app_layer_state, min - 1);
-        }
-    } else {
-        if (inspect > 0) {
-            SCLogDebug("freeing %"PRIu64" (no logger) %p", inspect - 1, p->StateTransactionFree);
-            p->StateTransactionFree(app_layer_state, inspect - 1);
-        }
+    uint64_t min = MIN(tx_id_ts, tx_id_tc);
+    if (min > 0) {
+        SCLogDebug("freeing %"PRIu64" %p", min - 1, p->StateTransactionFree);
+        p->StateTransactionFree(f->alstate, min - 1);
     }
 }
 
@@ -1192,7 +1185,7 @@ int AppLayerParse(void *local_data, Flow *f, uint8_t proto,
     }
 
     /* next, see if we can get rid of transactions now */
-    AppLayerTransactionsCleanup(p, parser_state_store, app_layer_state);
+    AppLayerTransactionsCleanup(f);
 
     if (parser_state->flags & APP_LAYER_PARSER_EOF) {
         SCLogDebug("eof, flag Transaction id's");
@@ -1252,12 +1245,10 @@ error:
     SCReturnInt(-1);
 }
 
-/**
- *  \brief Get 'active' tx id, meaning the lowest id that still need work.
+/** \brief active TX retrieval for normal ops: so with detection and logging
  *
- *  \retval id tx id
- */
-uint64_t AppLayerTransactionGetActive(Flow *f, uint8_t flags) {
+ *  \retval tx_id lowest tx_id that still needs work */
+uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags) {
     AppLayerProto *p = &al_proto_table[f->alproto];
     uint64_t log_id = ((AppLayerParserStateStore *)f->alparser)->log_id;
     uint64_t inspect_id = ((AppLayerParserStateStore *)f->alparser)->
@@ -1267,6 +1258,24 @@ uint64_t AppLayerTransactionGetActive(Flow *f, uint8_t flags) {
     } else {
         return inspect_id;
     }
+}
+
+static GetActiveTxIdFunc AppLayerGetActiveTxIdFuncPtr = NULL;
+
+void RegisterAppLayerGetActiveTxIdFunc(GetActiveTxIdFunc FuncPtr) {
+    BUG_ON(AppLayerGetActiveTxIdFuncPtr != NULL);
+    AppLayerGetActiveTxIdFuncPtr = FuncPtr;
+}
+
+/**
+ *  \brief Get 'active' tx id, meaning the lowest id that still need work.
+ *
+ *  \retval id tx id
+ */
+uint64_t AppLayerTransactionGetActive(Flow *f, uint8_t flags) {
+    BUG_ON(AppLayerGetActiveTxIdFuncPtr == NULL);
+
+    return AppLayerGetActiveTxIdFuncPtr(f, flags);
 }
 
 void AppLayerTransactionUpdateLogId(Flow *f)
@@ -1599,6 +1608,11 @@ void AppLayerParsersInitPostProcess(void)
            SCLogDebug("al_proto_table[%" PRIu32 "].map[%" PRIu32 "]->parser_id:"
                       " %" PRIu32 "", u16, x, al_proto_table[u16].map[x]->parser_id);
         }
+    }
+
+    /* set the default tx handler if none was set explicitly */
+    if (AppLayerGetActiveTxIdFuncPtr == NULL) {
+        RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveDetectLog);
     }
 }
 

@@ -312,6 +312,24 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *, AppLayerParserState *,
 
 /***** transaction handling *****/
 
+/** \brief Function ptr type for getting active TxId from a flow
+ *  Used by AppLayerTransactionGetActive.
+ */
+typedef uint64_t (*GetActiveTxIdFunc)(Flow *f, uint8_t flags);
+
+/** \brief Register GetActiveTxId Function
+ *
+ */
+void RegisterAppLayerGetActiveTxIdFunc(GetActiveTxIdFunc FuncPtr);
+
+/** \brief active TX retrieval for normal ops: so with detection and logging
+ *
+ *  \retval tx_id lowest tx_id that still needs work
+ *
+ *  This is the default function.
+ */
+uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags);
+
 /**
  * \brief Update the current log id.  Does one step increments currently.
  *
