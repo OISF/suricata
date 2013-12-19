@@ -27,6 +27,7 @@
 #ifdef DEBUG
 #include "util-print.h"
 #endif
+#include "util-memcmp.h"
 
 typedef struct DNSConfig_ {
     uint32_t request_flood;
@@ -119,12 +120,20 @@ uint64_t DNSGetTxCnt(void *alstate) {
 
 int DNSGetAlstateProgress(void *tx, uint8_t direction) {
     DNSTransaction *dns_tx = (DNSTransaction *)tx;
-    return dns_tx->replied|dns_tx->reply_lost;
+    if (direction == 1)
+        return dns_tx->replied|dns_tx->reply_lost;
+    else {
+        /* toserver/query is complete if we have stored a query */
+        return (TAILQ_FIRST(&dns_tx->query_list) != NULL);
+    }
 }
 
-/* value for tx->replied value */
+/** \brief get value for 'complete' status in DNS
+ *
+ *  For DNS we use a simple bool.
+ */
 int DNSGetAlstateProgressCompletionStatus(uint8_t direction) {
-    return (direction == 0) ? 0 : 1;
+    return 1;
 }
 
 void DNSSetEvent(DNSState *s, uint8_t e) {
@@ -328,6 +337,26 @@ bad_data:
     return -1;
 }
 
+/** \internal
+ *  \brief check the query list to see if we already have this exact query
+ *  \retval bool true or false
+ */
+static int QueryIsDuplicate(DNSTransaction *tx, const uint8_t *fqdn, const uint16_t fqdn_len,
+        const uint16_t type, const uint16_t class) {
+    DNSQueryEntry *q = NULL;
+
+    TAILQ_FOREACH(q, &tx->query_list, next) {
+        uint8_t *qfqdn = (uint8_t *)q + sizeof(DNSQueryEntry);
+
+        if (q->len == fqdn_len && q->type == type &&
+            q->class == class &&
+            SCMemcmp(qfqdn, fqdn, fqdn_len) == 0) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
 void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16_t fqdn_len,
         const uint16_t type, const uint16_t class, const uint16_t tx_id)
 {
@@ -335,19 +364,28 @@ void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16
     if (dns_state->givenup)
         return;
 
-    if (dns_state->curr != NULL && dns_state->curr->replied == 0) {
+    /* find the tx and see if this is an exact duplicate */
+    DNSTransaction *tx = DNSTransactionFindByTxId(dns_state, tx_id);
+    if ((tx != NULL) && (QueryIsDuplicate(tx, fqdn, fqdn_len, type, class) == TRUE)) {
+        SCLogDebug("query is duplicate");
+        return;
+    }
+
+    /* see if the last tx is unreplied */
+    if (dns_state->curr != tx && dns_state->curr != NULL &&
+        dns_state->curr->replied == 0)
+    {
         dns_state->curr->reply_lost = 1;
         dns_state->unreplied_cnt++;
 
         /* check flood limit */
         if (dns_config.request_flood != 0 &&
-            dns_state->unreplied_cnt > dns_config.request_flood) {
+                dns_state->unreplied_cnt > dns_config.request_flood) {
             DNSSetEvent(dns_state, DNS_DECODER_EVENT_FLOODED);
             dns_state->givenup = 1;
         }
     }
 
-    DNSTransaction *tx = DNSTransactionFindByTxId(dns_state, tx_id);
     if (tx == NULL) {
         tx = DNSTransactionAlloc(tx_id);
         if (tx == NULL)
