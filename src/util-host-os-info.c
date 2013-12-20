@@ -240,9 +240,9 @@ int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
  */
 int SCHInfoGetHostOSFlavour(char *ip_addr_str)
 {
-    SCRadixNode *node = NULL;
     struct in_addr *ipv4_addr = NULL;
     struct in6_addr *ipv6_addr = NULL;
+    void *user_data = NULL;
 
     if (ip_addr_str == NULL || index(ip_addr_str, '/') != NULL)
         return -1;
@@ -253,20 +253,22 @@ int SCHInfoGetHostOSFlavour(char *ip_addr_str)
             return -1;
         }
 
-        if ( (node = SCRadixFindKeyIPV6BestMatch((uint8_t *)ipv6_addr, sc_hinfo_tree)) == NULL)
+        (void)SCRadixFindKeyIPV6BestMatch((uint8_t *)ipv6_addr, sc_hinfo_tree, &user_data);
+        if (user_data == NULL)
             return -1;
         else
-            return *((int *)node->prefix->user_data_result);
+            return *((int *)user_data);
     } else {
         if ( (ipv4_addr = ValidateIPV4Address(ip_addr_str)) == NULL) {
             SCLogError(SC_ERR_INVALID_IPV4_ADDR, "Invalid IPV4 address");
             return -1;
         }
 
-        if ( (node = SCRadixFindKeyIPV4BestMatch((uint8_t *)ipv4_addr, sc_hinfo_tree)) == NULL)
+        (void)SCRadixFindKeyIPV4BestMatch((uint8_t *)ipv4_addr, sc_hinfo_tree, &user_data);
+        if (user_data == NULL)
             return -1;
         else
-            return *((int *)node->prefix->user_data_result);
+            return *((int *)user_data);
     }
 }
 
@@ -280,11 +282,12 @@ int SCHInfoGetHostOSFlavour(char *ip_addr_str)
  */
 int SCHInfoGetIPv4HostOSFlavour(uint8_t *ipv4_addr)
 {
-    SCRadixNode *node = SCRadixFindKeyIPV4BestMatch(ipv4_addr, sc_hinfo_tree);
-    if (node == NULL)
+    void *user_data = NULL;
+    (void)SCRadixFindKeyIPV4BestMatch(ipv4_addr, sc_hinfo_tree, &user_data);
+    if (user_data == NULL)
         return -1;
     else
-        return *((int *)node->prefix->user_data_result);
+        return *((int *)user_data);
 }
 
 /**
@@ -297,11 +300,12 @@ int SCHInfoGetIPv4HostOSFlavour(uint8_t *ipv4_addr)
  */
 int SCHInfoGetIPv6HostOSFlavour(uint8_t *ipv6_addr)
 {
-    SCRadixNode *node = SCRadixFindKeyIPV6BestMatch(ipv6_addr, sc_hinfo_tree);
-    if (node == NULL)
+    void *user_data = NULL;
+    (void)SCRadixFindKeyIPV6BestMatch(ipv6_addr, sc_hinfo_tree, &user_data);
+    if (user_data == NULL)
         return -1;
     else
-        return *((int *)node->prefix->user_data_result);
+        return *((int *)user_data);
 }
 
 void SCHInfoCleanResources(void)
