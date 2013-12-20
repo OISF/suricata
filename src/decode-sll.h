@@ -32,7 +32,7 @@ typedef struct SllHdr_ {
     uint16_t sll_halen;        /* link-layer address length */
     uint8_t sll_addr[8];       /* link-layer address */
     uint16_t sll_protocol;     /* protocol */
-} SllHdr;
+} __attribute__((__packed__)) SllHdr;
 
 #endif /* __DECODE_SLL_H__ */
 
