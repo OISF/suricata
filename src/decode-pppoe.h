@@ -47,7 +47,7 @@ typedef struct PPPOEDiscoveryTag_
 {
     uint16_t pppoe_tag_type;
     uint16_t pppoe_tag_length;
-} PPPOEDiscoveryTag;
+} __attribute__((__packed__)) PPPOEDiscoveryTag;
 
 typedef struct PPPOEDiscoveryHdr_
 {
@@ -55,7 +55,7 @@ typedef struct PPPOEDiscoveryHdr_
     uint8_t pppoe_code;
     uint16_t discovery_id;
     uint16_t pppoe_length;
-} PPPOEDiscoveryHdr;
+} __attribute__((__packed__)) PPPOEDiscoveryHdr;
 
 /* see RFC 2516 - discovery codes */
 #define PPPOE_CODE_PADI 0x09
