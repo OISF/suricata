@@ -554,7 +554,7 @@ static TmEcode ReceiveMpipeAllocatePacketBuffers(void)
     }
     assert(packet_page);
     void* packet_mem = packet_page;
-    SCLogInfo("DEBUG: tile_vhuge_size %lu", tile_vhuge_size);
+    SCLogInfo("DEBUG: tile_vhuge_size %"PRIuMAX, (uintmax_t)tile_vhuge_size);
     /* Allocate one Huge page just to store buffer stacks, since they are 
      *  only ever accessed by mPipe.
      */

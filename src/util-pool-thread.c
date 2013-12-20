@@ -96,7 +96,7 @@ int PoolThreadGrow(PoolThread *pt, uint32_t size, uint32_t prealloc_size, uint32
     }
 
     newsize = pt->size + 1;
-    SCLogDebug("newsize %lu", newsize);
+    SCLogDebug("newsize %"PRIuMAX, (uintmax_t)newsize);
 
     ptmp = SCRealloc(pt->array, (newsize * sizeof(PoolThreadElement)));
     if (ptmp == NULL) {
