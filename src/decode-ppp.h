@@ -65,7 +65,7 @@ typedef struct PPPHdr_ {
     uint8_t address;
     uint8_t control;
     uint16_t protocol;
-} PPPHdr;
+} __attribute__((__packed__)) PPPHdr;
 
 /** PPP Packet header length */
 #define PPP_HEADER_LEN 4
