@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -47,7 +47,7 @@ typedef struct IPV6Hdr_
         } ip6_un2;
         uint16_t ip6_addrs[16];
     } ip6_hdrun2;
-} IPV6Hdr;
+} __attribute__((__packed__)) IPV6Hdr;
 
 #define s_ip6_src                       ip6_hdrun2.ip6_un2.ip6_src
 #define s_ip6_dst                       ip6_hdrun2.ip6_un2.ip6_dst
@@ -126,7 +126,7 @@ typedef struct IPV6FragHdr_
     uint8_t  ip6fh_reserved;        /* reserved field */
     uint16_t ip6fh_offlg;           /* offset, reserved, and flag */
     uint32_t ip6fh_ident;           /* identification */
-} IPV6FragHdr;
+} __attribute__((__packed__)) IPV6FragHdr;
 
 #define IPV6_EXTHDR_GET_RAW_FH_NH(p)        ((p)->ip6eh.ip6fh->ip6fh_nxt)
 #define IPV6_EXTHDR_GET_RAW_FH_HDRLEN(p)    sizeof(IPV6FragHdr)
@@ -149,13 +149,13 @@ typedef struct IPV6AuthHdr_
     uint16_t ip6ah_reserved;        /* reserved for future use */
     uint32_t ip6ah_spi;             /* SECURITY PARAMETERS INDEX (SPI) */
     uint32_t ip6ah_seq;             /* sequence number */
-} IPV6AuthHdr;
+} __attribute__((__packed__)) IPV6AuthHdr;
 
 typedef struct IPV6EspHdr_
 {
     uint32_t ip6esph_spi;           /* SECURITY PARAMETERS INDEX (SPI) */
     uint32_t ip6esph_seq;           /* sequence number */
-} IPV6EspHdr;
+} __attribute__((__packed__)) IPV6EspHdr;
 
 typedef struct IPV6RouteHdr_
 {
@@ -168,7 +168,7 @@ typedef struct IPV6RouteHdr_
     uint8_t ip6rh0_num_addrs;        /* number of actual addresses in the
                                         array/packet. The array is guarranteed
                                         to be filled up to this number. */
-} IPV6RouteHdr;
+} __attribute__((__packed__)) IPV6RouteHdr;
 
 #define IPV6_EXTHDR_GET_RAW_RH_NH(p)        ((p)->ip6eh.ip6rh->ip6rh_nxt)
 #define IPV6_EXTHDR_GET_RAW_RH_HDRLEN(p)    ((p)->ip6eh.ip6rh->ip6rh_len)
@@ -219,7 +219,7 @@ typedef struct IPV6HopOptsHdr_
     uint8_t ip6hh_nxt;              /* next header */
     uint8_t ip6hh_len;              /* header length in units of 8 bytes, not
                                        including first 8 bytes. */
-} IPV6HopOptsHdr;
+} __attribute__((__packed__)) IPV6HopOptsHdr;
 
 #define IPV6_EXTHDR_GET_RAW_HH_NH(p)        ((p)->ip6eh.ip6hh->ip6hh_nxt)
 #define IPV6_EXTHDR_GET_RAW_HH_HDRLEN(p)    ((p)->ip6eh.ip6hh->ip6hh_len)
@@ -234,7 +234,7 @@ typedef struct IPV6DstOptsHdr_
     uint8_t ip6dh_nxt;              /* next header */
     uint8_t ip6dh_len;              /* header length in units of 8 bytes, not
                                        including first 8 bytes. */
-} IPV6DstOptsHdr;
+} __attribute__((__packed__)) IPV6DstOptsHdr;
 
 #define IPV6_EXTHDR_GET_RAW_DH1_NH(p)        ((p)->ip6eh.ip6dh1->ip6dh_nxt)
 #define IPV6_EXTHDR_GET_RAW_DH1_HDRLEN(p)    ((p)->ip6eh.ip6dh1->ip6dh_len)

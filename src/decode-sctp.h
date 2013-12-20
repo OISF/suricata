@@ -40,7 +40,7 @@ typedef struct SCTPHdr_
     uint16_t sh_dport;     /* destination port */
     uint32_t sh_vtag;      /* verification tag, defined per flow */
     uint32_t sh_sum;       /* checksum, computed via crc32 */
-} SCTPHdr;
+} __attribute__((__packed__)) SCTPHdr;
 
 #define CLEAR_SCTP_PACKET(p) { \
     (p)->sctph = NULL; \
