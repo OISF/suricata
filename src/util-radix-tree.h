@@ -27,19 +27,6 @@
 #define SC_RADIX_BITTEST(x, y) ((x) & (y))
 
 /**
- * \brief Macro to fetch the user data from a node. It checks if node is a
- *        valid pointer and if node->prefix is as well.
- *
- * \param node Variable name/expression containing the node
- * \param type User data type in which the node points to
- *
- * \returns User data within the node
- */
-#define SC_RADIX_NODE_USERDATA(node, type) \
-    ((type *)(((node) != NULL) ? (((node)->prefix != NULL) ? \
-                (node)->prefix->user_data_result : NULL) : NULL))
-
-/**
  * \brief Structure that hold the user data and the netmask associated with it.
  */
 typedef struct SCRadixUserData_ {
@@ -66,11 +53,6 @@ typedef struct SCRadixPrefix_ {
      * with any of the the 32 or 128 netblocks.  Also for non-ips, we store the
      * netmask as 255 in SCRadixUserData->netmask */
     SCRadixUserData *user_data;
-
-    /* Used to hold the user data from radix tree search.  More of a convenience
-     * that lets anyone using the API, directly get a reference to the user
-     * data which is associated with the search results */
-    void *user_data_result;
 } SCRadixPrefix;
 
 /**
@@ -135,15 +117,15 @@ void SCRadixRemoveKeyIPV4(uint8_t *, SCRadixTree *);
 void SCRadixRemoveKeyIPV6Netblock(uint8_t *, SCRadixTree *, uint8_t);
 void SCRadixRemoveKeyIPV6(uint8_t *, SCRadixTree *);
 
-SCRadixNode *SCRadixFindKeyGeneric(uint8_t *, uint16_t, SCRadixTree *);
+SCRadixNode *SCRadixFindKeyGeneric(uint8_t *, uint16_t, SCRadixTree *, void **);
 
-SCRadixNode *SCRadixFindKeyIPV4ExactMatch(uint8_t *, SCRadixTree *);
-SCRadixNode *SCRadixFindKeyIPV4Netblock(uint8_t *, SCRadixTree *, uint8_t);
-SCRadixNode *SCRadixFindKeyIPV4BestMatch(uint8_t *, SCRadixTree *);
+SCRadixNode *SCRadixFindKeyIPV4ExactMatch(uint8_t *, SCRadixTree *, void **);
+SCRadixNode *SCRadixFindKeyIPV4Netblock(uint8_t *, SCRadixTree *, uint8_t, void **);
+SCRadixNode *SCRadixFindKeyIPV4BestMatch(uint8_t *, SCRadixTree *, void **);
 
-SCRadixNode *SCRadixFindKeyIPV6ExactMatch(uint8_t *, SCRadixTree *);
-SCRadixNode *SCRadixFindKeyIPV6Netblock(uint8_t *, SCRadixTree *, uint8_t);
-SCRadixNode *SCRadixFindKeyIPV6BestMatch(uint8_t *, SCRadixTree *);
+SCRadixNode *SCRadixFindKeyIPV6ExactMatch(uint8_t *, SCRadixTree *, void **);
+SCRadixNode *SCRadixFindKeyIPV6Netblock(uint8_t *, SCRadixTree *, uint8_t, void **);
+SCRadixNode *SCRadixFindKeyIPV6BestMatch(uint8_t *, SCRadixTree *, void **);
 
 void SCRadixPrintTree(SCRadixTree *);
 void SCRadixPrintNodeInfo(SCRadixNode *, int,  void (*PrintData)(void*));
