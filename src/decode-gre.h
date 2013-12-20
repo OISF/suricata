@@ -37,7 +37,7 @@ typedef struct GREHdr_
     uint8_t version; /**< GRE version */
     uint16_t ether_type; /**< ether type of the encapsulated traffic */
 
-} GREHdr;
+} __attribute__((__packed__)) GREHdr;
 
 typedef struct GRESreHdr_
 {
@@ -45,7 +45,7 @@ typedef struct GRESreHdr_
     uint8_t sre_offset;
     uint8_t sre_length;
     uint8_t *routing;
-} GRESreHdr;
+} __attribute__((__packed__)) GRESreHdr;
 
 #define GRE_VERSION_0           0x0000
 #define GRE_VERSION_1           0x0001

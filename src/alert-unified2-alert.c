@@ -88,7 +88,7 @@ static uint32_t sensor_id = 0;
 typedef struct Unified2ExtraDataHdr_ {
     uint32_t event_type;
     uint32_t event_length;
-} Unified2ExtraDataHdr;
+} __attribute__((__packed__)) Unified2ExtraDataHdr;
 
 /**
  * Unified2 Extra Data (currently used only for XFF)
@@ -461,7 +461,7 @@ TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, Pa
 typedef struct _FakeIPv4Hdr {
     IPV4Hdr ip4h;
     TCPHdr tcph;
-} FakeIPv4Hdr;
+} __attribute__((__packed__)) FakeIPv4Hdr;
 
 static int Unified2ForgeFakeIPv4Header(FakeIPv4Hdr *fakehdr, Packet *p, int pkt_len, char invert)
 {
@@ -491,7 +491,7 @@ static int Unified2ForgeFakeIPv4Header(FakeIPv4Hdr *fakehdr, Packet *p, int pkt_
 typedef struct _FakeIPv6Hdr {
     IPV6Hdr ip6h;
     TCPHdr tcph;
-} FakeIPv6Hdr;
+} __attribute__((__packed__)) FakeIPv6Hdr;
 
 /**
  *  \param payload_len length of the payload
