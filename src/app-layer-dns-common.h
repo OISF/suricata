@@ -78,12 +78,12 @@ typedef struct DNSHeader_ {
     uint16_t answer_rr;
     uint16_t authority_rr;
     uint16_t additional_rr;
-} DNSHeader;
+} __attribute__((__packed__)) DNSHeader;
 
 typedef struct DNSQueryTrailer_ {
     uint16_t type;
     uint16_t class;
-} DNSQueryTrailer;
+} __attribute__((__packed__)) DNSQueryTrailer;
 
 /** \brief DNS answer header
  *  packed as we don't want alignment to mess up sizeof() */
