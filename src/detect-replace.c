@@ -161,16 +161,13 @@ DetectReplaceList * DetectReplaceAddToList(DetectReplaceList *replist, uint8_t *
 
     newlist = SCMalloc(sizeof(DetectReplaceList));
     if (unlikely(newlist == NULL))
-        return NULL;
+        return replist;
     newlist->found = found;
     newlist->cd = cd;
-    newlist->next = NULL;
+    /* Push new value onto the front of the list. */
+    newlist->next = replist;
 
-    if (replist) {
-        replist->next = newlist;
-        return replist;
-    } else
-        return newlist;
+    return newlist;
 }
 
 
@@ -198,7 +195,7 @@ void DetectReplaceFree(DetectReplaceList *replist)
 {
     DetectReplaceList *tlist = NULL;
     while(replist) {
-        SCLogDebug("replace: Freing match");
+        SCLogDebug("replace: Freeing match");
         tlist = replist;
         replist = replist->next;
         SCFree(tlist);
