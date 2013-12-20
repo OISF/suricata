@@ -1,6 +1,6 @@
 @sizet@
 size_t p;
-identifier func =~ "^\(sprintf\|printf\|SCLog.*\)$";
+identifier func =~ "^(sprintf|printf|SCLog.*)$";
 identifier funcn =~ "^.*nprintf$";
 position p1;
 typedef uint16_t;
