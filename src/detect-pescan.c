@@ -153,57 +153,57 @@ static int DblCmp(double a, double b) {
  * \retval 1 if the score is a match
  * \retval 0 if the score is not a match
  */
-static int CheckScoreMatch(DetectPescanData *pedata, peattrib_t *peattrib) {
-
+static int CheckScoreMatch(DetectPescanData *pedata, peattrib_t *peattrib)
+{
     int match = 0;
 
     /* Now check if there is a score check required or not */
     switch (pedata->mode) {
-    case DETECT_PESCAN_ANY:
-        SCLogDebug("Match on any");
-        match = 1;
-        break;
+        case DETECT_PESCAN_ANY:
+            SCLogDebug("Match on any");
+            match = 1;
+            break;
 
-    case DETECT_PESCAN_LT:
-        SCLogDebug("Match on LT");
-        match = (DblCmp(peattrib->pescore, pedata->score1) == -1);
-        break;
+        case DETECT_PESCAN_LT:
+            SCLogDebug("Match on LT");
+            match = (DblCmp(peattrib->pescore, pedata->score1) == -1);
+            break;
 
-    case DETECT_PESCAN_LTEQ:
-        SCLogDebug("Match on LTEQ");
-        match = (DblCmp(peattrib->pescore, pedata->score1) <= 0);
-        break;
+        case DETECT_PESCAN_LTEQ:
+            SCLogDebug("Match on LTEQ");
+            match = (DblCmp(peattrib->pescore, pedata->score1) <= 0);
+            break;
 
-    case DETECT_PESCAN_EQ:
-        SCLogDebug("Match on EQ");
-        match = (DblCmp(peattrib->pescore, pedata->score1) == 0);
-        break;
+        case DETECT_PESCAN_EQ:
+            SCLogDebug("Match on EQ");
+            match = (DblCmp(peattrib->pescore, pedata->score1) == 0);
+            break;
 
-    case DETECT_PESCAN_GT:
-        SCLogDebug("Match on GT");
-        match = (DblCmp(peattrib->pescore, pedata->score1) == 1);
-        break;
+        case DETECT_PESCAN_GT:
+            SCLogDebug("Match on GT");
+            match = (DblCmp(peattrib->pescore, pedata->score1) == 1);
+            break;
 
-    case DETECT_PESCAN_GTEQ:
-        SCLogDebug("Match on GTEQ");
-        match = (DblCmp(peattrib->pescore, pedata->score1) >= 0);
-        break;
+        case DETECT_PESCAN_GTEQ:
+            SCLogDebug("Match on GTEQ");
+            match = (DblCmp(peattrib->pescore, pedata->score1) >= 0);
+            break;
 
-    case DETECT_PESCAN_RA:
-        SCLogDebug("Match on RA");
-        match = (DblCmp(peattrib->pescore, pedata->score1) == 1 &&
-                DblCmp(peattrib->pescore, pedata->score2) == -1);
-        break;
+        case DETECT_PESCAN_RA:
+            SCLogDebug("Match on RA");
+            match = (DblCmp(peattrib->pescore, pedata->score1) == 1 &&
+                     DblCmp(peattrib->pescore, pedata->score2) == -1);
+            break;
 
-    case DETECT_PESCAN_RAEQ:
-        SCLogDebug("Match on RAEQ");
-        match = (DblCmp(peattrib->pescore, pedata->score1) >= 0 &&
-                DblCmp(peattrib->pescore, pedata->score2) <= 0);
-        break;
+        case DETECT_PESCAN_RAEQ:
+            SCLogDebug("Match on RAEQ");
+            match = (DblCmp(peattrib->pescore, pedata->score1) >= 0 &&
+                     DblCmp(peattrib->pescore, pedata->score2) <= 0);
+            break;
 
-    default:
-        SCLogInfo("Invalid comparison mode");
-        break;
+        default:
+            SCLogInfo("Invalid comparison mode");
+            break;
     }
 
     return match;
