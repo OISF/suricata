@@ -41,20 +41,20 @@ static PEScanConfig pescan_config = { 0, 0, 0 };
  * \return The max number of bytes to scan from a file
  */
 uint32_t PEScanGetMaxBytes(File *file) {
-    uint32_t maxSize = MAX_SCAN_BYTES;
+    uint32_t max_size = MAX_SCAN_BYTES;
 
     /* First get from config file */
     PEScanConfig *pecfg = PEScanGetConfig();
     if ((pecfg != NULL) && (pecfg->max_scan_bytes > 0)) {
-        maxSize = pecfg->max_scan_bytes;
+        max_size = pecfg->max_scan_bytes;
     }
 
     /* Only use file size if specified and within valid range */
-    if ((file != NULL) && (file->size >= MIN_SCAN_BYTES) && (file->size < maxSize)) {
-        maxSize = file->size;
+    if ((file != NULL) && (file->size >= MIN_SCAN_BYTES) && (file->size < max_size)) {
+        max_size = file->size;
     }
 
-    return maxSize;
+    return max_size;
 }
 
 /**
@@ -139,7 +139,7 @@ error:
 int PEScanFile(File *file, uint8_t *scanbuf) {
 
     uint8_t *data = NULL;
-    uint32_t dlen = 0, bytes, maxSize;
+    uint32_t dlen = 0, bytes, max_size;
     int ret = 0;
     peattrib_t peattrib;
 
@@ -157,18 +157,18 @@ int PEScanFile(File *file, uint8_t *scanbuf) {
     }
 
     PEScanConfig *pecfg = PEScanGetConfig();
-    maxSize = PEScanGetMaxBytes(file);
-    SCLogDebug("Max size to scan: %d", maxSize);
+    max_size = PEScanGetMaxBytes(file);
+    SCLogDebug("Max size to scan: %d", max_size);
     data = scanbuf;
     if (data == NULL) {
         /* Allocate scan buffer on the heap (only when not passed in) */
         SCLogDebug("Need to allocate memory locally");
-        data = SCMalloc(maxSize);
+        data = SCMalloc(max_size);
         if (unlikely(data == NULL)) {
             goto error;
         }
     }
-    memset(data, 0x00, maxSize);
+    memset(data, 0x00, max_size);
 
     /* Now scan the minimal amount of chunks until we get a PE determination */
     FileData *ffd;
@@ -176,8 +176,8 @@ int PEScanFile(File *file, uint8_t *scanbuf) {
         SCLogDebug("ffd %p", ffd);
 
         /* Make sure number of bytes copied never exceeds the max allowed */
-        bytes = ((ffd->len + dlen <= maxSize) ?
-                ffd->len : maxSize - dlen);
+        bytes = ((ffd->len + dlen <= max_size) ?
+                ffd->len : max_size - dlen);
 
         /* If no new bytes, then break out of loop */
         if (bytes == 0) {
