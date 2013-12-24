@@ -104,6 +104,22 @@ uint8_t FlowGetProtoMapping(uint8_t proto)
     }
 }
 
+uint8_t FlowGetReverseProtoMapping(uint8_t rproto)
+{
+    switch (rproto) {
+        case FLOW_PROTO_TCP:
+            return IPPROTO_TCP;
+        case FLOW_PROTO_UDP:
+            return IPPROTO_UDP;
+        case FLOW_PROTO_ICMP:
+            return IPPROTO_ICMP;
+        case FLOW_PROTO_SCTP:
+            return IPPROTO_SCTP;
+        default:
+            exit(EXIT_FAILURE);
+    }
+}
+
 /* initialize the flow from the first packet
  * we see from it. */
 void FlowInit(Flow *f, const Packet *p)

@@ -25,6 +25,7 @@
 #include "threads.h"
 #include "decode.h"
 
+#include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-smtp.h"
@@ -45,13 +46,13 @@
 #include "util-unittest-helper.h"
 
 
-int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                                Packet *p, Signature *s, SigMatch *m);
-int DetectAppLayerEventAppMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
+static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+                                       Packet *p, Signature *s, SigMatch *m);
+static int DetectAppLayerEventAppMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
                                 uint8_t, void *, Signature *, SigMatch *);
-int DetectAppLayerEventSetup(DetectEngineCtx *, Signature *, char *);
-void DetectAppLayerEventRegisterTests(void);
-void DetectAppLayerEventFree(void *);
+static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, char *);
+static void DetectAppLayerEventRegisterTests(void);
+static void DetectAppLayerEventFree(void *);
 
 /**
  * \brief Registers the keyword handlers for the "app-layer-event" keyword.
@@ -63,7 +64,7 @@ void DetectAppLayerEventRegister(void)
         DetectAppLayerEventPktMatch;
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].AppLayerMatch =
         DetectAppLayerEventAppMatch;
-    sigmatch_table[DETECT_AL_APP_LAYER_EVENT].Setup = DetectAppLayerEventSetup;
+    sigmatch_table[DETECT_AL_APP_LAYER_EVENT].Setup = DetectAppLayerEventSetupP1;
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].Free = DetectAppLayerEventFree;
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].RegisterTests =
         DetectAppLayerEventRegisterTests;
@@ -72,7 +73,7 @@ void DetectAppLayerEventRegister(void)
 }
 
 
-int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                                 Packet *p, Signature *s, SigMatch *m)
 {
     DetectAppLayerEventData *aled = (DetectAppLayerEventData *)m->ctx;
@@ -81,7 +82,7 @@ int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                                            aled->event_id);
 }
 
-int DetectAppLayerEventAppMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectAppLayerEventAppMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                                 Flow *f, uint8_t flags, void *state, Signature *s,
                                 SigMatch *m)
 {
@@ -93,7 +94,7 @@ int DetectAppLayerEventAppMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     FLOWLOCK_RDLOCK(f);
 
     if (r == 0) {
-        decoder_events = AppLayerGetDecoderEventsForFlow(f);
+        decoder_events = AppLayerParserGetDecoderEvents(f->alparser);
         if (decoder_events != NULL &&
                 AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
             r = 1;
@@ -130,26 +131,51 @@ static DetectAppLayerEventData *DetectAppLayerEventParsePkt(const char *arg,
     return aled;
 }
 
-static DetectAppLayerEventData *DetectAppLayerEventParseApp(const char *arg,
-                                                            AppLayerEventType *event_type)
+static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
+                                         uint8_t *ipproto_bitarray,
+                                         AppLayerEventType *event_type)
+{
+    int event_id = 0;
+    const char *p_idx;
+    uint8_t ipproto;
+    char alproto_name[50];
+    int r = 0;
+
+    p_idx = strchr(data->arg, '.');
+    strlcpy(alproto_name, data->arg, p_idx - data->arg + 1);
+
+    if (ipproto_bitarray[IPPROTO_TCP / 8] & 1 << (IPPROTO_TCP % 8)) {
+        ipproto = IPPROTO_TCP;
+    } else if (ipproto_bitarray[IPPROTO_UDP / 8] & 1 << (IPPROTO_UDP % 8)) {
+        ipproto = IPPROTO_UDP;
+    } else {
+        BUG_ON(1);
+    }
+
+    r = AppLayerParserGetEventInfo(ipproto, data->alproto,
+                        p_idx + 1, &event_id, event_type);
+    if (r < 0) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword's "
+                   "protocol \"%s\" doesn't have event \"%s\" registered",
+                   alproto_name, p_idx + 1);
+        return -1;
+    }
+    data->event_id = event_id;
+
+    return 0;
+}
+
+static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
 {
     /* period index */
     DetectAppLayerEventData *aled;
-
     uint16_t alproto;
-    int event_id = 0;
-
     const char *p_idx;
     char alproto_name[50];
-    int r = 0;
 
     p_idx = strchr(arg, '.');
     /* + 1 for trailing \0 */
     strlcpy(alproto_name, arg, p_idx - arg + 1);
-
-    /* XXX HACK to support "dns" we use this trick */
-    if (strcasecmp(alproto_name, "dns") == 0)
-        strlcpy(alproto_name, "dnsudp", sizeof(alproto_name));
 
     alproto = AppLayerGetProtoByName(alproto_name);
     if (alproto == ALPROTO_UNKNOWN) {
@@ -158,20 +184,17 @@ static DetectAppLayerEventData *DetectAppLayerEventParseApp(const char *arg,
                    alproto_name);
         return NULL;
     }
-    r = AppLayerGetEventInfo(alproto, p_idx + 1, &event_id, event_type);
-    if (r < 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword's "
-                   "protocol \"%s\" doesn't have event \"%s\" registered",
-                   alproto_name, p_idx + 1);
-        return NULL;
-    }
 
-    aled = SCMalloc(sizeof(DetectAppLayerEventData));
+    aled = SCMalloc(sizeof(*aled));
     if (unlikely(aled == NULL))
         return NULL;
-    memset(aled,0x00,sizeof(*aled));
+    memset(aled, 0x00, sizeof(*aled));
     aled->alproto = alproto;
-    aled->event_id = event_id;
+    aled->arg = SCStrdup(arg);
+    if (aled->arg == NULL) {
+        SCFree(aled);
+        return NULL;
+    }
 
     return aled;
 }
@@ -179,6 +202,8 @@ static DetectAppLayerEventData *DetectAppLayerEventParseApp(const char *arg,
 static DetectAppLayerEventData *DetectAppLayerEventParse(const char *arg,
                                                          AppLayerEventType *event_type)
 {
+    *event_type = 0;
+
     if (arg == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword supplied "
                    "with no arguments.  This keyword needs an argument.");
@@ -191,11 +216,33 @@ static DetectAppLayerEventData *DetectAppLayerEventParse(const char *arg,
     if (strchr(arg, '.') == NULL) {
         return DetectAppLayerEventParsePkt(arg, event_type);
     } else {
-        return DetectAppLayerEventParseApp(arg, event_type);
+        return DetectAppLayerEventParseAppP1(arg);
     }
 }
 
-int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectAppLayerEventSetupP2(Signature *s,
+                                      SigMatch *sm)
+{
+    AppLayerEventType event_type = 0;
+
+    if (DetectAppLayerEventParseAppP2(sm->ctx, s->proto.proto,
+                                      &event_type) < 0)
+    {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "App layer event setup "
+                   "phase2 failure.");
+        return -1;
+    }
+    if (event_type == APP_LAYER_EVENT_TYPE_GENERAL)
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+    else
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_APP_EVENT);
+    /* We should have set this flag already in SetupP1 */
+    s->flags |= SIG_FLAG_APPLAYER;
+
+    return 0;
+}
+
+static int DetectAppLayerEventSetupP1(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
     DetectAppLayerEventData *data = NULL;
     SigMatch *sm = NULL;
@@ -213,11 +260,7 @@ int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     sm->ctx = (void *)data;
 
     if (s->alproto != ALPROTO_UNKNOWN) {
-        if (s->alproto == ALPROTO_DNS &&
-                (data->alproto == ALPROTO_DNS_UDP || data->alproto == ALPROTO_DNS_TCP))
-        {
-            SCLogDebug("DNS app layer event");
-        } else if (s->alproto != data->alproto) {
+        if (s->alproto != data->alproto) {
             SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains "
                        "conflicting keywords needing different alprotos");
             goto error;
@@ -228,11 +271,9 @@ int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 
     if (event_type == APP_LAYER_EVENT_TYPE_PACKET) {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-    } else if (event_type == APP_LAYER_EVENT_TYPE_GENERAL) {
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
-        s->flags |= SIG_FLAG_APPLAYER;
     } else {
-        /* implied APP_LAYER_EVENT_TYPE_TRANSACTION */
+        /* We push it to this list temporarily.  We deal with
+         * these in DetectAppLayerEventPrepare(). */
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_APP_EVENT);
         s->flags |= SIG_FLAG_APPLAYER;
     }
@@ -249,11 +290,31 @@ error:
     return -1;
 }
 
-void DetectAppLayerEventFree(void *ptr)
+static void DetectAppLayerEventFree(void *ptr)
 {
+    DetectAppLayerEventData *data = (DetectAppLayerEventData *)ptr;
+    if (data->arg != NULL)
+        SCFree(data->arg);
+
     SCFree(ptr);
 
     return;
+}
+
+int DetectAppLayerEventPrepare(Signature *s)
+{
+    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_APP_EVENT];
+    s->sm_lists[DETECT_SM_LIST_APP_EVENT] = NULL;
+    s->sm_lists_tail[DETECT_SM_LIST_APP_EVENT] = NULL;
+
+    while (sm != NULL) {
+        sm->next = sm->prev = NULL;
+        if (DetectAppLayerEventSetupP2(s, sm) < 0)
+            return -1;
+        sm = sm->next;
+    }
+
+    return 0;
 }
 
 /**********************************Unittests***********************************/
@@ -301,17 +362,24 @@ static int DetectAppLayerEventTestGetEventInfo(const char *event_name,
 
 int DetectAppLayerEventTest01(void)
 {
-    AppLayerParserBackupAlprotoTable();
-    AppLayerRegisterGetEventInfo(ALPROTO_SMTP,
-                                 DetectAppLayerEventTestGetEventInfo);
+    AppLayerParserBackupParserTable();
+    AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_SMTP,
+                            DetectAppLayerEventTestGetEventInfo);
 
     AppLayerEventType event_type;
     int result = 0;
+    uint8_t ipproto_bitarray[256 / 8];
+    memset(ipproto_bitarray, 0, sizeof(ipproto_bitarray));
+    ipproto_bitarray[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
 
     DetectAppLayerEventData *aled = DetectAppLayerEventParse("smtp.event1",
                                                              &event_type);
     if (aled == NULL)
         goto end;
+    if (DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0) {
+        printf("failure 1\n");
+        goto end;
+    }
     if (aled->alproto != ALPROTO_SMTP ||
         aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT1) {
         printf("test failure.  Holding wrong state\n");
@@ -321,7 +389,7 @@ int DetectAppLayerEventTest01(void)
     result = 1;
 
  end:
-    AppLayerParserRestoreAlprotoTable();
+    AppLayerParserRestoreParserTable();
     if (aled != NULL)
         DetectAppLayerEventFree(aled);
     return result;
@@ -329,24 +397,31 @@ int DetectAppLayerEventTest01(void)
 
 int DetectAppLayerEventTest02(void)
 {
-    AppLayerParserBackupAlprotoTable();
+    AppLayerParserBackupParserTable();
 
-    AppLayerRegisterGetEventInfo(ALPROTO_SMTP,
-                                 DetectAppLayerEventTestGetEventInfo);
-    AppLayerRegisterGetEventInfo(ALPROTO_HTTP,
-                                 DetectAppLayerEventTestGetEventInfo);
-    AppLayerRegisterGetEventInfo(ALPROTO_SMB,
-                                 DetectAppLayerEventTestGetEventInfo);
-    AppLayerRegisterGetEventInfo(ALPROTO_FTP,
-                                 DetectAppLayerEventTestGetEventInfo);
+    AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_SMTP,
+                            DetectAppLayerEventTestGetEventInfo);
+    AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_HTTP,
+                            DetectAppLayerEventTestGetEventInfo);
+    AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_SMB,
+                            DetectAppLayerEventTestGetEventInfo);
+    AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_FTP,
+                            DetectAppLayerEventTestGetEventInfo);
 
     AppLayerEventType event_type;
     int result = 0;
+    uint8_t ipproto_bitarray[256 / 8];
+    memset(ipproto_bitarray, 0, sizeof(ipproto_bitarray));
+    ipproto_bitarray[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
 
     DetectAppLayerEventData *aled = DetectAppLayerEventParse("smtp.event1",
                                                              &event_type);
     if (aled == NULL)
         goto end;
+    if (DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0) {
+        printf("failure 1\n");
+        goto end;
+    }
     if (aled->alproto != ALPROTO_SMTP ||
         aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT1) {
         printf("test failure.  Holding wrong state\n");
@@ -357,6 +432,10 @@ int DetectAppLayerEventTest02(void)
                                     &event_type);
     if (aled == NULL)
         goto end;
+    if (DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0) {
+        printf("failure 1\n");
+        goto end;
+    }
     if (aled->alproto != ALPROTO_SMTP ||
         aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT4) {
         printf("test failure.  Holding wrong state\n");
@@ -367,6 +446,10 @@ int DetectAppLayerEventTest02(void)
                                     &event_type);
     if (aled == NULL)
         goto end;
+    if (DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0) {
+        printf("failure 1\n");
+        goto end;
+    }
     if (aled->alproto != ALPROTO_HTTP ||
         aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT2) {
         printf("test failure.  Holding wrong state\n");
@@ -377,6 +460,10 @@ int DetectAppLayerEventTest02(void)
                                     &event_type);
     if (aled == NULL)
         goto end;
+    if (DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0) {
+        printf("failure 1\n");
+        goto end;
+    }
     if (aled->alproto != ALPROTO_SMB ||
         aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT3) {
         printf("test failure.  Holding wrong state\n");
@@ -387,6 +474,10 @@ int DetectAppLayerEventTest02(void)
                                     &event_type);
     if (aled == NULL)
         goto end;
+    if (DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0) {
+        printf("failure 1\n");
+        goto end;
+    }
     if (aled->alproto != ALPROTO_FTP ||
         aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT5) {
         printf("test failure.  Holding wrong state\n");
@@ -396,7 +487,7 @@ int DetectAppLayerEventTest02(void)
     result = 1;
 
  end:
-    AppLayerParserRestoreAlprotoTable();
+    AppLayerParserRestoreParserTable();
     if (aled != NULL)
         DetectAppLayerEventFree(aled);
     return result;
@@ -461,6 +552,7 @@ int DetectAppLayerEventTest03(void)
         goto end;
     FLOW_INITIALIZE(f);
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
     f->flags |= FLOW_IPV4;
 
     p = PacketGetFromAlloc();
@@ -477,8 +569,8 @@ int DetectAppLayerEventTest03(void)
     StreamTcpInitConfig(TRUE);
 
     p->flowflags = FLOW_PKT_TOSERVER;
-    if (AppLayerHandleTCPData(&tv, ra_ctx, f, &ssn, &stream_ts, buf_ts,
-                              sizeof(buf_ts), p, STREAM_TOSERVER | STREAM_START) < 0) {
+    if (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_ts, buf_ts,
+                              sizeof(buf_ts), STREAM_TOSERVER | STREAM_START) < 0) {
         printf("AppLayerHandleTCPData failure\n");
         goto end;
     }
@@ -489,8 +581,8 @@ int DetectAppLayerEventTest03(void)
     }
 
     p->flowflags = FLOW_PKT_TOCLIENT;
-    if (AppLayerHandleTCPData(&tv, ra_ctx, f, &ssn, &stream_tc, buf_tc,
-                              sizeof(buf_tc), p, STREAM_TOCLIENT | STREAM_START) < 0) {
+    if (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_tc, buf_tc,
+                              sizeof(buf_tc), STREAM_TOCLIENT | STREAM_START) < 0) {
         printf("AppLayerHandleTCPData failure\n");
         goto end;
     }
@@ -564,6 +656,7 @@ int DetectAppLayerEventTest04(void)
         goto end;
     FLOW_INITIALIZE(f);
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
     f->flags |= FLOW_IPV4;
 
     p = PacketGetFromAlloc();
@@ -580,8 +673,8 @@ int DetectAppLayerEventTest04(void)
     StreamTcpInitConfig(TRUE);
 
     p->flowflags = FLOW_PKT_TOSERVER;
-    if (AppLayerHandleTCPData(&tv, ra_ctx, f, &ssn, &stream_ts, buf_ts,
-                              sizeof(buf_ts), p, STREAM_TOSERVER | STREAM_START) < 0) {
+    if (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_ts, buf_ts,
+                              sizeof(buf_ts), STREAM_TOSERVER | STREAM_START) < 0) {
         printf("AppLayerHandleTCPData failure\n");
         goto end;
     }
@@ -592,8 +685,8 @@ int DetectAppLayerEventTest04(void)
     }
 
     p->flowflags = FLOW_PKT_TOCLIENT;
-    if (AppLayerHandleTCPData(&tv, ra_ctx, f, &ssn, &stream_tc, buf_tc,
-                              sizeof(buf_tc), p, STREAM_TOCLIENT | STREAM_START) < 0) {
+    if (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_tc, buf_tc,
+                              sizeof(buf_tc), STREAM_TOCLIENT | STREAM_START) < 0) {
         printf("AppLayerHandleTCPData failure\n");
         goto end;
     }
@@ -683,6 +776,7 @@ int DetectAppLayerEventTest05(void)
         goto end;
     FLOW_INITIALIZE(f);
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
     f->flags |= FLOW_IPV4;
 
     p = PacketGetFromAlloc();
@@ -699,8 +793,8 @@ int DetectAppLayerEventTest05(void)
     StreamTcpInitConfig(TRUE);
 
     p->flowflags = FLOW_PKT_TOSERVER;
-    if (AppLayerHandleTCPData(&tv, ra_ctx, f, &ssn, &stream_ts, buf_ts,
-                              sizeof(buf_ts), p, STREAM_TOSERVER | STREAM_START) < 0) {
+    if (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_ts, buf_ts,
+                              sizeof(buf_ts), STREAM_TOSERVER | STREAM_START) < 0) {
         printf("AppLayerHandleTCPData failure\n");
         goto end;
     }
@@ -711,8 +805,8 @@ int DetectAppLayerEventTest05(void)
     }
 
     p->flowflags = FLOW_PKT_TOCLIENT;
-    if (AppLayerHandleTCPData(&tv, ra_ctx, f, &ssn, &stream_tc, buf_tc,
-                              sizeof(buf_tc), p, STREAM_TOCLIENT | STREAM_START) < 0) {
+    if (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_tc, buf_tc,
+                              sizeof(buf_tc), STREAM_TOCLIENT | STREAM_START) < 0) {
         printf("AppLayerHandleTCPData failure\n");
         goto end;
     }

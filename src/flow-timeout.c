@@ -58,6 +58,7 @@
 #include "stream.h"
 
 #include "app-layer-parser.h"
+#include "app-layer.h"
 
 #include "util-profiling.h"
 
@@ -260,7 +261,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     memset(&p->ts, 0, sizeof(struct timeval));
     TimeGet(&p->ts);
 
-    AppLayerSetEOF(f);
+    AppLayerParserSetEOF(f->alparser);
 
     return p;
 }
@@ -320,15 +321,19 @@ int FlowForceReassemblyNeedReassembly(Flow *f, int *server, int *client) {
 
     /* if app layer still needs some love, push through */
     if (f->alproto != ALPROTO_UNKNOWN && f->alstate != NULL &&
-        AppLayerAlprotoSupportsTxs(f->alproto))
+        AppLayerParserProtocolSupportsTxs(f->proto, f->alproto))
     {
-        uint64_t total_txs = AppLayerGetTxCnt(f->alproto, f->alstate);
+        uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, f->alproto, f->alstate);
 
-        if (AppLayerTransactionGetActive(f, STREAM_TOCLIENT) < total_txs) {
+        if (AppLayerParserGetTransactionActive(f->proto, f->alproto,
+                                               f->alparser, STREAM_TOCLIENT) < total_txs)
+        {
             if (*server != STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY)
                 *server = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
         }
-        if (AppLayerTransactionGetActive(f, STREAM_TOSERVER) < total_txs) {
+        if (AppLayerParserGetTransactionActive(f->proto, f->alproto,
+                                               f->alparser, STREAM_TOSERVER) < total_txs)
+        {
             if (*client != STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY)
                 *client = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
         }

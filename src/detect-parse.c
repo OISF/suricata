@@ -42,6 +42,7 @@
 #include "detect-app-layer-protocol.h"
 #include "detect-engine-apt-event.h"
 #include "detect-luajit.h"
+#include "detect-app-layer-event.h"
 
 #include "pkt-var.h"
 #include "host.h"
@@ -54,6 +55,7 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
+#include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 
@@ -65,6 +67,7 @@
 #include "detect-parse.h"
 #include "detect-engine-iponly.h"
 #include "app-layer-detect-proto.h"
+#include "app-layer.h"
 
 extern int sc_set_caps;
 
@@ -75,9 +78,6 @@ static pcre_extra *option_pcre_extra = NULL;
 
 static uint32_t dbg_srcportany_cnt = 0;
 static uint32_t dbg_dstportany_cnt = 0;
-
-/* Context of the app layer proto detection */
-extern AlpProtoDetectCtx alp_proto_ctx;
 
 /**
  * \brief We use this as data to the hash table DetectEngineCtx->dup_sig_hash_table.
@@ -602,36 +602,13 @@ error:
 int SigParseProto(Signature *s, const char *protostr) {
     SCEnter();
 
-    AppLayerProbingParser *pp;
-    AppLayerProbingParserPort *pp_port;
-    AppLayerProbingParserElement *pp_pe;
-
     int r = DetectProtoParse(&s->proto, (char *)protostr);
     if (r < 0) {
-        s->alproto = AppLayerGetProtoByName(protostr);
+        s->alproto = AppLayerGetProtoByName((char *)protostr);
         /* indicate that the signature is app-layer */
         if (s->alproto != ALPROTO_UNKNOWN)
             s->flags |= SIG_FLAG_APPLAYER;
-
-        for (pp = alp_proto_ctx.probing_parsers; pp != NULL; pp = pp->next) {
-            for (pp_port = pp->port; pp_port != NULL; pp_port = pp_port->next) {
-                for (pp_pe = pp_port->toserver; pp_pe != NULL; pp_pe = pp_pe->next) {
-                    if (strcasecmp(pp_pe->al_proto_name, protostr) != 0)
-                        continue;
-                    s->flags |= SIG_FLAG_APPLAYER;
-                    s->alproto = pp_pe->al_proto;
-                }
-
-                for (pp_pe = pp_port->toclient; pp_pe != NULL; pp_pe = pp_pe->next) {
-                    if (strcasecmp(pp_pe->al_proto_name, protostr) != 0)
-                        continue;
-                    s->flags |= SIG_FLAG_APPLAYER;
-                    s->alproto = pp_pe->al_proto;
-                }
-            }
-        }
-
-        if (s->alproto == ALPROTO_UNKNOWN) {
+        else {
             SCLogError(SC_ERR_UNKNOWN_PROTOCOL, "protocol \"%s\" cannot be used "
                        "in a signature.  Either detection for this protocol "
                        "supported yet OR detection has been disabled for "
@@ -798,18 +775,8 @@ static int SigParseBasics(Signature *s, char *sigstr, SignatureParser *parser, u
     if (SigParseAction(s, parser->action) < 0)
         goto error;
 
-    /* Parse Proto */
-    if (strcasecmp(parser->protocol, "dns") == 0) {
-        /** XXX HACK */
-        if (SigParseProto(s, "dnstcp") < 0)
-            goto error;
-        if (SigParseProto(s, "dnsudp") < 0)
-            goto error;
-        s->alproto = ALPROTO_DNS;
-    } else {
-        if (SigParseProto(s, parser->protocol) < 0)
-            goto error;
-    }
+    if (SigParseProto(s, parser->protocol) < 0)
+        goto error;
 
     if (strcmp(parser->direction, "<-") == 0) {
         SCLogError(SC_ERR_INVALID_DIRECTION, "\"<-\" is not a valid direction modifier, \"->\" and \"<>\" are supported.");
@@ -1219,43 +1186,43 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
         }
     }
 
-    if (s->alproto != ALPROTO_UNKNOWN) {
-        if (s->flags & SIG_FLAG_STATE_MATCH) {
-            if (s->alproto == ALPROTO_DNS) {
-                if (al_proto_table[ALPROTO_DNS_UDP].to_server == 0 ||
-                    al_proto_table[ALPROTO_DNS_UDP].to_client == 0 ||
-                    al_proto_table[ALPROTO_DNS_TCP].to_server == 0 ||
-                    al_proto_table[ALPROTO_DNS_TCP].to_client == 0) {
-                    SCLogInfo("Signature uses options that need the app layer "
-                              "parser for dns, but the parser's disabled "
-                              "for the protocol.  Please check if you have "
-                              "disabled it through the option "
-                              "\"app-layer.protocols.dcerpc[udp|tcp].enabled\""
-                              "or internally the parser has been disabled in "
-                              "the code.  Invalidating signature.");
-                    SCReturnInt(0);
-                }
-            } else {
-                if (al_proto_table[s->alproto].to_server == 0 ||
-                    al_proto_table[s->alproto].to_client == 0) {
-                    const char *proto_name = AppProtoToString(s->alproto);
-                    SCLogInfo("Signature uses options that need the app layer "
-                              "parser for \"%s\", but the parser's disabled "
-                              "for the protocol.  Please check if you have "
-                              "disabled it through the option "
-                              "\"app-layer.protocols.%s.enabled\" or internally "
-                              "there the parser has been disabled in the code.   "
-                              "Invalidating signature.", proto_name, proto_name);
-                    SCReturnInt(0);
-                }
-            }
-        }
-
-
-
-
-
-    }
+    //if (s->alproto != ALPROTO_UNKNOWN) {
+    //    if (s->flags & SIG_FLAG_STATE_MATCH) {
+    //        if (s->alproto == ALPROTO_DNS) {
+    //            if (al_proto_table[ALPROTO_DNS_UDP].to_server == 0 ||
+    //                al_proto_table[ALPROTO_DNS_UDP].to_client == 0 ||
+    //                al_proto_table[ALPROTO_DNS_TCP].to_server == 0 ||
+    //                al_proto_table[ALPROTO_DNS_TCP].to_client == 0) {
+    //                SCLogInfo("Signature uses options that need the app layer "
+    //                          "parser for dns, but the parser's disabled "
+    //                          "for the protocol.  Please check if you have "
+    //                          "disabled it through the option "
+    //                          "\"app-layer.protocols.dcerpc[udp|tcp].enabled\""
+    //                          "or internally the parser has been disabled in "
+    //                          "the code.  Invalidating signature.");
+    //                SCReturnInt(0);
+    //            }
+    //        } else {
+    //            if (al_proto_table[s->alproto].to_server == 0 ||
+    //                al_proto_table[s->alproto].to_client == 0) {
+    //                const char *proto_name = AppProtoToString(s->alproto);
+    //                SCLogInfo("Signature uses options that need the app layer "
+    //                          "parser for \"%s\", but the parser's disabled "
+    //                          "for the protocol.  Please check if you have "
+    //                          "disabled it through the option "
+    //                          "\"app-layer.protocols.%s.enabled\" or internally "
+    //                          "there the parser has been disabled in the code.   "
+    //                          "Invalidating signature.", proto_name, proto_name);
+    //                SCReturnInt(0);
+    //            }
+    //        }
+    //    }
+    //
+    //
+    //
+    //
+    //
+    //}
 
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
         pm =  SigMatchGetLastSMFromLists(s, 24,
@@ -1358,10 +1325,6 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
 static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
                                 uint8_t dir)
 {
-    AlpProtoSignature *als;
-    AppLayerProbingParser *pp;
-    AppLayerProbingParserPort *pp_port;
-    AppLayerProbingParserElement *pp_pe;
     SigMatch *sm;
     Signature *sig = SigAlloc();
     if (sig == NULL)
@@ -1400,27 +1363,11 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
         /* at this point if we had alert ip and the ip proto was not
          * overridden, we use the ip proto that has been configured
          * against the app proto in use. */
-        if (override_needed) {
+        if (override_needed)
+            AppLayerProtoDetectSupportedIpprotos(sig->alproto, sig->proto.proto);
+    }
 
-            for (als = alp_proto_ctx.head; als != NULL; als = als->next) {
-                if (sig->alproto == als->proto)
-                    sig->proto.proto[als->ip_proto / 8] |= 1 << (als->ip_proto % 8);
-            }
-
-            for (pp = alp_proto_ctx.probing_parsers; pp != NULL; pp = pp->next) {
-                for (pp_port = pp->port; pp_port != NULL; pp_port = pp_port->next) {
-                    for (pp_pe = pp_port->toserver; pp_pe != NULL; pp_pe = pp_pe->next) {
-                        if (sig->alproto == pp_pe->al_proto)
-                            sig->proto.proto[pp->ip_proto / 8] |= 1 << (pp->ip_proto % 8);
-                    }
-                    for (pp_pe = pp_port->toclient; pp_pe != NULL; pp_pe = pp_pe->next) {
-                        if (sig->alproto == pp_pe->al_proto)
-                            sig->proto.proto[pp->ip_proto / 8] |= 1 << (pp->ip_proto % 8);
-                    }
-                }
-            }
-        } /* if */
-    } /* if */
+    DetectAppLayerEventPrepare(sig);
 
     /* set mpm_content_len */
 
@@ -1524,45 +1471,50 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
 
     SigBuildAddressMatchArray(sig);
 
-    if (sig->sm_lists[DETECT_SM_LIST_APP_EVENT] != NULL &&
-        (AppLayerProtoIsTxEventAware(sig->alproto) || sig->alproto == ALPROTO_DNS)) {
-        if (sig->alproto == ALPROTO_DNS) {
-            DetectEngineRegisterAppInspectionEngine(ALPROTO_DNS_TCP,
-                                                    0,
-                                                    DETECT_SM_LIST_APP_EVENT,
-                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
-                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
-                                                    DetectEngineAptEventInspect,
-                                                    app_inspection_engine);
-            DetectEngineRegisterAppInspectionEngine(ALPROTO_DNS_UDP,
-                                                    0,
-                                                    DETECT_SM_LIST_APP_EVENT,
-                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
-                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
-                                                    DetectEngineAptEventInspect,
-                                                    app_inspection_engine);
-            DetectEngineRegisterAppInspectionEngine(ALPROTO_DNS_TCP,
-                                                    1,
-                                                    DETECT_SM_LIST_APP_EVENT,
-                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
-                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
-                                                    DetectEngineAptEventInspect,
-                                                    app_inspection_engine);
-            DetectEngineRegisterAppInspectionEngine(ALPROTO_DNS_UDP,
-                                                    1,
-                                                    DETECT_SM_LIST_APP_EVENT,
-                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
-                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
-                                                    DetectEngineAptEventInspect,
-                                                    app_inspection_engine);
-        } else {
-            DetectEngineRegisterAppInspectionEngine(sig->alproto,
-                                                    (sig->flags & SIG_FLAG_TOSERVER) ? 0 : 1,
-                                                    DETECT_SM_LIST_APP_EVENT,
-                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
-                                                    DE_STATE_FLAG_APP_EVENT_INSPECT,
-                                                    DetectEngineAptEventInspect,
-                                                    app_inspection_engine);
+    if (sig->sm_lists[DETECT_SM_LIST_APP_EVENT] != NULL) {
+        if (AppLayerParserProtocolIsTxEventAware(IPPROTO_TCP, sig->alproto)) {
+            if (sig->flags & SIG_FLAG_TOSERVER) {
+                DetectEngineRegisterAppInspectionEngine(IPPROTO_TCP,
+                                                        sig->alproto,
+                                                        0,
+                                                        DETECT_SM_LIST_APP_EVENT,
+                                                        DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                        DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                        DetectEngineAptEventInspect,
+                                                        app_inspection_engine);
+            }
+            if (sig->flags & SIG_FLAG_TOCLIENT) {
+                DetectEngineRegisterAppInspectionEngine(IPPROTO_TCP,
+                                                        sig->alproto,
+                                                        1,
+                                                        DETECT_SM_LIST_APP_EVENT,
+                                                        DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                        DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                        DetectEngineAptEventInspect,
+                                                        app_inspection_engine);
+            }
+        }
+        if (AppLayerParserProtocolIsTxEventAware(IPPROTO_UDP, sig->alproto)) {
+            if (sig->flags & SIG_FLAG_TOSERVER) {
+                DetectEngineRegisterAppInspectionEngine(IPPROTO_UDP,
+                                                        sig->alproto,
+                                                        0,
+                                                        DETECT_SM_LIST_APP_EVENT,
+                                                        DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                        DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                        DetectEngineAptEventInspect,
+                                                        app_inspection_engine);
+            }
+            if (sig->flags & SIG_FLAG_TOCLIENT) {
+                DetectEngineRegisterAppInspectionEngine(IPPROTO_UDP,
+                                                        sig->alproto,
+                                                        1,
+                                                        DETECT_SM_LIST_APP_EVENT,
+                                                        DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                        DE_STATE_FLAG_APP_EVENT_INSPECT,
+                                                        DetectEngineAptEventInspect,
+                                                        app_inspection_engine);
+            }
         }
     }
 

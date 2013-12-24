@@ -23,6 +23,7 @@
 #include "suricata-common.h"
 #include "config.h"
 #include "app-layer-detect-proto.h"
+#include "app-layer.h"
 #include "util-cuda.h"
 #include "util-unittest.h"
 
@@ -36,8 +37,9 @@ int ListKeywords(const char *keyword_info)
 int ListAppLayerProtocols()
 {
     MpmTableSetup();
-    AppLayerDetectProtoThreadInit();
+    AppLayerSetup();
     AppLayerListSupportedProtocols();
+
     exit(EXIT_SUCCESS);
 }
 

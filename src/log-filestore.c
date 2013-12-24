@@ -98,7 +98,7 @@ typedef struct LogFilestoreLogThread_ {
 static void LogFilestoreMetaGetUri(FILE *fp, Packet *p, File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
-        htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, ff->txid);
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL) {
             HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
             if (tx_ud->request_uri_normalized != NULL) {
@@ -115,7 +115,7 @@ static void LogFilestoreMetaGetUri(FILE *fp, Packet *p, File *ff) {
 static void LogFilestoreMetaGetHost(FILE *fp, Packet *p, File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
-        htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, ff->txid);
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL && tx->request_hostname != NULL) {
             PrintRawUriFp(fp, (uint8_t *)bstr_ptr(tx->request_hostname),
                           bstr_len(tx->request_hostname));
@@ -129,7 +129,7 @@ static void LogFilestoreMetaGetHost(FILE *fp, Packet *p, File *ff) {
 static void LogFilestoreMetaGetReferer(FILE *fp, Packet *p, File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
-        htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, ff->txid);
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL) {
             htp_header_t *h = NULL;
             h = (htp_header_t *)htp_table_get_c(tx->request_headers,
@@ -148,7 +148,7 @@ static void LogFilestoreMetaGetReferer(FILE *fp, Packet *p, File *ff) {
 static void LogFilestoreMetaGetUserAgent(FILE *fp, Packet *p, File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
-        htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, ff->txid);
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL) {
             htp_header_t *h = NULL;
             h = (htp_header_t *)htp_table_get_c(tx->request_headers,
@@ -289,7 +289,7 @@ static TmEcode LogFilestoreLogWrap(ThreadVars *tv, Packet *p, void *data, Packet
     FLOWLOCK_WRLOCK(p->flow);
     file_trunc = StreamTcpReassembleDepthReached(p);
 
-    FileContainer *ffc = AppLayerGetFilesFromFlow(p->flow, flags);
+    FileContainer *ffc = AppLayerParserGetFiles(IPPROTO_TCP, p->flow->alproto, p->flow->alstate, flags);
     SCLogDebug("ffc %p", ffc);
     if (ffc != NULL) {
         File *ff;

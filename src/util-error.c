@@ -282,6 +282,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_DNS_CONFIG);
         CASE_CODE (SC_ERR_CONF_YAML_ERROR);
         CASE_CODE (SC_ERR_CONF_NAME_TOO_LONG);
+        CASE_CODE (SC_ERR_APP_LAYER_PROTOCOL_DETECTION);
     }
 
     return "UNKNOWN_ERROR";

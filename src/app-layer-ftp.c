@@ -40,6 +40,7 @@
 #include "stream-tcp.h"
 #include "stream.h"
 
+#include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-ftp.h"
@@ -207,9 +208,9 @@ static int FTPParseRequestCommand(void *ftp_state, uint8_t *input,
  * \retval 1 when the command is parsed, 0 otherwise
  */
 static int FTPParseRequest(Flow *f, void *ftp_state,
-                           AppLayerParserState *pstate,
+                           void *pstate,
                            uint8_t *input, uint32_t input_len,
-                           void *local_data, AppLayerParserResult *output)
+                           void *local_data)
 {
     SCEnter();
     /* PrintRawDataFp(stdout, input,input_len); */
@@ -256,9 +257,9 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
  *
  * \retval 1 when the command is parsed, 0 otherwise
  */
-static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstate,
+static int FTPParseResponse(Flow *f, void *ftp_state, void *pstate,
                             uint8_t *input, uint32_t input_len,
-                            void *local_data, AppLayerParserResult *output)
+                            void *local_data)
 {
     return 1;
 }
@@ -298,29 +299,50 @@ static void FTPStateFree(void *s) {
 #endif
 }
 
+static int FTPRegisterPatternsForProtocolDetection(void)
+{
+    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_FTP,
+                                               "USER ", 5, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_FTP,
+                                               "PASS ", 5, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_FTP,
+                                               "PORT ", 5, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
 void RegisterFTPParsers(void) {
     char *proto_name = "ftp";
 
     /** FTP */
-    if (AppLayerProtoDetectionEnabled(proto_name)) {
-        AlpProtoAddCI(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "USER ", 5, 0, STREAM_TOSERVER);
-        AlpProtoAddCI(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "PASS ", 5, 0, STREAM_TOSERVER);
-        AlpProtoAddCI(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "PORT ", 5, 0, STREAM_TOSERVER);
-        AppLayerRegisterParserAcceptableDataDirection(ALPROTO_FTP, STREAM_TOSERVER | STREAM_TOCLIENT);
+    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
+        AppLayerProtoDetectRegisterProtocol(ALPROTO_FTP, proto_name);
+        if (FTPRegisterPatternsForProtocolDetection() < 0 )
+            return;
     }
 
-    if (AppLayerParserEnabled(proto_name)) {
-        AppLayerRegisterProto(proto_name, ALPROTO_FTP, STREAM_TOSERVER,
-                              FTPParseRequest);
-        AppLayerRegisterProto(proto_name, ALPROTO_FTP, STREAM_TOCLIENT,
-                              FTPParseResponse);
-        AppLayerRegisterStateFuncs(ALPROTO_FTP, FTPStateAlloc, FTPStateFree);
+    if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
+        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_FTP, STREAM_TOSERVER,
+                                     FTPParseRequest);
+        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_FTP, STREAM_TOCLIENT,
+                                     FTPParseResponse);
+        AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_FTP, FTPStateAlloc, FTPStateFree);
+        AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_FTP, STREAM_TOSERVER | STREAM_TOCLIENT);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
     }
 #ifdef UNITTESTS
-    AppLayerParserRegisterUnittests(ALPROTO_FTP, FTPParserRegisterTests);
+    AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_FTP, FTPParserRegisterTests);
 #endif
 }
 
@@ -343,17 +365,19 @@ int FTPParserTest01(void) {
     uint8_t ftpbuf[] = "PORT 192,168,1,1,0,80\r\n";
     uint32_t ftplen = sizeof(ftpbuf) - 1; /* minus the \0 */
     TcpSession ssn;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf, ftplen);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf, ftplen);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -376,6 +400,8 @@ int FTPParserTest01(void) {
     }
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -392,15 +418,17 @@ int FTPParserTest03(void) {
     uint8_t ftpbuf3[] = "1,1,10,20\r\n";
     uint32_t ftplen3 = sizeof(ftpbuf3) - 1; /* minus the \0 */
     TcpSession ssn;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START, ftpbuf1, ftplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START, ftpbuf1, ftplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -410,7 +438,7 @@ int FTPParserTest03(void) {
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_FTP, STREAM_TOSERVER, ftpbuf2, ftplen2);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER, ftpbuf2, ftplen2);
     if (r != 0) {
         SCLogDebug("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -420,7 +448,7 @@ int FTPParserTest03(void) {
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf3, ftplen3);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf3, ftplen3);
     if (r != 0) {
         SCLogDebug("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -443,6 +471,8 @@ int FTPParserTest03(void) {
     }
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -454,17 +484,19 @@ int FTPParserTest06(void) {
     uint8_t ftpbuf1[] = "PORT";
     uint32_t ftplen1 = sizeof(ftpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, ftpbuf1, ftplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, ftpbuf1, ftplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -487,6 +519,8 @@ int FTPParserTest06(void) {
     }
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -501,17 +535,19 @@ int FTPParserTest07(void) {
     uint8_t ftpbuf2[] = "RT\r\n";
     uint32_t ftplen2 = sizeof(ftpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START, ftpbuf1, ftplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START, ftpbuf1, ftplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -521,7 +557,7 @@ int FTPParserTest07(void) {
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf2, ftplen2);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf2, ftplen2);
     if (r != 0) {
         SCLogDebug("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -545,6 +581,8 @@ int FTPParserTest07(void) {
     }
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -558,12 +596,14 @@ int FTPParserTest10(void) {
     uint8_t ftpbuf1[] = "PORT 1,2,3,4,5,6\r\n";
     uint32_t ftplen1 = sizeof(ftpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
+    void *alp_tctx = AppLayerParserGetCtxThread();
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -576,7 +616,7 @@ int FTPParserTest10(void) {
         else flags = STREAM_TOSERVER;
 
         SCMutexLock(&f.m);
-        r = AppLayerParse(NULL, &f, ALPROTO_FTP, flags, &ftpbuf1[u], 1);
+        r = AppLayerParserParse(alp_tctx, &f, ALPROTO_FTP, flags, &ftpbuf1[u], 1);
         if (r != 0) {
             SCLogDebug("toserver chunk %" PRIu32 " returned %" PRId32 ", expected 0: ", u, r);
             result = 0;
@@ -600,6 +640,8 @@ int FTPParserTest10(void) {
     }
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;

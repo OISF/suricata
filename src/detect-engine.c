@@ -26,6 +26,8 @@
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
+#include "flow-private.h"
+#include "flow-util.h"
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
@@ -98,11 +100,11 @@ static TmEcode DetectEngineThreadCtxInitForLiveRuleSwap(ThreadVars *, void *, vo
 static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *);
 
 /* 2 - for each direction */
-DetectEngineAppInspectionEngine *app_inspection_engine[ALPROTO_MAX][2];
+DetectEngineAppInspectionEngine *app_inspection_engine[FLOW_PROTO_DEFAULT][ALPROTO_MAX][2];
 
 #if 0
 
-static void DetectEnginePrintAppInspectionEngines(DetectEngineAppInspectionEngine *list[][2])
+static void DetectEnginePrintAppInspectionEngines(DetectEngineAppInspectionEngine *list[][ALPROTO_MAX][2])
 {
     printf("\n");
 
@@ -134,6 +136,7 @@ static void DetectEnginePrintAppInspectionEngines(DetectEngineAppInspectionEngin
 void DetectEngineRegisterAppInspectionEngines(void)
 {
     struct tmp_t {
+        uint16_t ipproto;
         uint16_t alproto;
         int32_t sm_list;
         uint32_t inspect_flags;
@@ -149,74 +152,86 @@ void DetectEngineRegisterAppInspectionEngines(void)
     };
 
     struct tmp_t data_toserver[] = {
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_UMATCH,
           DE_STATE_FLAG_URI_INSPECT,
           DE_STATE_FLAG_URI_INSPECT,
           0,
           DetectEngineInspectPacketUris },
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_HCBDMATCH,
           DE_STATE_FLAG_HCBD_INSPECT,
           DE_STATE_FLAG_HCBD_INSPECT,
           0,
           DetectEngineInspectHttpClientBody },
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_HHDMATCH,
           DE_STATE_FLAG_HHD_INSPECT,
           DE_STATE_FLAG_HHD_INSPECT,
           0,
           DetectEngineInspectHttpHeader },
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_HRHDMATCH,
           DE_STATE_FLAG_HRHD_INSPECT,
           DE_STATE_FLAG_HRHD_INSPECT,
           0,
           DetectEngineInspectHttpRawHeader },
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_HMDMATCH,
           DE_STATE_FLAG_HMD_INSPECT,
           DE_STATE_FLAG_HMD_INSPECT,
           0,
           DetectEngineInspectHttpMethod },
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_HCDMATCH,
           DE_STATE_FLAG_HCD_INSPECT,
           DE_STATE_FLAG_HCD_INSPECT,
           0,
           DetectEngineInspectHttpCookie },
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_HRUDMATCH,
           DE_STATE_FLAG_HRUD_INSPECT,
           DE_STATE_FLAG_HRUD_INSPECT,
           0,
           DetectEngineInspectHttpRawUri },
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_FILEMATCH,
           DE_STATE_FLAG_FILE_TS_INSPECT,
           DE_STATE_FLAG_FILE_TS_INSPECT,
           0,
           DetectFileInspectHttp },
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_HUADMATCH,
           DE_STATE_FLAG_HUAD_INSPECT,
           DE_STATE_FLAG_HUAD_INSPECT,
           0,
           DetectEngineInspectHttpUA },
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_HHHDMATCH,
           DE_STATE_FLAG_HHHD_INSPECT,
           DE_STATE_FLAG_HHHD_INSPECT,
           0,
           DetectEngineInspectHttpHH },
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_HRHHDMATCH,
           DE_STATE_FLAG_HRHHD_INSPECT,
           DE_STATE_FLAG_HRHHD_INSPECT,
           0,
           DetectEngineInspectHttpHRH },
         /* DNS */
-        { ALPROTO_DNS,
+        { IPPROTO_TCP,
+          ALPROTO_DNS,
           DETECT_SM_LIST_DNSQUERY_MATCH,
           DE_STATE_FLAG_DNSQUERY_INSPECT,
           DE_STATE_FLAG_DNSQUERY_INSPECT,
@@ -225,14 +240,8 @@ void DetectEngineRegisterAppInspectionEngines(void)
         /* specifically for UDP, register again
          * allows us to use the alproto w/o translation
          * in the detection engine */
-        { ALPROTO_DNS_UDP,
-          DETECT_SM_LIST_DNSQUERY_MATCH,
-          DE_STATE_FLAG_DNSQUERY_INSPECT,
-          DE_STATE_FLAG_DNSQUERY_INSPECT,
-          0,
-          DetectEngineInspectDnsQueryName },
-        /* dito for TCP */
-        { ALPROTO_DNS_TCP,
+        { IPPROTO_UDP,
+          ALPROTO_DNS,
           DETECT_SM_LIST_DNSQUERY_MATCH,
           DE_STATE_FLAG_DNSQUERY_INSPECT,
           DE_STATE_FLAG_DNSQUERY_INSPECT,
@@ -241,43 +250,50 @@ void DetectEngineRegisterAppInspectionEngines(void)
     };
 
     struct tmp_t data_toclient[] = {
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_HSBDMATCH,
           DE_STATE_FLAG_HSBD_INSPECT,
           DE_STATE_FLAG_HSBD_INSPECT,
           1,
           DetectEngineInspectHttpServerBody },
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_HHDMATCH,
           DE_STATE_FLAG_HHD_INSPECT,
           DE_STATE_FLAG_HHD_INSPECT,
           1,
           DetectEngineInspectHttpHeader },
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_HRHDMATCH,
           DE_STATE_FLAG_HRHD_INSPECT,
           DE_STATE_FLAG_HRHD_INSPECT,
           1,
           DetectEngineInspectHttpRawHeader },
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_HCDMATCH,
           DE_STATE_FLAG_HCD_INSPECT,
           DE_STATE_FLAG_HCD_INSPECT,
           1,
           DetectEngineInspectHttpCookie },
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_FILEMATCH,
           DE_STATE_FLAG_FILE_TC_INSPECT,
           DE_STATE_FLAG_FILE_TC_INSPECT,
           1,
           DetectFileInspectHttp },
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_HSMDMATCH,
           DE_STATE_FLAG_HSMD_INSPECT,
           DE_STATE_FLAG_HSMD_INSPECT,
           1,
           DetectEngineInspectHttpStatMsg },
-        { ALPROTO_HTTP,
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
           DETECT_SM_LIST_HSCDMATCH,
           DE_STATE_FLAG_HSCD_INSPECT,
           DE_STATE_FLAG_HSCD_INSPECT,
@@ -287,7 +303,8 @@ void DetectEngineRegisterAppInspectionEngines(void)
 
     size_t i;
     for (i = 0 ; i < sizeof(data_toserver) / sizeof(struct tmp_t); i++) {
-        DetectEngineRegisterAppInspectionEngine(data_toserver[i].alproto,
+        DetectEngineRegisterAppInspectionEngine(data_toserver[i].ipproto,
+                                                data_toserver[i].alproto,
                                                 data_toserver[i].dir,
                                                 data_toserver[i].sm_list,
                                                 data_toserver[i].inspect_flags,
@@ -297,7 +314,8 @@ void DetectEngineRegisterAppInspectionEngines(void)
     }
 
     for (i = 0 ; i < sizeof(data_toclient) / sizeof(struct tmp_t); i++) {
-        DetectEngineRegisterAppInspectionEngine(data_toclient[i].alproto,
+        DetectEngineRegisterAppInspectionEngine(data_toclient[i].ipproto,
+                                                data_toclient[i].alproto,
                                                 data_toclient[i].dir,
                                                 data_toclient[i].sm_list,
                                                 data_toclient[i].inspect_flags,
@@ -314,10 +332,10 @@ void DetectEngineRegisterAppInspectionEngines(void)
 }
 
 static void AppendAppInspectionEngine(DetectEngineAppInspectionEngine *engine,
-                                      DetectEngineAppInspectionEngine *list[][2])
+                                      DetectEngineAppInspectionEngine *list[][ALPROTO_MAX][2])
 {
     /* append to the list */
-    DetectEngineAppInspectionEngine *tmp = list[engine->alproto][engine->dir];
+    DetectEngineAppInspectionEngine *tmp = list[FlowGetProtoMapping(engine->ipproto)][engine->alproto][engine->dir];
     DetectEngineAppInspectionEngine *insert = NULL;
     while (tmp != NULL) {
         if (tmp->dir == engine->dir &&
@@ -336,14 +354,15 @@ static void AppendAppInspectionEngine(DetectEngineAppInspectionEngine *engine,
         tmp = tmp->next;
     }
     if (insert == NULL)
-        list[engine->alproto][engine->dir] = engine;
+        list[FlowGetProtoMapping(engine->ipproto)][engine->alproto][engine->dir] = engine;
     else
         insert->next = engine;
 
     return;
 }
 
-void DetectEngineRegisterAppInspectionEngine(uint16_t alproto,
+void DetectEngineRegisterAppInspectionEngine(uint16_t ipproto,
+                                             uint16_t alproto,
                                              uint16_t dir,
                                              int32_t sm_list,
                                              uint32_t inspect_flags,
@@ -354,18 +373,19 @@ void DetectEngineRegisterAppInspectionEngine(uint16_t alproto,
                                                              Signature *sig, Flow *f,
                                                              uint8_t flags, void *alstate,
                                                              void *tx, uint64_t tx_id),
-                                             DetectEngineAppInspectionEngine *list[][2])
+                                             DetectEngineAppInspectionEngine *list[][ALPROTO_MAX][2])
 {
     if ((list == NULL) ||
         (alproto <= ALPROTO_UNKNOWN || alproto >= ALPROTO_FAILED) ||
         (dir > 1) ||
         (sm_list < DETECT_SM_LIST_MATCH || sm_list >= DETECT_SM_LIST_MAX) ||
-        (Callback == NULL)) {
+        (Callback == NULL))
+    {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
         exit(EXIT_FAILURE);
     }
 
-    DetectEngineAppInspectionEngine *tmp = list[alproto][dir];
+    DetectEngineAppInspectionEngine *tmp = list[FlowGetProtoMapping(ipproto)][alproto][dir];
     while (tmp != NULL) {
         if (tmp->sm_list == sm_list && tmp->Callback == Callback) {
             return;
@@ -378,6 +398,7 @@ void DetectEngineRegisterAppInspectionEngine(uint16_t alproto,
         exit(EXIT_FAILURE);
     }
     memset(new_engine, 0, sizeof(*new_engine));
+    new_engine->ipproto = ipproto;
     new_engine->alproto = alproto;
     new_engine->dir = dir;
     new_engine->sm_list = sm_list;
@@ -1215,9 +1236,9 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
     PatternMatchThreadPrepare(&det_ctx->mtcs, de_ctx->mpm_matcher, DetectContentMaxId(de_ctx));
     PatternMatchThreadPrepare(&det_ctx->mtcu, de_ctx->mpm_matcher, DetectUricontentMaxId(de_ctx));
 
-    PmqSetup(&det_ctx->pmq, 0, de_ctx->max_fp_id);
+    PmqSetup(&det_ctx->pmq, de_ctx->max_fp_id);
     for (i = 0; i < DETECT_SMSG_PMQ_NUM; i++) {
-        PmqSetup(&det_ctx->smsg_pmq[i], 0, de_ctx->max_fp_id);
+        PmqSetup(&det_ctx->smsg_pmq[i], de_ctx->max_fp_id);
     }
 
     /* IP-ONLY */
@@ -1739,11 +1760,13 @@ int DummyTestAppInspectionEngine02(ThreadVars *tv,
 int DetectEngineTest05(void)
 {
     int result = 0;
+    int ip = 0;
 
-    DetectEngineAppInspectionEngine *engine_list[ALPROTO_MAX][2];
+    DetectEngineAppInspectionEngine *engine_list[FLOW_PROTO_DEFAULT][ALPROTO_MAX][2];
     memset(engine_list, 0, sizeof(engine_list));
 
-    DetectEngineRegisterAppInspectionEngine(ALPROTO_HTTP,
+    DetectEngineRegisterAppInspectionEngine(IPPROTO_TCP,
+                                            ALPROTO_HTTP,
                                             0 /* STREAM_TOSERVER */,
                                             DETECT_SM_LIST_UMATCH,
                                             DE_STATE_FLAG_URI_INSPECT,
@@ -1752,16 +1775,17 @@ int DetectEngineTest05(void)
                                             engine_list);
 
     int alproto = ALPROTO_UNKNOWN + 1;
+    for (ip = 0; ip < FLOW_PROTO_DEFAULT; ip++) {
     for ( ; alproto < ALPROTO_FAILED; alproto++) {
         int dir = 0;
         for ( ; dir < 2; dir++) {
             if (alproto == ALPROTO_HTTP && dir == 0) {
-                if (engine_list[alproto][dir]->next != NULL) {
+                if (engine_list[ip][alproto][dir]->next != NULL) {
                     printf("more than one entry found\n");
                     goto end;
                 }
 
-                DetectEngineAppInspectionEngine *engine = engine_list[alproto][dir];
+                DetectEngineAppInspectionEngine *engine = engine_list[ip][alproto][dir];
 
                 if (engine->alproto != alproto ||
                     engine->dir != dir ||
@@ -1775,20 +1799,21 @@ int DetectEngineTest05(void)
             } /* if (alproto == ALPROTO_HTTP && dir == 0) */
 
             if (alproto == ALPROTO_HTTP && dir == 1) {
-                if (engine_list[alproto][dir] != NULL) {
+                if (engine_list[ip][alproto][dir] != NULL) {
                     printf("failed for http and dir(1-toclient)\n");
                     goto end;
                 }
             }
 
             if (alproto != ALPROTO_HTTP &&
-                engine_list[alproto][0] != NULL &&
-                engine_list[alproto][1] != NULL) {
+                engine_list[ip][alproto][0] != NULL &&
+                engine_list[ip][alproto][1] != NULL) {
                 printf("failed for protocol %d\n", alproto);
                 goto end;
             }
         } /* for ( ; dir < 2 ..)*/
     } /* for ( ; alproto < ALPROTO_FAILED; ..) */
+    }
 
     result = 1;
  end:
@@ -1798,18 +1823,21 @@ int DetectEngineTest05(void)
 int DetectEngineTest06(void)
 {
     int result = 0;
+    int ip = 0;
 
-    DetectEngineAppInspectionEngine *engine_list[ALPROTO_MAX][2];
+    DetectEngineAppInspectionEngine *engine_list[FLOW_PROTO_DEFAULT][ALPROTO_MAX][2];
     memset(engine_list, 0, sizeof(engine_list));
 
-    DetectEngineRegisterAppInspectionEngine(ALPROTO_HTTP,
+    DetectEngineRegisterAppInspectionEngine(IPPROTO_TCP,
+                                            ALPROTO_HTTP,
                                             0 /* STREAM_TOSERVER */,
                                             DETECT_SM_LIST_UMATCH,
                                             DE_STATE_FLAG_URI_INSPECT,
                                             DE_STATE_FLAG_URI_INSPECT,
                                             DummyTestAppInspectionEngine01,
                                             engine_list);
-    DetectEngineRegisterAppInspectionEngine(ALPROTO_HTTP,
+    DetectEngineRegisterAppInspectionEngine(IPPROTO_TCP,
+                                            ALPROTO_HTTP,
                                             1 /* STREAM_TOCLIENT */,
                                             DETECT_SM_LIST_UMATCH,
                                             DE_STATE_FLAG_URI_INSPECT,
@@ -1818,16 +1846,17 @@ int DetectEngineTest06(void)
                                             engine_list);
 
     int alproto = ALPROTO_UNKNOWN + 1;
+    for (ip = 0; ip < FLOW_PROTO_DEFAULT; ip++) {
     for ( ; alproto < ALPROTO_FAILED; alproto++) {
         int dir = 0;
         for ( ; dir < 2; dir++) {
             if (alproto == ALPROTO_HTTP && dir == 0) {
-                if (engine_list[alproto][dir]->next != NULL) {
+                if (engine_list[ip][alproto][dir]->next != NULL) {
                     printf("more than one entry found\n");
                     goto end;
                 }
 
-                DetectEngineAppInspectionEngine *engine = engine_list[alproto][dir];
+                DetectEngineAppInspectionEngine *engine = engine_list[ip][alproto][dir];
 
                 if (engine->alproto != alproto ||
                     engine->dir != dir ||
@@ -1841,12 +1870,12 @@ int DetectEngineTest06(void)
             } /* if (alproto == ALPROTO_HTTP && dir == 0) */
 
             if (alproto == ALPROTO_HTTP && dir == 1) {
-                if (engine_list[alproto][dir]->next != NULL) {
+                if (engine_list[ip][alproto][dir]->next != NULL) {
                     printf("more than one entry found\n");
                     goto end;
                 }
 
-                DetectEngineAppInspectionEngine *engine = engine_list[alproto][dir];
+                DetectEngineAppInspectionEngine *engine = engine_list[ip][alproto][dir];
 
                 if (engine->alproto != alproto ||
                     engine->dir != dir ||
@@ -1860,13 +1889,14 @@ int DetectEngineTest06(void)
             } /* if (alproto == ALPROTO_HTTP && dir == 1) */
 
             if (alproto != ALPROTO_HTTP &&
-                engine_list[alproto][0] != NULL &&
-                engine_list[alproto][1] != NULL) {
+                engine_list[ip][alproto][0] != NULL &&
+                engine_list[ip][alproto][1] != NULL) {
                 printf("failed for protocol %d\n", alproto);
                 goto end;
             }
         } /* for ( ; dir < 2 ..)*/
     } /* for ( ; alproto < ALPROTO_FAILED; ..) */
+    }
 
     result = 1;
  end:
@@ -1876,8 +1906,9 @@ int DetectEngineTest06(void)
 int DetectEngineTest07(void)
 {
     int result = 0;
+    int ip = 0;
 
-    DetectEngineAppInspectionEngine *engine_list[ALPROTO_MAX][2];
+    DetectEngineAppInspectionEngine *engine_list[FLOW_PROTO_DEFAULT][ALPROTO_MAX][2];
     memset(engine_list, 0, sizeof(engine_list));
 
     struct test_data_t {
@@ -1964,7 +1995,8 @@ int DetectEngineTest07(void)
 
     size_t i = 0;
     for ( ; i < sizeof(data) / sizeof(struct test_data_t); i++) {
-        DetectEngineRegisterAppInspectionEngine(ALPROTO_HTTP,
+        DetectEngineRegisterAppInspectionEngine(IPPROTO_TCP,
+                                                ALPROTO_HTTP,
                                                 data[i].dir /* STREAM_TOCLIENT */,
                                                 data[i].sm_list,
                                                 data[i].inspect_flags,
@@ -1978,11 +2010,12 @@ int DetectEngineTest07(void)
 #endif
 
     int alproto = ALPROTO_UNKNOWN + 1;
+    for (ip = 0; ip < FLOW_PROTO_DEFAULT; ip++) {
     for ( ; alproto < ALPROTO_FAILED; alproto++) {
         int dir = 0;
         for ( ; dir < 2; dir++) {
             if (alproto == ALPROTO_HTTP) {
-                DetectEngineAppInspectionEngine *engine = engine_list[alproto][dir];
+                DetectEngineAppInspectionEngine *engine = engine_list[ip][alproto][dir];
 
                 size_t i = 0;
                 for ( ; i < (sizeof(data) / sizeof(struct test_data_t)); i++) {
@@ -2001,14 +2034,15 @@ int DetectEngineTest07(void)
                     engine = engine->next;
                 }
             } else {
-                if (engine_list[alproto][0] != NULL &&
-                    engine_list[alproto][1] != NULL) {
+                if (engine_list[ip][alproto][0] != NULL &&
+                    engine_list[ip][alproto][1] != NULL) {
                     printf("failed for protocol %d\n", alproto);
                     goto end;
                 }
             } /* else */
         } /* for ( ; dir < 2; dir++) */
     } /* for ( ; alproto < ALPROTO_FAILED; ..) */
+    }
 
     result = 1;
  end:

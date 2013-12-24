@@ -42,6 +42,7 @@
 
 #include "stream-tcp.h"
 #include "stream.h"
+#include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-protos.h"
 #include "app-layer-htp.h"
@@ -281,18 +282,20 @@ static int HTTPUriTest01(void) {
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
     int r = 0;
+    void *alp_tctx = AppLayerParserGetCtxThread();
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
-                          STREAM_EOF, httpbuf1, httplen1);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
+                            STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("AppLayerParse failed: r(%d) != 0: ", r);
         goto end;
@@ -304,7 +307,7 @@ static int HTTPUriTest01(void) {
         goto end;
     }
 
-    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, 0);
+    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
 
     if (tx->request_method_number != HTP_M_GET ||
         tx->request_protocol_number != HTP_PROTOCOL_1_1)
@@ -326,6 +329,8 @@ static int HTTPUriTest01(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     FLOW_DESTROY(&f);
@@ -343,18 +348,21 @@ static int HTTPUriTest02(void) {
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
     int r = 0;
+    void *alp_tctx = AppLayerParserGetCtxThread();
+
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
-                          STREAM_EOF, httpbuf1, httplen1);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
+                            STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("AppLayerParse failed: r(%d) != 0: ", r);
         goto end;
@@ -366,7 +374,7 @@ static int HTTPUriTest02(void) {
         goto end;
     }
 
-    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, 0);
+    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
 
     if (tx->request_method_number != HTP_M_GET ||
         tx->request_protocol_number != HTP_PROTOCOL_1_1)
@@ -388,6 +396,8 @@ static int HTTPUriTest02(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (htp_state != NULL)
         HTPStateFree(htp_state);
@@ -407,18 +417,21 @@ static int HTTPUriTest03(void) {
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
     int r = 0;
+    void *alp_tctx = AppLayerParserGetCtxThread();
+
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
-                          STREAM_EOF, httpbuf1, httplen1);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
+                            STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("AppLayerParse failed: r(%d) != 0: ", r);
         goto end;
@@ -430,7 +443,7 @@ static int HTTPUriTest03(void) {
         goto end;
     }
 
-    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, 0);
+    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
 
     if (tx->request_method_number != HTP_M_UNKNOWN ||
         tx->request_protocol_number != HTP_PROTOCOL_1_1)
@@ -452,6 +465,8 @@ static int HTTPUriTest03(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (htp_state != NULL)
         HTPStateFree(htp_state);
@@ -472,18 +487,21 @@ static int HTTPUriTest04(void) {
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
     int r = 0;
+    void *alp_tctx = AppLayerParserGetCtxThread();
+
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
-                          STREAM_EOF, httpbuf1, httplen1);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
+                            STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("AppLayerParse failed: r(%d) != 0: ", r);
         goto end;
@@ -495,7 +513,7 @@ static int HTTPUriTest04(void) {
         goto end;
     }
 
-    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, 0);
+    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
 
     if (tx->request_method_number != HTP_M_GET ||
         tx->request_protocol_number != HTP_PROTOCOL_1_1)
@@ -517,6 +535,8 @@ static int HTTPUriTest04(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (htp_state != NULL)
         HTPStateFree(htp_state);
@@ -584,6 +604,7 @@ static int DetectUriSigTest02(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -593,6 +614,7 @@ static int DetectUriSigTest02(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -636,7 +658,7 @@ static int DetectUriSigTest02(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -666,6 +688,8 @@ static int DetectUriSigTest02(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     //if (http_state != NULL) HTPStateFree(http_state);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
@@ -695,6 +719,7 @@ static int DetectUriSigTest03(void) {
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -704,6 +729,7 @@ static int DetectUriSigTest03(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -747,7 +773,7 @@ static int DetectUriSigTest03(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -771,7 +797,7 @@ static int DetectUriSigTest03(void) {
 
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
     SCMutexUnlock(&f.m);
@@ -802,6 +828,8 @@ static int DetectUriSigTest03(void) {
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, det_ctx);
@@ -1030,6 +1058,7 @@ static int DetectUriSigTest05(void) {
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1095,7 +1124,7 @@ static int DetectUriSigTest05(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1125,6 +1154,8 @@ static int DetectUriSigTest05(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, det_ctx);
@@ -1154,6 +1185,7 @@ static int DetectUriSigTest06(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     TCPHdr tcp_hdr;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1232,7 +1264,7 @@ static int DetectUriSigTest06(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1262,7 +1294,8 @@ static int DetectUriSigTest06(void) {
 
     result = 1;
 end:
-
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, det_ctx);
@@ -1289,6 +1322,7 @@ static int DetectUriSigTest07(void) {
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1298,6 +1332,7 @@ static int DetectUriSigTest07(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -1351,7 +1386,7 @@ static int DetectUriSigTest07(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1381,7 +1416,8 @@ static int DetectUriSigTest07(void) {
 
     result = 1;
 end:
-
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, det_ctx);

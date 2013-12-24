@@ -25,6 +25,7 @@
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "detect-app-layer-protocol.h"
+#include "app-layer.h"
 #include "app-layer-parser.h"
 #include "util-debug.h"
 #include "util-unittest.h"
@@ -71,15 +72,11 @@ static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg)
     while (*arg != '\0' && isspace((unsigned char)*arg))
         arg++;
 
-    if (strcasecmp(arg, "dns") == 0) {
-        alproto = ALPROTO_DNS;
-    } else {
-        alproto = AppLayerGetProtoByName(arg);
-        if (alproto == ALPROTO_UNKNOWN) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-protocol "
-                       "keyword supplied with unknown protocol \"%s\"", arg);
-            return NULL;
-        }
+    alproto = AppLayerGetProtoByName((char *)arg);
+    if (alproto == ALPROTO_UNKNOWN) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-protocol "
+                   "keyword supplied with unknown protocol \"%s\"", arg);
+        return NULL;
     }
 
     data = SCMalloc(sizeof(DetectAppLayerProtocolData));

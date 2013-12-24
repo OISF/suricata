@@ -38,12 +38,9 @@ enum {
     ALPROTO_SMB,
     ALPROTO_SMB2,
     ALPROTO_DCERPC,
-    ALPROTO_DCERPC_UDP,
     ALPROTO_IRC,
 
     ALPROTO_DNS,
-    ALPROTO_DNS_UDP,
-    ALPROTO_DNS_TCP,
 
     /* used by the probing parser when alproto detection fails
      * permanently for that particular stream */
@@ -57,7 +54,13 @@ enum {
 
 typedef uint16_t AppProto;
 
+/**
+ * \brief Maps the ALPROTO_*, to its string equivalent.
+ *
+ * \param alproto App layer protocol id.
+ *
+ * \retval String equivalent for the alproto.
+ */
 const char *AppProtoToString(AppProto alproto);
 
 #endif /* __APP_LAYER_PROTOS__H__ */
-

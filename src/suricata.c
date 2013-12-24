@@ -118,6 +118,7 @@
 #include "host.h"
 #include "unix-manager.h"
 
+#include "app-layer.h"
 #include "app-layer-htp.h"
 
 #include "util-radix-tree.h"
@@ -1852,8 +1853,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
             break;
     }
 
-    AppLayerDetectProtoThreadInit();
-    AppLayerParsersInitPostProcess();
+    AppLayerSetup();
 
     /* Check for the existance of the default logging directory which we pick
      * from suricata.yaml.  If not found, shut the engine down */
@@ -1973,7 +1973,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     SCReturnInt(TM_ECODE_OK);
 }
-
 
 int main(int argc, char **argv)
 {
@@ -2292,7 +2291,7 @@ int main(int argc, char **argv)
     if (global_de_ctx) {
         DetectEngineCtxFree(global_de_ctx);
     }
-    AlpProtoDestroy();
+    AppLayerDeSetup();
 
     TagDestroyCtx();
 

@@ -138,8 +138,7 @@ int RunUnittests(int list_unittests, char *regex_arg)
     MpmCudaEnvironmentSetup();
 #endif
 
-    AppLayerDetectProtoThreadInit();
-    AppLayerParsersInitPostProcess();
+    AppLayerSetup();
 
     /* hardcoded initialization code */
     SigTableSetup(); /* load the rule keywords */
@@ -196,8 +195,6 @@ int RunUnittests(int list_unittests, char *regex_arg)
     SSHParserRegisterTests();
 #endif
     SMBParserRegisterTests();
-    DCERPCParserRegisterTests();
-    DCERPCUDPParserRegisterTests();
     FTPParserRegisterTests();
     DecodeRawRegisterTests();
     DecodePPPOERegisterTests();
@@ -209,7 +206,7 @@ int RunUnittests(int list_unittests, char *regex_arg)
     DecodeUDPV4RegisterTests();
     DecodeGRERegisterTests();
     DecodeAsn1RegisterTests();
-    AlpDetectRegisterTests();
+    AppLayerProtoDetectUnittestsRegister();
     ConfRegisterTests();
     ConfYamlRegisterTests();
     TmqhFlowRegisterTests();
@@ -220,7 +217,7 @@ int RunUnittests(int list_unittests, char *regex_arg)
     SigGroupHeadRegisterTests();
     SCHInfoRegisterTests();
     SCRuleVarsRegisterTests();
-    AppLayerParserRegisterTests();
+    AppLayerParserRegisterUnittests();
     ThreadMacrosRegisterTests();
     UtilSpmSearchRegistertests();
     UtilActionRegisterTests();
@@ -264,7 +261,7 @@ int RunUnittests(int list_unittests, char *regex_arg)
 #ifdef __SC_CUDA_SUPPORT__
     CudaBufferRegisterUnittests();
 #endif
-    AppLayerRegisterUnittests();
+    AppLayerUnittestsRegister();
     if (list_unittests) {
         UtListTests(regex_arg);
     } else {

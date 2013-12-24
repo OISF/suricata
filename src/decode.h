@@ -548,35 +548,11 @@ typedef struct PacketQueue_ {
     SCCondT cond_q;
 } PacketQueue;
 
-/** \brief Specific ctx for AL proto detection */
-typedef struct AlpProtoDetectDirectionThread_ {
-    MpmThreadCtx mpm_ctx;
-    PatternMatcherQueue pmq;
-} AlpProtoDetectDirectionThread;
-
-/** \brief Specific ctx for AL proto detection */
-typedef struct AlpProtoDetectThreadCtx_ {
-    AlpProtoDetectDirectionThread toserver;
-    AlpProtoDetectDirectionThread toclient;
-
-    void *alproto_local_storage[ALPROTO_MAX];
-
-#ifdef PROFILING
-    uint64_t ticks_start;
-    uint64_t ticks_end;
-    uint64_t ticks_spent;
-    uint16_t alproto;
-    uint64_t proto_detect_ticks_start;
-    uint64_t proto_detect_ticks_end;
-    uint64_t proto_detect_ticks_spent;
-#endif
-} AlpProtoDetectThreadCtx;
-
 /** \brief Structure to hold thread specific data for all decode modules */
 typedef struct DecodeThreadVars_
 {
     /** Specific context for udp protocol detection (here atm) */
-    AlpProtoDetectThreadCtx udp_dp_ctx;
+    void *app_tctx;
 
     int vlan_disabled;
 

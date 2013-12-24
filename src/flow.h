@@ -204,6 +204,15 @@
     #error Enable FLOWLOCK_RWLOCK or FLOWLOCK_MUTEX
 #endif
 
+#define FLOW_IS_PM_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags & FLOW_TS_PM_ALPROTO_DETECT_DONE) : ((f)->flags & FLOW_TC_PM_ALPROTO_DETECT_DONE))
+#define FLOW_IS_PP_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags & FLOW_TS_PP_ALPROTO_DETECT_DONE) : ((f)->flags & FLOW_TC_PP_ALPROTO_DETECT_DONE))
+
+#define FLOW_SET_PM_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags |= FLOW_TS_PM_ALPROTO_DETECT_DONE) : ((f)->flags |= FLOW_TC_PM_ALPROTO_DETECT_DONE))
+#define FLOW_SET_PP_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags |= FLOW_TS_PP_ALPROTO_DETECT_DONE) : ((f)->flags |= FLOW_TC_PP_ALPROTO_DETECT_DONE))
+
+#define FLOW_RESET_PM_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags &= ~FLOW_TS_PM_ALPROTO_DETECT_DONE) : ((f)->flags &= ~FLOW_TC_PM_ALPROTO_DETECT_DONE))
+#define FLOW_RESET_PP_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags &= ~FLOW_TS_PP_ALPROTO_DETECT_DONE) : ((f)->flags &= ~FLOW_TC_PP_ALPROTO_DETECT_DONE))
+
 /* global flow config */
 typedef struct FlowCnf_
 {
@@ -299,8 +308,8 @@ typedef struct Flow_
     /** flow queue id, used with autofp */
     SC_ATOMIC_DECLARE(int, autofp_tmqh_flow_qid);
 
-    uint32_t probing_parser_toserver_al_proto_masks;
-    uint32_t probing_parser_toclient_al_proto_masks;
+    uint32_t probing_parser_toserver_alproto_masks;
+    uint32_t probing_parser_toclient_alproto_masks;
 
     uint32_t flags;
 
@@ -523,6 +532,11 @@ static inline void FlowDeReference(Flow **d) {
 }
 
 int FlowClearMemory(Flow *,uint8_t );
+
+AppProto FlowGetAppProtocol(Flow *f);
+void *FlowGetAppState(Flow *f);
+
+
 
 #endif /* __FLOW_H__ */
 

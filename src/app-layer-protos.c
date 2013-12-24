@@ -27,13 +27,6 @@
 
 #define CASE_CODE(E)  case E: return #E
 
-/**
- * \brief Maps the ALPROTO_*, to its string equivalent.
- *
- * \param alproto App layer protocol id.
- *
- * \retval String equivalent for the alproto.
- */
 const char *AppProtoToString(AppProto alproto)
 {
     const char *proto_name = NULL;
@@ -72,17 +65,8 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_DCERPC:
             proto_name = "dcerpc";
             break;
-        case ALPROTO_DCERPC_UDP:
-            proto_name = "dcerpcudp";
-            break;
         case ALPROTO_IRC:
             proto_name = "irc";
-            break;
-        case ALPROTO_DNS_TCP:
-            proto_name = "dnstcp";
-            break;
-        case ALPROTO_DNS_UDP:
-            proto_name = "dnsudp";
             break;
         case ALPROTO_DNS:
             proto_name = "dns";
