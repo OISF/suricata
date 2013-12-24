@@ -603,6 +603,8 @@ int DetectPescanTest01(void){
     uint32_t dlen = sizeof(data);
 
     peattrib = SCMalloc(sizeof(peattrib_t));
+    if (peattrib == NULL)
+        return 0;
     memset(peattrib, 0x00, sizeof(peattrib_t));
 
     result = pescan(peattrib, (unsigned char *)data, dlen, SCLogDebugEnabled());
@@ -617,9 +619,15 @@ int DetectPescanTest01(void){
  */
 int DetectPescanMatchTest01(void){
     int result = 0;
+    FileData *file_data = NULL;
+    File *file = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectPescanData *pedata = NULL;
+    Flow *f = NULL;
+    uint8_t flags = 0;
+    Signature *s = NULL;
+    SigMatch *m = NULL;
 
-    FileData *file_data;
-    file_data = SCMalloc(sizeof(FileData));
     char data[] = "\x4D\x5A\x00\x00\x50\x45\x00\x00\x4C\x01\x01\x00\x6A\x2A\x58"
             "\xC3\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x03\x01\x0B\x01\x08\x00"
             "\x01\x00\x00\x80\x00\x00\x00\x00\x79\x00\x00\x00\x0C\x00\x00\x00\x79"
@@ -628,12 +636,19 @@ int DetectPescanMatchTest01(void){
             "\x00\x04\x01\x00\x00\x88\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00"
             "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x5C"
             "\x5C\x36\x36\x2E\x39\x33\x2E\x36\x38\x2E\x36\x5C\x7A\x00\x00\x38";
+
+    file_data = SCMalloc(sizeof(FileData));
+    if (file_data == NULL)
+        return 0;
+
     file_data->data = (uint8_t *)data;
     file_data->len = sizeof(data);
     file_data->next = NULL;
 
-    File *file;
     file = SCMalloc(sizeof(File));
+    if (file == NULL)
+        goto error;
+
     file->flags = 0;
     file->chunks_head = file_data;
     file->size = file_data->len;
@@ -647,26 +662,30 @@ int DetectPescanMatchTest01(void){
     ThreadVars *t = NULL;
 
     /* Allocate for local storage */
-    DetectEngineThreadCtx *det_ctx = SCMalloc(sizeof(DetectEngineThreadCtx));
+    det_ctx = SCMalloc(sizeof(DetectEngineThreadCtx));
+    if (det_ctx == NULL)
+        goto error;
+
     det_ctx->keyword_ctxs_size = 1;
     det_ctx->keyword_ctxs_array = SCMalloc(det_ctx->keyword_ctxs_size * sizeof(void *));
+    if (det_ctx->keyword_ctxs_array == NULL)
+        goto error;
+
     uint8_t *scanbuf = DetectPescanThreadInit(NULL);
     SCLogDebug("SCANBUF: %p", scanbuf);
     det_ctx->keyword_ctxs_array[0] = scanbuf;
 
-    Flow *f = NULL;
-    uint8_t flags = 0;
-    Signature *s = NULL;
-    SigMatch *m = NULL;
-
     m = SCMalloc(sizeof(SigMatch));
+    if (m == NULL)
+        goto error;
     memset(m, 0, sizeof(SigMatch));
 
-    DetectPescanData *pedata = SCMalloc(sizeof(DetectPescanData));
+    pedata = SCMalloc(sizeof(DetectPescanData));
+    if (pedata == NULL)
+        goto error;
     memset(pedata, 0, sizeof(DetectPescanData));
     pedata->mode = DETECT_PESCAN_ANY;
     pedata->thread_ctx_id = 0;
-
     m->ctx = pedata;
 
     result = DetectPescanMatch(t, det_ctx,f, flags, file, s, m);
@@ -680,6 +699,20 @@ int DetectPescanMatchTest01(void){
     SCFree(m);
 
     return result;
+error:
+    if (file)
+        SCFree(file);
+    if (file_data)
+        SCFree(file_data);
+    if (pedata)
+        SCFree(pedata);
+    if (m)
+        SCFree(m);
+    if (det_ctx && det_ctx->keyword_ctxs_array)
+        SCFree(det_ctx->keyword_ctxs_array);
+    if (det_ctx)
+        SCFree(det_ctx);
+    return 0;
 }
 
 /**
