@@ -85,7 +85,7 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
 
     if (body->first == NULL) {
         /* New chunk */
-        bd = (HtpBodyChunk *)SCMalloc(sizeof(HtpBodyChunk));
+        bd = (HtpBodyChunk *)HTPMalloc(sizeof(HtpBodyChunk));
         if (bd == NULL)
             goto error;
 
@@ -93,7 +93,7 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
         bd->stream_offset = 0;
         bd->next = NULL;
 
-        bd->data = SCMalloc(len);
+        bd->data = HTPMalloc(len);
         if (bd->data == NULL) {
             goto error;
         }
@@ -103,7 +103,7 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
 
         body->content_len_so_far = len;
     } else {
-        bd = (HtpBodyChunk *)SCMalloc(sizeof(HtpBodyChunk));
+        bd = (HtpBodyChunk *)HTPMalloc(sizeof(HtpBodyChunk));
         if (bd == NULL)
             goto error;
 
@@ -111,7 +111,7 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
         bd->stream_offset = body->content_len_so_far;
         bd->next = NULL;
 
-        bd->data = SCMalloc(len);
+        bd->data = HTPMalloc(len);
         if (bd->data == NULL) {
             goto error;
         }
@@ -129,9 +129,9 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
 error:
     if (bd != NULL) {
         if (bd->data != NULL) {
-            SCFree(bd->data);
+            HTPFree(bd->data, bd->len);
         }
-        SCFree(bd);
+        HTPFree(bd, sizeof(HtpBodyChunk));
     }
     SCReturnInt(-1);
 }
@@ -183,8 +183,8 @@ void HtpBodyFree(HtpBody *body)
     while (prev != NULL) {
         cur = prev->next;
         if (prev->data != NULL)
-            SCFree(prev->data);
-        SCFree(prev);
+            HTPFree(prev->data, prev->len);
+        HTPFree(prev, sizeof(HtpBodyChunk));
         prev = cur;
     }
     body->first = body->last = NULL;
@@ -230,9 +230,9 @@ void HtpBodyPrune(HtpBody *body)
         }
 
         if (cur->data != NULL) {
-            SCFree(cur->data);
+            HTPFree(cur->data, cur->len);
         }
-        SCFree(cur);
+        HTPFree(cur, sizeof(HtpBodyChunk));
 
         cur = next;
     }

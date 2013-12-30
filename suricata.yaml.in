@@ -1058,6 +1058,7 @@ app-layer:
            toserver: 53
     http:
       enabled: yes
+      # memcap: 64mb
 
       ###########################################################################
       # Configure libhtp.
