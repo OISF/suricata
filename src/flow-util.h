@@ -42,9 +42,10 @@
 #define FLOW_INITIALIZE(f) do { \
         (f)->sp = 0; \
         (f)->dp = 0; \
+        (f)->proto = 0; \
         SC_ATOMIC_INIT((f)->use_cnt); \
-        (f)->probing_parser_toserver_al_proto_masks = 0; \
-        (f)->probing_parser_toclient_al_proto_masks = 0; \
+        (f)->probing_parser_toserver_alproto_masks = 0; \
+        (f)->probing_parser_toclient_alproto_masks = 0; \
         (f)->flags = 0; \
         (f)->lastts_sec = 0; \
         FLOWLOCK_INIT((f)); \
@@ -79,9 +80,10 @@
 #define FLOW_RECYCLE(f) do { \
         (f)->sp = 0; \
         (f)->dp = 0; \
+        (f)->proto = 0; \
         SC_ATOMIC_RESET((f)->use_cnt); \
-        (f)->probing_parser_toserver_al_proto_masks = 0; \
-        (f)->probing_parser_toclient_al_proto_masks = 0; \
+        (f)->probing_parser_toserver_alproto_masks = 0; \
+        (f)->probing_parser_toclient_alproto_masks = 0; \
         (f)->flags = 0; \
         (f)->lastts_sec = 0; \
         (f)->protoctx = NULL; \
@@ -135,6 +137,7 @@ Flow *FlowAllocDirect(void);
 void FlowFree(Flow *);
 uint8_t FlowGetProtoMapping(uint8_t);
 void FlowInit(Flow *, const Packet *);
+uint8_t FlowGetReverseProtoMapping(uint8_t rproto);
 
 #endif /* __FLOW_UTIL_H__ */
 

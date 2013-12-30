@@ -300,17 +300,15 @@ typedef struct AppLayerDecoderEvents_ {
  */
 #define AppLayerDecoderEventsSetEvent(f, event)                         \
     do {                                                                \
-        AppLayerParserStateStore *parser_state_store =                  \
-            (AppLayerParserStateStore *)(f)->alparser;                  \
         AppLayerDecoderEvents *devents =                                \
-            parser_state_store->decoder_events;                         \
+            AppLayerParserGetDecoderEvents((f)->alparser);              \
         if (devents == NULL) {                                          \
             AppLayerDecoderEvents *new_devents =                        \
                 SCMalloc(sizeof(AppLayerDecoderEvents));                \
             if (new_devents == NULL)                                    \
                 break;                                                  \
             memset(new_devents, 0, sizeof(AppLayerDecoderEvents));      \
-            parser_state_store->decoder_events = new_devents;           \
+            AppLayerParserSetDecoderEvents((f)->alparser, new_devents); \
             devents = new_devents;                                      \
         }                                                               \
         if (devents->cnt == devents->events_buffer_size) {              \

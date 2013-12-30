@@ -229,22 +229,19 @@ static TmEcode LogDnsLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQ
 
     /* check if we have DNS state or not */
     FLOWLOCK_WRLOCK(p->flow); /* WRITE lock before we updated flow logged id */
-    uint16_t proto = AppLayerGetProtoFromPacket(p);
-    if (proto != ALPROTO_DNS_UDP && proto != ALPROTO_DNS_TCP) {
-        SCLogDebug("proto not ALPROTO_DNS_UDP: %u", proto);
+    if (FlowGetAppProtocol(p->flow) != ALPROTO_DNS) {
+        SCLogDebug("proto not ALPROTO_DNS_UDP: %u", FlowGetAppProtocol(p->flow));
         goto end;
     }
 
-    DNSState *dns_state = (DNSState *)AppLayerGetProtoStateFromPacket(p);
+    DNSState *dns_state = (DNSState *)FlowGetAppState(p->flow);
     if (dns_state == NULL) {
         SCLogDebug("no dns state, so no request logging");
         goto end;
     }
 
-    uint64_t total_txs = AppLayerGetTxCnt(proto, dns_state);
-    uint64_t tx_id = AppLayerTransactionGetLogId(p->flow);
-    //int tx_progress_done_value_ts = AppLayerGetAlstateProgressCompletionStatus(proto, 0);
-    //int tx_progress_done_value_tc = AppLayerGetAlstateProgressCompletionStatus(proto, 1);
+    uint64_t total_txs = AppLayerParserGetTxCnt(p->flow->proto, ALPROTO_DNS, dns_state);
+    uint64_t tx_id = AppLayerParserGetTransactionLogId(p->flow->alparser);
 
     SCLogDebug("pcap_cnt %"PRIu64, p->pcap_cnt);
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
@@ -297,7 +294,7 @@ static TmEcode LogDnsLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQ
     DNSTransaction *tx = NULL;
     for (; tx_id < total_txs; tx_id++)
     {
-        tx = AppLayerGetTx(proto, dns_state, tx_id);
+        tx = AppLayerParserGetTx(p->flow->proto, ALPROTO_DNS, dns_state, tx_id);
         if (tx == NULL)
             continue;
 
@@ -325,7 +322,7 @@ static TmEcode LogDnsLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQ
         }
 
         SCLogDebug("calling AppLayerTransactionUpdateLoggedId");
-        AppLayerTransactionUpdateLogId(p->flow);
+        AppLayerParserSetTransactionLogId(p->flow->alparser);
     }
 
 end:
@@ -458,8 +455,8 @@ OutputCtx *LogDnsLogInitCtx(ConfNode *conf)
 
     SCLogDebug("DNS log output initialized");
 
-    AppLayerRegisterLogger(ALPROTO_DNS_UDP);
-    AppLayerRegisterLogger(ALPROTO_DNS_TCP);
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
 
     return output_ctx;
 }

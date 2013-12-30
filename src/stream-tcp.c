@@ -4299,7 +4299,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                     StreamTcpSackFreeList(&ssn->client);
                     StreamTcpSackFreeList(&ssn->server);
                     /* reset the app layer state */
-                    AppLayerParserCleanupState(p->flow);
+                    FlowCleanupAppLayer(p->flow);
 
                     ssn->state = 0;
                     ssn->flags = 0;

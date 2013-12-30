@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,12 +19,13 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __APP_LAYER_PROTOS_H__
-#define __APP_LAYER_PROTOS_H__
+#ifndef __APP_LAYER_PROTOS__H__
+#define __APP_LAYER_PROTOS__H__
 
-enum AppProto {
+enum {
     ALPROTO_UNKNOWN = 0,
     ALPROTO_HTTP,
     ALPROTO_FTP,
@@ -37,12 +38,9 @@ enum AppProto {
     ALPROTO_SMB,
     ALPROTO_SMB2,
     ALPROTO_DCERPC,
-    ALPROTO_DCERPC_UDP,
     ALPROTO_IRC,
 
     ALPROTO_DNS,
-    ALPROTO_DNS_UDP,
-    ALPROTO_DNS_TCP,
 
     /* used by the probing parser when alproto detection fails
      * permanently for that particular stream */
@@ -54,7 +52,15 @@ enum AppProto {
     ALPROTO_MAX,
 };
 
-const char *TmModuleAlprotoToString(enum AppProto proto);
+typedef uint16_t AppProto;
 
-#endif /* __APP_LAYER_PROTOS_H__ */
+/**
+ * \brief Maps the ALPROTO_*, to its string equivalent.
+ *
+ * \param alproto App layer protocol id.
+ *
+ * \retval String equivalent for the alproto.
+ */
+const char *AppProtoToString(AppProto alproto);
 
+#endif /* __APP_LAYER_PROTOS__H__ */

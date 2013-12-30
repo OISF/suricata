@@ -39,6 +39,7 @@
 #include "stream-tcp.h"
 #include "stream.h"
 
+#include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
@@ -310,6 +311,7 @@ static int HTPFileParserTest01(void) {
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
 
     TcpSession ssn;
+    void *alp_tctx = AppLayerParserGetCtxThread();
     HtpState *http_state = NULL;
     memset(&ssn, 0, sizeof(ssn));
 
@@ -317,12 +319,13 @@ static int HTPFileParserTest01(void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     SCMutexLock(&f->m);
-    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -333,7 +336,7 @@ static int HTPFileParserTest01(void) {
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -349,7 +352,7 @@ static int HTPFileParserTest01(void) {
         goto end;
     }
 
-    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, http_state, 0);
+    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, http_state, 0);
     if (tx == NULL) {
         goto end;
     }
@@ -362,6 +365,8 @@ static int HTPFileParserTest01(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -397,6 +402,7 @@ static int HTPFileParserTest02(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -404,12 +410,13 @@ static int HTPFileParserTest02(void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     SCMutexLock(&f->m);
-    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -420,7 +427,7 @@ static int HTPFileParserTest02(void) {
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -431,7 +438,7 @@ static int HTPFileParserTest02(void) {
 
     SCLogDebug("\n>>>> processing chunk 3 size %u <<<<\n", httplen3);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3, httplen3);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -442,7 +449,7 @@ static int HTPFileParserTest02(void) {
 
     SCLogDebug("\n>>>> processing chunk 4 size %u <<<<\n", httplen4);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -458,7 +465,7 @@ static int HTPFileParserTest02(void) {
         goto end;
     }
 
-    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, http_state, 0);
+    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, http_state, 0);
     if (tx == NULL) {
         goto end;
     }
@@ -476,6 +483,8 @@ static int HTPFileParserTest02(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -516,6 +525,7 @@ static int HTPFileParserTest03(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -523,12 +533,13 @@ static int HTPFileParserTest03(void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     SCMutexLock(&f->m);
-    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -539,7 +550,7 @@ static int HTPFileParserTest03(void) {
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -550,7 +561,7 @@ static int HTPFileParserTest03(void) {
 
     SCLogDebug("\n>>>> processing chunk 3 size %u <<<<\n", httplen3);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3, httplen3);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -561,7 +572,7 @@ static int HTPFileParserTest03(void) {
 
     SCLogDebug("\n>>>> processing chunk 4 size %u <<<<\n", httplen4);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -572,7 +583,7 @@ static int HTPFileParserTest03(void) {
 
     SCLogDebug("\n>>>> processing chunk 5 size %u <<<<\n", httplen5);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf5, httplen5);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf5, httplen5);
     if (r != 0) {
         printf("toserver chunk 5 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -583,7 +594,7 @@ static int HTPFileParserTest03(void) {
 
     SCLogDebug("\n>>>> processing chunk 6 size %u <<<<\n", httplen6);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf6, httplen6);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf6, httplen6);
     if (r != 0) {
         printf("toserver chunk 6 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -599,7 +610,7 @@ static int HTPFileParserTest03(void) {
         goto end;
     }
 
-    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, http_state, 0);
+    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, http_state, 0);
     if (tx == NULL) {
         goto end;
     }
@@ -622,6 +633,8 @@ static int HTPFileParserTest03(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -662,6 +675,7 @@ static int HTPFileParserTest04(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -669,12 +683,13 @@ static int HTPFileParserTest04(void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     SCMutexLock(&f->m);
-    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -685,7 +700,7 @@ static int HTPFileParserTest04(void) {
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -696,7 +711,7 @@ static int HTPFileParserTest04(void) {
 
     SCLogDebug("\n>>>> processing chunk 3 size %u <<<<\n", httplen3);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3, httplen3);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -707,7 +722,7 @@ static int HTPFileParserTest04(void) {
 
     SCLogDebug("\n>>>> processing chunk 4 size %u <<<<\n", httplen4);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -718,7 +733,7 @@ static int HTPFileParserTest04(void) {
 
     SCLogDebug("\n>>>> processing chunk 5 size %u <<<<\n", httplen5);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf5, httplen5);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf5, httplen5);
     if (r != 0) {
         printf("toserver chunk 5 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -729,7 +744,7 @@ static int HTPFileParserTest04(void) {
 
     SCLogDebug("\n>>>> processing chunk 6 size %u <<<<\n", httplen6);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf6, httplen6);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf6, httplen6);
     if (r != 0) {
         printf("toserver chunk 6 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -745,7 +760,7 @@ static int HTPFileParserTest04(void) {
         goto end;
     }
 
-    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, http_state, 0);
+    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, http_state, 0);
     if (tx == NULL) {
         goto end;
     }
@@ -763,6 +778,8 @@ static int HTPFileParserTest04(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -794,6 +811,7 @@ static int HTPFileParserTest05(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -801,12 +819,13 @@ static int HTPFileParserTest05(void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
     SCLogDebug("\n>>>> processing chunk 1 size %u <<<<\n", httplen1);
     SCMutexLock(&f->m);
-    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -817,7 +836,7 @@ static int HTPFileParserTest05(void) {
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -833,7 +852,7 @@ static int HTPFileParserTest05(void) {
         goto end;
     }
 
-    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, http_state, 0);
+    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, http_state, 0);
     if (tx == NULL) {
         goto end;
     }
@@ -882,6 +901,8 @@ static int HTPFileParserTest05(void) {
     }
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -914,6 +935,7 @@ static int HTPFileParserTest06(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -921,12 +943,13 @@ static int HTPFileParserTest06(void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
     SCLogDebug("\n>>>> processing chunk 1 size %u <<<<\n", httplen1);
     SCMutexLock(&f->m);
-    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -937,7 +960,7 @@ static int HTPFileParserTest06(void) {
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -953,7 +976,7 @@ static int HTPFileParserTest06(void) {
         goto end;
     }
 
-    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, http_state, 0);
+    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, http_state, 0);
     if (tx == NULL) {
         goto end;
     }
@@ -1002,6 +1025,8 @@ static int HTPFileParserTest06(void) {
     }
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -1023,6 +1048,7 @@ static int HTPFileParserTest07(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1030,12 +1056,13 @@ static int HTPFileParserTest07(void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
     SCLogDebug("\n>>>> processing chunk 1 size %u <<<<\n", httplen1);
     SCMutexLock(&f->m);
-    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1046,7 +1073,7 @@ static int HTPFileParserTest07(void) {
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1062,7 +1089,7 @@ static int HTPFileParserTest07(void) {
         goto end;
     }
 
-    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, http_state, 0);
+    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, http_state, 0);
     if (tx == NULL) {
         goto end;
     }
@@ -1094,6 +1121,8 @@ static int HTPFileParserTest07(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -1119,6 +1148,7 @@ static int HTPFileParserTest08(void) {
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
 
     TcpSession ssn;
+    void *alp_tctx = AppLayerParserGetCtxThread();
     HtpState *http_state = NULL;
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1126,12 +1156,13 @@ static int HTPFileParserTest08(void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     SCMutexLock(&f->m);
-    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1142,7 +1173,7 @@ static int HTPFileParserTest08(void) {
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1159,7 +1190,7 @@ static int HTPFileParserTest08(void) {
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerGetDecoderEventsForFlow(f);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(f->alparser);
     if (decoder_events == NULL) {
         printf("no app events: ");
         SCMutexUnlock(&f->m);
@@ -1174,6 +1205,8 @@ static int HTPFileParserTest08(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -1210,6 +1243,7 @@ static int HTPFileParserTest09(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1217,12 +1251,13 @@ static int HTPFileParserTest09(void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     SCMutexLock(&f->m);
-    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1233,7 +1268,7 @@ static int HTPFileParserTest09(void) {
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1244,7 +1279,7 @@ static int HTPFileParserTest09(void) {
 
     SCLogDebug("\n>>>> processing chunk 3 size %u <<<<\n", httplen3);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3, httplen3);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1255,7 +1290,7 @@ static int HTPFileParserTest09(void) {
 
     SCLogDebug("\n>>>> processing chunk 4 size %u <<<<\n", httplen4);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1272,7 +1307,7 @@ static int HTPFileParserTest09(void) {
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerGetDecoderEventsForFlow(f);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(f->alparser);
     if (decoder_events == NULL) {
         printf("no app events: ");
         SCMutexUnlock(&f->m);
@@ -1287,6 +1322,8 @@ static int HTPFileParserTest09(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -1321,6 +1358,7 @@ static int HTPFileParserTest10(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1328,12 +1366,13 @@ static int HTPFileParserTest10(void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     SCMutexLock(&f->m);
-    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1344,7 +1383,7 @@ static int HTPFileParserTest10(void) {
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1355,7 +1394,7 @@ static int HTPFileParserTest10(void) {
 
     SCLogDebug("\n>>>> processing chunk 3 size %u <<<<\n", httplen3);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3, httplen3);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1366,7 +1405,7 @@ static int HTPFileParserTest10(void) {
 
     SCLogDebug("\n>>>> processing chunk 4 size %u <<<<\n", httplen4);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1383,7 +1422,7 @@ static int HTPFileParserTest10(void) {
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerGetDecoderEventsForFlow(f);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(f->alparser);
     if (decoder_events != NULL) {
         printf("app events: ");
         SCMutexUnlock(&f->m);
@@ -1393,6 +1432,8 @@ static int HTPFileParserTest10(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -1455,6 +1496,7 @@ static int HTPFileParserTest11(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1462,12 +1504,13 @@ static int HTPFileParserTest11(void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     SCMutexLock(&f->m);
-    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
@@ -1477,7 +1520,7 @@ static int HTPFileParserTest11(void) {
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
@@ -1487,7 +1530,7 @@ static int HTPFileParserTest11(void) {
 
     SCLogDebug("\n>>>> processing chunk 3 size %u <<<<\n", httplen3);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf3, httplen3);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
@@ -1497,7 +1540,7 @@ static int HTPFileParserTest11(void) {
 
     SCLogDebug("\n>>>> processing chunk 4 size %u <<<<\n", httplen4);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
@@ -1512,7 +1555,7 @@ static int HTPFileParserTest11(void) {
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerGetDecoderEventsForFlow(f);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(f->alparser);
     if (decoder_events != NULL) {
         printf("app events: ");
         SCMutexUnlock(&f->m);
@@ -1520,7 +1563,7 @@ static int HTPFileParserTest11(void) {
     }
     SCMutexUnlock(&f->m);
 
-    htp_tx_t *tx = AppLayerGetTx(ALPROTO_HTTP, http_state, 0);
+    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, http_state, 0);
     if (tx == NULL) {
         goto end;
     }
@@ -1552,6 +1595,8 @@ static int HTPFileParserTest11(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);

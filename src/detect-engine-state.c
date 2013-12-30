@@ -63,6 +63,7 @@
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 
+#include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-protos.h"
 #include "app-layer-htp.h"
@@ -74,6 +75,8 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-profiling.h"
+
+#include "flow-util.h"
 
 /** convert enum to string */
 #define CASE_CODE(E)  case E: return #E
@@ -215,9 +218,9 @@ int DeStateFlowHasInspectableState(Flow *f, uint16_t alproto, uint16_t alversion
 
     SCMutexLock(&f->de_state_m);
     if (f->de_state == NULL || f->de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1].cnt == 0) {
-        if (AppLayerAlprotoSupportsTxs(alproto)) {
+        if (AppLayerParserProtocolSupportsTxs(f->proto, alproto)) {
             FLOWLOCK_RDLOCK(f);
-            if (AppLayerTransactionGetInspectId(f, flags) >= AppLayerGetTxCnt(alproto, f->alstate))
+            if (AppLayerParserGetTransactionInspectId(f->alparser, flags) >= AppLayerParserGetTxCnt(f->proto, alproto, f->alstate))
                 r = 2;
             else
                 r = 0;
@@ -263,7 +266,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     if (alstate == NULL)
         goto end;
 
-    if (AppLayerAlprotoSupportsTxs(alproto)) {
+    if (AppLayerParserProtocolSupportsTxs(f->proto, alproto)) {
         FLOWLOCK_WRLOCK(f);
 
         if (alproto == ALPROTO_HTTP) {
@@ -273,17 +276,17 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 goto end;
             }
         }
-        tx_id = AppLayerTransactionGetInspectId(f, flags);
+        tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
         SCLogDebug("tx_id %"PRIu64, tx_id);
-        total_txs = AppLayerGetTxCnt(alproto, alstate);
+        total_txs = AppLayerParserGetTxCnt(f->proto, alproto, alstate);
         SCLogDebug("total_txs %"PRIu64, total_txs);
 
         for (; tx_id < total_txs; tx_id++) {
             total_matches = 0;
-            tx = AppLayerGetTx(alproto, alstate, tx_id);
+            tx = AppLayerParserGetTx(f->proto, alproto, alstate, tx_id);
             if (tx == NULL)
                 continue;
-            engine = app_inspection_engine[alproto][direction];
+            engine = app_inspection_engine[FlowGetProtoMapping(f->proto)][alproto][direction];
             inspect_flags = 0;
             while (engine != NULL) {
                 if (s->sm_lists[engine->sm_list] != NULL) {
@@ -324,11 +327,11 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             }
 
             if (tx_id == (total_txs - 1)) {
-                void *tx = AppLayerGetTx(alproto, alstate, tx_id);
+                void *tx = AppLayerParserGetTx(f->proto, alproto, alstate, tx_id);
                 if (tx == NULL)
                     continue;
-                if (AppLayerGetAlstateProgress(alproto, tx, direction) <
-                    AppLayerGetAlstateProgressCompletionStatus(alproto, direction)) {
+                if (AppLayerParserGetStateProgress(f->proto, alproto, tx, flags) <
+                    AppLayerParserGetStateProgressCompletionStatus(f->proto, alproto, flags)) {
                     store_de_state = 1;
                     if (engine == NULL || inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH)
                         inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
@@ -477,22 +480,21 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
      * keywords with transaction keywords.  Without this we would
      * assume that we have an alert if engine == NULL */
     uint8_t total_matches = 0;
-    uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
 
     DeStateResetFileInspection(f, alproto, alstate, flags);
 
-    if (AppLayerAlprotoSupportsTxs(alproto)) {
+    if (AppLayerParserProtocolSupportsTxs(f->proto, alproto)) {
         FLOWLOCK_RDLOCK(f);
-        inspect_tx_id = AppLayerTransactionGetInspectId(f, flags);
-        total_txs = AppLayerGetTxCnt(alproto, alstate);
-        inspect_tx = AppLayerGetTx(alproto, alstate, inspect_tx_id);
+        inspect_tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
+        total_txs = AppLayerParserGetTxCnt(f->proto, alproto, alstate);
+        inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id);
         if (inspect_tx == NULL) {
             FLOWLOCK_UNLOCK(f);
             SCMutexUnlock(&f->de_state_m);
             return;
         }
-        if (AppLayerGetAlstateProgress(alproto, inspect_tx, direction) >=
-            AppLayerGetAlstateProgressCompletionStatus(alproto, direction)) {
+        if (AppLayerParserGetStateProgress(f->proto, alproto, inspect_tx, flags) >=
+            AppLayerParserGetStateProgressCompletionStatus(f->proto, alproto, flags)) {
             reset_de_state = 1;
         }
         FLOWLOCK_UNLOCK(f);
@@ -579,8 +581,8 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     }
                 }
 
-                engine = app_inspection_engine[alproto][(flags & STREAM_TOSERVER) ? 0 : 1];
-                inspect_tx = AppLayerGetTx(alproto, alstate, inspect_tx_id);
+                engine = app_inspection_engine[FlowGetProtoMapping(f->proto)][alproto][(flags & STREAM_TOSERVER) ? 0 : 1];
+                inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id);
                 if (inspect_tx == NULL) {
                     FLOWLOCK_UNLOCK(f);
                     RULE_PROFILING_END(det_ctx, s, match);
@@ -709,7 +711,9 @@ end:
 
 void DeStateUpdateInspectTransactionId(Flow *f, uint8_t direction)
 {
-    AppLayerTransactionUpdateInspectId(f, direction);
+    FLOWLOCK_WRLOCK(f);
+    AppLayerParserSetTransactionInspectId(f->alparser, f->proto, f->alproto, f->alstate, direction);
+    FLOWLOCK_UNLOCK(f);
 
     return;
 }
@@ -909,6 +913,7 @@ static int DeStateSigTest01(void)
     uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
     uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
     HtpState *http_state = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -918,6 +923,7 @@ static int DeStateSigTest01(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -945,7 +951,7 @@ static int DeStateSigTest01(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -961,7 +967,7 @@ static int DeStateSigTest01(void)
     p->alerts.cnt = 0;
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -977,7 +983,7 @@ static int DeStateSigTest01(void)
     p->alerts.cnt = 0;
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf3, httplen3);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -993,7 +999,7 @@ static int DeStateSigTest01(void)
     p->alerts.cnt = 0;
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf4, httplen4);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf4, httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1011,6 +1017,8 @@ static int DeStateSigTest01(void)
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     if (http_state != NULL) {
         HTPStateFree(http_state);
     }
@@ -1051,6 +1059,7 @@ static int DeStateSigTest02(void) {
     uint32_t httplen5 = sizeof(httpbuf5) - 1; /* minus the \0 */
     uint32_t httplen6 = sizeof(httpbuf6) - 1; /* minus the \0 */
     uint32_t httplen7 = sizeof(httpbuf7) - 1; /* minus the \0 */
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1093,7 +1102,7 @@ static int DeStateSigTest02(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1109,7 +1118,7 @@ static int DeStateSigTest02(void) {
     p->alerts.cnt = 0;
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1125,7 +1134,7 @@ static int DeStateSigTest02(void) {
     p->alerts.cnt = 0;
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf3, httplen3);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1141,7 +1150,7 @@ static int DeStateSigTest02(void) {
     p->alerts.cnt = 0;
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf4, httplen4);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf4, httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1158,7 +1167,7 @@ static int DeStateSigTest02(void) {
     p->alerts.cnt = 0;
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf5, httplen5);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf5, httplen5);
     if (r != 0) {
         printf("toserver chunk 5 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1174,7 +1183,7 @@ static int DeStateSigTest02(void) {
     p->alerts.cnt = 0;
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf6, httplen6);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf6, httplen6);
     if (r != 0) {
         printf("toserver chunk 6 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1192,7 +1201,7 @@ static int DeStateSigTest02(void) {
     SCLogDebug("sending data chunk 7");
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf7, httplen7);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf7, httplen7);
     if (r != 0) {
         printf("toserver chunk 7 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1209,6 +1218,8 @@ static int DeStateSigTest02(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -1242,6 +1253,7 @@ static int DeStateSigTest03(void) {
     Flow *f = NULL;
     Packet *p = NULL;
     HtpState *http_state = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&ssn, 0, sizeof(ssn));
@@ -1267,6 +1279,7 @@ static int DeStateSigTest03(void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP;
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
@@ -1281,7 +1294,7 @@ static int DeStateSigTest03(void) {
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f->m);
-    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1310,7 +1323,8 @@ static int DeStateSigTest03(void) {
     }
 
     SCMutexLock(&f->m);
-    FileContainer *files = AppLayerGetFilesFromFlow(p->flow, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
+                                                  p->flow->alstate, STREAM_TOSERVER);
     if (files == NULL) {
         printf("no stored files: ");
         SCMutexUnlock(&f->m);
@@ -1331,6 +1345,8 @@ static int DeStateSigTest03(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     UTHFreeFlow(f);
 
     if (det_ctx != NULL) {
@@ -1363,6 +1379,7 @@ static int DeStateSigTest04(void) {
     Flow *f = NULL;
     Packet *p = NULL;
     HtpState *http_state = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&ssn, 0, sizeof(ssn));
@@ -1388,6 +1405,7 @@ static int DeStateSigTest04(void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP;
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
@@ -1402,7 +1420,7 @@ static int DeStateSigTest04(void) {
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f->m);
-    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1431,7 +1449,8 @@ static int DeStateSigTest04(void) {
     }
 
     SCMutexLock(&f->m);
-    FileContainer *files = AppLayerGetFilesFromFlow(p->flow, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
+                                                  p->flow->alstate, STREAM_TOSERVER);
     if (files == NULL) {
         printf("no stored files: ");
         SCMutexUnlock(&f->m);
@@ -1452,6 +1471,8 @@ static int DeStateSigTest04(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     UTHFreeFlow(f);
 
     if (det_ctx != NULL) {
@@ -1484,6 +1505,7 @@ static int DeStateSigTest05(void) {
     Flow *f = NULL;
     Packet *p = NULL;
     HtpState *http_state = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&ssn, 0, sizeof(ssn));
@@ -1509,6 +1531,7 @@ static int DeStateSigTest05(void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP;
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
@@ -1523,7 +1546,7 @@ static int DeStateSigTest05(void) {
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f->m);
-    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1552,7 +1575,8 @@ static int DeStateSigTest05(void) {
     }
 
     SCMutexLock(&f->m);
-    FileContainer *files = AppLayerGetFilesFromFlow(p->flow, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
+                                                  p->flow->alstate, STREAM_TOSERVER);
     if (files == NULL) {
         printf("no stored files: ");
         SCMutexUnlock(&f->m);
@@ -1573,6 +1597,8 @@ static int DeStateSigTest05(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     UTHFreeFlow(f);
 
     if (det_ctx != NULL) {
@@ -1605,6 +1631,7 @@ static int DeStateSigTest06(void) {
     Flow *f = NULL;
     Packet *p = NULL;
     HtpState *http_state = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&ssn, 0, sizeof(ssn));
@@ -1630,6 +1657,7 @@ static int DeStateSigTest06(void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP;
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
@@ -1644,7 +1672,7 @@ static int DeStateSigTest06(void) {
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f->m);
-    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1673,7 +1701,8 @@ static int DeStateSigTest06(void) {
     }
 
     SCMutexLock(&f->m);
-    FileContainer *files = AppLayerGetFilesFromFlow(p->flow, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
+                                                  p->flow->alstate, STREAM_TOSERVER);
     if (files == NULL) {
         printf("no stored files: ");
         SCMutexUnlock(&f->m);
@@ -1694,6 +1723,8 @@ static int DeStateSigTest06(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     UTHFreeFlow(f);
 
     if (det_ctx != NULL) {
@@ -1728,6 +1759,7 @@ static int DeStateSigTest07(void) {
     Flow *f = NULL;
     Packet *p = NULL;
     HtpState *http_state = NULL;
+    void *alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&ssn, 0, sizeof(ssn));
@@ -1753,6 +1785,7 @@ static int DeStateSigTest07(void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP;
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
@@ -1768,7 +1801,7 @@ static int DeStateSigTest07(void) {
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     SCMutexLock(&f->m);
-    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1786,7 +1819,7 @@ static int DeStateSigTest07(void) {
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
     SCMutexLock(&f->m);
-    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1814,7 +1847,8 @@ static int DeStateSigTest07(void) {
     }
 
     SCMutexLock(&f->m);
-    FileContainer *files = AppLayerGetFilesFromFlow(p->flow, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
+                                                  p->flow->alstate, STREAM_TOSERVER);
     if (files == NULL) {
         printf("no stored files: ");
         SCMutexUnlock(&f->m);
@@ -1835,6 +1869,8 @@ static int DeStateSigTest07(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserDestroyCtxThread(alp_tctx);
     UTHFreeFlow(f);
 
     if (det_ctx != NULL) {

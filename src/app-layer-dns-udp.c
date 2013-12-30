@@ -54,9 +54,9 @@
  *  \brief Parse DNS request packet
  */
 static int DNSUDPRequestParse(Flow *f, void *dstate,
-                          AppLayerParserState *pstate,
-                          uint8_t *input, uint32_t input_len,
-                          void *local_data, AppLayerParserResult *output)
+                              void *pstate,
+                              uint8_t *input, uint32_t input_len,
+                              void *local_data)
 {
     DNSState *dns_state = (DNSState *)dstate;
 
@@ -160,9 +160,9 @@ insufficient_data:
  *
  */
 static int DNSUDPResponseParse(Flow *f, void *dstate,
-                          AppLayerParserState *pstate,
-                          uint8_t *input, uint32_t input_len,
-                          void *local_data, AppLayerParserResult *output)
+                               void *pstate,
+                               uint8_t *input, uint32_t input_len,
+                               void *local_data)
 {
 	DNSState *dns_state = (DNSState *)dstate;
 
@@ -293,10 +293,10 @@ static uint16_t DNSUdpProbingParser(uint8_t *input, uint32_t ilen, uint32_t *off
         return ALPROTO_UNKNOWN;
     }
 
-    if (DNSUDPRequestParse(NULL, NULL, NULL, input, ilen, NULL, NULL) == -1)
+    if (DNSUDPRequestParse(NULL, NULL, NULL, input, ilen, NULL) == -1)
         return ALPROTO_FAILED;
 
-    return ALPROTO_DNS_UDP;
+    return ALPROTO_DNS;
 }
 
 static void DNSUDPConfigure(void) {
@@ -316,23 +316,24 @@ static void DNSUDPConfigure(void) {
 }
 
 void RegisterDNSUDPParsers(void) {
-    char *proto_name = "dnsudp";
+    char *proto_name = "dns";
 
     /** DNS */
-    if (AppLayerProtoDetectionEnabled(proto_name)) {
+    if (AppLayerProtoDetectConfProtoDetectionEnabled("udp", proto_name)) {
+        AppLayerProtoDetectRegisterProtocol(ALPROTO_DNS, proto_name);
+
         if (RunmodeIsUnittests()) {
-            AppLayerRegisterProbingParser(&alp_proto_ctx,
-                                          IPPROTO_UDP,
+            AppLayerProtoDetectPPRegister(IPPROTO_UDP,
                                           "53",
-                                          proto_name,
                                           ALPROTO_DNS,
                                           0, sizeof(DNSHeader),
                                           STREAM_TOSERVER,
                                           DNSUdpProbingParser);
         } else {
-            AppLayerParseProbingParserPorts(proto_name, ALPROTO_DNS,
-                                            0, sizeof(DNSHeader),
-                                            DNSUdpProbingParser);
+            AppLayerProtoDetectPPParseConfPorts("udp", IPPROTO_UDP,
+                                                proto_name, ALPROTO_DNS,
+                                                0, sizeof(DNSHeader),
+                                                DNSUdpProbingParser);
         }
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",
@@ -340,29 +341,29 @@ void RegisterDNSUDPParsers(void) {
         return;
     }
 
-    if (AppLayerParserEnabled(proto_name)) {
-        AppLayerRegisterProto(proto_name, ALPROTO_DNS_UDP, STREAM_TOSERVER,
-                              DNSUDPRequestParse);
-        AppLayerRegisterProto(proto_name, ALPROTO_DNS_UDP, STREAM_TOCLIENT,
-                              DNSUDPResponseParse);
-        AppLayerRegisterStateFuncs(ALPROTO_DNS_UDP, DNSStateAlloc,
-                                   DNSStateFree);
-        AppLayerRegisterTxFreeFunc(ALPROTO_DNS_UDP,
-                                   DNSStateTransactionFree);
+    if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
+        AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_DNS, STREAM_TOSERVER,
+                                     DNSUDPRequestParse);
+        AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_DNS, STREAM_TOCLIENT,
+                                     DNSUDPResponseParse);
+        AppLayerParserRegisterStateFuncs(IPPROTO_UDP, ALPROTO_DNS, DNSStateAlloc,
+                                         DNSStateFree);
+        AppLayerParserRegisterTxFreeFunc(IPPROTO_UDP, ALPROTO_DNS,
+                                         DNSStateTransactionFree);
 
-        AppLayerRegisterGetEventsFunc(ALPROTO_DNS_UDP, DNSGetEvents);
-        AppLayerRegisterHasEventsFunc(ALPROTO_DNS_UDP, DNSHasEvents);
+        AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_DNS, DNSGetEvents);
+        AppLayerParserRegisterHasEventsFunc(IPPROTO_UDP, ALPROTO_DNS, DNSHasEvents);
 
-        AppLayerRegisterGetTx(ALPROTO_DNS_UDP,
-                              DNSGetTx);
-        AppLayerRegisterGetTxCnt(ALPROTO_DNS_UDP,
-                                 DNSGetTxCnt);
-        AppLayerRegisterGetAlstateProgressFunc(ALPROTO_DNS_UDP,
-                                               DNSGetAlstateProgress);
-        AppLayerRegisterGetAlstateProgressCompletionStatus(ALPROTO_DNS_UDP,
-                                                           DNSGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_DNS,
+                                    DNSGetTx);
+        AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_DNS,
+                                       DNSGetTxCnt);
+        AppLayerParserRegisterGetStateProgressFunc(IPPROTO_UDP, ALPROTO_DNS,
+                                                   DNSGetAlstateProgress);
+        AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_UDP, ALPROTO_DNS,
+                                                               DNSGetAlstateProgressCompletionStatus);
 
-        DNSAppLayerRegisterGetEventInfo(ALPROTO_DNS_UDP);
+        DNSAppLayerRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_DNS);
 
         DNSUDPConfigure();
     } else {
@@ -370,7 +371,7 @@ void RegisterDNSUDPParsers(void) {
                   "still on.", proto_name);
     }
 #ifdef UNITTESTS
-    AppLayerParserRegisterUnittests(ALPROTO_DNS_UDP, DNSUDPParserRegisterTests);
+    AppLayerParserRegisterProtocolUnittests(IPPROTO_UDP, ALPROTO_DNS, DNSUDPParserRegisterTests);
 #endif
 }
 
@@ -402,10 +403,10 @@ static int DNSUDPParserTest01 (void) {
     if (f == NULL)
         goto end;
     f->proto = IPPROTO_UDP;
-    f->alproto = ALPROTO_DNS_UDP;
+    f->alproto = ALPROTO_DNS;
     f->alstate = DNSStateAlloc();
 
-    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL, NULL);
+    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL);
     if (r != 1)
         goto end;
 

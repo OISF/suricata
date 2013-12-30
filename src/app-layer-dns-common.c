@@ -22,6 +22,7 @@
  */
 
 #include "suricata-common.h"
+#include "stream.h"
 #include "app-layer-parser.h"
 #include "app-layer-dns-common.h"
 #ifdef DEBUG
@@ -68,9 +69,11 @@ int DNSStateGetEventInfo(const char *event_name,
     return 0;
 }
 
-void DNSAppLayerRegisterGetEventInfo(uint16_t alproto)
+void DNSAppLayerRegisterGetEventInfo(uint16_t ipproto, uint16_t alproto)
 {
-    return AppLayerRegisterGetEventInfo(alproto, DNSStateGetEventInfo);
+    AppLayerParserRegisterGetEventInfo(ipproto, alproto, DNSStateGetEventInfo);
+
+    return;
 }
 
 AppLayerDecoderEvents *DNSGetEvents(void *state, uint64_t id) {
@@ -124,7 +127,7 @@ int DNSGetAlstateProgress(void *tx, uint8_t direction) {
 
 /* value for tx->replied value */
 int DNSGetAlstateProgressCompletionStatus(uint8_t direction) {
-    return (direction == 0) ? 0 : 1;
+    return (direction & STREAM_TOSERVER) ? 0 : 1;
 }
 
 void DNSSetEvent(DNSState *s, uint8_t e) {
