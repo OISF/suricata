@@ -776,16 +776,41 @@ static int NetmapOpen(NetmapThreadVars *ptv, char *devname, int verbose)
     if (req.nr_ringid != NETMAP_SW_RING) {
         int fd = socket(AF_INET, SOCK_DGRAM, 0);
         if (fd >= 0) {
+            int ret;
             struct ifreq ifr;
             memset(&ifr, 0, sizeof(ifr));
             strncpy(ifr.ifr_name, devname, sizeof(ifr.ifr_name));
-            ioctl(fd, SIOCGIFFLAGS, &ifr);
+            ret = ioctl(fd, SIOCGIFFLAGS, &ifr);
+            if (ret == -1) {
+                SCLogError(SC_ERR_NETMAP_CREATE, "Failed ioctl: %s", strerror(errno)); 
+	    }
+
             if (ptv->promisc) {
+                /* with netmap on FreeBSD we only have IFF_PPROMISC. Setting 
+                   IFF_PROMISC is not working. */
+#ifdef OS_FREEBSD
+		int flags = (ifr.ifr_flags & 0xffff) | (ifr.ifr_flagshigh << 16);
+		flags |= IFF_PPROMISC;
+		ifr.ifr_flags = flags & 0xffff;
+		ifr.ifr_flagshigh = flags >> 16;
+#else
                 ifr.ifr_flags |= IFF_PROMISC;
+#endif
             } else {
+#ifdef OS_FREEBSD
+		int flags = (ifr.ifr_flags & 0xffff) | (ifr.ifr_flagshigh << 16);
+		flags &= ~IFF_PPROMISC;
+		ifr.ifr_flags = flags & 0xffff;
+		ifr.ifr_flagshigh = flags >> 16;
+#else
                 ifr.ifr_flags &= ~IFF_PROMISC;
+#endif
             }
-            ioctl(fd, SIOCSIFFLAGS, &ifr);
+            ret = ioctl(fd, SIOCSIFFLAGS, &ifr);
+            if (ret == -1) {
+                SCLogError(SC_ERR_NETMAP_CREATE, "Failed ioctl: %s", strerror(errno)); 
+	    } else
+		SCLogInfo("Success setting promiscuous mode.");
             close(fd);
         }
     }
