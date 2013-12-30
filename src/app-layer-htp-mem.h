@@ -15,7 +15,12 @@
  * 02110-1301, USA.
  */
 
+#include "stream-tcp-reassemble.h"
+
 void HTPParseMemcap();
 void *HTPMalloc(size_t size);
 void *HTPRealloc(void *ptr, size_t orig_size, size_t size);
 void HTPFree(void *ptr, size_t size);
+
+
+void HTPMemuseCounter(ThreadVars *tv, TcpReassemblyThreadCtx *trt);

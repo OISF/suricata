@@ -36,6 +36,8 @@
 #include "util-mem.h"
 #include "util-misc.h"
 
+#include "app-layer-htp-mem.h"
+
 uint64_t htp_config_memcap = 0;
 
 SC_ATOMIC_DECLARE(uint64_t, htp_memuse);
@@ -71,6 +73,12 @@ void HTPDecrMemuse(uint64_t size)
     return;
 }
 
+void HTPMemuseCounter(ThreadVars *tv,  TcpReassemblyThreadCtx *trt)
+{
+    uint64_t memusecopy = SC_ATOMIC_GET(htp_memuse);
+    SCPerfCounterSetUI64(trt->counter_htp_memuse, tv->sc_perf_pca, memusecopy);
+    return;
+}
 /**
  *  \brief Check if alloc'ing "size" would mean we're over memcap
  *
