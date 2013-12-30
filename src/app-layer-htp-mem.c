@@ -41,6 +41,7 @@
 uint64_t htp_config_memcap = 0;
 
 SC_ATOMIC_DECLARE(uint64_t, htp_memuse);
+SC_ATOMIC_DECLARE(uint64_t, htp_memcap);
 
 void HTPParseMemcap()
 {
@@ -75,8 +76,10 @@ void HTPDecrMemuse(uint64_t size)
 
 void HTPMemuseCounter(ThreadVars *tv,  TcpReassemblyThreadCtx *trt)
 {
-    uint64_t memusecopy = SC_ATOMIC_GET(htp_memuse);
-    SCPerfCounterSetUI64(trt->counter_htp_memuse, tv->sc_perf_pca, memusecopy);
+    uint64_t tmpval = SC_ATOMIC_GET(htp_memuse);
+    SCPerfCounterSetUI64(trt->counter_htp_memuse, tv->sc_perf_pca, tmpval);
+    tmpval = SC_ATOMIC_GET(htp_memcap);
+    SCPerfCounterSetUI64(trt->counter_htp_memcap, tv->sc_perf_pca, tmpval);
     return;
 }
 /**
@@ -89,6 +92,7 @@ int HTPCheckMemcap(uint64_t size)
 {
     if (htp_config_memcap == 0 || size + SC_ATOMIC_GET(htp_memuse) <= htp_config_memcap)
         return 1;
+    (void) SC_ATOMIC_ADD(htp_memcap, 1);
     return 0;
 }
 

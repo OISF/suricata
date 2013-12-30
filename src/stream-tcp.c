@@ -4563,6 +4563,9 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->ra_ctx->counter_htp_memuse = SCPerfTVRegisterCounter("http.memuse", tv,
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");
+    stt->ra_ctx->counter_htp_memcap = SCPerfTVRegisterCounter("http.memcap", tv,
+                                                        SC_PERF_TYPE_UINT64,
+                                                        "NULL");
 
     SCLogDebug("StreamTcp thread specific ctx online at %p, reassembly ctx %p",
                 stt, stt->ra_ctx);
