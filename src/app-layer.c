@@ -39,6 +39,8 @@
 #include "util-validate.h"
 #include "decode-events.h"
 
+#include "app-layer-htp-mem.h"
+
 //#define PRINT
 extern uint8_t engine_mode;
 
@@ -454,6 +456,9 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             SCLogDebug(" smsg not start, but no l7 data? Weird");
         }
     }
+
+    /** \fixme a bit hacky but will be improved in 2.1 */
+    HTPMemuseCounter(tv, ra_ctx);
 
  end:
     SCReturnInt(r);

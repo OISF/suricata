@@ -159,6 +159,7 @@ bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, int uri_include_a
     }
 
     // On the second pass construct the string
+    /* FIXME in memcap */
     bstr *r = bstr_alloc(len);
     if (r == NULL) {
         return NULL;

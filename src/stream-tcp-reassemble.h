@@ -62,6 +62,11 @@ typedef struct TcpReassemblyThreadCtx_ {
     uint16_t counter_tcp_reass_memuse;
     /** count number of streams with a unrecoverable stream gap (missing pkts) */
     uint16_t counter_tcp_reass_gap;
+    /** account memory usage by suricata to handle HTTP protocol (not counting
+     * libhtp memory usage)*/
+    uint16_t counter_htp_memuse;
+    /* number of allocation failed due to memcap when handling HTTP protocol */
+    uint16_t counter_htp_memcap;
 } TcpReassemblyThreadCtx;
 
 #define OS_POLICY_DEFAULT   OS_POLICY_BSD

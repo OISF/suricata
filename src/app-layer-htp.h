@@ -35,6 +35,7 @@
 
 #include "util-radix-tree.h"
 #include "util-file.h"
+#include "app-layer-htp-mem.h"
 
 #include <htp/htp.h>
 

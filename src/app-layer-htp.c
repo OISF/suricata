@@ -235,7 +235,7 @@ static void *HTPStateAlloc(void)
 {
     SCEnter();
 
-    HtpState *s = SCMalloc(sizeof(HtpState));
+    HtpState *s = HTPMalloc(sizeof(HtpState));
     if (unlikely(s == NULL))
         goto error;
 
@@ -253,7 +253,7 @@ static void *HTPStateAlloc(void)
 
 error:
     if (s != NULL) {
-        SCFree(s);
+        HTPFree(s, sizeof(HtpState));
     }
 
     SCReturnPtr(NULL, "void");
@@ -265,12 +265,12 @@ static void HtpTxUserDataFree(HtpTxUserData *htud) {
         HtpBodyFree(&htud->response_body);
         bstr_free(htud->request_uri_normalized);
         if (htud->request_headers_raw)
-            SCFree(htud->request_headers_raw);
+            HTPFree(htud->request_headers_raw, htud->request_headers_raw_len);
         if (htud->response_headers_raw)
-            SCFree(htud->response_headers_raw);
+            HTPFree(htud->response_headers_raw, htud->response_headers_raw_len);
         if (htud->boundary)
-            SCFree(htud->boundary);
-        SCFree(htud);
+            HTPFree(htud->boundary, htud->boundary_len);
+        HTPFree(htud, sizeof(HtpTxUserData));
     }
 }
 
@@ -313,7 +313,7 @@ void HTPStateFree(void *state)
 
     FileContainerFree(s->files_ts);
     FileContainerFree(s->files_tc);
-    SCFree(s);
+    HTPFree(s, sizeof(HtpState));
 
 #ifdef DEBUG
     SCMutexLock(&htp_state_mem_lock);
@@ -1010,7 +1010,7 @@ static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, HtpTxUserData *htud) {
             printf("BOUNDARY END: \n");
 #endif
             if (boundary_len < HTP_BOUNDARY_MAX) {
-                htud->boundary = SCMalloc(boundary_len);
+                htud->boundary = HTPMalloc(boundary_len);
                 if (htud->boundary == NULL) {
                     return -1;
                 }
@@ -1039,7 +1039,7 @@ static int HtpRequestBodySetupBoundary(HtpTxUserData *htud,
     uint8_t *ebe = NULL;
 
     uint8_t eb_len = htud->boundary_len + 2;
-    eb = (uint8_t *)SCMalloc(eb_len);
+    eb = (uint8_t *)HTPMalloc(eb_len);
     if (eb == NULL) {
         goto error;
     }
@@ -1047,7 +1047,7 @@ static int HtpRequestBodySetupBoundary(HtpTxUserData *htud,
     memcpy(eb + 2, htud->boundary, htud->boundary_len);
 
     uint8_t ebe_len = htud->boundary_len + 4;
-    ebe = (uint8_t *)SCMalloc(ebe_len);
+    ebe = (uint8_t *)HTPMalloc(ebe_len);
     if (ebe == NULL) {
         goto error;
     }
@@ -1063,10 +1063,10 @@ static int HtpRequestBodySetupBoundary(HtpTxUserData *htud,
 
 error:
     if (eb != NULL) {
-        SCFree(eb);
+        HTPFree(eb, eb_len);
     }
     if (ebe != NULL) {
-        SCFree(ebe);
+        HTPFree(ebe, ebe_len);
     }
     SCReturnInt(-1);
 }
@@ -1191,8 +1191,8 @@ static void HtpRequestBodyReassemble(HtpTxUserData *htud,
             uint8_t *pbuf = NULL;
 
             buf_len += tlen;
-            if ((pbuf = SCRealloc(buf, buf_len)) == NULL) {
-                SCFree(buf);
+            if ((pbuf = HTPRealloc(buf, buf_len - tlen, buf_len)) == NULL) {
+                HTPFree(buf, buf_len - tlen);
                 buf = NULL;
                 buf_len = 0;
                 break;
@@ -1204,8 +1204,8 @@ static void HtpRequestBodyReassemble(HtpTxUserData *htud,
             SCLogDebug("use entire chunk");
 
             buf_len += cur->len;
-            if ((pbuf = SCRealloc(buf, buf_len)) == NULL) {
-                SCFree(buf);
+            if ((pbuf = HTPRealloc(buf, buf_len - cur->len, buf_len)) == NULL) {
+                HTPFree(buf, buf_len - cur->len);
                 buf = NULL;
                 buf_len = 0;
                 break;
@@ -1498,10 +1498,10 @@ next:
     }
 end:
     if (expected_boundary != NULL) {
-        SCFree(expected_boundary);
+        HTPFree(expected_boundary, expected_boundary_len);
     }
     if (expected_boundary_end != NULL) {
-        SCFree(expected_boundary_end);
+        HTPFree(expected_boundary_end, expected_boundary_end_len);
     }
 
     SCLogDebug("htud->request_body.body_parsed %"PRIu64, htud->request_body.body_parsed);
@@ -1725,7 +1725,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
     if (tx_ud == NULL) {
-        tx_ud = SCMalloc(sizeof(HtpTxUserData));
+        tx_ud = HTPMalloc(sizeof(HtpTxUserData));
         if (unlikely(tx_ud == NULL)) {
             SCReturnInt(HTP_OK);
         }
@@ -1794,7 +1794,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
             HtpRequestBodyHandleMultipart(hstate, tx_ud, d->tx, chunks_buffer, chunks_buffer_len);
 
             if (chunks_buffer != NULL) {
-                SCFree(chunks_buffer);
+                HTPFree(chunks_buffer, chunks_buffer_len);
             }
         } else if (tx_ud->request_body_type == HTP_BODY_REQUEST_POST) {
             HtpRequestBodyHandlePOST(hstate, tx_ud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
@@ -1839,7 +1839,7 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
 
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
     if (tx_ud == NULL) {
-        tx_ud = SCMalloc(sizeof(HtpTxUserData));
+        tx_ud = HTPMalloc(sizeof(HtpTxUserData));
         if (unlikely(tx_ud == NULL)) {
             SCReturnInt(HTP_OK);
         }
@@ -2009,7 +2009,7 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
     if (request_uri_normalized == NULL)
         return HTP_OK;
 
-    tx_ud = SCMalloc(sizeof(*tx_ud));
+    tx_ud = HTPMalloc(sizeof(*tx_ud));
     if (unlikely(tx_ud == NULL)) {
         bstr_free(request_uri_normalized);
         return HTP_OK;
@@ -2054,16 +2054,17 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
     if (tx_ud == NULL) {
-        tx_ud = SCMalloc(sizeof(*tx_ud));
+        tx_ud = HTPMalloc(sizeof(*tx_ud));
         if (unlikely(tx_ud == NULL))
             return HTP_OK;
         memset(tx_ud, 0, sizeof(*tx_ud));
         htp_tx_set_user_data(tx_data->tx, tx_ud);
     }
-    ptmp = SCRealloc(tx_ud->request_headers_raw,
+    ptmp = HTPRealloc(tx_ud->request_headers_raw,
+                     tx_ud->request_headers_raw_len,
                      tx_ud->request_headers_raw_len + tx_data->len);
     if (ptmp == NULL) {
-        SCFree(tx_ud->request_headers_raw);
+        HTPFree(tx_ud->request_headers_raw, tx_ud->request_headers_raw_len);
         tx_ud->request_headers_raw = NULL;
         tx_ud->request_headers_raw_len = 0;
         HtpTxUserDataFree(tx_ud);
@@ -2091,16 +2092,17 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
     if (tx_ud == NULL) {
-        tx_ud = SCMalloc(sizeof(*tx_ud));
+        tx_ud = HTPMalloc(sizeof(*tx_ud));
         if (unlikely(tx_ud == NULL))
             return HTP_OK;
         memset(tx_ud, 0, sizeof(*tx_ud));
         htp_tx_set_user_data(tx_data->tx, tx_ud);
     }
-    ptmp = SCRealloc(tx_ud->response_headers_raw,
+    ptmp = HTPRealloc(tx_ud->response_headers_raw,
+                     tx_ud->response_headers_raw_len,
                      tx_ud->response_headers_raw_len + tx_data->len);
     if (ptmp == NULL) {
-        SCFree(tx_ud->response_headers_raw);
+        HTPFree(tx_ud->response_headers_raw, tx_ud->response_headers_raw_len);
         tx_ud->response_headers_raw = NULL;
         tx_ud->response_headers_raw_len = 0;
         HtpTxUserDataFree(tx_ud);
@@ -2453,6 +2455,8 @@ void HTPConfigure(void)
         HTPConfigParseParameters(&cfglist, ConfGetNode("app-layer.protocols.http.libhtp.default-config"), cfgtree);
     }
     HTPConfigSetDefaultsPhase2("default", &cfglist);
+
+    HTPParseMemcap();
 
     /* Read server config and create a parser for each IP in radix tree */
     ConfNode *server_config = ConfGetNode("app-layer.protocols.http.libhtp.server-config");
