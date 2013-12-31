@@ -159,6 +159,29 @@ int LiveBuildDeviceList(char * runmode)
     return i;
 }
 
+int LiveDeviceListClean()
+{
+    SCEnter();
+    LiveDevice *pd;
+
+    TAILQ_FOREACH(pd, &live_devices, next) {
+        SCLogNotice("Stats for '%s':  pkts: %u, drop: %u (%.2f%%), invalid chksum: %u",
+                    pd->dev,
+                    SC_ATOMIC_GET(pd->pkts),
+                    SC_ATOMIC_GET(pd->drop),
+                    100 * (SC_ATOMIC_GET(pd->drop) * 1.0) / SC_ATOMIC_GET(pd->pkts),
+                    SC_ATOMIC_GET(pd->invalid_checksums));
+        if (pd->dev)
+            SCFree(pd->dev);
+        SC_ATOMIC_DESTROY(pd->pkts);
+        SC_ATOMIC_DESTROY(pd->drop);
+        SC_ATOMIC_DESTROY(pd->invalid_checksums);
+        SCFree(pd);
+    }
+
+    SCReturnInt(TM_ECODE_OK);
+}
+
 #ifdef BUILD_UNIX_SOCKET
 TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *answer, void *data)
 {
