@@ -189,9 +189,18 @@ static inline void PfringDumpCounters(PfringThreadVars *ptv)
 {
     pfring_stat pfring_s;
     if (likely((pfring_stats(ptv->pd, &pfring_s) >= 0))) {
+        /* pfring counter is per socket and is not cleared after read.
+         * So to get the number of packet on the interface we can add
+         * the newly seen packets and drops for this thread and add it
+         * to the interface counter */
+        uint64_t th_pkts = SCPerfGetLocalCounterValue(ptv->capture_kernel_packets,
+                                                      ptv->tv->sc_perf_pca);
+        uint64_t th_drops = SCPerfGetLocalCounterValue(ptv->capture_kernel_drops,
+                                                       ptv->tv->sc_perf_pca);
+        SC_ATOMIC_ADD(ptv->livedev->pkts, pfring_s.recv - th_pkts);
+        SC_ATOMIC_ADD(ptv->livedev->drop, pfring_s.drop - th_drops);
         SCPerfCounterSetUI64(ptv->capture_kernel_packets, ptv->tv->sc_perf_pca, pfring_s.recv);
         SCPerfCounterSetUI64(ptv->capture_kernel_drops, ptv->tv->sc_perf_pca, pfring_s.drop);
-        SC_ATOMIC_SET(ptv->livedev->drop, pfring_s.drop);
     }
 }
 
@@ -211,7 +220,6 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
 
     ptv->bytes += h->caplen;
     ptv->pkts++;
-    (void) SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
     p->livedev = ptv->livedev;
 
     /* PF_RING may fail to set timestamp */
