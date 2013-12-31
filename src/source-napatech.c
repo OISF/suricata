@@ -317,7 +317,7 @@ void NapatechStreamThreadExitStats(ThreadVars *tv, void *data)
     if (ntv->drops > 0)
         percent = (((double) ntv->drops) / (ntv->pkts+ntv->drops)) * 100;
 
-    SCLogInfo("Stream: %lu; Packets: %"PRIu64"; Drops: %"PRIu64" (%5.2f%%); Bytes: %"PRIu64, ntv->stream_id, ntv->pkts, ntv->drops, percent, ntv->bytes);
+    SCLogNotice("Stream: %lu; Packets: %"PRIu64"; Drops: %"PRIu64" (%5.2f%%); Bytes: %"PRIu64, ntv->stream_id, ntv->pkts, ntv->drops, percent, ntv->bytes);
 }
 
 /**
