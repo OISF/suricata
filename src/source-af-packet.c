@@ -493,6 +493,7 @@ static inline void AFPDumpCounters(AFPThreadVars *ptv)
         SCPerfCounterAddUI64(ptv->capture_kernel_packets, ptv->tv->sc_perf_pca, kstats.tp_packets);
         SCPerfCounterAddUI64(ptv->capture_kernel_drops, ptv->tv->sc_perf_pca, kstats.tp_drops);
         (void) SC_ATOMIC_ADD(ptv->livedev->drop, kstats.tp_drops);
+        (void) SC_ATOMIC_ADD(ptv->livedev->pkts, kstats.tp_packets);
     }
 #endif
 }
@@ -561,7 +562,6 @@ int AFPRead(AFPThreadVars *ptv)
 
     ptv->pkts++;
     ptv->bytes += caplen + offset;
-    (void) SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
     p->livedev = ptv->livedev;
 
     /* add forged header */
