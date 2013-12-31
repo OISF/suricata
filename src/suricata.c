@@ -2296,6 +2296,7 @@ int main(int argc, char **argv)
 
     TagDestroyCtx();
 
+    LiveDeviceListClean();
     RunModeShutDown();
     OutputDeregisterAll();
     TimeDeinit();
