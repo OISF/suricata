@@ -107,6 +107,8 @@ static const char *RunModeTranslateModeToName(int runmode)
 #endif
         case RUNMODE_NFQ:
             return "NFQ";
+        case RUNMODE_NFLOG:
+            return "NFLOG";
         case RUNMODE_IPFW:
             return "IPFW";
         case RUNMODE_ERF_FILE:
@@ -193,6 +195,7 @@ void RunModeRegisterRunModes(void)
     RunModeErfDagRegister();
     RunModeNapatechRegister();
     RunModeIdsAFPRegister();
+    RunModeIdsNflogRegister();
     RunModeTileMpipeRegister();
     RunModeUnixSocketRegister();
 #ifdef UNITTESTS
@@ -295,6 +298,9 @@ void RunModeDispatch(int runmode, const char *custom_mode, DetectEngineCtx *de_c
                 break;
             case RUNMODE_UNIX_SOCKET:
                 custom_mode = RunModeUnixSocketGetDefaultMode();
+                break;
+            case RUNMODE_NFLOG:
+                custom_mode = RunModeIdsNflogGetDefaultMode();
                 break;
             default:
                 SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
