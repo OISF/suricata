@@ -30,6 +30,7 @@ enum {
     RUNMODE_PCAP_FILE,
     RUNMODE_PFRING,
     RUNMODE_NFQ,
+    RUNMODE_NFLOG,
     RUNMODE_IPFW,
     RUNMODE_ERF_FILE,
     RUNMODE_DAG,
@@ -81,6 +82,7 @@ void RunModeShutDown(void);
 #include "runmode-erf-dag.h"
 #include "runmode-napatech.h"
 #include "runmode-af-packet.h"
+#include "runmode-nflog.h"
 #include "runmode-unix-socket.h"
 
 int threading_set_cpu_affinity;
