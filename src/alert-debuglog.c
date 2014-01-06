@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -62,14 +62,15 @@
 
 #define MODULE_NAME "AlertDebugLog"
 
-TmEcode AlertDebugLog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode AlertDebugLog(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode AlertDebugLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode AlertDebugLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode AlertDebugLogThreadInit(ThreadVars *, void*, void **);
 TmEcode AlertDebugLogThreadDeinit(ThreadVars *, void *);
 void AlertDebugLogExitPrintStats(ThreadVars *, void *);
 
-void TmModuleAlertDebugLogRegister (void) {
+void TmModuleAlertDebugLogRegister(void)
+{
     tmm_modules[TMM_ALERTDEBUGLOG].name = MODULE_NAME;
     tmm_modules[TMM_ALERTDEBUGLOG].ThreadInit = AlertDebugLogThreadInit;
     tmm_modules[TMM_ALERTDEBUGLOG].Func = AlertDebugLog;
@@ -413,7 +414,7 @@ TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQ
     return TM_ECODE_OK;
 }
 
-TmEcode AlertDebugLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode AlertDebugLog(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     if (PKT_IS_IPV4(p)) {
         return AlertDebugLogger(tv, p, data, pq, postpq);

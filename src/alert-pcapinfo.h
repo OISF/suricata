@@ -1,4 +1,4 @@
-/* Copyright (C) 2011 Open Information Security Foundation
+/* Copyright (C) 2011-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,7 +24,7 @@
 #ifndef __ALERT_PCAPINFO_H__
 #define __ALERT_PCAPINFO_H__
 
-void TmModuleAlertPcapInfoRegister (void);
+void TmModuleAlertPcapInfoRegister(void);
 OutputCtx *AlertPcapInfoInitCtx(ConfNode *);
 
 #endif /* __ALERT_PCAPINFO_H__ */
