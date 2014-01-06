@@ -1523,6 +1523,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         }
     }
 
+    if (suri->disabled_detect && suri->sig_file != NULL) {
+        SCLogError(SC_ERR_INITIALIZATION, "can't use -s/-S when detection is disabled");
+        return TM_ECODE_FAILED;
+    }
+
     if (list_app_layer_protocols)
         suri->run_mode = RUNMODE_LIST_APP_LAYERS;
     if (list_cuda_cards)
