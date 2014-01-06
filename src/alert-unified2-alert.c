@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -239,7 +239,7 @@ TmEcode Unified2AlertThreadDeinit(ThreadVars *, void *);
 static int Unified2IPv4TypeAlert(ThreadVars *, const Packet *, void *);
 static int Unified2IPv6TypeAlert(ThreadVars *, const Packet *, void *);
 static int Unified2PacketTypeAlert(Unified2AlertThread *, const Packet *, uint32_t, int);
-void Unified2RegisterTests();
+void Unified2RegisterTests(void);
 int Unified2AlertOpenFileCtx(LogFileCtx *, const char *);
 static void Unified2AlertDeInitCtx(OutputCtx *);
 
@@ -248,7 +248,8 @@ int Unified2Logger(ThreadVars *tv, void *data, const Packet *p);
 
 #define MODULE_NAME "Unified2Alert"
 
-void TmModuleUnified2AlertRegister (void) {
+void TmModuleUnified2AlertRegister(void)
+{
     tmm_modules[TMM_ALERTUNIFIED2ALERT].name = MODULE_NAME;
     tmm_modules[TMM_ALERTUNIFIED2ALERT].ThreadInit = Unified2AlertThreadInit;
 //    tmm_modules[TMM_ALERTUNIFIED2ALERT].Func = Unified2Alert;
@@ -269,7 +270,8 @@ void TmModuleUnified2AlertRegister (void) {
  *  \param aun Unified2 thread variable.
  */
 
-int Unified2AlertCloseFile(ThreadVars *t, Unified2AlertThread *aun) {
+int Unified2AlertCloseFile(ThreadVars *t, Unified2AlertThread *aun)
+{
     if (aun->unified2alert_ctx->file_ctx->fp != NULL) {
         fclose(aun->unified2alert_ctx->file_ctx->fp);
     }
@@ -287,7 +289,8 @@ int Unified2AlertCloseFile(ThreadVars *t, Unified2AlertThread *aun) {
  *  \retval -1 on failure
  */
 
-int Unified2AlertRotateFile(ThreadVars *t, Unified2AlertThread *aun) {
+int Unified2AlertRotateFile(ThreadVars *t, Unified2AlertThread *aun)
+{
     if (Unified2AlertCloseFile(t,aun) < 0) {
         SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC,
                    "Error: Unified2AlertCloseFile failed");
@@ -324,7 +327,7 @@ static int Unified2Write(Unified2AlertThread *aun)
     return 1;
 }
 
-static int GetXFFIPFromTx (const Packet *p, uint64_t tx_id, char *xff_header, char *dstbuf, int dstbuflen)
+static int GetXFFIPFromTx(const Packet *p, uint64_t tx_id, char *xff_header, char *dstbuf, int dstbuflen)
 {
     uint8_t xff_chain[UNIFIED2_ALERT_XFF_CHAIN_MAXLEN];
     HtpState *htp_state = NULL;
@@ -381,7 +384,7 @@ static int GetXFFIPFromTx (const Packet *p, uint64_t tx_id, char *xff_header, ch
  *  \retval 1 if the IP has been found and returned in dstbuf
  *  \retval 0 if the IP has not being found or error
  */
-static int GetXFFIP (const Packet *p, char *xff_header, char *dstbuf, int dstbuflen)
+static int GetXFFIP(const Packet *p, char *xff_header, char *dstbuf, int dstbuflen)
 {
     HtpState *htp_state = NULL;
     uint64_t tx_id = 0;
@@ -415,7 +418,7 @@ int Unified2Condition(ThreadVars *tv, const Packet *p) {
  *  \retval TM_ECODE_OK all is good
  *  \retval TM_ECODE_FAILED serious error
  */
-int Unified2Logger (ThreadVars *t, void *data, const Packet *p)
+int Unified2Logger(ThreadVars *t, void *data, const Packet *p)
 {
     int ret = 0;
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
@@ -781,7 +784,7 @@ error:
  *  \retval 0 on succces
  *  \retval -1 on failure
  */
-static int Unified2PacketTypeAlert (Unified2AlertThread *aun, const Packet *p, uint32_t event_id, int stream)
+static int Unified2PacketTypeAlert(Unified2AlertThread *aun, const Packet *p, uint32_t event_id, int stream)
 {
     int ret = 0;
 
@@ -885,7 +888,7 @@ static int Unified2PacketTypeAlert (Unified2AlertThread *aun, const Packet *p, u
  *  \retval 0 on succces
  *  \retval -1 on failure
  */
-static int Unified2IPv6TypeAlert (ThreadVars *t, const Packet *p, void *data)
+static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
 {
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
     Unified2AlertFileHeader hdr;
@@ -1520,7 +1523,8 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
  *  \retval 0 on failure
  */
 
-static int Unified2Test01 (void)   {
+static int Unified2Test01(void)
+{
     ThreadVars tv;
     DecodeThreadVars dtv;
     PacketQueue pq;
@@ -1608,7 +1612,8 @@ end:
  *  \retval 0 on failure
  */
 
-static int Unified2Test02 (void)   {
+static int Unified2Test02(void)
+{
     ThreadVars tv;
     DecodeThreadVars dtv;
     PacketQueue pq;
@@ -1698,7 +1703,8 @@ end:
  *  \retval 0 on failure
  */
 
-static int Unified2Test03 (void) {
+static int Unified2Test03(void)
+{
     ThreadVars tv;
     DecodeThreadVars dtv;
     PacketQueue pq;
@@ -1806,7 +1812,8 @@ end:
  *  \retval 0 on failure
  */
 
-static int Unified2Test04 (void)   {
+static int Unified2Test04(void)
+{
     ThreadVars tv;
     DecodeThreadVars dtv;
     PacketQueue pq;
@@ -1889,7 +1896,8 @@ end:
  *  \retval 0 on failure
  */
 
-static int Unified2Test05 (void)   {
+static int Unified2Test05(void)
+{
     ThreadVars tv;
     DecodeThreadVars dtv;
     PacketQueue pq;
@@ -2041,7 +2049,8 @@ error:
 /**
  * \brief this function registers unit tests for Unified2
  */
-void Unified2RegisterTests (void) {
+void Unified2RegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("Unified2Test01 -- Ipv4 test", Unified2Test01, 1);
     UtRegisterTest("Unified2Test02 -- Ipv6 test", Unified2Test02, 1);
