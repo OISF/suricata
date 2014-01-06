@@ -43,6 +43,7 @@
 #include "util-time.h"
 #include "util-byte.h"
 #include "util-misc.h"
+#include "util-cpu.h"
 
 #include "source-pcap.h"
 
@@ -79,6 +80,11 @@ typedef struct PcapFileName_ {
     TAILQ_ENTRY(PcapFileName_) next; /**< Pointer to next Pcap File for tailq. */
 } PcapFileName;
 
+typedef struct PcapLogProfileData_ {
+    uint64_t total;
+    uint64_t cnt;
+} PcapLogProfileData;
+
 /**
  * PcapLog thread vars
  *
@@ -102,6 +108,13 @@ typedef struct PcapLogData_ {
     int use_stream_depth;       /**< use stream depth i.e. ignore packets that reach limit */
     char dir[PATH_MAX];         /**< pcap log directory */
 
+    int reported;
+    PcapLogProfileData profile_close;
+    PcapLogProfileData profile_open;
+    PcapLogProfileData profile_write;
+    PcapLogProfileData profile_rotate;
+    PcapLogProfileData profile_handles; // open handles
+
     SCMutex plog_lock;
     TAILQ_HEAD(, PcapFileName_) pcap_file_list;
 } PcapLogData;
@@ -121,6 +134,13 @@ void TmModulePcapLogRegister(void)
     return;
 }
 
+#define PCAPLOG_PROFILE_START \
+    uint64_t pcaplog_profile_ticks = UtilCpuGetTicks()
+
+#define PCAPLOG_PROFILE_END(prof) \
+    (prof).total += (UtilCpuGetTicks() - pcaplog_profile_ticks); \
+    (prof).cnt++
+
 /**
  * \brief Function to close pcaplog file
  *
@@ -130,6 +150,8 @@ void TmModulePcapLogRegister(void)
 int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
 {
     if (pl != NULL) {
+        PCAPLOG_PROFILE_START;
+
         if (pl->pcap_dumper != NULL)
             pcap_dump_close(pl->pcap_dumper);
         pl->size_current = 0;
@@ -138,6 +160,8 @@ int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
         if (pl->pcap_dead_handle != NULL)
             pcap_close(pl->pcap_dead_handle);
         pl->pcap_dead_handle = NULL;
+
+        PCAPLOG_PROFILE_END(pl->profile_close);
     }
 
     return 0;
@@ -171,6 +195,8 @@ int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
 {
     PcapFileName *pf;
     PcapFileName *pfnext;
+
+    PCAPLOG_PROFILE_START;
 
     if (PcapLogCloseFile(t,pl) < 0) {
         SCLogDebug("PcapLogCloseFile failed");
@@ -219,8 +245,35 @@ int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
         return -1;
     }
     pl->file_cnt++;
+    SCLogDebug("file_cnt %u", pl->file_cnt);
 
+    PCAPLOG_PROFILE_END(pl->profile_rotate);
     return 0;
+}
+
+static int PcapLogOpenHandles(PcapLogData *pl, Packet *p) {
+    PCAPLOG_PROFILE_START;
+
+    SCLogDebug("Setting pcap-log link type to %u", p->datalink);
+
+    if (pl->pcap_dead_handle == NULL) {
+        if ((pl->pcap_dead_handle = pcap_open_dead(p->datalink,
+                        -1)) == NULL) {
+            SCLogDebug("Error opening dead pcap handle");
+            return TM_ECODE_FAILED;
+        }
+    }
+
+    if (pl->pcap_dumper == NULL) {
+        if ((pl->pcap_dumper = pcap_dump_open(pl->pcap_dead_handle,
+                        pl->filename)) == NULL) {
+            SCLogInfo("Error opening dump file %s", pcap_geterr(pl->pcap_dead_handle));
+            return TM_ECODE_FAILED;
+        }
+    }
+
+    PCAPLOG_PROFILE_END(pl->profile_handles);
+    return TM_ECODE_OK;
 }
 
 /**
@@ -289,31 +342,18 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
 
     /* XXX pcap handles, nfq, pfring, can only have one link type ipfw? we do
      * this here as we don't know the link type until we get our first packet */
-    if (pl->pcap_dead_handle == NULL) {
-        SCLogDebug("Setting pcap-log link type to %u", p->datalink);
-
-        if ((pl->pcap_dead_handle = pcap_open_dead(p->datalink,
-                                                   -1)) == NULL) {
-            SCLogDebug("Error opening dead pcap handle");
-
-            SCMutexUnlock(&pl->plog_lock);
-            return TM_ECODE_FAILED;
-        }
-    }
-    /* XXX LogfileCtx setup currently doesn't allow thread vars so we open the
-     * handle here */
-    if (pl->pcap_dumper == NULL) {
-        if ((pl->pcap_dumper = pcap_dump_open(pl->pcap_dead_handle,
-                                              pl->filename)) == NULL) {
-            SCLogInfo("Error opening dump file %s", pcap_geterr(pl->pcap_dead_handle));
-
+    if (pl->pcap_dead_handle == NULL || pl->pcap_dumper == NULL) {
+        if (PcapLogOpenHandles(pl, p) != TM_ECODE_OK) {
             SCMutexUnlock(&pl->plog_lock);
             return TM_ECODE_FAILED;
         }
     }
 
+    PCAPLOG_PROFILE_START;
     pcap_dump((u_char *)pl->pcap_dumper, pl->h, GET_PKT_DATA(p));
     pl->size_current += len;
+    PCAPLOG_PROFILE_END(pl->profile_write);
+
     SCLogDebug("pl->size_current %"PRIu64",  pl->size_limit %"PRIu64,
                pl->size_current, pl->size_limit);
 
@@ -351,6 +391,37 @@ TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
     return TM_ECODE_OK;
 }
 
+static void FormatNumber(uint64_t num, char *str, size_t size) {
+    if (num < 1000UL)
+        snprintf(str, size, "%"PRIu64, num);
+    else if (num < 1000000UL)
+        snprintf(str, size, "%3.1fk", (float)num/1000UL);
+    else if (num < 1000000000UL)
+        snprintf(str, size, "%3.1fm", (float)num/1000000UL);
+    else
+        snprintf(str, size, "%3.1fb", (float)num/1000000000UL);
+}
+
+static void ProfileReportPair(const char *name, PcapLogProfileData *p) {
+    char ticks_str[32];
+    char cnt_str[32];
+    char avg_str[32];
+
+    FormatNumber((uint64_t)p->cnt, cnt_str, sizeof(cnt_str));
+    FormatNumber((uint64_t)p->total, ticks_str, sizeof(ticks_str));
+    FormatNumber((uint64_t)(p->total/p->cnt), avg_str, sizeof(avg_str));
+
+    SCLogInfo("%-8s called %-10s ticks %-10s avg %-8s", name, cnt_str, ticks_str, avg_str);
+}
+
+static void ProfileReport(PcapLogData *pl) {
+    ProfileReportPair("open", &pl->profile_open);
+    ProfileReportPair("close", &pl->profile_close);
+    ProfileReportPair("write", &pl->profile_write);
+    ProfileReportPair("rotate", &pl->profile_rotate);
+    ProfileReportPair("handles", &pl->profile_handles);
+}
+
 /**
  *  \brief Thread deinit function.
  *
@@ -362,6 +433,18 @@ TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
 
 TmEcode PcapLogDataDeinit(ThreadVars *t, void *data)
 {
+    PcapLogData *pl = data;
+
+    if (pl->pcap_dumper != NULL) {
+        if (PcapLogCloseFile(t,pl) < 0) {
+            SCLogDebug("PcapLogCloseFile failed");
+        }
+    }
+
+    if (pl->reported == 0) {
+        ProfileReport(pl);
+        pl->reported = 1;
+    }
     return TM_ECODE_OK;
 }
 
@@ -589,6 +672,8 @@ int PcapLogOpenFileCtx(PcapLogData *pl)
 {
     char *filename = NULL;
 
+    PCAPLOG_PROFILE_START;
+
     if (pl->filename != NULL)
         filename = pl->filename;
     else {
@@ -661,6 +746,7 @@ int PcapLogOpenFileCtx(PcapLogData *pl)
     SCLogDebug("Opening pcap file log %s", pf->filename);
     TAILQ_INSERT_TAIL(&pl->pcap_file_list, pf, next);
 
+    PCAPLOG_PROFILE_END(pl->profile_open);
     return 0;
 
 error:
