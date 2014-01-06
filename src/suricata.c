@@ -927,7 +927,11 @@ static void SCInstanceInit(SCInstance *suri)
     suri->verbose = 0;
     /* use -1 as unknown */
     suri->checksum_validation = -1;
-    suri->disabled_detect = 0;
+#if HAVE_DETECT_DISABLED==1
+    g_detect_disabled = suri->disabled_detect = 1;
+#else
+    g_detect_disabled = suri->disabled_detect = 0;
+#endif
 }
 
 static TmEcode PrintVersion()
