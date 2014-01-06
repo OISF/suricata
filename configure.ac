@@ -383,6 +383,13 @@
         CFLAGS="$CFLAGS -DIPFW"
     ])
 
+  # disable detection
+    AC_ARG_ENABLE(detection,
+           AS_HELP_STRING([--disable-detection], [Disable Detection Modules]))
+    AS_IF([test "x$enable_detection" = "xno"], [
+        AC_DEFINE([HAVE_DETECT_DISABLED], [1], [Detection is disabled])]
+    ])
+
 # libraries
 
     AC_MSG_CHECKING([for Mpipe])
@@ -1622,6 +1629,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   DAG enabled:                             ${enable_dag}
   Napatech enabled:                        ${enable_napatech}
   Unix socket enabled:                     ${enable_unixsocket}
+  Detection enabled:                       ${enable_detection}
 
   libnss support:                          ${enable_nss}
   libnspr support:                         ${enable_nspr}
