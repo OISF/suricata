@@ -3,11 +3,9 @@
  *  \author Breno Silva <breno.silva@gmail.com>
  */
 
-#ifndef __PCAP_LOG_ALERT_H__
-#define __PCAP_LOG_ALERT_H__
+#ifndef __PCAP_LOG_H__
+#define __PCAP_LOG_H__
 
 void TmModulePcapLogRegister (void);
-OutputCtx *PcapLogInitCtx(ConfNode *);
 
-
-#endif /* __PCAP_LOG_ALERT_H__ */
+#endif /* __PCAP_LOG_H__ */
