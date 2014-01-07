@@ -62,7 +62,11 @@
 
 #define MODULE_NAME "AlertFastLog"
 
+/* The largest that size allowed for one alert string. */
 #define MAX_FASTLOG_ALERT_SIZE 2048
+/* The largest alert buffer that will be written at one time, possibly
+ * holding multiple alerts. */
+#define MAX_FASTLOG_BUFFER_SIZE (2 * MAX_FASTLOG_ALERT_SIZE)
 
 TmEcode AlertFastLogThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertFastLogThreadDeinit(ThreadVars *, void *);
@@ -98,20 +102,11 @@ int AlertFastLogCondition(ThreadVars *tv, const Packet *p) {
 static inline void AlertFastLogOutputAlert(AlertFastLogThread *aft, char *buffer,
                                            int alert_size)
 {
-    FILE *fp = aft->file_ctx->fp;
-    /* fp should never be NULL, but checking here makes sure the value
-     * is available before the lock is aquired, rather than possibly
-     * stalling while holding the lock.
-     */
-    if (unlikely(fp == NULL))
-        return;
-
-    /* Output the alert string. Only need to lock here. */
     SCMutex *file_lock = &aft->file_ctx->fp_mutex;
+    /* Output the alert string and count alerts. Only need to lock here. */
     SCMutexLock(file_lock);
     aft->file_ctx->alerts++;
-    fwrite(buffer, alert_size, 1, fp);
-    fflush(fp);
+    aft->file_ctx->Write(buffer, alert_size, aft->file_ctx);
     SCMutexUnlock(file_lock);
 }
 
@@ -121,7 +116,6 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
     int i;
     char timebuf[64];
     char *action = "";
-    extern uint8_t engine_mode;
     int decoder_event = 0;
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
@@ -137,21 +131,18 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
         decoder_event = 1;
     }
 
-    /* Buffer to store the generated alert string. The buffer is
-     * reused for each alert.
+    /* Buffer to store the generated alert strings. The buffer is
+     * filled with alert strings until it doesn't have room to store
+     * another full alert, only then is the buffer written.  This is
+     * more efficient for multiple alerts and only slightly slower for
+     * single alerts.
      */
-    char alert_buffer[MAX_FASTLOG_ALERT_SIZE];
+    char alert_buffer[MAX_FASTLOG_BUFFER_SIZE];
 
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
             continue;
-        }
-
-        if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
-            action = "[Drop] ";
-        } else if (pa->action & ACTION_DROP) {
-            action = "[wDrop] ";
         }
 
         char proto[16] = "";
@@ -178,7 +169,8 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
                             ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: "
                             "%" PRIu32 "] [**] [Raw pkt: ", timebuf, action, pa->s->gid,
                             pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio);
-            PrintBufferRawLineHex(alert_buffer, &size, GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
+            PrintBufferRawLineHex(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
+                                  GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
             if (p->pcap_cnt != 0) {
                 PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
                                 "] [pcap file packet: %"PRIu64"]\n", p->pcap_cnt);

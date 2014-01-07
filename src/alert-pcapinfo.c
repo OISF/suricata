@@ -57,6 +57,7 @@
 #include "util-print.h"
 #include "util-proto-name.h"
 #include "util-optimize.h"
+#include "util-logopenfile.h"
 
 #define DEFAULT_LOG_FILENAME "alert-pcapinfo.log"
 /* We need a new file for each pcap */

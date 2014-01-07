@@ -53,6 +53,7 @@
 #include "util-time.h"
 #include "util-byte.h"
 #include "util-misc.h"
+#include "util-logopenfile.h"
 
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"

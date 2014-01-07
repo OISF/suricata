@@ -30,6 +30,7 @@ void TmModuleOutputJsonRegister (void);
 
 #include "suricata-common.h"
 #include "util-buffer.h"
+#include "util-logopenfile.h"
 
 json_t *CreateJSONHeader(Packet *p, int direction_sensative, char *event_type);
 TmEcode OutputJSON(json_t *js, void *data, uint64_t *count);

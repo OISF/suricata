@@ -308,6 +308,7 @@ util-host-os-info.c util-host-os-info.h \
 util-ioctl.h util-ioctl.c \
 util-ip.h util-ip.c \
 util-logopenfile.h util-logopenfile.c \
+util-logopenfile-tile.h util-logopenfile-tile.c \
 util-magic.c util-magic.h \
 util-memcmp.c util-memcmp.h \
 util-mem.h \
