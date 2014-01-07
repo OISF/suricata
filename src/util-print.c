@@ -33,21 +33,19 @@
  *
  *  Prints in the format "00 AA BB"
  *
- *  \param fp FILE pointer to print to
+ *  \param nbuf buffer into which the output is written
+ *  \param offset of where to start writting into the buffer
+ *  \param max_size the size of the output buffer
  *  \param buf buffer to print from
  *  \param buflen length of the input buffer
  */
-void PrintRawLineHexFp(FILE *fp, uint8_t *buf, uint32_t buflen)
+void PrintBufferRawLineHex(char *nbuf, int *offset, int max_size, uint8_t *buf, uint32_t buflen)
 {
-#define BUFFER_LENGTH 2048
-    char nbuf[BUFFER_LENGTH] = "";
-    uint32_t offset = 0;
     uint32_t u = 0;
 
     for (u = 0; u < buflen; u++) {
-        PrintBufferData(nbuf, &offset, BUFFER_LENGTH, "%02X ", buf[u]);
+        PrintBufferData(nbuf, offset, max_size, "%02X ", buf[u]);
     }
-    fprintf(fp, "%s", nbuf);
 }
 
 /**
