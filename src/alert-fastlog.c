@@ -62,7 +62,11 @@
 
 #define MODULE_NAME "AlertFastLog"
 
+/* The largest that size allowed for one alert string. */
 #define MAX_FASTLOG_ALERT_SIZE 2048
+/* The largest alert buffer that will be written at one time, possibly
+ * holding multiple alerts. */
+#define MAX_FASTLOG_BUFFER_SIZE (2 * MAX_FASTLOG_ALERT_SIZE)
 
 TmEcode AlertFastLogThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertFastLogThreadDeinit(ThreadVars *, void *);
@@ -137,21 +141,18 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
         decoder_event = 1;
     }
 
-    /* Buffer to store the generated alert string. The buffer is
-     * reused for each alert.
+    /* Buffer to store the generated alert strings. The buffer is
+     * filled with alert strings until it doesn't have room to store
+     * another full alert, only then is the buffer written.  This is
+     * more efficient for multiple alerts and only slightly slower for
+     * single alerts.
      */
-    char alert_buffer[MAX_FASTLOG_ALERT_SIZE];
+    char alert_buffer[MAX_FASTLOG_BUFFER_SIZE];
 
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
             continue;
-        }
-
-        if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
-            action = "[Drop] ";
-        } else if (pa->action & ACTION_DROP) {
-            action = "[wDrop] ";
         }
 
         char proto[16] = "";
