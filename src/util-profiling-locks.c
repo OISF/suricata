@@ -136,6 +136,10 @@ void LockRecordAdd(ProfilingLock *l) {
 /** \param p void ptr to Packet struct */
 void SCProfilingAddPacketLocks(void *p) {
     int i;
+
+    if (profiling_locks_enabled == 0)
+        return;
+
     for (i = 0; i < locks_idx; i++) {
         pthread_mutex_lock(&lock_records_mutex);
         LockRecordAdd(&locks[i]);
