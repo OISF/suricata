@@ -62,6 +62,8 @@
 
 #define MODULE_NAME "AlertFastLog"
 
+#define MAX_FASTLOG_ALERT_SIZE 2048
+
 TmEcode AlertFastLogThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertFastLogThreadDeinit(ThreadVars *, void *);
 void AlertFastLogExitPrintStats(ThreadVars *, void *);
@@ -93,6 +95,26 @@ int AlertFastLogCondition(ThreadVars *tv, const Packet *p) {
     return (p->alerts.cnt ? TRUE : FALSE);
 }
 
+static inline void AlertFastLogOutputAlert(AlertFastLogThread *aft, char *buffer,
+                                           int alert_size)
+{
+    FILE *fp = aft->file_ctx->fp;
+    /* fp should never be NULL, but checking here makes sure the value
+     * is available before the lock is aquired, rather than possibly
+     * stalling while holding the lock.
+     */
+    if (unlikely(fp == NULL))
+        return;
+
+    /* Output the alert string. Only need to lock here. */
+    SCMutex *file_lock = &aft->file_ctx->fp_mutex;
+    SCMutexLock(file_lock);
+    aft->file_ctx->alerts++;
+    fwrite(buffer, alert_size, 1, fp);
+    fflush(fp);
+    SCMutexUnlock(file_lock);
+}
+
 int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
 {
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
@@ -115,6 +137,11 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
         decoder_event = 1;
     }
 
+    /* Buffer to store the generated alert string. The buffer is
+     * reused for each alert.
+     */
+    char alert_buffer[MAX_FASTLOG_ALERT_SIZE];
+
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
@@ -136,33 +163,36 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
             }
         }
 
-        SCMutexLock(&aft->file_ctx->fp_mutex);
+        /* Create the alert string without locking. */
+        int size = 0;
         if (likely(decoder_event == 0)) {
-            fprintf(aft->file_ctx->fp, "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
-                    PRIu32 "] %s [**] [Classification: %s] [Priority: %"PRIu32"]"
-                    " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "\n", timebuf, action,
-                    pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio,
-                    proto, srcip, p->sp, dstip, p->dp);
+            PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
+                            "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
+                            PRIu32 "] %s [**] [Classification: %s] [Priority: %"PRIu32"]"
+                            " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "\n", timebuf, action,
+                            pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio,
+                            proto, srcip, p->sp, dstip, p->dp);
         } else {
-            fprintf(aft->file_ctx->fp, "%s  %s[**] [%" PRIu32 ":%" PRIu32
-                    ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: "
-                    "%" PRIu32 "] [**] [Raw pkt: ", timebuf, action, pa->s->gid,
-                    pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio);
-            PrintRawLineHexFp(aft->file_ctx->fp, GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
+            PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
+                            "%s  %s[**] [%" PRIu32 ":%" PRIu32
+                            ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: "
+                            "%" PRIu32 "] [**] [Raw pkt: ", timebuf, action, pa->s->gid,
+                            pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio);
+            PrintBufferRawLineHex(alert_buffer, &size, GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
             if (p->pcap_cnt != 0) {
-                fprintf(aft->file_ctx->fp, "] [pcap file packet: %"PRIu64"]\n", p->pcap_cnt);
+                PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
+                                "] [pcap file packet: %"PRIu64"]\n", p->pcap_cnt);
             } else {
-                fprintf(aft->file_ctx->fp, "]\n");
+                PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, "]\n");
             }
         }
-        fflush(aft->file_ctx->fp);
-        aft->file_ctx->alerts++;
-        SCMutexUnlock(&aft->file_ctx->fp_mutex);
+
+        /* Write the alert to output file */
+        AlertFastLogOutputAlert(aft, alert_buffer, size);
     }
 
     return TM_ECODE_OK;
 }
-
 
 TmEcode AlertFastLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
