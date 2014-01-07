@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -20,6 +20,7 @@
  * \file
  *
  * \author William Metcalf <William.Metcalf@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  *
  * Pcap packet logging module.
  */
@@ -69,11 +70,6 @@
 #define USE_STREAM_DEPTH_DISABLED       0
 #define USE_STREAM_DEPTH_ENABLED        1
 
-TmEcode PcapLog(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode PcapLogDataInit(ThreadVars *, void *, void **);
-TmEcode PcapLogDataDeinit(ThreadVars *, void *);
-static void PcapLogFileDeInitCtx(OutputCtx *);
-
 typedef struct PcapFileName_ {
     char *filename;
     char *dirname;
@@ -119,7 +115,12 @@ typedef struct PcapLogData_ {
     TAILQ_HEAD(, PcapFileName_) pcap_file_list;
 } PcapLogData;
 
-int PcapLogOpenFileCtx(PcapLogData *);
+static int PcapLogOpenFileCtx(PcapLogData *);
+static TmEcode PcapLog(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+static TmEcode PcapLogDataInit(ThreadVars *, void *, void **);
+static TmEcode PcapLogDataDeinit(ThreadVars *, void *);
+static void PcapLogFileDeInitCtx(OutputCtx *);
+static OutputCtx *PcapLogInitCtx(ConfNode *);
 
 void TmModulePcapLogRegister(void)
 {
@@ -147,7 +148,7 @@ void TmModulePcapLogRegister(void)
  * \param t Thread Variable containing  input/output queue, cpu affinity etc.
  * \param pl PcapLog thread variable.
  */
-int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
+static int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
 {
     if (pl != NULL) {
         PCAPLOG_PROFILE_START;
@@ -191,7 +192,7 @@ static void PcapFileNameFree(PcapFileName *pf)
  * \retval 0 on succces
  * \retval -1 on failure
  */
-int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
+static int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
 {
     PcapFileName *pf;
     PcapFileName *pfnext;
@@ -288,7 +289,7 @@ static int PcapLogOpenHandles(PcapLogData *pl, Packet *p) {
  * \retval TM_ECODE_OK on succes
  * \retval TM_ECODE_FAILED on serious error
  */
-TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
+static TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
                  PacketQueue *postpq)
 {
     size_t len;
@@ -361,7 +362,7 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
     return TM_ECODE_OK;
 }
 
-TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
 {
     if (initdata == NULL) {
         SCLogDebug("Error getting context for PcapLog. \"initdata\" argument NULL");
@@ -431,7 +432,7 @@ static void ProfileReport(PcapLogData *pl) {
  *  \retval TM_ECODE_FAILED on failure
  */
 
-TmEcode PcapLogDataDeinit(ThreadVars *t, void *data)
+static TmEcode PcapLogDataDeinit(ThreadVars *t, void *data)
 {
     PcapLogData *pl = data;
 
@@ -452,7 +453,7 @@ TmEcode PcapLogDataDeinit(ThreadVars *t, void *data)
  *  \param conf The configuration node for this output.
  *  \retval output_ctx
  * */
-OutputCtx *PcapLogInitCtx(ConfNode *conf)
+static OutputCtx *PcapLogInitCtx(ConfNode *conf)
 {
     PcapLogData *pl = SCMalloc(sizeof(PcapLogData));
     if (unlikely(pl == NULL)) {
@@ -668,7 +669,7 @@ static void PcapLogFileDeInitCtx(OutputCtx *output_ctx)
  *  \retval -1 if failure
  *  \retval 0 if succesful
  */
-int PcapLogOpenFileCtx(PcapLogData *pl)
+static int PcapLogOpenFileCtx(PcapLogData *pl)
 {
     char *filename = NULL;
 
