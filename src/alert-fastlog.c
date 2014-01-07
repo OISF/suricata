@@ -62,7 +62,11 @@
 
 #define MODULE_NAME "AlertFastLog"
 
+/* The largest that size allowed for one alert string. */
 #define MAX_FASTLOG_ALERT_SIZE 2048
+/* The largest alert buffer that will be written at one time, possibly
+ * holding multiple alerts. */
+#define MAX_FASTLOG_BUFFER_SIZE (2 * MAX_FASTLOG_ALERT_SIZE)
 
 TmEcode AlertFastLog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode AlertFastLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
@@ -111,7 +115,8 @@ typedef struct AlertFastLogThread_ {
     LogFileCtx* file_ctx;
 } AlertFastLogThread;
 
-static inline void AlertFastLogOutputAlert(AlertFastLogThread *aft, char *buffer, int alert_size)
+static inline void AlertFastLogOutputAlert(AlertFastLogThread *aft, char *buffer, 
+                                           int alert_size, int alerts_in_buffer)
 {
     FILE *fp = aft->file_ctx->fp;
     /* fp should never be NULL, but checking here makes sure the value
@@ -124,21 +129,32 @@ static inline void AlertFastLogOutputAlert(AlertFastLogThread *aft, char *buffer
     /* Output the alert string. Only need to lock here. */
     SCMutex *file_lock = &aft->file_ctx->fp_mutex;
     SCMutexLock(file_lock);
-    aft->file_ctx->alerts++;
+    aft->file_ctx->alerts += alerts_in_buffer;
     fwrite(buffer, alert_size, 1, fp);
     fflush(fp);
     SCMutexUnlock(file_lock);
 }
 
+static inline const char const *AlertFastLogAction(const PacketAlert const *pa)
+{
+    extern uint8_t engine_mode;
+
+    if (pa->action & ACTION_DROP) {
+        if (IS_ENGINE_MODE_IPS(engine_mode))
+            return "[Drop] ";
+        else
+            return "[wDrop] ";
+    } else
+        return "";
+}
+
 TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
-    int i;
     char timebuf[64];
-    char *action = "";
-    extern uint8_t engine_mode;
 
-    if (p->alerts.cnt == 0)
+    int alert_count = p->alerts.cnt;
+    if (alert_count == 0)
         return TM_ECODE_OK;
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
@@ -147,21 +163,20 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
     PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
 
-    /* Buffer to store the generated alert string. The buffer is
-     * reused for each alert.
+    /* Buffer to store the generated alert strings. The buffer is
+     * filled with alert strings until it doesn't have room to store
+     * another full alert, only then is the buffer written.  This is
+     * more efficient for multiple alerts and only slightly slower for
+     * single alerts.
      */
-    char alert_buffer[MAX_FASTLOG_ALERT_SIZE];
+    char alert_buffer[MAX_FASTLOG_BUFFER_SIZE];
+    int alert_offset = 0;
+    int alerts_in_buffer = 0;
 
-    for (i = 0; i < p->alerts.cnt; i++) {
+    for (int i = 0; i < alert_count; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
             continue;
-        }
-
-        if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
-            action = "[Drop] ";
-        } else if (pa->action & ACTION_DROP) {
-            action = "[wDrop] ";
         }
 
         char proto[16] = "";
@@ -172,16 +187,28 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         }
 
         /* Create the alert string without locking. */
-        int size = 0;
-        PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
+        PrintBufferData(alert_buffer, &alert_offset, MAX_FASTLOG_BUFFER_SIZE, 
                         "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
                         PRIu32 "] %s [**] [Classification: %s] [Priority: %"PRIu32"]"
-                        " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "\n", timebuf, action,
+                        " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "\n", timebuf, AlertFastLogAction(pa),
                         pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio,
                         proto, srcip, p->sp, dstip, p->dp);
 
-        AlertFastLogOutputAlert(aft, alert_buffer, size);
+        alerts_in_buffer++;
+
+        /* If there is not enough room to generate another alert,
+         * write the buffer, otherwise keep generating alerts. */
+        if (alert_offset + MAX_FASTLOG_ALERT_SIZE > MAX_FASTLOG_BUFFER_SIZE) {
+            AlertFastLogOutputAlert(aft, alert_buffer, alert_offset, alerts_in_buffer);
+            /* Reset the buffer for new alerts. */
+            alerts_in_buffer = 0;
+            alert_offset = 0;
+        }
     }
+
+    /* Write any remaining alerts in the buffer. */
+    if (alerts_in_buffer)
+        AlertFastLogOutputAlert(aft, alert_buffer, alert_offset, alerts_in_buffer);
 
     return TM_ECODE_OK;
 }
@@ -189,12 +216,10 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
-    int i;
     char timebuf[64];
-    char *action = "";
-    extern uint8_t engine_mode;
 
-    if (p->alerts.cnt == 0)
+    int alert_count = p->alerts.cnt;
+    if (alert_count == 0)
         return TM_ECODE_OK;
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
@@ -203,21 +228,20 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
     PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
 
-    /* Buffer to store the generated alert string. The buffer is
-     * reused for each alert.
+    /* Buffer to store the generated alert strings. The buffer is
+     * filled with alert strings until it doesn't have room to store
+     * another full alert, only then is the buffer written.  This is
+     * more efficient for multiple alerts and only slightly slower for
+     * single alerts.
      */
-    char alert_buffer[MAX_FASTLOG_ALERT_SIZE];
+    char alert_buffer[MAX_FASTLOG_BUFFER_SIZE];
+    int alert_offset = 0;
+    int alerts_in_buffer = 0;
 
-    for (i = 0; i < p->alerts.cnt; i++) {
+    for (int i = 0; i < alert_count; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
             continue;
-        }
-
-        if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
-            action = "[Drop] ";
-        } else if (pa->action & ACTION_DROP) {
-            action = "[wDrop] ";
         }
 
         char proto[16] = "";
@@ -228,17 +252,30 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         }
 
         /* Create the alert string without locking. */
-        int size = 0;
-        PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
+        PrintBufferData(alert_buffer, &alert_offset, MAX_FASTLOG_BUFFER_SIZE, 
                         "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
                         PRIu32 "] %s [**] [Classification: %s] [Priority: %"
                         PRIu32 "] {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "\n", timebuf,
-                        action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg,
+                        AlertFastLogAction(pa), pa->s->gid, pa->s->id, pa->s->rev, 
+                        pa->s->msg, pa->s->class_msg,
                         pa->s->prio, proto, srcip, p->sp,
                         dstip, p->dp);
 
-        AlertFastLogOutputAlert(aft, alert_buffer, size);
+        alerts_in_buffer++;
+
+        /* If there is not enough room to generate another alert,
+         * write the buffer, otherwise keep generating alerts. */
+        if (alert_offset + MAX_FASTLOG_ALERT_SIZE > MAX_FASTLOG_BUFFER_SIZE) {
+            AlertFastLogOutputAlert(aft, alert_buffer, alert_offset, alerts_in_buffer);
+            /* Reset the buffer for new alerts. */
+            alerts_in_buffer = 0;
+            alert_offset = 0;
+        }
     }
+
+    /* Write any remaining alerts in the buffer. */
+    if (alerts_in_buffer)
+        AlertFastLogOutputAlert(aft, alert_buffer, alert_offset, alerts_in_buffer);
 
     return TM_ECODE_OK;
 }
@@ -246,51 +283,61 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 TmEcode AlertFastLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
-    int i;
     char timebuf[64];
-    char *action = "";
-    extern uint8_t engine_mode;
 
-    if (p->alerts.cnt == 0)
+    int alert_count = p->alerts.cnt;
+    if (alert_count == 0)
         return TM_ECODE_OK;
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
-    /* Buffer to store the generated alert string. The buffer is
-     * reused for each alert.
+    /* Buffer to store the generated alert strings. The buffer is
+     * filled with alert strings until it doesn't have room to store
+     * another full alert, only then is the buffer written.  This is
+     * more efficient for multiple alerts and only slightly slower for
+     * single alerts.
      */
-    char alert_buffer[MAX_FASTLOG_ALERT_SIZE];
+    char alert_buffer[MAX_FASTLOG_BUFFER_SIZE];
+    int alert_offset = 0;
+    int alerts_in_buffer = 0;
 
-    for (i = 0; i < p->alerts.cnt; i++) {
+    for (int i = 0; i < alert_count; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
             continue;
         }
 
-        if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
-            action = "[Drop] ";
-        } else if (pa->action & ACTION_DROP) {
-            action = "[wDrop] ";
-        }
-
-        int size = 0;
-        PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
+        PrintBufferData(alert_buffer, &alert_offset, MAX_FASTLOG_BUFFER_SIZE, 
                         "%s  %s[**] [%" PRIu32 ":%" PRIu32
                         ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: "
-                        "%" PRIu32 "] [**] [Raw pkt: ", timebuf, action, pa->s->gid,
+                        "%" PRIu32 "] [**] [Raw pkt: ", timebuf, AlertFastLogAction(pa), 
+                        pa->s->gid,
                         pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio);
         
-        PrintBufferRawLineHex(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
+        PrintBufferRawLineHex(alert_buffer, &alert_offset, MAX_FASTLOG_BUFFER_SIZE, 
                               GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
 
         if (p->pcap_cnt != 0) {
-            PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
+            PrintBufferData(alert_buffer, &alert_offset, MAX_FASTLOG_BUFFER_SIZE,
                             "] [pcap file packet: %"PRIu64"", p->pcap_cnt);
         }
-        PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, "]\n");
+        PrintBufferData(alert_buffer, &alert_offset, MAX_FASTLOG_BUFFER_SIZE, "]\n");
         
-        AlertFastLogOutputAlert(aft, alert_buffer, size);
+        alerts_in_buffer++;
+
+        /* If there is not enough room to generate another alert,
+         * write the buffer, otherwise keep generating alerts. */
+        if (alert_offset + MAX_FASTLOG_ALERT_SIZE > MAX_FASTLOG_BUFFER_SIZE) {
+            AlertFastLogOutputAlert(aft, alert_buffer, alert_offset, alerts_in_buffer);
+            /* Reset the buffer for new alerts. */
+            alerts_in_buffer = 0;
+            alert_offset = 0;
+        }
     }
+
+    /* Write any remaining alerts in the buffer. */
+    if (alerts_in_buffer)
+        AlertFastLogOutputAlert(aft, alert_buffer, alert_offset, alerts_in_buffer);
 
     return TM_ECODE_OK;
 }
