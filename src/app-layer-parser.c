@@ -662,10 +662,9 @@ int AppLayerParserGetEventInfo(uint16_t ipproto, AppProto alproto, const char *e
 {
     SCEnter();
     int ipproto_map = FlowGetProtoMapping(ipproto);
-    SCReturnInt((alp_ctx.ctxs[ipproto_map][alproto].StateGetEventInfo == NULL) ?
-                -1 :
-                alp_ctx.ctxs[ipproto_map][alproto].
-                StateGetEventInfo(event_name, event_id, event_type));
+    int r = (alp_ctx.ctxs[ipproto_map][alproto].StateGetEventInfo == NULL) ?
+                -1 : alp_ctx.ctxs[ipproto_map][alproto].StateGetEventInfo(event_name, event_id, event_type);
+    SCReturnInt(r);
 }
 
 uint8_t AppLayerParserGetFirstDataDir(uint16_t ipproto, uint16_t alproto)
@@ -860,16 +859,16 @@ int AppLayerParserProtocolIsTxEventAware(uint16_t ipproto, AppProto alproto)
 {
     SCEnter();
     int ipproto_map = FlowGetProtoMapping(ipproto);
-    SCReturnInt((alp_ctx.ctxs[ipproto_map][alproto].StateHasEvents == NULL) ?
-                0 : 1);
+    int r = (alp_ctx.ctxs[ipproto_map][alproto].StateHasEvents == NULL) ? 0 : 1;
+    SCReturnInt(r);
 }
 
 int AppLayerParserProtocolSupportsTxs(uint16_t ipproto, AppProto alproto)
 {
     SCEnter();
     int ipproto_map = FlowGetProtoMapping(ipproto);
-    SCReturnInt((alp_ctx.ctxs[ipproto_map][alproto].StateTransactionFree == NULL) ?
-                0 : 1);
+    int r = (alp_ctx.ctxs[ipproto_map][alproto].StateTransactionFree == NULL) ? 0 : 1;
+    SCReturnInt(r);
 }
 
 void AppLayerParserTriggerRawStreamReassembly(Flow *f)

@@ -3610,6 +3610,7 @@ static int DetectEngineHttpClientBodyTest29(void)
     DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
+    void *alp_tctx = NULL;
     const char *request_buffer = "GET /one HTTP/1.0\r\n"
         "Host: localhost\r\n"
         "\r\n";
@@ -3623,7 +3624,7 @@ static int DetectEngineHttpClientBodyTest29(void)
                strlen(request_buffer));
     }
     uint32_t http_buf_len = TOTAL_REQUESTS * strlen(request_buffer);
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    alp_tctx = AppLayerParserGetCtxThread();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
