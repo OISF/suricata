@@ -110,6 +110,7 @@ typedef struct PcapLogData_ {
     PcapLogProfileData profile_write;
     PcapLogProfileData profile_rotate;
     PcapLogProfileData profile_handles; // open handles
+    uint64_t profile_data_size; /**< track in bytes how many bytes we wrote */
 
     SCMutex plog_lock;
     TAILQ_HEAD(, PcapFileName_) pcap_file_list;
@@ -121,6 +122,7 @@ static TmEcode PcapLogDataInit(ThreadVars *, void *, void **);
 static TmEcode PcapLogDataDeinit(ThreadVars *, void *);
 static void PcapLogFileDeInitCtx(OutputCtx *);
 static OutputCtx *PcapLogInitCtx(ConfNode *);
+static void PcapLogProfilingDump(PcapLogData *);
 
 void TmModulePcapLogRegister(void)
 {
@@ -354,6 +356,7 @@ static TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
     pcap_dump((u_char *)pl->pcap_dumper, pl->h, GET_PKT_DATA(p));
     pl->size_current += len;
     PCAPLOG_PROFILE_END(pl->profile_write);
+    pl->profile_data_size += len;
 
     SCLogDebug("pl->size_current %"PRIu64",  pl->size_limit %"PRIu64,
                pl->size_current, pl->size_limit);
@@ -392,37 +395,6 @@ static TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
     return TM_ECODE_OK;
 }
 
-static void FormatNumber(uint64_t num, char *str, size_t size) {
-    if (num < 1000UL)
-        snprintf(str, size, "%"PRIu64, num);
-    else if (num < 1000000UL)
-        snprintf(str, size, "%3.1fk", (float)num/1000UL);
-    else if (num < 1000000000UL)
-        snprintf(str, size, "%3.1fm", (float)num/1000000UL);
-    else
-        snprintf(str, size, "%3.1fb", (float)num/1000000000UL);
-}
-
-static void ProfileReportPair(const char *name, PcapLogProfileData *p) {
-    char ticks_str[32];
-    char cnt_str[32];
-    char avg_str[32];
-
-    FormatNumber((uint64_t)p->cnt, cnt_str, sizeof(cnt_str));
-    FormatNumber((uint64_t)p->total, ticks_str, sizeof(ticks_str));
-    FormatNumber((uint64_t)(p->total/p->cnt), avg_str, sizeof(avg_str));
-
-    SCLogInfo("%-8s called %-10s ticks %-10s avg %-8s", name, cnt_str, ticks_str, avg_str);
-}
-
-static void ProfileReport(PcapLogData *pl) {
-    ProfileReportPair("open", &pl->profile_open);
-    ProfileReportPair("close", &pl->profile_close);
-    ProfileReportPair("write", &pl->profile_write);
-    ProfileReportPair("rotate", &pl->profile_rotate);
-    ProfileReportPair("handles", &pl->profile_handles);
-}
-
 /**
  *  \brief Thread deinit function.
  *
@@ -443,7 +415,7 @@ static TmEcode PcapLogDataDeinit(ThreadVars *t, void *data)
     }
 
     if (pl->reported == 0) {
-        ProfileReport(pl);
+        PcapLogProfilingDump(pl);
         pl->reported = 1;
     }
     return TM_ECODE_OK;
@@ -753,4 +725,142 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
 error:
     PcapFileNameFree(pf);
     return -1;
+}
+
+static int profiling_pcaplog_enabled = 0;
+static int profiling_pcaplog_output_to_file = 0;
+static char *profiling_pcaplog_file_name = NULL;
+static char *profiling_pcaplog_file_mode = "a";
+
+static void FormatNumber(uint64_t num, char *str, size_t size) {
+    if (num < 1000UL)
+        snprintf(str, size, "%"PRIu64, num);
+    else if (num < 1000000UL)
+        snprintf(str, size, "%3.1fk", (float)num/1000UL);
+    else if (num < 1000000000UL)
+        snprintf(str, size, "%3.1fm", (float)num/1000000UL);
+    else
+        snprintf(str, size, "%3.1fb", (float)num/1000000000UL);
+}
+
+static void ProfileReportPair(FILE *fp, const char *name, PcapLogProfileData *p) {
+    char ticks_str[32] = "n/a";
+    char cnt_str[32] = "n/a";
+    char avg_str[32] = "n/a";
+
+    FormatNumber((uint64_t)p->cnt, cnt_str, sizeof(cnt_str));
+    FormatNumber((uint64_t)p->total, ticks_str, sizeof(ticks_str));
+    if (p->cnt && p->total)
+        FormatNumber((uint64_t)(p->total/p->cnt), avg_str, sizeof(avg_str));
+
+    fprintf(fp, "%-28s %-10s %-10s %-10s\n", name, cnt_str, avg_str, ticks_str);
+}
+
+static void ProfileReport(FILE *fp, PcapLogData *pl) {
+    ProfileReportPair(fp, "open", &pl->profile_open);
+    ProfileReportPair(fp, "close", &pl->profile_close);
+    ProfileReportPair(fp, "write", &pl->profile_write);
+    ProfileReportPair(fp, "rotate (incl open/close)", &pl->profile_rotate);
+    ProfileReportPair(fp, "handles", &pl->profile_handles);
+}
+
+static void FormatBytes(uint64_t num, char *str, size_t size) {
+    if (num < 1000UL)
+        snprintf(str, size, "%"PRIu64, num);
+    else if (num < 1048576UL)
+        snprintf(str, size, "%3.1fKiB", (float)num/1000UL);
+    else if (num < 1073741824UL)
+        snprintf(str, size, "%3.1fMiB", (float)num/1000000UL);
+    else
+        snprintf(str, size, "%3.1fGiB", (float)num/1000000000UL);
+}
+
+static void PcapLogProfilingDump(PcapLogData *pl) {
+    FILE *fp = NULL;
+
+    if (profiling_pcaplog_enabled == 0)
+        return;
+
+    if (profiling_pcaplog_output_to_file == 1) {
+        fp = fopen(profiling_pcaplog_file_name, profiling_pcaplog_file_mode);
+        if (fp == NULL) {
+            SCLogError(SC_ERR_FOPEN, "failed to open %s: %s",
+                    profiling_pcaplog_file_name, strerror(errno));
+            return;
+        }
+    } else {
+       fp = stdout;
+    }
+
+    /* counters */
+    fprintf(fp, "\n\nOperation                    Cnt        Avg ticks  Total ticks\n");
+    fprintf(fp,     "---------------------------- ---------- ---------- -----------\n");
+
+    ProfileReport(fp, pl);
+    uint64_t total = pl->profile_write.total + pl->profile_rotate.total + pl->profile_handles.total;
+
+    /* overall stats */
+    fprintf(fp, "\nOverall: %"PRIu64" bytes written, average %d bytes per write.\n",
+        pl->profile_data_size, (int)(pl->profile_data_size / pl->profile_write.cnt));
+    fprintf(fp, "         PCAP data structure overhead: %"PRIuMAX" per write.\n",
+        (uintmax_t)sizeof(struct pcap_pkthdr));
+
+    /* print total bytes written */
+    char bytes_str[32];
+    FormatBytes(pl->profile_data_size, bytes_str, sizeof(bytes_str));
+    fprintf(fp, "         Size written: %s\n", bytes_str);
+
+    /* ticks per MiB and GiB */
+    uint64_t ticks_per_mib = 0, ticks_per_gib = 0;
+    uint64_t mib = pl->profile_data_size/(1024*1024);
+    if (mib)
+        ticks_per_mib = total/mib;
+    char ticks_per_mib_str[32] = "n/a";
+    if (ticks_per_mib > 0)
+        FormatNumber(ticks_per_mib, ticks_per_mib_str, sizeof(ticks_per_mib_str));
+    fprintf(fp, "         Ticks per MiB: %s\n", ticks_per_mib_str);
+
+    uint64_t gib = pl->profile_data_size/(1024*1024*1024);
+    if (gib)
+        ticks_per_gib = total/gib;
+    char ticks_per_gib_str[32] = "n/a";
+    if (ticks_per_gib > 0)
+        FormatNumber(ticks_per_gib, ticks_per_gib_str, sizeof(ticks_per_gib_str));
+    fprintf(fp, "         Ticks per GiB: %s\n", ticks_per_gib_str);
+
+    if (fp != stdout)
+        fclose(fp);
+}
+
+void PcapLogProfileSetup(void) {
+    ConfNode *conf = ConfGetNode("profiling.pcap-log");
+    if (conf != NULL && ConfNodeChildValueIsTrue(conf, "enabled")) {
+        profiling_pcaplog_enabled = 1;
+        SCLogInfo("pcap-log profiling enabled");
+
+        const char *filename = ConfNodeLookupChildValue(conf, "filename");
+        if (filename != NULL) {
+            char *log_dir;
+            log_dir = ConfigGetLogDirectory();
+
+            profiling_pcaplog_file_name = SCMalloc(PATH_MAX);
+            if (unlikely(profiling_pcaplog_file_name == NULL)) {
+                SCLogError(SC_ERR_MEM_ALLOC, "can't duplicate file name");
+                exit(EXIT_FAILURE);
+            }
+
+            snprintf(profiling_pcaplog_file_name, PATH_MAX, "%s/%s", log_dir, filename);
+
+            const char *v = ConfNodeLookupChildValue(conf, "append");
+            if (v == NULL || ConfValIsTrue(v)) {
+                profiling_pcaplog_file_mode = "a";
+            } else {
+                profiling_pcaplog_file_mode = "w";
+            }
+
+            profiling_pcaplog_output_to_file = 1;
+            SCLogInfo("pcap-log profiling output goes to %s (mode %s)",
+                    profiling_pcaplog_file_name, profiling_pcaplog_file_mode);
+        }
+    }
 }
