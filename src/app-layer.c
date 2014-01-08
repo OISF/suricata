@@ -286,12 +286,12 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                  */
                 if ((ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) &&
                     (first_data_dir) && !(first_data_dir & flags))
-                    {
-                        FlowSetSessionNoApplayerInspectionFlag(f);
-                        StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
-                        StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
-                        goto failure;
-                    }
+                {
+                    FlowSetSessionNoApplayerInspectionFlag(f);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    goto failure;
+                }
 
                 if (data_len > 0)
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;

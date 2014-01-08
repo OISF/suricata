@@ -22,8 +22,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __APP_LAYER_PROTOS__H__
-#define __APP_LAYER_PROTOS__H__
+#ifndef __APP_LAYER_PROTOS_H__
+#define __APP_LAYER_PROTOS_H__
 
 enum {
     ALPROTO_UNKNOWN = 0,
@@ -63,4 +63,4 @@ typedef uint16_t AppProto;
  */
 const char *AppProtoToString(AppProto alproto);
 
-#endif /* __APP_LAYER_PROTOS__H__ */
+#endif /* __APP_LAYER_PROTOS_H__ */

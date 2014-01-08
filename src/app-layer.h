@@ -20,8 +20,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __APP_LAYER__H__
-#define __APP_LAYER__H__
+#ifndef __APP_LAYER_H__
+#define __APP_LAYER_H__
 
 #include "threadvars.h"
 #include "decode.h"

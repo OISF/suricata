@@ -1541,14 +1541,14 @@ void *AppLayerProtoDetectGetCtxThread(void)
 
     for (i = 0; i < FLOW_PROTO_DEFAULT; i++) {
         for (j = 0; j < 2; j++) {
-            if (max_pat_id == 0)
-                {
-                    max_pat_id = alpd_ctx.ctx_ipp[i].ctx_pm[j].max_pat_id;
-                } else if (alpd_ctx.ctx_ipp[i].ctx_pm[j].max_pat_id &&
-                           max_pat_id < alpd_ctx.ctx_ipp[i].ctx_pm[j].max_pat_id)
-                {
-                    max_pat_id = alpd_ctx.ctx_ipp[i].ctx_pm[j].max_pat_id;
-                }
+            if (max_pat_id == 0) {
+                max_pat_id = alpd_ctx.ctx_ipp[i].ctx_pm[j].max_pat_id;
+
+            } else if (alpd_ctx.ctx_ipp[i].ctx_pm[j].max_pat_id &&
+                    max_pat_id < alpd_ctx.ctx_ipp[i].ctx_pm[j].max_pat_id)
+            {
+                max_pat_id = alpd_ctx.ctx_ipp[i].ctx_pm[j].max_pat_id;
+            }
         }
     }
 
@@ -1622,9 +1622,9 @@ AppProto AppLayerProtoDetectGetProtoByName(char *alproto_name)
         if (alpd_ctx.alproto_names[a] != NULL &&
             strlen(alpd_ctx.alproto_names[a]) == strlen(alproto_name) &&
             (SCMemcmp(alpd_ctx.alproto_names[a], alproto_name, strlen(alproto_name)) == 0))
-            {
-                goto end;
-            }
+        {
+            goto end;
+        }
     }
 
  end:
@@ -2665,27 +2665,6 @@ int AppLayerProtoDetectTest14(void)
     AppLayerProtoDetectUnittestCtxRestore();
     return r;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 typedef struct AppLayerProtoDetectPPTestDataElement_ {
     char *alproto_name;
