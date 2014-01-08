@@ -570,6 +570,8 @@ void AppLayerDestroyCtxThread(void *tctx)
     SCEnter();
 
     AppLayerCtxThread *app_tctx = (AppLayerCtxThread *)tctx;
+    if (app_tctx == NULL)
+        SCReturn;
 
     if (app_tctx->alpd_tctx != NULL)
         AppLayerProtoDetectDestroyCtxThread(app_tctx->alpd_tctx);
