@@ -1043,7 +1043,6 @@ static int AppLayerProtoDetectPMMapSignatures(AppLayerProtoDetectPMCtx *ctx)
     int ret = 0;
     PatIntId max_pat_id = 0, tmp_pat_id;
     AppLayerProtoDetectPMSignature *s, *next_s;
-    int is_ci;
     int mpm_ret;
 
     max_pat_id = ctx->max_pat_id;
@@ -1053,6 +1052,7 @@ static int AppLayerProtoDetectPMMapSignatures(AppLayerProtoDetectPMCtx *ctx)
         goto error;
     memset(ctx->map, 0, (max_pat_id) * sizeof(ctx->map));
 
+    /* add an array indexed by pattern id to look up the sig */
     for (s = ctx->head; s != NULL;) {
         next_s = s->next;
         s->next = ctx->map[s->cd->id];
@@ -1062,15 +1062,17 @@ static int AppLayerProtoDetectPMMapSignatures(AppLayerProtoDetectPMCtx *ctx)
     }
     ctx->head = NULL;
 
+
     for (tmp_pat_id = 0; tmp_pat_id < max_pat_id; tmp_pat_id++) {
-        is_ci = 0;
+        s = NULL;
         for (s = ctx->map[tmp_pat_id]; s != NULL; s = s->next) {
             if (s->cd->flags & DETECT_CONTENT_NOCASE) {
-                is_ci = 1;
                 break;
             }
         }
-        if (is_ci) {
+        /* if s != NULL now, it's CI. If NULL, CS */
+
+        if (s != NULL) {
             mpm_ret = MpmAddPatternCI(&ctx->mpm_ctx,
                                       s->cd->content, s->cd->content_len,
                                       0, 0,
@@ -1079,6 +1081,9 @@ static int AppLayerProtoDetectPMMapSignatures(AppLayerProtoDetectPMCtx *ctx)
                 goto error;
         } else {
             s = ctx->map[tmp_pat_id];
+            if (s == NULL)
+                goto error;
+
             mpm_ret = MpmAddPatternCS(&ctx->mpm_ctx,
                                       s->cd->content, s->cd->content_len,
                                       0, 0,
