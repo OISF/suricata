@@ -22,8 +22,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __APP_LAYER_PARSER__H__
-#define __APP_LAYER_PARSER__H__
+#ifndef __APP_LAYER_PARSER_H__
+#define __APP_LAYER_PARSER_H__
 
 #include "decode-events.h"
 #include "util-file.h"
@@ -189,4 +189,4 @@ void AppLayerParserBackupParserTable(void);
 void AppLayerParserRestoreParserTable(void);
 #endif
 
-#endif /* __APP_LAYER_PARSER__H__ */
+#endif /* __APP_LAYER_PARSER_H__ */

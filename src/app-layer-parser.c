@@ -226,8 +226,7 @@ void *AppLayerParserGetCtxThread(void)
     for (i = 0; i < FLOW_PROTO_DEFAULT; i++) {
         for (j = 0; j < ALPROTO_MAX; j++) {
             tctx->alproto_local_storage[i][j] =
-                AppLayerParserGetProtocolParserLocalStorage(FlowGetReverseProtoMapping(i),
-                                                 j);
+                AppLayerParserGetProtocolParserLocalStorage(FlowGetReverseProtoMapping(i), j);
         }
     }
 
@@ -680,11 +679,11 @@ uint64_t AppLayerParserGetTransactionActive(uint16_t ipproto, AppProto alproto, 
 {
     SCEnter();
 
-    AppLayerParserParserState *pstate_1 = (AppLayerParserParserState *)pstate;
+    AppLayerParserParserState *state = (AppLayerParserParserState *)pstate;
     uint64_t active_id;
 
-    uint64_t log_id = pstate_1->log_id;
-    uint64_t inspect_id = pstate_1->inspect_id[direction & STREAM_TOSERVER ? 0 : 1];
+    uint64_t log_id = state->log_id;
+    uint64_t inspect_id = state->inspect_id[direction & STREAM_TOSERVER ? 0 : 1];
     if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].logger == TRUE) {
         active_id = (log_id < inspect_id) ? log_id : inspect_id;
     } else {
@@ -756,9 +755,9 @@ int AppLayerParserParse(void *tctx, Flow *f, AppProto alproto,
         if (p->Parser[(flags & STREAM_TOSERVER) ? 0 : 1](f, alstate, pstate,
                 input, input_len,
                 alp_tctx->alproto_local_storage[FlowGetProtoMapping(f->proto)][alproto]) < 0)
-            {
-                goto error;
-            }
+        {
+            goto error;
+        }
     }
 
     /* set the packets to no inspection and reassembly if required */
