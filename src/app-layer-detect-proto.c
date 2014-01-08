@@ -2706,7 +2706,7 @@ static int AppLayerProtoDetectPPTestData(AppLayerProtoDetectProbingParser *pp,
                                          int no_of_ip_proto)
 {
     int result = 0;
-    int i, j, k;
+    int i = -1, j = -1 , k = -1;
 #ifdef DEBUG
     int dir = 0;
 #endif
