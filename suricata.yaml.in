@@ -1295,6 +1295,11 @@ profiling:
     filename: lock_stats.log
     append: yes
 
+  pcap-log:
+    enabled: no
+    filename: pcaplog_stats.log
+    append: yes
+
 # Suricata core dump configuration. Limits the size of the core dump file to
 # approximately max-dump. The actual core dump size will be a multiple of the
 # page size. Core dumps that would be larger than max-dump are truncated. On
