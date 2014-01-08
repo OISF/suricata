@@ -118,6 +118,10 @@ void *AppLayerGetCtxThread(void);
  */
 void AppLayerDestroyCtxThread(void *tctx);
 
+
+void AppLayerProfilingReset(void *tctx);
+void AppLayerProfilingStore(void *tctx, Packet *p);
+
 /***** Unittests *****/
 
 #ifdef UNITTESTS
