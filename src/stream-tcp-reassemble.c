@@ -1891,7 +1891,7 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
             STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                                   NULL, 0, flags);
-            PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+            AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
         } else {
             SCLogDebug("no segments in the list to reassemble");
@@ -1970,7 +1970,7 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
                 /* process what we have so far */
                 AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                                       data, data_len, flags);
-                PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+                AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
                 data_sent += data_len;
                 data_len = 0;
@@ -1999,7 +1999,7 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
                 STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
                 AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                                       NULL, 0, flags|STREAM_GAP);
-                PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+                AppLayerProfilingStore(ra_ctx->app_tctx, p);
                 data_len = 0;
 
                 /* set a GAP flag and make sure not bothering this stream anymore */
@@ -2071,7 +2071,7 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
                 BUG_ON(data_len > sizeof(data));
                 AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                                       data, data_len, flags);
-                PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+                AppLayerProfilingStore(ra_ctx->app_tctx, p);
                 data_sent += data_len;
                 data_len = 0;
             }
@@ -2125,7 +2125,7 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
                         BUG_ON(data_len > sizeof(data));
                         AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                                               data, data_len, flags);
-                        PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+                        AppLayerProfilingStore(ra_ctx->app_tctx, p);
                         data_sent += data_len;
                         data_len = 0;
                     }
@@ -2161,7 +2161,7 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
         BUG_ON(data_len > sizeof(data));
         AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                               data, data_len, flags);
-        PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+        AppLayerProfilingStore(ra_ctx->app_tctx, p);
         data_sent += data_len;
     }
 
@@ -2171,7 +2171,7 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
         STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
         AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                               NULL, 0, flags);
-        PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+        AppLayerProfilingStore(ra_ctx->app_tctx, p);
     }
 
     /* store ra_base_seq in the stream */
@@ -2678,7 +2678,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             STREAM_SET_FLAGS(ssn, stream, p, flags);
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                                   NULL, 0, flags);
-            PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+            AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
             SCReturnInt(0);
         }
@@ -2782,7 +2782,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 /* process what we have so far */
                 AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                                       data, data_len, flags);
-                PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+                AppLayerProfilingStore(ra_ctx->app_tctx, p);
                 data_len = 0;
             }
 
@@ -2809,7 +2809,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 STREAM_SET_FLAGS(ssn, stream, p, flags);
                 AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                                       NULL, 0, flags|STREAM_GAP);
-                PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+                AppLayerProfilingStore(ra_ctx->app_tctx, p);
                 data_len = 0;
 
                 /* set a GAP flag and make sure not bothering this stream anymore */
@@ -2906,7 +2906,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 BUG_ON(data_len > sizeof(data));
                 AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                                       data, data_len, flags);
-                PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+                AppLayerProfilingStore(ra_ctx->app_tctx, p);
                 data_len = 0;
 
                 /* if after the first data chunk we have no alproto yet,
@@ -2966,7 +2966,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                         BUG_ON(data_len > sizeof(data));
                         AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                                               data, data_len, flags);
-                        PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+                        AppLayerProfilingStore(ra_ctx->app_tctx, p);
                         data_len = 0;
 
                         /* if after the first data chunk we have no alproto yet,
@@ -3013,7 +3013,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         BUG_ON(data_len > sizeof(data));
         AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                               data, data_len, flags);
-        PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+        AppLayerProfilingStore(ra_ctx->app_tctx, p);
     }
 
     /* store ra_base_seq in the stream */

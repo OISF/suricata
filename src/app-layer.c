@@ -470,11 +470,11 @@ int AppLayerHandleUdp(void *app_tctx, Packet *p, Flow *f)
         /* if we don't have a data object here we are not getting it
          * a start msg should have gotten us one */
         if (f->alproto != ALPROTO_UNKNOWN) {
-            PACKET_PROFILING_APP_START(dp_ctx, f->alproto);
+            PACKET_PROFILING_APP_START(tctx, f->alproto);
             r = AppLayerParserParse(tctx->alp_tctx,
                               f, f->alproto, flags,
                               p->payload, p->payload_len);
-            PACKET_PROFILING_APP_END(dp_ctx, f->alproto);
+            PACKET_PROFILING_APP_END(tctx, f->alproto);
         } else {
             SCLogDebug("udp session has started, but failed to detect alproto "
                        "for l7");
@@ -578,6 +578,22 @@ void AppLayerDestroyCtxThread(void *tctx)
     SCFree(app_tctx);
 
     SCReturn;
+}
+
+/* profiling */
+
+void AppLayerProfilingReset(void *tctx) {
+#ifdef PROFILING
+    AppLayerCtxThread *app_tctx = tctx;
+    PACKET_PROFILING_APP_RESET(app_tctx);
+#endif
+}
+
+void AppLayerProfilingStore(void *tctx, Packet *p) {
+#ifdef PROFILING
+    AppLayerCtxThread *app_tctx = tctx;
+    PACKET_PROFILING_APP_STORE(app_tctx, p);
+#endif
 }
 
 /***** Unittests *****/

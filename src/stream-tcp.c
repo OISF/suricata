@@ -62,6 +62,7 @@
 #include "pkt-var.h"
 #include "host.h"
 
+#include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-protos.h"
 
@@ -4486,7 +4487,7 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
         p->flags |= PKT_IGNORE_CHECKSUM;
     }
 
-    PACKET_PROFILING_APP_RESET(&stt->ra_ctx->dp_ctx);
+    AppLayerProfilingReset(stt->ra_ctx->app_tctx);
 
     FLOWLOCK_WRLOCK(p->flow);
     ret = StreamTcpPacket(tv, p, stt, pq);
