@@ -78,6 +78,7 @@
  *  managed by the queueing code. Same goes for fb (FlowBucket ptr) field.
  */
 #define FLOW_RECYCLE(f) do { \
+        FlowCleanupAppLayer((f)); \
         (f)->sp = 0; \
         (f)->dp = 0; \
         (f)->proto = 0; \
@@ -87,7 +88,6 @@
         (f)->flags = 0; \
         (f)->lastts_sec = 0; \
         (f)->protoctx = NULL; \
-        FlowCleanupAppLayer((f)); \
         (f)->alparser = NULL; \
         (f)->alstate = NULL; \
         (f)->alproto = 0; \
@@ -110,10 +110,10 @@
     } while(0)
 
 #define FLOW_DESTROY(f) do { \
+        FlowCleanupAppLayer((f)); \
         SC_ATOMIC_DESTROY((f)->use_cnt); \
         \
         FLOWLOCK_DESTROY((f)); \
-        FlowCleanupAppLayer((f)); \
         if ((f)->de_state != NULL) { \
             DetectEngineStateFree((f)->de_state); \
         } \
