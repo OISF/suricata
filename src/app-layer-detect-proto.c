@@ -1120,7 +1120,10 @@ static int AppLayerProtoDetectPMPrepareMpm(AppLayerProtoDetectPMCtx *ctx)
 static void AppLayerProtoDetectPMFreeSignature(AppLayerProtoDetectPMSignature *sig)
 {
     SCEnter();
-    DetectContentFree(sig->cd);
+    if (sig == NULL)
+        SCReturn;
+    if (sig->cd)
+        DetectContentFree(sig->cd);
     SCFree(sig);
     SCReturn;
 }
@@ -1444,8 +1447,8 @@ int AppLayerProtoDetectDeSetup(void)
             mpm_table[pm_ctx->mpm_ctx.mpm_type].DestroyCtx(pm_ctx->mpm_ctx.ctx);
             for (id = 0; id < pm_ctx->max_pat_id; id++) {
                 sig = pm_ctx->map[id];
-                next_sig = sig->next;
                 while (sig != NULL) {
+                    next_sig = sig->next;
                     AppLayerProtoDetectPMFreeSignature(sig);
                     sig = next_sig;
                 }
