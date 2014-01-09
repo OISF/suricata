@@ -46,7 +46,8 @@ enum {
 };
 
 static uint32_t FragmentDataParser(Flow *f, void *dcerpcudp_state,
-                                   void *pstate, uint8_t *input, uint32_t input_len)
+                                   AppLayerParserState *pstate,
+                                   uint8_t *input, uint32_t input_len)
 {
 	SCEnter();
 	DCERPCUDPState *sstate = (DCERPCUDPState *) dcerpcudp_state;
@@ -120,7 +121,8 @@ end:
  * fragmented packets.
  */
 static int DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
-                                void *pstate, uint8_t *input, uint32_t input_len)
+                                AppLayerParserState *pstate,
+                                uint8_t *input, uint32_t input_len)
 {
 	SCEnter();
 	uint8_t *p = input;
@@ -702,7 +704,7 @@ static int DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
 }
 
 static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
-                          void *pstate,
+                          AppLayerParserState *pstate,
                           uint8_t *input, uint32_t input_len,
                           void *local_data)
 {

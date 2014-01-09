@@ -60,7 +60,7 @@ int AppLayerHandleTCPMsg(StreamMsg *smsg);
 /**
  * \brief Handles an udp chunk.
  */
-int AppLayerHandleUdp(void *app_tctx, Packet *p, Flow *f);
+int AppLayerHandleUdp(AppLayerThreadCtx *app_tctx, Packet *p, Flow *f);
 
 /***** Utility *****/
 
@@ -109,18 +109,18 @@ int AppLayerDeSetup(void);
  * \retval Pointer to the newly create thread context, on success;
  *         NULL, on failure.
  */
-void *AppLayerGetCtxThread(void);
+AppLayerThreadCtx *AppLayerGetCtxThread(void);
 
 /**
  * \brief Destroys the context created by AppLayeGetCtxThread().
  *
  * \param tctx Pointer to the thread context to destroy.
  */
-void AppLayerDestroyCtxThread(void *tctx);
+void AppLayerDestroyCtxThread(AppLayerThreadCtx *tctx);
 
 
-void AppLayerProfilingReset(void *tctx);
-void AppLayerProfilingStore(void *tctx, Packet *p);
+void AppLayerProfilingReset(AppLayerThreadCtx *tctx);
+void AppLayerProfilingStore(AppLayerThreadCtx *tctx, Packet *p);
 
 /***** Unittests *****/
 

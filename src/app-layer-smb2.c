@@ -57,7 +57,7 @@ enum {
     SMB_FIELD_MAX,
 };
 
-static uint32_t NBSSParseHeader(void *smb2_state, void *pstate,
+static uint32_t NBSSParseHeader(void *smb2_state, AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len)
 {
     SCEnter();
@@ -101,7 +101,7 @@ static uint32_t NBSSParseHeader(void *smb2_state, void *pstate,
     SCReturnUInt((uint32_t)(p - input));
 }
 
-static uint32_t SMB2ParseHeader(void *smb2_state, void *pstate,
+static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len)
 {
     SCEnter();
@@ -520,7 +520,7 @@ static uint32_t SMB2ParseHeader(void *smb2_state, void *pstate,
     SCReturnUInt((uint32_t)(p - input));
 }
 
-static int SMB2Parse(Flow *f, void *smb2_state, void *pstate,
+static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
                      uint8_t *input, uint32_t input_len,
                      void *local_data)
 {

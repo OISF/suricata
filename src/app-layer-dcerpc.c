@@ -1891,7 +1891,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
 }
 
 static int DCERPCParse(Flow *f, void *dcerpc_state,
-                       void *pstate,
+                       AppLayerParserState *pstate,
                        uint8_t *input, uint32_t input_len,
                        void *local_data, int dir) {
     SCEnter();
@@ -1917,7 +1917,7 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
 }
 
 static int DCERPCParseRequest(Flow *f, void *dcerpc_state,
-                              void *pstate,
+                              AppLayerParserState *pstate,
                               uint8_t *input, uint32_t input_len,
                               void *local_data)
 {
@@ -1926,7 +1926,7 @@ static int DCERPCParseRequest(Flow *f, void *dcerpc_state,
 }
 
 static int DCERPCParseResponse(Flow *f, void *dcerpc_state,
-                               void *pstate,
+                               AppLayerParserState *pstate,
                                uint8_t *input, uint32_t input_len,
                                void *local_data)
 {

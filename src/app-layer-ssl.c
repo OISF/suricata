@@ -451,7 +451,7 @@ static int SSLv2ParseRecord(uint8_t direction, SSLState *ssl_state,
 }
 
 static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
-                       void *pstate, uint8_t *input,
+                       AppLayerParserState *pstate, uint8_t *input,
                        uint32_t input_len)
 {
     int retval = 0;
@@ -679,7 +679,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
 }
 
 static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
-                       void *pstate, uint8_t *input,
+                       AppLayerParserState *pstate, uint8_t *input,
                        uint32_t input_len)
 {
     int retval = 0;
@@ -807,7 +807,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
  *
  * \retval >=0 On success.
  */
-static int SSLDecode(Flow *f, uint8_t direction, void *alstate, void *pstate,
+static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserState *pstate,
                      uint8_t *input, uint32_t ilen)
 {
     SSLState *ssl_state = (SSLState *)alstate;
@@ -931,14 +931,14 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, void *pstate,
     return 1;
 }
 
-int SSLParseClientRecord(Flow *f, void *alstate, void *pstate,
+int SSLParseClientRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
                          uint8_t *input, uint32_t input_len,
                          void *local_data)
 {
     return SSLDecode(f, 0 /* toserver */, alstate, pstate, input, input_len);
 }
 
-int SSLParseServerRecord(Flow *f, void *alstate, void *pstate,
+int SSLParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
                          uint8_t *input, uint32_t input_len,
                          void *local_data)
 {

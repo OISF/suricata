@@ -48,9 +48,9 @@
  */
 typedef struct AppLayerThreadCtx_ {
     /* App layer protocol detection thread context, from AppLayerProtoDetectGetCtxThread(). */
-    void *alpd_tctx;
+    AppLayerProtoDetectThreadCtx *alpd_tctx;
     /* App layer parser thread context, from AppLayerParserThreadCtxAlloc(). */
-    void *alp_tctx;
+    AppLayerParserThreadCtx *alp_tctx;
 
 #ifdef PROFILING
     uint64_t ticks_start;
@@ -419,11 +419,9 @@ int AppLayerHandleTCPMsg(StreamMsg *smsg)
     SCReturnInt(0);
 }
 
-int AppLayerHandleUdp(void *app_tctx, Packet *p, Flow *f)
+int AppLayerHandleUdp(AppLayerThreadCtx *tctx, Packet *p, Flow *f)
 {
     SCEnter();
-
-    AppLayerThreadCtx *tctx = (AppLayerThreadCtx *)app_tctx;
 
     int r = 0;
 
@@ -543,7 +541,7 @@ int AppLayerDeSetup(void)
     SCReturnInt(0);
 }
 
-void *AppLayerGetCtxThread(void)
+AppLayerThreadCtx *AppLayerGetCtxThread(void)
 {
     SCEnter();
 
@@ -565,11 +563,10 @@ void *AppLayerGetCtxThread(void)
     SCReturnPtr(app_tctx, "void *");
 }
 
-void AppLayerDestroyCtxThread(void *tctx)
+void AppLayerDestroyCtxThread(AppLayerThreadCtx *app_tctx)
 {
     SCEnter();
 
-    AppLayerThreadCtx *app_tctx = (AppLayerThreadCtx *)tctx;
     if (app_tctx == NULL)
         SCReturn;
 
@@ -584,16 +581,14 @@ void AppLayerDestroyCtxThread(void *tctx)
 
 /* profiling */
 
-void AppLayerProfilingReset(void *tctx) {
+void AppLayerProfilingReset(AppLayerThreadCtx *app_tctx) {
 #ifdef PROFILING
-    AppLayerThreadCtx *app_tctx = tctx;
     PACKET_PROFILING_APP_RESET(app_tctx);
 #endif
 }
 
-void AppLayerProfilingStore(void *tctx, Packet *p) {
+void AppLayerProfilingStore(AppLayerThreadCtx *app_tctx, Packet *p) {
 #ifdef PROFILING
-    AppLayerThreadCtx *app_tctx = tctx;
     PACKET_PROFILING_APP_STORE(app_tctx, p);
 #endif
 }

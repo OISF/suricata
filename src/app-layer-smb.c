@@ -66,7 +66,7 @@ enum {
  */
 /* For WriteAndX we need to get writeandxdataoffset */
 static uint32_t SMBParseWriteAndX(Flow *f, void *smb_state,
-                                  void *pstate, uint8_t *input, uint32_t input_len)
+                                  AppLayerParserState *pstate, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
 
@@ -264,7 +264,7 @@ static uint32_t SMBParseWriteAndX(Flow *f, void *smb_state,
  * \brief SMB Read AndX Response Parsing
  */
 static uint32_t SMBParseReadAndX(Flow *f, void *smb_state,
-                                 void *pstate, uint8_t *input, uint32_t input_len)
+                                 AppLayerParserState *pstate, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
 
@@ -403,7 +403,7 @@ static uint32_t SMBParseReadAndX(Flow *f, void *smb_state,
 }
 
 static uint32_t SMBParseTransact(Flow *f, void *smb_state,
-                                 void *pstate, uint8_t *input, uint32_t input_len)
+                                 AppLayerParserState *pstate, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
 
@@ -628,7 +628,7 @@ static uint32_t SMBParseTransact(Flow *f, void *smb_state,
 /**
  * Handle variable length padding for WriteAndX and ReadAndX
  */
-static uint32_t PaddingParser(void *smb_state, void *pstate,
+static uint32_t PaddingParser(void *smb_state, AppLayerParserState *pstate,
                               uint8_t *input, uint32_t input_len)
 {
     SCEnter();
@@ -660,7 +660,7 @@ static uint32_t PaddingParser(void *smb_state, void *pstate,
  * \retval -1 f DCERPCParser does not validate
  * \retval Number of bytes processed
  */
-static int32_t DataParser(void *smb_state, void *pstate,
+static int32_t DataParser(void *smb_state, AppLayerParserState *pstate,
                           uint8_t *input, uint32_t input_len)
 {
     SCEnter();
@@ -688,7 +688,7 @@ static int32_t DataParser(void *smb_state, void *pstate,
  * Determine if this is an SMB AndX Command
  */
 static uint32_t SMBGetWordCount(Flow *f, void *smb_state,
-                                void *pstate, uint8_t *input, uint32_t input_len)
+                                AppLayerParserState *pstate, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
 
@@ -712,7 +712,7 @@ static uint32_t SMBGetWordCount(Flow *f, void *smb_state,
  */
 
 static uint32_t SMBGetByteCount(Flow *f, void *smb_state,
-                                void *pstate, uint8_t *input, uint32_t input_len)
+                                AppLayerParserState *pstate, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
 
@@ -743,7 +743,7 @@ static uint32_t SMBGetByteCount(Flow *f, void *smb_state,
  *         until sstate->wordcount.wordcount bytes are parsed.
  */
 static uint32_t SMBParseWordCount(Flow *f, void *smb_state,
-                                  void *pstate, uint8_t *input, uint32_t input_len)
+                                  AppLayerParserState *pstate, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
 
@@ -800,7 +800,7 @@ static uint32_t SMBParseWordCount(Flow *f, void *smb_state,
  *         until sstate->bytecount.bytecount bytes are parsed.
  */
 static uint32_t SMBParseByteCount(Flow *f, void *smb_state,
-                                  void *pstate, uint8_t *input, uint32_t input_len)
+                                  AppLayerParserState *pstate, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
 
@@ -868,7 +868,7 @@ static uint32_t SMBParseByteCount(Flow *f, void *smb_state,
  *  \retval 0 no input or already done
  */
 static uint32_t NBSSParseHeader(Flow *f, void *smb_state,
-                                void *pstate, uint8_t *input, uint32_t input_len)
+                                AppLayerParserState *pstate, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
 
@@ -926,7 +926,7 @@ static uint32_t NBSSParseHeader(Flow *f, void *smb_state,
  *  \retval -1 error
  */
 static int SMBParseHeader(Flow *f, void *smb_state,
-                          void *pstate, uint8_t *input, uint32_t input_len)
+                          AppLayerParserState *pstate, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
 
@@ -1155,7 +1155,7 @@ static int SMBParseHeader(Flow *f, void *smb_state,
     SCReturnInt((p - input));
 }
 
-static int SMBParse(Flow *f, void *smb_state, void *pstate,
+static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                     uint8_t *input, uint32_t input_len,
                     void *local_data, uint8_t dir)
 {
@@ -1372,14 +1372,14 @@ static int SMBParse(Flow *f, void *smb_state, void *pstate,
     SCReturnInt(1);
 }
 
-static int SMBParseRequest(Flow *f, void *smb_state, void *pstate,
+static int SMBParseRequest(Flow *f, void *smb_state, AppLayerParserState *pstate,
                            uint8_t *input, uint32_t input_len,
                            void *local_data)
 {
     return SMBParse(f, smb_state, pstate, input, input_len, local_data, 0);
 }
 
-static int SMBParseResponse(Flow *f, void *smb_state, void *pstate,
+static int SMBParseResponse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                             uint8_t *input, uint32_t input_len,
                             void *local_data)
 {

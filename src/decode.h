@@ -83,6 +83,8 @@ enum PktSrcEnum {
 
 #include "app-layer-protos.h"
 
+typedef struct AppLayerThreadCtx_ AppLayerThreadCtx;
+
 /* forward declaration */
 struct DetectionEngineThreadCtx_;
 
@@ -552,7 +554,7 @@ typedef struct PacketQueue_ {
 typedef struct DecodeThreadVars_
 {
     /** Specific context for udp protocol detection (here atm) */
-    void *app_tctx;
+    AppLayerThreadCtx *app_tctx;
 
     int vlan_disabled;
 
