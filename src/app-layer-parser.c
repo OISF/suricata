@@ -138,7 +138,7 @@ typedef struct AppLayerParserState_ {
  * Post 2.0 let's look at changing this to move it out to app-layer.c. */
 static AppLayerParserCtx alp_ctx;
 
-static void AppLayerParserTransactionsCleanup(uint16_t ipproto, AppProto alproto,
+static void AppLayerParserTransactionsCleanup(uint8_t ipproto, AppProto alproto,
                                               void *alstate, void *pstate)
 {
     SCEnter();
@@ -315,7 +315,7 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
 
 /***** Parser related registration *****/
 
-int AppLayerParserRegisterParser(uint16_t ipproto, AppProto alproto,
+int AppLayerParserRegisterParser(uint8_t ipproto, AppProto alproto,
                       uint8_t direction,
                       int (*Parser)(Flow *f, void *protocol_state,
                                     void *pstate,
@@ -330,7 +330,7 @@ int AppLayerParserRegisterParser(uint16_t ipproto, AppProto alproto,
     SCReturnInt(0);
 }
 
-void AppLayerParserRegisterParserAcceptableDataDirection(uint16_t ipproto, AppProto alproto,
+void AppLayerParserRegisterParserAcceptableDataDirection(uint8_t ipproto, AppProto alproto,
                                               uint8_t direction)
 {
     SCEnter();
@@ -341,7 +341,7 @@ void AppLayerParserRegisterParserAcceptableDataDirection(uint16_t ipproto, AppPr
     SCReturn;
 }
 
-void AppLayerParserRegisterStateFuncs(uint16_t ipproto, AppProto alproto,
+void AppLayerParserRegisterStateFuncs(uint8_t ipproto, AppProto alproto,
                            void *(*StateAlloc)(void),
                            void (*StateFree)(void *))
 {
@@ -355,7 +355,7 @@ void AppLayerParserRegisterStateFuncs(uint16_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterLocalStorageFunc(uint16_t ipproto, AppProto alproto,
+void AppLayerParserRegisterLocalStorageFunc(uint8_t ipproto, AppProto alproto,
                                  void *(*LocalStorageAlloc)(void),
                                  void (*LocalStorageFree)(void *))
 {
@@ -369,7 +369,7 @@ void AppLayerParserRegisterLocalStorageFunc(uint16_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterGetFilesFunc(uint16_t ipproto, AppProto alproto,
+void AppLayerParserRegisterGetFilesFunc(uint8_t ipproto, AppProto alproto,
                              FileContainer *(*StateGetFiles)(void *, uint8_t))
 {
     SCEnter();
@@ -380,7 +380,7 @@ void AppLayerParserRegisterGetFilesFunc(uint16_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterGetEventsFunc(uint16_t ipproto, AppProto alproto,
+void AppLayerParserRegisterGetEventsFunc(uint8_t ipproto, AppProto alproto,
     AppLayerDecoderEvents *(*StateGetEvents)(void *, uint64_t))
 {
     SCEnter();
@@ -391,7 +391,7 @@ void AppLayerParserRegisterGetEventsFunc(uint16_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterHasEventsFunc(uint16_t ipproto, AppProto alproto,
+void AppLayerParserRegisterHasEventsFunc(uint8_t ipproto, AppProto alproto,
                               int (*StateHasEvents)(void *))
 {
     SCEnter();
@@ -402,7 +402,7 @@ void AppLayerParserRegisterHasEventsFunc(uint16_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterLogger(uint16_t ipproto, AppProto alproto)
+void AppLayerParserRegisterLogger(uint8_t ipproto, AppProto alproto)
 {
     SCEnter();
 
@@ -411,7 +411,7 @@ void AppLayerParserRegisterLogger(uint16_t ipproto, AppProto alproto)
     SCReturn;
 }
 
-void AppLayerParserRegisterTruncateFunc(uint16_t ipproto, AppProto alproto,
+void AppLayerParserRegisterTruncateFunc(uint8_t ipproto, AppProto alproto,
                                         void (*Truncate)(void *, uint8_t))
 {
     SCEnter();
@@ -421,7 +421,7 @@ void AppLayerParserRegisterTruncateFunc(uint16_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterGetStateProgressFunc(uint16_t ipproto, AppProto alproto,
+void AppLayerParserRegisterGetStateProgressFunc(uint8_t ipproto, AppProto alproto,
     int (*StateGetProgress)(void *alstate, uint8_t direction))
 {
     SCEnter();
@@ -432,7 +432,7 @@ void AppLayerParserRegisterGetStateProgressFunc(uint16_t ipproto, AppProto alpro
     SCReturn;
 }
 
-void AppLayerParserRegisterTxFreeFunc(uint16_t ipproto, AppProto alproto,
+void AppLayerParserRegisterTxFreeFunc(uint8_t ipproto, AppProto alproto,
                            void (*StateTransactionFree)(void *, uint64_t))
 {
     SCEnter();
@@ -443,7 +443,7 @@ void AppLayerParserRegisterTxFreeFunc(uint16_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterGetTxCnt(uint16_t ipproto, AppProto alproto,
+void AppLayerParserRegisterGetTxCnt(uint8_t ipproto, AppProto alproto,
                          uint64_t (*StateGetTxCnt)(void *alstate))
 {
     SCEnter();
@@ -454,7 +454,7 @@ void AppLayerParserRegisterGetTxCnt(uint16_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterGetTx(uint16_t ipproto, AppProto alproto,
+void AppLayerParserRegisterGetTx(uint8_t ipproto, AppProto alproto,
                       void *(StateGetTx)(void *alstate, uint64_t tx_id))
 {
     SCEnter();
@@ -465,7 +465,7 @@ void AppLayerParserRegisterGetTx(uint16_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterGetStateProgressCompletionStatus(uint16_t ipproto,
+void AppLayerParserRegisterGetStateProgressCompletionStatus(uint8_t ipproto,
                                                    uint16_t alproto,
     int (*StateGetProgressCompletionStatus)(uint8_t direction))
 {
@@ -477,7 +477,7 @@ void AppLayerParserRegisterGetStateProgressCompletionStatus(uint16_t ipproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterGetEventInfo(uint16_t ipproto, AppProto alproto,
+void AppLayerParserRegisterGetEventInfo(uint8_t ipproto, AppProto alproto,
     int (*StateGetEventInfo)(const char *event_name, int *event_id,
                              AppLayerEventType *event_type))
 {
@@ -491,7 +491,7 @@ void AppLayerParserRegisterGetEventInfo(uint16_t ipproto, AppProto alproto,
 
 /***** Get and transaction functions *****/
 
-void *AppLayerParserGetProtocolParserLocalStorage(uint16_t ipproto, AppProto alproto)
+void *AppLayerParserGetProtocolParserLocalStorage(uint8_t ipproto, AppProto alproto)
 {
     SCEnter();
 
@@ -505,7 +505,7 @@ void *AppLayerParserGetProtocolParserLocalStorage(uint16_t ipproto, AppProto alp
     SCReturnPtr(NULL, "void *");
 }
 
-void AppLayerParserDestroyProtocolParserLocalStorage(uint16_t ipproto, AppProto alproto,
+void AppLayerParserDestroyProtocolParserLocalStorage(uint8_t ipproto, AppProto alproto,
                                           void *local_data)
 {
     SCEnter();
@@ -545,7 +545,7 @@ uint64_t AppLayerParserGetTransactionInspectId(void *pstate, uint8_t direction)
 }
 
 void AppLayerParserSetTransactionInspectId(void *pstate,
-                                           uint16_t ipproto, AppProto alproto, void *alstate,
+                                           uint8_t ipproto, AppProto alproto, void *alstate,
                                            uint8_t direction)
 {
     SCEnter();
@@ -585,7 +585,7 @@ void AppLayerParserSetDecoderEvents(void *pstate, AppLayerDecoderEvents *devents
     (((AppLayerParserState *)pstate)->decoder_events) = devents;
 }
 
-AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint16_t ipproto, AppProto alproto,
+AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint8_t ipproto, AppProto alproto,
                                         void *alstate, uint64_t tx_id)
 {
     SCEnter();
@@ -609,7 +609,7 @@ uint16_t AppLayerParserGetStateVersion(void *pstate)
                "uint16_t");
 }
 
-FileContainer *AppLayerParserGetFiles(uint16_t ipproto, AppProto alproto,
+FileContainer *AppLayerParserGetFiles(uint8_t ipproto, AppProto alproto,
                            void *alstate, uint8_t direction)
 {
     SCEnter();
@@ -626,7 +626,7 @@ FileContainer *AppLayerParserGetFiles(uint16_t ipproto, AppProto alproto,
     SCReturnPtr(ptr, "FileContainer *");
 }
 
-int AppLayerParserGetStateProgress(uint16_t ipproto, AppProto alproto,
+int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
                         void *alstate, uint8_t direction)
 {
     SCEnter();
@@ -634,21 +634,21 @@ int AppLayerParserGetStateProgress(uint16_t ipproto, AppProto alproto,
                 StateGetProgress(alstate, direction));
 }
 
-uint64_t AppLayerParserGetTxCnt(uint16_t ipproto, AppProto alproto, void *alstate)
+uint64_t AppLayerParserGetTxCnt(uint8_t ipproto, AppProto alproto, void *alstate)
 {
     SCEnter();
     SCReturnCT(alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
                StateGetTxCnt(alstate), "uint64_t");
 }
 
-void *AppLayerParserGetTx(uint16_t ipproto, AppProto alproto, void *alstate, uint64_t tx_id)
+void *AppLayerParserGetTx(uint8_t ipproto, AppProto alproto, void *alstate, uint64_t tx_id)
 {
     SCEnter();
     SCReturnPtr(alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
                 StateGetTx(alstate, tx_id), "void *");
 }
 
-int AppLayerParserGetStateProgressCompletionStatus(uint16_t ipproto, AppProto alproto,
+int AppLayerParserGetStateProgressCompletionStatus(uint8_t ipproto, AppProto alproto,
                                         uint8_t direction)
 {
     SCEnter();
@@ -657,7 +657,7 @@ int AppLayerParserGetStateProgressCompletionStatus(uint16_t ipproto, AppProto al
 
 }
 
-int AppLayerParserGetEventInfo(uint16_t ipproto, AppProto alproto, const char *event_name,
+int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *event_name,
                     int *event_id, AppLayerEventType *event_type)
 {
     SCEnter();
@@ -667,14 +667,14 @@ int AppLayerParserGetEventInfo(uint16_t ipproto, AppProto alproto, const char *e
     SCReturnInt(r);
 }
 
-uint8_t AppLayerParserGetFirstDataDir(uint16_t ipproto, uint16_t alproto)
+uint8_t AppLayerParserGetFirstDataDir(uint8_t ipproto, uint16_t alproto)
 {
     SCEnter();
     SCReturnCT(alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
                first_data_dir, "uint8_t");
 }
 
-uint64_t AppLayerParserGetTransactionActive(uint16_t ipproto, AppProto alproto, void *pstate, uint8_t direction)
+uint64_t AppLayerParserGetTransactionActive(uint8_t ipproto, AppProto alproto, void *pstate, uint8_t direction)
 {
     SCEnter();
 
@@ -811,7 +811,7 @@ void AppLayerParserSetEOF(void *pstate)
     SCReturn;
 }
 
-int AppLayerParserHasDecoderEvents(uint16_t ipproto, AppProto alproto,
+int AppLayerParserHasDecoderEvents(uint8_t ipproto, AppProto alproto,
                                    void *alstate, void *pstate,
                                    uint8_t flags)
 {
@@ -855,7 +855,7 @@ int AppLayerParserHasDecoderEvents(uint16_t ipproto, AppProto alproto,
     SCReturnInt(1);
 }
 
-int AppLayerParserProtocolIsTxEventAware(uint16_t ipproto, AppProto alproto)
+int AppLayerParserProtocolIsTxEventAware(uint8_t ipproto, AppProto alproto)
 {
     SCEnter();
     int ipproto_map = FlowGetProtoMapping(ipproto);
@@ -863,7 +863,7 @@ int AppLayerParserProtocolIsTxEventAware(uint16_t ipproto, AppProto alproto)
     SCReturnInt(r);
 }
 
-int AppLayerParserProtocolSupportsTxs(uint16_t ipproto, AppProto alproto)
+int AppLayerParserProtocolSupportsTxs(uint8_t ipproto, AppProto alproto)
 {
     SCEnter();
     int ipproto_map = FlowGetProtoMapping(ipproto);
@@ -883,7 +883,7 @@ void AppLayerParserTriggerRawStreamReassembly(Flow *f)
 
 /***** Cleanup *****/
 
-void AppLayerParserStateCleanup(uint16_t ipproto, AppProto alproto, void *alstate, void *pstate)
+void AppLayerParserStateCleanup(uint8_t ipproto, AppProto alproto, void *alstate, void *pstate)
 {
     SCEnter();
 
@@ -969,7 +969,7 @@ int AppLayerParserStateIssetFlag(void *pstate, uint8_t flag)
 }
 
 
-void AppLayerParserStreamTruncated(uint16_t ipproto, AppProto alproto, void *alstate,
+void AppLayerParserStreamTruncated(uint8_t ipproto, AppProto alproto, void *alstate,
                                    uint8_t direction)
 {
     SCEnter();
@@ -1046,7 +1046,7 @@ static void TestProtocolStateFree(void *s)
     SCFree(s);
 }
 
-void AppLayerParserRegisterProtocolUnittests(uint16_t ipproto, AppProto alproto,
+void AppLayerParserRegisterProtocolUnittests(uint8_t ipproto, AppProto alproto,
                                   void (*RegisterUnittests)(void))
 {
     SCEnter();

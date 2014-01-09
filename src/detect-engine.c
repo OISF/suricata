@@ -136,7 +136,7 @@ static void DetectEnginePrintAppInspectionEngines(DetectEngineAppInspectionEngin
 void DetectEngineRegisterAppInspectionEngines(void)
 {
     struct tmp_t {
-        uint16_t ipproto;
+        uint8_t ipproto;
         uint16_t alproto;
         int32_t sm_list;
         uint32_t inspect_flags;
@@ -361,7 +361,7 @@ static void AppendAppInspectionEngine(DetectEngineAppInspectionEngine *engine,
     return;
 }
 
-void DetectEngineRegisterAppInspectionEngine(uint16_t ipproto,
+void DetectEngineRegisterAppInspectionEngine(uint8_t ipproto,
                                              uint16_t alproto,
                                              uint16_t dir,
                                              int32_t sm_list,

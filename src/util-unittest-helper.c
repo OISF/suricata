@@ -75,7 +75,7 @@ uint32_t UTHSetIPv4Address(char *str) {
  * \retval Packet pointer to the built in packet
  */
 Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
-                           uint16_t ipproto, char *src, char *dst,
+                           uint8_t ipproto, char *src, char *dst,
                            uint16_t sport, uint16_t dport) {
     uint32_t in[4];
 
@@ -160,7 +160,7 @@ error:
  * \retval Packet pointer to the built in packet
  */
 Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
-                           uint16_t ipproto, char *src, char *dst,
+                           uint8_t ipproto, char *src, char *dst,
                            uint16_t sport, uint16_t dport) {
     struct in_addr in;
 
@@ -252,7 +252,7 @@ error:
  * \retval Packet pointer to the built in packet
  */
 Packet *UTHBuildPacket(uint8_t *payload, uint16_t payload_len,
-                           uint16_t ipproto) {
+                           uint8_t ipproto) {
     return UTHBuildPacketReal(payload, payload_len, ipproto,
                               "192.168.1.5", "192.168.1.1",
                               41424, 80);
@@ -330,7 +330,7 @@ Packet *UTHBuildPacketFromEth(uint8_t *raw_eth, uint16_t pktsize) {
  * \retval Packet pointer to the built in packet
  */
 Packet *UTHBuildPacketSrcDst(uint8_t *payload, uint16_t payload_len,
-                           uint16_t ipproto, char *src, char *dst) {
+                           uint8_t ipproto, char *src, char *dst) {
     return UTHBuildPacketReal(payload, payload_len, ipproto,
                               src, dst,
                               41424, 80);
@@ -347,7 +347,7 @@ Packet *UTHBuildPacketSrcDst(uint8_t *payload, uint16_t payload_len,
  * \retval Packet pointer to the built in packet
  */
 Packet *UTHBuildPacketIPV6SrcDst(uint8_t *payload, uint16_t payload_len,
-                           uint16_t ipproto, char *src, char *dst) {
+                           uint8_t ipproto, char *src, char *dst) {
     return UTHBuildPacketIPV6Real(payload, payload_len, ipproto,
                               src, dst,
                               41424, 80);
@@ -364,7 +364,7 @@ Packet *UTHBuildPacketIPV6SrcDst(uint8_t *payload, uint16_t payload_len,
  * \retval Packet pointer to the built in packet
  */
 Packet *UTHBuildPacketSrcDstPorts(uint8_t *payload, uint16_t payload_len,
-                           uint16_t ipproto, uint16_t sport, uint16_t dport) {
+                           uint8_t ipproto, uint16_t sport, uint16_t dport) {
     return UTHBuildPacketReal(payload, payload_len, ipproto,
                               "192.168.1.5", "192.168.1.1",
                               sport, dport);
@@ -849,7 +849,7 @@ uint32_t UTHBuildPacketOfFlows(uint32_t start, uint32_t end, uint8_t dir) {
 /**
  * \brief CheckUTHTestPacket wrapper to check packets for unittests
  */
-int CheckUTHTestPacket(Packet *p, uint16_t ipproto) {
+int CheckUTHTestPacket(Packet *p, uint8_t ipproto) {
     uint16_t sport = 41424;
     uint16_t dport = 80;
     uint8_t payload[] = "Payload";

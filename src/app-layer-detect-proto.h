@@ -58,14 +58,14 @@ int AppLayerProtoDetectPrepareState(void);
 
 /***** PP registration *****/
 
-void AppLayerProtoDetectPPRegister(uint16_t ipproto,
+void AppLayerProtoDetectPPRegister(uint8_t ipproto,
                                    char *portstr,
                                    AppProto alproto,
                                    uint16_t min_depth, uint16_t max_depth,
                                    uint8_t direction,
                                    ProbingParserFPtr ProbingParser);
 void AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
-                                         uint16_t ipproto,
+                                         uint8_t ipproto,
                                          const char *alproto_name,
                                          AppProto alproto,
                                          uint16_t min_depth, uint16_t max_depth,
@@ -76,14 +76,14 @@ void AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
 /**
  * \brief Registers a case-sensitive pattern for protocol detection.
  */
-int AppLayerProtoDetectPMRegisterPatternCS(uint16_t ipproto, AppProto alproto,
+int AppLayerProtoDetectPMRegisterPatternCS(uint8_t ipproto, AppProto alproto,
                                            char *pattern,
                                            uint16_t depth, uint16_t offset,
                                            uint8_t direction);
 /**
  * \brief Registers a case-insensitive pattern for protocol detection.
  */
-int AppLayerProtoDetectPMRegisterPatternCI(uint16_t ipproto, AppProto alproto,
+int AppLayerProtoDetectPMRegisterPatternCI(uint8_t ipproto, AppProto alproto,
                                            char *pattern,
                                            uint16_t depth, uint16_t offset,
                                            uint8_t direction);
