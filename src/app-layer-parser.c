@@ -117,7 +117,7 @@ typedef struct AppLayerParserCtx_ {
     AppLayerParserProtoCtx ctxs[FLOW_PROTO_MAX][ALPROTO_MAX];
 } AppLayerParserCtx;
 
-typedef struct AppLayerParserParserState_ {
+typedef struct AppLayerParserState_ {
     uint8_t flags;
 
     /* Indicates the current transaction that is being inspected.
@@ -132,7 +132,7 @@ typedef struct AppLayerParserParserState_ {
 
     /* Used to store decoder events. */
     AppLayerDecoderEvents *decoder_events;
-} AppLayerParserParserState;
+} AppLayerParserState;
 
 /* Static global version of the parser context.
  * Post 2.0 let's look at changing this to move it out to app-layer.c. */
@@ -143,7 +143,7 @@ static void AppLayerParserTransactionsCleanup(uint16_t ipproto, AppProto alproto
 {
     SCEnter();
 
-    AppLayerParserParserState *parser_state_store = pstate;
+    AppLayerParserState *parser_state_store = pstate;
     uint64_t inspect = 0, log = 0;
     uint64_t min;
     AppLayerParserProtoCtx *ctx = &alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto];
@@ -174,7 +174,7 @@ void *AppLayerParserAllocAppLayerParserParserState(void)
 {
     SCEnter();
 
-    AppLayerParserParserState *pstate = (AppLayerParserParserState *)SCMalloc(sizeof(*pstate));
+    AppLayerParserState *pstate = (AppLayerParserState *)SCMalloc(sizeof(*pstate));
     if (pstate == NULL)
         goto end;
     memset(pstate, 0, sizeof(*pstate));
@@ -187,8 +187,8 @@ void AppLayerParserDeAllocAppLayerParserParserState(void *pstate)
 {
     SCEnter();
 
-    if (((AppLayerParserParserState *)pstate)->decoder_events != NULL)
-        AppLayerDecoderEventsFreeEvents(((AppLayerParserParserState *)pstate)->decoder_events);
+    if (((AppLayerParserState *)pstate)->decoder_events != NULL)
+        AppLayerDecoderEventsFreeEvents(((AppLayerParserState *)pstate)->decoder_events);
     SCFree(pstate);
 
     SCReturn;
@@ -524,14 +524,14 @@ uint64_t AppLayerParserGetTransactionLogId(void *pstate)
 {
     SCEnter();
 
-    SCReturnCT(((AppLayerParserParserState *)pstate)->log_id, "uint64_t");
+    SCReturnCT(((AppLayerParserState *)pstate)->log_id, "uint64_t");
 }
 
 void AppLayerParserSetTransactionLogId(void *pstate)
 {
     SCEnter();
 
-    ((AppLayerParserParserState *)pstate)->log_id++;
+    ((AppLayerParserState *)pstate)->log_id++;
 
     SCReturn;
 }
@@ -540,7 +540,7 @@ uint64_t AppLayerParserGetTransactionInspectId(void *pstate, uint8_t direction)
 {
     SCEnter();
 
-    SCReturnCT(((AppLayerParserParserState *)pstate)->
+    SCReturnCT(((AppLayerParserState *)pstate)->
                inspect_id[direction & STREAM_TOSERVER ? 0 : 1], "uint64_t");
 }
 
@@ -567,7 +567,7 @@ void AppLayerParserSetTransactionInspectId(void *pstate,
         else
             break;
     }
-    ((AppLayerParserParserState *)pstate)->inspect_id[dir] = idx;
+    ((AppLayerParserState *)pstate)->inspect_id[dir] = idx;
 
     SCReturn;
 }
@@ -576,13 +576,13 @@ AppLayerDecoderEvents *AppLayerParserGetDecoderEvents(void *pstate)
 {
     SCEnter();
 
-    SCReturnPtr(((AppLayerParserParserState *)pstate)->decoder_events,
+    SCReturnPtr(((AppLayerParserState *)pstate)->decoder_events,
                 "AppLayerDecoderEvents *");
 }
 
 void AppLayerParserSetDecoderEvents(void *pstate, AppLayerDecoderEvents *devents)
 {
-    (((AppLayerParserParserState *)pstate)->decoder_events) = devents;
+    (((AppLayerParserState *)pstate)->decoder_events) = devents;
 }
 
 AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint16_t ipproto, AppProto alproto,
@@ -605,7 +605,7 @@ AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint16_t ipproto, AppProto al
 uint16_t AppLayerParserGetStateVersion(void *pstate)
 {
     SCEnter();
-    SCReturnCT((pstate == NULL) ? 0 : ((AppLayerParserParserState *)pstate)->version,
+    SCReturnCT((pstate == NULL) ? 0 : ((AppLayerParserState *)pstate)->version,
                "uint16_t");
 }
 
@@ -678,7 +678,7 @@ uint64_t AppLayerParserGetTransactionActive(uint16_t ipproto, AppProto alproto, 
 {
     SCEnter();
 
-    AppLayerParserParserState *state = (AppLayerParserParserState *)pstate;
+    AppLayerParserState *state = (AppLayerParserState *)pstate;
     uint64_t active_id;
 
     uint64_t log_id = state->log_id;
@@ -699,7 +699,7 @@ int AppLayerParserParse(void *tctx, Flow *f, AppProto alproto,
 {
     SCEnter();
 
-    AppLayerParserParserState *pstate = NULL;
+    AppLayerParserState *pstate = NULL;
     AppLayerParserProtoCtx *p = &alp_ctx.ctxs[FlowGetProtoMapping(f->proto)][alproto];
     TcpSession *ssn = NULL;
     void *alstate = NULL;
@@ -805,7 +805,7 @@ void AppLayerParserSetEOF(void *pstate)
     AppLayerParserParserStateSetFlag(pstate, APP_LAYER_PARSER_EOF);
     /* increase version so we will inspect it one more time
      * with the EOF flags now set */
-    ((AppLayerParserParserState *)pstate)->version++;
+    ((AppLayerParserState *)pstate)->version++;
 
  end:
     SCReturn;
@@ -958,14 +958,14 @@ void AppLayerParserRegisterProtocolParsers(void)
 void AppLayerParserParserStateSetFlag(void *pstate, uint8_t flag)
 {
     SCEnter();
-    ((AppLayerParserParserState *)pstate)->flags |= flag;
+    ((AppLayerParserState *)pstate)->flags |= flag;
     SCReturn;
 }
 
 int AppLayerParserParserStateIssetFlag(void *pstate, uint8_t flag)
 {
     SCEnter();
-    SCReturnInt(((AppLayerParserParserState *)pstate)->flags & flag);
+    SCReturnInt(((AppLayerParserState *)pstate)->flags & flag);
 }
 
 
@@ -989,7 +989,7 @@ void AppLayerParserPrintDetailsParserState(void *pstate)
     if (pstate == NULL)
         SCReturn;
 
-    AppLayerParserParserState *p = (AppLayerParserParserState *)pstate;
+    AppLayerParserState *p = (AppLayerParserState *)pstate;
     SCLogDebug("AppLayerParser parser state information for parser state p(%p). "
                "p->inspect_id[0](%"PRIu64"), "
                "p->inspect_id[1](%"PRIu64"), "
