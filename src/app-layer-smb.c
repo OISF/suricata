@@ -2189,7 +2189,7 @@ int SMBParserTest05(void)
     int result = 0;
     AppProto alproto;
     Flow f;
-    void *alpd_tctx;
+    AppLayerProtoDetectThreadCtx *alpd_tctx;
     memset(&f, 0, sizeof(f));
     f.dp = 139;
 
@@ -2272,7 +2272,7 @@ int SMBParserTest06(void)
     int result = 0;
     AppProto alproto;
     Flow f;
-    void *alpd_tctx;
+    AppLayerProtoDetectThreadCtx *alpd_tctx;
     memset(&f, 0, sizeof(f));
     f.dp = 139;
 

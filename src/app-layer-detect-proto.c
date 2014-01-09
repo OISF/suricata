@@ -1198,7 +1198,7 @@ static int AppLayerProtoDetectPMRegisterPattern(uint8_t ipproto, AppProto alprot
 
 /***** Protocol Retrieval *****/
 
-AppProto AppLayerProtoDetectGetProto(void *tctx,
+AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
                                      Flow *f,
                                      uint8_t *buf, uint32_t buflen,
                                      uint8_t ipproto, uint8_t direction)
@@ -1537,7 +1537,7 @@ int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
     SCReturnInt(enabled);
 }
 
-void *AppLayerProtoDetectGetCtxThread(void)
+AppLayerProtoDetectThreadCtx *AppLayerProtoDetectGetCtxThread(void)
 {
     SCEnter();
 
@@ -1583,14 +1583,13 @@ void *AppLayerProtoDetectGetCtxThread(void)
         AppLayerProtoDetectDestroyCtxThread(alpd_tctx);
     alpd_tctx = NULL;
  end:
-    SCReturnPtr(alpd_tctx, "void *");
+    SCReturnPtr(alpd_tctx, "AppLayerProtoDetectThreadCtx");
 }
 
-void AppLayerProtoDetectDestroyCtxThread(void *tctx)
+void AppLayerProtoDetectDestroyCtxThread(AppLayerProtoDetectThreadCtx *alpd_tctx)
 {
     SCEnter();
 
-    AppLayerProtoDetectThreadCtx *alpd_tctx = (AppLayerProtoDetectThreadCtx *)tctx;
     MpmCtx *mpm_ctx;
     MpmThreadCtx *mpm_tctx;
     int ipproto_map, dir;
@@ -1774,7 +1773,7 @@ int AppLayerProtoDetectTest03(void)
     int r = 0;
     Flow f;
     uint16_t pm_results[ALPROTO_MAX];
-    void *alpd_tctx;
+    AppLayerProtoDetectThreadCtx *alpd_tctx;
 
     memset(pm_results, 0, sizeof(pm_results));
 
@@ -1846,7 +1845,7 @@ int AppLayerProtoDetectTest04(void)
     int r = 0;
     Flow f;
     uint16_t pm_results[ALPROTO_MAX];
-    void *alpd_tctx;
+    AppLayerProtoDetectThreadCtx *alpd_tctx;
 
     memset(pm_results, 0, sizeof(pm_results));
 
@@ -1912,7 +1911,7 @@ int AppLayerProtoDetectTest05(void)
     int r = 0;
     Flow f;
     uint16_t pm_results[ALPROTO_MAX];
-    void *alpd_tctx;
+    AppLayerProtoDetectThreadCtx *alpd_tctx;
 
     memset(pm_results, 0, sizeof(pm_results));
 
@@ -1984,7 +1983,7 @@ int AppLayerProtoDetectTest06(void)
     int r = 0;
     Flow f;
     uint16_t pm_results[ALPROTO_MAX];
-    void *alpd_tctx;
+    AppLayerProtoDetectThreadCtx *alpd_tctx;
 
     buf = "HTTP";
     AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
@@ -2054,7 +2053,7 @@ int AppLayerProtoDetectTest07(void)
     int r = 0;
     Flow f;
     uint16_t pm_results[ALPROTO_MAX];
-    void *alpd_tctx;
+    AppLayerProtoDetectThreadCtx *alpd_tctx;
 
     memset(pm_results, 0, sizeof(pm_results));
 
@@ -2139,7 +2138,7 @@ int AppLayerProtoDetectTest08(void)
     int r = 0;
     Flow f;
     uint16_t pm_results[ALPROTO_MAX];
-    void *alpd_tctx;
+    AppLayerProtoDetectThreadCtx *alpd_tctx;
 
     memset(pm_results, 0, sizeof(pm_results));
 
@@ -2220,7 +2219,7 @@ int AppLayerProtoDetectTest09(void)
     int r = 0;
     Flow f;
     uint16_t pm_results[ALPROTO_MAX];
-    void *alpd_tctx;
+    AppLayerProtoDetectThreadCtx *alpd_tctx;
 
     memset(pm_results, 0, sizeof(pm_results));
 
@@ -2296,7 +2295,7 @@ int AppLayerProtoDetectTest10(void)
     int r = 0;
     Flow f;
     uint16_t pm_results[ALPROTO_MAX];
-    void *alpd_tctx;
+    AppLayerProtoDetectThreadCtx *alpd_tctx;
 
     memset(pm_results, 0, sizeof(pm_results));
 
@@ -2366,7 +2365,7 @@ int AppLayerProtoDetectTest11(void)
     int r = 0;
     Flow f;
     uint16_t pm_results[ALPROTO_MAX];
-    void *alpd_tctx;
+    AppLayerProtoDetectThreadCtx *alpd_tctx;
 
     memset(pm_results, 0, sizeof(pm_results));
 
@@ -2513,7 +2512,7 @@ int AppLayerProtoDetectTest13(void)
     int r = 0;
     Flow f;
     uint16_t pm_results[ALPROTO_MAX];
-    void *alpd_tctx;
+    AppLayerProtoDetectThreadCtx *alpd_tctx;
     uint32_t cnt;
 
     AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_UDP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOSERVER);
@@ -2601,7 +2600,7 @@ int AppLayerProtoDetectTest14(void)
     int r = 0;
     Flow f;
     uint16_t pm_results[ALPROTO_MAX];
-    void *alpd_tctx;
+    AppLayerProtoDetectThreadCtx *alpd_tctx;
     uint32_t cnt;
 
     AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_UDP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOSERVER);

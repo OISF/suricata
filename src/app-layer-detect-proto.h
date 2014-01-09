@@ -44,7 +44,7 @@ typedef uint16_t (*ProbingParserFPtr)(uint8_t *input, uint32_t input_len,
  *
  * \retval The app layer protocol.
  */
-AppProto AppLayerProtoDetectGetProto(void *tctx,
+AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
                                      Flow *f,
                                      uint8_t *buf, uint32_t buflen,
                                      uint8_t ipproto, uint8_t direction);
@@ -151,14 +151,14 @@ int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
  * \retval Pointer to the thread context, on success;
  *         NULL, on failure.
  */
-void *AppLayerProtoDetectGetCtxThread(void);
+AppLayerProtoDetectThreadCtx *AppLayerProtoDetectGetCtxThread(void);
 
 /**
  * \brief Destroys the app layer protocol detection thread context.
  *
  * \param tctx Pointer to the app layer protocol detection thread context.
  */
-void AppLayerProtoDetectDestroyCtxThread(void *tctx);
+void AppLayerProtoDetectDestroyCtxThread(AppLayerProtoDetectThreadCtx *tctx);
 
 /***** Utility *****/
 
