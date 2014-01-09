@@ -340,7 +340,7 @@ typedef struct SignatureHeader_ {
         struct {
             /* coccinelle: SignatureHeader:flags:SIG_FLAG */
             uint32_t flags;
-            uint16_t alproto;
+            AppProto alproto;
             uint16_t dsize_low;
         };
         uint64_t hdr_copy1;
@@ -379,7 +379,7 @@ typedef struct Signature_ {
         struct {
             /* coccinelle: Signature:flags:SIG_FLAG */
             uint32_t flags;
-            uint16_t alproto;
+            AppProto alproto;
             uint16_t dsize_low;
         };
         uint64_t hdr_copy1;
@@ -888,7 +888,7 @@ typedef struct SigTableElmt_ {
         uint8_t flags, File *, Signature *, SigMatch *);
 
     /** app layer proto from app-layer-protos.h this match applies to */
-    uint16_t alproto;
+    AppProto alproto;
 
     /** keyword setup function pointer */
     int (*Setup)(DetectEngineCtx *, Signature *, char *);

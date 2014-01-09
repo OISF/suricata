@@ -43,6 +43,7 @@
 #include "log-tlslog.h"
 #include "app-layer-ssl.h"
 #include "app-layer.h"
+#include "app-layer-parser.h"
 #include "util-privs.h"
 #include "util-buffer.h"
 
@@ -367,11 +368,11 @@ static TmEcode LogTlsLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQ
 
     /* check if we have TLS state or not */
     FLOWLOCK_WRLOCK(p->flow);
-    uint16_t proto = AppLayerGetProtoFromPacket(p);
+    uint16_t proto = FlowGetAppProtocol(p->flow);
     if (proto != ALPROTO_TLS)
         goto end;
 
-    SSLState *ssl_state = (SSLState *) AppLayerGetProtoStateFromPacket(p);
+    SSLState *ssl_state = (SSLState *)FlowGetAppState(p->flow);
     if (ssl_state == NULL) {
         SCLogDebug("no tls state, so no request logging");
         goto end;
@@ -384,7 +385,7 @@ static TmEcode LogTlsLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQ
         LogTlsLogPem(aft, p, ssl_state, hlog, ipproto);
     }
 
-    if (AppLayerTransactionGetLogId(p->flow) != 0) {
+    if (AppLayerParserGetTransactionLogId(p->flow->alparser) != 0) {
         goto end;
     }
 
@@ -405,7 +406,7 @@ static TmEcode LogTlsLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQ
                          timebuf, srcip, sp, dstip, dp,
                          ssl_state->server_connp.cert0_subject, ssl_state->server_connp.cert0_issuerdn);
 
-    AppLayerTransactionUpdateLogId(p->flow);
+    AppLayerParserSetTransactionLogId(p->flow->alparser);
 
     if (hlog->flags & LOG_TLS_EXTENDED) {
         LogTlsLogExtended(aft, ssl_state);
@@ -595,7 +596,7 @@ OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
     SCLogDebug("TLS log output initialized");
 
     /* enable the logger for the app layer */
-    AppLayerRegisterLogger(ALPROTO_TLS);
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
 
     return output_ctx;
 

@@ -44,6 +44,7 @@
 #include "util-unittest-helper.h"
 
 #include "app-layer.h"
+#include "app-layer-parser.h"
 
 #include "detect-ssl-state.h"
 
@@ -699,6 +700,7 @@ static int DetectSslStateTest07(void)
     DetectEngineCtx *de_ctx = NULL;
     SSLState *ssl_state = NULL;
     int r = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -709,6 +711,7 @@ static int DetectSslStateTest07(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -754,8 +757,8 @@ static int DetectSslStateTest07(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER | STREAM_START, chello_buf,
-                      chello_buf_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER | STREAM_START, chello_buf,
+                            chello_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -783,8 +786,8 @@ static int DetectSslStateTest07(void)
         goto end;
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOCLIENT, shello_buf,
-                      shello_buf_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT, shello_buf,
+                            shello_buf_len);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -806,8 +809,8 @@ static int DetectSslStateTest07(void)
         goto end;
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, client_change_cipher_spec_buf,
-                      client_change_cipher_spec_buf_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, client_change_cipher_spec_buf,
+                            client_change_cipher_spec_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -830,8 +833,8 @@ static int DetectSslStateTest07(void)
         goto end;
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOCLIENT, server_change_cipher_spec_buf,
-                      server_change_cipher_spec_buf_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT, server_change_cipher_spec_buf,
+                            server_change_cipher_spec_buf_len);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -854,8 +857,8 @@ static int DetectSslStateTest07(void)
         goto end;
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, toserver_app_data_buf,
-                      toserver_app_data_buf_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, toserver_app_data_buf,
+                            toserver_app_data_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -880,6 +883,8 @@ static int DetectSslStateTest07(void)
     result = 1;
 
  end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 

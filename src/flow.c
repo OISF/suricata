@@ -94,10 +94,12 @@ extern int run_mode;
 
 void FlowCleanupAppLayer(Flow *f)
 {
-    if (f == NULL)
+    if (f == NULL || f->proto == 0)
         return;
 
-    AppLayerParserCleanupState(f);
+    AppLayerParserStateCleanup(f->proto, f->alproto, f->alstate, f->alparser);
+    f->alstate = NULL;
+    f->alparser = NULL;
     return;
 }
 
@@ -822,6 +824,16 @@ int FlowSetProtoEmergencyTimeout(uint8_t proto, uint32_t emerg_new_timeout,
     flow_proto[proto_map].emerg_closed_timeout = emerg_closed_timeout;
 
     return 1;
+}
+
+AppProto FlowGetAppProtocol(Flow *f)
+{
+    return f->alproto;
+}
+
+void *FlowGetAppState(Flow *f)
+{
+    return f->alstate;
 }
 
 /************************************Unittests*******************************/

@@ -2229,7 +2229,7 @@ static int SCACTest01(void)
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2263,7 +2263,7 @@ static int SCACTest02(void)
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abce", 4, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2300,7 +2300,7 @@ static int SCACTest03(void)
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"bcde", 4, 0, 0, 1, 0, 0);
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"fghj", 4, 0, 0, 2, 0, 0);
-    PmqSetup(&pmq, 0, 3);
+    PmqSetup(&pmq, 3);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2334,7 +2334,7 @@ static int SCACTest04(void)
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"bcdegh", 6, 0, 0, 1, 0, 0);
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"fghjxyz", 7, 0, 0, 2, 0, 0);
-    PmqSetup(&pmq, 0, 3);
+    PmqSetup(&pmq, 3);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2368,7 +2368,7 @@ static int SCACTest05(void)
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"ABCD", 4, 0, 0, 0, 0, 0);
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"bCdEfG", 6, 0, 0, 1, 0, 0);
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"fghJikl", 7, 0, 0, 2, 0, 0);
-    PmqSetup(&pmq, 0, 3);
+    PmqSetup(&pmq, 3);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2400,7 +2400,7 @@ static int SCACTest06(void)
     SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
 
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2444,7 +2444,7 @@ static int SCACTest07(void)
     /* 1 */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
                      30, 0, 0, 5, 0, 0);
-    PmqSetup(&pmq, 0, 6);
+    PmqSetup(&pmq, 6);
     /* total matches: 135 */
 
     SCACPreparePatterns(&mpm_ctx);
@@ -2478,7 +2478,7 @@ static int SCACTest08(void)
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2510,7 +2510,7 @@ static int SCACTest09(void)
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"ab", 2, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2542,7 +2542,7 @@ static int SCACTest10(void)
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcdefgh", 8, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2585,7 +2585,7 @@ static int SCACTest11(void)
         goto end;
     if (MpmAddPatternCS(&mpm_ctx, (uint8_t *)"hers", 4, 0, 0, 4, 0, 0) == -1)
         goto end;
-    PmqSetup(&pmq, 0, 5);
+    PmqSetup(&pmq, 5);
 
     if (SCACPreparePatterns(&mpm_ctx) == -1)
         goto end;
@@ -2628,7 +2628,7 @@ static int SCACTest12(void)
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"wxyz", 4, 0, 0, 0, 0, 0);
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"vwxyz", 5, 0, 0, 1, 0, 0);
-    PmqSetup(&pmq, 0, 2);
+    PmqSetup(&pmq, 2);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2662,7 +2662,7 @@ static int SCACTest13(void)
     /* 1 match */
     char *pat = "abcdefghijklmnopqrstuvwxyzABCD";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2696,7 +2696,7 @@ static int SCACTest14(void)
     /* 1 match */
     char *pat = "abcdefghijklmnopqrstuvwxyzABCDE";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2730,7 +2730,7 @@ static int SCACTest15(void)
     /* 1 match */
     char *pat = "abcdefghijklmnopqrstuvwxyzABCDEF";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2764,7 +2764,7 @@ static int SCACTest16(void)
     /* 1 match */
     char *pat = "abcdefghijklmnopqrstuvwxyzABC";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2798,7 +2798,7 @@ static int SCACTest17(void)
     /* 1 match */
     char *pat = "abcdefghijklmnopqrstuvwxyzAB";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2832,7 +2832,7 @@ static int SCACTest18(void)
     /* 1 match */
     char *pat = "abcde""fghij""klmno""pqrst""uvwxy""z";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2866,7 +2866,7 @@ static int SCACTest19(void)
     /* 1 */
     char *pat = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2900,7 +2900,7 @@ static int SCACTest20(void)
     /* 1 */
     char *pat = "AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AA";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2933,7 +2933,7 @@ static int SCACTest21(void)
 
     /* 1 */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2967,7 +2967,7 @@ static int SCACTest22(void)
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcde", 5, 0, 0, 1, 0, 0);
-    PmqSetup(&pmq, 0, 2);
+    PmqSetup(&pmq, 2);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -3000,7 +3000,7 @@ static int SCACTest23(void)
 
     /* 1 */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -3032,7 +3032,7 @@ static int SCACTest24(void)
 
     /* 1 */
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -3065,7 +3065,7 @@ static int SCACTest25(void)
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"ABCD", 4, 0, 0, 0, 0, 0);
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"bCdEfG", 6, 0, 0, 1, 0, 0);
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"fghiJkl", 7, 0, 0, 2, 0, 0);
-    PmqSetup(&pmq, 0, 3);
+    PmqSetup(&pmq, 3);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -3098,7 +3098,7 @@ static int SCACTest26(void)
 
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"Works", 5, 0, 0, 0, 0, 0);
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"Works", 5, 0, 0, 1, 0, 0);
-    PmqSetup(&pmq, 0, 2);
+    PmqSetup(&pmq, 2);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -3131,7 +3131,7 @@ static int SCACTest27(void)
 
     /* 0 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"ONE", 3, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -3164,7 +3164,7 @@ static int SCACTest28(void)
 
     /* 0 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"one", 3, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 0, 1);
+    PmqSetup(&pmq, 1);
 
     SCACPreparePatterns(&mpm_ctx);
 

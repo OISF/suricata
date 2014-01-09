@@ -38,6 +38,8 @@
 #include "util-print.h"
 #include "flow.h"
 
+#include "stream-tcp.h"
+
 #include "app-layer-parser.h"
 
 #include "util-unittest.h"
@@ -71,7 +73,7 @@ int DetectEngineInspectPacketUris(ThreadVars *tv,
     HtpTxUserData *tx_ud = htp_tx_get_user_data(txv);
 
     if (tx_ud == NULL || tx_ud->request_uri_normalized == NULL) {
-        if (AppLayerGetAlstateProgress(ALPROTO_HTTP, txv, 0) > HTP_REQUEST_LINE)
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, STREAM_TOSERVER) > HTP_REQUEST_LINE)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
         else
             return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
@@ -123,6 +125,7 @@ static int UriTestSig01(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -132,6 +135,7 @@ static int UriTestSig01(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -160,7 +164,7 @@ static int UriTestSig01(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -185,7 +189,7 @@ static int UriTestSig01(void)
     DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -210,6 +214,8 @@ static int UriTestSig01(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -242,6 +248,7 @@ static int UriTestSig02(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -251,6 +258,7 @@ static int UriTestSig02(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -279,7 +287,7 @@ static int UriTestSig02(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -304,7 +312,7 @@ static int UriTestSig02(void)
     DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -329,6 +337,8 @@ static int UriTestSig02(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -361,6 +371,7 @@ static int UriTestSig03(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -370,6 +381,7 @@ static int UriTestSig03(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -398,7 +410,7 @@ static int UriTestSig03(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -423,7 +435,7 @@ static int UriTestSig03(void)
     DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -448,6 +460,8 @@ static int UriTestSig03(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -480,6 +494,7 @@ static int UriTestSig04(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -489,6 +504,7 @@ static int UriTestSig04(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -517,7 +533,7 @@ static int UriTestSig04(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -542,7 +558,7 @@ static int UriTestSig04(void)
     DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -567,6 +583,8 @@ static int UriTestSig04(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -599,6 +617,7 @@ static int UriTestSig05(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -608,6 +627,7 @@ static int UriTestSig05(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -636,7 +656,7 @@ static int UriTestSig05(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -661,7 +681,7 @@ static int UriTestSig05(void)
     DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -686,6 +706,8 @@ static int UriTestSig05(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -718,6 +740,7 @@ static int UriTestSig06(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -727,6 +750,7 @@ static int UriTestSig06(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -755,7 +779,7 @@ static int UriTestSig06(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -780,7 +804,7 @@ static int UriTestSig06(void)
     DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -805,6 +829,8 @@ static int UriTestSig06(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -837,6 +863,7 @@ static int UriTestSig07(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -846,6 +873,7 @@ static int UriTestSig07(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -874,7 +902,7 @@ static int UriTestSig07(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -899,7 +927,7 @@ static int UriTestSig07(void)
     DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -924,6 +952,8 @@ static int UriTestSig07(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -956,6 +986,7 @@ static int UriTestSig08(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -965,6 +996,7 @@ static int UriTestSig08(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -993,7 +1025,7 @@ static int UriTestSig08(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1018,7 +1050,7 @@ static int UriTestSig08(void)
     DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1043,6 +1075,8 @@ static int UriTestSig08(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -1075,6 +1109,7 @@ static int UriTestSig09(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -1084,6 +1119,7 @@ static int UriTestSig09(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -1112,7 +1148,7 @@ static int UriTestSig09(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1137,7 +1173,7 @@ static int UriTestSig09(void)
     DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1162,6 +1198,8 @@ static int UriTestSig09(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -1194,6 +1232,7 @@ static int UriTestSig10(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -1203,6 +1242,7 @@ static int UriTestSig10(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -1231,7 +1271,7 @@ static int UriTestSig10(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1256,7 +1296,7 @@ static int UriTestSig10(void)
     DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1281,6 +1321,8 @@ static int UriTestSig10(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -1313,6 +1355,7 @@ static int UriTestSig11(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -1322,6 +1365,7 @@ static int UriTestSig11(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -1351,7 +1395,7 @@ static int UriTestSig11(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1376,7 +1420,7 @@ static int UriTestSig11(void)
     DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1401,6 +1445,8 @@ static int UriTestSig11(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -1433,6 +1479,7 @@ static int UriTestSig12(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -1442,6 +1489,7 @@ static int UriTestSig12(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -1471,7 +1519,7 @@ static int UriTestSig12(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1496,7 +1544,7 @@ static int UriTestSig12(void)
     DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1521,6 +1569,8 @@ static int UriTestSig12(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -1553,6 +1603,7 @@ static int UriTestSig13(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -1562,6 +1613,7 @@ static int UriTestSig13(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -1590,7 +1642,7 @@ static int UriTestSig13(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1615,7 +1667,7 @@ static int UriTestSig13(void)
     DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1641,6 +1693,8 @@ static int UriTestSig13(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -1673,6 +1727,7 @@ static int UriTestSig14(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -1682,6 +1737,7 @@ static int UriTestSig14(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -1710,7 +1766,7 @@ static int UriTestSig14(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1735,7 +1791,7 @@ static int UriTestSig14(void)
     DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1761,6 +1817,8 @@ static int UriTestSig14(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -1793,6 +1851,7 @@ static int UriTestSig15(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -1802,6 +1861,7 @@ static int UriTestSig15(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -1830,7 +1890,7 @@ static int UriTestSig15(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1855,7 +1915,7 @@ static int UriTestSig15(void)
     DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1881,6 +1941,8 @@ static int UriTestSig15(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -1913,6 +1975,7 @@ static int UriTestSig16(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -1922,6 +1985,7 @@ static int UriTestSig16(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -1948,7 +2012,7 @@ static int UriTestSig16(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1976,7 +2040,7 @@ static int UriTestSig16(void)
     p->payload_len = http_buf2_len;
 
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2001,6 +2065,8 @@ static int UriTestSig16(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -2029,6 +2095,7 @@ static int UriTestSig17(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2038,6 +2105,7 @@ static int UriTestSig17(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -2068,7 +2136,7 @@ static int UriTestSig17(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2093,6 +2161,8 @@ static int UriTestSig17(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -2121,6 +2191,7 @@ static int UriTestSig18(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2130,6 +2201,7 @@ static int UriTestSig18(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -2160,7 +2232,7 @@ static int UriTestSig18(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2185,6 +2257,8 @@ static int UriTestSig18(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -2213,6 +2287,7 @@ static int UriTestSig19(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2222,6 +2297,7 @@ static int UriTestSig19(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -2253,7 +2329,7 @@ static int UriTestSig19(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2278,6 +2354,8 @@ static int UriTestSig19(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -2306,6 +2384,7 @@ static int UriTestSig20(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2315,6 +2394,7 @@ static int UriTestSig20(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -2345,7 +2425,7 @@ static int UriTestSig20(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2370,6 +2450,8 @@ static int UriTestSig20(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -2398,6 +2480,7 @@ static int UriTestSig21(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2407,6 +2490,7 @@ static int UriTestSig21(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -2436,7 +2520,7 @@ static int UriTestSig21(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2461,6 +2545,8 @@ static int UriTestSig21(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -2490,6 +2576,7 @@ static int UriTestSig22(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2499,6 +2586,7 @@ static int UriTestSig22(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -2527,7 +2615,7 @@ static int UriTestSig22(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2552,6 +2640,8 @@ static int UriTestSig22(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -2580,6 +2670,7 @@ static int UriTestSig23(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2589,6 +2680,7 @@ static int UriTestSig23(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -2617,7 +2709,7 @@ static int UriTestSig23(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2642,6 +2734,8 @@ static int UriTestSig23(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -2670,6 +2764,7 @@ static int UriTestSig24(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2679,6 +2774,7 @@ static int UriTestSig24(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -2707,7 +2803,7 @@ static int UriTestSig24(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2732,6 +2828,8 @@ static int UriTestSig24(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -2760,6 +2858,7 @@ static int UriTestSig25(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2769,6 +2868,7 @@ static int UriTestSig25(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -2797,7 +2897,7 @@ static int UriTestSig25(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2822,6 +2922,8 @@ static int UriTestSig25(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -2850,6 +2952,7 @@ static int UriTestSig26(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2859,6 +2962,7 @@ static int UriTestSig26(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -2887,7 +2991,7 @@ static int UriTestSig26(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2912,6 +3016,8 @@ static int UriTestSig26(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -2940,6 +3046,7 @@ static int UriTestSig27(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2949,6 +3056,7 @@ static int UriTestSig27(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -2977,7 +3085,7 @@ static int UriTestSig27(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -3002,6 +3110,8 @@ static int UriTestSig27(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -3062,6 +3172,7 @@ static int UriTestSig28(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -3071,6 +3182,7 @@ static int UriTestSig28(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -3101,7 +3213,7 @@ static int UriTestSig28(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -3126,6 +3238,8 @@ static int UriTestSig28(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -3151,6 +3265,7 @@ static int UriTestSig29(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -3160,6 +3275,7 @@ static int UriTestSig29(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -3190,7 +3306,7 @@ static int UriTestSig29(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -3215,6 +3331,8 @@ static int UriTestSig29(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -3240,6 +3358,7 @@ static int UriTestSig30(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -3249,6 +3368,7 @@ static int UriTestSig30(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -3279,7 +3399,7 @@ static int UriTestSig30(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -3304,6 +3424,8 @@ static int UriTestSig30(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -3329,6 +3451,7 @@ static int UriTestSig31(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -3338,6 +3461,7 @@ static int UriTestSig31(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -3368,7 +3492,7 @@ static int UriTestSig31(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -3393,6 +3517,8 @@ static int UriTestSig31(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -3418,6 +3544,7 @@ static int UriTestSig32(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -3427,6 +3554,7 @@ static int UriTestSig32(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -3457,7 +3585,7 @@ static int UriTestSig32(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -3482,6 +3610,8 @@ static int UriTestSig32(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -3507,6 +3637,7 @@ static int UriTestSig33(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -3516,6 +3647,7 @@ static int UriTestSig33(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -3544,7 +3676,7 @@ static int UriTestSig33(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -3569,6 +3701,8 @@ static int UriTestSig33(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -3594,6 +3728,7 @@ static int UriTestSig34(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -3603,6 +3738,7 @@ static int UriTestSig34(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -3631,7 +3767,7 @@ static int UriTestSig34(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -3656,6 +3792,8 @@ static int UriTestSig34(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -3681,6 +3819,7 @@ static int UriTestSig35(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -3690,6 +3829,7 @@ static int UriTestSig35(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -3718,7 +3858,7 @@ static int UriTestSig35(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -3743,6 +3883,8 @@ static int UriTestSig35(void)
     result = 1;
 
 end:
+     if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -3768,6 +3910,7 @@ static int UriTestSig36(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -3777,6 +3920,7 @@ static int UriTestSig36(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -3805,7 +3949,7 @@ static int UriTestSig36(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -3830,6 +3974,8 @@ static int UriTestSig36(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -3855,6 +4001,7 @@ static int UriTestSig37(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -3864,6 +4011,7 @@ static int UriTestSig37(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -3892,7 +4040,7 @@ static int UriTestSig37(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -3917,6 +4065,8 @@ static int UriTestSig37(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)
@@ -3942,6 +4092,7 @@ static int UriTestSig38(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -3951,6 +4102,7 @@ static int UriTestSig38(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -3979,7 +4131,7 @@ static int UriTestSig38(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -4004,6 +4156,8 @@ static int UriTestSig38(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     if (de_ctx != NULL)

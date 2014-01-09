@@ -1,3 +1,8 @@
+/* we are disabling the ssh parser temporarily, since we are moving away
+ * from some of the archaic features we use in the app layer.  We will
+ * reintroduce this parser.  Also do note that keywords that rely on
+ * the ssh parser would now be disabled */
+#if 0
 /* Copyright (C) 2007-2010 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
@@ -654,3 +659,4 @@ void DetectSshSoftwareVersionRegisterTests(void) {
 #endif /* UNITTESTS */
 }
 
+#endif /* #if 0 */

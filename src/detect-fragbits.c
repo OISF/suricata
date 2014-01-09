@@ -32,6 +32,7 @@
 
 #include "flow-var.h"
 #include "decode-events.h"
+#include "app-layer.h"
 #include "app-layer-detect-proto.h"
 
 #include "detect-fragbits.h"
@@ -422,7 +423,7 @@ static int FragBitsTestParse03 (void) {
     memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
-    AlpProtoFinalize2Thread(&dtv.udp_dp_ctx);
+    dtv.app_tctx = AppLayerGetCtxThread();
 
     p->ip4h = &ipv4h;
 
@@ -518,7 +519,7 @@ static int FragBitsTestParse04 (void) {
     memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
-    AlpProtoFinalize2Thread(&dtv.udp_dp_ctx);
+    dtv.app_tctx = AppLayerGetCtxThread();
 
     p->ip4h = &ipv4h;
 

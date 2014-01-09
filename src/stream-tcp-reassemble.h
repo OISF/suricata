@@ -53,7 +53,7 @@ enum
 
 typedef struct TcpReassemblyThreadCtx_ {
     StreamMsgQueue *stream_q;
-    AlpProtoDetectThreadCtx dp_ctx;   /**< proto detection thread data */
+    void *app_tctx;
     /** TCP segments which are not being reassembled due to memcap was reached */
     uint16_t counter_tcp_segment_memcap;
     /** number of streams that stop reassembly because their depth is reached */

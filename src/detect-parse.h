@@ -62,7 +62,7 @@ void DetectParseDupSigHashFree(DetectEngineCtx *);
 
 int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg,
                                            uint8_t sm_type, uint8_t sm_list,
-                                           uint16_t alproto,  void (*CustomCallback)(Signature *s));
+                                           AppProto alproto,  void (*CustomCallback)(Signature *s));
 
 #endif /* __DETECT_PARSE_H__ */
 

@@ -54,6 +54,7 @@
 #include "util-print.h"
 
 #include "app-layer.h"
+#include "app-layer-parser.h"
 
 #include "app-layer-htp.h"
 #include "detect-http-cookie.h"
@@ -323,6 +324,7 @@ static int DetectHttpCookieSigTest01(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -332,6 +334,7 @@ static int DetectHttpCookieSigTest01(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -367,7 +370,7 @@ static int DetectHttpCookieSigTest01(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -397,6 +400,8 @@ static int DetectHttpCookieSigTest01(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -423,6 +428,7 @@ static int DetectHttpCookieSigTest02(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -433,6 +439,7 @@ static int DetectHttpCookieSigTest02(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -461,7 +468,7 @@ static int DetectHttpCookieSigTest02(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -487,6 +494,8 @@ static int DetectHttpCookieSigTest02(void) {
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -512,6 +521,7 @@ static int DetectHttpCookieSigTest03(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -521,6 +531,7 @@ static int DetectHttpCookieSigTest03(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -549,7 +560,7 @@ static int DetectHttpCookieSigTest03(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -574,6 +585,8 @@ static int DetectHttpCookieSigTest03(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -600,6 +613,7 @@ static int DetectHttpCookieSigTest04(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -610,6 +624,7 @@ static int DetectHttpCookieSigTest04(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -638,7 +653,7 @@ static int DetectHttpCookieSigTest04(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -663,6 +678,8 @@ static int DetectHttpCookieSigTest04(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -689,6 +706,7 @@ static int DetectHttpCookieSigTest05(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -699,6 +717,7 @@ static int DetectHttpCookieSigTest05(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -727,7 +746,7 @@ static int DetectHttpCookieSigTest05(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -752,6 +771,8 @@ static int DetectHttpCookieSigTest05(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -778,6 +799,7 @@ static int DetectHttpCookieSigTest06(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -788,6 +810,7 @@ static int DetectHttpCookieSigTest06(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -817,7 +840,7 @@ static int DetectHttpCookieSigTest06(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -841,6 +864,8 @@ static int DetectHttpCookieSigTest06(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -867,6 +892,7 @@ static int DetectHttpCookieSigTest07(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -876,6 +902,7 @@ static int DetectHttpCookieSigTest07(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
@@ -904,7 +931,7 @@ static int DetectHttpCookieSigTest07(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -929,6 +956,8 @@ static int DetectHttpCookieSigTest07(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -968,6 +997,7 @@ static int DetectHttpCookieSigTest08(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -975,6 +1005,7 @@ static int DetectHttpCookieSigTest08(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
     f.alproto = ALPROTO_HTTP;
 
@@ -1011,8 +1042,8 @@ static int DetectHttpCookieSigTest08(void)
 
     /* request */
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER,
-                          httpbuf_request, httpbuf_request_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER,
+                                httpbuf_request, httpbuf_request_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1035,8 +1066,8 @@ static int DetectHttpCookieSigTest08(void)
 
     /* response */
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOCLIENT,
-                          httpbuf_response, httpbuf_response_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT,
+                            httpbuf_response, httpbuf_response_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1054,6 +1085,8 @@ static int DetectHttpCookieSigTest08(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -1095,6 +1128,7 @@ static int DetectHttpCookieSigTest09(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1102,6 +1136,7 @@ static int DetectHttpCookieSigTest09(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
     f.alproto = ALPROTO_HTTP;
 
@@ -1144,8 +1179,8 @@ static int DetectHttpCookieSigTest09(void)
 
     /* request */
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER,
-                          httpbuf_request, httpbuf_request_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER,
+                                httpbuf_request, httpbuf_request_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1168,8 +1203,8 @@ static int DetectHttpCookieSigTest09(void)
 
     /* response */
     SCMutexLock(&f.m);
-    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOCLIENT,
-                          httpbuf_response, httpbuf_response_len);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT,
+                            httpbuf_response, httpbuf_response_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1187,6 +1222,8 @@ static int DetectHttpCookieSigTest09(void)
     result = 1;
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }

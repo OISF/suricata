@@ -19,6 +19,7 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  *
  * Generic App-layer functions
  */
@@ -26,6 +27,8 @@
 #include "suricata-common.h"
 
 #include "app-layer.h"
+#include "app-layer-parser.h"
+#include "app-layer-protos.h"
 #include "app-layer-detect-proto.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp-private.h"
@@ -39,114 +42,53 @@
 #include "util-validate.h"
 #include "decode-events.h"
 
-//#define PRINT
-extern uint8_t engine_mode;
-
-/** \brief Get the active app layer proto from the packet
- *  \param p packet pointer with a LOCKED flow
- *  \retval alstate void pointer to the state
- *  \retval proto (ALPROTO_UNKNOWN if no proto yet) */
-uint16_t AppLayerGetProtoFromPacket(Packet *p) {
-    SCEnter();
-
-    if (p == NULL || p->flow == NULL) {
-        SCReturnUInt(ALPROTO_UNKNOWN);
-    }
-
-    DEBUG_ASSERT_FLOW_LOCKED(p->flow);
-
-    SCLogDebug("p->flow->alproto %"PRIu16"", p->flow->alproto);
-
-    SCReturnUInt(p->flow->alproto);
-}
-
-/** \brief Get the active app layer state from the packet
- *  \param p packet pointer with a LOCKED flow
- *  \retval alstate void pointer to the state
- *  \retval NULL in case we have no state */
-void *AppLayerGetProtoStateFromPacket(Packet *p) {
-    SCEnter();
-
-    if (p == NULL || p->flow == NULL) {
-        SCReturnPtr(NULL, "void");
-    }
-
-    DEBUG_ASSERT_FLOW_LOCKED(p->flow);
-
-    SCLogDebug("p->flow->alproto %"PRIu16"", p->flow->alproto);
-
-    SCLogDebug("p->flow %p", p->flow);
-    SCReturnPtr(p->flow->alstate, "void");
-}
-
-/** \brief Get the active app layer state from the flow
- *  \param f flow pointer to a LOCKED flow
- *  \retval alstate void pointer to the state
- *  \retval NULL in case we have no state */
-void *AppLayerGetProtoStateFromFlow(Flow *f) {
-    SCEnter();
-
-    DEBUG_ASSERT_FLOW_LOCKED(f);
-
-    if (f == NULL) {
-        SCReturnPtr(NULL, "void");
-    }
-
-    SCLogDebug("f->alproto %"PRIu16"", f->alproto);
-
-    SCReturnPtr(f->alstate, "void");
-}
-
-/** global app layer detection context */
-extern AlpProtoDetectCtx alp_proto_ctx;
-
 /**
- *  \brief Handle a chunk of TCP data
- *
- *  If the protocol is yet unknown, the proto detection code is run first.
- *
- *  \param dp_ctx Thread app layer detect context
- *  \param f Flow
- *  \param ssn TCP Session
- *  \param data ptr to reassembled data
- *  \param data_len length of the data chunk
- *  \param flags control flags
- *
- *  During detection this function can call the stream reassembly,
- *  inline or non-inline for the opposing direction, while already
- *  being called by the same stream reassembly for a particular
- *  direction.  This should cause any issues, since processing of
- *  each stream is independent of the other stream.
- *
- *  \retval 0 ok
- *  \retval -1 error
+ * \brief This is for the app layer in general and it contains per thread
+ *        context relevant to both the alpd and alp.
  */
+typedef struct AppLayerThreadCtx_ {
+    /* App layer protocol detection thread context, from AppLayerProtoDetectGetCtxThread(). */
+    AppLayerProtoDetectThreadCtx *alpd_tctx;
+    /* App layer parser thread context, from AppLayerParserThreadCtxAlloc(). */
+    AppLayerParserThreadCtx *alp_tctx;
+
+#ifdef PROFILING
+    uint64_t ticks_start;
+    uint64_t ticks_end;
+    uint64_t ticks_spent;
+    AppProto alproto;
+    uint64_t proto_detect_ticks_start;
+    uint64_t proto_detect_ticks_end;
+    uint64_t proto_detect_ticks_spent;
+#endif
+} AppLayerThreadCtx;
+
+/***** L7 layer dispatchers *****/
+
 int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
-                          Flow *f, TcpSession *ssn, TcpStream *stream,
-                          uint8_t *data, uint32_t data_len, Packet *p,
+                          Packet *p, Flow *f,
+                          TcpSession *ssn, TcpStream *stream,
+                          uint8_t *data, uint32_t data_len,
                           uint8_t flags)
 {
     SCEnter();
-    AlpProtoDetectThreadCtx *dp_ctx = &ra_ctx->dp_ctx;
 
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
+    AppLayerThreadCtx *app_tctx = ra_ctx->app_tctx;
+    AppProto *alproto;
+    AppProto *alproto_otherdir;
+    uint8_t dir;
+    uint32_t data_al_so_far;
     int r = 0;
-
-#if DEBUG
-    BUG_ON(f == NULL);
-    BUG_ON(ssn == NULL);
-#endif
+    uint8_t first_data_dir;
 
     SCLogDebug("data_len %u flags %02X", data_len, flags);
     if (f->flags & FLOW_NO_APPLAYER_INSPECTION) {
         SCLogDebug("FLOW_AL_NO_APPLAYER_INSPECTION is set");
-        SCReturnInt(r);
+        goto end;
     }
 
-    uint16_t *alproto;
-    uint16_t *alproto_otherdir;
-    uint8_t dir;
     if (flags & STREAM_TOSERVER) {
         alproto = &f->alproto_ts;
         alproto_otherdir = &f->alproto_tc;
@@ -156,9 +98,6 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         alproto_otherdir = &f->alproto_ts;
         dir = 1;
     }
-    SCLogDebug("dir %u alproto %u alproto_other_dir %u",
-            dir, *alproto, *alproto_otherdir);
-    //PrintRawDataFp(stdout, data, data_len);
 
     /* if we don't know the proto yet and we have received a stream
      * initializer message, we run proto detection.
@@ -166,10 +105,9 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
      * only run the proto detection once. */
     if (*alproto == ALPROTO_UNKNOWN && (flags & STREAM_GAP)) {
         StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
-        SCLogDebug("ALPROTO_UNKNOWN flow %p, due to GAP in stream start", f);
         StreamTcpSetSessionNoReassemblyFlag(ssn, dir);
+        SCLogDebug("ALPROTO_UNKNOWN flow %p, due to GAP in stream start", f);
     } else if (*alproto == ALPROTO_UNKNOWN && (flags & STREAM_START)) {
-        uint32_t data_al_so_far;
         if (data_len == 0)
             data_al_so_far = 0;
         else
@@ -186,11 +124,12 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         }
 #endif
 
-        PACKET_PROFILING_APP_PD_START(dp_ctx);
-        *alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx, f,
-                                          data, data_len, flags, IPPROTO_TCP);
-        PACKET_PROFILING_APP_PD_END(dp_ctx);
-        SCLogDebug("alproto %u", *alproto);
+        PACKET_PROFILING_APP_PD_START(app_tctx);
+        *alproto = AppLayerProtoDetectGetProto(app_tctx->alpd_tctx,
+                                f,
+                                data, data_len,
+                                IPPROTO_TCP, flags);
+        PACKET_PROFILING_APP_PD_END(app_tctx);
 
         if (*alproto != ALPROTO_UNKNOWN) {
             if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto_otherdir != *alproto) {
@@ -208,9 +147,6 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             }
 
             f->alproto = *alproto;
-            SCLogDebug("calling StreamTcpSetStreamFlagAppProtoDetectionCompleted "
-                    "on stream %p (%s)", stream, (stream == &ssn->client) ?
-                    "ssn->client" : "ssn->server");
             StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
 
             /* if we have seen data from the other direction first, send
@@ -222,7 +158,6 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
              * will now call shortly for the opposing direction. */
             if ((ssn->data_first_seen_dir & (STREAM_TOSERVER | STREAM_TOCLIENT)) &&
                 !(flags & ssn->data_first_seen_dir)) {
-                SCLogDebug("entering opposing dir hack");
                 TcpStream *opposing_stream = NULL;
                 if (stream == &ssn->client) {
                     opposing_stream = &ssn->server;
@@ -268,15 +203,11 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                         p->flowflags |= FLOW_PKT_TOSERVER;
                     }
                 }
-                SCLogDebug("ret %d", ret);
                 if (ret < 0) {
                     FlowSetSessionNoApplayerInspectionFlag(f);
-                    SCLogDebug("calling StreamTcpSetStreamFlagAppProtoDetectionCompleted "
-                            "on both streams");
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
-                    r = -1;
-                    goto end;
+                    goto failure;
                 }
             }
 
@@ -297,20 +228,17 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
              *       flow, it shows something's fishy.
              */
             if (ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-                if (al_proto_table[*alproto].first_data_dir &&
-                    !(al_proto_table[*alproto].first_data_dir & ssn->data_first_seen_dir))
-                {
+                first_data_dir = AppLayerParserGetFirstDataDir(f->proto, *alproto);
+
+                if (first_data_dir && !(first_data_dir & ssn->data_first_seen_dir)) {
                     AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
                                                      APPLAYER_WRONG_DIRECTION_FIRST_DATA);
                     FlowSetSessionNoApplayerInspectionFlag(f);
-                    SCLogDebug("calling StreamTcpSetStreamFlagAppProtoDetectionCompleted "
-                            "on both streams");
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
                     /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
-                    r = -1;
-                    goto end;
+                    goto failure;
                 }
                 /* This can happen if the current direction is not the
                  * right direction, and the data from the other(also
@@ -319,30 +247,28 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                  * the forced call to STreamTcpAppLayerReassemble still
                  * hasn't managed to send data from the other direction
                  * to the app layer. */
-                if (al_proto_table[*alproto].first_data_dir &&
-                    !(al_proto_table[*alproto].first_data_dir & flags))
-                {
+                if (first_data_dir && !(first_data_dir & flags)) {
                     BUG_ON(*alproto_otherdir != ALPROTO_UNKNOWN);
-                    AppLayerParserCleanupState(f);
+                    FlowCleanupAppLayer(f);
                     f->alproto = *alproto = ALPROTO_UNKNOWN;
                     StreamTcpResetStreamFlagAppProtoDetectionCompleted(stream);
-                    FLOW_RESET_PM_DONE(f, flags);
                     FLOW_RESET_PP_DONE(f, flags);
-                    r = 0;
-                    goto end;
+                    FLOW_RESET_PM_DONE(f, flags);
+                    goto failure;
                 }
             }
 
             /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
             ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
 
-            PACKET_PROFILING_APP_START(dp_ctx, *alproto);
-            r = AppLayerParse(dp_ctx->alproto_local_storage[*alproto], f, *alproto, flags, data + data_al_so_far, data_len - data_al_so_far);
-            PACKET_PROFILING_APP_END(dp_ctx, *alproto);
+            PACKET_PROFILING_APP_START(app_tctx, *alproto);
+            r = AppLayerParserParse(app_tctx->alp_tctx, f, *alproto, flags, data + data_al_so_far, data_len - data_al_so_far);
+            PACKET_PROFILING_APP_END(app_tctx, *alproto);
             f->data_al_so_far[dir] = 0;
         } else {
-            SCLogDebug("alproto == ALPROTO_UNKNOWN (%u)", *alproto);
             if (*alproto_otherdir != ALPROTO_UNKNOWN) {
+                first_data_dir = AppLayerParserGetFirstDataDir(f->proto, *alproto_otherdir);
+
                 /* this would handle this test case -
                  * http parser which says it wants to see toserver data first only.
                  * tcp handshake
@@ -359,72 +285,32 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                  * acceptable direction we error out.
                  */
                 if ((ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) &&
-                    (al_proto_table[*alproto_otherdir].first_data_dir) &&
-                    !(al_proto_table[*alproto_otherdir].first_data_dir & flags))
+                    (first_data_dir) && !(first_data_dir & flags))
                 {
-                    r = -1;
                     FlowSetSessionNoApplayerInspectionFlag(f);
-                    SCLogDebug("calling StreamTcpSetStreamFlagAppProtoDetectionCompleted "
-                            "on both streams");
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
-                    goto end;
+                    goto failure;
                 }
 
                 if (data_len > 0)
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
 
-                PACKET_PROFILING_APP_START(dp_ctx, *alproto_otherdir);
-                r = AppLayerParse(dp_ctx->alproto_local_storage[*alproto_otherdir], f, *alproto_otherdir, flags,
+                PACKET_PROFILING_APP_START(app_tctx, *alproto_otherdir);
+                r = AppLayerParserParse(app_tctx->alp_tctx, f, *alproto_otherdir, flags,
                                   data + data_al_so_far, data_len - data_al_so_far);
-                PACKET_PROFILING_APP_END(dp_ctx, *alproto_otherdir);
+                PACKET_PROFILING_APP_END(app_tctx, *alproto_otherdir);
                 if (FLOW_IS_PM_DONE(f, flags) && FLOW_IS_PP_DONE(f, flags)) {
                     AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
                                                      APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION);
-                    SCLogDebug("calling StreamTcpSetStreamFlagAppProtoDetectionCompleted "
-                            "on stream %p (%s)", stream, (stream == &ssn->client) ?
-                            "ssn->client" : "ssn->server");
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
                     f->data_al_so_far[dir] = 0;
                 } else {
                     f->data_al_so_far[dir] = data_len;
-                    SCLogDebug("data_len %u stored in flow for dir %u", data_len, dir);
                 }
             } else {
-
-                SCLogDebug("both unknown FLOW_IS_PM_DONE(f, STREAM_TOSERVER) %s "
-                                        "FLOW_IS_PP_DONE(f, STREAM_TOSERVER) %s "
-                                        "FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) %s "
-                                        "FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) %s,"
-                                        " stream ts %u stream tc %u",
-                        FLOW_IS_PM_DONE(f, STREAM_TOSERVER)?"true":"false",
-                        FLOW_IS_PP_DONE(f, STREAM_TOSERVER)?"true":"false",
-                        FLOW_IS_PM_DONE(f, STREAM_TOCLIENT)?"true":"false",
-                        FLOW_IS_PP_DONE(f, STREAM_TOCLIENT)?"true":"false",
-                        StreamTcpGetStreamSize(&ssn->client), StreamTcpGetStreamSize(&ssn->server));
-
-                int flow_done = 0;
                 if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
                     FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT)) {
-                    SCLogDebug("proto detection failed for both streams");
-                    flow_done = 1;
-                } else if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
-                           StreamTcpGetStreamSize(&ssn->server) == 0 &&
-                           StreamTcpGetStreamSize(&ssn->client) > alp_proto_ctx.toserver.async_max) {
-                    SCLogDebug("%u bytes toserver and no proto, no data to "
-                               "client, giving up", alp_proto_ctx.toserver.async_max);
-                    ssn->server.flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED;
-                    flow_done = 1;
-                } else if (FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) &&
-                           StreamTcpGetStreamSize(&ssn->client) == 0 &&
-                           StreamTcpGetStreamSize(&ssn->server) > alp_proto_ctx.toclient.async_max) {
-                    SCLogDebug("%u bytes toclient and no proto, no data to "
-                               "server, giving up", alp_proto_ctx.toclient.async_max);
-                    ssn->client.flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED;
-                    flow_done = 1;
-                }
-
-                if (flow_done) {
                     FlowSetSessionNoApplayerInspectionFlag(f);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
@@ -447,43 +333,39 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         /* if we don't have a data object here we are not getting it
          * a start msg should have gotten us one */
         if (f->alproto != ALPROTO_UNKNOWN) {
-            PACKET_PROFILING_APP_START(dp_ctx, f->alproto);
-            r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags, data, data_len);
-            PACKET_PROFILING_APP_END(dp_ctx, f->alproto);
+            PACKET_PROFILING_APP_START(app_tctx, f->alproto);
+            r = AppLayerParserParse(app_tctx->alp_tctx, f, f->alproto, flags, data, data_len);
+            PACKET_PROFILING_APP_END(app_tctx, f->alproto);
         } else {
             SCLogDebug(" smsg not start, but no l7 data? Weird");
         }
     }
 
+    goto end;
+ failure:
+    r = -1;
  end:
     SCReturnInt(r);
 }
 
-/**
- *  \brief Attach a stream message to the TCP session for inspection
- *         in the detection engine.
- *
- *  \param dp_ctx Thread app layer detect context
- *  \param smsg Stream message
- *
- *  \retval 0 ok
- *  \retval -1 error
- */
-int AppLayerHandleTCPMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
+int AppLayerHandleTCPMsg(StreamMsg *smsg)
 {
     SCEnter();
 
+    TcpSession *ssn;
+    StreamMsg *cur;
+
 #ifdef PRINT
     printf("=> Stream Data (raw reassembly) -- start %s%s\n",
-            smsg->flags & STREAM_TOCLIENT ? "toclient" : "",
-            smsg->flags & STREAM_TOSERVER ? "toserver" : "");
+           smsg->flags & STREAM_TOCLIENT ? "toclient" : "",
+           smsg->flags & STREAM_TOSERVER ? "toserver" : "");
     PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
     printf("=> Stream Data -- end\n");
 #endif
     SCLogDebug("smsg %p", smsg);
     BUG_ON(smsg->flow == NULL);
 
-    TcpSession *ssn = smsg->flow->protoctx;
+    ssn = smsg->flow->protoctx;
     if (ssn != NULL) {
         SCLogDebug("storing smsg %p in the tcp session", smsg);
 
@@ -498,7 +380,7 @@ int AppLayerHandleTCPMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
                 smsg->next = NULL;
                 smsg->prev = NULL;
             } else {
-                StreamMsg *cur = ssn->toserver_smsg_tail;
+                cur = ssn->toserver_smsg_tail;
                 cur->next = smsg;
                 smsg->prev = cur;
                 smsg->next = NULL;
@@ -514,7 +396,7 @@ int AppLayerHandleTCPMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
                 smsg->next = NULL;
                 smsg->prev = NULL;
             } else {
-                StreamMsg *cur = ssn->toclient_smsg_tail;
+                cur = ssn->toclient_smsg_tail;
                 cur->next = smsg;
                 smsg->prev = cur;
                 smsg->next = NULL;
@@ -537,27 +419,11 @@ int AppLayerHandleTCPMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
     SCReturnInt(0);
 }
 
-/**
- *  \brief Handle a app layer UDP message
- *
- *  If the protocol is yet unknown, the proto detection code is run first.
- *
- *  \param dp_ctx Thread app layer detect context
- *  \param f unlocked flow
- *  \param p UDP packet
- *
- *  \retval 0 ok
- *  \retval -1 error
- */
-int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
+int AppLayerHandleUdp(AppLayerThreadCtx *tctx, Packet *p, Flow *f)
 {
     SCEnter();
 
     int r = 0;
-
-    if (f == NULL) {
-        SCReturnInt(r);
-    }
 
     FLOWLOCK_WRLOCK(f);
 
@@ -574,35 +440,39 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
      * only run the proto detection once. */
     if (f->alproto == ALPROTO_UNKNOWN && !(f->flags & FLOW_ALPROTO_DETECT_DONE)) {
         SCLogDebug("Detecting AL proto on udp mesg (len %" PRIu32 ")",
-                    p->payload_len);
+                   p->payload_len);
 
-        PACKET_PROFILING_APP_PD_START(dp_ctx);
-        f->alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx, f,
-                        p->payload, p->payload_len, flags, IPPROTO_UDP);
-        PACKET_PROFILING_APP_PD_END(dp_ctx);
+        PACKET_PROFILING_APP_PD_START(tctx);
+        f->alproto = AppLayerProtoDetectGetProto(tctx->alpd_tctx,
+                                  f,
+                                  p->payload, p->payload_len,
+                                  IPPROTO_UDP, flags);
+        PACKET_PROFILING_APP_PD_END(tctx);
 
         if (f->alproto != ALPROTO_UNKNOWN) {
             f->flags |= FLOW_ALPROTO_DETECT_DONE;
 
-            PACKET_PROFILING_APP_START(dp_ctx, f->alproto);
-            r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags,
+            PACKET_PROFILING_APP_START(tctx, f->alproto);
+            r = AppLayerParserParse(tctx->alp_tctx,
+                              f, f->alproto, flags,
                               p->payload, p->payload_len);
-            PACKET_PROFILING_APP_END(dp_ctx, f->alproto);
+            PACKET_PROFILING_APP_END(tctx, f->alproto);
         } else {
             f->flags |= FLOW_ALPROTO_DETECT_DONE;
             SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
         }
     } else {
         SCLogDebug("stream data (len %" PRIu32 " ), alproto "
-                  "%"PRIu16" (flow %p)", p->payload_len, f->alproto, f);
+                   "%"PRIu16" (flow %p)", p->payload_len, f->alproto, f);
 
         /* if we don't have a data object here we are not getting it
          * a start msg should have gotten us one */
         if (f->alproto != ALPROTO_UNKNOWN) {
-            PACKET_PROFILING_APP_START(dp_ctx, f->alproto);
-            r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags,
+            PACKET_PROFILING_APP_START(tctx, f->alproto);
+            r = AppLayerParserParse(tctx->alp_tctx,
+                              f, f->alproto, flags,
                               p->payload, p->payload_len);
-            PACKET_PROFILING_APP_END(dp_ctx, f->alproto);
+            PACKET_PROFILING_APP_END(tctx, f->alproto);
         } else {
             SCLogDebug("udp session has started, but failed to detect alproto "
                        "for l7");
@@ -610,11 +480,120 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
     }
 
     FLOWLOCK_UNLOCK(f);
-    PACKET_PROFILING_APP_STORE(dp_ctx, p);
+    PACKET_PROFILING_APP_STORE(tctx, p);
     SCReturnInt(r);
 }
 
-/************Unittests*************/
+/***** Utility *****/
+
+AppProto AppLayerGetProtoByName(char *alproto_name)
+{
+    SCEnter();
+    SCReturnCT(AppLayerProtoDetectGetProtoByName(alproto_name), "AppProto");
+}
+
+char *AppLayerGetProtoName(AppProto alproto)
+{
+    SCEnter();
+    SCReturnCT(AppLayerProtoDetectGetProtoName(alproto), "char *");
+}
+
+void AppLayerListSupportedProtocols(void)
+{
+    SCEnter();
+
+    AppProto alproto;
+    AppProto alprotos[ALPROTO_MAX];
+
+    AppLayerProtoDetectSupportedAppProtocols(alprotos);
+
+    printf("=========Supported App Layer Protocols=========\n");
+    for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        if (alprotos[alproto] == 1)
+            printf("%s\n", AppLayerGetProtoName(alproto));
+    }
+
+    SCReturn;
+}
+
+/***** Setup/General Registration *****/
+
+int AppLayerSetup(void)
+{
+    SCEnter();
+
+    AppLayerProtoDetectSetup();
+    AppLayerParserSetup();
+
+    AppLayerParserRegisterProtocolParsers();
+    AppLayerProtoDetectPrepareState();
+
+    SCReturnInt(0);
+}
+
+int AppLayerDeSetup(void)
+{
+    SCEnter();
+
+    AppLayerProtoDetectDeSetup();
+    AppLayerParserDeSetup();
+
+    SCReturnInt(0);
+}
+
+AppLayerThreadCtx *AppLayerGetCtxThread(void)
+{
+    SCEnter();
+
+    AppLayerThreadCtx *app_tctx = SCMalloc(sizeof(*app_tctx));
+    if (app_tctx == NULL)
+        goto error;
+    memset(app_tctx, 0, sizeof(*app_tctx));
+
+    if ((app_tctx->alpd_tctx = AppLayerProtoDetectGetCtxThread()) == NULL)
+        goto error;
+    if ((app_tctx->alp_tctx = AppLayerParserThreadCtxAlloc()) == NULL)
+        goto error;
+
+    goto done;
+ error:
+    AppLayerDestroyCtxThread(app_tctx);
+    app_tctx = NULL;
+ done:
+    SCReturnPtr(app_tctx, "void *");
+}
+
+void AppLayerDestroyCtxThread(AppLayerThreadCtx *app_tctx)
+{
+    SCEnter();
+
+    if (app_tctx == NULL)
+        SCReturn;
+
+    if (app_tctx->alpd_tctx != NULL)
+        AppLayerProtoDetectDestroyCtxThread(app_tctx->alpd_tctx);
+    if (app_tctx->alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(app_tctx->alp_tctx);
+    SCFree(app_tctx);
+
+    SCReturn;
+}
+
+/* profiling */
+
+void AppLayerProfilingReset(AppLayerThreadCtx *app_tctx) {
+#ifdef PROFILING
+    PACKET_PROFILING_APP_RESET(app_tctx);
+#endif
+}
+
+void AppLayerProfilingStore(AppLayerThreadCtx *app_tctx, Packet *p) {
+#ifdef PROFILING
+    PACKET_PROFILING_APP_STORE(app_tctx, p);
+#endif
+}
+
+/***** Unittests *****/
 
 #ifdef UNITTESTS
 
@@ -647,6 +626,7 @@ static int AppLayerTest01(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
+    f.proto = IPPROTO_TCP;
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -667,12 +647,12 @@ static int AppLayerTest01(void)
     /* handshake */
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -691,12 +671,12 @@ static int AppLayerTest01(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -715,12 +695,12 @@ static int AppLayerTest01(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -751,12 +731,12 @@ static int AppLayerTest01(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -817,12 +797,12 @@ static int AppLayerTest01(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_HTTP ||
+                f.alproto_ts != ALPROTO_HTTP ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -841,12 +821,12 @@ static int AppLayerTest01(void)
         goto end;
     if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_HTTP ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_HTTP ||
+                f.alproto_ts != ALPROTO_HTTP ||
+                f.alproto_tc != ALPROTO_HTTP ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -857,7 +837,7 @@ static int AppLayerTest01(void)
     StreamTcpSessionClear(p->flow->protoctx);
 
     ret = 1;
-end:
+ end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
     return ret;
@@ -884,6 +864,7 @@ static int AppLayerTest02(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
+    f.proto = IPPROTO_TCP;
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -904,12 +885,12 @@ static int AppLayerTest02(void)
 
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -928,12 +909,12 @@ static int AppLayerTest02(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -952,12 +933,12 @@ static int AppLayerTest02(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -977,12 +958,12 @@ static int AppLayerTest02(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -1001,12 +982,12 @@ static int AppLayerTest02(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -1037,12 +1018,12 @@ static int AppLayerTest02(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -1103,12 +1084,12 @@ static int AppLayerTest02(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_HTTP ||
+                f.alproto_ts != ALPROTO_HTTP ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -1127,12 +1108,12 @@ static int AppLayerTest02(void)
         goto end;
     if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_HTTP ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_HTTP ||
+                f.alproto_ts != ALPROTO_HTTP ||
+                f.alproto_tc != ALPROTO_HTTP ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -1143,7 +1124,7 @@ static int AppLayerTest02(void)
     StreamTcpSessionClear(p->flow->protoctx);
 
     ret = 1;
-end:
+ end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
     return ret;
@@ -1152,7 +1133,7 @@ end:
 /**
  * \test GET -> RUBBISH(PM AND PP DONE IN ONE GO)
  */
- static int AppLayerTest03(void)
+static int AppLayerTest03(void)
 {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
@@ -1170,6 +1151,7 @@ end:
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
+    f.proto = IPPROTO_TCP;
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -1190,12 +1172,12 @@ end:
     /* handshake */
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -1213,12 +1195,12 @@ end:
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -1237,12 +1219,12 @@ end:
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -1273,12 +1255,12 @@ end:
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -1339,12 +1321,12 @@ end:
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_HTTP ||
+                f.alproto_ts != ALPROTO_HTTP ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -1363,12 +1345,12 @@ end:
         goto end;
     if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_HTTP ||
+                f.alproto_ts != ALPROTO_HTTP ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -1379,7 +1361,7 @@ end:
     StreamTcpSessionClear(p->flow->protoctx);
 
     ret = 1;
-end:
+ end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
     return ret;
@@ -1406,6 +1388,7 @@ static int AppLayerTest04(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
+    f.proto = IPPROTO_TCP;
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -1426,12 +1409,12 @@ static int AppLayerTest04(void)
 
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -1449,12 +1432,12 @@ static int AppLayerTest04(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -1473,12 +1456,12 @@ static int AppLayerTest04(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -1509,12 +1492,12 @@ static int AppLayerTest04(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -1534,12 +1517,12 @@ static int AppLayerTest04(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_HTTP ||
+                f.alproto_ts != ALPROTO_HTTP ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -1558,12 +1541,12 @@ static int AppLayerTest04(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 4 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_HTTP ||
+                f.alproto_ts != ALPROTO_HTTP ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 4 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -1624,12 +1607,12 @@ static int AppLayerTest04(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 4 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_HTTP ||
+                f.alproto_ts != ALPROTO_HTTP ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 4 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -1648,12 +1631,12 @@ static int AppLayerTest04(void)
         goto end;
     if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_HTTP ||
+                f.alproto_ts != ALPROTO_HTTP ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -1664,7 +1647,7 @@ static int AppLayerTest04(void)
     StreamTcpSessionClear(p->flow->protoctx);
 
     ret = 1;
-end:
+ end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
     return ret;
@@ -1691,6 +1674,7 @@ static int AppLayerTest05(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
+    f.proto = IPPROTO_TCP;
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -1711,12 +1695,12 @@ static int AppLayerTest05(void)
     /* handshake */
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -1735,12 +1719,12 @@ static int AppLayerTest05(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -1759,12 +1743,12 @@ static int AppLayerTest05(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -1795,12 +1779,12 @@ static int AppLayerTest05(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -1861,12 +1845,12 @@ static int AppLayerTest05(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -1885,12 +1869,12 @@ static int AppLayerTest05(void)
         goto end;
     if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_HTTP ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_HTTP ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_HTTP ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -1901,7 +1885,7 @@ static int AppLayerTest05(void)
     StreamTcpSessionClear(p->flow->protoctx);
 
     ret = 1;
-end:
+ end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
     return ret;
@@ -1928,6 +1912,7 @@ static int AppLayerTest06(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
+    f.proto = IPPROTO_TCP;
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -1948,12 +1933,12 @@ static int AppLayerTest06(void)
     /* handshake */
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -1972,12 +1957,12 @@ static int AppLayerTest06(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -1996,12 +1981,12 @@ static int AppLayerTest06(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -2062,12 +2047,12 @@ static int AppLayerTest06(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOCLIENT) {
@@ -2098,11 +2083,11 @@ static int AppLayerTest06(void)
         goto end;
     if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_HTTP ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
+                f.alproto != ALPROTO_HTTP ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_HTTP ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
         !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
@@ -2114,7 +2099,7 @@ static int AppLayerTest06(void)
     StreamTcpSessionClear(p->flow->protoctx);
 
     ret = 1;
-end:
+ end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
     return ret;
@@ -2141,6 +2126,7 @@ static int AppLayerTest07(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
+    f.proto = IPPROTO_TCP;
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -2161,12 +2147,12 @@ static int AppLayerTest07(void)
     /* handshake */
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -2185,12 +2171,12 @@ static int AppLayerTest07(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -2209,12 +2195,12 @@ static int AppLayerTest07(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -2245,12 +2231,12 @@ static int AppLayerTest07(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -2311,12 +2297,12 @@ static int AppLayerTest07(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_HTTP ||
+                f.alproto_ts != ALPROTO_HTTP ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -2335,11 +2321,11 @@ static int AppLayerTest07(void)
         goto end;
     if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_HTTP ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
+                f.alproto != ALPROTO_HTTP ||
+                f.alproto_ts != ALPROTO_HTTP ||
+                f.alproto_tc != ALPROTO_HTTP ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
         (f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
@@ -2351,7 +2337,7 @@ static int AppLayerTest07(void)
     StreamTcpSessionClear(p->flow->protoctx);
 
     ret = 1;
-end:
+ end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
     return ret;
@@ -2378,6 +2364,7 @@ static int AppLayerTest08(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
+    f.proto = IPPROTO_TCP;
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -2398,12 +2385,12 @@ static int AppLayerTest08(void)
     /* handshake */
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -2422,12 +2409,12 @@ static int AppLayerTest08(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -2446,12 +2433,12 @@ static int AppLayerTest08(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -2482,12 +2469,12 @@ static int AppLayerTest08(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -2548,12 +2535,12 @@ static int AppLayerTest08(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_DCERPC ||
-        f.alproto_ts != ALPROTO_DCERPC ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_DCERPC ||
+                f.alproto_ts != ALPROTO_DCERPC ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -2572,11 +2559,11 @@ static int AppLayerTest08(void)
         goto end;
     if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_DCERPC ||
-        f.alproto_ts != ALPROTO_DCERPC ||
-        f.alproto_tc != ALPROTO_DCERPC ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
+                f.alproto != ALPROTO_DCERPC ||
+                f.alproto_ts != ALPROTO_DCERPC ||
+                f.alproto_tc != ALPROTO_DCERPC ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
         !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
@@ -2588,7 +2575,7 @@ static int AppLayerTest08(void)
     StreamTcpSessionClear(p->flow->protoctx);
 
     ret = 1;
-end:
+ end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
     return ret;
@@ -2617,6 +2604,7 @@ static int AppLayerTest09(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
+    f.proto = IPPROTO_TCP;
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -2637,12 +2625,12 @@ static int AppLayerTest09(void)
     /* handshake */
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -2661,12 +2649,12 @@ static int AppLayerTest09(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -2685,12 +2673,12 @@ static int AppLayerTest09(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -2711,12 +2699,12 @@ static int AppLayerTest09(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -2735,12 +2723,12 @@ static int AppLayerTest09(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -2761,12 +2749,12 @@ static int AppLayerTest09(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -2827,12 +2815,12 @@ static int AppLayerTest09(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -2851,11 +2839,11 @@ static int AppLayerTest09(void)
         goto end;
     if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
         !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
@@ -2867,7 +2855,7 @@ static int AppLayerTest09(void)
     StreamTcpSessionClear(p->flow->protoctx);
 
     ret = 1;
-end:
+ end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
     return ret;
@@ -2895,6 +2883,7 @@ static int AppLayerTest10(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
+    f.proto = IPPROTO_TCP;
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -2915,12 +2904,12 @@ static int AppLayerTest10(void)
     /* handshake */
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -2939,12 +2928,12 @@ static int AppLayerTest10(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -2963,12 +2952,12 @@ static int AppLayerTest10(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -2990,12 +2979,12 @@ static int AppLayerTest10(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -3014,12 +3003,12 @@ static int AppLayerTest10(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -3080,12 +3069,12 @@ static int AppLayerTest10(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -3104,11 +3093,11 @@ static int AppLayerTest10(void)
         goto end;
     if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
         !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
@@ -3120,7 +3109,7 @@ static int AppLayerTest10(void)
     StreamTcpSessionClear(p->flow->protoctx);
 
     ret = 1;
-end:
+ end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
     return ret;
@@ -3149,6 +3138,7 @@ static int AppLayerTest11(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
+    f.proto = IPPROTO_TCP;
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -3169,12 +3159,12 @@ static int AppLayerTest11(void)
     /* handshake */
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -3193,12 +3183,12 @@ static int AppLayerTest11(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -3217,12 +3207,12 @@ static int AppLayerTest11(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != 0) {
@@ -3244,12 +3234,12 @@ static int AppLayerTest11(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -3268,12 +3258,12 @@ static int AppLayerTest11(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -3294,12 +3284,12 @@ static int AppLayerTest11(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -3318,12 +3308,12 @@ static int AppLayerTest11(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -3383,12 +3373,12 @@ static int AppLayerTest11(void)
         goto end;
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
-        f.flags & FLOW_NO_APPLAYER_INSPECTION ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
+                f.flags & FLOW_NO_APPLAYER_INSPECTION ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
         ssn->data_first_seen_dir != STREAM_TOSERVER) {
@@ -3407,11 +3397,11 @@ static int AppLayerTest11(void)
         goto end;
     if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
         !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        f.data_al_so_far[0] != 0 ||
-        f.data_al_so_far[1] != 0 ||
+                f.alproto != ALPROTO_UNKNOWN ||
+                f.alproto_ts != ALPROTO_UNKNOWN ||
+                f.alproto_tc != ALPROTO_UNKNOWN ||
+                f.data_al_so_far[0] != 0 ||
+                f.data_al_so_far[1] != 0 ||
         !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
         !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
@@ -3423,17 +3413,16 @@ static int AppLayerTest11(void)
     StreamTcpSessionClear(p->flow->protoctx);
 
     ret = 1;
-end:
+ end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
     return ret;
 }
 
-#endif
-
-void AppLayerRegisterUnittests(void)
+void AppLayerUnittestsRegister(void)
 {
-#ifdef UNITTESTS
+    SCEnter();
+
     UtRegisterTest("AppLayerTest01", AppLayerTest01, 1);
     UtRegisterTest("AppLayerTest02", AppLayerTest02, 1);
     UtRegisterTest("AppLayerTest03", AppLayerTest03, 1);
@@ -3445,7 +3434,8 @@ void AppLayerRegisterUnittests(void)
     UtRegisterTest("AppLayerTest09", AppLayerTest09, 1);
     UtRegisterTest("AppLayerTest10", AppLayerTest10, 1);
     UtRegisterTest("AppLayerTest11", AppLayerTest11, 1);
-#endif
 
-    return;
+    SCReturn;
 }
+
+#endif /* UNITTESTS */

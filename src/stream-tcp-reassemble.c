@@ -318,8 +318,6 @@ int StreamTcpReassembleInit(char quiet)
 }
 
 #ifdef DEBUG
-extern uint32_t applayererrors;
-extern uint32_t applayerhttperrors;
 static uint32_t dbg_app_layer_gap;
 static uint32_t dbg_app_layer_gap_candidate;
 #endif
@@ -352,8 +350,6 @@ void StreamTcpReassembleFree(char quiet)
     SCLogDebug("segment_pool_memcnt %"PRIu64"", segment_pool_memcnt);
     SCMutexDestroy(&segment_pool_memuse_mutex);
     SCMutexDestroy(&segment_pool_cnt_mutex);
-    SCLogInfo("applayererrors %u", applayererrors);
-    SCLogInfo("applayerhttperrors %u", applayerhttperrors);
     SCLogInfo("dbg_app_layer_gap %u", dbg_app_layer_gap);
     SCLogInfo("dbg_app_layer_gap_candidate %u", dbg_app_layer_gap_candidate);
 #endif
@@ -369,7 +365,8 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(void)
     memset(ra_ctx, 0x00, sizeof(TcpReassemblyThreadCtx));
     ra_ctx->stream_q = StreamMsgQueueGetNew();
 
-    AlpProtoFinalize2Thread(&ra_ctx->dp_ctx);
+    ra_ctx->app_tctx = AppLayerGetCtxThread();
+
     SCReturnPtr(ra_ctx, "TcpReassemblyThreadCtx");
 }
 
@@ -386,7 +383,7 @@ void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *ra_ctx)
     }
 
     ra_ctx->stream_q = NULL;
-    AlpProtoDeFinalize2Thread(&ra_ctx->dp_ctx);
+    AppLayerDestroyCtxThread(ra_ctx->app_tctx);
     SCFree(ra_ctx);
     SCReturn;
 }
@@ -1892,9 +1889,9 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
             SCLogDebug("sending empty eof message");
             /* send EOF to app layer */
             STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
-            AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
-                                  NULL, 0, p, flags);
-            PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                                  NULL, 0, flags);
+            AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
         } else {
             SCLogDebug("no segments in the list to reassemble");
@@ -1971,9 +1968,9 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
                 STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
 
                 /* process what we have so far */
-                AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
-                                      data, data_len, p, flags);
-                PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+                AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                                      data, data_len, flags);
+                AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
                 data_sent += data_len;
                 data_len = 0;
@@ -2000,9 +1997,9 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
 
                 /* send gap signal */
                 STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
-                AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
-                                      NULL, 0, p, flags|STREAM_GAP);
-                PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+                AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                                      NULL, 0, flags|STREAM_GAP);
+                AppLayerProfilingStore(ra_ctx->app_tctx, p);
                 data_len = 0;
 
                 /* set a GAP flag and make sure not bothering this stream anymore */
@@ -2072,9 +2069,9 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
                 /* process what we have so far */
                 STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
                 BUG_ON(data_len > sizeof(data));
-                AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
-                                      data, data_len, p, flags);
-                PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+                AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                                      data, data_len, flags);
+                AppLayerProfilingStore(ra_ctx->app_tctx, p);
                 data_sent += data_len;
                 data_len = 0;
             }
@@ -2126,9 +2123,9 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
                         /* process what we have so far */
                         STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
                         BUG_ON(data_len > sizeof(data));
-                        AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
-                                              data, data_len, p, flags);
-                        PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+                        AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                                              data, data_len, flags);
+                        AppLayerProfilingStore(ra_ctx->app_tctx, p);
                         data_sent += data_len;
                         data_len = 0;
                     }
@@ -2162,9 +2159,9 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
         /* process what we have so far */
         STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
         BUG_ON(data_len > sizeof(data));
-        AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
-                              data, data_len, p, flags);
-        PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+        AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                              data, data_len, flags);
+        AppLayerProfilingStore(ra_ctx->app_tctx, p);
         data_sent += data_len;
     }
 
@@ -2172,9 +2169,9 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
         SCLogDebug("sending empty eof message");
         /* send EOF to app layer */
         STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
-        AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
-                              NULL, 0, p, flags);
-        PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+        AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                              NULL, 0, flags);
+        AppLayerProfilingStore(ra_ctx->app_tctx, p);
     }
 
     /* store ra_base_seq in the stream */
@@ -2679,9 +2676,9 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             SCLogDebug("sending empty eof message");
             /* send EOF to app layer */
             STREAM_SET_FLAGS(ssn, stream, p, flags);
-            AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
-                                  NULL, 0, p, flags);
-            PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                                  NULL, 0, flags);
+            AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
             SCReturnInt(0);
         }
@@ -2783,9 +2780,9 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 STREAM_SET_FLAGS(ssn, stream, p, flags);
 
                 /* process what we have so far */
-                AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
-                                      data, data_len, p, flags);
-                PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+                AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                                      data, data_len, flags);
+                AppLayerProfilingStore(ra_ctx->app_tctx, p);
                 data_len = 0;
             }
 
@@ -2810,9 +2807,9 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
                 /* send gap signal */
                 STREAM_SET_FLAGS(ssn, stream, p, flags);
-                AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
-                                      NULL, 0, p, flags|STREAM_GAP);
-                PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+                AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                                      NULL, 0, flags|STREAM_GAP);
+                AppLayerProfilingStore(ra_ctx->app_tctx, p);
                 data_len = 0;
 
                 /* set a GAP flag and make sure not bothering this stream anymore */
@@ -2907,9 +2904,9 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 /* process what we have so far */
                 STREAM_SET_FLAGS(ssn, stream, p, flags);
                 BUG_ON(data_len > sizeof(data));
-                AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
-                                      data, data_len, p, flags);
-                PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+                AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                                      data, data_len, flags);
+                AppLayerProfilingStore(ra_ctx->app_tctx, p);
                 data_len = 0;
 
                 /* if after the first data chunk we have no alproto yet,
@@ -2967,9 +2964,9 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                         /* process what we have so far */
                         STREAM_SET_FLAGS(ssn, stream, p, flags);
                         BUG_ON(data_len > sizeof(data));
-                        AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
-                                              data, data_len, p, flags);
-                        PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+                        AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                                              data, data_len, flags);
+                        AppLayerProfilingStore(ra_ctx->app_tctx, p);
                         data_len = 0;
 
                         /* if after the first data chunk we have no alproto yet,
@@ -3014,9 +3011,9 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         /* process what we have so far */
         STREAM_SET_FLAGS(ssn, stream, p, flags);
         BUG_ON(data_len > sizeof(data));
-        AppLayerHandleTCPData(tv, ra_ctx, p->flow, ssn, stream,
-                              data, data_len, p, flags);
-        PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
+        AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                              data, data_len, flags);
+        AppLayerProfilingStore(ra_ctx->app_tctx, p);
     }
 
     /* store ra_base_seq in the stream */
@@ -3436,7 +3433,7 @@ int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx)
                 /* Handle the stream msg. No need to use locking, flow is
                  * already locked at this point. Don't break out of the
                  * loop if we encounter an error. */
-                if (AppLayerHandleTCPMsg(&ra_ctx->dp_ctx, smsg) != 0)
+                if (AppLayerHandleTCPMsg(smsg) != 0)
                     r = -1;
             }
 
@@ -3748,6 +3745,7 @@ static int StreamTcpReassembleStreamTest(TcpStream *stream) {
     memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
+    f.proto = IPPROTO_TCP;
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->proto = IPPROTO_TCP;
@@ -4107,6 +4105,7 @@ static int StreamTcpTestStartsBeforeListSegment(TcpStream *stream) {
     memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
+    f.proto = IPPROTO_TCP;
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->proto = IPPROTO_TCP;
@@ -4221,6 +4220,7 @@ static int StreamTcpTestStartsAtSameListSegment(TcpStream *stream) {
     memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
+    f.proto = IPPROTO_TCP;
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->proto = IPPROTO_TCP;
@@ -4335,6 +4335,7 @@ static int StreamTcpTestStartsAfterListSegment(TcpStream *stream) {
     memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
+    f.proto = IPPROTO_TCP;
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->proto = IPPROTO_TCP;
@@ -5065,6 +5066,7 @@ static int StreamTcpTestMissedPacket (TcpReassemblyThreadCtx *ra_ctx,
     f.sp = sp;
     f.dp = dp;
     f.protoctx = ssn;
+    f.proto = IPPROTO_TCP;
     p->flow = &f;
 
     tcph.th_win = htons(5480);
@@ -5662,6 +5664,7 @@ static int StreamTcpReassembleTest32(void) {
     memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
+    f.proto = IPPROTO_TCP;
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->proto = IPPROTO_TCP;
@@ -5744,6 +5747,7 @@ static int StreamTcpReassembleTest33(void) {
     memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
+    f.proto = IPPROTO_TCP;
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->proto = IPPROTO_TCP;
@@ -5823,6 +5827,7 @@ static int StreamTcpReassembleTest34(void) {
     memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
+    f.proto = IPPROTO_TCP;
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->proto = IPPROTO_TCP;
@@ -5903,6 +5908,7 @@ static int StreamTcpReassembleTest35(void) {
     memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
+    f.proto = IPPROTO_TCP;
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->proto = IPPROTO_TCP;
@@ -5970,6 +5976,7 @@ static int StreamTcpReassembleTest36(void) {
     memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
+    f.proto = IPPROTO_TCP;
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->proto = IPPROTO_TCP;
@@ -6037,6 +6044,7 @@ static int StreamTcpReassembleTest37(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
+    f.proto = IPPROTO_TCP;
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->proto = IPPROTO_TCP;
@@ -6155,6 +6163,7 @@ static int StreamTcpReassembleTest38 (void) {
     f.sp = sp;
     f.dp = dp;
     f.protoctx = &ssn;
+    f.proto = IPPROTO_TCP;
     p->flow = &f;
 
     tcph.th_win = htons(5480);
@@ -6234,6 +6243,7 @@ static int StreamTcpReassembleTest39 (void) {
     memset(&tcph, 0, sizeof (TCPHdr));
 
     f.flags = FLOW_IPV4;
+    f.proto = IPPROTO_TCP;
     p->flow = &f;
     p->tcph = &tcph;
 
@@ -6855,6 +6865,7 @@ static int StreamTcpReassembleTest40 (void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
     p->flow = f;
 
     tcph.th_win = htons(5480);
@@ -7096,6 +7107,7 @@ static int StreamTcpReassembleTest43 (void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
     p->flow = f;
 
     tcph.th_win = htons(5480);
@@ -7318,6 +7330,7 @@ static int StreamTcpReassembleTest45 (void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
     p->flow = f;
 
     tcph.th_win = htons(5480);
@@ -7436,6 +7449,7 @@ static int StreamTcpReassembleTest46 (void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
     p->flow = f;
 
     tcph.th_win = htons(5480);
@@ -7559,6 +7573,7 @@ static int StreamTcpReassembleTest47 (void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
     p->flow = f;
 
     tcph.th_win = htons(5480);
@@ -8685,6 +8700,7 @@ static int StreamTcpReassembleInlineTest10(void) {
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
 
     uint8_t stream_payload1[] = "GE";
     uint8_t stream_payload2[] = "T /";
