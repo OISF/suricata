@@ -68,9 +68,9 @@
 
 #include "runmodes.h"
 
-typedef struct AppLayerParserCtxThread_ {
+typedef struct AppLayerParserThreadCtx_ {
     void *alproto_local_storage[FLOW_PROTO_MAX][ALPROTO_MAX];
-} AppLayerParserCtxThread;
+} AppLayerParserThreadCtx;
 
 
 /**
@@ -216,7 +216,7 @@ void *AppLayerParserGetCtxThread(void)
 
     AppProto i = 0;
     int j = 0;
-    AppLayerParserCtxThread *tctx;
+    AppLayerParserThreadCtx *tctx;
 
     tctx = SCMalloc(sizeof(*tctx));
     if (tctx == NULL)
@@ -240,7 +240,7 @@ void AppLayerParserDestroyCtxThread(void *alpd_tctx)
 
     AppProto i = 0;
     int j = 0;
-    AppLayerParserCtxThread *tctx = (AppLayerParserCtxThread *)alpd_tctx;
+    AppLayerParserThreadCtx *tctx = (AppLayerParserThreadCtx *)alpd_tctx;
 
     for (i = 0; i < FLOW_PROTO_DEFAULT; i++) {
         for (j = 0; j < ALPROTO_MAX; j++) {
@@ -703,7 +703,7 @@ int AppLayerParserParse(void *tctx, Flow *f, AppProto alproto,
     AppLayerParserpCtx *p = &alp_ctx.ctxs[FlowGetProtoMapping(f->proto)][alproto];
     TcpSession *ssn = NULL;
     void *alstate = NULL;
-    AppLayerParserCtxThread *alp_tctx = (AppLayerParserCtxThread *)tctx;
+    AppLayerParserThreadCtx *alp_tctx = (AppLayerParserThreadCtx *)tctx;
 
     /* we don't have the parser registered for this protocol */
     if (p->StateAlloc == NULL)
