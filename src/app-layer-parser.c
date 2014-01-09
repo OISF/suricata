@@ -466,7 +466,7 @@ void AppLayerParserRegisterGetTx(uint8_t ipproto, AppProto alproto,
 }
 
 void AppLayerParserRegisterGetStateProgressCompletionStatus(uint8_t ipproto,
-                                                   uint16_t alproto,
+                                                   AppProto alproto,
     int (*StateGetProgressCompletionStatus)(uint8_t direction))
 {
     SCEnter();
@@ -667,7 +667,7 @@ int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *ev
     SCReturnInt(r);
 }
 
-uint8_t AppLayerParserGetFirstDataDir(uint8_t ipproto, uint16_t alproto)
+uint8_t AppLayerParserGetFirstDataDir(uint8_t ipproto, AppProto alproto)
 {
     SCEnter();
     SCReturnCT(alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
@@ -1179,7 +1179,7 @@ void AppLayerParserRegisterUnittests(void)
     SCEnter();
 
     int ip;
-    uint16_t alproto;
+    AppProto alproto;
     AppLayerParserProtoCtx *ctx;
 
     for (ip = 0; ip < FLOW_PROTO_DEFAULT; ip++) {

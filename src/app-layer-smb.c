@@ -2187,7 +2187,7 @@ int SMBParserTest05(void)
     uint32_t smblen2 = sizeof(smbbuf2);
 
     int result = 0;
-    uint16_t alproto;
+    AppProto alproto;
     Flow f;
     void *alpd_tctx;
     memset(&f, 0, sizeof(f));
@@ -2270,7 +2270,7 @@ int SMBParserTest06(void)
     uint32_t smblen2 = sizeof(smbbuf2);
 
     int result = 0;
-    uint16_t alproto;
+    AppProto alproto;
     Flow f;
     void *alpd_tctx;
     memset(&f, 0, sizeof(f));

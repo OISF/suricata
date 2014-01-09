@@ -40,7 +40,7 @@ int DetectEngineAptEventInspect(ThreadVars *tv,
 {
     AppLayerDecoderEvents *decoder_events = NULL;
     int r = 0;
-    uint16_t alproto;
+    AppProto alproto;
     SigMatch *sm;
     DetectAppLayerEventData *aled = NULL;
 

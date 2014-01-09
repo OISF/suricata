@@ -332,9 +332,9 @@ typedef struct Flow_
     uint8_t protomap;
     uint8_t pad0;
 
-    uint16_t alproto; /**< \brief application level protocol */
-    uint16_t alproto_ts;
-    uint16_t alproto_tc;
+    AppProto alproto; /**< \brief application level protocol */
+    AppProto alproto_ts;
+    AppProto alproto_tc;
 
     uint32_t data_al_so_far[2];
 

@@ -51,7 +51,7 @@ int DetectAppLayerProtocolMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg)
 {
     DetectAppLayerProtocolData *data;
-    uint16_t alproto = ALPROTO_UNKNOWN;
+    AppProto alproto = ALPROTO_UNKNOWN;
     uint8_t negated = 0;
 
     if (arg == NULL) {

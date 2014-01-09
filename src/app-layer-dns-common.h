@@ -165,7 +165,7 @@ void DNSParserRegisterTests(void);
 void DNSAppLayerDecoderEventsRegister(int alproto);
 int DNSStateGetEventInfo(const char *event_name,
                          int *event_id, AppLayerEventType *event_type);
-void DNSAppLayerRegisterGetEventInfo(uint8_t ipproto, uint16_t alproto);
+void DNSAppLayerRegisterGetEventInfo(uint8_t ipproto, AppProto alproto);
 
 void *DNSGetTx(void *alstate, uint64_t tx_id);
 uint64_t DNSGetTxCnt(void *alstate);
