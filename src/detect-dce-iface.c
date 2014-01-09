@@ -889,7 +889,7 @@ static int DetectDceIfaceTestParse12(void)
     uint32_t dcerpc_bindack_len = sizeof(dcerpc_bindack);
     uint32_t dcerpc_request_len = sizeof(dcerpc_request);
 
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -992,7 +992,7 @@ static int DetectDceIfaceTestParse12(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
@@ -1135,7 +1135,7 @@ static int DetectDceIfaceTestParse13(void)
     uint32_t dcerpc_request3_len = sizeof(dcerpc_request3);
     uint32_t dcerpc_response3_len = sizeof(dcerpc_response3);
 
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -1331,7 +1331,7 @@ static int DetectDceIfaceTestParse13(void)
 
  end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
@@ -1396,7 +1396,7 @@ static int DetectDceIfaceTestParse14(void)
     uint32_t dcerpc_bindack_len = sizeof(dcerpc_bindack);
     uint32_t dcerpc_request_len = sizeof(dcerpc_request);
 
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -1494,7 +1494,7 @@ static int DetectDceIfaceTestParse14(void)
 
  end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
@@ -1599,7 +1599,7 @@ static int DetectDceIfaceTestParse15(void)
     };
     uint32_t dcerpc_request2_len = sizeof(dcerpc_request2);
 
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -1802,7 +1802,7 @@ static int DetectDceIfaceTestParse15(void)
 
  end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 

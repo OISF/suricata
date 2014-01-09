@@ -1139,7 +1139,7 @@ static int DetectDceOpnumTestParse08(void)
     uint32_t dcerpc_bindack_len = sizeof(dcerpc_bindack);
     uint32_t dcerpc_request_len = sizeof(dcerpc_request);
 
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1227,7 +1227,7 @@ static int DetectDceOpnumTestParse08(void)
 
  end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
@@ -1678,7 +1678,7 @@ static int DetectDceOpnumTestParse09(void)
 
     uint32_t dcerpc_request_len = sizeof(dcerpc_request);
 
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1740,7 +1740,7 @@ static int DetectDceOpnumTestParse09(void)
 
  end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
@@ -1885,7 +1885,7 @@ static int DetectDceOpnumTestParse10(void)
     uint32_t dcerpc_request3_len = sizeof(dcerpc_request3);
     uint32_t dcerpc_response3_len = sizeof(dcerpc_response3);
 
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2180,7 +2180,7 @@ static int DetectDceOpnumTestParse11(void)
     uint32_t dcerpc_request3_len = sizeof(dcerpc_request3);
     uint32_t dcerpc_response3_len = sizeof(dcerpc_response3);
 
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2458,7 +2458,7 @@ static int DetectDceOpnumTestParse12(void)
     uint32_t dcerpc_request2_len = sizeof(dcerpc_request2);
     uint32_t dcerpc_response2_len = sizeof(dcerpc_response2);
 
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2745,7 +2745,7 @@ static int DetectDceOpnumTestParse13(void)
     uint32_t dcerpc_request2_len = sizeof(dcerpc_request2);
     uint32_t dcerpc_response2_len = sizeof(dcerpc_response2);
 
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));

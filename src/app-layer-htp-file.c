@@ -311,7 +311,7 @@ static int HTPFileParserTest01(void) {
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
     HtpState *http_state = NULL;
     memset(&ssn, 0, sizeof(ssn));
 
@@ -366,7 +366,7 @@ static int HTPFileParserTest01(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -402,7 +402,7 @@ static int HTPFileParserTest02(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -484,7 +484,7 @@ static int HTPFileParserTest02(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -525,7 +525,7 @@ static int HTPFileParserTest03(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -634,7 +634,7 @@ static int HTPFileParserTest03(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -675,7 +675,7 @@ static int HTPFileParserTest04(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -779,7 +779,7 @@ static int HTPFileParserTest04(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -811,7 +811,7 @@ static int HTPFileParserTest05(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -902,7 +902,7 @@ static int HTPFileParserTest05(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -935,7 +935,7 @@ static int HTPFileParserTest06(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1026,7 +1026,7 @@ static int HTPFileParserTest06(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -1048,7 +1048,7 @@ static int HTPFileParserTest07(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1122,7 +1122,7 @@ static int HTPFileParserTest07(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -1148,7 +1148,7 @@ static int HTPFileParserTest08(void) {
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
     HtpState *http_state = NULL;
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1206,7 +1206,7 @@ static int HTPFileParserTest08(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -1243,7 +1243,7 @@ static int HTPFileParserTest09(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1323,7 +1323,7 @@ static int HTPFileParserTest09(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -1358,7 +1358,7 @@ static int HTPFileParserTest10(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1433,7 +1433,7 @@ static int HTPFileParserTest10(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
@@ -1496,7 +1496,7 @@ static int HTPFileParserTest11(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1596,7 +1596,7 @@ static int HTPFileParserTest11(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);

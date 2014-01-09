@@ -913,7 +913,7 @@ static int DeStateSigTest01(void)
     uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
     uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1018,7 +1018,7 @@ static int DeStateSigTest01(void)
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (http_state != NULL) {
         HTPStateFree(http_state);
     }
@@ -1059,7 +1059,7 @@ static int DeStateSigTest02(void) {
     uint32_t httplen5 = sizeof(httpbuf5) - 1; /* minus the \0 */
     uint32_t httplen6 = sizeof(httpbuf6) - 1; /* minus the \0 */
     uint32_t httplen7 = sizeof(httpbuf7) - 1; /* minus the \0 */
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1219,7 +1219,7 @@ static int DeStateSigTest02(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -1253,7 +1253,7 @@ static int DeStateSigTest03(void) {
     Flow *f = NULL;
     Packet *p = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&ssn, 0, sizeof(ssn));
@@ -1346,7 +1346,7 @@ static int DeStateSigTest03(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     UTHFreeFlow(f);
 
     if (det_ctx != NULL) {
@@ -1379,7 +1379,7 @@ static int DeStateSigTest04(void) {
     Flow *f = NULL;
     Packet *p = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&ssn, 0, sizeof(ssn));
@@ -1472,7 +1472,7 @@ static int DeStateSigTest04(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     UTHFreeFlow(f);
 
     if (det_ctx != NULL) {
@@ -1505,7 +1505,7 @@ static int DeStateSigTest05(void) {
     Flow *f = NULL;
     Packet *p = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&ssn, 0, sizeof(ssn));
@@ -1598,7 +1598,7 @@ static int DeStateSigTest05(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     UTHFreeFlow(f);
 
     if (det_ctx != NULL) {
@@ -1631,7 +1631,7 @@ static int DeStateSigTest06(void) {
     Flow *f = NULL;
     Packet *p = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&ssn, 0, sizeof(ssn));
@@ -1724,7 +1724,7 @@ static int DeStateSigTest06(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     UTHFreeFlow(f);
 
     if (det_ctx != NULL) {
@@ -1759,7 +1759,7 @@ static int DeStateSigTest07(void) {
     Flow *f = NULL;
     Packet *p = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&ssn, 0, sizeof(ssn));
@@ -1870,7 +1870,7 @@ static int DeStateSigTest07(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     UTHFreeFlow(f);
 
     if (det_ctx != NULL) {

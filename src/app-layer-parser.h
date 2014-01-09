@@ -42,15 +42,15 @@ int AppLayerParserDeSetup(void);
  * \retval Non-NULL pointer on success.
  *         NULL pointer on failure.
  */
-void *AppLayerParserGetCtxThread(void);
+void *AppLayerParserThreadCtxAlloc(void);
 
 /**
  * \brief Destroys the app layer parser thread context obtained
- *        using AppLayerParserGetCtxThread().
+ *        using AppLayerParserThreadCtxAlloc().
  *
  * \param tctx Pointer to the thread context to be destroyed.
  */
-void AppLayerParserDestroyCtxThread(void *tctx);
+void AppLayerParserThreadCtxFree(void *tctx);
 
 /**
  * \brief Given a protocol name, checks if the parser is enabled in

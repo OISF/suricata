@@ -979,7 +979,7 @@ static int LuajitMatchTest01(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     ut_script = script;
 
@@ -1083,7 +1083,7 @@ static int LuajitMatchTest01(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1409,7 +1409,7 @@ static int LuajitMatchTest04(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     ut_script = script;
 
@@ -1507,7 +1507,7 @@ static int LuajitMatchTest04(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1556,7 +1556,7 @@ static int LuajitMatchTest05(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     ut_script = script;
 
@@ -1654,7 +1654,7 @@ static int LuajitMatchTest05(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1708,7 +1708,7 @@ static int LuajitMatchTest06(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     ut_script = script;
 
@@ -1806,7 +1806,7 @@ static int LuajitMatchTest06(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 

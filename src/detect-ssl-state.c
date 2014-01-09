@@ -700,7 +700,7 @@ static int DetectSslStateTest07(void)
     DetectEngineCtx *de_ctx = NULL;
     SSLState *ssl_state = NULL;
     int r = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -884,7 +884,7 @@ static int DetectSslStateTest07(void)
 
  end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 

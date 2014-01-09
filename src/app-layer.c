@@ -49,7 +49,7 @@
 typedef struct AppLayerThreadCtx_ {
     /* App layer protocol detection thread context, from AppLayerProtoDetectGetCtxThread(). */
     void *alpd_tctx;
-    /* App layer parser thread context, from AppLayerParserGetCtxThread(). */
+    /* App layer parser thread context, from AppLayerParserThreadCtxAlloc(). */
     void *alp_tctx;
 
 #ifdef PROFILING
@@ -554,7 +554,7 @@ void *AppLayerGetCtxThread(void)
 
     if ((app_tctx->alpd_tctx = AppLayerProtoDetectGetCtxThread()) == NULL)
         goto error;
-    if ((app_tctx->alp_tctx = AppLayerParserGetCtxThread()) == NULL)
+    if ((app_tctx->alp_tctx = AppLayerParserThreadCtxAlloc()) == NULL)
         goto error;
 
     goto done;
@@ -576,7 +576,7 @@ void AppLayerDestroyCtxThread(void *tctx)
     if (app_tctx->alpd_tctx != NULL)
         AppLayerProtoDetectDestroyCtxThread(app_tctx->alpd_tctx);
     if (app_tctx->alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(app_tctx->alp_tctx);
+        AppLayerParserThreadCtxFree(app_tctx->alp_tctx);
     SCFree(app_tctx);
 
     SCReturn;
