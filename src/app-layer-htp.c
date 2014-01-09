@@ -2753,7 +2753,7 @@ int HTPParserTest01(void) {
     TcpSession ssn;
     HtpState *htp_state =  NULL;
     int r = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -2828,7 +2828,7 @@ int HTPParserTest02(void) {
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -2888,7 +2888,7 @@ int HTPParserTest03(void) {
 
     HtpState *htp_state =  NULL;
     int r = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -2959,7 +2959,7 @@ int HTPParserTest04(void) {
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
     int r = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -3029,7 +3029,7 @@ int HTPParserTest05(void) {
     uint8_t httpbuf6[] = "esults are tha bomb!";
     uint32_t httplen6 = sizeof(httpbuf6) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -3181,7 +3181,7 @@ int HTPParserTest06(void) {
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -3262,7 +3262,7 @@ int HTPParserTest07(void) {
     TcpSession ssn;
     HtpState *htp_state =  NULL;
     int r = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -3350,7 +3350,7 @@ int HTPParserTest08(void) {
     uint8_t httpbuf1[] = "GET /secondhouse/image/js/\%ce\%de\%ce\%fd_RentCity.js?v=2011.05.02 HTTP/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     char input[] = "\
 %YAML 1.1\n\
@@ -3435,7 +3435,7 @@ int HTPParserTest09(void) {
     uint8_t httpbuf1[] = "GET /secondhouse/image/js/\%ce\%de\%ce\%fd_RentCity.js?v=2011.05.02 HTTP/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     char input[] = "\
 %YAML 1.1\n\
@@ -3523,7 +3523,7 @@ int HTPParserTest10(void) {
     TcpSession ssn;
     HtpState *htp_state =  NULL;
     int r = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -3614,7 +3614,7 @@ static int HTPParserTest11(void) {
     TcpSession ssn;
     HtpState *htp_state =  NULL;
     int r = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -3698,7 +3698,7 @@ static int HTPParserTest12(void) {
     TcpSession ssn;
     HtpState *htp_state =  NULL;
     int r = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -3785,7 +3785,7 @@ int HTPParserTest13(void) {
     TcpSession ssn;
     HtpState *htp_state =  NULL;
     int r = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -4155,7 +4155,7 @@ int HTPParserConfigTest03(void)
                          " Data is c0oL!";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     HtpState *htp_state =  NULL;
     int r = 0;
@@ -4370,7 +4370,7 @@ static int HTPParserDecodingTest01(void)
         "GET /abc/def?ghi%252fjkl HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     HtpState *htp_state =  NULL;
     int r = 0;
@@ -4539,7 +4539,7 @@ static int HTPParserDecodingTest02(void)
         "GET /abc/def?ghi%252fjkl HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     HtpState *htp_state =  NULL;
     int r = 0;
@@ -4708,7 +4708,7 @@ static int HTPParserDecodingTest03(void)
         "GET /abc/def?ghi%252fjkl HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     HtpState *htp_state =  NULL;
     int r = 0;
@@ -4847,7 +4847,7 @@ static int HTPParserDecodingTest04(void)
         "GET /abc/def?a=http://www.abc.com/ HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     HtpState *htp_state =  NULL;
     int r = 0;
@@ -4959,7 +4959,7 @@ static int HTPParserDecodingTest05(void)
         "GET /index?id=\\\"<script>alert(document.cookie)</script> HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     HtpState *htp_state =  NULL;
     int r = 0;
@@ -5071,7 +5071,7 @@ static int HTPParserDecodingTest06(void)
         "GET /put.php?ip=1.2.3.4&port=+6000 HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     HtpState *htp_state =  NULL;
     int r = 0;
@@ -5183,7 +5183,7 @@ static int HTPParserDecodingTest07(void)
         "GET /put.php?ip=1.2.3.4&port=+6000 HTTP/1.1\r\nHost: www.domain.ltd\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     HtpState *htp_state =  NULL;
     int r = 0;
@@ -5296,7 +5296,7 @@ static int HTPParserDecodingTest08(void)
         "GET http://suricata-ids.org/blah/ HTTP/1.1\r\nHost: suricata-ids.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     HtpState *htp_state =  NULL;
     int r = 0;
@@ -5406,7 +5406,7 @@ static int HTPParserDecodingTest09(void)
         "GET http://suricata-ids.org/blah/ HTTP/1.1\r\nHost: suricata-ids.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     HtpState *htp_state =  NULL;
     int r = 0;
@@ -5587,7 +5587,7 @@ libhtp:\n\
 
     TcpSession ssn;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -5671,7 +5671,7 @@ libhtp:\n\
     request-body-limit: 0\n\
     response-body-limit: 0\n\
 ";
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -5814,7 +5814,7 @@ libhtp:\n\
     response-body-limit: 0\n\
     meta-field-limit: 20000\n\
 ";
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 

@@ -365,7 +365,7 @@ int FTPParserTest01(void) {
     uint8_t ftpbuf[] = "PORT 192,168,1,1,0,80\r\n";
     uint32_t ftplen = sizeof(ftpbuf) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -418,7 +418,7 @@ int FTPParserTest03(void) {
     uint8_t ftpbuf3[] = "1,1,10,20\r\n";
     uint32_t ftplen3 = sizeof(ftpbuf3) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -484,7 +484,7 @@ int FTPParserTest06(void) {
     uint8_t ftpbuf1[] = "PORT";
     uint32_t ftplen1 = sizeof(ftpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -535,7 +535,7 @@ int FTPParserTest07(void) {
     uint8_t ftpbuf2[] = "RT\r\n";
     uint32_t ftplen2 = sizeof(ftpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -596,7 +596,7 @@ int FTPParserTest10(void) {
     uint8_t ftpbuf1[] = "PORT 1,2,3,4,5,6\r\n";
     uint32_t ftplen1 = sizeof(ftpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));

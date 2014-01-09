@@ -153,7 +153,7 @@ static int DetectEngineHttpRawUriTest01(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -277,7 +277,7 @@ static int DetectEngineHttpRawUriTest02(void)
         "This is dummy body1";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -387,7 +387,7 @@ static int DetectEngineHttpRawUriTest03(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -515,7 +515,7 @@ static int DetectEngineHttpRawUriTest04(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -642,7 +642,7 @@ static int DetectEngineHttpRawUriTest05(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -769,7 +769,7 @@ static int DetectEngineHttpRawUriTest06(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -896,7 +896,7 @@ static int DetectEngineHttpRawUriTest07(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1023,7 +1023,7 @@ static int DetectEngineHttpRawUriTest08(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1150,7 +1150,7 @@ static int DetectEngineHttpRawUriTest09(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1278,7 +1278,7 @@ static int DetectEngineHttpRawUriTest10(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1406,7 +1406,7 @@ static int DetectEngineHttpRawUriTest11(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1534,7 +1534,7 @@ static int DetectEngineHttpRawUriTest12(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1662,7 +1662,7 @@ static int DetectEngineHttpRawUriTest13(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1790,7 +1790,7 @@ static int DetectEngineHttpRawUriTest14(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1918,7 +1918,7 @@ static int DetectEngineHttpRawUriTest15(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2046,7 +2046,7 @@ static int DetectEngineHttpRawUriTest16(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2462,7 +2462,7 @@ static int DetectEngineHttpRawUriTest21(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2590,7 +2590,7 @@ static int DetectEngineHttpRawUriTest22(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2718,7 +2718,7 @@ static int DetectEngineHttpRawUriTest23(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2846,7 +2846,7 @@ static int DetectEngineHttpRawUriTest24(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2974,7 +2974,7 @@ static int DetectEngineHttpRawUriTest25(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -3102,7 +3102,7 @@ static int DetectEngineHttpRawUriTest26(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -3230,7 +3230,7 @@ static int DetectEngineHttpRawUriTest27(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -3358,7 +3358,7 @@ static int DetectEngineHttpRawUriTest28(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -3478,7 +3478,7 @@ static int DetectEngineHttpRawUriTest29(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -3573,7 +3573,7 @@ static int DetectEngineHttpRawUriTest30(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));

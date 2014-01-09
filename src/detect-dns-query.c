@@ -147,7 +147,7 @@ static int DetectDnsQueryTest01(void) {
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -260,7 +260,7 @@ static int DetectDnsQueryTest02(void) {
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -423,7 +423,7 @@ static int DetectDnsQueryTest03(void) {
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -520,7 +520,7 @@ static int DetectDnsQueryTest04(void) {
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -668,7 +668,7 @@ static int DetectDnsQueryTest05(void) {
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -860,7 +860,7 @@ static int DetectDnsQueryTest06(void) {
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -987,7 +987,7 @@ static int DetectDnsQueryTest07(void) {
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));

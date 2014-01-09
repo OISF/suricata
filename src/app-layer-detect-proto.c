@@ -3137,7 +3137,7 @@ static int AppLayerProtoDetectTest16(void)
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&ssn, 0, sizeof(TcpSession));
@@ -3239,7 +3239,7 @@ static int AppLayerProtoDetectTest17(void)
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&ssn, 0, sizeof(TcpSession));
@@ -3335,7 +3335,7 @@ static int AppLayerProtoDetectTest18(void)
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&ssn, 0, sizeof(TcpSession));
@@ -3427,7 +3427,7 @@ static int AppLayerProtoDetectTest19(void)
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&ssn, 0, sizeof(TcpSession));
@@ -3515,7 +3515,7 @@ static int AppLayerProtoDetectTest20(void)
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&ssn, 0, sizeof(TcpSession));

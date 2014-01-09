@@ -1042,7 +1042,7 @@ int DCERPCUDPParserTest01(void) {
 
 	TcpSession ssn;
 	DCERPCUuidEntry *uuid_entry;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
 	memset(&f, 0, sizeof(f));
 	memset(&ssn, 0, sizeof(ssn));

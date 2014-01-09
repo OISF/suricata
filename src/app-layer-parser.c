@@ -1082,7 +1082,7 @@ static int AppLayerParserTest01(void)
     uint8_t testbuf[] = { 0x11 };
     uint32_t testlen = sizeof(testbuf);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1137,7 +1137,7 @@ static int AppLayerParserTest02(void)
     Flow *f = NULL;
     uint8_t testbuf[] = { 0x11 };
     uint32_t testlen = sizeof(testbuf);
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     /* Register the Test protocol state and parser functions */
     AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_TEST, STREAM_TOSERVER,

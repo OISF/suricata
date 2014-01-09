@@ -5124,7 +5124,7 @@ static int SigTest06Real (int mpm_type) {
     Flow f;
     TcpSession ssn;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -5224,7 +5224,7 @@ static int SigTest07Real (int mpm_type) {
     Flow f;
     TcpSession ssn;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -5325,7 +5325,7 @@ static int SigTest08Real (int mpm_type) {
     Flow f;
     TcpSession ssn;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(Flow));
     memset(&th_v, 0, sizeof(th_v));
@@ -5425,7 +5425,7 @@ static int SigTest09Real (int mpm_type) {
     DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -5519,7 +5519,7 @@ static int SigTest10Real (int mpm_type) {
     Flow f;
     TcpSession ssn;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -10754,7 +10754,7 @@ static int SigTestDropFlow01(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -10857,7 +10857,7 @@ static int SigTestDropFlow02(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -10972,7 +10972,7 @@ static int SigTestDropFlow03(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -11145,7 +11145,7 @@ static int SigTestDropFlow04(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));

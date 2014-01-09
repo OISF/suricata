@@ -1239,7 +1239,7 @@ static int SSLParserTest01(void)
     uint8_t tlsbuf[] = { 0x16, 0x03, 0x01 };
     uint32_t tlslen = sizeof(tlsbuf);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -1295,7 +1295,7 @@ static int SSLParserTest02(void)
     uint8_t tlsbuf2[] = { 0x03, 0x01 };
     uint32_t tlslen2 = sizeof(tlsbuf2);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -1363,7 +1363,7 @@ static int SSLParserTest03(void)
     uint8_t tlsbuf3[] = { 0x01 };
     uint32_t tlslen3 = sizeof(tlsbuf3);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -1443,7 +1443,7 @@ static int SSLParserTest04(void)
     uint8_t tlsbuf4[] = { 0x01, 0x00, 0x00, 0xad, 0x03, 0x01 };
     uint32_t tlslen4 = sizeof(tlsbuf4);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -1529,7 +1529,7 @@ static int SSLParserTest05(void)
     uint8_t tlsbuf[] = { 0x16, 0x03, 0x01, 0x00, 0x01 };
     uint32_t tlslen = sizeof(tlsbuf);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -1638,7 +1638,7 @@ static int SSLParserTest06(void)
     uint8_t tlsbuf[] = { 0x16, 0x03, 0x01, 0x00, 0x01 };
     uint32_t tlslen = sizeof(tlsbuf);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -1787,7 +1787,7 @@ static int SSLParserMultimsgTest01(void)
     };
     uint32_t tlslen1 = sizeof(tlsbuf1);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -1868,7 +1868,7 @@ static int SSLParserMultimsgTest02(void)
     };
     uint32_t tlslen1 = sizeof(tlsbuf1);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -1938,7 +1938,7 @@ static int SSLParserTest07(void)
             0x00, 0x0a, 0x00, 0x02, 0x01, 0x00 };
     uint32_t tlslen = sizeof(tlsbuf);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -1995,7 +1995,7 @@ static int SSLParserTest08(void)
     uint8_t tlsbuf[] = { 0x16, 0x03, 0x00, 0x00, 0x01 };
     uint32_t tlslen = sizeof(tlsbuf);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2124,7 +2124,7 @@ static int SSLParserTest09(void)
     };
     uint32_t buf2_len = sizeof(buf2);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2212,7 +2212,7 @@ static int SSLParserTest10(void)
     };
     uint32_t buf2_len = sizeof(buf2);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2299,7 +2299,7 @@ static int SSLParserTest11(void)
     };
     uint32_t buf2_len = sizeof(buf2);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2391,7 +2391,7 @@ static int SSLParserTest12(void)
     };
     uint32_t buf3_len = sizeof(buf2);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2498,7 +2498,7 @@ static int SSLParserTest13(void)
     };
     uint32_t buf4_len = sizeof(buf4);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2594,7 +2594,7 @@ static int SSLParserTest14(void)
     uint32_t buf2_len = sizeof(buf2);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2651,7 +2651,7 @@ static int SSLParserTest15(void)
     uint32_t buf1_len = sizeof(buf1);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2691,7 +2691,7 @@ static int SSLParserTest16(void)
     uint32_t buf1_len = sizeof(buf1);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2731,7 +2731,7 @@ static int SSLParserTest17(void)
     uint32_t buf1_len = sizeof(buf1);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2777,7 +2777,7 @@ static int SSLParserTest18(void)
     uint32_t buf2_len = sizeof(buf2);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2835,7 +2835,7 @@ static int SSLParserTest19(void)
     uint32_t buf1_len = sizeof(buf1);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2883,7 +2883,7 @@ static int SSLParserTest20(void)
     uint32_t buf1_len = sizeof(buf1);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2923,7 +2923,7 @@ static int SSLParserTest21(void)
     uint32_t buf_len = sizeof(buf);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2988,7 +2988,7 @@ static int SSLParserTest22(void)
         0x2f, 0x34, 0x84, 0x20, 0xc5};
     uint32_t buf_len = sizeof(buf);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     //AppLayerDetectProtoThreadInit();
 
@@ -3293,7 +3293,7 @@ static int SSLParserTest23(void)
     uint32_t toserver_app_data_buf_len = sizeof(toserver_app_data_buf);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     //AppLayerDetectProtoThreadInit();
 
@@ -3544,7 +3544,7 @@ static int SSLParserTest24(void)
     };
     uint32_t buf2_len = sizeof(buf2);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -3923,7 +3923,7 @@ static int SSLParserTest25(void)
     uint32_t client_key_exchange_cipher_enc_hs_len = sizeof(client_key_exchange_cipher_enc_hs);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));

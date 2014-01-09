@@ -292,7 +292,7 @@ static int DetectHttpHRHTest06(void)
         "\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -394,7 +394,7 @@ static int DetectHttpHRHTest07(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -517,7 +517,7 @@ static int DetectHttpHRHTest08(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -647,7 +647,7 @@ static int DetectHttpHRHTest09(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -777,7 +777,7 @@ static int DetectHttpHRHTest10(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -901,7 +901,7 @@ static int DetectHttpHRHTest11(void)
         "\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1000,7 +1000,7 @@ static int DetectHttpHRHTest12(void)
         "\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1100,7 +1100,7 @@ static int DetectHttpHRHTest13(void)
         "\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1203,7 +1203,7 @@ static int DetectHttpHRHTest14(void)
     uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
     uint32_t httplen5 = sizeof(httpbuf5) - 1; /* minus the \0 */
     uint32_t httplen6 = sizeof(httpbuf6) - 1; /* minus the \0 */
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2084,7 +2084,7 @@ static int DetectHttpHRHTest37(void)
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
