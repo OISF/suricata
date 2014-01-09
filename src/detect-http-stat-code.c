@@ -227,7 +227,7 @@ static int DetectHttpStatCodeSigTest01(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -328,7 +328,7 @@ static int DetectHttpStatCodeSigTest02(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -443,7 +443,7 @@ static int DetectHttpStatCodeSigTest03(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -558,7 +558,7 @@ static int DetectHttpStatCodeSigTest04(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));

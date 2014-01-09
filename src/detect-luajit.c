@@ -979,7 +979,7 @@ static int LuajitMatchTest01(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     ut_script = script;
 
@@ -1409,7 +1409,7 @@ static int LuajitMatchTest04(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     ut_script = script;
 
@@ -1556,7 +1556,7 @@ static int LuajitMatchTest05(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     ut_script = script;
 
@@ -1708,7 +1708,7 @@ static int LuajitMatchTest06(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     ut_script = script;
 

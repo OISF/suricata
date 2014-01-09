@@ -324,7 +324,7 @@ static int DetectHttpCookieSigTest01(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -428,7 +428,7 @@ static int DetectHttpCookieSigTest02(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -521,7 +521,7 @@ static int DetectHttpCookieSigTest03(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -613,7 +613,7 @@ static int DetectHttpCookieSigTest04(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -706,7 +706,7 @@ static int DetectHttpCookieSigTest05(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -799,7 +799,7 @@ static int DetectHttpCookieSigTest06(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -865,7 +865,7 @@ static int DetectHttpCookieSigTest06(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -892,7 +892,7 @@ static int DetectHttpCookieSigTest07(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -957,7 +957,7 @@ static int DetectHttpCookieSigTest07(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -997,7 +997,7 @@ static int DetectHttpCookieSigTest08(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1086,7 +1086,7 @@ static int DetectHttpCookieSigTest08(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
@@ -1128,7 +1128,7 @@ static int DetectHttpCookieSigTest09(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1223,7 +1223,7 @@ static int DetectHttpCookieSigTest09(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }

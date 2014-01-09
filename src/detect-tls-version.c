@@ -328,7 +328,7 @@ static int DetectTlsVersionTestDetect01(void) {
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -455,7 +455,7 @@ static int DetectTlsVersionTestDetect02(void) {
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -579,7 +579,7 @@ static int DetectTlsVersionTestDetect03(void) {
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));

@@ -324,7 +324,7 @@ static int DetectEngineHttpServerBodyTest01(void)
         "message";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -451,7 +451,7 @@ static int DetectEngineHttpServerBodyTest02(void)
         "xxxxABC";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -568,7 +568,7 @@ static int DetectEngineHttpServerBodyTest03(void)
     uint8_t http_buf3[] =
         "8901234ABC";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -706,7 +706,7 @@ static int DetectEngineHttpServerBodyTest04(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -834,7 +834,7 @@ static int DetectEngineHttpServerBodyTest05(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -962,7 +962,7 @@ static int DetectEngineHttpServerBodyTest06(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1090,7 +1090,7 @@ static int DetectEngineHttpServerBodyTest07(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1218,7 +1218,7 @@ static int DetectEngineHttpServerBodyTest08(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1346,7 +1346,7 @@ static int DetectEngineHttpServerBodyTest09(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1475,7 +1475,7 @@ static int DetectEngineHttpServerBodyTest10(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1604,7 +1604,7 @@ static int DetectEngineHttpServerBodyTest11(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1733,7 +1733,7 @@ static int DetectEngineHttpServerBodyTest12(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1862,7 +1862,7 @@ static int DetectEngineHttpServerBodyTest13(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1991,7 +1991,7 @@ static int DetectEngineHttpServerBodyTest14(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2120,7 +2120,7 @@ static int DetectEngineHttpServerBodyTest15(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2275,7 +2275,7 @@ libhtp:\n\
     uint8_t http_buf3[] =
         "8901234ABC";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2451,7 +2451,7 @@ libhtp:\n\
     uint8_t http_buf3[] =
         "8901234ABC";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2611,7 +2611,7 @@ static int DetectEngineHttpServerBodyTest18(void)
     };
     uint32_t http_len2 = sizeof(http_buf2);
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2741,7 +2741,7 @@ static int DetectEngineHttpServerBodyTest19(void)
     // 0xb2, 0x7d, 0xac, 0x9b, 0x19, 0x00, 0x00, 0x00,
     uint32_t http_len2 = sizeof(http_buf2);
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2871,7 +2871,7 @@ static int DetectEngineHttpServerBodyTest20(void)
     // 0xb2, 0x7d, 0xac, 0x9b, 0x19, 0x00, 0x00, 0x00,
     uint32_t http_len2 = sizeof(http_buf2);
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -3003,7 +3003,7 @@ static int DetectEngineHttpServerBodyTest21(void)
     };
     uint32_t http_len2 = sizeof(http_buf2);
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -3137,7 +3137,7 @@ static int DetectEngineHttpServerBodyTest22(void)
     };
     uint32_t http_len2 = sizeof(http_buf2);
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -3259,7 +3259,7 @@ static int DetectEngineHttpServerBodyFileDataTest01(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -3388,7 +3388,7 @@ static int DetectEngineHttpServerBodyFileDataTest02(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -3518,7 +3518,7 @@ static int DetectEngineHttpServerBodyFileDataTest03(void)
         "XYZ_klm_1234abcd_XYZ_klm_5678abcd";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));

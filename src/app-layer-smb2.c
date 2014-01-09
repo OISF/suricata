@@ -622,7 +622,7 @@ int SMB2ParserTest01(void) {
 
     uint32_t smb2len = sizeof(smb2buf) - 1;
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));

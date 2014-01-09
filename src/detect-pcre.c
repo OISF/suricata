@@ -1656,7 +1656,7 @@ static int DetectPcreTestSig01Real(int mpm_type)
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
     Flow f;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&th_v, 0, sizeof(th_v));
@@ -1916,7 +1916,7 @@ static int DetectPcreModifPTest04(void)
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2046,7 +2046,7 @@ static int DetectPcreModifPTest05(void)
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2244,7 +2244,7 @@ static int DetectPcreTestSig09(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -2340,7 +2340,7 @@ static int DetectPcreTestSig10(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -2436,7 +2436,7 @@ static int DetectPcreTestSig11(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -2532,7 +2532,7 @@ static int DetectPcreTestSig12(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -2628,7 +2628,7 @@ static int DetectPcreTestSig13(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -2724,7 +2724,7 @@ static int DetectPcreTestSig14(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -2820,7 +2820,7 @@ static int DetectPcreTestSig15(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -2917,7 +2917,7 @@ static int DetectPcreTestSig16(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -3020,7 +3020,7 @@ static int DetectPcreTxBodyChunksTest01(void)
     uint32_t httplen5 = sizeof(httpbuf5) - 1; /* minus the \0 */
     uint32_t httplen6 = sizeof(httpbuf6) - 1; /* minus the \0 */
     uint32_t httplen7 = sizeof(httpbuf7) - 1; /* minus the \0 */
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -3171,7 +3171,7 @@ static int DetectPcreTxBodyChunksTest02(void)
     uint32_t httplen5 = sizeof(httpbuf5) - 1; /* minus the \0 */
     uint32_t httplen6 = sizeof(httpbuf6) - 1; /* minus the \0 */
     uint32_t httplen7 = sizeof(httpbuf7) - 1; /* minus the \0 */
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -3419,7 +3419,7 @@ static int DetectPcreTxBodyChunksTest03(void)
     uint32_t httplen5 = sizeof(httpbuf5) - 1; /* minus the \0 */
     uint32_t httplen6 = sizeof(httpbuf6) - 1; /* minus the \0 */
     uint32_t httplen7 = sizeof(httpbuf7) - 1; /* minus the \0 */
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -3641,7 +3641,7 @@ static int DetectPcreFlowvarCapture01(void)
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -3767,7 +3767,7 @@ static int DetectPcreFlowvarCapture02(void)
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -3913,7 +3913,7 @@ static int DetectPcreFlowvarCapture03(void)
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));

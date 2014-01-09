@@ -584,7 +584,7 @@ static int DetectDceStubDataTestParse02(void)
     uint32_t dcerpc_bind_len = sizeof(dcerpc_bind);
     uint32_t dcerpc_bindack_len = sizeof(dcerpc_bindack);
     uint32_t dcerpc_request_len = sizeof(dcerpc_request);
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1139,7 +1139,7 @@ static int DetectDceStubDataTestParse03(void)
 
     uint32_t dcerpc_request_len = sizeof(dcerpc_request);
 
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1340,7 +1340,7 @@ static int DetectDceStubDataTestParse04(void)
     uint32_t dcerpc_request3_len = sizeof(dcerpc_request3);
     uint32_t dcerpc_response3_len = sizeof(dcerpc_response3);
 
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1641,7 +1641,7 @@ static int DetectDceStubDataTestParse05(void)
     uint32_t dcerpc_request3_len = sizeof(dcerpc_request3);
     uint32_t dcerpc_response3_len = sizeof(dcerpc_response3);
 
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));

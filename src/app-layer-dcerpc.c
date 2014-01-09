@@ -2395,7 +2395,7 @@ int DCERPCParserTest01(void) {
     uint32_t bindacklen = sizeof(dcerpcbindack);
     TcpSession ssn;
     DCERPCUuidEntry *uuid_entry;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2626,7 +2626,7 @@ int DCERPCParserTest02(void) {
     uint32_t requestlen = sizeof(dcerpcrequest);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2825,7 +2825,7 @@ int DCERPCParserTest03(void) {
     uint32_t requestlen = sizeof(dcerpcrequest);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -4005,7 +4005,7 @@ int DCERPCParserTest04(void) {
     uint32_t request9_len = sizeof(request9);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -4272,7 +4272,7 @@ int DCERPCParserTest05(void) {
     uint32_t bind2_len = sizeof(bind2);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -4446,7 +4446,7 @@ int DCERPCParserTest06(void) {
     uint32_t bind2_len = sizeof(bind2);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -4531,7 +4531,7 @@ int DCERPCParserTest07(void) {
     uint32_t request3_len = sizeof(request3);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -4622,7 +4622,7 @@ int DCERPCParserTest08(void) {
     uint32_t request_len = sizeof(request);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -4681,7 +4681,7 @@ int DCERPCParserTest09(void) {
     uint32_t request_len = sizeof(request);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -4754,7 +4754,7 @@ int DCERPCParserTest10(void) {
     uint32_t request2_len = sizeof(request2);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -4854,7 +4854,7 @@ int DCERPCParserTest11(void) {
     uint32_t request3_len = sizeof(request3);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -4952,7 +4952,7 @@ int DCERPCParserTest12(void) {
     uint32_t bind_ack2_len = sizeof(bind_ack2);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -5029,7 +5029,7 @@ int DCERPCParserTest13(void) {
     uint32_t bind_len = sizeof(bind);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -5119,7 +5119,7 @@ int DCERPCParserTest14(void) {
     uint32_t bind_len = sizeof(bind);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -5180,7 +5180,7 @@ int DCERPCParserTest15(void) {
     uint32_t bind_ack_len = sizeof(bind_ack);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -5630,7 +5630,7 @@ int DCERPCParserTest16(void) {
     TcpSession ssn;
     DCERPCUuidEntry *item = NULL;
     int count = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     uint8_t accepted_uuids[3][16] = {
         {0x4b, 0x32, 0x4f, 0xc8, 0x16, 0x70, 0x01, 0xd3,
@@ -5877,7 +5877,7 @@ int DCERPCParserTest17(void) {
     TcpSession ssn;
     DCERPCUuidEntry *item = NULL;
     int count = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     uint8_t accepted_uuids[2][16] = {
         {0x57, 0x67, 0x4c, 0xd0, 0x52, 0x00, 0x11, 0xce,
@@ -6030,7 +6030,7 @@ int DCERPCParserTest18(void) {
     uint32_t request2_len = sizeof(request2);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -6296,7 +6296,7 @@ int DCERPCParserTest19(void)
     uint32_t bindlen = sizeof(dcerpcbind);
     uint32_t bindacklen = sizeof(dcerpcbindack);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));

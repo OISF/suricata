@@ -151,7 +151,7 @@ static int DetectEngineHttpUATest01(void)
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -249,7 +249,7 @@ static int DetectEngineHttpUATest02(void)
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -347,7 +347,7 @@ static int DetectEngineHttpUATest03(void)
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -445,7 +445,7 @@ static int DetectEngineHttpUATest04(void)
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -543,7 +543,7 @@ static int DetectEngineHttpUATest05(void)
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -641,7 +641,7 @@ static int DetectEngineHttpUATest06(void)
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -739,7 +739,7 @@ static int DetectEngineHttpUATest07(void)
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -837,7 +837,7 @@ static int DetectEngineHttpUATest08(void)
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -935,7 +935,7 @@ static int DetectEngineHttpUATest09(void)
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1033,7 +1033,7 @@ static int DetectEngineHttpUATest10(void)
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1132,7 +1132,7 @@ static int DetectEngineHttpUATest11(void)
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1231,7 +1231,7 @@ static int DetectEngineHttpUATest12(void)
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1330,7 +1330,7 @@ static int DetectEngineHttpUATest13(void)
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1429,7 +1429,7 @@ static int DetectEngineHttpUATest14(void)
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1528,7 +1528,7 @@ static int DetectEngineHttpUATest15(void)
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1627,7 +1627,7 @@ static int DetectEngineHttpUATest16(void)
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1726,7 +1726,7 @@ static int DetectEngineHttpUATest17(void)
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserThreadCtxAlloc();
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
