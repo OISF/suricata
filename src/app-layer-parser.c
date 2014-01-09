@@ -250,6 +250,7 @@ void AppLayerParserDestroyCtxThread(void *alpd_tctx)
         }
     }
 
+    SCFree(tctx);
     SCReturn;
 }
 
