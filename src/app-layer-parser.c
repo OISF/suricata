@@ -76,7 +76,7 @@ typedef struct AppLayerParserThreadCtx_ {
 /**
  * \brief App layer protocol parser context.
  */
-typedef struct AppLayerParserpCtx_
+typedef struct AppLayerParserProtoCtx_
 {
     /* 0 - to_server, 1 - to_client. */
     int (*Parser[2])(Flow *f, void *protocol_state,
@@ -111,10 +111,10 @@ typedef struct AppLayerParserpCtx_
 #ifdef UNITTESTS
     void (*RegisterUnittests)(void);
 #endif
-} AppLayerParserpCtx;
+} AppLayerParserProtoCtx;
 
 typedef struct AppLayerParserCtx_ {
-    AppLayerParserpCtx ctxs[FLOW_PROTO_MAX][ALPROTO_MAX];
+    AppLayerParserProtoCtx ctxs[FLOW_PROTO_MAX][ALPROTO_MAX];
 } AppLayerParserCtx;
 
 typedef struct AppLayerParserParserState_ {
@@ -146,7 +146,7 @@ static void AppLayerParserTransactionsCleanup(uint16_t ipproto, AppProto alproto
     AppLayerParserParserState *parser_state_store = pstate;
     uint64_t inspect = 0, log = 0;
     uint64_t min;
-    AppLayerParserpCtx *ctx = &alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto];
+    AppLayerParserProtoCtx *ctx = &alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto];
 
     if (ctx->StateTransactionFree == NULL)
         goto end;
@@ -700,7 +700,7 @@ int AppLayerParserParse(void *tctx, Flow *f, AppProto alproto,
     SCEnter();
 
     AppLayerParserParserState *pstate = NULL;
-    AppLayerParserpCtx *p = &alp_ctx.ctxs[FlowGetProtoMapping(f->proto)][alproto];
+    AppLayerParserProtoCtx *p = &alp_ctx.ctxs[FlowGetProtoMapping(f->proto)][alproto];
     TcpSession *ssn = NULL;
     void *alstate = NULL;
     AppLayerParserThreadCtx *alp_tctx = (AppLayerParserThreadCtx *)tctx;
@@ -887,7 +887,7 @@ void AppLayerParserCleanupParserState(uint16_t ipproto, AppProto alproto, void *
 {
     SCEnter();
 
-    AppLayerParserpCtx *ctx = &alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto];
+    AppLayerParserProtoCtx *ctx = &alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto];
 
     if (ctx->StateFree != NULL && alstate != NULL)
         ctx->StateFree(alstate);
@@ -1180,7 +1180,7 @@ void AppLayerParserRegisterUnittests(void)
 
     int ip;
     uint16_t alproto;
-    AppLayerParserpCtx *ctx;
+    AppLayerParserProtoCtx *ctx;
 
     for (ip = 0; ip < FLOW_PROTO_DEFAULT; ip++) {
         for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
