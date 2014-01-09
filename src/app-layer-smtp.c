@@ -1004,7 +1004,7 @@ int SMTPParserTest01(void)
     uint32_t reply2_len = sizeof(reply2);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -1118,7 +1118,7 @@ int SMTPParserTest01(void)
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -1362,7 +1362,7 @@ int SMTPParserTest02(void)
     uint32_t reply10_len = sizeof(reply10);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -1902,7 +1902,7 @@ int SMTPParserTest02(void)
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -1996,7 +1996,7 @@ int SMTPParserTest03(void)
     uint32_t reply2_len = sizeof(reply2);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2105,7 +2105,7 @@ int SMTPParserTest03(void)
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -2143,7 +2143,7 @@ int SMTPParserTest04(void)
     uint32_t request1_len = sizeof(request1);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2197,7 +2197,7 @@ int SMTPParserTest04(void)
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -2290,7 +2290,7 @@ int SMTPParserTest05(void)
     uint32_t reply3_len = sizeof(reply3);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2438,7 +2438,7 @@ int SMTPParserTest05(void)
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -2586,7 +2586,7 @@ int SMTPParserTest06(void)
     uint32_t request6_len = sizeof(request6);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2787,7 +2787,7 @@ int SMTPParserTest06(void)
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -2824,7 +2824,7 @@ int SMTPParserTest07(void)
     int32_t request2_len = sizeof(request2);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2900,7 +2900,7 @@ int SMTPParserTest07(void)
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -2937,7 +2937,7 @@ int SMTPParserTest08(void)
     int32_t request2_len = sizeof(request2);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -3013,7 +3013,7 @@ int SMTPParserTest08(void)
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -3050,7 +3050,7 @@ int SMTPParserTest09(void)
     int32_t request2_len = sizeof(request2);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -3126,7 +3126,7 @@ int SMTPParserTest09(void)
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -3163,7 +3163,7 @@ int SMTPParserTest10(void)
     int32_t request2_len = sizeof(request2);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -3239,7 +3239,7 @@ int SMTPParserTest10(void)
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -3270,7 +3270,7 @@ int SMTPParserTest11(void)
     int32_t request2_len = sizeof(request2);
 
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -3327,7 +3327,7 @@ int SMTPParserTest11(void)
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -3360,7 +3360,7 @@ int SMTPParserTest12(void)
     };
     uint32_t reply1_len = sizeof(reply1);
 
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -3447,7 +3447,7 @@ end:
     DetectEngineCtxFree(de_ctx);
 
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
@@ -3499,7 +3499,7 @@ int SMTPParserTest13(void)
     };
     uint32_t request2_len = sizeof(request2);
 
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -3605,7 +3605,7 @@ end:
     DetectEngineCtxFree(de_ctx);
 
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);

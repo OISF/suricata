@@ -410,7 +410,7 @@ static int DetectHttpMethodSigTest01(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -487,7 +487,7 @@ static int DetectHttpMethodSigTest01(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
@@ -513,7 +513,7 @@ static int DetectHttpMethodSigTest02(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -590,7 +590,7 @@ static int DetectHttpMethodSigTest02(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, (void *) det_ctx);
@@ -615,7 +615,7 @@ static int DetectHttpMethodSigTest03(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -681,7 +681,7 @@ static int DetectHttpMethodSigTest03(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
@@ -707,7 +707,7 @@ static int DetectHttpMethodSigTest04(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -782,7 +782,7 @@ static int DetectHttpMethodSigTest04(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);

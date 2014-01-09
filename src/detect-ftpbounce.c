@@ -293,7 +293,7 @@ static int DetectFtpbounceTestALMatch02(void) {
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -388,7 +388,7 @@ static int DetectFtpbounceTestALMatch02(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
@@ -427,7 +427,7 @@ static int DetectFtpbounceTestALMatch03(void) {
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
@@ -529,7 +529,7 @@ static int DetectFtpbounceTestALMatch03(void) {
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 

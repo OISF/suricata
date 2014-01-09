@@ -1040,7 +1040,7 @@ int DCERPCUDPParserTest01(void) {
 
 	TcpSession ssn;
 	DCERPCUuidEntry *uuid_entry;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
 	memset(&f, 0, sizeof(f));
 	memset(&ssn, 0, sizeof(ssn));
@@ -1092,7 +1092,7 @@ int DCERPCUDPParserTest01(void) {
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
 	StreamTcpFreeConfig(TRUE);
 	return result;
 }

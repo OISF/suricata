@@ -147,7 +147,7 @@ static int DetectEngineHttpHHTest01(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -212,7 +212,7 @@ static int DetectEngineHttpHHTest01(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -245,7 +245,7 @@ static int DetectEngineHttpHHTest02(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -310,7 +310,7 @@ static int DetectEngineHttpHHTest02(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -343,7 +343,7 @@ static int DetectEngineHttpHHTest03(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -408,7 +408,7 @@ static int DetectEngineHttpHHTest03(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -441,7 +441,7 @@ static int DetectEngineHttpHHTest04(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -506,7 +506,7 @@ static int DetectEngineHttpHHTest04(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -539,7 +539,7 @@ static int DetectEngineHttpHHTest05(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -604,7 +604,7 @@ static int DetectEngineHttpHHTest05(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -637,7 +637,7 @@ static int DetectEngineHttpHHTest06(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -702,7 +702,7 @@ static int DetectEngineHttpHHTest06(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -735,7 +735,7 @@ static int DetectEngineHttpHHTest07(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -800,7 +800,7 @@ static int DetectEngineHttpHHTest07(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -833,7 +833,7 @@ static int DetectEngineHttpHHTest08(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -898,7 +898,7 @@ static int DetectEngineHttpHHTest08(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -931,7 +931,7 @@ static int DetectEngineHttpHHTest09(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -996,7 +996,7 @@ static int DetectEngineHttpHHTest09(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1029,7 +1029,7 @@ static int DetectEngineHttpHHTest10(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1095,7 +1095,7 @@ static int DetectEngineHttpHHTest10(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1128,7 +1128,7 @@ static int DetectEngineHttpHHTest11(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1194,7 +1194,7 @@ static int DetectEngineHttpHHTest11(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1227,7 +1227,7 @@ static int DetectEngineHttpHHTest12(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1293,7 +1293,7 @@ static int DetectEngineHttpHHTest12(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1326,7 +1326,7 @@ static int DetectEngineHttpHHTest13(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1392,7 +1392,7 @@ static int DetectEngineHttpHHTest13(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1425,7 +1425,7 @@ static int DetectEngineHttpHHTest14(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1491,7 +1491,7 @@ static int DetectEngineHttpHHTest14(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1524,7 +1524,7 @@ static int DetectEngineHttpHHTest15(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1590,7 +1590,7 @@ static int DetectEngineHttpHHTest15(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1623,7 +1623,7 @@ static int DetectEngineHttpHHTest16(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1689,7 +1689,7 @@ static int DetectEngineHttpHHTest16(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1722,7 +1722,7 @@ static int DetectEngineHttpHHTest17(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1788,7 +1788,7 @@ static int DetectEngineHttpHHTest17(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1817,7 +1817,7 @@ static int DetectEngineHttpHHTest18(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1882,7 +1882,7 @@ static int DetectEngineHttpHHTest18(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1911,7 +1911,7 @@ static int DetectEngineHttpHHTest19(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1976,7 +1976,7 @@ static int DetectEngineHttpHHTest19(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -2005,7 +2005,7 @@ static int DetectEngineHttpHHTest20(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2070,7 +2070,7 @@ static int DetectEngineHttpHHTest20(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -2098,7 +2098,7 @@ static int DetectEngineHttpHHTest21(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2163,7 +2163,7 @@ static int DetectEngineHttpHHTest21(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -2191,7 +2191,7 @@ static int DetectEngineHttpHHTest22(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2256,7 +2256,7 @@ static int DetectEngineHttpHHTest22(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -2284,7 +2284,7 @@ static int DetectEngineHttpHHTest23(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2349,7 +2349,7 @@ static int DetectEngineHttpHHTest23(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -2378,7 +2378,7 @@ static int DetectEngineHttpHHTest24(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2443,7 +2443,7 @@ static int DetectEngineHttpHHTest24(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -2472,7 +2472,7 @@ static int DetectEngineHttpHHTest25(void)
         "User-Agent: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2537,7 +2537,7 @@ static int DetectEngineHttpHHTest25(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)

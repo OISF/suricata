@@ -150,7 +150,7 @@ static int DetectEngineHttpStatMsgTest01(void)
         "message";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -239,7 +239,7 @@ static int DetectEngineHttpStatMsgTest01(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -277,7 +277,7 @@ static int DetectEngineHttpStatMsgTest02(void)
         "xxxxABC";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -353,7 +353,7 @@ static int DetectEngineHttpStatMsgTest02(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -394,7 +394,7 @@ static int DetectEngineHttpStatMsgTest03(void)
         "\r\n"
         "12345678901234ABC";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -493,7 +493,7 @@ static int DetectEngineHttpStatMsgTest03(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -532,7 +532,7 @@ static int DetectEngineHttpStatMsgTest04(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -621,7 +621,7 @@ static int DetectEngineHttpStatMsgTest04(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -660,7 +660,7 @@ static int DetectEngineHttpStatMsgTest05(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -749,7 +749,7 @@ static int DetectEngineHttpStatMsgTest05(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -788,7 +788,7 @@ static int DetectEngineHttpStatMsgTest06(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -877,7 +877,7 @@ static int DetectEngineHttpStatMsgTest06(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -916,7 +916,7 @@ static int DetectEngineHttpStatMsgTest07(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1005,7 +1005,7 @@ static int DetectEngineHttpStatMsgTest07(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1044,7 +1044,7 @@ static int DetectEngineHttpStatMsgTest08(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1133,7 +1133,7 @@ static int DetectEngineHttpStatMsgTest08(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1172,7 +1172,7 @@ static int DetectEngineHttpStatMsgTest09(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1262,7 +1262,7 @@ static int DetectEngineHttpStatMsgTest09(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1301,7 +1301,7 @@ static int DetectEngineHttpStatMsgTest10(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1391,7 +1391,7 @@ static int DetectEngineHttpStatMsgTest10(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1430,7 +1430,7 @@ static int DetectEngineHttpStatMsgTest11(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1520,7 +1520,7 @@ static int DetectEngineHttpStatMsgTest11(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1559,7 +1559,7 @@ static int DetectEngineHttpStatMsgTest12(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1649,7 +1649,7 @@ static int DetectEngineHttpStatMsgTest12(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1688,7 +1688,7 @@ static int DetectEngineHttpStatMsgTest13(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1778,7 +1778,7 @@ static int DetectEngineHttpStatMsgTest13(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1817,7 +1817,7 @@ static int DetectEngineHttpStatMsgTest14(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -1907,7 +1907,7 @@ static int DetectEngineHttpStatMsgTest14(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
@@ -1946,7 +1946,7 @@ static int DetectEngineHttpStatMsgTest15(void)
         "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -2036,7 +2036,7 @@ static int DetectEngineHttpStatMsgTest15(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)

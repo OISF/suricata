@@ -1591,7 +1591,7 @@ int SMBParserTest01(void) {
 
     uint32_t smblen = sizeof(smbbuf) - 1;
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -1633,7 +1633,7 @@ int SMBParserTest01(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1667,7 +1667,7 @@ int SMBParserTest02(void) {
 
     uint32_t smblen = sizeof(smbbuf);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -1710,7 +1710,7 @@ int SMBParserTest02(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1962,7 +1962,7 @@ int SMBParserTest03(void) {
     uint32_t smblen2 = sizeof(smbbuf2);
     uint32_t smblen3 = sizeof(smbbuf3);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2011,7 +2011,7 @@ int SMBParserTest03(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -2078,7 +2078,7 @@ int SMBParserTest04(void) {
     uint32_t smblen3 = sizeof(smbbuf3);
     uint32_t smblen4 = sizeof(smbbuf4);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2135,7 +2135,7 @@ int SMBParserTest04(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -2332,7 +2332,7 @@ int SMBParserTest07(void) {
     };
     uint32_t smblen1 = sizeof(smbbuf1);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2375,7 +2375,7 @@ int SMBParserTest07(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -2405,7 +2405,7 @@ int SMBParserTest08(void) {
     uint32_t smblen1 = sizeof(smbbuf1);
     uint32_t smblen2 = sizeof(smbbuf2);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2474,7 +2474,7 @@ int SMBParserTest08(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -2518,7 +2518,7 @@ int SMBParserTest09(void) {
     uint32_t smblen1 = sizeof(smbbuf1);
     uint32_t smblen2 = sizeof(smbbuf2);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2587,7 +2587,7 @@ int SMBParserTest09(void) {
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -2640,7 +2640,7 @@ int SMBParserTest10(void)
     uint32_t smblen1 = sizeof(smbbuf1);
     uint32_t smblen2 = sizeof(smbbuf2);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2681,7 +2681,7 @@ int SMBParserTest10(void)
     result = 1;
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     return result;
 }

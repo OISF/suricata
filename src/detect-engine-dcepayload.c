@@ -1277,7 +1277,7 @@ int DcePayloadTest01(void)
         "content:\"|79 26 46 f7 bf a1|\"; distance:0; sid:8;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -1807,7 +1807,7 @@ int DcePayloadTest01(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -2145,7 +2145,7 @@ int DcePayloadTest02(void)
         "dce_stub_data; content:\"|2d 5e 63 2a 4c|\"; distance:0; sid:2;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2259,7 +2259,7 @@ int DcePayloadTest02(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -2597,7 +2597,7 @@ int DcePayloadTest03(void)
         "content:\"|2d 5e 63 2a 4c|\"; distance:0; sid:2;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2710,7 +2710,7 @@ int DcePayloadTest03(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -3048,7 +3048,7 @@ int DcePayloadTest04(void)
         "content:\"|2d 5e 63 2a 4c|\"; distance:0; sid:2;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -3161,7 +3161,7 @@ int DcePayloadTest04(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -3498,7 +3498,7 @@ int DcePayloadTest05(void)
         "dce_stub_data; content:\"|2d 5e 63 2a 4c|\"; distance:0; sid:2;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -3611,7 +3611,7 @@ int DcePayloadTest05(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -3949,7 +3949,7 @@ int DcePayloadTest06(void)
         "content:\"|2d 5e 63 2a 4c|\"; distance:0; sid:2;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -4062,7 +4062,7 @@ int DcePayloadTest06(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -4399,7 +4399,7 @@ int DcePayloadTest07(void)
         "content:\"|2d 5e 63 35 25|\"; distance:0; sid:2;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -4512,7 +4512,7 @@ int DcePayloadTest07(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -4687,7 +4687,7 @@ int DcePayloadTest08(void)
         "distance:0; within:2; sid:1;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -4739,7 +4739,7 @@ int DcePayloadTest08(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -4914,7 +4914,7 @@ int DcePayloadTest09(void)
         "distance:0; within:2; sid:1;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -4966,7 +4966,7 @@ int DcePayloadTest09(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -5141,7 +5141,7 @@ int DcePayloadTest10(void)
         "distance:-10; within:3; sid:1;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -5193,7 +5193,7 @@ int DcePayloadTest10(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -5503,7 +5503,7 @@ int DcePayloadTest11(void)
         "distance:1; within:3; sid:1;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -5568,7 +5568,7 @@ int DcePayloadTest11(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -5879,7 +5879,7 @@ int DcePayloadTest12(void)
         "distance:2; within:3; sid:1;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -5944,7 +5944,7 @@ int DcePayloadTest12(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -6069,7 +6069,7 @@ int DcePayloadTest13(void)
         "(dce_stub_data; content:\"|00 18|\"; sid:3;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -6218,7 +6218,7 @@ int DcePayloadTest13(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -6320,7 +6320,7 @@ int DcePayloadTest14(void)
         "(dce_stub_data; content:\"|3f 00|\"; sid:2;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -6444,7 +6444,7 @@ int DcePayloadTest14(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -6501,7 +6501,7 @@ int DcePayloadTest15(void)
         "byte_test:2,=,46,5,relative,dce; sid:2;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -6562,7 +6562,7 @@ int DcePayloadTest15(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -6617,7 +6617,7 @@ int DcePayloadTest16(void)
         "byte_test:2,=,11776,5,relative; sid:2;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -6678,7 +6678,7 @@ int DcePayloadTest16(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -6733,7 +6733,7 @@ int DcePayloadTest17(void)
         "byte_test:2,=,46,5,relative,little; sid:2;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -6794,7 +6794,7 @@ int DcePayloadTest17(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -6849,7 +6849,7 @@ int DcePayloadTest18(void)
         "byte_jump:2,2,relative,dce; byte_test:2,=,14080,0,relative; sid:2;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -6910,7 +6910,7 @@ int DcePayloadTest18(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -6965,7 +6965,7 @@ int DcePayloadTest19(void)
         "byte_jump:2,2,relative; byte_test:2,=,14080,0,relative; sid:2;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -7026,7 +7026,7 @@ int DcePayloadTest19(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -7081,7 +7081,7 @@ int DcePayloadTest20(void)
         "byte_jump:2,2,little,relative; byte_test:2,=,14080,0,relative; sid:2;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -7142,7 +7142,7 @@ int DcePayloadTest20(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -7189,7 +7189,7 @@ int DcePayloadTest21(void)
         "content:\"string\"; within:8; sid:1;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -7243,7 +7243,7 @@ int DcePayloadTest21(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -7290,7 +7290,7 @@ int DcePayloadTest22(void)
         "content:\"string\"; within:8; sid:1;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -7344,7 +7344,7 @@ int DcePayloadTest22(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -7392,7 +7392,7 @@ int DcePayloadTest23(void)
         "content:\"string\"; within:8; sid:1;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -7446,7 +7446,7 @@ int DcePayloadTest23(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -9608,7 +9608,7 @@ int DcePayloadTest42(void)
         "content:!\"and\"; distance:0; sid:1;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -9662,7 +9662,7 @@ int DcePayloadTest42(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -9710,7 +9710,7 @@ int DcePayloadTest43(void)
         "pcre:/super/R; content:\"nova\"; within:7; sid:1;)";
 
     Signature *s;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -9764,7 +9764,7 @@ int DcePayloadTest43(void)
 
 end:
     if (alp_tctx != NULL)
-        AppLayerParserDestroyCtxThread(alp_tctx);
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);

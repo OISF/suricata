@@ -210,7 +210,7 @@ int AppLayerParserDeSetup(void)
     SCReturnInt(0);
 }
 
-void *AppLayerParserGetCtxThread(void)
+void *AppLayerParserThreadCtxAlloc(void)
 {
     SCEnter();
 
@@ -234,7 +234,7 @@ void *AppLayerParserGetCtxThread(void)
     SCReturnPtr(tctx, "void *");
 }
 
-void AppLayerParserDestroyCtxThread(void *alpd_tctx)
+void AppLayerParserThreadCtxFree(void *alpd_tctx)
 {
     SCEnter();
 
@@ -1085,7 +1085,7 @@ static int AppLayerParserTest01(void)
     uint8_t testbuf[] = { 0x11 };
     uint32_t testlen = sizeof(testbuf);
     TcpSession ssn;
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1140,7 +1140,7 @@ static int AppLayerParserTest02(void)
     Flow *f = NULL;
     uint8_t testbuf[] = { 0x11 };
     uint32_t testlen = sizeof(testbuf);
-    void *alp_tctx = AppLayerParserGetCtxThread();
+    void *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     /* Register the Test protocol state and parser functions */
     AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_TEST, STREAM_TOSERVER,
