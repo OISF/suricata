@@ -46,7 +46,7 @@
  * \brief This is for the app layer in general and it contains per thread
  *        context relevant to both the alpd and alp.
  */
-typedef struct AppLayerCtxThread_ {
+typedef struct AppLayerThreadCtx_ {
     /* App layer protocol detection thread context, from AppLayerProtoDetectGetCtxThread(). */
     void *alpd_tctx;
     /* App layer parser thread context, from AppLayerParserGetCtxThread(). */
@@ -61,7 +61,7 @@ typedef struct AppLayerCtxThread_ {
     uint64_t proto_detect_ticks_end;
     uint64_t proto_detect_ticks_spent;
 #endif
-} AppLayerCtxThread;
+} AppLayerThreadCtx;
 
 /***** L7 layer dispatchers *****/
 
@@ -75,7 +75,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
-    AppLayerCtxThread *app_tctx = ra_ctx->app_tctx;
+    AppLayerThreadCtx *app_tctx = ra_ctx->app_tctx;
     uint16_t *alproto;
     uint16_t *alproto_otherdir;
     uint8_t dir;
@@ -423,7 +423,7 @@ int AppLayerHandleUdp(void *app_tctx, Packet *p, Flow *f)
 {
     SCEnter();
 
-    AppLayerCtxThread *tctx = (AppLayerCtxThread *)app_tctx;
+    AppLayerThreadCtx *tctx = (AppLayerThreadCtx *)app_tctx;
 
     int r = 0;
 
@@ -547,7 +547,7 @@ void *AppLayerGetCtxThread(void)
 {
     SCEnter();
 
-    AppLayerCtxThread *app_tctx = SCMalloc(sizeof(*app_tctx));
+    AppLayerThreadCtx *app_tctx = SCMalloc(sizeof(*app_tctx));
     if (app_tctx == NULL)
         goto error;
     memset(app_tctx, 0, sizeof(*app_tctx));
@@ -569,7 +569,7 @@ void AppLayerDestroyCtxThread(void *tctx)
 {
     SCEnter();
 
-    AppLayerCtxThread *app_tctx = (AppLayerCtxThread *)tctx;
+    AppLayerThreadCtx *app_tctx = (AppLayerThreadCtx *)tctx;
     if (app_tctx == NULL)
         SCReturn;
 
@@ -586,14 +586,14 @@ void AppLayerDestroyCtxThread(void *tctx)
 
 void AppLayerProfilingReset(void *tctx) {
 #ifdef PROFILING
-    AppLayerCtxThread *app_tctx = tctx;
+    AppLayerThreadCtx *app_tctx = tctx;
     PACKET_PROFILING_APP_RESET(app_tctx);
 #endif
 }
 
 void AppLayerProfilingStore(void *tctx, Packet *p) {
 #ifdef PROFILING
-    AppLayerCtxThread *app_tctx = tctx;
+    AppLayerThreadCtx *app_tctx = tctx;
     PACKET_PROFILING_APP_STORE(app_tctx, p);
 #endif
 }
