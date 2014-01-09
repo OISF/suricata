@@ -4937,7 +4937,7 @@ static int SigTest03Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -4999,7 +4999,7 @@ static int SigTest04Real (int mpm_type) {
 
     Packet *p = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -5120,7 +5120,7 @@ static int SigTest06Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
     TcpSession ssn;
     int result = 0;
@@ -5321,7 +5321,7 @@ static int SigTest08Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
     TcpSession ssn;
     int result = 0;
@@ -5390,7 +5390,8 @@ end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    if (det_ctx)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     if (alp_tctx != NULL)
         AppLayerParserDestroyCtxThread(alp_tctx);
@@ -5421,7 +5422,7 @@ static int SigTest09Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
     TcpSession ssn;
     void *alp_tctx = AppLayerParserGetCtxThread();
@@ -5487,7 +5488,8 @@ end:
     FlowCleanupAppLayer(&f);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    if (det_ctx)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     if (alp_tctx != NULL)
         AppLayerParserDestroyCtxThread(alp_tctx);
@@ -5513,7 +5515,7 @@ static int SigTest10Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
     TcpSession ssn;
     int result = 0;
@@ -5580,7 +5582,8 @@ static int SigTest10Real (int mpm_type) {
     FlowCleanupAppLayer(&f);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    if (det_ctx)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     if (alp_tctx != NULL)
         AppLayerParserDestroyCtxThread(alp_tctx);
@@ -5606,7 +5609,7 @@ static int SigTest11Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
     TcpSession ssn;
     int result = 0;
@@ -5655,7 +5658,8 @@ static int SigTest11Real (int mpm_type) {
  end:
     FlowCleanupAppLayer(&f);
     SigGroupCleanup(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    if (det_ctx)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     UTHFreePackets(&p, 1);
     StreamTcpFreeConfig(TRUE);
@@ -5679,7 +5683,7 @@ static int SigTest12Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -5744,7 +5748,7 @@ static int SigTest13Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -5806,7 +5810,7 @@ static int SigTest14Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -5863,7 +5867,7 @@ static int SigTest15Real (int mpm_type) {
     if (unlikely(p == NULL))
         return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -5930,7 +5934,7 @@ static int SigTest16Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -6070,7 +6074,7 @@ static int SigTest18Real (int mpm_type) {
     if (unlikely(p == NULL))
         return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -6133,7 +6137,7 @@ int SigTest19Real (int mpm_type) {
     if (unlikely(p == NULL))
         return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -6203,7 +6207,7 @@ static int SigTest20Real (int mpm_type) {
     if (unlikely(p == NULL))
         return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -6361,7 +6365,7 @@ static int SigTest21Wm (void) {
 static int SigTest22Real (int mpm_type) {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     Flow f;
@@ -6447,7 +6451,7 @@ static int SigTest22Wm (void) {
 static int SigTest23Real (int mpm_type) {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     Flow f;
@@ -6653,7 +6657,7 @@ int SigTest25NegativeIPV4Keyword(void)
         return 0;
     }
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
@@ -8088,7 +8092,7 @@ int SigTest35NegativeICMPV4Keyword(void)
         return 0;
     }
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
@@ -9010,7 +9014,7 @@ int SigTest40NoPacketInspection01(void) {
     if (unlikely(p == NULL))
     return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     PacketQueue pq;
     Flow f;
     int result = 0;
@@ -9084,7 +9088,7 @@ int SigTest40NoPayloadInspection02(void) {
     if (unlikely(p == NULL))
     return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -9145,7 +9149,7 @@ static int SigTestMemory01 (void) {
     if (unlikely(p == NULL))
         return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -9282,7 +9286,7 @@ end:
 static int SigTestSgh01 (void) {
     ThreadVars th_v;
     int result = 0;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     memset(&th_v, 0, sizeof(th_v));
 
     Packet *p = NULL;
@@ -9423,7 +9427,7 @@ end:
 static int SigTestSgh02 (void) {
     ThreadVars th_v;
     int result = 0;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     Packet *p = NULL;
     p = UTHBuildPacketSrcDstPorts((uint8_t *)"a", 1, IPPROTO_TCP, 12345, 80);
 
@@ -9613,7 +9617,7 @@ static int SigTestSgh03 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
@@ -9784,7 +9788,7 @@ static int SigTestSgh04 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
@@ -9976,7 +9980,7 @@ static int SigTestSgh05 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
@@ -10042,7 +10046,7 @@ static int SigTestContent01Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901";
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -10096,7 +10100,7 @@ static int SigTestContent02Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901";
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -10159,7 +10163,7 @@ static int SigTestContent03Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -10212,7 +10216,7 @@ static int SigTestContent04Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -10337,7 +10341,7 @@ static int SigTestContent06Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -10628,7 +10632,7 @@ static int SigTestDepthOffset01Real (int mpm_type) {
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
