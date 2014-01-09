@@ -170,7 +170,7 @@ static void AppLayerParserTransactionsCleanup(uint16_t ipproto, AppProto alproto
     SCReturn;
 }
 
-void *AppLayerParserAllocAppLayerParserParserState(void)
+void *AppLayerParserStateAlloc(void)
 {
     SCEnter();
 
@@ -183,7 +183,7 @@ void *AppLayerParserAllocAppLayerParserParserState(void)
     SCReturnPtr(pstate, "pstate");
 }
 
-void AppLayerParserDeAllocAppLayerParserParserState(void *pstate)
+void AppLayerParserStateFree(void *pstate)
 {
     SCEnter();
 
@@ -725,7 +725,7 @@ int AppLayerParserParse(void *tctx, Flow *f, AppProto alproto,
     /* Get the parser state (if any) */
     pstate = f->alparser;
     if (pstate == NULL) {
-        f->alparser = pstate = AppLayerParserAllocAppLayerParserParserState();
+        f->alparser = pstate = AppLayerParserStateAlloc();
         if (pstate == NULL)
             goto error;
     }
@@ -734,7 +734,7 @@ int AppLayerParserParse(void *tctx, Flow *f, AppProto alproto,
                pstate->version);
 
     if (flags & STREAM_EOF)
-        AppLayerParserParserStateSetFlag(pstate, APP_LAYER_PARSER_EOF);
+        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_EOF);
 
     alstate = f->alstate;
     if (alstate == NULL) {
@@ -802,7 +802,7 @@ void AppLayerParserSetEOF(void *pstate)
     if (pstate == NULL)
         goto end;
 
-    AppLayerParserParserStateSetFlag(pstate, APP_LAYER_PARSER_EOF);
+    AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_EOF);
     /* increase version so we will inspect it one more time
      * with the EOF flags now set */
     ((AppLayerParserState *)pstate)->version++;
@@ -883,7 +883,7 @@ void AppLayerParserTriggerRawStreamReassembly(Flow *f)
 
 /***** Cleanup *****/
 
-void AppLayerParserCleanupParserState(uint16_t ipproto, AppProto alproto, void *alstate, void *pstate)
+void AppLayerParserStateCleanup(uint16_t ipproto, AppProto alproto, void *alstate, void *pstate)
 {
     SCEnter();
 
@@ -894,7 +894,7 @@ void AppLayerParserCleanupParserState(uint16_t ipproto, AppProto alproto, void *
 
     /* free the app layer parser api state */
     if (pstate != NULL)
-        AppLayerParserDeAllocAppLayerParserParserState(pstate);
+        AppLayerParserStateFree(pstate);
 
     SCReturn;
 }
@@ -955,14 +955,14 @@ void AppLayerParserRegisterProtocolParsers(void)
 }
 
 
-void AppLayerParserParserStateSetFlag(void *pstate, uint8_t flag)
+void AppLayerParserStateSetFlag(void *pstate, uint8_t flag)
 {
     SCEnter();
     ((AppLayerParserState *)pstate)->flags |= flag;
     SCReturn;
 }
 
-int AppLayerParserParserStateIssetFlag(void *pstate, uint8_t flag)
+int AppLayerParserStateIssetFlag(void *pstate, uint8_t flag)
 {
     SCEnter();
     SCReturnInt(((AppLayerParserState *)pstate)->flags & flag);
@@ -982,7 +982,7 @@ void AppLayerParserStreamTruncated(uint16_t ipproto, AppProto alproto, void *als
 }
 
 #ifdef DEBUG
-void AppLayerParserPrintDetailsParserState(void *pstate)
+void AppLayerParserStatePrintDetails(void *pstate)
 {
     SCEnter();
 

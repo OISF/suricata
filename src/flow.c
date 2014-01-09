@@ -97,7 +97,7 @@ void FlowCleanupAppLayer(Flow *f)
     if (f == NULL || f->proto == 0)
         return;
 
-    AppLayerParserCleanupParserState(f->proto, f->alproto, f->alstate, f->alparser);
+    AppLayerParserStateCleanup(f->proto, f->alproto, f->alstate, f->alparser);
     f->alstate = NULL;
     f->alparser = NULL;
     return;
