@@ -30,7 +30,7 @@
 
 typedef struct DetectEngineAppInspectionEngine_ {
     uint8_t ipproto;
-    uint16_t alproto;
+    AppProto alproto;
     uint16_t dir;
 
     int32_t sm_list;
@@ -82,7 +82,7 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type);
  * \param Callback The engine callback.
  */
 void DetectEngineRegisterAppInspectionEngine(uint8_t ipproto,
-                                             uint16_t alproto,
+                                             AppProto alproto,
                                              uint16_t direction,
                                              int32_t sm_list,
                                              uint32_t inspect_flags,

@@ -65,7 +65,7 @@
 #include "runmodes.h"
 
 typedef struct AppLayerProtoDetectProbingParserElement_ {
-    uint16_t alproto;
+    AppProto alproto;
     /* \todo don't really need it.  See if you can get rid of it */
     uint16_t port;
     /* \todo calculate at runtime and get rid of this var */
@@ -388,7 +388,7 @@ static void AppLayerProtoDetectPPGetIpprotos(AppProto alproto,
     SCReturn;
 }
 
-static uint32_t AppLayerProtoDetectProbingParserGetMask(uint16_t alproto)
+static uint32_t AppLayerProtoDetectProbingParserGetMask(AppProto alproto)
 {
     SCEnter();
 
@@ -490,7 +490,7 @@ static inline void DeAllocAppLayerProtoDetectProbingParser(AppLayerProtoDetectPr
 }
 
 static AppLayerProtoDetectProbingParserElement *
-AppLayerProtoDetectCreateAppLayerProtoDetectProbingParserElement(uint16_t alproto,
+AppLayerProtoDetectCreateAppLayerProtoDetectProbingParserElement(AppProto alproto,
                                                                  uint16_t port,
                                                                  uint16_t min_depth,
                                                                  uint16_t max_depth,
@@ -752,7 +752,7 @@ static inline void AppendAppLayerProtoDetectProbingParserPort(AppLayerProtoDetec
 static inline void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbingParser **pp,
                                                              uint16_t ip_proto,
                                                              uint16_t port,
-                                                             uint16_t alproto,
+                                                             AppProto alproto,
                                                              uint16_t min_depth, uint16_t max_depth,
                                                              uint8_t direction,
                                                              ProbingParserFPtr ProbingParser)
@@ -1153,7 +1153,7 @@ static int AppLayerProtoDetectPMAddSignature(AppLayerProtoDetectPMCtx *ctx, Dete
     SCReturnInt(ret);
 }
 
-static int AppLayerProtoDetectPMRegisterPattern(uint8_t ipproto, uint16_t alproto,
+static int AppLayerProtoDetectPMRegisterPattern(uint8_t ipproto, AppProto alproto,
                                                 char *pattern,
                                                 uint16_t depth, uint16_t offset,
                                                 uint8_t direction,
@@ -1286,7 +1286,7 @@ int AppLayerProtoDetectPrepareState(void)
 
 void AppLayerProtoDetectPPRegister(uint8_t ipproto,
                                    char *portstr,
-                                   uint16_t alproto,
+                                   AppProto alproto,
                                    uint16_t min_depth, uint16_t max_depth,
                                    uint8_t direction,
                                    ProbingParserFPtr ProbingParser)
@@ -2676,7 +2676,7 @@ int AppLayerProtoDetectTest14(void)
 
 typedef struct AppLayerProtoDetectPPTestDataElement_ {
     char *alproto_name;
-    uint16_t alproto;
+    AppProto alproto;
     uint16_t port;
     uint32_t alproto_mask;
     uint32_t min_depth;

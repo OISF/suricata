@@ -56,7 +56,7 @@ typedef struct AppLayerThreadCtx_ {
     uint64_t ticks_start;
     uint64_t ticks_end;
     uint64_t ticks_spent;
-    uint16_t alproto;
+    AppProto alproto;
     uint64_t proto_detect_ticks_start;
     uint64_t proto_detect_ticks_end;
     uint64_t proto_detect_ticks_spent;
@@ -76,8 +76,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
     AppLayerThreadCtx *app_tctx = ra_ctx->app_tctx;
-    uint16_t *alproto;
-    uint16_t *alproto_otherdir;
+    AppProto *alproto;
+    AppProto *alproto_otherdir;
     uint8_t dir;
     uint32_t data_al_so_far;
     int r = 0;

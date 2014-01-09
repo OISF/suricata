@@ -169,7 +169,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
 {
     /* period index */
     DetectAppLayerEventData *aled;
-    uint16_t alproto;
+    AppProto alproto;
     const char *p_idx;
     char alproto_name[50];
 

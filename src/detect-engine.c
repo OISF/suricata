@@ -108,7 +108,7 @@ static void DetectEnginePrintAppInspectionEngines(DetectEngineAppInspectionEngin
 {
     printf("\n");
 
-    uint16_t alproto = ALPROTO_UNKNOWN + 1;
+    AppProto alproto = ALPROTO_UNKNOWN + 1;
     for ( ; alproto < ALPROTO_MAX; alproto++) {
         printf("alproto - %d\n", alproto);
         int dir = 0;
@@ -137,7 +137,7 @@ void DetectEngineRegisterAppInspectionEngines(void)
 {
     struct tmp_t {
         uint8_t ipproto;
-        uint16_t alproto;
+        AppProto alproto;
         int32_t sm_list;
         uint32_t inspect_flags;
         uint32_t match_flags;
@@ -362,7 +362,7 @@ static void AppendAppInspectionEngine(DetectEngineAppInspectionEngine *engine,
 }
 
 void DetectEngineRegisterAppInspectionEngine(uint8_t ipproto,
-                                             uint16_t alproto,
+                                             AppProto alproto,
                                              uint16_t dir,
                                              int32_t sm_list,
                                              uint32_t inspect_flags,

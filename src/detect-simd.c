@@ -45,7 +45,7 @@
  *  The size of a register is leading here.
  */
 void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *det_ctx,
-                                       Packet *p, SignatureMask mask, uint16_t alproto)
+                                       Packet *p, SignatureMask mask, AppProto alproto)
 {
     uint32_t u;
     SigIntId x;
@@ -190,7 +190,7 @@ void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *det_ctx,
  *  futher inspection.
  */
 void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *det_ctx,
-                                       Packet *p, SignatureMask mask, uint16_t alproto)
+                                       Packet *p, SignatureMask mask, AppProto alproto)
 {
     uint32_t u;
     register uint64_t bm; /* bit mask, 64 bits used */

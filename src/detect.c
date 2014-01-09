@@ -496,7 +496,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
  */
 int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThreadCtx *det_ctx,
                                                   Packet *p, SignatureHeader *s,
-                                                  uint16_t alproto)
+                                                  AppProto alproto)
 {
     /* if the sig has alproto and the session as well they should match */
     if (likely(s->flags & SIG_FLAG_APPLAYER)) {
@@ -577,7 +577,7 @@ int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThreadCtx *det_ctx
  */
 void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *det_ctx,
                                        Packet *p, SignatureMask mask,
-                                       uint16_t alproto)
+                                       AppProto alproto)
 {
     uint32_t u;
 
@@ -790,7 +790,7 @@ end:
  */
 static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, StreamMsg *smsg, Packet *p,
-        uint8_t flags, uint16_t alproto, void *alstate, uint8_t *sms_runflags)
+        uint8_t flags, AppProto alproto, void *alstate, uint8_t *sms_runflags)
 {
     /* have a look at the reassembled stream (if any) */
     if (p->flowflags & FLOW_PKT_ESTABLISHED) {
@@ -1086,7 +1086,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 {
     uint8_t sms_runflags = 0;   /* function flags */
     uint8_t alert_flags = 0;
-    uint16_t alproto = ALPROTO_UNKNOWN;
+    AppProto alproto = ALPROTO_UNKNOWN;
 #ifdef PROFILING
     int smatch = 0; /* signature match: 1, no match: 0 */
 #endif
@@ -2043,7 +2043,7 @@ deonly:
  * SIG_MASK_REQUIRE_HTTP_STATE, SIG_MASK_REQUIRE_DCE_STATE
  */
 static void
-PacketCreateMask(Packet *p, SignatureMask *mask, uint16_t alproto, void *alstate, StreamMsg *smsg,
+PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto, void *alstate, StreamMsg *smsg,
         int app_decoder_events)
 {
     /* no payload inspect flag doesn't apply to smsg */

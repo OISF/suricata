@@ -156,7 +156,7 @@ static int DeStateStoreFilestoreSigsCantMatch(SigGroupHead *sgh, DetectEngineSta
         return 0;
 }
 
-static void DeStateResetFileInspection(Flow *f, uint16_t alproto, void *alstate, uint8_t direction)
+static void DeStateResetFileInspection(Flow *f, AppProto alproto, void *alstate, uint8_t direction)
 {
     if (f == NULL || alproto != ALPROTO_HTTP || alstate == NULL || f->de_state == NULL)
         return;
@@ -212,7 +212,7 @@ void DetectEngineStateFree(DetectEngineState *state)
     return;
 }
 
-int DeStateFlowHasInspectableState(Flow *f, uint16_t alproto, uint16_t alversion, uint8_t flags)
+int DeStateFlowHasInspectableState(Flow *f, AppProto alproto, uint16_t alversion, uint8_t flags)
 {
     int r = 0;
 
@@ -240,7 +240,7 @@ int DeStateFlowHasInspectableState(Flow *f, uint16_t alproto, uint16_t alversion
 int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                 DetectEngineThreadCtx *det_ctx,
                                 Signature *s, Packet *p, Flow *f, uint8_t flags,
-                                void *alstate, uint16_t alproto, uint16_t alversion)
+                                void *alstate, AppProto alproto, uint16_t alversion)
 {
     DetectEngineAppInspectionEngine *engine = NULL;
     SigMatch *sm = NULL;
@@ -452,7 +452,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                     DetectEngineThreadCtx *det_ctx,
                                     Packet *p, Flow *f, uint8_t flags, void *alstate,
-                                    uint16_t alproto, uint16_t alversion)
+                                    AppProto alproto, uint16_t alversion)
 {
     SCMutexLock(&f->de_state_m);
 

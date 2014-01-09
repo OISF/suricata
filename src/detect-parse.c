@@ -141,7 +141,7 @@ typedef struct SignatureParser_ {
 
 int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg,
                                            uint8_t sm_type, uint8_t sm_list,
-                                           uint16_t alproto,  void (*CustomCallback)(Signature *s))
+                                           AppProto alproto,  void (*CustomCallback)(Signature *s))
 {
     SigMatch *sm = NULL;
     int ret = -1;
