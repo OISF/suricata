@@ -151,11 +151,11 @@ typedef struct AppLayerProtoDetectCtx_ {
 /**
  * \brief The app layer protocol detection thread context.
  */
-typedef struct AppLayerProtoDetectCtxThread_ {
+typedef struct AppLayerProtoDetectThreadCtx_ {
     PatternMatcherQueue pmq;
     /* The value 2 is for direction(0 - toserver, 1 - toclient). */
     MpmThreadCtx mpm_tctx[FLOW_PROTO_DEFAULT][2];
-} AppLayerProtoDetectCtxThread;
+} AppLayerProtoDetectThreadCtx;
 
 /* The global app layer proto detection context. */
 AppLayerProtoDetectCtx alpd_ctx;
@@ -198,7 +198,7 @@ static uint16_t AppLayerProtoDetectPMMatchSignature(AppLayerProtoDetectPMSignatu
     SCReturnInt(proto);
 }
 
-static uint16_t AppLayerProtoDetectPMGetProto(AppLayerProtoDetectCtxThread *tctx,
+static uint16_t AppLayerProtoDetectPMGetProto(AppLayerProtoDetectThreadCtx *tctx,
                                               Flow *f,
                                               uint8_t *buf, uint16_t buflen,
                                               uint8_t direction,
@@ -1541,7 +1541,7 @@ void *AppLayerProtoDetectGetCtxThread(void)
 {
     SCEnter();
 
-    AppLayerProtoDetectCtxThread *alpd_tctx = NULL;
+    AppLayerProtoDetectThreadCtx *alpd_tctx = NULL;
     MpmCtx *mpm_ctx;
     MpmThreadCtx *mpm_tctx;
     int i, j;
@@ -1590,7 +1590,7 @@ void AppLayerProtoDetectDestroyCtxThread(void *tctx)
 {
     SCEnter();
 
-    AppLayerProtoDetectCtxThread *alpd_tctx = (AppLayerProtoDetectCtxThread *)tctx;
+    AppLayerProtoDetectThreadCtx *alpd_tctx = (AppLayerProtoDetectThreadCtx *)tctx;
     MpmCtx *mpm_ctx;
     MpmThreadCtx *mpm_tctx;
     int ipproto_map, dir;
