@@ -720,7 +720,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
     HTPHandleError(hstate);
 
     /* if the TCP connection is closed, then close the HTTP connection */
-    if (AppLayerParserParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) &&
+    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) &&
         !(hstate->flags & HTP_FLAG_STATE_CLOSED_TS))
     {
         htp_connp_close(hstate->connp, &ts);
@@ -796,7 +796,7 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
      }
 
     /* if we the TCP connection is closed, then close the HTTP connection */
-    if (AppLayerParserParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) &&
+    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) &&
         !(hstate->flags & HTP_FLAG_STATE_CLOSED_TC))
     {
         htp_connp_close(hstate->connp, &ts);
@@ -5517,7 +5517,7 @@ static int HTPBodyReassemblyTest01(void)
     memset(&hstate, 0x00, sizeof(hstate));
     Flow flow;
     memset(&flow, 0x00, sizeof(flow));
-    void *parser = AppLayerParserAllocAppLayerParserParserState();
+    void *parser = AppLayerParserStateAlloc();
     memset(&parser, 0x00, sizeof(parser));
     htp_tx_t tx;
     memset(&tx, 0, sizeof(tx));

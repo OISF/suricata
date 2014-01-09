@@ -574,7 +574,7 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
         if (reply_code == SMTP_REPLY_220) {
             /* we are entering STARRTTLS data mode */
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
-            AppLayerParserParserStateSetFlag(pstate,
+            AppLayerParserStateSetFlag(pstate,
                                              APP_LAYER_PARSER_NO_INSPECTION |
                                              APP_LAYER_PARSER_NO_REASSEMBLY);
         } else {

@@ -643,10 +643,10 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
 
                 if ((ssl_state->flags & SSL_AL_FLAG_SSL_CLIENT_SSN_ENCRYPTED) &&
                     (ssl_state->flags & SSL_AL_FLAG_SSL_SERVER_SSN_ENCRYPTED)) {
-                    AppLayerParserParserStateSetFlag(pstate,
+                    AppLayerParserStateSetFlag(pstate,
                                                      APP_LAYER_PARSER_NO_INSPECTION);
                     if (ssl_config.no_reassemble == 1)
-                        AppLayerParserParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
+                        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
                     SCLogDebug("SSLv2 No reassembly & inspection has been set");
                 }
             }
@@ -718,9 +718,9 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
             if ((ssl_state->flags & SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC) &&
                 (ssl_state->flags & SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC)) {
                 /* set flags */
-                AppLayerParserParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION);
+                AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION);
                 if (ssl_config.no_reassemble == 1)
-                    AppLayerParserParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
+                    AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
             }
 
             break;
@@ -3491,7 +3491,7 @@ static int SSLParserTest23(void)
         goto end;
     }
 
-    if (!AppLayerParserParserStateIssetFlag(f.alparser, APP_LAYER_PARSER_NO_INSPECTION) &&
+    if (!AppLayerParserStateIssetFlag(f.alparser, APP_LAYER_PARSER_NO_INSPECTION) &&
         !(ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
         !(ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
         printf("The flags should be set\n");

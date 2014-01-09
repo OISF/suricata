@@ -505,7 +505,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
             continue;
         }
 
-        if (!AppLayerParserParserStateIssetFlag(p->flow->alparser, APP_LAYER_PARSER_EOF)) {
+        if (!AppLayerParserStateIssetFlag(p->flow->alparser, APP_LAYER_PARSER_EOF)) {
             tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOSERVER);
             if (tx_progress < tx_progress_done_value_ts)
                 break;

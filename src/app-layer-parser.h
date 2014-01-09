@@ -157,26 +157,26 @@ void AppLayerParserTriggerRawStreamReassembly(Flow *f);
 
 /***** Cleanup *****/
 
-void AppLayerParserCleanupParserState(uint16_t ipproto, AppProto alproto, void *alstate, void *pstate);
+void AppLayerParserStateCleanup(uint16_t ipproto, AppProto alproto, void *alstate, void *pstate);
 
 void AppLayerParserRegisterProtocolParsers(void);
 
 
-void AppLayerParserParserStateSetFlag(void *pstate, uint8_t flag);
-int AppLayerParserParserStateIssetFlag(void *pstate, uint8_t flag);
+void AppLayerParserStateSetFlag(void *pstate, uint8_t flag);
+int AppLayerParserStateIssetFlag(void *pstate, uint8_t flag);
 
 void AppLayerParserStreamTruncated(uint16_t ipproto, AppProto alproto, void *alstate,
                         uint8_t direction);
 
 
 
-void *AppLayerParserAllocAppLayerParserParserState(void);
-void AppLayerParserDeAllocAppLayerParserParserState(void *pstate);
+void *AppLayerParserStateAlloc(void);
+void AppLayerParserStateFree(void *pstate);
 
 
 
 #ifdef DEBUG
-void AppLayerParserPrintDetailsParserState(void *pstate);
+void AppLayerParserStatePrintDetails(void *pstate);
 #endif
 
 /***** Unittests *****/

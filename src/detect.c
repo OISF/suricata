@@ -1006,7 +1006,7 @@ static void DebugInspectIds(Packet *p, Flow *f, StreamMsg *smsg)
                p->pcap_cnt, p->flowflags & FLOW_PKT_TOSERVER ? "toserver" : "toclient",
                p->flags & PKT_STREAM_EST ? "established" : "stateless",
                smsg ? "yes" : "no");
-    AppLayerParserPrintDetailsParserState(f->alparser);
+    AppLayerParserStatePrintDetails(f->alparser);
 }
 #endif
 
