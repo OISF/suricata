@@ -25,6 +25,8 @@
 #ifndef __APP_LAYER_DETECT_PROTO__H__
 #define __APP_LAYER_DETECT_PROTO__H__
 
+typedef struct AppLayerProtoDetectThreadCtx_ AppLayerProtoDetectThreadCtx;
+
 typedef uint16_t (*ProbingParserFPtr)(uint8_t *input, uint32_t input_len,
                                       uint32_t *offset);
 

@@ -36,13 +36,15 @@ int AppLayerParserSetup(void);
 
 int AppLayerParserDeSetup(void);
 
+typedef struct AppLayerParserThreadCtx_ AppLayerParserThreadCtx;
+
 /**
  * \brief Gets a new app layer protocol's parser thread context.
  *
  * \retval Non-NULL pointer on success.
  *         NULL pointer on failure.
  */
-void *AppLayerParserThreadCtxAlloc(void);
+AppLayerParserThreadCtx *AppLayerParserThreadCtxAlloc(void);
 
 /**
  * \brief Destroys the app layer parser thread context obtained
@@ -50,7 +52,7 @@ void *AppLayerParserThreadCtxAlloc(void);
  *
  * \param tctx Pointer to the thread context to be destroyed.
  */
-void AppLayerParserThreadCtxFree(void *tctx);
+void AppLayerParserThreadCtxFree(AppLayerParserThreadCtx *tctx);
 
 /**
  * \brief Given a protocol name, checks if the parser is enabled in
@@ -75,7 +77,7 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
 int AppLayerParserRegisterParser(uint8_t ipproto, AppProto alproto,
                       uint8_t direction,
                       int (*Parser)(Flow *f, void *protocol_state,
-                                    void *pstate,
+                                    AppLayerParserState *pstate,
                                     uint8_t *buf, uint32_t buf_len,
                                     void *local_storage));
 void AppLayerParserRegisterParserAcceptableDataDirection(uint8_t ipproto,
@@ -118,17 +120,17 @@ void AppLayerParserDestroyProtocolParserLocalStorage(uint8_t ipproto, AppProto a
                                           void *local_data);
 
 
-uint64_t AppLayerParserGetTransactionLogId(void *pstate);
-void AppLayerParserSetTransactionLogId(void *pstate);
-uint64_t AppLayerParserGetTransactionInspectId(void *pstate, uint8_t direction);
-void AppLayerParserSetTransactionInspectId(void *pstate,
+uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate);
+void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate);
+uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint8_t direction);
+void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
                                 uint8_t ipproto, AppProto alproto, void *alstate,
                                 uint8_t direction);
-AppLayerDecoderEvents *AppLayerParserGetDecoderEvents(void *pstate);
-void AppLayerParserSetDecoderEvents(void *pstate, AppLayerDecoderEvents *devents);
+AppLayerDecoderEvents *AppLayerParserGetDecoderEvents(AppLayerParserState *pstate);
+void AppLayerParserSetDecoderEvents(AppLayerParserState *pstate, AppLayerDecoderEvents *devents);
 AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint8_t ipproto, AppProto alproto, void *alstate,
                                         uint64_t tx_id);
-uint16_t AppLayerParserGetStateVersion(void *pstate);
+uint16_t AppLayerParserGetStateVersion(AppLayerParserState *pstate);
 FileContainer *AppLayerParserGetFiles(uint8_t ipproto, AppProto alproto,
                            void *alstate, uint8_t direction);
 int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
@@ -140,16 +142,16 @@ int AppLayerParserGetStateProgressCompletionStatus(uint8_t ipproto, AppProto alp
 int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *event_name,
                     int *event_id, AppLayerEventType *event_type);
 
-uint64_t AppLayerParserGetTransactionActive(uint8_t ipproto, AppProto alproto, void *pstate, uint8_t direction);
+uint64_t AppLayerParserGetTransactionActive(uint8_t ipproto, AppProto alproto, AppLayerParserState *pstate, uint8_t direction);
 
 uint8_t AppLayerParserGetFirstDataDir(uint8_t ipproto, AppProto alproto);
 
 /***** General *****/
 
-int AppLayerParserParse(void *tctx, Flow *f, AppProto alproto,
+int AppLayerParserParse(AppLayerParserThreadCtx *tctx, Flow *f, AppProto alproto,
                    uint8_t flags, uint8_t *input, uint32_t input_len);
-void AppLayerParserSetEOF(void *pstate);
-int AppLayerParserHasDecoderEvents(uint8_t ipproto, AppProto alproto, void *alstate, void *pstate,
+void AppLayerParserSetEOF(AppLayerParserState *pstate);
+int AppLayerParserHasDecoderEvents(uint8_t ipproto, AppProto alproto, void *alstate, AppLayerParserState *pstate,
                         uint8_t flags);
 int AppLayerParserProtocolIsTxEventAware(uint8_t ipproto, AppProto alproto);
 int AppLayerParserProtocolSupportsTxs(uint8_t ipproto, AppProto alproto);
@@ -157,26 +159,26 @@ void AppLayerParserTriggerRawStreamReassembly(Flow *f);
 
 /***** Cleanup *****/
 
-void AppLayerParserStateCleanup(uint8_t ipproto, AppProto alproto, void *alstate, void *pstate);
+void AppLayerParserStateCleanup(uint8_t ipproto, AppProto alproto, void *alstate, AppLayerParserState *pstate);
 
 void AppLayerParserRegisterProtocolParsers(void);
 
 
-void AppLayerParserStateSetFlag(void *pstate, uint8_t flag);
-int AppLayerParserStateIssetFlag(void *pstate, uint8_t flag);
+void AppLayerParserStateSetFlag(AppLayerParserState *pstate, uint8_t flag);
+int AppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint8_t flag);
 
 void AppLayerParserStreamTruncated(uint8_t ipproto, AppProto alproto, void *alstate,
                         uint8_t direction);
 
 
 
-void *AppLayerParserStateAlloc(void);
-void AppLayerParserStateFree(void *pstate);
+AppLayerParserState *AppLayerParserStateAlloc(void);
+void AppLayerParserStateFree(AppLayerParserState *pstate);
 
 
 
 #ifdef DEBUG
-void AppLayerParserStatePrintDetails(void *pstate);
+void AppLayerParserStatePrintDetails(AppLayerParserState *pstate);
 #endif
 
 /***** Unittests *****/

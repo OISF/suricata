@@ -613,7 +613,7 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
  *  \retval On success returns 1 or on failure returns -1.
  */
 static int HTPHandleRequestData(Flow *f, void *htp_state,
-                                void *pstate,
+                                AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len,
                                 void *local_data)
 {
@@ -749,7 +749,7 @@ error:
  *  \retval On success returns 1 or on failure returns -1
  */
 static int HTPHandleResponseData(Flow *f, void *htp_state,
-                                 void *pstate,
+                                 AppLayerParserState *pstate,
                                  uint8_t *input, uint32_t input_len,
                                  void *local_data)
 {
@@ -5517,7 +5517,7 @@ static int HTPBodyReassemblyTest01(void)
     memset(&hstate, 0x00, sizeof(hstate));
     Flow flow;
     memset(&flow, 0x00, sizeof(flow));
-    void *parser = AppLayerParserStateAlloc();
+    AppLayerParserState *parser = AppLayerParserStateAlloc();
     htp_tx_t tx;
     memset(&tx, 0, sizeof(tx));
 

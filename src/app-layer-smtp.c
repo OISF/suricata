@@ -460,7 +460,7 @@ static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state,
 }
 
 static int SMTPProcessCommandBDAT(SMTPState *state, Flow *f,
-                                  void *pstate)
+                                  AppLayerParserState *pstate)
 {
     SCEnter();
 
@@ -480,7 +480,7 @@ static int SMTPProcessCommandBDAT(SMTPState *state, Flow *f,
 }
 
 static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
-                                  void *pstate)
+                                  AppLayerParserState *pstate)
 {
     SCEnter();
 
@@ -502,13 +502,13 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
 }
 
 static int SMTPProcessCommandSTARTTLS(SMTPState *state, Flow *f,
-                                      void *pstate)
+                                      AppLayerParserState *pstate)
 {
     return 0;
 }
 
 static int SMTPProcessReply(SMTPState *state, Flow *f,
-                            void *pstate)
+                            AppLayerParserState *pstate)
 {
     SCEnter();
 
@@ -644,7 +644,7 @@ static int SMTPParseCommandBDAT(SMTPState *state)
 }
 
 static int SMTPProcessRequest(SMTPState *state, Flow *f,
-                              void *pstate)
+                              AppLayerParserState *pstate)
 {
     SCEnter();
 
@@ -703,7 +703,7 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
 }
 
 static int SMTPParse(int direction, Flow *f, SMTPState *state,
-                     void *pstate, uint8_t *input,
+                     AppLayerParserState *pstate, uint8_t *input,
                      uint32_t input_len,
                      PatternMatcherQueue *local_data)
 {
@@ -733,7 +733,7 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
 }
 
 static int SMTPParseClientRecord(Flow *f, void *alstate,
-                                 void *pstate,
+                                 AppLayerParserState *pstate,
                                  uint8_t *input, uint32_t input_len,
                                  void *local_data)
 {
@@ -744,7 +744,7 @@ static int SMTPParseClientRecord(Flow *f, void *alstate,
 }
 
 static int SMTPParseServerRecord(Flow *f, void *alstate,
-                                 void *pstate,
+                                 AppLayerParserState *pstate,
                                  uint8_t *input, uint32_t input_len,
                                  void *local_data)
 {

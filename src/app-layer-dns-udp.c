@@ -54,7 +54,7 @@
  *  \brief Parse DNS request packet
  */
 static int DNSUDPRequestParse(Flow *f, void *dstate,
-                              void *pstate,
+                              AppLayerParserState *pstate,
                               uint8_t *input, uint32_t input_len,
                               void *local_data)
 {
@@ -160,7 +160,7 @@ insufficient_data:
  *
  */
 static int DNSUDPResponseParse(Flow *f, void *dstate,
-                               void *pstate,
+                               AppLayerParserState *pstate,
                                uint8_t *input, uint32_t input_len,
                                void *local_data)
 {

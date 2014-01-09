@@ -208,7 +208,7 @@ static int FTPParseRequestCommand(void *ftp_state, uint8_t *input,
  * \retval 1 when the command is parsed, 0 otherwise
  */
 static int FTPParseRequest(Flow *f, void *ftp_state,
-                           void *pstate,
+                           AppLayerParserState *pstate,
                            uint8_t *input, uint32_t input_len,
                            void *local_data)
 {
@@ -257,7 +257,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
  *
  * \retval 1 when the command is parsed, 0 otherwise
  */
-static int FTPParseResponse(Flow *f, void *ftp_state, void *pstate,
+static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstate,
                             uint8_t *input, uint32_t input_len,
                             void *local_data)
 {

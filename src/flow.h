@@ -30,6 +30,10 @@
 #include "detect-tag.h"
 #include "util-optimize.h"
 
+/* Part of the flow structure, so we declare it here.
+ * The actual declaration is in app-layer-parser.c */
+typedef struct AppLayerParserState_ AppLayerParserState;
+
 #define FLOW_QUIET      TRUE
 #define FLOW_VERBOSE    FALSE
 
@@ -346,7 +350,7 @@ typedef struct Flow_
     /** application level storage ptrs.
      *
      */
-    void *alparser;     /**< parser internal state */
+    AppLayerParserState *alparser;     /**< parser internal state */
     void *alstate;      /**< application layer state */
 
     /** detection engine state */

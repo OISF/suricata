@@ -266,7 +266,7 @@ insufficient_data:
  *  \brief Parse DNS request packet
  */
 static int DNSTCPRequestParse(Flow *f, void *dstate,
-                              void *pstate,
+                              AppLayerParserState *pstate,
                               uint8_t *input, uint32_t input_len,
                               void *local_data)
 {
@@ -455,7 +455,7 @@ insufficient_data:
  *
  */
 static int DNSTCPResponseParse(Flow *f, void *dstate,
-                               void *pstate,
+                               AppLayerParserState *pstate,
                                uint8_t *input, uint32_t input_len,
                                void *local_data)
 {
