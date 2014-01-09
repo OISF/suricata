@@ -29,7 +29,7 @@
 #include "flow-private.h"
 
 typedef struct DetectEngineAppInspectionEngine_ {
-    uint16_t ipproto;
+    uint8_t ipproto;
     uint16_t alproto;
     uint16_t dir;
 
@@ -81,7 +81,7 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type);
  *                    the inpsect_flags.
  * \param Callback The engine callback.
  */
-void DetectEngineRegisterAppInspectionEngine(uint16_t ipproto,
+void DetectEngineRegisterAppInspectionEngine(uint8_t ipproto,
                                              uint16_t alproto,
                                              uint16_t direction,
                                              int32_t sm_list,

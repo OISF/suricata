@@ -164,7 +164,7 @@ AppLayerProtoDetectCtx alpd_ctx;
 
 static uint16_t AppLayerProtoDetectPMMatchSignature(AppLayerProtoDetectPMSignature *s,
                                                     uint8_t *buf, uint16_t buflen,
-                                                    uint16_t ipproto)
+                                                    uint8_t ipproto)
 {
     SCEnter();
     uint16_t proto = ALPROTO_UNKNOWN;
@@ -937,7 +937,7 @@ static void AppLayerProtoDetectPMGetIpprotos(AppProto alproto,
     int pat_id, max_pat_id;
 
     int i, j;
-    uint16_t ipproto;
+    uint8_t ipproto;
 
     for (i = 0; i < FLOW_PROTO_DEFAULT; i++) {
         ipproto = FlowGetReverseProtoMapping(i);
@@ -1153,7 +1153,7 @@ static int AppLayerProtoDetectPMAddSignature(AppLayerProtoDetectPMCtx *ctx, Dete
     SCReturnInt(ret);
 }
 
-static int AppLayerProtoDetectPMRegisterPattern(uint16_t ipproto, uint16_t alproto,
+static int AppLayerProtoDetectPMRegisterPattern(uint8_t ipproto, uint16_t alproto,
                                                 char *pattern,
                                                 uint16_t depth, uint16_t offset,
                                                 uint8_t direction,
@@ -1284,7 +1284,7 @@ int AppLayerProtoDetectPrepareState(void)
 
 /***** PP registration *****/
 
-void AppLayerProtoDetectPPRegister(uint16_t ipproto,
+void AppLayerProtoDetectPPRegister(uint8_t ipproto,
                                    char *portstr,
                                    uint16_t alproto,
                                    uint16_t min_depth, uint16_t max_depth,
@@ -1317,7 +1317,7 @@ void AppLayerProtoDetectPPRegister(uint16_t ipproto,
 }
 
 void AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
-                                         uint16_t ipproto,
+                                         uint8_t ipproto,
                                          const char *alproto_name,
                                          AppProto alproto,
                                          uint16_t min_depth, uint16_t max_depth,
@@ -1383,7 +1383,7 @@ void AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
 
 /***** PM registration *****/
 
-int AppLayerProtoDetectPMRegisterPatternCS(uint16_t ipproto, AppProto alproto,
+int AppLayerProtoDetectPMRegisterPatternCS(uint8_t ipproto, AppProto alproto,
                                            char *pattern,
                                            uint16_t depth, uint16_t offset,
                                            uint8_t direction)
@@ -1396,7 +1396,7 @@ int AppLayerProtoDetectPMRegisterPatternCS(uint16_t ipproto, AppProto alproto,
                                                      1 /* case-sensitive */));
 }
 
-int AppLayerProtoDetectPMRegisterPatternCI(uint16_t ipproto, AppProto alproto,
+int AppLayerProtoDetectPMRegisterPatternCI(uint8_t ipproto, AppProto alproto,
                                            char *pattern,
                                            uint16_t depth, uint16_t offset,
                                            uint8_t direction)
