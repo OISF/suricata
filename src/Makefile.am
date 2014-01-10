@@ -166,6 +166,7 @@ detect-nocase.c detect-nocase.h \
 detect-offset.c detect-offset.h \
 detect-parse.c detect-parse.h \
 detect-pcre.c detect-pcre.h \
+detect-pescan.c detect-pescan.h \
 detect-pkt-data.c detect-pkt-data.h \
 detect-pktvar.c detect-pktvar.h \
 detect-priority.c detect-priority.h \
@@ -211,6 +212,7 @@ log-file.c log-file.h \
 log-filestore.c log-filestore.h \
 log-httplog.c log-httplog.h \
 log-pcap.c log-pcap.h \
+log-pescanlog.c log-pescanlog.h \
 log-tlslog.c log-tlslog.h \
 output.c output.h \
 packet-queue.c packet-queue.h \
@@ -261,6 +263,7 @@ tm-queues.c tm-queues.h \
 tm-threads.c tm-threads.h tm-threads-common.h \
 unix-manager.c unix-manager.h \
 util-action.c util-action.h \
+util-pescan.c util-pescan.h \
 util-atomic.c util-atomic.h \
 util-bloomfilter-counting.c util-bloomfilter-counting.h \
 util-bloomfilter.c util-bloomfilter.h \
@@ -360,6 +363,13 @@ AM_CPPFLAGS = $(all_includes)
 # the library search path.
 suricata_LDFLAGS = $(all_libraries)
 suricata_LDADD = $(HTP_LDADD)
+
+INCLUDES =
+# libpescan
+if BUILD_LIBPESCAN
+suricata_LDADD += $(top_builddir)/libpescan/src/libpescan.la
+INCLUDES += -I$(top_srcdir)/libpescan/src/
+endif
 
 # Rules to build CUDA ptx modules
 if BUILD_CUDA

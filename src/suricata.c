@@ -86,6 +86,7 @@
 #include "log-pcap.h"
 #include "log-file.h"
 #include "log-filestore.h"
+#include "log-pescanlog.h"
 
 #include "stream-tcp.h"
 
@@ -794,6 +795,8 @@ void RegisterAllModules()
     TmModuleLogTlsLogIPv6Register();
     /* pcap log */
     TmModulePcapLogRegister();
+    /* pescan log */
+    TmModuleLogPescanLogRegister();
     /* file log */
     TmModuleLogFileLogRegister();
     TmModuleLogFilestoreRegister();

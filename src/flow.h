@@ -105,6 +105,10 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_FILE_NO_SIZE_TS              0x40000000
 #define FLOW_FILE_NO_SIZE_TC              0x80000000
 
+/** no pescan on files in this flow */
+#define FLOW_FILE_NO_PESCAN_TS          0x0100000000
+#define FLOW_FILE_NO_PESCAN_TC          0x0200000000
+
 #define FLOW_IS_IPV4(f) \
     (((f)->flags & FLOW_IPV4) == FLOW_IPV4)
 #define FLOW_IS_IPV6(f) \
@@ -315,7 +319,7 @@ typedef struct Flow_
     uint32_t probing_parser_toserver_alproto_masks;
     uint32_t probing_parser_toclient_alproto_masks;
 
-    uint32_t flags;
+    uint64_t flags;
 
     /* ts of flow init and last update */
     int32_t lastts_sec;

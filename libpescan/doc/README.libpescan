@@ -1,0 +1,142 @@
+/*
+  libpescan.[c,h]
+
+  description
+  library for PE detection and PE Feature vector calculation
+
+   References
+    1-'Encoded Executable File Detection Technique via Executable File header Analysis', Choi/Kim/Oh/Ryou
+
+   written by: marc norton
+
+
+   PE Header Fields   Description
+   ----------------   -----------
+    PE_Hash        	Hash values of PE header, includes the PE checksum
+    PE_Truncated   	indicates PE was truncated  (no-value)
+    PE_MachBits    	indicates a 32/64 bit binary. values: 32 | 64, or a hex number indcating the field value
+    PE_HdrType     	indicates the PE header is a 32/64 bit header. values: PE32 | PE64
+    PE_OSVersion   	targeted minimum OS version in major.minor format.
+    PE_Offset      	offset of PE signature from beggining of executable
+    PE_Binary      	indicates type of exectuable. values: EXE, NONEXE, /DLL, /SYS
+    PE_CheckSum    	Checksum of whole exe
+    PE_NumSections 	number of text,data,etc sections
+    PE_ImageSize   	image size when loaded in memory
+    PE_OptHdrSize  	optional header size, differs for 32/64 bit
+    PE_LinkVer     	linker version
+    PE_CodeSize    	total of all code sections
+    PE_DataSize    	total of all data sectopns
+    PE_uDataSize   	total of all un-initialized data sections
+    PE_EntryPoint  	virtual address of start of execution
+    PE_BaseOfCode  	virtual address of base of code
+    PE_SizeofHdrs  	total size of all headers
+    PE_NumRVADirs  	number of table virutal addessess, ususally 0x10
+    PE_ExportVA    	export tabe virtual address
+    PE_ExportSize  	byte size of export table
+    PE_ImportVA    	import table virtual address
+    PE_ImportSize  	size of import table
+    PE_SectionName 	up to 8 charcter name of section
+    PE_SectionRawSize	size of section in the exe file
+    PE_SectionRawOffset	offset of the section in the file
+    PE_SectionVirtSize	size of section when loaded in memory
+    PE_SectionVirtAddr	virtual address of section when loaded in memory
+    PE_SectionFlags	section flags, code, data, etc.
+
+
+   PE Anomaly Score Fields - These will be moved to peanom.[c,h].
+   --------------------
+   PE_Score		rms total of all anomaly fields
+   PE_Flag_ExWr		executbale and writeable flags set
+   PE_Flag_ExNoCo	exectuable but not a code section
+   PE_Flag_NonPrn	non printable section name
+   PE_Flag_NoEx		no executbale flag in any sections
+   PE_Flag_CodeSum	sum of section code sizes does not match PE_CodeSize
+   PE_Flag_DataSum	sum of section data sizes does not match PE_DataSize
+   PE_Flag_uDataSum  	sum of section data sizes does not match PE_DataSize
+   PE_Flag_PEInDos	PE signature in DOS header
+   PE_Flag_EntryNoEx	entry point not in an exectubale section
+   PE_Flag_EntryNoCode	entry point not in a code section
+   PE_Flag_ExData	data section marked as executable
+   PE_Flag_ExUData	un-initialized data section marked as executbale
+   PE_Flag_DuD		section marked as data and un-initialized data
+
+   General Event Info  TODO: 04/13/2012 - Ditch this and append to file.meta logs from Suricata. -marcos
+   --------------------------------------------
+   PE_FirstTime		time of 1st occurrence
+   PE_FirstSrc		src ip of 1st occurrence
+   PE_RefCount		number of times this exe has been seen
+   PE_SecondsElapsed	seconds since last seen
+   PE_SrcChanged	src ip is different from 1st ip src
+
+   Notes:
+      PE_Score values
+	0 is normal for 99.999% of all windows executables on a clean windows install
+	1 is common on binaries in the network , about 75-90% of those > 0, have a 1
+	2+ modest anomalies, some packers
+	3+  more packers
+	4+ usually a pretty crazy executable
+
+    UPX is by far the most common, and easiest recognized packer in use, but there are many,
+    and we seem them...
+
+    on a sample day we saw:
+
+    --pescan records with class=info:
+
+	50K	ttotal records
+	4.5K	unique (PE_REfCount=1)
+
+   --pescan records with class=anomaly
+	12K	total records
+	2K	unique(PE_RefCount=1)
+*/
+
+/*
+  pescan  : scans for a DOS stub and a Windows PE
+
+  decimal-offset  description
+  --------------  -----------
+  00              2 bytes: 'MZ' - Dos EXE indicator
+  60-61           2 bytes: offset of location of Next EXE (PE, NE, etc...)  relative to MZ
+                  typical values seen: 128, 232, 256
+  64              dos exe data starts
+  78              'This program cannot be run in dos mode'
+  XX              'PE','NE', etc... indicates Windows,OS2,etc... executable
+
+  PE header is always aligned on an 8 byte boundary
+
+ PE Header Structure
+ -------------------
+  PE sig = 'PE00' (4 bytes)
+  Image Header (20 bytes)
+  Optional header (varies)
+            standard   Win-specific  DataDirectories
+      PE    28          68              variable        == 96 + variable
+      PE+   24          88              variable        == 112+ variable
+
+  Image File Header : 20 bytes
+      offset 0 : size: 2 : Machine
+      offset 2:  size: 2 : NumSections   (size of section table)
+      offset 4:  size: 4 : TimeDateStamp (time_t vlaue of creation)
+      offset 8:  size: 4 : Ptr to Symbol Table (offset of coff symbol table)
+      offset 12: size: 4 : Number of Symbols (string table follows Symbol table)
+      offset 16: size: 2 : Size of Optional header , req for exectable files (dll's too)
+      offset 18: size: 2 : Characteristics
+  Optional Header (varies between PE32 and PE32+, PE32+ allows 64 bit with just 2GB images)
+    same for PE32 or PE32+
+      offset  size descr
+           0     2 Magic  : 0x10b=>normal PE32 executable/dll, 0x107=>rom image, 0x20b=>PE32+ executable/dll
+           2     1 Major Link Version number
+           3     1 Minor Link Version number
+           4     4 size of code
+           8     4 size of initialized data
+          12     4 size of uninitialized data
+          16     4 address of entry point
+          20     4 base of code
+    only PE32
+          24     4 base of data
+    only windows coff (PE32 and PE32+, but different sizes)
+          28 ...
+
+    returns byte offset of MZ
+*/

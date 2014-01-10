@@ -80,7 +80,7 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
         uint8_t *data, uint32_t data_len, uint16_t txid, uint8_t direction)
 {
     int retval = 0;
-    uint8_t flags = 0;
+    uint16_t flags = 0;
     FileContainer *files = NULL;
     FileContainer *files_opposite = NULL;
 
@@ -112,6 +112,11 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
             flags |= FILE_NOMAGIC;
         }
 
+        if (s->f->flags & FLOW_FILE_NO_PESCAN_TC) {
+            SCLogDebug("no pescan for this flow in toclient direction, so none for this file");
+            flags |= FILE_NOPESCAN;
+        }
+
         if (s->f->flags & FLOW_FILE_NO_MD5_TC) {
             SCLogDebug("no md5 for this flow in toclient direction, so none for this file");
             flags |= FILE_NOMD5;
@@ -139,6 +144,11 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
         if (s->f->flags & FLOW_FILE_NO_MAGIC_TS) {
             SCLogDebug("no magic for this flow in toserver direction, so none for this file");
             flags |= FILE_NOMAGIC;
+        }
+
+        if (s->f->flags & FLOW_FILE_NO_PESCAN_TS) {
+            SCLogDebug("no pescan for this flow in toserver direction, so none for this file");
+            flags |= FILE_NOPESCAN;
         }
 
         if (s->f->flags & FLOW_FILE_NO_MD5_TS) {
@@ -256,7 +266,7 @@ end:
  *  \retval -2 not storing files on this flow/tx
  */
 int HTPFileClose(HtpState *s, uint8_t *data, uint32_t data_len,
-        uint8_t flags, uint8_t direction)
+        uint16_t flags, uint8_t direction)
 {
     SCEnter();
 
