@@ -151,11 +151,11 @@ typedef struct AppLayerProtoDetectCtx_ {
 /**
  * \brief The app layer protocol detection thread context.
  */
-typedef struct AppLayerProtoDetectThreadCtx_ {
+struct AppLayerProtoDetectThreadCtx_ {
     PatternMatcherQueue pmq;
     /* The value 2 is for direction(0 - toserver, 1 - toclient). */
     MpmThreadCtx mpm_tctx[FLOW_PROTO_DEFAULT][2];
-} AppLayerProtoDetectThreadCtx;
+};
 
 /* The global app layer proto detection context. */
 AppLayerProtoDetectCtx alpd_ctx;

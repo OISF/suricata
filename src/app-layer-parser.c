@@ -68,9 +68,9 @@
 
 #include "runmodes.h"
 
-typedef struct AppLayerParserThreadCtx_ {
+struct AppLayerParserThreadCtx_ {
     void *alproto_local_storage[FLOW_PROTO_MAX][ALPROTO_MAX];
-} AppLayerParserThreadCtx;
+};
 
 
 /**
@@ -117,7 +117,7 @@ typedef struct AppLayerParserCtx_ {
     AppLayerParserProtoCtx ctxs[FLOW_PROTO_MAX][ALPROTO_MAX];
 } AppLayerParserCtx;
 
-typedef struct AppLayerParserState_ {
+struct AppLayerParserState_ {
     uint8_t flags;
 
     /* Indicates the current transaction that is being inspected.
@@ -132,7 +132,7 @@ typedef struct AppLayerParserState_ {
 
     /* Used to store decoder events. */
     AppLayerDecoderEvents *decoder_events;
-} AppLayerParserState;
+};
 
 /* Static global version of the parser context.
  * Post 2.0 let's look at changing this to move it out to app-layer.c. */

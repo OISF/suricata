@@ -46,7 +46,7 @@
  * \brief This is for the app layer in general and it contains per thread
  *        context relevant to both the alpd and alp.
  */
-typedef struct AppLayerThreadCtx_ {
+struct AppLayerThreadCtx_ {
     /* App layer protocol detection thread context, from AppLayerProtoDetectGetCtxThread(). */
     AppLayerProtoDetectThreadCtx *alpd_tctx;
     /* App layer parser thread context, from AppLayerParserThreadCtxAlloc(). */
@@ -61,7 +61,7 @@ typedef struct AppLayerThreadCtx_ {
     uint64_t proto_detect_ticks_end;
     uint64_t proto_detect_ticks_spent;
 #endif
-} AppLayerThreadCtx;
+};
 
 /***** L7 layer dispatchers *****/
 
