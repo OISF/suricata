@@ -365,7 +365,7 @@ void ReceivePcapFileThreadExitStats(ThreadVars *tv, void *data) {
             SCLogInfo("1/%" PRIu64 "th of packets have an invalid checksum",
                       chrate);
     }
-    SCLogInfo("Pcap-file module read %" PRIu32 " packets, %" PRIu64 " bytes", ptv->pkts, ptv->bytes);
+    SCLogNotice("Pcap-file module read %" PRIu32 " packets, %" PRIu64 " bytes", ptv->pkts, ptv->bytes);
     return;
 }
 

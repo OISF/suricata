@@ -393,7 +393,7 @@ void ReceiveIPFWThreadExitStats(ThreadVars *tv, void *data)
 
     SCEnter();
 
-    SCLogInfo("(%s) Packets %" PRIu32 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
+    SCLogNotice("(%s) Packets %" PRIu32 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
 
     SCReturn;
 }

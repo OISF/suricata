@@ -1000,9 +1000,9 @@ void ReceiveNFQThreadExitStats(ThreadVars *tv, void *data) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
     NFQQueueVars *nq = NFQGetQueue(ntv->nfq_index);
 #ifdef COUNTERS
-    SCLogInfo("(%s) Pkts %" PRIu32 ", Bytes %" PRIu64 ", Errors %" PRIu32 "",
+    SCLogNotice("(%s) Pkts %" PRIu32 ", Bytes %" PRIu64 ", Errors %" PRIu32 "",
             tv->name, nq->pkts, nq->bytes, nq->errs);
-    SCLogInfo("Pkts accepted %"PRIu32", dropped %"PRIu32", replaced %"PRIu32,
+    SCLogNotice("Pkts accepted %"PRIu32", dropped %"PRIu32", replaced %"PRIu32,
             nq->accepted, nq->dropped, nq->replaced);
 #endif
 }
