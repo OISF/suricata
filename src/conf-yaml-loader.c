@@ -48,8 +48,7 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq);
 /* Configuration processing states. */
 enum conf_state {
     CONF_KEY = 0,
-    CONF_VAL,
-    CONF_INCLUDE,
+    CONF_VAL
 };
 
 /**
@@ -113,7 +112,7 @@ ConfYamlSetConfDirname(const char *filename)
  * \retval 0 on success, -1 on failure.
  */
 static int
-ConfYamlHandleInclude(ConfNode *parent, const char *filename)
+ConfYamlIncludeFile(ConfNode *parent, const char *filename)
 {
     yaml_parser_t parser;
     char include_filename[PATH_MAX];
@@ -150,6 +149,63 @@ ConfYamlHandleInclude(ConfNode *parent, const char *filename)
 
     yaml_parser_delete(&parser);
     fclose(file);
+
+    return 0;
+}
+
+/**
+ * \brief Function to handle a top-level "include" configuration section.
+ *
+ * Handles include statements consisting of a single filename or a sequence
+ * of filenames.
+ *
+ * \param parser the yaml parser
+ * \param parent the parent configuration node of the included files (typically  *                 the root node).
+ *
+ * \retval 0 on success, -1 on failure.
+ */
+static int
+ConfYamlIncludeHandler(yaml_parser_t *parser, ConfNode *parent)
+{
+    yaml_event_t event;
+    int inseq = 0;
+
+    /*
+     * Continue parsing, but we are only interested in scalar events,
+     * or a single start of sequence.
+     */
+    for (;;) {
+        if (!yaml_parser_parse(parser, &event)) {
+            SCLogError(SC_ERR_CONF_YAML_ERROR,
+                "Failed to parse configuration file at line %" PRIuMAX ": %s\n",
+                (uintmax_t)parser->problem_mark.line, parser->problem);
+            return -1;
+        }
+        if (event.type == YAML_SEQUENCE_START_EVENT) {
+            if (inseq) {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                    "Unexpected type in top level include section.");
+                return -1;
+            }
+            inseq = 1;
+        }
+        else if (event.type == YAML_SEQUENCE_END_EVENT) {
+            break;
+        }
+        else if (event.type == YAML_SCALAR_EVENT) {
+            char *value = (char *)event.data.scalar.value;
+            SCLogInfo("Including configuration file %s.", value);
+            if (ConfYamlIncludeFile(parent, value) != 0)
+                return -1;
+            if (!inseq)
+                break;
+        }
+        else {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                "Unexpected type in top level include section.");
+            return -1;
+        }
+    }
 
     return 0;
 }
@@ -218,20 +274,15 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                 TAILQ_INSERT_TAIL(&parent->head, seq_node, next);
             }
             else {
-                if (state == CONF_INCLUDE) {
-                    SCLogInfo("Including configuration file %s.", value);
-                    if (ConfYamlHandleInclude(parent, value) != 0) {
-                        goto fail;
-                    }
-                    state = CONF_KEY;
-                }
-                else if (state == CONF_KEY) {
+                if (state == CONF_KEY) {
 
                     /* Top level include statements. */
                     if ((strcmp(value, "include") == 0) &&
                         (parent == ConfGetRootNode())) {
-                        state = CONF_INCLUDE;
-                        goto next;
+                        if (ConfYamlIncludeHandler(parser, parent) != 0) {
+                            goto fail;
+                        }
+                        continue;
                     }
 
                     if (parent->is_seq) {
@@ -277,7 +328,7 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                     if ((tag != NULL) && (strcmp(tag, "!include") == 0)) {
                         SCLogInfo("Including configuration file %s at "
                             "parent node %s.", value, node->name);
-                        if (ConfYamlHandleInclude(node, value) != 0)
+                        if (ConfYamlIncludeFile(node, value) != 0)
                             goto fail;
                     }
                     else if (!node->final) {
@@ -327,7 +378,6 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
             done = 1;
         }
 
-    next:
         yaml_event_delete(&event);
         continue;
 
@@ -743,6 +793,89 @@ cleanup:
 }
 
 /**
+ * Test a top level include statement containing a sequence.
+ */
+static int
+ConfYamlFileIncludeSequenceTest(void)
+{
+    FILE *configfp;
+    int ret = 0;
+
+    const char config_filename[] = "test-config.yaml";
+    const char config_contents[] =
+        "%YAML 1.1\n"
+        "---\n"
+        "include:\n"
+        "  - test-include1.yaml\n"
+        "  - test-include2.yaml\n";
+
+    const char include1_filename[] = "test-include1.yaml";
+    const char include1_contents[] =
+        "%YAML 1.1\n"
+        "---\n"
+        "field1: value1\n";
+
+    const char include2_filename[] = "test-include2.yaml";
+    const char include2_contents[] =
+        "%YAML 1.1\n"
+        "---\n"
+        "field2: value2\n";
+
+    ConfCreateContextBackup();
+    ConfInit();
+
+    /* Write out the config file. */
+    if ((configfp = fopen(config_filename, "w")) == NULL) {
+        goto cleanup;
+    }
+    if (fwrite(config_contents, strlen(config_contents), 1, configfp) != 1)
+        goto cleanup;
+    fclose(configfp);
+
+    /* Write out the first include file. */
+    if ((configfp = fopen(include1_filename, "w")) == NULL) {
+        goto cleanup;
+    }
+    if (fwrite(include1_contents, strlen(include1_contents), 1, configfp) != 1)
+        goto cleanup;
+    fclose(configfp);
+
+    /* Write out the second include file. */
+    if ((configfp = fopen(include2_filename, "w")) == NULL) {
+        goto cleanup;
+    }
+    if (fwrite(include2_contents, strlen(include2_contents), 1, configfp) != 1)
+        goto cleanup;
+    fclose(configfp);
+
+    if (ConfYamlLoadFile(config_filename) != 0)
+        goto cleanup;
+
+    /* Check that the values got included. */
+    char *val;
+    if (!ConfGet("field1", &val))
+        goto cleanup;
+    if (strcmp(val, "value1") != 0)
+        goto cleanup;
+    if (!ConfGet("field2", &val))
+        goto cleanup;
+    if (strcmp(val, "value2") != 0)
+        goto cleanup;
+
+    ret = 1;
+
+cleanup:
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    unlink(config_filename);
+    unlink(include1_filename);
+    unlink(include2_filename);
+
+    return ret;
+}
+
+/**
  * Test that a configuration section is overridden but subsequent
  * occurrences.
  */
@@ -837,6 +970,8 @@ ConfYamlRegisterTests(void)
     UtRegisterTest("ConfYamlSecondLevelSequenceTest",
         ConfYamlSecondLevelSequenceTest, 1);
     UtRegisterTest("ConfYamlFileIncludeTest", ConfYamlFileIncludeTest, 1);
+    UtRegisterTest("ConfYamlFileIncludeSequenceTest",
+        ConfYamlFileIncludeSequenceTest, 1);
     UtRegisterTest("ConfYamlOverrideTest", ConfYamlOverrideTest, 1);
     UtRegisterTest("ConfYamlOverrideFinalTest", ConfYamlOverrideFinalTest, 1);
 #endif /* UNITTESTS */
