@@ -25,6 +25,10 @@
  *
  */
 
+// Hint to compiler to expect L2 hit latency for Load int16_t
+#undef SLOAD
+#define SLOAD(x) __insn_ld2s_L2((STYPE* restrict)(x))
+
 
 /* This function handles (ctx->state_count < 32767) */
 uint32_t FUNC_NAME(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
@@ -34,7 +38,7 @@ uint32_t FUNC_NAME(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
     int matches = 0;
 
     uint8_t* restrict xlate = ctx->translate_table;
-    char *state_table = (char*)ctx->state_table_u16;
+    STYPE *state_table = (STYPE*)ctx->state_table;
     STYPE state = 0;
     int c = xlate[buf[0]];
     /* If buflen at least 4 bytes and buf 4-byte aligned. */
@@ -46,21 +50,21 @@ uint32_t FUNC_NAME(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
         while (i < (buflen & ~0x3)) {
             BTYPE data1 = *(BTYPE* restrict)(&buf[i + 4]);
             index = SINDEX(index, state);
-            state = SLOAD(state_table + index + 2 * c);
+            state = SLOAD(state_table + index + c);
             c = xlate[BYTE1(data)];
             if (unlikely(SCHECK(state))) {
                 matches = CheckMatch(ctx, pmq, buf, buflen, state, i, matches);
             }
             i++;
             index = SINDEX(index, state);
-            state = SLOAD(state_table + index + 2*c);
+            state = SLOAD(state_table + index + c);
             c = xlate[BYTE2(data)];
             if (unlikely(SCHECK(state))) {
                 matches = CheckMatch(ctx, pmq, buf, buflen, state, i, matches);
             }
             i++;
             index = SINDEX(index, state);
-            state = SLOAD(state_table + index + 2*c);
+            state = SLOAD(state_table + index + c);
             c = xlate[BYTE3(data)];
             if (unlikely(SCHECK(state))) {
                 matches = CheckMatch(ctx, pmq, buf, buflen, state, i, matches);
@@ -68,7 +72,7 @@ uint32_t FUNC_NAME(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
             data = data1;
             i++;
             index = SINDEX(index, state);
-            state = SLOAD(state_table + index + 2*c);
+            state = SLOAD(state_table + index + c);
             c = xlate[BYTE0(data)];
             if (unlikely(SCHECK(state))) {
                 matches = CheckMatch(ctx, pmq, buf, buflen, state, i, matches);
@@ -80,7 +84,7 @@ uint32_t FUNC_NAME(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
     for (; i < buflen; i++) {
         uint64_t index = 0 ;
         index = SINDEX(index, state);
-        state = SLOAD(state_table + index + 2*c);
+        state = SLOAD(state_table + index + c);
         c = xlate[buf[i+1]];
         if (unlikely(SCHECK(state))) {
             matches = CheckMatch(ctx, pmq, buf, buflen, state, i, matches);
