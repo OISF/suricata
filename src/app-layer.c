@@ -41,6 +41,7 @@
 #include "util-profiling.h"
 #include "util-validate.h"
 #include "decode-events.h"
+#include "app-layer-htp-mem.h"
 
 /**
  * \brief This is for the app layer in general and it contains per thread
@@ -341,6 +342,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         }
     }
 
+    /** \fixme a bit hacky but will be improved in 2.1 */
+    HTPMemuseCounter(tv, ra_ctx);
     goto end;
  failure:
     r = -1;

@@ -99,6 +99,7 @@ char *SCRuleVarsGetConfVar(const char *conf_var_name,
 
 
 /**********************************Unittests***********************************/
+#ifdef UNITTESTS
 
 static const char *dummy_conf_string =
     "%YAML 1.1\n"
@@ -420,6 +421,8 @@ end:
         DetectEngineCtxFree(de_ctx);
     return result;
 }
+
+#endif /* UNITTESTS */
 
 void SCRuleVarsRegisterTests(void)
 {

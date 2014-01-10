@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -38,7 +38,8 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+                   uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     SCPerfCounterIncr(dtv->counter_eth, tv->sc_perf_pca);
 
@@ -91,8 +92,8 @@ int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pk
  *  \brief Valid Ethernet packet
  *  \retval 0 Expected test value
  */
-static int DecodeEthernetTest01 (void)   {
-
+static int DecodeEthernetTest01 (void)
+{
     /* ICMP packet wrapped in PPPOE */
     uint8_t raw_eth[] = {
         0x00, 0x10, 0x94, 0x55, 0x00, 0x01, 0x00, 0x10,
@@ -134,7 +135,8 @@ static int DecodeEthernetTest01 (void)   {
  * \brief Registers Ethernet unit tests
  * \todo More Ethernet tests
  */
-void DecodeEthernetRegisterTests(void) {
+void DecodeEthernetRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DecodeEthernetTest01", DecodeEthernetTest01, 0);
 #endif /* UNITTESTS */

@@ -1134,7 +1134,7 @@ void SCLogLoadConfig(int daemon, int verbose)
     }
     else {
         SCLogWarning(SC_ERR_MISSING_CONFIG_PARAM,
-            "No default log level set, will use info.");
+            "No default log level set, will use notice.");
         sc_lid->global_log_level = SC_LOG_NOTICE;
     }
 
