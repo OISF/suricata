@@ -420,9 +420,9 @@ void MpmCudaEnvironmentSetup()
  *  \retval -1 error
  *  \retval 0 ok
  */
-int PmqSetup(PatternMatcherQueue *pmq, uint32_t sig_maxid, uint32_t patmaxid) {
+int PmqSetup(PatternMatcherQueue *pmq, uint32_t patmaxid) {
     SCEnter();
-    SCLogDebug("sig_maxid %u, patmaxid %u", sig_maxid, patmaxid);
+    SCLogDebug("patmaxid %u", patmaxid);
 
     if (pmq == NULL) {
         SCReturnInt(-1);

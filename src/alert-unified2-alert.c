@@ -42,6 +42,8 @@
 #include "alert-unified2-alert.h"
 #include "decode-ipv4.h"
 
+#include "flow.h"
+
 #include "host.h"
 #include "util-profiling.h"
 #include "decode.h"
@@ -52,6 +54,7 @@
 #include "util-byte.h"
 #include "util-misc.h"
 
+#include "app-layer-parser.h"
 #include "app-layer-htp.h"
 #include "app-layer.h"
 
@@ -322,18 +325,18 @@ static int GetXFFIPFromTx (Packet *p, uint64_t tx_id, char *xff_header, char *ds
     htp_tx_t *tx = NULL;
     uint64_t total_txs = 0;
 
-    htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
+    htp_state = (HtpState *)FlowGetAppState(p->flow);
 
     if (htp_state == NULL) {
         SCLogDebug("no http state, XFF IP cannot be retrieved");
         return 0;
     }
 
-    total_txs = AppLayerGetTxCnt(ALPROTO_HTTP, htp_state);
+    total_txs = AppLayerParserGetTxCnt(p->flow->proto, ALPROTO_HTTP, htp_state);
     if (tx_id >= total_txs)
         return 0;
 
-    tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, tx_id);
+    tx = AppLayerParserGetTx(p->flow->proto, ALPROTO_HTTP, htp_state, tx_id);
     if (tx == NULL) {
         SCLogDebug("tx is NULL, XFF cannot be retrieved");
         return 0;
@@ -378,13 +381,13 @@ static int GetXFFIP (Packet *p, char *xff_header, char *dstbuf, int dstbuflen)
     uint64_t tx_id = 0;
     uint64_t total_txs = 0;
 
-    htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
+    htp_state = (HtpState *)FlowGetAppState(p->flow);
     if (htp_state == NULL) {
         SCLogDebug("no http state, XFF IP cannot be retrieved");
         goto end;
     }
 
-    total_txs = AppLayerGetTxCnt(ALPROTO_HTTP, htp_state);
+    total_txs = AppLayerParserGetTxCnt(p->flow->proto, ALPROTO_HTTP, htp_state);
     for (; tx_id < total_txs; tx_id++) {
         if (GetXFFIPFromTx(p, tx_id, xff_header, dstbuf, dstbuflen) == 1)
             return 1;
@@ -414,7 +417,7 @@ TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, Pa
     if ((aun->unified2alert_ctx->xff_mode & UNIFIED2_ALERT_XFF_OVERWRITE) && p->flow != NULL) {
         FLOWLOCK_RDLOCK(p->flow);
 
-        if (AppLayerGetProtoFromPacket(p) == ALPROTO_HTTP) {
+        if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
             char buffer[UNIFIED2_ALERT_XFF_MAXLEN];
 
             if (GetXFFIP(p, aun->unified2alert_ctx->xff_header, buffer, UNIFIED2_ALERT_XFF_MAXLEN) == 1) {
@@ -970,7 +973,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
 
         if ((aun->unified2alert_ctx->xff_mode & UNIFIED2_ALERT_XFF_EXTRADATA) && p->flow != NULL) {
             FLOWLOCK_RDLOCK(p->flow);
-            if (AppLayerGetProtoFromPacket(p) == ALPROTO_HTTP) {
+            if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
                 char buffer[UNIFIED2_ALERT_XFF_MAXLEN];
                 int have_xff_ip = 0;
 
@@ -1146,7 +1149,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
 
         if ((aun->unified2alert_ctx->xff_mode & UNIFIED2_ALERT_XFF_EXTRADATA) && p->flow != NULL) {
             FLOWLOCK_RDLOCK(p->flow);
-            if (AppLayerGetProtoFromPacket(p) == ALPROTO_HTTP) {
+            if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
                 char buffer[UNIFIED2_ALERT_XFF_MAXLEN];
                 int have_xff_ip = 0;
 

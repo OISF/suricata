@@ -785,7 +785,7 @@ void EngineAnalysisRules(Signature *s, char *line)
         if (http_stat_code_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http stat code buffer.\n");
         if (http_ua_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http user agent buffer.\n");
         if (s->alproto != ALPROTO_UNKNOWN) {
-            fprintf(rule_engine_analysis_FD, "    App layer protocol is %s.\n", TmModuleAlprotoToString(s->alproto));
+            fprintf(rule_engine_analysis_FD, "    App layer protocol is %s.\n", AppProtoToString(s->alproto));
         }
         if (rule_content || rule_content_http || rule_pcre || rule_pcre_http) {
             fprintf(rule_engine_analysis_FD, "    Rule contains %d content options, %d http content options, %d pcre options, and %d pcre options with http modifiers.\n", rule_content, rule_content_http, rule_pcre, rule_pcre_http);

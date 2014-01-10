@@ -37,6 +37,7 @@
 #include "stream-tcp.h"
 #include "stream.h"
 
+#include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 
@@ -57,7 +58,8 @@ enum {
 };
 
 static uint32_t NBSSParseHeader(void *smb2_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+                                uint8_t *input, uint32_t input_len)
+{
     SCEnter();
     SMB2State *sstate = (SMB2State *) smb2_state;
     uint8_t *p = input;
@@ -100,7 +102,8 @@ static uint32_t NBSSParseHeader(void *smb2_state, AppLayerParserState *pstate,
 }
 
 static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+                                uint8_t *input, uint32_t input_len)
+{
     SCEnter();
 
     SMB2State *sstate = (SMB2State *) smb2_state;
@@ -519,7 +522,8 @@ static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
 
 static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
                      uint8_t *input, uint32_t input_len,
-                     void *local_data, AppLayerParserResult *output) {
+                     void *local_data)
+{
     SCEnter();
     SMB2State *sstate = (SMB2State *) smb2_state;
     uint32_t retval = 0;
@@ -529,7 +533,7 @@ static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
         return -1;
 
     while (sstate->bytesprocessed <  NBSS_HDR_LEN && input_len) {
-        retval = NBSSParseHeader(smb2_state, pstate, input, input_len, output);
+        retval = NBSSParseHeader(smb2_state, pstate, input, input_len);
         if (retval <= input_len) {
             parsed += retval;
             input_len -= retval;
@@ -546,7 +550,7 @@ static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
         case NBSS_SESSION_MESSAGE:
             while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN &&
                         sstate->bytesprocessed < NBSS_HDR_LEN + SMB2_HDR_LEN)) {
-                retval = SMB2ParseHeader(smb2_state, pstate, input + parsed, input_len, output);
+                retval = SMB2ParseHeader(smb2_state, pstate, input + parsed, input_len);
                 if (retval <= input_len) {
                     parsed += retval;
                     input_len -= retval;
@@ -562,8 +566,6 @@ static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
         default:
             break;
     }
-    pstate->parse_field = 0;
-    pstate->flags |= APP_LAYER_PARSER_DONE;
     SCReturnInt(1);
 }
 
@@ -588,17 +590,17 @@ void RegisterSMB2Parsers(void) {
     /** SMB2 */
     char *proto_name = "smb2";
 
-    if (AppLayerProtoDetectionEnabled(proto_name)) {
-        AppLayerRegisterProto(proto_name, ALPROTO_SMB2, STREAM_TOSERVER, SMB2Parse);
-        AppLayerRegisterProto(proto_name, ALPROTO_SMB2, STREAM_TOCLIENT, SMB2Parse);
-        AppLayerRegisterStateFuncs(ALPROTO_SMB2, SMB2StateAlloc, SMB2StateFree);
+    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
+        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB2, STREAM_TOSERVER, SMB2Parse);
+        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB2, STREAM_TOCLIENT, SMB2Parse);
+        AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_SMB2, SMB2StateAlloc, SMB2StateFree);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
     }
 
 #ifdef UNITTESTS
-    AppLayerParserRegisterUnittests(ALPROTO_SMB2, SMB2ParserRegisterTests);
+    AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_SMB2, SMB2ParserRegisterTests);
 #endif
     return;
 }
@@ -620,6 +622,7 @@ int SMB2ParserTest01(void) {
 
     uint32_t smb2len = sizeof(smb2buf) - 1;
     TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -628,7 +631,7 @@ int SMB2ParserTest01(void) {
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_SMB2, STREAM_TOSERVER|STREAM_EOF, smb2buf, smb2len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB2, STREAM_TOSERVER|STREAM_EOF, smb2buf, smb2len);
     if (r != 0) {
         printf("smb2 header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -663,6 +666,8 @@ int SMB2ParserTest01(void) {
     }
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     return result;
 }

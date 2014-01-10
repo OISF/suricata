@@ -34,6 +34,7 @@
 #include "detect-content.h"
 
 #include "app-layer.h"
+#include "app-layer-parser.h"
 #include "app-layer-ftp.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -292,6 +293,7 @@ static int DetectFtpbounceTestALMatch02(void) {
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -302,6 +304,7 @@ static int DetectFtpbounceTestALMatch02(void) {
     FLOW_INITIALIZE(&f);
     f.src.address.address_un_data32[0]=0x01020304;
     f.protoctx =(void *)&ssn;
+    f.proto = IPPROTO_TCP;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -328,7 +331,7 @@ static int DetectFtpbounceTestALMatch02(void) {
     DetectEngineThreadCtxInit(&th_v,(void *)de_ctx,(void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_FTP, STREAM_TOSERVER, ftpbuf1, ftplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER, ftpbuf1, ftplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -336,7 +339,7 @@ static int DetectFtpbounceTestALMatch02(void) {
         goto end;
     }
 
-    r = AppLayerParse(NULL, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf2, ftplen2);
+    r = AppLayerParserParse(alp_tctx, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf2, ftplen2);
     if (r != 0) {
         SCLogDebug("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -344,7 +347,7 @@ static int DetectFtpbounceTestALMatch02(void) {
         goto end;
     }
 
-    r = AppLayerParse(NULL, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf3, ftplen3);
+    r = AppLayerParserParse(alp_tctx, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf3, ftplen3);
     if (r != 0) {
         SCLogDebug("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -352,7 +355,7 @@ static int DetectFtpbounceTestALMatch02(void) {
         goto end;
     }
 
-    r = AppLayerParse(NULL, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf4, ftplen4);
+    r = AppLayerParserParse(alp_tctx, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf4, ftplen4);
     if (r != 0) {
         SCLogDebug("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -384,6 +387,8 @@ static int DetectFtpbounceTestALMatch02(void) {
 
     result = 1;
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
@@ -422,6 +427,7 @@ static int DetectFtpbounceTestALMatch03(void) {
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
@@ -438,6 +444,7 @@ static int DetectFtpbounceTestALMatch03(void) {
     FLOW_INITIALIZE(&f);
     f.src.address.address_un_data32[0]=0x04030201;
     f.protoctx =(void *)&ssn;
+    f.proto = IPPROTO_TCP;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -464,7 +471,7 @@ static int DetectFtpbounceTestALMatch03(void) {
     DetectEngineThreadCtxInit(&th_v,(void *)de_ctx,(void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParse(NULL, &f, ALPROTO_FTP, STREAM_TOSERVER, ftpbuf1, ftplen1);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER, ftpbuf1, ftplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -472,7 +479,7 @@ static int DetectFtpbounceTestALMatch03(void) {
         goto end;
     }
 
-    r = AppLayerParse(NULL, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf2, ftplen2);
+    r = AppLayerParserParse(alp_tctx, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf2, ftplen2);
     if (r != 0) {
         SCLogDebug("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -480,7 +487,7 @@ static int DetectFtpbounceTestALMatch03(void) {
         goto end;
     }
 
-    r = AppLayerParse(NULL, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf3, ftplen3);
+    r = AppLayerParserParse(alp_tctx, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf3, ftplen3);
     if (r != 0) {
         SCLogDebug("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -488,7 +495,7 @@ static int DetectFtpbounceTestALMatch03(void) {
         goto end;
     }
 
-    r = AppLayerParse(NULL, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf4, ftplen4);
+    r = AppLayerParserParse(alp_tctx, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf4, ftplen4);
     if (r != 0) {
         SCLogDebug("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -521,6 +528,8 @@ static int DetectFtpbounceTestALMatch03(void) {
     }
 
 end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 

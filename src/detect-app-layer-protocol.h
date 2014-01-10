@@ -25,7 +25,7 @@
 #define __DETECT_APP_LAYER_PROTOCOL__H__
 
 typedef struct DetectAppLayerProtocolData_ {
-    uint16_t alproto;
+    AppProto alproto;
     uint8_t negated;
 } DetectAppLayerProtocolData;
 

@@ -54,6 +54,7 @@
 #include "util-debug.h"
 #include "util-mem.h"
 #include "app-layer-detect-proto.h"
+#include "app-layer.h"
 #include "tm-threads.h"
 #include "util-error.h"
 #include "util-print.h"
@@ -455,11 +456,9 @@ DecodeThreadVars *DecodeThreadVarsAlloc()
 
     if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
         return NULL;
-
     memset(dtv, 0, sizeof(DecodeThreadVars));
 
-    /* initialize UDP app layer code */
-    AlpProtoFinalize2Thread(&dtv->udp_dp_ctx);
+    dtv->app_tctx = AppLayerGetCtxThread();
 
     /** set config defaults */
     int vlanbool = 0;

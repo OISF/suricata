@@ -30,6 +30,10 @@
 #include "detect-tag.h"
 #include "util-optimize.h"
 
+/* Part of the flow structure, so we declare it here.
+ * The actual declaration is in app-layer-parser.c */
+typedef struct AppLayerParserState_ AppLayerParserState;
+
 #define FLOW_QUIET      TRUE
 #define FLOW_VERBOSE    FALSE
 
@@ -204,6 +208,15 @@
     #error Enable FLOWLOCK_RWLOCK or FLOWLOCK_MUTEX
 #endif
 
+#define FLOW_IS_PM_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags & FLOW_TS_PM_ALPROTO_DETECT_DONE) : ((f)->flags & FLOW_TC_PM_ALPROTO_DETECT_DONE))
+#define FLOW_IS_PP_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags & FLOW_TS_PP_ALPROTO_DETECT_DONE) : ((f)->flags & FLOW_TC_PP_ALPROTO_DETECT_DONE))
+
+#define FLOW_SET_PM_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags |= FLOW_TS_PM_ALPROTO_DETECT_DONE) : ((f)->flags |= FLOW_TC_PM_ALPROTO_DETECT_DONE))
+#define FLOW_SET_PP_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags |= FLOW_TS_PP_ALPROTO_DETECT_DONE) : ((f)->flags |= FLOW_TC_PP_ALPROTO_DETECT_DONE))
+
+#define FLOW_RESET_PM_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags &= ~FLOW_TS_PM_ALPROTO_DETECT_DONE) : ((f)->flags &= ~FLOW_TC_PM_ALPROTO_DETECT_DONE))
+#define FLOW_RESET_PP_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags &= ~FLOW_TS_PP_ALPROTO_DETECT_DONE) : ((f)->flags &= ~FLOW_TC_PP_ALPROTO_DETECT_DONE))
+
 /* global flow config */
 typedef struct FlowCnf_
 {
@@ -299,8 +312,8 @@ typedef struct Flow_
     /** flow queue id, used with autofp */
     SC_ATOMIC_DECLARE(int, autofp_tmqh_flow_qid);
 
-    uint32_t probing_parser_toserver_al_proto_masks;
-    uint32_t probing_parser_toclient_al_proto_masks;
+    uint32_t probing_parser_toserver_alproto_masks;
+    uint32_t probing_parser_toclient_alproto_masks;
 
     uint32_t flags;
 
@@ -323,9 +336,9 @@ typedef struct Flow_
     uint8_t protomap;
     uint8_t pad0;
 
-    uint16_t alproto; /**< \brief application level protocol */
-    uint16_t alproto_ts;
-    uint16_t alproto_tc;
+    AppProto alproto; /**< \brief application level protocol */
+    AppProto alproto_ts;
+    AppProto alproto_tc;
 
     uint32_t data_al_so_far[2];
 
@@ -337,7 +350,7 @@ typedef struct Flow_
     /** application level storage ptrs.
      *
      */
-    void *alparser;     /**< parser internal state */
+    AppLayerParserState *alparser;     /**< parser internal state */
     void *alstate;      /**< application layer state */
 
     /** detection engine state */
@@ -523,6 +536,11 @@ static inline void FlowDeReference(Flow **d) {
 }
 
 int FlowClearMemory(Flow *,uint8_t );
+
+AppProto FlowGetAppProtocol(Flow *f);
+void *FlowGetAppState(Flow *f);
+
+
 
 #endif /* __FLOW_H__ */
 

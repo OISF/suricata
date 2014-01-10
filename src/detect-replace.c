@@ -237,7 +237,7 @@ int DetectReplaceLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, ch
     PacketCopyData(p, raw_eth_pkt, pktsize);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
-
+    dtv.app_tctx = AppLayerGetCtxThread();
 
     FlowInitConfig(FLOW_QUIET);
     DecodeEthernet(&th_v, &dtv, p, GET_PKT_DATA(p), pktsize, NULL);
@@ -281,6 +281,8 @@ int DetectReplaceLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, ch
 
     result = 1;
 end:
+    if (dtv.app_tctx != NULL)
+        AppLayerDestroyCtxThread(dtv.app_tctx);
     if (de_ctx != NULL)
     {
         SigGroupCleanup(de_ctx);

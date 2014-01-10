@@ -57,6 +57,8 @@ MemcmpLowercase(void *s1, void *s2, size_t n) {
 
 #include <nmmintrin.h>
 
+/* No SIMD support, fall back to plain memcmp and a home grown lowercase one */
+
 static inline int SCMemcmp(void *s1, void *s2, size_t n)
 {
     __m128i b1, b2;

@@ -25,10 +25,13 @@
 #define __DETECT_APP_LAYER_EVENT_H__
 
 typedef struct DetectAppLayerEventData_ {
-    uint16_t alproto;
+    AppProto alproto;
     int event_id;
+
+    char *arg;
 } DetectAppLayerEventData;
 
+int DetectAppLayerEventPrepare(Signature *s);
 void DetectAppLayerEventRegister(void);
 
 #endif /* __DETECT_APP_LAYER_EVENT_H__ */

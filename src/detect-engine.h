@@ -26,9 +26,11 @@
 
 #include "detect.h"
 #include "tm-threads.h"
+#include "flow-private.h"
 
 typedef struct DetectEngineAppInspectionEngine_ {
-    uint16_t alproto;
+    uint8_t ipproto;
+    AppProto alproto;
     uint16_t dir;
 
     int32_t sm_list;
@@ -49,7 +51,7 @@ typedef struct DetectEngineAppInspectionEngine_ {
     struct DetectEngineAppInspectionEngine_ *next;
 } DetectEngineAppInspectionEngine;
 
-extern DetectEngineAppInspectionEngine *app_inspection_engine[ALPROTO_MAX][2];
+extern DetectEngineAppInspectionEngine *app_inspection_engine[FLOW_PROTO_DEFAULT][ALPROTO_MAX][2];
 
 /* prototypes */
 void DetectEngineRegisterAppInspectionEngines(void);
@@ -79,7 +81,8 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type);
  *                    the inpsect_flags.
  * \param Callback The engine callback.
  */
-void DetectEngineRegisterAppInspectionEngine(uint16_t alproto,
+void DetectEngineRegisterAppInspectionEngine(uint8_t ipproto,
+                                             AppProto alproto,
                                              uint16_t direction,
                                              int32_t sm_list,
                                              uint32_t inspect_flags,
@@ -90,5 +93,5 @@ void DetectEngineRegisterAppInspectionEngine(uint16_t alproto,
                                                              Signature *sig, Flow *f,
                                                              uint8_t flags, void *alstate,
                                                              void *tx, uint64_t tx_id),
-                                             DetectEngineAppInspectionEngine *list[][2]);
+                                             DetectEngineAppInspectionEngine *list[][ALPROTO_MAX][2]);
 #endif /* __DETECT_ENGINE_H__ */
