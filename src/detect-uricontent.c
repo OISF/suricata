@@ -1087,8 +1087,8 @@ static int DetectUriSigTest05(void) {
         goto end;
     }
 
-    memcpy(stream_msg->data.data, httpbuf1, httplen1);
-    stream_msg->data.data_len = httplen1;
+    memcpy(stream_msg->data, httpbuf1, httplen1);
+    stream_msg->data_len = httplen1;
 
     ssn.toserver_smsg_head = stream_msg;
     ssn.toserver_smsg_tail = stream_msg;
@@ -1215,8 +1215,8 @@ static int DetectUriSigTest06(void) {
         goto end;
     }
 
-    memcpy(stream_msg->data.data, httpbuf1, httplen1);
-    stream_msg->data.data_len = httplen1;
+    memcpy(stream_msg->data, httpbuf1, httplen1);
+    stream_msg->data_len = httplen1;
 
     ssn.toserver_smsg_head = stream_msg;
     ssn.toserver_smsg_tail = stream_msg;

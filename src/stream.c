@@ -216,7 +216,6 @@ void StreamMsgReturnListToPool(void *list) {
         SCLogDebug("returning smsg %p to pool", smsg);
         smsg->next = NULL;
         smsg->prev = NULL;
-        FlowDeReference(&smsg->flow);
         StreamMsgReturnToPool(smsg);
         smsg = smsg_next;
     }

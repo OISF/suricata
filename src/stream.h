@@ -34,28 +34,15 @@
 #define STREAM_DEPTH            0x20    /* depth reached */
 
 /** size of the data chunks sent to the app layer parser. */
-#define MSG_DATA_SIZE       4024 /* 4096 - 72 (size of rest of the struct) */
+#define MSG_DATA_SIZE       4072    /* 4096 - 24 (size of rest of the struct) */
 
 typedef struct StreamMsg_ {
-    uint8_t flags;  /**< msg flags */
-    Flow *flow;     /**< parent flow */
-
     struct StreamMsg_ *next;
     struct StreamMsg_ *prev;
 
-    union {
-        /* case !STREAM_EOF && !STREAM_GAP */
-        struct {
-            uint32_t seq;               /**< sequence number */
-            uint32_t data_len;          /**< length of the data */
-            uint8_t data[MSG_DATA_SIZE];/**< reassembled data */
-        } data;
-        /* case STREAM_GAP */
-        struct {
-            uint32_t gap_size;
-        } gap;
-    };
-
+    uint32_t seq;                   /**< sequence number */
+    uint32_t data_len;              /**< length of the data */
+    uint8_t data[MSG_DATA_SIZE];    /**< reassembled data */
 } StreamMsg;
 
 typedef struct StreamMsgQueue_ {
