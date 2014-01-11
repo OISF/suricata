@@ -1367,7 +1367,8 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
             AppLayerProtoDetectSupportedIpprotos(sig->alproto, sig->proto.proto);
     }
 
-    DetectAppLayerEventPrepare(sig);
+    if (DetectAppLayerEventPrepare(sig) < 0)
+        goto error;
 
     /* set mpm_content_len */
 

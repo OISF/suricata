@@ -149,7 +149,7 @@ static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
     } else if (ipproto_bitarray[IPPROTO_UDP / 8] & 1 << (IPPROTO_UDP % 8)) {
         ipproto = IPPROTO_UDP;
     } else {
-        BUG_ON(1);
+        return -1;
     }
 
     r = AppLayerParserGetEventInfo(ipproto, data->alproto,
