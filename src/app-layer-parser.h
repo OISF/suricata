@@ -32,6 +32,28 @@
 #define APP_LAYER_PARSER_NO_INSPECTION  0x02
 #define APP_LAYER_PARSER_NO_REASSEMBLY  0x04
 
+
+
+/***** transaction handling *****/
+
+/** \brief Function ptr type for getting active TxId from a flow
+ *  Used by AppLayerTransactionGetActive.
+ */
+typedef uint64_t (*GetActiveTxIdFunc)(Flow *f, uint8_t flags);
+
+/** \brief Register GetActiveTxId Function
+ *
+ */
+void RegisterAppLayerGetActiveTxIdFunc(GetActiveTxIdFunc FuncPtr);
+
+/** \brief active TX retrieval for normal ops: so with detection and logging
+ *
+ *  \retval tx_id lowest tx_id that still needs work
+ *
+ *  This is the default function.
+ */
+uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags);
+
 int AppLayerParserSetup(void);
 
 int AppLayerParserDeSetup(void);
