@@ -613,9 +613,22 @@ uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags) {
     }
 }
 
+/** \brief active TX retrieval for logging only: so NO detection
+ *
+ *  We simply return the log_id here.
+ *
+ *  \todo what if a logger is disabled?
+ **/
+uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags) {
+    uint64_t log_id = f->alparser->log_id;
+    SCLogDebug("returning %"PRIu64, log_id);
+    return log_id;
+}
+
 void RegisterAppLayerGetActiveTxIdFunc(GetActiveTxIdFunc FuncPtr) {
-    BUG_ON(AppLayerGetActiveTxIdFuncPtr != NULL);
+    //BUG_ON(AppLayerGetActiveTxIdFuncPtr != NULL);
     AppLayerGetActiveTxIdFuncPtr = FuncPtr;
+    SCLogDebug("AppLayerGetActiveTxIdFuncPtr is now %p", AppLayerGetActiveTxIdFuncPtr);
 }
 
 /**

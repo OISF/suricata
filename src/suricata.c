@@ -119,6 +119,7 @@
 #include "unix-manager.h"
 
 #include "app-layer.h"
+#include "app-layer-parser.h"
 #include "app-layer-htp.h"
 
 #include "util-radix-tree.h"
@@ -2102,6 +2103,9 @@ int main(int argc, char **argv)
         if (ActionInitConfig() < 0) {
             exit(EXIT_FAILURE);
         }
+    } else {
+        /* tell the app layer to consider only the log id */
+        RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);
     }
 
     if (MagicInit() != 0)
