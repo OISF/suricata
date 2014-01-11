@@ -69,7 +69,7 @@
                 CFLAGS="$CFLAGS -W"
         fi
     fi
-    CFLAGS="$CFLAGS -Wall -fno-strict-aliasing"
+    CFLAGS="$CFLAGS -Wall"
     CFLAGS="$CFLAGS -Wno-unused-parameter"
     CFLAGS="$CFLAGS -std=gnu99"
 

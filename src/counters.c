@@ -1060,12 +1060,15 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
         temp->size = 1;
         temp->head = SCMalloc(sizeof(SCPerfContext **));
         if (temp->head == NULL) {
+            SCFree(temp);
             SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
             return 0;
         }
         temp->head[0] = pctx;
         temp->tm_name = SCStrdup(tm_name);
         if (unlikely(temp->tm_name == NULL)) {
+            SCFree(temp->head);
+            SCFree(temp);
             SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
             return 0;
         }
@@ -1152,8 +1155,10 @@ SCPerfCounterArray *SCPerfGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
         return NULL;
     memset(pca, 0, sizeof(SCPerfCounterArray));
 
-    if ( (pca->head = SCMalloc(sizeof(SCPCAElem) * (e_id - s_id  + 2))) == NULL)
+    if ( (pca->head = SCMalloc(sizeof(SCPCAElem) * (e_id - s_id  + 2))) == NULL) {
+        SCFree(pca);
         return NULL;
+    }
     memset(pca->head, 0, sizeof(SCPCAElem) * (e_id - s_id  + 2));
 
     pc = pctx->head;
