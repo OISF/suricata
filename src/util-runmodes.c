@@ -61,6 +61,11 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
     char tname[TM_THREAD_NAME_MAX];
     int thread;
 
+    if (de_ctx == NULL) {
+        SCLogError(SC_ERR_RUNMODE, "can't use runmode 'auto' when detection is disabled");
+        return -1;
+    }
+
     if ((nlive <= 1) && (live_dev != NULL)) {
         void *aconf;
         SCLogDebug("live_dev %s", live_dev);
@@ -317,6 +322,9 @@ char *RunmodeAutoFpCreatePickupQueuesString(int n) {
     return queues;
 }
 
+/**
+ *  \param de_ctx detection engine, can be NULL
+ */
 int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
                               ConfigIfaceParserFunc ConfigParser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
@@ -491,13 +499,15 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
-        tm_module = TmModuleGetByName("Detect");
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
-            exit(EXIT_FAILURE);
+        if (de_ctx != NULL) {
+            tm_module = TmModuleGetByName("Detect");
+            if (tm_module == NULL) {
+                SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
+                exit(EXIT_FAILURE);
+            }
+            TmSlotSetFuncAppendDelayed(tv_detect_ncpu, tm_module,
+                    (void *)de_ctx, de_ctx->delayed_detect);
         }
-        TmSlotSetFuncAppendDelayed(tv_detect_ncpu, tm_module,
-                                   (void *)de_ctx, de_ctx->delayed_detect);
 
         TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
@@ -528,6 +538,9 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
     return 0;
 }
 
+/**
+ *  \param de_ctx detection engine, can be NULL
+ */
 static int RunModeSetLiveCaptureWorkersForDevice(DetectEngineCtx *de_ctx,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
                               char *recv_mod_name,
@@ -593,13 +606,15 @@ static int RunModeSetLiveCaptureWorkersForDevice(DetectEngineCtx *de_ctx,
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
 
-        tm_module = TmModuleGetByName("Detect");
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
-            exit(EXIT_FAILURE);
+        if (de_ctx != NULL) {
+            tm_module = TmModuleGetByName("Detect");
+            if (tm_module == NULL) {
+                SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
+                exit(EXIT_FAILURE);
+            }
+            TmSlotSetFuncAppendDelayed(tv, tm_module,
+                    (void *)de_ctx, de_ctx->delayed_detect);
         }
-        TmSlotSetFuncAppendDelayed(tv, tm_module,
-                                   (void *)de_ctx, de_ctx->delayed_detect);
 
         tm_module = TmModuleGetByName("RespondReject");
         if (tm_module == NULL) {
@@ -707,6 +722,11 @@ int RunModeSetIPSAuto(DetectEngineCtx *de_ctx,
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
     int nqueue = LiveGetDeviceCount();
+
+    if (de_ctx == NULL) {
+        SCLogError(SC_ERR_RUNMODE, "can't use runmode 'auto' when detection is disabled");
+        return -1;
+    }
 
     for (int i = 0; i < nqueue; i++) {
         /* create the threads */
@@ -894,6 +914,9 @@ int RunModeSetIPSAuto(DetectEngineCtx *de_ctx,
 
 }
 
+/**
+ *  \param de_ctx detection engine, can be NULL
+ */
 int RunModeSetIPSAutoFp(DetectEngineCtx *de_ctx,
                         ConfigIPSParserFunc ConfigParser,
                         char *recv_mod_name,
@@ -997,13 +1020,15 @@ int RunModeSetIPSAutoFp(DetectEngineCtx *de_ctx,
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
-        tm_module = TmModuleGetByName("Detect");
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
-            exit(EXIT_FAILURE);
+        if (de_ctx != NULL) {
+            tm_module = TmModuleGetByName("Detect");
+            if (tm_module == NULL) {
+                SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
+                exit(EXIT_FAILURE);
+            }
+            TmSlotSetFuncAppendDelayed(tv_detect_ncpu, tm_module,
+                    (void *)de_ctx, de_ctx->delayed_detect);
         }
-        TmSlotSetFuncAppendDelayed(tv_detect_ncpu, tm_module,
-                                   (void *)de_ctx, de_ctx->delayed_detect);
 
         TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
@@ -1067,6 +1092,9 @@ int RunModeSetIPSAutoFp(DetectEngineCtx *de_ctx,
     return 0;
 }
 
+/**
+ *  \param de_ctx detection engine, can be NULL
+ */
 int RunModeSetIPSWorker(DetectEngineCtx *de_ctx,
         ConfigIPSParserFunc ConfigParser,
         char *recv_mod_name,
@@ -1125,13 +1153,15 @@ int RunModeSetIPSWorker(DetectEngineCtx *de_ctx,
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
 
-        tm_module = TmModuleGetByName("Detect");
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
-            exit(EXIT_FAILURE);
+        if (de_ctx != NULL) {
+            tm_module = TmModuleGetByName("Detect");
+            if (tm_module == NULL) {
+                SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
+                exit(EXIT_FAILURE);
+            }
+            TmSlotSetFuncAppendDelayed(tv, tm_module,
+                    (void *)de_ctx, de_ctx->delayed_detect);
         }
-        TmSlotSetFuncAppendDelayed(tv, tm_module,
-                                   (void *)de_ctx, de_ctx->delayed_detect);
 
         tm_module = TmModuleGetByName(verdict_mod_name);
         if (tm_module == NULL) {

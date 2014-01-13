@@ -106,12 +106,14 @@ int RunModeErfFileSingle(DetectEngineCtx *de_ctx)
     }
     TmSlotSetFuncAppend(tv, tm_module, NULL);
 
-    tm_module = TmModuleGetByName("Detect");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName Detect failed\n");
-        exit(EXIT_FAILURE);
+    if (de_ctx != NULL) {
+        tm_module = TmModuleGetByName("Detect");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName Detect failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv, tm_module, (void *)de_ctx);
     }
-    TmSlotSetFuncAppend(tv, tm_module, (void *)de_ctx);
 
     SetupOutputs(tv);
 
@@ -232,12 +234,14 @@ int RunModeErfFileAutoFp(DetectEngineCtx *de_ctx)
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
-        tm_module = TmModuleGetByName("Detect");
-        if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName Detect failed\n");
-            exit(EXIT_FAILURE);
+        if (de_ctx != NULL) {
+            tm_module = TmModuleGetByName("Detect");
+            if (tm_module == NULL) {
+                printf("ERROR: TmModuleGetByName Detect failed\n");
+                exit(EXIT_FAILURE);
+            }
+            TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
         }
-        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
 
         if (threading_set_cpu_affinity) {
             TmThreadSetCPUAffinity(tv_detect_ncpu, (int)cpu);

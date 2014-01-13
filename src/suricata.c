@@ -119,6 +119,7 @@
 #include "unix-manager.h"
 
 #include "app-layer.h"
+#include "app-layer-parser.h"
 #include "app-layer-htp.h"
 
 #include "util-radix-tree.h"
@@ -195,6 +196,9 @@ uint8_t host_mode = SURI_HOST_IS_SNIFFER_ONLY;
 
 /** Maximum packets to simultaneously process. */
 intmax_t max_pending_packets;
+
+/** global indicating if detection is enabled */
+int g_detect_disabled = 0;
 
 /** set caps or not */
 int sc_set_caps;
@@ -515,6 +519,7 @@ void usage(const char *progname)
            "\t                                       can be printed\n");
     printf("\t--pidfile <file>                     : write pid to this file (only for daemon mode)\n");
     printf("\t--init-errors-fatal                  : enable fatal failure on signature init error\n");
+    printf("\t--disable-detection                  : disable detection engine\n");
     printf("\t--dump-config                        : show the running configuration\n");
     printf("\t--build-info                         : display build information\n");
     printf("\t--pcap[=<dev>]                       : run in pcap mode, no value select interfaces from suricata.yaml\n");
@@ -922,6 +927,11 @@ static void SCInstanceInit(SCInstance *suri)
     suri->verbose = 0;
     /* use -1 as unknown */
     suri->checksum_validation = -1;
+#if HAVE_DETECT_DISABLED==1
+    g_detect_disabled = suri->disabled_detect = 1;
+#else
+    g_detect_disabled = suri->disabled_detect = 0;
+#endif
 }
 
 static TmEcode PrintVersion()
@@ -1012,6 +1022,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif /* OS_WIN32 */
         {"pidfile", required_argument, 0, 0},
         {"init-errors-fatal", 0, 0, 0},
+        {"disable-detection", 0, 0, 0},
         {"fatal-unittests", 0, 0, 0},
         {"unittests-coverage", 0, &coverage_unittests, 1},
         {"user", required_argument, 0, 0},
@@ -1203,6 +1214,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif /* OS_WIN32 */
             else if(strcmp((long_opts[option_index]).name, "pidfile") == 0) {
                 suri->pid_filename = optarg;
+            }
+            else if(strcmp((long_opts[option_index]).name, "disable-detection") == 0) {
+                g_detect_disabled = suri->disabled_detect = 1;
+                SCLogInfo("detection engine disabled");
             }
             else if(strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
 #ifdef UNITTESTS
@@ -1510,6 +1525,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             usage(argv[0]);
             return TM_ECODE_FAILED;
         }
+    }
+
+    if (suri->disabled_detect && suri->sig_file != NULL) {
+        SCLogError(SC_ERR_INITIALIZATION, "can't use -s/-S when detection is disabled");
+        return TM_ECODE_FAILED;
     }
 
     if (list_app_layer_protocols)
@@ -2073,41 +2093,53 @@ int main(int argc, char **argv)
         FlowInitConfig(FLOW_VERBOSE);
     }
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
-            "context failed.");
-        exit(EXIT_FAILURE);
-    }
+    DetectEngineCtx *de_ctx = NULL;
+    if (!suri.disabled_detect) {
+        de_ctx = DetectEngineCtxInit();
+        if (de_ctx == NULL) {
+            SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
+                    "context failed.");
+            exit(EXIT_FAILURE);
+        }
 #ifdef __SC_CUDA_SUPPORT__
-    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
-        CudaVarsSetDeCtx(de_ctx);
+        if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
+            CudaVarsSetDeCtx(de_ctx);
 #endif /* __SC_CUDA_SUPPORT__ */
 
-    SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCRConfLoadReferenceConfigFile(de_ctx);
+        SCClassConfLoadClassficationConfigFile(de_ctx);
+        SCRConfLoadReferenceConfigFile(de_ctx);
 
-    if (ActionInitConfig() < 0) {
-        exit(EXIT_FAILURE);
+        if (ActionInitConfig() < 0) {
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        /* disable raw reassembly */
+        (void)ConfSetFinal("stream.reassembly.raw", "false");
+
+        /* tell the app layer to consider only the log id */
+        RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);
     }
 
     if (MagicInit() != 0)
         exit(EXIT_FAILURE);
 
-    SetupDelayedDetect(de_ctx, &suri);
 
-    if (!suri.delayed_detect) {
-        if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
-            exit(EXIT_FAILURE);
-        if (suri.run_mode == RUNMODE_ENGINE_ANALYSIS) {
-            exit(EXIT_SUCCESS);
+    if (de_ctx != NULL) {
+        SetupDelayedDetect(de_ctx, &suri);
+
+        if (!suri.delayed_detect) {
+            if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
+                exit(EXIT_FAILURE);
+            if (suri.run_mode == RUNMODE_ENGINE_ANALYSIS) {
+                exit(EXIT_SUCCESS);
+            }
         }
-    }
 
-    /* registering singal handlers we use.  We register usr2 here, so that one
-     * can't call it during the first sig load phase */
-    if (suri.sig_file == NULL && suri.rule_reload == 1 && suri.delayed_detect == 0)
-        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
+        /* registering singal handlers we use.  We register usr2 here, so that one
+         * can't call it during the first sig load phase */
+        if (suri.sig_file == NULL && suri.rule_reload == 1 && suri.delayed_detect == 0)
+            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
+    }
 
     SCAsn1LoadConfig();
 
@@ -2173,7 +2205,7 @@ int main(int argc, char **argv)
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();
 
-    if (suri.delayed_detect) {
+    if (de_ctx != NULL && suri.delayed_detect) {
         if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
             exit(EXIT_FAILURE);
         de_ctx->delayed_detect_initialized = 1;
@@ -2247,7 +2279,7 @@ int main(int argc, char **argv)
     }
 
     DetectEngineCtx *global_de_ctx = DetectEngineGetGlobalDeCtx();
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET && de_ctx != NULL) {
         BUG_ON(global_de_ctx == NULL);
     }
 

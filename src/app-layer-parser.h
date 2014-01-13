@@ -54,6 +54,13 @@ void RegisterAppLayerGetActiveTxIdFunc(GetActiveTxIdFunc FuncPtr);
  */
 uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags);
 
+/** \brief active TX retrieval for logging only ops
+ *
+ *  \retval tx_id lowest tx_id that still needs work
+ */
+uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags);
+
+
 int AppLayerParserSetup(void);
 
 int AppLayerParserDeSetup(void);
