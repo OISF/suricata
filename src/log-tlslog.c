@@ -64,54 +64,10 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 #define LOG_TLS_DEFAULT     0
 #define LOG_TLS_EXTENDED    1
 
-TmEcode LogTlsLog(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogTlsLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogTlsLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogTlsLogThreadInit(ThreadVars *, void *, void **);
-TmEcode LogTlsLogThreadDeinit(ThreadVars *, void *);
-void LogTlsLogExitPrintStats(ThreadVars *, void *);
-static void LogTlsLogDeInitCtx(OutputCtx *);
-
-void TmModuleLogTlsLogRegister(void)
-{
-    tmm_modules[TMM_LOGTLSLOG].name = MODULE_NAME;
-    tmm_modules[TMM_LOGTLSLOG].ThreadInit = LogTlsLogThreadInit;
-    tmm_modules[TMM_LOGTLSLOG].Func = LogTlsLog;
-    tmm_modules[TMM_LOGTLSLOG].ThreadExitPrintStats = LogTlsLogExitPrintStats;
-    tmm_modules[TMM_LOGTLSLOG].ThreadDeinit = LogTlsLogThreadDeinit;
-    tmm_modules[TMM_LOGTLSLOG].RegisterTests = NULL;
-    tmm_modules[TMM_LOGTLSLOG].cap_flags = 0;
-
-    OutputRegisterModule(MODULE_NAME, "tls-log", LogTlsLogInitCtx);
-
-    SC_ATOMIC_INIT(cert_id);
-}
-
-void TmModuleLogTlsLogIPv4Register(void)
-{
-    tmm_modules[TMM_LOGTLSLOG4].name = "LogTlsLogIPv4";
-    tmm_modules[TMM_LOGTLSLOG4].ThreadInit = LogTlsLogThreadInit;
-    tmm_modules[TMM_LOGTLSLOG4].Func = LogTlsLogIPv4;
-    tmm_modules[TMM_LOGTLSLOG4].ThreadExitPrintStats = LogTlsLogExitPrintStats;
-    tmm_modules[TMM_LOGTLSLOG4].ThreadDeinit = LogTlsLogThreadDeinit;
-    tmm_modules[TMM_LOGTLSLOG4].RegisterTests = NULL;
-}
-
-void TmModuleLogTlsLogIPv6Register(void)
-{
-    tmm_modules[TMM_LOGTLSLOG6].name = "LogTlsLogIPv6";
-    tmm_modules[TMM_LOGTLSLOG6].ThreadInit = LogTlsLogThreadInit;
-    tmm_modules[TMM_LOGTLSLOG6].Func = LogTlsLogIPv6;
-    tmm_modules[TMM_LOGTLSLOG6].ThreadExitPrintStats = LogTlsLogExitPrintStats;
-    tmm_modules[TMM_LOGTLSLOG6].ThreadDeinit = LogTlsLogThreadDeinit;
-    tmm_modules[TMM_LOGTLSLOG6].RegisterTests = NULL;
-}
-
 typedef struct LogTlsFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
 } LogTlsFileCtx;
-
 
 typedef struct LogTlsLogThread_ {
     LogTlsFileCtx *tlslog_ctx;
@@ -427,17 +383,17 @@ end:
 
 }
 
-TmEcode LogTlsLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode LogTlsLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     return LogTlsLogIPWrapper(tv, p, data, pq, postpq, AF_INET);
 }
 
-TmEcode LogTlsLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode LogTlsLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     return LogTlsLogIPWrapper(tv, p, data, pq, postpq, AF_INET6);
 }
 
-TmEcode LogTlsLog(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode LogTlsLog(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     SCEnter();
 
@@ -459,7 +415,7 @@ TmEcode LogTlsLog(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode LogTlsLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode LogTlsLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     LogTlsLogThread *aft = SCMalloc(sizeof(LogTlsLogThread));
     if (unlikely(aft == NULL))
@@ -512,7 +468,7 @@ TmEcode LogTlsLogThreadInit(ThreadVars *t, void *initdata, void **data)
     return TM_ECODE_OK;
 }
 
-TmEcode LogTlsLogThreadDeinit(ThreadVars *t, void *data)
+static TmEcode LogTlsLogThreadDeinit(ThreadVars *t, void *data)
 {
     LogTlsLogThread *aft = (LogTlsLogThread *) data;
     if (aft == NULL) {
@@ -527,7 +483,15 @@ TmEcode LogTlsLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void LogTlsLogExitPrintStats(ThreadVars *tv, void *data)
+static void LogTlsLogDeInitCtx(OutputCtx *output_ctx)
+{
+    LogTlsFileCtx *tlslog_ctx = (LogTlsFileCtx *) output_ctx->data;
+    LogFileFreeCtx(tlslog_ctx->file_ctx);
+    SCFree(tlslog_ctx);
+    SCFree(output_ctx);
+}
+
+static void LogTlsLogExitPrintStats(ThreadVars *tv, void *data)
 {
     LogTlsLogThread *aft = (LogTlsLogThread *) data;
     if (aft == NULL) {
@@ -541,7 +505,7 @@ void LogTlsLogExitPrintStats(ThreadVars *tv, void *data)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
+static OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
 {
     LogFileCtx* file_ctx = LogFileNewCtx();
 
@@ -607,10 +571,17 @@ filectx_error:
     return NULL;
 }
 
-static void LogTlsLogDeInitCtx(OutputCtx *output_ctx)
+void TmModuleLogTlsLogRegister(void)
 {
-    LogTlsFileCtx *tlslog_ctx = (LogTlsFileCtx *) output_ctx->data;
-    LogFileFreeCtx(tlslog_ctx->file_ctx);
-    SCFree(tlslog_ctx);
-    SCFree(output_ctx);
+    tmm_modules[TMM_LOGTLSLOG].name = MODULE_NAME;
+    tmm_modules[TMM_LOGTLSLOG].ThreadInit = LogTlsLogThreadInit;
+    tmm_modules[TMM_LOGTLSLOG].Func = LogTlsLog;
+    tmm_modules[TMM_LOGTLSLOG].ThreadExitPrintStats = LogTlsLogExitPrintStats;
+    tmm_modules[TMM_LOGTLSLOG].ThreadDeinit = LogTlsLogThreadDeinit;
+    tmm_modules[TMM_LOGTLSLOG].RegisterTests = NULL;
+    tmm_modules[TMM_LOGTLSLOG].cap_flags = 0;
+
+    OutputRegisterModule(MODULE_NAME, "tls-log", LogTlsLogInitCtx);
+
+    SC_ATOMIC_INIT(cert_id);
 }
