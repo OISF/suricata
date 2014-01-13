@@ -793,8 +793,6 @@ void RegisterAllModules()
     /* http log */
     TmModuleLogHttpLogRegister();
     TmModuleLogTlsLogRegister();
-    TmModuleLogTlsLogIPv4Register();
-    TmModuleLogTlsLogIPv6Register();
     /* pcap log */
     TmModulePcapLogRegister();
     /* file log */
