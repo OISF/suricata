@@ -150,6 +150,8 @@
 #include "reputation.h"
 
 #include "output.h"
+#include "output-packet.h"
+#include "output-tx.h"
 #include "util-privs.h"
 
 #include "tmqh-packetpool.h"
@@ -769,8 +771,6 @@ void RegisterAllModules()
 
     /* fast log */
     TmModuleAlertFastLogRegister();
-    TmModuleAlertFastLogIPv4Register();
-    TmModuleAlertFastLogIPv6Register();
     /* debug log */
     TmModuleAlertDebugLogRegister();
     /* prelue log */
@@ -787,11 +787,7 @@ void RegisterAllModules()
     TmModuleLogDropLogRegister();
     /* http log */
     TmModuleLogHttpLogRegister();
-    TmModuleLogHttpLogIPv4Register();
-    TmModuleLogHttpLogIPv6Register();
     TmModuleLogTlsLogRegister();
-    TmModuleLogTlsLogIPv4Register();
-    TmModuleLogTlsLogIPv6Register();
     /* pcap log */
     TmModulePcapLogRegister();
     /* file log */
@@ -799,7 +795,8 @@ void RegisterAllModules()
     TmModuleLogFilestoreRegister();
     /* dns log */
     TmModuleLogDnsLogRegister();
-    /* cuda */
+    TmModulePacketLoggerRegister();
+    TmModuleTxLoggerRegister();
     TmModuleDebugList();
 
 }
