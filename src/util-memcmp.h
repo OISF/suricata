@@ -34,12 +34,12 @@
 /** \brief compare two patterns, converting the 2nd to lowercase
  *  \warning *ONLY* the 2nd pattern is converted to lowercase
  */
-static inline int SCMemcmpLowercase(void *, void *, size_t);
+static inline int SCMemcmpLowercase(const void *, const void *, size_t);
 
 void MemcmpRegisterTests(void);
 
 static inline int
-MemcmpLowercase(void *s1, void *s2, size_t n) {
+MemcmpLowercase(const void *s1, const void *s2, size_t n) {
     size_t i;
 
     /* check backwards because we already tested the first
@@ -59,7 +59,7 @@ MemcmpLowercase(void *s1, void *s2, size_t n) {
 
 /* No SIMD support, fall back to plain memcmp and a home grown lowercase one */
 
-static inline int SCMemcmp(void *s1, void *s2, size_t n)
+static inline int SCMemcmp(const void *s1, const void *s2, size_t n)
 {
     __m128i b1, b2;
 
@@ -97,7 +97,7 @@ static char scmemcmp_uppercase[16] __attribute__((aligned(16))) = {
  *  \param s1 buffer already in lowercase
  *  \param s2 buffer with mixed upper and lowercase
  */
-static inline int SCMemcmpLowercase(void *s1, void *s2, size_t n)
+static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t n)
 {
     __m128i b1, b2, mask;
 
@@ -147,7 +147,7 @@ static inline int SCMemcmpLowercase(void *s1, void *s2, size_t n)
 
 #define SCMEMCMP_BYTES  16
 
-static inline int SCMemcmp(void *s1, void *s2, size_t len) {
+static inline int SCMemcmp(const void *s1, const void *s2, size_t len) {
     size_t offset = 0;
     __m128i b1, b2, c;
 
@@ -189,7 +189,7 @@ static inline int SCMemcmp(void *s1, void *s2, size_t len) {
 #define UPPER_LOW   0x40 /* "A" - 1 */
 #define UPPER_HIGH  0x5B /* "Z" + 1 */
 
-static inline int SCMemcmpLowercase(void *s1, void *s2, size_t len) {
+static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len) {
     size_t offset = 0;
     __m128i b1, b2, mask1, mask2, upper1, upper2, nulls, uplow;
 
@@ -255,7 +255,7 @@ static inline int SCMemcmpLowercase(void *s1, void *s2, size_t len) {
 
 #define SCMEMCMP_BYTES  16
 
-static inline int SCMemcmp(void *s1, void *s2, size_t len) {
+static inline int SCMemcmp(const void *s1, const void *s2, size_t len) {
     size_t offset = 0;
     __m128i b1, b2, c;
 
@@ -298,7 +298,7 @@ static inline int SCMemcmp(void *s1, void *s2, size_t len) {
 #define UPPER_HIGH  0x5B /* "Z" + 1 */
 #define UPPER_DELTA 0xDF /* 0xFF - 0x20 */
 
-static inline int SCMemcmpLowercase(void *s1, void *s2, size_t len) {
+static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len) {
     size_t offset = 0;
     __m128i b1, b2, mask1, mask2, upper1, upper2, delta;
 
@@ -360,7 +360,7 @@ static inline int SCMemcmpLowercase(void *s1, void *s2, size_t len) {
 
 #include <ctype.h>
 
-static inline int SCMemcmp(void *s1, void *s2, size_t len)
+static inline int SCMemcmp(const void *s1, const void *s2, size_t len)
 {
     uint64_t b1, w1, aligned1;
     uint64_t b2, w2, aligned2;
@@ -424,7 +424,7 @@ vec_tolower(uint64_t cc)
  *  \param s1 buffer already in lowercase
  *  \param s2 buffer with mixed upper and lowercase
  */
-static inline int SCMemcmpLowercase(void *s1, void *s2, size_t len)
+static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
 {
     uint64_t b1, w1, aligned1;
     uint64_t b2, w2, aligned2;
@@ -481,7 +481,7 @@ static inline int SCMemcmpLowercase(void *s1, void *s2, size_t len)
     memcmp((a), (b), (c)) ? 1 : 0; \
 })
 
-static inline int SCMemcmpLowercase(void *s1, void *s2, size_t len) {
+static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len) {
     return MemcmpLowercase(s1, s2, len);
 }
 
