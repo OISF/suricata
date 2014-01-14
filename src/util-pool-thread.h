@@ -42,7 +42,8 @@
 struct PoolThreadElement_ {
     SCMutex lock;                   /**< lock, should have low contention */
     Pool *pool;                     /**< actual pool */
-} __attribute__((aligned(CLS)));
+};
+// __attribute__((aligned(CLS))); <- VJ: breaks on clang 32bit, segv in PoolThreadTestGrow01
 
 typedef struct PoolThreadElement_ PoolThreadElement;
 

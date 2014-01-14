@@ -91,17 +91,6 @@
         exit 1
     fi
 
-    AC_PATH_PROG(HAVE_COCCINELLE_CONFIG, spatch, "no")
-    if test "$HAVE_COCCINELLE_CONFIG" = "no"; then
-        echo
-        echo "   Warning! spatch not found, you will not be "
-        echo "   able to run code checking with coccinelle  "
-        echo "   get it from http://coccinelle.lip6.fr      "
-        echo "   or install from your distribution          "
-        echo
-    fi
-    AM_CONDITIONAL([HAVE_COCCINELLE], [test "$HAVE_COCCINELLE_CONFIG" != "no"])
-
     AC_PATH_PROG(HAVE_PYTHON_CONFIG, python, "no")
     if test "$HAVE_PYTHON_CONFIG" = "no"; then
         echo
@@ -382,6 +371,19 @@
     AS_IF([test "x$enable_ipfw" = "xyes"], [
         CFLAGS="$CFLAGS -DIPFW"
     ])
+
+    AC_ARG_ENABLE(coccinelle,
+           AS_HELP_STRING([--disable-coccinelle], [Disable coccinelle QA steps during make check])],,[enable_coccinelle=yes])
+    AS_IF([test "x$enable_coccinelle" = "xyes"], [
+        AC_PATH_PROG(HAVE_COCCINELLE_CONFIG, spatch, "no")
+        if test "$HAVE_COCCINELLE_CONFIG" = "no"; then
+            echo "   Warning! spatch not found, you will not be "
+            echo "   able to run code checking with coccinelle  "
+            echo "   get it from http://coccinelle.lip6.fr      "
+            echo "   or install from your distribution          "
+        fi
+    ])
+    AM_CONDITIONAL([HAVE_COCCINELLE], [test "x$enable_coccinelle" != "xno"])
 
 # libraries
 
@@ -1641,6 +1643,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Debug validation enabled:                ${enable_debug_validation}
   Profiling enabled:                       ${enable_profiling}
   Profiling locks enabled:                 ${enable_profiling_locks}
+  Coccinelle / spatch:                     ${enable_coccinelle}
 
 Generic build parameters:
   Installation prefix (--prefix):          ${prefix}
