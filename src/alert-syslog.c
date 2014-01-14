@@ -193,13 +193,10 @@ static TmEcode AlertSyslogThreadDeinit(ThreadVars *t, void *data)
  * \param tv    Pointer to the threadvars
  * \param p     Pointer to the packet
  * \param data  pointer to the AlertSyslogThread
- * \param pq    pointer the to packet queue
- * \param postpq pointer to the post processed packet queue
  *
  * \return On succes return TM_ECODE_OK
  */
-static TmEcode AlertSyslogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-                        PacketQueue *postpq)
+static TmEcode AlertSyslogIPv4(ThreadVars *tv, const Packet *p, void *data)
 {
     AlertSyslogThread *ast = (AlertSyslogThread *)data;
     int i;
@@ -213,7 +210,7 @@ static TmEcode AlertSyslogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueu
     ast->file_ctx->alerts += p->alerts.cnt;
 
     for (i = 0; i < p->alerts.cnt; i++) {
-        PacketAlert *pa = &p->alerts.alerts[i];
+        const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
             continue;
         }
@@ -254,13 +251,10 @@ static TmEcode AlertSyslogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueu
  * \param tv    Pointer to the threadvars
  * \param p     Pointer to the packet
  * \param data  pointer to the AlertSyslogThread
- * \param pq    pointer the to packet queue
- * \param postpq pointer to the post processed packet queue
  *
  * \return On succes return TM_ECODE_OK
  */
-static TmEcode AlertSyslogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-                        PacketQueue *postpq)
+static TmEcode AlertSyslogIPv6(ThreadVars *tv, const Packet *p, void *data)
 {
     AlertSyslogThread *ast = (AlertSyslogThread *)data;
     int i;
@@ -274,7 +268,7 @@ static TmEcode AlertSyslogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueu
     ast->file_ctx->alerts += p->alerts.cnt;
 
     for (i = 0; i < p->alerts.cnt; i++) {
-        PacketAlert *pa = &p->alerts.alerts[i];
+        const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
             continue;
         }
@@ -323,8 +317,7 @@ static TmEcode AlertSyslogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueu
  *
  * \return On succes return TM_ECODE_OK
  */
-static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, Packet *p, void *data,
-                                    PacketQueue *pq, PacketQueue *postpq)
+static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, const Packet *p, void *data)
 {
     AlertSyslogThread *ast = (AlertSyslogThread *)data;
     int i;
@@ -342,7 +335,7 @@ static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, Packet *p, void *data,
     char alert[2048] = "";
 
     for (i = 0; i < p->alerts.cnt; i++) {
-        PacketAlert *pa = &p->alerts.alerts[i];
+        const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
             continue;
         }
@@ -379,31 +372,6 @@ static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, Packet *p, void *data,
 }
 
 /**
- * \brief   Function which is called to print the alerts to the syslog
- *
- * \param tv    Pointer to the threadvars
- * \param p     Pointer to the packet
- * \param data  pointer to the AlertSyslogThread
- * \param pq    pointer the to packet queue
- * \param postpq pointer to the post processed packet queue
- *
- * \return On succes return TM_ECODE_OK
- */
-static TmEcode AlertSyslog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-                        PacketQueue *postpq)
-{
-    if (PKT_IS_IPV4(p)) {
-        return AlertSyslogIPv4(tv, p, data, pq, NULL);
-    } else if (PKT_IS_IPV6(p)) {
-        return AlertSyslogIPv6(tv, p, data, pq, NULL);
-    } else if (p->events.cnt > 0) {
-        return AlertSyslogDecoderEvent(tv, p, data, pq, NULL);
-    }
-
-    return TM_ECODE_OK;
-}
-
-/**
  * \brief   Function to print the total alert while closing the engine
  *
  * \param tv    Pointer to the output threadvars
@@ -417,6 +385,23 @@ static void AlertSyslogExitPrintStats(ThreadVars *tv, void *data) {
 
     SCLogInfo("(%s) Alerts %" PRIu64 "", tv->name, ast->file_ctx->alerts);
 }
+
+static int AlertSyslogCondition(ThreadVars *tv, const Packet *p) {
+    return (p->alerts.cnt > 0 ? TRUE : FALSE);
+}
+
+static int AlertSyslogLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
+    if (PKT_IS_IPV4(p)) {
+        return AlertSyslogIPv4(tv, p, thread_data);
+    } else if (PKT_IS_IPV6(p)) {
+        return AlertSyslogIPv6(tv, p, thread_data);
+    } else if (p->events.cnt > 0) {
+        return AlertSyslogDecoderEvent(tv, p, thread_data);
+    }
+
+    return TM_ECODE_OK;
+}
+
 #endif /* !OS_WIN32 */
 
 /** \brief   Function to register the AlertSyslog module */
@@ -424,12 +409,14 @@ void TmModuleAlertSyslogRegister (void) {
 #ifndef OS_WIN32
     tmm_modules[TMM_ALERTSYSLOG].name = MODULE_NAME;
     tmm_modules[TMM_ALERTSYSLOG].ThreadInit = AlertSyslogThreadInit;
-    tmm_modules[TMM_ALERTSYSLOG].Func = AlertSyslog;
+    tmm_modules[TMM_ALERTSYSLOG].Func = NULL;
     tmm_modules[TMM_ALERTSYSLOG].ThreadExitPrintStats = AlertSyslogExitPrintStats;
     tmm_modules[TMM_ALERTSYSLOG].ThreadDeinit = AlertSyslogThreadDeinit;
     tmm_modules[TMM_ALERTSYSLOG].RegisterTests = NULL;
     tmm_modules[TMM_ALERTSYSLOG].cap_flags = 0;
 
-    OutputRegisterModule(MODULE_NAME, "syslog", AlertSyslogInitCtx);
+    OutputRegisterPacketModule(MODULE_NAME, "syslog",
+        AlertSyslogInitCtx, AlertSyslogLogger, AlertSyslogCondition);
+
 #endif /* !OS_WIN32 */
 }
