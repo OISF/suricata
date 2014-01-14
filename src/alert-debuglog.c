@@ -160,11 +160,9 @@ static int AlertDebugPrintStreamSegmentCallback(const Packet *p, void *data, uin
     return 1;
 }
 
-
-
-static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_data)
 {
-    AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
+    AlertDebugLogThread *aft = (AlertDebugLogThread *)thread_data;
     int i;
     char timebuf[64];
     const char *pkt_src_str = NULL;
@@ -329,9 +327,9 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *data, Pac
     return TM_ECODE_OK;
 }
 
-static TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, const Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, const Packet *p, void *thread_data)
 {
-    AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
+    AlertDebugLogThread *aft = (AlertDebugLogThread *)thread_data;
     int i;
     char timebuf[64];
     const char *pkt_src_str = NULL;
@@ -500,11 +498,11 @@ static int AlertDebugLogCondition(ThreadVars *tv, const Packet *p) {
 
 static int AlertDebugLogLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
     if (PKT_IS_IPV4(p)) {
-        return AlertDebugLogger(tv, p, thread_data, NULL, NULL);
+        return AlertDebugLogger(tv, p, thread_data);
     } else if (PKT_IS_IPV6(p)) {
-        return AlertDebugLogger(tv, p, thread_data, NULL, NULL);
+        return AlertDebugLogger(tv, p, thread_data);
     } else if (p->events.cnt > 0) {
-        return AlertDebugLogDecoderEvent(tv, p, thread_data, NULL, NULL);
+        return AlertDebugLogDecoderEvent(tv, p, thread_data);
     }
     return TM_ECODE_OK;
 }
