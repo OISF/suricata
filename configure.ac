@@ -134,12 +134,18 @@
         #endif
     ]])
 
-    AC_CHECK_HEADERS([windows.h winsock2.h ws2tcpip.h], [], [],
-                    [[#define _X86_
+    AC_CHECK_HEADERS([windows.h winsock2.h ws2tcpip.h w32api/wtypes.h], [], [],
+                    [[
+                        #ifndef _X86_
+                        #define _X86_
+                        #endif
                      ]])
     AC_CHECK_HEADERS([w32api/winbase.h], [], [],
-                    [[#define _X86_
-                     #include <windows.h>
+                    [[
+                        #ifndef _X86_
+                        #define _X86_
+                        #endif
+                        #include <windows.h>
                      ]])
 
     # Checks for typedefs, structures, and compiler characteristics.
