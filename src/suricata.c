@@ -782,8 +782,6 @@ void RegisterAllModules()
     TmModuleAlertPreludeRegister();
     /* syslog log */
     TmModuleAlertSyslogRegister();
-    TmModuleAlertSyslogIPv4Register();
-    TmModuleAlertSyslogIPv6Register();
     /* unified2 log */
     TmModuleUnified2AlertRegister();
     /* pcap info log */
