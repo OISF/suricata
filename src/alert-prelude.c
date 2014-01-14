@@ -59,51 +59,27 @@
 #include "stream.h"
 
 #ifndef PRELUDE
-/** Handle the case where no PRELUDE support is compiled in.
- *
- */
 
-TmEcode AlertPrelude (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode AlertPreludeThreadInit(ThreadVars *, void *, void **);
-TmEcode AlertPreludeThreadDeinit(ThreadVars *, void *);
-int AlertPreludeOpenFileCtx(LogFileCtx *, char *);
-void AlertPreludeRegisterTests(void);
+/* Handle the case where no PRELUDE support is compiled in. */
 
-void TmModuleAlertPreludeRegister (void) {
-    tmm_modules[TMM_ALERTPRELUDE].name = "AlertPrelude";
-    tmm_modules[TMM_ALERTPRELUDE].ThreadInit = AlertPreludeThreadInit;
-    tmm_modules[TMM_ALERTPRELUDE].Func = AlertPrelude;
-    tmm_modules[TMM_ALERTPRELUDE].ThreadDeinit = AlertPreludeThreadDeinit;
-    tmm_modules[TMM_ALERTPRELUDE].RegisterTests = AlertPreludeRegisterTests;
-}
-
-LogFileCtx *AlertPreludeInitCtx(ConfNode *conf)
-{
-    SCLogDebug("Can't init Prelude output - Prelude support was disabled during build.");
-    return NULL;
-}
-
-TmEcode AlertPreludeThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode AlertPreludeThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     SCLogDebug("Can't init Prelude output thread - Prelude support was disabled during build.");
     return TM_ECODE_FAILED;
 }
 
-TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    return TM_ECODE_OK;
-}
-
-TmEcode AlertPreludeThreadDeinit(ThreadVars *t, void *data)
+static TmEcode AlertPreludeThreadDeinit(ThreadVars *t, void *data)
 {
     return TM_ECODE_FAILED;
 }
 
-void AlertPreludeRegisterTests (void) {
+void TmModuleAlertPreludeRegister (void) {
+    tmm_modules[TMM_ALERTPRELUDE].name = "AlertPrelude";
+    tmm_modules[TMM_ALERTPRELUDE].ThreadInit = AlertPreludeThreadInit;
+    tmm_modules[TMM_ALERTPRELUDE].ThreadDeinit = AlertPreludeThreadDeinit;
 }
 
 #else /* implied we do have PRELUDE support */
-
 
 #include <libprelude/prelude.h>
 
@@ -120,26 +96,6 @@ void AlertPreludeRegisterTests (void) {
 static unsigned int info_priority = 4;
 static unsigned int low_priority  = 3;
 static unsigned int mid_priority  = 2;
-
-
-OutputCtx *AlertPreludeInitCtx(ConfNode *conf);
-TmEcode AlertPrelude (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode AlertPreludeThreadInit(ThreadVars *, void *, void **);
-TmEcode AlertPreludeThreadDeinit(ThreadVars *, void *);
-int AlertPreludeOpenFileCtx(LogFileCtx *, char *);
-void AlertPreludeRegisterTests(void);
-static void AlertPreludeDeinitCtx(OutputCtx *output_ctx);
-
-void TmModuleAlertPreludeRegister (void) {
-    tmm_modules[TMM_ALERTPRELUDE].name = "AlertPrelude";
-    tmm_modules[TMM_ALERTPRELUDE].ThreadInit = AlertPreludeThreadInit;
-    tmm_modules[TMM_ALERTPRELUDE].Func = AlertPrelude;
-    tmm_modules[TMM_ALERTPRELUDE].ThreadDeinit = AlertPreludeThreadDeinit;
-    tmm_modules[TMM_ALERTPRELUDE].RegisterTests = AlertPreludeRegisterTests;
-    tmm_modules[TMM_ALERTPRELUDE].cap_flags = 0;
-
-    OutputRegisterModule("AlertPrelude", "alert-prelude", AlertPreludeInitCtx);
-}
 
 /**
  * This holds global structures and variables. Since libprelude is thread-safe,
@@ -626,7 +582,7 @@ static int EventToReference(PacketAlert *pa, Packet *p, idmef_classification_t *
     SCReturnInt(0);
 }
 
-static int PreludePrintStreamSegmentCallback(Packet *p, void *data, uint8_t *buf, uint32_t buflen)
+static int PreludePrintStreamSegmentCallback(const Packet *p, void *data, uint8_t *buf, uint32_t buflen)
 {
     int ret;
 
@@ -654,7 +610,7 @@ static int PreludePrintStreamSegmentCallback(Packet *p, void *data, uint8_t *buf
  *
  * \return TM_ECODE_OK if ok, else TM_ECODE_FAILED
  */
-TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertPreludeThread *apn = (AlertPreludeThread *)data;
     int ret;
@@ -763,7 +719,7 @@ err:
  *
  * \return TM_ECODE_OK if ok, else TM_ECODE_FAILED
  */
-TmEcode AlertPreludeThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode AlertPreludeThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     AlertPreludeThread *aun;
 
@@ -792,7 +748,7 @@ TmEcode AlertPreludeThreadInit(ThreadVars *t, void *initdata, void **data)
  *
  * \return TM_ECODE_OK if ok, else TM_ECODE_FAILED
  */
-TmEcode AlertPreludeThreadDeinit(ThreadVars *t, void *data)
+static TmEcode AlertPreludeThreadDeinit(ThreadVars *t, void *data)
 {
     AlertPreludeThread *aun = (AlertPreludeThread *)data;
 
@@ -810,6 +766,13 @@ TmEcode AlertPreludeThreadDeinit(ThreadVars *t, void *data)
     SCReturnInt(TM_ECODE_OK);
 }
 
+static void AlertPreludeDeinitCtx(OutputCtx *output_ctx)
+{
+    AlertPreludeCtx *ctx = (AlertPreludeCtx *)output_ctx->data;
+
+    prelude_client_destroy(ctx->client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
+    SCFree(output_ctx);
+}
 
 /** \brief Initialize the Prelude logging module: initialize
  * library, create the client and try to establish the connection
@@ -820,7 +783,7 @@ TmEcode AlertPreludeThreadDeinit(ThreadVars *t, void *data)
  *
  * \return A newly allocated AlertPreludeCtx structure, or NULL
  */
-OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
+static OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
 {
     int ret;
     prelude_client_t *client;
@@ -897,18 +860,14 @@ OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     SCReturnPtr((void*)output_ctx, "OutputCtx");
 }
 
-static void AlertPreludeDeinitCtx(OutputCtx *output_ctx)
-{
-    AlertPreludeCtx *ctx = (AlertPreludeCtx *)output_ctx->data;
+void TmModuleAlertPreludeRegister (void) {
+    tmm_modules[TMM_ALERTPRELUDE].name = "AlertPrelude";
+    tmm_modules[TMM_ALERTPRELUDE].ThreadInit = AlertPreludeThreadInit;
+    tmm_modules[TMM_ALERTPRELUDE].Func = AlertPrelude;
+    tmm_modules[TMM_ALERTPRELUDE].ThreadDeinit = AlertPreludeThreadDeinit;
+    tmm_modules[TMM_ALERTPRELUDE].cap_flags = 0;
 
-    prelude_client_destroy(ctx->client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
-    SCFree(output_ctx);
+    OutputRegisterModule("AlertPrelude", "alert-prelude", AlertPreludeInitCtx);
 }
-
-void AlertPreludeRegisterTests (void) {
-#ifdef UNITTESTS
-#endif /* UNITTESTS */
-}
-
 #endif /* PRELUDE */
 
