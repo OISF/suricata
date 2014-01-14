@@ -25,9 +25,6 @@
 #define __ALERT_DEBUGLOG_H__
 
 void TmModuleAlertDebugLogRegister (void);
-void TmModuleAlertDebugLogIPv4Register (void);
-void TmModuleAlertDebugLogIPv6Register (void);
-OutputCtx *AlertDebugLogInitCtx(ConfNode *);
 
 #endif /* __ALERT_DEBUGLOG_H__ */
 
