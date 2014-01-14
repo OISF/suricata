@@ -19,10 +19,6 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
- *
- * \todo figure out a way to (thread) safely print detection engine info
- * \todo maybe by having a log queue in the packet
- * \todo maybe by accessing it just and hoping threading doesn't hurt
  */
 
 #include "suricata-common.h"
@@ -61,25 +57,6 @@
 #define DEFAULT_LOG_FILENAME "alert-debug.log"
 
 #define MODULE_NAME "AlertDebugLog"
-
-TmEcode AlertDebugLog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode AlertDebugLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode AlertDebugLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode AlertDebugLogThreadInit(ThreadVars *, void*, void **);
-TmEcode AlertDebugLogThreadDeinit(ThreadVars *, void *);
-void AlertDebugLogExitPrintStats(ThreadVars *, void *);
-
-void TmModuleAlertDebugLogRegister (void) {
-    tmm_modules[TMM_ALERTDEBUGLOG].name = MODULE_NAME;
-    tmm_modules[TMM_ALERTDEBUGLOG].ThreadInit = AlertDebugLogThreadInit;
-    tmm_modules[TMM_ALERTDEBUGLOG].Func = AlertDebugLog;
-    tmm_modules[TMM_ALERTDEBUGLOG].ThreadExitPrintStats = AlertDebugLogExitPrintStats;
-    tmm_modules[TMM_ALERTDEBUGLOG].ThreadDeinit = AlertDebugLogThreadDeinit;
-    tmm_modules[TMM_ALERTDEBUGLOG].RegisterTests = NULL;
-    tmm_modules[TMM_ALERTDEBUGLOG].cap_flags = 0;
-
-    OutputRegisterModule(MODULE_NAME, "alert-debug", AlertDebugLogInitCtx);
-}
 
 typedef struct AlertDebugLogThread_ {
     LogFileCtx *file_ctx;
@@ -183,7 +160,7 @@ static int AlertDebugPrintStreamSegmentCallback(const Packet *p, void *data, uin
 
 
 
-TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
     int i;
@@ -350,7 +327,7 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     return TM_ECODE_OK;
 }
 
-TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
     int i;
@@ -413,7 +390,7 @@ TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQ
     return TM_ECODE_OK;
 }
 
-TmEcode AlertDebugLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode AlertDebugLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     if (PKT_IS_IPV4(p)) {
         return AlertDebugLogger(tv, p, data, pq, postpq);
@@ -426,7 +403,7 @@ TmEcode AlertDebugLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     return TM_ECODE_OK;
 }
 
-TmEcode AlertDebugLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode AlertDebugLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     AlertDebugLogThread *aft = SCMalloc(sizeof(AlertDebugLogThread));
     if (unlikely(aft == NULL))
@@ -453,7 +430,7 @@ TmEcode AlertDebugLogThreadInit(ThreadVars *t, void *initdata, void **data)
     return TM_ECODE_OK;
 }
 
-TmEcode AlertDebugLogThreadDeinit(ThreadVars *t, void *data)
+static TmEcode AlertDebugLogThreadDeinit(ThreadVars *t, void *data)
 {
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
     if (aft == NULL) {
@@ -468,7 +445,7 @@ TmEcode AlertDebugLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void AlertDebugLogExitPrintStats(ThreadVars *tv, void *data) {
+static void AlertDebugLogExitPrintStats(ThreadVars *tv, void *data) {
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
     if (aft == NULL) {
         return;
@@ -495,7 +472,7 @@ static void AlertDebugLogDeInitCtx(OutputCtx *output_ctx)
  *
  *  \return output_ctx if succesful, NULL otherwise
  */
-OutputCtx *AlertDebugLogInitCtx(ConfNode *conf)
+static OutputCtx *AlertDebugLogInitCtx(ConfNode *conf)
 {
     LogFileCtx *file_ctx = NULL;
 
@@ -526,4 +503,16 @@ error:
     }
 
     return NULL;
+}
+
+void TmModuleAlertDebugLogRegister (void) {
+    tmm_modules[TMM_ALERTDEBUGLOG].name = MODULE_NAME;
+    tmm_modules[TMM_ALERTDEBUGLOG].ThreadInit = AlertDebugLogThreadInit;
+    tmm_modules[TMM_ALERTDEBUGLOG].Func = AlertDebugLog;
+    tmm_modules[TMM_ALERTDEBUGLOG].ThreadExitPrintStats = AlertDebugLogExitPrintStats;
+    tmm_modules[TMM_ALERTDEBUGLOG].ThreadDeinit = AlertDebugLogThreadDeinit;
+    tmm_modules[TMM_ALERTDEBUGLOG].RegisterTests = NULL;
+    tmm_modules[TMM_ALERTDEBUGLOG].cap_flags = 0;
+
+    OutputRegisterModule(MODULE_NAME, "alert-debug", AlertDebugLogInitCtx);
 }
