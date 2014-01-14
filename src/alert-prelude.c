@@ -162,7 +162,7 @@ static int SetupAnalyzer(idmef_analyzer_t *analyzer)
  *
  * \return 0 if ok
  */
-static int EventToImpact(PacketAlert *pa, Packet *p, idmef_alert_t *alert)
+static int EventToImpact(const PacketAlert *pa, const Packet *p, idmef_alert_t *alert)
 {
     int ret;
     prelude_string_t *str;
@@ -223,7 +223,7 @@ static int EventToImpact(PacketAlert *pa, Packet *p, idmef_alert_t *alert)
  *
  * \return 0 if ok
  */
-static int EventToSourceTarget(Packet *p, idmef_alert_t *alert)
+static int EventToSourceTarget(const Packet *p, idmef_alert_t *alert)
 {
     int ret;
     idmef_node_t *node;
@@ -404,7 +404,7 @@ static int AddIntData(idmef_alert_t *alert, const char *meaning, uint32_t data)
  *
  * \return 0 if ok
  */
-static int PacketToDataV4(Packet *p, PacketAlert *pa, idmef_alert_t *alert)
+static int PacketToDataV4(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
 {
     SCEnter();
 
@@ -431,7 +431,7 @@ static int PacketToDataV4(Packet *p, PacketAlert *pa, idmef_alert_t *alert)
  *
  * \return 0 if ok
  */
-static int PacketToDataV6(Packet *p, PacketAlert *pa, idmef_alert_t *alert)
+static int PacketToDataV6(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
 {
     return 0;
 }
@@ -444,7 +444,7 @@ static int PacketToDataV6(Packet *p, PacketAlert *pa, idmef_alert_t *alert)
  *
  * \return 0 if ok
  */
-static int PacketToData(Packet *p, PacketAlert *pa, idmef_alert_t *alert, AlertPreludeCtx *ctx)
+static int PacketToData(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert, AlertPreludeCtx *ctx)
 {
     SCEnter();
 
@@ -557,7 +557,7 @@ static int AddSnortReference(idmef_classification_t *class, int gen_id, int sig_
  *
  * \return 0 if ok
  */
-static int EventToReference(PacketAlert *pa, Packet *p, idmef_classification_t *class)
+static int EventToReference(const PacketAlert *pa, const Packet *p, idmef_classification_t *class)
 {
     int ret;
     prelude_string_t *str;
@@ -591,126 +591,6 @@ static int PreludePrintStreamSegmentCallback(const Packet *p, void *data, uint8_
         return 1;
     else
         return -1;
-}
-
-
-/**
- * \brief Handle Suricata alert: convert it to and IDMEF alert (see RFC 4765)
- * and send it asynchronously (so, this function does not block and returns
- * immediately).
- * If the destination Prelude Manager is not available, the alert is spooled
- * (and the function also returns immediately).
- * An IDMEF object is created, and all available information is added: IP packet
- * header and data, rule signature ID, additional data like URL pointing to
- * rule description, CVE, etc.
- * The IDMEF alert has a reference to all created objects, so freeing it will
- * automatically free all allocated memory.
- *
- * \note This function is thread safe.
- *
- * \return TM_ECODE_OK if ok, else TM_ECODE_FAILED
- */
-static TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    AlertPreludeThread *apn = (AlertPreludeThread *)data;
-    int ret;
-    idmef_time_t *time;
-    idmef_alert_t *alert;
-    prelude_string_t *str;
-    idmef_message_t *idmef = NULL;
-    idmef_classification_t *class;
-    PacketAlert *pa;
-
-    SCEnter();
-
-    if (apn == NULL || apn->ctx == NULL) {
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-
-    if (p->alerts.cnt == 0)
-        SCReturnInt(TM_ECODE_OK);
-
-    if ( !IPH_IS_VALID(p) )
-        SCReturnInt(TM_ECODE_OK);
-
-    /* XXX which one to add to this alert? Lets see how Snort solves this.
-     * For now just take last alert. */
-    pa = &p->alerts.alerts[p->alerts.cnt-1];
-    if (pa->s == NULL)
-        goto err;
-
-    ret = idmef_message_new(&idmef);
-    if ( ret < 0 )
-        SCReturnInt(TM_ECODE_FAILED);
-
-    ret = idmef_message_new_alert(idmef, &alert);
-    if ( ret < 0 )
-        goto err;
-
-    ret = idmef_alert_new_classification(alert, &class);
-    if ( ret < 0 )
-        goto err;
-
-    if (pa->s->msg) {
-        ret = idmef_classification_new_text(class, &str);
-        if ( ret < 0 )
-            goto err;
-
-        prelude_string_set_ref(str, pa->s->msg);
-    }
-
-    ret = EventToImpact(pa, p, alert);
-    if ( ret < 0 )
-        goto err;
-
-    ret = EventToReference(pa, p, class);
-    if ( ret < 0 )
-        goto err;
-
-    ret = EventToSourceTarget(p, alert);
-    if ( ret < 0 )
-        goto err;
-
-    ret = PacketToData(p, pa, alert, apn->ctx);
-    if ( ret < 0 )
-        goto err;
-
-    if (PKT_IS_TCP(p) && (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH)) {
-        uint8_t flag;
-        if (p->flowflags & FLOW_PKT_TOSERVER) {
-            flag = FLOW_PKT_TOCLIENT;
-        } else {
-            flag = FLOW_PKT_TOSERVER;
-        }
-        ret = StreamSegmentForEach(p, flag,
-                                   PreludePrintStreamSegmentCallback,
-                                   (void *)alert);
-    }
-    if (ret < 0)
-        goto err;
-
-    ret = idmef_alert_new_detect_time(alert, &time);
-    if ( ret < 0 )
-        goto err;
-    idmef_time_set_from_timeval(time, &p->ts);
-
-    ret = idmef_time_new_from_gettimeofday(&time);
-    if ( ret < 0 )
-        goto err;
-    idmef_alert_set_create_time(alert, time);
-
-    idmef_alert_set_analyzer(alert, idmef_analyzer_ref(prelude_client_get_analyzer(apn->ctx->client)), IDMEF_LIST_PREPEND);
-
-    /* finally, send event */
-    prelude_client_send_idmef(apn->ctx->client, idmef);
-    idmef_message_destroy(idmef);
-
-    SCReturnInt(TM_ECODE_OK);
-
-err:
-    if (idmef != NULL)
-        idmef_message_destroy(idmef);
-    SCReturnInt(TM_ECODE_FAILED);
 }
 
 /**
@@ -860,14 +740,142 @@ static OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     SCReturnPtr((void*)output_ctx, "OutputCtx");
 }
 
+static int AlertPreludeCondition(ThreadVars *tv, const Packet *p) {
+    if (p->alerts.cnt == 0)
+        return FALSE;
+    if (!IPH_IS_VALID(p))
+        return FALSE;
+    return TRUE;
+}
+
+/**
+ * \brief Handle Suricata alert: convert it to and IDMEF alert (see RFC 4765)
+ * and send it asynchronously (so, this function does not block and returns
+ * immediately).
+ * If the destination Prelude Manager is not available, the alert is spooled
+ * (and the function also returns immediately).
+ * An IDMEF object is created, and all available information is added: IP packet
+ * header and data, rule signature ID, additional data like URL pointing to
+ * rule description, CVE, etc.
+ * The IDMEF alert has a reference to all created objects, so freeing it will
+ * automatically free all allocated memory.
+ *
+ * \note This function is thread safe.
+ *
+ * \return TM_ECODE_OK if ok, else TM_ECODE_FAILED
+ */
+static int AlertPreludeLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
+    AlertPreludeThread *apn = (AlertPreludeThread *)thread_data;
+    int ret;
+    idmef_time_t *time;
+    idmef_alert_t *alert;
+    prelude_string_t *str;
+    idmef_message_t *idmef = NULL;
+    idmef_classification_t *class;
+    const PacketAlert *pa;
+
+    SCEnter();
+
+    if (apn == NULL || apn->ctx == NULL) {
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    if (p->alerts.cnt == 0)
+        SCReturnInt(TM_ECODE_OK);
+
+    if ( !IPH_IS_VALID(p) )
+        SCReturnInt(TM_ECODE_OK);
+
+    /* XXX which one to add to this alert? Lets see how Snort solves this.
+     * For now just take last alert. */
+    pa = &p->alerts.alerts[p->alerts.cnt-1];
+    if (pa->s == NULL)
+        goto err;
+
+    ret = idmef_message_new(&idmef);
+    if ( ret < 0 )
+        SCReturnInt(TM_ECODE_FAILED);
+
+    ret = idmef_message_new_alert(idmef, &alert);
+    if ( ret < 0 )
+        goto err;
+
+    ret = idmef_alert_new_classification(alert, &class);
+    if ( ret < 0 )
+        goto err;
+
+    if (pa->s->msg) {
+        ret = idmef_classification_new_text(class, &str);
+        if ( ret < 0 )
+            goto err;
+
+        prelude_string_set_ref(str, pa->s->msg);
+    }
+
+    ret = EventToImpact(pa, p, alert);
+    if ( ret < 0 )
+        goto err;
+
+    ret = EventToReference(pa, p, class);
+    if ( ret < 0 )
+        goto err;
+
+    ret = EventToSourceTarget(p, alert);
+    if ( ret < 0 )
+        goto err;
+
+    ret = PacketToData(p, pa, alert, apn->ctx);
+    if ( ret < 0 )
+        goto err;
+
+    if (PKT_IS_TCP(p) && (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH)) {
+        uint8_t flag;
+        if (p->flowflags & FLOW_PKT_TOSERVER) {
+            flag = FLOW_PKT_TOCLIENT;
+        } else {
+            flag = FLOW_PKT_TOSERVER;
+        }
+        ret = StreamSegmentForEach(p, flag,
+                                   PreludePrintStreamSegmentCallback,
+                                   (void *)alert);
+    }
+    if (ret < 0)
+        goto err;
+
+    ret = idmef_alert_new_detect_time(alert, &time);
+    if ( ret < 0 )
+        goto err;
+    idmef_time_set_from_timeval(time, &p->ts);
+
+    ret = idmef_time_new_from_gettimeofday(&time);
+    if ( ret < 0 )
+        goto err;
+    idmef_alert_set_create_time(alert, time);
+
+    idmef_alert_set_analyzer(alert, idmef_analyzer_ref(prelude_client_get_analyzer(apn->ctx->client)), IDMEF_LIST_PREPEND);
+
+    /* finally, send event */
+    prelude_client_send_idmef(apn->ctx->client, idmef);
+    idmef_message_destroy(idmef);
+
+    SCReturnInt(TM_ECODE_OK);
+
+err:
+    if (idmef != NULL)
+        idmef_message_destroy(idmef);
+    SCReturnInt(TM_ECODE_FAILED);
+
+}
+
 void TmModuleAlertPreludeRegister (void) {
     tmm_modules[TMM_ALERTPRELUDE].name = "AlertPrelude";
     tmm_modules[TMM_ALERTPRELUDE].ThreadInit = AlertPreludeThreadInit;
-    tmm_modules[TMM_ALERTPRELUDE].Func = AlertPrelude;
+    tmm_modules[TMM_ALERTPRELUDE].Func = NULL;
     tmm_modules[TMM_ALERTPRELUDE].ThreadDeinit = AlertPreludeThreadDeinit;
     tmm_modules[TMM_ALERTPRELUDE].cap_flags = 0;
 
-    OutputRegisterModule("AlertPrelude", "alert-prelude", AlertPreludeInitCtx);
+    OutputRegisterPacketModule("AlertPrelude", "alert-prelude", AlertPreludeInitCtx,
+            AlertPreludeLogger, AlertPreludeCondition);
 }
 #endif /* PRELUDE */
 
