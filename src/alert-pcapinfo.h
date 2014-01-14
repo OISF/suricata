@@ -25,6 +25,5 @@
 #define __ALERT_PCAPINFO_H__
 
 void TmModuleAlertPcapInfoRegister (void);
-OutputCtx *AlertPcapInfoInitCtx(ConfNode *);
 
 #endif /* __ALERT_PCAPINFO_H__ */
