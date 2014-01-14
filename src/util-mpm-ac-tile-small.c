@@ -25,6 +25,10 @@
  *
  */
 
+/* Only included into util-mpm-ac-tile.c, which defines FUNC_NAME
+ *
+ */
+#ifdef FUNC_NAME
 // Hint to compiler to expect L2 hit latency for Load int16_t
 #undef SLOAD
 #define SLOAD(x) __insn_ld2s_L2((STYPE* restrict)(x))
@@ -93,3 +97,5 @@ uint32_t FUNC_NAME(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
 
     return matches;
 }
+
+#endif /* FUNC_NAME */
