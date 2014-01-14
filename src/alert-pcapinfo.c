@@ -69,33 +69,6 @@ typedef struct AlertPcapInfoThread_ {
     LogFileCtx* file_ctx;
 } AlertPcapInfoThread;
 
-static TmEcode AlertPcapInfo (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    AlertPcapInfoThread *aft = (AlertPcapInfoThread *)data;
-    int i;
-
-
-    /* logging is useless if we don't have pcap number */
-    if ((p->pcap_cnt != 0) && (p->alerts.cnt > 0)) {
-        SCMutexLock(&aft->file_ctx->fp_mutex);
-        /* only count logged alert */
-        aft->file_ctx->alerts += p->alerts.cnt;
-        for (i = 0; i < p->alerts.cnt; i++) {
-            PacketAlert *pa = &p->alerts.alerts[i];
-
-            fprintf(aft->file_ctx->fp, "%" PRIu64 ":%" PRIu32 ":%" PRIu32 ":%d:%d:%d:%d:0:0:%s\n",
-                    p->pcap_cnt, pa->s->gid, pa->s->id, pa->s->rev,
-                    pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_STREAM_MATCH) ? 1 : 0,
-                    p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0,
-                    p->flowflags & FLOW_PKT_TOCLIENT ? 1 : 0,
-                    pa->s->msg);
-        }
-        SCMutexUnlock(&aft->file_ctx->fp_mutex);
-    }
-
-    return TM_ECODE_OK;
-}
-
 static TmEcode AlertPcapInfoThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     AlertPcapInfoThread *aft = SCMalloc(sizeof(AlertPcapInfoThread));
@@ -213,14 +186,44 @@ static OutputCtx *AlertPcapInfoInitCtx(ConfNode *conf)
     return output_ctx;
 }
 
+static int AlertPcapInfoCondition(ThreadVars *tv, const Packet *p) {
+    return ((p->pcap_cnt != 0 && p->alerts.cnt > 0) ? TRUE : FALSE);
+}
+
+static int AlertPcapInfoLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
+    AlertPcapInfoThread *aft = (AlertPcapInfoThread *)thread_data;
+    int i;
+
+    /* logging is useless if we don't have pcap number */
+    if ((p->pcap_cnt != 0) && (p->alerts.cnt > 0)) {
+        SCMutexLock(&aft->file_ctx->fp_mutex);
+        /* only count logged alert */
+        aft->file_ctx->alerts += p->alerts.cnt;
+        for (i = 0; i < p->alerts.cnt; i++) {
+            const PacketAlert *pa = &p->alerts.alerts[i];
+
+            fprintf(aft->file_ctx->fp, "%" PRIu64 ":%" PRIu32 ":%" PRIu32 ":%d:%d:%d:%d:0:0:%s\n",
+                    p->pcap_cnt, pa->s->gid, pa->s->id, pa->s->rev,
+                    pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_STREAM_MATCH) ? 1 : 0,
+                    p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0,
+                    p->flowflags & FLOW_PKT_TOCLIENT ? 1 : 0,
+                    pa->s->msg);
+        }
+        SCMutexUnlock(&aft->file_ctx->fp_mutex);
+    }
+
+    return 0;
+}
+
 void TmModuleAlertPcapInfoRegister (void) {
     tmm_modules[TMM_ALERTPCAPINFO].name = MODULE_NAME;
     tmm_modules[TMM_ALERTPCAPINFO].ThreadInit = AlertPcapInfoThreadInit;
-    tmm_modules[TMM_ALERTPCAPINFO].Func = AlertPcapInfo;
+    tmm_modules[TMM_ALERTPCAPINFO].Func = NULL;
     tmm_modules[TMM_ALERTPCAPINFO].ThreadExitPrintStats = AlertPcapInfoExitPrintStats;
     tmm_modules[TMM_ALERTPCAPINFO].ThreadDeinit = AlertPcapInfoThreadDeinit;
     tmm_modules[TMM_ALERTPCAPINFO].RegisterTests = NULL;
     tmm_modules[TMM_ALERTPCAPINFO].cap_flags = 0;
 
-    OutputRegisterModule(MODULE_NAME, "pcap-info", AlertPcapInfoInitCtx);
+    OutputRegisterPacketModule(MODULE_NAME, "pcap-info",
+        AlertPcapInfoInitCtx, AlertPcapInfoLogger, AlertPcapInfoCondition);
 }
