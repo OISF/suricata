@@ -71,9 +71,9 @@ typedef struct AlertDebugLogThread_ {
  *  \param p Pointer to the packet
  *
  */
-static void AlertDebugLogFlowVars(AlertDebugLogThread *aft, Packet *p)
+static void AlertDebugLogFlowVars(AlertDebugLogThread *aft, const Packet *p)
 {
-    GenericVar *gv = p->flow->flowvar;
+    const GenericVar *gv = p->flow->flowvar;
     uint16_t i;
     while (gv != NULL) {
         if (gv->type == DETECT_FLOWVAR || gv->type == DETECT_FLOWINT) {
@@ -106,6 +106,8 @@ static void AlertDebugLogFlowVars(AlertDebugLogThread *aft, Packet *p)
  *  \param aft Pointer to AltertDebugLog Thread
  *  \param p Pointer to the packet
  *
+ *  \todo const Packet ptr, requires us to change the
+ *        debuglog_flowbits_names logic.
  */
 static void AlertDebugLogFlowBits(AlertDebugLogThread *aft, Packet *p)
 {
@@ -131,9 +133,9 @@ static void AlertDebugLogFlowBits(AlertDebugLogThread *aft, Packet *p)
  *  \param p Pointer to the packet
  *
  */
-static void AlertDebugLogPktVars(AlertDebugLogThread *aft, Packet *p)
+static void AlertDebugLogPktVars(AlertDebugLogThread *aft, const Packet *p)
 {
-    PktVar *pv = p->pktvar;
+    const PktVar *pv = p->pktvar;
 
     while(pv != NULL) {
         MemBufferWriteString(aft->buffer, "PKTVAR:            %s\n", pv->name);
@@ -160,7 +162,7 @@ static int AlertDebugPrintStreamSegmentCallback(const Packet *p, void *data, uin
 
 
 
-static TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
     int i;
@@ -236,7 +238,7 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQue
                              p->flow->flags & FLOW_NO_APPLAYER_INSPECTION ? "TRUE" : "FALSE",
                              (p->flow->alproto != ALPROTO_UNKNOWN) ? "TRUE" : "FALSE", p->flow->alproto);
         AlertDebugLogFlowVars(aft, p);
-        AlertDebugLogFlowBits(aft, p);
+        AlertDebugLogFlowBits(aft, (Packet *)p); /* < no const */
         FLOWLOCK_UNLOCK(p->flow);
     }
 
@@ -256,7 +258,7 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQue
                          p->alerts.cnt);
 
     for (i = 0; i < p->alerts.cnt; i++) {
-        PacketAlert *pa = &p->alerts.alerts[i];
+        const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
             continue;
         }
@@ -327,7 +329,7 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQue
     return TM_ECODE_OK;
 }
 
-static TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, const Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
     int i;
@@ -354,7 +356,7 @@ static TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, 
                          "ALERT CNT:         %" PRIu32 "\n", p->alerts.cnt);
 
     for (i = 0; i < p->alerts.cnt; i++) {
-        PacketAlert *pa = &p->alerts.alerts[i];
+        const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
             continue;
         }
@@ -386,19 +388,6 @@ static TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, 
     fflush(aft->file_ctx->fp);
     aft->file_ctx->alerts += p->alerts.cnt;
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
-
-    return TM_ECODE_OK;
-}
-
-static TmEcode AlertDebugLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    if (PKT_IS_IPV4(p)) {
-        return AlertDebugLogger(tv, p, data, pq, postpq);
-    } else if (PKT_IS_IPV6(p)) {
-        return AlertDebugLogger(tv, p, data, pq, postpq);
-    } else if (p->events.cnt > 0) {
-        return AlertDebugLogDecoderEvent(tv, p, data, pq, postpq);
-    }
 
     return TM_ECODE_OK;
 }
@@ -505,14 +494,30 @@ error:
     return NULL;
 }
 
+static int AlertDebugLogCondition(ThreadVars *tv, const Packet *p) {
+    return (p->alerts.cnt ? TRUE : FALSE);
+}
+
+static int AlertDebugLogLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
+    if (PKT_IS_IPV4(p)) {
+        return AlertDebugLogger(tv, p, thread_data, NULL, NULL);
+    } else if (PKT_IS_IPV6(p)) {
+        return AlertDebugLogger(tv, p, thread_data, NULL, NULL);
+    } else if (p->events.cnt > 0) {
+        return AlertDebugLogDecoderEvent(tv, p, thread_data, NULL, NULL);
+    }
+    return TM_ECODE_OK;
+}
+
 void TmModuleAlertDebugLogRegister (void) {
     tmm_modules[TMM_ALERTDEBUGLOG].name = MODULE_NAME;
     tmm_modules[TMM_ALERTDEBUGLOG].ThreadInit = AlertDebugLogThreadInit;
-    tmm_modules[TMM_ALERTDEBUGLOG].Func = AlertDebugLog;
+    tmm_modules[TMM_ALERTDEBUGLOG].Func = NULL;
     tmm_modules[TMM_ALERTDEBUGLOG].ThreadExitPrintStats = AlertDebugLogExitPrintStats;
     tmm_modules[TMM_ALERTDEBUGLOG].ThreadDeinit = AlertDebugLogThreadDeinit;
     tmm_modules[TMM_ALERTDEBUGLOG].RegisterTests = NULL;
     tmm_modules[TMM_ALERTDEBUGLOG].cap_flags = 0;
 
-    OutputRegisterModule(MODULE_NAME, "alert-debug", AlertDebugLogInitCtx);
+    OutputRegisterPacketModule(MODULE_NAME, "alert-debug",
+        AlertDebugLogInitCtx, AlertDebugLogLogger, AlertDebugLogCondition);
 }
