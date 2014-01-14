@@ -3317,7 +3317,7 @@ int HTPParserTest07(void) {
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
             goto end;
         }
 
@@ -3665,7 +3665,7 @@ static int HTPParserTest11(void) {
     if (tx != NULL && tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (4 != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be 2, is %"PRIuMAX,
-                   bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
             goto end;
         }
 
@@ -3749,7 +3749,7 @@ static int HTPParserTest12(void) {
     if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
         if (7 != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be 5, is %"PRIuMAX,
-                   bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
             goto end;
         }
 
@@ -4441,7 +4441,7 @@ libhtp:\n\
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
             goto end;
         }
 
@@ -4468,7 +4468,7 @@ libhtp:\n\
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
             goto end;
         }
 
@@ -4494,7 +4494,7 @@ libhtp:\n\
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
             goto end;
         }
 
@@ -4612,7 +4612,7 @@ libhtp:\n\
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
             goto end;
         }
 
@@ -4639,7 +4639,7 @@ libhtp:\n\
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
             goto end;
         }
 
@@ -4665,7 +4665,7 @@ libhtp:\n\
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX" (3): ",
                    (uintmax_t)reflen,
-                   bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
             goto end;
         }
 
@@ -4781,7 +4781,7 @@ libhtp:\n\
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
             goto end;
         }
 
@@ -4808,7 +4808,7 @@ libhtp:\n\
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
             goto end;
         }
 
@@ -4920,7 +4920,7 @@ libhtp:\n\
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
             goto end;
         }
 
@@ -5032,7 +5032,7 @@ libhtp:\n\
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
             goto end;
         }
 
@@ -5144,7 +5144,7 @@ libhtp:\n\
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
             goto end;
         }
 
@@ -5257,7 +5257,7 @@ libhtp:\n\
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
             goto end;
         }
 
@@ -5367,7 +5367,7 @@ libhtp:\n\
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
             goto end;
         }
 
@@ -5478,7 +5478,7 @@ libhtp:\n\
         if (reflen != bstr_len(tx_ud->request_uri_normalized)) {
             printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
                    (uintmax_t)reflen,
-                   bstr_len(tx_ud->request_uri_normalized));
+                   (uintmax_t)bstr_len(tx_ud->request_uri_normalized));
             goto end;
         }
 
