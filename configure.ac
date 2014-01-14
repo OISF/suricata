@@ -373,7 +373,7 @@
     ])
 
     AC_ARG_ENABLE(coccinelle,
-           AS_HELP_STRING([--disable-coccinelle], [Disable coccinelle QA steps during make check])],,[enable_coccinelle=yes])
+           AS_HELP_STRING([--disable-coccinelle], [Disable coccinelle QA steps during make check])],[enable_coccinelle="$enableval"],[enable_coccinelle=yes])
     AS_IF([test "x$enable_coccinelle" = "xyes"], [
         AC_PATH_PROG(HAVE_COCCINELLE_CONFIG, spatch, "no")
         if test "$HAVE_COCCINELLE_CONFIG" = "no"; then
@@ -381,6 +381,7 @@
             echo "   able to run code checking with coccinelle  "
             echo "   get it from http://coccinelle.lip6.fr      "
             echo "   or install from your distribution          "
+            enable_coccinelle=no
         fi
     ])
     AM_CONDITIONAL([HAVE_COCCINELLE], [test "x$enable_coccinelle" != "xno"])
