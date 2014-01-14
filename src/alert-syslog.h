@@ -28,8 +28,6 @@
 #define __ALERT_SYSLOG_H__
 
 void TmModuleAlertSyslogRegister (void);
-void TmModuleAlertSyslogIPv4Register (void);
-void TmModuleAlertSyslogIPv6Register (void);
 
 #endif /* __ALERT_SYSLOG_H__ */
 

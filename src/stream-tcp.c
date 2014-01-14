@@ -5394,7 +5394,7 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(Packet *p, TcpSession *ssn, Pack
  * \return -1 in case of error, the number of segment in case of success
  *
  */
-int StreamTcpSegmentForEach(Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data)
+int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data)
 {
     TcpSession *ssn = NULL;
     TcpStream *stream = NULL;
