@@ -365,11 +365,12 @@ static TmEcode LogFilestoreLogWrap(ThreadVars *tv, Packet *p, void *data, Packet
 
                 if (file_trunc && ff->state < FILE_STATE_CLOSED)
                     ff->state = FILE_STATE_TRUNCATED;
+                if (file_close && ff->state < FILE_STATE_CLOSED)
+                    ff->state = FILE_STATE_TRUNCATED;
 
                 if (ff->state == FILE_STATE_CLOSED ||
                     ff->state == FILE_STATE_TRUNCATED ||
-                    ff->state == FILE_STATE_ERROR ||
-                    (file_close == 1 && ff->state < FILE_STATE_CLOSED))
+                    ff->state == FILE_STATE_ERROR)
                 {
                     if (ffd->next == NULL) {
                         LogFilestoreLogCloseMetaFile(ff);
