@@ -62,30 +62,6 @@
 
 #define DEFAULT_LOG_FILENAME "files-json.log"
 
-TmEcode LogFileLog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogFileLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogFileLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogFileLogThreadInit(ThreadVars *, void *, void **);
-TmEcode LogFileLogThreadDeinit(ThreadVars *, void *);
-void LogFileLogExitPrintStats(ThreadVars *, void *);
-int LogFileLogOpenFileCtx(LogFileCtx* , const char *, const char *);
-static OutputCtx *LogFileLogInitCtx(ConfNode *);
-static void LogFileLogDeInitCtx(OutputCtx *);
-
-void TmModuleLogFileLogRegister (void) {
-    tmm_modules[TMM_FILELOG].name = MODULE_NAME;
-    tmm_modules[TMM_FILELOG].ThreadInit = LogFileLogThreadInit;
-    tmm_modules[TMM_FILELOG].Func = LogFileLog;
-    tmm_modules[TMM_FILELOG].ThreadExitPrintStats = LogFileLogExitPrintStats;
-    tmm_modules[TMM_FILELOG].ThreadDeinit = LogFileLogThreadDeinit;
-    tmm_modules[TMM_FILELOG].RegisterTests = NULL;
-    tmm_modules[TMM_FILELOG].cap_flags = 0;
-
-    OutputRegisterModule(MODULE_NAME, "file-log", LogFileLogInitCtx);
-
-    SCLogDebug("registered");
-}
-
 typedef struct LogFileLogThread_ {
     LogFileCtx *file_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
@@ -331,15 +307,15 @@ static TmEcode LogFileLogWrap(ThreadVars *tv, Packet *p, void *data, PacketQueue
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
+static TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
     return LogFileLogWrap(tv, p, data, NULL, NULL, AF_INET);
 }
 
-TmEcode LogFileLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
+static TmEcode LogFileLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
     return LogFileLogWrap(tv, p, data, NULL, NULL, AF_INET6);
 }
 
-TmEcode LogFileLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode LogFileLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     SCEnter();
     int r = TM_ECODE_OK;
@@ -364,7 +340,7 @@ TmEcode LogFileLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
     SCReturnInt(r);
 }
 
-TmEcode LogFileLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode LogFileLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     LogFileLogThread *aft = SCMalloc(sizeof(LogFileLogThread));
     if (unlikely(aft == NULL))
@@ -406,6 +382,20 @@ void LogFileLogExitPrintStats(ThreadVars *tv, void *data) {
     }
 
     SCLogInfo("(%s) Files logged: %" PRIu32 "", tv->name, aft->file_cnt);
+}
+
+/**
+ *  \internal
+ *
+ *  \brief deinit the log ctx and write out the waldo
+ *
+ *  \param output_ctx output context to deinit
+ */
+static void LogFileLogDeInitCtx(OutputCtx *output_ctx)
+{
+    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+    LogFileFreeCtx(logfile_ctx);
+    free(output_ctx);
 }
 
 /** \brief Create a new http log LogFileCtx.
@@ -452,20 +442,6 @@ static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
     SCReturnPtr(output_ctx, "OutputCtx");
 }
 
-/**
- *  \internal
- *
- *  \brief deinit the log ctx and write out the waldo
- *
- *  \param output_ctx output context to deinit
- */
-static void LogFileLogDeInitCtx(OutputCtx *output_ctx)
-{
-    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
-    LogFileFreeCtx(logfile_ctx);
-    free(output_ctx);
-}
-
 /** \brief Read the config set the file pointer, open the file
  *  \param file_ctx pointer to a created LogFileCtx using LogFileNewCtx()
  *  \param config_file for loading separate configs
@@ -475,4 +451,18 @@ int LogFileLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const
                             char *mode)
 {
     return 0;
+}
+
+void TmModuleLogFileLogRegister (void) {
+    tmm_modules[TMM_FILELOG].name = MODULE_NAME;
+    tmm_modules[TMM_FILELOG].ThreadInit = LogFileLogThreadInit;
+    tmm_modules[TMM_FILELOG].Func = LogFileLog;
+    tmm_modules[TMM_FILELOG].ThreadExitPrintStats = LogFileLogExitPrintStats;
+    tmm_modules[TMM_FILELOG].ThreadDeinit = LogFileLogThreadDeinit;
+    tmm_modules[TMM_FILELOG].RegisterTests = NULL;
+    tmm_modules[TMM_FILELOG].cap_flags = 0;
+
+    OutputRegisterModule(MODULE_NAME, "file-log", LogFileLogInitCtx);
+
+    SCLogDebug("registered");
 }
