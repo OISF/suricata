@@ -214,6 +214,7 @@ log-httplog.c log-httplog.h \
 log-pcap.c log-pcap.h \
 log-tlslog.c log-tlslog.h \
 output.c output.h \
+output-file.c output-file.h \
 output-packet.c output-packet.h \
 output-tx.c output-tx.h \
 packet-queue.c packet-queue.h \
