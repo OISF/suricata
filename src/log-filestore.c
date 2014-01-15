@@ -58,36 +58,9 @@
 
 #define MODULE_NAME "LogFilestoreLog"
 
-TmEcode LogFilestoreLog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogFilestoreLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogFilestoreLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogFilestoreLogThreadInit(ThreadVars *, void *, void **);
-TmEcode LogFilestoreLogThreadDeinit(ThreadVars *, void *);
-void LogFilestoreLogExitPrintStats(ThreadVars *, void *);
-int LogFilestoreLogOpenFileCtx(LogFileCtx* , const char *, const char *);
-static OutputCtx *LogFilestoreLogInitCtx(ConfNode *);
-static void LogFilestoreLogDeInitCtx(OutputCtx *);
-
 SC_ATOMIC_DECLARE(unsigned int, file_id);
 static char g_logfile_base_dir[PATH_MAX] = "/tmp";
 static char g_waldo[PATH_MAX] = "";
-
-void TmModuleLogFilestoreRegister (void) {
-    tmm_modules[TMM_FILESTORE].name = MODULE_NAME;
-    tmm_modules[TMM_FILESTORE].ThreadInit = LogFilestoreLogThreadInit;
-    tmm_modules[TMM_FILESTORE].Func = LogFilestoreLog;
-    tmm_modules[TMM_FILESTORE].ThreadExitPrintStats = LogFilestoreLogExitPrintStats;
-    tmm_modules[TMM_FILESTORE].ThreadDeinit = LogFilestoreLogThreadDeinit;
-    tmm_modules[TMM_FILESTORE].RegisterTests = NULL;
-    tmm_modules[TMM_FILESTORE].cap_flags = 0;
-
-    OutputRegisterModule(MODULE_NAME, "file", LogFilestoreLogInitCtx);
-    OutputRegisterModule(MODULE_NAME, "file-store", LogFilestoreLogInitCtx);
-
-    SCLogDebug("registered");
-
-    SC_ATOMIC_INIT(file_id);
-}
 
 typedef struct LogFilestoreLogThread_ {
     LogFileCtx *file_ctx;
@@ -390,15 +363,15 @@ static TmEcode LogFilestoreLogWrap(ThreadVars *tv, Packet *p, void *data, Packet
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode LogFilestoreLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
+static TmEcode LogFilestoreLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
     return LogFilestoreLogWrap(tv, p, data, NULL, NULL, AF_INET);
 }
 
-TmEcode LogFilestoreLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
+static TmEcode LogFilestoreLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
     return LogFilestoreLogWrap(tv, p, data, NULL, NULL, AF_INET6);
 }
 
-TmEcode LogFilestoreLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode LogFilestoreLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     SCEnter();
     int r = TM_ECODE_OK;
@@ -423,7 +396,7 @@ TmEcode LogFilestoreLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     SCReturnInt(r);
 }
 
-TmEcode LogFilestoreLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode LogFilestoreLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     LogFilestoreLogThread *aft = SCMalloc(sizeof(LogFilestoreLogThread));
     if (unlikely(aft == NULL))
@@ -463,7 +436,7 @@ TmEcode LogFilestoreLogThreadInit(ThreadVars *t, void *initdata, void **data)
     return TM_ECODE_OK;
 }
 
-TmEcode LogFilestoreLogThreadDeinit(ThreadVars *t, void *data)
+static TmEcode LogFilestoreLogThreadDeinit(ThreadVars *t, void *data)
 {
     LogFilestoreLogThread *aft = (LogFilestoreLogThread *)data;
     if (aft == NULL) {
@@ -477,7 +450,7 @@ TmEcode LogFilestoreLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void LogFilestoreLogExitPrintStats(ThreadVars *tv, void *data) {
+static void LogFilestoreLogExitPrintStats(ThreadVars *tv, void *data) {
     LogFilestoreLogThread *aft = (LogFilestoreLogThread *)data;
     if (aft == NULL) {
         return;
@@ -537,6 +510,24 @@ static void LogFilestoreLogStoreWaldo(const char *path) {
         SCLogError(SC_ERR_FWRITE, "fwrite failed: %s", strerror(errno));
     }
     fclose(fp);
+}
+
+/**
+ *  \internal
+ *
+ *  \brief deinit the log ctx and write out the waldo
+ *
+ *  \param output_ctx output context to deinit
+ */
+static void LogFilestoreLogDeInitCtx(OutputCtx *output_ctx)
+{
+    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+    LogFileFreeCtx(logfile_ctx);
+    free(output_ctx);
+
+    if (strlen(g_waldo) > 0) {
+        LogFilestoreLogStoreWaldo(g_waldo);
+    }
 }
 
 /** \brief Create a new http log LogFilestoreCtx.
@@ -608,31 +599,19 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
     SCReturnPtr(output_ctx, "OutputCtx");
 }
 
-/**
- *  \internal
- *
- *  \brief deinit the log ctx and write out the waldo
- *
- *  \param output_ctx output context to deinit
- */
-static void LogFilestoreLogDeInitCtx(OutputCtx *output_ctx)
-{
-    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
-    LogFileFreeCtx(logfile_ctx);
-    free(output_ctx);
+void TmModuleLogFilestoreRegister (void) {
+    tmm_modules[TMM_FILESTORE].name = MODULE_NAME;
+    tmm_modules[TMM_FILESTORE].ThreadInit = LogFilestoreLogThreadInit;
+    tmm_modules[TMM_FILESTORE].Func = LogFilestoreLog;
+    tmm_modules[TMM_FILESTORE].ThreadExitPrintStats = LogFilestoreLogExitPrintStats;
+    tmm_modules[TMM_FILESTORE].ThreadDeinit = LogFilestoreLogThreadDeinit;
+    tmm_modules[TMM_FILESTORE].RegisterTests = NULL;
+    tmm_modules[TMM_FILESTORE].cap_flags = 0;
 
-    if (strlen(g_waldo) > 0) {
-        LogFilestoreLogStoreWaldo(g_waldo);
-    }
-}
+    OutputRegisterModule(MODULE_NAME, "file", LogFilestoreLogInitCtx);
+    OutputRegisterModule(MODULE_NAME, "file-store", LogFilestoreLogInitCtx);
 
-/** \brief Read the config set the file pointer, open the file
- *  \param file_ctx pointer to a created LogFilestoreCtx using LogFilestoreNewCtx()
- *  \param config_file for loading separate configs
- *  \return -1 if failure, 0 if succesful
- * */
-int LogFilestoreLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const
-                            char *mode)
-{
-    return 0;
+    SCLogDebug("registered");
+
+    SC_ATOMIC_INIT(file_id);
 }
