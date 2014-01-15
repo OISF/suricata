@@ -122,8 +122,6 @@ static void LogQuery(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dst
             " [**] %s [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
             record, srcip, sp, dstip, dp);
 
-    aft->dns_cnt++;
-
     SCMutexLock(&hlog->file_ctx->fp_mutex);
     (void)MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
     fflush(hlog->file_ctx->fp);
@@ -184,46 +182,26 @@ static void LogAnswer(LogDnsLogThread *aft, char *timebuf, char *srcip, char *ds
             " [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
             srcip, sp, dstip, dp);
 
-    aft->dns_cnt++;
-
     SCMutexLock(&hlog->file_ctx->fp_mutex);
     (void)MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
     fflush(hlog->file_ctx->fp);
     SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 }
 
-static TmEcode LogDnsLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-                            PacketQueue *postpq, int ipproto)
+static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p, Flow *f,
+    void *state, void *tx, uint64_t tx_id)
 {
-    SCEnter();
-
     LogDnsLogThread *aft = (LogDnsLogThread *)data;
+    DNSTransaction *dns_tx = (DNSTransaction *)tx;
+    SCLogDebug("pcap_cnt %ju", p->pcap_cnt);
     char timebuf[64];
-
-    /* no flow, no htp state */
-    if (p->flow == NULL) {
-        SCLogDebug("no flow");
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    /* check if we have DNS state or not */
-    FLOWLOCK_WRLOCK(p->flow); /* WRITE lock before we updated flow logged id */
-    if (FlowGetAppProtocol(p->flow) != ALPROTO_DNS) {
-        SCLogDebug("proto not ALPROTO_DNS_UDP: %u", FlowGetAppProtocol(p->flow));
-        goto end;
-    }
-
-    DNSState *dns_state = (DNSState *)FlowGetAppState(p->flow);
-    if (dns_state == NULL) {
-        SCLogDebug("no dns state, so no request logging");
-        goto end;
-    }
-
-    uint64_t total_txs = AppLayerParserGetTxCnt(p->flow->proto, ALPROTO_DNS, dns_state);
-    uint64_t tx_id = AppLayerParserGetTransactionLogId(p->flow->alparser);
-
-    SCLogDebug("pcap_cnt %"PRIu64, p->pcap_cnt);
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+
+    int ipproto = 0;
+    if (PKT_IS_IPV4(p))
+        ipproto = AF_INET;
+    else if (PKT_IS_IPV6(p))
+        ipproto = AF_INET6;
 
     char srcip[46], dstip[46];
     Port sp, dp;
@@ -258,91 +236,30 @@ static TmEcode LogDnsLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQ
         sp = p->dp;
         dp = p->sp;
     }
-#if QUERY
-    if (PKT_IS_TOSERVER(p)) {
-        DNSTransaction *tx = NULL;
-        TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
-            DNSQueryEntry *entry = NULL;
-            TAILQ_FOREACH(entry, &tx->query_list, next) {
-                LogQuery(aft, timebuf, srcip, dstip, sp, dp, tx, entry);
-            }
-        }
-    } else
-#endif
 
-    DNSTransaction *tx = NULL;
-    for (; tx_id < total_txs; tx_id++)
-    {
-        tx = AppLayerParserGetTx(p->flow->proto, ALPROTO_DNS, dns_state, tx_id);
-        if (tx == NULL)
-            continue;
-
-        /* only consider toserver logging if tx has reply lost set */
-        if (PKT_IS_TOSERVER(p) && tx->reply_lost == 0)
-            continue;
-
-        DNSQueryEntry *query = NULL;
-        TAILQ_FOREACH(query, &tx->query_list, next) {
-            LogQuery(aft, timebuf, dstip, srcip, dp, sp, tx, query);
-        }
-
-        if (tx->no_such_name)
-            LogAnswer(aft, timebuf, srcip, dstip, sp, dp, tx, NULL);
-        if (tx->recursion_desired)
-            LogAnswer(aft, timebuf, srcip, dstip, sp, dp, tx, NULL);
-
-        DNSAnswerEntry *entry = NULL;
-        TAILQ_FOREACH(entry, &tx->answer_list, next) {
-            LogAnswer(aft, timebuf, srcip, dstip, sp, dp, tx, entry);
-        }
-
-        entry = NULL;
-        TAILQ_FOREACH(entry, &tx->authority_list, next) {
-            LogAnswer(aft, timebuf, srcip, dstip, sp, dp, tx, entry);
-        }
-
-        SCLogDebug("calling AppLayerTransactionUpdateLoggedId");
-        AppLayerParserSetTransactionLogId(p->flow->alparser);
+    DNSQueryEntry *query = NULL;
+    TAILQ_FOREACH(query, &dns_tx->query_list, next) {
+        LogQuery(aft, timebuf, dstip, srcip, dp, sp, dns_tx, query);
     }
 
+    if (dns_tx->no_such_name)
+        LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, NULL);
+    if (dns_tx->recursion_desired)
+        LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, NULL);
+
+    DNSAnswerEntry *entry = NULL;
+    TAILQ_FOREACH(entry, &dns_tx->answer_list, next) {
+        LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, entry);
+    }
+
+    entry = NULL;
+    TAILQ_FOREACH(entry, &dns_tx->authority_list, next) {
+        LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, entry);
+    }
+
+    aft->dns_cnt++;
 end:
-    FLOWLOCK_UNLOCK(p->flow);
-    SCReturnInt(TM_ECODE_OK);
-}
-
-static TmEcode LogDnsLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    return LogDnsLogIPWrapper(tv, p, data, pq, postpq, AF_INET);
-}
-
-static TmEcode LogDnsLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    return LogDnsLogIPWrapper(tv, p, data, pq, postpq, AF_INET6);
-}
-
-TmEcode LogDnsLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    SCEnter();
-
-    SCLogDebug("pcap_cnt %"PRIu64, p->pcap_cnt);
-    /* no flow, no htp state */
-    if (p->flow == NULL) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    if (!(PKT_IS_UDP(p)) && !(PKT_IS_TCP(p))) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    if (PKT_IS_IPV4(p)) {
-        int r  = LogDnsLogIPv4(tv, p, data, pq, postpq);
-        SCReturnInt(r);
-    } else if (PKT_IS_IPV6(p)) {
-        int r  = LogDnsLogIPv6(tv, p, data, pq, postpq);
-        SCReturnInt(r);
-    }
-
-    SCReturnInt(TM_ECODE_OK);
+    return 0;
 }
 
 static TmEcode LogDnsLogThreadInit(ThreadVars *t, void *initdata, void **data)
@@ -393,7 +310,7 @@ static void LogDnsLogExitPrintStats(ThreadVars *tv, void *data) {
         return;
     }
 
-    SCLogInfo("DNS logger logged %" PRIu32 " requests", aft->dns_cnt);
+    SCLogInfo("DNS logger logged %" PRIu32 " transactions", aft->dns_cnt);
 }
 
 static void LogDnsLogDeInitCtx(OutputCtx *output_ctx)
@@ -452,13 +369,13 @@ static OutputCtx *LogDnsLogInitCtx(ConfNode *conf)
 void TmModuleLogDnsLogRegister (void) {
     tmm_modules[TMM_LOGDNSLOG].name = MODULE_NAME;
     tmm_modules[TMM_LOGDNSLOG].ThreadInit = LogDnsLogThreadInit;
-    tmm_modules[TMM_LOGDNSLOG].Func = LogDnsLog;
     tmm_modules[TMM_LOGDNSLOG].ThreadExitPrintStats = LogDnsLogExitPrintStats;
     tmm_modules[TMM_LOGDNSLOG].ThreadDeinit = LogDnsLogThreadDeinit;
     tmm_modules[TMM_LOGDNSLOG].RegisterTests = NULL;
     tmm_modules[TMM_LOGDNSLOG].cap_flags = 0;
 
-    OutputRegisterModule(MODULE_NAME, "dns-log", LogDnsLogInitCtx);
+    OutputRegisterTxModule(MODULE_NAME, "dns-log", LogDnsLogInitCtx,
+            ALPROTO_DNS, LogDnsLogger);
 
     /* enable the logger for the app layer */
     SCLogDebug("registered %s", MODULE_NAME);

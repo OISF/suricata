@@ -64,59 +64,12 @@
 
 #define MODULE_NAME "AlertPcapInfo"
 
-TmEcode AlertPcapInfo (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode AlertPcapInfoThreadInit(ThreadVars *, void *, void **);
-TmEcode AlertPcapInfoThreadDeinit(ThreadVars *, void *);
-void AlertPcapInfoExitPrintStats(ThreadVars *, void *);
-static int AlertPcapInfoOpenFileCtx(LogFileCtx *, const char *, const char *);
-static void AlertPcapInfoDeInitCtx(OutputCtx *);
-
-void TmModuleAlertPcapInfoRegister (void) {
-    tmm_modules[TMM_ALERTPCAPINFO].name = MODULE_NAME;
-    tmm_modules[TMM_ALERTPCAPINFO].ThreadInit = AlertPcapInfoThreadInit;
-    tmm_modules[TMM_ALERTPCAPINFO].Func = AlertPcapInfo;
-    tmm_modules[TMM_ALERTPCAPINFO].ThreadExitPrintStats = AlertPcapInfoExitPrintStats;
-    tmm_modules[TMM_ALERTPCAPINFO].ThreadDeinit = AlertPcapInfoThreadDeinit;
-    tmm_modules[TMM_ALERTPCAPINFO].RegisterTests = NULL;
-    tmm_modules[TMM_ALERTPCAPINFO].cap_flags = 0;
-
-    OutputRegisterModule(MODULE_NAME, "pcap-info", AlertPcapInfoInitCtx);
-}
-
 typedef struct AlertPcapInfoThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
 } AlertPcapInfoThread;
 
-
-TmEcode AlertPcapInfo (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    AlertPcapInfoThread *aft = (AlertPcapInfoThread *)data;
-    int i;
-
-
-    /* logging is useless if we don't have pcap number */
-    if ((p->pcap_cnt != 0) && (p->alerts.cnt > 0)) {
-        SCMutexLock(&aft->file_ctx->fp_mutex);
-        /* only count logged alert */
-        aft->file_ctx->alerts += p->alerts.cnt;
-        for (i = 0; i < p->alerts.cnt; i++) {
-            PacketAlert *pa = &p->alerts.alerts[i];
-
-            fprintf(aft->file_ctx->fp, "%" PRIu64 ":%" PRIu32 ":%" PRIu32 ":%d:%d:%d:%d:0:0:%s\n",
-                    p->pcap_cnt, pa->s->gid, pa->s->id, pa->s->rev,
-                    pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_STREAM_MATCH) ? 1 : 0,
-                    p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0,
-                    p->flowflags & FLOW_PKT_TOCLIENT ? 1 : 0,
-                    pa->s->msg);
-        }
-        SCMutexUnlock(&aft->file_ctx->fp_mutex);
-    }
-
-    return TM_ECODE_OK;
-}
-
-TmEcode AlertPcapInfoThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode AlertPcapInfoThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     AlertPcapInfoThread *aft = SCMalloc(sizeof(AlertPcapInfoThread));
     if (unlikely(aft == NULL))
@@ -135,7 +88,7 @@ TmEcode AlertPcapInfoThreadInit(ThreadVars *t, void *initdata, void **data)
     return TM_ECODE_OK;
 }
 
-TmEcode AlertPcapInfoThreadDeinit(ThreadVars *t, void *data)
+static TmEcode AlertPcapInfoThreadDeinit(ThreadVars *t, void *data)
 {
     AlertPcapInfoThread *aft = (AlertPcapInfoThread *)data;
     if (aft == NULL) {
@@ -149,50 +102,13 @@ TmEcode AlertPcapInfoThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void AlertPcapInfoExitPrintStats(ThreadVars *tv, void *data) {
+static void AlertPcapInfoExitPrintStats(ThreadVars *tv, void *data) {
     AlertPcapInfoThread *aft = (AlertPcapInfoThread *)data;
     if (aft == NULL) {
         return;
     }
 
     SCLogInfo("(%s) Alerts %" PRIu64 "", tv->name, aft->file_ctx->alerts);
-}
-
-/**
- * \brief Create a new LogFileCtx for "fast" output style.
- * \param conf The configuration node for this output.
- * \return A LogFileCtx pointer on success, NULL on failure.
- */
-OutputCtx *AlertPcapInfoInitCtx(ConfNode *conf)
-{
-    LogFileCtx *logfile_ctx = LogFileNewCtx();
-    if (logfile_ctx == NULL) {
-        SCLogDebug("AlertPcapInfoInitCtx2: Could not create new LogFileCtx");
-        return NULL;
-    }
-
-    const char *filename = ConfNodeLookupChildValue(conf, "filename");
-    if (filename == NULL)
-        filename = DEFAULT_LOG_FILENAME;
-
-    const char *mode = ConfNodeLookupChildValue(conf, "append");
-    if (mode == NULL)
-        mode = DEFAULT_PCAPINFO_MODE_APPEND;
-
-    if (AlertPcapInfoOpenFileCtx(logfile_ctx, filename, mode) < 0) {
-        LogFileFreeCtx(logfile_ctx);
-        return NULL;
-    }
-
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL))
-        return NULL;
-    output_ctx->data = logfile_ctx;
-    output_ctx->DeInit = AlertPcapInfoDeInitCtx;
-
-    SCLogInfo("Fast log output initialized, filename: %s", filename);
-
-    return output_ctx;
 }
 
 static void AlertPcapInfoDeInitCtx(OutputCtx *output_ctx)
@@ -232,3 +148,83 @@ static int AlertPcapInfoOpenFileCtx(LogFileCtx *file_ctx, const char *filename,
 
     return 0;
 }
+
+/**
+ * \brief Create a new LogFileCtx for "fast" output style.
+ * \param conf The configuration node for this output.
+ * \return A LogFileCtx pointer on success, NULL on failure.
+ */
+static OutputCtx *AlertPcapInfoInitCtx(ConfNode *conf)
+{
+    LogFileCtx *logfile_ctx = LogFileNewCtx();
+    if (logfile_ctx == NULL) {
+        SCLogDebug("AlertPcapInfoInitCtx2: Could not create new LogFileCtx");
+        return NULL;
+    }
+
+    const char *filename = ConfNodeLookupChildValue(conf, "filename");
+    if (filename == NULL)
+        filename = DEFAULT_LOG_FILENAME;
+
+    const char *mode = ConfNodeLookupChildValue(conf, "append");
+    if (mode == NULL)
+        mode = DEFAULT_PCAPINFO_MODE_APPEND;
+
+    if (AlertPcapInfoOpenFileCtx(logfile_ctx, filename, mode) < 0) {
+        LogFileFreeCtx(logfile_ctx);
+        return NULL;
+    }
+
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (unlikely(output_ctx == NULL))
+        return NULL;
+    output_ctx->data = logfile_ctx;
+    output_ctx->DeInit = AlertPcapInfoDeInitCtx;
+
+    SCLogInfo("Fast log output initialized, filename: %s", filename);
+
+    return output_ctx;
+}
+
+static int AlertPcapInfoCondition(ThreadVars *tv, const Packet *p) {
+    return ((p->pcap_cnt != 0 && p->alerts.cnt > 0) ? TRUE : FALSE);
+}
+
+static int AlertPcapInfoLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
+    AlertPcapInfoThread *aft = (AlertPcapInfoThread *)thread_data;
+    int i;
+
+    /* logging is useless if we don't have pcap number */
+    if ((p->pcap_cnt != 0) && (p->alerts.cnt > 0)) {
+        SCMutexLock(&aft->file_ctx->fp_mutex);
+        /* only count logged alert */
+        aft->file_ctx->alerts += p->alerts.cnt;
+        for (i = 0; i < p->alerts.cnt; i++) {
+            const PacketAlert *pa = &p->alerts.alerts[i];
+
+            fprintf(aft->file_ctx->fp, "%" PRIu64 ":%" PRIu32 ":%" PRIu32 ":%d:%d:%d:%d:0:0:%s\n",
+                    p->pcap_cnt, pa->s->gid, pa->s->id, pa->s->rev,
+                    pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_STREAM_MATCH) ? 1 : 0,
+                    p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0,
+                    p->flowflags & FLOW_PKT_TOCLIENT ? 1 : 0,
+                    pa->s->msg);
+        }
+        SCMutexUnlock(&aft->file_ctx->fp_mutex);
+    }
+
+    return 0;
+}
+
+void TmModuleAlertPcapInfoRegister (void) {
+    tmm_modules[TMM_ALERTPCAPINFO].name = MODULE_NAME;
+    tmm_modules[TMM_ALERTPCAPINFO].ThreadInit = AlertPcapInfoThreadInit;
+    tmm_modules[TMM_ALERTPCAPINFO].Func = NULL;
+    tmm_modules[TMM_ALERTPCAPINFO].ThreadExitPrintStats = AlertPcapInfoExitPrintStats;
+    tmm_modules[TMM_ALERTPCAPINFO].ThreadDeinit = AlertPcapInfoThreadDeinit;
+    tmm_modules[TMM_ALERTPCAPINFO].RegisterTests = NULL;
+    tmm_modules[TMM_ALERTPCAPINFO].cap_flags = 0;
+
+    OutputRegisterPacketModule(MODULE_NAME, "pcap-info",
+        AlertPcapInfoInitCtx, AlertPcapInfoLogger, AlertPcapInfoCondition);
+}
+
