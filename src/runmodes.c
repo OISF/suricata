@@ -420,6 +420,9 @@ void RunModeInitializeOutputs(void)
 
     ConfNode *output, *output_config;
     TmModule *tm_module;
+    TmModule *pkt_logger_module = NULL;
+    TmModule *tx_logger_module = NULL;
+    TmModule *file_logger_module = NULL;
     const char *enabled;
 
     TAILQ_FOREACH(output, &outputs->head, next) {
@@ -463,7 +466,6 @@ void RunModeInitializeOutputs(void)
                 "No output module named %s, ignoring", output->val);
             continue;
         }
-
         OutputCtx *output_ctx = NULL;
         if (module->InitFunc != NULL) {
             output_ctx = module->InitFunc(output_config);
@@ -482,12 +484,81 @@ void RunModeInitializeOutputs(void)
         if (strcmp(tmm_modules[TMM_ALERTDEBUGLOG].name, tm_module->name) == 0)
             debuglog_enabled = 1;
 
-        RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
-        if (unlikely(runmode_output == NULL))
-            return;
-        runmode_output->tm_module = tm_module;
-        runmode_output->output_ctx = output_ctx;
-        TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
+        if (module->PacketLogFunc) {
+            SCLogDebug("%s is a packet logger", module->name);
+            OutputRegisterPacketLogger(module->name, module->PacketLogFunc,
+                    module->PacketConditionFunc, output_ctx);
+
+            /* need one instance of the packet logger module */
+            if (pkt_logger_module == NULL) {
+                pkt_logger_module = TmModuleGetByName("__packet_logger__");
+                if (pkt_logger_module == NULL) {
+                    SCLogError(SC_ERR_INVALID_ARGUMENT,
+                            "TmModuleGetByName for __packet_logger__ failed");
+                    exit(EXIT_FAILURE);
+                }
+
+                RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
+                if (unlikely(runmode_output == NULL))
+                    return;
+                runmode_output->tm_module = pkt_logger_module;
+                runmode_output->output_ctx = NULL;
+                TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
+                SCLogDebug("__packet_logger__ added");
+            }
+        } else if (module->TxLogFunc) {
+            SCLogDebug("%s is a tx logger", module->name);
+            OutputRegisterTxLogger(module->name, module->alproto,
+                    module->TxLogFunc, output_ctx);
+
+            /* need one instance of the tx logger module */
+            if (tx_logger_module == NULL) {
+                tx_logger_module = TmModuleGetByName("__tx_logger__");
+                if (tx_logger_module == NULL) {
+                    SCLogError(SC_ERR_INVALID_ARGUMENT,
+                            "TmModuleGetByName for __tx_logger__ failed");
+                    exit(EXIT_FAILURE);
+                }
+
+                RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
+                if (unlikely(runmode_output == NULL))
+                    return;
+                runmode_output->tm_module = tx_logger_module;
+                runmode_output->output_ctx = NULL;
+                TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
+                SCLogDebug("__tx_logger__ added");
+            }
+        } else if (module->FileLogFunc) {
+            SCLogDebug("%s is a file logger", module->name);
+            OutputRegisterFileLogger(module->name, module->FileLogFunc, output_ctx);
+
+            /* need one instance of the tx logger module */
+            if (file_logger_module == NULL) {
+                file_logger_module = TmModuleGetByName("__file_logger__");
+                if (file_logger_module == NULL) {
+                    SCLogError(SC_ERR_INVALID_ARGUMENT,
+                            "TmModuleGetByName for __file_logger__ failed");
+                    exit(EXIT_FAILURE);
+                }
+
+                RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
+                if (unlikely(runmode_output == NULL))
+                    return;
+                runmode_output->tm_module = file_logger_module;
+                runmode_output->output_ctx = NULL;
+                TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
+                SCLogDebug("__file_logger__ added");
+            }
+        } else {
+            SCLogDebug("%s is a regular logger", module->name);
+
+            RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
+            if (unlikely(runmode_output == NULL))
+                return;
+            runmode_output->tm_module = tm_module;
+            runmode_output->output_ctx = output_ctx;
+            TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
+        }
     }
 }
 

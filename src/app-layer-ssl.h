@@ -66,6 +66,9 @@ enum {
 #define SSL_AL_FLAG_STATE_SERVER_KEYX           0x1000
 #define SSL_AL_FLAG_STATE_UNKNOWN               0x2000
 
+#define SSL_AL_FLAG_STATE_LOGGED                0x4000
+
+/* config flags */
 #define SSL_TLS_LOG_PEM                         (1 << 0)
 
 
