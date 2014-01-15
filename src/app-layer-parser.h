@@ -185,6 +185,7 @@ int AppLayerParserHasDecoderEvents(uint8_t ipproto, AppProto alproto, void *alst
 int AppLayerParserProtocolIsTxAware(uint8_t ipproto, AppProto alproto);
 int AppLayerParserProtocolIsTxEventAware(uint8_t ipproto, AppProto alproto);
 int AppLayerParserProtocolSupportsTxs(uint8_t ipproto, AppProto alproto);
+int AppLayerParserProtocolHasLogger(uint8_t ipproto, AppProto alproto);
 void AppLayerParserTriggerRawStreamReassembly(Flow *f);
 
 /***** Cleanup *****/
