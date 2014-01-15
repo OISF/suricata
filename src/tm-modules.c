@@ -273,6 +273,9 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_RECEIVEAFP);
         CASE_CODE (TMM_ALERTPCAPINFO);
         CASE_CODE (TMM_DECODEAFP);
+        CASE_CODE (TMM_PACKETLOGGER);
+        CASE_CODE (TMM_TXLOGGER);
+        CASE_CODE (TMM_FILELOGGER);
 
         default:
             return "UNKNOWN";
