@@ -152,6 +152,8 @@
 #include "output.h"
 #include "output-packet.h"
 #include "output-tx.h"
+#include "output-file.h"
+
 #include "util-privs.h"
 
 #include "tmqh-packetpool.h"
@@ -795,6 +797,7 @@ void RegisterAllModules()
     TmModuleLogDnsLogRegister();
     TmModulePacketLoggerRegister();
     TmModuleTxLoggerRegister();
+    TmModuleFileLoggerRegister();
     TmModuleDebugList();
 
 }

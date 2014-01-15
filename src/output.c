@@ -149,6 +149,44 @@ error:
 }
 
 /**
+ * \brief Register a file output module.
+ *
+ * This function will register an output module so it can be
+ * configured with the configuration file.
+ *
+ * \retval Returns 0 on success, -1 on failure.
+ */
+void
+OutputRegisterFileModule(char *name, char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *), FileLogger FileLogFunc)
+{
+    if (unlikely(FileLogFunc == NULL)) {
+        goto error;
+    }
+
+    OutputModule *module = SCCalloc(1, sizeof(*module));
+    if (unlikely(module == NULL)) {
+        goto error;
+    }
+
+    module->name = SCStrdup(name);
+    if (unlikely(module->name == NULL))
+        goto error;
+    module->conf_name = SCStrdup(conf_name);
+    if (unlikely(module->conf_name == NULL))
+        goto error;
+    module->InitFunc = InitFunc;
+    module->FileLogFunc = FileLogFunc;
+    TAILQ_INSERT_TAIL(&output_modules, module, entries);
+
+    SCLogDebug("File logger \"%s\" registered.", name);
+    return;
+error:
+    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    exit(EXIT_FAILURE);
+}
+
+/**
  * \brief Get an output module by name.
  *
  * \retval The OutputModule with the given name or NULL if no output module
