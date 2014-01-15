@@ -103,6 +103,8 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
 
     if (AppLayerParserProtocolIsTxAware(p->proto, alproto) == 0)
         goto end;
+    if (AppLayerParserProtocolHasLogger(p->proto, alproto) == 0)
+        goto end;
 
     void *alstate = f->alstate;//AppLayerGetProtoStateFromPacket((const Packet *)p);
     if (alstate == NULL) {
