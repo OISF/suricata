@@ -58,9 +58,7 @@
 
 #define MODULE_NAME "LogFilestoreLog"
 
-SC_ATOMIC_DECLARE(unsigned int, file_id);
 static char g_logfile_base_dir[PATH_MAX] = "/tmp";
-static char g_waldo[PATH_MAX] = "";
 
 typedef struct LogFilestoreLogThread_ {
     LogFileCtx *file_ctx;
@@ -68,7 +66,7 @@ typedef struct LogFilestoreLogThread_ {
     uint32_t file_cnt;
 } LogFilestoreLogThread;
 
-static void LogFilestoreMetaGetUri(FILE *fp, Packet *p, File *ff) {
+static void LogFilestoreMetaGetUri(FILE *fp, const Packet *p, const File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -85,7 +83,7 @@ static void LogFilestoreMetaGetUri(FILE *fp, Packet *p, File *ff) {
     fprintf(fp, "<unknown>");
 }
 
-static void LogFilestoreMetaGetHost(FILE *fp, Packet *p, File *ff) {
+static void LogFilestoreMetaGetHost(FILE *fp, const Packet *p, const File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -99,7 +97,7 @@ static void LogFilestoreMetaGetHost(FILE *fp, Packet *p, File *ff) {
     fprintf(fp, "<unknown>");
 }
 
-static void LogFilestoreMetaGetReferer(FILE *fp, Packet *p, File *ff) {
+static void LogFilestoreMetaGetReferer(FILE *fp, const Packet *p, const File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -118,7 +116,7 @@ static void LogFilestoreMetaGetReferer(FILE *fp, Packet *p, File *ff) {
     fprintf(fp, "<unknown>");
 }
 
-static void LogFilestoreMetaGetUserAgent(FILE *fp, Packet *p, File *ff) {
+static void LogFilestoreMetaGetUserAgent(FILE *fp, const Packet *p, const File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -137,7 +135,7 @@ static void LogFilestoreMetaGetUserAgent(FILE *fp, Packet *p, File *ff) {
     fprintf(fp, "<unknown>");
 }
 
-static void LogFilestoreLogCreateMetaFile(Packet *p, File *ff, char *filename, int ipver) {
+static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, const char *filename, int ipver) {
     char metafilename[PATH_MAX] = "";
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
     FILE *fp = fopen(metafilename, "w+");
@@ -197,7 +195,7 @@ static void LogFilestoreLogCreateMetaFile(Packet *p, File *ff, char *filename, i
     }
 }
 
-static void LogFilestoreLogCloseMetaFile(File *ff) {
+static void LogFilestoreLogCloseMetaFile(const File *ff) {
     char filename[PATH_MAX] = "";
     snprintf(filename, sizeof(filename), "%s/file.%u",
             g_logfile_base_dir, ff->file_id);
@@ -240,160 +238,65 @@ static void LogFilestoreLogCloseMetaFile(File *ff) {
     }
 }
 
-static TmEcode LogFilestoreLogWrap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq, int ipver)
+static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff, const FileData *ffd, uint8_t flags)
 {
     SCEnter();
-    LogFilestoreLogThread *aft = (LogFilestoreLogThread *)data;
-    uint8_t flags = 0;
+    LogFilestoreLogThread *aft = (LogFilestoreLogThread *)thread_data;
+    char filename[PATH_MAX] = "";
+    int file_fd = -1;
+    int ipver = -1;
 
     /* no flow, no htp state */
     if (p->flow == NULL) {
         SCReturnInt(TM_ECODE_OK);
     }
-
-    if (p->flowflags & FLOW_PKT_TOCLIENT)
-        flags |= STREAM_TOCLIENT;
-    else
-        flags |= STREAM_TOSERVER;
-
-    int file_close = (p->flags & PKT_PSEUDO_STREAM_END) ? 1 : 0;
-    int file_trunc = 0;
-
-    FLOWLOCK_WRLOCK(p->flow);
-    file_trunc = StreamTcpReassembleDepthReached(p);
-
-    FileContainer *ffc = AppLayerParserGetFiles(IPPROTO_TCP, p->flow->alproto, p->flow->alstate, flags);
-    SCLogDebug("ffc %p", ffc);
-    if (ffc != NULL) {
-        File *ff;
-        for (ff = ffc->head; ff != NULL; ff = ff->next) {
-            int file_fd = -1;
-
-            if (FileForceMagic() && ff->magic == NULL) {
-                FilemagicGlobalLookup(ff);
-            }
-
-            SCLogDebug("ff %p", ff);
-            if (ff->flags & FILE_STORED) {
-                SCLogDebug("stored flag set");
-                continue;
-            }
-
-            if (!(ff->flags & FILE_STORE)) {
-                SCLogDebug("ff FILE_STORE not set");
-                continue;
-            }
-
-            FileData *ffd;
-            for (ffd = ff->chunks_head; ffd != NULL; ffd = ffd->next) {
-                SCLogDebug("ffd %p", ffd);
-                if (ffd->stored == 1) {
-                    if (file_close == 1 && ffd->next == NULL) {
-                        LogFilestoreLogCloseMetaFile(ff);
-                        ff->flags |= FILE_STORED;
-                    }
-                    continue;
-                }
-
-                /* store */
-                SCLogDebug("trying to open file");
-
-                char filename[PATH_MAX] = "";
-
-                if (ff->file_id == 0) {
-                    ff->file_id = SC_ATOMIC_ADD(file_id, 1);
-
-                    snprintf(filename, sizeof(filename), "%s/file.%u",
-                            g_logfile_base_dir, ff->file_id);
-
-                    file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
-                    if (file_fd == -1) {
-                        SCLogDebug("failed to open file");
-                        continue;
-                    }
-
-                    /* create a .meta file that contains time, src/dst/sp/dp/proto */
-                    LogFilestoreLogCreateMetaFile(p, ff, filename, ipver);
-                    aft->file_cnt++;
-                } else {
-                    snprintf(filename, sizeof(filename), "%s/file.%u",
-                            g_logfile_base_dir, ff->file_id);
-
-                    file_fd = open(filename, O_APPEND | O_NOFOLLOW | O_WRONLY);
-                    if (file_fd == -1) {
-                        SCLogDebug("failed to open file %s: %s", filename, strerror(errno));
-                        continue;
-                    }
-                }
-
-                ssize_t r = write(file_fd, (const void *)ffd->data, (size_t)ffd->len);
-                if (r == -1) {
-                    SCLogDebug("write failed: %s", strerror(errno));
-
-                    close(file_fd);
-                    continue;
-                }
-
-                close(file_fd);
-
-                if (file_trunc && ff->state < FILE_STATE_CLOSED)
-                    ff->state = FILE_STATE_TRUNCATED;
-                if (file_close && ff->state < FILE_STATE_CLOSED)
-                    ff->state = FILE_STATE_TRUNCATED;
-
-                if (ff->state == FILE_STATE_CLOSED ||
-                    ff->state == FILE_STATE_TRUNCATED ||
-                    ff->state == FILE_STATE_ERROR)
-                {
-                    if (ffd->next == NULL) {
-                        LogFilestoreLogCloseMetaFile(ff);
-
-                        ff->flags |= FILE_STORED;
-                    }
-                }
-
-                ffd->stored = 1;
-            }
-        }
-
-        FilePrune(ffc);
-    }
-
-    FLOWLOCK_UNLOCK(p->flow);
-    SCReturnInt(TM_ECODE_OK);
-}
-
-static TmEcode LogFilestoreLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
-    return LogFilestoreLogWrap(tv, p, data, NULL, NULL, AF_INET);
-}
-
-static TmEcode LogFilestoreLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
-    return LogFilestoreLogWrap(tv, p, data, NULL, NULL, AF_INET6);
-}
-
-static TmEcode LogFilestoreLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    SCEnter();
-    int r = TM_ECODE_OK;
-
-    /* no flow, no htp state */
-    if (p->flow == NULL) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    if (!(PKT_IS_TCP(p))) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    SCLogDebug("p->pcap_cnt %"PRIu64, p->pcap_cnt);
 
     if (PKT_IS_IPV4(p)) {
-        r = LogFilestoreLogIPv4(tv, p, data, pq, postpq);
+        ipver = AF_INET;
     } else if (PKT_IS_IPV6(p)) {
-        r = LogFilestoreLogIPv6(tv, p, data, pq, postpq);
+        ipver = AF_INET6;
+    } else {
+        return 0;
     }
 
-    SCReturnInt(r);
+    SCLogDebug("ff %p, ffd %p", ff, ffd);
+
+    snprintf(filename, sizeof(filename), "%s/file.%u",
+            g_logfile_base_dir, ff->file_id);
+
+    if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {
+        aft->file_cnt++;
+
+        /* create a .meta file that contains time, src/dst/sp/dp/proto */
+        LogFilestoreLogCreateMetaFile(p, ff, filename, ipver);
+
+        file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
+        if (file_fd == -1) {
+            SCLogDebug("failed to create file");
+            return -1;
+        }
+    /* we can get called with a NULL ffd when we need to close */
+    } else if (ffd != NULL) {
+        file_fd = open(filename, O_APPEND | O_NOFOLLOW | O_WRONLY);
+        if (file_fd == -1) {
+            SCLogDebug("failed to open file %s: %s", filename, strerror(errno));
+            return -1;
+        }
+    }
+
+    if (file_fd != -1) {
+        ssize_t r = write(file_fd, (const void *)ffd->data, (size_t)ffd->len);
+        if (r == -1) {
+            SCLogDebug("write failed: %s", strerror(errno));
+        }
+        close(file_fd);
+    }
+
+    if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
+        LogFilestoreLogCloseMetaFile(ff);
+    }
+
+    return 0;
 }
 
 static TmEcode LogFilestoreLogThreadInit(ThreadVars *t, void *initdata, void **data)
@@ -462,59 +365,6 @@ static void LogFilestoreLogExitPrintStats(ThreadVars *tv, void *data) {
 /**
  *  \internal
  *
- *  \brief Open the waldo file (if available) and load the file_id
- *
- *  \param path full path for the waldo file
- */
-static void LogFilestoreLogLoadWaldo(const char *path) {
-    char line[16] = "";
-    unsigned int id = 0;
-
-    FILE *fp = fopen(path, "r");
-    if (fp == NULL) {
-        SCLogInfo("couldn't open waldo: %s", strerror(errno));
-        SCReturn;
-    }
-
-    if (fgets(line, (int)sizeof(line), fp) != NULL) {
-        if (sscanf(line, "%10u", &id) == 1) {
-            SCLogInfo("id %u", id);
-            (void) SC_ATOMIC_CAS(&file_id, 0, id);
-        }
-    }
-    fclose(fp);
-}
-
-/**
- *  \internal
- *
- *  \brief Store the waldo file based on the file_id
- *
- *  \param path full path for the waldo file
- */
-static void LogFilestoreLogStoreWaldo(const char *path) {
-    char line[16] = "";
-
-    if (SC_ATOMIC_GET(file_id) == 0) {
-        SCReturn;
-    }
-
-    FILE *fp = fopen(path, "w");
-    if (fp == NULL) {
-        SCLogInfo("couldn't open waldo: %s", strerror(errno));
-        SCReturn;
-    }
-
-    snprintf(line, sizeof(line), "%u\n", SC_ATOMIC_GET(file_id));
-    if (fwrite(line, strlen(line), 1, fp) != 1) {
-        SCLogError(SC_ERR_FWRITE, "fwrite failed: %s", strerror(errno));
-    }
-    fclose(fp);
-}
-
-/**
- *  \internal
- *
  *  \brief deinit the log ctx and write out the waldo
  *
  *  \param output_ctx output context to deinit
@@ -525,9 +375,6 @@ static void LogFilestoreLogDeInitCtx(OutputCtx *output_ctx)
     LogFileFreeCtx(logfile_ctx);
     free(output_ctx);
 
-    if (strlen(g_waldo) > 0) {
-        LogFilestoreLogStoreWaldo(g_waldo);
-    }
 }
 
 /** \brief Create a new http log LogFilestoreCtx.
@@ -582,18 +429,6 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
         SCLogInfo("md5 calculation requires linking against libnss");
 #endif
     }
-
-    const char *waldo = ConfNodeLookupChildValue(conf, "waldo");
-    if (waldo != NULL && strlen(waldo) > 0) {
-        if (PathIsAbsolute(waldo)) {
-            snprintf(g_waldo, sizeof(g_waldo), "%s", waldo);
-        } else {
-            snprintf(g_waldo, sizeof(g_waldo), "%s/%s", s_default_log_dir, waldo);
-        }
-
-        SCLogInfo("loading waldo file %s", g_waldo);
-        LogFilestoreLogLoadWaldo(g_waldo);
-    }
     SCLogInfo("storing files in %s", g_logfile_base_dir);
 
     SCReturnPtr(output_ctx, "OutputCtx");
@@ -602,16 +437,16 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
 void TmModuleLogFilestoreRegister (void) {
     tmm_modules[TMM_FILESTORE].name = MODULE_NAME;
     tmm_modules[TMM_FILESTORE].ThreadInit = LogFilestoreLogThreadInit;
-    tmm_modules[TMM_FILESTORE].Func = LogFilestoreLog;
+    tmm_modules[TMM_FILESTORE].Func = NULL;
     tmm_modules[TMM_FILESTORE].ThreadExitPrintStats = LogFilestoreLogExitPrintStats;
     tmm_modules[TMM_FILESTORE].ThreadDeinit = LogFilestoreLogThreadDeinit;
     tmm_modules[TMM_FILESTORE].RegisterTests = NULL;
     tmm_modules[TMM_FILESTORE].cap_flags = 0;
 
-    OutputRegisterModule(MODULE_NAME, "file", LogFilestoreLogInitCtx);
-    OutputRegisterModule(MODULE_NAME, "file-store", LogFilestoreLogInitCtx);
+    OutputRegisterFiledataModule(MODULE_NAME, "file", LogFilestoreLogInitCtx,
+            LogFilestoreLogger);
+    OutputRegisterFiledataModule(MODULE_NAME, "file-store", LogFilestoreLogInitCtx,
+            LogFilestoreLogger);
 
     SCLogDebug("registered");
-
-    SC_ATOMIC_INIT(file_id);
 }
