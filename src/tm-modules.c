@@ -276,6 +276,7 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_PACKETLOGGER);
         CASE_CODE (TMM_TXLOGGER);
         CASE_CODE (TMM_FILELOGGER);
+        CASE_CODE (TMM_FILEDATALOGGER);
 
         default:
             return "UNKNOWN";

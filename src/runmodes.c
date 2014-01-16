@@ -426,6 +426,7 @@ void RunModeInitializeOutputs(void)
     TmModule *pkt_logger_module = NULL;
     TmModule *tx_logger_module = NULL;
     TmModule *file_logger_module = NULL;
+    TmModule *filedata_logger_module = NULL;
     const char *enabled;
 
     TAILQ_FOREACH(output, &outputs->head, next) {
@@ -551,6 +552,27 @@ void RunModeInitializeOutputs(void)
                 runmode_output->output_ctx = NULL;
                 TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
                 SCLogDebug("__file_logger__ added");
+            }
+        } else if (module->FiledataLogFunc) {
+            SCLogDebug("%s is a filedata logger", module->name);
+            OutputRegisterFiledataLogger(module->name, module->FiledataLogFunc, output_ctx);
+
+            /* need one instance of the tx logger module */
+            if (filedata_logger_module == NULL) {
+                filedata_logger_module = TmModuleGetByName("__filedata_logger__");
+                if (filedata_logger_module == NULL) {
+                    SCLogError(SC_ERR_INVALID_ARGUMENT,
+                            "TmModuleGetByName for __filedata_logger__ failed");
+                    exit(EXIT_FAILURE);
+                }
+
+                RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
+                if (unlikely(runmode_output == NULL))
+                    return;
+                runmode_output->tm_module = filedata_logger_module;
+                runmode_output->output_ctx = NULL;
+                TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
+                SCLogDebug("__filedata_logger__ added");
             }
         } else {
             SCLogDebug("%s is a regular logger", module->name);

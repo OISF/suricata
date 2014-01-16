@@ -82,6 +82,7 @@ typedef enum {
     TMM_PACKETLOGGER,
     TMM_TXLOGGER,
     TMM_FILELOGGER,
+    TMM_FILEDATALOGGER,
     TMM_SIZE,
 } TmmId;
 
