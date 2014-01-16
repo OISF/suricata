@@ -33,6 +33,7 @@
 #include "output-packet.h"
 #include "output-tx.h"
 #include "output-file.h"
+#include "output-filedata.h"
 
 typedef struct OutputModule_ {
     char *name;
@@ -43,6 +44,7 @@ typedef struct OutputModule_ {
     PacketLogCondition PacketConditionFunc;
     TxLogger TxLogFunc;
     FileLogger FileLogFunc;
+    FiledataLogger FiledataLogFunc;
     uint16_t alproto;
 
     TAILQ_ENTRY(OutputModule_) entries;
@@ -58,6 +60,8 @@ void OutputRegisterTxModule(char *name, char *conf_name,
     TxLogger TxLogFunc);
 void OutputRegisterFileModule(char *name, char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), FileLogger FileLogFunc);
+void OutputRegisterFiledataModule(char *name, char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *), FiledataLogger FiledataLogFunc);
 
 OutputModule *OutputGetModuleByConfName(char *name);
 void OutputDeregisterAll(void);

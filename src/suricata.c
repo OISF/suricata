@@ -153,6 +153,7 @@
 #include "output-packet.h"
 #include "output-tx.h"
 #include "output-file.h"
+#include "output-filedata.h"
 
 #include "util-privs.h"
 
@@ -798,6 +799,7 @@ void RegisterAllModules()
     TmModulePacketLoggerRegister();
     TmModuleTxLoggerRegister();
     TmModuleFileLoggerRegister();
+    TmModuleFiledataLoggerRegister();
     TmModuleDebugList();
 
 }
