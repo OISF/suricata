@@ -1057,10 +1057,10 @@ static int AppLayerProtoDetectPMMapSignatures(AppLayerProtoDetectPMCtx *ctx)
 
     max_pat_id = ctx->max_pat_id;
 
-    ctx->map = SCMalloc((max_pat_id) * sizeof(ctx->map));
+    ctx->map = SCMalloc((max_pat_id) * sizeof(AppLayerProtoDetectPMSignature *));
     if (ctx->map == NULL)
         goto error;
-    memset(ctx->map, 0, (max_pat_id) * sizeof(ctx->map));
+    memset(ctx->map, 0, (max_pat_id) * sizeof(AppLayerProtoDetectPMSignature *));
 
     /* add an array indexed by pattern id to look up the sig */
     for (s = ctx->head; s != NULL;) {
