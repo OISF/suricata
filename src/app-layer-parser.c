@@ -725,18 +725,16 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
                         uint8_t flags, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
-
+#ifdef DEBUG_VALIDATION
+    BUG_ON(f->protomap != FlowGetProtoMapping(f->proto));
+#endif
     AppLayerParserState *pstate = NULL;
-    AppLayerParserProtoCtx *p = &alp_ctx.ctxs[FlowGetProtoMapping(f->proto)][alproto];
-    TcpSession *ssn = NULL;
+    AppLayerParserProtoCtx *p = &alp_ctx.ctxs[f->protomap][alproto];
     void *alstate = NULL;
 
     /* we don't have the parser registered for this protocol */
     if (p->StateAlloc == NULL)
         goto end;
-
-    /* Used only if it's TCP */
-    ssn = f->protoctx;
 
     /* Do this check before calling AppLayerParse */
     if (flags & STREAM_GAP) {
@@ -779,7 +777,7 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
         /* invoke the parser */
         if (p->Parser[(flags & STREAM_TOSERVER) ? 0 : 1](f, alstate, pstate,
                 input, input_len,
-                alp_tctx->alproto_local_storage[FlowGetProtoMapping(f->proto)][alproto]) < 0)
+                alp_tctx->alproto_local_storage[f->protomap][alproto]) < 0)
         {
             goto error;
         }
@@ -792,7 +790,9 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
         FlowSetSessionNoApplayerInspectionFlag(f);
 
         /* Set the no reassembly flag for both the stream in this TcpSession */
-        if (pstate->flags & APP_LAYER_PARSER_NO_REASSEMBLY) {
+        if (f->proto == IPPROTO_TCP && pstate->flags & APP_LAYER_PARSER_NO_REASSEMBLY) {
+            /* Used only if it's TCP */
+            TcpSession *ssn = f->protoctx;
             if (ssn != NULL) {
                 StreamTcpSetSessionNoReassemblyFlag(ssn,
                                                     flags & STREAM_TOCLIENT ? 1 : 0);
@@ -812,12 +812,10 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
  end:
     SCReturnInt(0);
  error:
-    if (ssn != NULL) {
-        /* Set the no app layer inspection flag for both
-         * the stream in this Flow */
-        FlowSetSessionNoApplayerInspectionFlag(f);
-        AppLayerParserSetEOF(pstate);
-    }
+    /* Set the no app layer inspection flag for both
+     * the stream in this Flow */
+    FlowSetSessionNoApplayerInspectionFlag(f);
+    AppLayerParserSetEOF(pstate);
     SCReturnInt(-1);
 }
 
@@ -1187,6 +1185,7 @@ static int AppLayerParserTest02(void)
         goto end;
     f->alproto = ALPROTO_TEST;
     f->proto = IPPROTO_UDP;
+    f->protomap = FlowGetProtoMapping(f->proto);
 
     StreamTcpInitConfig(TRUE);
 

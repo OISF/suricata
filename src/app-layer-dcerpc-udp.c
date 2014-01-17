@@ -1049,6 +1049,7 @@ int DCERPCUDPParserTest01(void) {
     FLOW_INITIALIZE(&f);
 	f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_UDP;
+    f.protomap = FlowGetProtoMapping(f.proto);
 
 	StreamTcpInitConfig(TRUE);
 
