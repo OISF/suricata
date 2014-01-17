@@ -220,12 +220,15 @@ static AppProto AppLayerProtoDetectPMGetProto(AppLayerProtoDetectThreadCtx *tctx
     uint8_t cnt;
     uint16_t searchlen;
 
+    if (f->protomap >= FLOW_PROTO_DEFAULT)
+        return ALPROTO_UNKNOWN;
+
     if (direction & STREAM_TOSERVER) {
-        pm_ctx = &alpd_ctx.ctx_ipp[FlowGetProtoMapping(ipproto)].ctx_pm[0];
-        mpm_tctx = &tctx->mpm_tctx[FlowGetProtoMapping(ipproto)][0];
+        pm_ctx = &alpd_ctx.ctx_ipp[f->protomap].ctx_pm[0];
+        mpm_tctx = &tctx->mpm_tctx[f->protomap][0];
     } else {
-        pm_ctx = &alpd_ctx.ctx_ipp[FlowGetProtoMapping(ipproto)].ctx_pm[1];
-        mpm_tctx = &tctx->mpm_tctx[FlowGetProtoMapping(ipproto)][1];
+        pm_ctx = &alpd_ctx.ctx_ipp[f->protomap].ctx_pm[1];
+        mpm_tctx = &tctx->mpm_tctx[f->protomap][1];
     }
     if (pm_ctx->mpm_ctx.pattern_cnt == 0)
         goto end;
@@ -1781,6 +1784,9 @@ int AppLayerProtoDetectTest03(void)
     AppProto pm_results[ALPROTO_MAX];
     AppLayerProtoDetectThreadCtx *alpd_tctx;
 
+    memset(&f, 0x00, sizeof(f));
+    f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
+
     memset(pm_results, 0, sizeof(pm_results));
 
     buf = "HTTP";
@@ -1853,6 +1859,9 @@ int AppLayerProtoDetectTest04(void)
     AppProto pm_results[ALPROTO_MAX];
     AppLayerProtoDetectThreadCtx *alpd_tctx;
 
+    memset(&f, 0x00, sizeof(f));
+    f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
+
     memset(pm_results, 0, sizeof(pm_results));
 
     buf = "200 ";
@@ -1918,6 +1927,9 @@ int AppLayerProtoDetectTest05(void)
     Flow f;
     AppProto pm_results[ALPROTO_MAX];
     AppLayerProtoDetectThreadCtx *alpd_tctx;
+
+    memset(&f, 0x00, sizeof(f));
+    f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
 
     memset(pm_results, 0, sizeof(pm_results));
 
@@ -1991,6 +2003,9 @@ int AppLayerProtoDetectTest06(void)
     AppProto pm_results[ALPROTO_MAX];
     AppLayerProtoDetectThreadCtx *alpd_tctx;
 
+    memset(&f, 0x00, sizeof(f));
+    f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
+
     buf = "HTTP";
     AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
     buf = "220 ";
@@ -2060,6 +2075,9 @@ int AppLayerProtoDetectTest07(void)
     Flow f;
     AppProto pm_results[ALPROTO_MAX];
     AppLayerProtoDetectThreadCtx *alpd_tctx;
+
+    memset(&f, 0x00, sizeof(f));
+    f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
 
     memset(pm_results, 0, sizeof(pm_results));
 
@@ -2146,6 +2164,9 @@ int AppLayerProtoDetectTest08(void)
     AppProto pm_results[ALPROTO_MAX];
     AppLayerProtoDetectThreadCtx *alpd_tctx;
 
+    memset(&f, 0x00, sizeof(f));
+    f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
+
     memset(pm_results, 0, sizeof(pm_results));
 
     buf = "|ff|SMB";
@@ -2227,6 +2248,9 @@ int AppLayerProtoDetectTest09(void)
     AppProto pm_results[ALPROTO_MAX];
     AppLayerProtoDetectThreadCtx *alpd_tctx;
 
+    memset(&f, 0x00, sizeof(f));
+    f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
+
     memset(pm_results, 0, sizeof(pm_results));
 
     buf = "|fe|SMB";
@@ -2303,6 +2327,9 @@ int AppLayerProtoDetectTest10(void)
     AppProto pm_results[ALPROTO_MAX];
     AppLayerProtoDetectThreadCtx *alpd_tctx;
 
+    memset(&f, 0x00, sizeof(f));
+    f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
+
     memset(pm_results, 0, sizeof(pm_results));
 
     buf = "|05 00|";
@@ -2372,6 +2399,9 @@ int AppLayerProtoDetectTest11(void)
     Flow f;
     AppProto pm_results[ALPROTO_MAX];
     AppLayerProtoDetectThreadCtx *alpd_tctx;
+
+    memset(&f, 0x00, sizeof(f));
+    f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
 
     memset(pm_results, 0, sizeof(pm_results));
 
@@ -2521,6 +2551,9 @@ int AppLayerProtoDetectTest13(void)
     AppLayerProtoDetectThreadCtx *alpd_tctx;
     uint32_t cnt;
 
+    memset(&f, 0x00, sizeof(f));
+    f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
+
     AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_UDP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOSERVER);
     AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_UDP, ALPROTO_HTTP, "GET", 3, 0, STREAM_TOSERVER);
     AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_UDP, ALPROTO_HTTP, "PUT", 3, 0, STREAM_TOSERVER);
@@ -2608,6 +2641,9 @@ int AppLayerProtoDetectTest14(void)
     AppProto pm_results[ALPROTO_MAX];
     AppLayerProtoDetectThreadCtx *alpd_tctx;
     uint32_t cnt;
+
+    memset(&f, 0x00, sizeof(f));
+    f.protomap = FlowGetProtoMapping(IPPROTO_UDP);
 
     AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_UDP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOSERVER);
     AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_UDP, ALPROTO_HTTP, "GET", 3, 0, STREAM_TOSERVER);
