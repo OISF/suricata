@@ -244,7 +244,10 @@ static uint16_t AppLayerProtoDetectPMGetProto(AppLayerProtoDetectThreadCtx *tctx
     uint8_t pm_results_bf[(ALPROTO_MAX / 8) + 1];
     memset(pm_results_bf, 0, sizeof(pm_results_bf));
 
-    for (cnt = 0; cnt < search_cnt; cnt++) {
+    /* loop through unique pattern id's. Can't use search_cnt here,
+     * as that contains all matches, tctx->pmq.pattern_id_array_cnt
+     * contains only *unique* matches. */
+    for (cnt = 0; cnt < tctx->pmq.pattern_id_array_cnt; cnt++) {
         AppLayerProtoDetectPMSignature *s = pm_ctx->map[tctx->pmq.pattern_id_array[cnt]];
         while (s != NULL) {
             uint16_t proto = AppLayerProtoDetectPMMatchSignature(s, buf, searchlen, ipproto);
