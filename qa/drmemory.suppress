@@ -23,40 +23,6 @@ libpthread.so.0!start_thread
 libc.so.6!__clone 
 
 LEAK
-name=bug 980 (1)
-*
-suricata!DetectEngineHSBDGetBufferForTX
-suricata!DetectEngineRunHttpServerBodyMpm
-suricata!DetectMpmPrefilter
-suricata!SigMatchSignatures
-suricata!Detect
-suricata!TmThreadsSlotVarRun
-*
-
-LEAK
-name=bug 980 (2)
-*
-suricata!HHDCreateSpace
-suricata!DetectEngineHHDGetBufferForTX
-suricata!DetectEngineRunHttpHeaderMpm
-suricata!DetectMpmPrefilter
-suricata!SigMatchSignatures
-suricata!Detect
-suricata!TmThreadsSlotVarRun
-*
-
-LEAK
-name=bug 980 (3)
-*
-suricata!DetectEngineHCBDGetBufferForTX
-suricata!DetectEngineRunHttpClientBodyMpm
-suricata!DetectMpmPrefilter
-suricata!SigMatchSignatures
-suricata!Detect
-suricata!TmThreadsSlotVarRun
-*
-
-LEAK
 name=useless warning, likely DrMemory bug
 *
 libpcre.so.3!pcre_get_substring
