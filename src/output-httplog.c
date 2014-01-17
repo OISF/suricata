@@ -42,6 +42,7 @@
 #include "output-httplog.h"
 #include "app-layer-htp.h"
 #include "app-layer.h"
+#include "app-layer-parser.h"
 #include "util-privs.h"
 #include "util-buffer.h"
 #include "util-proto-name.h"
@@ -249,7 +250,7 @@ static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data)
         goto end;
     }
 
-    total_txs = AppLayerGetTxCnt(ALPROTO_HTTP, htp_state);
+    total_txs = AppLayerParserGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP, htp_state);
     tx_id = AppLayerTransactionGetLogId(p->flow);
     tx_progress_done_value_ts = AppLayerGetAlstateProgressCompletionStatus(ALPROTO_HTTP, 0);
     tx_progress_done_value_tc = AppLayerGetAlstateProgressCompletionStatus(ALPROTO_HTTP, 1);
@@ -260,7 +261,7 @@ static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data)
 
     for (; tx_id < total_txs; tx_id++)
     {
-        tx = AppLayerGetTx(ALPROTO_HTTP, htp_state, tx_id);
+        tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
         if (tx == NULL) {
             SCLogDebug("tx is NULL not logging !!");
             continue;

@@ -216,14 +216,14 @@ log-tlslog.c log-tlslog.h \
 output.c output.h \
 output-file.c output-file.h \
 output-filedata.c output-filedata.h \
+output-json-file.c output-json-file.h \
 output-packet.c output-packet.h \
 output-tx.c output-tx.h \
-output-dnslog.c output-dnslog.h \
 output-droplog.c output-droplog.h \
-output-file.c output-file.h \
 output-httplog.c output-httplog.h \
 output-json.c output-json.h \
 output-tlslog.c output-tlslog.h \
+output-dnslog.c output-dnslog.h \
 packet-queue.c packet-queue.h \
 pkt-var.c pkt-var.h \
 reputation.c reputation.h \
