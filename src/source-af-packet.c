@@ -723,7 +723,7 @@ int AFPReadFromRing(AFPThreadVars *ptv)
             SCReturnInt(AFP_FAILURE);
         }
 
-        if (h.h2->tp_status & (TP_STATUS_KERNEL|TP_STATUS_USER_BUSY)) {
+        if ((! h.h2->tp_status) || (h.h2->tp_status & TP_STATUS_USER_BUSY)) {
             if (read_pkts == 0) {
                 if (loop_start == -1) {
                     loop_start = ptv->frame_offset;
