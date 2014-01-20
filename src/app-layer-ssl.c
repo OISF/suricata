@@ -951,15 +951,15 @@ int SSLParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
  */
 void *SSLStateAlloc(void)
 {
-    void *ssl_state = SCMalloc(sizeof(SSLState));
+    SSLState *ssl_state = SCMalloc(sizeof(SSLState));
     if (unlikely(ssl_state == NULL))
         return NULL;
     memset(ssl_state, 0, sizeof(SSLState));
-    ((SSLState*)ssl_state)->client_connp.cert_log_flag = 0;
-    ((SSLState*)ssl_state)->server_connp.cert_log_flag = 0;
-    TAILQ_INIT(&((SSLState*)ssl_state)->server_connp.certs);
+    ssl_state->client_connp.cert_log_flag = 0;
+    ssl_state->server_connp.cert_log_flag = 0;
+    TAILQ_INIT(&ssl_state->server_connp.certs);
 
-    return ssl_state;
+    return (void *)ssl_state;
 }
 
 /**
