@@ -162,9 +162,9 @@ int LiveBuildDeviceList(char * runmode)
 int LiveDeviceListClean()
 {
     SCEnter();
-    LiveDevice *pd;
+    LiveDevice *pd, *tpd;
 
-    TAILQ_FOREACH(pd, &live_devices, next) {
+    TAILQ_FOREACH_SAFE(pd, &live_devices, next, tpd) {
         SCLogNotice("Stats for '%s':  pkts: %u, drop: %u (%.2f%%), invalid chksum: %u",
                     pd->dev,
                     SC_ATOMIC_GET(pd->pkts),
