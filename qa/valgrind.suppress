@@ -11,4 +11,29 @@
    fun:RunUnittests
    fun:main
 }
+{
+   Known warning, see Bug 1083
+   Memcheck:Param
+   socketcall.setsockopt(optval)
+   fun:setsockopt
+   fun:pfring_mod_set_bpf_filter
+   fun:ReceivePfringThreadInit
+   fun:TmThreadsSlotPktAcqLoop
+   fun:start_thread
+   fun:clone
+}
+{
+   Known warning, see Bug 1084
+   Memcheck:Leak
+   fun:malloc
+   obj:/usr/lib/x86_64-linux-gnu/libpcap.so.1.1.1
+   fun:pcap_compile
+   fun:pcap_compile_nopcap
+   fun:pfring_mod_set_bpf_filter
+   fun:ReceivePfringThreadInit
+   fun:TmThreadsSlotPktAcqLoop
+   fun:start_thread
+   fun:clone
+}
+
 
