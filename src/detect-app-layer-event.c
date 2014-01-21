@@ -563,7 +563,7 @@ int DetectAppLayerEventTest03(void)
     p->dst.family = AF_INET;
     p->proto = IPPROTO_TCP;
 
-    ra_ctx = StreamTcpReassembleInitThreadCtx();
+    ra_ctx = StreamTcpReassembleInitThreadCtx(&tv);
     if (ra_ctx == NULL)
         goto end;
     StreamTcpInitConfig(TRUE);
@@ -667,7 +667,7 @@ int DetectAppLayerEventTest04(void)
     p->dst.family = AF_INET;
     p->proto = IPPROTO_TCP;
 
-    ra_ctx = StreamTcpReassembleInitThreadCtx();
+    ra_ctx = StreamTcpReassembleInitThreadCtx(&tv);
     if (ra_ctx == NULL)
         goto end;
     StreamTcpInitConfig(TRUE);
@@ -787,7 +787,7 @@ int DetectAppLayerEventTest05(void)
     p->dst.family = AF_INET;
     p->proto = IPPROTO_TCP;
 
-    ra_ctx = StreamTcpReassembleInitThreadCtx();
+    ra_ctx = StreamTcpReassembleInitThreadCtx(&tv);
     if (ra_ctx == NULL)
         goto end;
     StreamTcpInitConfig(TRUE);

@@ -42,7 +42,7 @@
 
 void StreamTcpUTInit(TcpReassemblyThreadCtx **ra_ctx) {
     StreamTcpInitConfig(TRUE);
-    *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
 }
 
 void StreamTcpUTDeinit(TcpReassemblyThreadCtx *ra_ctx) {

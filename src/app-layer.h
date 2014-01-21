@@ -97,7 +97,7 @@ int AppLayerDeSetup(void);
  * \retval Pointer to the newly create thread context, on success;
  *         NULL, on failure.
  */
-AppLayerThreadCtx *AppLayerGetCtxThread(void);
+AppLayerThreadCtx *AppLayerGetCtxThread(ThreadVars *tv);
 
 /**
  * \brief Destroys the context created by AppLayeGetCtxThread().

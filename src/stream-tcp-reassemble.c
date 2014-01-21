@@ -355,7 +355,7 @@ void StreamTcpReassembleFree(char quiet)
 #endif
 }
 
-TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(void)
+TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(ThreadVars *tv)
 {
     SCEnter();
     TcpReassemblyThreadCtx *ra_ctx = SCMalloc(sizeof(TcpReassemblyThreadCtx));
@@ -364,7 +364,7 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(void)
 
     memset(ra_ctx, 0x00, sizeof(TcpReassemblyThreadCtx));
 
-    ra_ctx->app_tctx = AppLayerGetCtxThread();
+    ra_ctx->app_tctx = AppLayerGetCtxThread(tv);
 
     SCReturnPtr(ra_ctx, "TcpReassemblyThreadCtx");
 }
@@ -3679,7 +3679,7 @@ static int StreamTcpReassembleStreamTest(TcpStream *stream) {
     Flow f;
     uint8_t payload[4];
     TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
 
     /* prevent L7 from kicking in */
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
@@ -4008,7 +4008,7 @@ static int StreamTcpTestStartsBeforeListSegment(TcpStream *stream) {
     Flow f;
     uint8_t payload[4];
     TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
 
     /* prevent L7 from kicking in */
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
@@ -4124,7 +4124,7 @@ static int StreamTcpTestStartsAtSameListSegment(TcpStream *stream) {
     Flow f;
     uint8_t payload[4];
     TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
 
@@ -4239,7 +4239,7 @@ static int StreamTcpTestStartsAfterListSegment(TcpStream *stream) {
     Flow f;
     uint8_t payload[4];
     TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
 
@@ -5035,7 +5035,7 @@ static int StreamTcpReassembleTest25 (void) {
     uint8_t flowflags;
     uint8_t check_contents[7] = {0x41, 0x41, 0x41, 0x42, 0x42, 0x43, 0x43};
 
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     memset(&ssn, 0, sizeof (TcpSession));
 
     flowflags = FLOW_PKT_TOSERVER;
@@ -5098,7 +5098,7 @@ static int StreamTcpReassembleTest26 (void) {
     ack = 20;
     StreamTcpInitConfig(TRUE);
 
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
 
     StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
     seq = 10;
@@ -5155,7 +5155,7 @@ static int StreamTcpReassembleTest27 (void) {
     ack = 20;
     StreamTcpInitConfig(TRUE);
 
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
 
     StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
     seq = 10;
@@ -5209,7 +5209,7 @@ static int StreamTcpReassembleTest28 (void) {
     uint8_t check_contents[5] = {0x41, 0x41, 0x42, 0x42, 0x42};
     TcpSession ssn;
     memset(&ssn, 0, sizeof (TcpSession));
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
 
     StreamTcpInitConfig(TRUE);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
@@ -5287,7 +5287,7 @@ static int StreamTcpReassembleTest29 (void) {
     uint8_t th_flags;
     uint8_t flowflags;
     uint8_t check_contents[5] = {0x41, 0x41, 0x42, 0x42, 0x42};
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     TcpSession ssn;
     memset(&ssn, 0, sizeof (TcpSession));
 
@@ -5367,7 +5367,7 @@ static int StreamTcpReassembleTest30 (void) {
     TcpSession ssn;
     memset(&ssn, 0, sizeof (TcpSession));
 
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
 
     flowflags = FLOW_PKT_TOSERVER;
     th_flag = TH_ACK|TH_PUSH;
@@ -5459,7 +5459,7 @@ static int StreamTcpReassembleTest31 (void) {
     uint8_t th_flag;
     uint8_t flowflags;
     uint8_t check_contents[5] = {0x41, 0x41, 0x42, 0x42, 0x42};
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     TcpSession ssn;
     memset(&ssn, 0, sizeof (TcpSession));
 
@@ -5529,7 +5529,7 @@ static int StreamTcpReassembleTest32(void) {
         return 0;
     Flow f;
     TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     TcpStream stream;
     uint8_t ret = 0;
     uint8_t check_contents[35] = {0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
@@ -5618,7 +5618,7 @@ static int StreamTcpReassembleTest33(void) {
         return 0;
     Flow f;
     TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     TcpStream stream;
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_BSD;
@@ -5698,7 +5698,7 @@ static int StreamTcpReassembleTest34(void) {
         return 0;
     Flow f;
     TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     TcpStream stream;
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_BSD;
@@ -5779,7 +5779,7 @@ static int StreamTcpReassembleTest35(void) {
         return 0;
     Flow f;
     TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     TcpStream stream;
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_BSD;
@@ -5847,7 +5847,7 @@ static int StreamTcpReassembleTest36(void) {
         return 0;
     Flow f;
     TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     TcpStream stream;
     memset(&stream, 0, sizeof (TcpStream));
     stream.os_policy = OS_POLICY_BSD;
@@ -5911,7 +5911,7 @@ static int StreamTcpReassembleTest37(void) {
     TcpSession ssn;
     Flow f;
     TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     TcpStream stream;
     uint8_t packet[1460] = "";
     PacketQueue pq;
@@ -6025,7 +6025,7 @@ static int StreamTcpReassembleTest38 (void) {
     memset(&tv, 0, sizeof (ThreadVars));
 
     StreamTcpInitConfig(TRUE);
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
 
     uint8_t httpbuf2[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\n";
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
@@ -6738,7 +6738,7 @@ static int StreamTcpReassembleTest40 (void) {
     StreamTcpInitConfig(TRUE);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 130);
 
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
 
     uint8_t httpbuf1[] = "P";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -6935,7 +6935,7 @@ static int StreamTcpReassembleTest43 (void) {
     memset(&tv, 0, sizeof (ThreadVars));
 
     StreamTcpInitConfig(TRUE);
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
 
     uint8_t httpbuf1[] = "/ HTTP/1.0\r\nUser-Agent: Victor/1.0";
 
@@ -7154,7 +7154,7 @@ static int StreamTcpReassembleTest45 (void) {
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
 
     StreamTcpInitConfig(TRUE);
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
 
     STREAMTCP_SET_RA_BASE_SEQ(&ssn.server, 9);
     ssn.server.isn = 9;
@@ -7271,7 +7271,7 @@ static int StreamTcpReassembleTest46 (void) {
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
 
     StreamTcpInitConfig(TRUE);
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
 
     STREAMTCP_SET_RA_BASE_SEQ(&ssn.server, 9);
     ssn.server.isn = 9;
@@ -7394,7 +7394,7 @@ static int StreamTcpReassembleTest47 (void) {
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 0);
 
     StreamTcpInitConfig(TRUE);
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
 
     uint8_t httpbuf1[] = "GET /EVILSUFF HTTP/1.1\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */

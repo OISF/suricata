@@ -800,7 +800,7 @@ int PacketSetData(Packet *p, uint8_t *pktdata, int pktlen);
 int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datalen);
 const char *PktSrcToString(enum PktSrcEnum pkt_src);
 
-DecodeThreadVars *DecodeThreadVarsAlloc();
+DecodeThreadVars *DecodeThreadVarsAlloc(ThreadVars *);
 
 /* decoder functions */
 int DecodeEthernet(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
