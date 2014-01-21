@@ -146,6 +146,8 @@ typedef struct DNSState_ {
     DNSTransaction *curr;                   /**< ptr to current tx */
     uint64_t transaction_max;
     uint32_t unreplied_cnt;                 /**< number of unreplied requests in a row */
+    uint32_t memuse;                        /**< state memuse, for comparing with
+                                                 state-memcap settings */
     uint16_t events;
     uint16_t givenup;
 
@@ -163,6 +165,10 @@ void DNSConfigInit(void);
 void DNSConfigSetRequestFlood(uint32_t value);
 void DNSConfigSetStateMemcap(uint32_t value);
 void DNSConfigSetGlobalMemcap(uint64_t value);
+
+void DNSIncrMemcap(uint32_t size, DNSState *state);
+void DNSDecrMemcap(uint32_t size, DNSState *state);
+int DNSCheckMemcap(uint32_t want, DNSState *state);
 
 void RegisterDNSParsers(void);
 void DNSParserTests(void);
