@@ -363,7 +363,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
  *  \retval 0 ok
  *  \retval -1 error
  */
-int AppLayerHandleUdp(AppLayerThreadCtx *tctx, Packet *p, Flow *f)
+int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *f)
 {
     SCEnter();
 

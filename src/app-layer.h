@@ -48,7 +48,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 /**
  * \brief Handles an udp chunk.
  */
-int AppLayerHandleUdp(AppLayerThreadCtx *app_tctx, Packet *p, Flow *f);
+int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *app_tctx,
+                      Packet *p, Flow *f);
 
 /***** Utility *****/
 
