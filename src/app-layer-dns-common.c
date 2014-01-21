@@ -95,6 +95,13 @@ int DNSCheckMemcap(uint32_t want, DNSState *state) {
     return 0;
 }
 
+void DNSMemcapGetCounters(uint64_t *memuse, uint64_t *memcap_state,
+                          uint64_t *memcap_global)
+{
+    *memuse = SC_ATOMIC_GET(dns_memuse);
+    *memcap_state = SC_ATOMIC_GET(dns_memcap_state);
+    *memcap_global = SC_ATOMIC_GET(dns_memcap_global);
+}
 
 SCEnumCharMap dns_decoder_event_table[ ] = {
     { "UNSOLLICITED_RESPONSE",      DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE, },

@@ -41,7 +41,9 @@
 #include "util-profiling.h"
 #include "util-validate.h"
 #include "decode-events.h"
+
 #include "app-layer-htp-mem.h"
+#include "app-layer-dns-common.h"
 
 /**
  * \brief This is for the app layer in general and it contains per thread
@@ -67,6 +69,22 @@ struct AppLayerThreadCtx_ {
     uint64_t proto_detect_ticks_spent;
 #endif
 };
+
+/** \todo move this into the DNS code. Problem is that there we can't
+ *        access AppLayerThreadCtx internals. */
+static void DNSUpdateCounters(ThreadVars *tv, AppLayerThreadCtx *app_tctx)
+{
+    uint64_t memuse = 0, memcap_state = 0, memcap_global = 0;
+
+    DNSMemcapGetCounters(&memuse, &memcap_state, &memcap_global);
+
+    SCPerfCounterSetUI64(app_tctx->counter_dns_memuse,
+                         tv->sc_perf_pca, memuse);
+    SCPerfCounterSetUI64(app_tctx->counter_dns_memcap_state,
+                         tv->sc_perf_pca, memcap_state);
+    SCPerfCounterSetUI64(app_tctx->counter_dns_memcap_global,
+                         tv->sc_perf_pca, memcap_global);
+}
 
 /***** L7 layer dispatchers *****/
 
@@ -347,7 +365,10 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     }
 
     /** \fixme a bit hacky but will be improved in 2.1 */
-    HTPMemuseCounter(tv, ra_ctx);
+    if (*alproto == ALPROTO_HTTP)
+        HTPMemuseCounter(tv, ra_ctx);
+    else if (*alproto == ALPROTO_DNS)
+        DNSUpdateCounters(tv, app_tctx);
     goto end;
  failure:
     r = -1;
@@ -372,6 +393,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
     SCEnter();
 
     int r = 0;
+    AppProto alproto;
 
     FLOWLOCK_WRLOCK(f);
 
@@ -426,9 +448,13 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
                        "for l7");
         }
     }
+    alproto = f->alproto;
 
     FLOWLOCK_UNLOCK(f);
     PACKET_PROFILING_APP_STORE(tctx, p);
+
+    if (alproto == ALPROTO_DNS)
+        DNSUpdateCounters(tv, tctx);
     SCReturnInt(r);
 }
 
