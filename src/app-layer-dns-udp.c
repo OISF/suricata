@@ -309,6 +309,8 @@ static uint16_t DNSUdpProbingParser(uint8_t *input, uint32_t ilen, uint32_t *off
 
 static void DNSUDPConfigure(void) {
     uint32_t request_flood = DNS_CONFIG_DEFAULT_REQUEST_FLOOD;
+    uint32_t state_memcap = DNS_CONFIG_DEFAULT_STATE_MEMCAP;
+    uint64_t global_memcap = DNS_CONFIG_DEFAULT_GLOBAL_MEMCAP;
 
     ConfNode *p = ConfGetNode("app-layer.protocols.dns.request-flood");
     if (p != NULL) {
@@ -321,6 +323,30 @@ static void DNSUDPConfigure(void) {
     }
     SCLogInfo("DNS request flood protection level: %u", request_flood);
     DNSConfigSetRequestFlood(request_flood);
+
+    p = ConfGetNode("app-layer.protocols.dns.state-memcap");
+    if (p != NULL) {
+        uint32_t value;
+        if (ParseSizeStringU32(p->val, &value) < 0) {
+            SCLogError(SC_ERR_DNS_CONFIG, "invalid value for state-memcap %s", p->val);
+        } else {
+            state_memcap = value;
+        }
+    }
+    SCLogInfo("DNS per flow memcap (state-memcap): %u", state_memcap);
+    DNSConfigSetStateMemcap(state_memcap);
+
+    p = ConfGetNode("app-layer.protocols.dns.global-memcap");
+    if (p != NULL) {
+        uint64_t value;
+        if (ParseSizeStringU64(p->val, &value) < 0) {
+            SCLogError(SC_ERR_DNS_CONFIG, "invalid value for global-memcap %s", p->val);
+        } else {
+            global_memcap = value;
+        }
+    }
+    SCLogInfo("DNS global memcap: %"PRIu64, global_memcap);
+    DNSConfigSetGlobalMemcap(global_memcap);
 }
 
 void RegisterDNSUDPParsers(void) {

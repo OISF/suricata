@@ -156,9 +156,13 @@ typedef struct DNSState_ {
 } DNSState;
 
 #define DNS_CONFIG_DEFAULT_REQUEST_FLOOD 500
+#define DNS_CONFIG_DEFAULT_STATE_MEMCAP 512*1024
+#define DNS_CONFIG_DEFAULT_GLOBAL_MEMCAP 16*1024*1024
 
 void DNSConfigInit(void);
 void DNSConfigSetRequestFlood(uint32_t value);
+void DNSConfigSetStateMemcap(uint32_t value);
+void DNSConfigSetGlobalMemcap(uint64_t value);
 
 void RegisterDNSParsers(void);
 void DNSParserTests(void);

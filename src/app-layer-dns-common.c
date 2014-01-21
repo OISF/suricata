@@ -32,6 +32,8 @@
 
 typedef struct DNSConfig_ {
     uint32_t request_flood;
+    uint32_t state_memcap;  /**< memcap in bytes per state */
+    uint64_t global_memcap; /**< memcap in bytes globally for parser */
 } DNSConfig;
 static DNSConfig dns_config;
 
@@ -41,6 +43,14 @@ void DNSConfigInit(void) {
 
 void DNSConfigSetRequestFlood(uint32_t value) {
     dns_config.request_flood = value;
+}
+
+void DNSConfigSetStateMemcap(uint32_t value) {
+    dns_config.state_memcap = value;
+}
+
+void DNSConfigSetGlobalMemcap(uint64_t value) {
+    dns_config.global_memcap = value;
 }
 
 SCEnumCharMap dns_decoder_event_table[ ] = {
