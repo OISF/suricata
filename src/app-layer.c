@@ -41,7 +41,9 @@
 #include "util-profiling.h"
 #include "util-validate.h"
 #include "decode-events.h"
+
 #include "app-layer-htp-mem.h"
+#include "app-layer-dns-common.h"
 
 /**
  * \brief This is for the app layer in general and it contains per thread
@@ -53,6 +55,10 @@ struct AppLayerThreadCtx_ {
     /* App layer parser thread context, from AppLayerParserThreadCtxAlloc(). */
     AppLayerParserThreadCtx *alp_tctx;
 
+    uint16_t counter_dns_memuse;
+    uint16_t counter_dns_memcap_state;
+    uint16_t counter_dns_memcap_global;
+
 #ifdef PROFILING
     uint64_t ticks_start;
     uint64_t ticks_end;
@@ -63,6 +69,22 @@ struct AppLayerThreadCtx_ {
     uint64_t proto_detect_ticks_spent;
 #endif
 };
+
+/** \todo move this into the DNS code. Problem is that there we can't
+ *        access AppLayerThreadCtx internals. */
+static void DNSUpdateCounters(ThreadVars *tv, AppLayerThreadCtx *app_tctx)
+{
+    uint64_t memuse = 0, memcap_state = 0, memcap_global = 0;
+
+    DNSMemcapGetCounters(&memuse, &memcap_state, &memcap_global);
+
+    SCPerfCounterSetUI64(app_tctx->counter_dns_memuse,
+                         tv->sc_perf_pca, memuse);
+    SCPerfCounterSetUI64(app_tctx->counter_dns_memcap_state,
+                         tv->sc_perf_pca, memcap_state);
+    SCPerfCounterSetUI64(app_tctx->counter_dns_memcap_global,
+                         tv->sc_perf_pca, memcap_global);
+}
 
 /***** L7 layer dispatchers *****/
 
@@ -343,7 +365,10 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     }
 
     /** \fixme a bit hacky but will be improved in 2.1 */
-    HTPMemuseCounter(tv, ra_ctx);
+    if (*alproto == ALPROTO_HTTP)
+        HTPMemuseCounter(tv, ra_ctx);
+    else if (*alproto == ALPROTO_DNS)
+        DNSUpdateCounters(tv, app_tctx);
     goto end;
  failure:
     r = -1;
@@ -363,11 +388,12 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
  *  \retval 0 ok
  *  \retval -1 error
  */
-int AppLayerHandleUdp(AppLayerThreadCtx *tctx, Packet *p, Flow *f)
+int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *f)
 {
     SCEnter();
 
     int r = 0;
+    AppProto alproto;
 
     FLOWLOCK_WRLOCK(f);
 
@@ -422,9 +448,13 @@ int AppLayerHandleUdp(AppLayerThreadCtx *tctx, Packet *p, Flow *f)
                        "for l7");
         }
     }
+    alproto = f->alproto;
 
     FLOWLOCK_UNLOCK(f);
     PACKET_PROFILING_APP_STORE(tctx, p);
+
+    if (alproto == ALPROTO_DNS)
+        DNSUpdateCounters(tv, tctx);
     SCReturnInt(r);
 }
 
@@ -485,7 +515,7 @@ int AppLayerDeSetup(void)
     SCReturnInt(0);
 }
 
-AppLayerThreadCtx *AppLayerGetCtxThread(void)
+AppLayerThreadCtx *AppLayerGetCtxThread(ThreadVars *tv)
 {
     SCEnter();
 
@@ -498,6 +528,16 @@ AppLayerThreadCtx *AppLayerGetCtxThread(void)
         goto error;
     if ((app_tctx->alp_tctx = AppLayerParserThreadCtxAlloc()) == NULL)
         goto error;
+
+    /* tv is allowed to be NULL in unittests */
+    if (tv != NULL) {
+        app_tctx->counter_dns_memuse = SCPerfTVRegisterCounter("dns.memuse", tv,
+                SC_PERF_TYPE_UINT64, "NULL");
+        app_tctx->counter_dns_memcap_state = SCPerfTVRegisterCounter("dns.memcap_state", tv,
+                SC_PERF_TYPE_UINT64, "NULL");
+        app_tctx->counter_dns_memcap_global = SCPerfTVRegisterCounter("dns.memcap_global", tv,
+                SC_PERF_TYPE_UINT64, "NULL");
+    }
 
     goto done;
  error:

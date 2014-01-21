@@ -423,7 +423,7 @@ static int FragBitsTestParse03 (void) {
     memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
-    dtv.app_tctx = AppLayerGetCtxThread();
+    dtv.app_tctx = AppLayerGetCtxThread(&tv);
 
     p->ip4h = &ipv4h;
 
@@ -519,7 +519,7 @@ static int FragBitsTestParse04 (void) {
     memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
-    dtv.app_tctx = AppLayerGetCtxThread();
+    dtv.app_tctx = AppLayerGetCtxThread(&tv);
 
     p->ip4h = &ipv4h;
 

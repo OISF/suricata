@@ -94,7 +94,7 @@ int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
 
     /* handle the app layer part of the UDP packet payload */
     if (unlikely(p->flow != NULL)) {
-        AppLayerHandleUdp(dtv->app_tctx, p, p->flow);
+        AppLayerHandleUdp(tv, dtv->app_tctx, p, p->flow);
     }
 
     return TM_ECODE_OK;
