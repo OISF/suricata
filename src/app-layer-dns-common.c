@@ -155,7 +155,7 @@ void DNSSetEvent(DNSState *s, uint8_t e) {
 /** \internal
  *  \brief Allocate a DNS TX
  *  \retval tx or NULL */
-DNSTransaction *DNSTransactionAlloc(const uint16_t tx_id) {
+static DNSTransaction *DNSTransactionAlloc(const uint16_t tx_id) {
     DNSTransaction *tx = SCMalloc(sizeof(DNSTransaction));
     if (unlikely(tx == NULL))
         return NULL;

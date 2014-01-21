@@ -177,7 +177,6 @@ uint64_t DNSGetTxCnt(void *alstate);
 int DNSGetAlstateProgress(void *tx, uint8_t direction);
 int DNSGetAlstateProgressCompletionStatus(uint8_t direction);
 
-DNSTransaction *DNSTransactionAlloc(const uint16_t tx_id);
 void DNSStateTransactionFree(void *state, uint64_t tx_id);
 DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16_t tx_id);
 
