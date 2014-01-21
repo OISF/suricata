@@ -83,6 +83,7 @@ int DNSCheckMemcap(uint32_t want, DNSState *state) {
     if (state != NULL) {
         if (state->memuse + want > dns_config.state_memcap) {
             SC_ATOMIC_ADD(dns_memcap_state, 1);
+            DNSSetEvent(state, DNS_DECODER_EVENT_STATE_MEMCAP_REACHED);
             return -1;
         }
     }
@@ -110,6 +111,7 @@ SCEnumCharMap dns_decoder_event_table[ ] = {
     { "NOT_A_RESPONSE",             DNS_DECODER_EVENT_NOT_A_RESPONSE, },
     { "Z_FLAG_SET",                 DNS_DECODER_EVENT_Z_FLAG_SET, },
     { "FLOODED",                    DNS_DECODER_EVENT_FLOODED, },
+    { "STATE_MEMCAP_REACHED",       DNS_DECODER_EVENT_STATE_MEMCAP_REACHED, },
 
     { NULL,                         -1 },
 };
