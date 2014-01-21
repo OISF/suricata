@@ -1182,18 +1182,18 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 (p->proto == IPPROTO_UDP) ||
                 (p->proto == IPPROTO_SCTP && (p->flowflags & FLOW_PKT_ESTABLISHED)))
             {
-                alstate = FlowGetAppState(p->flow);
-                alproto = FlowGetAppProtocol(p->flow);
-                alversion = AppLayerParserGetStateVersion(p->flow->alparser);
+                alstate = FlowGetAppState(pflow);
+                alproto = FlowGetAppProtocol(pflow);
+                alversion = AppLayerParserGetStateVersion(pflow->alparser);
                 SCLogDebug("alstate %p, alproto %u", alstate, alproto);
             } else {
                 SCLogDebug("packet doesn't have established flag set (proto %d)", p->proto);
             }
 
-            app_decoder_events = AppLayerParserHasDecoderEvents(p->flow->proto,
-                                                                p->flow->alproto,
-                                                                p->flow->alstate,
-                                                                p->flow->alparser,
+            app_decoder_events = AppLayerParserHasDecoderEvents(pflow->proto,
+                                                                pflow->alproto,
+                                                                pflow->alstate,
+                                                                pflow->alparser,
                                                                 flags);
         }
         FLOWLOCK_UNLOCK(pflow);
@@ -1548,7 +1548,7 @@ next:
 
 end:
     /* see if we need to increment the inspect_id and reset the de_state */
-    if (alstate != NULL && AppLayerParserProtocolSupportsTxs(p->flow->proto, alproto)) {
+    if (alstate != NULL && AppLayerParserProtocolSupportsTxs(p->proto, alproto)) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
         DeStateUpdateInspectTransactionId(pflow, flags);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);

@@ -159,6 +159,7 @@ static int DetectDnsQueryTest01(void) {
     FLOW_INITIALIZE(&f);
     f.flags |= FLOW_IPV4;
     f.proto = IPPROTO_UDP;
+    f.protomap = FlowGetProtoMapping(f.proto);
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW;
@@ -278,6 +279,7 @@ static int DetectDnsQueryTest02(void) {
     FLOW_INITIALIZE(&f);
     f.flags |= FLOW_IPV4;
     f.proto = IPPROTO_UDP;
+    f.protomap = FlowGetProtoMapping(f.proto);
     f.alproto = ALPROTO_DNS;
 
     p1->flow = &f;
@@ -437,6 +439,7 @@ static int DetectDnsQueryTest03(void) {
     f.protoctx = (void *)&ssn;
     f.flags |= FLOW_IPV4;
     f.proto = IPPROTO_TCP;
+    f.protomap = FlowGetProtoMapping(f.proto);
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -537,6 +540,7 @@ static int DetectDnsQueryTest04(void) {
     f.protoctx = (void *)&ssn;
     f.flags |= FLOW_IPV4;
     f.proto = IPPROTO_TCP;
+    f.protomap = FlowGetProtoMapping(f.proto);
     f.alproto = ALPROTO_DNS;
 
     p1->flow = &f;
@@ -691,6 +695,7 @@ static int DetectDnsQueryTest05(void) {
     f.protoctx = (void *)&ssn;
     f.flags |= FLOW_IPV4;
     f.proto = IPPROTO_TCP;
+    f.protomap = FlowGetProtoMapping(f.proto);
     f.alproto = ALPROTO_DNS;
 
     p1->flow = &f;
@@ -872,6 +877,7 @@ static int DetectDnsQueryTest06(void) {
     FLOW_INITIALIZE(&f);
     f.flags |= FLOW_IPV4;
     f.proto = IPPROTO_UDP;
+    f.protomap = FlowGetProtoMapping(f.proto);
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW;
@@ -1005,6 +1011,7 @@ static int DetectDnsQueryTest07(void) {
     FLOW_INITIALIZE(&f);
     f.flags |= FLOW_IPV4;
     f.proto = IPPROTO_UDP;
+    f.protomap = FlowGetProtoMapping(f.proto);
     f.alproto = ALPROTO_DNS;
 
     p1->flow = &f;

@@ -27,7 +27,7 @@
 
 typedef struct AppLayerProtoDetectThreadCtx_ AppLayerProtoDetectThreadCtx;
 
-typedef uint16_t (*ProbingParserFPtr)(uint8_t *input, uint32_t input_len,
+typedef AppProto (*ProbingParserFPtr)(uint8_t *input, uint32_t input_len,
                                       uint32_t *offset);
 
 /***** Protocol Retrieval *****/
