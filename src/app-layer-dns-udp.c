@@ -310,7 +310,7 @@ static uint16_t DNSUdpProbingParser(uint8_t *input, uint32_t ilen, uint32_t *off
 static void DNSUDPConfigure(void) {
     uint32_t request_flood = DNS_CONFIG_DEFAULT_REQUEST_FLOOD;
 
-    ConfNode *p = ConfGetNode("app-layer.protocols.dnsudp.request-flood");
+    ConfNode *p = ConfGetNode("app-layer.protocols.dns.request-flood");
     if (p != NULL) {
         uint32_t value;
         if (ParseSizeStringU32(p->val, &value) < 0) {
