@@ -1,4 +1,4 @@
-/* Copyright (C) 2013 Open Information Security Foundation
+/* Copyright (C) 2013-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -29,9 +29,12 @@
 #include "util-print.h"
 #endif
 #include "util-memcmp.h"
+#include "util-atomic.h"
 
 typedef struct DNSConfig_ {
     uint32_t request_flood;
+    uint32_t state_memcap;  /**< memcap in bytes per state */
+    uint64_t global_memcap; /**< memcap in bytes globally for parser */
 } DNSConfig;
 static DNSConfig dns_config;
 
@@ -41,6 +44,63 @@ void DNSConfigInit(void) {
 
 void DNSConfigSetRequestFlood(uint32_t value) {
     dns_config.request_flood = value;
+}
+
+void DNSConfigSetStateMemcap(uint32_t value) {
+    dns_config.state_memcap = value;
+}
+
+SC_ATOMIC_DECLARE(uint64_t, dns_memuse); /**< byte counter of current memuse */
+SC_ATOMIC_DECLARE(uint64_t, dns_memcap_state); /**< counts number of 'rejects' */
+SC_ATOMIC_DECLARE(uint64_t, dns_memcap_global); /**< counts number of 'rejects' */
+
+void DNSConfigSetGlobalMemcap(uint64_t value) {
+    dns_config.global_memcap = value;
+
+    SC_ATOMIC_INIT(dns_memuse);
+    SC_ATOMIC_INIT(dns_memcap_state);
+    SC_ATOMIC_INIT(dns_memcap_global);
+}
+
+void DNSIncrMemcap(uint32_t size, DNSState *state) {
+    if (state != NULL) {
+        state->memuse += size;
+    }
+    SC_ATOMIC_ADD(dns_memuse, size);
+}
+
+void DNSDecrMemcap(uint32_t size, DNSState *state) {
+    if (state != NULL) {
+        BUG_ON(size > state->memuse); /**< TODO remove later */
+        state->memuse -= size;
+    }
+
+    BUG_ON(size > SC_ATOMIC_GET(dns_memuse)); /**< TODO remove later */
+    SC_ATOMIC_SUB(dns_memuse, size);
+}
+
+int DNSCheckMemcap(uint32_t want, DNSState *state) {
+    if (state != NULL) {
+        if (state->memuse + want > dns_config.state_memcap) {
+            SC_ATOMIC_ADD(dns_memcap_state, 1);
+            return -1;
+        }
+    }
+
+    if (SC_ATOMIC_GET(dns_memuse) + (uint64_t)want > dns_config.global_memcap) {
+        SC_ATOMIC_ADD(dns_memcap_global, 1);
+        return -2;
+    }
+
+    return 0;
+}
+
+void DNSMemcapGetCounters(uint64_t *memuse, uint64_t *memcap_state,
+                          uint64_t *memcap_global)
+{
+    *memuse = SC_ATOMIC_GET(dns_memuse);
+    *memcap_state = SC_ATOMIC_GET(dns_memcap_state);
+    *memcap_global = SC_ATOMIC_GET(dns_memcap_global);
 }
 
 SCEnumCharMap dns_decoder_event_table[ ] = {
@@ -145,10 +205,15 @@ void DNSSetEvent(DNSState *s, uint8_t e) {
 /** \internal
  *  \brief Allocate a DNS TX
  *  \retval tx or NULL */
-DNSTransaction *DNSTransactionAlloc(const uint16_t tx_id) {
+static DNSTransaction *DNSTransactionAlloc(DNSState *state, const uint16_t tx_id) {
+    if (DNSCheckMemcap(sizeof(DNSTransaction), state) < 0)
+        return NULL;
+
     DNSTransaction *tx = SCMalloc(sizeof(DNSTransaction));
     if (unlikely(tx == NULL))
         return NULL;
+    DNSIncrMemcap(sizeof(DNSTransaction), state);
+
     memset(tx, 0x00, sizeof(DNSTransaction));
 
     TAILQ_INIT(&tx->query_list);
@@ -162,26 +227,31 @@ DNSTransaction *DNSTransactionAlloc(const uint16_t tx_id) {
 /** \internal
  *  \brief Free a DNS TX
  *  \param tx DNS TX to free */
-static void DNSTransactionFree(DNSTransaction *tx) {
+static void DNSTransactionFree(DNSTransaction *tx, DNSState *state) {
     SCEnter();
 
     DNSQueryEntry *q = NULL;
     while ((q = TAILQ_FIRST(&tx->query_list))) {
         TAILQ_REMOVE(&tx->query_list, q, next);
+        DNSDecrMemcap((sizeof(DNSQueryEntry) + q->len), state);
         SCFree(q);
     }
 
     DNSAnswerEntry *a = NULL;
     while ((a = TAILQ_FIRST(&tx->answer_list))) {
         TAILQ_REMOVE(&tx->answer_list, a, next);
+        DNSDecrMemcap((sizeof(DNSAnswerEntry) + a->fqdn_len + a->data_len), state);
         SCFree(a);
     }
     while ((a = TAILQ_FIRST(&tx->authority_list))) {
         TAILQ_REMOVE(&tx->authority_list, a, next);
+        DNSDecrMemcap((sizeof(DNSAnswerEntry) + a->fqdn_len + a->data_len), state);
         SCFree(a);
     }
 
     AppLayerDecoderEventsFreeEvents(tx->decoder_events);
+
+    DNSDecrMemcap(sizeof(DNSTransaction), state);
     SCFree(tx);
     SCReturn;
 }
@@ -215,7 +285,7 @@ void DNSStateTransactionFree(void *state, uint64_t tx_id) {
         }
 
         TAILQ_REMOVE(&dns_state->tx_list, tx, next);
-        DNSTransactionFree(tx);
+        DNSTransactionFree(tx, state);
         break;
     }
     SCReturn;
@@ -255,6 +325,8 @@ void *DNSStateAlloc(void) {
 
     DNSState *dns_state = (DNSState *)s;
 
+    DNSIncrMemcap(sizeof(DNSState), dns_state);
+
     TAILQ_INIT(&dns_state->tx_list);
     return s;
 }
@@ -267,12 +339,17 @@ void DNSStateFree(void *s) {
         DNSTransaction *tx = NULL;
         while ((tx = TAILQ_FIRST(&dns_state->tx_list))) {
             TAILQ_REMOVE(&dns_state->tx_list, tx, next);
-            DNSTransactionFree(tx);
+            DNSTransactionFree(tx, dns_state);
         }
 
-        if (dns_state->buffer != NULL)
+        if (dns_state->buffer != NULL) {
+            DNSDecrMemcap(0xffff, dns_state); /** TODO update if/once we alloc
+                                               *  in a smarter way */
             SCFree(dns_state->buffer);
+        }
 
+        DNSDecrMemcap(sizeof(DNSState), dns_state);
+        BUG_ON(dns_state->memuse > 0);
         SCFree(s);
     }
     SCReturn;
@@ -382,7 +459,7 @@ void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16
     }
 
     if (tx == NULL) {
-        tx = DNSTransactionAlloc(tx_id);
+        tx = DNSTransactionAlloc(dns_state, tx_id);
         if (tx == NULL)
             return;
         dns_state->transaction_max++;
@@ -393,9 +470,13 @@ void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16
         SCLogDebug("new tx %u with internal id %u", tx->tx_id, tx->tx_num);
     }
 
+    if (DNSCheckMemcap((sizeof(DNSQueryEntry) + fqdn_len), dns_state) < 0)
+        return;
     DNSQueryEntry *q = SCMalloc(sizeof(DNSQueryEntry) + fqdn_len);
     if (unlikely(q == NULL))
         return;
+    DNSIncrMemcap((sizeof(DNSQueryEntry) + fqdn_len), dns_state);
+
     q->type = type;
     q->class = class;
     q->len = fqdn_len;
@@ -412,7 +493,7 @@ void DNSStoreAnswerInState(DNSState *dns_state, const int rtype, const uint8_t *
 {
     DNSTransaction *tx = DNSTransactionFindByTxId(dns_state, tx_id);
     if (tx == NULL) {
-        tx = DNSTransactionAlloc(tx_id);
+        tx = DNSTransactionAlloc(dns_state, tx_id);
         if (tx == NULL)
             return;
         TAILQ_INSERT_TAIL(&dns_state->tx_list, tx, next);
@@ -420,9 +501,13 @@ void DNSStoreAnswerInState(DNSState *dns_state, const int rtype, const uint8_t *
         tx->tx_num = dns_state->transaction_max;
     }
 
+    if (DNSCheckMemcap((sizeof(DNSAnswerEntry) + fqdn_len + data_len), dns_state) < 0)
+        return;
     DNSAnswerEntry *q = SCMalloc(sizeof(DNSAnswerEntry) + fqdn_len + data_len);
     if (unlikely(q == NULL))
         return;
+    DNSIncrMemcap((sizeof(DNSAnswerEntry) + fqdn_len + data_len), dns_state);
+
     q->type = type;
     q->class = class;
     q->ttl = ttl;

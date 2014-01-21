@@ -150,12 +150,16 @@ bad_data:
 
 static int BufferData(DNSState *dns_state, uint8_t *data, uint16_t len) {
     if (dns_state->buffer == NULL) {
+        if (DNSCheckMemcap(0xffff, dns_state) < 0)
+            return -1;
+
         /** \todo be smarter about this, like use a pool or several pools for
          *        chunks of various sizes */
         dns_state->buffer = SCMalloc(0xffff);
         if (dns_state->buffer == NULL) {
             return -1;
         }
+        DNSIncrMemcap(0xffff, dns_state);
     }
 
     if ((uint32_t)len + (uint32_t)dns_state->offset > (uint32_t)dns_state->record_len) {

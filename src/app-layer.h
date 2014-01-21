@@ -48,7 +48,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 /**
  * \brief Handles an udp chunk.
  */
-int AppLayerHandleUdp(AppLayerThreadCtx *app_tctx, Packet *p, Flow *f);
+int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *app_tctx,
+                      Packet *p, Flow *f);
 
 /***** Utility *****/
 
@@ -97,7 +98,7 @@ int AppLayerDeSetup(void);
  * \retval Pointer to the newly create thread context, on success;
  *         NULL, on failure.
  */
-AppLayerThreadCtx *AppLayerGetCtxThread(void);
+AppLayerThreadCtx *AppLayerGetCtxThread(ThreadVars *tv);
 
 /**
  * \brief Destroys the context created by AppLayeGetCtxThread().

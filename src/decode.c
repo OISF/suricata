@@ -449,16 +449,15 @@ void AddressDebugPrint(Address *a)
 }
 
 /** \brief Alloc and setup DecodeThreadVars */
-DecodeThreadVars *DecodeThreadVarsAlloc()
+DecodeThreadVars *DecodeThreadVarsAlloc(ThreadVars *tv)
 {
-
     DecodeThreadVars *dtv = NULL;
 
     if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
         return NULL;
     memset(dtv, 0, sizeof(DecodeThreadVars));
 
-    dtv->app_tctx = AppLayerGetCtxThread();
+    dtv->app_tctx = AppLayerGetCtxThread(tv);
 
     /** set config defaults */
     int vlanbool = 0;
