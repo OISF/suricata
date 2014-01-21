@@ -50,10 +50,16 @@ void DNSConfigSetStateMemcap(uint32_t value) {
     dns_config.state_memcap = value;
 }
 
-SC_ATOMIC_DECLARE(uint64_t, dns_memuse);
+SC_ATOMIC_DECLARE(uint64_t, dns_memuse); /**< byte counter of current memuse */
+SC_ATOMIC_DECLARE(uint64_t, dns_memcap_state); /**< counts number of 'rejects' */
+SC_ATOMIC_DECLARE(uint64_t, dns_memcap_global); /**< counts number of 'rejects' */
+
 void DNSConfigSetGlobalMemcap(uint64_t value) {
     dns_config.global_memcap = value;
+
     SC_ATOMIC_INIT(dns_memuse);
+    SC_ATOMIC_INIT(dns_memcap_state);
+    SC_ATOMIC_INIT(dns_memcap_global);
 }
 
 void DNSIncrMemcap(uint32_t size, DNSState *state) {
@@ -75,12 +81,16 @@ void DNSDecrMemcap(uint32_t size, DNSState *state) {
 
 int DNSCheckMemcap(uint32_t want, DNSState *state) {
     if (state != NULL) {
-        if (state->memuse + want > dns_config.state_memcap)
+        if (state->memuse + want > dns_config.state_memcap) {
+            SC_ATOMIC_ADD(dns_memcap_state, 1);
             return -1;
+        }
     }
 
-    if (SC_ATOMIC_GET(dns_memuse) + (uint64_t)want > dns_config.global_memcap)
+    if (SC_ATOMIC_GET(dns_memuse) + (uint64_t)want > dns_config.global_memcap) {
+        SC_ATOMIC_ADD(dns_memcap_global, 1);
         return -2;
+    }
 
     return 0;
 }

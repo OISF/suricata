@@ -53,6 +53,10 @@ struct AppLayerThreadCtx_ {
     /* App layer parser thread context, from AppLayerParserThreadCtxAlloc(). */
     AppLayerParserThreadCtx *alp_tctx;
 
+    uint16_t counter_dns_memuse;
+    uint16_t counter_dns_memcap_state;
+    uint16_t counter_dns_memcap_global;
+
 #ifdef PROFILING
     uint64_t ticks_start;
     uint64_t ticks_end;
@@ -498,6 +502,16 @@ AppLayerThreadCtx *AppLayerGetCtxThread(ThreadVars *tv)
         goto error;
     if ((app_tctx->alp_tctx = AppLayerParserThreadCtxAlloc()) == NULL)
         goto error;
+
+    /* tv is allowed to be NULL in unittests */
+    if (tv != NULL) {
+        app_tctx->counter_dns_memuse = SCPerfTVRegisterCounter("dns.memuse", tv,
+                SC_PERF_TYPE_UINT64, "NULL");
+        app_tctx->counter_dns_memcap_state = SCPerfTVRegisterCounter("dns.memcap_state", tv,
+                SC_PERF_TYPE_UINT64, "NULL");
+        app_tctx->counter_dns_memcap_global = SCPerfTVRegisterCounter("dns.memcap_global", tv,
+                SC_PERF_TYPE_UINT64, "NULL");
+    }
 
     goto done;
  error:
