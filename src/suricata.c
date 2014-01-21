@@ -150,6 +150,11 @@
 #include "reputation.h"
 
 #include "output.h"
+#include "output-packet.h"
+#include "output-tx.h"
+#include "output-file.h"
+#include "output-filedata.h"
+
 #include "util-privs.h"
 
 #include "tmqh-packetpool.h"
@@ -769,16 +774,12 @@ void RegisterAllModules()
 
     /* fast log */
     TmModuleAlertFastLogRegister();
-    TmModuleAlertFastLogIPv4Register();
-    TmModuleAlertFastLogIPv6Register();
     /* debug log */
     TmModuleAlertDebugLogRegister();
     /* prelue log */
     TmModuleAlertPreludeRegister();
     /* syslog log */
     TmModuleAlertSyslogRegister();
-    TmModuleAlertSyslogIPv4Register();
-    TmModuleAlertSyslogIPv6Register();
     /* unified2 log */
     TmModuleUnified2AlertRegister();
     /* pcap info log */
@@ -787,11 +788,7 @@ void RegisterAllModules()
     TmModuleLogDropLogRegister();
     /* http log */
     TmModuleLogHttpLogRegister();
-    TmModuleLogHttpLogIPv4Register();
-    TmModuleLogHttpLogIPv6Register();
     TmModuleLogTlsLogRegister();
-    TmModuleLogTlsLogIPv4Register();
-    TmModuleLogTlsLogIPv6Register();
     /* pcap log */
     TmModulePcapLogRegister();
     /* file log */
@@ -799,7 +796,10 @@ void RegisterAllModules()
     TmModuleLogFilestoreRegister();
     /* dns log */
     TmModuleLogDnsLogRegister();
-    /* cuda */
+    TmModulePacketLoggerRegister();
+    TmModuleTxLoggerRegister();
+    TmModuleFileLoggerRegister();
+    TmModuleFiledataLoggerRegister();
     TmModuleDebugList();
 
 }
