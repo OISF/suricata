@@ -245,8 +245,8 @@ void StreamTcpSegmentReturntoPool(TcpSegment *seg)
     uint16_t idx = segment_pool_idx[seg->pool_size];
     SCMutexLock(&segment_pool_mutex[idx]);
     PoolReturn(segment_pool[idx], (void *) seg);
-    SCLogDebug("segment_pool[%"PRIu16"]->empty_list_size %"PRIu32"",
-               idx,segment_pool[idx]->empty_list_size);
+    SCLogDebug("segment_pool[%"PRIu16"]->empty_stack_size %"PRIu32"",
+               idx,segment_pool[idx]->empty_stack_size);
     SCMutexUnlock(&segment_pool_mutex[idx]);
 
 #ifdef DEBUG
@@ -336,10 +336,10 @@ void StreamTcpReassembleFree(char quiet)
 
         if (quiet == FALSE) {
             PoolPrintSaturation(segment_pool[u16]);
-            SCLogDebug("segment_pool[u16]->empty_list_size %"PRIu32", "
-                       "segment_pool[u16]->alloc_list_size %"PRIu32", alloced "
-                       "%"PRIu32"", segment_pool[u16]->empty_list_size,
-                       segment_pool[u16]->alloc_list_size,
+            SCLogDebug("segment_pool[u16]->empty_stack_size %"PRIu32", "
+                       "segment_pool[u16]->alloc_stack_size %"PRIu32", alloced "
+                       "%"PRIu32"", segment_pool[u16]->empty_stack_size,
+                       segment_pool[u16]->alloc_stack_size,
                        segment_pool[u16]->allocated);
         }
         PoolFree(segment_pool[u16]);
@@ -3601,16 +3601,16 @@ TcpSegment* StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, 
     SCMutexLock(&segment_pool_mutex[idx]);
     TcpSegment *seg = (TcpSegment *) PoolGet(segment_pool[idx]);
 
-    SCLogDebug("segment_pool[%u]->empty_list_size %u, segment_pool[%u]->alloc_"
-               "list_size %u, alloc %u", idx, segment_pool[idx]->empty_list_size,
-               idx, segment_pool[idx]->alloc_list_size,
+    SCLogDebug("segment_pool[%u]->empty_stack_size %u, segment_pool[%u]->alloc_"
+               "list_size %u, alloc %u", idx, segment_pool[idx]->empty_stack_size,
+               idx, segment_pool[idx]->alloc_stack_size,
                segment_pool[idx]->allocated);
     SCMutexUnlock(&segment_pool_mutex[idx]);
 
     SCLogDebug("seg we return is %p", seg);
     if (seg == NULL) {
-        SCLogDebug("segment_pool[%u]->empty_list_size %u, "
-                   "alloc %u", idx, segment_pool[idx]->empty_list_size,
+        SCLogDebug("segment_pool[%u]->empty_stack_size %u, "
+                   "alloc %u", idx, segment_pool[idx]->empty_stack_size,
                    segment_pool[idx]->allocated);
         /* Increment the counter to show that we are not able to serve the
            segment request due to memcap limit */

@@ -46,12 +46,12 @@ typedef struct Pool_ {
     uint32_t allocated;         /**< counter of data elements, both currently in
                                  *   the pool and outside of it (outstanding) */
 
-    uint32_t alloc_list_size;
+    uint32_t alloc_stack_size;
 
-    PoolBucket *alloc_list;
+    PoolBucket *alloc_stack;
 
-    PoolBucket *empty_list;
-    uint32_t empty_list_size;
+    PoolBucket *empty_stack;
+    uint32_t empty_stack_size;
 
     int data_buffer_size;
     void *data_buffer;
