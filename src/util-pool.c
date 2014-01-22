@@ -185,9 +185,6 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *
 
             pb->next = p->alloc_list;
             p->alloc_list = pb;
-            if (p->alloc_list_tail == NULL) {
-                p->alloc_list_tail = pb;
-            }
             p->alloc_list_size++;
         } else {
             PoolBucket *pb = p->empty_list;
@@ -211,9 +208,6 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *
 
             pb->next = p->alloc_list;
             p->alloc_list = pb;
-            if (p->alloc_list_tail == NULL) {
-                p->alloc_list_tail = pb;
-            }
             p->alloc_list_size++;
         }
     }
@@ -248,7 +242,6 @@ void PoolFree(Pool *p) {
             SCFree(pb);
         }
     }
-    p->alloc_list_tail = NULL;
 
     while (p->empty_list != NULL) {
         PoolBucket *pb = p->empty_list;
@@ -289,8 +282,6 @@ void *PoolGet(Pool *p) {
     if (pb != NULL) {
         /* pull from the alloc list */
         p->alloc_list = pb->next;
-        if (pb->next == NULL)
-            p->alloc_list_tail = NULL;
         p->alloc_list_size--;
 
         /* put in the empty list */
@@ -363,13 +354,8 @@ void PoolReturn(Pool *p, void *data) {
     p->empty_list_size--;
 
     /* put in the alloc list */
-    pb->next = NULL;
-    if (p->alloc_list_tail == NULL) {
-        p->alloc_list = pb;
-    } else {
-        p->alloc_list_tail->next = pb;
-    }
-    p->alloc_list_tail = pb;
+    pb->next = p->alloc_list;
+    p->alloc_list = pb;
     p->alloc_list_size++;
 
     pb->data = data;

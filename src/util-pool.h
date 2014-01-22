@@ -49,7 +49,6 @@ typedef struct Pool_ {
     uint32_t alloc_list_size;
 
     PoolBucket *alloc_list;
-    PoolBucket *alloc_list_tail;
 
     PoolBucket *empty_list;
     uint32_t empty_list_size;
