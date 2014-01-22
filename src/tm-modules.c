@@ -143,6 +143,13 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         SCMutexUnlock(&lf_ctx->fp_mutex);
     }
 
+#ifdef __tile__
+    if (lf_ctx->pcie_fp != NULL) {
+        /* TODO: Flush PCIe connection and close. */
+        free(lf_ctx->pcie_fp);
+    }
+#endif
+
     SCMutexDestroy(&lf_ctx->fp_mutex);
 
     if (lf_ctx->prefix != NULL)
