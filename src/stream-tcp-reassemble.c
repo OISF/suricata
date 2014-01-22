@@ -154,7 +154,8 @@ void StreamTcpReassembleMemuseCounter(ThreadVars *tv, TcpReassemblyThreadCtx *rt
  * \retval 0 if not in bounds
  */
 int StreamTcpReassembleCheckMemcap(uint32_t size) {
-    if (stream_config.reassembly_memcap == 0 || size + SC_ATOMIC_GET(ra_memuse) <= stream_config.reassembly_memcap)
+    if (stream_config.reassembly_memcap == 0 ||
+            (uint64_t)((uint64_t)size + SC_ATOMIC_GET(ra_memuse)) <= stream_config.reassembly_memcap)
         return 1;
     return 0;
 }
