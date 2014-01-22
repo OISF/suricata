@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -28,5 +28,10 @@
 #include "tm-modules.h"      /* LogFileCtx */
 
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *);
+
+#ifdef __tile__
+int TilePcieWrite(PcieFile *fp, const char *buf, int buf_len);
+char *TilePcieAllocateBuffer(size_t size);
+#endif
 
 #endif /* __UTIL_LOGOPENFILE_H__ */

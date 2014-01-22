@@ -102,20 +102,22 @@ int AlertFastLogCondition(ThreadVars *tv, const Packet *p) {
 static inline void AlertFastLogOutputAlert(AlertFastLogThread *aft, char *buffer,
                                            int alert_size)
 {
-    FILE *fp = aft->file_ctx->fp;
-    /* fp should never be NULL, but checking here makes sure the value
-     * is available before the lock is aquired, rather than possibly
-     * stalling while holding the lock.
-     */
-    if (unlikely(fp == NULL))
-        return;
-
-    /* Output the alert string. Only need to lock here. */
     SCMutex *file_lock = &aft->file_ctx->fp_mutex;
+    FILE *fp = aft->file_ctx->fp;
+    /* Output the alert string and count alerts. Only need to lock here. */
     SCMutexLock(file_lock);
     aft->file_ctx->alerts++;
-    fwrite(buffer, alert_size, 1, fp);
-    fflush(fp);
+#ifdef __tile__
+    /* Possibly log alert over PCIe interface. */
+    PcieFile *pcie_fp = aft->file_ctx->pcie_fp;
+    if (pcie_fp)
+        TilePcieWrite(pcie_fp, buffer, alert_size);
+#endif
+    /* Log alert to local File if not over PCIe. */
+    if (fp) {
+        fwrite(buffer, alert_size, 1, fp);
+        fflush(fp);
+    }
     SCMutexUnlock(file_lock);
 }
 

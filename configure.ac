@@ -407,7 +407,7 @@
         [
         AC_MSG_RESULT([yes])
         AC_DEFINE([HAVE_MPIPE],[1],[mPIPE support is available])
-        LDFLAGS="$LDFLAGS -lgxio -ltmc"
+        LDFLAGS="$LDFLAGS -lgxpci -lgxio -ltmc"
         ],
         [AC_MSG_RESULT([no])])
 
