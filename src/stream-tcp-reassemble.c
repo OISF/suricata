@@ -341,6 +341,22 @@ void StreamTcpReassembleFree(char quiet)
                        "%"PRIu32"", segment_pool[u16]->empty_stack_size,
                        segment_pool[u16]->alloc_stack_size,
                        segment_pool[u16]->allocated);
+
+            SCLogInfo("segment_pool[u16]->empty_stack_size %"PRIu32", "
+                       "segment_pool[u16]->alloc_stack_size %"PRIu32", allocated "
+                       "%"PRIu32", pktsize %u, bytes %"PRIu64, segment_pool[u16]->empty_stack_size,
+                       segment_pool[u16]->alloc_stack_size,
+                       segment_pool[u16]->allocated, segment_pool_pktsizes[u16], (uint64_t)((uint64_t)segment_pool[u16]->allocated * (uint64_t)segment_pool_pktsizes[u16]));
+            SCLogInfo("segment_pool[u16]->empty_stack_size %"PRIu32", "
+                       "segment_pool[u16]->alloc_stack_size %"PRIu32", outstanding "
+                       "%"PRIu32", pktsize %u, bytes %"PRIu64, segment_pool[u16]->empty_stack_size,
+                       segment_pool[u16]->alloc_stack_size,
+                       segment_pool[u16]->outstanding, segment_pool_pktsizes[u16], (uint64_t)((uint64_t)segment_pool[u16]->outstanding * (uint64_t)segment_pool_pktsizes[u16]));
+            SCLogInfo("segment_pool[u16]->empty_stack_size %"PRIu32", "
+                       "segment_pool[u16]->alloc_stack_size %"PRIu32", max_outstanding "
+                       "%"PRIu32", pktsize %u, bytes %"PRIu64, segment_pool[u16]->empty_stack_size,
+                       segment_pool[u16]->alloc_stack_size,
+                       segment_pool[u16]->max_outstanding, segment_pool_pktsizes[u16], (uint64_t)((uint64_t)segment_pool[u16]->max_outstanding * (uint64_t)segment_pool_pktsizes[u16]));
         }
         PoolFree(segment_pool[u16]);
 
