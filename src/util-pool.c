@@ -301,21 +301,24 @@ void *PoolGet(Pool *p) {
         if (p->max_buckets == 0 || p->allocated < p->max_buckets) {
             void *pitem;
             SCLogDebug("max_buckets %"PRIu32"", p->max_buckets);
-            p->allocated++;
-
-            p->outstanding++;
-            if (p->outstanding > p->max_outstanding)
-                p->max_outstanding = p->outstanding;
 
             if (p->Alloc != NULL) {
                 pitem = p->Alloc();
             } else {
                 pitem = SCMalloc(p->elt_size);
             }
+
             if (pitem != NULL) {
                 if (p->Init(pitem, p->InitData) != 1)
                     SCReturnPtr(NULL, "void");
+
+                p->allocated++;
+
+                p->outstanding++;
+                if (p->outstanding > p->max_outstanding)
+                    p->max_outstanding = p->outstanding;
             }
+
             SCReturnPtr(pitem, "void");
         } else {
             SCReturnPtr(NULL, "void");
