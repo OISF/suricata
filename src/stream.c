@@ -45,19 +45,6 @@ static uint16_t toclient_min_chunk_len = 2560;
 static Pool *stream_msg_pool = NULL;
 static SCMutex stream_msg_pool_mutex = SCMUTEX_INITIALIZER;
 
-int StreamMsgInit(void *data, void *initdata)
-{
-    memset(data, 0, sizeof(StreamMsg));
-
-#ifdef DEBUG
-    SCMutexLock(&stream_pool_memuse_mutex);
-    stream_pool_memuse += sizeof(StreamMsg);
-    stream_pool_memcnt ++;
-    SCMutexUnlock(&stream_pool_memuse_mutex);
-#endif
-    return 1;
-}
-
 static void StreamMsgEnqueue (StreamMsgQueue *q, StreamMsg *s) {
     SCEnter();
     SCLogDebug("s %p", s);
@@ -143,12 +130,43 @@ void StreamMsgPutInQueue(StreamMsgQueue *q, StreamMsg *s)
     SCLogDebug("q->len %" PRIu32 "", q->len);
 }
 
+void *StreamMsgPoolAlloc(void) {
+    if (StreamTcpReassembleCheckMemcap((uint32_t)sizeof(StreamMsg)) == 0)
+        return NULL;
+
+    StreamMsg *m = SCMalloc(sizeof(StreamMsg));
+    if (m != NULL)
+        StreamTcpReassembleIncrMemuse((uint32_t)sizeof(StreamMsg));
+
+    return m;
+}
+
+int StreamMsgInit(void *data, void *initdata)
+{
+    memset(data, 0, sizeof(StreamMsg));
+
+#ifdef DEBUG
+    SCMutexLock(&stream_pool_memuse_mutex);
+    stream_pool_memuse += sizeof(StreamMsg);
+    stream_pool_memcnt ++;
+    SCMutexUnlock(&stream_pool_memuse_mutex);
+#endif
+    return 1;
+}
+
+void StreamMsgPoolFree(void *ptr) {
+    if (ptr) {
+        SCFree(ptr);
+        StreamTcpReassembleDecrMemuse((uint32_t)sizeof(StreamMsg));
+    }
+}
+
 void StreamMsgQueuesInit(void) {
 #ifdef DEBUG
     SCMutexInit(&stream_pool_memuse_mutex, NULL);
 #endif
     SCMutexLock(&stream_msg_pool_mutex);
-    stream_msg_pool = PoolInit(0,250,sizeof(StreamMsg),NULL,StreamMsgInit,NULL,NULL,NULL);
+    stream_msg_pool = PoolInit(0,250,0,StreamMsgPoolAlloc,StreamMsgInit,NULL,NULL,StreamMsgPoolFree);
     if (stream_msg_pool == NULL)
         exit(EXIT_FAILURE); /* XXX */
     SCMutexUnlock(&stream_msg_pool_mutex);
@@ -170,9 +188,14 @@ void StreamMsgQueuesDeinit(char quiet) {
 /** \brief alloc a stream msg queue
  *  \retval smq ptr to the queue or NULL */
 StreamMsgQueue *StreamMsgQueueGetNew(void) {
+    if (StreamTcpReassembleCheckMemcap((uint32_t)sizeof(StreamMsgQueue)) == 0)
+        return NULL;
+
     StreamMsgQueue *smq = SCMalloc(sizeof(StreamMsgQueue));
     if (unlikely(smq == NULL))
         return NULL;
+
+    StreamTcpReassembleIncrMemuse((uint32_t)sizeof(StreamMsgQueue));
 
     memset(smq, 0x00, sizeof(StreamMsgQueue));
     return smq;
@@ -184,6 +207,7 @@ StreamMsgQueue *StreamMsgQueueGetNew(void) {
  */
 void StreamMsgQueueFree(StreamMsgQueue *q) {
     SCFree(q);
+    StreamTcpReassembleDecrMemuse((uint32_t)sizeof(StreamMsgQueue));
 }
 
 StreamMsgQueue *StreamMsgQueueGetByPort(uint16_t port) {

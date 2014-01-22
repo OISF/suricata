@@ -281,10 +281,10 @@ void StreamTcpReturnStreamSegments (TcpStream *stream)
 
 int StreamTcpReassembleInit(char quiet)
 {
-    StreamMsgQueuesInit();
-
     /* init the memcap/use tracker */
     SC_ATOMIC_INIT(ra_memuse);
+
+    StreamMsgQueuesInit();
 
 #ifdef DEBUG
     SCMutexInit(&segment_pool_memuse_mutex, NULL);
