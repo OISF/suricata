@@ -287,13 +287,13 @@ void StreamTcpSackPruneList(TcpStream *stream) {
 
             if (rec->next != NULL) {
                 stream->sack_head = rec->next;
-                SCFree(rec);
+                StreamTcpSackRecordFree(rec);
                 rec = stream->sack_head;
                 continue;
             } else {
                 stream->sack_head = NULL;
                 stream->sack_tail = NULL;
-                SCFree(rec);
+                StreamTcpSackRecordFree(rec);
                 break;
             }
         } else if (SEQ_LT(rec->le, stream->last_ack)) {

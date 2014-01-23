@@ -196,7 +196,7 @@ int DNSGetAlstateProgressCompletionStatus(uint8_t direction) {
 void DNSSetEvent(DNSState *s, uint8_t e) {
     if (s && s->curr) {
         SCLogDebug("s->curr->decoder_events %p", s->curr->decoder_events);
-        AppLayerDecoderEventsSetEventRaw(s->curr->decoder_events, e);
+        AppLayerDecoderEventsSetEventRaw(&s->curr->decoder_events, e);
         SCLogDebug("s->curr->decoder_events %p", s->curr->decoder_events);
         s->events++;
     } else {
@@ -251,7 +251,7 @@ static void DNSTransactionFree(DNSTransaction *tx, DNSState *state) {
         SCFree(a);
     }
 
-    AppLayerDecoderEventsFreeEvents(tx->decoder_events);
+    AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
 
     DNSDecrMemcap(sizeof(DNSTransaction), state);
     SCFree(tx);

@@ -55,6 +55,7 @@
 #include "util-debug.h"
 #include "app-layer-protos.h"
 #include "app-layer.h"
+#include "app-layer-events.h"
 
 #include "detect-engine-state.h"
 
@@ -154,7 +155,8 @@ void StreamTcpReassembleMemuseCounter(ThreadVars *tv, TcpReassemblyThreadCtx *rt
  * \retval 0 if not in bounds
  */
 int StreamTcpReassembleCheckMemcap(uint32_t size) {
-    if (stream_config.reassembly_memcap == 0 || size + SC_ATOMIC_GET(ra_memuse) <= stream_config.reassembly_memcap)
+    if (stream_config.reassembly_memcap == 0 ||
+            (uint64_t)((uint64_t)size + SC_ATOMIC_GET(ra_memuse)) <= stream_config.reassembly_memcap)
         return 1;
     return 0;
 }
@@ -162,8 +164,7 @@ int StreamTcpReassembleCheckMemcap(uint32_t size) {
 /** \brief alloc a tcp segment pool entry */
 void *TcpSegmentPoolAlloc()
 {
-    if (StreamTcpReassembleCheckMemcap((uint32_t)sizeof(TcpSegment)) == 0)
-    {
+    if (StreamTcpReassembleCheckMemcap((uint32_t)sizeof(TcpSegment)) == 0) {
         return NULL;
     }
 
@@ -178,10 +179,16 @@ void *TcpSegmentPoolAlloc()
 int TcpSegmentPoolInit(void *data, void *payload_len)
 {
     TcpSegment *seg = (TcpSegment *) data;
+    uint16_t size = *((uint16_t *) payload_len);
+
+    if (StreamTcpReassembleCheckMemcap((uint32_t)size + (uint32_t)sizeof(TcpSegment)) == 0) {
+        SCFree(seg);
+        return 0;
+    }
 
     memset(seg, 0, sizeof (TcpSegment));
 
-    seg->pool_size = *((uint16_t *) payload_len);
+    seg->pool_size = size;
     seg->payload_len = seg->pool_size;
 
     seg->payload = SCMalloc(seg->payload_len);
@@ -239,8 +246,8 @@ void StreamTcpSegmentReturntoPool(TcpSegment *seg)
     uint16_t idx = segment_pool_idx[seg->pool_size];
     SCMutexLock(&segment_pool_mutex[idx]);
     PoolReturn(segment_pool[idx], (void *) seg);
-    SCLogDebug("segment_pool[%"PRIu16"]->empty_list_size %"PRIu32"",
-               idx,segment_pool[idx]->empty_list_size);
+    SCLogDebug("segment_pool[%"PRIu16"]->empty_stack_size %"PRIu32"",
+               idx,segment_pool[idx]->empty_stack_size);
     SCMutexUnlock(&segment_pool_mutex[idx]);
 
 #ifdef DEBUG
@@ -330,11 +337,27 @@ void StreamTcpReassembleFree(char quiet)
 
         if (quiet == FALSE) {
             PoolPrintSaturation(segment_pool[u16]);
-            SCLogDebug("segment_pool[u16]->empty_list_size %"PRIu32", "
-                       "segment_pool[u16]->alloc_list_size %"PRIu32", alloced "
-                       "%"PRIu32"", segment_pool[u16]->empty_list_size,
-                       segment_pool[u16]->alloc_list_size,
+            SCLogDebug("segment_pool[u16]->empty_stack_size %"PRIu32", "
+                       "segment_pool[u16]->alloc_stack_size %"PRIu32", alloced "
+                       "%"PRIu32"", segment_pool[u16]->empty_stack_size,
+                       segment_pool[u16]->alloc_stack_size,
                        segment_pool[u16]->allocated);
+
+            SCLogInfo("segment_pool[u16]->empty_stack_size %"PRIu32", "
+                       "segment_pool[u16]->alloc_stack_size %"PRIu32", allocated "
+                       "%"PRIu32", pktsize %u, bytes %"PRIu64, segment_pool[u16]->empty_stack_size,
+                       segment_pool[u16]->alloc_stack_size,
+                       segment_pool[u16]->allocated, segment_pool_pktsizes[u16], (uint64_t)((uint64_t)segment_pool[u16]->allocated * (uint64_t)segment_pool_pktsizes[u16]));
+            SCLogInfo("segment_pool[u16]->empty_stack_size %"PRIu32", "
+                       "segment_pool[u16]->alloc_stack_size %"PRIu32", outstanding "
+                       "%"PRIu32", pktsize %u, bytes %"PRIu64, segment_pool[u16]->empty_stack_size,
+                       segment_pool[u16]->alloc_stack_size,
+                       segment_pool[u16]->outstanding, segment_pool_pktsizes[u16], (uint64_t)((uint64_t)segment_pool[u16]->outstanding * (uint64_t)segment_pool_pktsizes[u16]));
+            SCLogInfo("segment_pool[u16]->empty_stack_size %"PRIu32", "
+                       "segment_pool[u16]->alloc_stack_size %"PRIu32", max_outstanding "
+                       "%"PRIu32", pktsize %u, bytes %"PRIu64, segment_pool[u16]->empty_stack_size,
+                       segment_pool[u16]->alloc_stack_size,
+                       segment_pool[u16]->max_outstanding, segment_pool_pktsizes[u16], (uint64_t)((uint64_t)segment_pool[u16]->max_outstanding * (uint64_t)segment_pool_pktsizes[u16]));
         }
         PoolFree(segment_pool[u16]);
 
@@ -1714,7 +1737,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     if (stream->seg_list == NULL &&
         stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED) {
 
-        AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
+        AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                 APPLAYER_PROTO_DETECTION_SKIPPED);
     }
 
@@ -3595,16 +3618,16 @@ TcpSegment* StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, 
     SCMutexLock(&segment_pool_mutex[idx]);
     TcpSegment *seg = (TcpSegment *) PoolGet(segment_pool[idx]);
 
-    SCLogDebug("segment_pool[%u]->empty_list_size %u, segment_pool[%u]->alloc_"
-               "list_size %u, alloc %u", idx, segment_pool[idx]->empty_list_size,
-               idx, segment_pool[idx]->alloc_list_size,
+    SCLogDebug("segment_pool[%u]->empty_stack_size %u, segment_pool[%u]->alloc_"
+               "list_size %u, alloc %u", idx, segment_pool[idx]->empty_stack_size,
+               idx, segment_pool[idx]->alloc_stack_size,
                segment_pool[idx]->allocated);
     SCMutexUnlock(&segment_pool_mutex[idx]);
 
     SCLogDebug("seg we return is %p", seg);
     if (seg == NULL) {
-        SCLogDebug("segment_pool[%u]->empty_list_size %u, "
-                   "alloc %u", idx, segment_pool[idx]->empty_list_size,
+        SCLogDebug("segment_pool[%u]->empty_stack_size %u, "
+                   "alloc %u", idx, segment_pool[idx]->empty_stack_size,
                    segment_pool[idx]->allocated);
         /* Increment the counter to show that we are not able to serve the
            segment request due to memcap limit */

@@ -43,15 +43,15 @@ typedef struct PoolBucket_ {
 typedef struct Pool_ {
     uint32_t max_buckets;
     uint32_t preallocated;
-    uint32_t allocated;
+    uint32_t allocated;         /**< counter of data elements, both currently in
+                                 *   the pool and outside of it (outstanding) */
 
-    uint32_t alloc_list_size;
+    uint32_t alloc_stack_size;
 
-    PoolBucket *alloc_list;
-    PoolBucket *alloc_list_tail;
+    PoolBucket *alloc_stack;
 
-    PoolBucket *empty_list;
-    uint32_t empty_list_size;
+    PoolBucket *empty_stack;
+    uint32_t empty_stack_size;
 
     int data_buffer_size;
     void *data_buffer;
@@ -64,8 +64,9 @@ typedef struct Pool_ {
     void (*Free)(void *);
 
     uint32_t elt_size;
-    uint32_t outstanding;
-    uint32_t max_outstanding;
+    uint32_t outstanding;       /**< counter of data items 'in use'. Pretty much
+                                 *   the diff between PoolGet and PoolReturn */
+    uint32_t max_outstanding;   /**< max value of outstanding we saw */
 } Pool;
 
 /* prototypes */

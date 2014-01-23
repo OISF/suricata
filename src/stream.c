@@ -170,9 +170,14 @@ void StreamMsgQueuesDeinit(char quiet) {
 /** \brief alloc a stream msg queue
  *  \retval smq ptr to the queue or NULL */
 StreamMsgQueue *StreamMsgQueueGetNew(void) {
+    if (StreamTcpReassembleCheckMemcap((uint32_t)sizeof(StreamMsgQueue)) == 0)
+        return NULL;
+
     StreamMsgQueue *smq = SCMalloc(sizeof(StreamMsgQueue));
     if (unlikely(smq == NULL))
         return NULL;
+
+    StreamTcpReassembleIncrMemuse((uint32_t)sizeof(StreamMsgQueue));
 
     memset(smq, 0x00, sizeof(StreamMsgQueue));
     return smq;
@@ -184,6 +189,7 @@ StreamMsgQueue *StreamMsgQueueGetNew(void) {
  */
 void StreamMsgQueueFree(StreamMsgQueue *q) {
     SCFree(q);
+    StreamTcpReassembleDecrMemuse((uint32_t)sizeof(StreamMsgQueue));
 }
 
 StreamMsgQueue *StreamMsgQueueGetByPort(uint16_t port) {
