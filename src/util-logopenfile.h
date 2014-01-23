@@ -32,6 +32,7 @@ int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *);
 #ifdef __tile__
 int TilePcieWrite(PcieFile *fp, const char *buf, int buf_len);
 char *TilePcieAllocateBuffer(size_t size);
+void TilePcieCloseFileFp(PcieFile *pcie_fp);
 #endif
 
 #endif /* __UTIL_LOGOPENFILE_H__ */
