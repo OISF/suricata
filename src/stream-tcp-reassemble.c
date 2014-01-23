@@ -55,6 +55,7 @@
 #include "util-debug.h"
 #include "app-layer-protos.h"
 #include "app-layer.h"
+#include "app-layer-events.h"
 
 #include "detect-engine-state.h"
 
@@ -1720,7 +1721,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     if (stream->seg_list == NULL &&
         stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED) {
 
-        AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
+        AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                 APPLAYER_PROTO_DETECTION_SKIPPED);
     }
 
