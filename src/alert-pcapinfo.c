@@ -1,4 +1,4 @@
-/* Copyright (C) 2011 Open Information Security Foundation
+/* Copyright (C) 2011-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -64,14 +64,15 @@
 
 #define MODULE_NAME "AlertPcapInfo"
 
-TmEcode AlertPcapInfo (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode AlertPcapInfo(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode AlertPcapInfoThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertPcapInfoThreadDeinit(ThreadVars *, void *);
 void AlertPcapInfoExitPrintStats(ThreadVars *, void *);
 static int AlertPcapInfoOpenFileCtx(LogFileCtx *, const char *, const char *);
 static void AlertPcapInfoDeInitCtx(OutputCtx *);
 
-void TmModuleAlertPcapInfoRegister (void) {
+void TmModuleAlertPcapInfoRegister(void)
+{
     tmm_modules[TMM_ALERTPCAPINFO].name = MODULE_NAME;
     tmm_modules[TMM_ALERTPCAPINFO].ThreadInit = AlertPcapInfoThreadInit;
     tmm_modules[TMM_ALERTPCAPINFO].Func = AlertPcapInfo;
@@ -89,7 +90,7 @@ typedef struct AlertPcapInfoThread_ {
 } AlertPcapInfoThread;
 
 
-TmEcode AlertPcapInfo (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode AlertPcapInfo(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertPcapInfoThread *aft = (AlertPcapInfoThread *)data;
     int i;
@@ -149,7 +150,8 @@ TmEcode AlertPcapInfoThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void AlertPcapInfoExitPrintStats(ThreadVars *tv, void *data) {
+void AlertPcapInfoExitPrintStats(ThreadVars *tv, void *data)
+{
     AlertPcapInfoThread *aft = (AlertPcapInfoThread *)data;
     if (aft == NULL) {
         return;

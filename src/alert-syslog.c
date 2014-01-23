@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -64,7 +64,7 @@ typedef struct AlertSyslogThread_ {
     LogFileCtx* file_ctx;
 } AlertSyslogThread;
 
-TmEcode AlertSyslog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode AlertSyslog(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode AlertSyslogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode AlertSyslogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode AlertSyslogThreadInit(ThreadVars *, void *, void **);
@@ -77,7 +77,8 @@ static void AlertSyslogDeInitCtx(OutputCtx *);
 #endif /* OS_WIN32 */
 
 /** \brief   Function to register the AlertSyslog module */
-void TmModuleAlertSyslogRegister (void) {
+void TmModuleAlertSyslogRegister(void)
+{
 #ifndef OS_WIN32
     tmm_modules[TMM_ALERTSYSLOG].name = MODULE_NAME;
     tmm_modules[TMM_ALERTSYSLOG].ThreadInit = AlertSyslogThreadInit;
@@ -92,7 +93,8 @@ void TmModuleAlertSyslogRegister (void) {
 }
 
 /** \brief   Function to register the AlertSyslog module for IPv4 */
-void TmModuleAlertSyslogIPv4Register (void) {
+void TmModuleAlertSyslogIPv4Register(void)
+{
 #ifndef OS_WIN32
     tmm_modules[TMM_ALERTSYSLOG4].name = "AlertSyslogIPv4";
     tmm_modules[TMM_ALERTSYSLOG4].ThreadInit = AlertSyslogThreadInit;
@@ -104,7 +106,8 @@ void TmModuleAlertSyslogIPv4Register (void) {
 }
 
 /** \brief   Function to register the AlertSyslog module for IPv6 */
-void TmModuleAlertSyslogIPv6Register (void) {
+void TmModuleAlertSyslogIPv6Register(void)
+{
 #ifndef OS_WIN32
     tmm_modules[TMM_ALERTSYSLOG6].name = "AlertSyslogIPv6";
     tmm_modules[TMM_ALERTSYSLOG6].ThreadInit = AlertSyslogThreadInit;
@@ -376,7 +379,7 @@ TmEcode AlertSyslogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
  * \return On succes return TM_ECODE_OK
  */
 TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, Packet *p, void *data,
-                                    PacketQueue *pq, PacketQueue *postpq)
+                                PacketQueue *pq, PacketQueue *postpq)
 {
     AlertSyslogThread *ast = (AlertSyslogThread *)data;
     int i;
@@ -441,8 +444,8 @@ TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, Packet *p, void *data,
  *
  * \return On succes return TM_ECODE_OK
  */
-TmEcode AlertSyslog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-                        PacketQueue *postpq)
+TmEcode AlertSyslog(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
+                    PacketQueue *postpq)
 {
     if (PKT_IS_IPV4(p)) {
         return AlertSyslogIPv4(tv, p, data, pq, NULL);
@@ -461,7 +464,8 @@ TmEcode AlertSyslog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
  * \param tv    Pointer to the output threadvars
  * \param data  Pointer to the AlertSyslogThread data
  */
-void AlertSyslogExitPrintStats(ThreadVars *tv, void *data) {
+void AlertSyslogExitPrintStats(ThreadVars *tv, void *data)
+{
     AlertSyslogThread *ast = (AlertSyslogThread *)data;
     if (ast == NULL) {
         return;

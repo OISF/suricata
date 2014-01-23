@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -69,7 +69,8 @@ TmEcode AlertPreludeThreadDeinit(ThreadVars *, void *);
 int AlertPreludeOpenFileCtx(LogFileCtx *, char *);
 void AlertPreludeRegisterTests(void);
 
-void TmModuleAlertPreludeRegister (void) {
+void TmModuleAlertPreludeRegister (void)
+{
     tmm_modules[TMM_ALERTPRELUDE].name = "AlertPrelude";
     tmm_modules[TMM_ALERTPRELUDE].ThreadInit = AlertPreludeThreadInit;
     tmm_modules[TMM_ALERTPRELUDE].Func = AlertPrelude;
@@ -99,7 +100,8 @@ TmEcode AlertPreludeThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_FAILED;
 }
 
-void AlertPreludeRegisterTests (void) {
+void AlertPreludeRegisterTests (void)
+{
 }
 
 #else /* implied we do have PRELUDE support */
@@ -130,7 +132,8 @@ int AlertPreludeOpenFileCtx(LogFileCtx *, char *);
 void AlertPreludeRegisterTests(void);
 static void AlertPreludeDeinitCtx(OutputCtx *output_ctx);
 
-void TmModuleAlertPreludeRegister (void) {
+void TmModuleAlertPreludeRegister (void)
+{
     tmm_modules[TMM_ALERTPRELUDE].name = "AlertPrelude";
     tmm_modules[TMM_ALERTPRELUDE].ThreadInit = AlertPreludeThreadInit;
     tmm_modules[TMM_ALERTPRELUDE].Func = AlertPrelude;
@@ -174,22 +177,22 @@ static int SetupAnalyzer(idmef_analyzer_t *analyzer)
     SCEnter();
 
     ret = idmef_analyzer_new_model(analyzer, &string);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
     prelude_string_set_constant(string, ANALYZER_MODEL);
 
     ret = idmef_analyzer_new_class(analyzer, &string);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
     prelude_string_set_constant(string, ANALYZER_CLASS);
 
     ret = idmef_analyzer_new_manufacturer(analyzer, &string);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
     prelude_string_set_constant(string, ANALYZER_MANUFACTURER);
 
     ret = idmef_analyzer_new_version(analyzer, &string);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
     prelude_string_set_constant(string, VERSION);
 
@@ -217,11 +220,11 @@ static int EventToImpact(PacketAlert *pa, Packet *p, idmef_alert_t *alert)
     SCEnter();
 
     ret = idmef_alert_new_assessment(alert, &assessment);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     ret = idmef_assessment_new_impact(assessment, &impact);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     if ( (unsigned int)pa->s->prio < mid_priority )
@@ -242,7 +245,7 @@ static int EventToImpact(PacketAlert *pa, Packet *p, idmef_alert_t *alert)
         idmef_action_t *action;
 
         ret = idmef_action_new(&action);
-        if ( ret < 0 )
+        if (ret < 0)
             SCReturnInt(ret);
 
         idmef_action_set_category(action, IDMEF_ACTION_CATEGORY_BLOCK_INSTALLED);
@@ -251,7 +254,7 @@ static int EventToImpact(PacketAlert *pa, Packet *p, idmef_alert_t *alert)
 
     if (pa->s->class_msg) {
         ret = idmef_impact_new_description(impact, &str);
-        if ( ret < 0 )
+        if (ret < 0)
             SCReturnInt(ret);
 
         prelude_string_set_ref(str, pa->s->class_msg);
@@ -302,11 +305,11 @@ static int EventToSourceTarget(Packet *p, idmef_alert_t *alert)
         SCReturnInt(0);
 
     ret = idmef_alert_new_source(alert, &source, IDMEF_LIST_APPEND);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     ret = idmef_source_new_service(source, &service);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     if ( p->tcph || p->udph )
@@ -316,25 +319,25 @@ static int EventToSourceTarget(Packet *p, idmef_alert_t *alert)
     idmef_service_set_iana_protocol_number(service, ip_proto);
 
     ret = idmef_source_new_node(source, &node);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     ret = idmef_node_new_address(node, &address, IDMEF_LIST_APPEND);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     ret = idmef_address_new_address(address, &string);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     prelude_string_set_ref(string, saddr);
 
     ret = idmef_alert_new_target(alert, &target, IDMEF_LIST_APPEND);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     ret = idmef_target_new_service(target, &service);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     if ( p->tcph || p->udph )
@@ -344,15 +347,15 @@ static int EventToSourceTarget(Packet *p, idmef_alert_t *alert)
     idmef_service_set_iana_protocol_number(service, ip_proto);
 
     ret = idmef_target_new_node(target, &node);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     ret = idmef_node_new_address(node, &address, IDMEF_LIST_APPEND);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     ret = idmef_address_new_address(address, &string);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     prelude_string_set_ref(string, daddr);
@@ -378,25 +381,25 @@ static int AddByteData(idmef_alert_t *alert, const char *meaning, const unsigned
         SCReturnInt(0);
 
     ret = idmef_alert_new_additional_data(alert, &ad, IDMEF_LIST_APPEND);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(0);
 
     ret = idmef_additional_data_set_byte_string_ref(ad, data, size);
-    if ( ret < 0 ) {
+    if (ret < 0) {
         SCLogDebug("%s: error setting byte string data: %s.",
                 prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(-1);
     }
 
     ret = idmef_additional_data_new_meaning(ad, &str);
-    if ( ret < 0 ) {
+    if (ret < 0) {
         SCLogDebug("%s: error creating additional-data meaning: %s.",
                 prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(-1);
     }
 
     ret = prelude_string_set_ref(str, meaning);
-    if ( ret < 0 ) {
+    if (ret < 0) {
         SCLogDebug("%s: error setting byte string data meaning: %s.",
                 prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(-1);
@@ -420,20 +423,20 @@ static int AddIntData(idmef_alert_t *alert, const char *meaning, uint32_t data)
     SCEnter();
 
     ret = idmef_alert_new_additional_data(alert, &ad, IDMEF_LIST_APPEND);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     idmef_additional_data_set_integer(ad, data);
 
     ret = idmef_additional_data_new_meaning(ad, &str);
-    if ( ret < 0 ) {
+    if (ret < 0) {
         SCLogDebug("%s: error creating additional-data meaning: %s.",
                 prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(-1);
     }
 
     ret = prelude_string_set_ref(str, meaning);
-    if ( ret < 0 ) {
+    if (ret < 0) {
         SCLogDebug("%s: error setting integer data meaning: %s.",
                 prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(-1);
@@ -556,11 +559,11 @@ static int AddSnortReference(idmef_classification_t *class, int gen_id, int sig_
         SCReturnInt(0);
 
     ret = idmef_classification_new_reference(class, &ref, IDMEF_LIST_APPEND);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     ret = idmef_reference_new_name(ref, &str);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     idmef_reference_set_origin(ref, IDMEF_REFERENCE_ORIGIN_VENDOR_SPECIFIC);
@@ -570,19 +573,19 @@ static int AddSnortReference(idmef_classification_t *class, int gen_id, int sig_
     else
         ret = prelude_string_sprintf(str, "%u:%u", gen_id, sig_id);
 
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     ret = idmef_reference_new_meaning(ref, &str);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     ret = prelude_string_sprintf(str, "Snort Signature ID");
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     ret = idmef_reference_new_url(ref, &str);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     if ( gen_id == 0 )
@@ -609,18 +612,18 @@ static int EventToReference(PacketAlert *pa, Packet *p, idmef_classification_t *
     SCEnter();
 
     ret = idmef_classification_new_ident(class, &str);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     if ( pa->s->gid == 0 )
         ret = prelude_string_sprintf(str, "%u", pa->s->id);
     else
         ret = prelude_string_sprintf(str, "%u:%u", pa->s->gid, pa->s->id);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     ret = AddSnortReference(class, pa->s->gid, pa->s->id);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(ret);
 
     SCReturnInt(0);
@@ -654,7 +657,7 @@ static int PreludePrintStreamSegmentCallback(Packet *p, void *data, uint8_t *buf
  *
  * \return TM_ECODE_OK if ok, else TM_ECODE_FAILED
  */
-TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode AlertPrelude(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertPreludeThread *apn = (AlertPreludeThread *)data;
     int ret;
@@ -684,39 +687,39 @@ TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
         goto err;
 
     ret = idmef_message_new(&idmef);
-    if ( ret < 0 )
+    if (ret < 0)
         SCReturnInt(TM_ECODE_FAILED);
 
     ret = idmef_message_new_alert(idmef, &alert);
-    if ( ret < 0 )
+    if (ret < 0)
         goto err;
 
     ret = idmef_alert_new_classification(alert, &class);
-    if ( ret < 0 )
+    if (ret < 0)
         goto err;
 
     if (pa->s->msg) {
         ret = idmef_classification_new_text(class, &str);
-        if ( ret < 0 )
+        if (ret < 0)
             goto err;
 
         prelude_string_set_ref(str, pa->s->msg);
     }
 
     ret = EventToImpact(pa, p, alert);
-    if ( ret < 0 )
+    if (ret < 0)
         goto err;
 
     ret = EventToReference(pa, p, class);
-    if ( ret < 0 )
+    if (ret < 0)
         goto err;
 
     ret = EventToSourceTarget(p, alert);
-    if ( ret < 0 )
+    if (ret < 0)
         goto err;
 
     ret = PacketToData(p, pa, alert, apn->ctx);
-    if ( ret < 0 )
+    if (ret < 0)
         goto err;
 
     if (PKT_IS_TCP(p) && (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH)) {
@@ -734,12 +737,12 @@ TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
         goto err;
 
     ret = idmef_alert_new_detect_time(alert, &time);
-    if ( ret < 0 )
+    if (ret < 0)
         goto err;
     idmef_time_set_from_timeval(time, &p->ts);
 
     ret = idmef_time_new_from_gettimeofday(&time);
-    if ( ret < 0 )
+    if (ret < 0)
         goto err;
     idmef_alert_set_create_time(alert, time);
 
@@ -833,7 +836,7 @@ OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     SCEnter();
 
     ret = prelude_init(0, NULL);
-    if ( ret < 0 ) {
+    if (ret < 0) {
         prelude_perror(ret, "unable to initialize the prelude library");
         SCReturnPtr(NULL, "AlertPreludeCtx");
     }
@@ -853,7 +856,7 @@ OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     }
 
     ret = prelude_client_set_flags(client, prelude_client_get_flags(client) | PRELUDE_CLIENT_FLAGS_ASYNC_TIMER|PRELUDE_CLIENT_FLAGS_ASYNC_SEND);
-    if ( ret < 0 ) {
+    if (ret < 0) {
         SCLogDebug("Unable to set asynchronous send and timer.");
         prelude_client_destroy(client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
         SCReturnPtr(NULL, "AlertPreludeCtx");
@@ -862,7 +865,7 @@ OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     SetupAnalyzer(prelude_client_get_analyzer(client));
 
     ret = prelude_client_start(client);
-    if ( ret < 0 ) {
+    if (ret < 0) {
         prelude_perror(ret, "Unable to start prelude client");
         prelude_client_destroy(client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
         SCReturnPtr(NULL, "AlertPreludeCtx");
@@ -905,7 +908,8 @@ static void AlertPreludeDeinitCtx(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-void AlertPreludeRegisterTests (void) {
+void AlertPreludeRegisterTests (void)
+{
 #ifdef UNITTESTS
 #endif /* UNITTESTS */
 }
