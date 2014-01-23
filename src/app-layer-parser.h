@@ -25,7 +25,7 @@
 #ifndef __APP_LAYER_PARSER_H__
 #define __APP_LAYER_PARSER_H__
 
-#include "decode-events.h"
+#include "app-layer-events.h"
 #include "util-file.h"
 
 #define APP_LAYER_PARSER_EOF            0x01

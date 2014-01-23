@@ -156,7 +156,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
         if (*alproto != ALPROTO_UNKNOWN) {
             if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto_otherdir != *alproto) {
-                AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
+                AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                                  APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS);
                 /* it indicates some data has already been sent to the parser */
                 if (ssn->data_first_seen_dir == APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -254,7 +254,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 first_data_dir = AppLayerParserGetFirstDataDir(f->proto, *alproto);
 
                 if (first_data_dir && !(first_data_dir & ssn->data_first_seen_dir)) {
-                    AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
+                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                                      APPLAYER_WRONG_DIRECTION_FIRST_DATA);
                     FlowSetSessionNoApplayerInspectionFlag(f);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
@@ -324,7 +324,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                                   data + data_al_so_far, data_len - data_al_so_far);
                 PACKET_PROFILING_APP_END(app_tctx, *alproto_otherdir);
                 if (FLOW_IS_PM_DONE(f, flags) && FLOW_IS_PP_DONE(f, flags)) {
-                    AppLayerDecoderEventsSetEventRaw(p->app_layer_events,
+                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                                      APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
                     f->data_al_so_far[dir] = 0;
