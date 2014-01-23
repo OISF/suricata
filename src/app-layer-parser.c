@@ -122,6 +122,8 @@ typedef struct AppLayerParserCtx_ {
 struct AppLayerParserState_ {
     uint8_t flags;
 
+    /* State version, incremented for each update.  Can wrap around. */
+    uint16_t version;
     /* Indicates the current transaction that is being inspected.
      * We have a var per direction. */
     uint64_t inspect_id[2];
@@ -129,8 +131,6 @@ struct AppLayerParserState_ {
      * we don't need a var per direction since we don't log a transaction
      * unless we have the entire transaction. */
     uint64_t log_id;
-    /* State version, incremented for each update.  Can wrap around. */
-    uint16_t version;
 
     /* Used to store decoder events. */
     AppLayerDecoderEvents *decoder_events;
