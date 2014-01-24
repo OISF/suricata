@@ -37,6 +37,7 @@ enum {
     RUNMODE_TILERA_MPIPE,
     RUNMODE_UNITTEST,
     RUNMODE_NAPATECH,
+    RUNMODE_NETMAP,
     RUNMODE_UNIX_SOCKET,
     RUNMODE_USER_MAX, /* Last standard running mode */
     RUNMODE_LIST_KEYWORDS,
@@ -81,6 +82,7 @@ void RunModeShutDown(void);
 #include "runmode-erf-dag.h"
 #include "runmode-napatech.h"
 #include "runmode-af-packet.h"
+#include "runmode-netmap.h"
 #include "runmode-unix-socket.h"
 
 int threading_set_cpu_affinity;

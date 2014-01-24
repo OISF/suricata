@@ -332,6 +332,32 @@ af-packet:
     #threads: 2
     #use-mmap: yes
 
+# netmap support
+# Set threads to > 1 to use PACKET_FANOUT support
+netmap:
+  - interface: eth2
+    # Number of receive threads (>1 will enable experimental flow pinned
+    # runmode)
+    threads: 1
+    # You can use the following variables to activate netmap tap or IPS mode.
+    # If copy-mode is set to ips or tap, the traffic coming to the current
+    # interface will be copied to the copy-iface interface. If 'tap' is set, the
+    # copy is complete. If 'ips' is set, the packet matching a 'drop' action
+    # will not be copied.
+    #copy-mode: tap
+    #copy-iface: eth3
+  #- interface: eth3
+    #threads: 1
+    # You can use the following variables to activate netmap tap or IPS mode.
+    # If copy-mode is set to ips or tap, the traffic coming to the current
+    # interface will be copied to the copy-iface interface. If 'tap' is set, the
+    # copy is complete. If 'ips' is set, the packet matching a 'drop' action
+    # will not be copied.
+    #copy-mode: tap
+    #copy-iface: eth2
+  # Put default values here
+  - interface: default
+
 legacy:
   uricontent: enabled
 

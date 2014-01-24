@@ -105,6 +105,7 @@
 
 #include "source-af-packet.h"
 #include "source-mpipe.h"
+#include "source-netmap.h"
 
 #include "respond-reject.h"
 
@@ -524,6 +525,9 @@ void usage(const char *progname)
 #ifdef HAVE_AF_PACKET
     printf("\t--af-packet[=<dev>]                  : run in af-packet mode, no value select interfaces from suricata.yaml\n");
 #endif
+#ifdef HAVE_NETMAP
+    printf("\t--netmap[=<dev>]                     : run in netmap mode, no value select interfaces from suricata.yaml\n");
+#endif
 #ifdef HAVE_PFRING
     printf("\t--pfring[=<dev>]                     : run in pfring mode, use interfaces from suricata.yaml\n");
     printf("\t--pfring-int <dev>                   : run in pfring mode, use interface <dev>\n");
@@ -598,6 +602,9 @@ void SCPrintBuildInfo(void) {
 #endif
 #ifdef HAVE_AF_PACKET
     strlcat(features, "AF_PACKET ", sizeof(features));
+#endif
+#ifdef HAVE_NETMAP
+    strlcat(features, "NETMAP ", sizeof(features));
 #endif
 #ifdef HAVE_PACKET_FANOUT
     strlcat(features, "HAVE_PACKET_FANOUT ", sizeof(features));
@@ -759,6 +766,9 @@ void RegisterAllModules()
     /* napatech */
     TmModuleNapatechStreamRegister();
     TmModuleNapatechDecodeRegister();
+    /* netmap */
+    TmModuleReceiveNetmapRegister();
+    TmModuleDecodeNetmapRegister();
 
     /* stream engine */
     TmModuleStreamTcpRegister();
@@ -992,6 +1002,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"pfring-cluster-id", required_argument, 0, 0},
         {"pfring-cluster-type", required_argument, 0, 0},
         {"af-packet", optional_argument, 0, 0},
+        {"netmap", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
 #ifdef BUILD_UNIX_SOCKET
         {"unix-socket", optional_argument, 0, 0},
@@ -1106,6 +1117,38 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                         "host, make sure to pass --enable-af-packet to "
                         "configure when building.");
                 return TM_ECODE_FAILED;
+#endif
+            } else if (strcmp((long_opts[option_index]).name , "netmap") == 0){
+#ifdef HAVE_NETMAP
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_NETMAP;
+                    if (optarg) {
+                        LiveRegisterDevice(optarg);
+                        memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
+                        strlcpy(suri->pcap_dev, optarg,
+                                ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
+                                 (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
+                    }
+                } else if (suri->run_mode == RUNMODE_NETMAP) {
+                    SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
+                            "multiple devices to get packets is experimental.");
+                    if (optarg) {
+                        LiveRegisterDevice(optarg);
+                    } else {
+                        SCLogInfo("Multiple netmap option without interface on each is useless");
+                        break;
+                    }
+                } else {
+                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                            "has been specified");
+                    usage(argv[0]);
+                    exit(EXIT_FAILURE);
+                }
+#else
+                SCLogError(SC_ERR_NO_NETMAP,"NETMAP not enabled."
+                        "Make sure to pass --enable-netmap to "
+                        "configure when building.");
+                exit(EXIT_FAILURE);
 #endif
             } else if (strcmp((long_opts[option_index]).name , "pcap") == 0) {
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
