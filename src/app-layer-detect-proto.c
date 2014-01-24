@@ -190,9 +190,9 @@ static AppProto AppLayerProtoDetectPMMatchSignature(const AppLayerProtoDetectPMS
                s->cd->offset, s->cd->depth);
 
     if (s->cd->flags & DETECT_CONTENT_NOCASE)
-        found = SpmNocaseSearch(sbuf, sbuflen, s->cd->content, s->cd->content_len);
+        found = BoyerMooreNocase(s->cd->content, s->cd->content_len, sbuf, sbuflen, s->cd->bm_ctx->bmGs, s->cd->bm_ctx->bmBc);
     else
-        found = SpmSearch(sbuf, sbuflen, s->cd->content, s->cd->content_len);
+        found = BoyerMoore(s->cd->content, s->cd->content_len, sbuf, sbuflen, s->cd->bm_ctx->bmGs, s->cd->bm_ctx->bmBc);
     if (found != NULL)
         proto = s->alproto;
 
