@@ -247,7 +247,7 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     SCEnter();
 
     /* get us a packet */
-    Packet *p = PacketGetFromQueueOrAlloc();
+    Packet *p = PseudoPacketGet();
     if (unlikely(p == NULL)) {
         SCReturnPtr(NULL, "Packet");
     }
@@ -312,7 +312,7 @@ Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
     SCEnter();
 
     /* get us a packet */
-    Packet *p = PacketGetFromQueueOrAlloc();
+    Packet *p = PseudoPacketGet();
     if (unlikely(p == NULL)) {
         SCReturnPtr(NULL, "Packet");
     }

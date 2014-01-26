@@ -2013,6 +2013,8 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     TmModuleRunInit();
 
+    PseudoPacketQueueInit(24, 32768);
+
     SCReturnInt(TM_ECODE_OK);
 }
 

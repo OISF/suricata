@@ -27,6 +27,10 @@
 #ifndef __UTIL_UNITTEST_H__
 #define __UTIL_UNITTEST_H__
 
+#include "suricata-common.h"
+#include "decode.h"
+#include "util-unittest-helper.h"
+
 #ifdef UNITTESTS
 
 typedef struct UtTest_ {

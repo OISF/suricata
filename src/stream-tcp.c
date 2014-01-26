@@ -5248,7 +5248,7 @@ Packet *StreamTcpPseudoSetup(Packet *parent, uint8_t *pkt, uint32_t len)
         SCReturnPtr(NULL, "Packet");
     }
 
-    Packet *p = PacketGetFromQueueOrAlloc();
+    Packet *p = PseudoPacketGet();
     if (p == NULL) {
         SCReturnPtr(NULL, "Packet");
     }

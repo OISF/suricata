@@ -25,6 +25,10 @@
 #define __UTIL_UNITTEST_HELPER__
 
 #ifdef UNITTESTS
+
+void UTHSetupGlobals(void);
+void UTHCleanupGlobals(void);
+
 uint32_t UTHSetIPv4Address(char *);
 
 Packet *UTHBuildPacketReal(uint8_t *, uint16_t, uint8_t ipproto, char *, char *, uint16_t, uint16_t);

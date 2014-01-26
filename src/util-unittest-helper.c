@@ -44,6 +44,16 @@
 
 #ifdef UNITTESTS
 
+void UTHSetupGlobals(void)
+{
+    PseudoPacketQueueInit(4,32);
+}
+
+void UTHCleanupGlobals(void)
+{
+    PseudoPacketQueueDestroy();
+}
+
 /**
  *  \brief return the uint32_t for a ipv4 address string
  *
