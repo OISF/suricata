@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,12 +19,26 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ *
+ * Packet Logger Output registration functions
  */
 
-#ifndef __ALERT_DEBUGLOG_H__
-#define __ALERT_DEBUGLOG_H__
+#ifndef __OUTPUT_PACKET_H__
+#define __OUTPUT_PACKET_H__
 
-void TmModuleAlertDebugLogRegister (void);
+#include "decode.h"
 
-#endif /* __ALERT_DEBUGLOG_H__ */
+/** packet logger function pointer type */
+typedef int (*PacketLogger)(ThreadVars *, void *thread_data, const Packet *);
 
+/** packet logger condition function pointer type,
+ *  must return true for packets that should be logged
+ */
+typedef int (*PacketLogCondition)(ThreadVars *, const Packet *);
+
+int OutputRegisterPacketLogger(char *name, PacketLogger LogFunc,
+        PacketLogCondition ConditionFunc, OutputCtx *);
+
+void TmModulePacketLoggerRegister (void);
+
+#endif /* __OUTPUT_PACKET_H__ */

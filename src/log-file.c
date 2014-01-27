@@ -62,37 +62,13 @@
 
 #define DEFAULT_LOG_FILENAME "files-json.log"
 
-TmEcode LogFileLog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogFileLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogFileLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode LogFileLogThreadInit(ThreadVars *, void *, void **);
-TmEcode LogFileLogThreadDeinit(ThreadVars *, void *);
-void LogFileLogExitPrintStats(ThreadVars *, void *);
-int LogFileLogOpenFileCtx(LogFileCtx* , const char *, const char *);
-static OutputCtx *LogFileLogInitCtx(ConfNode *);
-static void LogFileLogDeInitCtx(OutputCtx *);
-
-void TmModuleLogFileLogRegister (void) {
-    tmm_modules[TMM_FILELOG].name = MODULE_NAME;
-    tmm_modules[TMM_FILELOG].ThreadInit = LogFileLogThreadInit;
-    tmm_modules[TMM_FILELOG].Func = LogFileLog;
-    tmm_modules[TMM_FILELOG].ThreadExitPrintStats = LogFileLogExitPrintStats;
-    tmm_modules[TMM_FILELOG].ThreadDeinit = LogFileLogThreadDeinit;
-    tmm_modules[TMM_FILELOG].RegisterTests = NULL;
-    tmm_modules[TMM_FILELOG].cap_flags = 0;
-
-    OutputRegisterModule(MODULE_NAME, "file-log", LogFileLogInitCtx);
-
-    SCLogDebug("registered");
-}
-
 typedef struct LogFileLogThread_ {
     LogFileCtx *file_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t file_cnt;
 } LogFileLogThread;
 
-static void LogFileMetaGetUri(FILE *fp, Packet *p, File *ff) {
+static void LogFileMetaGetUri(FILE *fp, const Packet *p, const File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -110,7 +86,7 @@ static void LogFileMetaGetUri(FILE *fp, Packet *p, File *ff) {
     fprintf(fp, "<unknown>");
 }
 
-static void LogFileMetaGetHost(FILE *fp, Packet *p, File *ff) {
+static void LogFileMetaGetHost(FILE *fp, const Packet *p, const File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -124,7 +100,7 @@ static void LogFileMetaGetHost(FILE *fp, Packet *p, File *ff) {
     fprintf(fp, "<unknown>");
 }
 
-static void LogFileMetaGetReferer(FILE *fp, Packet *p, File *ff) {
+static void LogFileMetaGetReferer(FILE *fp, const Packet *p, const File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -143,7 +119,7 @@ static void LogFileMetaGetReferer(FILE *fp, Packet *p, File *ff) {
     fprintf(fp, "<unknown>");
 }
 
-static void LogFileMetaGetUserAgent(FILE *fp, Packet *p, File *ff) {
+static void LogFileMetaGetUserAgent(FILE *fp, const Packet *p, const File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -166,11 +142,13 @@ static void LogFileMetaGetUserAgent(FILE *fp, Packet *p, File *ff) {
  *  \internal
  *  \brief Write meta data on a single line json record
  */
-static void LogFileWriteJsonRecord(LogFileLogThread *aft, Packet *p, File *ff, int ipver) {
+static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const File *ff, int ipver) {
     SCMutexLock(&aft->file_ctx->fp_mutex);
 
     FILE *fp = aft->file_ctx->fp;
     char timebuf[64];
+    AppProto alproto = FlowGetAppProtocol(p->flow);
+
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     fprintf(fp, "{ ");
@@ -214,21 +192,23 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, Packet *p, File *ff, i
         fprintf(fp, "\"dp\": %" PRIu16 ", ", dp);
     }
 
-    fprintf(fp, "\"http_uri\": \"");
-    LogFileMetaGetUri(fp, p, ff);
-    fprintf(fp, "\", ");
+    if (alproto == ALPROTO_HTTP) {
+        fprintf(fp, "\"http_uri\": \"");
+        LogFileMetaGetUri(fp, p, ff);
+        fprintf(fp, "\", ");
 
-    fprintf(fp, "\"http_host\": \"");
-    LogFileMetaGetHost(fp, p, ff);
-    fprintf(fp, "\", ");
+        fprintf(fp, "\"http_host\": \"");
+        LogFileMetaGetHost(fp, p, ff);
+        fprintf(fp, "\", ");
 
-    fprintf(fp, "\"http_referer\": \"");
-    LogFileMetaGetReferer(fp, p, ff);
-    fprintf(fp, "\", ");
+        fprintf(fp, "\"http_referer\": \"");
+        LogFileMetaGetReferer(fp, p, ff);
+        fprintf(fp, "\", ");
 
-    fprintf(fp, "\"http_user_agent\": \"");
-    LogFileMetaGetUserAgent(fp, p, ff);
-    fprintf(fp, "\", ");
+        fprintf(fp, "\"http_user_agent\": \"");
+        LogFileMetaGetUserAgent(fp, p, ff);
+        fprintf(fp, "\", ");
+    }
 
     fprintf(fp, "\"filename\": \"");
     PrintRawJsonFp(fp, ff->name, ff->name_len);
@@ -273,98 +253,31 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, Packet *p, File *ff, i
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
 }
 
-static TmEcode LogFileLogWrap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq, int ipver)
+static int LogFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff)
 {
     SCEnter();
-    LogFileLogThread *aft = (LogFileLogThread *)data;
-    uint8_t flags = 0;
-
-    /* no flow, no htp state */
-    if (p->flow == NULL) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    if (p->flowflags & FLOW_PKT_TOCLIENT)
-        flags |= STREAM_TOCLIENT;
-    else
-        flags |= STREAM_TOSERVER;
-
-    int file_close = (p->flags & PKT_PSEUDO_STREAM_END) ? 1 : 0;
-    int file_trunc = 0;
-
-    FLOWLOCK_WRLOCK(p->flow);
-    file_trunc = StreamTcpReassembleDepthReached(p);
-
-    FileContainer *ffc = AppLayerParserGetFiles(IPPROTO_TCP, p->flow->alproto,
-                                                p->flow->alstate, flags);
-    SCLogDebug("ffc %p", ffc);
-    if (ffc != NULL) {
-        File *ff;
-        for (ff = ffc->head; ff != NULL; ff = ff->next) {
-            if (ff->flags & FILE_LOGGED)
-                continue;
-
-            if (FileForceMagic() && ff->magic == NULL) {
-                FilemagicGlobalLookup(ff);
-            }
-
-            SCLogDebug("ff %p", ff);
-
-            if (file_trunc && ff->state < FILE_STATE_CLOSED)
-                ff->state = FILE_STATE_TRUNCATED;
-
-            if (ff->state == FILE_STATE_CLOSED ||
-                    ff->state == FILE_STATE_TRUNCATED || ff->state == FILE_STATE_ERROR ||
-                    (file_close == 1 && ff->state < FILE_STATE_CLOSED))
-            {
-                LogFileWriteJsonRecord(aft, p, ff, ipver);
-
-                ff->flags |= FILE_LOGGED;
-                aft->file_cnt++;
-            }
-        }
-
-        FilePrune(ffc);
-    }
-
-    FLOWLOCK_UNLOCK(p->flow);
-    SCReturnInt(TM_ECODE_OK);
-}
-
-TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
-    return LogFileLogWrap(tv, p, data, NULL, NULL, AF_INET);
-}
-
-TmEcode LogFileLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
-    return LogFileLogWrap(tv, p, data, NULL, NULL, AF_INET6);
-}
-
-TmEcode LogFileLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    SCEnter();
-    int r = TM_ECODE_OK;
-
-    /* no flow, no htp state */
-    if (p->flow == NULL) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    if (!(PKT_IS_TCP(p))) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    SCLogDebug("p->pcap_cnt %"PRIu64, p->pcap_cnt);
+    LogFileLogThread *aft = (LogFileLogThread *)thread_data;
+    int ipver = -1;
 
     if (PKT_IS_IPV4(p)) {
-        r = LogFileLogIPv4(tv, p, data, pq, postpq);
+        ipver = AF_INET;
     } else if (PKT_IS_IPV6(p)) {
-        r = LogFileLogIPv6(tv, p, data, pq, postpq);
+        ipver = AF_INET6;
+    } else {
+        return 0;
     }
 
-    SCReturnInt(r);
+    BUG_ON(ff->flags & FILE_LOGGED);
+
+    SCLogDebug("ff %p", ff);
+
+    LogFileWriteJsonRecord(aft, p, ff, ipver);
+
+    aft->file_cnt++;
+    return 0;
 }
 
-TmEcode LogFileLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode LogFileLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     LogFileLogThread *aft = SCMalloc(sizeof(LogFileLogThread));
     if (unlikely(aft == NULL))
@@ -406,6 +319,20 @@ void LogFileLogExitPrintStats(ThreadVars *tv, void *data) {
     }
 
     SCLogInfo("(%s) Files logged: %" PRIu32 "", tv->name, aft->file_cnt);
+}
+
+/**
+ *  \internal
+ *
+ *  \brief deinit the log ctx and write out the waldo
+ *
+ *  \param output_ctx output context to deinit
+ */
+static void LogFileLogDeInitCtx(OutputCtx *output_ctx)
+{
+    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+    LogFileFreeCtx(logfile_ctx);
+    free(output_ctx);
 }
 
 /** \brief Create a new http log LogFileCtx.
@@ -452,20 +379,6 @@ static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
     SCReturnPtr(output_ctx, "OutputCtx");
 }
 
-/**
- *  \internal
- *
- *  \brief deinit the log ctx and write out the waldo
- *
- *  \param output_ctx output context to deinit
- */
-static void LogFileLogDeInitCtx(OutputCtx *output_ctx)
-{
-    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
-    LogFileFreeCtx(logfile_ctx);
-    free(output_ctx);
-}
-
 /** \brief Read the config set the file pointer, open the file
  *  \param file_ctx pointer to a created LogFileCtx using LogFileNewCtx()
  *  \param config_file for loading separate configs
@@ -475,4 +388,19 @@ int LogFileLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const
                             char *mode)
 {
     return 0;
+}
+
+void TmModuleLogFileLogRegister (void) {
+    tmm_modules[TMM_FILELOG].name = MODULE_NAME;
+    tmm_modules[TMM_FILELOG].ThreadInit = LogFileLogThreadInit;
+    tmm_modules[TMM_FILELOG].Func = NULL;
+    tmm_modules[TMM_FILELOG].ThreadExitPrintStats = LogFileLogExitPrintStats;
+    tmm_modules[TMM_FILELOG].ThreadDeinit = LogFileLogThreadDeinit;
+    tmm_modules[TMM_FILELOG].RegisterTests = NULL;
+    tmm_modules[TMM_FILELOG].cap_flags = 0;
+
+    OutputRegisterFileModule(MODULE_NAME, "file-log", LogFileLogInitCtx,
+            LogFileLogger);
+
+    SCLogDebug("registered");
 }

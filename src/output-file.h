@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,12 +19,26 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ *
+ * AppLayer File Logger Output registration functions
  */
 
-#ifndef __ALERT_DEBUGLOG_H__
-#define __ALERT_DEBUGLOG_H__
+#ifndef __OUTPUT_FILE_H__
+#define __OUTPUT_FILE_H__
 
-void TmModuleAlertDebugLogRegister (void);
+#include "decode.h"
+#include "util-file.h"
 
-#endif /* __ALERT_DEBUGLOG_H__ */
+/** packet logger function pointer type */
+typedef int (*FileLogger)(ThreadVars *, void *thread_data, const Packet *, const File *);
 
+/** packet logger condition function pointer type,
+ *  must return true for packets that should be logged
+ */
+//typedef int (*TxLogCondition)(ThreadVars *, const Packet *);
+
+int OutputRegisterFileLogger(char *name, FileLogger LogFunc, OutputCtx *);
+
+void TmModuleFileLoggerRegister (void);
+
+#endif /* __OUTPUT_FILE_H__ */
