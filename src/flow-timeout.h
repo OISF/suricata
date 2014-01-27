@@ -27,6 +27,6 @@
 int FlowForceReassemblyForFlowV2(Flow *f, int server, int client);
 int FlowForceReassemblyNeedReassembly(Flow *f, int *server, int *client);
 void FlowForceReassembly(void);
-void FlowForceReassemblySetup(void);
+void FlowForceReassemblySetup(int detect_disabled);
 
 #endif /* __FLOW_TIMEOUT_H__ */

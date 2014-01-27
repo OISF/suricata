@@ -613,9 +613,49 @@ uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags) {
     }
 }
 
+/** \brief active TX retrieval for logging only: so NO detection
+ *
+ *  If the logger is enabled, we simply return the log_id here.
+ *
+ *  Otherwise, we go look for the tx id. There probably is no point
+ *  in running this function in that case though. With no detection
+ *  and no logging, why run a parser in the first place?
+ **/
+uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags) {
+    AppLayerParserProtoCtx *p = &alp_ctx.ctxs[f->protomap][f->alproto];
+
+    if (p->logger == TRUE) {
+        uint64_t log_id = f->alparser->log_id;
+        SCLogDebug("returning %"PRIu64, log_id);
+        return log_id;
+    }
+
+    /* logger is disabled, return highest 'complete' tx id */
+    uint8_t direction = flags & (STREAM_TOSERVER|STREAM_TOCLIENT);
+    uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, f->alproto, f->alstate);
+    uint64_t idx = AppLayerParserGetTransactionInspectId(f->alparser, direction);
+    int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(f->proto, f->alproto, direction);
+    void *tx;
+    int state_progress;
+
+    for (; idx < total_txs; idx++) {
+        tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, idx);
+        if (tx == NULL)
+            continue;
+        state_progress = AppLayerParserGetStateProgress(f->proto, f->alproto, tx, direction);
+        if (state_progress >= state_done_progress)
+            continue;
+        else
+            break;
+    }
+    SCLogDebug("returning %"PRIu64, idx);
+    return idx;
+}
+
 void RegisterAppLayerGetActiveTxIdFunc(GetActiveTxIdFunc FuncPtr) {
-    BUG_ON(AppLayerGetActiveTxIdFuncPtr != NULL);
+    //BUG_ON(AppLayerGetActiveTxIdFuncPtr != NULL);
     AppLayerGetActiveTxIdFuncPtr = FuncPtr;
+    SCLogDebug("AppLayerGetActiveTxIdFuncPtr is now %p", AppLayerGetActiveTxIdFuncPtr);
 }
 
 /**
