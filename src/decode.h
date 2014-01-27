@@ -83,10 +83,15 @@ enum PktSrcEnum {
 
 #include "app-layer-protos.h"
 
+/* forward declarations */
+struct DetectionEngineThreadCtx_;
 typedef struct AppLayerThreadCtx_ AppLayerThreadCtx;
 
-/* forward declaration */
-struct DetectionEngineThreadCtx_;
+/* declare these here as they are called from the
+ * PACKET_RECYCLE and PACKET_CLEANUP macro's. */
+typedef struct AppLayerDecoderEvents_ AppLayerDecoderEvents;
+void AppLayerDecoderEventsResetEvents(AppLayerDecoderEvents *events);
+void AppLayerDecoderEventsFreeEvents(AppLayerDecoderEvents **events);
 
 /* Address */
 typedef struct Address_ {
@@ -712,7 +717,7 @@ typedef struct DecodeThreadVars_
             PktVarFree((p)->pktvar);            \
         }                                       \
         SCMutexDestroy(&(p)->tunnel_mutex);     \
-        AppLayerDecoderEventsFreeEvents((p)->app_layer_events); \
+        AppLayerDecoderEventsFreeEvents(&(p)->app_layer_events); \
     } while (0)
 
 

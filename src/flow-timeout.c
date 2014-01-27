@@ -388,7 +388,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
     if (client == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
         p1 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 0);
         if (p1 == NULL) {
-            return 1;
+            goto done;
         }
         PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
 
@@ -397,7 +397,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
             if (p2 == NULL) {
                 FlowDeReference(&p1->flow);
                 TmqhOutputPacketpool(NULL, p1);
-                return 1;
+                goto done;
             }
             PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
 
@@ -407,7 +407,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                 TmqhOutputPacketpool(NULL, p1);
                 FlowDeReference(&p2->flow);
                 TmqhOutputPacketpool(NULL, p2);
-                return 1;
+                goto done;
             }
             PKT_SET_SRC(p3, PKT_SRC_FFR_V2);
         } else {
@@ -415,7 +415,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
             if (p2 == NULL) {
                 FlowDeReference(&p1->flow);
                 TmqhOutputPacketpool(NULL, p1);
-                return 1;
+                goto done;
             }
             PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
         }
@@ -424,7 +424,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
         if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
             p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
             if (p1 == NULL) {
-                return 1;
+                goto done;
             }
             PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
 
@@ -432,13 +432,13 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
             if (p2 == NULL) {
                 FlowDeReference(&p1->flow);
                 TmqhOutputPacketpool(NULL, p1);
-                return 1;
+                goto done;
             }
             PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
         } else {
             p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
             if (p1 == NULL) {
-                return 1;
+                goto done;
             }
             PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
 
@@ -447,7 +447,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                 if (p2 == NULL) {
                     FlowDeReference(&p1->flow);
                     TmqhOutputPacketpool(NULL, p1);
-                    return 1;
+                    goto done;
                 }
                 PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
             }
@@ -457,7 +457,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
         if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
             p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
             if (p1 == NULL) {
-                return 1;
+                goto done;
             }
             PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
 
@@ -465,13 +465,13 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
             if (p2 == NULL) {
                 FlowDeReference(&p1->flow);
                 TmqhOutputPacketpool(NULL, p1);
-                return 1;
+                goto done;
             }
             PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
         } else if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
             p1 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p1 == NULL) {
-                return 1;
+                goto done;
             }
             PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
         } else {
@@ -479,8 +479,6 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
             BUG_ON(1);
         }
     }
-
-    f->flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
 
     SCMutexLock(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq.mutex_q);
     PacketEnqueue(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq, p1);
@@ -493,6 +491,10 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
         SCCondSignal(&trans_q[stream_pseudo_pkt_decode_TV->inq->id].cond_q);
     }
 
+    /* done, in case of error (no packet) we still tag flow as complete
+     * as we're probably resource stress if we couldn't get packets */
+done:
+    f->flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
     return 1;
 }
 

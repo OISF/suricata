@@ -104,5 +104,8 @@ void StreamTcpReassembleTriggerRawReassembly(TcpSession *);
 void StreamTcpPruneSession(Flow *, uint8_t);
 int StreamTcpReassembleDepthReached(Packet *p);
 
+void StreamTcpReassembleIncrMemuse(uint64_t size);
+void StreamTcpReassembleDecrMemuse(uint64_t size);
+int StreamTcpReassembleCheckMemcap(uint32_t size);
 #endif /* __STREAM_TCP_REASSEMBLE_H__ */
 

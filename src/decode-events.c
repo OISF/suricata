@@ -22,30 +22,6 @@
  */
 
 #include "suricata-common.h"
-#include "util-enum.h"
 
-SCEnumCharMap app_layer_event_pkt_table[ ] = {
-    { "APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS",
-      APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS },
-    { "APPLAYER_WRONG_DIRECTION_FIRST_DATA",
-      APPLAYER_WRONG_DIRECTION_FIRST_DATA },
-    { "APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION",
-      APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION },
-    { "APPLAYER_PROTO_DETECTION_SKIPPED",
-      APPLAYER_PROTO_DETECTION_SKIPPED },
-    { NULL,
-      -1 },
-};
+/* code moved to app-layer-events */
 
-int AppLayerGetPktEventInfo(const char *event_name, int *event_id)
-{
-    *event_id = SCMapEnumNameToValue(event_name, app_layer_event_pkt_table);
-    if (*event_id == -1) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
-                   "app-layer-event's packet event table.",  event_name);
-        /* this should be treated as fatal */
-        return -1;
-    }
-
-    return 0;
-}
