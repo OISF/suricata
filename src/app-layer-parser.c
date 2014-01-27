@@ -943,6 +943,14 @@ int AppLayerParserProtocolSupportsTxs(uint8_t ipproto, AppProto alproto)
     SCReturnInt(r);
 }
 
+int AppLayerParserProtocolHasLogger(uint8_t ipproto, AppProto alproto)
+{
+    SCEnter();
+    int ipproto_map = FlowGetProtoMapping(ipproto);
+    int r = (alp_ctx.ctxs[ipproto_map][alproto].logger == 0) ? 0 : 1;
+    SCReturnInt(r);
+}
+
 void AppLayerParserTriggerRawStreamReassembly(Flow *f)
 {
     SCEnter();

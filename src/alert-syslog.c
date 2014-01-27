@@ -49,73 +49,39 @@
 #include "util-syslog.h"
 #include "util-optimize.h"
 
+#ifndef OS_WIN32
+
 #define DEFAULT_ALERT_SYSLOG_FACILITY_STR       "local0"
 #define DEFAULT_ALERT_SYSLOG_FACILITY           LOG_LOCAL0
 #define DEFAULT_ALERT_SYSLOG_LEVEL              LOG_ERR
 #define MODULE_NAME                             "AlertSyslog"
 
 extern uint8_t engine_mode;
-#ifndef OS_WIN32
 static int alert_syslog_level = DEFAULT_ALERT_SYSLOG_LEVEL;
-#endif /* OS_WIN32 */
 
 typedef struct AlertSyslogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
 } AlertSyslogThread;
 
-TmEcode AlertSyslog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode AlertSyslogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode AlertSyslogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode AlertSyslogThreadInit(ThreadVars *, void *, void **);
-TmEcode AlertSyslogThreadDeinit(ThreadVars *, void *);
-void AlertSyslogExitPrintStats(ThreadVars *, void *);
-void AlertSyslogRegisterTests(void);
-OutputCtx *AlertSyslogInitCtx(ConfNode *);
-#ifndef OS_WIN32
-static void AlertSyslogDeInitCtx(OutputCtx *);
-#endif /* OS_WIN32 */
-
-/** \brief   Function to register the AlertSyslog module */
-void TmModuleAlertSyslogRegister (void) {
-#ifndef OS_WIN32
-    tmm_modules[TMM_ALERTSYSLOG].name = MODULE_NAME;
-    tmm_modules[TMM_ALERTSYSLOG].ThreadInit = AlertSyslogThreadInit;
-    tmm_modules[TMM_ALERTSYSLOG].Func = AlertSyslog;
-    tmm_modules[TMM_ALERTSYSLOG].ThreadExitPrintStats = AlertSyslogExitPrintStats;
-    tmm_modules[TMM_ALERTSYSLOG].ThreadDeinit = AlertSyslogThreadDeinit;
-    tmm_modules[TMM_ALERTSYSLOG].RegisterTests = NULL;
-    tmm_modules[TMM_ALERTSYSLOG].cap_flags = 0;
-
-    OutputRegisterModule(MODULE_NAME, "syslog", AlertSyslogInitCtx);
-#endif /* !OS_WIN32 */
+/**
+ * \brief Function to clear the memory of the output context and closes the
+ *        syslog interface
+ *
+ * \param output_ctx pointer to the output context to be cleared
+ */
+static void AlertSyslogDeInitCtx(OutputCtx *output_ctx)
+{
+    if (output_ctx != NULL) {
+        LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+        if (logfile_ctx != NULL) {
+            LogFileFreeCtx(logfile_ctx);
+        }
+        SCFree(output_ctx);
+    }
+    closelog();
 }
 
-/** \brief   Function to register the AlertSyslog module for IPv4 */
-void TmModuleAlertSyslogIPv4Register (void) {
-#ifndef OS_WIN32
-    tmm_modules[TMM_ALERTSYSLOG4].name = "AlertSyslogIPv4";
-    tmm_modules[TMM_ALERTSYSLOG4].ThreadInit = AlertSyslogThreadInit;
-    tmm_modules[TMM_ALERTSYSLOG4].Func = AlertSyslogIPv4;
-    tmm_modules[TMM_ALERTSYSLOG4].ThreadExitPrintStats = AlertSyslogExitPrintStats;
-    tmm_modules[TMM_ALERTSYSLOG4].ThreadDeinit = AlertSyslogThreadDeinit;
-    tmm_modules[TMM_ALERTSYSLOG4].RegisterTests = NULL;
-#endif /* !OS_WIN32 */
-}
-
-/** \brief   Function to register the AlertSyslog module for IPv6 */
-void TmModuleAlertSyslogIPv6Register (void) {
-#ifndef OS_WIN32
-    tmm_modules[TMM_ALERTSYSLOG6].name = "AlertSyslogIPv6";
-    tmm_modules[TMM_ALERTSYSLOG6].ThreadInit = AlertSyslogThreadInit;
-    tmm_modules[TMM_ALERTSYSLOG6].Func = AlertSyslogIPv6;
-    tmm_modules[TMM_ALERTSYSLOG6].ThreadExitPrintStats = AlertSyslogExitPrintStats;
-    tmm_modules[TMM_ALERTSYSLOG6].ThreadDeinit = AlertSyslogThreadDeinit;
-    tmm_modules[TMM_ALERTSYSLOG6].RegisterTests = NULL;
-#endif /* !OS_WIN32 */
-}
-
-#ifndef OS_WIN32
 /**
  * \brief Create a new LogFileCtx for "syslog" output style.
  *
@@ -173,24 +139,6 @@ OutputCtx *AlertSyslogInitCtx(ConfNode *conf)
 }
 
 /**
- * \brief Function to clear the memory of the output context and closes the
- *        syslog interface
- *
- * \param output_ctx pointer to the output context to be cleared
- */
-static void AlertSyslogDeInitCtx(OutputCtx *output_ctx)
-{
-    if (output_ctx != NULL) {
-        LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
-        if (logfile_ctx != NULL) {
-            LogFileFreeCtx(logfile_ctx);
-        }
-        SCFree(output_ctx);
-    }
-    closelog();
-}
-
-/**
  * \brief Function to initialize the AlertSystlogThread and sets the output
  *        context pointer
  *
@@ -198,7 +146,7 @@ static void AlertSyslogDeInitCtx(OutputCtx *output_ctx)
  * \param initdata      Pointer to the output context
  * \param data          pointer to pointer to point to the AlertSyslogThread
  */
-TmEcode AlertSyslogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode AlertSyslogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     if(initdata == NULL) {
         SCLogDebug("Error getting context for AlertSyslog. \"initdata\" "
@@ -225,7 +173,7 @@ TmEcode AlertSyslogThreadInit(ThreadVars *t, void *initdata, void **data)
  * \param tv            Pointer to the threadvars
  * \param data          pointer to the AlertSyslogThread to be cleared
  */
-TmEcode AlertSyslogThreadDeinit(ThreadVars *t, void *data)
+static TmEcode AlertSyslogThreadDeinit(ThreadVars *t, void *data)
 {
     AlertSyslogThread *ast = (AlertSyslogThread *)data;
     if (ast == NULL) {
@@ -245,13 +193,10 @@ TmEcode AlertSyslogThreadDeinit(ThreadVars *t, void *data)
  * \param tv    Pointer to the threadvars
  * \param p     Pointer to the packet
  * \param data  pointer to the AlertSyslogThread
- * \param pq    pointer the to packet queue
- * \param postpq pointer to the post processed packet queue
  *
  * \return On succes return TM_ECODE_OK
  */
-TmEcode AlertSyslogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-                        PacketQueue *postpq)
+static TmEcode AlertSyslogIPv4(ThreadVars *tv, const Packet *p, void *data)
 {
     AlertSyslogThread *ast = (AlertSyslogThread *)data;
     int i;
@@ -265,7 +210,7 @@ TmEcode AlertSyslogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     ast->file_ctx->alerts += p->alerts.cnt;
 
     for (i = 0; i < p->alerts.cnt; i++) {
-        PacketAlert *pa = &p->alerts.alerts[i];
+        const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
             continue;
         }
@@ -306,13 +251,10 @@ TmEcode AlertSyslogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
  * \param tv    Pointer to the threadvars
  * \param p     Pointer to the packet
  * \param data  pointer to the AlertSyslogThread
- * \param pq    pointer the to packet queue
- * \param postpq pointer to the post processed packet queue
  *
  * \return On succes return TM_ECODE_OK
  */
-TmEcode AlertSyslogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-                        PacketQueue *postpq)
+static TmEcode AlertSyslogIPv6(ThreadVars *tv, const Packet *p, void *data)
 {
     AlertSyslogThread *ast = (AlertSyslogThread *)data;
     int i;
@@ -326,7 +268,7 @@ TmEcode AlertSyslogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     ast->file_ctx->alerts += p->alerts.cnt;
 
     for (i = 0; i < p->alerts.cnt; i++) {
-        PacketAlert *pa = &p->alerts.alerts[i];
+        const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
             continue;
         }
@@ -375,8 +317,7 @@ TmEcode AlertSyslogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
  *
  * \return On succes return TM_ECODE_OK
  */
-TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, Packet *p, void *data,
-                                    PacketQueue *pq, PacketQueue *postpq)
+static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, const Packet *p, void *data)
 {
     AlertSyslogThread *ast = (AlertSyslogThread *)data;
     int i;
@@ -394,7 +335,7 @@ TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, Packet *p, void *data,
     char alert[2048] = "";
 
     for (i = 0; i < p->alerts.cnt; i++) {
-        PacketAlert *pa = &p->alerts.alerts[i];
+        const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
             continue;
         }
@@ -431,37 +372,12 @@ TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, Packet *p, void *data,
 }
 
 /**
- * \brief   Function which is called to print the alerts to the syslog
- *
- * \param tv    Pointer to the threadvars
- * \param p     Pointer to the packet
- * \param data  pointer to the AlertSyslogThread
- * \param pq    pointer the to packet queue
- * \param postpq pointer to the post processed packet queue
- *
- * \return On succes return TM_ECODE_OK
- */
-TmEcode AlertSyslog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-                        PacketQueue *postpq)
-{
-    if (PKT_IS_IPV4(p)) {
-        return AlertSyslogIPv4(tv, p, data, pq, NULL);
-    } else if (PKT_IS_IPV6(p)) {
-        return AlertSyslogIPv6(tv, p, data, pq, NULL);
-    } else if (p->events.cnt > 0) {
-        return AlertSyslogDecoderEvent(tv, p, data, pq, NULL);
-    }
-
-    return TM_ECODE_OK;
-}
-
-/**
  * \brief   Function to print the total alert while closing the engine
  *
  * \param tv    Pointer to the output threadvars
  * \param data  Pointer to the AlertSyslogThread data
  */
-void AlertSyslogExitPrintStats(ThreadVars *tv, void *data) {
+static void AlertSyslogExitPrintStats(ThreadVars *tv, void *data) {
     AlertSyslogThread *ast = (AlertSyslogThread *)data;
     if (ast == NULL) {
         return;
@@ -469,5 +385,38 @@ void AlertSyslogExitPrintStats(ThreadVars *tv, void *data) {
 
     SCLogInfo("(%s) Alerts %" PRIu64 "", tv->name, ast->file_ctx->alerts);
 }
+
+static int AlertSyslogCondition(ThreadVars *tv, const Packet *p) {
+    return (p->alerts.cnt > 0 ? TRUE : FALSE);
+}
+
+static int AlertSyslogLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
+    if (PKT_IS_IPV4(p)) {
+        return AlertSyslogIPv4(tv, p, thread_data);
+    } else if (PKT_IS_IPV6(p)) {
+        return AlertSyslogIPv6(tv, p, thread_data);
+    } else if (p->events.cnt > 0) {
+        return AlertSyslogDecoderEvent(tv, p, thread_data);
+    }
+
+    return TM_ECODE_OK;
+}
+
 #endif /* !OS_WIN32 */
 
+/** \brief   Function to register the AlertSyslog module */
+void TmModuleAlertSyslogRegister (void) {
+#ifndef OS_WIN32
+    tmm_modules[TMM_ALERTSYSLOG].name = MODULE_NAME;
+    tmm_modules[TMM_ALERTSYSLOG].ThreadInit = AlertSyslogThreadInit;
+    tmm_modules[TMM_ALERTSYSLOG].Func = NULL;
+    tmm_modules[TMM_ALERTSYSLOG].ThreadExitPrintStats = AlertSyslogExitPrintStats;
+    tmm_modules[TMM_ALERTSYSLOG].ThreadDeinit = AlertSyslogThreadDeinit;
+    tmm_modules[TMM_ALERTSYSLOG].RegisterTests = NULL;
+    tmm_modules[TMM_ALERTSYSLOG].cap_flags = 0;
+
+    OutputRegisterPacketModule(MODULE_NAME, "syslog",
+        AlertSyslogInitCtx, AlertSyslogLogger, AlertSyslogCondition);
+
+#endif /* !OS_WIN32 */
+}
