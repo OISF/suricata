@@ -161,12 +161,14 @@ void StreamMsgPoolFree(void *ptr) {
     }
 }
 
-void StreamMsgQueuesInit(void) {
+void StreamMsgQueuesInit(uint32_t prealloc) {
 #ifdef DEBUG
     SCMutexInit(&stream_pool_memuse_mutex, NULL);
 #endif
     SCMutexLock(&stream_msg_pool_mutex);
-    stream_msg_pool = PoolInit(0,250,0,StreamMsgPoolAlloc,StreamMsgInit,NULL,NULL,StreamMsgPoolFree);
+    stream_msg_pool = PoolInit(0, prealloc, 0,
+            StreamMsgPoolAlloc,StreamMsgInit,
+            NULL,NULL,StreamMsgPoolFree);
     if (stream_msg_pool == NULL)
         exit(EXIT_FAILURE); /* XXX */
     SCMutexUnlock(&stream_msg_pool_mutex);

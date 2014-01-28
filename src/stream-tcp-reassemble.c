@@ -439,6 +439,22 @@ int StreamTcpReassemblyConfig(char quiet)
     segment_pool_mutex = my_segment_lock;
     segment_pool_pktsizes = my_segment_pktsizes;
     segment_pool_num = npools;
+
+    uint32_t stream_chunk_prealloc = 250;
+    ConfNode *chunk = ConfGetNode("stream.reassembly.chunk-prealloc");
+    if (chunk) {
+        uint32_t prealloc = 0;
+        if (ByteExtractStringUint32(&prealloc, 10, strlen(chunk->val), chunk->val) == -1)
+        {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "chunk-prealloc of "
+                    "%s is invalid", chunk->val);
+            return -1;
+        }
+        stream_chunk_prealloc = prealloc;
+    }
+    if (!quiet)
+        SCLogInfo("stream.reassembly \"chunk-prealloc\": %u", stream_chunk_prealloc);
+    StreamMsgQueuesInit(stream_chunk_prealloc);
     return 0;
 }
 
@@ -449,8 +465,6 @@ int StreamTcpReassembleInit(char quiet)
 
     if (StreamTcpReassemblyConfig(quiet) < 0)
         return -1;
-    StreamMsgQueuesInit();
-
 #ifdef DEBUG
     SCMutexInit(&segment_pool_memuse_mutex, NULL);
     SCMutexInit(&segment_pool_cnt_mutex, NULL);
