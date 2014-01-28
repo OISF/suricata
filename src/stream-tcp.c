@@ -583,7 +583,8 @@ void StreamTcpInitConfig(char quiet)
     } else {
         enable_raw = 1;
     }
-    SCLogInfo("stream.reassembly.raw: %s", enable_raw ? "enabled" : "disabled");
+    if (!quiet)
+        SCLogInfo("stream.reassembly.raw: %s", enable_raw ? "enabled" : "disabled");
 
     /* init the memcap/use tracking */
     SC_ATOMIC_INIT(st_memuse);
