@@ -147,10 +147,12 @@ enum {
     SMTP_REPLY_214,
     SMTP_REPLY_220,
     SMTP_REPLY_221,
+    SMTP_REPLY_235,
     SMTP_REPLY_250,
     SMTP_REPLY_251,
     SMTP_REPLY_252,
 
+    SMTP_REPLY_334,
     SMTP_REPLY_354,
 
     SMTP_REPLY_421,
@@ -177,10 +179,12 @@ SCEnumCharMap smtp_reply_map[ ] = {
     { "214", SMTP_REPLY_214 },
     { "220", SMTP_REPLY_220 },
     { "221", SMTP_REPLY_221 },
+    { "235", SMTP_REPLY_235 },
     { "250", SMTP_REPLY_250 },
     { "251", SMTP_REPLY_251 },
     { "252", SMTP_REPLY_252 },
 
+    { "334", SMTP_REPLY_334 },
     { "354", SMTP_REPLY_354 },
 
     { "421", SMTP_REPLY_421 },
