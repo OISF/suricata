@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -20,6 +20,7 @@
  * \file
  *
  * \author William Metcalf <William.Metcalf@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  *
  * Pcap packet logging module.
  */
@@ -43,6 +44,7 @@
 #include "util-time.h"
 #include "util-byte.h"
 #include "util-misc.h"
+#include "util-cpu.h"
 
 #include "source-pcap.h"
 
@@ -68,16 +70,16 @@
 #define USE_STREAM_DEPTH_DISABLED       0
 #define USE_STREAM_DEPTH_ENABLED        1
 
-TmEcode PcapLog(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode PcapLogDataInit(ThreadVars *, void *, void **);
-TmEcode PcapLogDataDeinit(ThreadVars *, void *);
-static void PcapLogFileDeInitCtx(OutputCtx *);
-
 typedef struct PcapFileName_ {
     char *filename;
     char *dirname;
     TAILQ_ENTRY(PcapFileName_) next; /**< Pointer to next Pcap File for tailq. */
 } PcapFileName;
+
+typedef struct PcapLogProfileData_ {
+    uint64_t total;
+    uint64_t cnt;
+} PcapLogProfileData;
 
 /**
  * PcapLog thread vars
@@ -102,11 +104,25 @@ typedef struct PcapLogData_ {
     int use_stream_depth;       /**< use stream depth i.e. ignore packets that reach limit */
     char dir[PATH_MAX];         /**< pcap log directory */
 
+    int reported;
+    PcapLogProfileData profile_close;
+    PcapLogProfileData profile_open;
+    PcapLogProfileData profile_write;
+    PcapLogProfileData profile_rotate;
+    PcapLogProfileData profile_handles; // open handles
+    uint64_t profile_data_size; /**< track in bytes how many bytes we wrote */
+
     SCMutex plog_lock;
     TAILQ_HEAD(, PcapFileName_) pcap_file_list;
 } PcapLogData;
 
-int PcapLogOpenFileCtx(PcapLogData *);
+static int PcapLogOpenFileCtx(PcapLogData *);
+static TmEcode PcapLog(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+static TmEcode PcapLogDataInit(ThreadVars *, void *, void **);
+static TmEcode PcapLogDataDeinit(ThreadVars *, void *);
+static void PcapLogFileDeInitCtx(OutputCtx *);
+static OutputCtx *PcapLogInitCtx(ConfNode *);
+static void PcapLogProfilingDump(PcapLogData *);
 
 void TmModulePcapLogRegister(void)
 {
@@ -121,15 +137,24 @@ void TmModulePcapLogRegister(void)
     return;
 }
 
+#define PCAPLOG_PROFILE_START \
+    uint64_t pcaplog_profile_ticks = UtilCpuGetTicks()
+
+#define PCAPLOG_PROFILE_END(prof) \
+    (prof).total += (UtilCpuGetTicks() - pcaplog_profile_ticks); \
+    (prof).cnt++
+
 /**
  * \brief Function to close pcaplog file
  *
  * \param t Thread Variable containing  input/output queue, cpu affinity etc.
  * \param pl PcapLog thread variable.
  */
-int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
+static int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
 {
     if (pl != NULL) {
+        PCAPLOG_PROFILE_START;
+
         if (pl->pcap_dumper != NULL)
             pcap_dump_close(pl->pcap_dumper);
         pl->size_current = 0;
@@ -138,6 +163,8 @@ int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
         if (pl->pcap_dead_handle != NULL)
             pcap_close(pl->pcap_dead_handle);
         pl->pcap_dead_handle = NULL;
+
+        PCAPLOG_PROFILE_END(pl->profile_close);
     }
 
     return 0;
@@ -167,10 +194,12 @@ static void PcapFileNameFree(PcapFileName *pf)
  * \retval 0 on succces
  * \retval -1 on failure
  */
-int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
+static int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
 {
     PcapFileName *pf;
     PcapFileName *pfnext;
+
+    PCAPLOG_PROFILE_START;
 
     if (PcapLogCloseFile(t,pl) < 0) {
         SCLogDebug("PcapLogCloseFile failed");
@@ -179,7 +208,7 @@ int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
 
     if (pl->use_ringbuffer == RING_BUFFER_MODE_ENABLED && pl->file_cnt >= pl->max_files) {
         pf = TAILQ_FIRST(&pl->pcap_file_list);
-        SCLogDebug("Removing pcap file %s", pf->filename);
+        SCLogInfo("Removing pcap file %s", pf->filename);
 
         if (remove(pf->filename) != 0) {
             // VJ remove can fail because file is already gone
@@ -219,8 +248,35 @@ int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
         return -1;
     }
     pl->file_cnt++;
+    SCLogInfo("file_cnt %u", pl->file_cnt);
 
+    PCAPLOG_PROFILE_END(pl->profile_rotate);
     return 0;
+}
+
+static int PcapLogOpenHandles(PcapLogData *pl, Packet *p) {
+    PCAPLOG_PROFILE_START;
+
+    SCLogDebug("Setting pcap-log link type to %u", p->datalink);
+
+    if (pl->pcap_dead_handle == NULL) {
+        if ((pl->pcap_dead_handle = pcap_open_dead(p->datalink,
+                        -1)) == NULL) {
+            SCLogDebug("Error opening dead pcap handle");
+            return TM_ECODE_FAILED;
+        }
+    }
+
+    if (pl->pcap_dumper == NULL) {
+        if ((pl->pcap_dumper = pcap_dump_open(pl->pcap_dead_handle,
+                        pl->filename)) == NULL) {
+            SCLogInfo("Error opening dump file %s", pcap_geterr(pl->pcap_dead_handle));
+            return TM_ECODE_FAILED;
+        }
+    }
+
+    PCAPLOG_PROFILE_END(pl->profile_handles);
+    return TM_ECODE_OK;
 }
 
 /**
@@ -235,7 +291,7 @@ int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
  * \retval TM_ECODE_OK on succes
  * \retval TM_ECODE_FAILED on serious error
  */
-TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
+static TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
                  PacketQueue *postpq)
 {
     size_t len;
@@ -289,31 +345,19 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
 
     /* XXX pcap handles, nfq, pfring, can only have one link type ipfw? we do
      * this here as we don't know the link type until we get our first packet */
-    if (pl->pcap_dead_handle == NULL) {
-        SCLogDebug("Setting pcap-log link type to %u", p->datalink);
-
-        if ((pl->pcap_dead_handle = pcap_open_dead(p->datalink,
-                                                   -1)) == NULL) {
-            SCLogDebug("Error opening dead pcap handle");
-
-            SCMutexUnlock(&pl->plog_lock);
-            return TM_ECODE_FAILED;
-        }
-    }
-    /* XXX LogfileCtx setup currently doesn't allow thread vars so we open the
-     * handle here */
-    if (pl->pcap_dumper == NULL) {
-        if ((pl->pcap_dumper = pcap_dump_open(pl->pcap_dead_handle,
-                                              pl->filename)) == NULL) {
-            SCLogInfo("Error opening dump file %s", pcap_geterr(pl->pcap_dead_handle));
-
+    if (pl->pcap_dead_handle == NULL || pl->pcap_dumper == NULL) {
+        if (PcapLogOpenHandles(pl, p) != TM_ECODE_OK) {
             SCMutexUnlock(&pl->plog_lock);
             return TM_ECODE_FAILED;
         }
     }
 
+    PCAPLOG_PROFILE_START;
     pcap_dump((u_char *)pl->pcap_dumper, pl->h, GET_PKT_DATA(p));
     pl->size_current += len;
+    PCAPLOG_PROFILE_END(pl->profile_write);
+    pl->profile_data_size += len;
+
     SCLogDebug("pl->size_current %"PRIu64",  pl->size_limit %"PRIu64,
                pl->size_current, pl->size_limit);
 
@@ -321,7 +365,7 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
     return TM_ECODE_OK;
 }
 
-TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
 {
     if (initdata == NULL) {
         SCLogDebug("Error getting context for PcapLog. \"initdata\" argument NULL");
@@ -360,8 +404,20 @@ TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
  *  \retval TM_ECODE_FAILED on failure
  */
 
-TmEcode PcapLogDataDeinit(ThreadVars *t, void *data)
+static TmEcode PcapLogDataDeinit(ThreadVars *t, void *data)
 {
+    PcapLogData *pl = data;
+
+    if (pl->pcap_dumper != NULL) {
+        if (PcapLogCloseFile(t,pl) < 0) {
+            SCLogDebug("PcapLogCloseFile failed");
+        }
+    }
+
+    if (pl->reported == 0) {
+        PcapLogProfilingDump(pl);
+        pl->reported = 1;
+    }
     return TM_ECODE_OK;
 }
 
@@ -369,7 +425,7 @@ TmEcode PcapLogDataDeinit(ThreadVars *t, void *data)
  *  \param conf The configuration node for this output.
  *  \retval output_ctx
  * */
-OutputCtx *PcapLogInitCtx(ConfNode *conf)
+static OutputCtx *PcapLogInitCtx(ConfNode *conf)
 {
     PcapLogData *pl = SCMalloc(sizeof(PcapLogData));
     if (unlikely(pl == NULL)) {
@@ -585,9 +641,11 @@ static void PcapLogFileDeInitCtx(OutputCtx *output_ctx)
  *  \retval -1 if failure
  *  \retval 0 if succesful
  */
-int PcapLogOpenFileCtx(PcapLogData *pl)
+static int PcapLogOpenFileCtx(PcapLogData *pl)
 {
     char *filename = NULL;
+
+    PCAPLOG_PROFILE_START;
 
     if (pl->filename != NULL)
         filename = pl->filename;
@@ -661,9 +719,149 @@ int PcapLogOpenFileCtx(PcapLogData *pl)
     SCLogDebug("Opening pcap file log %s", pf->filename);
     TAILQ_INSERT_TAIL(&pl->pcap_file_list, pf, next);
 
+    PCAPLOG_PROFILE_END(pl->profile_open);
     return 0;
 
 error:
     PcapFileNameFree(pf);
     return -1;
 }
+
+static int profiling_pcaplog_enabled = 0;
+static int profiling_pcaplog_output_to_file = 0;
+static char *profiling_pcaplog_file_name = NULL;
+static char *profiling_pcaplog_file_mode = "a";
+
+static void FormatNumber(uint64_t num, char *str, size_t size) {
+    if (num < 1000UL)
+        snprintf(str, size, "%"PRIu64, num);
+    else if (num < 1000000UL)
+        snprintf(str, size, "%3.1fk", (float)num/1000UL);
+    else if (num < 1000000000UL)
+        snprintf(str, size, "%3.1fm", (float)num/1000000UL);
+    else
+        snprintf(str, size, "%3.1fb", (float)num/1000000000UL);
+}
+
+static void ProfileReportPair(FILE *fp, const char *name, PcapLogProfileData *p) {
+    char ticks_str[32] = "n/a";
+    char cnt_str[32] = "n/a";
+    char avg_str[32] = "n/a";
+
+    FormatNumber((uint64_t)p->cnt, cnt_str, sizeof(cnt_str));
+    FormatNumber((uint64_t)p->total, ticks_str, sizeof(ticks_str));
+    if (p->cnt && p->total)
+        FormatNumber((uint64_t)(p->total/p->cnt), avg_str, sizeof(avg_str));
+
+    fprintf(fp, "%-28s %-10s %-10s %-10s\n", name, cnt_str, avg_str, ticks_str);
+}
+
+static void ProfileReport(FILE *fp, PcapLogData *pl) {
+    ProfileReportPair(fp, "open", &pl->profile_open);
+    ProfileReportPair(fp, "close", &pl->profile_close);
+    ProfileReportPair(fp, "write", &pl->profile_write);
+    ProfileReportPair(fp, "rotate (incl open/close)", &pl->profile_rotate);
+    ProfileReportPair(fp, "handles", &pl->profile_handles);
+}
+
+static void FormatBytes(uint64_t num, char *str, size_t size) {
+    if (num < 1000UL)
+        snprintf(str, size, "%"PRIu64, num);
+    else if (num < 1048576UL)
+        snprintf(str, size, "%3.1fKiB", (float)num/1000UL);
+    else if (num < 1073741824UL)
+        snprintf(str, size, "%3.1fMiB", (float)num/1000000UL);
+    else
+        snprintf(str, size, "%3.1fGiB", (float)num/1000000000UL);
+}
+
+static void PcapLogProfilingDump(PcapLogData *pl) {
+    FILE *fp = NULL;
+
+    if (profiling_pcaplog_enabled == 0)
+        return;
+
+    if (profiling_pcaplog_output_to_file == 1) {
+        fp = fopen(profiling_pcaplog_file_name, profiling_pcaplog_file_mode);
+        if (fp == NULL) {
+            SCLogError(SC_ERR_FOPEN, "failed to open %s: %s",
+                    profiling_pcaplog_file_name, strerror(errno));
+            return;
+        }
+    } else {
+       fp = stdout;
+    }
+
+    /* counters */
+    fprintf(fp, "\n\nOperation                    Cnt        Avg ticks  Total ticks\n");
+    fprintf(fp,     "---------------------------- ---------- ---------- -----------\n");
+
+    ProfileReport(fp, pl);
+    uint64_t total = pl->profile_write.total + pl->profile_rotate.total + pl->profile_handles.total;
+
+    /* overall stats */
+    fprintf(fp, "\nOverall: %"PRIu64" bytes written, average %d bytes per write.\n",
+        pl->profile_data_size, (int)(pl->profile_data_size / pl->profile_write.cnt));
+    fprintf(fp, "         PCAP data structure overhead: %"PRIuMAX" per write.\n",
+        sizeof(struct pcap_pkthdr));
+
+    /* print total bytes written */
+    char bytes_str[32];
+    FormatBytes(pl->profile_data_size, bytes_str, sizeof(bytes_str));
+    fprintf(fp, "         Size written: %s\n", bytes_str);
+
+    /* ticks per MiB and GiB */
+    uint64_t ticks_per_mib = 0, ticks_per_gib = 0;
+    uint64_t mib = pl->profile_data_size/(1024*1024);
+    if (mib)
+        ticks_per_mib = total/mib;
+    char ticks_per_mib_str[32] = "n/a";
+    if (ticks_per_mib > 0)
+        FormatNumber(ticks_per_mib, ticks_per_mib_str, sizeof(ticks_per_mib_str));
+    fprintf(fp, "         Ticks per MiB: %s\n", ticks_per_mib_str);
+
+    uint64_t gib = pl->profile_data_size/(1024*1024*1024);
+    if (gib)
+        ticks_per_gib = total/gib;
+    char ticks_per_gib_str[32] = "n/a";
+    if (ticks_per_gib > 0)
+        FormatNumber(ticks_per_gib, ticks_per_gib_str, sizeof(ticks_per_gib_str));
+    fprintf(fp, "         Ticks per GiB: %s\n", ticks_per_gib_str);
+
+    if (fp != stdout)
+        fclose(fp);
+}
+
+void PcapLogProfileSetup(void) {
+    ConfNode *conf = ConfGetNode("profiling.pcap-log");
+    if (conf != NULL && ConfNodeChildValueIsTrue(conf, "enabled")) {
+        profiling_pcaplog_enabled = 1;
+        SCLogInfo("pcap-log profiling enabled");
+
+        const char *filename = ConfNodeLookupChildValue(conf, "filename");
+        if (filename != NULL) {
+            char *log_dir;
+            log_dir = ConfigGetLogDirectory();
+
+            profiling_pcaplog_file_name = SCMalloc(PATH_MAX);
+            if (unlikely(profiling_pcaplog_file_name == NULL)) {
+                SCLogError(SC_ERR_MEM_ALLOC, "can't duplicate file name");
+                exit(EXIT_FAILURE);
+            }
+
+            snprintf(profiling_pcaplog_file_name, PATH_MAX, "%s/%s", log_dir, filename);
+
+            const char *v = ConfNodeLookupChildValue(conf, "append");
+            if (v == NULL || ConfValIsTrue(v)) {
+                profiling_pcaplog_file_mode = "a";
+            } else {
+                profiling_pcaplog_file_mode = "w";
+            }
+
+            profiling_pcaplog_output_to_file = 1;
+            SCLogInfo("pcap-log profiling output goes to %s (mode %s)",
+                    profiling_pcaplog_file_name, profiling_pcaplog_file_mode);
+        }
+    }
+}
+
