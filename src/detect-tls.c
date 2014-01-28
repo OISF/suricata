@@ -212,12 +212,6 @@ static int DetectTlsSubjectMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     int ret = 0;
     FLOWLOCK_RDLOCK(f);
 
-    if (tls_data->flags & DETECT_CONTENT_NEGATED) {
-        ret = 1;
-    } else {
-        ret = 0;
-    }
-
     SSLStateConnp *connp = NULL;
     if (flags & STREAM_TOSERVER) {
         connp = &ssl_state->client_connp;
@@ -235,7 +229,15 @@ static int DetectTlsSubjectMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
             } else {
                 ret = 1;
             }
+        } else {
+            if (tls_data->flags & DETECT_CONTENT_NEGATED) {
+                ret = 1;
+            } else {
+                ret = 0;
+            }
         }
+    } else {
+        ret = 0;
     }
 
     FLOWLOCK_UNLOCK(f);
@@ -418,12 +420,6 @@ static int DetectTlsIssuerDNMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx
     int ret = 0;
     FLOWLOCK_RDLOCK(f);
 
-    if (tls_data->flags & DETECT_CONTENT_NEGATED) {
-        ret = 1;
-    } else {
-        ret = 0;
-    }
-
     SSLStateConnp *connp = NULL;
     if (flags & STREAM_TOSERVER) {
         connp = &ssl_state->client_connp;
@@ -441,7 +437,15 @@ static int DetectTlsIssuerDNMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx
             } else {
                 ret = 1;
             }
+        } else {
+            if (tls_data->flags & DETECT_CONTENT_NEGATED) {
+                ret = 1;
+            } else {
+                ret = 0;
+            }
         }
+    } else {
+        ret = 0;
     }
 
     FLOWLOCK_UNLOCK(f);
@@ -694,11 +698,6 @@ static int DetectTlsFingerprintMatch (ThreadVars *t, DetectEngineThreadCtx *det_
     int ret = 0;
     FLOWLOCK_RDLOCK(f);
 
-    if (tls_data->flags & DETECT_CONTENT_NEGATED) {
-        ret = 1;
-    } else {
-        ret = 0;
-    }
     if (ssl_state->server_connp.cert0_fingerprint != NULL) {
         SCLogDebug("TLS: Fingerprint is [%s], looking for [%s]\n",
                    ssl_state->server_connp.cert0_fingerprint,
@@ -713,7 +712,15 @@ static int DetectTlsFingerprintMatch (ThreadVars *t, DetectEngineThreadCtx *det_
                 ret = 1;
 
             }
+        } else {
+            if (tls_data->flags & DETECT_CONTENT_NEGATED) {
+                ret = 1;
+            } else {
+                ret = 0;
+            }
         }
+    } else {
+        ret = 0;
     }
 
     FLOWLOCK_UNLOCK(f);
