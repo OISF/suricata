@@ -175,6 +175,13 @@ void StreamMsgQueuesInit(uint32_t prealloc) {
 }
 
 void StreamMsgQueuesDeinit(char quiet) {
+    if (quiet == FALSE) {
+        if (stream_msg_pool->max_outstanding > stream_msg_pool->allocated)
+            SCLogInfo("TCP segment chunk pool had a peak use of %u chunks, "
+                    "more than the prealloc setting of %u",
+                    stream_msg_pool->max_outstanding, stream_msg_pool->allocated);
+    }
+
     SCMutexLock(&stream_msg_pool_mutex);
     PoolFree(stream_msg_pool);
     SCMutexUnlock(&stream_msg_pool_mutex);

@@ -490,6 +490,12 @@ void StreamTcpReassembleFree(char quiet)
                        "%"PRIu32"", segment_pool[u16]->empty_stack_size,
                        segment_pool[u16]->alloc_stack_size,
                        segment_pool[u16]->allocated);
+
+            if (segment_pool[u16]->max_outstanding > segment_pool[u16]->allocated) {
+                SCLogInfo("TCP segment pool of size %u had a peak use of %u segments, "
+                        "more than the prealloc setting of %u", segment_pool_pktsizes[u16],
+                        segment_pool[u16]->max_outstanding, segment_pool[u16]->allocated);
+            }
         }
         PoolFree(segment_pool[u16]);
 
