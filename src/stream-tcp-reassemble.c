@@ -32,6 +32,7 @@
 #include "detect.h"
 #include "flow.h"
 #include "threads.h"
+#include "conf.h"
 
 #include "flow-util.h"
 
@@ -43,6 +44,7 @@
 #include "util-print.h"
 #include "util-host-os-info.h"
 #include "util-unittest-helper.h"
+#include "util-byte.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
@@ -72,21 +74,12 @@ static uint64_t segment_pool_memcnt = 0;
 /* We define several pools with prealloced segments with fixed size
  * payloads. We do this to prevent having to do an SCMalloc call for every
  * data segment we receive, which would be a large performance penalty.
- * The cost is in memory of course. */
-#define segment_pool_num 8
-static uint16_t segment_pool_pktsizes[segment_pool_num] = {4, 16, 112, 248, 512,
-                                                           768, 1448, 0xffff};
-//static uint16_t segment_pool_poolsizes[segment_pool_num] = {2048, 3072, 3072,
-//                                                            3072, 3072, 8192,
-//                                                            8192, 512};
-static uint16_t segment_pool_poolsizes[segment_pool_num] = {0, 0, 0,
-                                                            0, 0, 0,
-                                                            0, 0};
-static uint16_t segment_pool_poolsizes_prealloc[segment_pool_num] = {256, 512, 512,
-                                                            512, 512, 1024,
-                                                            1024, 128};
-static Pool *segment_pool[segment_pool_num];
-static SCMutex segment_pool_mutex[segment_pool_num];
+ * The cost is in memory of course. The number of pools and the properties
+ * of the pools are determined by the yaml. */
+static int segment_pool_num = 0;
+static Pool **segment_pool = NULL;
+static SCMutex *segment_pool_mutex = NULL;
+static uint16_t *segment_pool_pktsizes = NULL;
 #ifdef DEBUG
 static SCMutex segment_pool_cnt_mutex;
 static uint64_t segment_pool_cnt = 0;
@@ -280,36 +273,159 @@ void StreamTcpReturnStreamSegments (TcpStream *stream)
     stream->seg_list_tail = NULL;
 }
 
-int StreamTcpReassembleInit(char quiet)
+typedef struct SegmentSizes_
 {
-    /* init the memcap/use tracker */
-    SC_ATOMIC_INIT(ra_memuse);
+    uint16_t pktsize;
+    uint32_t prealloc;
+} SegmentSizes;
 
-    StreamMsgQueuesInit();
+/* sort small to big */
+static int SortByPktsize(const void *a, const void *b)
+{
+    const SegmentSizes *s0 = a;
+    const SegmentSizes *s1 = b;
+    return s0->pktsize - s1->pktsize;
+}
 
-#ifdef DEBUG
-    SCMutexInit(&segment_pool_memuse_mutex, NULL);
-#endif
-    uint16_t u16 = 0;
-    for (u16 = 0; u16 < segment_pool_num; u16++)
-    {
-        SCMutexInit(&segment_pool_mutex[u16], NULL);
-        SCMutexLock(&segment_pool_mutex[u16]);
-        segment_pool[u16] = PoolInit(segment_pool_poolsizes[u16],
-                                     segment_pool_poolsizes_prealloc[u16],
-                                     sizeof (TcpSegment),
-                                     TcpSegmentPoolAlloc, TcpSegmentPoolInit,
-                                     (void *) &segment_pool_pktsizes[u16],
-                                     TcpSegmentPoolCleanup, NULL);
-        SCMutexUnlock(&segment_pool_mutex[u16]);
+int StreamTcpReassemblyConfig(char quiet)
+{
+    Pool **my_segment_pool = NULL;
+    SCMutex *my_segment_lock = NULL;
+    uint16_t *my_segment_pktsizes = NULL;
+    SegmentSizes sizes[256];
+    memset(&sizes, 0x00, sizeof(sizes));
+
+    int npools = 0;
+    ConfNode *segs = ConfGetNode("stream.reassembly.segments");
+    if (segs != NULL) {
+        ConfNode *seg;
+        TAILQ_FOREACH(seg, &segs->head, next) {
+            ConfNode *segsize = ConfNodeLookupChild(seg,"size");
+            if (segsize == NULL)
+                continue;
+            ConfNode *segpre = ConfNodeLookupChild(seg,"prealloc");
+            if (segpre == NULL)
+                continue;
+
+            if (npools >= 256) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "too many segment packet "
+                                                    "pools defined, max is 256");
+                return -1;
+            }
+
+            SCLogDebug("segsize->val %s", segsize->val);
+            SCLogDebug("segpre->val %s", segpre->val);
+
+            uint16_t pktsize = 0;
+            if (ByteExtractStringUint16(&pktsize, 10, strlen(segsize->val),
+                                        segsize->val) == -1)
+            {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "segment packet size "
+                                                    "of %s is invalid", segsize->val);
+                return -1;
+            }
+            uint32_t prealloc = 0;
+            if (ByteExtractStringUint32(&prealloc, 10, strlen(segpre->val),
+                                        segpre->val) == -1)
+            {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "segment prealloc of "
+                                                    "%s is invalid", segpre->val);
+                return -1;
+            }
+
+            sizes[npools].pktsize = pktsize;
+            sizes[npools].prealloc = prealloc;
+            SCLogDebug("pktsize %u, prealloc %u", sizes[npools].pktsize,
+                                                  sizes[npools].prealloc);
+            npools++;
+        }
+    }
+
+    SCLogDebug("npools %d", npools);
+    if (npools > 0) {
+        /* sort the array as the index code below relies on it */
+        qsort(&sizes, npools, sizeof(sizes[0]), SortByPktsize);
+        if (sizes[npools - 1].pktsize != 0xffff) {
+            sizes[npools].pktsize = 0xffff;
+            sizes[npools].prealloc = 8;
+            npools++;
+            SCLogInfo("appended a segment pool for pktsize 65536");
+        }
+    } else if (npools == 0) {
+        /* defaults */
+        sizes[0].pktsize = 4;
+        sizes[0].prealloc = 256;
+        sizes[1].pktsize = 16;
+        sizes[1].prealloc = 512;
+        sizes[2].pktsize = 112;
+        sizes[2].prealloc = 512;
+        sizes[3].pktsize = 248;
+        sizes[3].prealloc = 512;
+        sizes[4].pktsize = 512;
+        sizes[4].prealloc = 512;
+        sizes[5].pktsize = 768;
+        sizes[5].prealloc = 1024;
+        sizes[6].pktsize = 1448;
+        sizes[6].prealloc = 1024;
+        sizes[7].pktsize = 0xffff;
+        sizes[7].prealloc = 128;
+        npools = 8;
+    }
+
+    int i = 0;
+    for (i = 0; i < npools; i++) {
+        SCLogDebug("pktsize %u, prealloc %u", sizes[i].pktsize, sizes[i].prealloc);
+    }
+
+    my_segment_pool = SCMalloc(npools * sizeof(Pool *));
+    if (my_segment_pool == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+        return -1;
+    }
+    my_segment_lock = SCMalloc(npools * sizeof(SCMutex));
+    if (my_segment_lock == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+
+        SCFree(my_segment_pool);
+        return -1;
+    }
+    my_segment_pktsizes = SCMalloc(npools * sizeof(uint16_t));
+    if (my_segment_pktsizes == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+
+        SCFree(my_segment_lock);
+        SCFree(my_segment_pool);
+        return -1;
+    }
+    uint32_t my_segment_poolsizes[npools];
+
+    for (i = 0; i < npools; i++) {
+        my_segment_pktsizes[i] = sizes[i].pktsize;
+        my_segment_poolsizes[i] = sizes[i].prealloc;
+        SCMutexInit(&my_segment_lock[i], NULL);
+
+        /* setup the pool */
+        SCMutexLock(&my_segment_lock[i]);
+        my_segment_pool[i] = PoolInit(0, my_segment_poolsizes[i], 0,
+                TcpSegmentPoolAlloc, TcpSegmentPoolInit,
+                (void *) &my_segment_pktsizes[i],
+                TcpSegmentPoolCleanup, NULL);
+        SCMutexUnlock(&my_segment_lock[i]);
+        BUG_ON(my_segment_pool[i] == NULL);
+
+        SCLogDebug("my_segment_pktsizes[i] %u, my_segment_poolsizes[i] %u",
+                my_segment_pktsizes[i], my_segment_poolsizes[i]);
+        if (!quiet)
+            SCLogInfo("segment pool: pktsize %u, prealloc %u",
+                    my_segment_pktsizes[i], my_segment_poolsizes[i]);
     }
 
     uint16_t idx = 0;
-    u16 = 0;
+    uint16_t u16 = 0;
     while (1) {
-        if (idx <= segment_pool_pktsizes[u16]) {
+        if (idx <= my_segment_pktsizes[u16]) {
             segment_pool_idx[idx] = u16;
-            if (segment_pool_pktsizes[u16] == idx)
+            if (my_segment_pktsizes[u16] == idx)
                 u16++;
         }
 
@@ -318,7 +434,25 @@ int StreamTcpReassembleInit(char quiet)
 
         idx++;
     }
+    /* set the globals */
+    segment_pool = my_segment_pool;
+    segment_pool_mutex = my_segment_lock;
+    segment_pool_pktsizes = my_segment_pktsizes;
+    segment_pool_num = npools;
+    return 0;
+}
+
+int StreamTcpReassembleInit(char quiet)
+{
+    /* init the memcap/use tracker */
+    SC_ATOMIC_INIT(ra_memuse);
+
+    if (StreamTcpReassemblyConfig(quiet) < 0)
+        return -1;
+    StreamMsgQueuesInit();
+
 #ifdef DEBUG
+    SCMutexInit(&segment_pool_memuse_mutex, NULL);
     SCMutexInit(&segment_pool_cnt_mutex, NULL);
 #endif
     return 0;
@@ -348,6 +482,12 @@ void StreamTcpReassembleFree(char quiet)
         SCMutexUnlock(&segment_pool_mutex[u16]);
         SCMutexDestroy(&segment_pool_mutex[u16]);
     }
+    SCFree(segment_pool);
+    SCFree(segment_pool_mutex);
+    SCFree(segment_pool_pktsizes);
+    segment_pool = NULL;
+    segment_pool_mutex = NULL;
+    segment_pool_pktsizes = NULL;
 
     StreamMsgQueuesDeinit(quiet);
 
