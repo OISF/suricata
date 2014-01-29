@@ -828,7 +828,9 @@ static int AlertPreludeLogger(ThreadVars *tv, void *thread_data, const Packet *p
     if ( ret < 0 )
         goto err;
 
-    if (PKT_IS_TCP(p) && (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH)) {
+    if (PKT_IS_TCP(p) &&
+            (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH |
+                          PACKET_ALERT_FLAG_STREAM_MATCH))) {
         uint8_t flag;
         if (p->flowflags & FLOW_PKT_TOSERVER) {
             flag = FLOW_PKT_TOCLIENT;
