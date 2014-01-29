@@ -37,7 +37,7 @@
 #include "util-unittest.h"
 
 #include "util-debug.h"
-
+#include "app-layer-parser.h"
 #include "output.h"
 #include "log-tlslog.h"
 #include "app-layer-ssl.h"
@@ -118,11 +118,11 @@ static TmEcode LogTlsLogIPWrapperJSON(ThreadVars *tv, Packet *p, void *data)
 
     /* check if we have TLS state or not */
     FLOWLOCK_WRLOCK(p->flow);
-    uint16_t proto = AppLayerGetProtoFromPacket(p);
+    uint16_t proto = FlowGetAppProtocol(p->flow);
     if (proto != ALPROTO_TLS)
         goto end;
 
-    SSLState *ssl_state = (SSLState *) AppLayerGetProtoStateFromPacket(p);
+    SSLState *ssl_state = (SSLState *) FlowGetAppState(p->flow);
     if (ssl_state == NULL) {
         SCLogDebug("no tls state, so no request logging");
         goto end;
@@ -131,7 +131,7 @@ static TmEcode LogTlsLogIPWrapperJSON(ThreadVars *tv, Packet *p, void *data)
     if (ssl_state->server_connp.cert0_issuerdn == NULL || ssl_state->server_connp.cert0_subject == NULL)
         goto end;
 
-    if (AppLayerTransactionGetLogId(p->flow) != 0)
+    if (AppLayerParserGetTransactionLogId(p->flow->alparser) != 0)
         goto end;
 
     json_t *js = CreateJSONHeader(p, 0);

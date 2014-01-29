@@ -52,7 +52,7 @@
 #include "output-droplog.h"
 #include "output-httplog.h"
 #include "output-tlslog.h"
-#include "output-file.h"
+#include "output-json-file.h"
 #include "output-json.h"
 
 #include "util-byte.h"
@@ -662,8 +662,8 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                 }
                 if (strcmp(output->val, "dns") == 0) {
                     SCLogDebug("Enabling DNS output");
-                    AppLayerRegisterLogger(ALPROTO_DNS_UDP);
-                    AppLayerRegisterLogger(ALPROTO_DNS_TCP);
+                    AppLayerParserRegisterLogger(IPPROTO_TCP,ALPROTO_DNS);
+                    AppLayerParserRegisterLogger(IPPROTO_UDP,ALPROTO_DNS);
                     output_flags |= OUTPUT_DNS;
                     continue;
                 }
@@ -683,7 +683,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                     SCLogDebug("Enabling HTTP output");
                     ConfNode *child = ConfNodeLookupChild(output, "http");
                     json_ctx->http_ctx = OutputHttpLogInit(child);
-                    AppLayerRegisterLogger(ALPROTO_HTTP);
+                    AppLayerParserRegisterLogger(IPPROTO_TCP,ALPROTO_HTTP);
                     output_flags |= OUTPUT_HTTP;
                     continue;
                 }
@@ -691,7 +691,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                     SCLogDebug("Enabling TLS output");
                     ConfNode *child = ConfNodeLookupChild(output, "tls");
                     json_ctx->tls_ctx = OutputTlsLogInit(child);
-                    AppLayerRegisterLogger(ALPROTO_TLS);
+                    AppLayerParserRegisterLogger(IPPROTO_TCP,ALPROTO_TLS);
                     output_flags |= OUTPUT_TLS;
                     continue;
                 }

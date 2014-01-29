@@ -240,20 +240,20 @@ static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data)
 
     /* check if we have HTTP state or not */
     FLOWLOCK_WRLOCK(p->flow); /* WRITE lock before we updated flow logged id */
-    uint16_t proto = AppLayerGetProtoFromPacket(p);
+    uint16_t proto = FlowGetAppProtocol(p->flow);
     if (proto != ALPROTO_HTTP)
         goto end;
 
-    htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
+    htp_state = (HtpState *)FlowGetAppState(p->flow);
     if (htp_state == NULL) {
         SCLogDebug("no http state, so no request logging");
         goto end;
     }
 
     total_txs = AppLayerParserGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP, htp_state);
-    tx_id = AppLayerTransactionGetLogId(p->flow);
-    tx_progress_done_value_ts = AppLayerGetAlstateProgressCompletionStatus(ALPROTO_HTTP, 0);
-    tx_progress_done_value_tc = AppLayerGetAlstateProgressCompletionStatus(ALPROTO_HTTP, 1);
+    tx_id = AppLayerParserGetTransactionLogId(p->flow->alparser);
+    tx_progress_done_value_ts = AppLayerParserGetStateProgressCompletionStatus(p->proto, ALPROTO_HTTP, 0);
+    tx_progress_done_value_tc = AppLayerParserGetStateProgressCompletionStatus(p->proto, ALPROTO_HTTP, 1);
 
     json_t *js = CreateJSONHeader(p, 1);
     if (unlikely(js == NULL))
@@ -267,12 +267,12 @@ static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data)
             continue;
         }
 
-        if (!(((AppLayerParserStateStore *)p->flow->alparser)->id_flags & APP_LAYER_TRANSACTION_EOF)) {
-            tx_progress = AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 0);
+        if (!(AppLayerParserStateIssetFlag(p->flow->alparser, APP_LAYER_PARSER_EOF))) {
+            tx_progress = AppLayerParserGetStateProgress(p->proto, ALPROTO_HTTP, tx, 0);
             if (tx_progress < tx_progress_done_value_ts)
                 break;
 
-            tx_progress = AppLayerGetAlstateProgress(ALPROTO_HTTP, tx, 1);
+            tx_progress = AppLayerParserGetStateProgress(p->proto, ALPROTO_HTTP, tx, 1);
             if (tx_progress < tx_progress_done_value_tc)
                 break;
         }
@@ -295,7 +295,7 @@ static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data)
         OutputJSON(js, aft, &aft->http_cnt);
         json_object_del(js, "http");
 
-        AppLayerTransactionUpdateLogId(ALPROTO_HTTP, p->flow);
+        AppLayerParserSetTransactionLogId(p->flow->alparser);
     }
     json_object_clear(js);
     json_decref(js);

@@ -38,7 +38,7 @@
 
 #include "util-debug.h"
 #include "util-mem.h"
-
+#include "app-layer-parser.h"
 #include "output.h"
 #include "output-dnslog.h"
 #include "app-layer-dns-udp.h"
@@ -212,20 +212,20 @@ static TmEcode DnsJsonIPWrapper(ThreadVars *tv, Packet *p, void *data,
 
     /* check if we have DNS state or not */
     FLOWLOCK_WRLOCK(p->flow); /* WRITE lock before we updated flow logged id */
-    uint16_t proto = AppLayerGetProtoFromPacket(p);
-    if (proto != ALPROTO_DNS_UDP && proto != ALPROTO_DNS_TCP) {
-        SCLogDebug("proto not ALPROTO_DNS_UDP: %u", proto);
+    uint16_t proto = FlowGetAppProtocol(p->flow);
+    if (proto != ALPROTO_DNS) {
+        SCLogDebug("proto not ALPROTO_DNS: %u", proto);
         goto end;
     }
 
-    DNSState *dns_state = (DNSState *)AppLayerGetProtoStateFromPacket(p);
+    DNSState *dns_state = (DNSState *)FlowGetAppState(p->flow);
     if (dns_state == NULL) {
         SCLogDebug("no dns state, so no request logging");
         goto end;
     }
 
-    uint64_t total_txs = AppLayerGetTxCnt(proto, dns_state);
-    uint64_t tx_id = AppLayerTransactionGetLogId(p->flow);
+    uint64_t total_txs = AppLayerParserGetTxCnt(p->proto, proto, dns_state);
+    uint64_t tx_id = AppLayerParserGetTransactionLogId(p->flow->alparser);
     //int tx_progress_done_value_ts = AppLayerGetAlstateProgressCompletionStatus(proto, 0);
     //int tx_progress_done_value_tc = AppLayerGetAlstateProgressCompletionStatus(proto, 1);
 
@@ -248,7 +248,7 @@ static TmEcode DnsJsonIPWrapper(ThreadVars *tv, Packet *p, void *data,
         DNSTransaction *tx = NULL;
         for (; tx_id < total_txs; tx_id++)
         {
-            tx = AppLayerGetTx(proto, dns_state, tx_id);
+            tx = AppLayerParserGetTx(p->proto, proto, dns_state, tx_id);
             if (tx == NULL)
                 continue;
 
@@ -260,7 +260,7 @@ static TmEcode DnsJsonIPWrapper(ThreadVars *tv, Packet *p, void *data,
             LogAnswers(aft, js, tx);
 
             SCLogDebug("calling AppLayerTransactionUpdateLoggedId");
-            AppLayerTransactionUpdateLogId(ALPROTO_DNS_UDP, p->flow);
+            AppLayerParserSetTransactionLogId(p->flow->alparser);
         }
     }
     json_decref(js);
