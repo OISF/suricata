@@ -53,43 +53,28 @@
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>
 
-#define LOG_HTTP_MAXN_NODES 64
-#define LOG_HTTP_NODE_STRLEN 256
-#define LOG_HTTP_NODE_MAXOUTPUTLEN 8192
-
-#define TIMESTAMP_DEFAULT_FORMAT "%b %d, %Y; %H:%M:%S"
-#define LOG_HTTP_CF_NONE "-"
-#define LOG_HTTP_CF_LITERAL '%'
-#define LOG_HTTP_CF_REQUEST_HOST 'h'
-#define LOG_HTTP_CF_REQUEST_PROTOCOL 'H'
-#define LOG_HTTP_CF_REQUEST_METHOD 'm'
-#define LOG_HTTP_CF_REQUEST_URI 'u'
-#define LOG_HTTP_CF_REQUEST_TIME 't'
-#define LOG_HTTP_CF_REQUEST_HEADER 'i'
-#define LOG_HTTP_CF_REQUEST_COOKIE 'C'
-#define LOG_HTTP_CF_REQUEST_LEN 'b'
-#define LOG_HTTP_CF_RESPONSE_STATUS 's'
-#define LOG_HTTP_CF_RESPONSE_HEADER 'o'
-#define LOG_HTTP_CF_RESPONSE_LEN 'B'
-#define LOG_HTTP_CF_TIMESTAMP 't'
-#define LOG_HTTP_CF_TIMESTAMP_U 'z'
-#define LOG_HTTP_CF_CLIENT_IP 'a'
-#define LOG_HTTP_CF_SERVER_IP 'A'
-#define LOG_HTTP_CF_CLIENT_PORT 'p'
-#define LOG_HTTP_CF_SERVER_PORT 'P'
-
-typedef struct OutputHttpCtx_ {
+typedef struct LogHttpFileCtx_ {
+    LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
-} OutputHttpCtx;
+} LogHttpFileCtx;
+
+typedef struct JsonHttpLogThread_ {
+    LogHttpFileCtx *httplog_ctx;
+    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
+    uint32_t uri_cnt;
+
+    MemBuffer *buffer;
+} JsonHttpLogThread;
+
 
 #define LOG_HTTP_DEFAULT 0
 #define LOG_HTTP_EXTENDED 1
 #define LOG_HTTP_CUSTOM 2
 
 /* JSON format logging */
-static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx)
+static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
 {
-    OutputHttpCtx *http_ctx = aft->http_ctx->data;
+    LogHttpFileCtx *http_ctx = aft->httplog_ctx;
     json_t *hjs = json_object();
     if (hjs == NULL) {
         return;
@@ -162,6 +147,7 @@ static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx)
             SCFree(c);
     }
 
+#if 1
     if (http_ctx->flags & LOG_HTTP_EXTENDED) {
         /* referer */
         htp_header_t *h_referer = NULL;
@@ -215,107 +201,54 @@ static void LogHttpLogJSON(AlertJsonThread *aft, json_t *js, htp_tx_t *tx)
         /* length */
         json_object_set_new(hjs, "length", json_integer(tx->response_message_len));
     }
+#endif
 
     json_object_set_new(js, "http", hjs);
 }
 
-static TmEcode HttpJsonIPWrapper(ThreadVars *tv, Packet *p, void *data)
+static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
 {
     SCEnter();
 
-    uint64_t tx_id = 0;
-    uint64_t total_txs = 0;
-    htp_tx_t *tx = NULL;
-    HtpState *htp_state = NULL;
-    int tx_progress = 0;
-    int tx_progress_done_value_ts = 0;
-    int tx_progress_done_value_tc = 0;
-    AlertJsonThread *aft = (AlertJsonThread *)data;
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
+    htp_tx_t *tx = txptr;
+    JsonHttpLogThread *jhl = (JsonHttpLogThread *)thread_data;
+    MemBuffer *buffer = (MemBuffer *)jhl->buffer;
 
-    /* no flow, no htp state */
-    if (p->flow == NULL) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    /* check if we have HTTP state or not */
-    FLOWLOCK_WRLOCK(p->flow); /* WRITE lock before we updated flow logged id */
-    uint16_t proto = FlowGetAppProtocol(p->flow);
-    if (proto != ALPROTO_HTTP)
-        goto end;
-
-    htp_state = (HtpState *)FlowGetAppState(p->flow);
-    if (htp_state == NULL) {
-        SCLogDebug("no http state, so no request logging");
-        goto end;
-    }
-
-    total_txs = AppLayerParserGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP, htp_state);
-    tx_id = AppLayerParserGetTransactionLogId(p->flow->alparser);
-    tx_progress_done_value_ts = AppLayerParserGetStateProgressCompletionStatus(p->proto, ALPROTO_HTTP, 0);
-    tx_progress_done_value_tc = AppLayerParserGetStateProgressCompletionStatus(p->proto, ALPROTO_HTTP, 1);
-
-    json_t *js = CreateJSONHeader(p, 1);
+    json_t *js = CreateJSONHeader((Packet *)p, 1); //TODO const
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-    for (; tx_id < total_txs; tx_id++)
-    {
-        tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
-        if (tx == NULL) {
-            SCLogDebug("tx is NULL not logging !!");
-            continue;
-        }
+    SCLogDebug("got a HTTP request and now logging !!");
 
-        if (!(AppLayerParserStateIssetFlag(p->flow->alparser, APP_LAYER_PARSER_EOF))) {
-            tx_progress = AppLayerParserGetStateProgress(p->proto, ALPROTO_HTTP, tx, 0);
-            if (tx_progress < tx_progress_done_value_ts)
-                break;
+    /* reset */
+    MemBufferReset(buffer);
 
-            tx_progress = AppLayerParserGetStateProgress(p->proto, ALPROTO_HTTP, tx, 1);
-            if (tx_progress < tx_progress_done_value_tc)
-                break;
-        }
+    JsonHttpLogJSON(jhl, js, tx);
 
-        SCLogDebug("got a HTTP request and now logging !!");
+    OutputJSONBuffer(js, jhl->httplog_ctx->file_ctx, buffer);
+    json_object_del(js, "http");
 
-        /* reset */
-        MemBufferReset(buffer);
-
-        /* Maybe we'll do a "custom" later
-        if (http_ctx->flags & LOG_HTTP_CUSTOM) {
-            LogHttpLogJSONCustom(aft, js, tx, &p->ts);
-        } else {
-        */
-            LogHttpLogJSON(aft, js, tx);
-        /*
-        }
-        */
-
-        OutputJSON(js, aft, &aft->http_cnt);
-        json_object_del(js, "http");
-
-        AppLayerParserSetTransactionLogId(p->flow->alparser);
-    }
     json_object_clear(js);
     json_decref(js);
 
-end:
-    FLOWLOCK_UNLOCK(p->flow);
-    SCReturnInt(TM_ECODE_OK);
-
-}
-
-TmEcode OutputHttpLog (ThreadVars *tv, Packet *p, void *data)
-{
-    SCEnter();
-    HttpJsonIPWrapper(tv, p, data);
     SCReturnInt(TM_ECODE_OK);
 }
 
+#define DEFAULT_LOG_FILENAME "http.json"
 OutputCtx *OutputHttpLogInit(ConfNode *conf)
 {
-    OutputHttpCtx *http_ctx = SCMalloc(sizeof(OutputHttpCtx));
+    LogFileCtx *file_ctx = LogFileNewCtx();
+    if(file_ctx == NULL) {
+        SCLogError(SC_ERR_HTTP_LOG_GENERIC, "couldn't create new file_ctx");
+        return NULL;
+    }
+
+    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME) < 0) {
+        LogFileFreeCtx(file_ctx);
+        return NULL;
+    }
+
+    LogHttpFileCtx *http_ctx = SCMalloc(sizeof(LogHttpFileCtx));
     if (unlikely(http_ctx == NULL))
         return NULL;
 
@@ -323,6 +256,7 @@ OutputCtx *OutputHttpLogInit(ConfNode *conf)
     if (unlikely(output_ctx == NULL))
         return NULL;
 
+    http_ctx->file_ctx = file_ctx;
     http_ctx->flags = LOG_HTTP_DEFAULT;
 
     if (conf) {
@@ -338,6 +272,74 @@ OutputCtx *OutputHttpLogInit(ConfNode *conf)
     output_ctx->DeInit = NULL;
 
     return output_ctx;
+}
+
+#define OUTPUT_BUFFER_SIZE 65535
+static TmEcode JsonHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
+{
+    JsonHttpLogThread *aft = SCMalloc(sizeof(JsonHttpLogThread));
+    if (unlikely(aft == NULL))
+        return TM_ECODE_FAILED;
+    memset(aft, 0, sizeof(JsonHttpLogThread));
+
+    if(initdata == NULL)
+    {
+        SCLogDebug("Error getting context for HTTPLog.  \"initdata\" argument NULL");
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
+    /* Use the Ouptut Context (file pointer and mutex) */
+    aft->httplog_ctx = ((OutputCtx *)initdata)->data; //TODO
+
+    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    if (aft->buffer == NULL) {
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
+    *data = (void *)aft;
+    return TM_ECODE_OK;
+}
+
+static TmEcode JsonHttpLogThreadDeinit(ThreadVars *t, void *data)
+{
+    JsonHttpLogThread *aft = (JsonHttpLogThread *)data;
+    if (aft == NULL) {
+        return TM_ECODE_OK;
+    }
+
+    MemBufferFree(aft->buffer);
+    /* clear memory */
+    memset(aft, 0, sizeof(JsonHttpLogThread));
+
+    SCFree(aft);
+    return TM_ECODE_OK;
+}
+
+void TmModuleJsonHttpLogRegister (void) {
+    tmm_modules[TMM_JSONHTTPLOG].name = "JsonHttpLog";
+    tmm_modules[TMM_JSONHTTPLOG].ThreadInit = JsonHttpLogThreadInit;
+    tmm_modules[TMM_JSONHTTPLOG].ThreadDeinit = JsonHttpLogThreadDeinit;
+    tmm_modules[TMM_JSONHTTPLOG].RegisterTests = NULL;
+    tmm_modules[TMM_JSONHTTPLOG].cap_flags = 0;
+
+    OutputRegisterTxModule("JsonHttpLog", "http-json-log", OutputHttpLogInit,
+            ALPROTO_HTTP, JsonHttpLogger);
+}
+
+#else
+
+static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
+{
+    SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
+    return TM_ECODE_FAILED;
+}
+
+void TmModuleJsonHttpLogRegister (void)
+{
+    tmm_modules[TMM_JSONHTTPLOG].name = "JsonHttpLog";
+    tmm_modules[TMM_JSONHTTPLOG].ThreadInit = OutputJsonThreadInit;
 }
 
 #endif

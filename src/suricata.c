@@ -81,6 +81,7 @@
 
 #include "log-droplog.h"
 #include "log-httplog.h"
+#include "output-httplog.h"
 #include "log-dnslog.h"
 #include "log-tlslog.h"
 #include "log-pcap.h"
@@ -797,6 +798,7 @@ void RegisterAllModules()
     TmModuleOutputJsonRegister();
     /* http log */
     TmModuleLogHttpLogRegister();
+    TmModuleJsonHttpLogRegister();
     TmModuleLogTlsLogRegister();
     /* pcap log */
     TmModulePcapLogRegister();
