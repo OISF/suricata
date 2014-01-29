@@ -38,7 +38,9 @@
 typedef struct OutputModule_ {
     char *name;
     char *conf_name;
+    char *parent_name;
     OutputCtx *(*InitFunc)(ConfNode *);
+    OutputCtx *(*InitSubFunc)(ConfNode *, OutputCtx *parent_ctx);
 
     PacketLogger PacketLogFunc;
     PacketLogCondition PacketConditionFunc;
@@ -57,6 +59,9 @@ void OutputRegisterPacketModule(char *name, char *conf_name,
     PacketLogger LogFunc, PacketLogCondition ConditionFunc);
 void OutputRegisterTxModule(char *name, char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), uint16_t alproto,
+    TxLogger TxLogFunc);
+void OutputRegisterTxSubModule(const char *parent_name, char *name, char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx), uint16_t alproto,
     TxLogger TxLogFunc);
 void OutputRegisterFileModule(char *name, char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), FileLogger FileLogFunc);
