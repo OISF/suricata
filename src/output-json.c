@@ -303,6 +303,30 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensitive)
     return js;
 }
 
+int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer) {
+    char *js_s = json_dumps(js,
+                            JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
+#ifdef JSON_ESCAPE_SLASH
+                            JSON_ESCAPE_SLASH
+#else
+                            0
+#endif
+                            );
+    if (unlikely(js_s == NULL))
+        return TM_ECODE_OK;
+
+    SCMutexLock(&file_ctx->fp_mutex);
+    if (json_out == ALERT_SYSLOG) {
+        syslog(alert_syslog_level, "%s", js_s);
+    } else if (json_out == ALERT_FILE) {
+        MemBufferWriteString(buffer, "%s\n", js_s);
+        (void)MemBufferPrintToFPAsString(buffer, file_ctx->fp);
+        fflush(file_ctx->fp);
+    }
+    SCMutexUnlock(&file_ctx->fp_mutex);
+    return 0;
+}
+
 TmEcode OutputJSON(json_t *js, void *data, uint64_t *count)
 {
     AlertJsonThread *aft = (AlertJsonThread *)data;
@@ -482,7 +506,7 @@ TmEcode OutputJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
     }
 
     if (output_flags & OUTPUT_HTTP) {
-        OutputHttpLog(tv, p, data);
+//        OutputHttpLog(tv, p, data);
     }
 
     if (output_flags & OUTPUT_TLS) {
@@ -679,6 +703,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                     output_flags |= OUTPUT_FILES;
                     continue;
                 }
+#if 0
                 if (strcmp(output->val, "http") == 0) {
                     SCLogDebug("Enabling HTTP output");
                     ConfNode *child = ConfNodeLookupChild(output, "http");
@@ -687,6 +712,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                     output_flags |= OUTPUT_HTTP;
                     continue;
                 }
+#endif
                 if (strcmp(output->val, "tls") == 0) {
                     SCLogDebug("Enabling TLS output");
                     ConfNode *child = ConfNodeLookupChild(output, "tls");
