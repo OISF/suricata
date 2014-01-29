@@ -299,6 +299,35 @@ static void LogDnsLogDeInitCtx(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
+static OutputCtx *JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AlertJsonThread *ajt = parent_ctx->data;
+
+    LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
+    if (unlikely(dnslog_ctx == NULL)) {
+        return NULL;
+    }
+    memset(dnslog_ctx, 0x00, sizeof(LogDnsFileCtx));
+
+    dnslog_ctx->file_ctx = ajt->file_ctx;
+
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (unlikely(output_ctx == NULL)) {
+        SCFree(dnslog_ctx);
+        return NULL;
+    }
+
+    output_ctx->data = dnslog_ctx;
+    output_ctx->DeInit = LogDnsLogDeInitCtx;
+
+    SCLogDebug("DNS log sub-module initialized");
+
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
+
+    return output_ctx;
+}
+
 #define DEFAULT_LOG_FILENAME "dns.json"
 /** \brief Create a new dns log LogFileCtx.
  *  \param conf Pointer to ConfNode containing this loggers configuration.
@@ -355,6 +384,8 @@ void TmModuleJsonDnsLogRegister (void) {
     tmm_modules[TMM_JSONDNSLOG].cap_flags = 0;
 
     OutputRegisterTxModule(MODULE_NAME, "dns-json-log", JsonDnsLogInitCtx,
+            ALPROTO_DNS, JsonDnsLogger);
+    OutputRegisterTxSubModule("eve-log", MODULE_NAME, "dns", JsonDnsLogInitCtxSub,
             ALPROTO_DNS, JsonDnsLogger);
 }
 

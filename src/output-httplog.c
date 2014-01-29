@@ -274,6 +274,36 @@ OutputCtx *OutputHttpLogInit(ConfNode *conf)
     return output_ctx;
 }
 
+OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AlertJsonThread *ajt = parent_ctx->data;
+
+    LogHttpFileCtx *http_ctx = SCMalloc(sizeof(LogHttpFileCtx));
+    if (unlikely(http_ctx == NULL))
+        return NULL;
+
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (unlikely(output_ctx == NULL))
+        return NULL;
+
+    http_ctx->file_ctx = ajt->file_ctx;
+    http_ctx->flags = LOG_HTTP_DEFAULT;
+
+    if (conf) {
+        const char *extended = ConfNodeLookupChildValue(conf, "extended");
+
+        if (extended != NULL) {
+            if (ConfValIsTrue(extended)) {
+                http_ctx->flags = LOG_HTTP_EXTENDED;
+            }
+        }
+    }
+    output_ctx->data = http_ctx;
+    output_ctx->DeInit = NULL;
+
+    return output_ctx;
+}
+
 #define OUTPUT_BUFFER_SIZE 65535
 static TmEcode JsonHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
@@ -324,7 +354,12 @@ void TmModuleJsonHttpLogRegister (void) {
     tmm_modules[TMM_JSONHTTPLOG].RegisterTests = NULL;
     tmm_modules[TMM_JSONHTTPLOG].cap_flags = 0;
 
+    /* register as separate module */
     OutputRegisterTxModule("JsonHttpLog", "http-json-log", OutputHttpLogInit,
+            ALPROTO_HTTP, JsonHttpLogger);
+
+    /* also register as child of eve-log */
+    OutputRegisterTxSubModule("eve-log", "JsonHttpLog", "http", OutputHttpLogInitSub,
             ALPROTO_HTTP, JsonHttpLogger);
 }
 

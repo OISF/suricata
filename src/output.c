@@ -148,6 +148,41 @@ error:
     exit(EXIT_FAILURE);
 }
 
+void
+OutputRegisterTxSubModule(const char *parent_name, char *name, char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx), uint16_t alproto,
+    TxLogger TxLogFunc)
+{
+    if (unlikely(TxLogFunc == NULL)) {
+        goto error;
+    }
+
+    OutputModule *module = SCCalloc(1, sizeof(*module));
+    if (unlikely(module == NULL)) {
+        goto error;
+    }
+
+    module->name = SCStrdup(name);
+    if (unlikely(module->name == NULL))
+        goto error;
+    module->conf_name = SCStrdup(conf_name);
+    if (unlikely(module->conf_name == NULL))
+        goto error;
+    module->parent_name = SCStrdup(parent_name);
+    if (unlikely(module->parent_name == NULL))
+        goto error;
+    module->InitSubFunc = InitFunc;
+    module->TxLogFunc = TxLogFunc;
+    module->alproto = alproto;
+    TAILQ_INSERT_TAIL(&output_modules, module, entries);
+
+    SCLogDebug("Tx logger \"%s\" registered.", name);
+    return;
+error:
+    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    exit(EXIT_FAILURE);
+}
+
 /**
  * \brief Register a file output module.
  *
