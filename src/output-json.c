@@ -494,7 +494,7 @@ TmEcode OutputJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
     }
 
     if (output_flags & OUTPUT_DNS) {
-        OutputDnsLog(tv, p, data);
+//        OutputDnsLog(tv, p, data);
     }
 
     if (output_flags & OUTPUT_DROP) {

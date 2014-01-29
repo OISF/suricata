@@ -58,6 +58,19 @@
  * TX id handling doesn't expect it */
 #define QUERY 0
 
+typedef struct LogDnsFileCtx_ {
+    LogFileCtx *file_ctx;
+    uint32_t flags; /** Store mode */
+} LogDnsFileCtx;
+
+typedef struct LogDnsLogThread_ {
+    LogDnsFileCtx *dnslog_ctx;
+    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
+    uint32_t dns_cnt;
+
+    MemBuffer *buffer;
+} LogDnsLogThread;
+
 static void CreateTypeString(uint16_t type, char *str, size_t str_size) {
     if (type == DNS_RECORD_TYPE_A) {
         snprintf(str, str_size, "A");
@@ -86,7 +99,7 @@ static void CreateTypeString(uint16_t type, char *str, size_t str_size) {
     }
 }
 
-static void LogQuery(AlertJsonThread *aft, json_t *js, DNSTransaction *tx, DNSQueryEntry *entry) {
+static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, DNSQueryEntry *entry) {
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
 
     SCLogDebug("got a DNS request and now logging !!");
@@ -119,7 +132,7 @@ static void LogQuery(AlertJsonThread *aft, json_t *js, DNSTransaction *tx, DNSQu
 
     /* dns */
     json_object_set_new(js, "dns", djs);
-    OutputJSON(js, aft, &aft->dns_cnt);
+    OutputJSONBuffer(js, aft->dnslog_ctx->file_ctx, buffer);
     json_object_del(js, "dns");
 }
 
@@ -170,7 +183,7 @@ static void AppendAnswer(json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry)
     json_array_append_new(djs, js);
 }
 
-static void LogAnswers(AlertJsonThread *aft, json_t *js, DNSTransaction *tx) {
+static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx) {
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
 
     SCLogDebug("got a DNS response and now logging !!");
@@ -199,92 +212,164 @@ static void LogAnswers(AlertJsonThread *aft, json_t *js, DNSTransaction *tx) {
 
     /* dns */
     json_object_set_new(js, "dns", djs);
-    OutputJSON(js, aft, &aft->dns_cnt);
+    OutputJSONBuffer(js, aft->dnslog_ctx->file_ctx, buffer);
     json_object_del(js, "dns");
 }
 
-static TmEcode DnsJsonIPWrapper(ThreadVars *tv, Packet *p, void *data,
-                                int ipproto)
+static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
 {
     SCEnter();
 
-    AlertJsonThread *aft = (AlertJsonThread *)data;
+    LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
+    DNSTransaction *tx = txptr;
 
-    /* check if we have DNS state or not */
-    FLOWLOCK_WRLOCK(p->flow); /* WRITE lock before we updated flow logged id */
-    uint16_t proto = FlowGetAppProtocol(p->flow);
-    if (proto != ALPROTO_DNS) {
-        SCLogDebug("proto not ALPROTO_DNS: %u", proto);
-        goto end;
-    }
-
-    DNSState *dns_state = (DNSState *)FlowGetAppState(p->flow);
-    if (dns_state == NULL) {
-        SCLogDebug("no dns state, so no request logging");
-        goto end;
-    }
-
-    uint64_t total_txs = AppLayerParserGetTxCnt(p->proto, proto, dns_state);
-    uint64_t tx_id = AppLayerParserGetTransactionLogId(p->flow->alparser);
-    //int tx_progress_done_value_ts = AppLayerGetAlstateProgressCompletionStatus(proto, 0);
-    //int tx_progress_done_value_tc = AppLayerGetAlstateProgressCompletionStatus(proto, 1);
-
-    json_t *js = CreateJSONHeader(p, 1);
+    json_t *js = CreateJSONHeader((Packet *)p, 1);//TODO const
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
 #if QUERY
     if (PKT_IS_TOSERVER(p)) {
-        DNSTransaction *tx = NULL;
-        TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
-            DNSQueryEntry *entry = NULL;
-            TAILQ_FOREACH(entry, &tx->query_list, next) {
-                LogQuery(aft, timebuf, srcip, dstip, sp, dp, tx, proto_s, entry);
-            }
+        DNSQueryEntry *entry = NULL;
+        TAILQ_FOREACH(entry, &tx->query_list, next) {
+            LogQuery(aft, timebuf, srcip, dstip, sp, dp, tx, proto_s, entry);
         }
     } else
 #endif
     if ((PKT_IS_TOCLIENT(p))) {
-        DNSTransaction *tx = NULL;
-        for (; tx_id < total_txs; tx_id++)
-        {
-            tx = AppLayerParserGetTx(p->proto, proto, dns_state, tx_id);
-            if (tx == NULL)
-                continue;
-
-            DNSQueryEntry *query = NULL;
-            TAILQ_FOREACH(query, &tx->query_list, next) {
-                LogQuery(aft, js, tx, query);
-            }
-
-            LogAnswers(aft, js, tx);
-
-            SCLogDebug("calling AppLayerTransactionUpdateLoggedId");
-            AppLayerParserSetTransactionLogId(p->flow->alparser);
+        DNSQueryEntry *query = NULL;
+        TAILQ_FOREACH(query, &tx->query_list, next) {
+            LogQuery(td, js, tx, query);
         }
+
+        LogAnswers(td, js, tx);
     }
     json_decref(js);
 
-end:
-    FLOWLOCK_UNLOCK(p->flow);
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode OutputDnsLog(ThreadVars *tv, Packet *p, void *data)
+#define OUTPUT_BUFFER_SIZE 65536
+static TmEcode LogDnsLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
-    SCEnter();
+    LogDnsLogThread *aft = SCMalloc(sizeof(LogDnsLogThread));
+    if (unlikely(aft == NULL))
+        return TM_ECODE_FAILED;
+    memset(aft, 0, sizeof(LogDnsLogThread));
 
-    /* no flow, no htp state */
-    if (p->flow == NULL) {
-        SCReturnInt(TM_ECODE_OK);
+    if(initdata == NULL)
+    {
+        SCLogDebug("Error getting context for DNSLog.  \"initdata\" argument NULL");
+        SCFree(aft);
+        return TM_ECODE_FAILED;
     }
 
-    if (!(PKT_IS_UDP(p)) && !(PKT_IS_TCP(p))) {
-        SCReturnInt(TM_ECODE_OK);
+    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    if (aft->buffer == NULL) {
+        SCFree(aft);
+        return TM_ECODE_FAILED;
     }
 
-    DnsJsonIPWrapper(tv, p, data, AF_INET);
+    /* Use the Ouptut Context (file pointer and mutex) */
+    aft->dnslog_ctx= ((OutputCtx *)initdata)->data;
 
-    SCReturnInt(TM_ECODE_OK);
+    *data = (void *)aft;
+    return TM_ECODE_OK;
 }
+
+static TmEcode LogDnsLogThreadDeinit(ThreadVars *t, void *data)
+{
+    LogDnsLogThread *aft = (LogDnsLogThread *)data;
+    if (aft == NULL) {
+        return TM_ECODE_OK;
+    }
+
+    MemBufferFree(aft->buffer);
+    /* clear memory */
+    memset(aft, 0, sizeof(LogDnsLogThread));
+
+    SCFree(aft);
+    return TM_ECODE_OK;
+}
+
+static void LogDnsLogDeInitCtx(OutputCtx *output_ctx)
+{
+    LogDnsFileCtx *dnslog_ctx = (LogDnsFileCtx *)output_ctx->data;
+    LogFileFreeCtx(dnslog_ctx->file_ctx);
+    SCFree(dnslog_ctx);
+    SCFree(output_ctx);
+}
+
+#define DEFAULT_LOG_FILENAME "dns.json"
+/** \brief Create a new dns log LogFileCtx.
+ *  \param conf Pointer to ConfNode containing this loggers configuration.
+ *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
+ * */
+static OutputCtx *JsonDnsLogInitCtx(ConfNode *conf)
+{
+    LogFileCtx *file_ctx = LogFileNewCtx();
+
+    if(file_ctx == NULL) {
+        SCLogError(SC_ERR_DNS_LOG_GENERIC, "couldn't create new file_ctx");
+        return NULL;
+    }
+
+    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME) < 0) {
+        LogFileFreeCtx(file_ctx);
+        return NULL;
+    }
+
+    LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
+    if (unlikely(dnslog_ctx == NULL)) {
+        LogFileFreeCtx(file_ctx);
+        return NULL;
+    }
+    memset(dnslog_ctx, 0x00, sizeof(LogDnsFileCtx));
+
+    dnslog_ctx->file_ctx = file_ctx;
+
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (unlikely(output_ctx == NULL)) {
+        LogFileFreeCtx(file_ctx);
+        SCFree(dnslog_ctx);
+        return NULL;
+    }
+
+    output_ctx->data = dnslog_ctx;
+    output_ctx->DeInit = LogDnsLogDeInitCtx;
+
+    SCLogDebug("DNS log output initialized");
+
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
+
+    return output_ctx;
+}
+
+
+#define MODULE_NAME "JsonDnsLog"
+void TmModuleJsonDnsLogRegister (void) {
+    tmm_modules[TMM_JSONDNSLOG].name = MODULE_NAME;
+    tmm_modules[TMM_JSONDNSLOG].ThreadInit = LogDnsLogThreadInit;
+    tmm_modules[TMM_JSONDNSLOG].ThreadDeinit = LogDnsLogThreadDeinit;
+    tmm_modules[TMM_JSONDNSLOG].RegisterTests = NULL;
+    tmm_modules[TMM_JSONDNSLOG].cap_flags = 0;
+
+    OutputRegisterTxModule(MODULE_NAME, "dns-json-log", JsonDnsLogInitCtx,
+            ALPROTO_DNS, JsonDnsLogger);
+}
+
+#else
+
+static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
+{
+    SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
+    return TM_ECODE_FAILED;
+}
+
+void TmModuleJsonDnsLogRegister (void)
+{
+    tmm_modules[TMM_JSONDNSLOG].name = "JsonDnsLog";
+    tmm_modules[TMM_JSONDNSLOG].ThreadInit = OutputJsonThreadInit;
+}
+
 #endif
