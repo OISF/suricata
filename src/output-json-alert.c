@@ -294,6 +294,25 @@ static OutputCtx *JsonAlertLogInitCtx(ConfNode *conf)
     return output_ctx;
 }
 
+/**
+ * \brief Create a new LogFileCtx for "fast" output style.
+ * \param conf The configuration node for this output.
+ * \return A LogFileCtx pointer on success, NULL on failure.
+ */
+static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AlertJsonThread *ajt = parent_ctx->data;
+
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (unlikely(output_ctx == NULL))
+        return NULL;
+
+    output_ctx->data = ajt->file_ctx;
+    output_ctx->DeInit = JsonAlertLogDeInitCtx;
+
+    return output_ctx;
+}
+
 #define MODULE_NAME "JsonAlertLog"
 void TmModuleJsonAlertLogRegister (void) {
     tmm_modules[TMM_JSONALERTLOG].name = MODULE_NAME;
@@ -303,6 +322,8 @@ void TmModuleJsonAlertLogRegister (void) {
 
     OutputRegisterPacketModule(MODULE_NAME, "alert-json-log",
             JsonAlertLogInitCtx, JsonAlertLogger, JsonAlertLogCondition);
+    OutputRegisterPacketSubModule("eve-log", MODULE_NAME, "alert",
+            JsonAlertLogInitCtxSub, JsonAlertLogger, JsonAlertLogCondition);
 }
 
 #endif
