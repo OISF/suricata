@@ -1,0 +1,392 @@
+/* Copyright (C) 2007-2013 Open Information Security Foundation
+ *
+ * You can copy, redistribute or modify this Program under the terms of
+ * the GNU General Public License version 2 as published by the Free
+ * Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
+ */
+
+/**
+ * \file
+ *
+ * \author Tom DeCanio <td@npulsetech.com>
+ *
+ * Implements JSON DNS logging portion of the engine.
+ */
+
+#include "suricata-common.h"
+#include "debug.h"
+#include "detect.h"
+#include "pkt-var.h"
+#include "conf.h"
+
+#include "threads.h"
+#include "threadvars.h"
+#include "tm-threads.h"
+
+#include "util-print.h"
+#include "util-unittest.h"
+
+#include "util-debug.h"
+#include "util-mem.h"
+#include "app-layer-parser.h"
+#include "output.h"
+#include "output-dnslog.h"
+#include "app-layer-dns-udp.h"
+#include "app-layer.h"
+#include "util-privs.h"
+#include "util-buffer.h"
+#include "util-proto-name.h"
+#include "util-logopenfile.h"
+#include "util-time.h"
+
+#include "output-json.h"
+
+#ifdef HAVE_LIBJANSSON
+#include <jansson.h>
+
+/* we can do query logging as well, but it's disabled for now as the
+ * TX id handling doesn't expect it */
+#define QUERY 0
+
+typedef struct LogDnsFileCtx_ {
+    LogFileCtx *file_ctx;
+    uint32_t flags; /** Store mode */
+} LogDnsFileCtx;
+
+typedef struct LogDnsLogThread_ {
+    LogDnsFileCtx *dnslog_ctx;
+    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
+    uint32_t dns_cnt;
+
+    MemBuffer *buffer;
+} LogDnsLogThread;
+
+static void CreateTypeString(uint16_t type, char *str, size_t str_size) {
+    if (type == DNS_RECORD_TYPE_A) {
+        snprintf(str, str_size, "A");
+    } else if (type == DNS_RECORD_TYPE_NS) {
+        snprintf(str, str_size, "NS");
+    } else if (type == DNS_RECORD_TYPE_AAAA) {
+        snprintf(str, str_size, "AAAA");
+    } else if (type == DNS_RECORD_TYPE_TXT) {
+        snprintf(str, str_size, "TXT");
+    } else if (type == DNS_RECORD_TYPE_CNAME) {
+        snprintf(str, str_size, "CNAME");
+    } else if (type == DNS_RECORD_TYPE_SOA) {
+        snprintf(str, str_size, "SOA");
+    } else if (type == DNS_RECORD_TYPE_MX) {
+        snprintf(str, str_size, "MX");
+    } else if (type == DNS_RECORD_TYPE_PTR) {
+        snprintf(str, str_size, "PTR");
+    } else if (type == DNS_RECORD_TYPE_ANY) {
+        snprintf(str, str_size, "ANY");
+    } else if (type == DNS_RECORD_TYPE_TKEY) {
+        snprintf(str, str_size, "TKEY");
+    } else if (type == DNS_RECORD_TYPE_TSIG) {
+        snprintf(str, str_size, "TSIG");
+    } else {
+        snprintf(str, str_size, "%04x/%u", type, type);
+    }
+}
+
+static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, DNSQueryEntry *entry) {
+    MemBuffer *buffer = (MemBuffer *)aft->buffer;
+
+    SCLogDebug("got a DNS request and now logging !!");
+
+    json_t *djs = json_object();
+    if (djs == NULL) {
+        return;
+    }
+
+    /* reset */
+    MemBufferReset(buffer);
+
+    /* type */
+    json_object_set_new(djs, "type", json_string("query"));
+
+    /* id */
+    json_object_set_new(djs, "id", json_integer(tx->tx_id));
+
+    /* query */
+    char *c;
+    c = SCStrndup((char *)((char *)entry + sizeof(DNSQueryEntry)), entry->len);
+    json_object_set_new(djs, "query", json_string(c));
+    if (c != NULL)
+        SCFree(c);
+
+    /* name */
+    char record[16] = "";
+    CreateTypeString(entry->type, record, sizeof(record));
+    json_object_set_new(djs, "record", json_string(record));
+
+    /* dns */
+    json_object_set_new(js, "dns", djs);
+    OutputJSONBuffer(js, aft->dnslog_ctx->file_ctx, buffer);
+    json_object_del(js, "dns");
+}
+
+static void AppendAnswer(json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry) {
+    json_t *js = json_object();
+    if (js == NULL)
+        return;
+
+    /* type */
+    json_object_set_new(js, "type", json_string("answer"));
+
+    /* id */
+    json_object_set_new(js, "id", json_integer(tx->tx_id));
+
+    if (entry != NULL) {
+        /* query */
+        if (entry->fqdn_len > 0) {
+            char *c;
+            c = SCStrndup((char *)((char *)entry + sizeof(DNSAnswerEntry)),
+                        entry->fqdn_len);
+            json_object_set_new(js, "query", json_string(c));
+            if (c != NULL) {
+                SCFree(c);
+            }
+        }
+
+        /* name */
+        char record[16] = "";
+        CreateTypeString(entry->type, record, sizeof(record));
+        json_object_set_new(js, "record", json_string(record));
+
+        /* ttl */
+        json_object_set_new(js, "ttl", json_integer(entry->ttl));
+
+        uint8_t *ptr = (uint8_t *)((uint8_t *)entry + sizeof(DNSAnswerEntry)+ entry->fqdn_len);
+        if (entry->type == DNS_RECORD_TYPE_A) {
+            char a[16] = "";
+            PrintInet(AF_INET, (const void *)ptr, a, sizeof(a));
+            json_object_set_new(js, "addr", json_string(a));
+        } else if (entry->type == DNS_RECORD_TYPE_AAAA) {
+            char a[46] = "";
+            PrintInet(AF_INET6, (const void *)ptr, a, sizeof(a));
+            json_object_set_new(js, "addr", json_string(a));
+        } else if (entry->data_len == 0) {
+            json_object_set_new(js, "addr", json_string(""));
+        }
+    }
+    json_array_append_new(djs, js);
+}
+
+static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx) {
+    MemBuffer *buffer = (MemBuffer *)aft->buffer;
+
+    SCLogDebug("got a DNS response and now logging !!");
+
+    json_t *djs = json_array();
+    if (djs == NULL) {
+        return;
+    }
+
+    /* reset */
+    MemBufferReset(buffer);
+
+    if (tx->no_such_name) {
+        AppendAnswer(djs, tx, NULL);
+    }
+
+    DNSAnswerEntry *entry = NULL;
+    TAILQ_FOREACH(entry, &tx->answer_list, next) {
+        AppendAnswer(djs, tx, entry);
+    }
+
+    entry = NULL;
+    TAILQ_FOREACH(entry, &tx->authority_list, next) {
+        AppendAnswer(djs, tx, entry);
+    }
+
+    /* dns */
+    json_object_set_new(js, "dns", djs);
+    OutputJSONBuffer(js, aft->dnslog_ctx->file_ctx, buffer);
+    json_object_del(js, "dns");
+}
+
+static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+{
+    SCEnter();
+
+    LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
+    DNSTransaction *tx = txptr;
+
+    json_t *js = CreateJSONHeader((Packet *)p, 1);//TODO const
+    if (unlikely(js == NULL))
+        return TM_ECODE_OK;
+
+#if QUERY
+    if (PKT_IS_TOSERVER(p)) {
+        DNSQueryEntry *entry = NULL;
+        TAILQ_FOREACH(entry, &tx->query_list, next) {
+            LogQuery(aft, timebuf, srcip, dstip, sp, dp, tx, proto_s, entry);
+        }
+    } else
+#endif
+    if ((PKT_IS_TOCLIENT(p))) {
+        DNSQueryEntry *query = NULL;
+        TAILQ_FOREACH(query, &tx->query_list, next) {
+            LogQuery(td, js, tx, query);
+        }
+
+        LogAnswers(td, js, tx);
+    }
+    json_decref(js);
+
+    SCReturnInt(TM_ECODE_OK);
+}
+
+#define OUTPUT_BUFFER_SIZE 65536
+static TmEcode LogDnsLogThreadInit(ThreadVars *t, void *initdata, void **data)
+{
+    LogDnsLogThread *aft = SCMalloc(sizeof(LogDnsLogThread));
+    if (unlikely(aft == NULL))
+        return TM_ECODE_FAILED;
+    memset(aft, 0, sizeof(LogDnsLogThread));
+
+    if(initdata == NULL)
+    {
+        SCLogDebug("Error getting context for DNSLog.  \"initdata\" argument NULL");
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
+    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    if (aft->buffer == NULL) {
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
+    /* Use the Ouptut Context (file pointer and mutex) */
+    aft->dnslog_ctx= ((OutputCtx *)initdata)->data;
+
+    *data = (void *)aft;
+    return TM_ECODE_OK;
+}
+
+static TmEcode LogDnsLogThreadDeinit(ThreadVars *t, void *data)
+{
+    LogDnsLogThread *aft = (LogDnsLogThread *)data;
+    if (aft == NULL) {
+        return TM_ECODE_OK;
+    }
+
+    MemBufferFree(aft->buffer);
+    /* clear memory */
+    memset(aft, 0, sizeof(LogDnsLogThread));
+
+    SCFree(aft);
+    return TM_ECODE_OK;
+}
+
+static void LogDnsLogDeInitCtx(OutputCtx *output_ctx)
+{
+    LogDnsFileCtx *dnslog_ctx = (LogDnsFileCtx *)output_ctx->data;
+    LogFileFreeCtx(dnslog_ctx->file_ctx);
+    SCFree(dnslog_ctx);
+    SCFree(output_ctx);
+}
+
+static OutputCtx *JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AlertJsonThread *ajt = parent_ctx->data;
+
+    LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
+    if (unlikely(dnslog_ctx == NULL)) {
+        return NULL;
+    }
+    memset(dnslog_ctx, 0x00, sizeof(LogDnsFileCtx));
+
+    dnslog_ctx->file_ctx = ajt->file_ctx;
+
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (unlikely(output_ctx == NULL)) {
+        SCFree(dnslog_ctx);
+        return NULL;
+    }
+
+    output_ctx->data = dnslog_ctx;
+    output_ctx->DeInit = LogDnsLogDeInitCtx;
+
+    SCLogDebug("DNS log sub-module initialized");
+
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
+
+    return output_ctx;
+}
+
+#define DEFAULT_LOG_FILENAME "dns.json"
+/** \brief Create a new dns log LogFileCtx.
+ *  \param conf Pointer to ConfNode containing this loggers configuration.
+ *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
+ * */
+static OutputCtx *JsonDnsLogInitCtx(ConfNode *conf)
+{
+    LogFileCtx *file_ctx = LogFileNewCtx();
+
+    if(file_ctx == NULL) {
+        SCLogError(SC_ERR_DNS_LOG_GENERIC, "couldn't create new file_ctx");
+        return NULL;
+    }
+
+    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME) < 0) {
+        LogFileFreeCtx(file_ctx);
+        return NULL;
+    }
+
+    LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
+    if (unlikely(dnslog_ctx == NULL)) {
+        LogFileFreeCtx(file_ctx);
+        return NULL;
+    }
+    memset(dnslog_ctx, 0x00, sizeof(LogDnsFileCtx));
+
+    dnslog_ctx->file_ctx = file_ctx;
+
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (unlikely(output_ctx == NULL)) {
+        LogFileFreeCtx(file_ctx);
+        SCFree(dnslog_ctx);
+        return NULL;
+    }
+
+    output_ctx->data = dnslog_ctx;
+    output_ctx->DeInit = LogDnsLogDeInitCtx;
+
+    SCLogDebug("DNS log output initialized");
+
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
+
+    return output_ctx;
+}
+
+
+#define MODULE_NAME "JsonDnsLog"
+void TmModuleJsonDnsLogRegister (void) {
+    tmm_modules[TMM_JSONDNSLOG].name = MODULE_NAME;
+    tmm_modules[TMM_JSONDNSLOG].ThreadInit = LogDnsLogThreadInit;
+    tmm_modules[TMM_JSONDNSLOG].ThreadDeinit = LogDnsLogThreadDeinit;
+    tmm_modules[TMM_JSONDNSLOG].RegisterTests = NULL;
+    tmm_modules[TMM_JSONDNSLOG].cap_flags = 0;
+
+    OutputRegisterTxModule(MODULE_NAME, "dns-json-log", JsonDnsLogInitCtx,
+            ALPROTO_DNS, JsonDnsLogger);
+    OutputRegisterTxSubModule("eve-log", MODULE_NAME, "dns", JsonDnsLogInitCtxSub,
+            ALPROTO_DNS, JsonDnsLogger);
+}
+
+#endif

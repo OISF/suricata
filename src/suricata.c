@@ -78,14 +78,19 @@
 #include "alert-prelude.h"
 #include "alert-syslog.h"
 #include "alert-pcapinfo.h"
+#include "output-json-alert.h"
 
 #include "log-droplog.h"
 #include "log-httplog.h"
+#include "output-httplog.h"
 #include "log-dnslog.h"
+#include "output-dnslog.h"
 #include "log-tlslog.h"
 #include "log-pcap.h"
 #include "log-file.h"
 #include "log-filestore.h"
+
+#include "output-json.h"
 
 #include "stream-tcp.h"
 
@@ -791,8 +796,11 @@ void RegisterAllModules()
     TmModuleAlertPcapInfoRegister();
     /* drop log */
     TmModuleLogDropLogRegister();
+    /* json log */
+    TmModuleOutputJsonRegister();
     /* http log */
     TmModuleLogHttpLogRegister();
+    TmModuleJsonHttpLogRegister();
     TmModuleLogTlsLogRegister();
     /* pcap log */
     TmModulePcapLogRegister();
@@ -801,6 +809,11 @@ void RegisterAllModules()
     TmModuleLogFilestoreRegister();
     /* dns log */
     TmModuleLogDnsLogRegister();
+    TmModuleJsonDnsLogRegister();
+
+    TmModuleJsonAlertLogRegister();
+
+    /* log api */
     TmModulePacketLoggerRegister();
     TmModuleTxLoggerRegister();
     TmModuleFileLoggerRegister();
