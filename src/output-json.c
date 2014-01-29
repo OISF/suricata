@@ -355,158 +355,14 @@ TmEcode OutputJSON(json_t *js, void *data, uint64_t *count)
     return TM_ECODE_OK;
 }
 
-TmEcode AlertJson(ThreadVars *tv, Packet *p, void *data)
-{
-    AlertJsonThread *aft = (AlertJsonThread *)data;
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
-    int i;
-    char *action = "Pass";
-
-    if (p->alerts.cnt == 0)
-        return TM_ECODE_OK;
-
-    MemBufferReset(buffer);
-
-    json_t *js = CreateJSONHeader(p, 0);
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
-
-    for (i = 0; i < p->alerts.cnt; i++) {
-        PacketAlert *pa = &p->alerts.alerts[i];
-        if (unlikely(pa->s == NULL)) {
-            continue;
-        }
-
-        if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
-            action = "Drop";
-        } else if (pa->action & ACTION_DROP) {
-            action = "wDrop";
-        }
-
-        json_t *ajs = json_object();
-        if (ajs == NULL) {
-            json_decref(js);
-            return TM_ECODE_OK;
-        }
-
-        json_object_set_new(ajs, "action", json_string(action));
-        json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
-        json_object_set_new(ajs, "id", json_integer(pa->s->id));
-        json_object_set_new(ajs, "rev", json_integer(pa->s->rev));
-        json_object_set_new(ajs, "msg",
-                            json_string((pa->s->msg) ? pa->s->msg : ""));
-        json_object_set_new(ajs, "class",
-                            json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
-        json_object_set_new(ajs, "pri", json_integer(pa->s->prio));
-
-        /* alert */
-        json_object_set_new(js, "alert", ajs);
-
-        OutputJSON(js, aft, &aft->file_ctx->alerts);
-        json_object_del(js, "alert");
-    }
-    json_object_clear(js);
-    json_decref(js);
-
-    return TM_ECODE_OK;
-}
-
-TmEcode AlertJsonDecoderEvent(ThreadVars *tv, Packet *p, void *data)
-{
-    AlertJsonThread *aft = (AlertJsonThread *)data;
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
-    int i;
-    char timebuf[64];
-    char *action = "Pass";
-    json_t *js;
-
-    if (p->alerts.cnt == 0)
-        return TM_ECODE_OK;
-
-    MemBufferReset(buffer);
-
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
-
-    for (i = 0; i < p->alerts.cnt; i++) {
-        PacketAlert *pa = &p->alerts.alerts[i];
-        if (unlikely(pa->s == NULL)) {
-            continue;
-        }
-
-        if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
-            action = "Drop";
-        } else if (pa->action & ACTION_DROP) {
-            action = "wDrop";
-        }
-
-        char buf[(32 * 3) + 1];
-        PrintRawLineHexBuf(buf, sizeof(buf), GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
-
-        js = json_object();
-        if (js == NULL)
-            return TM_ECODE_OK;
-
-        json_t *ajs = json_object();
-        if (ajs == NULL) {
-            json_decref(js);
-            return TM_ECODE_OK;
-        }
-
-        /* time & tx */
-        json_object_set_new(js, "time", json_string(timebuf));
-
-        /* tuple */
-        //json_object_set_new(js, "srcip", json_string(srcip));
-        //json_object_set_new(js, "sp", json_integer(p->sp));
-        //json_object_set_new(js, "dstip", json_string(dstip));
-        //json_object_set_new(js, "dp", json_integer(p->dp));
-        //json_object_set_new(js, "proto", json_integer(proto));
-
-        json_object_set_new(ajs, "action", json_string(action));
-        json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
-        json_object_set_new(ajs, "id", json_integer(pa->s->id));
-        json_object_set_new(ajs, "rev", json_integer(pa->s->rev));
-        json_object_set_new(ajs, "msg",
-                            json_string((pa->s->msg) ? pa->s->msg : ""));
-        json_object_set_new(ajs, "class",
-                            json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
-        json_object_set_new(ajs, "pri", json_integer(pa->s->prio));
-
-        /* alert */
-        json_object_set_new(js, "alert", ajs);
-        OutputJSON(js, aft, &aft->file_ctx->alerts);
-        json_object_clear(js);
-        json_decref(js);
-    }
-
-    return TM_ECODE_OK;
-}
-
 TmEcode OutputJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
-    if (output_flags & OUTPUT_ALERTS) {
-
-        if (PKT_IS_IPV4(p) || PKT_IS_IPV6(p)) {
-            AlertJson(tv, p, data);
-        } else if (p->events.cnt > 0) {
-            AlertJsonDecoderEvent(tv, p, data);
-        }
-    }
-
-    if (output_flags & OUTPUT_DNS) {
-//        OutputDnsLog(tv, p, data);
-    }
-
     if (output_flags & OUTPUT_DROP) {
         OutputDropLog(tv, p, data);
     }
 
     if (output_flags & OUTPUT_FILES) {
         OutputFileLog(tv, p, data);
-    }
-
-    if (output_flags & OUTPUT_HTTP) {
-//        OutputHttpLog(tv, p, data);
     }
 
     if (output_flags & OUTPUT_TLS) {
@@ -684,13 +540,6 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                     output_flags |= OUTPUT_ALERTS;
                     continue;
                 }
-                if (strcmp(output->val, "dns") == 0) {
-                    SCLogDebug("Enabling DNS output");
-                    AppLayerParserRegisterLogger(IPPROTO_TCP,ALPROTO_DNS);
-                    AppLayerParserRegisterLogger(IPPROTO_UDP,ALPROTO_DNS);
-                    output_flags |= OUTPUT_DNS;
-                    continue;
-                }
                 if (strcmp(output->val, "drop") == 0) {
                     SCLogDebug("Enabling drop output");
                     output_flags |= OUTPUT_DROP;
@@ -703,16 +552,6 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                     output_flags |= OUTPUT_FILES;
                     continue;
                 }
-#if 0
-                if (strcmp(output->val, "http") == 0) {
-                    SCLogDebug("Enabling HTTP output");
-                    ConfNode *child = ConfNodeLookupChild(output, "http");
-                    json_ctx->http_ctx = OutputHttpLogInit(child);
-                    AppLayerParserRegisterLogger(IPPROTO_TCP,ALPROTO_HTTP);
-                    output_flags |= OUTPUT_HTTP;
-                    continue;
-                }
-#endif
                 if (strcmp(output->val, "tls") == 0) {
                     SCLogDebug("Enabling TLS output");
                     ConfNode *child = ConfNodeLookupChild(output, "tls");

@@ -216,6 +216,7 @@ log-tlslog.c log-tlslog.h \
 output.c output.h \
 output-file.c output-file.h \
 output-filedata.c output-filedata.h \
+output-json-alert.c output-json-alert.h \
 output-json-file.c output-json-file.h \
 output-packet.c output-packet.h \
 output-tx.c output-tx.h \
