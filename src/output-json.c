@@ -535,11 +535,6 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
              * registration capability
              */
             TAILQ_FOREACH(output, &outputs->head, next) {
-                if (strcmp(output->val, "alert") == 0) {
-                    SCLogDebug("Enabling alert output");
-                    output_flags |= OUTPUT_ALERTS;
-                    continue;
-                }
                 if (strcmp(output->val, "drop") == 0) {
                     SCLogDebug("Enabling drop output");
                     output_flags |= OUTPUT_DROP;
