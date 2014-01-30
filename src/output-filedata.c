@@ -58,7 +58,8 @@ static SCMutex g_waldo_mutex = SCMUTEX_INITIALIZER;
 static int g_waldo_init = 0;
 static int g_waldo_deinit = 0;
 
-int OutputRegisterFiledataLogger(char *name, FiledataLogger LogFunc, OutputCtx *output_ctx) {
+int OutputRegisterFiledataLogger(const char *name, FiledataLogger LogFunc, OutputCtx *output_ctx)
+{
     OutputFiledataLogger *op = SCMalloc(sizeof(*op));
     if (op == NULL)
         return -1;
@@ -66,11 +67,7 @@ int OutputRegisterFiledataLogger(char *name, FiledataLogger LogFunc, OutputCtx *
 
     op->LogFunc = LogFunc;
     op->output_ctx = output_ctx;
-    op->name = SCStrdup(name);
-    if (op->name == NULL) {
-        SCFree(op);
-        return -1;
-    }
+    op->name = name;
 
     if (list == NULL)
         list = op;
