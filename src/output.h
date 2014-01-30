@@ -83,4 +83,7 @@ void OutputRegisterFiledataSubModule(const char *parent_name, const char *name,
 OutputModule *OutputGetModuleByConfName(const char *name);
 void OutputDeregisterAll(void);
 
+int OutputDropLoggerEnable(void);
+int OutputTlsLoggerEnable(void);
+
 #endif /* ! __OUTPUT_H__ */

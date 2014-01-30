@@ -194,6 +194,12 @@ static void JsonDropLogDeInitCtx(OutputCtx *output_ctx)
 #define DEFAULT_LOG_FILENAME "drop.json"
 static OutputCtx *JsonDropLogInitCtx(ConfNode *conf)
 {
+    if (OutputDropLoggerEnable() != 0) {
+        SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'drop' logger "
+            "can be enabled");
+        return NULL;
+    }
+
     LogFileCtx *logfile_ctx = LogFileNewCtx();
     if (logfile_ctx == NULL) {
         return NULL;
@@ -216,6 +222,12 @@ static OutputCtx *JsonDropLogInitCtx(ConfNode *conf)
 
 static OutputCtx *JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    if (OutputDropLoggerEnable() != 0) {
+        SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'drop' logger "
+            "can be enabled");
+        return NULL;
+    }
+
     AlertJsonThread *ajt = parent_ctx->data;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));

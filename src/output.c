@@ -374,3 +374,22 @@ OutputDeregisterAll(void)
         SCFree(module);
     }
 }
+
+static int drop_loggers = 0;
+
+int OutputDropLoggerEnable(void) {
+    if (drop_loggers)
+        return -1;
+    drop_loggers++;
+    return 0;
+}
+
+static int tls_loggers = 0;
+
+int OutputTlsLoggerEnable(void) {
+    if (tls_loggers)
+        return -1;
+    tls_loggers++;
+    return 0;
+}
+

@@ -217,6 +217,12 @@ static TmEcode JsonTlsLogThreadDeinit(ThreadVars *t, void *data)
 #define DEFAULT_LOG_FILENAME "tls.json"
 OutputCtx *OutputTlsLogInit(ConfNode *conf)
 {
+    if (OutputTlsLoggerEnable() != 0) {
+        SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'tls' logger "
+            "can be enabled");
+        return NULL;
+    }
+
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_HTTP_LOG_GENERIC, "couldn't create new file_ctx");
@@ -257,6 +263,12 @@ OutputCtx *OutputTlsLogInit(ConfNode *conf)
 OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AlertJsonThread *ajt = parent_ctx->data;
+
+    if (OutputTlsLoggerEnable() != 0) {
+        SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'tls' logger "
+            "can be enabled");
+        return NULL;
+    }
 
     OutputTlsCtx *tls_ctx = SCMalloc(sizeof(OutputTlsCtx));
     if (unlikely(tls_ctx == NULL))
