@@ -44,7 +44,7 @@ typedef struct OutputLoggerThreadData_ {
  * it's perfectly valid that have multiple instances of the same
  * log module (e.g. http.log) with different output ctx'. */
 typedef struct OutputTxLogger_ {
-    uint16_t alproto;
+    AppProto alproto;
     TxLogger LogFunc;
     OutputCtx *output_ctx;
     struct OutputTxLogger_ *next;
@@ -53,7 +53,7 @@ typedef struct OutputTxLogger_ {
 
 static OutputTxLogger *list = NULL;
 
-int OutputRegisterTxLogger(const char *name, uint16_t alproto, TxLogger LogFunc, OutputCtx *output_ctx)
+int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc, OutputCtx *output_ctx)
 {
     OutputTxLogger *op = SCMalloc(sizeof(*op));
     if (op == NULL)

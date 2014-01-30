@@ -147,7 +147,7 @@ error:
  */
 void
 OutputRegisterTxModule(const char *name, const char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *), uint16_t alproto,
+    OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
     TxLogger TxLogFunc)
 {
     if (unlikely(TxLogFunc == NULL)) {
@@ -176,7 +176,7 @@ error:
 void
 OutputRegisterTxSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
-    uint16_t alproto, TxLogger TxLogFunc)
+    AppProto alproto, TxLogger TxLogFunc)
 {
     if (unlikely(TxLogFunc == NULL)) {
         goto error;

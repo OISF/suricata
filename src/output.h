@@ -47,7 +47,7 @@ typedef struct OutputModule_ {
     TxLogger TxLogFunc;
     FileLogger FileLogFunc;
     FiledataLogger FiledataLogFunc;
-    uint16_t alproto;
+    AppProto alproto;
 
     TAILQ_ENTRY(OutputModule_) entries;
 } OutputModule;
@@ -62,11 +62,11 @@ void OutputRegisterPacketSubModule(const char *parent_name, const char *name,
     PacketLogger LogFunc, PacketLogCondition ConditionFunc);
 
 void OutputRegisterTxModule(const char *name, const char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *), uint16_t alproto,
+    OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
     TxLogger TxLogFunc);
 void OutputRegisterTxSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
-    uint16_t alproto, TxLogger TxLogFunc);
+    AppProto alproto, TxLogger TxLogFunc);
 
 void OutputRegisterFileModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), FileLogger FileLogFunc);
