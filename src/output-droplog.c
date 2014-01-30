@@ -212,6 +212,20 @@ static OutputCtx *JsonDropLogInitCtx(ConfNode *conf)
     return output_ctx;
 }
 
+static OutputCtx *JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AlertJsonThread *ajt = parent_ctx->data;
+
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (unlikely(output_ctx == NULL)) {
+        return NULL;
+    }
+
+    output_ctx->data = ajt->file_ctx;
+    output_ctx->DeInit = JsonDropLogDeInitCtx;
+    return output_ctx;
+}
+
 /**
  * \brief   Log the dropped packets when engine is running in inline mode
  *
@@ -279,7 +293,6 @@ static int JsonDropLogCondition(ThreadVars *tv, const Packet *p) {
     return FALSE;
 }
 
-
 void TmModuleJsonDropLogRegister (void) {
     tmm_modules[TMM_JSONDROPLOG].name = MODULE_NAME;
     tmm_modules[TMM_JSONDROPLOG].ThreadInit = JsonDropLogThreadInit;
@@ -288,6 +301,8 @@ void TmModuleJsonDropLogRegister (void) {
 
     OutputRegisterPacketModule(MODULE_NAME, "drop-json-log",
             JsonDropLogInitCtx, JsonDropLogger, JsonDropLogCondition);
+    OutputRegisterPacketSubModule("eve-log", MODULE_NAME, "drop-json",
+            JsonDropLogInitCtxSub, JsonDropLogger, JsonDropLogCondition);
 }
 
 #else
