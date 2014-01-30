@@ -55,8 +55,16 @@
 #include "util-time.h"
 #include "util-buffer.h"
 
+#define MODULE_NAME "JsonDropLog"
+
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>
+
+typedef struct JsonDropLogThread_ {
+    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
+    LogFileCtx* file_ctx;
+    MemBuffer *buffer;
+} JsonDropLogThread;
 
 /**
  * \brief   Log the dropped packets in netfilter format when engine is running
@@ -67,11 +75,11 @@
  *
  * \return return TM_EODE_OK on success
  */
-TmEcode OutputDropLogJSON (AlertJsonThread *aft, Packet *p)
+static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
 {
     uint16_t proto = 0;
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
-    json_t *js = CreateJSONHeader(p, 0);
+    json_t *js = CreateJSONHeader((Packet *)p, 0);//TODO const
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
@@ -125,7 +133,7 @@ TmEcode OutputDropLogJSON (AlertJsonThread *aft, Packet *p)
             break;
     }
     json_object_set_new(js, "drop", djs);
-    OutputJSON(js, aft, &aft->drop_cnt);
+    OutputJSONBuffer(js, aft->file_ctx, buffer);
     json_object_del(js, "drop");
     json_object_clear(js);
     json_decref(js);
@@ -133,52 +141,167 @@ TmEcode OutputDropLogJSON (AlertJsonThread *aft, Packet *p)
     return TM_ECODE_OK;
 }
 
-/**
- * \brief   Log the dropped packets when engine is running in inline mode
- *
- * \param tv    Pointer the current thread variables
- * \param p     Pointer the packet which is being logged
- * \param data  Pointer to the droplog struct
- *
- * \return return TM_EODE_OK on success
- */
-TmEcode OutputDropLog (ThreadVars *tv, Packet *p, void *data)
+#define OUTPUT_BUFFER_SIZE 65535
+static TmEcode JsonDropLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
-    AlertJsonThread *aft = (AlertJsonThread *)data;
+    JsonDropLogThread *aft = SCMalloc(sizeof(JsonDropLogThread));
+    if (unlikely(aft == NULL))
+        return TM_ECODE_FAILED;
+    memset(aft, 0, sizeof(*aft));
+    if(initdata == NULL)
+    {
+        SCLogDebug("Error getting context for AlertFastLog.  \"initdata\" argument NULL");
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
 
-    /* Check if we are in inline mode or not, if not then no need to log */
-    extern uint8_t engine_mode;
-    if (!IS_ENGINE_MODE_IPS(engine_mode)) {
-        SCLogDebug("engine is not running in inline mode, so returning");
+    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    if (aft->buffer == NULL) {
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
+    /** Use the Ouptut Context (file pointer and mutex) */
+    aft->file_ctx = ((OutputCtx *)initdata)->data;
+
+    *data = (void *)aft;
+    return TM_ECODE_OK;
+}
+
+static TmEcode JsonDropLogThreadDeinit(ThreadVars *t, void *data)
+{
+    JsonDropLogThread *aft = (JsonDropLogThread *)data;
+    if (aft == NULL) {
         return TM_ECODE_OK;
     }
 
-    if ((p->flow != NULL) && (p->flow->flags & FLOW_ACTION_DROP)) {
-        if (PKT_IS_TOSERVER(p) && !(p->flow->flags & FLOW_TOSERVER_DROP_LOGGED)) {
-            p->flow->flags |= FLOW_TOSERVER_DROP_LOGGED;
-            return OutputDropLogJSON(aft, p);
+    /* clear memory */
+    memset(aft, 0, sizeof(*aft));
 
-        } else if (PKT_IS_TOCLIENT(p) && !(p->flow->flags & FLOW_TOCLIENT_DROP_LOGGED)) {
-            p->flow->flags |= FLOW_TOCLIENT_DROP_LOGGED;
-            return OutputDropLogJSON(aft, p);
-        }
-    } else {
-        return OutputDropLogJSON(aft, p);
-    }
-
+    SCFree(aft);
     return TM_ECODE_OK;
-
 }
 
-OutputCtx *OutputDropLogInit(ConfNode *conf)
+static void JsonDropLogDeInitCtx(OutputCtx *output_ctx)
 {
+    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+    LogFileFreeCtx(logfile_ctx);
+    SCFree(output_ctx);
+}
+
+#define DEFAULT_LOG_FILENAME "drop.json"
+static OutputCtx *JsonDropLogInitCtx(ConfNode *conf)
+{
+    LogFileCtx *logfile_ctx = LogFileNewCtx();
+    if (logfile_ctx == NULL) {
+        return NULL;
+    }
+
+    if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME) < 0) {
+        LogFileFreeCtx(logfile_ctx);
+        return NULL;
+    }
+
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         return NULL;
     }
 
+    output_ctx->data = logfile_ctx;
+    output_ctx->DeInit = JsonDropLogDeInitCtx;
     return output_ctx;
 }
 
+/**
+ * \brief   Log the dropped packets when engine is running in inline mode
+ *
+ * \param tv    Pointer the current thread variables
+ * \param data  Pointer to the droplog struct
+ * \param p     Pointer the packet which is being logged
+ *
+ * \retval 0 on succes
+ */
+static int JsonDropLogger(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    JsonDropLogThread *td = thread_data;
+    int r = DropLogJSON(td, p);
+    if (r < 0)
+        return -1;
+
+    if (p->flow) {
+        FLOWLOCK_RDLOCK(p->flow);
+        if (p->flow->flags & FLOW_ACTION_DROP) {
+            if (PKT_IS_TOSERVER(p) && !(p->flow->flags & FLOW_TOSERVER_DROP_LOGGED))
+                p->flow->flags |= FLOW_TOSERVER_DROP_LOGGED;
+            else if (PKT_IS_TOCLIENT(p) && !(p->flow->flags & FLOW_TOCLIENT_DROP_LOGGED))
+                p->flow->flags |= FLOW_TOCLIENT_DROP_LOGGED;
+        }
+        FLOWLOCK_UNLOCK(p->flow);
+    }
+    return 0;
+}
+
+
+/**
+ * \brief Check if we need to drop-log this packet
+ *
+ * \param tv    Pointer the current thread variables
+ * \param p     Pointer the packet which is tested
+ *
+ * \retval bool TRUE or FALSE
+ */
+static int JsonDropLogCondition(ThreadVars *tv, const Packet *p) {
+    extern uint8_t engine_mode;
+    if (!IS_ENGINE_MODE_IPS(engine_mode)) {
+        SCLogDebug("engine is not running in inline mode, so returning");
+        return FALSE;
+    }
+    if (PKT_IS_PSEUDOPKT(p)) {
+        SCLogDebug("drop log doesn't log pseudo packets");
+        return FALSE;
+    }
+
+    if (p->flow != NULL) {
+        int ret = FALSE;
+        FLOWLOCK_RDLOCK(p->flow);
+        if (p->flow->flags & FLOW_ACTION_DROP) {
+            if (PKT_IS_TOSERVER(p) && !(p->flow->flags & FLOW_TOSERVER_DROP_LOGGED))
+                ret = TRUE;
+            else if (PKT_IS_TOCLIENT(p) && !(p->flow->flags & FLOW_TOCLIENT_DROP_LOGGED))
+                ret = TRUE;
+        }
+        FLOWLOCK_UNLOCK(p->flow);
+        return ret;
+    } else if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+
+void TmModuleJsonDropLogRegister (void) {
+    tmm_modules[TMM_JSONDROPLOG].name = MODULE_NAME;
+    tmm_modules[TMM_JSONDROPLOG].ThreadInit = JsonDropLogThreadInit;
+    tmm_modules[TMM_JSONDROPLOG].ThreadDeinit = JsonDropLogThreadDeinit;
+    tmm_modules[TMM_JSONDROPLOG].cap_flags = 0;
+
+    OutputRegisterPacketModule(MODULE_NAME, "drop-json-log",
+            JsonDropLogInitCtx, JsonDropLogger, JsonDropLogCondition);
+}
+
+#else
+
+static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
+{
+    SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
+    return TM_ECODE_FAILED;
+}
+
+void TmModuleJsonDropLogRegister (void)
+{
+    tmm_modules[TMM_JSONDROPLOG].name = MODULE_NAME;
+    tmm_modules[TMM_JSONDROPLOG].ThreadInit = OutputJsonThreadInit;
+}
 
 #endif

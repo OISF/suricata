@@ -357,10 +357,6 @@ TmEcode OutputJSON(json_t *js, void *data, uint64_t *count)
 
 TmEcode OutputJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
-    if (output_flags & OUTPUT_DROP) {
-        OutputDropLog(tv, p, data);
-    }
-
     if (output_flags & OUTPUT_FILES) {
         OutputFileLog(tv, p, data);
     }
@@ -535,11 +531,6 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
              * registration capability
              */
             TAILQ_FOREACH(output, &outputs->head, next) {
-                if (strcmp(output->val, "drop") == 0) {
-                    SCLogDebug("Enabling drop output");
-                    output_flags |= OUTPUT_DROP;
-                    continue;
-                }
                 if (strcmp(output->val, "files") == 0) {
                     SCLogDebug("Enabling files output");
                     ConfNode *child = ConfNodeLookupChild(output, "files");

@@ -28,5 +28,6 @@
 
 TmEcode OutputDropLog (ThreadVars *tv, Packet *p, void *data);
 OutputCtx *OutputDropLogInit(ConfNode *);
+void TmModuleJsonDropLogRegister (void);
 
 #endif	/* OUTPUT_DROPLOG_H */
