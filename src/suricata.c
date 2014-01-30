@@ -85,7 +85,7 @@
 #include "log-httplog.h"
 #include "output-json-http.h"
 #include "log-dnslog.h"
-#include "output-dnslog.h"
+#include "output-json-dns.h"
 #include "log-tlslog.h"
 #include "output-tlslog.h"
 #include "log-pcap.h"

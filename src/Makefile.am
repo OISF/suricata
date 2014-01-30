@@ -217,6 +217,7 @@ output.c output.h \
 output-file.c output-file.h \
 output-filedata.c output-filedata.h \
 output-json-alert.c output-json-alert.h \
+output-json-dns.c output-json-dns.h \
 output-json-file.c output-json-file.h \
 output-json-http.c output-json-http.h \
 output-packet.c output-packet.h \
@@ -224,7 +225,6 @@ output-tx.c output-tx.h \
 output-droplog.c output-droplog.h \
 output-json.c output-json.h \
 output-tlslog.c output-tlslog.h \
-output-dnslog.c output-dnslog.h \
 packet-queue.c packet-queue.h \
 pkt-var.c pkt-var.h \
 reputation.c reputation.h \

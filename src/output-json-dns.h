@@ -21,9 +21,9 @@
  * \author Tom DeCanio <td@npulsetech.com>
  */
 
-#ifndef __OUTPUT_DNSLOG_H__
-#define __OUTPUT_DNSLOG_H__
+#ifndef __OUTPUT_JSON_DNS_H__
+#define __OUTPUT_JSON_DNS_H__
 
 void TmModuleJsonDnsLogRegister (void);
 
-#endif /* __OUTPUT_DNSLOG_H__ */
+#endif /* __OUTPUT_JSON_DNS_H__ */
