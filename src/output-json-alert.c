@@ -108,13 +108,13 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         json_object_set_new(ajs, "action", json_string(action));
         json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
-        json_object_set_new(ajs, "id", json_integer(pa->s->id));
+        json_object_set_new(ajs, "signature_id", json_integer(pa->s->id));
         json_object_set_new(ajs, "rev", json_integer(pa->s->rev));
-        json_object_set_new(ajs, "msg",
+        json_object_set_new(ajs, "signature",
                             json_string((pa->s->msg) ? pa->s->msg : ""));
-        json_object_set_new(ajs, "class",
+        json_object_set_new(ajs, "category",
                             json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
-        json_object_set_new(ajs, "pri", json_integer(pa->s->prio));
+        json_object_set_new(ajs, "severity", json_integer(pa->s->prio));
 
         /* alert */
         json_object_set_new(js, "alert", ajs);
@@ -180,13 +180,13 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
 
         json_object_set_new(ajs, "action", json_string(action));
         json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
-        json_object_set_new(ajs, "id", json_integer(pa->s->id));
+        json_object_set_new(ajs, "signature_id", json_integer(pa->s->id));
         json_object_set_new(ajs, "rev", json_integer(pa->s->rev));
-        json_object_set_new(ajs, "msg",
+        json_object_set_new(ajs, "signature",
                             json_string((pa->s->msg) ? pa->s->msg : ""));
-        json_object_set_new(ajs, "class",
+        json_object_set_new(ajs, "category",
                             json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
-        json_object_set_new(ajs, "pri", json_integer(pa->s->prio));
+        json_object_set_new(ajs, "severity", json_integer(pa->s->prio));
 
         /* alert */
         json_object_set_new(js, "alert", ajs);

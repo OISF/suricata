@@ -99,7 +99,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
         c = SCStrndup((char *)bstr_ptr(tx->request_uri),
                       bstr_len(tx->request_uri));
         if (c != NULL) {
-            json_object_set_new(hjs, "uri", json_string(c));
+            json_object_set_new(hjs, "url", json_string(c));
             SCFree(c);
         }
     }
@@ -113,11 +113,11 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
         c = SCStrndup((char *)bstr_ptr(h_user_agent->value),
                       bstr_len(h_user_agent->value));
         if (c != NULL) {
-            json_object_set_new(hjs, "user-agent", json_string(c));
+            json_object_set_new(hjs, "http_user_agent", json_string(c));
             SCFree(c);
         }
     } else {
-        json_object_set_new(hjs, "user-agent", json_string("<useragent unknown>"));
+        json_object_set_new(hjs, "http_user_agent", json_string("<useragent unknown>"));
     }
 
     /* x-forwarded-for */
@@ -146,7 +146,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
         if (c != NULL) {
             p = strchrnul(c, ';');
             *p = '\0';
-            json_object_set_new(hjs, "content-type", json_string(c));
+            json_object_set_new(hjs, "http_content_type", json_string(c));
             SCFree(c);
         }
     }
@@ -161,7 +161,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
             c = SCStrndup((char *)bstr_ptr(h_referer->value),
                           bstr_len(h_referer->value));
             if (c != NULL) {
-                json_object_set_new(hjs, "referer", json_string(c));
+                json_object_set_new(hjs, "http_refer", json_string(c));
                 SCFree(c);
             }
         }
@@ -171,7 +171,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
             c = SCStrndup((char *)bstr_ptr(tx->request_method),
                           bstr_len(tx->request_method));
             if (c != NULL) {
-                json_object_set_new(hjs, "method", json_string(c));
+                json_object_set_new(hjs, "http_method", json_string(c));
                 SCFree(c);
             }
         }
