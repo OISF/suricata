@@ -85,9 +85,10 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
     {
         c = SCStrndup((char *)bstr_ptr(tx->request_hostname),
                       bstr_len(tx->request_hostname));
-        json_object_set_new(hjs, "hostname", json_string(c));
-        if (c != NULL)
+        if (c != NULL) {
+            json_object_set_new(hjs, "hostname", json_string(c));
             SCFree(c);
+        }
     } else {
         json_object_set_new(hjs, "hostname", json_string("<hostname unknown>"));
     }
@@ -97,9 +98,10 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
     {
         c = SCStrndup((char *)bstr_ptr(tx->request_uri),
                       bstr_len(tx->request_uri));
-        json_object_set_new(hjs, "uri", json_string(c));
-        if (c != NULL)
+        if (c != NULL) {
+            json_object_set_new(hjs, "uri", json_string(c));
             SCFree(c);
+        }
     }
 
     /* user agent */
@@ -110,9 +112,10 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
     if (h_user_agent != NULL) {
         c = SCStrndup((char *)bstr_ptr(h_user_agent->value),
                       bstr_len(h_user_agent->value));
-        json_object_set_new(hjs, "user-agent", json_string(c));
-        if (c != NULL)
+        if (c != NULL) {
+            json_object_set_new(hjs, "user-agent", json_string(c));
             SCFree(c);
+        }
     } else {
         json_object_set_new(hjs, "user-agent", json_string("<useragent unknown>"));
     }
@@ -125,9 +128,10 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
     if (h_x_forwarded_for != NULL) {
         c = SCStrndup((char *)bstr_ptr(h_x_forwarded_for->value),
                       bstr_len(h_x_forwarded_for->value));
-        json_object_set_new(hjs, "xff", json_string(c));
-        if (c != NULL)
+        if (c != NULL) {
+            json_object_set_new(hjs, "xff", json_string(c));
             SCFree(c);
+        }
     }
 
     /* content-type */
@@ -139,14 +143,14 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
         char *p;
         c = SCStrndup((char *)bstr_ptr(h_content_type->value),
                       bstr_len(h_content_type->value));
-        p = strchrnul(c, ';');
-        *p = '\0';
-        json_object_set_new(hjs, "content-type", json_string(c));
-        if (c != NULL)
+        if (c != NULL) {
+            p = strchrnul(c, ';');
+            *p = '\0';
+            json_object_set_new(hjs, "content-type", json_string(c));
             SCFree(c);
+        }
     }
 
-#if 1
     if (http_ctx->flags & LOG_HTTP_EXTENDED) {
         /* referer */
         htp_header_t *h_referer = NULL;
@@ -156,51 +160,55 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
         if (h_referer != NULL) {
             c = SCStrndup((char *)bstr_ptr(h_referer->value),
                           bstr_len(h_referer->value));
-            json_object_set_new(hjs, "referer", json_string(c));
-            if (c != NULL)
+            if (c != NULL) {
+                json_object_set_new(hjs, "referer", json_string(c));
                 SCFree(c);
+            }
         }
 
         /* method */
         if (tx->request_method != NULL) {
             c = SCStrndup((char *)bstr_ptr(tx->request_method),
                           bstr_len(tx->request_method));
-            json_object_set_new(hjs, "method", json_string(c));
-            if (c != NULL)
+            if (c != NULL) {
+                json_object_set_new(hjs, "method", json_string(c));
                 SCFree(c);
+            }
         }
 
         /* protocol */
         if (tx->request_protocol != NULL) {
             c = SCStrndup((char *)bstr_ptr(tx->request_protocol),
                           bstr_len(tx->request_protocol));
-            json_object_set_new(hjs, "protocol", json_string(c));
-            if (c != NULL)
+            if (c != NULL) {
+                json_object_set_new(hjs, "protocol", json_string(c));
                 SCFree(c);
+            }
         }
 
         /* response status */
         if (tx->response_status != NULL) {
             c = SCStrndup((char *)bstr_ptr(tx->response_status),
                           bstr_len(tx->response_status));
-            json_object_set_new(hjs, "status", json_string(c));
-            if (c != NULL)
+            if (c != NULL) {
+                json_object_set_new(hjs, "status", json_string(c));
                 SCFree(c);
+            }
 
             htp_header_t *h_location = htp_table_get_c(tx->response_headers, "location");
             if (h_location != NULL) {
                 c = SCStrndup((char *)bstr_ptr(h_location->value),
                               bstr_len(h_location->value));
-                json_object_set_new(hjs, "redirect", json_string(c));
-                if (c != NULL)
+                if (c != NULL) {
+                    json_object_set_new(hjs, "redirect", json_string(c));
                     SCFree(c);
+                }
             }
         }
 
         /* length */
         json_object_set_new(hjs, "length", json_integer(tx->response_message_len));
     }
-#endif
 
     json_object_set_new(js, "http", hjs);
 }
@@ -248,12 +256,17 @@ OutputCtx *OutputHttpLogInit(ConfNode *conf)
     }
 
     LogHttpFileCtx *http_ctx = SCMalloc(sizeof(LogHttpFileCtx));
-    if (unlikely(http_ctx == NULL))
+    if (unlikely(http_ctx == NULL)) {
+        LogFileFreeCtx(file_ctx);
         return NULL;
+    }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL))
+    if (unlikely(output_ctx == NULL)) {
+        LogFileFreeCtx(file_ctx);
+        SCFree(http_ctx);
         return NULL;
+    }
 
     http_ctx->file_ctx = file_ctx;
     http_ctx->flags = LOG_HTTP_DEFAULT;
@@ -282,8 +295,10 @@ OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL))
+    if (unlikely(output_ctx == NULL)) {
+        SCFree(http_ctx);
         return NULL;
+    }
 
     http_ctx->file_ctx = ajt->file_ctx;
     http_ctx->flags = LOG_HTTP_DEFAULT;

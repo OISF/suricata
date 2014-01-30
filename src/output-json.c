@@ -373,8 +373,11 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL))
+    if (unlikely(output_ctx == NULL)) {
+        LogFileFreeCtx(json_ctx->file_ctx);
+        SCFree(json_ctx);
         return NULL;
+    }
 
     output_ctx->data = json_ctx;
     output_ctx->DeInit = OutputJsonDeInitCtx;
@@ -401,6 +404,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
 
             if (SCConfLogOpenGeneric(conf, json_ctx->file_ctx, DEFAULT_LOG_FILENAME) < 0) {
                 LogFileFreeCtx(json_ctx->file_ctx);
+                SCFree(json_ctx);
                 return NULL;
             }
 

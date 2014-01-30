@@ -234,12 +234,17 @@ OutputCtx *OutputTlsLogInit(ConfNode *conf)
     }
 
     OutputTlsCtx *tls_ctx = SCMalloc(sizeof(OutputTlsCtx));
-    if (unlikely(tls_ctx == NULL))
+    if (unlikely(tls_ctx == NULL)) {
+        LogFileFreeCtx(file_ctx);
         return NULL;
+    }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL))
+    if (unlikely(output_ctx == NULL)) {
+        LogFileFreeCtx(file_ctx);
+        SCFree(tls_ctx);
         return NULL;
+    }
 
     tls_ctx->file_ctx = file_ctx;
     tls_ctx->flags = LOG_TLS_DEFAULT;
@@ -274,8 +279,10 @@ OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL))
+    if (unlikely(output_ctx == NULL)) {
+        SCFree(tls_ctx);
         return NULL;
+    }
 
     tls_ctx->file_ctx = ajt->file_ctx;
     tls_ctx->flags = LOG_TLS_DEFAULT;
