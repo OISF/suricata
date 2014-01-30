@@ -21,10 +21,10 @@
  * \author Tom DeCanio <td@npulsetech.com>
  */
 
-#ifndef __OUTPUT_HTTPLOG_H__
-#define __OUTPUT_HTTPLOG_H__
+#ifndef __OUTPUT_JSON_HTTP_H__
+#define __OUTPUT_JSON_HTTP_H__
 
 void TmModuleJsonHttpLogRegister (void);
 
-#endif /* __OUTPUT_HTTPLOG_H__ */
+#endif /* __OUTPUT_JSON_HTTP_H__ */
 

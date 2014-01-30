@@ -83,7 +83,7 @@
 #include "log-droplog.h"
 #include "output-droplog.h"
 #include "log-httplog.h"
-#include "output-httplog.h"
+#include "output-json-http.h"
 #include "log-dnslog.h"
 #include "output-dnslog.h"
 #include "log-tlslog.h"

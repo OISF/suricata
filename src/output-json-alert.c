@@ -48,11 +48,6 @@
 #include "util-syslog.h"
 
 #include "output.h"
-#include "output-dnslog.h"
-#include "output-droplog.h"
-#include "output-httplog.h"
-#include "output-tlslog.h"
-#include "output-json-file.h"
 #include "output-json.h"
 
 #include "util-byte.h"
