@@ -123,7 +123,6 @@ static int alert_syslog_level = DEFAULT_ALERT_SYSLOG_LEVEL;
 #endif /* OS_WIN32 */
 
 TmEcode OutputJson (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode AlertJson(ThreadVars *, Packet *, void *);
 TmEcode OutputJsonThreadInit(ThreadVars *, void *, void **);
 TmEcode OutputJsonThreadDeinit(ThreadVars *, void *);
 void OutputJsonExitPrintStats(ThreadVars *, void *);
@@ -145,20 +144,8 @@ void TmModuleOutputJsonRegister (void) {
 /* Default Sensor ID value */
 static int64_t sensor_id = -1; /* -1 = not defined */
 
-enum JsonOutput { ALERT_FILE,
-                   ALERT_SYSLOG,
-                   ALERT_UNIX_DGRAM,
-                   ALERT_UNIX_STREAM };
 static enum JsonOutput json_out = ALERT_FILE;
 
-#define OUTPUT_ALERTS (1<<0)
-#define OUTPUT_DNS    (1<<1)
-#define OUTPUT_DROP   (1<<2)
-#define OUTPUT_FILES  (1<<3)
-#define OUTPUT_HTTP   (1<<4)
-#define OUTPUT_TLS    (1<<5)
-
-enum JsonFormat { COMPACT, INDENT };
 static enum JsonFormat format = COMPACT;
 
 json_t *CreateJSONHeader(Packet *p, int direction_sensitive)
@@ -396,13 +383,13 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
         const char *output_s = ConfNodeLookupChildValue(conf, "type");
         if (output_s != NULL) {
             if (strcmp(output_s, "file") == 0) {
-                json_out = ALERT_FILE;
+                json_ctx->json_out = ALERT_FILE;
             } else if (strcmp(output_s, "syslog") == 0) {
-                json_out = ALERT_SYSLOG;
+                json_ctx->json_out = ALERT_SYSLOG;
             } else if (strcmp(output_s, "unix_dgram") == 0) {
-                json_out = ALERT_UNIX_DGRAM;
+                json_ctx->json_out = ALERT_UNIX_DGRAM;
             } else if (strcmp(output_s, "unix_stream") == 0) {
-                json_out = ALERT_UNIX_STREAM;
+                json_ctx->json_out = ALERT_UNIX_STREAM;
             } else {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                            "Invalid JSON output option: %s", output_s);
@@ -410,7 +397,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
             }
         }
 
-        if (json_out == ALERT_FILE) {
+        if (json_ctx->json_out == ALERT_FILE) {
 
             if (SCConfLogOpenGeneric(conf, json_ctx->file_ctx, DEFAULT_LOG_FILENAME) < 0) {
                 LogFileFreeCtx(json_ctx->file_ctx);
@@ -420,9 +407,9 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
             const char *format_s = ConfNodeLookupChildValue(conf, "format");
             if (format_s != NULL) {
                 if (strcmp(format_s, "indent") == 0) {
-                    format = INDENT;
+                    json_ctx->format = INDENT;
                 } else if (strcmp(format_s, "compact") == 0) {
-                    format = COMPACT;
+                    json_ctx->format = COMPACT;
                 } else {
                     SCLogError(SC_ERR_INVALID_ARGUMENT,
                                "Invalid JSON format option: %s", format_s);
@@ -469,16 +456,8 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
             }
         }
 
-        ConfNode *outputs, *output;
-        outputs = ConfNodeLookupChild(conf, "types");
-        if (outputs) {
-            /*
-             * TODO: make this more general with some sort of
-             * registration capability
-             */
-            TAILQ_FOREACH(output, &outputs->head, next) {
-            }
-        }
+        format = json_ctx->format;
+        json_out = json_ctx->json_out;
     }
 
     return output_ctx;

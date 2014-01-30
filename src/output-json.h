@@ -21,8 +21,8 @@
  * \author Tom DeCanio <td@npulsetech.com>
  */
 
-#ifndef __ALERT_JSON_H__
-#define __ALERT_JSON_H__
+#ifndef __OUTPUT_JSON_H__
+#define __OUTPUT_JSON_H__
 
 void TmModuleOutputJsonRegister (void);
 
@@ -34,22 +34,29 @@ void TmModuleOutputJsonRegister (void);
 json_t *CreateJSONHeader(Packet *p, int direction_sensative);
 TmEcode OutputJSON(json_t *js, void *data, uint64_t *count);
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer);
-
 OutputCtx *OutputJsonInitCtx(ConfNode *);
 
-/* TODO: I think the following structures can be made private again */
+enum JsonOutput { ALERT_FILE,
+                  ALERT_SYSLOG,
+                  ALERT_UNIX_DGRAM,
+                  ALERT_UNIX_STREAM };
+enum JsonFormat { COMPACT, INDENT };
+
 /*
  * Global configuration context data
  */
 typedef struct OutputJsonCtx_ {
     LogFileCtx *file_ctx;
+    enum JsonOutput json_out;
+    enum JsonFormat format;
 } OutputJsonCtx;
+
 
 typedef struct AlertJsonThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    LogFileCtx* file_ctx;
+    LogFileCtx *file_ctx;
 } AlertJsonThread;
 
 #endif /* HAVE_LIBJANSSON */
 
-#endif /* __ALERT_JSON_H__ */
+#endif /* __OUTPUT_JSON_H__ */
