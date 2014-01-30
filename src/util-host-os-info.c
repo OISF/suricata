@@ -176,6 +176,7 @@ int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
         /* if we are here, we have an IPV4 address */
         if ( (ipv4_addr = ValidateIPV4Address(ip_str)) == NULL) {
             SCLogError(SC_ERR_INVALID_IPV4_ADDR, "Invalid IPV4 address");
+            SCFree(ip_str);
             return -1;
         }
 
@@ -187,6 +188,7 @@ int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
             if (netmask_value < 0 || netmask_value > 32) {
                 SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Invalid IPV4 Netblock");
                 SCFree(ipv4_addr);
+                SCFree(ip_str);
                 return -1;
             }
 
@@ -198,6 +200,7 @@ int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
         /* if we are here, we have an IPV6 address */
         if ( (ipv6_addr = ValidateIPV6Address(ip_str)) == NULL) {
             SCLogError(SC_ERR_INVALID_IPV6_ADDR, "Invalid IPV6 address inside");
+            SCFree(ip_str);
             return -1;
         }
 
@@ -209,6 +212,7 @@ int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
             if (netmask_value < 0 || netmask_value > 128) {
                 SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Invalid IPV6 Netblock");
                 SCFree(ipv6_addr);
+                SCFree(ip_str);
                 return -1;
             }
 
