@@ -456,7 +456,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
     return SC_OK;
 
  error:
-    if (temp_fmt != NULL)
+    if (temp_fmt_h != NULL)
         SCFree(temp_fmt_h);
     return SC_ERR_SPRINTF;
 }
@@ -850,10 +850,15 @@ static inline void SCLogSetOPIface(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
                 break;
             case SC_LOG_OP_IFACE_FILE:
                 s = getenv(SC_LOG_ENV_LOG_FILE);
-                if (s == NULL)
-                    s = SCLogGetLogFilename(SC_LOG_DEF_LOG_FILE);
-
-                op_ifaces_ctx = SCLogInitFileOPIface(s, NULL, SC_LOG_LEVEL_MAX);
+                if (s == NULL) {
+                    char *str = SCLogGetLogFilename(SC_LOG_DEF_LOG_FILE);
+                    if (str != NULL) {
+                        op_ifaces_ctx = SCLogInitFileOPIface(str, NULL, SC_LOG_LEVEL_MAX);
+                        SCFree(str);
+                    }
+                } else {
+                    op_ifaces_ctx = SCLogInitFileOPIface(s, NULL, SC_LOG_LEVEL_MAX);
+                }
                 break;
             case SC_LOG_OP_IFACE_SYSLOG:
                 s = getenv(SC_LOG_ENV_LOG_FACILITY);
@@ -1290,9 +1295,15 @@ void SCLogInitLogModuleIfEnvSet(void)
             break;
         case SC_LOG_OP_IFACE_FILE:
             s = getenv(SC_LOG_ENV_LOG_FILE);
-            if (s == NULL)
-                s = SCLogGetLogFilename(SC_LOG_DEF_LOG_FILE);
-            op_ifaces_ctx = SCLogInitFileOPIface(s, NULL, -1);
+            if (s == NULL) {
+                char *str = SCLogGetLogFilename(SC_LOG_DEF_LOG_FILE);
+                if (str != NULL) {
+                    op_ifaces_ctx = SCLogInitFileOPIface(str, NULL, SC_LOG_LEVEL_MAX);
+                    SCFree(str);
+                }
+            } else {
+                op_ifaces_ctx = SCLogInitFileOPIface(s, NULL, -1);
+            }
             break;
         case SC_LOG_OP_IFACE_SYSLOG:
             s = getenv(SC_LOG_ENV_LOG_FACILITY);
