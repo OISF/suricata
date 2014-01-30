@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -831,12 +831,7 @@ static int AlertPreludeLogger(ThreadVars *tv, void *thread_data, const Packet *p
     if (PKT_IS_TCP(p) &&
             (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH |
                           PACKET_ALERT_FLAG_STREAM_MATCH))) {
-        uint8_t flag;
-        if (p->flowflags & FLOW_PKT_TOSERVER) {
-            flag = FLOW_PKT_TOCLIENT;
-        } else {
-            flag = FLOW_PKT_TOSERVER;
-        }
+        uint8_t flag = StreamGetOrderFlag(p);
         ret = StreamSegmentForEach(p, flag,
                                    PreludePrintStreamSegmentCallback,
                                    (void *)alert);

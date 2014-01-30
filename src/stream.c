@@ -30,6 +30,7 @@
 #include "util-pool.h"
 #include "util-debug.h"
 #include "stream-tcp.h"
+#include "stream-tcp-inline.h"
 #include "flow-util.h"
 
 #ifdef DEBUG
@@ -252,6 +253,18 @@ void StreamMsgReturnListToPool(void *list) {
         StreamMsgReturnToPool(smsg);
         smsg = smsg_next;
     }
+}
+
+uint8_t StreamGetOrderFlag(const Packet *p)
+{
+    uint8_t flag = FLOW_PKT_TOSERVER;
+
+    if (p->flowflags & FLOW_PKT_TOSERVER) {
+            flag = FLOW_PKT_TOCLIENT;
+    } else {
+            flag = FLOW_PKT_TOSERVER;
+    }
+    return flag;
 }
 
 /** \brief Run callback for all segments
