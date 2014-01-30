@@ -196,6 +196,8 @@ typedef struct AFPThreadVars_
     uint8_t *data; /** Per function and thread data */
     int datalen; /** Length of per function and thread data */
 
+    int vlan_disabled;
+
     char iface[AFP_IFACE_NAME_LENGTH];
     LiveDevice *livedev;
     int down_count;
@@ -786,6 +788,14 @@ int AFPReadFromRing(AFPThreadVars *ptv)
             SCLogDebug("Packet length (%d) > snaplen (%d), truncating",
                     h.h2->tp_len, h.h2->tp_snaplen);
         }
+
+        /* get vlan id from header */
+        if ((!ptv->vlan_disabled) &&  h.h2->tp_vlan_tci) {
+            p->vlan_id[0] = h.h2->tp_vlan_tci;
+            p->vlan_idx = 1;
+            p->vlanh[0] = NULL;
+        }
+
         if (ptv->flags & AFP_ZERO_COPY) {
             if (PacketSetData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
                 TmqhOutputPacketpool(ptv->tv, p);
@@ -1595,6 +1605,15 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     *data = (void *)ptv;
 
     afpconfig->DerefFunc(afpconfig);
+
+    /* A bit strange to have this here but we only have vlan information
+     * during reading so we need to know if we want to keep vlan during
+     * the capture phase */
+    int vlanbool = 0;
+    if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
+        ptv->vlan_disabled = 1;
+    }
+
     SCReturnInt(TM_ECODE_OK);
 }
 
