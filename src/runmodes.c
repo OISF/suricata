@@ -603,21 +603,24 @@ void RunModeInitializeOutputs(void)
                 TAILQ_FOREACH(type, &types->head, next) {
                     SCLogInfo("type %s", type->val);
 
-                    OutputModule *sub_module = OutputGetModuleByConfName(type->val);
+                    char subname[256];
+                    snprintf(subname, sizeof(subname), "%s.%s", output->val, type->val);
+
+                    OutputModule *sub_module = OutputGetModuleByConfName(subname);
                     if (sub_module == NULL) {
                         SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                                "No output module named %s, ignoring", type->val);
+                                "No output module named %s, ignoring", subname);
                         continue;
                     }
                     if (sub_module->parent_name == NULL ||
                             strcmp(sub_module->parent_name,output->val) != 0) {
                         SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                                "bad parent for %s, ignoring", type->val);
+                                "bad parent for %s, ignoring", subname);
                         continue;
                     }
                     if (sub_module->InitSubFunc == NULL) {
                         SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                                "bad sub-module for %s, ignoring", type->val);
+                                "bad sub-module for %s, ignoring", subname);
                         continue;
                     }
                     ConfNode *sub_output_config = ConfNodeLookupChild(type, type->val);

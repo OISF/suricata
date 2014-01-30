@@ -385,7 +385,7 @@ void TmModuleJsonDnsLogRegister (void) {
 
     OutputRegisterTxModule(MODULE_NAME, "dns-json-log", JsonDnsLogInitCtx,
             ALPROTO_DNS, JsonDnsLogger);
-    OutputRegisterTxSubModule("eve-log", MODULE_NAME, "dns", JsonDnsLogInitCtxSub,
+    OutputRegisterTxSubModule("eve-log", MODULE_NAME, "eve-log.dns", JsonDnsLogInitCtxSub,
             ALPROTO_DNS, JsonDnsLogger);
 }
 

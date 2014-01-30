@@ -323,7 +323,7 @@ void TmModuleJsonAlertLogRegister (void) {
 
     OutputRegisterPacketModule(MODULE_NAME, "alert-json-log",
             JsonAlertLogInitCtx, JsonAlertLogger, JsonAlertLogCondition);
-    OutputRegisterPacketSubModule("eve-log", MODULE_NAME, "alert",
+    OutputRegisterPacketSubModule("eve-log", MODULE_NAME, "eve-log.alert",
             JsonAlertLogInitCtxSub, JsonAlertLogger, JsonAlertLogCondition);
 }
 
