@@ -64,10 +64,16 @@
 #include <jansson.h>
 
 typedef struct OutputFileCtx_ {
+    LogFileCtx *file_ctx;
     uint32_t file_cnt;
 } OutputFileCtx;
 
-static json_t *LogFileMetaGetUri(Packet *p, File *ff) {
+typedef struct JsonFileLogThread_ {
+    OutputFileCtx *filelog_ctx;
+    MemBuffer *buffer;
+} JsonFileLogThread;
+
+static json_t *LogFileMetaGetUri(const Packet *p, const File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     json_t *js = NULL;
     if (htp_state != NULL) {
@@ -88,7 +94,7 @@ static json_t *LogFileMetaGetUri(Packet *p, File *ff) {
     return json_string("<unknown>");
 }
 
-static json_t *LogFileMetaGetHost(Packet *p, File *ff) {
+static json_t *LogFileMetaGetHost(const Packet *p, const File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     json_t *js = NULL;
     if (htp_state != NULL) {
@@ -106,7 +112,7 @@ static json_t *LogFileMetaGetHost(Packet *p, File *ff) {
     return json_string("<unknown>");
 }
 
-static json_t *LogFileMetaGetReferer(Packet *p, File *ff) {
+static json_t *LogFileMetaGetReferer(const Packet *p, const File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     json_t *js = NULL;
     if (htp_state != NULL) {
@@ -129,7 +135,7 @@ static json_t *LogFileMetaGetReferer(Packet *p, File *ff) {
     return json_string("<unknown>");
 }
 
-static json_t *LogFileMetaGetUserAgent(Packet *p, File *ff) {
+static json_t *LogFileMetaGetUserAgent(const Packet *p, const File *ff) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     json_t *js = NULL;
     if (htp_state != NULL) {
@@ -156,9 +162,9 @@ static json_t *LogFileMetaGetUserAgent(Packet *p, File *ff) {
  *  \internal
  *  \brief Write meta data on a single line json record
  */
-static void LogFileWriteJsonRecord(AlertJsonThread /*LogFileLogThread*/ *aft, Packet *p, File *ff, int ipver) {
+static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const File *ff) {
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
-    json_t *js = CreateJSONHeader(p, 0);
+    json_t *js = CreateJSONHeader((Packet *)p, 0); //TODO const
     if (unlikely(js == NULL))
         return;
 
@@ -216,121 +222,90 @@ static void LogFileWriteJsonRecord(AlertJsonThread /*LogFileLogThread*/ *aft, Pa
     json_object_set_new(fjs, "size", json_integer(ff->size));
 
     json_object_set_new(js, "file", fjs);
-    OutputJSON(js, aft, &aft->files_cnt);
+    OutputJSONBuffer(js, aft->filelog_ctx->file_ctx, buffer);
     json_object_del(js, "file");
 
     json_object_clear(js);
     json_decref(js);
 }
 
-static TmEcode OutputFileLogWrap(ThreadVars *tv, Packet *p, void *data, int ipver)
+static int JsonFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff)
 {
     SCEnter();
-    AlertJsonThread *aft = (AlertJsonThread *)data;
-    uint8_t flags = 0;
-    uint8_t direction = 0;
+    JsonFileLogThread *aft = (JsonFileLogThread *)thread_data;
 
-    /* no flow, no htp state */
-    if (p->flow == NULL) {
-        SCReturnInt(TM_ECODE_OK);
-    }
+    BUG_ON(ff->flags & FILE_LOGGED);
 
-    if (p->flowflags & FLOW_PKT_TOCLIENT)
-        flags |= (direction = STREAM_TOCLIENT);
-    else
-        flags |= (direction = STREAM_TOSERVER);
+    SCLogDebug("ff %p", ff);
 
-    int file_close = (p->flags & PKT_PSEUDO_STREAM_END) ? 1 : 0;
-    int file_trunc = 0;
-
-    FLOWLOCK_WRLOCK(p->flow);
-    file_trunc = StreamTcpReassembleDepthReached(p);
-
-    Flow *f = p->flow;
-    FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto, f->alstate, direction);
-    SCLogDebug("ffc %p", ffc);
-    if (ffc != NULL) {
-        File *ff;
-        for (ff = ffc->head; ff != NULL; ff = ff->next) {
-            if (ff->flags & FILE_LOGGED)
-                continue;
-
-            if (FileForceMagic() && ff->magic == NULL) {
-                FilemagicGlobalLookup(ff);
-            }
-
-            SCLogDebug("ff %p", ff);
-
-            if (file_trunc && ff->state < FILE_STATE_CLOSED)
-                ff->state = FILE_STATE_TRUNCATED;
-
-            if (ff->state == FILE_STATE_CLOSED ||
-                    ff->state == FILE_STATE_TRUNCATED || ff->state == FILE_STATE_ERROR ||
-                    (file_close == 1 && ff->state < FILE_STATE_CLOSED))
-            {
-                LogFileWriteJsonRecord(aft, p, ff, ipver);
-
-                ff->flags |= FILE_LOGGED;
-            }
-        }
-
-        FilePrune(ffc);
-    }
-
-    FLOWLOCK_UNLOCK(p->flow);
-    SCReturnInt(TM_ECODE_OK);
+    FileWriteJsonRecord(aft, p, ff);
+    return 0;
 }
 
-TmEcode OutputFileLogIPv4(ThreadVars *tv, Packet *p, void *data)
+
+#define OUTPUT_BUFFER_SIZE 65535
+static TmEcode JsonFileLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
-    return OutputFileLogWrap(tv, p, data, AF_INET);
+    JsonFileLogThread *aft = SCMalloc(sizeof(JsonFileLogThread));
+    if (unlikely(aft == NULL))
+        return TM_ECODE_FAILED;
+    memset(aft, 0, sizeof(JsonFileLogThread));
+
+    if(initdata == NULL)
+    {
+        SCLogDebug("Error getting context for HTTPLog.  \"initdata\" argument NULL");
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
+    /* Use the Ouptut Context (file pointer and mutex) */
+    aft->filelog_ctx = ((OutputCtx *)initdata)->data;
+
+    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    if (aft->buffer == NULL) {
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
+    *data = (void *)aft;
+    return TM_ECODE_OK;
 }
 
-TmEcode OutputFileLogIPv6(ThreadVars *tv, Packet *p, void *data)
+static TmEcode JsonFileLogThreadDeinit(ThreadVars *t, void *data)
 {
-    return OutputFileLogWrap(tv, p, data, AF_INET6);
+    JsonFileLogThread *aft = (JsonFileLogThread *)data;
+    if (aft == NULL) {
+        return TM_ECODE_OK;
+    }
+
+    MemBufferFree(aft->buffer);
+    /* clear memory */
+    memset(aft, 0, sizeof(JsonFileLogThread));
+
+    SCFree(aft);
+    return TM_ECODE_OK;
 }
 
-TmEcode OutputFileLog (ThreadVars *tv, Packet *p, void *data)
-{
-    SCEnter();
-    int r = TM_ECODE_OK;
-
-    /* no flow, no htp state */
-    if (p->flow == NULL) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    if (!(PKT_IS_TCP(p))) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    SCLogDebug("p->pcap_cnt %"PRIu64, p->pcap_cnt);
-
-    if (PKT_IS_IPV4(p)) {
-        r = OutputFileLogIPv4(tv, p, data);
-    } else if (PKT_IS_IPV6(p)) {
-        r = OutputFileLogIPv6(tv, p, data);
-    }
-
-    SCReturnInt(r);
-}
 
 /** \brief Create a new http log LogFileCtx.
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-OutputCtx *OutputFileLogInit(ConfNode *conf)
+OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    OutputFileCtx *file_ctx = SCMalloc(sizeof(OutputFileCtx));
-    if (unlikely(file_ctx == NULL))
+    AlertJsonThread *ajt = parent_ctx->data;
+
+    OutputFileCtx *output_file_ctx = SCMalloc(sizeof(OutputFileCtx));
+    if (unlikely(output_file_ctx == NULL))
         return NULL;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
-        SCFree(file_ctx);
+        SCFree(output_file_ctx);
         return NULL;
     }
+
+    output_file_ctx->file_ctx = ajt->file_ctx;
 
     if (conf) {
         const char *force_magic = ConfNodeLookupChildValue(conf, "force-magic");
@@ -350,8 +325,34 @@ OutputCtx *OutputFileLogInit(ConfNode *conf)
         }
     }
 
+    output_ctx->data = output_file_ctx;
+
     FileForceTrackingEnable();
     return output_ctx;
+}
+
+void TmModuleJsonFileLogRegister (void) {
+    tmm_modules[TMM_JSONFILELOG].name = "JsonFileLog";
+    tmm_modules[TMM_JSONFILELOG].ThreadInit = JsonFileLogThreadInit;
+    tmm_modules[TMM_JSONFILELOG].ThreadDeinit = JsonFileLogThreadDeinit;
+
+    /* register as child of eve-log */
+    OutputRegisterFileSubModule("eve-log", "JsonFileLog", "eve-log.files",
+            OutputFileLogInitSub, JsonFileLogger);
+}
+
+#else
+
+static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
+{
+    SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
+    return TM_ECODE_FAILED;
+}
+
+void TmModuleJsonFileLogRegister (void)
+{
+    tmm_modules[TMM_JSONFILELOG].name = "JsonFileLog";
+    tmm_modules[TMM_JSONFILELOG].ThreadInit = OutputJsonThreadInit;
 }
 
 #endif

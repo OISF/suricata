@@ -163,8 +163,6 @@ static enum JsonOutput json_out = ALERT_FILE;
 #define OUTPUT_HTTP   (1<<4)
 #define OUTPUT_TLS    (1<<5)
 
-static uint32_t output_flags = 0;
-
 enum JsonFormat { COMPACT, INDENT };
 static enum JsonFormat format = COMPACT;
 
@@ -357,10 +355,6 @@ TmEcode OutputJSON(json_t *js, void *data, uint64_t *count)
 
 TmEcode OutputJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
-    if (output_flags & OUTPUT_FILES) {
-        OutputFileLog(tv, p, data);
-    }
-
     return TM_ECODE_OK;
 }
 
@@ -527,13 +521,6 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
              * registration capability
              */
             TAILQ_FOREACH(output, &outputs->head, next) {
-                if (strcmp(output->val, "files") == 0) {
-                    SCLogDebug("Enabling files output");
-                    ConfNode *child = ConfNodeLookupChild(output, "files");
-                    json_ctx->files_ctx = OutputFileLogInit(child);
-                    output_flags |= OUTPUT_FILES;
-                    continue;
-                }
             }
         }
     }

@@ -26,5 +26,6 @@
 
 TmEcode OutputFileLog (ThreadVars *tv, Packet *p, void *data);
 OutputCtx *OutputFileLogInit(ConfNode *);
+void TmModuleJsonFileLogRegister (void);
 
 #endif /* __OUTPUT_FILELOG_H__ */

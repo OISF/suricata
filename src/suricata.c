@@ -90,6 +90,7 @@
 #include "output-tlslog.h"
 #include "log-pcap.h"
 #include "log-file.h"
+#include "output-json-file.h"
 #include "log-filestore.h"
 
 #include "output-json.h"
@@ -811,6 +812,7 @@ void RegisterAllModules()
     TmModulePcapLogRegister();
     /* file log */
     TmModuleLogFileLogRegister();
+    TmModuleJsonFileLogRegister();
     TmModuleLogFilestoreRegister();
     /* dns log */
     TmModuleLogDnsLogRegister();
