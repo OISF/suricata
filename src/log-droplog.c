@@ -136,6 +136,12 @@ static void LogDropLogDeInitCtx(OutputCtx *output_ctx)
  */
 static OutputCtx *LogDropLogInitCtx(ConfNode *conf)
 {
+    if (OutputDropLoggerEnable() != 0) {
+        SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'drop' logger "
+            "can be enabled");
+        return NULL;
+    }
+
     LogFileCtx *logfile_ctx = LogFileNewCtx();
     if (logfile_ctx == NULL) {
         SCLogDebug("LogDropLogInitCtx: Could not create new LogFileCtx");

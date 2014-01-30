@@ -82,6 +82,29 @@ outputs:
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
+  # "United" event log in JSON format
+  - eve-log:
+      enabled: no
+      type: file #file|syslog|unix_dgram|unix_stream
+      filename: eve.json
+      # the following are valid when type: syslog above
+      #identity: "suricata"
+      #facility: local5
+      #level: Info ## possible levels: Emergency, Alert, Critical,
+                   ## Error, Warning, Notice, Info, Debug
+      types:
+        - alert
+        - http:
+            extended: yes     # enable this for extended logging information
+        - dns
+        - tls:
+            extended: yes     # enable this for extended logging information
+        - files:
+            force-magic: no   # force logging magic on all logged files
+            force-md5: no     # force logging of md5 checksums
+        #- drop
+        #- ssh
+
   # alert output for use with Barnyard2
   - unified2-alert:
       enabled: yes
