@@ -43,19 +43,15 @@ static TAILQ_HEAD(, OutputModule_) output_modules =
  * \retval Returns 0 on success, -1 on failure.
  */
 void
-OutputRegisterModule(char *name, char *conf_name,
+OutputRegisterModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *))
 {
     OutputModule *module = SCCalloc(1, sizeof(*module));
     if (unlikely(module == NULL))
         goto error;
 
-    module->name = SCStrdup(name);
-    if (unlikely(module->name == NULL))
-        goto error;
-    module->conf_name = SCStrdup(conf_name);
-    if (unlikely(module->conf_name == NULL))
-        goto error;
+    module->name = name;
+    module->conf_name = conf_name;
     module->InitFunc = InitFunc;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
@@ -77,7 +73,7 @@ error:
  * \retval Returns 0 on success, -1 on failure.
  */
 void
-OutputRegisterPacketModule(char *name, char *conf_name,
+OutputRegisterPacketModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *),
     PacketLogger PacketLogFunc, PacketLogCondition PacketConditionFunc)
 {
@@ -90,12 +86,8 @@ OutputRegisterPacketModule(char *name, char *conf_name,
         goto error;
     }
 
-    module->name = SCStrdup(name);
-    if (unlikely(module->name == NULL))
-        goto error;
-    module->conf_name = SCStrdup(conf_name);
-    if (unlikely(module->conf_name == NULL))
-        goto error;
+    module->name = name;
+    module->conf_name = conf_name;
     module->InitFunc = InitFunc;
     module->PacketLogFunc = PacketLogFunc;
     module->PacketConditionFunc = PacketConditionFunc;
@@ -117,8 +109,8 @@ error:
  * \retval Returns 0 on success, -1 on failure.
  */
 void
-OutputRegisterPacketSubModule(const char *parent_name, char *name, char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
+OutputRegisterPacketSubModule(const char *parent_name, const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
     PacketLogger PacketLogFunc, PacketLogCondition PacketConditionFunc)
 {
     if (unlikely(PacketLogFunc == NULL || PacketConditionFunc == NULL)) {
@@ -130,15 +122,9 @@ OutputRegisterPacketSubModule(const char *parent_name, char *name, char *conf_na
         goto error;
     }
 
-    module->name = SCStrdup(name);
-    if (unlikely(module->name == NULL))
-        goto error;
-    module->conf_name = SCStrdup(conf_name);
-    if (unlikely(module->conf_name == NULL))
-        goto error;
-    module->parent_name = SCStrdup(parent_name);
-    if (unlikely(module->conf_name == NULL))
-        goto error;
+    module->name = name;
+    module->conf_name = conf_name;
+    module->parent_name = parent_name;
     module->InitSubFunc = InitFunc;
     module->PacketLogFunc = PacketLogFunc;
     module->PacketConditionFunc = PacketConditionFunc;
@@ -160,7 +146,7 @@ error:
  * \retval Returns 0 on success, -1 on failure.
  */
 void
-OutputRegisterTxModule(char *name, char *conf_name,
+OutputRegisterTxModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), uint16_t alproto,
     TxLogger TxLogFunc)
 {
@@ -173,12 +159,8 @@ OutputRegisterTxModule(char *name, char *conf_name,
         goto error;
     }
 
-    module->name = SCStrdup(name);
-    if (unlikely(module->name == NULL))
-        goto error;
-    module->conf_name = SCStrdup(conf_name);
-    if (unlikely(module->conf_name == NULL))
-        goto error;
+    module->name = name;
+    module->conf_name = conf_name;
     module->InitFunc = InitFunc;
     module->TxLogFunc = TxLogFunc;
     module->alproto = alproto;
@@ -192,9 +174,9 @@ error:
 }
 
 void
-OutputRegisterTxSubModule(const char *parent_name, char *name, char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx), uint16_t alproto,
-    TxLogger TxLogFunc)
+OutputRegisterTxSubModule(const char *parent_name, const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
+    uint16_t alproto, TxLogger TxLogFunc)
 {
     if (unlikely(TxLogFunc == NULL)) {
         goto error;
@@ -205,15 +187,9 @@ OutputRegisterTxSubModule(const char *parent_name, char *name, char *conf_name,
         goto error;
     }
 
-    module->name = SCStrdup(name);
-    if (unlikely(module->name == NULL))
-        goto error;
-    module->conf_name = SCStrdup(conf_name);
-    if (unlikely(module->conf_name == NULL))
-        goto error;
-    module->parent_name = SCStrdup(parent_name);
-    if (unlikely(module->parent_name == NULL))
-        goto error;
+    module->name = name;
+    module->conf_name = conf_name;
+    module->parent_name = parent_name;
     module->InitSubFunc = InitFunc;
     module->TxLogFunc = TxLogFunc;
     module->alproto = alproto;
@@ -235,7 +211,7 @@ error:
  * \retval Returns 0 on success, -1 on failure.
  */
 void
-OutputRegisterFileModule(char *name, char *conf_name,
+OutputRegisterFileModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), FileLogger FileLogFunc)
 {
     if (unlikely(FileLogFunc == NULL)) {
@@ -247,12 +223,8 @@ OutputRegisterFileModule(char *name, char *conf_name,
         goto error;
     }
 
-    module->name = SCStrdup(name);
-    if (unlikely(module->name == NULL))
-        goto error;
-    module->conf_name = SCStrdup(conf_name);
-    if (unlikely(module->conf_name == NULL))
-        goto error;
+    module->name = name;
+    module->conf_name = conf_name;
     module->InitFunc = InitFunc;
     module->FileLogFunc = FileLogFunc;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
@@ -273,8 +245,9 @@ error:
  * \retval Returns 0 on success, -1 on failure.
  */
 void
-OutputRegisterFileSubModule(const char *parent_name, char *name, char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *), FileLogger FileLogFunc)
+OutputRegisterFileSubModule(const char *parent_name, const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
+    FileLogger FileLogFunc)
 {
     if (unlikely(FileLogFunc == NULL)) {
         goto error;
@@ -285,15 +258,9 @@ OutputRegisterFileSubModule(const char *parent_name, char *name, char *conf_name
         goto error;
     }
 
-    module->name = SCStrdup(name);
-    if (unlikely(module->name == NULL))
-        goto error;
-    module->conf_name = SCStrdup(conf_name);
-    if (unlikely(module->conf_name == NULL))
-        goto error;
-    module->parent_name = SCStrdup(parent_name);
-    if (unlikely(module->parent_name == NULL))
-        goto error;
+    module->name = name;
+    module->conf_name = conf_name;
+    module->parent_name = parent_name;
     module->InitSubFunc = InitFunc;
     module->FileLogFunc = FileLogFunc;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
@@ -314,7 +281,7 @@ error:
  * \retval Returns 0 on success, -1 on failure.
  */
 void
-OutputRegisterFiledataModule(char *name, char *conf_name,
+OutputRegisterFiledataModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), FiledataLogger FiledataLogFunc)
 {
     if (unlikely(FiledataLogFunc == NULL)) {
@@ -326,12 +293,8 @@ OutputRegisterFiledataModule(char *name, char *conf_name,
         goto error;
     }
 
-    module->name = SCStrdup(name);
-    if (unlikely(module->name == NULL))
-        goto error;
-    module->conf_name = SCStrdup(conf_name);
-    if (unlikely(module->conf_name == NULL))
-        goto error;
+    module->name = name;
+    module->conf_name = conf_name;
     module->InitFunc = InitFunc;
     module->FiledataLogFunc = FiledataLogFunc;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
@@ -352,8 +315,9 @@ error:
  * \retval Returns 0 on success, -1 on failure.
  */
 void
-OutputRegisterFiledataSubModule(const char *parent_name, char *name, char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *), FiledataLogger FiledataLogFunc)
+OutputRegisterFiledataSubModule(const char *parent_name, const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
+    FiledataLogger FiledataLogFunc)
 {
     if (unlikely(FiledataLogFunc == NULL)) {
         goto error;
@@ -364,15 +328,9 @@ OutputRegisterFiledataSubModule(const char *parent_name, char *name, char *conf_
         goto error;
     }
 
-    module->name = SCStrdup(name);
-    if (unlikely(module->name == NULL))
-        goto error;
-    module->conf_name = SCStrdup(conf_name);
-    if (unlikely(module->conf_name == NULL))
-        goto error;
-    module->parent_name = SCStrdup(parent_name);
-    if (unlikely(module->parent_name == NULL))
-        goto error;
+    module->name = name;
+    module->conf_name = conf_name;
+    module->parent_name = parent_name;
     module->InitSubFunc = InitFunc;
     module->FiledataLogFunc = FiledataLogFunc;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
@@ -391,7 +349,7 @@ error:
  * with the given name is registered.
  */
 OutputModule *
-OutputGetModuleByConfName(char *conf_name)
+OutputGetModuleByConfName(const char *conf_name)
 {
     OutputModule *module;
 
@@ -413,8 +371,6 @@ OutputDeregisterAll(void)
 
     while ((module = TAILQ_FIRST(&output_modules))) {
         TAILQ_REMOVE(&output_modules, module, entries);
-        SCFree(module->name);
-        SCFree(module->conf_name);
         SCFree(module);
     }
 }

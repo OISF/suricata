@@ -53,7 +53,8 @@ typedef struct OutputTxLogger_ {
 
 static OutputTxLogger *list = NULL;
 
-int OutputRegisterTxLogger(char *name, uint16_t alproto, TxLogger LogFunc, OutputCtx *output_ctx) {
+int OutputRegisterTxLogger(const char *name, uint16_t alproto, TxLogger LogFunc, OutputCtx *output_ctx)
+{
     OutputTxLogger *op = SCMalloc(sizeof(*op));
     if (op == NULL)
         return -1;
@@ -62,11 +63,7 @@ int OutputRegisterTxLogger(char *name, uint16_t alproto, TxLogger LogFunc, Outpu
     op->alproto = alproto;
     op->LogFunc = LogFunc;
     op->output_ctx = output_ctx;
-    op->name = SCStrdup(name);
-    if (op->name == NULL) {
-        SCFree(op);
-        return -1;
-    }
+    op->name = name;
 
     if (list == NULL)
         list = op;

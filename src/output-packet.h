@@ -36,7 +36,7 @@ typedef int (*PacketLogger)(ThreadVars *, void *thread_data, const Packet *);
  */
 typedef int (*PacketLogCondition)(ThreadVars *, const Packet *);
 
-int OutputRegisterPacketLogger(char *name, PacketLogger LogFunc,
+int OutputRegisterPacketLogger(const char *name, PacketLogger LogFunc,
         PacketLogCondition ConditionFunc, OutputCtx *);
 
 void TmModulePacketLoggerRegister (void);
