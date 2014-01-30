@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef __OUTPUT_DROPLOG_H__
-#define	__OUTPUT_DROPLOG_H__
+#ifndef __OUTPUT_JSON_DROP_H__
+#define	__OUTPUT_JSON_DROP_H__
 
 void TmModuleJsonDropLogRegister (void);
 

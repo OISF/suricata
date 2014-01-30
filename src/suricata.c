@@ -81,7 +81,7 @@
 #include "output-json-alert.h"
 
 #include "log-droplog.h"
-#include "output-droplog.h"
+#include "output-json-drop.h"
 #include "log-httplog.h"
 #include "output-json-http.h"
 #include "log-dnslog.h"
