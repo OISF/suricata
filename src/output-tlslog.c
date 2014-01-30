@@ -61,8 +61,15 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 #define LOG_TLS_EXTENDED    (1 << 0)
 
 typedef struct OutputTlsCtx_ {
+    LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
 } OutputTlsCtx;
+
+
+typedef struct JsonTlsLogThread_ {
+    OutputTlsCtx *tlslog_ctx;
+    MemBuffer *buffer;
+} JsonTlsLogThread;
 
 #define SSL_VERSION_LENGTH 13
 
@@ -100,20 +107,15 @@ static void LogTlsLogExtendedJSON(json_t *tjs, SSLState * state)
             break;
     }
     json_object_set_new(tjs, "version", json_string(ssl_version));
-
 }
 
-
-static TmEcode LogTlsLogIPWrapperJSON(ThreadVars *tv, Packet *p, void *data)
-{
-    SCEnter();
-    AlertJsonThread *aft = (AlertJsonThread *)data;
+static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
+    JsonTlsLogThread *aft = (JsonTlsLogThread *)thread_data;
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
-    OutputTlsCtx *tls_ctx = aft->tls_ctx->data;
+    OutputTlsCtx *tls_ctx = aft->tlslog_ctx;
 
-    /* no flow, no tls state */
-    if (p->flow == NULL) {
-        SCReturnInt(TM_ECODE_OK);
+    if (unlikely(p->flow == NULL)) {
+        return 0;
     }
 
     /* check if we have TLS state or not */
@@ -122,19 +124,15 @@ static TmEcode LogTlsLogIPWrapperJSON(ThreadVars *tv, Packet *p, void *data)
     if (proto != ALPROTO_TLS)
         goto end;
 
-    SSLState *ssl_state = (SSLState *) FlowGetAppState(p->flow);
-    if (ssl_state == NULL) {
-        SCLogDebug("no tls state, so no request logging");
+    SSLState *ssl_state = (SSLState *)FlowGetAppState(p->flow);
+    if (unlikely(ssl_state == NULL)) {
         goto end;
     }
 
     if (ssl_state->server_connp.cert0_issuerdn == NULL || ssl_state->server_connp.cert0_subject == NULL)
         goto end;
 
-    if (AppLayerParserGetTransactionLogId(p->flow->alparser) != 0)
-        goto end;
-
-    json_t *js = CreateJSONHeader(p, 0);
+    json_t *js = CreateJSONHeader((Packet *)p, 0);//TODO
     if (unlikely(js == NULL))
         goto end;
 
@@ -161,36 +159,75 @@ static TmEcode LogTlsLogIPWrapperJSON(ThreadVars *tv, Packet *p, void *data)
 
     json_object_set_new(js, "tls", tjs);
 
-    OutputJSON(js, aft, &aft->tls_cnt);
+    OutputJSONBuffer(js, tls_ctx->file_ctx, buffer);
     json_object_clear(js);
     json_decref(js);
 
+    /* we only log the state once */
+    ssl_state->flags |= SSL_AL_FLAG_STATE_LOGGED;
 end:
     FLOWLOCK_UNLOCK(p->flow);
-    SCReturnInt(TM_ECODE_OK);
-
+    return 0;
 }
 
-TmEcode OutputTlsLog(ThreadVars *tv, Packet *p, void *data)
+#define OUTPUT_BUFFER_SIZE 65535
+static TmEcode JsonTlsLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
-    SCEnter();
+    JsonTlsLogThread *aft = SCMalloc(sizeof(JsonTlsLogThread));
+    if (unlikely(aft == NULL))
+        return TM_ECODE_FAILED;
+    memset(aft, 0, sizeof(JsonTlsLogThread));
 
-    /* no flow, no htp state */
-    if (p->flow == NULL) {
-        SCReturnInt(TM_ECODE_OK);
+    if(initdata == NULL)
+    {
+        SCLogDebug("Error getting context for HTTPLog.  \"initdata\" argument NULL");
+        SCFree(aft);
+        return TM_ECODE_FAILED;
     }
 
-    if (!(PKT_IS_TCP(p))) {
-        SCReturnInt(TM_ECODE_OK);
+    /* Use the Ouptut Context (file pointer and mutex) */
+    aft->tlslog_ctx = ((OutputCtx *)initdata)->data;
+
+    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    if (aft->buffer == NULL) {
+        SCFree(aft);
+        return TM_ECODE_FAILED;
     }
 
-    LogTlsLogIPWrapperJSON(tv, p, data);
-
-    SCReturnInt(TM_ECODE_OK);
+    *data = (void *)aft;
+    return TM_ECODE_OK;
 }
 
+static TmEcode JsonTlsLogThreadDeinit(ThreadVars *t, void *data)
+{
+    JsonTlsLogThread *aft = (JsonTlsLogThread *)data;
+    if (aft == NULL) {
+        return TM_ECODE_OK;
+    }
+
+    MemBufferFree(aft->buffer);
+    /* clear memory */
+    memset(aft, 0, sizeof(JsonTlsLogThread));
+
+    SCFree(aft);
+    return TM_ECODE_OK;
+}
+
+
+#define DEFAULT_LOG_FILENAME "tls.json"
 OutputCtx *OutputTlsLogInit(ConfNode *conf)
 {
+    LogFileCtx *file_ctx = LogFileNewCtx();
+    if(file_ctx == NULL) {
+        SCLogError(SC_ERR_HTTP_LOG_GENERIC, "couldn't create new file_ctx");
+        return NULL;
+    }
+
+    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME) < 0) {
+        LogFileFreeCtx(file_ctx);
+        return NULL;
+    }
+
     OutputTlsCtx *tls_ctx = SCMalloc(sizeof(OutputTlsCtx));
     if (unlikely(tls_ctx == NULL))
         return NULL;
@@ -199,6 +236,7 @@ OutputCtx *OutputTlsLogInit(ConfNode *conf)
     if (unlikely(output_ctx == NULL))
         return NULL;
 
+    tls_ctx->file_ctx = file_ctx;
     tls_ctx->flags = LOG_TLS_DEFAULT;
 
     if (conf) {
@@ -215,4 +253,106 @@ OutputCtx *OutputTlsLogInit(ConfNode *conf)
 
     return output_ctx;
 }
+
+OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AlertJsonThread *ajt = parent_ctx->data;
+
+    OutputTlsCtx *tls_ctx = SCMalloc(sizeof(OutputTlsCtx));
+    if (unlikely(tls_ctx == NULL))
+        return NULL;
+
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (unlikely(output_ctx == NULL))
+        return NULL;
+
+    tls_ctx->file_ctx = ajt->file_ctx;
+    tls_ctx->flags = LOG_TLS_DEFAULT;
+
+    if (conf) {
+        const char *extended = ConfNodeLookupChildValue(conf, "extended");
+
+        if (extended != NULL) {
+            if (ConfValIsTrue(extended)) {
+                tls_ctx->flags = LOG_TLS_EXTENDED;
+            }
+        }
+    }
+    output_ctx->data = tls_ctx;
+    output_ctx->DeInit = NULL;
+
+    return output_ctx;
+}
+
+/** \internal
+ *  \brief Condition function for TLS logger
+ *  \retval bool true or false -- log now?
+ */
+static int JsonTlsCondition(ThreadVars *tv, const Packet *p) {
+    if (p->flow == NULL) {
+        return FALSE;
+    }
+
+    if (!(PKT_IS_TCP(p))) {
+        return FALSE;
+    }
+
+    FLOWLOCK_RDLOCK(p->flow);
+    uint16_t proto = FlowGetAppProtocol(p->flow);
+    if (proto != ALPROTO_TLS)
+        goto dontlog;
+
+    SSLState *ssl_state = (SSLState *)FlowGetAppState(p->flow);
+    if (ssl_state == NULL) {
+        SCLogDebug("no tls state, so no request logging");
+        goto dontlog;
+    }
+
+    /* we only log the state once */
+    if (ssl_state->flags & SSL_AL_FLAG_STATE_LOGGED)
+        goto dontlog;
+
+    if (ssl_state->server_connp.cert0_issuerdn == NULL ||
+            ssl_state->server_connp.cert0_subject == NULL)
+        goto dontlog;
+
+    /* todo: logic to log once */
+
+    FLOWLOCK_UNLOCK(p->flow);
+    return TRUE;
+dontlog:
+    FLOWLOCK_UNLOCK(p->flow);
+    return FALSE;
+}
+
+void TmModuleJsonTlsLogRegister (void) {
+    tmm_modules[TMM_JSONTLSLOG].name = "JsonTlsLog";
+    tmm_modules[TMM_JSONTLSLOG].ThreadInit = JsonTlsLogThreadInit;
+    tmm_modules[TMM_JSONTLSLOG].ThreadDeinit = JsonTlsLogThreadDeinit;
+    tmm_modules[TMM_JSONTLSLOG].RegisterTests = NULL;
+    tmm_modules[TMM_JSONTLSLOG].cap_flags = 0;
+
+    /* register as separate module */
+    OutputRegisterPacketModule("JsonTlsLog", "tls-json-log", OutputTlsLogInit,
+            JsonTlsLogger, JsonTlsCondition);
+
+    /* also register as child of eve-log */
+    OutputRegisterPacketSubModule("eve-log", "JsonTlsLog", "eve-log.tls", OutputTlsLogInitSub,
+            JsonTlsLogger, JsonTlsCondition);
+}
+
+#else
+
+static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
+{
+    SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
+    return TM_ECODE_FAILED;
+}
+
+void TmModuleJsonTlsLogRegister (void)
+{
+    tmm_modules[TMM_JSONTLSLOG].name = "JsonTlsLog";
+    tmm_modules[TMM_JSONTLSLOG].ThreadInit = OutputJsonThreadInit;
+}
+
 #endif

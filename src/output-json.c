@@ -361,10 +361,6 @@ TmEcode OutputJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
         OutputFileLog(tv, p, data);
     }
 
-    if (output_flags & OUTPUT_TLS) {
-        OutputTlsLog(tv, p, data);
-    }
-
     return TM_ECODE_OK;
 }
 
@@ -536,14 +532,6 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                     ConfNode *child = ConfNodeLookupChild(output, "files");
                     json_ctx->files_ctx = OutputFileLogInit(child);
                     output_flags |= OUTPUT_FILES;
-                    continue;
-                }
-                if (strcmp(output->val, "tls") == 0) {
-                    SCLogDebug("Enabling TLS output");
-                    ConfNode *child = ConfNodeLookupChild(output, "tls");
-                    json_ctx->tls_ctx = OutputTlsLogInit(child);
-                    AppLayerParserRegisterLogger(IPPROTO_TCP,ALPROTO_TLS);
-                    output_flags |= OUTPUT_TLS;
                     continue;
                 }
             }

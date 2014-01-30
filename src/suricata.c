@@ -87,6 +87,7 @@
 #include "log-dnslog.h"
 #include "output-dnslog.h"
 #include "log-tlslog.h"
+#include "output-tlslog.h"
 #include "log-pcap.h"
 #include "log-file.h"
 #include "log-filestore.h"
@@ -803,7 +804,9 @@ void RegisterAllModules()
     /* http log */
     TmModuleLogHttpLogRegister();
     TmModuleJsonHttpLogRegister();
+    /* tls log */
     TmModuleLogTlsLogRegister();
+    TmModuleJsonTlsLogRegister();
     /* pcap log */
     TmModulePcapLogRegister();
     /* file log */

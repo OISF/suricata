@@ -26,5 +26,6 @@
 
 TmEcode OutputTlsLog (ThreadVars *tv, Packet *p, void *data);
 OutputCtx *OutputTlsLogInit(ConfNode *);
+void TmModuleJsonTlsLogRegister (void);
 
 #endif /* __OUTPUT_TLSLOG_H__ */
