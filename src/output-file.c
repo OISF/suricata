@@ -53,7 +53,8 @@ typedef struct OutputFileLogger_ {
 
 static OutputFileLogger *list = NULL;
 
-int OutputRegisterFileLogger(char *name, FileLogger LogFunc, OutputCtx *output_ctx) {
+int OutputRegisterFileLogger(const char *name, FileLogger LogFunc, OutputCtx *output_ctx)
+{
     OutputFileLogger *op = SCMalloc(sizeof(*op));
     if (op == NULL)
         return -1;
@@ -61,11 +62,7 @@ int OutputRegisterFileLogger(char *name, FileLogger LogFunc, OutputCtx *output_c
 
     op->LogFunc = LogFunc;
     op->output_ctx = output_ctx;
-    op->name = SCStrdup(name);
-    if (op->name == NULL) {
-        SCFree(op);
-        return -1;
-    }
+    op->name = name;
 
     if (list == NULL)
         list = op;

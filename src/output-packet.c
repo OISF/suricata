@@ -51,7 +51,7 @@ typedef struct OutputPacketLogger_ {
 
 static OutputPacketLogger *list = NULL;
 
-int OutputRegisterPacketLogger(char *name, PacketLogger LogFunc, PacketLogCondition ConditionFunc, OutputCtx *output_ctx) {
+int OutputRegisterPacketLogger(const char *name, PacketLogger LogFunc, PacketLogCondition ConditionFunc, OutputCtx *output_ctx) {
     OutputPacketLogger *op = SCMalloc(sizeof(*op));
     if (op == NULL)
         return -1;
@@ -60,11 +60,7 @@ int OutputRegisterPacketLogger(char *name, PacketLogger LogFunc, PacketLogCondit
     op->LogFunc = LogFunc;
     op->ConditionFunc = ConditionFunc;
     op->output_ctx = output_ctx;
-    op->name = SCStrdup(name);
-    if (op->name == NULL) {
-        SCFree(op);
-        return -1;
-    }
+    op->name = name;
 
     if (list == NULL)
         list = op;

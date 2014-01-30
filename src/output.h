@@ -36,34 +36,54 @@
 #include "output-filedata.h"
 
 typedef struct OutputModule_ {
-    char *name;
-    char *conf_name;
+    const char *name;
+    const char *conf_name;
+    const char *parent_name;
     OutputCtx *(*InitFunc)(ConfNode *);
+    OutputCtx *(*InitSubFunc)(ConfNode *, OutputCtx *parent_ctx);
 
     PacketLogger PacketLogFunc;
     PacketLogCondition PacketConditionFunc;
     TxLogger TxLogFunc;
     FileLogger FileLogFunc;
     FiledataLogger FiledataLogFunc;
-    uint16_t alproto;
+    AppProto alproto;
 
     TAILQ_ENTRY(OutputModule_) entries;
 } OutputModule;
 
-void OutputRegisterModule(char *, char *, OutputCtx *(*)(ConfNode *));
+void OutputRegisterModule(const char *, const char *, OutputCtx *(*)(ConfNode *));
 
-void OutputRegisterPacketModule(char *name, char *conf_name,
+void OutputRegisterPacketModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *),
     PacketLogger LogFunc, PacketLogCondition ConditionFunc);
-void OutputRegisterTxModule(char *name, char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *), uint16_t alproto,
-    TxLogger TxLogFunc);
-void OutputRegisterFileModule(char *name, char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *), FileLogger FileLogFunc);
-void OutputRegisterFiledataModule(char *name, char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *), FiledataLogger FiledataLogFunc);
+void OutputRegisterPacketSubModule(const char *parent_name, const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
+    PacketLogger LogFunc, PacketLogCondition ConditionFunc);
 
-OutputModule *OutputGetModuleByConfName(char *name);
+void OutputRegisterTxModule(const char *name, const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
+    TxLogger TxLogFunc);
+void OutputRegisterTxSubModule(const char *parent_name, const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
+    AppProto alproto, TxLogger TxLogFunc);
+
+void OutputRegisterFileModule(const char *name, const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *), FileLogger FileLogFunc);
+void OutputRegisterFileSubModule(const char *parent_name, const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
+    FileLogger FileLogFunc);
+
+void OutputRegisterFiledataModule(const char *name, const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *), FiledataLogger FiledataLogFunc);
+void OutputRegisterFiledataSubModule(const char *parent_name, const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
+    FiledataLogger FiledataLogFunc);
+
+OutputModule *OutputGetModuleByConfName(const char *name);
 void OutputDeregisterAll(void);
+
+int OutputDropLoggerEnable(void);
+int OutputTlsLoggerEnable(void);
 
 #endif /* ! __OUTPUT_H__ */

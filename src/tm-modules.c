@@ -46,7 +46,7 @@ void TmModuleDebugList(void) {
 /** \brief get a tm module ptr by name
  *  \param name name string
  *  \retval ptr to the module or NULL */
-TmModule *TmModuleGetByName(char *name) {
+TmModule *TmModuleGetByName(const char *name) {
     TmModule *t;
     uint16_t i;
 
