@@ -21,9 +21,9 @@
  * \author Tom DeCanio <td@npulsetech.com>
  */
 
-#ifndef __OUTPUT_TLSLOG_H__
-#define __OUTPUT_TLSLOG_H__
+#ifndef __OUTPUT_JSON_TLS_H__
+#define __OUTPUT_JSON_TLS_H__
 
 void TmModuleJsonTlsLogRegister (void);
 
-#endif /* __OUTPUT_TLSLOG_H__ */
+#endif /* __OUTPUT_JSON_TLS_H__ */

@@ -39,7 +39,6 @@
 #include "util-debug.h"
 #include "app-layer-parser.h"
 #include "output.h"
-#include "log-tlslog.h"
 #include "app-layer-ssl.h"
 #include "app-layer.h"
 #include "util-privs.h"
