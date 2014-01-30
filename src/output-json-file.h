@@ -21,11 +21,9 @@
  * \author Tom DeCanio <td@npulsetech.com>
  */
 
-#ifndef __OUTPUT_FILELOG_H__
-#define __OUTPUT_FILELOG_H__
+#ifndef __OUTPUT_JSON_FILE_H__
+#define __OUTPUT_JSON_FILE_H__
 
-TmEcode OutputFileLog (ThreadVars *tv, Packet *p, void *data);
-OutputCtx *OutputFileLogInit(ConfNode *);
 void TmModuleJsonFileLogRegister (void);
 
-#endif /* __OUTPUT_FILELOG_H__ */
+#endif /* __OUTPUT_JSON_FILE_H__ */

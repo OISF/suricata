@@ -254,6 +254,8 @@ static TmEcode JsonAlertLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
+    MemBufferFree(aft->buffer);
+
     /* clear memory */
     memset(aft, 0, sizeof(JsonAlertLogThread));
 

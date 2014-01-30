@@ -22,12 +22,9 @@
  *
  */
 
+#ifndef __OUTPUT_DROPLOG_H__
+#define	__OUTPUT_DROPLOG_H__
 
-#ifndef OUTPUT_DROPLOG_H
-#define	OUTPUT_DROPLOG_H
-
-TmEcode OutputDropLog (ThreadVars *tv, Packet *p, void *data);
-OutputCtx *OutputDropLogInit(ConfNode *);
 void TmModuleJsonDropLogRegister (void);
 
-#endif	/* OUTPUT_DROPLOG_H */
+#endif /* __OUTPUT_DROPLOG_H__ */

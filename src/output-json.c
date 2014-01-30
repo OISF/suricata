@@ -322,35 +322,8 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer) {
         fflush(file_ctx->fp);
     }
     SCMutexUnlock(&file_ctx->fp_mutex);
+    free(js_s);
     return 0;
-}
-
-TmEcode OutputJSON(json_t *js, void *data, uint64_t *count)
-{
-    AlertJsonThread *aft = (AlertJsonThread *)data;
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
-    char *js_s = json_dumps(js,
-                            JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
-#ifdef JSON_ESCAPE_SLASH
-                            JSON_ESCAPE_SLASH
-#else
-                            0
-#endif
-                            );
-    if (unlikely(js_s == NULL))
-        return TM_ECODE_OK;
-
-    SCMutexLock(&aft->file_ctx->fp_mutex);
-    if (json_out == ALERT_SYSLOG) {
-        syslog(alert_syslog_level, "%s", js_s);
-    } else if (json_out == ALERT_FILE) {
-        MemBufferWriteString(buffer, "%s\n", js_s);
-        (void)MemBufferPrintToFPAsString(buffer, aft->file_ctx->fp);
-        fflush(aft->file_ctx->fp);
-    }
-    *count += 1;
-    SCMutexUnlock(&aft->file_ctx->fp_mutex);
-    return TM_ECODE_OK;
 }
 
 TmEcode OutputJson (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
@@ -364,24 +337,12 @@ TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
     memset(aft, 0, sizeof(AlertJsonThread));
+
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for AlertJson.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
-    }
-    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
-    if (aft->buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
-    }
-
-    /** Use the Ouptut Context (file pointer and mutex) */
-    OutputJsonCtx *json_ctx = ((OutputCtx *)initdata)->data;
-    if (json_ctx != NULL) {
-        aft->file_ctx = json_ctx->file_ctx;
-        aft->http_ctx = json_ctx->http_ctx;
-        aft->tls_ctx = json_ctx->tls_ctx;
     }
 
     *data = (void *)aft;

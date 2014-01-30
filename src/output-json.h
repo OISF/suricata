@@ -43,28 +43,11 @@ OutputCtx *OutputJsonInitCtx(ConfNode *);
  */
 typedef struct OutputJsonCtx_ {
     LogFileCtx *file_ctx;
-    OutputCtx *drop_ctx;
-    OutputCtx *files_ctx;
-    OutputCtx *http_ctx;
-    OutputCtx *tls_ctx;
 } OutputJsonCtx;
 
 typedef struct AlertJsonThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
-
-    void *buffer; /* pointer to MemBuffer */
-
-    uint64_t alert_cnt;
-    uint64_t dns_cnt;
-    uint64_t drop_cnt;
-    uint64_t files_cnt;
-    uint64_t http_cnt;
-    uint64_t tls_cnt;
-    OutputCtx *drop_ctx;
-    OutputCtx *files_ctx;
-    OutputCtx *http_ctx;
-    OutputCtx *tls_ctx;
 } AlertJsonThread;
 
 #endif /* HAVE_LIBJANSSON */
