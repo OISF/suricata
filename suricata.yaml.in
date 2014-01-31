@@ -682,7 +682,18 @@ flow-timeouts:
 #                               # a random value between (1 - randomize-chunk-range/100)*randomize-chunk-size
 #                               # and (1 + randomize-chunk-range/100)*randomize-chunk-size. Default value
 #                               # of randomize-chunk-range is 10.
-
+#
+#     raw: yes                  # 'Raw' reassembly enabled or disabled.
+#                               # raw is for content inspection by detection
+#                               # engine.
+#
+#     chunk-prealloc: 250       # Number of preallocated stream chunks. These
+#                               # are used during stream inspection (raw).
+#     segments:                 # Settings for reassembly segment pool.
+#       - size: 4               # Size of the (data)segment for a pool
+#         prealloc: 256         # Number of segments to prealloc and keep
+#                               # in the pool.
+#
 stream:
   memcap: 32mb
   checksum-validation: yes      # reject wrong csums
@@ -694,6 +705,25 @@ stream:
     toclient-chunk-size: 2560
     randomize-chunk-size: yes
     #randomize-chunk-range: 10
+    #raw: yes
+    #chunk-prealloc: 250
+    #segments:
+    #  - size: 4
+    #    prealloc: 256
+    #  - size: 16
+    #    prealloc: 512
+    #  - size: 112
+    #    prealloc: 512
+    #  - size: 248
+    #    prealloc: 512
+    #  - size: 512
+    #    prealloc: 512
+    #  - size: 768
+    #    prealloc: 1024
+    #  - size: 1448
+    #    prealloc: 1024
+    #  - size: 65535
+    #    prealloc: 128
 
 # Host table:
 #
