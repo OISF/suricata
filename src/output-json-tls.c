@@ -131,7 +131,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
     if (ssl_state->server_connp.cert0_issuerdn == NULL || ssl_state->server_connp.cert0_subject == NULL)
         goto end;
 
-    json_t *js = CreateJSONHeader((Packet *)p, 0);//TODO
+    json_t *js = CreateJSONHeader((Packet *)p, 0, "tls");//TODO
     if (unlikely(js == NULL))
         goto end;
 

@@ -148,7 +148,7 @@ static enum JsonOutput json_out = ALERT_FILE;
 
 static enum JsonFormat format = COMPACT;
 
-json_t *CreateJSONHeader(Packet *p, int direction_sensitive)
+json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
 {
     char timebuf[64];
     char srcip[46], dstip[46];
@@ -213,6 +213,10 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensitive)
     /* pcap_cnt */
     if (p->pcap_cnt != 0) {
         json_object_set_new(js, "pcap_cnt", json_integer(p->pcap_cnt));
+    }
+
+    if (event_type) {
+        json_object_set_new(js, "event_type", json_string(event_type));
     }
 
     /* vlan */

@@ -221,7 +221,7 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     JsonHttpLogThread *jhl = (JsonHttpLogThread *)thread_data;
     MemBuffer *buffer = (MemBuffer *)jhl->buffer;
 
-    json_t *js = CreateJSONHeader((Packet *)p, 1); //TODO const
+    json_t *js = CreateJSONHeader((Packet *)p, 1, "http"); //TODO const
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 

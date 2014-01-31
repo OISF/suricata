@@ -84,7 +84,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
     MemBufferReset(buffer);
 
-    json_t *js = CreateJSONHeader((Packet *)p, 0);
+    json_t *js = CreateJSONHeader((Packet *)p, 0, "alert");
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 

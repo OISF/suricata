@@ -217,7 +217,7 @@ static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
     LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
     DNSTransaction *tx = txptr;
 
-    json_t *js = CreateJSONHeader((Packet *)p, 1);//TODO const
+    json_t *js = CreateJSONHeader((Packet *)p, 1, "dns");//TODO const
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 

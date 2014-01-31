@@ -164,7 +164,7 @@ static json_t *LogFileMetaGetUserAgent(const Packet *p, const File *ff) {
  */
 static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const File *ff) {
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
-    json_t *js = CreateJSONHeader((Packet *)p, 0); //TODO const
+    json_t *js = CreateJSONHeader((Packet *)p, 0, "file"); //TODO const
     if (unlikely(js == NULL))
         return;
 
