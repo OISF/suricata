@@ -119,10 +119,11 @@ static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, DNSQu
 
     /* query */
     char *c;
-    c = SCStrndup((char *)((char *)entry + sizeof(DNSQueryEntry)), entry->len);
-    json_object_set_new(djs, "rrname", json_string(c));
-    if (c != NULL)
+    c = BytesToString((uint8_t *)((uint8_t *)entry + sizeof(DNSQueryEntry)), entry->len);
+    if (c != NULL) {
+        json_object_set_new(djs, "rrname", json_string(c));
         SCFree(c);
+    }
 
     /* name */
     char record[16] = "";
@@ -151,10 +152,10 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
         /* query */
         if (entry->fqdn_len > 0) {
             char *c;
-            c = SCStrndup((char *)((char *)entry + sizeof(DNSAnswerEntry)),
-                        entry->fqdn_len);
-            json_object_set_new(js, "rrname", json_string(c));
+            c = BytesToString((uint8_t *)((uint8_t *)entry + sizeof(DNSAnswerEntry)),
+                    entry->fqdn_len);
             if (c != NULL) {
+                json_object_set_new(js, "rrname", json_string(c));
                 SCFree(c);
             }
         }

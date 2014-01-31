@@ -49,6 +49,7 @@
 #include "util-file.h"
 #include "util-time.h"
 #include "util-buffer.h"
+#include "util-byte.h"
 
 #include "output.h"
 #include "output-json.h"
@@ -190,7 +191,7 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
         return;
     }
 
-    char *s = SCStrndup((char *)ff->name, ff->name_len);
+    char *s = BytesToString(ff->name, ff->name_len);
     json_object_set_new(fjs, "filename", json_string(s));
     if (s != NULL)
         SCFree(s);
