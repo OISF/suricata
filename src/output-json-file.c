@@ -164,23 +164,32 @@ static json_t *LogFileMetaGetUserAgent(const Packet *p, const File *ff) {
  */
 static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const File *ff) {
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
-    json_t *js = CreateJSONHeader((Packet *)p, 0); //TODO const
+    json_t *js = CreateJSONHeader((Packet *)p, 0, "file"); //TODO const
     if (unlikely(js == NULL))
         return;
 
     /* reset */
     MemBufferReset(buffer);
 
-    json_t *fjs = json_object();
-    if (unlikely(fjs == NULL)) {
+    json_t *hjs = json_object();
+    if (unlikely(hjs == NULL)) {
         json_decref(js);
         return;
     }
 
-    json_object_set_new(fjs, "http_uri", LogFileMetaGetUri(p, ff));
-    json_object_set_new(fjs, "http_host", LogFileMetaGetHost(p, ff));
-    json_object_set_new(fjs, "http_referer", LogFileMetaGetReferer(p, ff));
-    json_object_set_new(fjs, "http_user_agent", LogFileMetaGetUserAgent(p, ff));
+    json_object_set_new(hjs, "url", LogFileMetaGetUri(p, ff));
+    json_object_set_new(hjs, "hostname", LogFileMetaGetHost(p, ff));
+    json_object_set_new(hjs, "http_refer", LogFileMetaGetReferer(p, ff));
+    json_object_set_new(hjs, "http_user_agent", LogFileMetaGetUserAgent(p, ff));
+    json_object_set_new(js, "http", hjs);
+
+    json_t *fjs = json_object();
+    if (unlikely(fjs == NULL)) {
+        json_decref(hjs);
+        json_decref(js);
+        return;
+    }
+
     char *s = SCStrndup((char *)ff->name, ff->name_len);
     json_object_set_new(fjs, "filename", json_string(s));
     if (s != NULL)
@@ -224,6 +233,7 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
     json_object_set_new(js, "file", fjs);
     OutputJSONBuffer(js, aft->filelog_ctx->file_ctx, buffer);
     json_object_del(js, "file");
+    json_object_del(js, "http");
 
     json_object_clear(js);
     json_decref(js);

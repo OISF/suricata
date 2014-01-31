@@ -148,7 +148,7 @@ static enum JsonOutput json_out = ALERT_FILE;
 
 static enum JsonFormat format = COMPACT;
 
-json_t *CreateJSONHeader(Packet *p, int direction_sensitive)
+json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
 {
     char timebuf[64];
     char srcip[46], dstip[46];
@@ -208,11 +208,15 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensitive)
 
     /* sensor id */
     if (sensor_id >= 0)
-        json_object_set_new(js, "sensor-id", json_integer(sensor_id));
+        json_object_set_new(js, "sensor_id", json_integer(sensor_id));
 
     /* pcap_cnt */
     if (p->pcap_cnt != 0) {
         json_object_set_new(js, "pcap_cnt", json_integer(p->pcap_cnt));
+    }
+
+    if (event_type) {
+        json_object_set_new(js, "event_type", json_string(event_type));
     }
 
     /* vlan */
@@ -240,24 +244,24 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensitive)
     }
 
     /* tuple */
-    json_object_set_new(js, "srcip", json_string(srcip));
+    json_object_set_new(js, "src_ip", json_string(srcip));
     switch(p->proto) {
         case IPPROTO_ICMP:
             break;
         case IPPROTO_UDP:
         case IPPROTO_TCP:
         case IPPROTO_SCTP:
-            json_object_set_new(js, "sp", json_integer(sp));
+            json_object_set_new(js, "src_port", json_integer(sp));
             break;
     }
-    json_object_set_new(js, "dstip", json_string(dstip));
+    json_object_set_new(js, "dest_ip", json_string(dstip));
     switch(p->proto) {
         case IPPROTO_ICMP:
             break;
         case IPPROTO_UDP:
         case IPPROTO_TCP:
         case IPPROTO_SCTP:
-            json_object_set_new(js, "dp", json_integer(dp));
+            json_object_set_new(js, "dest_port", json_integer(dp));
             break;
     }
     json_object_set_new(js, "proto", json_string(proto));
