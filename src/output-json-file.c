@@ -81,11 +81,11 @@ static json_t *LogFileMetaGetUri(const Packet *p, const File *ff) {
         if (tx != NULL) {
             HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
             if (tx_ud->request_uri_normalized != NULL) {
-                char *s = SCStrndup((char *) bstr_ptr(tx_ud->request_uri_normalized),
-                                    bstr_len(tx_ud->request_uri_normalized));
-                js = json_string(s);
-                if (s != NULL)
+                char *s = bstr_util_strdup_to_c(tx_ud->request_uri_normalized);
+                if (s != NULL) {
+                    js = json_string(s);
                     SCFree(s);
+                }
             }
             return js;
         }
@@ -100,11 +100,11 @@ static json_t *LogFileMetaGetHost(const Packet *p, const File *ff) {
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL && tx->request_hostname != NULL) {
-            char *s = SCStrndup((char *) bstr_ptr(tx->request_hostname),
-                                bstr_len(tx->request_hostname));
-            js = json_string(s);
-            if (s != NULL)
+            char *s = bstr_util_strdup_to_c(tx->request_hostname);
+            if (s != NULL) {
+                js = json_string(s);
                 SCFree(s);
+            }
             return js;
         }
     }
@@ -122,11 +122,11 @@ static json_t *LogFileMetaGetReferer(const Packet *p, const File *ff) {
             h = (htp_header_t *)htp_table_get_c(tx->request_headers,
                                                 "Referer");
             if (h != NULL) {
-                char *s = SCStrndup((char *)bstr_ptr(h->value),
-                                    bstr_len(h->value));
-                js = json_string(s);
-                if (s != NULL)
+                char *s = bstr_util_strdup_to_c(h->value);
+                if (s != NULL) {
+                    js = json_string(s);
                     SCFree(s);
+                }
                 return js;
             }
         }
@@ -145,11 +145,11 @@ static json_t *LogFileMetaGetUserAgent(const Packet *p, const File *ff) {
             h = (htp_header_t *)htp_table_get_c(tx->request_headers,
                                                 "User-Agent");
             if (h != NULL) {
-                char *s = SCStrndup((char *)bstr_ptr(h->value),
-                                    bstr_len(h->value));
-                js = json_string(s);
-                if (s != NULL)
+                char *s = bstr_util_strdup_to_c(h->value);
+                if (s != NULL) {
+                    js = json_string(s);
                     SCFree(s);
+                }
                 return js;
             }
         }

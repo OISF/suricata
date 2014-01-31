@@ -83,8 +83,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
     /* hostname */
     if (tx->request_hostname != NULL)
     {
-        c = SCStrndup((char *)bstr_ptr(tx->request_hostname),
-                      bstr_len(tx->request_hostname));
+        c = bstr_util_strdup_to_c(tx->request_hostname);
         if (c != NULL) {
             json_object_set_new(hjs, "hostname", json_string(c));
             SCFree(c);
@@ -96,8 +95,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
     /* uri */
     if (tx->request_uri != NULL)
     {
-        c = SCStrndup((char *)bstr_ptr(tx->request_uri),
-                      bstr_len(tx->request_uri));
+        c = bstr_util_strdup_to_c(tx->request_uri);
         if (c != NULL) {
             json_object_set_new(hjs, "url", json_string(c));
             SCFree(c);
@@ -110,8 +108,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
         h_user_agent = htp_table_get_c(tx->request_headers, "user-agent");
     }
     if (h_user_agent != NULL) {
-        c = SCStrndup((char *)bstr_ptr(h_user_agent->value),
-                      bstr_len(h_user_agent->value));
+        c = bstr_util_strdup_to_c(h_user_agent->value);
         if (c != NULL) {
             json_object_set_new(hjs, "http_user_agent", json_string(c));
             SCFree(c);
@@ -126,8 +123,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
         h_x_forwarded_for = htp_table_get_c(tx->request_headers, "x-forwarded-for");
     }
     if (h_x_forwarded_for != NULL) {
-        c = SCStrndup((char *)bstr_ptr(h_x_forwarded_for->value),
-                      bstr_len(h_x_forwarded_for->value));
+        c = bstr_util_strdup_to_c(h_x_forwarded_for->value);
         if (c != NULL) {
             json_object_set_new(hjs, "xff", json_string(c));
             SCFree(c);
@@ -141,8 +137,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
     }
     if (h_content_type != NULL) {
         char *p;
-        c = SCStrndup((char *)bstr_ptr(h_content_type->value),
-                      bstr_len(h_content_type->value));
+        c = bstr_util_strdup_to_c(h_content_type->value);
         if (c != NULL) {
             p = strchrnul(c, ';');
             *p = '\0';
@@ -158,8 +153,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
             h_referer = htp_table_get_c(tx->request_headers, "referer");
         }
         if (h_referer != NULL) {
-            c = SCStrndup((char *)bstr_ptr(h_referer->value),
-                          bstr_len(h_referer->value));
+            c = bstr_util_strdup_to_c(h_referer->value);
             if (c != NULL) {
                 json_object_set_new(hjs, "http_refer", json_string(c));
                 SCFree(c);
@@ -168,8 +162,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
 
         /* method */
         if (tx->request_method != NULL) {
-            c = SCStrndup((char *)bstr_ptr(tx->request_method),
-                          bstr_len(tx->request_method));
+            c = bstr_util_strdup_to_c(tx->request_method);
             if (c != NULL) {
                 json_object_set_new(hjs, "http_method", json_string(c));
                 SCFree(c);
@@ -178,8 +171,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
 
         /* protocol */
         if (tx->request_protocol != NULL) {
-            c = SCStrndup((char *)bstr_ptr(tx->request_protocol),
-                          bstr_len(tx->request_protocol));
+            c = bstr_util_strdup_to_c(tx->request_protocol);
             if (c != NULL) {
                 json_object_set_new(hjs, "protocol", json_string(c));
                 SCFree(c);
@@ -188,8 +180,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
 
         /* response status */
         if (tx->response_status != NULL) {
-            c = SCStrndup((char *)bstr_ptr(tx->response_status),
-                          bstr_len(tx->response_status));
+            c = bstr_util_strdup_to_c(tx->response_status);
             if (c != NULL) {
                 json_object_set_new(hjs, "status", json_string(c));
                 SCFree(c);
@@ -197,8 +188,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
 
             htp_header_t *h_location = htp_table_get_c(tx->response_headers, "location");
             if (h_location != NULL) {
-                c = SCStrndup((char *)bstr_ptr(h_location->value),
-                              bstr_len(h_location->value));
+                c = bstr_util_strdup_to_c(h_location->value);
                 if (c != NULL) {
                     json_object_set_new(hjs, "redirect", json_string(c));
                     SCFree(c);
