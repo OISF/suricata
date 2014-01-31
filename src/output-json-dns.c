@@ -120,14 +120,14 @@ static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, DNSQu
     /* query */
     char *c;
     c = SCStrndup((char *)((char *)entry + sizeof(DNSQueryEntry)), entry->len);
-    json_object_set_new(djs, "query", json_string(c));
+    json_object_set_new(djs, "rrname", json_string(c));
     if (c != NULL)
         SCFree(c);
 
     /* name */
     char record[16] = "";
     CreateTypeString(entry->type, record, sizeof(record));
-    json_object_set_new(djs, "record", json_string(record));
+    json_object_set_new(djs, "rrtype", json_string(record));
 
     /* dns */
     json_object_set_new(js, "dns", djs);
@@ -152,7 +152,7 @@ static void AppendAnswer(json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry)
             char *c;
             c = SCStrndup((char *)((char *)entry + sizeof(DNSAnswerEntry)),
                         entry->fqdn_len);
-            json_object_set_new(js, "query", json_string(c));
+            json_object_set_new(js, "rrname", json_string(c));
             if (c != NULL) {
                 SCFree(c);
             }
@@ -161,7 +161,7 @@ static void AppendAnswer(json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry)
         /* name */
         char record[16] = "";
         CreateTypeString(entry->type, record, sizeof(record));
-        json_object_set_new(js, "record", json_string(record));
+        json_object_set_new(js, "rrtype", json_string(record));
 
         /* ttl */
         json_object_set_new(js, "ttl", json_integer(entry->ttl));
@@ -170,13 +170,13 @@ static void AppendAnswer(json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry)
         if (entry->type == DNS_RECORD_TYPE_A) {
             char a[16] = "";
             PrintInet(AF_INET, (const void *)ptr, a, sizeof(a));
-            json_object_set_new(js, "addr", json_string(a));
+            json_object_set_new(js, "rdata", json_string(a));
         } else if (entry->type == DNS_RECORD_TYPE_AAAA) {
             char a[46] = "";
             PrintInet(AF_INET6, (const void *)ptr, a, sizeof(a));
-            json_object_set_new(js, "addr", json_string(a));
+            json_object_set_new(js, "rdata", json_string(a));
         } else if (entry->data_len == 0) {
-            json_object_set_new(js, "addr", json_string(""));
+            json_object_set_new(js, "rdata", json_string(""));
         }
     }
     json_array_append_new(djs, js);
