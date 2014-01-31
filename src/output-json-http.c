@@ -139,8 +139,9 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
         char *p;
         c = bstr_util_strdup_to_c(h_content_type->value);
         if (c != NULL) {
-            p = strchrnul(c, ';');
-            *p = '\0';
+            p = strchr(c, ';');
+            if (p != NULL)
+                *p = '\0';
             json_object_set_new(hjs, "http_content_type", json_string(c));
             SCFree(c);
         }
