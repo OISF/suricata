@@ -71,6 +71,17 @@
 #define SCByteSwap64(x) bswap_64(x)
 #endif /* OS_FREEBSD */
 
+/** \brief Turn byte array into string.
+ *
+ *  All non-printables are copied over, except for '\0', which is
+ *  turned into literal \0 in the string.
+ *
+ *  \param bytes byte array
+ *  \param nbytes number of bytes
+ *  \return string nul-terminated string or NULL on error
+ */
+char *BytesToString(const uint8_t *bytes, size_t nbytes);
+
 /**
  * Extract bytes from a byte string and convert to a unint64_t.
  *

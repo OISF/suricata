@@ -28,6 +28,49 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
+/** \brief Turn byte array into string.
+ *
+ *  All non-printables are copied over, except for '\0', which is
+ *  turned into literal \0 in the string.
+ *
+ *  \param bytes byte array
+ *  \param nbytes number of bytes
+ *  \return string nul-terminated string or NULL on error
+ */
+char *BytesToString(const uint8_t *bytes, size_t nbytes)
+{
+    size_t n = nbytes + 1;
+    size_t nulls = 0;
+
+    size_t u;
+    for (u = 0; u < nbytes; u++) {
+        if (bytes[u] == '\0')
+            nulls++;
+    }
+    n += nulls;
+
+    char *string = SCCalloc(1, n);
+    if (string == NULL)
+        return NULL;
+
+    if (nulls == 0) {
+        /* no nulls */
+        memcpy(string, bytes, nbytes);
+    } else {
+        /* no nulls present */
+        char *dst = string;
+        for (u = 0; u < n; u++) {
+            if (bytes[u] == '\0') {
+                *dst++ = '\\';
+                *dst++ = '0';
+            } else {
+                *dst++ = bytes[u];
+            }
+        }
+    }
+    return string;
+}
+
 int ByteExtractUint64(uint64_t *res, int e, uint16_t len, const uint8_t *bytes)
 {
     uint64_t i64;
