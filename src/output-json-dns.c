@@ -135,7 +135,8 @@ static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, DNSQu
     json_object_del(js, "dns");
 }
 
-static void AppendAnswer(json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry) {
+static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry) {
+    MemBuffer *buffer = (MemBuffer *)aft->buffer;
     json_t *js = json_object();
     if (js == NULL)
         return;
@@ -179,40 +180,34 @@ static void AppendAnswer(json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry)
             json_object_set_new(js, "rdata", json_string(""));
         }
     }
-    json_array_append_new(djs, js);
-}
-
-static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx) {
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
-
-    SCLogDebug("got a DNS response and now logging !!");
-
-    json_t *djs = json_array();
-    if (djs == NULL) {
-        return;
-    }
 
     /* reset */
     MemBufferReset(buffer);
+    json_object_set_new(djs, "dns", js);
+    OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, buffer);
+    json_object_del(djs, "dns");
+
+    return;
+}
+
+static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx) {
+
+    SCLogDebug("got a DNS response and now logging !!");
 
     if (tx->no_such_name) {
-        AppendAnswer(djs, tx, NULL);
+        OutputAnswer(aft, js, tx, NULL);
     }
 
     DNSAnswerEntry *entry = NULL;
     TAILQ_FOREACH(entry, &tx->answer_list, next) {
-        AppendAnswer(djs, tx, entry);
+        OutputAnswer(aft, js, tx, entry);
     }
 
     entry = NULL;
     TAILQ_FOREACH(entry, &tx->authority_list, next) {
-        AppendAnswer(djs, tx, entry);
+        OutputAnswer(aft, js, tx, entry);
     }
 
-    /* dns */
-    json_object_set_new(js, "dns", djs);
-    OutputJSONBuffer(js, aft->dnslog_ctx->file_ctx, buffer);
-    json_object_del(js, "dns");
 }
 
 static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
