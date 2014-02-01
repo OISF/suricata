@@ -38,6 +38,7 @@ char *LiveGetDeviceName(int number);
 LiveDevice *LiveGetDevice(char *dev);
 int LiveBuildDeviceList(char * base);
 int LiveDeviceListClean(void);
+int LiveBuildDeviceListCustom(char * base, char * itemname);
 
 #ifdef BUILD_UNIX_SOCKET
 TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *server_msg, void *data);
