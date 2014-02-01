@@ -854,6 +854,23 @@ PktProfiling *SCProfilePacketStart(void) {
         return NULL;
 }
 
+/* see if we want to profile rules for this packet */
+int SCProfileRuleStart(Packet *p) {
+#ifdef PROFILE_LOCKING
+    if (p->profile != NULL) {
+        p->flags |= PKT_PROFILE;
+        return 1;
+    }
+#else
+    uint64_t sample = SC_ATOMIC_ADD(samples, 1);
+    if (sample % rate == 0) {
+        p->flags |= PKT_PROFILE;
+        return 1;
+    }
+#endif
+    return 0;
+}
+
 #define CASE_CODE(E)  case E: return #E
 
 /**

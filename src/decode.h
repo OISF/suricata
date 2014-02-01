@@ -935,6 +935,7 @@ void AddressDebugPrint(Address *);
 
 #define PKT_IS_FRAGMENT                 (1<<19)     /**< Packet is a fragment */
 #define PKT_IS_INVALID                  (1<<20)
+#define PKT_PROFILE                     (1<<21)
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) ((p)->flags & PKT_PSEUDO_STREAM_END)
