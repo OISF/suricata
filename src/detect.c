@@ -1308,7 +1308,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES);
     /* inspect the sigs against the packet */
     for (idx = 0; idx < det_ctx->match_array_cnt; idx++) {
-        RULE_PROFILING_START;
+        RULE_PROFILING_START(p);
         state_alert = 0;
 #ifdef PROFILING
         smatch = 0;
@@ -1539,7 +1539,7 @@ next:
         DetectFlowvarProcessList(det_ctx, pflow);
         DetectReplaceFree(det_ctx->replist);
         det_ctx->replist = NULL;
-        RULE_PROFILING_END(det_ctx, s, smatch);
+        RULE_PROFILING_END(det_ctx, s, smatch, p);
 
         det_ctx->flags = 0;
         continue;

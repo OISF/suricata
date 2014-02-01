@@ -36,11 +36,12 @@ extern __thread int profiling_rules_entered;
 
 void SCProfilingPrintPacketProfile(Packet *);
 void SCProfilingAddPacket(Packet *);
+int SCProfileRuleStart(Packet *p);
 
-#define RULE_PROFILING_START \
+#define RULE_PROFILING_START(p) \
     uint64_t profile_rule_start_ = 0; \
     uint64_t profile_rule_end_ = 0; \
-    if (profiling_rules_enabled) { \
+    if (profiling_rules_enabled && SCProfileRuleStart((p))) { \
         if (profiling_rules_entered > 0) { \
             SCLogError(SC_ERR_FATAL, "Re-entered profiling, exiting."); \
             exit(1); \
@@ -49,8 +50,8 @@ void SCProfilingAddPacket(Packet *);
         profile_rule_start_ = UtilCpuGetTicks(); \
     }
 
-#define RULE_PROFILING_END(ctx, r, m) \
-    if (profiling_rules_enabled) { \
+#define RULE_PROFILING_END(ctx, r, m, p) \
+    if (profiling_rules_enabled && ((p)->flags & PKT_PROFILE)) { \
         profile_rule_end_ = UtilCpuGetTicks(); \
         SCProfilingRuleUpdateCounter(ctx, r->profiling_id, \
             profile_rule_end_ - profile_rule_start_, m); \
@@ -250,8 +251,8 @@ void SCProfilingDump(void);
 
 #else
 
-#define RULE_PROFILING_START
-#define RULE_PROFILING_END(a,b,c)
+#define RULE_PROFILING_START(p)
+#define RULE_PROFILING_END(a,b,c,p)
 
 #define KEYWORD_PROFILING_SET_LIST(a,b)
 #define KEYWORD_PROFILING_START
