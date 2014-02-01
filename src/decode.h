@@ -526,7 +526,7 @@ typedef struct Packet_
 
 
 #ifdef PROFILING
-    PktProfiling profile;
+    PktProfiling *profile;
 #endif
 #ifdef __SC_CUDA_SUPPORT__
     CudaPacketVars cuda_pkt_vars;
