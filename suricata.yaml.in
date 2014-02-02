@@ -1070,13 +1070,15 @@ pcre:
 # The option "enabled" takes 3 values - "yes", "no", "detection-only".
 # "yes" enables both detection and the parser, "no" disables both, and
 # "detection-only" enables detection only(parser disabled).
+# "detection-ports" can be used to choose the ports to run detection on
+# the port value follow the same rule as the one that can be used
+# in sigature. If unset detection is runned on all ports.
 app-layer:
   protocols:
     tls:
       enabled: yes
-      detection-ports:
-        toserver: 443
-
+      #detection-ports:
+      #  toserver: 443
       #no-reassemble: yes
     dcerpc:
       enabled: yes
