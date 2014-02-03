@@ -1218,6 +1218,10 @@ app-layer:
 # the --enable-profiling configure flag.
 #
 profiling:
+  # Run profiling for every xth packet. The default is 1, which means we
+  # profile every packet. If set to 1000, one packet is profiled for every
+  # 1000 received.
+  #sample-rate: 1000
 
   # rule profiling
   rules:

@@ -96,6 +96,9 @@ char *profiling_packets_file_name;
 char *profiling_csv_file_name;
 const char *profiling_packets_file_mode = "a";
 
+static int rate = 1;
+static SC_ATOMIC_DECL_AND_INIT(uint64_t, samples);
+
 /**
  * Used as a check so we don't double enter a profiling run.
  */
@@ -122,6 +125,16 @@ void
 SCProfilingInit(void)
 {
     ConfNode *conf;
+
+    intmax_t rate_v = 0;
+    (void)ConfGetInt("profiling.sample-rate", &rate_v);
+    if (rate_v > 0 && rate_v < INT_MAX) {
+        rate = (int)rate_v;
+        if (rate != 1)
+            SCLogInfo("profiling runs for every %dth packet", rate);
+        else
+            SCLogInfo("profiling runs for every packet");
+    }
 
     conf = ConfGetNode("profiling.packets");
     if (conf != NULL) {
@@ -842,9 +855,6 @@ void SCProfilingAddPacket(Packet *p) {
     }
     pthread_mutex_unlock(&packet_profile_lock);
 }
-
-static int rate = 1;
-static SC_ATOMIC_DECL_AND_INIT(uint64_t, samples);
 
 PktProfiling *SCProfilePacketStart(void) {
     uint64_t sample = SC_ATOMIC_ADD(samples, 1);
