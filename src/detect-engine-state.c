@@ -567,7 +567,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             inspect_flags = 0;
             match = 0;
 
-            RULE_PROFILING_START;
+            RULE_PROFILING_START(p);
 
             if (alproto_supports_txs) {
                 FLOWLOCK_WRLOCK(f);
@@ -576,7 +576,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     htp_state = (HtpState *)alstate;
                     if (htp_state->conn == NULL) {
                         FLOWLOCK_UNLOCK(f);
-                        RULE_PROFILING_END(det_ctx, s, match);
+                        RULE_PROFILING_END(det_ctx, s, match, p);
                         goto end;
                     }
                 }
@@ -585,7 +585,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id);
                 if (inspect_tx == NULL) {
                     FLOWLOCK_UNLOCK(f);
-                    RULE_PROFILING_END(det_ctx, s, match);
+                    RULE_PROFILING_END(det_ctx, s, match, p);
                     goto end;
                 }
                 while (engine != NULL) {
@@ -647,7 +647,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                             inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
                     }
             }
-            RULE_PROFILING_END(det_ctx, s, match);
+            RULE_PROFILING_END(det_ctx, s, match, p);
 
             if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
                 if (sm == NULL || inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH) {

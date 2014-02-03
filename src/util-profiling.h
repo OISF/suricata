@@ -36,11 +36,12 @@ extern __thread int profiling_rules_entered;
 
 void SCProfilingPrintPacketProfile(Packet *);
 void SCProfilingAddPacket(Packet *);
+int SCProfileRuleStart(Packet *p);
 
-#define RULE_PROFILING_START \
+#define RULE_PROFILING_START(p) \
     uint64_t profile_rule_start_ = 0; \
     uint64_t profile_rule_end_ = 0; \
-    if (profiling_rules_enabled) { \
+    if (profiling_rules_enabled && SCProfileRuleStart((p))) { \
         if (profiling_rules_entered > 0) { \
             SCLogError(SC_ERR_FATAL, "Re-entered profiling, exiting."); \
             exit(1); \
@@ -49,8 +50,8 @@ void SCProfilingAddPacket(Packet *);
         profile_rule_start_ = UtilCpuGetTicks(); \
     }
 
-#define RULE_PROFILING_END(ctx, r, m) \
-    if (profiling_rules_enabled) { \
+#define RULE_PROFILING_END(ctx, r, m, p) \
+    if (profiling_rules_enabled && ((p)->flags & PKT_PROFILE)) { \
         profile_rule_end_ = UtilCpuGetTicks(); \
         SCProfilingRuleUpdateCounter(ctx, r->profiling_id, \
             profile_rule_end_ - profile_rule_start_, m); \
@@ -85,14 +86,18 @@ extern __thread int profiling_keyword_entered;
         profiling_keyword_entered--; \
     }
 
+PktProfiling *SCProfilePacketStart(void);
+
 #define PACKET_PROFILING_START(p)                                   \
     if (profiling_packets_enabled) {                                \
-        (p)->profile.ticks_start = UtilCpuGetTicks();               \
+        (p)->profile = SCProfilePacketStart();                      \
+        if ((p)->profile != NULL)                                   \
+            (p)->profile->ticks_start = UtilCpuGetTicks();          \
     }
 
 #define PACKET_PROFILING_END(p)                                     \
-    if (profiling_packets_enabled) {                                \
-        (p)->profile.ticks_end = UtilCpuGetTicks();                 \
+    if (profiling_packets_enabled && (p)->profile != NULL) {        \
+        (p)->profile->ticks_end = UtilCpuGetTicks();                \
         SCProfilingAddPacket((p));                                  \
     }
 
@@ -115,20 +120,20 @@ extern __thread int profiling_keyword_entered;
     } while (0)
 
 #define PACKET_PROFILING_COPY_LOCKS(p, id) do {                     \
-            (p)->profile.tmm[(id)].mutex_lock_cnt = mutex_lock_cnt; \
-            (p)->profile.tmm[(id)].mutex_lock_wait_ticks = mutex_lock_wait_ticks; \
-            (p)->profile.tmm[(id)].mutex_lock_contention = mutex_lock_contention; \
-            (p)->profile.tmm[(id)].spin_lock_cnt = spin_lock_cnt;   \
-            (p)->profile.tmm[(id)].spin_lock_wait_ticks = spin_lock_wait_ticks; \
-            (p)->profile.tmm[(id)].spin_lock_contention = spin_lock_contention; \
-            (p)->profile.tmm[(id)].rww_lock_cnt = rww_lock_cnt;   \
-            (p)->profile.tmm[(id)].rww_lock_wait_ticks = rww_lock_wait_ticks; \
-            (p)->profile.tmm[(id)].rww_lock_contention = rww_lock_contention; \
-            (p)->profile.tmm[(id)].rwr_lock_cnt = rwr_lock_cnt;   \
-            (p)->profile.tmm[(id)].rwr_lock_wait_ticks = rwr_lock_wait_ticks; \
-            (p)->profile.tmm[(id)].rwr_lock_contention = rwr_lock_contention; \
-        record_locks = 0;\
-        SCProfilingAddPacketLocks((p));                                  \
+            (p)->profile->tmm[(id)].mutex_lock_cnt = mutex_lock_cnt;                \
+            (p)->profile->tmm[(id)].mutex_lock_wait_ticks = mutex_lock_wait_ticks;  \
+            (p)->profile->tmm[(id)].mutex_lock_contention = mutex_lock_contention;  \
+            (p)->profile->tmm[(id)].spin_lock_cnt = spin_lock_cnt;                  \
+            (p)->profile->tmm[(id)].spin_lock_wait_ticks = spin_lock_wait_ticks;    \
+            (p)->profile->tmm[(id)].spin_lock_contention = spin_lock_contention;    \
+            (p)->profile->tmm[(id)].rww_lock_cnt = rww_lock_cnt;                    \
+            (p)->profile->tmm[(id)].rww_lock_wait_ticks = rww_lock_wait_ticks;      \
+            (p)->profile->tmm[(id)].rww_lock_contention = rww_lock_contention;      \
+            (p)->profile->tmm[(id)].rwr_lock_cnt = rwr_lock_cnt;                    \
+            (p)->profile->tmm[(id)].rwr_lock_wait_ticks = rwr_lock_wait_ticks;      \
+            (p)->profile->tmm[(id)].rwr_lock_contention = rwr_lock_contention;      \
+        record_locks = 0;                                                           \
+        SCProfilingAddPacketLocks((p));                                             \
     } while(0)
 #else
 #define PACKET_PROFILING_RESET_LOCKS
@@ -136,24 +141,25 @@ extern __thread int profiling_keyword_entered;
 #endif
 
 #define PACKET_PROFILING_TMM_START(p, id)                           \
-    if (profiling_packets_enabled) {                                \
+    if (profiling_packets_enabled && (p)->profile != NULL) {        \
         if ((id) < TMM_SIZE) {                                      \
-            (p)->profile.tmm[(id)].ticks_start = UtilCpuGetTicks(); \
+            (p)->profile->tmm[(id)].ticks_start = UtilCpuGetTicks();\
             PACKET_PROFILING_RESET_LOCKS;                           \
         }                                                           \
     }
 
 #define PACKET_PROFILING_TMM_END(p, id)                             \
-    if (profiling_packets_enabled) {                                \
+    if (profiling_packets_enabled && (p)->profile != NULL) {        \
         if ((id) < TMM_SIZE) {                                      \
             PACKET_PROFILING_COPY_LOCKS((p), (id));                 \
-            (p)->profile.tmm[(id)].ticks_end = UtilCpuGetTicks();   \
+            (p)->profile->tmm[(id)].ticks_end = UtilCpuGetTicks();  \
         }                                                           \
     }
 
 #define PACKET_PROFILING_RESET(p)                                   \
-    if (profiling_packets_enabled) {                                \
-        memset(&(p)->profile, 0x00, sizeof(PktProfiling));          \
+    if (profiling_packets_enabled && (p)->profile != NULL) {        \
+        SCFree((p)->profile);                                       \
+        (p)->profile = NULL;                                        \
     }
 
 #define PACKET_PROFILING_APP_START(dp, id)                          \
@@ -197,28 +203,28 @@ extern __thread int profiling_keyword_entered;
     }
 
 #define PACKET_PROFILING_APP_STORE(dp, p)                           \
-    if (profiling_packets_enabled) {                                \
+    if (profiling_packets_enabled && (p)->profile != NULL) {        \
         if ((dp)->alproto < ALPROTO_MAX) {                          \
-            (p)->profile.app[(dp)->alproto].ticks_spent += (dp)->ticks_spent;   \
-            (p)->profile.proto_detect += (dp)->proto_detect_ticks_spent;        \
+            (p)->profile->app[(dp)->alproto].ticks_spent += (dp)->ticks_spent;   \
+            (p)->profile->proto_detect += (dp)->proto_detect_ticks_spent;        \
         }                                                           \
     }
 
 #define PACKET_PROFILING_DETECT_START(p, id)                        \
-    if (profiling_packets_enabled) {                                \
+    if (profiling_packets_enabled && (p)->profile != NULL) {        \
         if ((id) < PROF_DETECT_SIZE) {                              \
-            (p)->profile.detect[(id)].ticks_start = UtilCpuGetTicks(); \
+            (p)->profile->detect[(id)].ticks_start = UtilCpuGetTicks(); \
         }                                                           \
     }
 
 #define PACKET_PROFILING_DETECT_END(p, id)                          \
-    if (profiling_packets_enabled) {                                \
+    if (profiling_packets_enabled  && (p)->profile != NULL) {       \
         if ((id) < PROF_DETECT_SIZE) {                              \
-            (p)->profile.detect[(id)].ticks_end = UtilCpuGetTicks();\
-            if ((p)->profile.detect[(id)].ticks_start != 0 &&       \
-                    (p)->profile.detect[(id)].ticks_start < (p)->profile.detect[(id)].ticks_end) {  \
-                (p)->profile.detect[(id)].ticks_spent +=            \
-                ((p)->profile.detect[(id)].ticks_end - (p)->profile.detect[(id)].ticks_start);  \
+            (p)->profile->detect[(id)].ticks_end = UtilCpuGetTicks();\
+            if ((p)->profile->detect[(id)].ticks_start != 0 &&       \
+                    (p)->profile->detect[(id)].ticks_start < (p)->profile->detect[(id)].ticks_end) {  \
+                (p)->profile->detect[(id)].ticks_spent +=            \
+                ((p)->profile->detect[(id)].ticks_end - (p)->profile->detect[(id)].ticks_start);  \
             }                                                       \
         }                                                           \
     }
@@ -245,8 +251,8 @@ void SCProfilingDump(void);
 
 #else
 
-#define RULE_PROFILING_START
-#define RULE_PROFILING_END(a,b,c)
+#define RULE_PROFILING_START(p)
+#define RULE_PROFILING_END(a,b,c,p)
 
 #define KEYWORD_PROFILING_SET_LIST(a,b)
 #define KEYWORD_PROFILING_START
