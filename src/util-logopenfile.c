@@ -186,10 +186,16 @@ SCConfLogOpenGeneric(ConfNode *conf,
     // Now, what have we been asked to open?
     if (strcasecmp(filetype, "unix_stream") == 0) {
         log_ctx->fp = SCLogOpenUnixSocketFp(log_path, SOCK_STREAM);
+        if (log_ctx->fp == NULL)
+            return -1; // Error already logged by Open...Fp routine
     } else if (strcasecmp(filetype, "unix_dgram") == 0) {
         log_ctx->fp = SCLogOpenUnixSocketFp(log_path, SOCK_DGRAM);
+        if (log_ctx->fp == NULL)
+            return -1; // Error already logged by Open...Fp routine
     } else if (strcasecmp(filetype, DEFAULT_LOG_FILETYPE) == 0) {
         log_ctx->fp = SCLogOpenFileFp(log_path, append);
+        if (log_ctx->fp == NULL)
+            return -1; // Error already logged by Open...Fp routine
 #ifdef __tile__
     } else if (strcasecmp(filetype, "pcie") == 0) {
         log_ctx->pcie_fp = SCLogOpenPcieFileFp(log_path, append);
@@ -205,9 +211,6 @@ SCConfLogOpenGeneric(ConfNode *conf,
                    "or \"unix_dgram\"",
                    conf->name);
     }
-
-    if (log_ctx->fp == NULL)
-        return -1; // Error already logged by Open...Fp routine
 
     SCLogInfo("%s output device (%s) initialized: %s", conf->name, filetype,
               filename);
@@ -470,6 +473,24 @@ static PcieFile *TilePcieOpenFileFp(const char *path, const char append_setting)
     PcieWriteOpen(fp, path, append_setting);
 
     return fp;
+}
+
+/** \brief Close a PCIe file
+ *  \param PCIe file desriptor
+ */
+void TilePcieCloseFileFp(PcieFile *pcie_fp)
+{
+  SCLogInfo("Closing Tile-Gx PCIe");
+
+  /* TODO: Need to count open files and close when reaches zero. */
+    SCMutexLock(&pcie_mutex);
+
+    if (gxpci_context) {
+        gxpci_destroy(gxpci_context);
+        gxpci_context = NULL;
+    }
+
+    SCMutexUnlock(&pcie_mutex);
 }
 
 /** \brief open the indicated file remotely over PCIe to a host

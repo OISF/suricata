@@ -28,6 +28,7 @@
 #include "tm-threads.h"
 #include "util-debug.h"
 #include "threads.h"
+#include "util-logopenfile.h"
 
 void TmModuleDebugList(void) {
     TmModule *t;
@@ -155,7 +156,7 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
 
 #ifdef __tile__
     if (lf_ctx->pcie_fp != NULL) {
-        /* TODO: Flush PCIe connection and close. */
+        TilePcieCloseFileFp(lf_ctx->pcie_fp);
         free(lf_ctx->pcie_fp);
     }
 #endif

@@ -181,7 +181,8 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
                             ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: "
                             "%" PRIu32 "] [**] [Raw pkt: ", timebuf, action, pa->s->gid,
                             pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio);
-            PrintBufferRawLineHex(alert_buffer, &size, GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
+            PrintBufferRawLineHex(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
+                                  GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
             if (p->pcap_cnt != 0) {
                 PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
                                 "] [pcap file packet: %"PRIu64"]\n", p->pcap_cnt);
