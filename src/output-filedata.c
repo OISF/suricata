@@ -30,6 +30,7 @@
 #include "app-layer-parser.h"
 #include "detect-filemagic.h"
 #include "conf.h"
+#include "util-profiling.h"
 
 typedef struct OutputLoggerThreadStore_ {
     void *thread_data;
@@ -50,6 +51,7 @@ typedef struct OutputFiledataLogger_ {
     OutputCtx *output_ctx;
     struct OutputFiledataLogger_ *next;
     const char *name;
+    TmmId module_id;
 } OutputFiledataLogger;
 
 static OutputFiledataLogger *list = NULL;
@@ -60,6 +62,10 @@ static int g_waldo_deinit = 0;
 
 int OutputRegisterFiledataLogger(const char *name, FiledataLogger LogFunc, OutputCtx *output_ctx)
 {
+    int module_id = TmModuleGetIdByName(name);
+    if (module_id < 0)
+        return -1;
+
     OutputFiledataLogger *op = SCMalloc(sizeof(*op));
     if (op == NULL)
         return -1;
@@ -68,6 +74,7 @@ int OutputRegisterFiledataLogger(const char *name, FiledataLogger LogFunc, Outpu
     op->LogFunc = LogFunc;
     op->output_ctx = output_ctx;
     op->name = name;
+    op->module_id = (TmmId) module_id;
 
     if (list == NULL)
         list = op;
@@ -187,8 +194,10 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data, P
                     BUG_ON(logger->LogFunc == NULL);
 
                     SCLogDebug("logger %p", logger);
+                    PACKET_PROFILING_TMM_START(p, logger->module_id);
                     logger->LogFunc(tv, store->thread_data, (const Packet *)p, (const File *)ff,
                             (const FileData *)write_ffd, flags);
+                    PACKET_PROFILING_TMM_END(p, logger->module_id);
                     file_logged = 1;
 
                     logger = logger->next;
