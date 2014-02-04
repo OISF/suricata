@@ -531,6 +531,17 @@ void SCProfilingDumpPacketStats(void) {
     }
     fprintf(fp, "\nGeneral detection engine stats:\n");
 
+    total = 0;
+    for (m = 0; m < PROF_DETECT_SIZE; m++) {
+        int p;
+        for (p = 0; p < 257; p++) {
+            SCProfilePacketData *pd = &packet_profile_detect_data4[m][p];
+            total += pd->tot;
+            pd = &packet_profile_detect_data6[m][p];
+            total += pd->tot;
+        }
+    }
+
     fprintf(fp, "\n%-24s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s   %-12s\n",
             "Detection phase", "IP ver", "Proto", "cnt", "min", "max", "avg", "tot");
     fprintf(fp, "%-24s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s   %-12s\n",
