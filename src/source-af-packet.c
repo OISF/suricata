@@ -1688,6 +1688,11 @@ TmEcode DecodeAFP(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
     SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
     SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
 
+    /* If suri has set vlan during reading, we increase vlan counter */
+    if (p->vlan_idx) {
+        SCPerfCounterIncr(dtv->counter_vlan, tv->sc_perf_pca);
+    }
+
     /* call the decoder */
     switch(p->datalink) {
         case LINKTYPE_LINUX_SLL:
