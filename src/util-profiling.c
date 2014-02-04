@@ -383,6 +383,9 @@ void SCProfilingDumpPacketStats(void) {
     int m;
     total = 0;
     for (m = 0; m < TMM_SIZE; m++) {
+        if (tmm_modules[m].flags & TM_FLAG_LOGAPI_TM)
+            continue;
+
         int p;
         for (p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data4[m][p];
@@ -394,6 +397,9 @@ void SCProfilingDumpPacketStats(void) {
     }
 
     for (m = 0; m < TMM_SIZE; m++) {
+        if (tmm_modules[m].flags & TM_FLAG_LOGAPI_TM)
+            continue;
+
         int p;
         for (p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data4[m][p];
@@ -418,6 +424,9 @@ void SCProfilingDumpPacketStats(void) {
     }
 
     for (m = 0; m < TMM_SIZE; m++) {
+        if (tmm_modules[m].flags & TM_FLAG_LOGAPI_TM)
+            continue;
+
         int p;
         for (p = 0; p < 257; p++) {
             SCProfilePacketData *pd = &packet_profile_tmm_data6[m][p];
@@ -529,6 +538,87 @@ void SCProfilingDumpPacketStats(void) {
             total += pd->tot;
         }
     }
+
+
+    fprintf(fp, "\n%-24s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s   %-12s  %-3s",
+            "Log Thread Module", "IP ver", "Proto", "cnt", "min", "max", "avg", "tot", "%%");
+#ifdef PROFILE_LOCKING
+    fprintf(fp, "   %-10s   %-10s   %-12s   %-12s   %-10s   %-10s   %-12s   %-12s\n",
+            "locks", "ticks", "cont.", "cont.avg", "slocks", "sticks", "scont.", "scont.avg");
+#else
+    fprintf(fp, "\n");
+#endif
+    fprintf(fp, "%-24s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s   %-12s  %-3s",
+            "------------------------", "------", "-----", "----------", "------------", "------------", "-----------", "-----------", "---");
+#ifdef PROFILE_LOCKING
+    fprintf(fp, "   %-10s   %-10s   %-12s   %-12s   %-10s   %-10s   %-12s   %-12s\n",
+            "--------", "--------", "----------", "-----------", "--------", "--------", "------------", "-----------");
+#else
+    fprintf(fp, "\n");
+#endif
+    total = 0;
+    for (m = 0; m < TMM_SIZE; m++) {
+        if (!(tmm_modules[m].flags & TM_FLAG_LOGAPI_TM))
+            continue;
+
+        int p;
+        for (p = 0; p < 257; p++) {
+            SCProfilePacketData *pd = &packet_profile_tmm_data4[m][p];
+            total += pd->tot;
+
+            pd = &packet_profile_tmm_data6[m][p];
+            total += pd->tot;
+        }
+    }
+
+    for (m = 0; m < TMM_SIZE; m++) {
+        if (!(tmm_modules[m].flags & TM_FLAG_LOGAPI_TM))
+            continue;
+
+        int p;
+        for (p = 0; p < 257; p++) {
+            SCProfilePacketData *pd = &packet_profile_tmm_data4[m][p];
+
+            if (pd->cnt == 0) {
+                continue;
+            }
+
+            FormatNumber(pd->tot, totalstr, sizeof(totalstr));
+            double percent = (long double)pd->tot /
+                (long double)total * 100;
+
+            fprintf(fp, "%-24s    IPv4     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"  %12s  %6.2f",
+                    TmModuleTmmIdToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
+#ifdef PROFILE_LOCKING
+            fprintf(fp, "  %10.2f  %12"PRIu64"  %12"PRIu64"  %10.2f  %10.2f  %12"PRIu64"  %12"PRIu64"  %10.2f\n",
+                    (float)pd->lock/pd->cnt, (uint64_t)pd->ticks/pd->cnt, pd->contention, (float)pd->contention/pd->cnt, (float)pd->slock/pd->cnt, (uint64_t)pd->sticks/pd->cnt, pd->scontention, (float)pd->scontention/pd->cnt);
+#else
+            fprintf(fp, "\n");
+#endif
+        }
+    }
+
+    for (m = 0; m < TMM_SIZE; m++) {
+        if (!(tmm_modules[m].flags & TM_FLAG_LOGAPI_TM))
+            continue;
+
+        int p;
+        for (p = 0; p < 257; p++) {
+            SCProfilePacketData *pd = &packet_profile_tmm_data6[m][p];
+
+            if (pd->cnt == 0) {
+                continue;
+            }
+
+            FormatNumber(pd->tot, totalstr, sizeof(totalstr));
+            double percent = (long double)pd->tot /
+                (long double)total * 100;
+
+            fprintf(fp, "%-24s    IPv6     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"  %12s  %6.2f\n",
+                    TmModuleTmmIdToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
+        }
+    }
+
     fprintf(fp, "\nGeneral detection engine stats:\n");
 
     total = 0;
