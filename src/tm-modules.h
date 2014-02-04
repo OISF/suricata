@@ -106,6 +106,7 @@ int LogFileFreeCtx(LogFileCtx *);
 
 TmModule *TmModuleGetByName(const char *name);
 TmModule *TmModuleGetById(int id);
+int TmModuleGetIdByName(const char *name);
 int TmModuleGetIDForTM(TmModule *tm);
 TmEcode TmModuleRegister(char *name, int (*module_func)(ThreadVars *, Packet *, void *));
 void TmModuleDebugList(void);
