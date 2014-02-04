@@ -585,6 +585,7 @@ void TmModuleLogTlsLogRegister(void)
     tmm_modules[TMM_LOGTLSLOG].ThreadDeinit = LogTlsLogThreadDeinit;
     tmm_modules[TMM_LOGTLSLOG].RegisterTests = NULL;
     tmm_modules[TMM_LOGTLSLOG].cap_flags = 0;
+    tmm_modules[TMM_LOGTLSLOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterPacketModule(MODULE_NAME, "tls-log", LogTlsLogInitCtx,
             LogTlsLogger, LogTlsCondition);

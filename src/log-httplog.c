@@ -70,6 +70,7 @@ void TmModuleLogHttpLogRegister (void) {
     tmm_modules[TMM_LOGHTTPLOG].ThreadDeinit = LogHttpLogThreadDeinit;
     tmm_modules[TMM_LOGHTTPLOG].RegisterTests = NULL;
     tmm_modules[TMM_LOGHTTPLOG].cap_flags = 0;
+    tmm_modules[TMM_LOGHTTPLOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterTxModule(MODULE_NAME, "http-log", LogHttpLogInitCtx,
             ALPROTO_HTTP, LogHttpLogger);

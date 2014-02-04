@@ -358,6 +358,7 @@ void TmModuleJsonHttpLogRegister (void) {
     tmm_modules[TMM_JSONHTTPLOG].ThreadDeinit = JsonHttpLogThreadDeinit;
     tmm_modules[TMM_JSONHTTPLOG].RegisterTests = NULL;
     tmm_modules[TMM_JSONHTTPLOG].cap_flags = 0;
+    tmm_modules[TMM_JSONHTTPLOG].flags = TM_FLAG_LOGAPI_TM;
 
     /* register as separate module */
     OutputRegisterTxModule("JsonHttpLog", "http-json-log", OutputHttpLogInit,

@@ -349,6 +349,7 @@ void TmModuleJsonTlsLogRegister (void) {
     tmm_modules[TMM_JSONTLSLOG].ThreadDeinit = JsonTlsLogThreadDeinit;
     tmm_modules[TMM_JSONTLSLOG].RegisterTests = NULL;
     tmm_modules[TMM_JSONTLSLOG].cap_flags = 0;
+    tmm_modules[TMM_JSONTLSLOG].flags = TM_FLAG_LOGAPI_TM;
 
     /* register as separate module */
     OutputRegisterPacketModule("JsonTlsLog", "tls-json-log", OutputTlsLogInit,

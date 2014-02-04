@@ -312,6 +312,7 @@ void TmModuleJsonDropLogRegister (void) {
     tmm_modules[TMM_JSONDROPLOG].ThreadInit = JsonDropLogThreadInit;
     tmm_modules[TMM_JSONDROPLOG].ThreadDeinit = JsonDropLogThreadDeinit;
     tmm_modules[TMM_JSONDROPLOG].cap_flags = 0;
+    tmm_modules[TMM_JSONDROPLOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterPacketModule(MODULE_NAME, "drop-json-log",
             JsonDropLogInitCtx, JsonDropLogger, JsonDropLogCondition);

@@ -398,6 +398,7 @@ void TmModuleLogFileLogRegister (void) {
     tmm_modules[TMM_FILELOG].ThreadDeinit = LogFileLogThreadDeinit;
     tmm_modules[TMM_FILELOG].RegisterTests = NULL;
     tmm_modules[TMM_FILELOG].cap_flags = 0;
+    tmm_modules[TMM_FILELOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterFileModule(MODULE_NAME, "file-log", LogFileLogInitCtx,
             LogFileLogger);

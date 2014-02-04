@@ -442,6 +442,7 @@ void TmModuleLogFilestoreRegister (void) {
     tmm_modules[TMM_FILESTORE].ThreadDeinit = LogFilestoreLogThreadDeinit;
     tmm_modules[TMM_FILESTORE].RegisterTests = NULL;
     tmm_modules[TMM_FILESTORE].cap_flags = 0;
+    tmm_modules[TMM_FILESTORE].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterFiledataModule(MODULE_NAME, "file", LogFilestoreLogInitCtx,
             LogFilestoreLogger);

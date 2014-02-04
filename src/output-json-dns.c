@@ -377,6 +377,7 @@ void TmModuleJsonDnsLogRegister (void) {
     tmm_modules[TMM_JSONDNSLOG].ThreadDeinit = LogDnsLogThreadDeinit;
     tmm_modules[TMM_JSONDNSLOG].RegisterTests = NULL;
     tmm_modules[TMM_JSONDNSLOG].cap_flags = 0;
+    tmm_modules[TMM_JSONDNSLOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterTxModule(MODULE_NAME, "dns-json-log", JsonDnsLogInitCtx,
             ALPROTO_DNS, JsonDnsLogger);

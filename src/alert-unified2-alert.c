@@ -255,6 +255,7 @@ void TmModuleUnified2AlertRegister (void) {
     tmm_modules[TMM_ALERTUNIFIED2ALERT].ThreadDeinit = Unified2AlertThreadDeinit;
     tmm_modules[TMM_ALERTUNIFIED2ALERT].RegisterTests = Unified2RegisterTests;
     tmm_modules[TMM_ALERTUNIFIED2ALERT].cap_flags = 0;
+    tmm_modules[TMM_ALERTUNIFIED2ALERT].flags = TM_FLAG_LOGAPI_TM;
 
     //OutputRegisterModule(MODULE_NAME, "unified2-alert", Unified2AlertInitCtx);
     OutputRegisterPacketModule(MODULE_NAME, "unified2-alert",
