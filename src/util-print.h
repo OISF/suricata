@@ -41,7 +41,7 @@
         }                                                               \
     } while (0)
 
-void PrintRawLineHexFp(FILE *, uint8_t *, uint32_t);
+void PrintBufferRawLineHex(char *, int *,int, uint8_t *, uint32_t);
 void PrintRawUriFp(FILE *, uint8_t *, uint32_t);
 void PrintRawUriBuf(char *, uint32_t *, uint32_t,
                     uint8_t *, uint32_t);
