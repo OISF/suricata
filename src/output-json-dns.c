@@ -222,22 +222,13 @@ static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-#if QUERY
-    if (PKT_IS_TOSERVER(p)) {
-        DNSQueryEntry *entry = NULL;
-        TAILQ_FOREACH(entry, &tx->query_list, next) {
-            LogQuery(aft, timebuf, srcip, dstip, sp, dp, tx, proto_s, entry);
-        }
-    } else
-#endif
-    if ((PKT_IS_TOCLIENT(p))) {
-        DNSQueryEntry *query = NULL;
-        TAILQ_FOREACH(query, &tx->query_list, next) {
-            LogQuery(td, js, tx, query);
-        }
-
-        LogAnswers(td, js, tx);
+    DNSQueryEntry *query = NULL;
+    TAILQ_FOREACH(query, &tx->query_list, next) {
+        LogQuery(td, js, tx, query);
     }
+
+    LogAnswers(td, js, tx);
+
     json_decref(js);
 
     SCReturnInt(TM_ECODE_OK);
