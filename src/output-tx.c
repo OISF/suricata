@@ -28,6 +28,7 @@
 #include "output-tx.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
+#include "util-profiling.h"
 
 typedef struct OutputLoggerThreadStore_ {
     void *thread_data;
@@ -49,12 +50,17 @@ typedef struct OutputTxLogger_ {
     OutputCtx *output_ctx;
     struct OutputTxLogger_ *next;
     const char *name;
+    TmmId module_id;
 } OutputTxLogger;
 
 static OutputTxLogger *list = NULL;
 
 int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc, OutputCtx *output_ctx)
 {
+    int module_id = TmModuleGetIdByName(name);
+    if (module_id < 0)
+        return -1;
+
     OutputTxLogger *op = SCMalloc(sizeof(*op));
     if (op == NULL)
         return -1;
@@ -64,6 +70,7 @@ int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc,
     op->LogFunc = LogFunc;
     op->output_ctx = output_ctx;
     op->name = name;
+    op->module_id = (TmmId) module_id;
 
     if (list == NULL)
         list = op;
@@ -149,7 +156,9 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
             SCLogDebug("logger %p", logger);
             if (logger->alproto == alproto) {
                 SCLogDebug("alproto match, logging tx_id %ju", tx_id);
+                PACKET_PROFILING_TMM_START(p, logger->module_id);
                 logger->LogFunc(tv, store->thread_data, p, f, alstate, tx, tx_id);
+                PACKET_PROFILING_TMM_END(p, logger->module_id);
                 proto_logged = 1;
             }
 

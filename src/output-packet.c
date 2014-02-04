@@ -26,6 +26,7 @@
 #include "suricata-common.h"
 #include "tm-modules.h"
 #include "output-packet.h"
+#include "util-profiling.h"
 
 typedef struct OutputLoggerThreadStore_ {
     void *thread_data;
@@ -47,11 +48,16 @@ typedef struct OutputPacketLogger_ {
     OutputCtx *output_ctx;
     struct OutputPacketLogger_ *next;
     const char *name;
+    TmmId module_id;
 } OutputPacketLogger;
 
 static OutputPacketLogger *list = NULL;
 
 int OutputRegisterPacketLogger(const char *name, PacketLogger LogFunc, PacketLogCondition ConditionFunc, OutputCtx *output_ctx) {
+    int module_id = TmModuleGetIdByName(name);
+    if (module_id < 0)
+        return -1;
+
     OutputPacketLogger *op = SCMalloc(sizeof(*op));
     if (op == NULL)
         return -1;
@@ -61,6 +67,7 @@ int OutputRegisterPacketLogger(const char *name, PacketLogger LogFunc, PacketLog
     op->ConditionFunc = ConditionFunc;
     op->output_ctx = output_ctx;
     op->name = name;
+    op->module_id = (TmmId) module_id;
 
     if (list == NULL)
         list = op;
@@ -91,7 +98,9 @@ static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data, Pac
         BUG_ON(logger->LogFunc == NULL || logger->ConditionFunc == NULL);
 
         if ((logger->ConditionFunc(tv, (const Packet *)p)) == TRUE) {
+            PACKET_PROFILING_TMM_START(p, logger->module_id);
             logger->LogFunc(tv, store->thread_data, (const Packet *)p);
+            PACKET_PROFILING_TMM_END(p, logger->module_id);
         }
 
         logger = logger->next;
