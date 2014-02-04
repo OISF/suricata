@@ -287,8 +287,15 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_TXLOGGER);
         CASE_CODE (TMM_FILELOGGER);
         CASE_CODE (TMM_FILEDATALOGGER);
+        CASE_CODE (TMM_JSONALERTLOG);
+        CASE_CODE (TMM_JSONDROPLOG);
+        CASE_CODE (TMM_JSONDNSLOG);
+        CASE_CODE (TMM_JSONHTTPLOG);
+        CASE_CODE (TMM_JSONFILELOG);
+        CASE_CODE (TMM_JSONTLSLOG);
+        CASE_CODE (TMM_OUTPUTJSON);
 
-        default:
-            return "UNKNOWN";
+        CASE_CODE (TMM_SIZE);
     }
+    return "<unknown>";
 }
