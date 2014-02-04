@@ -565,6 +565,7 @@ void usage(const char *progname)
 #ifdef HAVE_MPIPE
     printf("\t--mpipe                              : run with tilegx mpipe interface(s)\n");
 #endif
+    printf("\t--set name=value                     : set a configuration value\n");
     printf("\n");
     printf("\nTo run the engine with default configuration on "
             "interface eth0 with signature file \"signatures.rules\", run the "
@@ -1054,6 +1055,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef HAVE_MPIPE
         {"mpipe", optional_argument, 0, 0},
 #endif
+        {"set", required_argument, 0, 0},
         {NULL, 0, NULL, 0}
     };
 
@@ -1338,6 +1340,20 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 }
             }
 #endif
+            else if (strcmp((long_opts[option_index]).name, "set") == 0) {
+                char *val = strchr(optarg, '=');
+                if (val == NULL) {
+                    SCLogError(SC_ERR_CMD_LINE,
+                        "Invalid argument for --set, must be key=val.");
+                    exit(EXIT_FAILURE);
+                }
+                *val++ = '\0';
+                if (ConfSetFinal(optarg, val) != 1) {
+                    fprintf(stderr, "Failed to set configuration value %s.",
+                        optarg);
+                    exit(EXIT_FAILURE);
+                }
+            }
             break;
         case 'c':
             conf_filename = optarg;
