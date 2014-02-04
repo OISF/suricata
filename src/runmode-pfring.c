@@ -37,7 +37,6 @@
 #include "util-runmodes.h"
 #include "util-device.h"
 
-static const char *default_mode_auto = NULL;
 static const char *default_mode_autofp = NULL;
 
 
@@ -55,7 +54,6 @@ const char *RunModeIdsPfringGetDefaultMode(void)
 
 void RunModeIdsPfringRegister(void)
 {
-    default_mode_auto = "autofp";
     RunModeRegisterNewRunMode(RUNMODE_PFRING, "auto",
                               "Multi threaded pfring mode",
                               RunModeIdsPfringAuto);

@@ -57,7 +57,6 @@
 
 extern int max_pending_packets;
 
-static const char *default_mode_auto = NULL;
 static const char *default_mode_autofp = NULL;
 
 const char *RunModeAFPGetDefaultMode(void)
@@ -67,7 +66,6 @@ const char *RunModeAFPGetDefaultMode(void)
 
 void RunModeIdsAFPRegister(void)
 {
-    default_mode_auto = "autofp";
     RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "auto",
                               "Multi threaded af-packet mode",
                               RunModeIdsAFPAuto);
