@@ -373,6 +373,7 @@ void TmModuleLogDnsLogRegister (void) {
     tmm_modules[TMM_LOGDNSLOG].ThreadDeinit = LogDnsLogThreadDeinit;
     tmm_modules[TMM_LOGDNSLOG].RegisterTests = NULL;
     tmm_modules[TMM_LOGDNSLOG].cap_flags = 0;
+    tmm_modules[TMM_LOGDNSLOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterTxModule(MODULE_NAME, "dns-log", LogDnsLogInitCtx,
             ALPROTO_DNS, LogDnsLogger);

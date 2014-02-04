@@ -223,6 +223,7 @@ void TmModuleAlertPcapInfoRegister (void) {
     tmm_modules[TMM_ALERTPCAPINFO].ThreadDeinit = AlertPcapInfoThreadDeinit;
     tmm_modules[TMM_ALERTPCAPINFO].RegisterTests = NULL;
     tmm_modules[TMM_ALERTPCAPINFO].cap_flags = 0;
+    tmm_modules[TMM_ALERTPCAPINFO].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterPacketModule(MODULE_NAME, "pcap-info",
         AlertPcapInfoInitCtx, AlertPcapInfoLogger, AlertPcapInfoCondition);

@@ -873,6 +873,7 @@ void TmModuleAlertPreludeRegister (void) {
     tmm_modules[TMM_ALERTPRELUDE].Func = NULL;
     tmm_modules[TMM_ALERTPRELUDE].ThreadDeinit = AlertPreludeThreadDeinit;
     tmm_modules[TMM_ALERTPRELUDE].cap_flags = 0;
+    tmm_modules[TMM_ALERTPRELUDE].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterPacketModule("AlertPrelude", "alert-prelude", AlertPreludeInitCtx,
             AlertPreludeLogger, AlertPreludeCondition);

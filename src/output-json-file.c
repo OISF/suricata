@@ -346,6 +346,7 @@ void TmModuleJsonFileLogRegister (void) {
     tmm_modules[TMM_JSONFILELOG].name = "JsonFileLog";
     tmm_modules[TMM_JSONFILELOG].ThreadInit = JsonFileLogThreadInit;
     tmm_modules[TMM_JSONFILELOG].ThreadDeinit = JsonFileLogThreadDeinit;
+    tmm_modules[TMM_JSONFILELOG].flags = TM_FLAG_LOGAPI_TM;
 
     /* register as child of eve-log */
     OutputRegisterFileSubModule("eve-log", "JsonFileLog", "eve-log.files",

@@ -414,6 +414,7 @@ void TmModuleAlertSyslogRegister (void) {
     tmm_modules[TMM_ALERTSYSLOG].ThreadDeinit = AlertSyslogThreadDeinit;
     tmm_modules[TMM_ALERTSYSLOG].RegisterTests = NULL;
     tmm_modules[TMM_ALERTSYSLOG].cap_flags = 0;
+    tmm_modules[TMM_ALERTSYSLOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterPacketModule(MODULE_NAME, "syslog",
         AlertSyslogInitCtx, AlertSyslogLogger, AlertSyslogCondition);

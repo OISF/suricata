@@ -495,6 +495,7 @@ void TmModuleLogDropLogRegister (void) {
     tmm_modules[TMM_LOGDROPLOG].RegisterTests = LogDropLogRegisterTests;
 #endif
     tmm_modules[TMM_LOGDROPLOG].cap_flags = 0;
+    tmm_modules[TMM_LOGDROPLOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterPacketModule(MODULE_NAME, "drop", LogDropLogInitCtx,
             LogDropLogger, LogDropCondition);
