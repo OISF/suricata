@@ -47,6 +47,12 @@
 #define MLD_LISTENER_REPORT         131
 #define MLD_LISTENER_REDUCTION      132
 
+#define ND_ROUTER_SOLICIT           133
+#define ND_ROUTER_ADVERT            134
+#define ND_NEIGHBOR_SOLICIT         135
+#define ND_NEIGHBOR_ADVERT          136
+#define ND_REDIRECT                 137
+
 /** Destination Unreachable Message (type=1) Code: */
 
 #define ICMP6_DST_UNREACH_NOROUTE       0 /* no route to destination */
