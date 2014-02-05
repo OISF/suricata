@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -37,6 +37,9 @@ typedef struct ConfNode_ {
 
     /**< Flag that sets this nodes value as final. */
     int final;
+
+    /**< Anchor, for alias resolution. */
+    char *anchor;
 
     struct ConfNode_ *parent;
     TAILQ_HEAD(, ConfNode_) head;
@@ -87,5 +90,7 @@ int ConfGetChildValueWithDefault(ConfNode *base, ConfNode *dflt, char *name, cha
 int ConfGetChildValueIntWithDefault(ConfNode *base, ConfNode *dflt, char *name, intmax_t *val);
 int ConfGetChildValueBoolWithDefault(ConfNode *base, ConfNode *dflt, char *name, int *val);
 char *ConfLoadCompleteIncludePath(char *);
+ConfNode *ConfNodeDeepCopy(ConfNode *src);
+ConfNode *ConfNodeLookupAnchor(char *anchor, ConfNode *root);
 
 #endif /* ! __CONF_H__ */
