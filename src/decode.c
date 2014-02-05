@@ -61,6 +61,7 @@
 #include "tmqh-packetpool.h"
 #include "util-profiling.h"
 #include "pkt-var.h"
+#include "util-mpm-ac.h"
 
 int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         uint8_t *pkt, uint16_t len, PacketQueue *pq, uint8_t proto)
