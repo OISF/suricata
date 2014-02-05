@@ -37,7 +37,7 @@
 typedef struct VLANHdr_ {
     uint16_t vlan_cfi;
     uint16_t protocol;  /**< protocol field */
-} VLANHdr;
+} __attribute__((__packed__)) VLANHdr;
 
 /** VLAN header length */
 #define VLAN_HEADER_LEN 4
