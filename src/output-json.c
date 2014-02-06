@@ -303,6 +303,10 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer) {
     if (json_out == ALERT_SYSLOG) {
         syslog(alert_syslog_level, "%s", js_s);
     } else if (json_out == ALERT_FILE) {
+        if (file_ctx->rollover_flag) {
+            SCConfLogReopen(file_ctx);
+            file_ctx->rollover_flag = 0;
+        }
         MemBufferWriteString(buffer, "%s\n", js_s);
         (void)MemBufferPrintToFPAsString(buffer, file_ctx->fp);
         fflush(file_ctx->fp);
@@ -356,6 +360,13 @@ void OutputJsonExitPrintStats(ThreadVars *tv, void *data) {
 
 }
 
+void OutputJsonRolloverNotification(OutputCtx *output_ctx)
+{
+    /* Delegate to the LogFileCtx. */
+    OutputJsonCtx *json_ctx = (OutputJsonCtx *)output_ctx->data;
+    json_ctx->file_ctx->rollover_flag = 1;
+}
+
 /**
  * \brief Create a new LogFileCtx for "fast" output style.
  * \param conf The configuration node for this output.
@@ -391,6 +402,10 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
         if (output_s != NULL) {
             if (strcmp(output_s, "file") == 0) {
                 json_ctx->json_out = ALERT_FILE;
+
+                /* For regular file only, register for rollover
+                 * notification. */
+                output_ctx->FileRollover = OutputJsonRolloverNotification;
             } else if (strcmp(output_s, "syslog") == 0) {
                 json_ctx->json_out = ALERT_SYSLOG;
             } else if (strcmp(output_s, "unix_dgram") == 0) {
