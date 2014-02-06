@@ -396,7 +396,7 @@
     AC_ARG_ENABLE(detection,
            AS_HELP_STRING([--disable-detection], [Disable Detection Modules])], [enable_detection="$enableval"],[enable_detection=yes])
     AS_IF([test "x$enable_detection" = "xno"], [
-        AC_DEFINE([HAVE_DETECT_DISABLED], [1], [Detection is disabled])]
+        AC_DEFINE([HAVE_DETECT_DISABLED], [1], [Detection is disabled])
     ])
 
     AM_CONDITIONAL([BUILD_PCIE_LOGGING], [test ! -z "$TILERA_ROOT"])
