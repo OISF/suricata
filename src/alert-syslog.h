@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -27,7 +27,7 @@
 #ifndef __ALERT_SYSLOG_H__
 #define __ALERT_SYSLOG_H__
 
-void TmModuleAlertSyslogRegister (void);
+void TmModuleAlertSyslogRegister(void);
 
 #endif /* __ALERT_SYSLOG_H__ */
 

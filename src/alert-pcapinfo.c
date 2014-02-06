@@ -1,4 +1,4 @@
-/* Copyright (C) 2011 Open Information Security Foundation
+/* Copyright (C) 2011-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -57,6 +57,7 @@
 #include "util-print.h"
 #include "util-proto-name.h"
 #include "util-optimize.h"
+#include "util-logopenfile.h"
 
 #define DEFAULT_LOG_FILENAME "alert-pcapinfo.log"
 /* We need a new file for each pcap */

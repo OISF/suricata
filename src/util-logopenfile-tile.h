@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -16,16 +16,17 @@
  */
 
 /**
- *
  * \file
  *
- * \author Pierre Chifflier <chifflier@edenwall.com>
- * \author Yoann Vandoorselaere <yoann.v@prelude-ids.com>
+ * \author Ken Steele, Tilera Corporation <suricata@tilera.com>
  */
 
-#ifndef __ALERT_PRELUDE_H__
-#define __ALERT_PRELUDE_H__
+#ifndef __UTIL_LOGOPENFILE_TILE_H__
+#define __UTIL_LOGOPENFILE_TILE_H__
 
-void TmModuleAlertPreludeRegister (void);
+#include "util-logopenfile.h"      /* LogFileCtx */
 
-#endif /* __ALERT_PRELUDE_H__ */
+PcieFile *TileOpenPcieFp(LogFileCtx *log_ctx, const char *path,
+                         const char *append_setting);
+
+#endif /* __UTIL_LOGOPENFILE_TILE_H__ */

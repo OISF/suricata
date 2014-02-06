@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -26,6 +26,49 @@
 
 #include "conf.h"            /* ConfNode   */
 #include "tm-modules.h"      /* LogFileCtx */
+
+typedef struct {
+    uint16_t fileno;
+} PcieFile;
+
+/** Global structure for Output Context */
+typedef struct LogFileCtx_ {
+    union {
+        FILE *fp;
+        PcieFile *pcie_fp;
+    };
+
+    int (*Write)(const char *buffer, int buffer_len, struct LogFileCtx_ *fp);
+    void (*Close)(struct LogFileCtx_ *fp);
+
+    /** It will be locked if the log/alert
+     * record cannot be written to the file in one call */
+    SCMutex fp_mutex;
+
+    /** The name of the file */
+    char *filename;
+
+    /**< Used by some alert loggers like the unified ones that append
+     * the date onto the end of files. */
+    char *prefix;
+
+    /** Generic size_limit and size_current
+     * They must be common to the threads accesing the same file */
+    uint64_t size_limit;    /**< file size limit */
+    uint64_t size_current;  /**< file current size */
+
+    /* Alerts on the module (not on the file) */
+    uint64_t alerts;
+    /* flag to avoid multiple threads printing the same stats */
+    uint8_t flags;
+} LogFileCtx;
+
+/* flags for LogFileCtx */
+#define LOGFILE_HEADER_WRITTEN 0x01
+#define LOGFILE_ALERTS_PRINTED 0x02
+
+LogFileCtx *LogFileNewCtx(void);
+int LogFileFreeCtx(LogFileCtx *);
 
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *);
 
