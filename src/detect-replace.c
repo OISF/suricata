@@ -59,7 +59,7 @@ extern int run_mode;
 #include "host.h"
 #include "util-profiling.h"
 
-static int DetectReplaceSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectReplaceSetup(DetectEngineCtx *, Signature *, char *);
 void DetectReplaceRegisterTests(void);
 
 void DetectReplaceRegister (void)
@@ -159,7 +159,9 @@ error:
  * earlier changes. Thus the highest priority modifications should be
  * applied last.
  */
-DetectReplaceList * DetectReplaceAddToList(DetectReplaceList *replist, uint8_t *found, DetectContentData *cd)
+DetectReplaceList *DetectReplaceAddToList(DetectReplaceList *replist,
+                                          uint8_t *found,
+                                          DetectContentData *cd)
 {
     DetectReplaceList *newlist;
 
@@ -187,7 +189,7 @@ void DetectReplaceExecute(Packet *p, DetectReplaceList *replist)
         return;
 
     SCLogDebug("replace: Executing match");
-    while(replist) {
+    while (replist) {
         memcpy(replist->found, replist->cd->replace, replist->cd->replace_len);
         SCLogDebug("replace: injecting '%s'", replist->cd->replace);
         p->flags |= PKT_STREAM_MODIFIED;
@@ -202,7 +204,7 @@ void DetectReplaceExecute(Packet *p, DetectReplaceList *replist)
 void DetectReplaceFree(DetectReplaceList *replist)
 {
     DetectReplaceList *tlist = NULL;
-    while(replist) {
+    while (replist) {
         SCLogDebug("replace: Freeing match");
         tlist = replist;
         replist = replist->next;
@@ -221,8 +223,10 @@ void DetectReplaceFree(DetectReplaceList *replist)
  * \retval return 1 if match
  * \retval return 0 if not
  */
-int DetectReplaceLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, char *sig,
-                                      uint32_t sid, uint8_t *pp, uint16_t *len)
+static
+int DetectReplaceLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize,
+                                      char *sig, uint32_t sid, uint8_t *pp,
+                                      uint16_t *len)
 {
     int result = 0;
 
@@ -391,7 +395,7 @@ int DetectReplaceLongPatternMatchTestUDPWrp(char *sig, uint32_t sid, char *sig_r
 /**
  * \test Check if replace is working
  */
-int DetectReplaceMatchTest01()
+static int DetectReplaceMatchTest01(void)
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"big\"; replace:\"pig\"; sid:1;)";
@@ -403,7 +407,7 @@ int DetectReplaceMatchTest01()
 /**
  * \test Check if replace is working with offset
  */
-int DetectReplaceMatchTest02()
+static int DetectReplaceMatchTest02(void)
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"th\"; offset: 4; replace:\"TH\"; sid:1;)";
@@ -415,7 +419,7 @@ int DetectReplaceMatchTest02()
 /**
  * \test Check if replace is working with offset and keyword inversion
  */
-int DetectReplaceMatchTest03()
+static int DetectReplaceMatchTest03(void)
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"th\"; replace:\"TH\"; offset: 4; sid:1;)";
@@ -427,7 +431,7 @@ int DetectReplaceMatchTest03()
 /**
  * \test Check if replace is working with second content
  */
-int DetectReplaceMatchTest04()
+static int DetectReplaceMatchTest04(void)
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"th\"; replace:\"TH\"; content:\"patter\"; replace:\"matter\"; sid:1;)";
@@ -439,7 +443,7 @@ int DetectReplaceMatchTest04()
 /**
  * \test Check if replace is not done when second content don't match
  */
-int DetectReplaceMatchTest05()
+static int DetectReplaceMatchTest05(void)
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"th\"; replace:\"TH\"; content:\"nutella\"; sid:1;)";
@@ -452,7 +456,7 @@ int DetectReplaceMatchTest05()
  * \test Check if replace is not done when second content match and not
  * first
  */
-int DetectReplaceMatchTest06()
+static int DetectReplaceMatchTest06(void)
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"nutella\"; replace:\"commode\"; content:\"this is\"; sid:1;)";
@@ -464,7 +468,7 @@ int DetectReplaceMatchTest06()
 /**
  * \test Check if replace is working when nocase used
  */
-int DetectReplaceMatchTest07()
+static int DetectReplaceMatchTest07(void)
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"BiG\"; nocase; replace:\"pig\"; sid:1;)";
@@ -476,7 +480,7 @@ int DetectReplaceMatchTest07()
 /**
  * \test Check if replace is working when depth is used
  */
-int DetectReplaceMatchTest08()
+static int DetectReplaceMatchTest08(void)
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"big\"; depth:17; replace:\"pig\"; sid:1;)";
@@ -488,7 +492,7 @@ int DetectReplaceMatchTest08()
 /**
  * \test Check if replace is working when depth block match used
  */
-int DetectReplaceMatchTest09()
+static int DetectReplaceMatchTest09(void)
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"big\"; depth:16; replace:\"pig\"; sid:1;)";
@@ -500,7 +504,7 @@ int DetectReplaceMatchTest09()
 /**
  * \test Check if replace is working when depth block match used
  */
-int DetectReplaceMatchTest10()
+static int DetectReplaceMatchTest10(void)
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"big\"; depth:17; replace:\"pig\"; offset: 14; sid:1;)";
@@ -512,7 +516,7 @@ int DetectReplaceMatchTest10()
 /**
  * \test Check if replace is working with within
  */
-int DetectReplaceMatchTest11()
+static int DetectReplaceMatchTest11(void)
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"big\"; replace:\"pig\"; content:\"to\"; within: 11; sid:1;)";
@@ -524,7 +528,7 @@ int DetectReplaceMatchTest11()
 /**
  * \test Check if replace is working with within
  */
-int DetectReplaceMatchTest12()
+static int DetectReplaceMatchTest12(void)
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"big\"; replace:\"pig\"; content:\"to\"; within: 4; sid:1;)";
@@ -536,7 +540,7 @@ int DetectReplaceMatchTest12()
 /**
  * \test Check if replace is working with within
  */
-int DetectReplaceMatchTest13()
+static int DetectReplaceMatchTest13(void)
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"big\"; replace:\"pig\"; content:\"test\"; distance: 1; sid:1;)";
@@ -548,7 +552,7 @@ int DetectReplaceMatchTest13()
 /**
  * \test Check if replace is working with within
  */
-int DetectReplaceMatchTest14()
+static int DetectReplaceMatchTest14(void)
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"big\"; replace:\"pig\"; content:\"test\"; distance: 2; sid:1;)";
@@ -560,7 +564,7 @@ int DetectReplaceMatchTest14()
 /**
  * \test Check if replace is working with within
  */
-int DetectReplaceMatchTest15()
+static int DetectReplaceMatchTest15(void)
 {
     char *sig = "alert udp any any -> any any (msg:\"Nothing..\";"
                 " content:\"com\"; replace:\"org\"; sid:1;)";
@@ -573,7 +577,7 @@ int DetectReplaceMatchTest15()
 /**
  * \test Parsing test
  */
-int DetectReplaceParseTest01(void)
+static int DetectReplaceParseTest01(void)
 {
     int run_mode_backup = run_mode;
     run_mode = RUNMODE_NFQ;
@@ -607,7 +611,7 @@ int DetectReplaceParseTest01(void)
 /**
  * \test Parsing test: non valid because of http protocol
  */
-int DetectReplaceParseTest02(void)
+static int DetectReplaceParseTest02(void)
 {
     int run_mode_backup = run_mode;
     run_mode = RUNMODE_NFQ;
@@ -642,7 +646,7 @@ int DetectReplaceParseTest02(void)
  * \test Parsing test: non valid because of http_header on same content
  * as replace keyword
  */
-int DetectReplaceParseTest03(void)
+static int DetectReplaceParseTest03(void)
 {
     int run_mode_backup = run_mode;
     run_mode = RUNMODE_NFQ;
@@ -676,7 +680,7 @@ int DetectReplaceParseTest03(void)
 /**
  * \test Parsing test no content
  */
-int DetectReplaceParseTest04(void)
+static int DetectReplaceParseTest04(void)
 {
     int run_mode_backup = run_mode;
     run_mode = RUNMODE_NFQ;
@@ -710,7 +714,7 @@ int DetectReplaceParseTest04(void)
 /**
  * \test Parsing test content after replace
  */
-int DetectReplaceParseTest05(void)
+static int DetectReplaceParseTest05(void)
 {
     int run_mode_backup = run_mode;
     run_mode = RUNMODE_NFQ;
@@ -744,7 +748,7 @@ int DetectReplaceParseTest05(void)
 /**
  * \test Parsing test content and replace length differ
  */
-int DetectReplaceParseTest06(void)
+static int DetectReplaceParseTest06(void)
 {
     int run_mode_backup = run_mode;
     run_mode = RUNMODE_NFQ;
@@ -778,7 +782,7 @@ int DetectReplaceParseTest06(void)
 /**
  * \test Parsing test content and replace length differ
  */
-int DetectReplaceParseTest07(void)
+static int DetectReplaceParseTest07(void)
 {
     int run_mode_backup = run_mode;
     run_mode = RUNMODE_NFQ;
