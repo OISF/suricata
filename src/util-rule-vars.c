@@ -358,7 +358,7 @@ int SCRuleVarsPositiveTest03(void)
         goto end;
     SigFree(s);
 */
-    s = SigInit(de_ctx, "alert tcp [![192.168.1.3,$EXTERNAL_NET],[$HTTP_SERVERS,!$HOME_NET],192.168.2.5] $HTTP_PORTS -> !$HTTP_SERVERS [80,[!$HTTP_PORTS,$ORACLE_PORTS]] (msg:\"Rule Vars Test\"; sid:1;)");
+    s = SigInit(de_ctx, "alert tcp [$HTTP_SERVERS,$HOME_NET,192.168.2.5] $HTTP_PORTS -> $EXTERNAL_NET [80,[!$HTTP_PORTS,$ORACLE_PORTS]] (msg:\"Rule Vars Test\"; sid:1;)");
     if (s == NULL)
         goto end;
     SigFree(s);

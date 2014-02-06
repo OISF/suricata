@@ -51,6 +51,7 @@ void DetectAddressPrint(DetectAddress *);
 static int DetectAddressCutNot(DetectAddress *, DetectAddress **);
 static int DetectAddressCut(DetectEngineCtx *, DetectAddress *, DetectAddress *,
                             DetectAddress **);
+int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn);
 
 /** memory usage counters
  * \todo not MT safe */
@@ -945,9 +946,51 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
             if (depth == 1) {
                 address[x - 1] = '\0';
                 x = 0;
+                SCLogDebug("address %s negate %d, n_set %d", address, negate, n_set);
+                if (((negate + n_set) % 2) == 0) {
+                    /* normal block */
+                    SCLogDebug("normal block");
 
-                if (DetectAddressParse2(gh, ghn, address, (negate + n_set) % 2) < 0)
-                    goto error;
+                    if (DetectAddressParse2(gh, ghn, address, (negate + n_set) % 2) < 0)
+                        goto error;
+                } else {
+                    /* negated block
+                     *
+                     * Extra steps are necessary. First consider it as a normal
+                     * (non-negated) range. Merge the + and - ranges if
+                     * applicable. Then insert the result into the ghn list. */
+                    SCLogDebug("negated block");
+
+                    DetectAddressHead tmp_gh = { NULL, NULL, NULL };
+                    DetectAddressHead tmp_ghn = { NULL, NULL, NULL };
+
+                    if (DetectAddressParse2(&tmp_gh, &tmp_ghn, address, 0) < 0)
+                        goto error;
+
+                    DetectAddress *tmp_ad;
+#ifdef DEBUG
+                    SCLogDebug("tmp_gh");
+                    for (tmp_ad = tmp_gh.ipv4_head; tmp_ad; tmp_ad = tmp_ad->next) {
+                        DetectAddressPrint(tmp_ad);
+                    }
+                    SCLogDebug("tmp_ghn");
+                    for (tmp_ad = tmp_ghn.ipv4_head; tmp_ad; tmp_ad = tmp_ad->next) {
+                        DetectAddressPrint(tmp_ad);
+                    }
+#endif
+                    if (DetectAddressMergeNot(&tmp_gh, &tmp_ghn) < 0)
+                        goto error;
+
+                    SCLogDebug("merged succesfully");
+
+                    /* insert the addresses into the negated list */
+                    for (tmp_ad = tmp_gh.ipv4_head; tmp_ad; tmp_ad = tmp_ad->next) {
+                        DetectAddressPrint(tmp_ad);
+                        DetectAddressInsert(NULL, ghn, tmp_ad);
+                    }
+
+                    DetectAddressHeadCleanup(&tmp_ghn);
+                }
                 n_set = 0;
             }
             depth--;
@@ -968,6 +1011,7 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                             "\"!$HOME_NET\" instead of !$HOME_NET. See issue #295.", s);
                     goto error;
                 }
+                SCLogDebug("rule_var_address %s", rule_var_address);
                 temp_rule_var_address = rule_var_address;
                 if ((negate + n_set) % 2) {
                     temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
@@ -986,9 +1030,11 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                 address[x - 1] = '\0';
 
                 if (!((negate + n_set) % 2)) {
+                    SCLogDebug("DetectAddressSetup into gh, %s", address);
                     if (DetectAddressSetup(gh, address) < 0)
                         goto error;
                 } else {
+                    SCLogDebug("DetectAddressSetup into ghn, %s", address);
                     if (DetectAddressSetup(ghn, address) < 0)
                         goto error;
                 }
@@ -1017,6 +1063,7 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                             "\"!$HOME_NET\" instead of !$HOME_NET. See issue #295.", s);
                     goto error;
                 }
+                SCLogDebug("rule_var_address %s", rule_var_address);
                 temp_rule_var_address = rule_var_address;
                 if ((negate + n_set) % 2) {
                     temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
@@ -1025,24 +1072,32 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                     snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
                             "[%s]", rule_var_address);
                 }
-                DetectAddressParse2(gh, ghn, temp_rule_var_address,
-                                    (negate + n_set) % 2);
+                if (DetectAddressParse2(gh, ghn, temp_rule_var_address,
+                                    (negate + n_set) % 2) < 0) {
+                    SCLogDebug("DetectAddressParse2 hates us");
+                    goto error;
+                }
                 d_set = 0;
                 if (temp_rule_var_address != rule_var_address)
                     SCFree(temp_rule_var_address);
             } else {
                 if (!((negate + n_set) % 2)) {
-                    if (DetectAddressSetup(gh, address) < 0)
+                    SCLogDebug("DetectAddressSetup into gh, %s", address);
+                    if (DetectAddressSetup(gh, address) < 0) {
+                        SCLogDebug("DetectAddressSetup gh fail");
                         goto error;
+                    }
                 } else {
-                    if (DetectAddressSetup(ghn, address) < 0)
+                    SCLogDebug("DetectAddressSetup into ghn, %s", address);
+                    if (DetectAddressSetup(ghn, address) < 0) {
+                        SCLogDebug("DetectAddressSetup ghn fail");
                         goto error;
+                    }
                 }
             }
             n_set = 0;
         }
     }
-
     if (depth > 0) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "not every address block was "
                 "properly closed in \"%s\", %d missing closing brackets (]). "
@@ -1159,12 +1214,21 @@ int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn)
             goto error;
         }
     }
+#ifdef DEBUG
+    DetectAddress *tmp_ad;
+    for (tmp_ad = gh->ipv6_head; tmp_ad; tmp_ad = tmp_ad->next) {
+        DetectAddressPrint(tmp_ad);
+    }
+#endif
+    int ipv4_applied = 0;
+    int ipv6_applied = 0;
 
     /* step 2: pull the address blocks that match our 'not' blocks */
     for (ag = ghn->ipv4_head; ag != NULL; ag = ag->next) {
         SCLogDebug("ag %p", ag);
         DetectAddressPrint(ag);
 
+        int applied = 0;
         for (ag2 = gh->ipv4_head; ag2 != NULL; ) {
             SCLogDebug("ag2 %p", ag2);
             DetectAddressPrint(ag2);
@@ -1184,13 +1248,19 @@ int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn)
                 DetectAddress *next_ag2 = ag2->next;
                 DetectAddressFree(ag2);
                 ag2 = next_ag2;
+                applied = 1;
             } else {
                 ag2 = ag2->next;
             }
         }
+
+        if (applied) {
+            ipv4_applied++;
+        }
     }
     /* ... and the same for ipv6 */
     for (ag = ghn->ipv6_head; ag != NULL; ag = ag->next) {
+        int applied = 0;
         for (ag2 = gh->ipv6_head; ag2 != NULL; ) {
             r = DetectAddressCmp(ag, ag2);
             if (r == ADDRESS_EQ || r == ADDRESS_EB) { /* XXX more ??? */
@@ -1206,15 +1276,52 @@ int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn)
                 DetectAddress *next_ag2 = ag2->next;
                 DetectAddressFree(ag2);
                 ag2 = next_ag2;
+
+                SCLogDebug("applied");
+                applied = 1;
             } else {
                 ag2 = ag2->next;
             }
+        }
+        if (applied) {
+            ipv6_applied++;
+        }
+    }
+#ifdef DEBUG
+    for (tmp_ad = gh->ipv6_head; tmp_ad; tmp_ad = tmp_ad->next) {
+        DetectAddressPrint(tmp_ad);
+    }
+    for (tmp_ad = ghn->ipv6_head; tmp_ad; tmp_ad = tmp_ad->next) {
+        DetectAddressPrint(tmp_ad);
+    }
+#endif
+    if (ghn->ipv4_head != NULL || ghn->ipv6_head != NULL) {
+        int cnt = 0;
+        DetectAddress *ad;
+        for (ad = ghn->ipv4_head; ad; ad = ad->next)
+            cnt++;
+
+        if (ipv4_applied != cnt) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "not all IPv4 negations "
+                    "could be applied: %d != %d", cnt, ipv4_applied);
+            goto error;
+        }
+
+        cnt = 0;
+        for (ad = ghn->ipv6_head; ad; ad = ad->next)
+            cnt++;
+
+        if (ipv6_applied != cnt) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "not all IPv6 negations "
+                    "could be applied: %d != %d", cnt, ipv6_applied);
+            goto error;
         }
     }
 
     /* if the result is that we have no addresses we return error */
     if (gh->ipv4_head == NULL && gh->ipv6_head == NULL) {
-        SCLogDebug("no addresses left after merging addresses and not-addresses");
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "no addresses left after "
+                "merging addresses and negated addresses");
         goto error;
     }
 
@@ -1708,6 +1815,88 @@ DetectAddress *DetectAddressLookupInHead(DetectAddressHead *gh, Address *a)
 /********************************Unittests*************************************/
 
 #ifdef UNITTESTS
+
+static int UTHValidateDetectAddress(DetectAddress *ad, const char *one, const char *two)
+{
+    char str1[46] = "", str2[46] = "";
+
+    if (ad == NULL)
+        return FALSE;
+
+    switch(ad->ip.family) {
+        case AF_INET:
+            PrintInet(AF_INET, (const void *)&ad->ip.addr_data32[0], str1, sizeof(str1));
+            SCLogDebug("%s", str1);
+            PrintInet(AF_INET, (const void *)&ad->ip2.addr_data32[0], str2, sizeof(str2));
+            SCLogDebug("%s", str2);
+
+            if (strcmp(str1, one) != 0) {
+                SCLogInfo("%s != %s", str1, one);
+                return FALSE;
+            }
+
+            if (strcmp(str2, two) != 0) {
+                SCLogInfo("%s != %s", str2, two);
+                return FALSE;
+            }
+
+            return TRUE;
+            break;
+
+        case AF_INET6:
+            PrintInet(AF_INET6, (const void *)&ad->ip.addr_data32[0], str1, sizeof(str1));
+            SCLogDebug("%s", str1);
+            PrintInet(AF_INET6, (const void *)&ad->ip2.addr_data32[0], str2, sizeof(str2));
+            SCLogDebug("%s", str2);
+
+            if (strcmp(str1, one) != 0) {
+                SCLogInfo("%s != %s", str1, one);
+                return FALSE;
+            }
+
+            if (strcmp(str2, two) != 0) {
+                SCLogInfo("%s != %s", str2, two);
+                return FALSE;
+            }
+
+            return TRUE;
+            break;
+    }
+
+    return FALSE;
+}
+
+typedef struct UTHValidateDetectAddressHeadRange_ {
+    const char *one;
+    const char *two;
+} UTHValidateDetectAddressHeadRange;
+
+int UTHValidateDetectAddressHead(DetectAddressHead *gh, int nranges, UTHValidateDetectAddressHeadRange *expectations) {
+    int expect = nranges;
+    int have = 0;
+
+    if (gh == NULL)
+        return FALSE;
+
+    DetectAddress *ad = NULL;
+    ad = gh->ipv4_head;
+    if (ad == NULL)
+        ad = gh->ipv6_head;
+    while (have < expect) {
+        if (ad == NULL) {
+            printf("bad head: have %d ranges, expected %d: ", have, expect);
+            return FALSE;
+        }
+
+        if (UTHValidateDetectAddress(ad, expectations[have].one, expectations[have].two) == FALSE)
+            return FALSE;
+
+        ad = ad->next;
+        have++;
+    }
+
+    return TRUE;
+}
 
 int AddressTestParse01(void)
 {
@@ -3892,6 +4081,224 @@ int AddressTestAddressGroupSetup37(void)
     return result;
 }
 
+static int AddressTestAddressGroupSetup38(void)
+{
+    UTHValidateDetectAddressHeadRange expectations[3] = {
+        { "0.0.0.0", "192.167.255.255" },
+        { "192.168.14.0", "192.168.14.255" },
+        { "192.169.0.0", "255.255.255.255" } };
+    int result = 0;
+    DetectAddressHead *gh = DetectAddressHeadInit();
+
+    if (gh != NULL) {
+        int r = DetectAddressParse(gh, "![192.168.0.0/16,!192.168.14.0/24]");
+        if (r == 0) {
+            if (UTHValidateDetectAddressHead(gh, 3, expectations) == TRUE)
+                result = 1;
+        }
+
+        DetectAddressHeadFree(gh);
+    }
+    return result;
+}
+
+static int AddressTestAddressGroupSetup39(void)
+{
+    UTHValidateDetectAddressHeadRange expectations[3] = {
+        { "0.0.0.0", "192.167.255.255" },
+        { "192.168.14.0", "192.168.14.255" },
+        { "192.169.0.0", "255.255.255.255" } };
+    int result = 0;
+    DetectAddressHead *gh = DetectAddressHeadInit();
+
+    if (gh != NULL) {
+        int r = DetectAddressParse(gh, "[![192.168.0.0/16,!192.168.14.0/24]]");
+        if (r == 0) {
+            if (UTHValidateDetectAddressHead(gh, 3, expectations) == TRUE)
+                result = 1;
+        }
+
+        DetectAddressHeadFree(gh);
+    }
+    return result;
+}
+
+static int AddressTestAddressGroupSetup40(void)
+{
+    UTHValidateDetectAddressHeadRange expectations[3] = {
+        { "0.0.0.0", "192.167.255.255" },
+        { "192.168.14.0", "192.168.14.255" },
+        { "192.169.0.0", "255.255.255.255" } };
+    int result = 0;
+    DetectAddressHead *gh = DetectAddressHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressParse(gh, "[![192.168.0.0/16,[!192.168.14.0/24]]]");
+        if (r == 0) {
+            if (UTHValidateDetectAddressHead(gh, 3, expectations) == TRUE)
+                result = 1;
+        }
+
+        DetectAddressHeadFree(gh);
+    }
+    return result;
+}
+
+static int AddressTestAddressGroupSetup41(void)
+{
+    UTHValidateDetectAddressHeadRange expectations[3] = {
+        { "0.0.0.0", "192.167.255.255" },
+        { "192.168.14.0", "192.168.14.255" },
+        { "192.169.0.0", "255.255.255.255" } };
+    int result = 0;
+    DetectAddressHead *gh = DetectAddressHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressParse(gh, "[![192.168.0.0/16,![192.168.14.0/24]]]");
+        if (r == 0) {
+            if (UTHValidateDetectAddressHead(gh, 3, expectations) == TRUE)
+                result = 1;
+        }
+
+        DetectAddressHeadFree(gh);
+    }
+    return result;
+}
+
+static int AddressTestAddressGroupSetup42(void)
+{
+    UTHValidateDetectAddressHeadRange expectations[1] = {
+        { "2000:0000:0000:0000:0000:0000:0000:0000", "3fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff" } };
+    int result = 0;
+    DetectAddressHead *gh = DetectAddressHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressParse(gh, "[2001::/3]");
+        if (r == 0) {
+            if (UTHValidateDetectAddressHead(gh, 1, expectations) == TRUE)
+                result = 1;
+        }
+
+        DetectAddressHeadFree(gh);
+    }
+    return result;
+}
+
+static int AddressTestAddressGroupSetup43(void)
+{
+    UTHValidateDetectAddressHeadRange expectations[2] = {
+        { "2000:0000:0000:0000:0000:0000:0000:0000", "2fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff" },
+        { "3800:0000:0000:0000:0000:0000:0000:0000", "3fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff" } };
+    int result = 0;
+    DetectAddressHead *gh = DetectAddressHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressParse(gh, "[2001::/3,!3000::/5]");
+        if (r == 0) {
+            if (UTHValidateDetectAddressHead(gh, 2, expectations) == TRUE)
+                result = 1;
+        }
+
+        DetectAddressHeadFree(gh);
+    }
+    return result;
+}
+
+static int AddressTestAddressGroupSetup44(void)
+{
+    UTHValidateDetectAddressHeadRange expectations[2] = {
+        { "3ffe:ffff:7654:feda:1245:ba98:0000:0000", "3ffe:ffff:7654:feda:1245:ba98:ffff:ffff" }};
+    int result = 0;
+    DetectAddressHead *gh = DetectAddressHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressParse(gh, "3ffe:ffff:7654:feda:1245:ba98:3210:4562/96");
+        if (r == 0) {
+            if (UTHValidateDetectAddressHead(gh, 1, expectations) == TRUE)
+                result = 1;
+        }
+
+        DetectAddressHeadFree(gh);
+    }
+    return result;
+}
+
+static int AddressTestAddressGroupSetup45(void)
+{
+    int result = 0;
+    DetectAddressHead *gh = DetectAddressHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressParse(gh, "[192.168.1.3,!192.168.0.0/16]");
+        if (r != 0) {
+            result = 1;
+        }
+
+        DetectAddressHeadFree(gh);
+    }
+    return result;
+}
+
+static int AddressTestAddressGroupSetup46(void)
+{
+    UTHValidateDetectAddressHeadRange expectations[4] = {
+        { "0.0.0.0", "192.167.255.255" },
+        { "192.168.1.0", "192.168.1.255" },
+        { "192.168.3.0", "192.168.3.255" },
+        { "192.169.0.0", "255.255.255.255" } };
+    int result = 0;
+    DetectAddressHead *gh = DetectAddressHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressParse(gh, "[![192.168.0.0/16,![192.168.1.0/24,192.168.3.0/24]]]");
+        if (r == 0) {
+            if (UTHValidateDetectAddressHead(gh, 4, expectations) == TRUE)
+                result = 1;
+        }
+
+        DetectAddressHeadFree(gh);
+    }
+    return result;
+}
+
+/** \test net with some negations, then all negated */
+static int AddressTestAddressGroupSetup47(void)
+{
+    UTHValidateDetectAddressHeadRange expectations[5] = {
+        { "0.0.0.0", "192.167.255.255" },
+        { "192.168.1.0", "192.168.1.255" },
+        { "192.168.3.0", "192.168.3.255" },
+        { "192.168.5.0", "192.168.5.255" },
+        { "192.169.0.0", "255.255.255.255" } };
+    int result = 0;
+    DetectAddressHead *gh = DetectAddressHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressParse(gh, "[![192.168.0.0/16,![192.168.1.0/24,192.168.3.0/24],!192.168.5.0/24]]");
+        if (r == 0) {
+            if (UTHValidateDetectAddressHead(gh, 5, expectations) == TRUE)
+                result = 1;
+        }
+
+        DetectAddressHeadFree(gh);
+    }
+    return result;
+}
+
+/** \test same as AddressTestAddressGroupSetup47, but not negated */
+static int AddressTestAddressGroupSetup48(void)
+{
+    UTHValidateDetectAddressHeadRange expectations[4] = {
+        { "192.168.0.0", "192.168.0.255" },
+        { "192.168.2.0", "192.168.2.255" },
+        { "192.168.4.0", "192.168.4.255" },
+        { "192.168.6.0", "192.168.255.255" } };
+    int result = 0;
+    DetectAddressHead *gh = DetectAddressHeadInit();
+    if (gh != NULL) {
+        int r = DetectAddressParse(gh, "[192.168.0.0/16,![192.168.1.0/24,192.168.3.0/24],!192.168.5.0/24]");
+        if (r == 0) {
+            if (UTHValidateDetectAddressHead(gh, 4, expectations) == TRUE)
+                result = 1;
+        }
+
+        DetectAddressHeadFree(gh);
+    }
+    return result;
+}
+
 int AddressTestCutIPv401(void)
 {
     DetectAddress *a, *b, *c;
@@ -4868,6 +5275,28 @@ void DetectAddressTests(void)
                    AddressTestAddressGroupSetup36, 1);
     UtRegisterTest("AddressTestAddressGroupSetup37",
                    AddressTestAddressGroupSetup37, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup38",
+                   AddressTestAddressGroupSetup38, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup39",
+                   AddressTestAddressGroupSetup39, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup40",
+                   AddressTestAddressGroupSetup40, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup41",
+                   AddressTestAddressGroupSetup41, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup42",
+                   AddressTestAddressGroupSetup42, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup43",
+                   AddressTestAddressGroupSetup43, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup44",
+                   AddressTestAddressGroupSetup44, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup45",
+                   AddressTestAddressGroupSetup45, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup46",
+                   AddressTestAddressGroupSetup46, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup47",
+                   AddressTestAddressGroupSetup47, 1);
+    UtRegisterTest("AddressTestAddressGroupSetup48",
+                   AddressTestAddressGroupSetup48, 1);
 
     UtRegisterTest("AddressTestCutIPv401", AddressTestCutIPv401, 1);
     UtRegisterTest("AddressTestCutIPv402", AddressTestCutIPv402, 1);
