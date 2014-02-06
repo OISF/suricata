@@ -263,9 +263,17 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             }
 
             break;
-        default:
+        case MLD_LISTENER_QUERY:
+        case MLD_LISTENER_REPORT:
+        case MLD_LISTENER_REDUCTION:
+        case ND_ROUTER_SOLICIT:
+        case ND_ROUTER_ADVERT:
+        case ND_NEIGHBOR_SOLICIT:
+        case ND_NEIGHBOR_ADVERT:
             SCLogDebug("ICMPV6 Message type %" PRIu8 " not "
                        "implemented yet", ICMPV6_GET_TYPE(p));
+            break;
+        default:
             ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_TYPE);
     }
 
