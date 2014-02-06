@@ -76,6 +76,7 @@ static void AlertFastLogDeInitCtx(OutputCtx *);
 
 int AlertFastLogCondition(ThreadVars *tv, const Packet *p);
 int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p);
+static void AlertFastLogFileRollover(OutputCtx *output_ctx);
 
 void TmModuleAlertFastLogRegister (void) {
     tmm_modules[TMM_ALERTFASTLOG].name = MODULE_NAME;
@@ -105,6 +106,12 @@ static inline void AlertFastLogOutputAlert(AlertFastLogThread *aft, char *buffer
     SCMutex *file_lock = &aft->file_ctx->fp_mutex;
     /* Output the alert string and count alerts. Only need to lock here. */
     SCMutexLock(file_lock);
+
+    if (aft->file_ctx->rollover_flag) {
+        SCConfLogReopen(aft->file_ctx);
+        aft->file_ctx->rollover_flag = 0;
+    }
+
     aft->file_ctx->alerts++;
     aft->file_ctx->Write(buffer, alert_size, aft->file_ctx);
     SCMutexUnlock(file_lock);
@@ -252,6 +259,7 @@ OutputCtx *AlertFastLogInitCtx(ConfNode *conf)
         return NULL;
     output_ctx->data = logfile_ctx;
     output_ctx->DeInit = AlertFastLogDeInitCtx;
+    output_ctx->FileRollover = AlertFastLogFileRollover;
 
     return output_ctx;
 }
@@ -263,7 +271,13 @@ static void AlertFastLogDeInitCtx(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-/*------------------------------Unittests-------------------------------------*/
+static void AlertFastLogFileRollover(OutputCtx *output_ctx)
+{
+    /* Delegate to the underlying LogFileCtx. */
+    ((LogFileCtx *)output_ctx->data)->rollover_flag = 1;
+}
+
+/*------------------------------UNITTESTS-------------------------------------*/
 
 #ifdef UNITTESTS
 
