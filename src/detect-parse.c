@@ -3158,6 +3158,31 @@ end:
 }
 
 /**
+ * \test check valid negation bug 1079
+ */
+static int SigParseTestNegation08 (void) {
+    int result = 0;
+    DetectEngineCtx *de_ctx;
+    Signature *s=NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    s = SigInit(de_ctx,"alert tcp any any -> [192.168.0.0/16,!192.168.0.0/24] any (sid:410006; rev:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
  * \test mpm
  */
 int SigParseTestMpm01 (void) {
@@ -3377,6 +3402,7 @@ void SigParseRegisterTests(void) {
     UtRegisterTest("SigParseTestNegation05", SigParseTestNegation05, 1);
     UtRegisterTest("SigParseTestNegation06", SigParseTestNegation06, 1);
     UtRegisterTest("SigParseTestNegation07", SigParseTestNegation07, 1);
+    UtRegisterTest("SigParseTestNegation08", SigParseTestNegation08, 1);
     UtRegisterTest("SigParseTestMpm01", SigParseTestMpm01, 1);
     UtRegisterTest("SigParseTestMpm02", SigParseTestMpm02, 1);
     UtRegisterTest("SigParseTestAppLayerTLS01", SigParseTestAppLayerTLS01, 1);
