@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2013 Open Information Security Foundation
+/* Copyright (C) 2011-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -151,6 +151,14 @@ error:
     return -1;
 }
 
+/* Add to the head of the replace-list.
+ *
+ * The first to add to the replace-list has the highest priority. So,
+ * adding the the head of the list results in the newest modifications
+ * of content being applied first, so later changes can over ride
+ * earlier changes. Thus the highest priority modifications should be
+ * applied last.
+ */
 DetectReplaceList * DetectReplaceAddToList(DetectReplaceList *replist, uint8_t *found, DetectContentData *cd)
 {
     DetectReplaceList *newlist;
