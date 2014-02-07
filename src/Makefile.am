@@ -305,6 +305,7 @@ util-hash.c util-hash.h \
 util-hashlist.c util-hashlist.h \
 util-hash-lookup3.c util-hash-lookup3.h \
 util-host-os-info.c util-host-os-info.h \
+util-host-info.c util-host-info.h \
 util-ioctl.h util-ioctl.c \
 util-ip.h util-ip.c \
 util-logopenfile.h util-logopenfile.c \

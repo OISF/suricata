@@ -51,6 +51,7 @@
 #include "util-optimize.h"
 #include "util-checksum.h"
 #include "util-ioctl.h"
+#include "util-host-info.h"
 #include "tmqh-packetpool.h"
 #include "source-af-packet.h"
 #include "runmodes.h"
@@ -195,6 +196,8 @@ typedef struct AFPThreadVars_
 
     uint8_t *data; /** Per function and thread data */
     int datalen; /** Length of per function and thread data */
+
+    int vlan_disabled;
 
     char iface[AFP_IFACE_NAME_LENGTH];
     LiveDevice *livedev;
@@ -786,6 +789,15 @@ int AFPReadFromRing(AFPThreadVars *ptv)
             SCLogDebug("Packet length (%d) > snaplen (%d), truncating",
                     h.h2->tp_len, h.h2->tp_snaplen);
         }
+
+        /* get vlan id from header */
+        if ((!ptv->vlan_disabled) &&
+            (h.h2->tp_status & TP_STATUS_VLAN_VALID || h.h2->tp_vlan_tci)) {
+            p->vlan_id[0] = h.h2->tp_vlan_tci;
+            p->vlan_idx = 1;
+            p->vlanh[0] = NULL;
+        }
+
         if (ptv->flags & AFP_ZERO_COPY) {
             if (PacketSetData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
                 TmqhOutputPacketpool(ptv->tv, p);
@@ -1595,6 +1607,22 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     *data = (void *)ptv;
 
     afpconfig->DerefFunc(afpconfig);
+
+    /* A bit strange to have this here but we only have vlan information
+     * during reading so we need to know if we want to keep vlan during
+     * the capture phase */
+    int vlanbool = 0;
+    if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
+        ptv->vlan_disabled = 1;
+    }
+
+    /* If kernel is older than 3.0, VLAN is not stripped so we don't
+     * get the info from packet extended header but we will use a standard
+     * parsing of packet data (See Linux commit bcc6d47903612c3861201cc3a866fb604f26b8b2) */
+    if (! SCKernelVersionIsAtLeast(3, 0)) {
+        ptv->vlan_disabled = 1;
+    }
+
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -1668,6 +1696,11 @@ TmEcode DecodeAFP(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
 
     SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
     SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
+
+    /* If suri has set vlan during reading, we increase vlan counter */
+    if (p->vlan_idx) {
+        SCPerfCounterIncr(dtv->counter_vlan, tv->sc_perf_pca);
+    }
 
     /* call the decoder */
     switch(p->datalink) {
