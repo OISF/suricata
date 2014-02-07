@@ -211,6 +211,8 @@ typedef struct HtpTxUserData_ {
     uint32_t request_headers_raw_len;
     uint32_t response_headers_raw_len;
 
+    AppLayerDecoderEvents *decoder_events;          /**< per tx events */
+
     /** Holds the boundary identificator string if any (used on
      *  multipart/form-data only)
      */
@@ -240,6 +242,8 @@ typedef struct HtpState_ {
     FileContainer *files_tc;
     struct HTPCfgRec_ *cfg;
     uint16_t flags;
+    uint16_t events;
+    uint16_t htp_messages_offset; /**< offset into conn->messages list */
 } HtpState;
 
 /** part of the engine needs the request body (e.g. http_client_body keyword) */

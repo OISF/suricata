@@ -375,7 +375,7 @@ void RegisterDNSUDPParsers(void) {
         return;
     }
 
-    if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
+    if (AppLayerParserConfParserEnabled("udp", proto_name)) {
         AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_DNS, STREAM_TOSERVER,
                                      DNSUDPRequestParse);
         AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_DNS, STREAM_TOCLIENT,
