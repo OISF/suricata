@@ -1190,7 +1190,7 @@ static int HTPFileParserTest08(void) {
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(f->alparser);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
     if (decoder_events == NULL) {
         printf("no app events: ");
         SCMutexUnlock(&f->m);
@@ -1307,7 +1307,7 @@ static int HTPFileParserTest09(void) {
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(f->alparser);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
     if (decoder_events == NULL) {
         printf("no app events: ");
         SCMutexUnlock(&f->m);
@@ -1422,7 +1422,7 @@ static int HTPFileParserTest10(void) {
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(f->alparser);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
     if (decoder_events != NULL) {
         printf("app events: ");
         SCMutexUnlock(&f->m);
@@ -1555,7 +1555,7 @@ static int HTPFileParserTest11(void) {
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(f->alparser);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
     if (decoder_events != NULL) {
         printf("app events: ");
         SCMutexUnlock(&f->m);

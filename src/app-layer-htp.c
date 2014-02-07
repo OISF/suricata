@@ -229,6 +229,49 @@ static int HTPLookupPersonality(const char *str)
     return -1;
 }
 
+void HTPSetEvent(HtpState *s, HtpTxUserData *htud, uint8_t e)
+{
+    SCLogDebug("setting event %u", e);
+
+    if (htud) {
+        AppLayerDecoderEventsSetEventRaw(&htud->decoder_events, e);
+        s->events++;
+        return;
+    }
+
+    htp_tx_t *tx = HTPStateGetTx(s, s->transaction_cnt);
+    if (tx != NULL) {
+        htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        if (htud != NULL) {
+            AppLayerDecoderEventsSetEventRaw(&htud->decoder_events, e);
+            s->events++;
+            return;
+        }
+    }
+    SCLogDebug("couldn't set event %u", e);
+}
+
+static int HTPHasEvents(void *state) {
+    HtpState *htp_state = (HtpState *)state;
+    return (htp_state->events > 0);
+}
+
+static AppLayerDecoderEvents *HTPGetEvents(void *state, uint64_t tx_id)
+{
+    SCLogDebug("get HTTP events for TX %"PRIu64, tx_id);
+
+    HtpState *s = (HtpState *)state;
+    htp_tx_t *tx = HTPStateGetTx(s, tx_id);
+    if (tx != NULL) {
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        if (htud != NULL) {
+            SCLogDebug("has htud, htud->decoder_events %p", htud->decoder_events);
+            return htud->decoder_events;
+        }
+    }
+    return NULL;
+}
+
 /** \brief Function to allocates the HTTP state memory and also creates the HTTP
  *         connection parser to be used by the HTP library
  */
@@ -269,6 +312,7 @@ static void HtpTxUserDataFree(HtpTxUserData *htud) {
             HTPFree(htud->request_headers_raw, htud->request_headers_raw_len);
         if (htud->response_headers_raw)
             HTPFree(htud->response_headers_raw, htud->response_headers_raw_len);
+        AppLayerDecoderEventsFreeEvents(&htud->decoder_events);
         if (htud->boundary)
             HTPFree(htud->boundary, htud->boundary_len);
         HTPFree(htud, sizeof(HtpTxUserData));
@@ -517,56 +561,31 @@ static void HTPHandleError(HtpState *s) {
     size_t size = htp_list_size(s->conn->messages);
     size_t msg;
 
-    for (msg = 0; msg < size; msg++) {
+    for (msg = s->htp_messages_offset; msg < size; msg++) {
         htp_log_t *log = htp_list_get(s->conn->messages, msg);
         if (log == NULL)
             continue;
+
+        HtpTxUserData *htud = NULL;
+        htp_tx_t *tx = log->tx; // will be NULL in <=0.5.9
+        if (tx != NULL)
+            htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
 
         SCLogDebug("message %s", log->msg);
 
         int id = HTPHandleErrorGetId(log->msg);
-        if (id > 0) {
-            AppLayerDecoderEventsSetEvent(s->f, id);
-        } else {
+        if (id == 0) {
             id = HTPHandleWarningGetId(log->msg);
-            if (id > 0) {
-                AppLayerDecoderEventsSetEvent(s->f, id);
-            } else {
-                AppLayerDecoderEventsSetEvent(s->f,
-                        HTTP_DECODER_EVENT_UNKNOWN_ERROR);
-            }
+            if (id == 0)
+                id = HTTP_DECODER_EVENT_UNKNOWN_ERROR;
         }
-    }
-}
 
-/**
- *  \internal
- *
- *  \brief Check state for warnings and add any as events
- *
- *  \param s state
- */
-static void HTPHandleWarning(HtpState *s) {
-    if (s == NULL || s->conn == NULL ||
-        s->conn->messages == NULL) {
-        return;
-    }
-
-    size_t size = htp_list_size(s->conn->messages);
-    size_t msg;
-
-    for (msg = 0; msg < size; msg++) {
-        htp_log_t *log = htp_list_get(s->conn->messages, msg);
-        if (log == NULL)
-            continue;
-
-        int id = HTPHandleWarningGetId(log->msg);
         if (id > 0) {
-            AppLayerDecoderEventsSetEvent(s->f, id);
-        } else {
-            AppLayerDecoderEventsSetEvent(s->f, HTTP_DECODER_EVENT_UNKNOWN_ERROR);
+            HTPSetEvent(s, htud, id);
         }
     }
+    s->htp_messages_offset = (uint16_t)msg;
+    SCLogDebug("s->htp_messages_offset %u", s->htp_messages_offset);
 }
 
 static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
@@ -578,23 +597,27 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
                         HTP_HOST_MISSING|HTP_HOST_AMBIGUOUS|HTP_HOSTU_INVALID|
                         HTP_HOSTH_INVALID))
     {
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        if (htud == NULL)
+            return;
+
         if (tx->flags & HTP_REQUEST_INVALID_T_E)
-            AppLayerDecoderEventsSetEvent(s->f,
+            HTPSetEvent(s, htud,
                     HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST);
         if (tx->flags & HTP_REQUEST_INVALID_C_L)
-            AppLayerDecoderEventsSetEvent(s->f,
+            HTPSetEvent(s, htud,
                     HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST);
         if (tx->flags & HTP_HOST_MISSING)
-            AppLayerDecoderEventsSetEvent(s->f,
+            HTPSetEvent(s, htud,
                     HTTP_DECODER_EVENT_MISSING_HOST_HEADER);
         if (tx->flags & HTP_HOST_AMBIGUOUS)
-            AppLayerDecoderEventsSetEvent(s->f,
+            HTPSetEvent(s, htud,
                     HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS);
         if (tx->flags & HTP_HOSTU_INVALID)
-            AppLayerDecoderEventsSetEvent(s->f,
+            HTPSetEvent(s, htud,
                     HTTP_DECODER_EVENT_URI_HOST_INVALID);
         if (tx->flags & HTP_HOSTH_INVALID)
-            AppLayerDecoderEventsSetEvent(s->f,
+            HTPSetEvent(s, htud,
                     HTTP_DECODER_EVENT_HEADER_HOST_INVALID);
     }
 }
@@ -775,8 +798,6 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
     r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
     switch(r) {
         case HTP_STREAM_ERROR:
-            HTPHandleError(hstate);
-
             hstate->flags = HTP_FLAG_STATE_ERROR;
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
             hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
@@ -784,16 +805,15 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
             break;
         case HTP_STREAM_DATA:
         case HTP_STREAM_DATA_OTHER:
-            HTPHandleWarning(hstate);
             hstate->flags |= HTP_FLAG_STATE_DATA;
             break;
         case HTP_STREAM_TUNNEL:
             break;
         default:
-            HTPHandleWarning(hstate);
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
             hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
      }
+    HTPHandleError(hstate);
 
     /* if we the TCP connection is closed, then close the HTTP connection */
     if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) &&
@@ -1078,6 +1098,7 @@ error:
 #define C_T_HDR_LEN 13
 
 static void HtpRequestBodyMultipartParseHeader(HtpState *hstate,
+        HtpTxUserData *htud,
         uint8_t *header, uint32_t header_len,
         uint8_t **filename, uint16_t *filename_len,
         uint8_t **filetype, uint16_t *filetype_len)
@@ -1105,12 +1126,12 @@ static void HtpRequestBodyMultipartParseHeader(HtpState *hstate,
         }
         uint8_t *sc = (uint8_t *)memchr(line, ':', line_len);
         if (sc == NULL) {
-            AppLayerDecoderEventsSetEvent(hstate->f,
+            HTPSetEvent(hstate, htud,
                     HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER);
             /* if the : we found is the final char, it means we have
              * no value */
         } else if (line_len > 0 && sc == &line[line_len - 1]) {
-            AppLayerDecoderEventsSetEvent(hstate->f,
+            HTPSetEvent(hstate, htud,
                     HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER);
         } else {
 #ifdef PRINT
@@ -1279,7 +1300,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
             }
 
             if (filedata_len > chunks_buffer_len) {
-                AppLayerDecoderEventsSetEvent(hstate->f,
+                HTPSetEvent(hstate, htud,
                         HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR);
                 goto end;
             }
@@ -1354,7 +1375,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
             header = header_start + (expected_boundary_len + 2); // + for 0d 0a
         }
 
-        HtpRequestBodyMultipartParseHeader(hstate, header, header_len,
+        HtpRequestBodyMultipartParseHeader(hstate, htud, header, header_len,
                 &filename, &filename_len, &filetype, &filetype_len);
 
         if (filename != NULL) {
@@ -1373,11 +1394,11 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
             if (form_end != NULL) {
                 filedata = header_end + 4;
                 if (form_end == filedata) {
-                    AppLayerDecoderEventsSetEvent(hstate->f,
+                    HTPSetEvent(hstate, htud,
                             HTTP_DECODER_EVENT_MULTIPART_NO_FILEDATA);
                     goto end;
                 } else if (form_end < filedata) {
-                    AppLayerDecoderEventsSetEvent(hstate->f,
+                    HTPSetEvent(hstate, htud,
                             HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR);
                     goto end;
                 }
@@ -1393,7 +1414,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                 }
 
                 if (filedata_len > chunks_buffer_len) {
-                    AppLayerDecoderEventsSetEvent(hstate->f,
+                    HTPSetEvent(hstate, htud,
                             HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR);
                     goto end;
                 }
@@ -1427,7 +1448,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                 SCLogDebug("filedata_len %u (chunks_buffer_len %u)", filedata_len, chunks_buffer_len);
 
                 if (filedata_len > chunks_buffer_len) {
-                    AppLayerDecoderEventsSetEvent(hstate->f,
+                    HTPSetEvent(hstate, htud,
                             HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR);
                     goto end;
                 }
@@ -2569,7 +2590,7 @@ int HTPStateGetEventInfo(const char *event_name,
         return -1;
     }
 
-    *event_type = APP_LAYER_EVENT_TYPE_GENERAL;
+    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
 
     return 0;
 }
@@ -2706,7 +2727,8 @@ void RegisterHTPParsers(void)
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetTx);
         AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_TCP, ALPROTO_HTTP,
                                                                HTPStateGetAlstateProgressCompletionStatus);
-
+        AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPHasEvents);
+        AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPGetEvents);
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetEventInfo);
 
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPStateTruncate);
@@ -5765,7 +5787,7 @@ libhtp:\n\
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(f->alparser);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
     if (decoder_events == NULL) {
         printf("no app events: ");
         SCMutexUnlock(&f->m);
@@ -5894,7 +5916,7 @@ libhtp:\n\
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(f->alparser);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
     if (decoder_events != NULL) {
         printf("app events: ");
         SCMutexUnlock(&f->m);
