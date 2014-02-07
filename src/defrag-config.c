@@ -70,21 +70,22 @@ static void DefragPolicyAddHostInfo(char *host_ip_range, uint64_t timeout)
 
 static int DefragPolicyGetIPv4HostTimeout(uint8_t *ipv4_addr)
 {
-    SCRadixNode *node = SCRadixFindKeyIPV4BestMatch(ipv4_addr, defrag_tree);
-
-    if (node == NULL)
+    void *user_data = NULL;
+    (void)SCRadixFindKeyIPV4BestMatch(ipv4_addr, defrag_tree, &user_data);
+    if (user_data == NULL)
         return -1;
-    else
-        return *((int *)node->prefix->user_data_result);
+
+    return *((int *)user_data);
 }
 
 static int DefragPolicyGetIPv6HostTimeout(uint8_t *ipv6_addr)
 {
-    SCRadixNode *node = SCRadixFindKeyIPV6BestMatch(ipv6_addr, defrag_tree);
-    if (node == NULL)
+    void *user_data = NULL;
+    (void)SCRadixFindKeyIPV6BestMatch(ipv6_addr, defrag_tree, &user_data);
+    if (user_data == NULL)
         return -1;
-    else
-        return *((int *)node->prefix->user_data_result);
+
+    return *((int *)user_data);
 }
 
 int DefragPolicyGetHostTimeout(Packet *p)
