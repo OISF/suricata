@@ -885,8 +885,11 @@ int CudaBufferTest03(void)
     }
 
     slice = CudaBufferGetSlice(data, 16, NULL);
+    BUG_ON(slice == NULL);
     slice = CudaBufferGetSlice(data, 16, NULL);
+    BUG_ON(slice == NULL);
     slice = CudaBufferGetSlice(data, 24, NULL);
+    BUG_ON(slice == NULL);
 
     /* culling */
     CudaBufferCulledInfo culled_info;
