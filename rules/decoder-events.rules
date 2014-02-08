@@ -8,6 +8,7 @@ alert pkthdr any any -> any any (msg:"SURICATA IPv4 invalid option"; decode-even
 alert pkthdr any any -> any any (msg:"SURICATA IPv4 invalid option length"; decode-event:ipv4.opt_invalid_len; sid:2200005; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv4 malformed option"; decode-event:ipv4.opt_malformed; sid:2200006; rev:1;)
 #alert pkthdr any any -> any any (msg:"SURICATA IPv4 padding required "; decode-event:ipv4.opt_pad_required; sid:2200007; rev:1;)
+alert pkthdr any any -> any any (msg:"SURICATA IPv4 with ICMPv6 header"; decode-event:ipv4.icmpv6; sid:2200092; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv4 option end of list required"; decode-event:ipv4.opt_eol_required; sid:2200008; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv4 duplicated IP option"; decode-event:ipv4.opt_duplicate; sid:2200009; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv4 unknown IP option"; decode-event:ipv4.opt_unknown; sid:2200010; rev:1;)
@@ -105,5 +106,5 @@ alert pkthdr any any -> any any (msg:"SURICATA IPv4-in-IPv6 invalid protocol"; d
 alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 packet too short"; decode-event:ipv6.ipv6_in_ipv6_too_small; sid:2200084; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 invalid protocol"; decode-event:ipv6.ipv6_in_ipv6_wrong_version; sid:2200085; rev:1;)
 
-# next sid is 2200092
+# next sid is 2200093
 

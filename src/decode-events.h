@@ -42,6 +42,7 @@ enum {
     IPV4_OPT_DUPLICATE,             /**< duplicated ip option */
     IPV4_OPT_UNKNOWN,               /**< unknown ip option */
     IPV4_WRONG_IP_VER,              /**< wrong ip version in ip options */
+    IPV4_WITH_ICMPV6,               /**< IPv4 packet with ICMPv6 header */
 
     /* ICMP EVENTS */
     ICMPV4_PKT_TOO_SMALL,           /**< icmpv4 packet smaller than minimum size */
