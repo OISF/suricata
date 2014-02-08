@@ -521,8 +521,17 @@ static inline void FlowDecrUsecnt(Flow *f)
     (void) SC_ATOMIC_SUB(f->use_cnt, 1);
 }
 
+/** \brief Reference the flow, bumping the flows use_cnt
+ *  \note This should only be called once for a destination
+ *        pointer */
 static inline void FlowReference(Flow **d, Flow *f) {
     if (likely(f != NULL)) {
+#ifdef DEBUG_VALIDATION
+        BUG_ON(*d == f);
+#else
+        if (*d == f)
+            return;
+#endif
         FlowIncrUsecnt(f);
         *d = f;
     }
