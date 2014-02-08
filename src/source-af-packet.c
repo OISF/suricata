@@ -157,6 +157,10 @@ TmEcode NoAFPSupportExit(ThreadVars *tv, void *initdata, void **data)
 #define TP_STATUS_USER_BUSY (1 << 31)
 #endif
 
+#ifndef TP_STATUS_VLAN_VALID
+#define TP_STATUS_VLAN_VALID (1 << 4)
+#endif
+
 /** protect pfring_set_bpf_filter, as it is not thread safe */
 static SCMutex afpacket_bpf_set_filter_lock = SCMUTEX_INITIALIZER;
 
