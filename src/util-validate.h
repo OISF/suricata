@@ -73,16 +73,18 @@
         if ((p)->flow != NULL) {                    \
             DEBUG_VALIDATE_FLOW((p)->flow);         \
         }                                           \
-        if ((p)->proto == IPPROTO_TCP) {            \
-            BUG_ON((p)->tcph == NULL);              \
-        } else if ((p)->proto == IPPROTO_UDP) {     \
-            BUG_ON((p)->udph == NULL);              \
-        } else if ((p)->proto == IPPROTO_ICMP) {    \
-            BUG_ON((p)->icmpv4h == NULL);           \
-        } else if ((p)->proto == IPPROTO_SCTP) {    \
-            BUG_ON((p)->sctph == NULL);             \
-        } else if ((p)->proto == IPPROTO_ICMPV6) {  \
-            BUG_ON((p)->icmpv6h == NULL);           \
+        if (!((p)->flags & (PKT_IS_FRAGMENT|PKT_IS_INVALID))) {          \
+            if ((p)->proto == IPPROTO_TCP) {            \
+                BUG_ON((p)->tcph == NULL);              \
+            } else if ((p)->proto == IPPROTO_UDP) {     \
+                BUG_ON((p)->udph == NULL);              \
+            } else if ((p)->proto == IPPROTO_ICMP) {    \
+                BUG_ON((p)->icmpv4h == NULL);           \
+            } else if ((p)->proto == IPPROTO_SCTP) {    \
+                BUG_ON((p)->sctph == NULL);             \
+            } else if ((p)->proto == IPPROTO_ICMPV6) {  \
+                BUG_ON((p)->icmpv6h == NULL);           \
+            }                                           \
         }                                           \
         if ((p)->payload_len > 0) {                 \
             BUG_ON((p)->payload == NULL);           \
