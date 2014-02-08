@@ -55,6 +55,7 @@ struct DetectEngineEvents_ {
     { "ipv4.opt_duplicate", IPV4_OPT_DUPLICATE, },
     { "ipv4.opt_unknown", IPV4_OPT_UNKNOWN, },
     { "ipv4.wrong_ip_version", IPV4_WRONG_IP_VER, },
+    { "ipv4.icmpv6", IPV4_WITH_ICMPV6, },
 
     /* ICMP EVENTS */
     { "icmpv4.pkt_too_small", ICMPV4_PKT_TOO_SMALL, },

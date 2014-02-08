@@ -594,6 +594,9 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                           IPV4_GET_IPLEN(p) -  IPV4_GET_HLEN(p), pq);
             }
             break;
+        case IPPROTO_ICMPV6:
+            ENGINE_SET_INVALID_EVENT(p, IPV4_WITH_ICMPV6);
+            break;
     }
 
     return TM_ECODE_OK;
