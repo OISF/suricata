@@ -76,6 +76,7 @@ int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                                  len - ETHERNET_HEADER_LEN, pq);
             break;
         case ETHERNET_TYPE_VLAN:
+        case ETHERNET_TYPE_8021QINQ:
             DecodeVLAN(tv, dtv, p, pkt + ETHERNET_HEADER_LEN,
                                  len - ETHERNET_HEADER_LEN, pq);
             break;

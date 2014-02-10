@@ -105,6 +105,7 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                                  len - VLAN_HEADER_LEN, pq);
             break;
         case ETHERNET_TYPE_VLAN:
+        case ETHERNET_TYPE_8021AD:
             if (p->vlan_idx >= 2) {
                 ENGINE_SET_EVENT(p,VLAN_HEADER_TOO_MANY_LAYERS);
                 return TM_ECODE_OK;
