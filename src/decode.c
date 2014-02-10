@@ -331,6 +331,9 @@ Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
     p->datalink = DLT_RAW;
     /* tell new packet it's part of a tunnel */
     SET_TUNNEL_PKT(p);
+    p->vlan_id[0] = parent->vlan_id[0];
+    p->vlan_id[1] = parent->vlan_id[1];
+    p->vlan_idx = parent->vlan_idx;
 
     SCReturnPtr(p, "Packet");
 }
