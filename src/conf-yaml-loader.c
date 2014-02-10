@@ -340,8 +340,8 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                         SCFree(seq_node);
                         return -1;
                     }
-                    seq_node->is_seq = 1;
                 }
+                seq_node->is_seq = 1;
                 TAILQ_INSERT_TAIL(&node->head, seq_node, next);
                 if (ConfYamlParse(parser, seq_node, 0) != 0)
                     goto fail;
