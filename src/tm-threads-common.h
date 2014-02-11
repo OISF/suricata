@@ -91,6 +91,7 @@ typedef enum {
     TMM_JSONFILELOG,
     TMM_RECEIVENFLOG,
     TMM_DECODENFLOG,
+    TMM_LUALOG,
     TMM_SIZE,
 } TmmId;
 

@@ -162,6 +162,8 @@
 #include "reputation.h"
 
 #include "output.h"
+#include "output-lua.h"
+
 #include "output-packet.h"
 #include "output-tx.h"
 #include "output-file.h"
@@ -819,6 +821,7 @@ void RegisterAllModules()
     /* respond-reject */
     TmModuleRespondRejectRegister();
 
+    TmModuleLuaLogRegister();
     /* fast log */
     TmModuleAlertFastLogRegister();
     /* debug log */
