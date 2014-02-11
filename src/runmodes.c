@@ -558,7 +558,7 @@ void RunModeInitializeOutputs(void)
         }
 
         if (strncmp(output->val, "unified-", sizeof("unified-") - 1) == 0) {
-            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+            SCLogWarning(SC_ERR_NOT_SUPPORTED,
                     "Unified1 is no longer supported,"
                     " use Unified2 instead "
                     "(see https://redmine.openinfosecfoundation.org/issues/353"
@@ -566,10 +566,18 @@ void RunModeInitializeOutputs(void)
             continue;
         } else if (strcmp(output->val, "alert-prelude") == 0) {
 #ifndef PRELUDE
-            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+            SCLogWarning(SC_ERR_NOT_SUPPORTED,
                     "Prelude support not compiled in. Reconfigure/"
                     "recompile with --enable-prelude to add Prelude "
                     "support.");
+            continue;
+#endif
+        } else if (strcmp(output->val, "eve-log") == 0) {
+#ifndef HAVE_LIBJANSSON
+            SCLogWarning(SC_ERR_NOT_SUPPORTED,
+                    "Eve-log support not compiled in. Reconfigure/"
+                    "recompile with libjansson and its development "
+                    "files installed to add eve-log support.");
             continue;
 #endif
         }
