@@ -605,7 +605,7 @@ void RegisterDNSTCPParsers(void) {
                                           STREAM_TOSERVER,
                                           DNSTcpProbingParser);
         } else {
-            AppLayerProtoDetectPPParseConfPorts("udp", IPPROTO_TCP,
+            AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                                                 proto_name, ALPROTO_DNS,
                                                 0, sizeof(DNSTcpHeader),
                                                 DNSTcpProbingParser);
