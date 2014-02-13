@@ -605,10 +605,19 @@ void RegisterDNSTCPParsers(void) {
                                           STREAM_TOSERVER,
                                           DNSTcpProbingParser);
         } else {
-            AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
+            int have_cfg = AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                                                 proto_name, ALPROTO_DNS,
                                                 0, sizeof(DNSTcpHeader),
                                                 DNSTcpProbingParser);
+            /* if we have no config, we enable the default port 53 */
+            if (!have_cfg) {
+                SCLogWarning(SC_ERR_DNS_CONFIG, "no DNS TCP config found, "
+                                                "enabling DNS detection on "
+                                                "port 53.");
+                AppLayerProtoDetectPPRegister(IPPROTO_TCP, "53",
+                                   ALPROTO_DNS, 0, sizeof(DNSTcpHeader),
+                                   STREAM_TOSERVER, DNSTcpProbingParser);
+            }
         }
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",

@@ -364,10 +364,19 @@ void RegisterDNSUDPParsers(void) {
                                           STREAM_TOSERVER,
                                           DNSUdpProbingParser);
         } else {
-            AppLayerProtoDetectPPParseConfPorts("udp", IPPROTO_UDP,
+            int have_cfg = AppLayerProtoDetectPPParseConfPorts("udp", IPPROTO_UDP,
                                                 proto_name, ALPROTO_DNS,
                                                 0, sizeof(DNSHeader),
                                                 DNSUdpProbingParser);
+            /* if we have no config, we enable the default port 53 */
+            if (!have_cfg) {
+                SCLogWarning(SC_ERR_DNS_CONFIG, "no DNS UDP config found, "
+                                                "enabling DNS detection on "
+                                                "port 53.");
+                AppLayerProtoDetectPPRegister(IPPROTO_UDP, "53",
+                                   ALPROTO_DNS, 0, sizeof(DNSHeader),
+                                   STREAM_TOSERVER, DNSUdpProbingParser);
+            }
         }
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",
