@@ -1,3 +1,36 @@
+2.0rc1 -- 2014-02-13
+
+Bug #839: http events alert multiple times
+Bug #954: VLAN decoder stats with AF Packet get written to the first thread only - stats.log
+Bug #980: memory leak in http buffers at shutdown
+Bug #1066: logger API's for packet based logging and tx based logging
+Bug #1068: format string issues with size_t + qa not catching them
+Bug #1072: Segmentation fault in 2.0beta2: Custom HTTP log segmentation fault
+Bug #1073: radix tree lookups are not thread safe
+Bug #1075: CUDA 5.5 doesn't compile with 2.0 beta 2
+Bug #1079: Err loading rules with variables that contain negated content.
+Bug #1080: segfault - 2.0dev (rev 6e389a1)
+Bug #1081: 100% CPU utilization with suricata 2.0 beta2+
+Bug #1082: af-packet vlan handling is broken
+Bug #1103: stats.log not incrementing decoder.ipv4/6 stats when reading in QinQ packets
+Bug #1104: vlan tagged fragmentation
+Bug #1106: Git compile fails on Ubuntu Lucid
+Bug #1107: flow timeout causes decoders to run on pseudo packets
+Feature #424: App layer registration cleanup - Support specifying same alproto names in rules for different ip protocols
+Feature #542: TLS JSON output
+Feature #597: case insensitive fileext match
+Feature #772: JSON output for alerts
+Feature #814: QinQ tag flow support
+Feature #894: clean up output
+Feature #921: Override conf parameters
+Feature #1007: united output
+Feature #1040: Suricata should compile with -Werror
+Feature #1067: memcap for http inside suricata
+Feature #1086: dns memcap
+Feature #1093: stream: configurable segment pools
+Feature #1102: Add a decoder.QinQ stats in stats.log
+Feature #1105: Detect icmpv6 on ipv4
+
 2.0beta2 -- 2013-12-18
 
 Bug #463: Suricata not fire on http reply detect if request are not http
