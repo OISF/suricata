@@ -149,6 +149,7 @@ static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
     } else if (ipproto_bitarray[IPPROTO_UDP / 8] & 1 << (IPPROTO_UDP % 8)) {
         ipproto = IPPROTO_UDP;
     } else {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "protocol %s is disabled", alproto_name);
         return -1;
     }
 
@@ -226,10 +227,8 @@ static int DetectAppLayerEventSetupP2(Signature *s,
     AppLayerEventType event_type = 0;
 
     if (DetectAppLayerEventParseAppP2(sm->ctx, s->proto.proto,
-                                      &event_type) < 0)
-    {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "App layer event setup "
-                   "phase2 failure.");
+                                      &event_type) < 0) {
+        /* DetectAppLayerEventParseAppP2 prints errors */
         return -1;
     }
     if (event_type == APP_LAYER_EVENT_TYPE_GENERAL)

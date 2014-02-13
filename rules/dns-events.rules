@@ -12,4 +12,4 @@ alert dns any any -> any any (msg:"SURICATA DNS Z flag set"; app-layer-event:dns
 # Request Flood Detected
 alert dns any any -> any any (msg:"SURICATA DNS request flood detected"; flow:to_server; app-layer-event:dns.flooded; sid:2240007; rev:1;)
 # Per-flow (state) memcap reached. Relates to the app-layer.protocols.dns.state-memcap setting.
-alert dns any any -> any any (msg:"SURICATA DNS request flood detected"; flow:to_server; app-layer-event:dns.state_memcap_reached; sid:2240008; rev:1;)
+alert dns any any -> any any (msg:"SURICATA DNS flow memcap reached"; flow:to_server; app-layer-event:dns.state_memcap_reached; sid:2240008; rev:2;)

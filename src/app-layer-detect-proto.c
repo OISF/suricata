@@ -1325,7 +1325,7 @@ void AppLayerProtoDetectPPRegister(uint8_t ipproto,
     SCReturn;
 }
 
-void AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
+int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
                                          uint8_t ipproto,
                                          const char *alproto_name,
                                          AppProto alproto,
@@ -1338,6 +1338,7 @@ void AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
     int r;
     ConfNode *node;
     ConfNode *port_node = NULL;
+    int config = 0;
 
     r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
                  alproto_name, ".detection-ports");
@@ -1386,8 +1387,9 @@ void AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
 
     }
 
+    config = 1;
  end:
-    SCReturn;
+    SCReturnInt(config);
 }
 
 /***** PM registration *****/

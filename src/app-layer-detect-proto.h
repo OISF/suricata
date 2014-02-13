@@ -66,7 +66,10 @@ void AppLayerProtoDetectPPRegister(uint8_t ipproto,
                                    uint16_t min_depth, uint16_t max_depth,
                                    uint8_t direction,
                                    ProbingParserFPtr ProbingParser);
-void AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
+/**
+ *  \retval bool 0 if no config was found, 1 if config was found
+ */
+int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
                                          uint8_t ipproto,
                                          const char *alproto_name,
                                          AppProto alproto,
