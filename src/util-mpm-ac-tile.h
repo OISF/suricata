@@ -1,4 +1,4 @@
-/* Copyright (C) 2013 Open Information Security Foundation
+/* Copyright (C) 2013-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -46,7 +46,6 @@ typedef struct SCACTilePattern_ {
 typedef struct SCACTilePatternList_ {
     uint8_t *cs;
     uint16_t patlen;
-    uint16_t case_state;
 } SCACTilePatternList;
 
 typedef struct SCACTileOutputTable_ {
