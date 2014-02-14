@@ -1202,14 +1202,7 @@ int SCACTilePreparePatterns(MpmCtx *mpm_ctx)
     memset(ctx->pid_pat_list, 0, (ctx->max_pat_id + 1) * sizeof(SCACTilePatternList));
 
     for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
-        if (ctx->parray[i]->flags & MPM_PATTERN_FLAG_NOCASE) {
-            if (ctx->pid_pat_list[ctx->parray[i]->id].case_state == 0)
-                ctx->pid_pat_list[ctx->parray[i]->id].case_state = 1;
-            else if (ctx->pid_pat_list[ctx->parray[i]->id].case_state == 1)
-                ctx->pid_pat_list[ctx->parray[i]->id].case_state = 1;
-            else
-                ctx->pid_pat_list[ctx->parray[i]->id].case_state = 3;
-        } else {
+        if (!(ctx->parray[i]->flags & MPM_PATTERN_FLAG_NOCASE)) {
             ctx->pid_pat_list[ctx->parray[i]->id].cs = SCMalloc(ctx->parray[i]->len);
             if (ctx->pid_pat_list[ctx->parray[i]->id].cs == NULL) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
@@ -1218,13 +1211,6 @@ int SCACTilePreparePatterns(MpmCtx *mpm_ctx)
             memcpy(ctx->pid_pat_list[ctx->parray[i]->id].cs,
                    ctx->parray[i]->original_pat, ctx->parray[i]->len);
             ctx->pid_pat_list[ctx->parray[i]->id].patlen = ctx->parray[i]->len;
-
-            if (ctx->pid_pat_list[ctx->parray[i]->id].case_state == 0)
-                ctx->pid_pat_list[ctx->parray[i]->id].case_state = 2;
-            else if (ctx->pid_pat_list[ctx->parray[i]->id].case_state == 2)
-                ctx->pid_pat_list[ctx->parray[i]->id].case_state = 2;
-            else
-                ctx->pid_pat_list[ctx->parray[i]->id].case_state = 3;
         }
     }
 
@@ -1436,9 +1422,7 @@ int CheckMatch(SCACTileSearchCtx *ctx, PatternMatcherQueue *pmq,
             uint16_t patlen = pid_pat_list[lower_pid].patlen;
             if (SCMemcmp(pid_pat_list[lower_pid].cs, buf_offset - patlen, patlen) != 0) {
                 /* inside loop */
-                if (pid_pat_list[lower_pid].case_state != 3) {
-                    continue;
-                }
+                continue;
             }
         }
         if (bitarray[(lower_pid) / 8] & (1 << ((lower_pid) % 8))) {
@@ -1506,10 +1490,8 @@ uint32_t SCACTileSearchLarge(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ct
                     if (SCMemcmp(pid_pat_list[pids[k] & 0x0000FFFF].cs,
                                  buf + i - pid_pat_list[pids[k] & 0x0000FFFF].patlen + 1,
                                  pid_pat_list[pids[k] & 0x0000FFFF].patlen) != 0) {
-                            /* inside loop */
-                            if (pid_pat_list[pids[k] & 0x0000FFFF].case_state != 3) {
-                                continue;
-                            }
+                        /* inside loop */
+                        continue;
                     }
                     if (pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] &
                         (1 << ((pids[k] & 0x0000FFFF) % 8))) {
