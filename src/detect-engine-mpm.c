@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -2813,6 +2813,10 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
     uint32_t content_total_size = 0;
     Signature *s = NULL;
 
+    /* Count the amount of memory needed to store all the structures
+     * and the content of those structures. This will over estimate the
+     * true size, since duplicates are removed below, but counted here.
+     */
     for (s = de_ctx->sig_list; s != NULL; s = s->next) {
         s->mpm_sm = RetrieveFPForSigV2(s);
         if (s->mpm_sm != NULL) {
@@ -2846,25 +2850,44 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
                 content = cd->content;
                 content_len = cd->content_len;
             }
+            uint32_t flags = cd->flags & DETECT_CONTENT_NOCASE;
+            /* Check for content already found on the same list */
             for (; dup != struct_offset; dup++) {
-                if (dup->content_len != content_len ||
-                    dup->sm_list != sm_list ||
-                    SCMemcmp(dup->content, content, dup->content_len) != 0) {
+                if (dup->content_len != content_len)
                     continue;
+                if (dup->sm_list != sm_list)
+                    continue;
+                if (dup->flags != flags)
+                    continue;
+                /* Check for pattern matching a duplicate. Use case insensitive matching
+                 * for case insensitive patterns. */
+                if (flags & DETECT_CONTENT_NOCASE) {
+                    if (SCMemcmpLowercase(dup->content, content, content_len) != 0)
+                        continue;
+                } else {
+                    // Case sensitive matching
+                    if (SCMemcmp(dup->content, content, content_len) != 0)
+                        continue;
                 }
-
+                /* Found a match with a previous pattern. */
                 break;
             }
             if (dup != struct_offset) {
+              /* Exited for-loop before the end, so found an existing match.
+               * Use its ID. */
                 cd->id = dup->id;
                 continue;
             }
 
+            /* Not found, so new content. Give it a new ID and add it to the array.
+             * Copy the content at the end of the content array. */
             struct_offset->id = max_id++;
             cd->id = struct_offset->id;
             struct_offset->content_len = content_len;
             struct_offset->sm_list = sm_list;
             struct_offset->content = content_offset;
+            struct_offset->flags = flags;
+
             content_offset += content_len;
             memcpy(struct_offset->content, content, content_len);
 

@@ -196,8 +196,16 @@ static inline int SCACTileCmpPattern(SCACTilePattern *p, uint8_t *pat,
     if (p->flags != flags)
         return 0;
 
-    if (memcmp(p->cs, pat, patlen) != 0)
-        return 0;
+    if (flags & MPM_PATTERN_FLAG_NOCASE) {
+        // Case insensitive
+        if (SCMemcmpLowercase(p->cs, pat, patlen) != 0)
+            return 0;
+
+    } else {
+        // Case sensitive
+        if (SCMemcmp(p->cs, pat, patlen) != 0)
+            return 0;
+    }
 
     return 1;
 }
@@ -241,15 +249,15 @@ static inline SCACTilePattern *SCACTileInitHashLookup(SCACTileCtx *ctx,
 {
     uint32_t hash = SCACTileInitHashRaw(pat, patlen);
 
-    if (ctx->init_hash == NULL || ctx->init_hash[hash] == NULL) {
+    if (ctx->init_hash == NULL) {
         return NULL;
     }
 
     SCACTilePattern *t = ctx->init_hash[hash];
     for ( ; t != NULL; t = t->next) {
-        //if (SCACTileCmpPattern(t, pat, patlen, flags) == 1)
-        if (t->flags == flags && t->id == pid)
+        if (t->id == pid) {
             return t;
+        }
     }
 
     return NULL;

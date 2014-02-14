@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -133,33 +133,6 @@ static void SCACBSGetConfig()
 
 /**
  * \internal
- * \brief Compares 2 patterns.  We use it for the hashing process during the
- *        the initial pattern insertion time, to cull duplicate sigs.
- *
- * \param p      Pointer to the first pattern(SCACBSPattern).
- * \param pat    Pointer to the second pattern(raw pattern array).
- * \param patlen Pattern length.
- * \param flags  Flags.  We don't need this.
- *
- * \retval hash A 32 bit unsigned hash.
- */
-static inline int SCACBSCmpPattern(SCACBSPattern *p, uint8_t *pat, uint16_t patlen,
-                                 char flags)
-{
-    if (p->len != patlen)
-        return 0;
-
-    if (p->flags != flags)
-        return 0;
-
-    if (memcmp(p->cs, pat, patlen) != 0)
-        return 0;
-
-    return 1;
-}
-
-/**
- * \internal
  * \brief Creates a hash of the pattern.  We use it for the hashing process
  *        during the initial pattern insertion time, to cull duplicate sigs.
  *
@@ -195,14 +168,13 @@ static inline SCACBSPattern *SCACBSInitHashLookup(SCACBSCtx *ctx, uint8_t *pat,
 {
     uint32_t hash = SCACBSInitHashRaw(pat, patlen);
 
-    if (ctx->init_hash == NULL || ctx->init_hash[hash] == NULL) {
+    if (ctx->init_hash == NULL) {
         return NULL;
     }
 
     SCACBSPattern *t = ctx->init_hash[hash];
     for ( ; t != NULL; t = t->next) {
-        //if (SCACBSCmpPattern(t, pat, patlen, flags) == 1)
-        if (t->flags == flags && t->id == pid)
+        if (t->id == pid)
             return t;
     }
 
