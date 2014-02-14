@@ -198,7 +198,7 @@ static inline int SCACTileCmpPattern(SCACTilePattern *p, uint8_t *pat,
 
     if (flags & MPM_PATTERN_FLAG_NOCASE) {
       // Case insensitive
-      if (strncasecmp(p->cs, pat, patlen) != 0)
+      if (SCMemcmpLowercase(p->cs, pat, patlen) != 0)
         return 0;
       
     } else {

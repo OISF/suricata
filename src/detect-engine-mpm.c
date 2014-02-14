@@ -2862,7 +2862,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
                 /* Check for pattern matching a duplicate. Use case insensitive matching
                  * for case insensitive patterns. */
                 if (flags & DETECT_CONTENT_NOCASE) {
-                    if (strncasecmp(dup->content, content, dup->content_len) != 0)
+                    if (SCMemcmpLowercase(dup->content, content, dup->content_len) != 0)
                         continue;
                 } else {
                     // Case sensitive matching
