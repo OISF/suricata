@@ -675,6 +675,14 @@ void RunModeInitializeOutputs(void)
                     "files installed to add eve-log support.");
             continue;
 #endif
+        } else if (strcmp(output->val, "lua") == 0) {
+#ifndef HAVE_LUA
+            SCLogWarning(SC_ERR_NOT_SUPPORTED,
+                    "lua support not compiled in. Reconfigure/"
+                    "recompile with lua(jit) and its development "
+                    "files installed to add lua support.");
+            continue;
+#endif
         }
 
         OutputModule *module = OutputGetModuleByConfName(output->val);
