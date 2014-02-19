@@ -53,52 +53,7 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
-extern const char lualog_ext_key_tx;
-
-static void *LuaStateGetTX(lua_State *luastate)
-{
-    lua_pushlightuserdata(luastate, (void *)&lualog_ext_key_tx);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    void *tx = lua_touserdata(luastate, -1);
-    return tx;
-}
-
-static int LuaCallbackError(lua_State *luastate, const char *msg)
-{
-    lua_pushnil(luastate);
-    lua_pushstring(luastate, msg);
-    return 2;
-}
-
-static int LuaReturnStringBuffer(lua_State *luastate, uint8_t *input, size_t input_len)
-{
-    /* we're using a buffer sized at a multiple of 4 as lua_pushlstring generates
-     * invalid read errors in valgrind otherwise. Adding in a nul to be sure.
-     *
-     * Buffer size = len + 1 (for nul) + whatever makes it a multiple of 4 */
-    size_t buflen = input_len + 1 + ((input_len + 1) % 4);
-    uint8_t buf[buflen];
-    memset(buf, 0x00, buflen);
-    memcpy(buf, input, input_len);
-    buf[input_len] = '\0';
-
-    /* return value through luastate, as a luastring */
-    lua_pushlstring(luastate, (char *)buf, input_len);
-    return 1;
-}
-
-const char *LuaGetStringArgument(lua_State *luastate, int argc)
-{
-    /* get argument */
-    if (!lua_isstring(luastate, argc))
-        return NULL;
-    const char *str = lua_tostring(luastate, 1);
-    if (str == NULL)
-        return NULL;
-    if (strlen(str) == 0)
-        return NULL;
-    return str;
-}
+#include "output-lua-common.h"
 
 static int HttpGetRequestUriRaw(lua_State *luastate)
 {
