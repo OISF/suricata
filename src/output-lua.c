@@ -186,6 +186,63 @@ static int LuaPacketConditionAlerts(ThreadVars *tv, const Packet *p)
     return FALSE;
 }
 
+/** \internal
+ *  \brief File API Logger function for Lua scripts
+ *
+ *  Executes a script once for one file.
+ *
+ * TODO non-http support
+ *
+ * NOTE p->flow is locked at this point
+ */
+static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff)
+{
+    SCEnter();
+    LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
+
+    if ((!(PKT_IS_IPV4(p))) && (!(PKT_IS_IPV6(p))))
+        return 0;
+
+    BUG_ON(ff->flags & FILE_LOGGED);
+
+    SCLogDebug("ff %p", ff);
+
+    /* Get the TX so the script can get more context about it.
+     * TODO hardcoded to HTTP currently */
+    void *txptr = NULL;
+    if (p && p->flow && p->flow->alstate)
+        txptr = AppLayerParserGetTx(p->proto, ALPROTO_HTTP, p->flow->alstate, ff->txid);
+
+    SCMutexLock(&td->lua_ctx->m);
+
+    /* we need the p in our callbacks */
+    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)&lualog_ext_key_p);
+    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)p);
+    lua_settable(td->lua_ctx->luastate, LUA_REGISTRYINDEX);
+    /* we need the tx in our callbacks */
+    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)&lualog_ext_key_tx);
+    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)txptr);
+    lua_settable(td->lua_ctx->luastate, LUA_REGISTRYINDEX);
+
+    /* get the lua function to call */
+    lua_getglobal(td->lua_ctx->luastate, "log");
+
+    /* prepare data to pass to script */
+    lua_newtable(td->lua_ctx->luastate);
+
+    LogLuaPushTableKeyValueArray(td->lua_ctx->luastate, "filename", ff->name, ff->name_len);
+    LogLuaPushTableKeyValueString(td->lua_ctx->luastate, "filemagic", ff->magic);
+    LogLuaPushTableKeyValueArray(td->lua_ctx->luastate, "filemd5", ff->md5, sizeof(ff->md5));
+
+    //LuaPrintStack(td->lua_ctx->luastate);
+    int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
+    if (retval != 0) {
+        SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
+    }
+    SCMutexUnlock(&td->lua_ctx->m);
+    return 0;
+}
+
 typedef struct LogLuaScriptOptions_ {
     AppProto alproto;
     int packet;
@@ -283,10 +340,16 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
             options->packet = 1;
         else if (strcmp(k, "filter") == 0 && strcmp(v, "alerts") == 0)
             options->alerts = 1;
+        else if (strcmp(k, "type") == 0 && strcmp(v, "file") == 0)
+            options->file = 1;
         else
             SCLogInfo("unknown key and/or value: k='%s', v='%s'", k, v);
     }
-    //SCLogInfo("alproto %u", alproto);
+
+    if (options->alproto + options->packet + options->file > 1) {
+        SCLogError(SC_ERR_LUAJIT_ERROR, "invalid combination of 'needs' in the script");
+        goto error;
+    }
 
     lua_getglobal(luastate, "setup");
     if (lua_type(luastate, -1) != LUA_TFUNCTION) {
@@ -461,6 +524,8 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
         } else if (opts.packet && opts.alerts) {
             om->PacketLogFunc = LuaPacketLoggerAlerts;
             om->PacketConditionFunc = LuaPacketConditionAlerts;
+        } else if (opts.file) {
+            om->FileLogFunc = LuaFileLogger;
         }
 
         TAILQ_INSERT_TAIL(&output_ctx->submodules, om, entries);
