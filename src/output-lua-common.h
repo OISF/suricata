@@ -30,9 +30,16 @@ void LuaPrintStack(lua_State *state);
 
 Packet *LuaStateGetPacket(lua_State *luastate);
 void *LuaStateGetTX(lua_State *luastate);
+
 int LuaCallbackError(lua_State *luastate, const char *msg);
 int LuaReturnStringBuffer(lua_State *luastate, const uint8_t *input, size_t input_len);
 const char *LuaGetStringArgument(lua_State *luastate, int argc);
+
+void LogLuaPushTableKeyValueInt(lua_State *luastate, const char *key, int value);
+void LogLuaPushTableKeyValueString(lua_State *luastate, const char *key, const char *value);
+void LogLuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8_t *value, size_t len);
+
+int LogLuaRegisterFunctions(lua_State *luastate);
 
 #endif /* HAVE_LUA */
 

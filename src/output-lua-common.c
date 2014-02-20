@@ -144,4 +144,100 @@ const char *LuaGetStringArgument(lua_State *luastate, int argc)
     return str;
 }
 
+void LogLuaPushTableKeyValueInt(lua_State *luastate, const char *key, int value)
+{
+    lua_pushstring(luastate, key);
+    lua_pushnumber(luastate, value);
+    lua_settable(luastate, -3);
+}
+
+/** \brief Push a key plus string value to the stack
+ *
+ *  If value is NULL, string "(null")" will be put on the stack.
+ */
+void LogLuaPushTableKeyValueString(lua_State *luastate, const char *key, const char *value)
+{
+    lua_pushstring(luastate, key);
+    lua_pushstring(luastate, value ? value : "(null)");
+    lua_settable(luastate, -3);
+}
+
+void LogLuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8_t *value, size_t len)
+{
+    lua_pushstring(luastate, key);
+    LuaReturnStringBuffer(luastate, value, len);
+    lua_settable(luastate, -3);
+}
+
+/** \internal
+ *  \brief fill lua stack with header info
+ *  \param luastate the lua state
+ *  \param p packet
+ *  \retval cnt number of data items placed on the stack
+ *
+ *  Places: ipver (number), src ip (string), dst ip (string), protocol (number),
+ *          sp or icmp type (number), dp or icmp code (number).
+ */
+static int LuaCallbackTuplePushToStackFromPacket(lua_State *luastate, const Packet *p)
+{
+    int ipver = 0;
+    if (PKT_IS_IPV4(p)) {
+        ipver = 4;
+    } else if (PKT_IS_IPV6(p)) {
+        ipver = 6;
+    }
+    lua_pushnumber (luastate, ipver);
+    if (ipver == 0)
+        return 1;
+
+    char srcip[46] = "", dstip[46] = "";
+    if (PKT_IS_IPV4(p)) {
+        PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+        PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+    } else if (PKT_IS_IPV6(p)) {
+        PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+        PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+    }
+
+    lua_pushstring (luastate, srcip);
+    lua_pushstring (luastate, dstip);
+
+    /* proto and ports (or type/code) */
+    lua_pushnumber (luastate, p->proto);
+    if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
+        lua_pushnumber (luastate, p->sp);
+        lua_pushnumber (luastate, p->dp);
+
+    } else if (p->proto == IPPROTO_ICMP || p->proto == IPPROTO_ICMPV6) {
+        lua_pushnumber (luastate, p->type);
+        lua_pushnumber (luastate, p->code);
+    } else {
+        lua_pushnumber (luastate, 0);
+        lua_pushnumber (luastate, 0);
+    }
+
+    return 6;
+}
+
+/** \internal
+ *  \brief Wrapper for getting tuple info into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackTuple(lua_State *luastate)
+{
+    const Packet *p = LuaStateGetPacket(luastate);
+    if (p == NULL)
+        return LuaCallbackError(luastate, "internal error: no packet");
+
+    return LuaCallbackTuplePushToStackFromPacket(luastate, p);
+}
+
+int LogLuaRegisterFunctions(lua_State *luastate)
+{
+    /* registration of the callbacks */
+    lua_pushcfunction(luastate, LuaCallbackTuple);
+    lua_setglobal(luastate, "SCPacketTuple");
+    return 0;
+}
+
 #endif /* HAVE_LUA */
