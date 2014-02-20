@@ -30,5 +30,10 @@
 void PacketEnqueue (PacketQueue *, Packet *);
 Packet *PacketDequeue (PacketQueue *);
 
+void PseudoPacketQueueInit(uint32_t nqueues, uint32_t npackets);
+void PseudoPacketQueueDestroy(void);
+Packet *PseudoPacketGet(void);
+void PseudoPacketPut(Packet *p);
+
 #endif /* __PACKET_QUEUE_H__ */
 

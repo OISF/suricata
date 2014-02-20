@@ -199,7 +199,10 @@ uint32_t UtRunTests(char *regex_arg) {
                 TimeModeSetOffline();
                 TimeSetToCurrentTime();
 
+                UTHSetupGlobals();
                 ret = ut->TestFn();
+                UTHCleanupGlobals();
+
                 printf("%s\n", (ret == ut->evalue) ? "pass" : "FAILED");
                 if (ret != ut->evalue) {
                     if (failure_fatal == 1) {

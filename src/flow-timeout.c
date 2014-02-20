@@ -273,7 +273,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketGet(int direction,
 {
     Packet *p;
 
-    p = PacketGetFromAlloc();
+    p = PseudoPacketGet();//PacketGetFromAlloc();
     if (p == NULL)
         return NULL;
 
