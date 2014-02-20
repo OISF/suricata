@@ -101,20 +101,6 @@ static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow 
     SCReturnInt(0);
 }
 
-void LogLuaPushTableKeyValueInt(lua_State *luastate, const char *key, int value)
-{
-    lua_pushstring(luastate, key);
-    lua_pushnumber(luastate, value);
-    lua_settable(luastate, -3);
-}
-
-void LogLuaPushTableKeyValueString(lua_State *luastate, const char *key, const char *value)
-{
-    lua_pushstring(luastate, key);
-    lua_pushstring(luastate, value ? value : "(null)");
-    lua_settable(luastate, -3);
-}
-
 static int LuaPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
