@@ -68,10 +68,19 @@ typedef struct LogLuaThreadCtx_ {
     LogLuaCtx *lua_ctx;
 } LogLuaThreadCtx;
 
+/* key for tx pointer */
 const char lualog_ext_key_tx[] = "suricata:lualog:tx:ptr";
 /* key for p (packet) pointer */
 const char lualog_ext_key_p[] = "suricata:lualog:pkt:ptr";
 
+/** \internal
+ *  \brief TX logger for lua scripts
+ *
+ * A single call to this function will run one script on a single
+ * transaction.
+ *
+ * NOTE: The flow (f) also referenced by p->flow is locked.
+ */
 static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
 {
     SCEnter();
@@ -255,6 +264,10 @@ typedef struct LogLuaScriptOptions_ {
  *  This function parses the script, checks if all the required functions
  *  are defined and runs the 'init' function. The init function will inform
  *  us what the scripts needs are.
+ *
+ *  \param filename filename of lua script file
+ *  \param options struct to pass script requirements/options back to caller
+ *  \retval errcode 0 ok, -1 error
  */
 static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
     int status;
@@ -301,8 +314,8 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
         goto error;
     }
 
-    lua_pushliteral(luastate, "script_api_ver"); /* stack at -2 */
-    lua_pushnumber (luastate, 1); /* stack at -3 */
+    lua_pushliteral(luastate, "script_api_ver");
+    lua_pushnumber (luastate, 1);
     lua_settable(luastate, -3);
 
     if (lua_pcall(luastate, 1, 1, 0) != 0) {
@@ -381,6 +394,8 @@ error:
 /** \brief setup a luastate for use at runtime
  *
  *  This loads the script, primes it and then runs the 'setup' function.
+ *
+ *  \retval state Returns the set up luastate on success, NULL on error
  */
 static lua_State *LuaScriptSetup(const char *filename)
 {
@@ -412,24 +427,18 @@ static lua_State *LuaScriptSetup(const char *filename)
     }
 #endif
 
-    /* prime the script (or something) */
+    /* prime the script */
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
         SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't prime file: %s", lua_tostring(luastate, -1));
         goto error;
     }
 
     lua_getglobal(luastate, "setup");
-    if (lua_type(luastate, -1) != LUA_TFUNCTION) {
-        SCLogError(SC_ERR_LUAJIT_ERROR, "no init function in script");
-        goto error;
-    }
 
-    //LuaPrintStack(luastate);
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
         SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't run script 'setup' function: %s", lua_tostring(luastate, -1));
         goto error;
     }
-    //LuaPrintStack(luastate);
 
     /* register functions common to all */
     LogLuaRegisterFunctions(luastate);
@@ -444,6 +453,10 @@ error:
     return NULL;
 }
 
+/** \brief initialize output for a script instance
+ *
+ *  Runs script 'setup' function.
+ */
 static OutputCtx *OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     if (conf == NULL)
@@ -483,6 +496,13 @@ error:
     return NULL;
 }
 
+/** \internal
+ *  \brief initialize output instance for lua module
+ *
+ *  Parses nested script list, primes them to find out what they
+ *  inspect, then fills the OutputCtx::submodules list with the
+ *  proper Logger function for the data type the script needs.
+ */
 static OutputCtx *OutputLuaLogInit(ConfNode *conf)
 {
     ConfNode *scripts = ConfNodeLookupChild(conf, "scripts");
@@ -506,14 +526,17 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
 
         int r = LuaScriptInit(script->val, &opts);
         if (r != 0) {
-            SCLogInfo("script init failed (%d)", r);
+            SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't initialize scipt");
             continue;
         }
 
         /* create an OutputModule for this script, based
          * on it's needs. */
         OutputModule *om = SCCalloc(1, sizeof(*om));
-        BUG_ON(om == NULL); //TODO
+        if (om == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "calloc() failed");
+            continue;
+        }
 
         om->name = MODULE_NAME;
         om->conf_name = script->val;
@@ -535,6 +558,9 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
     return output_ctx;
 }
 
+/** \internal
+ *  \brief Run the scripts 'deinit' function
+ */
 static void OutputLuaLogDoDeinit(LogLuaCtx *lua_ctx)
 {
     lua_State *luastate = lua_ctx->luastate;
@@ -552,6 +578,11 @@ static void OutputLuaLogDoDeinit(LogLuaCtx *lua_ctx)
     }
 }
 
+/** \internal
+ *  \brief Initialize the thread storage for lua
+ *
+ *  Currently only stores a pointer to the global LogLuaCtx
+ */
 static TmEcode LuaLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     LogLuaThreadCtx *td = SCMalloc(sizeof(*td));
@@ -572,6 +603,11 @@ static TmEcode LuaLogThreadInit(ThreadVars *t, void *initdata, void **data)
     return TM_ECODE_OK;
 }
 
+/** \internal
+ *  \brief Deinit the thread storage for lua
+ *
+ *  Calls OutputLuaLogDoDeinit if no-one else already did.
+ */
 static TmEcode LuaLogThreadDeinit(ThreadVars *t, void *data)
 {
     LogLuaThreadCtx *td = (LogLuaThreadCtx *)data;
@@ -603,7 +639,6 @@ void TmModuleLuaLogRegister (void) {
 
     /* register as separate module */
     OutputRegisterModule(MODULE_NAME, "lua", OutputLuaLogInit);
-    SCLogInfo("registered");
 }
 
 #else
