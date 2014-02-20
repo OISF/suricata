@@ -431,10 +431,11 @@ static lua_State *LuaScriptSetup(const char *filename)
     }
     //LuaPrintStack(luastate);
 
-    if (1) { //http
-        if (LogLuaRegisterHttpFunctions(luastate) != 0)
-            SCLogInfo("boooh!");
-    }
+    /* register functions common to all */
+    LogLuaRegisterFunctions(luastate);
+    /* unconditionally register http function. They will only work
+     * if the tx is registered in the state at runtime though. */
+    LogLuaRegisterHttpFunctions(luastate);
 
     SCLogDebug("lua_State %p is set up", luastate);
     return luastate;
