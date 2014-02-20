@@ -69,6 +69,8 @@ typedef struct LogLuaThreadCtx_ {
 } LogLuaThreadCtx;
 
 const char lualog_ext_key_tx[] = "suricata:lualog:tx:ptr";
+/* key for p (packet) pointer */
+const char lualog_ext_key_p[] = "suricata:lualog:pkt:ptr";
 
 static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
 {
