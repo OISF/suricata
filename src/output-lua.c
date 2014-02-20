@@ -69,35 +69,6 @@ typedef struct LogLuaThreadCtx_ {
 
 const char lualog_ext_key_tx[] = "suricata:lualog:tx:ptr";
 
-static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
-{
-    SCEnter();
-
-    LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
-
-    SCMutexLock(&td->lua_ctx->m);
-
-    /* we need the tx in our callbacks */
-    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)&lualog_ext_key_tx);
-    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)txptr);
-    lua_settable(td->lua_ctx->luastate, LUA_REGISTRYINDEX);
-
-    /* prepare data to pass to script */
-    lua_getglobal(td->lua_ctx->luastate, "log");
-    lua_newtable(td->lua_ctx->luastate); /* stack at -1 */
-    lua_pushliteral (td->lua_ctx->luastate, "tx_id"); /* stack at -2 */
-    lua_pushnumber (td->lua_ctx->luastate, (int)(tx_id));
-    lua_settable(td->lua_ctx->luastate, -3);
-
-    int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
-    if (retval != 0) {
-        SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
-    }
-
-    SCMutexUnlock(&td->lua_ctx->m);
-    SCReturnInt(0);
-}
-
 /** \brief dump stack from lua state to screen */
 void LuaPrintStack(lua_State *state) {
     int size = lua_gettop(state);
@@ -132,15 +103,143 @@ void LuaPrintStack(lua_State *state) {
     }
 }
 
+static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+{
+    SCEnter();
+
+    LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
+
+    SCMutexLock(&td->lua_ctx->m);
+
+    /* we need the tx in our callbacks */
+    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)&lualog_ext_key_tx);
+    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)txptr);
+    lua_settable(td->lua_ctx->luastate, LUA_REGISTRYINDEX);
+
+    /* prepare data to pass to script */
+    lua_getglobal(td->lua_ctx->luastate, "log");
+    lua_newtable(td->lua_ctx->luastate); /* stack at -1 */
+    lua_pushliteral (td->lua_ctx->luastate, "tx_id"); /* stack at -2 */
+    lua_pushnumber (td->lua_ctx->luastate, (int)(tx_id));
+    lua_settable(td->lua_ctx->luastate, -3);
+
+    int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
+    if (retval != 0) {
+        SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
+    }
+
+    SCMutexUnlock(&td->lua_ctx->m);
+    SCReturnInt(0);
+}
+
+void LogLuaPushTableKeyValueInt(lua_State *luastate, const char *key, int value)
+{
+    lua_pushstring(luastate, key);
+    lua_pushnumber(luastate, value);
+    lua_settable(luastate, -3);
+}
+
+void LogLuaPushTableKeyValueString(lua_State *luastate, const char *key, const char *value)
+{
+    lua_pushstring(luastate, key);
+    lua_pushstring(luastate, value ? value : "(null)");
+    lua_settable(luastate, -3);
+}
+
+static int LuaPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
+
+    char timebuf[64];
+    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+
+    char srcip[46], dstip[46];
+    if (PKT_IS_IPV4(p)) {
+        PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+        PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+    } else if (PKT_IS_IPV6(p)) {
+        PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+        PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+    } else {
+        /* decoder event */
+        goto not_supported;
+    }
+
+    char proto[16] = "";
+    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
+        strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
+    } else {
+        snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IP_GET_IPPROTO(p));
+    }
+
+    SCMutexLock(&td->lua_ctx->m);
+    uint16_t cnt;
+    for (cnt = 0; cnt < p->alerts.cnt; cnt++) {
+        const PacketAlert *pa = &p->alerts.alerts[cnt];
+        if (unlikely(pa->s == NULL)) {
+            continue;
+        }
+
+        lua_getglobal(td->lua_ctx->luastate, "log");
+        //if (lua_type(td->lua_ctx->luastate, -1) != LUA_TFUNCTION) {
+        //    SCLogError(SC_ERR_LUAJIT_ERROR, "no log function in script");
+        //    goto error;
+        //}
+
+        /* prepare data to pass to script */
+        lua_newtable(td->lua_ctx->luastate);
+
+        LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "sid", pa->s->id);
+        LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "gid", pa->s->gid);
+        LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "rev", pa->s->rev);
+        LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "priority", pa->s->prio);
+
+        if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
+            LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "sp", p->sp);
+            LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "dp", p->dp);
+        }
+
+        LogLuaPushTableKeyValueString(td->lua_ctx->luastate, "msg", pa->s->msg);
+        LogLuaPushTableKeyValueString(td->lua_ctx->luastate, "srcip", srcip);
+        LogLuaPushTableKeyValueString(td->lua_ctx->luastate, "dstip", dstip);
+        LogLuaPushTableKeyValueString(td->lua_ctx->luastate, "ts", timebuf);
+        LogLuaPushTableKeyValueString(td->lua_ctx->luastate, "ipproto", proto);
+        LogLuaPushTableKeyValueString(td->lua_ctx->luastate, "class", pa->s->class_msg);
+
+        //LuaPrintStack(td->lua_ctx->luastate);
+        int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
+        if (retval != 0) {
+            SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
+        }
+    }
+//error:
+    SCMutexUnlock(&td->lua_ctx->m);
+not_supported:
+    SCReturnInt(0);
+}
+
+static int LuaPacketConditionAlerts(ThreadVars *tv, const Packet *p)
+{
+    if (p->alerts.cnt > 0)
+        return TRUE;
+    return FALSE;
+}
+
+typedef struct LogLuaScriptOptions_ {
+    AppProto alproto;
+    int packet;
+    int alerts;
+    int file;
+} LogLuaScriptOptions;
+
 /** \brief load and evaluate the script
  *
  *  This function parses the script, checks if all the required functions
  *  are defined and runs the 'init' function. The init function will inform
  *  us what the scripts needs are.
  */
-static int LuaScriptInit(const char *filename) {
+static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
     int status;
-//    AppProto alproto = ALPROTO_UNKNOWN;
 
     lua_State *luastate = luaL_newstate();
     if (luastate == NULL)
@@ -217,8 +316,14 @@ static int LuaScriptInit(const char *filename) {
 
         SCLogDebug("k='%s', v='%s'", k, v);
 
-//        if (strcmp(k,"protocol") == 0 && strcmp(v, "http") == 0)
-//            alproto = ALPROTO_HTTP;
+        if (strcmp(k,"protocol") == 0 && strcmp(v, "http") == 0)
+            options->alproto = ALPROTO_HTTP;
+        else if (strcmp(k, "type") == 0 && strcmp(v, "packet") == 0)
+            options->packet = 1;
+        else if (strcmp(k, "filter") == 0 && strcmp(v, "alerts") == 0)
+            options->alerts = 1;
+        else
+            SCLogInfo("unknown key and/or value: k='%s', v='%s'", k, v);
     }
     //SCLogInfo("alproto %u", alproto);
 
@@ -371,25 +476,33 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
     ConfNode *script;
     TAILQ_FOREACH(script, &scripts->head, next) {
         SCLogInfo("script %s", script->val);
+        LogLuaScriptOptions opts;
+        memset(&opts, 0x00, sizeof(opts));
 
-        int r = LuaScriptInit(script->val);
+        int r = LuaScriptInit(script->val, &opts);
         if (r != 0) {
             SCLogInfo("script init failed (%d)", r);
             continue;
         }
 
-
+        /* create an OutputModule for this script, based
+         * on it's needs. */
         OutputModule *om = SCCalloc(1, sizeof(*om));
         BUG_ON(om == NULL); //TODO
 
-        if (1) { // TODO, logger type selection logic
+        om->name = MODULE_NAME;
+        om->conf_name = script->val;
+        om->InitSubFunc = OutputLuaLogInitSub;
+
+        if (opts.alproto == ALPROTO_HTTP) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_HTTP;
-            om->name = MODULE_NAME;
-            om->conf_name = script->val;
-            om->InitSubFunc = OutputLuaLogInitSub;
-            TAILQ_INSERT_TAIL(&output_ctx->submodules, om, entries);
+        } else if (opts.packet && opts.alerts) {
+            om->PacketLogFunc = LuaPacketLogger;
+            om->PacketConditionFunc = LuaPacketConditionAlerts;
         }
+
+        TAILQ_INSERT_TAIL(&output_ctx->submodules, om, entries);
     }
 
     return output_ctx;
