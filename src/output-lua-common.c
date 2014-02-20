@@ -89,6 +89,15 @@ void LuaPrintStack(lua_State *state) {
 }
 
 extern const char lualog_ext_key_tx;
+extern const char lualog_ext_key_p;
+
+Packet *LuaStateGetPacket(lua_State *luastate)
+{
+    lua_pushlightuserdata(luastate, (void *)&lualog_ext_key_p);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    void *p = lua_touserdata(luastate, -1);
+    return (Packet *)p;
+}
 
 void *LuaStateGetTX(lua_State *luastate)
 {
