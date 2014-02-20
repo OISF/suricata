@@ -28,6 +28,7 @@
 
 void LuaPrintStack(lua_State *state);
 
+Packet *LuaStateGetPacket(lua_State *luastate);
 void *LuaStateGetTX(lua_State *luastate);
 int LuaCallbackError(lua_State *luastate, const char *msg);
 int LuaReturnStringBuffer(lua_State *luastate, const uint8_t *input, size_t input_len);
