@@ -53,6 +53,7 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#include "output-lua-common.h"
 #include "output-lua-http.h"
 
 #define MODULE_NAME "LuaLog"
@@ -68,40 +69,6 @@ typedef struct LogLuaThreadCtx_ {
 } LogLuaThreadCtx;
 
 const char lualog_ext_key_tx[] = "suricata:lualog:tx:ptr";
-
-/** \brief dump stack from lua state to screen */
-void LuaPrintStack(lua_State *state) {
-    int size = lua_gettop(state);
-    int i;
-
-    for (i = 1; i <= size; i++) {
-        int type = lua_type(state, i);
-        printf("Stack size=%d, level=%d, type=%d, ", size, i, type);
-
-        switch (type) {
-            case LUA_TFUNCTION:
-                printf("function %s", lua_tostring(state, i) ? "true" : "false");
-                break;
-            case LUA_TBOOLEAN:
-                printf("bool %s", lua_toboolean(state, i) ? "true" : "false");
-                break;
-            case LUA_TNUMBER:
-                printf("number %g", lua_tonumber(state, i));
-                break;
-            case LUA_TSTRING:
-                printf("string `%s'", lua_tostring(state, i));
-                break;
-            case LUA_TTABLE:
-                printf("table `%s'", lua_tostring(state, i));
-                break;
-            default:
-                printf("other %s", lua_typename(state, type));
-                break;
-
-        }
-        printf("\n");
-    }
-}
 
 static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
 {
