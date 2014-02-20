@@ -101,7 +101,18 @@ static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow 
     SCReturnInt(0);
 }
 
-static int LuaPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p)
+/** \internal
+ *  \brief Packet Logger for lua scripts, for alerts
+ *
+ *  A single call to this function will run one script for a single
+ *  packet. If it is called, it means that the registered condition
+ *  function has returned TRUE.
+ *
+ *  The script is called once for each alert stored in the packet.
+ *
+ *  NOTE: p->flow is UNlocked
+ */
+static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
 
@@ -127,6 +138,7 @@ static int LuaPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p)
         snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IP_GET_IPPROTO(p));
     }
 
+    /* loop through alerts stored in the packet */
     SCMutexLock(&td->lua_ctx->m);
     uint16_t cnt;
     for (cnt = 0; cnt < p->alerts.cnt; cnt++) {
@@ -136,10 +148,6 @@ static int LuaPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p)
         }
 
         lua_getglobal(td->lua_ctx->luastate, "log");
-        //if (lua_type(td->lua_ctx->luastate, -1) != LUA_TFUNCTION) {
-        //    SCLogError(SC_ERR_LUAJIT_ERROR, "no log function in script");
-        //    goto error;
-        //}
 
         /* prepare data to pass to script */
         lua_newtable(td->lua_ctx->luastate);
@@ -161,13 +169,11 @@ static int LuaPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p)
         LogLuaPushTableKeyValueString(td->lua_ctx->luastate, "ipproto", proto);
         LogLuaPushTableKeyValueString(td->lua_ctx->luastate, "class", pa->s->class_msg);
 
-        //LuaPrintStack(td->lua_ctx->luastate);
         int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
         if (retval != 0) {
             SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
         }
     }
-//error:
     SCMutexUnlock(&td->lua_ctx->m);
 not_supported:
     SCReturnInt(0);
@@ -453,7 +459,7 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_HTTP;
         } else if (opts.packet && opts.alerts) {
-            om->PacketLogFunc = LuaPacketLogger;
+            om->PacketLogFunc = LuaPacketLoggerAlerts;
             om->PacketConditionFunc = LuaPacketConditionAlerts;
         }
 
