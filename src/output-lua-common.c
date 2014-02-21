@@ -241,6 +241,51 @@ static int LuaCallbackLogPath(lua_State *luastate)
     return LuaReturnStringBuffer(luastate, (const uint8_t *)ld, strlen(ld));
 }
 
+static int LuaCallbackLogDebug(lua_State *luastate)
+{
+    const char *msg = LuaGetStringArgument(luastate, 1);
+    if (msg == NULL)
+        return LuaCallbackError(luastate, "1st argument missing, empty or wrong type");
+    SCLogDebug("%s", msg);
+    return 0;
+}
+
+static int LuaCallbackLogInfo(lua_State *luastate)
+{
+    const char *msg = LuaGetStringArgument(luastate, 1);
+    if (msg == NULL)
+        return LuaCallbackError(luastate, "1st argument missing, empty or wrong type");
+    SCLogInfo("%s", msg);
+    return 0;
+}
+
+static int LuaCallbackLogNotice(lua_State *luastate)
+{
+    const char *msg = LuaGetStringArgument(luastate, 1);
+    if (msg == NULL)
+        return LuaCallbackError(luastate, "1st argument missing, empty or wrong type");
+    SCLogNotice("%s", msg);
+    return 0;
+}
+
+static int LuaCallbackLogWarning(lua_State *luastate)
+{
+    const char *msg = LuaGetStringArgument(luastate, 1);
+    if (msg == NULL)
+        return LuaCallbackError(luastate, "1st argument missing, empty or wrong type");
+    SCLogWarning(SC_WARN_LUA_SCRIPT, "%s", msg);
+    return 0;
+}
+
+static int LuaCallbackLogError(lua_State *luastate)
+{
+    const char *msg = LuaGetStringArgument(luastate, 1);
+    if (msg == NULL)
+        return LuaCallbackError(luastate, "1st argument missing, empty or wrong type");
+    SCLogError(SC_ERR_LUA_SCRIPT, "%s", msg);
+    return 0;
+}
+
 int LogLuaRegisterFunctions(lua_State *luastate)
 {
     /* registration of the callbacks */
@@ -248,6 +293,17 @@ int LogLuaRegisterFunctions(lua_State *luastate)
     lua_setglobal(luastate, "SCPacketTuple");
     lua_pushcfunction(luastate, LuaCallbackLogPath);
     lua_setglobal(luastate, "SCLogPath");
+
+    lua_pushcfunction(luastate, LuaCallbackLogDebug);
+    lua_setglobal(luastate, "SCLogDebug");
+    lua_pushcfunction(luastate, LuaCallbackLogInfo);
+    lua_setglobal(luastate, "SCLogInfo");
+    lua_pushcfunction(luastate, LuaCallbackLogNotice);
+    lua_setglobal(luastate, "SCLogNotice");
+    lua_pushcfunction(luastate, LuaCallbackLogWarning);
+    lua_setglobal(luastate, "SCLogWarning");
+    lua_pushcfunction(luastate, LuaCallbackLogError);
+    lua_setglobal(luastate, "SCLogError");
     return 0;
 }
 
