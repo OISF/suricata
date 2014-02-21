@@ -232,11 +232,22 @@ static int LuaCallbackTuple(lua_State *luastate)
     return LuaCallbackTuplePushToStackFromPacket(luastate, p);
 }
 
+static int LuaCallbackLogPath(lua_State *luastate)
+{
+    const char *ld = ConfigGetLogDirectory();
+    if (ld == NULL)
+        return LuaCallbackError(luastate, "internal error: no log dir");
+
+    return LuaReturnStringBuffer(luastate, (const uint8_t *)ld, strlen(ld));
+}
+
 int LogLuaRegisterFunctions(lua_State *luastate)
 {
     /* registration of the callbacks */
     lua_pushcfunction(luastate, LuaCallbackTuple);
     lua_setglobal(luastate, "SCPacketTuple");
+    lua_pushcfunction(luastate, LuaCallbackLogPath);
+    lua_setglobal(luastate, "SCLogPath");
     return 0;
 }
 
