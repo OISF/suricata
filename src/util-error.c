@@ -297,6 +297,8 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_CONF_NAME_TOO_LONG);
         CASE_CODE (SC_ERR_APP_LAYER_PROTOCOL_DETECTION);
         CASE_CODE (SC_ERR_PCIE_INIT_FAILED);
+        CASE_CODE (SC_WARN_LUA_SCRIPT);
+        CASE_CODE (SC_ERR_LUA_SCRIPT);
     }
 
     return "UNKNOWN_ERROR";
