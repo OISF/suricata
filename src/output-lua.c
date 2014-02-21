@@ -89,6 +89,10 @@ static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow 
 
     SCMutexLock(&td->lua_ctx->m);
 
+    /* we need the p in our callbacks */
+    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)&lualog_ext_key_p);
+    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)p);
+    lua_settable(td->lua_ctx->luastate, LUA_REGISTRYINDEX);
     /* we need the tx in our callbacks */
     lua_pushlightuserdata(td->lua_ctx->luastate, (void *)&lualog_ext_key_tx);
     lua_pushlightuserdata(td->lua_ctx->luastate, (void *)txptr);
@@ -155,6 +159,11 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
         }
 
         lua_getglobal(td->lua_ctx->luastate, "log");
+
+        /* we need the p in our callbacks */
+        lua_pushlightuserdata(td->lua_ctx->luastate, (void *)&lualog_ext_key_p);
+        lua_pushlightuserdata(td->lua_ctx->luastate, (void *)p);
+        lua_settable(td->lua_ctx->luastate, LUA_REGISTRYINDEX);
 
         /* prepare data to pass to script */
         lua_newtable(td->lua_ctx->luastate);
