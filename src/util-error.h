@@ -286,6 +286,8 @@ typedef enum {
     SC_WARN_NFLOG_LOSING_EVENTS,
     SC_WARN_NFLOG_MAXBUFSIZ_REACHED,
     SC_WARN_NFLOG_SETSOCKOPT,
+    SC_WARN_LUA_SCRIPT,
+    SC_ERR_LUA_SCRIPT,
 } SCError;
 
 const char *SCErrorToString(SCError);
