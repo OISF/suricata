@@ -273,6 +273,8 @@ typedef enum {
     SC_ERR_CONF_NAME_TOO_LONG,
     SC_ERR_APP_LAYER_PROTOCOL_DETECTION,
     SC_ERR_PCIE_INIT_FAILED,
+    SC_WARN_LUA_SCRIPT,
+    SC_ERR_LUA_SCRIPT,
 } SCError;
 
 const char *SCErrorToString(SCError);
