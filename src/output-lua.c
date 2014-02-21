@@ -96,10 +96,8 @@ static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow 
 
     /* prepare data to pass to script */
     lua_getglobal(td->lua_ctx->luastate, "log");
-    lua_newtable(td->lua_ctx->luastate); /* stack at -1 */
-    lua_pushliteral (td->lua_ctx->luastate, "tx_id"); /* stack at -2 */
-    lua_pushnumber (td->lua_ctx->luastate, (int)(tx_id));
-    lua_settable(td->lua_ctx->luastate, -3);
+    lua_newtable(td->lua_ctx->luastate);
+    LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "tx_id", (int)(tx_id));
 
     int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
     if (retval != 0) {
