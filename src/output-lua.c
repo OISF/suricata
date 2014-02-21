@@ -433,16 +433,16 @@ static lua_State *LuaScriptSetup(const char *filename)
 
     lua_getglobal(luastate, "setup");
 
-    if (lua_pcall(luastate, 0, 0, 0) != 0) {
-        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't run script 'setup' function: %s", lua_tostring(luastate, -1));
-        goto error;
-    }
-
     /* register functions common to all */
     LogLuaRegisterFunctions(luastate);
     /* unconditionally register http function. They will only work
      * if the tx is registered in the state at runtime though. */
     LogLuaRegisterHttpFunctions(luastate);
+
+    if (lua_pcall(luastate, 0, 0, 0) != 0) {
+        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't run script 'setup' function: %s", lua_tostring(luastate, -1));
+        goto error;
+    }
 
     SCLogDebug("lua_State %p is set up", luastate);
     return luastate;
