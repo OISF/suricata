@@ -557,6 +557,10 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
             om->PacketConditionFunc = LuaPacketConditionAlerts;
         } else if (opts.file) {
             om->FileLogFunc = LuaFileLogger;
+        } else {
+            SCLogError(SC_ERR_LUAJIT_ERROR, "failed to setup thread module");
+            SCFree(om);
+            continue;
         }
 
         TAILQ_INSERT_TAIL(&output_ctx->submodules, om, entries);
