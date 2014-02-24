@@ -203,6 +203,62 @@ static int LuaPacketConditionAlerts(ThreadVars *tv, const Packet *p)
 }
 
 /** \internal
+ *  \brief Packet Logger for lua scripts, for packets
+ *
+ *  A single call to this function will run one script for a single
+ *  packet. If it is called, it means that the registered condition
+ *  function has returned TRUE.
+ *
+ *  The script is called once for each packet.
+ *
+ *  NOTE: p->flow is UNlocked
+ */
+static int LuaPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
+
+    char timebuf[64];
+
+    if ((!(PKT_IS_IPV4(p))) && (!(PKT_IS_IPV6(p)))) {
+        goto not_supported;
+    }
+
+    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+
+    char proto[16] = "";
+    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
+        strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
+    } else {
+        snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IP_GET_IPPROTO(p));
+    }
+
+    /* loop through alerts stored in the packet */
+    SCMutexLock(&td->lua_ctx->m);
+    lua_getglobal(td->lua_ctx->luastate, "log");
+
+    /* we need the p in our callbacks */
+    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)&lualog_ext_key_p);
+    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)p);
+    lua_settable(td->lua_ctx->luastate, LUA_REGISTRYINDEX);
+
+    /* prepare data to pass to script */
+    lua_newtable(td->lua_ctx->luastate);
+
+    int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
+    if (retval != 0) {
+        SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
+    }
+    SCMutexUnlock(&td->lua_ctx->m);
+not_supported:
+    SCReturnInt(0);
+}
+
+static int LuaPacketCondition(ThreadVars *tv, const Packet *p)
+{
+    return TRUE;
+}
+
+/** \internal
  *  \brief File API Logger function for Lua scripts
  *
  *  Executes a script once for one file.
@@ -555,6 +611,9 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
         } else if (opts.packet && opts.alerts) {
             om->PacketLogFunc = LuaPacketLoggerAlerts;
             om->PacketConditionFunc = LuaPacketConditionAlerts;
+        } else if (opts.packet && opts.alerts == 0) {
+            om->PacketLogFunc = LuaPacketLogger;
+            om->PacketConditionFunc = LuaPacketCondition;
         } else if (opts.file) {
             om->FileLogFunc = LuaFileLogger;
         } else {
