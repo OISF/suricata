@@ -1285,8 +1285,6 @@ static int SMTPParseServerRecord(Flow *f, void *alstate,
 
     /* first arg 1 is toclient */
     return SMTPParse(1, f, alstate, pstate, input, input_len, local_data);
-
-    return 0;
 }
 
 /**
