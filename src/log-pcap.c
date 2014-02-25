@@ -60,6 +60,7 @@
 
 #define LOGMODE_NORMAL                  0
 #define LOGMODE_SGUIL                   1
+#define LOGMODE_MULTI                   2
 
 #define RING_BUFFER_MODE_DISABLED       0
 #define RING_BUFFER_MODE_ENABLED        1
@@ -514,6 +515,8 @@ static OutputCtx *PcapLogInitCtx(ConfNode *conf)
         if (s_mode != NULL) {
             if (strcasecmp(s_mode, "sguil") == 0) {
                 pl->mode = LOGMODE_SGUIL;
+            } else if (strcasecmp(s_mode, "multi") == 0) {
+                pl->mode = LOGMODE_MULTI;
             } else if (strcasecmp(s_mode, "normal") != 0) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                     "log-pcap you must specify \"sguil\" or \"normal\" mode "
