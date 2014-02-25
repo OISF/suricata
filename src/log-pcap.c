@@ -88,36 +88,38 @@ typedef struct PcapLogProfileData_ {
  * Used for storing file options.
  */
 typedef struct PcapLogData_ {
-    uint64_t size_current;      /**< file current size */
-    uint64_t size_limit;        /**< file size limit */
+    int use_stream_depth;       /**< use stream depth i.e. ignore packets that reach limit */
+    int is_private;             /**< TRUE if ctx is thread local */
+    SCMutex plog_lock;
+    uint64_t pkt_cnt;		    /**< total number of packets */
     struct pcap_pkthdr *h;      /**< pcap header struct */
     char *filename;             /**< current filename */
-    uint32_t file_cnt;          /**< count of pcap files we currently have */
-    uint32_t max_files;         /**< maximum files to use in ring buffer mode */
-    uint64_t pkt_cnt;		    /**< total number of packets */
+    int mode;                   /**< normal or sguil */
     int prev_day;               /**< last day, for finding out when */
-    int threads;                /**< number of threads (only set in the global) */
+    uint64_t size_current;      /**< file current size */
+    uint64_t size_limit;        /**< file size limit */
     pcap_t *pcap_dead_handle;   /**< pcap_dumper_t needs a handle */
     pcap_dumper_t *pcap_dumper; /**< actually writes the packets */
-    char *prefix;               /**< filename prefix */
-    int mode;                   /**< normal or sguil */
-    int use_ringbuffer;         /**< ring buffer mode enabled or disabled */
-    int timestamp_format;       /**< timestamp format sec or usec */
-    int use_stream_depth;       /**< use stream depth i.e. ignore packets that reach limit */
-    char dir[PATH_MAX];         /**< pcap log directory */
+    uint64_t profile_data_size; /**< track in bytes how many bytes we wrote */
+    uint32_t file_cnt;          /**< count of pcap files we currently have */
+    uint32_t max_files;         /**< maximum files to use in ring buffer mode */
 
-    int reported;
+    PcapLogProfileData profile_lock;
+    PcapLogProfileData profile_write;
+    PcapLogProfileData profile_unlock;
+    PcapLogProfileData profile_handles; // open handles
     PcapLogProfileData profile_close;
     PcapLogProfileData profile_open;
-    PcapLogProfileData profile_write;
     PcapLogProfileData profile_rotate;
-    PcapLogProfileData profile_handles; // open handles
-    PcapLogProfileData profile_lock;
-    PcapLogProfileData profile_unlock;
-    uint64_t profile_data_size; /**< track in bytes how many bytes we wrote */
 
-    SCMutex plog_lock;
     TAILQ_HEAD(, PcapFileName_) pcap_file_list;
+
+    int use_ringbuffer;         /**< ring buffer mode enabled or disabled */
+    int timestamp_format;       /**< timestamp format sec or usec */
+    char *prefix;               /**< filename prefix */
+    char dir[PATH_MAX];         /**< pcap log directory */
+    int reported;
+    int threads;                /**< number of threads (only set in the global) */
 } PcapLogData;
 
 typedef struct PcapLogThreadData_ {
@@ -291,18 +293,30 @@ static int PcapLogOpenHandles(PcapLogData *pl, Packet *p) {
     return TM_ECODE_OK;
 }
 
+/** \internal
+ *  \brief lock wrapper for main PcapLog() function
+ *  NOTE: only meant for use in main PcapLog() function.
+ */
 static void PcapLogLock(PcapLogData *pl)
 {
-    PCAPLOG_PROFILE_START;
-    SCMutexLock(&pl->plog_lock);
-    PCAPLOG_PROFILE_END(pl->profile_lock);
+    if (!(pl->is_private)) {
+        PCAPLOG_PROFILE_START;
+        SCMutexLock(&pl->plog_lock);
+        PCAPLOG_PROFILE_END(pl->profile_lock);
+    }
 }
 
+/** \internal
+ *  \brief unlock wrapper for main PcapLog() function
+ *  NOTE: only meant for use in main PcapLog() function.
+ */
 static void PcapLogUnlock(PcapLogData *pl)
 {
-    PCAPLOG_PROFILE_START;
-    SCMutexUnlock(&pl->plog_lock);
-    PCAPLOG_PROFILE_END(pl->profile_unlock);
+    if (!(pl->is_private)) {
+        PCAPLOG_PROFILE_START;
+        SCMutexUnlock(&pl->plog_lock);
+        PCAPLOG_PROFILE_END(pl->profile_unlock);
+    }
 }
 
 /**
@@ -414,6 +428,7 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
     }
 
     /* settings TODO move to global cfg struct */
+    copy->is_private = TRUE;
     copy->mode = pl->mode;
     copy->max_files = pl->max_files;
     copy->use_ringbuffer = pl->use_ringbuffer;
