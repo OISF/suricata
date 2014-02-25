@@ -290,6 +290,10 @@ static void FTPStateFree(void *s) {
     FtpState *fstate = (FtpState *) s;
     if (fstate->port_line != NULL)
         SCFree(fstate->port_line);
+    if (fstate->line_state[0].db)
+        SCFree(fstate->line_state[0].db);
+    if (fstate->line_state[1].db)
+        SCFree(fstate->line_state[1].db);
     SCFree(s);
 #ifdef DEBUG
     SCMutexLock(&ftp_state_mem_lock);
