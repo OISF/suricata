@@ -119,6 +119,10 @@ typedef struct PcapLogData_ {
     TAILQ_HEAD(, PcapFileName_) pcap_file_list;
 } PcapLogData;
 
+typedef struct PcapLogThreadData_ {
+    PcapLogData *pcap_log;
+} PcapLogThreadData;
+
 static int PcapLogOpenFileCtx(PcapLogData *);
 static TmEcode PcapLog(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 static TmEcode PcapLogDataInit(ThreadVars *, void *, void **);
@@ -308,14 +312,15 @@ static void PcapLogUnlock(PcapLogData *pl)
  * \retval TM_ECODE_OK on succes
  * \retval TM_ECODE_FAILED on serious error
  */
-static TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
+static TmEcode PcapLog (ThreadVars *t, Packet *p, void *thread_data, PacketQueue *pq,
                  PacketQueue *postpq)
 {
     size_t len;
     int rotate = 0;
     int ret = 0;
 
-    PcapLogData *pl = (PcapLogData *)data;
+    PcapLogThreadData *td = (PcapLogThreadData *)thread_data;
+    PcapLogData *pl = td->pcap_log;
 
     if ((p->flags & PKT_PSEUDO_STREAM_END) ||
         ((p->flags & PKT_STREAM_NOPCAPLOG) &&
@@ -391,6 +396,12 @@ static TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
 
     PcapLogData *pl = ((OutputCtx *)initdata)->data;
 
+    PcapLogThreadData *td = SCCalloc(1, sizeof(*td));
+    if (unlikely(td == NULL))
+        return TM_ECODE_FAILED;
+
+    td->pcap_log = pl;
+
     SCMutexLock(&pl->plog_lock);
 
     /** Use the Ouptut Context (file pointer and mutex) */
@@ -406,9 +417,10 @@ static TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
     struct tm *tms = SCLocalTime(ts.tv_sec, &local_tm);
     pl->prev_day = tms->tm_mday;
 
-    *data = (void *)pl;
-
     SCMutexUnlock(&pl->plog_lock);
+
+    *data = (void *)td;
+
     return TM_ECODE_OK;
 }
 
@@ -421,9 +433,10 @@ static TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
  *  \retval TM_ECODE_FAILED on failure
  */
 
-static TmEcode PcapLogDataDeinit(ThreadVars *t, void *data)
+static TmEcode PcapLogDataDeinit(ThreadVars *t, void *thread_data)
 {
-    PcapLogData *pl = data;
+    PcapLogThreadData *td = (PcapLogThreadData *)thread_data;
+    PcapLogData *pl = td->pcap_log;
 
     if (pl->pcap_dumper != NULL) {
         if (PcapLogCloseFile(t,pl) < 0) {
