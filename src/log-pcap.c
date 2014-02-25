@@ -110,6 +110,8 @@ typedef struct PcapLogData_ {
     PcapLogProfileData profile_write;
     PcapLogProfileData profile_rotate;
     PcapLogProfileData profile_handles; // open handles
+    PcapLogProfileData profile_lock;
+    PcapLogProfileData profile_unlock;
     uint64_t profile_data_size; /**< track in bytes how many bytes we wrote */
 
     SCMutex plog_lock;
@@ -279,6 +281,20 @@ static int PcapLogOpenHandles(PcapLogData *pl, Packet *p) {
     return TM_ECODE_OK;
 }
 
+static void PcapLogLock(PcapLogData *pl)
+{
+    PCAPLOG_PROFILE_START;
+    SCMutexLock(&pl->plog_lock);
+    PCAPLOG_PROFILE_END(pl->profile_lock);
+}
+
+static void PcapLogUnlock(PcapLogData *pl)
+{
+    PCAPLOG_PROFILE_START;
+    SCMutexUnlock(&pl->plog_lock);
+    PCAPLOG_PROFILE_END(pl->profile_unlock);
+}
+
 /**
  * \brief Pcap logging main function
  *
@@ -308,7 +324,7 @@ static TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
         return TM_ECODE_OK;
     }
 
-    SCMutexLock(&pl->plog_lock);
+    PcapLogLock(pl);
 
     pl->pkt_cnt++;
     pl->h->ts.tv_sec = p->ts.tv_sec;
@@ -320,7 +336,7 @@ static TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
     if (pl->filename == NULL) {
         ret = PcapLogOpenFileCtx(pl);
         if (ret < 0) {
-            SCMutexUnlock(&pl->plog_lock);
+            PcapLogUnlock(pl);
             return TM_ECODE_FAILED;
         }
         SCLogDebug("Opening PCAP log file %s", pl->filename);
@@ -337,7 +353,7 @@ static TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
 
     if ((pl->size_current + len) > pl->size_limit || rotate) {
         if (PcapLogRotateFile(t,pl) < 0) {
-            SCMutexUnlock(&pl->plog_lock);
+            PcapLogUnlock(pl);
             SCLogDebug("rotation of pcap failed");
             return TM_ECODE_FAILED;
         }
@@ -347,7 +363,7 @@ static TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
      * this here as we don't know the link type until we get our first packet */
     if (pl->pcap_dead_handle == NULL || pl->pcap_dumper == NULL) {
         if (PcapLogOpenHandles(pl, p) != TM_ECODE_OK) {
-            SCMutexUnlock(&pl->plog_lock);
+            PcapLogUnlock(pl);
             return TM_ECODE_FAILED;
         }
     }
@@ -361,7 +377,7 @@ static TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq,
     SCLogDebug("pl->size_current %"PRIu64",  pl->size_limit %"PRIu64,
                pl->size_current, pl->size_limit);
 
-    SCMutexUnlock(&pl->plog_lock);
+    PcapLogUnlock(pl);
     return TM_ECODE_OK;
 }
 
@@ -762,6 +778,8 @@ static void ProfileReport(FILE *fp, PcapLogData *pl) {
     ProfileReportPair(fp, "write", &pl->profile_write);
     ProfileReportPair(fp, "rotate (incl open/close)", &pl->profile_rotate);
     ProfileReportPair(fp, "handles", &pl->profile_handles);
+    ProfileReportPair(fp, "lock", &pl->profile_lock);
+    ProfileReportPair(fp, "unlock", &pl->profile_unlock);
 }
 
 static void FormatBytes(uint64_t num, char *str, size_t size) {
@@ -797,7 +815,10 @@ static void PcapLogProfilingDump(PcapLogData *pl) {
     fprintf(fp,     "---------------------------- ---------- ---------- -----------\n");
 
     ProfileReport(fp, pl);
-    uint64_t total = pl->profile_write.total + pl->profile_rotate.total + pl->profile_handles.total;
+    uint64_t total = pl->profile_write.total + pl->profile_rotate.total +
+                     pl->profile_handles.total + pl->profile_open.total +
+                     pl->profile_close.total + pl->profile_lock.total +
+                     pl->profile_unlock.total;
 
     /* overall stats */
     fprintf(fp, "\nOverall: %"PRIu64" bytes written, average %d bytes per write.\n",
