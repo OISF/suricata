@@ -44,6 +44,16 @@ void MemBufferFree(MemBuffer *buffer);
     } while (0)
 
 /**
+ * \brief Get the MemBuffers underlying buffer.
+ */
+#define MEMBUFFER_BUFFER(mem_buffer) (mem_buffer)->buffer
+
+/**
+ * \brief Get the MemBuffers current offset.
+ */
+#define MEMBUFFER_OFFSET(mem_buffer) (mem_buffer)->offset
+
+/**
  * \brief Write a buffer to the file pointer.
  *
  *        Accepted buffers can contain both printable and non-printable
