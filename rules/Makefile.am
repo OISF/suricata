@@ -4,4 +4,5 @@ stream-events.rules \
 smtp-events.rules \
 http-events.rules \
 dns-events.rules \
+tls-events.rules \
 files.rules

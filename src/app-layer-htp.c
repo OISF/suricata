@@ -2032,14 +2032,19 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
     if (request_uri_normalized == NULL)
         return HTP_OK;
 
-    tx_ud = HTPMalloc(sizeof(*tx_ud));
-    if (unlikely(tx_ud == NULL)) {
-        bstr_free(request_uri_normalized);
-        return HTP_OK;
+    tx_ud = htp_tx_get_user_data(tx);
+    if (likely(tx_ud == NULL)) {
+        tx_ud = HTPMalloc(sizeof(*tx_ud));
+        if (unlikely(tx_ud == NULL)) {
+            bstr_free(request_uri_normalized);
+            return HTP_OK;
+        }
+        memset(tx_ud, 0, sizeof(*tx_ud));
+        htp_tx_set_user_data(tx, tx_ud);
     }
-    memset(tx_ud, 0, sizeof(*tx_ud));
+    if (unlikely(tx_ud->request_uri_normalized != NULL))
+        bstr_free(tx_ud->request_uri_normalized);
     tx_ud->request_uri_normalized = request_uri_normalized;
-    htp_tx_set_user_data(tx, tx_ud);
 
     if (tx->flags) {
         HTPErrorCheckTxRequestFlags(hstate, tx);

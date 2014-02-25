@@ -1101,6 +1101,8 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
         SCPerfSyncCountersIfSignalled(tv);
     }
 
+    AFPDumpCounters(ptv);
+    SCPerfSyncCountersIfSignalled(tv);
     SCReturnInt(TM_ECODE_OK);
 }
 
