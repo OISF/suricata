@@ -75,6 +75,12 @@ err:
 
 static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ctx)
 {
+    /* Check for rotation. */
+    if (log_ctx->rollover_flag) {
+        log_ctx->rollover_flag = 0;
+        SCConfLogReopen(log_ctx);
+    }
+
     int ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
     fflush(log_ctx->fp);
 
