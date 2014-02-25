@@ -570,7 +570,9 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
         }
     }
 
-    if (state->cmds[state->cmds_idx] == SMTP_COMMAND_STARTTLS) {
+    if (state->cmds_cnt == 0) {
+        /* reply but not a command we have stored, fall through */
+    } else if (state->cmds[state->cmds_idx] == SMTP_COMMAND_STARTTLS) {
         if (reply_code == SMTP_REPLY_220) {
             /* we are entering STARRTTLS data mode */
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
