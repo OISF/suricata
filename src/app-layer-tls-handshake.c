@@ -94,7 +94,7 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
     int rc;
     int parsed;
     uint8_t *start_data;
-    uint32_t errcode;
+    uint32_t errcode = 0;
 
     if (input_len < 3)
         return 1;
