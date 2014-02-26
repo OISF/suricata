@@ -56,6 +56,7 @@ enum PktSrcEnum {
     PKT_SRC_FFR_SHUTDOWN,
 };
 
+#include "source-nflog.h"
 #include "source-nfq.h"
 #include "source-ipfw.h"
 #include "source-pcap.h"
@@ -395,6 +396,9 @@ typedef struct Packet_
 
     union {
         /* nfq stuff */
+#ifdef HAVE_NFLOG
+        NFLOGPacketVars nflog_v;
+#endif /* HAVE_NFLOG */
 #ifdef NFQ
         NFQPacketVars nfq_v;
 #endif /* NFQ */
