@@ -309,6 +309,12 @@ end_fp:
     fclose(fp);
 }
 
+static void LogTlsLogFileRolloverNotification(OutputCtx *output_ctx)
+{
+    /* Delegate to the underlying LogFileCtx. */
+    ((LogTlsFileCtx *)output_ctx->data)->file_ctx->rollover_flag = 1;
+}
+
 static TmEcode LogTlsLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     LogTlsLogThread *aft = SCMalloc(sizeof(LogTlsLogThread));
@@ -456,6 +462,7 @@ static OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
         goto tlslog_error;
     output_ctx->data = tlslog_ctx;
     output_ctx->DeInit = LogTlsLogDeInitCtx;
+    output_ctx->FileRollover = LogTlsLogFileRolloverNotification;
 
     SCLogDebug("TLS log output initialized");
 
@@ -565,8 +572,8 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
     aft->tls_cnt++;
 
     SCMutexLock(&hlog->file_ctx->fp_mutex);
-    MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
-    fflush(hlog->file_ctx->fp);
+    hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
+        MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
     SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 
     /* we only log the state once */
