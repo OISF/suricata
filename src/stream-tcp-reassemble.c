@@ -411,7 +411,12 @@ int StreamTcpReassemblyConfig(char quiet)
                 (void *) &my_segment_pktsizes[i],
                 TcpSegmentPoolCleanup, NULL);
         SCMutexUnlock(&my_segment_lock[i]);
-        BUG_ON(my_segment_pool[i] == NULL);
+
+        if (my_segment_pool[i] == NULL) {
+            SCLogError(SC_ERR_INITIALIZATION, "couldn't set up segment pool "
+                    "for packet size %u. Memcap too low?", my_segment_pktsizes[i]);
+            exit(EXIT_FAILURE);
+        }
 
         SCLogDebug("my_segment_pktsizes[i] %u, my_segment_poolsizes[i] %u",
                 my_segment_pktsizes[i], my_segment_poolsizes[i]);
