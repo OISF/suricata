@@ -1455,11 +1455,7 @@ static void SMBStateFree(void *s) {
         sstate->dcerpc.dcerpcresponse.stub_data_buffer_len = 0;
     }
 
-    if (s) {
-        SCFree(s);
-        s = NULL;
-    }
-
+    SCFree(s);
     SCReturn;
 }
 

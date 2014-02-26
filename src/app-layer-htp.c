@@ -1957,6 +1957,10 @@ void HTPFreeConfig(void)
 static int HTPCallbackRequest(htp_tx_t *tx) {
     SCEnter();
 
+    if (tx == NULL) {
+        SCReturnInt(HTP_ERROR);
+    }
+
     HtpState *hstate = htp_connp_get_user_data(tx->connp);
     if (hstate == NULL) {
         SCReturnInt(HTP_ERROR);
@@ -1967,16 +1971,14 @@ static int HTPCallbackRequest(htp_tx_t *tx) {
 
     SCLogDebug("HTTP request completed");
 
-    if (tx != NULL) {
-        HTPErrorCheckTxRequestFlags(hstate, tx);
+    HTPErrorCheckTxRequestFlags(hstate, tx);
 
-        HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-        if (htud != NULL) {
-            if (htud->tsflags & HTP_FILENAME_SET) {
-                SCLogDebug("closing file that was being stored");
-                (void)HTPFileClose(hstate, NULL, 0, 0, STREAM_TOSERVER);
-                htud->tsflags &= ~HTP_FILENAME_SET;
-            }
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    if (htud != NULL) {
+        if (htud->tsflags & HTP_FILENAME_SET) {
+            SCLogDebug("closing file that was being stored");
+            (void)HTPFileClose(hstate, NULL, 0, 0, STREAM_TOSERVER);
+            htud->tsflags &= ~HTP_FILENAME_SET;
         }
     }
 

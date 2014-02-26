@@ -341,7 +341,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
             goto error;
         }
         int length = atoi(arg_substr);
-        if (offset > 65535) {
+        if (length > 65535) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Fast pattern length exceeds "
                        "limit");
             goto error;
