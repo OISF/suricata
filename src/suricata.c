@@ -290,6 +290,13 @@ void SignalHandlerSigusr2(int sig)
     return;
 }
 
+/**
+ * SIGHUP handler.  Sends notification to rollover log files.
+ */
+static void SignalHandlerSigHup(/*@unused@*/ int sig) {
+    OutputNotifyFileRotation();
+}
+
 #ifdef DBG_MEM_ALLOC
 #ifndef _GLOBAL_MEM_
 #define _GLOBAL_MEM_
@@ -1668,7 +1675,7 @@ static int InitSignalHandler(SCInstance *suri)
 
 #ifndef OS_WIN32
     /* SIGHUP is not implemented on WIN32 */
-    UtilSignalHandlerSetup(SIGHUP, SIG_IGN);
+    UtilSignalHandlerSetup(SIGHUP, SignalHandlerSigHup);
 
     /* Try to get user/group to run suricata as if
        command line as not decide of that */

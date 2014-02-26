@@ -86,4 +86,7 @@ void OutputDeregisterAll(void);
 int OutputDropLoggerEnable(void);
 int OutputTlsLoggerEnable(void);
 
+void OutputRegisterFileRotation(OutputCtx *);
+void OutputNotifyFileRotation(void);
+
 #endif /* ! __OUTPUT_H__ */

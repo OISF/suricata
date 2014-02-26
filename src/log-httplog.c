@@ -504,8 +504,8 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, void *data, const Packet *p, 
     aft->uri_cnt ++;
 
     SCMutexLock(&hlog->file_ctx->fp_mutex);
-    (void)MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
-    fflush(hlog->file_ctx->fp);
+    hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
+        MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
     SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 
 end:
@@ -580,6 +580,12 @@ void LogHttpLogExitPrintStats(ThreadVars *tv, void *data) {
     }
 
     SCLogInfo("HTTP logger logged %" PRIu32 " requests", aft->uri_cnt);
+}
+
+static void LogHttpLogFileRollover(OutputCtx *output_ctx)
+{
+    /* Delegate to the underlying LogFileCtx. */
+    ((LogHttpFileCtx *)output_ctx->data)->file_ctx->rollover_flag = 1;
 }
 
 /** \brief Create a new http log LogFileCtx.
@@ -703,6 +709,7 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
 
     output_ctx->data = httplog_ctx;
     output_ctx->DeInit = LogHttpLogDeInitCtx;
+    output_ctx->FileRollover = LogHttpLogFileRollover;
 
     SCLogDebug("HTTP log output initialized");
 

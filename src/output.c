@@ -35,6 +35,18 @@ static TAILQ_HEAD(, OutputModule_) output_modules =
     TAILQ_HEAD_INITIALIZER(output_modules);
 
 /**
+ * Registry of output module interested in file rollover notification.
+ */
+typedef struct OutputFileRolloverListener_ {
+    OutputCtx *ctx;
+
+    TAILQ_ENTRY(OutputFileRolloverListener_) entries;
+} OutputFileRolloverListener;
+
+TAILQ_HEAD(, OutputFileRolloverListener_) output_file_rollover_listeners =
+    TAILQ_HEAD_INITIALIZER(output_file_rollover_listeners);
+
+/**
  * \brief Register an output module.
  *
  * This function will register an output module so it can be
@@ -393,3 +405,33 @@ int OutputTlsLoggerEnable(void) {
     return 0;
 }
 
+/**
+ * \brief Register an OutputCtx for log file rollover notification.
+ */
+void OutputRegisterFileRotation(OutputCtx *ctx)
+{
+    if (ctx->FileRollover == NULL) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+            "Can't register for file rollver notification with NULL FileRollver.");
+        return;
+    }
+    OutputFileRolloverListener *listener = SCCalloc(1, sizeof(*listener));
+    if (unlikely(listener == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+            "Failed to allocate memory to register file rotation listener");
+        return;
+    }
+    listener->ctx = ctx;
+    TAILQ_INSERT_TAIL(&output_file_rollover_listeners, listener, entries);
+}
+
+void OutputNotifyFileRotation(void)
+{
+    OutputFileRolloverListener *listener;
+
+    TAILQ_FOREACH(listener, &output_file_rollover_listeners, entries) {
+        if (listener->ctx->FileRollover != NULL) {
+            listener->ctx->FileRollover(listener->ctx);
+        }
+    }
+}
