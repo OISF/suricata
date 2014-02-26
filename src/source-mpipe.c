@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2013 Open Information Security Foundation
+/* Copyright (C) 2011-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -349,12 +349,11 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
     /* Open Ingress Queue for this worker thread. */
     MpipeReceiveOpenIqueue(rank);
     gxio_mpipe_iqueue_t* iqueue = thread_iqueue;
+    int update_counter = 0;
 
     for (;;) {
-        if (suricata_ctl_flags != 0) {
-            break;
-        }
 
+        /* Check to see how many packets are available to process. */
         gxio_mpipe_idesc_t *idesc;
         int n = gxio_mpipe_iqueue_try_peek(iqueue, &idesc);
         if (likely(n > 0)) {
@@ -396,7 +395,15 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
             /* Move forward M packets in ingress ring. */
             gxio_mpipe_iqueue_advance(iqueue, m);
         }
-        SCPerfSyncCountersIfSignalled(tv);
+        if (update_counter-- <= 0) {
+            /* Only periodically update and check for termination. */
+            SCPerfSyncCountersIfSignalled(tv);
+            update_counter = 10000;
+
+            if (suricata_ctl_flags != 0) {
+              break;
+            }
+        }
     }
     SCReturnInt(TM_ECODE_OK);
 }
