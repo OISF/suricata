@@ -265,19 +265,33 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             break;
         case ND_ROUTER_SOLICIT:
             SCLogDebug("ND_ROUTER_SOLICIT");
-        case ND_ROUTER_ADVERT:
-            SCLogDebug("ND_ROUTER_ADVERT");
-        case ND_NEIGHBOR_SOLICIT:
-            SCLogDebug("ND_NEIGHBOR_SOLICIT");
-        case ND_NEIGHBOR_ADVERT:
-            SCLogDebug("ND_NEIGHBOR_ADVERT");
-        case ND_REDIRECT:
-            SCLogDebug("ND_REDIRECT");
-
             if (p->icmpv6h->code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
-
+            break;
+        case ND_ROUTER_ADVERT:
+            SCLogDebug("ND_ROUTER_ADVERT");
+            if (p->icmpv6h->code != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case ND_NEIGHBOR_SOLICIT:
+            SCLogDebug("ND_NEIGHBOR_SOLICIT");
+            if (p->icmpv6h->code != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case ND_NEIGHBOR_ADVERT:
+            SCLogDebug("ND_NEIGHBOR_ADVERT");
+            if (p->icmpv6h->code != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case ND_REDIRECT:
+            SCLogDebug("ND_REDIRECT");
+            if (p->icmpv6h->code != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
             break;
         default:
             SCLogDebug("ICMPV6 Message type %" PRIu8 " not "
