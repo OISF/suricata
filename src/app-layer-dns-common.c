@@ -76,7 +76,7 @@ void DNSDecrMemcap(uint32_t size, DNSState *state) {
     }
 
     BUG_ON(size > SC_ATOMIC_GET(dns_memuse)); /**< TODO remove later */
-    SC_ATOMIC_SUB(dns_memuse, size);
+    (void)SC_ATOMIC_SUB(dns_memuse, size);
 }
 
 int DNSCheckMemcap(uint32_t want, DNSState *state) {

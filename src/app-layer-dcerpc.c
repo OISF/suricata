@@ -1976,10 +1976,7 @@ static void DCERPCStateFree(void *s) {
         sstate->dcerpc.dcerpcresponse.stub_data_buffer_len = 0;
     }
 
-    if (s) {
-        SCFree(s);
-        s = NULL;
-    }
+    SCFree(s);
 }
 
 static int DCERPCRegisterPatternsForProtocolDetection(void)
