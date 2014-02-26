@@ -174,19 +174,19 @@ int TcpSegmentPoolInit(void *data, void *payload_len)
     TcpSegment *seg = (TcpSegment *) data;
     uint16_t size = *((uint16_t *) payload_len);
 
+    /* do this before the can bail, so TcpSegmentPoolCleanup
+     * won't have uninitialized memory to consider. */
+    memset(seg, 0, sizeof (TcpSegment));
+
     if (StreamTcpReassembleCheckMemcap((uint32_t)size + (uint32_t)sizeof(TcpSegment)) == 0) {
-        SCFree(seg);
         return 0;
     }
-
-    memset(seg, 0, sizeof (TcpSegment));
 
     seg->pool_size = size;
     seg->payload_len = seg->pool_size;
 
     seg->payload = SCMalloc(seg->payload_len);
     if (seg->payload == NULL) {
-        SCFree(seg);
         return 0;
     }
 
@@ -411,7 +411,12 @@ int StreamTcpReassemblyConfig(char quiet)
                 (void *) &my_segment_pktsizes[i],
                 TcpSegmentPoolCleanup, NULL);
         SCMutexUnlock(&my_segment_lock[i]);
-        BUG_ON(my_segment_pool[i] == NULL);
+
+        if (my_segment_pool[i] == NULL) {
+            SCLogError(SC_ERR_INITIALIZATION, "couldn't set up segment pool "
+                    "for packet size %u. Memcap too low?", my_segment_pktsizes[i]);
+            exit(EXIT_FAILURE);
+        }
 
         SCLogDebug("my_segment_pktsizes[i] %u, my_segment_poolsizes[i] %u",
                 my_segment_pktsizes[i], my_segment_poolsizes[i]);
