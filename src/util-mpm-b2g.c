@@ -42,6 +42,7 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-memcmp.h"
+#include "util-memcpy.h"
 #include "conf.h"
 
 #define INIT_HASH_SIZE 65536
@@ -164,13 +165,6 @@ static void B2gHashFree(MpmCtx *mpm_ctx, B2gPattern *hi) {
     SCFree(hi);
 
     B2gHashFree(mpm_ctx, t);
-}
-
-static inline void memcpy_tolower(uint8_t *d, uint8_t *s, uint16_t len) {
-    uint16_t i;
-    for (i = 0; i < len; i++) {
-        d[i] = u8_tolower(s[i]);
-    }
 }
 
 /*

@@ -37,6 +37,8 @@
 #include "detect-engine-iponly.h"
 #include "detect-parse.h"
 #include "util-mpm.h"
+#include "util-memcmp.h"
+#include "util-memcpy.h"
 #include "conf.h"
 #include "detect-fast-pattern.h"
 

@@ -37,6 +37,7 @@
 #include "util-unittest.h"
 #include "conf.h"
 #include "util-debug.h"
+#include "util-memcpy.h"
 
 #define INIT_HASH_SIZE 65536
 
@@ -136,13 +137,6 @@ static void B3gHashFree(MpmCtx *mpm_ctx, B3gHashItem *hi) {
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= sizeof(B3gHashItem);
     SCFree(hi);
-}
-
-static inline void memcpy_tolower(uint8_t *d, uint8_t *s, uint16_t len) {
-    uint16_t i;
-    for (i = 0; i < len; i++) {
-        d[i] = u8_tolower(s[i]);
-    }
 }
 
 /*

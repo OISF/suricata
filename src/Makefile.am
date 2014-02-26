@@ -312,6 +312,7 @@ util-logopenfile.h util-logopenfile.c \
 util-logopenfile-tile.h util-logopenfile-tile.c \
 util-magic.c util-magic.h \
 util-memcmp.c util-memcmp.h \
+util-memcpy.h \
 util-mem.h \
 util-memrchr.c util-memrchr.h \
 util-misc.c util-misc.h \
