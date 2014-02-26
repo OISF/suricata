@@ -409,6 +409,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
             if (SCConfLogOpenGeneric(conf, json_ctx->file_ctx, DEFAULT_LOG_FILENAME) < 0) {
                 LogFileFreeCtx(json_ctx->file_ctx);
                 SCFree(json_ctx);
+                SCFree(output_ctx);
                 return NULL;
             }
 
