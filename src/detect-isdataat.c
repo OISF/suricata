@@ -257,7 +257,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
 
     idad = DetectIsdataatParse(isdataatstr, &offset);
     if (idad == NULL)
-        goto end;
+        return -1;
 
     int sm_list;
     if (s->list != DETECT_SM_LIST_NOTSET) {
@@ -365,8 +365,11 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                                              DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
         if (prev_pm == NULL)
             sm_list = DETECT_SM_LIST_PMATCH;
-        else
+        else {
             sm_list = SigMatchListSMBelongsTo(s, prev_pm);
+            if (sm_list < 0)
+                goto end;
+        }
     } else {
         sm_list = DETECT_SM_LIST_PMATCH;
     }
@@ -411,6 +414,8 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
     ret = 0;
 
 end:
+    if (ret != 0)
+        DetectIsdataatFree(idad);
     return ret;
 }
 
