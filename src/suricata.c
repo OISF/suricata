@@ -423,6 +423,13 @@ static void SetBpfStringFromFile(char *filename) {
     FILE *fp = NULL;
     size_t nm = 0;
 
+    if (IS_ENGINE_MODE_IPS(engine_mode)) {
+        SCLogError(SC_ERR_NOT_SUPPORTED,
+                   "BPF filter not available in IPS mode."
+                   " Use firewall filtering if possible.");
+        exit(EXIT_FAILURE);
+    }
+
 #ifdef OS_WIN32
     if(_stat(filename, &st) != 0) {
 #else
