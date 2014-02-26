@@ -58,6 +58,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-memcmp.h"
+#include "util-memcpy.h"
 
 void SCACBSInitCtx(MpmCtx *);
 void SCACBSInitThreadCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
@@ -235,23 +236,6 @@ static inline void SCACBSFreePattern(MpmCtx *mpm_ctx, SCACBSPattern *p)
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= sizeof(SCACBSPattern);
     }
-    return;
-}
-
-/**
- * \internal
- * \brief Does a memcpy of the input string to lowercase.
- *
- * \param d   Pointer to the target area for memcpy.
- * \param s   Pointer to the src string for memcpy.
- * \param len len of the string sent in s.
- */
-static inline void memcpy_tolower(uint8_t *d, uint8_t *s, uint16_t len)
-{
-    uint16_t i;
-    for (i = 0; i < len; i++)
-        d[i] = u8_tolower(s[i]);
-
     return;
 }
 
