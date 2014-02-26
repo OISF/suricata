@@ -2865,7 +2865,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
                     if (SCMemcmpLowercase(dup->content, content, content_len) != 0)
                         continue;
                 } else {
-                    // Case sensitive matching
+                    /* Case sensitive matching */
                     if (SCMemcmp(dup->content, content, content_len) != 0)
                         continue;
                 }
@@ -2879,8 +2879,10 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
                 continue;
             }
 
-            /* Not found, so new content. Give it a new ID and add it to the array.
-             * Copy the content at the end of the content array. */
+            /* Not found, so new content. Give it a new ID and add it
+             * to the array.  Copy the content at the end of the
+             * content array.
+             */
             struct_offset->id = max_id++;
             cd->id = struct_offset->id;
             struct_offset->content_len = content_len;
@@ -2889,7 +2891,17 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
             struct_offset->flags = flags;
 
             content_offset += content_len;
-            memcpy(struct_offset->content, content, content_len);
+
+            if (flags & DETECT_CONTENT_NOCASE) {
+              /* Need to store case-insensitive patterns as lower case
+               * because SCMemcmpLowercase() above assumes that all
+               * patterns are stored lower case so that it doesn't
+               * need to relower its first argument.
+               */
+              memcpy_tolower(struct_offset->content, content, content_len);
+            } else {
+              memcpy(struct_offset->content, content, content_len);
+            }
 
             struct_offset++;
         } /* if (s->mpm_sm != NULL) */
