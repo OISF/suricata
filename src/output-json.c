@@ -303,13 +303,9 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer) {
     if (json_out == ALERT_SYSLOG) {
         syslog(alert_syslog_level, "%s", js_s);
     } else if (json_out == ALERT_FILE) {
-        if (file_ctx->rollover_flag) {
-            SCConfLogReopen(file_ctx);
-            file_ctx->rollover_flag = 0;
-        }
         MemBufferWriteString(buffer, "%s\n", js_s);
-        (void)MemBufferPrintToFPAsString(buffer, file_ctx->fp);
-        fflush(file_ctx->fp);
+        file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
+            MEMBUFFER_OFFSET(buffer), file_ctx);
     }
     SCMutexUnlock(&file_ctx->fp_mutex);
     free(js_s);
