@@ -778,7 +778,6 @@ int AFPReadFromRing(AFPThreadVars *ptv)
 
         ptv->pkts++;
         ptv->bytes += h.h2->tp_len;
-        (void) SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
         p->livedev = ptv->livedev;
 
         /* add forged header */
