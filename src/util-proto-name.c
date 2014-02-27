@@ -27,12 +27,18 @@
 #include "suricata-common.h"
 #include "util-proto-name.h"
 
+static int init_once = 0;
+
 /**
  *  \brief  Function to load the protocol names from the specified protocol
  *          file.
  */
 void SCProtoNameInit()
 {
+    BUG_ON(init_once);
+    init_once++;
+    memset(known_proto, 0x00, sizeof(known_proto));
+
     /* Load the known protocols name from the /etc/protocols file */
     FILE *fp = fopen(PROTO_FILE,"r");
     if (fp != NULL) {
@@ -46,17 +52,17 @@ void SCProtoNameInit()
                 continue;
 
 #if defined(__WIN32) || defined(_WIN32)
-                char *name = strtok(line," \t");
+            char *name = strtok(line," \t");
 #else
-                char *name = strtok_r(line," \t", &ptr);
+            char *name = strtok_r(line," \t", &ptr);
 #endif /* __WIN32 */
-                if (name == NULL)
+            if (name == NULL)
                 continue;
 
 #if defined(__WIN32) || defined(_WIN32)
-                char *proto_ch = strtok(NULL," \t");
+            char *proto_ch = strtok(NULL," \t");
 #else
-                char *proto_ch = strtok_r(NULL," \t", &ptr);
+            char *proto_ch = strtok_r(NULL," \t", &ptr);
 #endif /* __WIN32 */
             if (proto_ch == NULL)
                 continue;
@@ -66,10 +72,14 @@ void SCProtoNameInit()
                 continue;
 
 #if defined(__WIN32) || defined(_WIN32)
-                char *cname = strtok(NULL, " \t");
+            char *cname = strtok(NULL, " \t");
 #else
-                char *cname = strtok_r(NULL, " \t", &ptr);
+            char *cname = strtok_r(NULL, " \t", &ptr);
 #endif /* __WIN32 */
+
+            if (known_proto[proto] != NULL) {
+                SCFree(known_proto[proto]);
+            }
 
             if (cname != NULL) {
                 known_proto[proto] = SCStrdup(cname);
@@ -111,9 +121,10 @@ uint8_t SCProtoNameValid(uint16_t proto)
  */
 void SCProtoNameDeInit()
 {
+    int cnt;
     /* clears the memory of loaded protocol names */
-    for (uint8_t cnt=0;cnt < 255;cnt++) {
-        if(known_proto[cnt] != NULL)
+    for (cnt = 0; cnt < 255; cnt++) {
+        if (known_proto[cnt] != NULL)
             SCFree(known_proto[cnt]);
     }
 }
