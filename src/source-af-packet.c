@@ -191,9 +191,9 @@ typedef struct AFPThreadVars_
     int cooked;
 
     /* counters */
-    uint32_t pkts;
+    uint64_t pkts;
     uint64_t bytes;
-    uint32_t errs;
+    uint64_t errs;
 
     ThreadVars *tv;
     TmSlot *slot;
@@ -499,8 +499,8 @@ static inline void AFPDumpCounters(AFPThreadVars *ptv)
                 kstats.tp_packets, kstats.tp_drops);
         SCPerfCounterAddUI64(ptv->capture_kernel_packets, ptv->tv->sc_perf_pca, kstats.tp_packets);
         SCPerfCounterAddUI64(ptv->capture_kernel_drops, ptv->tv->sc_perf_pca, kstats.tp_drops);
-        (void) SC_ATOMIC_ADD(ptv->livedev->drop, kstats.tp_drops);
-        (void) SC_ATOMIC_ADD(ptv->livedev->pkts, kstats.tp_packets);
+        (void) SC_ATOMIC_ADD(ptv->livedev->drop, (uint64_t) kstats.tp_drops);
+        (void) SC_ATOMIC_ADD(ptv->livedev->pkts, (uint64_t) kstats.tp_packets);
     }
 #endif
 }
@@ -1648,7 +1648,7 @@ void ReceiveAFPThreadExitStats(ThreadVars *tv, void *data) {
             (uint64_t) SCPerfGetLocalCounterValue(ptv->capture_kernel_drops, tv->sc_perf_pca));
 #endif
 
-    SCLogInfo("(%s) Packets %" PRIu32 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
+    SCLogInfo("(%s) Packets %" PRIu64 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
 }
 
 /**
