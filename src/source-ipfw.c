@@ -238,7 +238,7 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
     SCLogInfo("Thread '%s' will run on port %d (item %d)",
               tv->name, nq->port_num, ptv->ipfw_index);
     while (1) {
-        if (suricata_ctl_flags & (SURICATA_STOP || SURICATA_KILL)) {
+        if (unlikely(suricata_ctl_flags != 0)) {
             SCReturnInt(TM_ECODE_OK);
         }
 
