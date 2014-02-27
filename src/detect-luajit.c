@@ -925,6 +925,8 @@ static void DetectLuajitFree(void *ptr) {
 
         if (luajit->buffername)
             SCFree(luajit->buffername);
+        if (luajit->filename)
+            SCFree(luajit->filename);
 
         SCFree(luajit);
     }

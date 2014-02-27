@@ -5285,7 +5285,6 @@ static int SigTest07Real (int mpm_type) {
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    SCMutexUnlock(&f.m);
     UTHFreePackets(&p, 1);
     StreamTcpFreeConfig(TRUE);
     FlowCleanupAppLayer(&f);

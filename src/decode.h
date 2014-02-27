@@ -719,6 +719,7 @@ typedef struct DecodeThreadVars_
         }                                       \
         SCMutexDestroy(&(p)->tunnel_mutex);     \
         AppLayerDecoderEventsFreeEvents(&(p)->app_layer_events); \
+        PACKET_PROFILING_RESET((p));            \
     } while (0)
 
 

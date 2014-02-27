@@ -25,9 +25,9 @@
 typedef struct LiveDevice_ {
     char *dev;  /**< the device (e.g. "eth0") */
     int ignore_checksum;
-    SC_ATOMIC_DECLARE(unsigned int, pkts);
-    SC_ATOMIC_DECLARE(unsigned int, drop);
-    SC_ATOMIC_DECLARE(unsigned int, invalid_checksums);
+    SC_ATOMIC_DECLARE(uint64_t, pkts);
+    SC_ATOMIC_DECLARE(uint64_t, drop);
+    SC_ATOMIC_DECLARE(uint64_t, invalid_checksums);
     TAILQ_ENTRY(LiveDevice_) next;
 } LiveDevice;
 
