@@ -58,7 +58,7 @@ int LiveRegisterDevice(char *dev)
     pd->ignore_checksum = 0;
     TAILQ_INSERT_TAIL(&live_devices, pd, next);
 
-    SCLogDebug("Pcap device \"%s\" registered.", dev);
+    SCLogDebug("Device \"%s\" registered.", dev);
     return 0;
 }
 
