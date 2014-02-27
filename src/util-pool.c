@@ -300,8 +300,15 @@ void *PoolGet(Pool *p) {
             }
 
             if (pitem != NULL) {
-                if (p->Init(pitem, p->InitData) != 1)
+                if (p->Init(pitem, p->InitData) != 1) {
+                    if (p->Cleanup)
+                        p->Cleanup(pitem);
+                    if (p->Free != NULL)
+                        p->Free(pitem);
+                    else
+                        SCFree(pitem);
                     SCReturnPtr(NULL, "void");
+                }
 
                 p->allocated++;
 
