@@ -123,8 +123,8 @@ static void LogQuery(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dst
             record, srcip, sp, dstip, dp);
 
     SCMutexLock(&hlog->file_ctx->fp_mutex);
-    (void)MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
-    fflush(hlog->file_ctx->fp);
+    hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
+        MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
     SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 }
 
@@ -183,8 +183,8 @@ static void LogAnswer(LogDnsLogThread *aft, char *timebuf, char *srcip, char *ds
             srcip, sp, dstip, dp);
 
     SCMutexLock(&hlog->file_ctx->fp_mutex);
-    (void)MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
-    fflush(hlog->file_ctx->fp);
+    hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
+        MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
     SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 }
 
@@ -260,6 +260,12 @@ static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p, Flow *f,
     aft->dns_cnt++;
 end:
     return 0;
+}
+
+static void LogDnsLogFileRolloverNotification(OutputCtx *output_ctx)
+{
+    /* Delegate to the underlying LogFileCtx. */
+    ((LogDnsFileCtx *)output_ctx->data)->file_ctx->rollover_flag = 1;
 }
 
 static TmEcode LogDnsLogThreadInit(ThreadVars *t, void *initdata, void **data)
@@ -357,6 +363,7 @@ static OutputCtx *LogDnsLogInitCtx(ConfNode *conf)
 
     output_ctx->data = dnslog_ctx;
     output_ctx->DeInit = LogDnsLogDeInitCtx;
+    output_ctx->FileRollover = LogDnsLogFileRolloverNotification;
 
     SCLogDebug("DNS log output initialized");
 

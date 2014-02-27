@@ -602,6 +602,12 @@ void RunModeInitializeOutputs(void)
             continue;
         }
 
+        /* Register for file rollover notification if FileRollover is
+         * not NULL. */
+        if (output_ctx->FileRollover != NULL) {
+            OutputRegisterFileRotation(output_ctx);
+        }
+
         // TODO if module == parent, find it's children
         if (strcmp(output->val, "eve-log") == 0) {
             ConfNode *types = ConfNodeLookupChild(output_config, "types");

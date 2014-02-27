@@ -69,6 +69,9 @@ typedef struct OutputCtx_ {
     /** Pointer to data private to the output. */
     void *data;
 
+    /** Pointer to function for file rollover notification. */
+    void (*FileRollover)(struct OutputCtx_ *);
+
     /** Pointer to a cleanup function. */
     void (*DeInit)(struct OutputCtx_ *);
 } OutputCtx;
