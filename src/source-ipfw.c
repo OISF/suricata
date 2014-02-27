@@ -393,7 +393,11 @@ void ReceiveIPFWThreadExitStats(ThreadVars *tv, void *data)
 
     SCEnter();
 
-    SCLogNotice("(%s) Packets %" PRIu32 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
+    SCLogNotice("(%s) Treated: Pkts %" PRIu32 ", Bytes %" PRIu64 ", Errors %" PRIu32 "",
+            tv->name, ptv->pkts, ptv->bytes, ptv->errs);
+    SCLogNotice("(%s) Verdict: Accepted %"PRIu32", Dropped %"PRIu32 "",
+            tv->name, ptv->accepted, ptv->dropped);
+
 
     SCReturn;
 }
