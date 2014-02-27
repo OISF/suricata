@@ -37,6 +37,7 @@ int LiveGetDeviceCount(void);
 char *LiveGetDeviceName(int number);
 LiveDevice *LiveGetDevice(char *dev);
 int LiveBuildDeviceList(char * base);
+void LiveDeviceHasNoStats(void);
 int LiveDeviceListClean(void);
 
 #ifdef BUILD_UNIX_SOCKET
