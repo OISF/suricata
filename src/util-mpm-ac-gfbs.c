@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -49,6 +49,7 @@
 
 #include "conf.h"
 #include "util-memcmp.h"
+#include "util-memcpy.h"
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -127,33 +128,6 @@ static void SCACGfbsGetConfig()
 
 /**
  * \internal
- * \brief Compares 2 patterns.  We use it for the hashing process during the
- *        the initial pattern insertion time, to cull duplicate sigs.
- *
- * \param p      Pointer to the first pattern(SCACGfbsPattern).
- * \param pat    Pointer to the second pattern(raw pattern array).
- * \param patlen Pattern length.
- * \param flags  Flags.  We don't need this.
- *
- * \retval hash A 32 bit unsigned hash.
- */
-static inline int SCACGfbsCmpPattern(SCACGfbsPattern *p, uint8_t *pat, uint16_t patlen,
-                                     char flags)
-{
-    if (p->len != patlen)
-        return 0;
-
-    if (p->flags != flags)
-        return 0;
-
-    if (memcmp(p->cs, pat, patlen) != 0)
-        return 0;
-
-    return 1;
-}
-
-/**
- * \internal
  * \brief Creates a hash of the pattern.  We use it for the hashing process
  *        during the initial pattern insertion time, to cull duplicate sigs.
  *
@@ -189,14 +163,12 @@ static inline SCACGfbsPattern *SCACGfbsInitHashLookup(SCACGfbsCtx *ctx, uint8_t 
 {
     uint32_t hash = SCACGfbsInitHashRaw(pat, patlen);
 
-    if (ctx->init_hash == NULL || ctx->init_hash[hash] == NULL) {
+    if (ctx->init_hash == NULL)
         return NULL;
-    }
 
     SCACGfbsPattern *t = ctx->init_hash[hash];
     for ( ; t != NULL; t = t->next) {
-        //if (SCACGfbsCmpPattern(t, pat, patlen, flags) == 1)
-        if (t->flags == flags && t->id == pid)
+        if (t->id == pid)
             return t;
     }
 
@@ -257,23 +229,6 @@ static inline void SCACGfbsFreePattern(MpmCtx *mpm_ctx, SCACGfbsPattern *p)
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= sizeof(SCACGfbsPattern);
     }
-    return;
-}
-
-/**
- * \internal
- * \brief Does a memcpy of the input string to lowercase.
- *
- * \param d   Pointer to the target area for memcpy.
- * \param s   Pointer to the src string for memcpy.
- * \param len len of the string sent in s.
- */
-static inline void memcpy_tolower(uint8_t *d, uint8_t *s, uint16_t len)
-{
-    uint16_t i;
-    for (i = 0; i < len; i++)
-        d[i] = u8_tolower(s[i]);
-
     return;
 }
 
@@ -1102,14 +1057,7 @@ int SCACGfbsPreparePatterns(MpmCtx *mpm_ctx)
     memset(ctx->pid_pat_list, 0, (ctx->max_pat_id + 1) * sizeof(SCACGfbsPatternList));
 
     for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
-        if (ctx->parray[i]->flags & MPM_PATTERN_FLAG_NOCASE) {
-            if (ctx->pid_pat_list[ctx->parray[i]->id].case_state == 0)
-                ctx->pid_pat_list[ctx->parray[i]->id].case_state = 1;
-            else if (ctx->pid_pat_list[ctx->parray[i]->id].case_state == 1)
-                ctx->pid_pat_list[ctx->parray[i]->id].case_state = 1;
-            else
-                ctx->pid_pat_list[ctx->parray[i]->id].case_state = 3;
-        } else {
+        if (!(ctx->parray[i]->flags & MPM_PATTERN_FLAG_NOCASE)) {
             ctx->pid_pat_list[ctx->parray[i]->id].cs = SCMalloc(ctx->parray[i]->len);
             if (ctx->pid_pat_list[ctx->parray[i]->id].cs == NULL) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
@@ -1118,13 +1066,6 @@ int SCACGfbsPreparePatterns(MpmCtx *mpm_ctx)
             memcpy(ctx->pid_pat_list[ctx->parray[i]->id].cs,
                    ctx->parray[i]->original_pat, ctx->parray[i]->len);
             ctx->pid_pat_list[ctx->parray[i]->id].patlen = ctx->parray[i]->len;
-
-            if (ctx->pid_pat_list[ctx->parray[i]->id].case_state == 0)
-                ctx->pid_pat_list[ctx->parray[i]->id].case_state = 2;
-            else if (ctx->pid_pat_list[ctx->parray[i]->id].case_state == 2)
-                ctx->pid_pat_list[ctx->parray[i]->id].case_state = 2;
-            else
-                ctx->pid_pat_list[ctx->parray[i]->id].case_state = 3;
         }
     }
 
@@ -1433,9 +1374,7 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                                      buf + i - pid_pat_list[pids[k] & 0x0000FFFF].patlen + 1,
                                      pid_pat_list[pids[k] & 0x0000FFFF].patlen) != 0) {
                             /* inside loop */
-                            if (pid_pat_list[pids[k] & 0x0000FFFF].case_state != 3) {
-                                continue;
-                            }
+                            continue;
                         }
 
                         if (pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] & (1 << ((pids[k] & 0x0000FFFF) % 8))) {
@@ -1560,9 +1499,6 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                                      buf + i - pid_pat_list[pids[k] & 0x0000FFFF].patlen + 1,
                                      pid_pat_list[pids[k] & 0x0000FFFF].patlen) != 0) {
                             /* inside loop */
-                            if (pid_pat_list[pids[k] & 0x0000FFFF].case_state != 3) {
-                                continue;
-                            }
                             continue;
                         }
 
