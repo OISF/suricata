@@ -21,21 +21,19 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __OUTPUT_LUA_COMMON_H__
-#define __OUTPUT_LUA_COMMON_H__
+#ifndef __UTIL_LUA_H__
+#define __UTIL_LUA_H__
 
 #ifdef HAVE_LUA
 
-int LuaCallbackError(lua_State *luastate, const char *msg);
-int LuaReturnStringBuffer(lua_State *luastate, const uint8_t *input, size_t input_len);
-const char *LuaGetStringArgument(lua_State *luastate, int argc);
+Packet *LuaStateGetPacket(lua_State *luastate);
+void *LuaStateGetTX(lua_State *luastate);
 
-void LogLuaPushTableKeyValueInt(lua_State *luastate, const char *key, int value);
-void LogLuaPushTableKeyValueString(lua_State *luastate, const char *key, const char *value);
-void LogLuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8_t *value, size_t len);
+void LuaStateSetPacket(lua_State *luastate, Packet *p);
+void LuaStateSetTX(lua_State *luastate, void *tx);
 
-int LogLuaRegisterFunctions(lua_State *luastate);
+void LuaPrintStack(lua_State *state);
 
 #endif /* HAVE_LUA */
 
-#endif /* __OUTPUT_LUA_COMMON_H__ */
+#endif /* __UTIL_LUA_H__ */

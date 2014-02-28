@@ -53,6 +53,7 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#include "util-lua.h"
 #include "output-lua-common.h"
 
 static int HttpGetRequestUriRaw(lua_State *luastate)
