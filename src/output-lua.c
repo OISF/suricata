@@ -53,6 +53,7 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#include "util-lua.h"
 #include "output-lua-common.h"
 #include "output-lua-http.h"
 
@@ -67,11 +68,6 @@ typedef struct LogLuaCtx_ {
 typedef struct LogLuaThreadCtx_ {
     LogLuaCtx *lua_ctx;
 } LogLuaThreadCtx;
-
-/* key for tx pointer */
-const char lualog_ext_key_tx[] = "suricata:lualog:tx:ptr";
-/* key for p (packet) pointer */
-const char lualog_ext_key_p[] = "suricata:lualog:pkt:ptr";
 
 /** \internal
  *  \brief TX logger for lua scripts
@@ -89,14 +85,8 @@ static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow 
 
     SCMutexLock(&td->lua_ctx->m);
 
-    /* we need the p in our callbacks */
-    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)&lualog_ext_key_p);
-    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)p);
-    lua_settable(td->lua_ctx->luastate, LUA_REGISTRYINDEX);
-    /* we need the tx in our callbacks */
-    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)&lualog_ext_key_tx);
-    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)txptr);
-    lua_settable(td->lua_ctx->luastate, LUA_REGISTRYINDEX);
+    LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
+    LuaStateSetTX(td->lua_ctx->luastate, txptr);
 
     /* prepare data to pass to script */
     lua_getglobal(td->lua_ctx->luastate, "log");
@@ -160,10 +150,7 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
 
         lua_getglobal(td->lua_ctx->luastate, "log");
 
-        /* we need the p in our callbacks */
-        lua_pushlightuserdata(td->lua_ctx->luastate, (void *)&lualog_ext_key_p);
-        lua_pushlightuserdata(td->lua_ctx->luastate, (void *)p);
-        lua_settable(td->lua_ctx->luastate, LUA_REGISTRYINDEX);
+        LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
 
         /* prepare data to pass to script */
         lua_newtable(td->lua_ctx->luastate);
@@ -236,10 +223,7 @@ static int LuaPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     SCMutexLock(&td->lua_ctx->m);
     lua_getglobal(td->lua_ctx->luastate, "log");
 
-    /* we need the p in our callbacks */
-    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)&lualog_ext_key_p);
-    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)p);
-    lua_settable(td->lua_ctx->luastate, LUA_REGISTRYINDEX);
+    LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
 
     /* prepare data to pass to script */
     lua_newtable(td->lua_ctx->luastate);
@@ -287,14 +271,8 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
 
     SCMutexLock(&td->lua_ctx->m);
 
-    /* we need the p in our callbacks */
-    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)&lualog_ext_key_p);
-    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)p);
-    lua_settable(td->lua_ctx->luastate, LUA_REGISTRYINDEX);
-    /* we need the tx in our callbacks */
-    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)&lualog_ext_key_tx);
-    lua_pushlightuserdata(td->lua_ctx->luastate, (void *)txptr);
-    lua_settable(td->lua_ctx->luastate, LUA_REGISTRYINDEX);
+    LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
+    LuaStateSetTX(td->lua_ctx->luastate, txptr);
 
     /* get the lua function to call */
     lua_getglobal(td->lua_ctx->luastate, "log");
