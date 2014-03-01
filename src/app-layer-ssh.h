@@ -32,6 +32,8 @@
  * must be ciphered, so the parsing finish here */
 #define SSH_FLAG_PARSER_DONE                 0x02
 
+#define SSH_FLAG_STATE_LOGGED                0x04
+
 /* MSG_CODE */
 #define SSH_MSG_NEWKEYS                      21
 

@@ -248,6 +248,7 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_JSONDNSLOG);
         CASE_CODE (TMM_JSONHTTPLOG);
         CASE_CODE (TMM_JSONFILELOG);
+        CASE_CODE (TMM_JSONSSHLOG);
         CASE_CODE (TMM_JSONTLSLOG);
         CASE_CODE (TMM_OUTPUTJSON);
 
