@@ -169,7 +169,7 @@ static int SSHParseRecordHeader(SshState *state, SshHeader *header, uint8_t *inp
     if (header->msg_code == SSH_MSG_NEWKEYS) {
         /* done */
         SCLogDebug("done");
-        state->flags |= SSH_FLAG_PARSER_DONE;
+        header->flags |= SSH_FLAG_PARSER_DONE;
     } else {
         /* not yet done */
         SCLogDebug("not done");
@@ -192,7 +192,7 @@ static int SSHParseRecord(SshState *state, SshHeader *header, uint8_t *input, ui
     SCEnter();
     int ret = 0;
 
-    if (state->flags & SSH_FLAG_PARSER_DONE) {
+    if (header->flags & SSH_FLAG_PARSER_DONE) {
         SCReturnInt(0);
     }
 
@@ -1248,7 +1248,7 @@ static int SSHParserTest11(void) {
         goto end;
     }
 
-    if ( !(ssh_state->flags & SSH_FLAG_PARSER_DONE)) {
+    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE)) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -1338,7 +1338,7 @@ static int SSHParserTest12(void) {
         goto end;
     }
 
-    if ( !(ssh_state->flags & SSH_FLAG_PARSER_DONE)) {
+    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE)) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -1430,7 +1430,7 @@ static int SSHParserTest13(void) {
         goto end;
     }
 
-    if ( !(ssh_state->flags & SSH_FLAG_PARSER_DONE)) {
+    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE)) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -1541,7 +1541,7 @@ static int SSHParserTest14(void) {
         goto end;
     }
 
-    if ( !(ssh_state->flags & SSH_FLAG_PARSER_DONE)) {
+    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE)) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -1652,7 +1652,7 @@ static int SSHParserTest15(void) {
         goto end;
     }
 
-    if ( !(ssh_state->flags & SSH_FLAG_PARSER_DONE)) {
+    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE)) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -1742,7 +1742,7 @@ static int SSHParserTest16(void) {
         goto end;
     }
 
-    if ( !(ssh_state->flags & SSH_FLAG_PARSER_DONE)) {
+    if ( !(ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE)) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -1843,7 +1843,7 @@ static int SSHParserTest17(void) {
         goto end;
     }
 
-    if ( !(ssh_state->flags & SSH_FLAG_PARSER_DONE)) {
+    if ( !(ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE)) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
