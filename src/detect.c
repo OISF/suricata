@@ -4733,8 +4733,8 @@ void SigTableSetup(void) {
  * the ssh parser would now be disabled */
 #if 0
     DetectSshVersionRegister();
-    DetectSshSoftwareVersionRegister();
 #endif
+    DetectSshSoftwareVersionRegister();
     DetectSslStateRegister();
     DetectHttpStatCodeRegister();
     DetectSslVersionRegister();
