@@ -993,13 +993,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterDCERPCParsers();
     RegisterDCERPCUDPParsers();
     RegisterFTPParsers();
-    /* we are disabling the ssh parser temporarily, since we are moving away
-     * from some of the archaic features we use in the app layer.  We will
-     * reintroduce this parser.  Also do note that keywords that rely on
-     * the ssh parser would now be disabled */
-#if 0
     RegisterSSHParsers();
-#endif
     RegisterSMTPParsers();
     RegisterDNSUDPParsers();
     RegisterDNSTCPParsers();
