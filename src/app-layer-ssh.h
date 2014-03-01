@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,6 +19,7 @@
  * \file
  *
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  */
 
 #ifndef __APP_LAYER_SSH_H__
@@ -31,8 +32,9 @@
                                                      client will now on sends
                                                      encrypted msgs. */
 
-#define SSH_FLAG_CLIENT_VERSION_PARSED       0x01
+//#define SSH_FLAG_CLIENT_VERSION_PARSED       0x01
 #define SSH_FLAG_SERVER_VERSION_PARSED       0x02
+#define SSH_FLAG_VERSION_PARSED       0x08
 
 /* This flags indicate that the rest of the communication
  * must be ciphered, so the parsing finish here */
@@ -40,21 +42,6 @@
 
 /* MSG_CODE */
 #define SSH_MSG_NEWKEYS             21
-
-enum {
-    SSH_FIELD_NONE = 0,
-    SSH_FIELD_SERVER_VER_STATE_LINE,
-    SSH_FIELD_CLIENT_VER_STATE_LINE,
-    SSH_FIELD_SERVER_PKT_LENGTH,
-    SSH_FIELD_CLIENT_PKT_LENGTH,
-    SSH_FIELD_SERVER_PADDING_LENGTH,
-    SSH_FIELD_CLIENT_PADDING_LENGTH,
-    SSH_FIELD_SERVER_PAYLOAD,
-    SSH_FIELD_CLIENT_PAYLOAD,
-
-    /* must be last */
-    SSH_FIELD_MAX,
-};
 
 /** From SSH-TRANSP rfc
 
@@ -69,25 +56,22 @@ enum {
     the lenghts and msg_code (inside payload, if any)
 */
 
-typedef struct SSHHeader_ {
+typedef struct SshHeader_ {
     uint32_t pkt_len;
     uint8_t padding_len;
     uint8_t msg_code;
+    uint8_t buf[6];
+    uint8_t buf_offset;
+    uint8_t flags;
+    uint32_t record_left;
+    uint8_t *proto_version;
+    uint8_t *software_version;
 } SshHeader;
 
 /** structure to store the SSH state values */
 typedef struct SshState_ {
     uint8_t flags;                  /**< Flags to indicate the current SSH
                                          sessoin state */
-    uint8_t client_msg_code;    /**< Client content type storage field */
-    uint8_t server_msg_code;    /**< Server content type storage field */
-
-    uint8_t *client_proto_version;        /**< Client SSH version storage field */
-    uint8_t *client_software_version;        /**< Client SSH version storage field */
-
-    uint8_t *server_proto_version;        /**< Server SSH version storage field */
-    uint8_t *server_software_version;        /**< Server SSH version storage field */
-
     SshHeader srv_hdr;
     SshHeader cli_hdr;
 } SshState;
