@@ -193,6 +193,8 @@ void TmModuleRegisterTests(void) {
 const char * TmModuleTmmIdToString(TmmId id)
 {
     switch (id) {
+        CASE_CODE (TMM_RECEIVENFLOG);
+        CASE_CODE (TMM_DECODENFLOG);
         CASE_CODE (TMM_DECODENFQ);
         CASE_CODE (TMM_VERDICTNFQ);
         CASE_CODE (TMM_RECEIVENFQ);
