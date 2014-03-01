@@ -238,7 +238,7 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
     SCLogInfo("Thread '%s' will run on port %d (item %d)",
               tv->name, nq->port_num, ptv->ipfw_index);
     while (1) {
-        if (suricata_ctl_flags & (SURICATA_STOP || SURICATA_KILL)) {
+        if (unlikely(suricata_ctl_flags != 0)) {
             SCReturnInt(TM_ECODE_OK);
         }
 
@@ -393,7 +393,11 @@ void ReceiveIPFWThreadExitStats(ThreadVars *tv, void *data)
 
     SCEnter();
 
-    SCLogNotice("(%s) Packets %" PRIu32 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
+    SCLogNotice("(%s) Treated: Pkts %" PRIu32 ", Bytes %" PRIu64 ", Errors %" PRIu32 "",
+            tv->name, ptv->pkts, ptv->bytes, ptv->errs);
+    SCLogNotice("(%s) Verdict: Accepted %"PRIu32", Dropped %"PRIu32 "",
+            tv->name, ptv->accepted, ptv->dropped);
+
 
     SCReturn;
 }
