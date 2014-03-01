@@ -32,8 +32,6 @@
                                                      client will now on sends
                                                      encrypted msgs. */
 
-//#define SSH_FLAG_CLIENT_VERSION_PARSED       0x01
-#define SSH_FLAG_SERVER_VERSION_PARSED       0x02
 #define SSH_FLAG_VERSION_PARSED       0x08
 
 /* This flags indicate that the rest of the communication
