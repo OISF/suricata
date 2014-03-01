@@ -24,6 +24,7 @@
 #include "util-debug.h"
 #include "util-device.h"
 #include "util-runmodes.h"
+#include "util-misc.h"
 
 #include "source-nflog.h"
 
@@ -94,6 +95,13 @@ void *ParseNflogConfig(const char *group)
                   "group \"%s\" or \"default\", using default value",
                   group);
         return nflogconf;
+    }
+
+    nflogconf->numgroup = *group;
+
+    if (ParseSizeStringU16(group, &nflogconf->group) < 0) {
+        SCLogError(SC_ERR_NFLOG_GROUP, "NFLOG's group number invalid.");
+        exit(EXIT_FAILURE);
     }
 
     boolval = ConfGetChildValueIntWithDefault(group_root, group_default,
