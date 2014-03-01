@@ -316,18 +316,6 @@ again:
         }
     }
 
-#if 0
-    if (state->cli_hdr.msg_code == SSH_MSG_NEWKEYS) {
-        /* We are not going to inspect any packet more
-         * as the data is now encrypted */
-        SCLogDebug("SSH parser done (the rest of the communication is encrypted)");
-        pstate->flags |= APP_LAYER_PARSER_DONE;
-        pstate->flags |= APP_LAYER_PARSER_NO_INSPECTION;
-        pstate->flags |= APP_LAYER_PARSER_NO_REASSEMBLY;
-        pstate->parse_field = 1;
-        SCReturnInt(1);
-    }
-#endif
     SCReturnInt(0);
 }
 
@@ -406,6 +394,13 @@ static int SSHParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
     SshHeader *ssh_header = &ssh_state->cli_hdr;
 
     int r = SSHParseData(ssh_state, ssh_header, input, input_len);
+
+    if (ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE &&
+        ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE) {
+        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION);
+        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
+    }
+
     SCReturnInt(r);
 }
 
@@ -417,6 +412,13 @@ static int SSHParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
     SshHeader *ssh_header = &ssh_state->srv_hdr;
 
     int r = SSHParseData(ssh_state, ssh_header, input, input_len);
+
+    if (ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE &&
+        ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE) {
+        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION);
+        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
+    }
+
     SCReturnInt(r);
 }
 
@@ -1856,6 +1858,109 @@ end:
     return result;
 }
 
+/** \test 2 directional test */
+static int SSHParserTest18(void) {
+    int result = 0;
+    Flow f;
+
+    uint8_t server1[] = "SSH-2.0-OpenSSH_4.7p1 Debian-8ubuntu3\r\n";
+    uint32_t serverlen1 = sizeof(server1) - 1;
+
+    uint8_t sshbuf1[] = "SSH-";
+    uint32_t sshlen1 = sizeof(sshbuf1) - 1;
+    uint8_t sshbuf2[] = "2.0-MySSHClient-0.5.1\r\n";
+    uint32_t sshlen2 = sizeof(sshbuf2) - 1;
+
+    uint8_t server2[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21, 0x00 };
+    uint32_t serverlen2 = sizeof(server2) - 1;
+
+    uint8_t sshbuf3[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21, 0x00 };
+    uint32_t sshlen3 = sizeof(sshbuf3);
+
+
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    SCMutexLock(&f.m);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, server1, serverlen1);
+    if (r != 0) {
+        printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    SCMutexLock(&f.m);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    SCMutexLock(&f.m);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
+    if (r != 0) {
+        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    SCMutexLock(&f.m);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, server2, serverlen2);
+    if (r != 0) {
+        printf("toclient chunk 2 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    SCMutexLock(&f.m);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf3, sshlen3);
+    if (r != 0) {
+        printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    SshState *ssh_state = f.alstate;
+    if (ssh_state == NULL) {
+        printf("no ssh state: ");
+        goto end;
+    }
+
+    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE)) {
+        printf("Didn't detect the msg code of new keys (ciphered data starts): ");
+        goto end;
+    }
+
+    if ( !(ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE)) {
+        printf("Didn't detect the msg code of new keys (ciphered data starts): ");
+        goto end;
+    }
+
+    if (!(AppLayerParserStateIssetFlag(f.alparser, APP_LAYER_PARSER_NO_INSPECTION))) {
+        printf("detection not disabled: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void SSHParserRegisterTests(void) {
@@ -1877,6 +1982,7 @@ void SSHParserRegisterTests(void) {
     UtRegisterTest("SSHParserTest15", SSHParserTest15, 1);
     UtRegisterTest("SSHParserTest16", SSHParserTest16, 1);
     UtRegisterTest("SSHParserTest17", SSHParserTest17, 1);
+    UtRegisterTest("SSHParserTest18", SSHParserTest18, 1);
 #endif /* UNITTESTS */
 }
 
