@@ -104,9 +104,9 @@ static int SSHParseBanner(SshState *state, SshHeader *header, const uint8_t *inp
         SCReturnInt(0);
     }
 
-    const uint8_t *sw_end = BasicSearch(line_ptr, line_len, (uint8_t*)" ", 1);
+    const uint8_t *sw_end = BasicSearch(line_ptr, line_len, (uint8_t*)"\r", 1);
     if (sw_end == NULL) {
-        sw_end = BasicSearch(line_ptr, line_len, (uint8_t*)"\r", 1);
+        sw_end = BasicSearch(line_ptr, line_len, (uint8_t*)"\n", 1);
         if (sw_end == NULL) {
             sw_end = line_ptr + line_len;
         }
