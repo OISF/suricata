@@ -25,21 +25,15 @@
 #ifndef __APP_LAYER_SSH_H__
 #define __APP_LAYER_SSH_H__
 
-#define SSH_FLAG_SERVER_CHANGE_CIPHER_SPEC   0x01    /**< Flag to indicate that
-                                                     server will now on sends
-                                                     encrypted msgs. */
-#define SSH_FLAG_CLIENT_CHANGE_CIPHER_SPEC   0x02    /**< Flag to indicate that
-                                                     client will now on sends
-                                                     encrypted msgs. */
-
-#define SSH_FLAG_VERSION_PARSED       0x08
+/* header flag */
+#define SSH_FLAG_VERSION_PARSED              0x01
 
 /* This flags indicate that the rest of the communication
  * must be ciphered, so the parsing finish here */
 #define SSH_FLAG_PARSER_DONE                 0x04
 
 /* MSG_CODE */
-#define SSH_MSG_NEWKEYS             21
+#define SSH_MSG_NEWKEYS                      21
 
 /** From SSH-TRANSP rfc
 
@@ -64,6 +58,8 @@ typedef struct SshHeader_ {
     uint32_t record_left;
     uint8_t *proto_version;
     uint8_t *software_version;
+    uint8_t *banner_buffer;
+    uint16_t banner_len;
 } SshHeader;
 
 /** structure to store the SSH state values */
