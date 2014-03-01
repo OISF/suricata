@@ -30,7 +30,7 @@
 
 /* This flags indicate that the rest of the communication
  * must be ciphered, so the parsing finish here */
-#define SSH_FLAG_PARSER_DONE                 0x04
+#define SSH_FLAG_PARSER_DONE                 0x02
 
 /* MSG_CODE */
 #define SSH_MSG_NEWKEYS                      21
@@ -64,8 +64,6 @@ typedef struct SshHeader_ {
 
 /** structure to store the SSH state values */
 typedef struct SshState_ {
-    uint8_t flags;                  /**< Flags to indicate the current SSH
-                                         sessoin state */
     SshHeader srv_hdr;
     SshHeader cli_hdr;
 } SshState;
