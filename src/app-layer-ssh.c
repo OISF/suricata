@@ -366,7 +366,18 @@ static int SSHParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
                             uint8_t *input, uint32_t input_len,
                             void *local_data)
 {
-//    PrintRawDataFp(stdout, input, input_len);
+    SshState *ssh_state = (SshState *)state;
+
+    if (ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED || EnoughData(input, input_len) == TRUE) {
+        SCLogInfo("enough data, parse now");
+        // parse now
+        int r = SSHParseRecord(ssh_state, &ssh_state->srv_hdr, input, input_len);
+        SCReturnInt(r);
+    } else {
+        // buffer
+    }
+
+    PrintRawDataFp(stdout, input, input_len);
     return 0;
 }
 
@@ -466,7 +477,6 @@ static int SSHParserTest01(void) {
     int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         SCMutexUnlock(&f.m);
         goto end;
     }
@@ -475,42 +485,35 @@ static int SSHParserTest01(void) {
     SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
-        result = 0;
         goto end;
     }
 
     if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
         printf("Client version string not parsed: ");
-        result = 0;
         goto end;
     }
 
     if (ssh_state->cli_hdr.software_version == NULL) {
         printf("Client version string not parsed: ");
-        result = 0;
         goto end;
     }
 
     if (ssh_state->cli_hdr.proto_version == NULL) {
         printf("Client version string not parsed: ");
-        result = 0;
         goto end;
     }
 
     if (strncmp((char*)ssh_state->cli_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
         printf("Client version string not parsed correctly: ");
-        result = 0;
         goto end;
     }
 
     if (strncmp((char*)ssh_state->cli_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
         printf("Client version string not parsed correctly: ");
-        result = 0;
         goto end;
     }
 
     result = 1;
-
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
@@ -524,7 +527,7 @@ end:
 static int SSHParserTest02(void) {
     int result = 0;
     Flow f;
-    uint8_t sshbuf[] = "lalala\n lal al al\nSSH-2.0-MySSHClient-0.5.1 some comments...\n";
+    uint8_t sshbuf[] = "SSH-2.0-MySSHClient-0.5.1 some comments...\n";
     uint32_t sshlen = sizeof(sshbuf) - 1;
     TcpSession ssn;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -539,7 +542,6 @@ static int SSHParserTest02(void) {
     int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         SCMutexUnlock(&f.m);
         goto end;
     }
@@ -548,42 +550,35 @@ static int SSHParserTest02(void) {
     SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
-        result = 0;
         goto end;
     }
 
     if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
         printf("Client version string not parsed: ");
-        result = 0;
         goto end;
     }
 
     if (ssh_state->cli_hdr.software_version == NULL) {
         printf("Client version string not parsed: ");
-        result = 0;
         goto end;
     }
 
     if (ssh_state->cli_hdr.proto_version == NULL) {
         printf("Client version string not parsed: ");
-        result = 0;
         goto end;
     }
 
     if (strncmp((char*)ssh_state->cli_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
         printf("Client version string not parsed correctly: ");
-        result = 0;
         goto end;
     }
 
     if (strncmp((char*)ssh_state->cli_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
         printf("Client version string not parsed correctly: ");
-        result = 0;
         goto end;
     }
 
     result = 1;
-
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
@@ -597,7 +592,7 @@ end:
 static int SSHParserTest03(void) {
     int result = 0;
     Flow f;
-    uint8_t sshbuf[] = "lalala\n lal al al\nSSH-2.0 some comments...\n";
+    uint8_t sshbuf[] = "SSH-2.0 some comments...\n";
     uint32_t sshlen = sizeof(sshbuf) - 1;
     TcpSession ssn;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -612,38 +607,31 @@ static int SSHParserTest03(void) {
     int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
     if (r == 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected != 0: ", r);
-        result = 0;
         SCMutexUnlock(&f.m);
         goto end;
     }
     SCMutexUnlock(&f.m);
-    /* Ok, it returned an error. Let's make sure we didn't parse the string at all */
 
     SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
-        result = 0;
         goto end;
     }
 
     if (ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED) {
         printf("Client version string parsed? It's not a valid string: ");
-        result = 0;
         goto end;
     }
 
     if (ssh_state->cli_hdr.proto_version != NULL) {
-        result = 0;
         goto end;
     }
 
     if (ssh_state->cli_hdr.software_version != NULL) {
-        result = 0;
         goto end;
     }
 
     result = 1;
-
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
@@ -670,7 +658,6 @@ static int SSHParserTest04(void) {
     int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT|STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         SCMutexUnlock(&f.m);
         goto end;
     }
@@ -679,37 +666,31 @@ static int SSHParserTest04(void) {
     SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
-        result = 0;
         goto end;
     }
 
-    if ( !(ssh_state->flags & SSH_FLAG_SERVER_VERSION_PARSED)) {
+    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
         printf("Client version string not parsed: ");
-        result = 0;
         goto end;
     }
 
     if (ssh_state->srv_hdr.software_version == NULL) {
         printf("Client version string not parsed: ");
-        result = 0;
         goto end;
     }
 
     if (ssh_state->srv_hdr.proto_version == NULL) {
         printf("Client version string not parsed: ");
-        result = 0;
         goto end;
     }
 
     if (strncmp((char*)ssh_state->srv_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
         printf("Client version string not parsed correctly: ");
-        result = 0;
         goto end;
     }
 
     if (strncmp((char*)ssh_state->srv_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
         printf("Client version string not parsed correctly: ");
-        result = 0;
         goto end;
     }
 
@@ -722,13 +703,12 @@ end:
     return result;
 }
 
-/** \test Send a version string in one chunk but multiple lines and comments.
- *        (server version str)
+/** \test Send a version string in one chunk (server version str)
  */
 static int SSHParserTest05(void) {
     int result = 0;
     Flow f;
-    uint8_t sshbuf[] = "lalala\n lal al al\nSSH-2.0-MySSHClient-0.5.1 some comments...\n";
+    uint8_t sshbuf[] = "SSH-2.0-MySSHClient-0.5.1 some comments...\n";
     uint32_t sshlen = sizeof(sshbuf) - 1;
     TcpSession ssn;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -743,7 +723,6 @@ static int SSHParserTest05(void) {
     int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT|STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         SCMutexUnlock(&f.m);
         goto end;
     }
@@ -752,42 +731,35 @@ static int SSHParserTest05(void) {
     SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
-        result = 0;
         goto end;
     }
 
-    if ( !(ssh_state->flags & SSH_FLAG_SERVER_VERSION_PARSED)) {
+    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
         printf("Client version string not parsed: ");
-        result = 0;
         goto end;
     }
 
     if (ssh_state->srv_hdr.software_version == NULL) {
         printf("Client version string not parsed: ");
-        result = 0;
         goto end;
     }
 
     if (ssh_state->srv_hdr.proto_version == NULL) {
         printf("Client version string not parsed: ");
-        result = 0;
         goto end;
     }
 
     if (strncmp((char*)ssh_state->srv_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
         printf("Client version string not parsed correctly: ");
-        result = 0;
         goto end;
     }
 
     if (strncmp((char*)ssh_state->srv_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
         printf("Client version string not parsed correctly: ");
-        result = 0;
         goto end;
     }
 
     result = 1;
-
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
@@ -795,13 +767,12 @@ end:
     return result;
 }
 
-/** \test Send a invalid version string in one chunk but multiple lines and comments.
- *        (server version str)
+/** \test Send a invalid version string in one chunk (server version str)
  */
 static int SSHParserTest06(void) {
     int result = 0;
     Flow f;
-    uint8_t sshbuf[] = "lalala\n lal al al\nSSH-2.0 some comments...\n";
+    uint8_t sshbuf[] = "SSH-2.0 some comments...\n";
     uint32_t sshlen = sizeof(sshbuf) - 1;
     TcpSession ssn;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -816,7 +787,6 @@ static int SSHParserTest06(void) {
     int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT|STREAM_EOF, sshbuf, sshlen);
     if (r == 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected != 0: ", r);
-        result = 0;
         SCMutexUnlock(&f.m);
         goto end;
     }
@@ -826,28 +796,23 @@ static int SSHParserTest06(void) {
     SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
-        result = 0;
         goto end;
     }
 
-    if (ssh_state->flags & SSH_FLAG_SERVER_VERSION_PARSED) {
+    if (ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED) {
         printf("Client version string parsed? It's not a valid string: ");
-        result = 0;
         goto end;
     }
 
     if (ssh_state->srv_hdr.proto_version != NULL) {
-        result = 0;
         goto end;
     }
 
     if (ssh_state->srv_hdr.software_version != NULL) {
-        result = 0;
         goto end;
     }
 
     result = 1;
-
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
@@ -933,7 +898,7 @@ end:
 static int SSHParserTest08(void) {
     int result = 0;
     Flow f;
-    uint8_t sshbuf1[] = "Welcome to this ssh server\nSSH-";
+    uint8_t sshbuf1[] = "SSH-";
     uint32_t sshlen1 = sizeof(sshbuf1) - 1;
     uint8_t sshbuf2[] = "2.";
     uint32_t sshlen2 = sizeof(sshbuf2) - 1;
@@ -1054,7 +1019,7 @@ static int SSHParserTest09(void) {
         goto end;
     }
 
-    if ( !(ssh_state->flags & SSH_FLAG_SERVER_VERSION_PARSED)) {
+    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -1092,7 +1057,7 @@ end:
 static int SSHParserTest10(void) {
     int result = 0;
     Flow f;
-    uint8_t sshbuf1[] = "Welcome to this ssh server\nSSH-";
+    uint8_t sshbuf1[] = "SSH-";
     uint32_t sshlen1 = sizeof(sshbuf1) - 1;
     uint8_t sshbuf2[] = "2.";
     uint32_t sshlen2 = sizeof(sshbuf2) - 1;
@@ -1140,7 +1105,7 @@ static int SSHParserTest10(void) {
         goto end;
     }
 
-    if ( !(ssh_state->flags & SSH_FLAG_SERVER_VERSION_PARSED)) {
+    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -1660,7 +1625,7 @@ end:
 static int SSHParserTest16(void) {
     int result = 0;
     Flow f;
-    uint8_t sshbuf1[] = "Welcome to this ssh server\nSSH-";
+    uint8_t sshbuf1[] = "SSH-";
     uint32_t sshlen1 = sizeof(sshbuf1) - 1;
     uint8_t sshbuf2[] = "2.0-MySSHClient-0.5.1\r\n";
     uint32_t sshlen2 = sizeof(sshbuf2) - 1;
@@ -1708,7 +1673,7 @@ static int SSHParserTest16(void) {
         goto end;
     }
 
-    if ( !(ssh_state->flags & SSH_FLAG_SERVER_VERSION_PARSED)) {
+    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -1750,7 +1715,7 @@ end:
 static int SSHParserTest17(void) {
     int result = 0;
     Flow f;
-    uint8_t sshbuf1[] = "Welcome to this ssh server\nSSH-";
+    uint8_t sshbuf1[] = "SSH-";
     uint32_t sshlen1 = sizeof(sshbuf1) - 1;
     uint8_t sshbuf2[] = "2.0-MySSHClient-0.5.1\r\n";
     uint32_t sshlen2 = sizeof(sshbuf2) - 1;
@@ -1809,7 +1774,7 @@ static int SSHParserTest17(void) {
         goto end;
     }
 
-    if ( !(ssh_state->flags & SSH_FLAG_SERVER_VERSION_PARSED)) {
+    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
         printf("Client version string not parsed: ");
         goto end;
     }
