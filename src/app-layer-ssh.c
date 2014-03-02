@@ -131,7 +131,8 @@ static int SSHParseBanner(SshState *state, SshHeader *header, const uint8_t *inp
     SCReturnInt(len);
 }
 
-static int SSHParseRecordHeader(SshState *state, SshHeader *header, uint8_t *input, uint32_t input_len)
+static int SSHParseRecordHeader(SshState *state, SshHeader *header,
+        const uint8_t *input, uint32_t input_len)
 {
 #ifdef DEBUG
     BUG_ON(input_len != 6);
@@ -162,9 +163,6 @@ static int SSHParseRecordHeader(SshState *state, SshHeader *header, uint8_t *inp
     SCLogDebug("padding: %u", header->padding_len);
 
     header->msg_code = *input;
-
-    input += 1;
-    input_len -= 1;
 
     SCLogDebug("msg code: %u", header->msg_code);
 
@@ -211,7 +209,6 @@ static int SSHParseRecord(SshState *state, SshHeader *header, uint8_t *input, ui
             SCLogDebug("Version string parsed, remaining length %d", ret);
             input += input_len - ret;
             input_len -= (input_len - ret);
-            ret = 0;
 
             uint32_t u = 0;
             while (u < input_len && (input[u] == '\r' || input[u] == '\n')) {
