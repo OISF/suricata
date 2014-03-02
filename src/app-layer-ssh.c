@@ -140,6 +140,9 @@ static int SSHParseRecordHeader(SshState *state, SshHeader *header,
 {
 #ifdef DEBUG
     BUG_ON(input_len != 6);
+#else
+    if (input_len < 6)
+        SCReturnInt(-1);
 #endif
     /* input and input_len now point past initial line */
     uint32_t pkt_len = 0;
@@ -157,12 +160,12 @@ static int SSHParseRecordHeader(SshState *state, SshHeader *header,
     SCLogDebug("pkt len: %"PRIu32, pkt_len);
 
     input += 4;
-    input_len -= 4;
+    //input_len -= 4;
 
     header->padding_len = *input;
 
     input += 1;
-    input_len -= 1;
+    //input_len -= 1;
 
     SCLogDebug("padding: %u", header->padding_len);
 
