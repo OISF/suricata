@@ -60,6 +60,8 @@
  *  \param  ssh_state   Pointer the state in which the value to be stored
  *  \param  input       Pointer the received input data
  *  \param  input_len   Length in bytes of the received data
+ *
+ *  \retval len remaining length in input
  */
 static int SSHParseBanner(SshState *state, SshHeader *header, const uint8_t *input, uint32_t input_len)
 {
@@ -70,9 +72,20 @@ static int SSHParseBanner(SshState *state, SshHeader *header, const uint8_t *inp
     if (SCMemcmp("SSH-", line_ptr, 4) != 0) {
         SCReturnInt(-1);
     }
-    if (line_len > 255) {
+
+    const uint8_t *banner_end = BasicSearch(line_ptr, line_len, (uint8_t*)"\r", 1);
+    if (banner_end == NULL) {
+        banner_end = BasicSearch(line_ptr, line_len, (uint8_t*)"\n", 1);
+        if (banner_end == NULL) {
+            SCLogDebug("No EOL at the end of banner buffer");
+            SCReturnInt(-1);
+        }
+    }
+
+    if ((banner_end - line_ptr) > 255) {
         SCLogDebug("Invalid version string, it should be less than 255 "
-                "characters including <CR><NL>, input value is %u", line_len);
+                "characters including <CR><NL>, input value is %"PRIuMAX,
+                (banner_end - line_ptr));
         SCReturnInt(-1);
     }
 
@@ -105,16 +118,7 @@ static int SSHParseBanner(SshState *state, SshHeader *header, const uint8_t *inp
         SCReturnInt(0);
     }
 
-    const uint8_t *sw_end = BasicSearch(line_ptr, line_len, (uint8_t*)"\r", 1);
-    if (sw_end == NULL) {
-        sw_end = BasicSearch(line_ptr, line_len, (uint8_t*)"\n", 1);
-        if (sw_end == NULL) {
-            SCLogDebug("No EOL at the end of banner buffer");
-            SCReturnInt(-1);
-        }
-    }
-
-    uint64_t sw_ver_len = (uint64_t)(sw_end - line_ptr);
+    uint64_t sw_ver_len = (uint64_t)(banner_end - line_ptr);
     header->software_version = SCMalloc(sw_ver_len + 1);
     if (header->software_version == NULL) {
         SCReturnInt(-1);
@@ -127,7 +131,7 @@ static int SSHParseBanner(SshState *state, SshHeader *header, const uint8_t *inp
     header->flags |= SSH_FLAG_VERSION_PARSED;
 
     /* Return the remaining length */
-    int len = input_len - (sw_end - input);
+    int len = input_len - (banner_end - input);
     SCReturnInt(len);
 }
 
@@ -354,7 +358,7 @@ static int SSHParseData(SshState *state, SshHeader *header,
             if (tocopy > input_len)
                 tocopy = input_len;
 
-            SCLogDebug("tocopy %u", tocopy);
+            SCLogDebug("tocopy %u input_len %u", tocopy, input_len);
             memcpy(header->banner_buffer + header->banner_len, input, tocopy);
             header->banner_len += tocopy;
 
@@ -365,7 +369,7 @@ static int SSHParseData(SshState *state, SshHeader *header,
                 input += tocopy;
                 input_len -= tocopy;
                 if (input_len > 0) {
-                    SCLogDebug("handling remaining data");
+                    SCLogDebug("handling remaining data %u", input_len);
                     r = SSHParseRecord(state, header, input, input_len);
                 }
             }
@@ -2091,7 +2095,8 @@ end:
     return result;
 }
 
-/** \test Really long banner handling: bannel exactly 255 */
+/** \test Really long banner handling: banner exactly 255,
+ *        followed by malformed record */
 static int SSHParserTest20(void) {
     int result = 0;
     Flow f;
@@ -2110,6 +2115,9 @@ static int SSHParserTest20(void) {
                         "abcdefghijklmnopqrstuvwxyz"//242
                         "abcdefghijklm\r";//256
     uint32_t sshlen3 = sizeof(sshbuf3) - 1;
+    uint8_t sshbuf4[] = {'a','b','c','d','e','f', '\r',
+                         0x00, 0x00, 0x00, 0x06, 0x01, 21, 0x00, 0x00, 0x00};
+    uint32_t sshlen4 = sizeof(sshbuf4) - 1;
 
     TcpSession ssn;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -2140,13 +2148,53 @@ static int SSHParserTest20(void) {
 
     SCMutexLock(&f.m);
     r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf3, sshlen3);
-    if (r != -1) {
+    if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
         goto end;
     }
     SCMutexUnlock(&f.m);
 
+    SCLogDebug("chunk 4:");
+    SCMutexLock(&f.m);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf4, sshlen4);
+    if (r != 0) {
+        printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    SshState *ssh_state = f.alstate;
+    if (ssh_state == NULL) {
+        printf("no ssh state: ");
+        goto end;
+    }
+
+    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
+        printf("Client version string not parsed: ");
+        goto end;
+    }
+
+    if (ssh_state->srv_hdr.software_version == NULL) {
+        printf("Client version string not parsed: ");
+        goto end;
+    }
+
+    if (ssh_state->srv_hdr.proto_version == NULL) {
+        printf("Client version string not parsed: ");
+        goto end;
+    }
+
+    if (strncmp((char*)ssh_state->srv_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
+        printf("Client version string not parsed correctly: ");
+        goto end;
+    }
+
+    if ((ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE)) {
+        printf("detected the msg code of new keys (ciphered data starts): ");
+        goto end;
+    }
     result = 1;
 end:
     if (alp_tctx != NULL)
@@ -2172,10 +2220,10 @@ static int SSHParserTest21(void) {
                         "abcdefghijklmnopqrstuvwxyz"//164
                         "abcdefghijklmnopqrstuvwxyz"
                         "abcdefghijklmnopqrstuvwxyz"//216
-                        "abcdefghijklmnopqrstuvwxyz";//242
+                        "abcdefghijklmnopqrstuvwxy";//241
     uint32_t sshlen3 = sizeof(sshbuf3) - 1;
     uint8_t sshbuf4[] = {'l','i','b','s','s','h', '\r',
-                         0x00, 0x00, 0x00, 0x04, 0x01, 21, 0x00};
+                         0x00, 0x00, 0x00, 0x06, 0x01, 21, 0x00, 0x00, 0x00};
     uint32_t sshlen4 = sizeof(sshbuf4) - 1;
     TcpSession ssn;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -2213,6 +2261,7 @@ static int SSHParserTest21(void) {
     }
     SCMutexUnlock(&f.m);
 
+    SCLogDebug("chunk 4:");
     SCMutexLock(&f.m);
     r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf4, sshlen4);
     if (r != 0) {
@@ -2222,6 +2271,140 @@ static int SSHParserTest21(void) {
     }
     SCMutexUnlock(&f.m);
 
+    SshState *ssh_state = f.alstate;
+    if (ssh_state == NULL) {
+        printf("no ssh state: ");
+        goto end;
+    }
+
+    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
+        printf("Client version string not parsed: ");
+        goto end;
+    }
+
+    if (ssh_state->srv_hdr.software_version == NULL) {
+        printf("Client version string not parsed: ");
+        goto end;
+    }
+
+    if (ssh_state->srv_hdr.proto_version == NULL) {
+        printf("Client version string not parsed: ");
+        goto end;
+    }
+
+    if (strncmp((char*)ssh_state->srv_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
+        printf("Client version string not parsed correctly: ");
+        goto end;
+    }
+
+    if ( !(ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE)) {
+        printf("Didn't detect the msg code of new keys (ciphered data starts): ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    return result;
+}
+
+/** \test Fragmented banner handling: chunk has final part of bannel plus
+ *        a record. */
+static int SSHParserTest22(void) {
+    int result = 0;
+    Flow f;
+    uint8_t sshbuf1[] = "SSH-";
+    uint32_t sshlen1 = sizeof(sshbuf1) - 1;
+    uint8_t sshbuf2[] = "2.0-";
+    uint32_t sshlen2 = sizeof(sshbuf2) - 1; // 8
+    uint8_t sshbuf3[] = {
+        'l', 'i', 'b', 's', 's', 'h', '\r', //7
+
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, //50
+
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, //100
+
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, //150
+
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, //200
+
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, //250
+
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x06, 0x01, 21, 0x00, 0x00, 0x00, 0x00, //300
+    };
+    uint32_t sshlen3 = sizeof(sshbuf3) - 1;
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    SCMutexLock(&f.m);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    SCMutexLock(&f.m);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf2, sshlen2);
+    if (r != 0) {
+        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    SCMutexLock(&f.m);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf3, sshlen3);
+    if (r != 0) {
+        printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+#if 0
+    SCLogDebug("chunk 4:");
+    SCMutexLock(&f.m);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf4, sshlen4);
+    if (r != 0) {
+        printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+#endif
     SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
@@ -2286,6 +2469,7 @@ void SSHParserRegisterTests(void) {
     UtRegisterTest("SSHParserTest19", SSHParserTest19, 1);
     UtRegisterTest("SSHParserTest20", SSHParserTest20, 1);
     UtRegisterTest("SSHParserTest21", SSHParserTest21, 1);
+    UtRegisterTest("SSHParserTest22", SSHParserTest22, 1);
 #endif /* UNITTESTS */
 }
 
