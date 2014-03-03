@@ -58,6 +58,10 @@
 const char lua_ext_key_tx[] = "suricata:lua:tx:ptr";
 /* key for p (packet) pointer */
 const char lua_ext_key_p[] = "suricata:lua:pkt:ptr";
+/* key for f (flow) pointer */
+const char lua_ext_key_flow[] = "suricata:lua:flow:ptr";
+/* key for flow lock hint bool */
+const char lua_ext_key_flow_lock_hint[] = "suricata:lua:flow:lock_hint";
 
 /** \brief get packet pointer from the lua state */
 Packet *LuaStateGetPacket(lua_State *luastate)
@@ -88,6 +92,37 @@ void LuaStateSetTX(lua_State *luastate, void *txptr)
 {
     lua_pushlightuserdata(luastate, (void *)&lua_ext_key_tx);
     lua_pushlightuserdata(luastate, (void *)txptr);
+    lua_settable(luastate, LUA_REGISTRYINDEX);
+}
+
+Flow *LuaStateGetFlow(lua_State *luastate, int *lock_hint)
+{
+    Flow *f = NULL;
+    int need_flow_lock = 0;
+
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_flow);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    f = lua_touserdata(luastate, -1);
+
+    /* need flow lock hint */
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_flow_lock_hint);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    need_flow_lock = lua_toboolean(luastate, -1);
+
+    *lock_hint = need_flow_lock;
+    return f;
+}
+
+void LuaStateSetFlow(lua_State *luastate, Flow *f, int need_flow_lock)
+{
+    /* flow */
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_flow);
+    lua_pushlightuserdata(luastate, (void *)f);
+    lua_settable(luastate, LUA_REGISTRYINDEX);
+
+    /* flow lock status hint */
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_flow_lock_hint);
+    lua_pushboolean(luastate, need_flow_lock);
     lua_settable(luastate, LUA_REGISTRYINDEX);
 }
 
