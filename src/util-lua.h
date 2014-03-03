@@ -26,11 +26,32 @@
 
 #ifdef HAVE_LUA
 
+/* gets */
+
 Packet *LuaStateGetPacket(lua_State *luastate);
 void *LuaStateGetTX(lua_State *luastate);
 
+/** \brief get flow pointer from lua state
+ *
+ *  \param lock_hint[out] pointer to bool indicating if flow is
+ *                        locked (TRUE) or unlocked unlocked (FALSE)
+ *
+ *  \retval f flow poiner or NULL if it was not set
+ */
+Flow *LuaStateGetFlow(lua_State *luastate, int *lock_hint);
+
+/* sets */
+
 void LuaStateSetPacket(lua_State *luastate, Packet *p);
 void LuaStateSetTX(lua_State *luastate, void *tx);
+
+/** \brief set a flow pointer in the lua state
+ *
+ *  \param f flow pointer
+ *  \param need_flow_lock bool indicating if flow is locked (TRUE)
+ *                        or unlocked unlocked (FALSE)
+ */
+void LuaStateSetFlow(lua_State *luastate, Flow *f, int need_flow_lock);
 
 void LuaPrintStack(lua_State *state);
 
