@@ -85,5 +85,6 @@ void OutputDeregisterAll(void);
 
 int OutputDropLoggerEnable(void);
 int OutputTlsLoggerEnable(void);
+int OutputSshLoggerEnable(void);
 
 #endif /* ! __OUTPUT_H__ */
