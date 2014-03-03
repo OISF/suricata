@@ -60,10 +60,10 @@
 
 #ifdef HAVE_LUA
 
+#include "util-lua.h"
+
 static const char luaext_key_ld[] = "suricata:luajitdata";
 static const char luaext_key_det_ctx[] = "suricata:det_ctx";
-static const char luaext_key_flow[] = "suricata:flow";
-static const char luaext_key_need_flow_lock[] = "suricata:need_flow_lock";
 
 static int LuajitGetFlowvar(lua_State *luastate) {
     uint16_t idx;
@@ -84,21 +84,13 @@ static int LuajitGetFlowvar(lua_State *luastate) {
         return 2;
     }
 
-    /* need flow */
-    lua_pushlightuserdata(luastate, (void *)&luaext_key_flow);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    f = lua_touserdata(luastate, -1);
-    SCLogDebug("f %p", f);
+    /* need flow and lock hint */
+    f = LuaStateGetFlow(luastate, &need_flow_lock);
     if (f == NULL) {
         lua_pushnil(luastate);
         lua_pushstring(luastate, "no flow");
         return 2;
     }
-
-    /* need flow lock hint */
-    lua_pushlightuserdata(luastate, (void *)&luaext_key_need_flow_lock);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    need_flow_lock = lua_toboolean(luastate, -1);
 
     /* need flowvar idx */
     if (!lua_isnumber(luastate, 1)) {
@@ -190,21 +182,13 @@ int LuajitSetFlowvar(lua_State *luastate) {
         return 2;
     }
 
-    /* need flow */
-    lua_pushlightuserdata(luastate, (void *)&luaext_key_flow);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    f = lua_touserdata(luastate, -1);
-    SCLogDebug("f %p", f);
+    /* need flow and lock hint */
+    f = LuaStateGetFlow(luastate, &need_flow_lock);
     if (f == NULL) {
         lua_pushnil(luastate);
         lua_pushstring(luastate, "no flow");
         return 2;
     }
-
-    /* need flow lock hint */
-    lua_pushlightuserdata(luastate, (void *)&luaext_key_need_flow_lock);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    need_flow_lock = lua_toboolean(luastate, -1);
 
     /* need flowvar idx */
     if (!lua_isnumber(luastate, 1)) {
@@ -289,21 +273,13 @@ static int LuajitGetFlowint(lua_State *luastate) {
         return 2;
     }
 
-    /* need flow */
-    lua_pushlightuserdata(luastate, (void *)&luaext_key_flow);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    f = lua_touserdata(luastate, -1);
-    SCLogDebug("f %p", f);
+    /* need flow and lock hint */
+    f = LuaStateGetFlow(luastate, &need_flow_lock);
     if (f == NULL) {
         lua_pushnil(luastate);
         lua_pushstring(luastate, "no flow");
         return 2;
     }
-
-    /* need flow lock hint */
-    lua_pushlightuserdata(luastate, (void *)&luaext_key_need_flow_lock);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    need_flow_lock = lua_toboolean(luastate, -1);
 
     /* need flowint idx */
     if (!lua_isnumber(luastate, 1)) {
@@ -386,20 +362,13 @@ int LuajitSetFlowint(lua_State *luastate) {
         return 2;
     }
 
-    /* need flow */
-    lua_pushlightuserdata(luastate, (void *)&luaext_key_flow);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    f = lua_touserdata(luastate, -1);
-    SCLogDebug("f %p", f);
+    /* need flow and lock hint */
+    f = LuaStateGetFlow(luastate, &need_flow_lock);
     if (f == NULL) {
         lua_pushnil(luastate);
         lua_pushstring(luastate, "no flow");
         return 2;
     }
-    /* need flow lock hint */
-    lua_pushlightuserdata(luastate, (void *)&luaext_key_need_flow_lock);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    need_flow_lock = lua_toboolean(luastate, -1);
 
     /* need flowint idx */
     if (!lua_isnumber(luastate, 1)) {
@@ -463,21 +432,13 @@ static int LuajitIncrFlowint(lua_State *luastate) {
         return 2;
     }
 
-    /* need flow */
-    lua_pushlightuserdata(luastate, (void *)&luaext_key_flow);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    f = lua_touserdata(luastate, -1);
-    SCLogDebug("f %p", f);
+    /* need flow and lock hint */
+    f = LuaStateGetFlow(luastate, &need_flow_lock);
     if (f == NULL) {
         lua_pushnil(luastate);
         lua_pushstring(luastate, "no flow");
         return 2;
     }
-
-    /* need flow lock hint */
-    lua_pushlightuserdata(luastate, (void *)&luaext_key_need_flow_lock);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    need_flow_lock = lua_toboolean(luastate, -1);
 
     /* need flowint idx */
     if (!lua_isnumber(luastate, 1)) {
@@ -546,21 +507,13 @@ static int LuajitDecrFlowint(lua_State *luastate) {
         return 2;
     }
 
-    /* need flow */
-    lua_pushlightuserdata(luastate, (void *)&luaext_key_flow);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    f = lua_touserdata(luastate, -1);
-    SCLogDebug("f %p", f);
+    /* need flow and lock hint */
+    f = LuaStateGetFlow(luastate, &need_flow_lock);
     if (f == NULL) {
         lua_pushnil(luastate);
         lua_pushstring(luastate, "no flow");
         return 2;
     }
-
-    /* need flow lock hint */
-    lua_pushlightuserdata(luastate, (void *)&luaext_key_need_flow_lock);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    need_flow_lock = lua_toboolean(luastate, -1);
 
     /* need flowint idx */
     if (!lua_isnumber(luastate, 1)) {
@@ -622,15 +575,7 @@ void LuajitExtensionsMatchSetup(lua_State *lua_state, DetectLuajitData *ld, Dete
     lua_pushlightuserdata(lua_state, (void *)det_ctx);
     lua_settable(lua_state, LUA_REGISTRYINDEX);
 
-    /* flow */
-    lua_pushlightuserdata(lua_state, (void *)&luaext_key_flow);
-    lua_pushlightuserdata(lua_state, (void *)f);
-    lua_settable(lua_state, LUA_REGISTRYINDEX);
-
-    /* flow lock status hint */
-    lua_pushlightuserdata(lua_state, (void *)&luaext_key_need_flow_lock);
-    lua_pushboolean(lua_state, need_flow_lock);
-    lua_settable(lua_state, LUA_REGISTRYINDEX);
+    LuaStateSetFlow(lua_state, f, need_flow_lock);
 }
 
 /**
