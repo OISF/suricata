@@ -56,6 +56,7 @@ void HTPParseMemcap()
                        conf_val);
             exit(EXIT_FAILURE);
         }
+        SCLogInfo("HTTP memcap: %"PRIu64, htp_config_memcap);
     } else {
         /* default to unlimited */
         htp_config_memcap = 0;
