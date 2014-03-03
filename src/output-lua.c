@@ -87,6 +87,7 @@ static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow 
 
     LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
     LuaStateSetTX(td->lua_ctx->luastate, txptr);
+    LuaStateSetFlow(td->lua_ctx->luastate, f, /* locked */FALSE);
 
     /* prepare data to pass to script */
     lua_getglobal(td->lua_ctx->luastate, "log");
@@ -151,6 +152,7 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
         lua_getglobal(td->lua_ctx->luastate, "log");
 
         LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
+        LuaStateSetFlow(td->lua_ctx->luastate, p->flow, /* unlocked */TRUE);
 
         /* prepare data to pass to script */
         lua_newtable(td->lua_ctx->luastate);
@@ -224,6 +226,7 @@ static int LuaPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     lua_getglobal(td->lua_ctx->luastate, "log");
 
     LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
+    LuaStateSetFlow(td->lua_ctx->luastate, p->flow, /* unlocked */TRUE);
 
     /* prepare data to pass to script */
     lua_newtable(td->lua_ctx->luastate);
@@ -273,6 +276,7 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
 
     LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
     LuaStateSetTX(td->lua_ctx->luastate, txptr);
+    LuaStateSetFlow(td->lua_ctx->luastate, p->flow, /* locked */FALSE);
 
     /* get the lua function to call */
     lua_getglobal(td->lua_ctx->luastate, "log");
