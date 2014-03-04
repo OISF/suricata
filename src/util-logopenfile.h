@@ -61,6 +61,13 @@ typedef struct LogFileCtx_ {
     uint64_t alerts;
     /* flag to avoid multiple threads printing the same stats */
     uint8_t flags;
+
+    /* Flag if file is a regular file or not.  Only regular files
+     * allow for rotataion. */
+    uint8_t is_regular;
+
+    /* Flag set when file rotation notification is received. */
+    int rotation_flag;
 } LogFileCtx;
 
 /* flags for LogFileCtx */
@@ -71,5 +78,6 @@ LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
 
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *);
+int SCConfLogReopen(LogFileCtx *);
 
 #endif /* __UTIL_LOGOPENFILE_H__ */
