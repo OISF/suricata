@@ -75,6 +75,12 @@ err:
 
 static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ctx)
 {
+    /* Check for rotation. */
+    if (log_ctx->rotation_flag) {
+        log_ctx->rotation_flag = 0;
+        SCConfLogReopen(log_ctx);
+    }
+
     int ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
     fflush(log_ctx->fp);
 
@@ -193,6 +199,13 @@ SCConfLogOpenGeneric(ConfNode *conf,
         log_ctx->fp = SCLogOpenFileFp(log_path, append);
         if (log_ctx->fp == NULL)
             return -1; // Error already logged by Open...Fp routine
+        log_ctx->is_regular = 1;
+        log_ctx->filename = SCStrdup(log_path);
+        if (unlikely(log_ctx->filename == NULL)) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for "
+                "filename");
+            return -1;
+        }
     } else if (strcasecmp(filetype, "pcie") == 0) {
         log_ctx->pcie_fp = SCLogOpenPcieFp(log_ctx, log_path, append);
         if (log_ctx->pcie_fp == NULL)
@@ -207,6 +220,38 @@ SCConfLogOpenGeneric(ConfNode *conf,
 
     SCLogInfo("%s output device (%s) initialized: %s", conf->name, filetype,
               filename);
+
+    return 0;
+}
+
+/**
+ * \brief Reopen a regular log file with the side-affect of truncating it.
+ *
+ * This is useful to clear the log file and start a new one, or to
+ * re-open the file after its been moved by something external
+ * (eg. logrotate).
+ */
+int SCConfLogReopen(LogFileCtx *log_ctx)
+{
+    if (!log_ctx->is_regular) {
+        /* Not supported and not needed on non-regular files. */
+        return 0;
+    }
+
+    if (log_ctx->filename == NULL) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+            "Can't re-open LogFileCtx without a filename.");
+        return -1;
+    }
+
+    fclose(log_ctx->fp);
+
+    /* Reopen the file.  In this case do not append like may have been
+     * done on the initial opening of the file. */
+    log_ctx->fp = SCLogOpenFileFp(log_ctx->filename, "no");
+    if (log_ctx->fp == NULL) {
+        return -1; // Already logged by Open..Fp routine.
+    }
 
     return 0;
 }
