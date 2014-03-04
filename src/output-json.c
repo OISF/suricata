@@ -303,8 +303,8 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer) {
         syslog(alert_syslog_level, "%s", js_s);
     } else if (json_out == ALERT_FILE) {
         MemBufferWriteString(buffer, "%s\n", js_s);
-        (void)MemBufferPrintToFPAsString(buffer, file_ctx->fp);
-        fflush(file_ctx->fp);
+        file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
+            MEMBUFFER_OFFSET(buffer), file_ctx);
     }
     SCMutexUnlock(&file_ctx->fp_mutex);
     free(js_s);
@@ -411,6 +411,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                 SCFree(output_ctx);
                 return NULL;
             }
+            OutputRegisterFileRotationFlag(&json_ctx->file_ctx->rotation_flag);
 
             const char *format_s = ConfNodeLookupChildValue(conf, "format");
             if (format_s != NULL) {

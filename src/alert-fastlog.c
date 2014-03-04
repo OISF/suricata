@@ -252,6 +252,7 @@ OutputCtx *AlertFastLogInitCtx(ConfNode *conf)
         LogFileFreeCtx(logfile_ctx);
         return NULL;
     }
+    OutputRegisterFileRotationFlag(&logfile_ctx->rotation_flag);
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
