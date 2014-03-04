@@ -92,4 +92,7 @@ void OutputTlsLoggerDisable(void);
 int OutputSshLoggerEnable(void);
 void OutputSshLoggerDisable(void);
 
+void OutputRegisterFileRotationFlag(int *flag);
+void OutputNotifyFileRotation(void);
+
 #endif /* ! __OUTPUT_H__ */

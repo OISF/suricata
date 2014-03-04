@@ -35,6 +35,18 @@ static TAILQ_HEAD(, OutputModule_) output_modules =
     TAILQ_HEAD_INITIALIZER(output_modules);
 
 /**
+ * Registry of flags to be updated on file rotation notification.
+ */
+typedef struct OutputFileRolloverFlag_ {
+    int *flag;
+
+    TAILQ_ENTRY(OutputFileRolloverFlag_) entries;
+} OutputFileRolloverFlag;
+
+TAILQ_HEAD(, OutputFileRolloverFlag_) output_file_rotation_flags =
+    TAILQ_HEAD_INITIALIZER(output_file_rotation_flags);
+
+/**
  * \brief Register an output module.
  *
  * This function will register an output module so it can be
@@ -415,4 +427,24 @@ int OutputSshLoggerEnable(void) {
 void OutputSshLoggerDisable(void) {
     if (ssh_loggers)
         ssh_loggers--;
+}
+
+void OutputRegisterFileRotationFlag(int *flag)
+{
+    OutputFileRolloverFlag *flag_entry = SCCalloc(1, sizeof(*flag_entry));
+    if (unlikely(flag_entry == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+            "Failed to allocate memory to register file rotation flag");
+        return;
+    }
+    flag_entry->flag = flag;
+    TAILQ_INSERT_TAIL(&output_file_rotation_flags, flag_entry, entries);
+}
+
+void OutputNotifyFileRotation(void)
+{
+    OutputFileRolloverFlag *flag;
+    TAILQ_FOREACH(flag, &output_file_rotation_flags, entries) {
+        *(flag->flag) = 1;
+    }
 }
