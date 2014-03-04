@@ -24,6 +24,8 @@
 #ifndef __DECODE_VLAN_H__
 #define __DECODE_VLAN_H__
 
+uint16_t DecodeVLANGetId(const struct Packet_ *, uint8_t layer);
+
 /** Vlan type */
 #define ETHERNET_TYPE_VLAN          0x8100
 
@@ -32,6 +34,9 @@
 #define GET_VLAN_CFI(vlanh)         ((ntohs((vlanh)->vlan_cfi) & 0x0100) >> 12)
 #define GET_VLAN_ID(vlanh)          ((uint16_t)(ntohs((vlanh)->vlan_cfi) & 0x0FFF))
 #define GET_VLAN_PROTO(vlanh)       ((ntohs((vlanh)->protocol)))
+
+#define VLAN_GET_ID1(p)             DecodeVLANGetId((p), 0)
+#define VLAN_GET_ID2(p)             DecodeVLANGetId((p), 1)
 
 /** Vlan header struct */
 typedef struct VLANHdr_ {
