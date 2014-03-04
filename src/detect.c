@@ -1367,6 +1367,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     goto next;
                 }
             }
+        } else if ((s->flags & (SIG_FLAG_DP_ANY|SIG_FLAG_SP_ANY)) != (SIG_FLAG_DP_ANY|SIG_FLAG_SP_ANY)) {
+            SCLogDebug("port-less protocol and sig needs ports");
+            goto next;
         }
 
         /* check the destination address */
@@ -11296,6 +11299,58 @@ end:
     return result;
 }
 
+/** \test ICMP packet shouldn't be matching port based sig
+ *        Bug #611 */
+static int SigTestPorts01(void)
+{
+    int result = 0;
+    Packet *p1 = NULL;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    uint8_t payload[] = "AAAAAAAAAAAAAAAAAA";
+
+    memset(&tv, 0, sizeof(ThreadVars));
+
+    p1 = UTHBuildPacket(payload, sizeof(payload), IPPROTO_ICMP);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_B2G;
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert ip any any -> any 80 "
+                                   "(content:\"AAA\"; sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p1);
+
+    if (PacketAlertCheck(p1, 1)) {
+        printf("sig 1 alerted on p1, but it should not: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    UTHFreePackets(&p1, 1);
+    return result;
+}
+
 static const char *dummy_conf_string2 =
     "%YAML 1.1\n"
     "---\n"
@@ -11693,6 +11748,8 @@ void SigRegisterTests(void) {
     UtRegisterTest("DetectAddressYamlParsing02", DetectAddressYamlParsing02, 1);
     UtRegisterTest("DetectAddressYamlParsing03", DetectAddressYamlParsing03, 1);
     UtRegisterTest("DetectAddressYamlParsing04", DetectAddressYamlParsing04, 1);
+
+    UtRegisterTest("SigTestPorts01", SigTestPorts01, 1);
 
     DetectSimdRegisterTests();
 #endif /* UNITTESTS */
