@@ -123,8 +123,8 @@ static void LogQuery(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dst
             record, srcip, sp, dstip, dp);
 
     SCMutexLock(&hlog->file_ctx->fp_mutex);
-    (void)MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
-    fflush(hlog->file_ctx->fp);
+    hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
+        MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
     SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 }
 
@@ -183,8 +183,8 @@ static void LogAnswer(LogDnsLogThread *aft, char *timebuf, char *srcip, char *ds
             srcip, sp, dstip, dp);
 
     SCMutexLock(&hlog->file_ctx->fp_mutex);
-    (void)MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
-    fflush(hlog->file_ctx->fp);
+    hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
+        MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
     SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 }
 
@@ -338,6 +338,7 @@ static OutputCtx *LogDnsLogInitCtx(ConfNode *conf)
         LogFileFreeCtx(file_ctx);
         return NULL;
     }
+    OutputRegisterFileRotationFlag(&file_ctx->rotation_flag);
 
     LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
     if (unlikely(dnslog_ctx == NULL)) {

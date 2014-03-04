@@ -382,8 +382,8 @@ static TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, const Packet *p, void *
                          GET_PKT_DATA(p), GET_PKT_LEN(p));
 
     SCMutexLock(&aft->file_ctx->fp_mutex);
-    (void)MemBufferPrintToFPAsString(aft->buffer, aft->file_ctx->fp);
-    fflush(aft->file_ctx->fp);
+    aft->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
+        MEMBUFFER_OFFSET(aft->buffer), aft->file_ctx);
     aft->file_ctx->alerts += p->alerts.cnt;
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
 
@@ -472,6 +472,7 @@ static OutputCtx *AlertDebugLogInitCtx(ConfNode *conf)
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME) < 0) {
         goto error;
     }
+    OutputRegisterFileRotationFlag(&file_ctx->rotation_flag);
 
     OutputCtx *output_ctx = SCMalloc(sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))

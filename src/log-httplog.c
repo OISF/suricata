@@ -504,8 +504,8 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, void *data, const Packet *p, 
     aft->uri_cnt ++;
 
     SCMutexLock(&hlog->file_ctx->fp_mutex);
-    (void)MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
-    fflush(hlog->file_ctx->fp);
+    hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
+        MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
     SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 
 end:
@@ -600,6 +600,7 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
         LogFileFreeCtx(file_ctx);
         return NULL;
     }
+    OutputRegisterFileRotationFlag(&file_ctx->rotation_flag);
 
     LogHttpFileCtx *httplog_ctx = SCMalloc(sizeof(LogHttpFileCtx));
     if (unlikely(httplog_ctx == NULL)) {
