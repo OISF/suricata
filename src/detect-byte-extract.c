@@ -679,6 +679,8 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
             sm_list = DETECT_SM_LIST_PMATCH;
         } else {
             sm_list = SigMatchListSMBelongsTo(s, prev_pm);
+            if (sm_list < 0)
+                goto error;
             if (sm_list != DETECT_SM_LIST_PMATCH)
                 s->flags |= SIG_FLAG_APPLAYER;
         }

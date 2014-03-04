@@ -126,6 +126,19 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     return TM_ECODE_OK;
 }
 
+uint16_t DecodeVLANGetId(const Packet *p, uint8_t layer)
+{
+    if (unlikely(layer > 1))
+        return 0;
+
+    if (p->vlanh[layer] == NULL && (p->vlan_idx >= (layer + 1))) {
+        return p->vlan_id[layer];
+    } else {
+        return GET_VLAN_ID(p->vlanh[layer]);
+    }
+    return 0;
+}
+
 #ifdef UNITTESTS
 /** \todo Must GRE+VLAN and Multi-Vlan packets to
  * create more tests
