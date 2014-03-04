@@ -225,15 +225,15 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
         switch (p->vlan_idx) {
             case 1:
                 json_object_set_new(js, "vlan",
-                                    json_integer(ntohs(VLAN_GET_ID1(p))));
+                                    json_integer(VLAN_GET_ID1(p)));
                 break;
             case 2:
                 js_vlan = json_array();
                 if (unlikely(js != NULL)) {
                     json_array_append_new(js_vlan,
-                                    json_integer(ntohs(VLAN_GET_ID1(p))));
+                                    json_integer(VLAN_GET_ID1(p)));
                     json_array_append_new(js_vlan,
-                                    json_integer(ntohs(VLAN_GET_ID2(p))));
+                                    json_integer(VLAN_GET_ID2(p)));
                     json_object_set_new(js, "vlan", js_vlan);
                 }
                 break;
