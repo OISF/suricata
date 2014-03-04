@@ -313,6 +313,14 @@ void SignalHandlerSigusr2(int sig)
     return;
 }
 
+/**
+ * SIGHUP handler.  Just set sighup_count.  The main loop will act on
+ * it.
+ */
+static void SignalHandlerSigHup(/*@unused@*/ int sig) {
+    sighup_count = 1;
+}
+
 #ifdef DBG_MEM_ALLOC
 #ifndef _GLOBAL_MEM_
 #define _GLOBAL_MEM_
@@ -1725,7 +1733,7 @@ static int InitSignalHandler(SCInstance *suri)
 
 #ifndef OS_WIN32
     /* SIGHUP is not implemented on WIN32 */
-    UtilSignalHandlerSetup(SIGHUP, SIG_IGN);
+    UtilSignalHandlerSetup(SIGHUP, SignalHandlerSigHup);
 
     /* Try to get user/group to run suricata as if
        command line as not decide of that */
@@ -2332,6 +2340,11 @@ int main(int argc, char **argv)
         }
 
         TmThreadCheckThreadState();
+
+        if (sighup_count > 0) {
+            OutputNotifyFileRotation();
+            sighup_count--;
+        }
 
         usleep(10* 1000);
     }
