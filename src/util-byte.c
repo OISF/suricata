@@ -57,9 +57,9 @@ char *BytesToString(const uint8_t *bytes, size_t nbytes)
         /* no nulls */
         memcpy(string, bytes, nbytes);
     } else {
-        /* no nulls present */
+        /* nulls present */
         char *dst = string;
-        for (u = 0; u < n; u++) {
+        for (u = 0; u < nbytes; u++) {
             if (bytes[u] == '\0') {
                 *dst++ = '\\';
                 *dst++ = '0';

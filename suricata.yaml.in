@@ -921,7 +921,7 @@ rule-files:
  - emerging-ftp.rules
  - emerging-games.rules
  - emerging-icmp_info.rules
- - emerging-icmp.rules
+# - emerging-icmp.rules
  - emerging-imap.rules
  - emerging-inappropriate.rules
  - emerging-malware.rules

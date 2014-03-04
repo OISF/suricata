@@ -29,9 +29,9 @@ install-rules:
 	install -d "$(e_sysconfrulesdir)"
 if HAVE_FETCH_COMMAND
 if HAVE_WGET_COMMAND
-	$(HAVE_WGET) -qO - http://rules.emergingthreats.net/open/suricata/emerging.rules.tar.gz | tar -x -z -C "$(e_sysconfdir)" -f -
+	$(HAVE_WGET) -qO - http://rules.emergingthreats.net/open/suricata-2.0/emerging.rules.tar.gz | tar -x -z -C "$(e_sysconfdir)" -f -
 else
-	$(HAVE_CURL) -s http://rules.emergingthreats.net/open/suricata/emerging.rules.tar.gz | tar -x -z -C "$(e_sysconfdir)" -f -
+	$(HAVE_CURL) -s http://rules.emergingthreats.net/open/suricata-2.0/emerging.rules.tar.gz | tar -x -z -C "$(e_sysconfdir)" -f -
 endif
 else
 	@echo "UNABLE to load ruleset wget or curl are not installed on system."
