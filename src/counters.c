@@ -35,6 +35,7 @@
 #include "util-privs.h"
 #include "util-signal.h"
 #include "unix-manager.h"
+#include "output.h"
 
 /** \todo Get the default log directory from some global resource. */
 #define SC_PERF_DEFAULT_LOG_FILENAME "stats.log"
@@ -168,6 +169,23 @@ static char *SCPerfGetLogFilename(ConfNode *stats)
 }
 
 /**
+ * \brief Reopen the log file.
+ *
+ * \retval 1 if successful, otherwise 0.
+ */
+static int SCPerfFileReopen(SCPerfOPIfaceContext *sc_perf_op_ctx)
+{
+    fclose(sc_perf_op_ctx->fp);
+    if ((sc_perf_op_ctx->fp = fopen(sc_perf_op_ctx->file, "w+")) == NULL) {
+        SCLogError(SC_ERR_FOPEN, "Failed to reopen file \"%s\"."
+            "Stats logging will now be disabled.",
+            sc_perf_op_ctx->file);
+        return 0;
+    }
+    return 1;
+}
+
+/**
  * \brief Initializes the output interface context
  *
  * \todo Support multiple interfaces
@@ -237,6 +255,10 @@ static void SCPerfInitOPCtx(void)
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
         }
+    }
+    else {
+        /* File opened, register for rotation notification. */
+        OutputRegisterFileRotationFlag(&sc_perf_op_ctx->rotation_flag);
     }
 
     /* init the lock used by SCPerfClubTMInst */
@@ -629,6 +651,15 @@ static int SCPerfOutputCounterFileIface()
     if (sc_perf_op_ctx->fp == NULL) {
         SCLogDebug("perf_op_ctx->fp is NULL");
         return 0;
+    }
+
+    if (sc_perf_op_ctx->rotation_flag) {
+        SCLogDebug("Rotating log file");
+        sc_perf_op_ctx->rotation_flag = 0;
+        if (!SCPerfFileReopen(sc_perf_op_ctx)) {
+            /* Rotation failed, error already logged. */
+            return 0;
+        }
     }
 
     memset(&tval, 0, sizeof(struct timeval));

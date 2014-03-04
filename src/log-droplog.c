@@ -154,6 +154,7 @@ static OutputCtx *LogDropLogInitCtx(ConfNode *conf)
         LogFileFreeCtx(logfile_ctx);
         return NULL;
     }
+    OutputRegisterFileRotationFlag(&logfile_ctx->rotation_flag);
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
@@ -185,6 +186,18 @@ static int LogDropLogNetFilter (ThreadVars *tv, const Packet *p, void *data)
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     SCMutexLock(&dlt->file_ctx->fp_mutex);
+
+    if (dlt->file_ctx->rotation_flag) {
+        dlt->file_ctx->rotation_flag  = 0;
+        if (SCConfLogReopen(dlt->file_ctx) != 0) {
+            /* Rotation failed, error already logged. */
+            return TM_ECODE_FAILED;
+        }
+    }
+
+    if (dlt->file_ctx == NULL) {
+        return TM_ECODE_FAILED;
+    }
 
     char srcip[46] = "";
     char dstip[46] = "";

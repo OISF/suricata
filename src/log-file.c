@@ -145,6 +145,21 @@ static void LogFileMetaGetUserAgent(FILE *fp, const Packet *p, const File *ff) {
 static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const File *ff, int ipver) {
     SCMutexLock(&aft->file_ctx->fp_mutex);
 
+    /* As writes are done via the LogFileCtx, check for rotation here. */
+    if (aft->file_ctx->rotation_flag) {
+        aft->file_ctx->rotation_flag = 0;
+        if (SCConfLogReopen(aft->file_ctx) != 0) {
+            SCLogWarning(SC_ERR_FOPEN, "Failed to re-open log file. "
+                "Logging for this module will be disabled.");
+        }
+    }
+
+    /* Bail early if no file pointer to write to (in the unlikely
+     * event file rotation failed. */
+    if (aft->file_ctx->fp == NULL) {
+        return;
+    }
+
     FILE *fp = aft->file_ctx->fp;
     char timebuf[64];
     AppProto alproto = FlowGetAppProtocol(p->flow);
@@ -351,6 +366,7 @@ static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
         LogFileFreeCtx(logfile_ctx);
         return NULL;
     }
+    OutputRegisterFileRotationFlag(&logfile_ctx->rotation_flag);
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
