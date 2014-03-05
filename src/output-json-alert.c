@@ -141,7 +141,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
 
     MemBufferReset(buffer);
 
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+    CreateIsoTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
@@ -169,7 +169,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
         }
 
         /* time & tx */
-        json_object_set_new(js, "time", json_string(timebuf));
+        json_object_set_new(js, "timestamp", json_string(timebuf));
 
         /* tuple */
         //json_object_set_new(js, "srcip", json_string(srcip));
