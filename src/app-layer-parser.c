@@ -498,6 +498,8 @@ void AppLayerParserDestroyProtocolParserLocalStorage(uint8_t ipproto, AppProto a
 uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate)
 {
     SCEnter();
+    if (pstate == NULL)
+        SCReturnCT(0ULL, "uint64_t");
 
     SCReturnCT(pstate->log_id, "uint64_t");
 }
@@ -505,15 +507,18 @@ uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate)
 void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate)
 {
     SCEnter();
+    if (pstate == NULL)
+        SCReturn;
 
     pstate->log_id++;
-
     SCReturn;
 }
 
 uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint8_t direction)
 {
     SCEnter();
+    if (pstate == NULL)
+        SCReturnCT(0ULL, "uint64_t");
 
     SCReturnCT(pstate->inspect_id[direction & STREAM_TOSERVER ? 0 : 1], "uint64_t");
 }
@@ -523,6 +528,9 @@ void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
                                            uint8_t direction)
 {
     SCEnter();
+
+    if (unlikely(pstate == NULL || alstate == NULL))
+        SCReturn;
 
     uint8_t dir = (direction & STREAM_TOSERVER) ? 0 : 1;
     uint64_t total_txs = AppLayerParserGetTxCnt(ipproto, alproto, alstate);
