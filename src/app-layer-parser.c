@@ -189,8 +189,8 @@ AppLayerParserThreadCtx *AppLayerParserThreadCtxAlloc(void)
 {
     SCEnter();
 
-    AppProto i = 0;
-    int j = 0;
+    AppProto alproto = 0;
+    int flow_proto = 0;
     AppLayerParserThreadCtx *tctx;
 
     tctx = SCMalloc(sizeof(*tctx));
@@ -198,10 +198,12 @@ AppLayerParserThreadCtx *AppLayerParserThreadCtxAlloc(void)
         goto end;
     memset(tctx, 0, sizeof(*tctx));
 
-    for (i = 0; i < FLOW_PROTO_DEFAULT; i++) {
-        for (j = 0; j < ALPROTO_MAX; j++) {
-            tctx->alproto_local_storage[i][j] =
-                AppLayerParserGetProtocolParserLocalStorage(FlowGetReverseProtoMapping(i), j);
+    for (flow_proto = 0; flow_proto < FLOW_PROTO_DEFAULT; flow_proto++) {
+        for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+            uint8_t ipproto = FlowGetReverseProtoMapping(flow_proto);
+
+            tctx->alproto_local_storage[flow_proto][alproto] =
+                AppLayerParserGetProtocolParserLocalStorage(ipproto, alproto);
         }
     }
 
@@ -213,14 +215,15 @@ void AppLayerParserThreadCtxFree(AppLayerParserThreadCtx *tctx)
 {
     SCEnter();
 
-    AppProto i = 0;
-    int j = 0;
+    AppProto alproto = 0;
+    int flow_proto = 0;
 
-    for (i = 0; i < FLOW_PROTO_DEFAULT; i++) {
-        for (j = 0; j < ALPROTO_MAX; j++) {
-            AppLayerParserDestroyProtocolParserLocalStorage(FlowGetReverseProtoMapping(i),
-                                                            j,
-                                                            tctx->alproto_local_storage[i][j]);
+    for (flow_proto = 0; flow_proto < FLOW_PROTO_DEFAULT; flow_proto++) {
+        for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+            uint8_t ipproto = FlowGetReverseProtoMapping(flow_proto);
+
+            AppLayerParserDestroyProtocolParserLocalStorage(ipproto, alproto,
+                                                            tctx->alproto_local_storage[flow_proto][alproto]);
         }
     }
 
