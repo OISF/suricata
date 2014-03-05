@@ -1036,6 +1036,9 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                                 continue;
                             }
                         }
+                    } else if ((s->flags & (SIG_FLAG_DP_ANY|SIG_FLAG_SP_ANY)) != (SIG_FLAG_DP_ANY|SIG_FLAG_SP_ANY)) {
+                        SCLogDebug("port-less protocol and sig needs ports");
+                        continue;
                     }
 
                     if (!IPOnlyMatchCompatSMs(tv, det_ctx, s, p)) {
@@ -2210,6 +2213,36 @@ int IPOnlyTestSig16(void)
     return result;
 }
 
+/**
+ * \brief Unittest to show #611. Ports on portless protocols.
+ */
+int IPOnlyTestSig17(void)
+{
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+
+    uint8_t numpkts = 1;
+    uint8_t numsigs = 2;
+
+    Packet *p[1];
+
+    p[0] = UTHBuildPacketSrcDst((uint8_t *)buf, buflen, IPPROTO_ICMP, "100.100.0.0", "50.0.0.0");
+
+    char *sigs[numsigs];
+    sigs[0]= "alert ip 100.100.0.0 80 -> any any (msg:\"Testing src ip (sid 1)\"; sid:1;)";
+    sigs[1]= "alert ip any any -> 50.0.0.0 123 (msg:\"Testing dst ip (sid 2)\"; sid:2;)";
+
+    uint32_t sid[2] = { 1, 2};
+    uint32_t results[2] = { 0, 0}; /* neither should match */
+
+    result = UTHGenericTest(p, numpkts, sigs, sid, (uint32_t *) results, numsigs);
+
+    UTHFreePackets(p, numpkts);
+
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void IPOnlyRegisterTests(void) {
@@ -2242,6 +2275,8 @@ void IPOnlyRegisterTests(void) {
     UtRegisterTest("IPOnlyTestSig14", IPOnlyTestSig14, 1);
     UtRegisterTest("IPOnlyTestSig15", IPOnlyTestSig15, 1);
     UtRegisterTest("IPOnlyTestSig16", IPOnlyTestSig16, 1);
+
+    UtRegisterTest("IPOnlyTestSig17", IPOnlyTestSig17, 1);
 #endif
 
     return;
