@@ -10,19 +10,6 @@ libmagic.so.1!magic_load
 suricata!main
 
 LEAK
-name=bug #978
-*
-suricata!SMTPLocalStorageAlloc
-suricata!AppLayerGetProtocolParserLocalStorage
-suricata!AlpProtoFinalizeThread
-suricata!AlpProtoFinalize2Thread
-suricata!StreamTcpReassembleInitThreadCtx
-suricata!StreamTcpThreadInit
-suricata!TmThreadsSlotPktAcqLoop
-libpthread.so.0!start_thread
-libc.so.6!__clone 
-
-LEAK
 name=useless warning, likely DrMemory bug
 *
 libpcre.so.3!pcre_get_substring
