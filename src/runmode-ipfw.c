@@ -46,6 +46,7 @@
 #include "util-affinity.h"
 #include "util-runmodes.h"
 #include "source-ipfw.h"
+#include "util-device.h"
 
 static const char *default_mode;
 
