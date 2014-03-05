@@ -103,6 +103,7 @@ TmEcode ReceivePcapFileThreadDeinit(ThreadVars *, void *);
 
 TmEcode DecodePcapFile(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode DecodePcapFileThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodePcapFileThreadDeinit(ThreadVars *tv, void *data);
 
 void TmModuleReceivePcapFileRegister (void) {
     memset(&pcap_g, 0x00, sizeof(pcap_g));
@@ -123,7 +124,7 @@ void TmModuleDecodePcapFileRegister (void) {
     tmm_modules[TMM_DECODEPCAPFILE].ThreadInit = DecodePcapFileThreadInit;
     tmm_modules[TMM_DECODEPCAPFILE].Func = DecodePcapFile;
     tmm_modules[TMM_DECODEPCAPFILE].ThreadExitPrintStats = NULL;
-    tmm_modules[TMM_DECODEPCAPFILE].ThreadDeinit = NULL;
+    tmm_modules[TMM_DECODEPCAPFILE].ThreadDeinit = DecodePcapFileThreadDeinit;
     tmm_modules[TMM_DECODEPCAPFILE].RegisterTests = NULL;
     tmm_modules[TMM_DECODEPCAPFILE].cap_flags = 0;
     tmm_modules[TMM_DECODEPCAPFILE].flags = TM_FLAG_DECODE_TM;
@@ -446,6 +447,12 @@ TmEcode DecodePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
     SCReturnInt(TM_ECODE_OK);
 }
 
+TmEcode DecodePcapFileThreadDeinit(ThreadVars *tv, void *data)
+{
+    if (data != NULL)
+        DecodeThreadVarsFree(data);
+    SCReturnInt(TM_ECODE_OK);
+}
 
 void PcapIncreaseInvalidChecksum()
 {
