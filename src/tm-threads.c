@@ -646,7 +646,9 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
 
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
-
+#ifdef DEBUG_VALIDATION
+    tv->thread_id = SCGetThreadIdLong();
+#endif
     /* Drop the capabilities for this thread */
     SCDropCaps(tv);
 
@@ -759,7 +761,9 @@ void *TmThreadsSlotVar(void *td)
 
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
-
+#ifdef DEBUG_VALIDATION
+    tv->thread_id = SCGetThreadIdLong();
+#endif
     /* Drop the capabilities for this thread */
     SCDropCaps(tv);
 
