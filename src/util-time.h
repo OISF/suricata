@@ -48,6 +48,7 @@ void TimeModeSetOffline (void);
 
 struct tm *SCLocalTime(time_t timep, struct tm *result);
 void CreateTimeString (const struct timeval *ts, char *str, size_t size);
+void CreateIsoTimeString (const struct timeval *ts, char *str, size_t size);
 
 #endif /* __UTIL_TIME_H__ */
 
