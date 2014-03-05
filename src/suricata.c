@@ -1889,6 +1889,7 @@ static int ConfigGetCaptureValue(SCInstance *suri)
 static int PostConfLoadedSetup(SCInstance *suri)
 {
     char *hostmode = NULL;
+    char *timestamp = NULL;
 
     /* load the pattern matchers */
     MpmTableSetup();
@@ -1918,6 +1919,16 @@ static int PostConfLoadedSetup(SCInstance *suri)
                 "supplied by %s (default-log-dir) doesn't exist. "
                 "Shutting down the engine", suri->log_dir, conf_filename);
         SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    if (ConfGet("timestamp-format", &timestamp) == 1) {
+        if (!strcmp(timestamp, "iso")) {
+            TimeUseIsoFormat();
+        } else if (strcmp(timestamp, "legacy")) {
+            SCLogError(SC_ERR_INVALID_VALUE,
+                       "Timestamp format '%s' is not supported. Using 'legacy'",
+                       timestamp);
+        }
     }
 
     if (ConfigGetCaptureValue(suri) != TM_ECODE_OK) {

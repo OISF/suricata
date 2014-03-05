@@ -72,6 +72,12 @@ unix-command:
   enabled: no
   #filename: custom.socket
 
+# Select which timestamp format to use.
+# Possible values: 'iso' or 'legacy' (default)
+# 'iso' is a ISO 8601 format which is compatible with a lot of tools.
+# It is recommanded to use it in the case the EVE output is used.
+#timestamp-format: iso
+
 # Configure the type of alert (and other) logging you would like.
 outputs:
 
@@ -83,6 +89,7 @@ outputs:
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
   # "United" event log in JSON format
+  # It is recommanded to set timestamp-format to 'iso' if this output is used.
   - eve-log:
       enabled: no
       type: file #file|syslog|unix_dgram|unix_stream

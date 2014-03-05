@@ -35,6 +35,8 @@ static struct timeval current_time = { 0, 0 };
 static SCSpinlock current_time_spinlock;
 static char live = TRUE;
 
+static int use_iso_timestamp = 0;
+
 void TimeInit(void)
 {
     SCSpinInit(&current_time_spinlock, 0);
@@ -120,6 +122,11 @@ void TimeSetIncrementTime(uint32_t tv_sec)
     TimeSet(&tv);
 }
 
+void TimeUseIsoFormat()
+{
+    use_iso_timestamp = 1;
+}
+
 /*
  * Time Caching code
  */
@@ -138,9 +145,15 @@ void CreateTimeString (const struct timeval *ts, char *str, size_t size)
     struct tm local_tm;
     struct tm *t = (struct tm*)SCLocalTime(time, &local_tm);
 
-    snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
-             t->tm_mon + 1, t->tm_mday, t->tm_year + 1900, t->tm_hour,
-             t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
+    if (use_iso_timestamp) {
+        snprintf(str, size, "%04d-%02d-%02dT%02d:%02d:%02d.%03u",
+                 t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour,
+                 t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec / 1000);
+    } else {
+        snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
+                 t->tm_mon + 1, t->tm_mday, t->tm_year + 1900, t->tm_hour,
+                 t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
+    }
 }
 
 #else
@@ -221,13 +234,15 @@ struct tm *SCLocalTime(time_t timep, struct tm *result)
 }
 
 /* Update the cached time string in cache index N, for the current minute. */
-static int UpdateCachedTime(int n, time_t time)
+static int UpdateCachedTime(int n, time_t time, char *time_format, int iso)
 {
     struct tm local_tm;
     struct tm *t = (struct tm *)SCLocalTime(time, &local_tm);
     int cached_len = snprintf(cached_local_time[n], MAX_LOCAL_TIME_STRING,
-                              "%02d/%02d/%02d-%02d:%02d:",
-                              t->tm_mon + 1, t->tm_mday, t->tm_year + 1900,
+                              time_format,
+                              iso ? t->tm_year + 1900 : t->tm_mon + 1,
+                              iso ? t->tm_mon + 1 : t->tm_mday,
+                              iso ? t->tm_mday : t->tm_year + 1900,
                               t->tm_hour, t->tm_min);
     cached_local_time_len[n] = cached_len;
     /* Store the time of the beginning of the minute. */
@@ -243,7 +258,9 @@ static int UpdateCachedTime(int n, time_t time)
  * the current minute. Copy that result into the the return string and
  * then only print the seconds for each call.
  */
-void CreateTimeString (const struct timeval *ts, char *str, size_t size)
+static void CreateTimeStringWrapper(const struct timeval *ts,
+                                    char *str, size_t size,
+                                    char *time_format, int iso)
 {
     time_t time = ts->tv_sec;
     int seconds;
@@ -264,7 +281,7 @@ void CreateTimeString (const struct timeval *ts, char *str, size_t size)
     } else {
         /* Update least-recent cached time. Lock accessing local time
          * function because it keeps any internal non-spin lock. */
-        seconds = UpdateCachedTime(lru, time);
+        seconds = UpdateCachedTime(lru, time, time_format, iso);
     }
 
     /* Copy the string up to the current minute then print the seconds
@@ -274,9 +291,24 @@ void CreateTimeString (const struct timeval *ts, char *str, size_t size)
     if (cached_len >= (int)size)
       cached_len = size;
     memcpy(str, cached_str, cached_len);
-    snprintf(str + cached_len, size - cached_len,
-             "%02d.%06u",
-             seconds, (uint32_t) ts->tv_usec);
+    if (! iso) {
+        snprintf(str + cached_len, size - cached_len,
+                "%02d.%06u",
+                seconds, (uint32_t) ts->tv_usec);
+    } else {
+        snprintf(str + cached_len, size - cached_len,
+                "%02d.%03u",
+                seconds, (uint32_t) ts->tv_usec / 1000);
+    }
+}
+
+void CreateTimeString(const struct timeval *ts, char *str, size_t size)
+{
+    if (use_iso_timestamp) {
+        CreateTimeStringWrapper(ts, str, size, "%04d-%02d-%02dT%02d:%02d:", 1);
+    } else {
+        CreateTimeStringWrapper(ts, str, size, "%02d/%02d/%02d-%02d:%02d:", 0);
+    }
 }
 
 #endif /* defined(__OpenBSD__) */

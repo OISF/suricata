@@ -204,7 +204,7 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
     }
 
     /* time & tx */
-    json_object_set_new(js, "time", json_string(timebuf));
+    json_object_set_new(js, "timestamp", json_string(timebuf));
 
     /* sensor id */
     if (sensor_id >= 0)
