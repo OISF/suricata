@@ -764,6 +764,44 @@
     fi
   ])
 
+  # libnetfilter_log
+    AC_ARG_ENABLE(nflog,
+	        AS_HELP_STRING([--enable-nflog],[Enable libnetfilter_log support]),
+	        [ enable_nflog="yes"],
+	        [ enable_nflog="no"])
+    AC_ARG_WITH(libnetfilter_log_includes,
+            [  --with-libnetfilter_log-includes=DIR  libnetfilter_log include directory],
+            [with_libnetfilter_log_includes="$withval"],[with_libnetfilter_log_includes="no"])
+    AC_ARG_WITH(libnetfilter_log_libraries,
+            [  --with-libnetfilter_log-libraries=DIR    libnetfilter_log library directory],
+            [with_libnetfilter_log_libraries="$withval"],[with_libnetfilter_log_libraries="no"])
+
+    if test "$enable_nflog" = "yes"; then
+        if test "$with_libnetfilter_log_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_libnetfilter_log_includes}"
+        fi
+
+        AC_CHECK_HEADER(libnetfilter_log/libnetfilter_log.h,,[AC_ERROR(libnetfilter_log.h not found ...)])
+
+        if test "$with_libnetfilter_log_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS}  -L${with_libnetfilter_log_libraries}"
+        fi
+
+        NFLOG=""
+        AC_CHECK_LIB(netfilter_log, nflog_open,, NFLOG="no")
+
+            if test "$NFLOG" = "no"; then
+                echo
+                echo "   ERROR!  libnetfilter_log library not found, go get it"
+                echo "   from http://www.netfilter.org."
+                echo
+                exit 1
+            else
+                AC_DEFINE([HAVE_NFLOG],[1],[nflog available])
+                enable_nflog="yes"
+            fi
+    fi
+
   # prelude
     AC_ARG_ENABLE(prelude,
             AS_HELP_STRING([--enable-prelude], [Enable Prelude support for alerts]),,[enable_prelude=no])
@@ -1624,6 +1662,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}
   PF_RING support:                         ${enable_pfring}
   NFQueue support:                         ${enable_nfqueue}
+  NFLOG support:                           ${enable_nflog}
   IPFW support:                            ${enable_ipfw}
   DAG enabled:                             ${enable_dag}
   Napatech enabled:                        ${enable_napatech}

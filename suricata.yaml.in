@@ -287,6 +287,14 @@ nfq:
 #  batchcount: 20
 #  fail-open: yes
 
+nflog:
+  - group: 2
+    buffer-size: 10
+  - group: default
+    qthreshold: 1
+    qtimeout: 100
+    max-size: 10
+
 # af-packet support
 # Set threads to > 1 to use PACKET_FANOUT support
 af-packet:
