@@ -82,9 +82,9 @@ outputs:
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
-  # "United" event log in JSON format
+  # Extensible Event Format (nicknamed EVE) event log in JSON format
   - eve-log:
-      enabled: no
+      enabled: yes
       type: file #file|syslog|unix_dgram|unix_stream
       filename: eve.json
       # the following are valid when type: syslog above
@@ -103,7 +103,7 @@ outputs:
             force-magic: no   # force logging magic on all logged files
             force-md5: no     # force logging of md5 checksums
         #- drop
-        #- ssh
+        - ssh
 
   # alert output for use with Barnyard2
   - unified2-alert:
