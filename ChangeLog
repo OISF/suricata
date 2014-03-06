@@ -1,3 +1,27 @@
+2.0rc2 -- 2014-03-06
+
+Bug #611: fp: rule with ports matching on portless proto
+Bug #985: default config generates rule warnings and errors
+Bug #1021: 1.4.6: conf_filename not checked before use
+Bug #1089: SMTP: move depends on uninitialised value
+Bug #1090: FTP: Memory Leak
+Bug #1091: TLS-Handshake: Uninitialized value
+Bug #1092: HTTP: Memory Leak
+Bug #1108: suricata.yaml config parameter - segfault
+Bug #1109: PF_RING vlan handling
+Bug #1110: Can have the same Pattern ID (pid) for the same pattern but different case flags
+Bug #1111: capture stats at exit incorrect
+Bug #1112: tls-events.rules file missing
+Bug #1115: nfq: exit stats not working
+Bug #1120: segv with pfring/afpacket and eve-log enabled
+Bug #1121: crash in eve-log
+Bug #1124: ipfw build broken
+Feature #952: Add VLAN tag ID to all outputs
+Feature #953: Add QinQ tag ID to all outputs
+Feature #1012: Introduce SSH log
+Feature #1118: app-layer protocols http memcap - info in verbose mode (-v)
+Feature #1119: restore SSH protocol detection and parser
+
 2.0rc1 -- 2014-02-13
 
 Bug #839: http events alert multiple times
