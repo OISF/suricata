@@ -1200,27 +1200,27 @@ app-layer:
 
          server-config:
 
-           - apache:
-               address: [192.168.1.0/24, 127.0.0.0/8, "::1"]
-               personality: Apache_2
-               # Can be specified in kb, mb, gb.  Just a number indicates
-               # it's in bytes.
-               request-body-limit: 4096
-               response-body-limit: 4096
-               double-decode-path: no
-               double-decode-query: no
+           #- apache:
+           #    address: [192.168.1.0/24, 127.0.0.0/8, "::1"]
+           #    personality: Apache_2
+           #    # Can be specified in kb, mb, gb.  Just a number indicates
+           #    # it's in bytes.
+           #    request-body-limit: 4096
+           #    response-body-limit: 4096
+           #    double-decode-path: no
+           #    double-decode-query: no
 
-           - iis7:
-               address:
-                 - 192.168.0.0/24
-                 - 192.168.10.0/24
-               personality: IIS_7_0
-               # Can be specified in kb, mb, gb.  Just a number indicates
-               # it's in bytes.
-               request-body-limit: 4096
-               response-body-limit: 4096
-               double-decode-path: no
-               double-decode-query: no
+           #- iis7:
+           #    address:
+           #      - 192.168.0.0/24
+           #      - 192.168.10.0/24
+           #    personality: IIS_7_0
+           #    # Can be specified in kb, mb, gb.  Just a number indicates
+           #    # it's in bytes.
+           #    request-body-limit: 4096
+           #    response-body-limit: 4096
+           #    double-decode-path: no
+           #    double-decode-query: no
 
 # Profiling settings. Only effective if Suricata has been built with the
 # the --enable-profiling configure flag.
