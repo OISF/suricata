@@ -586,7 +586,7 @@ defrag:
 # in bytes.
 
 flow:
-  memcap: 32mb
+  memcap: 64mb
   hash-size: 65536
   prealloc: 10000
   emergency-recovery: 30
@@ -699,7 +699,7 @@ stream:
   checksum-validation: yes      # reject wrong csums
   inline: auto                  # auto will use inline mode in IPS mode, yes or no set it statically
   reassembly:
-    memcap: 64mb
+    memcap: 128mb
     depth: 1mb                  # reassemble 1mb into a stream
     toserver-chunk-size: 2560
     toclient-chunk-size: 2560
