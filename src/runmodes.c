@@ -605,11 +605,11 @@ void RunModeInitializeOutputs(void)
         // TODO if module == parent, find it's children
         if (strcmp(output->val, "eve-log") == 0) {
             ConfNode *types = ConfNodeLookupChild(output_config, "types");
-            SCLogInfo("types %p", types);
+            SCLogDebug("types %p", types);
             if (types != NULL) {
                 ConfNode *type = NULL;
                 TAILQ_FOREACH(type, &types->head, next) {
-                    SCLogInfo("type %s", type->val);
+                    SCLogInfo("enabling 'eve-log' module '%s'", type->val);
 
                     char subname[256];
                     snprintf(subname, sizeof(subname), "%s.%s", output->val, type->val);
