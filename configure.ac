@@ -188,7 +188,7 @@
             CFLAGS="${CFLAGS} -D__OpenBSD__"
             CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet-1.1"
             LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1"
-            e_magic_file="/usr/local/share/file/magic.mgc"
+            e_magic_file="/usr/local/share/misc/magic.mgc"
             ;;
         *darwin*|*Darwin*)
             CFLAGS="${CFLAGS} -DOS_DARWIN"
