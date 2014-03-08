@@ -288,6 +288,14 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 uint16_t offset = 0;
                 while(offset < optslen)
                 {
+                    if (*ptr == IPV6OPT_PAD1)
+                    {
+                        padn_cnt++;
+                        offset++;
+                        ptr++;
+                        continue;
+                    }
+
                     if (*ptr == IPV6OPT_PADN) /* PadN */
                     {
                         //printf("PadN option\n");
@@ -849,6 +857,59 @@ end:
     return result;
 }
 
+/**
+ * \test HOP header decode
+ */
+static int DecodeIPV6HopTest01 (void)
+{
+    uint8_t raw_pkt1[] = {
+        0x60,0x00,0x00,0x00,0x00,0x20,0x00,0x01,0xfe,0x80,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x02,0x0f,0xfe,0xff,0xfe,0x98,0x3d,0x01,0xff,0x02,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x01,0x3a,0x00,0x05,0x02,0x00,0x00,0x00,0x00,
+        0x82,0x00,0x1c,0x6f,0x27,0x10,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+    };
+    Packet *p1 = PacketGetFromAlloc();
+    if (unlikely(p1 == NULL))
+        return 0;
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    int result = 0;
+    PacketQueue pq;
+
+    FlowInitConfig(FLOW_QUIET);
+
+    memset(&pq, 0, sizeof(PacketQueue));
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    PacketCopyData(p1, raw_pkt1, sizeof(raw_pkt1));
+
+    DecodeIPV6(&tv, &dtv, p1, GET_PKT_DATA(p1), GET_PKT_LEN(p1), &pq);
+
+    if (!(IPV6_EXTHDR_ISSET_HH(p1))) {
+        printf("ipv6 routing header not detected: ");
+        goto end;
+    }
+
+    if (p1->ip6eh.ip6_exthdrs[0].len != 8) {
+        printf("ipv6 routing length incorrect: ");
+        goto end;
+    }
+
+    if (ENGINE_ISSET_EVENT(p1, IPV6_HOPOPTS_UNKNOWN_OPT)) {
+        printf("engine event IPV6_HOPOPTS_UNKNOWN_OPT set: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    PACKET_RECYCLE(p1);
+    SCFree(p1);
+    FlowShutdown();
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -859,6 +920,7 @@ void DecodeIPV6RegisterTests(void) {
 #ifdef UNITTESTS
     UtRegisterTest("DecodeIPV6FragTest01", DecodeIPV6FragTest01, 1);
     UtRegisterTest("DecodeIPV6RouteTest01", DecodeIPV6RouteTest01, 1);
+    UtRegisterTest("DecodeIPV6HopTest01", DecodeIPV6HopTest01, 1);
 #endif /* UNITTESTS */
 }
 

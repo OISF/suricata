@@ -184,6 +184,7 @@ typedef struct IPV6RouteHdr_
 /* Hop-by-Hop header and Destination Options header use options that are
  * defined here. */
 
+#define IPV6OPT_PAD1                  0x00
 #define IPV6OPT_PADN                  0x01
 #define IPV6OPT_RA                    0x05
 #define IPV6OPT_JUMBO                 0xC2
