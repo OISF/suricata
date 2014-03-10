@@ -499,9 +499,9 @@ static void *DetectEngineLiveRuleSwap(void *arg)
     DetectEngineThreadCtx *old_det_ctx[no_of_detect_tvs];
     DetectEngineThreadCtx *new_det_ctx[no_of_detect_tvs];
     ThreadVars *detect_tvs[no_of_detect_tvs];
-    memset(old_det_ctx, 0x00, (no_of_detect_tvs * sizeof(DetectEngineThreadCtx)));
-    memset(new_det_ctx, 0x00, (no_of_detect_tvs * sizeof(DetectEngineThreadCtx)));
-    memset(detect_tvs, 0x00, (no_of_detect_tvs * sizeof(ThreadVars)));
+    memset(old_det_ctx, 0x00, (no_of_detect_tvs * sizeof(DetectEngineThreadCtx *)));
+    memset(new_det_ctx, 0x00, (no_of_detect_tvs * sizeof(DetectEngineThreadCtx *)));
+    memset(detect_tvs, 0x00, (no_of_detect_tvs * sizeof(ThreadVars *)));
 
     SCMutexUnlock(&tv_root_lock);
 
