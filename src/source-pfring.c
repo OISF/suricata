@@ -299,6 +299,16 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
 
     ptv->slot = s->slot_next;
 
+    /* we have to enable the ring here as we need to do it after all
+     * the threads have called pfring_set_cluster(). */
+#ifdef HAVE_PFRING_ENABLE
+    int rc = pfring_enable_ring(ptv->pd);
+    if (rc != 0) {
+        SCLogError(SC_ERR_PF_RING_OPEN, "pfring_enable_ring failed returned %d ", rc);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+#endif /* HAVE_PFRING_ENABLE */
+
     while(1) {
         if (suricata_ctl_flags & (SURICATA_STOP | SURICATA_KILL)) {
             SCReturnInt(TM_ECODE_OK);
@@ -513,17 +523,6 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
             ptv->tv,
             SC_PERF_TYPE_UINT64,
             "NULL");
-
-/* It seems that as of 4.7.1 this is required */
-#ifdef HAVE_PFRING_ENABLE
-    rc = pfring_enable_ring(ptv->pd);
-
-    if (rc != 0) {
-        SCLogError(SC_ERR_PF_RING_OPEN, "pfring_enable failed returned %d ", rc);
-        pfconf->DerefFunc(pfconf);
-        return TM_ECODE_FAILED;
-    }
-#endif /* HAVE_PFRING_ENABLE */
 
     /* A bit strange to have this here but we only have vlan information
      * during reading so we need to know if we want to keep vlan during
