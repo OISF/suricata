@@ -418,7 +418,7 @@
         LDFLAGS="${LDFLAGS}  -L${with_libpcre_libraries}"
     fi
     PCRE=""
-    AC_CHECK_LIB(pcre, pcre_get_substring,, PCRE="no")
+    AC_CHECK_LIB(pcre, pcre_get_substring,, PCRE="no",-lpthread)
     if test "$PCRE" = "no"; then
         echo
         echo "   ERROR!  pcre library not found, go get it"
