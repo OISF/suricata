@@ -89,7 +89,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
             SCFree(c);
         }
     } else {
-        json_object_set_new(hjs, "hostname", json_string("<hostname unknown>"));
+        json_object_set_new(hjs, "hostname", json_string("<unknown>"));
     }
 
     /* uri */
@@ -114,7 +114,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
             SCFree(c);
         }
     } else {
-        json_object_set_new(hjs, "http_user_agent", json_string("<useragent unknown>"));
+        json_object_set_new(hjs, "http_user_agent", json_string("unknown>"));
     }
 
     /* x-forwarded-for */
