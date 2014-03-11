@@ -107,7 +107,8 @@ __thread int profiling_rules_entered = 0;
 void SCProfilingDumpPacketStats(void);
 const char * PacketProfileDetectIdToString(PacketProfileDetectId id);
 
-static void FormatNumber(uint64_t num, char *str, size_t size) {
+static void FormatNumber(uint64_t num, char *str, size_t size)
+{
     if (num < 1000UL)
         snprintf(str, size, "%"PRIu64, num);
     else if (num < 1000000UL)
@@ -296,7 +297,8 @@ SCProfilingDump(void)
     SCLogInfo("Done dumping profiling data.");
 }
 
-void SCProfilingDumpPacketStats(void) {
+void SCProfilingDumpPacketStats(void)
+{
     int i;
     FILE *fp;
     char totalstr[256];
@@ -673,7 +675,8 @@ void SCProfilingDumpPacketStats(void) {
     fclose(fp);
 }
 
-void SCProfilingPrintPacketProfile(Packet *p) {
+void SCProfilingPrintPacketProfile(Packet *p)
+{
     if (profiling_packets_csv_enabled == 0 || p == NULL || packet_profile_csv_fp == NULL || p->profile == NULL) {
         return;
     }
@@ -728,7 +731,8 @@ void SCProfilingPrintPacketProfile(Packet *p) {
     fprintf(packet_profile_csv_fp,"\n");
 }
 
-static void SCProfilingUpdatePacketDetectRecord(PacketProfileDetectId id, uint8_t ipproto, PktProfilingDetectData *pdt, int ipver) {
+static void SCProfilingUpdatePacketDetectRecord(PacketProfileDetectId id, uint8_t ipproto, PktProfilingDetectData *pdt, int ipver)
+{
     if (pdt == NULL) {
         return;
     }
@@ -750,7 +754,8 @@ static void SCProfilingUpdatePacketDetectRecord(PacketProfileDetectId id, uint8_
     pd->cnt ++;
 }
 
-void SCProfilingUpdatePacketDetectRecords(Packet *p) {
+void SCProfilingUpdatePacketDetectRecords(Packet *p)
+{
     PacketProfileDetectId i;
     for (i = 0; i < PROF_DETECT_SIZE; i++) {
         PktProfilingDetectData *pdt = &p->profile->detect[i];
@@ -765,7 +770,8 @@ void SCProfilingUpdatePacketDetectRecords(Packet *p) {
     }
 }
 
-static void SCProfilingUpdatePacketAppPdRecord(uint8_t ipproto, uint32_t ticks_spent, int ipver) {
+static void SCProfilingUpdatePacketAppPdRecord(uint8_t ipproto, uint32_t ticks_spent, int ipver)
+{
     SCProfilePacketData *pd;
     if (ipver == 4)
         pd = &packet_profile_app_pd_data4[ipproto];
@@ -783,7 +789,8 @@ static void SCProfilingUpdatePacketAppPdRecord(uint8_t ipproto, uint32_t ticks_s
     pd->cnt ++;
 }
 
-static void SCProfilingUpdatePacketAppRecord(int alproto, uint8_t ipproto, PktProfilingAppData *pdt, int ipver) {
+static void SCProfilingUpdatePacketAppRecord(int alproto, uint8_t ipproto, PktProfilingAppData *pdt, int ipver)
+{
     if (pdt == NULL) {
         return;
     }
@@ -805,7 +812,8 @@ static void SCProfilingUpdatePacketAppRecord(int alproto, uint8_t ipproto, PktPr
     pd->cnt ++;
 }
 
-void SCProfilingUpdatePacketAppRecords(Packet *p) {
+void SCProfilingUpdatePacketAppRecords(Packet *p)
+{
     int i;
     for (i = 0; i < ALPROTO_MAX; i++) {
         PktProfilingAppData *pdt = &p->profile->app[i];
@@ -828,7 +836,8 @@ void SCProfilingUpdatePacketAppRecords(Packet *p) {
     }
 }
 
-void SCProfilingUpdatePacketTmmRecord(int module, uint8_t proto, PktProfilingTmmData *pdt, int ipver) {
+void SCProfilingUpdatePacketTmmRecord(int module, uint8_t proto, PktProfilingTmmData *pdt, int ipver)
+{
     if (pdt == NULL) {
         return;
     }
@@ -860,7 +869,8 @@ void SCProfilingUpdatePacketTmmRecord(int module, uint8_t proto, PktProfilingTmm
 #endif
 }
 
-void SCProfilingUpdatePacketTmmRecords(Packet *p) {
+void SCProfilingUpdatePacketTmmRecords(Packet *p)
+{
     int i;
     for (i = 0; i < TMM_SIZE; i++) {
         PktProfilingTmmData *pdt = &p->profile->tmm[i];
@@ -877,7 +887,8 @@ void SCProfilingUpdatePacketTmmRecords(Packet *p) {
     }
 }
 
-void SCProfilingAddPacket(Packet *p) {
+void SCProfilingAddPacket(Packet *p)
+{
     if (p == NULL || p->profile == NULL ||
         p->profile->ticks_start == 0 || p->profile->ticks_end == 0 ||
         p->profile->ticks_start > p->profile->ticks_end)
@@ -957,7 +968,8 @@ void SCProfilingAddPacket(Packet *p) {
     pthread_mutex_unlock(&packet_profile_lock);
 }
 
-PktProfiling *SCProfilePacketStart(void) {
+PktProfiling *SCProfilePacketStart(void)
+{
     uint64_t sample = SC_ATOMIC_ADD(samples, 1);
     if (sample % rate == 0)
         return SCCalloc(1, sizeof(PktProfiling));
@@ -966,7 +978,8 @@ PktProfiling *SCProfilePacketStart(void) {
 }
 
 /* see if we want to profile rules for this packet */
-int SCProfileRuleStart(Packet *p) {
+int SCProfileRuleStart(Packet *p)
+{
 #ifdef PROFILE_LOCKING
     if (p->profile != NULL) {
         p->flags |= PKT_PROFILE;
@@ -1029,7 +1042,8 @@ const char * PacketProfileDetectIdToString(PacketProfileDetectId id)
 #ifdef UNITTESTS
 
 static int
-ProfilingGenericTicksTest01(void) {
+ProfilingGenericTicksTest01(void)
+{
 #define TEST_RUNS 1024
     uint64_t ticks_start = 0;
     uint64_t ticks_end = 0;

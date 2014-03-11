@@ -525,7 +525,8 @@ void RegisterSSHParsers(void)
 #ifdef UNITTESTS
 
 /** \test Send a version string in one chunk (client version str). */
-static int SSHParserTest01(void) {
+static int SSHParserTest01(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf[] = "SSH-2.0-MySSHClient-0.5.1\n";
@@ -590,7 +591,8 @@ end:
 /** \test Send a version string in one chunk but multiple lines and comments.
  *        (client version str)
  */
-static int SSHParserTest02(void) {
+static int SSHParserTest02(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf[] = "SSH-2.0-MySSHClient-0.5.1 some comments...\n";
@@ -655,7 +657,8 @@ end:
 /** \test Send a invalid version string in one chunk but multiple lines and comments.
  *        (client version str)
  */
-static int SSHParserTest03(void) {
+static int SSHParserTest03(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf[] = "SSH-2.0 some comments...\n";
@@ -706,7 +709,8 @@ end:
 }
 
 /** \test Send a version string in one chunk (server version str). */
-static int SSHParserTest04(void) {
+static int SSHParserTest04(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf[] = "SSH-2.0-MySSHClient-0.5.1\n";
@@ -771,7 +775,8 @@ end:
 
 /** \test Send a version string in one chunk (server version str)
  */
-static int SSHParserTest05(void) {
+static int SSHParserTest05(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf[] = "SSH-2.0-MySSHClient-0.5.1 some comments...\n";
@@ -835,7 +840,8 @@ end:
 
 /** \test Send a invalid version string in one chunk (server version str)
  */
-static int SSHParserTest06(void) {
+static int SSHParserTest06(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf[] = "SSH-2.0 some comments...\n";
@@ -886,7 +892,8 @@ end:
     return result;
 }
 
-static int SSHParserTest07(void) {
+static int SSHParserTest07(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-2.";
@@ -961,7 +968,8 @@ end:
 }
 
 /** \test Send a version banner in three chunks. */
-static int SSHParserTest08(void) {
+static int SSHParserTest08(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-";
@@ -1045,7 +1053,8 @@ end:
     return result;
 }
 
-static int SSHParserTest09(void) {
+static int SSHParserTest09(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-2.";
@@ -1120,7 +1129,8 @@ end:
 }
 
 /** \test Send a version banner in three chunks. */
-static int SSHParserTest10(void) {
+static int SSHParserTest10(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-";
@@ -1205,7 +1215,8 @@ end:
 }
 
 /** \test Send a banner and record in three chunks. */
-static int SSHParserTest11(void) {
+static int SSHParserTest11(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-2.0-MySSHClient-0.5.1\r\n";
@@ -1284,7 +1295,8 @@ end:
 }
 
 /** \test Send a banner and 2 records record in four chunks. */
-static int SSHParserTest12(void) {
+static int SSHParserTest12(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-2.0-MySSHClient-0.5.1\r\n";
@@ -1374,7 +1386,8 @@ end:
 }
 
 /** \test Send a banner and 2 records record in four chunks. */
-static int SSHParserTest13(void) {
+static int SSHParserTest13(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-2.0-MySSHClient-0.5.1\r\n";
@@ -1466,7 +1479,8 @@ end:
 }
 
 /** \test Send a banner and 2 records record in four chunks. */
-static int SSHParserTest14(void) {
+static int SSHParserTest14(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-2.0-MySSHClient-0.5.1\r\n";
@@ -1577,7 +1591,8 @@ end:
 }
 
 /** \test Send a banner and 2 records record in four chunks. */
-static int SSHParserTest15(void) {
+static int SSHParserTest15(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-2.0-MySSHClient-0.5.1\r\n";
@@ -1688,7 +1703,8 @@ end:
 }
 
 /** \test Send toserver a banner and record in three chunks. */
-static int SSHParserTest16(void) {
+static int SSHParserTest16(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-";
@@ -1778,7 +1794,8 @@ end:
 }
 
 /** \test Send toserver a banner and 2 records record in four chunks. */
-static int SSHParserTest17(void) {
+static int SSHParserTest17(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-";
@@ -1879,7 +1896,8 @@ end:
 }
 
 /** \test 2 directional test */
-static int SSHParserTest18(void) {
+static int SSHParserTest18(void)
+{
     int result = 0;
     Flow f;
 
@@ -1982,7 +2000,8 @@ end:
 }
 
 /** \test Really long banner handling: bannel exactly 255 */
-static int SSHParserTest19(void) {
+static int SSHParserTest19(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-";
@@ -2100,7 +2119,8 @@ end:
 
 /** \test Really long banner handling: banner exactly 255,
  *        followed by malformed record */
-static int SSHParserTest20(void) {
+static int SSHParserTest20(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-";
@@ -2208,7 +2228,8 @@ end:
 
 /** \test Fragmented banner handling: chunk has final part of bannel plus
  *        a record. */
-static int SSHParserTest21(void) {
+static int SSHParserTest21(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-";
@@ -2315,7 +2336,8 @@ end:
 
 /** \test Fragmented banner handling: chunk has final part of bannel plus
  *        a record. */
-static int SSHParserTest22(void) {
+static int SSHParserTest22(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-";
@@ -2449,7 +2471,8 @@ end:
 
 #endif /* UNITTESTS */
 
-void SSHParserRegisterTests(void) {
+void SSHParserRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("SSHParserTest01 - ToServer", SSHParserTest01, 1);
     UtRegisterTest("SSHParserTest02 - ToServer", SSHParserTest02, 1);

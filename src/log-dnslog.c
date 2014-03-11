@@ -71,7 +71,8 @@ typedef struct LogDnsLogThread_ {
     MemBuffer *buffer;
 } LogDnsLogThread;
 
-static void CreateTypeString(uint16_t type, char *str, size_t str_size) {
+static void CreateTypeString(uint16_t type, char *str, size_t str_size)
+{
     if (type == DNS_RECORD_TYPE_A) {
         snprintf(str, str_size, "A");
     } else if (type == DNS_RECORD_TYPE_NS) {
@@ -99,7 +100,8 @@ static void CreateTypeString(uint16_t type, char *str, size_t str_size) {
     }
 }
 
-static void LogQuery(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dstip, Port sp, Port dp, DNSTransaction *tx, DNSQueryEntry *entry) {
+static void LogQuery(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dstip, Port sp, Port dp, DNSTransaction *tx, DNSQueryEntry *entry)
+{
     LogDnsFileCtx *hlog = aft->dnslog_ctx;
 
     SCLogDebug("got a DNS request and now logging !!");
@@ -128,7 +130,8 @@ static void LogQuery(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dst
     SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 }
 
-static void LogAnswer(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dstip, Port sp, Port dp, DNSTransaction *tx, DNSAnswerEntry *entry) {
+static void LogAnswer(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dstip, Port sp, Port dp, DNSTransaction *tx, DNSAnswerEntry *entry)
+{
     LogDnsFileCtx *hlog = aft->dnslog_ctx;
 
     SCLogDebug("got a DNS response and now logging !!");
@@ -304,7 +307,8 @@ static TmEcode LogDnsLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-static void LogDnsLogExitPrintStats(ThreadVars *tv, void *data) {
+static void LogDnsLogExitPrintStats(ThreadVars *tv, void *data)
+{
     LogDnsLogThread *aft = (LogDnsLogThread *)data;
     if (aft == NULL) {
         return;
@@ -366,7 +370,8 @@ static OutputCtx *LogDnsLogInitCtx(ConfNode *conf)
     return output_ctx;
 }
 
-void TmModuleLogDnsLogRegister (void) {
+void TmModuleLogDnsLogRegister (void)
+{
     tmm_modules[TMM_LOGDNSLOG].name = MODULE_NAME;
     tmm_modules[TMM_LOGDNSLOG].ThreadInit = LogDnsLogThreadInit;
     tmm_modules[TMM_LOGDNSLOG].ThreadExitPrintStats = LogDnsLogExitPrintStats;

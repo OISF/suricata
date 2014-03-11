@@ -1118,7 +1118,8 @@ int SCThresholdConfLineIsMultiline(char *line)
  * \param fd Pointer to file descriptor.
  * \retval int of the line length
  */
-int SCThresholdConfLineLength(FILE *fd) {
+int SCThresholdConfLineLength(FILE *fd)
+{
     long pos = ftell(fd);
     int len = 0;
     int c;

@@ -378,7 +378,8 @@ static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, const Packet *p, void *da
  * \param tv    Pointer to the output threadvars
  * \param data  Pointer to the AlertSyslogThread data
  */
-static void AlertSyslogExitPrintStats(ThreadVars *tv, void *data) {
+static void AlertSyslogExitPrintStats(ThreadVars *tv, void *data)
+{
     AlertSyslogThread *ast = (AlertSyslogThread *)data;
     if (ast == NULL) {
         return;
@@ -387,11 +388,13 @@ static void AlertSyslogExitPrintStats(ThreadVars *tv, void *data) {
     SCLogInfo("(%s) Alerts %" PRIu64 "", tv->name, ast->file_ctx->alerts);
 }
 
-static int AlertSyslogCondition(ThreadVars *tv, const Packet *p) {
+static int AlertSyslogCondition(ThreadVars *tv, const Packet *p)
+{
     return (p->alerts.cnt > 0 ? TRUE : FALSE);
 }
 
-static int AlertSyslogLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
+static int AlertSyslogLogger(ThreadVars *tv, void *thread_data, const Packet *p)
+{
     if (PKT_IS_IPV4(p)) {
         return AlertSyslogIPv4(tv, p, thread_data);
     } else if (PKT_IS_IPV6(p)) {
@@ -406,7 +409,8 @@ static int AlertSyslogLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 #endif /* !OS_WIN32 */
 
 /** \brief   Function to register the AlertSyslog module */
-void TmModuleAlertSyslogRegister (void) {
+void TmModuleAlertSyslogRegister (void)
+{
 #ifndef OS_WIN32
     tmm_modules[TMM_ALERTSYSLOG].name = MODULE_NAME;
     tmm_modules[TMM_ALERTSYSLOG].ThreadInit = AlertSyslogThreadInit;

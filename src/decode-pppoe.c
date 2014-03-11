@@ -225,7 +225,8 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t
  *  \brief Decode malformed PPPOE packet (too short)
  *  \retval 1 Expected test value
  */
-static int DecodePPPOEtest01 (void)   {
+static int DecodePPPOEtest01 (void)
+{
 
     uint8_t raw_pppoe[] = { 0x11, 0x00, 0x00, 0x00, 0x00 };
     Packet *p = PacketGetFromAlloc();
@@ -252,7 +253,8 @@ static int DecodePPPOEtest01 (void)   {
  *  \brief Valid PPPOE packet - check the invalid ICMP type encapsulated is flagged
  *  \retval 0 Expected test value
  */
-static int DecodePPPOEtest02 (void)   {
+static int DecodePPPOEtest02 (void)
+{
 
     uint8_t raw_pppoe[] = {
         0x11, 0x00, 0x00, 0x01, 0x00, 0x40, 0x00, 0x21,
@@ -301,7 +303,8 @@ end:
  *  \brief Valid example PADO packet PPPOE packet taken from RFC2516
  *  \retval 0 Expected test value
  */
-static int DecodePPPOEtest03 (void)   {
+static int DecodePPPOEtest03 (void)
+{
 
     /* example PADO packet taken from RFC2516 */
     uint8_t raw_pppoe[] = {
@@ -335,7 +338,8 @@ static int DecodePPPOEtest03 (void)   {
  *  \brief Valid example PPPOE packet taken from RFC2516 - but with wrong PPPOE code
  *  \retval 1 Expected test value
  */
-static int DecodePPPOEtest04 (void)   {
+static int DecodePPPOEtest04 (void)
+{
 
     /* example PADI packet taken from RFC2516, but with wrong code */
     uint8_t raw_pppoe[] = {
@@ -367,7 +371,8 @@ static int DecodePPPOEtest04 (void)   {
  *  \brief Valid exaple PADO PPPOE packet taken from RFC2516, but too short for given length
  *  \retval 0 Expected test value
  */
-static int DecodePPPOEtest05 (void)   {
+static int DecodePPPOEtest05 (void)
+{
 
     /* example PADI packet taken from RFC2516 */
     uint8_t raw_pppoe[] = {
@@ -403,7 +408,8 @@ static int DecodePPPOEtest05 (void)   {
  * should extract the first 4 bits for version and the second 4 bits for type
  *  \retval 1 Expected test value
  */
-static int DecodePPPOEtest06 (void)   {
+static int DecodePPPOEtest06 (void)
+{
 
     PPPOESessionHdr pppoesh;
     PPPOEDiscoveryHdr pppoedh;
@@ -437,7 +443,8 @@ static int DecodePPPOEtest06 (void)   {
  * \brief Registers PPPOE unit tests
  * \todo More PPPOE tests
  */
-void DecodePPPOERegisterTests(void) {
+void DecodePPPOERegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DecodePPPOEtest01", DecodePPPOEtest01, 1);
     UtRegisterTest("DecodePPPOEtest02", DecodePPPOEtest02, 1);

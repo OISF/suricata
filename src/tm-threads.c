@@ -629,7 +629,8 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
 
  */
 
-void *TmThreadsSlotPktAcqLoop(void *td) {
+void *TmThreadsSlotPktAcqLoop(void *td)
+{
     /* block usr2.  usr2 to be handled by the main thread only */
     UtilSignalBlock(SIGUSR2);
 
@@ -1012,7 +1013,8 @@ static inline TmSlot * _TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *
     return slot;
 }
 
-void TmSlotFree(TmSlot *tms) {
+void TmSlotFree(TmSlot *tms)
+{
     SC_ATOMIC_DESTROY(tms->slot_data);
     SCFree(tms);
 }
@@ -1149,7 +1151,8 @@ TmSlot *TmSlotGetSlotForTM(int tm_id)
 }
 
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__
-static int SetCPUAffinitySet(cpu_set_t *cs) {
+static int SetCPUAffinitySet(cpu_set_t *cs)
+{
 #if defined OS_FREEBSD
     int r = cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID,
                                SCGetThreadIdLong(), sizeof(cpu_set_t),cs);

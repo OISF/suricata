@@ -51,7 +51,8 @@ void DetectTtlRegisterTests (void);
  * \brief Registration function for ttl: keyword
  */
 
-void DetectTtlRegister(void) {
+void DetectTtlRegister(void)
+{
     sigmatch_table[DETECT_TTL].name = "ttl";
     sigmatch_table[DETECT_TTL].desc = "check for a specific IP time-to-live value";
     sigmatch_table[DETECT_TTL].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#ttl";
@@ -94,7 +95,8 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectTtlMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m) {
+int DetectTtlMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+{
 
     int ret = 0;
     uint8_t pttl;
@@ -133,7 +135,8 @@ int DetectTtlMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
  * \retval NULL on failure
  */
 
-DetectTtlData *DetectTtlParse (char *ttlstr) {
+DetectTtlData *DetectTtlParse (char *ttlstr)
+{
 
     DetectTtlData *ttld = NULL;
     char *arg1 = NULL;
@@ -270,7 +273,8 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, char *ttlstr) {
+static int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, char *ttlstr)
+{
 
     DetectTtlData *ttld = NULL;
     SigMatch *sm = NULL;
@@ -302,7 +306,8 @@ error:
  *
  * \param ptr pointer to DetectTtlData
  */
-void DetectTtlFree(void *ptr) {
+void DetectTtlFree(void *ptr)
+{
     DetectTtlData *ttld = (DetectTtlData *)ptr;
     SCFree(ttld);
 }
@@ -319,7 +324,8 @@ void DetectTtlFree(void *ptr) {
  *
  */
 
-static int DetectTtlInitTest(DetectEngineCtx **de_ctx, Signature **sig, DetectTtlData **ttld, char *str) {
+static int DetectTtlInitTest(DetectEngineCtx **de_ctx, Signature **sig, DetectTtlData **ttld, char *str)
+{
     char fullstr[1024];
     int result = 0;
 
@@ -356,7 +362,8 @@ end:
  * \test DetectTtlParseTest01 is a test for setting up an valid ttl value.
  */
 
-static int DetectTtlParseTest01 (void) {
+static int DetectTtlParseTest01 (void)
+{
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
 
@@ -376,7 +383,8 @@ static int DetectTtlParseTest01 (void) {
  *       "<" operator.
  */
 
-static int DetectTtlParseTest02 (void) {
+static int DetectTtlParseTest02 (void)
+{
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
     ttld = DetectTtlParse("<10");
@@ -394,7 +402,8 @@ static int DetectTtlParseTest02 (void) {
  *       "-" operator.
  */
 
-static int DetectTtlParseTest03 (void) {
+static int DetectTtlParseTest03 (void)
+{
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
     ttld = DetectTtlParse("1-2");
@@ -412,7 +421,8 @@ static int DetectTtlParseTest03 (void) {
  *       ">" operator and include spaces arround the given values.
  */
 
-static int DetectTtlParseTest04 (void) {
+static int DetectTtlParseTest04 (void)
+{
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
 
@@ -432,7 +442,8 @@ static int DetectTtlParseTest04 (void) {
  *       "-" operator and include spaces arround the given values.
  */
 
-static int DetectTtlParseTest05 (void) {
+static int DetectTtlParseTest05 (void)
+{
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
 
@@ -451,7 +462,8 @@ static int DetectTtlParseTest05 (void) {
  *       invalid "=" operator and include spaces arround the given values.
  */
 
-static int DetectTtlParseTest06 (void) {
+static int DetectTtlParseTest06 (void)
+{
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
 
@@ -468,7 +480,8 @@ static int DetectTtlParseTest06 (void) {
  *       invalid "<>" operator and include spaces arround the given values.
  */
 
-static int DetectTtlParseTest07 (void) {
+static int DetectTtlParseTest07 (void)
+{
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
 
@@ -488,7 +501,8 @@ static int DetectTtlParseTest07 (void) {
  *       setting up the signature itself.
  */
 
-static int DetectTtlSetpTest01(void) {
+static int DetectTtlSetpTest01(void)
+{
 
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
@@ -523,7 +537,8 @@ end:
  *       the received packet against the sig.
  */
 
-static int DetectTtlTestSig1(void) {
+static int DetectTtlTestSig1(void)
+{
 
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -607,7 +622,8 @@ end:
 /**
  * \brief this function registers unit tests for DetectTtl
  */
-void DetectTtlRegisterTests(void) {
+void DetectTtlRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DetectTtlParseTest01", DetectTtlParseTest01, 1);
     UtRegisterTest("DetectTtlParseTest02", DetectTtlParseTest02, 1);

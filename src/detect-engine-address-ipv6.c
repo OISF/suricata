@@ -62,7 +62,8 @@ int AddressIPv6Lt(Address *a, Address *b)
     return 0;
 }
 
-int AddressIPv6LtU32(uint32_t *a, uint32_t *b) {
+int AddressIPv6LtU32(uint32_t *a, uint32_t *b)
+{
     int i = 0;
 
     for (i = 0; i < 4; i++) {

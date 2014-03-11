@@ -66,7 +66,8 @@ static uint32_t detect_siggroup_matcharray_memory = 0;
 static uint32_t detect_siggroup_matcharray_init_cnt = 0;
 static uint32_t detect_siggroup_matcharray_free_cnt = 0;
 
-void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid) {
+void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid)
+{
     if (sghid->content_array != NULL) {
         SCFree(sghid->content_array);
         sghid->content_array = NULL;
@@ -90,7 +91,8 @@ void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid) {
     detect_siggroup_head_initdata_memory -= sizeof(SigGroupHeadInitData);
 }
 
-static SigGroupHeadInitData *SigGroupHeadInitDataAlloc(uint32_t size) {
+static SigGroupHeadInitData *SigGroupHeadInitDataAlloc(uint32_t size)
+{
     SigGroupHeadInitData *sghid = SCMalloc(sizeof(SigGroupHeadInitData));
     if (unlikely(sghid == NULL))
         return NULL;
@@ -116,7 +118,8 @@ error:
     return NULL;
 }
 
-void SigGroupHeadStore(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
+void SigGroupHeadStore(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
     void *ptmp;
     //printf("de_ctx->sgh_array_cnt %u, de_ctx->sgh_array_size %u, de_ctx->sgh_array %p\n", de_ctx->sgh_array_cnt, de_ctx->sgh_array_size, de_ctx->sgh_array);
     if (de_ctx->sgh_array_cnt < de_ctx->sgh_array_size) {
@@ -689,7 +692,8 @@ int SigGroupHeadHashAdd(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     return ret;
 }
 
-int SigGroupHeadHashRemove(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
+int SigGroupHeadHashRemove(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
     return HashListTableRemove(de_ctx->sgh_hash_table, (void *)sgh, 0);
 }
 
@@ -849,7 +853,8 @@ int SigGroupHeadSPortHashAdd(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     return ret;
 }
 
-int SigGroupHeadSPortHashRemove(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
+int SigGroupHeadSPortHashRemove(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
     return HashListTableRemove(de_ctx->sgh_sport_hash_table, (void *)sgh, 0);
 }
 
@@ -1584,7 +1589,8 @@ int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
  *  \param de_ctx detection engine ctx for the signatures
  *  \param sgh sig group head to set the flag in
  */
-void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
+void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
     Signature *s = NULL;
     uint32_t sig = 0;
 
@@ -1611,7 +1617,8 @@ void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
  *  \param de_ctx detection engine ctx for the signatures
  *  \param sgh sig group head to set the flag in
  */
-void SigGroupHeadSetFilesizeFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
+void SigGroupHeadSetFilesizeFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
     Signature *s = NULL;
     uint32_t sig = 0;
 
@@ -1638,7 +1645,8 @@ void SigGroupHeadSetFilesizeFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
  *  \param de_ctx detection engine ctx for the signatures
  *  \param sgh sig group head to set the flag in
  */
-void SigGroupHeadSetFileMd5Flag(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
+void SigGroupHeadSetFileMd5Flag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
     Signature *s = NULL;
     uint32_t sig = 0;
 
@@ -1666,7 +1674,8 @@ void SigGroupHeadSetFileMd5Flag(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
  *  \param de_ctx detection engine ctx for the signatures
  *  \param sgh sig group head to set the counter in
  */
-void SigGroupHeadSetFilestoreCount(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
+void SigGroupHeadSetFilestoreCount(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
     Signature *s = NULL;
     uint32_t sig = 0;
 

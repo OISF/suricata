@@ -59,7 +59,8 @@ void EngineEventRegisterTests(void);
 /**
  * \brief Registration function for decode-event: keyword
  */
-void DetectEngineEventRegister (void) {
+void DetectEngineEventRegister (void)
+{
     sigmatch_table[DETECT_ENGINE_EVENT].name = "engine-event";
     sigmatch_table[DETECT_ENGINE_EVENT].Match = DetectEngineEventMatch;
     sigmatch_table[DETECT_ENGINE_EVENT].Setup = DetectEngineEventSetup;
@@ -235,7 +236,8 @@ static int DetectEngineEventSetup (DetectEngineCtx *de_ctx, Signature *s, char *
  *
  * \param de pointer to DetectEngineEventData
  */
-static void DetectEngineEventFree(void *ptr) {
+static void DetectEngineEventFree(void *ptr)
+{
     DetectEngineEventData *de = (DetectEngineEventData *)ptr;
     if (de)
         SCFree(de);
@@ -272,7 +274,8 @@ static int DetectStreamEventSetup (DetectEngineCtx *de_ctx, Signature *s, char *
 /**
  * \test EngineEventTestParse01 is a test for a  valid decode-event value
  */
-int EngineEventTestParse01 (void) {
+int EngineEventTestParse01 (void)
+{
     DetectEngineEventData *de = NULL;
     de = DetectEngineEventParse("ipv4.pkt_too_small");
     if (de) {
@@ -287,7 +290,8 @@ int EngineEventTestParse01 (void) {
 /**
  * \test EngineEventTestParse02 is a test for a  valid upper + lower case decode-event value
  */
-int EngineEventTestParse02 (void) {
+int EngineEventTestParse02 (void)
+{
     DetectEngineEventData *de = NULL;
     de = DetectEngineEventParse("PPP.pkt_too_small");
     if (de) {
@@ -301,7 +305,8 @@ int EngineEventTestParse02 (void) {
 /**
  * \test EngineEventTestParse03 is a test for a  valid upper case decode-event value
  */
-int EngineEventTestParse03 (void) {
+int EngineEventTestParse03 (void)
+{
     DetectEngineEventData *de = NULL;
     de = DetectEngineEventParse("IPV6.PKT_TOO_SMALL");
     if (de) {
@@ -315,7 +320,8 @@ int EngineEventTestParse03 (void) {
 /**
  * \test EngineEventTestParse04 is a test for an  invalid upper case decode-event value
  */
-int EngineEventTestParse04 (void) {
+int EngineEventTestParse04 (void)
+{
     DetectEngineEventData *de = NULL;
     de = DetectEngineEventParse("IPV6.INVALID_EVENT");
     if (de) {
@@ -329,7 +335,8 @@ int EngineEventTestParse04 (void) {
 /**
  * \test EngineEventTestParse05 is a test for an  invalid char into the decode-event value
  */
-int EngineEventTestParse05 (void) {
+int EngineEventTestParse05 (void)
+{
     DetectEngineEventData *de = NULL;
     de = DetectEngineEventParse("IPV-6,INVALID_CHAR");
     if (de) {
@@ -343,7 +350,8 @@ int EngineEventTestParse05 (void) {
 /**
  * \test EngineEventTestParse06 is a test for match function with valid decode-event value
  */
-int EngineEventTestParse06 (void) {
+int EngineEventTestParse06 (void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -389,7 +397,8 @@ error:
 /**
  * \brief this function registers unit tests for EngineEvent
  */
-void EngineEventRegisterTests(void) {
+void EngineEventRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("EngineEventTestParse01", EngineEventTestParse01, 1);
     UtRegisterTest("EngineEventTestParse02", EngineEventTestParse02, 1);

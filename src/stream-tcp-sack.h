@@ -38,7 +38,8 @@
  *  stream, as it *should* only be used in case of packet
  *  loss.
  */
-static inline uint32_t StreamTcpSackedSize(TcpStream *stream) {
+static inline uint32_t StreamTcpSackedSize(TcpStream *stream)
+{
     if (likely(stream->sack_head == NULL)) {
         SCReturnUInt(0U);
     } else {

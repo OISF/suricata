@@ -68,11 +68,13 @@
 
 static int threshold_id = -1; /**< host storage id for thresholds */
 
-int ThresholdHostStorageId(void) {
+int ThresholdHostStorageId(void)
+{
     return threshold_id;
 }
 
-void ThresholdInit(void) {
+void ThresholdInit(void)
+{
     threshold_id = HostStorageRegister("threshold", sizeof(void *), NULL, ThresholdListFree);
     if (threshold_id == -1) {
         SCLogError(SC_ERR_HOST_INIT, "Can't initiate host storage for thresholding");
@@ -80,7 +82,8 @@ void ThresholdInit(void) {
     }
 }
 
-int ThresholdHostHasThreshold(Host *host) {
+int ThresholdHostHasThreshold(Host *host)
+{
     return HostGetStorageById(host, threshold_id) ? 1 : 0;
 }
 
@@ -175,7 +178,8 @@ int ThresholdTimeoutCheck(Host *host, struct timeval *tv)
     return retval;
 }
 
-static inline DetectThresholdEntry *DetectThresholdEntryAlloc(DetectThresholdData *td, Packet *p, uint32_t sid, uint32_t gid) {
+static inline DetectThresholdEntry *DetectThresholdEntryAlloc(DetectThresholdData *td, Packet *p, uint32_t sid, uint32_t gid)
+{
     SCEnter();
 
     DetectThresholdEntry *ste = SCMalloc(sizeof(DetectThresholdEntry));
@@ -210,7 +214,8 @@ static DetectThresholdEntry *ThresholdHostLookupEntry(Host *h, uint32_t sid, uin
  *  \retval 1 normal match
  *  \retval 0 no match
  */
-int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint32_t sid, uint32_t gid) {
+int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint32_t sid, uint32_t gid)
+{
     int ret = 0;
 
     DetectThresholdEntry *lookup_tsh = ThresholdHostLookupEntry(h, sid, gid);
@@ -487,7 +492,8 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
     return ret;
 }
 
-static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p, DetectThresholdData *td, Signature *s) {
+static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p, DetectThresholdData *td, Signature *s)
+{
     int ret = 0;
 
     if (td->type != TYPE_RATE)
@@ -649,7 +655,8 @@ void ThresholdContextDestroy(DetectEngineCtx *de_ctx)
  *
  * \param td pointer to DetectTagDataEntryList
  */
-void ThresholdListFree(void *ptr) {
+void ThresholdListFree(void *ptr)
+{
     if (ptr != NULL) {
         DetectThresholdEntry *entry = ptr;
 

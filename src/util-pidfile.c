@@ -80,7 +80,8 @@ int SCPidfileCreate(const char *pidfile)
  *
  * \param pointer to the name of the pid file to write (optarg)
  */
-void SCPidfileRemove(const char *pid_filename) {
+void SCPidfileRemove(const char *pid_filename)
+{
     if (pid_filename != NULL) {
         /* we ignore the result, the user may have removed the file already. */
         (void)unlink(pid_filename);

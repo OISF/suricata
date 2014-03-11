@@ -57,7 +57,8 @@ typedef struct LockRecord_ {
 HashListTable *lock_records;
 pthread_mutex_t lock_records_mutex;
 
-static uint32_t LockRecordHash(HashListTable *ht, void *buf, uint16_t buflen) {
+static uint32_t LockRecordHash(HashListTable *ht, void *buf, uint16_t buflen)
+{
      LockRecord *fn = (LockRecord *)buf;
      uint32_t hash = strlen(fn->file) + fn->line;
      uint16_t u;
@@ -69,7 +70,8 @@ static uint32_t LockRecordHash(HashListTable *ht, void *buf, uint16_t buflen) {
      return hash % ht->array_size;
 }
 
-static char LockRecordCompare(void *buf1, uint16_t len1, void *buf2, uint16_t len2) {
+static char LockRecordCompare(void *buf1, uint16_t len1, void *buf2, uint16_t len2)
+{
     LockRecord *fn1 = (LockRecord *)buf1;
     LockRecord *fn2 = (LockRecord *)buf2;
 
@@ -82,7 +84,8 @@ static char LockRecordCompare(void *buf1, uint16_t len1, void *buf2, uint16_t le
     return 0;
 }
 
-static void LockRecordFree(void *data) {
+static void LockRecordFree(void *data)
+{
     LockRecord *fn = (LockRecord *)data;
 
     if (fn == NULL)
@@ -90,7 +93,8 @@ static void LockRecordFree(void *data) {
     SCFree(fn);
 }
 
-int LockRecordInitHash() {
+int LockRecordInitHash()
+{
     pthread_mutex_init(&lock_records_mutex, NULL);
     pthread_mutex_lock(&lock_records_mutex);
 
@@ -102,7 +106,8 @@ int LockRecordInitHash() {
     return 0;
 }
 
-void LockRecordAdd(ProfilingLock *l) {
+void LockRecordAdd(ProfilingLock *l)
+{
     LockRecord fn = { NULL, NULL, 0,0,0,0,0,0}, *ptr = &fn;
     fn.file = l->file;
     fn.line = l->line;
@@ -134,7 +139,8 @@ void LockRecordAdd(ProfilingLock *l) {
 }
 
 /** \param p void ptr to Packet struct */
-void SCProfilingAddPacketLocks(void *p) {
+void SCProfilingAddPacketLocks(void *p)
+{
     int i;
 
     if (profiling_locks_enabled == 0)
@@ -147,7 +153,8 @@ void SCProfilingAddPacketLocks(void *p) {
     }
 }
 
-void SCProfilingListLocks(void) {
+void SCProfilingListLocks(void)
+{
     FILE *fp = NULL;
 
     if (profiling_locks_output_to_file == 1) {
@@ -211,7 +218,8 @@ void SCProfilingListLocks(void) {
     fclose(fp);
 }
 
-void LockRecordFreeHash() {
+void LockRecordFreeHash()
+{
     if (profiling_locks_enabled == 0)
         return;
 

@@ -61,7 +61,8 @@
 
 #ifndef HAVE_LUAJIT
 
-static int DetectLuajitSetupNoSupport (DetectEngineCtx *a, Signature *b, char *c) {
+static int DetectLuajitSetupNoSupport (DetectEngineCtx *a, Signature *b, char *c)
+{
     SCLogError(SC_ERR_NO_LUAJIT_SUPPORT, "no LuaJIT support built in, needed for luajit keyword");
     return -1;
 }
@@ -69,7 +70,8 @@ static int DetectLuajitSetupNoSupport (DetectEngineCtx *a, Signature *b, char *c
 /**
  * \brief Registration function for keyword: luajit
  */
-void DetectLuajitRegister(void) {
+void DetectLuajitRegister(void)
+{
     sigmatch_table[DETECT_LUAJIT].name = "luajit";
     sigmatch_table[DETECT_LUAJIT].Setup = DetectLuajitSetupNoSupport;
     sigmatch_table[DETECT_LUAJIT].Free  = NULL;
@@ -93,7 +95,8 @@ static void DetectLuajitFree(void *);
 /**
  * \brief Registration function for keyword: luajit
  */
-void DetectLuajitRegister(void) {
+void DetectLuajitRegister(void)
+{
     sigmatch_table[DETECT_LUAJIT].name = "luajit";
     sigmatch_table[DETECT_LUAJIT].desc = "match via a luajit script";
     sigmatch_table[DETECT_LUAJIT].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Lua_scripting";
@@ -142,11 +145,13 @@ static pthread_mutex_t luajit_states_lock = SCMUTEX_INITIALIZER;
 #define DATATYPE_HTTP_RESPONSE_HEADERS      (1<<13)
 #define DATATYPE_HTTP_RESPONSE_HEADERS_RAW  (1<<14)
 
-static void *LuaStatePoolAlloc(void) {
+static void *LuaStatePoolAlloc(void)
+{
     return luaL_newstate();
 }
 
-static void LuaStatePoolFree(void *d) {
+static void LuaStatePoolFree(void *d)
+{
     lua_State *s = (lua_State *)d;
     if (s != NULL)
         lua_close(s);
@@ -157,7 +162,8 @@ static void LuaStatePoolFree(void *d) {
  *  \param num keyword instances
  *  \param reloads bool indicating we have rule reloads enabled
  */
-int DetectLuajitSetupStatesPool(int num, int reloads) {
+int DetectLuajitSetupStatesPool(int num, int reloads)
+{
     int retval = 0;
     pthread_mutex_lock(&luajit_states_lock);
 
@@ -191,7 +197,8 @@ int DetectLuajitSetupStatesPool(int num, int reloads) {
     return retval;
 }
 
-static lua_State *DetectLuajitGetState(void) {
+static lua_State *DetectLuajitGetState(void)
+{
 
     lua_State *s = NULL;
     pthread_mutex_lock(&luajit_states_lock);
@@ -201,7 +208,8 @@ static lua_State *DetectLuajitGetState(void) {
     return s;
 }
 
-static void DetectLuajitReturnState(lua_State *s) {
+static void DetectLuajitReturnState(lua_State *s)
+{
     if (s != NULL) {
         pthread_mutex_lock(&luajit_states_lock);
         PoolReturn(luajit_states, (void *)s);
@@ -210,7 +218,8 @@ static void DetectLuajitReturnState(lua_State *s) {
 }
 
 /** \brief dump stack from lua state to screen */
-void LuaDumpStack(lua_State *state) {
+void LuaDumpStack(lua_State *state)
+{
     int size = lua_gettop(state);
     int i;
 
@@ -492,7 +501,8 @@ static int DetectLuajitMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 static const char *ut_script = NULL;
 #endif
 
-static void *DetectLuajitThreadInit(void *data) {
+static void *DetectLuajitThreadInit(void *data)
+{
     int status;
     DetectLuajitData *luajit = (DetectLuajitData *)data;
     BUG_ON(luajit == NULL);
@@ -558,7 +568,8 @@ error:
     return NULL;
 }
 
-static void DetectLuajitThreadFree(void *ctx) {
+static void DetectLuajitThreadFree(void *ctx)
+{
     if (ctx != NULL) {
         DetectLuajitThreadData *t = (DetectLuajitThreadData *)ctx;
         if (t->luastate != NULL)
@@ -605,7 +616,8 @@ error:
     return NULL;
 }
 
-static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuajitData *ld) {
+static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuajitData *ld)
+{
     int status;
 
     lua_State *luastate = luaL_newstate();
@@ -897,7 +909,8 @@ error:
 /** \brief post-sig parse function to set the sid,rev,gid into the
  *         ctx, as this isn't available yet during parsing.
  */
-void DetectLuajitPostSetup(Signature *s) {
+void DetectLuajitPostSetup(Signature *s)
+{
     int i;
     SigMatch *sm;
 
@@ -919,7 +932,8 @@ void DetectLuajitPostSetup(Signature *s) {
  *
  * \param luajit pointer to DetectLuajitData
  */
-static void DetectLuajitFree(void *ptr) {
+static void DetectLuajitFree(void *ptr)
+{
     if (ptr != NULL) {
         DetectLuajitData *luajit = (DetectLuajitData *)ptr;
 
@@ -934,7 +948,8 @@ static void DetectLuajitFree(void *ptr) {
 
 #ifdef UNITTESTS
 /** \test http buffer */
-static int LuajitMatchTest01(void) {
+static int LuajitMatchTest01(void)
+{
     const char script[] =
         "function init (args)\n"
         "   local needs = {}\n"
@@ -1097,7 +1112,8 @@ end:
 }
 
 /** \test payload buffer */
-static int LuajitMatchTest02(void) {
+static int LuajitMatchTest02(void)
+{
     const char script[] =
         "function init (args)\n"
         "   local needs = {}\n"
@@ -1232,7 +1248,8 @@ end:
 }
 
 /** \test packet buffer */
-static int LuajitMatchTest03(void) {
+static int LuajitMatchTest03(void)
+{
     const char script[] =
         "function init (args)\n"
         "   local needs = {}\n"
@@ -1367,7 +1384,8 @@ end:
 }
 
 /** \test http buffer, flowints */
-static int LuajitMatchTest04(void) {
+static int LuajitMatchTest04(void)
+{
     const char script[] =
         "function init (args)\n"
         "   local needs = {}\n"
@@ -1521,7 +1539,8 @@ end:
 }
 
 /** \test http buffer, flowints */
-static int LuajitMatchTest05(void) {
+static int LuajitMatchTest05(void)
+{
     const char script[] =
         "function init (args)\n"
         "   local needs = {}\n"
@@ -1668,7 +1687,8 @@ end:
 }
 
 /** \test http buffer, flowints */
-static int LuajitMatchTest06(void) {
+static int LuajitMatchTest06(void)
+{
     const char script[] =
         "function init (args)\n"
         "   local needs = {}\n"
@@ -1821,7 +1841,8 @@ end:
 
 #endif
 
-void DetectLuajitRegisterTests(void) {
+void DetectLuajitRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("LuajitMatchTest01", LuajitMatchTest01, 1);
     UtRegisterTest("LuajitMatchTest02", LuajitMatchTest02, 1);

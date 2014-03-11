@@ -51,7 +51,8 @@ void DetectFragOffsetFree(void *);
 /**
  * \brief Registration function for fragoffset
  */
-void DetectFragOffsetRegister (void) {
+void DetectFragOffsetRegister (void)
+{
     sigmatch_table[DETECT_FRAGOFFSET].name = "fragoffset";
     sigmatch_table[DETECT_FRAGOFFSET].desc = "match on specific decimal values of the IP fragment offset field";
     sigmatch_table[DETECT_FRAGOFFSET].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#Fragoffset";
@@ -93,7 +94,8 @@ error:
  * \retval 1 match
  *
  */
-int DetectFragOffsetMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m) {
+int DetectFragOffsetMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+{
     uint16_t frag = 0;
     DetectFragOffsetData *fragoff = (DetectFragOffsetData *)m->ctx;
 
@@ -135,7 +137,8 @@ int DetectFragOffsetMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
  * \retval fragoff pointer to DetectFragOffsetData on success
  * \retval NULL on failure
  */
-DetectFragOffsetData *DetectFragOffsetParse (char *fragoffsetstr) {
+DetectFragOffsetData *DetectFragOffsetParse (char *fragoffsetstr)
+{
     DetectFragOffsetData *fragoff = NULL;
     char *substr[3] = {NULL, NULL, NULL};
 #define MAX_SUBSTRINGS 30
@@ -215,7 +218,8 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFragOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *fragoffsetstr) {
+static int DetectFragOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *fragoffsetstr)
+{
     DetectFragOffsetData *fragoff = NULL;
     SigMatch *sm = NULL;
 
@@ -245,7 +249,8 @@ error:
  *
  * \param ptr pointer to DetectFragOffsetData
  */
-void DetectFragOffsetFree (void *ptr) {
+void DetectFragOffsetFree (void *ptr)
+{
     DetectFragOffsetData *fragoff = (DetectFragOffsetData *)ptr;
     SCFree(fragoff);
 }
@@ -259,7 +264,8 @@ void DetectFragOffsetFree (void *ptr) {
 /**
  * \test DetectFragOffsetParseTest01 is a test for setting a valid fragoffset value
  */
-int DetectFragOffsetParseTest01 (void) {
+int DetectFragOffsetParseTest01 (void)
+{
     DetectFragOffsetData *fragoff = NULL;
     fragoff = DetectFragOffsetParse("300");
     if (fragoff != NULL && fragoff->frag_off == 300) {
@@ -273,7 +279,8 @@ int DetectFragOffsetParseTest01 (void) {
  * \test DetectFragOffsetParseTest02 is a test for setting a valid fragoffset value
  *       with spaces all around
  */
-int DetectFragOffsetParseTest02 (void) {
+int DetectFragOffsetParseTest02 (void)
+{
     DetectFragOffsetData *fragoff = NULL;
     fragoff = DetectFragOffsetParse(">300");
     if (fragoff != NULL && fragoff->frag_off == 300 && fragoff->mode == FRAG_MORE) {
@@ -286,7 +293,8 @@ int DetectFragOffsetParseTest02 (void) {
 /**
  * \test DetectFragOffsetParseTest03 is a test for setting an invalid fragoffset value
  */
-int DetectFragOffsetParseTest03 (void) {
+int DetectFragOffsetParseTest03 (void)
+{
     DetectFragOffsetData *fragoff = NULL;
     fragoff = DetectFragOffsetParse("badc");
     if (fragoff != NULL) {
@@ -301,7 +309,8 @@ int DetectFragOffsetParseTest03 (void) {
  *       fragoffset keyword by creating 2 rules and matching a crafted packet
  *       against them. Only the first one shall trigger.
  */
-int DetectFragOffsetMatchTest01 (void) {
+int DetectFragOffsetMatchTest01 (void)
+{
     int result = 0;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
@@ -375,7 +384,8 @@ end:
 }
 #endif /* UNITTESTS */
 
-void DetectFragOffsetRegisterTests (void) {
+void DetectFragOffsetRegisterTests (void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DetectFragOffsetParseTest01", DetectFragOffsetParseTest01, 1);
     UtRegisterTest("DetectFragOffsetParseTest02", DetectFragOffsetParseTest02, 1);

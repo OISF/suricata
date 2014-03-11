@@ -25,11 +25,13 @@
 #include "defrag.h"
 #include "defrag-hash.h"
 
-uint32_t DefragTrackerGetSpareCount(void) {
+uint32_t DefragTrackerGetSpareCount(void)
+{
     return DefragTrackerSpareQueueGetSize();
 }
 
-uint32_t DefragTrackerGetActiveCount(void) {
+uint32_t DefragTrackerGetActiveCount(void)
+{
     return SC_ATOMIC_GET(defragtracker_counter);
 }
 
@@ -42,7 +44,8 @@ uint32_t DefragTrackerGetActiveCount(void) {
  *  \retval 0 not timed out just yet
  *  \retval 1 fully timed out, lets kill it
  */
-static int DefragTrackerTimedOut(DefragTracker *dt, struct timeval *ts) {
+static int DefragTrackerTimedOut(DefragTracker *dt, struct timeval *ts)
+{
     /** never prune a trackers that is used by a packet
      *  we are currently processing in one of the threads */
     if (SC_ATOMIC_GET(dt->use_cnt) > 0) {
@@ -122,7 +125,8 @@ static uint32_t DefragTrackerHashRowTimeout(DefragTrackerHashRow *hb, DefragTrac
  *
  *  \retval cnt number of timed out tracker
  */
-uint32_t DefragTimeoutHash(struct timeval *ts) {
+uint32_t DefragTimeoutHash(struct timeval *ts)
+{
     uint32_t idx = 0;
     uint32_t cnt = 0;
 

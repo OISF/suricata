@@ -67,7 +67,8 @@ static void DetectFilestoreFree(void *);
 /**
  * \brief Registration function for keyword: filestore
  */
-void DetectFilestoreRegister(void) {
+void DetectFilestoreRegister(void)
+{
     sigmatch_table[DETECT_FILESTORE].name = "filestore";
     sigmatch_table[DETECT_FILESTORE].desc = "stores files to disk if the rule matched";
     sigmatch_table[DETECT_FILESTORE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/File-keywords#filestore";
@@ -199,7 +200,8 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, DetectFilestoreData
  *  When we are sure all parts of the signature matched, we run this function
  *  to finalize the filestore.
  */
-int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s) {
+int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s)
+{
     uint8_t flags = 0;
 
     SCEnter();
@@ -429,7 +431,8 @@ error:
     return -1;
 }
 
-static void DetectFilestoreFree(void *ptr) {
+static void DetectFilestoreFree(void *ptr)
+{
     if (ptr != NULL) {
         SCFree(ptr);
     }

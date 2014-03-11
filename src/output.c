@@ -377,7 +377,8 @@ OutputDeregisterAll(void)
 
 static int drop_loggers = 0;
 
-int OutputDropLoggerEnable(void) {
+int OutputDropLoggerEnable(void)
+{
     if (drop_loggers)
         return -1;
     drop_loggers++;
@@ -386,7 +387,8 @@ int OutputDropLoggerEnable(void) {
 
 static int tls_loggers = 0;
 
-int OutputTlsLoggerEnable(void) {
+int OutputTlsLoggerEnable(void)
+{
     if (tls_loggers)
         return -1;
     tls_loggers++;
@@ -395,7 +397,8 @@ int OutputTlsLoggerEnable(void) {
 
 static int ssh_loggers = 0;
 
-int OutputSshLoggerEnable(void) {
+int OutputSshLoggerEnable(void)
+{
     if (ssh_loggers)
         return -1;
     ssh_loggers++;

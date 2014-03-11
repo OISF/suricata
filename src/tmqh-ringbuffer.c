@@ -47,7 +47,8 @@ void TmqhInputRingBufferShutdownHandler(ThreadVars *);
  * \brief TmqhRingBufferRegister
  * \initonly
  */
-void TmqhRingBufferRegister (void) {
+void TmqhRingBufferRegister (void)
+{
     tmqh_table[TMQH_RINGBUFFER_MRSW].name = "ringbuffer_mrsw";
     tmqh_table[TMQH_RINGBUFFER_MRSW].InHandler = TmqhInputRingBufferMrSw;
     tmqh_table[TMQH_RINGBUFFER_MRSW].InShutdownHandler = TmqhInputRingBufferShutdownHandler;
@@ -75,14 +76,16 @@ void TmqhRingBufferRegister (void) {
     }
 }
 
-void TmqhRingBufferDestroy (void) {
+void TmqhRingBufferDestroy (void)
+{
     int i = 0;
     for (i = 0; i < 256; i++) {
         RingBuffer8Destroy(ringbuffers[i]);
     }
 }
 
-void TmqhInputRingBufferShutdownHandler(ThreadVars *tv) {
+void TmqhInputRingBufferShutdownHandler(ThreadVars *tv)
+{
     if (tv == NULL || tv->inq == NULL) {
         return;
     }

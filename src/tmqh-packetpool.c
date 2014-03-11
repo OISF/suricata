@@ -59,7 +59,8 @@ static RingBuffer16 *ringbuffer = NULL;
  * \brief TmqhPacketpoolRegister
  * \initonly
  */
-void TmqhPacketpoolRegister (void) {
+void TmqhPacketpoolRegister (void)
+{
     tmqh_table[TMQH_PACKETPOOL].name = "packetpool";
     tmqh_table[TMQH_PACKETPOOL].InHandler = TmqhInputPacketpool;
     tmqh_table[TMQH_PACKETPOOL].OutHandler = TmqhOutputPacketpool;
@@ -71,20 +72,24 @@ void TmqhPacketpoolRegister (void) {
     }
 }
 
-void TmqhPacketpoolDestroy (void) {
+void TmqhPacketpoolDestroy (void)
+{
     /* doing this clean up PacketPoolDestroy now,
      * where we also clean the packets */
 }
 
-int PacketPoolIsEmpty(void) {
+int PacketPoolIsEmpty(void)
+{
     return RingBufferIsEmpty(ringbuffer);
 }
 
-uint16_t PacketPoolSize(void) {
+uint16_t PacketPoolSize(void)
+{
     return RingBufferSize(ringbuffer);
 }
 
-void PacketPoolWait(void) {
+void PacketPoolWait(void)
+{
     RingBufferWait(ringbuffer);
 }
 
@@ -92,7 +97,8 @@ void PacketPoolWait(void) {
  *
  *  \warning Use *only* at init, not at packet runtime
  */
-void PacketPoolStorePacket(Packet *p) {
+void PacketPoolStorePacket(Packet *p)
+{
     if (RingBufferIsFull(ringbuffer)) {
         exit(1);
     }
@@ -109,7 +115,8 @@ void PacketPoolStorePacket(Packet *p) {
 /** \brief get a packet from the packet pool, but if the
  *         pool is empty, don't wait, just return NULL
  */
-Packet *PacketPoolGetPacket(void) {
+Packet *PacketPoolGetPacket(void)
+{
     if (RingBufferIsEmpty(ringbuffer))
         return NULL;
 
@@ -126,7 +133,8 @@ void PacketPoolReturnPacket(Packet *p)
     RingBufferMrMwPut(ringbuffer, (void *)p);
 }
 
-void PacketPoolInit(intmax_t max_pending_packets) {
+void PacketPoolInit(intmax_t max_pending_packets)
+{
     /* pre allocate packets */
     SCLogDebug("preallocating packets... packet size %" PRIuMAX "", (uintmax_t)SIZE_OF_PACKET);
     int i = 0;
@@ -142,7 +150,8 @@ void PacketPoolInit(intmax_t max_pending_packets) {
             max_pending_packets, (uintmax_t)(max_pending_packets*SIZE_OF_PACKET));
 }
 
-void PacketPoolDestroy(void) {
+void PacketPoolDestroy(void)
+{
     if (ringbuffer == NULL) {
         return;
     }

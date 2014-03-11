@@ -424,7 +424,8 @@ end:
  *
  * \param idad pointer to DetectIsdataatData
  */
-void DetectIsdataatFree(void *ptr) {
+void DetectIsdataatFree(void *ptr)
+{
     DetectIsdataatData *idad = (DetectIsdataatData *)ptr;
     SCFree(idad);
 }
@@ -436,7 +437,8 @@ void DetectIsdataatFree(void *ptr) {
  * \test DetectIsdataatTestParse01 is a test to make sure that we return a correct IsdataatData structure
  *  when given valid isdataat opt
  */
-int DetectIsdataatTestParse01 (void) {
+int DetectIsdataatTestParse01 (void)
+{
     int result = 0;
     DetectIsdataatData *idad = NULL;
     idad = DetectIsdataatParse("30 ", NULL);
@@ -452,7 +454,8 @@ int DetectIsdataatTestParse01 (void) {
  * \test DetectIsdataatTestParse02 is a test to make sure that we return a correct IsdataatData structure
  *  when given valid isdataat opt
  */
-int DetectIsdataatTestParse02 (void) {
+int DetectIsdataatTestParse02 (void)
+{
     int result = 0;
     DetectIsdataatData *idad = NULL;
     idad = DetectIsdataatParse("30 , relative", NULL);
@@ -468,7 +471,8 @@ int DetectIsdataatTestParse02 (void) {
  * \test DetectIsdataatTestParse03 is a test to make sure that we return a correct IsdataatData structure
  *  when given valid isdataat opt
  */
-int DetectIsdataatTestParse03 (void) {
+int DetectIsdataatTestParse03 (void)
+{
     int result = 0;
     DetectIsdataatData *idad = NULL;
     idad = DetectIsdataatParse("30,relative, rawbytes ", NULL);
@@ -1113,7 +1117,8 @@ static int DetectIsdataatTestParse16(void)
  * \test DetectIsdataatTestPacket01 is a test to check matches of
  * isdataat, and isdataat relative
  */
-int DetectIsdataatTestPacket01 (void) {
+int DetectIsdataatTestPacket01 (void)
+{
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint16_t buflen = strlen((char *)buf);
@@ -1154,7 +1159,8 @@ end:
  * isdataat, and isdataat relative works if the previous keyword is pcre
  * (bug 144)
  */
-int DetectIsdataatTestPacket02 (void) {
+int DetectIsdataatTestPacket02 (void)
+{
     int result = 0;
     uint8_t *buf = (uint8_t *)"GET /AllWorkAndNoPlayMakesWillADullBoy HTTP/1.0"
                     "User-Agent: Wget/1.11.4"
@@ -1185,7 +1191,8 @@ end:
  * isdataat, and isdataat relative works if the previous keyword is byte_jump
  * (bug 146)
  */
-int DetectIsdataatTestPacket03 (void) {
+int DetectIsdataatTestPacket03 (void)
+{
     int result = 0;
     uint8_t *buf = (uint8_t *)"GET /AllWorkAndNoPlayMakesWillADullBoy HTTP/1.0"
                     "User-Agent: Wget/1.11.4"
@@ -1215,7 +1222,8 @@ end:
 /**
  * \brief this function registers unit tests for DetectIsdataat
  */
-void DetectIsdataatRegisterTests(void) {
+void DetectIsdataatRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DetectIsdataatTestParse01", DetectIsdataatTestParse01, 1);
     UtRegisterTest("DetectIsdataatTestParse02", DetectIsdataatTestParse02, 1);

@@ -570,7 +570,8 @@ static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
 }
 
 
-static void *SMB2StateAlloc(void) {
+static void *SMB2StateAlloc(void)
+{
     void *s = SCMalloc(sizeof(SMB2State));
     if (unlikely(s == NULL))
         return NULL;
@@ -579,14 +580,16 @@ static void *SMB2StateAlloc(void) {
     return s;
 }
 
-static void SMB2StateFree(void *s) {
+static void SMB2StateFree(void *s)
+{
     if (s) {
         SCFree(s);
         s = NULL;
     }
 }
 
-void RegisterSMB2Parsers(void) {
+void RegisterSMB2Parsers(void)
+{
     /** SMB2 */
     char *proto_name = "smb2";
 
@@ -608,7 +611,8 @@ void RegisterSMB2Parsers(void) {
 /* UNITTESTS */
 #ifdef UNITTESTS
 
-int SMB2ParserTest01(void) {
+int SMB2ParserTest01(void)
+{
     int result = 1;
     Flow f;
     uint8_t smb2buf[] =
@@ -672,7 +676,8 @@ end:
     return result;
 }
 
-void SMB2ParserRegisterTests(void) {
+void SMB2ParserRegisterTests(void)
+{
     UtRegisterTest("SMB2ParserTest01", SMB2ParserTest01, 1);
 }
 #endif

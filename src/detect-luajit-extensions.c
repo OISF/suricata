@@ -65,7 +65,8 @@ static const char luaext_key_det_ctx[] = "suricata:det_ctx";
 static const char luaext_key_flow[] = "suricata:flow";
 static const char luaext_key_need_flow_lock[] = "suricata:need_flow_lock";
 
-static int LuajitGetFlowvar(lua_State *luastate) {
+static int LuajitGetFlowvar(lua_State *luastate)
+{
     uint16_t idx;
     int id;
     Flow *f;
@@ -157,7 +158,8 @@ static int LuajitGetFlowvar(lua_State *luastate) {
 
 }
 
-int LuajitSetFlowvar(lua_State *luastate) {
+int LuajitSetFlowvar(lua_State *luastate)
+{
     uint16_t idx;
     int id;
     Flow *f;
@@ -269,7 +271,8 @@ int LuajitSetFlowvar(lua_State *luastate) {
     return 0;
 }
 
-static int LuajitGetFlowint(lua_State *luastate) {
+static int LuajitGetFlowint(lua_State *luastate)
+{
     uint16_t idx;
     int id;
     Flow *f;
@@ -354,7 +357,8 @@ static int LuajitGetFlowint(lua_State *luastate) {
 
 }
 
-int LuajitSetFlowint(lua_State *luastate) {
+int LuajitSetFlowint(lua_State *luastate)
+{
     uint16_t idx;
     int id;
     Flow *f;
@@ -443,7 +447,8 @@ int LuajitSetFlowint(lua_State *luastate) {
     return 0;
 }
 
-static int LuajitIncrFlowint(lua_State *luastate) {
+static int LuajitIncrFlowint(lua_State *luastate)
+{
     uint16_t idx;
     int id;
     Flow *f;
@@ -526,7 +531,8 @@ static int LuajitIncrFlowint(lua_State *luastate) {
 
 }
 
-static int LuajitDecrFlowint(lua_State *luastate) {
+static int LuajitDecrFlowint(lua_State *luastate)
+{
     uint16_t idx;
     int id;
     Flow *f;
@@ -609,7 +615,8 @@ static int LuajitDecrFlowint(lua_State *luastate) {
 
 }
 
-void LuajitExtensionsMatchSetup(lua_State *lua_state, DetectLuajitData *ld, DetectEngineThreadCtx *det_ctx, Flow *f, int need_flow_lock) {
+void LuajitExtensionsMatchSetup(lua_State *lua_state, DetectLuajitData *ld, DetectEngineThreadCtx *det_ctx, Flow *f, int need_flow_lock)
+{
     SCLogDebug("det_ctx %p, f %p", det_ctx, f);
 
     /* luajit keyword data */
@@ -636,7 +643,8 @@ void LuajitExtensionsMatchSetup(lua_State *lua_state, DetectLuajitData *ld, Dete
 /**
  *  \brief Register Suricata Lua functions
  */
-int LuajitRegisterExtensions(lua_State *lua_state) {
+int LuajitRegisterExtensions(lua_State *lua_state)
+{
     lua_pushcfunction(lua_state, LuajitGetFlowvar);
     lua_setglobal(lua_state, "ScFlowvarGet");
 

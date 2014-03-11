@@ -133,7 +133,8 @@ void PrintRawUriBuf(char *retbuf, uint32_t *offset, uint32_t retbuflen,
     return;
 }
 
-void PrintRawDataFp(FILE *fp, uint8_t *buf, uint32_t buflen) {
+void PrintRawDataFp(FILE *fp, uint8_t *buf, uint32_t buflen)
+{
     int ch = 0;
     uint32_t u = 0;
 

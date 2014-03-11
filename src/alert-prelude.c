@@ -73,7 +73,8 @@ static TmEcode AlertPreludeThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_FAILED;
 }
 
-void TmModuleAlertPreludeRegister (void) {
+void TmModuleAlertPreludeRegister (void)
+{
     tmm_modules[TMM_ALERTPRELUDE].name = "AlertPrelude";
     tmm_modules[TMM_ALERTPRELUDE].ThreadInit = AlertPreludeThreadInit;
     tmm_modules[TMM_ALERTPRELUDE].ThreadDeinit = AlertPreludeThreadDeinit;
@@ -740,7 +741,8 @@ static OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     SCReturnPtr((void*)output_ctx, "OutputCtx");
 }
 
-static int AlertPreludeCondition(ThreadVars *tv, const Packet *p) {
+static int AlertPreludeCondition(ThreadVars *tv, const Packet *p)
+{
     if (p->alerts.cnt == 0)
         return FALSE;
     if (!IPH_IS_VALID(p))
@@ -764,7 +766,8 @@ static int AlertPreludeCondition(ThreadVars *tv, const Packet *p) {
  *
  * \return TM_ECODE_OK if ok, else TM_ECODE_FAILED
  */
-static int AlertPreludeLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
+static int AlertPreludeLogger(ThreadVars *tv, void *thread_data, const Packet *p)
+{
     AlertPreludeThread *apn = (AlertPreludeThread *)thread_data;
     int ret;
     idmef_time_t *time;
@@ -866,7 +869,8 @@ err:
     SCReturnInt(TM_ECODE_FAILED);
 }
 
-void TmModuleAlertPreludeRegister (void) {
+void TmModuleAlertPreludeRegister (void)
+{
     tmm_modules[TMM_ALERTPRELUDE].name = "AlertPrelude";
     tmm_modules[TMM_ALERTPRELUDE].ThreadInit = AlertPreludeThreadInit;
     tmm_modules[TMM_ALERTPRELUDE].Func = NULL;

@@ -475,7 +475,8 @@ filectx_error:
  *  \brief Condition function for TLS logger
  *  \retval bool true or false -- log now?
  */
-static int LogTlsCondition(ThreadVars *tv, const Packet *p) {
+static int LogTlsCondition(ThreadVars *tv, const Packet *p)
+{
     if (p->flow == NULL) {
         return FALSE;
     }
@@ -512,7 +513,8 @@ dontlog:
     return FALSE;
 }
 
-static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
+static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p)
+{
     LogTlsLogThread *aft = (LogTlsLogThread *)thread_data;
     LogTlsFileCtx *hlog = aft->tlslog_ctx;
     char timebuf[64];

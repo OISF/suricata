@@ -103,7 +103,8 @@ static TmEcode AlertPcapInfoThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-static void AlertPcapInfoExitPrintStats(ThreadVars *tv, void *data) {
+static void AlertPcapInfoExitPrintStats(ThreadVars *tv, void *data)
+{
     AlertPcapInfoThread *aft = (AlertPcapInfoThread *)data;
     if (aft == NULL) {
         return;
@@ -187,11 +188,13 @@ static OutputCtx *AlertPcapInfoInitCtx(ConfNode *conf)
     return output_ctx;
 }
 
-static int AlertPcapInfoCondition(ThreadVars *tv, const Packet *p) {
+static int AlertPcapInfoCondition(ThreadVars *tv, const Packet *p)
+{
     return ((p->pcap_cnt != 0 && p->alerts.cnt > 0) ? TRUE : FALSE);
 }
 
-static int AlertPcapInfoLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
+static int AlertPcapInfoLogger(ThreadVars *tv, void *thread_data, const Packet *p)
+{
     AlertPcapInfoThread *aft = (AlertPcapInfoThread *)thread_data;
     int i;
 
@@ -216,7 +219,8 @@ static int AlertPcapInfoLogger(ThreadVars *tv, void *thread_data, const Packet *
     return 0;
 }
 
-void TmModuleAlertPcapInfoRegister (void) {
+void TmModuleAlertPcapInfoRegister (void)
+{
     tmm_modules[TMM_ALERTPCAPINFO].name = MODULE_NAME;
     tmm_modules[TMM_ALERTPCAPINFO].ThreadInit = AlertPcapInfoThreadInit;
     tmm_modules[TMM_ALERTPCAPINFO].Func = NULL;

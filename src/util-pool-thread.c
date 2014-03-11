@@ -123,13 +123,15 @@ int PoolThreadGrow(PoolThread *pt, uint32_t size, uint32_t prealloc_size, uint32
     return (int)(newsize - 1);
 }
 
-int PoolThreadSize(PoolThread *pt) {
+int PoolThreadSize(PoolThread *pt)
+{
     if (pt == NULL)
         return -1;
     return (int)pt->size;
 }
 
-void PoolThreadFree(PoolThread *pt) {
+void PoolThreadFree(PoolThread *pt)
+{
     int i;
 
     if (pt == NULL)
@@ -148,7 +150,8 @@ void PoolThreadFree(PoolThread *pt) {
     SCFree(pt);
 }
 
-void *PoolThreadGetById(PoolThread *pt, uint16_t id) {
+void *PoolThreadGetById(PoolThread *pt, uint16_t id)
+{
     void *data = NULL;
 
     if (pt == NULL || id >= pt->size)
@@ -166,7 +169,8 @@ void *PoolThreadGetById(PoolThread *pt, uint16_t id) {
     return data;
 }
 
-void PoolThreadReturn(PoolThread *pt, void *data) {
+void PoolThreadReturn(PoolThread *pt, void *data)
+{
     PoolThreadReserved *id = data;
 
     if (pt == NULL || *id >= pt->size)
@@ -186,13 +190,15 @@ struct PoolThreadTestData {
     int abc;
 };
 
-static void *PoolThreadTestAlloc(void) {
+static void *PoolThreadTestAlloc(void)
+{
     void *data = SCMalloc(sizeof(struct PoolThreadTestData));
     return data;
 }
 
 static
-int PoolThreadTestInit(void *data, void *allocdata) {
+int PoolThreadTestInit(void *data, void *allocdata)
+{
     if (!data)
         return 0;
 
@@ -203,10 +209,12 @@ int PoolThreadTestInit(void *data, void *allocdata) {
 }
 
 static
-void PoolThreadTestFree(void *data) {
+void PoolThreadTestFree(void *data)
+{
 }
 
-static int PoolThreadTestInit01(void) {
+static int PoolThreadTestInit01(void)
+{
     PoolThread *pt = PoolThreadInit(4, /* threads */
                                     10, 5, 10, PoolThreadTestAlloc, NULL, NULL, NULL, NULL);
     if (pt == NULL)
@@ -216,7 +224,8 @@ static int PoolThreadTestInit01(void) {
     return 1;
 }
 
-static int PoolThreadTestInit02(void) {
+static int PoolThreadTestInit02(void)
+{
     int i = 123;
 
     PoolThread *pt = PoolThreadInit(4, /* threads */
@@ -228,7 +237,8 @@ static int PoolThreadTestInit02(void) {
     return 1;
 }
 
-static int PoolThreadTestGet01(void) {
+static int PoolThreadTestGet01(void)
+{
     int result = 0;
     PoolThread *pt = PoolThreadInit(4, /* threads */
                                     10, 5, 10, PoolThreadTestAlloc, NULL, NULL, NULL, NULL);
@@ -253,7 +263,8 @@ end:
     return result;
 }
 
-static int PoolThreadTestGet02(void) {
+static int PoolThreadTestGet02(void)
+{
     int i = 123;
     int result = 0;
 
@@ -285,7 +296,8 @@ end:
     return result;
 }
 
-static int PoolThreadTestReturn01(void) {
+static int PoolThreadTestReturn01(void)
+{
     int i = 123;
     int result = 0;
 
@@ -332,7 +344,8 @@ end:
     return result;
 }
 
-static int PoolThreadTestGrow01(void) {
+static int PoolThreadTestGrow01(void)
+{
     PoolThread *pt = PoolThreadInit(4, /* threads */
                                     10, 5, 10, PoolThreadTestAlloc, NULL, NULL, NULL, NULL);
     if (pt == NULL)
@@ -348,7 +361,8 @@ static int PoolThreadTestGrow01(void) {
     return 1;
 }
 
-static int PoolThreadTestGrow02(void) {
+static int PoolThreadTestGrow02(void)
+{
     int i = 123;
 
     PoolThread *pt = PoolThreadInit(4, /* threads */
@@ -366,7 +380,8 @@ static int PoolThreadTestGrow02(void) {
     return 1;
 }
 
-static int PoolThreadTestGrow03(void) {
+static int PoolThreadTestGrow03(void)
+{
     int i = 123;
     int result = 0;
 
@@ -421,7 +436,8 @@ end:
 
 #endif
 
-void PoolThreadRegisterTests(void) {
+void PoolThreadRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("PoolThreadTestInit01", PoolThreadTestInit01, 1);
     UtRegisterTest("PoolThreadTestInit02", PoolThreadTestInit02, 1);

@@ -36,7 +36,8 @@
 static int DetectMsgSetup (DetectEngineCtx *, Signature *, char *);
 void DetectMsgRegisterTests(void);
 
-void DetectMsgRegister (void) {
+void DetectMsgRegister (void)
+{
     sigmatch_table[DETECT_MSG].name = "msg";
     sigmatch_table[DETECT_MSG].desc = "information about the rule and the possible alert";
     sigmatch_table[DETECT_MSG].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Meta-settings#msg-message";
@@ -201,7 +202,8 @@ end:
 /**
  * \brief this function registers unit tests for DetectMsg
  */
-void DetectMsgRegisterTests(void) {
+void DetectMsgRegisterTests(void)
+{
 #ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectMsgParseTest01", DetectMsgParseTest01, 1);
     UtRegisterTest("DetectMsgParseTest02", DetectMsgParseTest02, 1);

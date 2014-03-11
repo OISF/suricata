@@ -265,7 +265,8 @@ static int LogDropLogNetFilter (ThreadVars *tv, const Packet *p, void *data)
  *
  * \retval bool TRUE or FALSE
  */
-static int LogDropCondition(ThreadVars *tv, const Packet *p) {
+static int LogDropCondition(ThreadVars *tv, const Packet *p)
+{
     extern uint8_t engine_mode;
     if (!IS_ENGINE_MODE_IPS(engine_mode)) {
         SCLogDebug("engine is not running in inline mode, so returning");
@@ -303,7 +304,8 @@ static int LogDropCondition(ThreadVars *tv, const Packet *p) {
  *
  * \retval 0 on succes
  */
-static int LogDropLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
+static int LogDropLogger(ThreadVars *tv, void *thread_data, const Packet *p)
+{
 
     int r = LogDropLogNetFilter(tv, p, thread_data);
     if (r < 0)
@@ -322,7 +324,8 @@ static int LogDropLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
     return 0;
 }
 
-static void LogDropLogExitPrintStats(ThreadVars *tv, void *data) {
+static void LogDropLogExitPrintStats(ThreadVars *tv, void *data)
+{
     LogDropLogThread *dlt = (LogDropLogThread *)data;
     if (dlt == NULL) {
         return;
@@ -485,7 +488,8 @@ static void LogDropLogRegisterTests(void)
 #endif
 
 /** \brief function to register the drop log module */
-void TmModuleLogDropLogRegister (void) {
+void TmModuleLogDropLogRegister (void)
+{
 
     tmm_modules[TMM_LOGDROPLOG].name = MODULE_NAME;
     tmm_modules[TMM_LOGDROPLOG].ThreadInit = LogDropLogThreadInit;

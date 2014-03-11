@@ -1119,7 +1119,8 @@ end:
 /**
  * \test Test drop action being set even if thresholded
  */
-static int DetectThresholdTestSig9(void) {
+static int DetectThresholdTestSig9(void)
+{
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;

@@ -162,7 +162,8 @@ error:
  *  \param proto protocol (such as IPPROTO_TCP) to look for
  *  \retval 0 protocol not in the set
  *  \retval 1 protocol is in the set */
-int DetectProtoContainsProto(DetectProto *dp, int proto) {
+int DetectProtoContainsProto(DetectProto *dp, int proto)
+{
     if (dp->flags & DETECT_PROTO_ANY)
         return 1;
 
@@ -183,7 +184,8 @@ int DetectProtoContainsProto(DetectProto *dp, int proto) {
  *        setup the signature with passed values.
  */
 static int DetectProtoInitTest(DetectEngineCtx **de_ctx, Signature **sig,
-                               DetectProto *dp, char *str) {
+                               DetectProto *dp, char *str)
+{
     char fullstr[1024];
     int result = 0;
 
@@ -486,7 +488,8 @@ static int DetectProtoTestSetup02(void)
  *       by matching the received packet against the sig.
  */
 
-static int DetectProtoTestSig01(void) {
+static int DetectProtoTestSig01(void)
+{
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
@@ -565,7 +568,8 @@ end:
  * \test signature parsing with tcp-pkt and tcp-stream
  */
 
-static int DetectProtoTestSig02(void) {
+static int DetectProtoTestSig02(void)
+{
     Signature *s = NULL;
     int result = 0;
 

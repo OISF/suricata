@@ -89,7 +89,8 @@ int thread_affinity_init_done = 0;
  * \brief find affinity by its name
  * \retval a pointer to the affinity or NULL if not found
  */
-ThreadsAffinityType * GetAffinityTypeFromName(const char *name) {
+ThreadsAffinityType * GetAffinityTypeFromName(const char *name)
+{
     int i;
     for (i = 0; i < MAX_CPU_SET; i++) {
         if (!strcmp(thread_affinity[i].name, name)) {

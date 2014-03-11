@@ -72,7 +72,8 @@ void DetectHttpStatMsgFree(void *);
 /**
  * \brief Registration function for keyword: http_stat_msg
  */
-void DetectHttpStatMsgRegister (void) {
+void DetectHttpStatMsgRegister (void)
+{
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].name = "http_stat_msg";
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].desc = "content modifier to match on HTTP stat-msg-buffer";
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#http_stat_msg";
@@ -206,7 +207,8 @@ end:
 }
 
 /** \test Check the signature working to alert when http_stat_msg is matched . */
-static int DetectHttpStatMsgSigTest01(void) {
+static int DetectHttpStatMsgSigTest01(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n\r\n";
@@ -320,7 +322,8 @@ end:
 }
 
 /** \test Check the signature working to alert when http_stat_msg is not matched . */
-static int DetectHttpStatMsgSigTest02(void) {
+static int DetectHttpStatMsgSigTest02(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n\r\n";
@@ -424,7 +427,8 @@ end:
 
 /** \test Check the signature working to alert when http_stat_msg is used with
  *        negated content . */
-static int DetectHttpStatMsgSigTest03(void) {
+static int DetectHttpStatMsgSigTest03(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n\r\n";

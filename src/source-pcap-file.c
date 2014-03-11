@@ -104,7 +104,8 @@ TmEcode ReceivePcapFileThreadDeinit(ThreadVars *, void *);
 TmEcode DecodePcapFile(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode DecodePcapFileThreadInit(ThreadVars *, void *, void **);
 
-void TmModuleReceivePcapFileRegister (void) {
+void TmModuleReceivePcapFileRegister (void)
+{
     memset(&pcap_g, 0x00, sizeof(pcap_g));
 
     tmm_modules[TMM_RECEIVEPCAPFILE].name = "ReceivePcapFile";
@@ -118,7 +119,8 @@ void TmModuleReceivePcapFileRegister (void) {
     tmm_modules[TMM_RECEIVEPCAPFILE].flags = TM_FLAG_RECEIVE_TM;
 }
 
-void TmModuleDecodePcapFileRegister (void) {
+void TmModuleDecodePcapFileRegister (void)
+{
     tmm_modules[TMM_DECODEPCAPFILE].name = "DecodePcapFile";
     tmm_modules[TMM_DECODEPCAPFILE].ThreadInit = DecodePcapFileThreadInit;
     tmm_modules[TMM_DECODEPCAPFILE].Func = DecodePcapFile;
@@ -129,7 +131,8 @@ void TmModuleDecodePcapFileRegister (void) {
     tmm_modules[TMM_DECODEPCAPFILE].flags = TM_FLAG_DECODE_TM;
 }
 
-void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {
+void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
+{
     SCEnter();
 
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)user;
@@ -251,7 +254,8 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
+TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
+{
     SCEnter();
     char *tmpbpfstring = NULL;
     char *tmpstring = NULL;
@@ -347,7 +351,8 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCReturnInt(TM_ECODE_OK);
 }
 
-void ReceivePcapFileThreadExitStats(ThreadVars *tv, void *data) {
+void ReceivePcapFileThreadExitStats(ThreadVars *tv, void *data)
+{
     SCEnter();
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
 
@@ -369,7 +374,8 @@ void ReceivePcapFileThreadExitStats(ThreadVars *tv, void *data) {
     return;
 }
 
-TmEcode ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data) {
+TmEcode ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data)
+{
     SCEnter();
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
     if (ptv) {

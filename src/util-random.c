@@ -32,7 +32,8 @@
  * \brief create a seed number to pass to rand() , rand_r(), and similars
  * \retval seed for rand()
  */
-unsigned int RandomTimePreseed(void) {
+unsigned int RandomTimePreseed(void)
+{
     /* preseed rand() */
     time_t now = time ( 0 );
     unsigned char *p = (unsigned char *)&now;

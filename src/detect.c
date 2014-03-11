@@ -213,7 +213,8 @@ TmEcode Detect(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode DetectThreadInit(ThreadVars *, void *, void **);
 TmEcode DetectThreadDeinit(ThreadVars *, void *);
 
-void TmModuleDetectRegister (void) {
+void TmModuleDetectRegister (void)
+{
     tmm_modules[TMM_DETECT].name = "Detect";
     tmm_modules[TMM_DETECT].ThreadInit = DetectThreadInit;
     tmm_modules[TMM_DETECT].Func = Detect;
@@ -226,7 +227,8 @@ void TmModuleDetectRegister (void) {
     PacketAlertTagInit();
 }
 
-void DetectExitPrintStats(ThreadVars *tv, void *data) {
+void DetectExitPrintStats(ThreadVars *tv, void *data)
+{
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
     if (det_ctx == NULL)
         return;
@@ -280,7 +282,8 @@ char *DetectLoadCompleteSigPath(char *sig_file)
  *  \param sigs_tot Will store number of signatures processed in the file
  *  \retval Number of rules loaded successfully, -1 on error
  */
-int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
+int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot)
+{
     Signature *sig = NULL;
     int good = 0, bad = 0;
     char line[DETECT_MAX_RULE_SIZE] = "";
@@ -633,7 +636,8 @@ int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
  *
  *  \retval sgh the SigGroupHead or NULL if non applies to the packet
  */
-SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p) {
+SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
+{
     SCEnter();
 
     int f;
@@ -694,7 +698,8 @@ SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThre
  *  \param p packet
  *  \param flags stream flags
  */
-static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags) {
+static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags)
+{
     SCEnter();
 
     DEBUG_ASSERT_FLOW_LOCKED(f);
@@ -1722,7 +1727,8 @@ TmEcode DetectThreadInit(ThreadVars *t, void *initdata, void **data)
     return DetectEngineThreadCtxInit(t,initdata,data);
 }
 
-TmEcode DetectThreadDeinit(ThreadVars *t, void *data) {
+TmEcode DetectThreadDeinit(ThreadVars *t, void *data)
+{
     return DetectEngineThreadCtxDeinit(t,data);
 }
 
@@ -1769,7 +1775,8 @@ Signature *SigFindSignatureBySidGid(DetectEngineCtx *de_ctx, uint32_t sid, uint3
 }
 
 
-int SignatureIsAppLayer(DetectEngineCtx *de_ctx, Signature *s) {
+int SignatureIsAppLayer(DetectEngineCtx *de_ctx, Signature *s)
+{
     if (s->alproto != 0)
         return 1;
 
@@ -1784,7 +1791,8 @@ int SignatureIsAppLayer(DetectEngineCtx *de_ctx, Signature *s) {
  *  \retval 0 no
  *  \retval 1 yes
  */
-int SignatureIsFilestoring(Signature *s) {
+int SignatureIsFilestoring(Signature *s)
+{
     if (s == NULL)
         return 0;
 
@@ -1802,7 +1810,8 @@ int SignatureIsFilestoring(Signature *s) {
  *  \retval 0 no
  *  \retval 1 yes
  */
-int SignatureIsFilemagicInspecting(Signature *s) {
+int SignatureIsFilemagicInspecting(Signature *s)
+{
     if (s == NULL)
         return 0;
 
@@ -1820,7 +1829,8 @@ int SignatureIsFilemagicInspecting(Signature *s) {
  *  \retval 0 no
  *  \retval 1 yes
  */
-int SignatureIsFileMd5Inspecting(Signature *s) {
+int SignatureIsFileMd5Inspecting(Signature *s)
+{
     if (s == NULL)
         return 0;
 
@@ -1838,7 +1848,8 @@ int SignatureIsFileMd5Inspecting(Signature *s) {
  *  \retval 0 no
  *  \retval 1 yes
  */
-int SignatureIsFilesizeInspecting(Signature *s) {
+int SignatureIsFilesizeInspecting(Signature *s)
+{
     if (s == NULL)
         return 0;
 
@@ -1854,7 +1865,8 @@ int SignatureIsFilesizeInspecting(Signature *s) {
  *  \retval 1 sig is ip only
  *  \retval 0 sig is not ip only
  */
-int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
+int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s)
+{
     if (s->alproto != ALPROTO_UNKNOWN)
         return 0;
 
@@ -1954,7 +1966,8 @@ iponly:
  *  \retval 1 sig is inspecting the payload
  *  \retval 0 sig is not inspecting the payload
  */
-static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, Signature *s) {
+static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, Signature *s)
+{
 
     if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
         return 1;
@@ -1983,7 +1996,8 @@ static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, Signature *s) {
  *  \retval 0 not a DEOnly sig
  *  \retval 1 DEOnly sig
  */
-static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s) {
+static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s)
+{
     if (s->alproto != ALPROTO_UNKNOWN) {
         SCReturnInt(0);
     }
@@ -2098,7 +2112,8 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto, void *alstate
     }
 }
 
-static int SignatureCreateMask(Signature *s) {
+static int SignatureCreateMask(Signature *s)
+{
     SCEnter();
 
     if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
@@ -2364,7 +2379,8 @@ static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
  *  \param s signature to get dsize value from
  *  \retval depth or negative value
  */
-static int SigParseGetMaxDsize(Signature *s) {
+static int SigParseGetMaxDsize(Signature *s)
+{
     if (s->flags & SIG_FLAG_DSIZE && s->dsize_sm != NULL) {
         DetectDsizeData *dd = (DetectDsizeData *)s->dsize_sm->ctx;
 
@@ -2385,7 +2401,8 @@ static int SigParseGetMaxDsize(Signature *s) {
 /** \brief set prefilter dsize pair
  *  \param s signature to get dsize value from
  */
-static void SigParseSetDsizePair(Signature *s) {
+static void SigParseSetDsizePair(Signature *s)
+{
     if (s->flags & SIG_FLAG_DSIZE && s->dsize_sm != NULL) {
         DetectDsizeData *dd = (DetectDsizeData *)s->dsize_sm->ctx;
 
@@ -2421,7 +2438,8 @@ static void SigParseSetDsizePair(Signature *s) {
  *  \brief Apply dsize as depth to content matches in the rule
  *  \param s signature to get dsize value from
  */
-static void SigParseApplyDsizeToContent(Signature *s) {
+static void SigParseApplyDsizeToContent(Signature *s)
+{
     SCEnter();
 
     if (s->flags & SIG_FLAG_DSIZE) {
@@ -2461,7 +2479,8 @@ static void SigParseApplyDsizeToContent(Signature *s) {
  * \retval  0 on success
  * \retval -1 on failure
  */
-int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
+int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
+{
     Signature *tmp_s = NULL;
     uint32_t cnt_iponly = 0;
     uint32_t cnt_payload = 0;
@@ -2580,7 +2599,8 @@ error:
     return -1;
 }
 
-static int DetectEngineLookupBuildSourceAddressList(DetectEngineCtx *de_ctx, DetectEngineLookupFlow *flow_gh, Signature *s, int family) {
+static int DetectEngineLookupBuildSourceAddressList(DetectEngineCtx *de_ctx, DetectEngineLookupFlow *flow_gh, Signature *s, int family)
+{
     DetectAddress *gr = NULL, *lookup_gr = NULL, *head = NULL;
     int proto;
 
@@ -2640,7 +2660,8 @@ error:
 /**
  *  \brief add signature to the right flow group(s)
  */
-static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, Signature *s, int family) {
+static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, Signature *s, int family)
+{
     SCLogDebug("s->id %u", s->id);
 
     if (s->flags & SIG_FLAG_TOCLIENT) {
@@ -2658,7 +2679,8 @@ static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, Signature *s, i
     return 0;
 }
 
-static DetectAddress *GetHeadPtr(DetectAddressHead *head, int family) {
+static DetectAddress *GetHeadPtr(DetectAddressHead *head, int family)
+{
     DetectAddress *grhead;
 
     if (head == NULL)
@@ -2680,13 +2702,15 @@ static DetectAddress *GetHeadPtr(DetectAddressHead *head, int family) {
 // || (c) == 2)
 // || (c) == 3)
 
-int CreateGroupedAddrListCmpCnt(DetectAddress *a, DetectAddress *b) {
+int CreateGroupedAddrListCmpCnt(DetectAddress *a, DetectAddress *b)
+{
     if (a->cnt > b->cnt)
         return 1;
     return 0;
 }
 
-int CreateGroupedAddrListCmpMpmMaxlen(DetectAddress *a, DetectAddress *b) {
+int CreateGroupedAddrListCmpMpmMaxlen(DetectAddress *a, DetectAddress *b)
+{
     if (a->sh == NULL || b->sh == NULL)
         return 0;
 
@@ -2853,13 +2877,15 @@ error:
     return -1;
 }
 
-int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b) {
+int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b)
+{
     if (a->cnt > b->cnt)
         return 1;
     return 0;
 }
 
-int CreateGroupedPortListCmpMpmMaxlen(DetectPort *a, DetectPort *b) {
+int CreateGroupedPortListCmpMpmMaxlen(DetectPort *a, DetectPort *b)
+{
     if (a->sh == NULL || b->sh == NULL)
         return 0;
 
@@ -2876,7 +2902,8 @@ static uint32_t g_groupportlist_maxgroups = 0;
 static uint32_t g_groupportlist_groupscnt = 0;
 static uint32_t g_groupportlist_totgroups = 0;
 
-int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, DetectPort **newhead, uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *), uint32_t max_idx) {
+int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, DetectPort **newhead, uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *), uint32_t max_idx)
+{
     DetectPort *tmplist = NULL, *tmplist2 = NULL, *joingr = NULL;
     char insert = 0;
     DetectPort *gr, *next_gr;
@@ -3015,7 +3042,8 @@ error:
  *  \internal
  *  \brief add a decoder event signature to the detection engine ctx
  */
-static void DetectEngineAddDecoderEventSig(DetectEngineCtx *de_ctx, Signature *s) {
+static void DetectEngineAddDecoderEventSig(DetectEngineCtx *de_ctx, Signature *s)
+{
     SCLogDebug("adding signature %"PRIu32" to the decoder event sgh", s->id);
     SigGroupHeadAppendSig(de_ctx, &de_ctx->decoder_event_sgh, s);
 }
@@ -3029,7 +3057,8 @@ static void DetectEngineAddDecoderEventSig(DetectEngineCtx *de_ctx, Signature *s
  * \retval  0 On success
  * \retval -1 On failure
  */
-int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
+int SigAddressPrepareStage2(DetectEngineCtx *de_ctx)
+{
     Signature *tmp_s = NULL;
     uint32_t sigs = 0;
 
@@ -3207,7 +3236,8 @@ error:
 /**
  *  \brief Build the destination address portion of the match tree
  */
-int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *head, int family, int flow) {
+int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *head, int family, int flow)
+{
     Signature *tmp_s = NULL;
     DetectAddress *gr = NULL, *sgr = NULL, *lookup_gr = NULL;
     uint32_t max_idx = 0;
@@ -3380,7 +3410,8 @@ error:
 }
 
 //static
-int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAddressHead *head, int family, int flow) {
+int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAddressHead *head, int family, int flow)
+{
     Signature *tmp_s = NULL;
     DetectAddress *src_gr = NULL, *dst_gr = NULL, *sig_gr = NULL, *lookup_gr = NULL;
     DetectAddress *src_gr_head = NULL, *dst_gr_head = NULL, *sig_gr_head = NULL;
@@ -3712,7 +3743,8 @@ error:
     return -1;
 }
 
-static void DetectEngineBuildDecoderEventSgh(DetectEngineCtx *de_ctx) {
+static void DetectEngineBuildDecoderEventSgh(DetectEngineCtx *de_ctx)
+{
     if (de_ctx->decoder_event_sgh == NULL)
         return;
 
@@ -3721,7 +3753,8 @@ static void DetectEngineBuildDecoderEventSgh(DetectEngineCtx *de_ctx) {
     SigGroupHeadBuildMatchArray(de_ctx, de_ctx->decoder_event_sgh, max_idx);
 }
 
-int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
+int SigAddressPrepareStage3(DetectEngineCtx *de_ctx)
+{
     int r;
 
     if (!(de_ctx->flags & DE_QUIET)) {
@@ -3845,7 +3878,8 @@ error:
     return -1;
 }
 
-int SigAddressCleanupStage1(DetectEngineCtx *de_ctx) {
+int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
+{
     BUG_ON(de_ctx == NULL);
 
     if (!(de_ctx->flags & DE_QUIET)) {
@@ -3873,7 +3907,8 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx) {
     return 0;
 }
 
-void DbgPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
+void DbgPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
     if (sgh == NULL) {
         printf("\n");
         return;
@@ -3886,7 +3921,8 @@ void DbgPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     printf("\n");
 }
 
-void DbgPrintSigs2(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
+void DbgPrintSigs2(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
     if (sgh == NULL || sgh->init == NULL) {
         printf("\n");
         return;
@@ -3901,7 +3937,8 @@ void DbgPrintSigs2(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     printf("\n");
 }
 
-void DbgSghContainsSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid) {
+void DbgSghContainsSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid)
+{
     if (sgh == NULL || sgh->init == NULL) {
         printf("\n");
         return;
@@ -3924,7 +3961,8 @@ void DbgSghContainsSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid)
 }
 
 /** \brief finalize preparing sgh's */
-int SigAddressPrepareStage4(DetectEngineCtx *de_ctx) {
+int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
+{
     SCEnter();
 
     //SCLogInfo("sgh's %"PRIu32, de_ctx->sgh_array_cnt);
@@ -3962,7 +4000,8 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx) {
 #define PRINTSIGS
 
 /* just printing */
-int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
+int SigAddressPrepareStage5(DetectEngineCtx *de_ctx)
+{
     DetectAddressHead *global_dst_gh = NULL;
     DetectAddress *global_src_gr = NULL, *global_dst_gr = NULL;
     uint32_t u;
@@ -4542,7 +4581,8 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
     return 0;
 }
 
-int SigGroupCleanup (DetectEngineCtx *de_ctx) {
+int SigGroupCleanup (DetectEngineCtx *de_ctx)
+{
     SigAddressCleanupStage1(de_ctx);
 
     return 0;
@@ -4655,7 +4695,8 @@ void SigTableList(const char *keyword)
     return;
 }
 
-void SigTableSetup(void) {
+void SigTableSetup(void)
+{
     memset(sigmatch_table, 0, sizeof(sigmatch_table));
 
     DetectSidRegister();
@@ -4849,7 +4890,8 @@ static const char *dummy_conf_string =
     "    SSH_PORTS: 22\n"
     "\n";
 
-static int SigTest01Real (int mpm_type) {
+static int SigTest01Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
@@ -4886,17 +4928,21 @@ end:
     return result;
 }
 
-static int SigTest01B2g (void) {
+static int SigTest01B2g (void)
+{
     return SigTest01Real(MPM_B2G);
 }
-static int SigTest01B3g (void) {
+static int SigTest01B3g (void)
+{
     return SigTest01Real(MPM_B3G);
 }
-static int SigTest01Wm (void) {
+static int SigTest01Wm (void)
+{
     return SigTest01Real(MPM_WUMANBER);
 }
 
-static int SigTest02Real (int mpm_type) {
+static int SigTest02Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
@@ -4912,18 +4958,22 @@ static int SigTest02Real (int mpm_type) {
     return ret;
 }
 
-static int SigTest02B2g (void) {
+static int SigTest02B2g (void)
+{
     return SigTest02Real(MPM_B2G);
 }
-static int SigTest02B3g (void) {
+static int SigTest02B3g (void)
+{
     return SigTest02Real(MPM_B3G);
 }
-static int SigTest02Wm (void) {
+static int SigTest02Wm (void)
+{
     return SigTest02Real(MPM_WUMANBER);
 }
 
 
-static int SigTest03Real (int mpm_type) {
+static int SigTest03Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
@@ -4973,18 +5023,22 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTest03B2g (void) {
+static int SigTest03B2g (void)
+{
     return SigTest03Real(MPM_B2G);
 }
-static int SigTest03B3g (void) {
+static int SigTest03B3g (void)
+{
     return SigTest03Real(MPM_B3G);
 }
-static int SigTest03Wm (void) {
+static int SigTest03Wm (void)
+{
     return SigTest03Real(MPM_WUMANBER);
 }
 
 
-static int SigTest04Real (int mpm_type) {
+static int SigTest04Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n" /* 20*/
                     "Host: one.example.org\r\n" /* 23, post "Host:" 18 */
@@ -5033,18 +5087,22 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTest04B2g (void) {
+static int SigTest04B2g (void)
+{
     return SigTest04Real(MPM_B2G);
 }
-static int SigTest04B3g (void) {
+static int SigTest04B3g (void)
+{
     return SigTest04Real(MPM_B3G);
 }
-static int SigTest04Wm (void) {
+static int SigTest04Wm (void)
+{
     return SigTest04Real(MPM_WUMANBER);
 }
 
 
-static int SigTest05Real (int mpm_type) {
+static int SigTest05Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
@@ -5095,18 +5153,22 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTest05B2g (void) {
+static int SigTest05B2g (void)
+{
     return SigTest05Real(MPM_B2G);
 }
-static int SigTest05B3g (void) {
+static int SigTest05B3g (void)
+{
     return SigTest05Real(MPM_B3G);
 }
-static int SigTest05Wm (void) {
+static int SigTest05Wm (void)
+{
     return SigTest05Real(MPM_WUMANBER);
 }
 
 
-static int SigTest06Real (int mpm_type) {
+static int SigTest06Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
@@ -5195,18 +5257,22 @@ end:
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest06B2g (void) {
+static int SigTest06B2g (void)
+{
     return SigTest06Real(MPM_B2G);
 }
-static int SigTest06B3g (void) {
+static int SigTest06B3g (void)
+{
     return SigTest06Real(MPM_B3G);
 }
-static int SigTest06Wm (void) {
+static int SigTest06Wm (void)
+{
     return SigTest06Real(MPM_WUMANBER);
 }
 
 
-static int SigTest07Real (int mpm_type) {
+static int SigTest07Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
@@ -5295,18 +5361,22 @@ end:
 
     return result;
 }
-static int SigTest07B2g (void) {
+static int SigTest07B2g (void)
+{
     return SigTest07Real(MPM_B2G);
 }
-static int SigTest07B3g (void) {
+static int SigTest07B3g (void)
+{
     return SigTest07Real(MPM_B3G);
 }
-static int SigTest07Wm (void) {
+static int SigTest07Wm (void)
+{
     return SigTest07Real(MPM_WUMANBER);
 }
 
 
-static int SigTest08Real (int mpm_type) {
+static int SigTest08Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.0\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
@@ -5396,18 +5466,22 @@ end:
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest08B2g (void) {
+static int SigTest08B2g (void)
+{
     return SigTest08Real(MPM_B2G);
 }
-static int SigTest08B3g (void) {
+static int SigTest08B3g (void)
+{
     return SigTest08Real(MPM_B3G);
 }
-static int SigTest08Wm (void) {
+static int SigTest08Wm (void)
+{
     return SigTest08Real(MPM_WUMANBER);
 }
 
 
-static int SigTest09Real (int mpm_type) {
+static int SigTest09Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.0\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
@@ -5494,18 +5568,22 @@ end:
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest09B2g (void) {
+static int SigTest09B2g (void)
+{
     return SigTest09Real(MPM_B2G);
 }
-static int SigTest09B3g (void) {
+static int SigTest09B3g (void)
+{
     return SigTest09Real(MPM_B3G);
 }
-static int SigTest09Wm (void) {
+static int SigTest09Wm (void)
+{
     return SigTest09Real(MPM_WUMANBER);
 }
 
 
-static int SigTest10Real (int mpm_type) {
+static int SigTest10Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "ABC";
     uint16_t buflen = strlen((char *)buf);
@@ -5588,18 +5666,22 @@ static int SigTest10Real (int mpm_type) {
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest10B2g (void) {
+static int SigTest10B2g (void)
+{
     return SigTest10Real(MPM_B2G);
 }
-static int SigTest10B3g (void) {
+static int SigTest10B3g (void)
+{
     return SigTest10Real(MPM_B3G);
 }
-static int SigTest10Wm (void) {
+static int SigTest10Wm (void)
+{
     return SigTest10Real(MPM_WUMANBER);
 }
 
 
-static int SigTest11Real (int mpm_type) {
+static int SigTest11Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
     uint16_t buflen = strlen((char *)buf);
@@ -5662,18 +5744,22 @@ static int SigTest11Real (int mpm_type) {
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest11B2g (void) {
+static int SigTest11B2g (void)
+{
     return SigTest11Real(MPM_B2G);
 }
-static int SigTest11B3g (void) {
+static int SigTest11B3g (void)
+{
     return SigTest11Real(MPM_B3G);
 }
-static int SigTest11Wm (void) {
+static int SigTest11Wm (void)
+{
     return SigTest11Real(MPM_WUMANBER);
 }
 
 
-static int SigTest12Real (int mpm_type) {
+static int SigTest12Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
     uint16_t buflen = strlen((char *)buf);
@@ -5727,18 +5813,22 @@ end:
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest12B2g (void) {
+static int SigTest12B2g (void)
+{
     return SigTest12Real(MPM_B2G);
 }
-static int SigTest12B3g (void) {
+static int SigTest12B3g (void)
+{
     return SigTest12Real(MPM_B3G);
 }
-static int SigTest12Wm (void) {
+static int SigTest12Wm (void)
+{
     return SigTest12Real(MPM_WUMANBER);
 }
 
 
-static int SigTest13Real (int mpm_type) {
+static int SigTest13Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
     uint16_t buflen = strlen((char *)buf);
@@ -5789,18 +5879,22 @@ end:
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest13B2g (void) {
+static int SigTest13B2g (void)
+{
     return SigTest13Real(MPM_B2G);
 }
-static int SigTest13B3g (void) {
+static int SigTest13B3g (void)
+{
     return SigTest13Real(MPM_B3G);
 }
-static int SigTest13Wm (void) {
+static int SigTest13Wm (void)
+{
     return SigTest13Real(MPM_WUMANBER);
 }
 
 
-static int SigTest14Real (int mpm_type) {
+static int SigTest14Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
     uint16_t buflen = strlen((char *)buf);
@@ -5844,18 +5938,22 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTest14B2g (void) {
+static int SigTest14B2g (void)
+{
     return SigTest14Real(MPM_B2G);
 }
-static int SigTest14B3g (void) {
+static int SigTest14B3g (void)
+{
     return SigTest14Real(MPM_B3G);
 }
-static int SigTest14Wm (void) {
+static int SigTest14Wm (void)
+{
     return SigTest14Real(MPM_WUMANBER);
 }
 
 
-static int SigTest15Real (int mpm_type) {
+static int SigTest15Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "CONNECT 213.92.8.7:31204 HTTP/1.1";
     uint16_t buflen = strlen((char *)buf);
@@ -5913,18 +6011,22 @@ end:
     SCFree(p);
     return result;
 }
-static int SigTest15B2g (void) {
+static int SigTest15B2g (void)
+{
     return SigTest15Real(MPM_B2G);
 }
-static int SigTest15B3g (void) {
+static int SigTest15B3g (void)
+{
     return SigTest15Real(MPM_B3G);
 }
-static int SigTest15Wm (void) {
+static int SigTest15Wm (void)
+{
     return SigTest15Real(MPM_WUMANBER);
 }
 
 
-static int SigTest16Real (int mpm_type) {
+static int SigTest16Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "CONNECT 213.92.8.7:31204 HTTP/1.1";
     uint16_t buflen = strlen((char *)buf);
@@ -5974,18 +6076,22 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTest16B2g (void) {
+static int SigTest16B2g (void)
+{
     return SigTest16Real(MPM_B2G);
 }
-static int SigTest16B3g (void) {
+static int SigTest16B3g (void)
+{
     return SigTest16Real(MPM_B3G);
 }
-static int SigTest16Wm (void) {
+static int SigTest16Wm (void)
+{
     return SigTest16Real(MPM_WUMANBER);
 }
 
 
-static int SigTest17Real (int mpm_type) {
+static int SigTest17Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"    /* 20 */
                     "Host: one.example.org\r\n" /* 23, 43 */
@@ -6052,17 +6158,21 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTest17B2g (void) {
+static int SigTest17B2g (void)
+{
     return SigTest17Real(MPM_B2G);
 }
-static int SigTest17B3g (void) {
+static int SigTest17B3g (void)
+{
     return SigTest17Real(MPM_B3G);
 }
-static int SigTest17Wm (void) {
+static int SigTest17Wm (void)
+{
     return SigTest17Real(MPM_WUMANBER);
 }
 
-static int SigTest18Real (int mpm_type) {
+static int SigTest18Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
@@ -6115,17 +6225,21 @@ end:
     SCFree(p);
     return result;
 }
-static int SigTest18B2g (void) {
+static int SigTest18B2g (void)
+{
     return SigTest18Real(MPM_B2G);
 }
-static int SigTest18B3g (void) {
+static int SigTest18B3g (void)
+{
     return SigTest18Real(MPM_B3G);
 }
-static int SigTest18Wm (void) {
+static int SigTest18Wm (void)
+{
     return SigTest18Real(MPM_WUMANBER);
 }
 
-int SigTest19Real (int mpm_type) {
+int SigTest19Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
@@ -6185,17 +6299,21 @@ end:
     SCFree(p);
     return result;
 }
-static int SigTest19B2g (void) {
+static int SigTest19B2g (void)
+{
     return SigTest19Real(MPM_B2G);
 }
-static int SigTest19B3g (void) {
+static int SigTest19B3g (void)
+{
     return SigTest19Real(MPM_B3G);
 }
-static int SigTest19Wm (void) {
+static int SigTest19Wm (void)
+{
     return SigTest19Real(MPM_WUMANBER);
 }
 
-static int SigTest20Real (int mpm_type) {
+static int SigTest20Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
@@ -6259,18 +6377,22 @@ end:
     SCFree(p);
     return result;
 }
-static int SigTest20B2g (void) {
+static int SigTest20B2g (void)
+{
     return SigTest20Real(MPM_B2G);
 }
-static int SigTest20B3g (void) {
+static int SigTest20B3g (void)
+{
     return SigTest20Real(MPM_B3G);
 }
-static int SigTest20Wm (void) {
+static int SigTest20Wm (void)
+{
     return SigTest20Real(MPM_WUMANBER);
 }
 
 
-static int SigTest21Real (int mpm_type) {
+static int SigTest21Real (int mpm_type)
+{
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -6347,18 +6469,22 @@ end:
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest21B2g (void) {
+static int SigTest21B2g (void)
+{
     return SigTest21Real(MPM_B2G);
 }
-static int SigTest21B3g (void) {
+static int SigTest21B3g (void)
+{
     return SigTest21Real(MPM_B3G);
 }
-static int SigTest21Wm (void) {
+static int SigTest21Wm (void)
+{
     return SigTest21Real(MPM_WUMANBER);
 }
 
 
-static int SigTest22Real (int mpm_type) {
+static int SigTest22Real (int mpm_type)
+{
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -6434,17 +6560,21 @@ end:
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest22B2g (void) {
+static int SigTest22B2g (void)
+{
     return SigTest22Real(MPM_B2G);
 }
-static int SigTest22B3g (void) {
+static int SigTest22B3g (void)
+{
     return SigTest22Real(MPM_B3G);
 }
-static int SigTest22Wm (void) {
+static int SigTest22Wm (void)
+{
     return SigTest22Real(MPM_WUMANBER);
 }
 
-static int SigTest23Real (int mpm_type) {
+static int SigTest23Real (int mpm_type)
+{
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -6518,13 +6648,16 @@ end:
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest23B2g (void) {
+static int SigTest23B2g (void)
+{
     return SigTest23Real(MPM_B2G);
 }
-static int SigTest23B3g (void) {
+static int SigTest23B3g (void)
+{
     return SigTest23Real(MPM_B3G);
 }
-static int SigTest23Wm (void) {
+static int SigTest23Wm (void)
+{
     return SigTest23Real(MPM_WUMANBER);
 }
 
@@ -8560,13 +8693,16 @@ end:
     SCFree(p1);
     return result;
 }
-static int SigTest38B2g (void) {
+static int SigTest38B2g (void)
+{
     return SigTest38Real(MPM_B2G);
 }
-static int SigTest38B3g (void) {
+static int SigTest38B3g (void)
+{
     return SigTest38Real(MPM_B3G);
 }
-static int SigTest38Wm (void) {
+static int SigTest38Wm (void)
+{
     return SigTest38Real(MPM_WUMANBER);
 }
 
@@ -8706,13 +8842,16 @@ end:
     SCFree(p1);
     return result;
 }
-static int SigTest39B2g (void) {
+static int SigTest39B2g (void)
+{
     return SigTest39Real(MPM_B2G);
 }
-static int SigTest39B3g (void) {
+static int SigTest39B3g (void)
+{
     return SigTest39Real(MPM_B3G);
 }
-static int SigTest39Wm (void) {
+static int SigTest39Wm (void)
+{
     return SigTest39Real(MPM_WUMANBER);
 }
 
@@ -8723,7 +8862,8 @@ static int SigTest39Wm (void) {
  * \brief expecting to match a size
  */
 
-int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type) {
+int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type)
+{
     int result = 0;
 
     // Buid and decode the packet
@@ -8844,7 +8984,8 @@ end:
  *  \brief not expecting to match a size
  */
 
-int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type) {
+int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type)
+{
     int result = 0;
 
     // Buid and decode the packet
@@ -8974,23 +9115,29 @@ end:
 
 
 // Wrapper functions to pass the mpm_type
-static int SigTest36ContentAndIsdataatKeywords01B2g (void) {
+static int SigTest36ContentAndIsdataatKeywords01B2g (void)
+{
     return SigTest36ContentAndIsdataatKeywords01Real(MPM_B2G);
 }
-static int SigTest36ContentAndIsdataatKeywords01B3g (void) {
+static int SigTest36ContentAndIsdataatKeywords01B3g (void)
+{
     return SigTest36ContentAndIsdataatKeywords01Real(MPM_B3G);
 }
-static int SigTest36ContentAndIsdataatKeywords01Wm (void) {
+static int SigTest36ContentAndIsdataatKeywords01Wm (void)
+{
     return SigTest36ContentAndIsdataatKeywords01Real(MPM_WUMANBER);
 }
 
-static int SigTest37ContentAndIsdataatKeywords02B2g (void) {
+static int SigTest37ContentAndIsdataatKeywords02B2g (void)
+{
     return SigTest37ContentAndIsdataatKeywords02Real(MPM_B2G);
 }
-static int SigTest37ContentAndIsdataatKeywords02B3g (void) {
+static int SigTest37ContentAndIsdataatKeywords02B3g (void)
+{
     return SigTest37ContentAndIsdataatKeywords02Real(MPM_B3G);
 }
-static int SigTest37ContentAndIsdataatKeywords02Wm (void) {
+static int SigTest37ContentAndIsdataatKeywords02Wm (void)
+{
     return SigTest37ContentAndIsdataatKeywords02Real(MPM_WUMANBER);
 }
 
@@ -9000,7 +9147,8 @@ static int SigTest37ContentAndIsdataatKeywords02Wm (void) {
  *  flag is set, we don't need to inspect the packet protocol header or its contents.
  */
 
-int SigTest40NoPacketInspection01(void) {
+int SigTest40NoPacketInspection01(void)
+{
 
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
@@ -9075,7 +9223,8 @@ end:
  *  flasg is set, we don't need to inspect the packet contents.
  */
 
-int SigTest40NoPayloadInspection02(void) {
+int SigTest40NoPayloadInspection02(void)
+{
 
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
@@ -9132,7 +9281,8 @@ end:
     return result;
 }
 
-static int SigTestMemory01 (void) {
+static int SigTestMemory01 (void)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
@@ -9192,7 +9342,8 @@ end:
     return result;
 }
 
-static int SigTestMemory02 (void) {
+static int SigTestMemory02 (void)
+{
     ThreadVars th_v;
     int result = 0;
 
@@ -9235,7 +9386,8 @@ end:
     return result;
 }
 
-static int SigTestMemory03 (void) {
+static int SigTestMemory03 (void)
+{
     ThreadVars th_v;
     int result = 0;
 
@@ -9279,7 +9431,8 @@ end:
     return result;
 }
 
-static int SigTestSgh01 (void) {
+static int SigTestSgh01 (void)
+{
     ThreadVars th_v;
     int result = 0;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -9420,7 +9573,8 @@ end:
     return result;
 }
 
-static int SigTestSgh02 (void) {
+static int SigTestSgh02 (void)
+{
     ThreadVars th_v;
     int result = 0;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -9607,7 +9761,8 @@ end:
     return result;
 }
 
-static int SigTestSgh03 (void) {
+static int SigTestSgh03 (void)
+{
     ThreadVars th_v;
     int result = 0;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
@@ -9778,7 +9933,8 @@ end:
     return result;
 }
 
-static int SigTestSgh04 (void) {
+static int SigTestSgh04 (void)
+{
     ThreadVars th_v;
     int result = 0;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
@@ -9970,7 +10126,8 @@ end:
 }
 
 /** \test setting of mpm type */
-static int SigTestSgh05 (void) {
+static int SigTestSgh05 (void)
+{
     ThreadVars th_v;
     int result = 0;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
@@ -10038,7 +10195,8 @@ end:
     return result;
 }
 
-static int SigTestContent01Real (int mpm_type) {
+static int SigTestContent01Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901";
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
@@ -10082,17 +10240,21 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTestContent01B2g (void) {
+static int SigTestContent01B2g (void)
+{
     return SigTestContent01Real(MPM_B2G);
 }
-static int SigTestContent01B3g (void) {
+static int SigTestContent01B3g (void)
+{
     return SigTestContent01Real(MPM_B3G);
 }
-static int SigTestContent01Wm (void) {
+static int SigTestContent01Wm (void)
+{
     return SigTestContent01Real(MPM_WUMANBER);
 }
 
-static int SigTestContent02Real (int mpm_type) {
+static int SigTestContent02Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901";
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
@@ -10145,17 +10307,21 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTestContent02B2g (void) {
+static int SigTestContent02B2g (void)
+{
     return SigTestContent02Real(MPM_B2G);
 }
-static int SigTestContent02B3g (void) {
+static int SigTestContent02B3g (void)
+{
     return SigTestContent02Real(MPM_B3G);
 }
-static int SigTestContent02Wm (void) {
+static int SigTestContent02Wm (void)
+{
     return SigTestContent02Real(MPM_WUMANBER);
 }
 
-static int SigTestContent03Real (int mpm_type) {
+static int SigTestContent03Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
@@ -10198,17 +10364,21 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTestContent03B2g (void) {
+static int SigTestContent03B2g (void)
+{
     return SigTestContent03Real(MPM_B2G);
 }
-static int SigTestContent03B3g (void) {
+static int SigTestContent03B3g (void)
+{
     return SigTestContent03Real(MPM_B3G);
 }
-static int SigTestContent03Wm (void) {
+static int SigTestContent03Wm (void)
+{
     return SigTestContent03Real(MPM_WUMANBER);
 }
 
-static int SigTestContent04Real (int mpm_type) {
+static int SigTestContent04Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
@@ -10252,18 +10422,22 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTestContent04B2g (void) {
+static int SigTestContent04B2g (void)
+{
     return SigTestContent04Real(MPM_B2G);
 }
-static int SigTestContent04B3g (void) {
+static int SigTestContent04B3g (void)
+{
     return SigTestContent04Real(MPM_B3G);
 }
-static int SigTestContent04Wm (void) {
+static int SigTestContent04Wm (void)
+{
     return SigTestContent04Real(MPM_WUMANBER);
 }
 
 /** \test sigs with patterns at the limit of the pm's size limit */
-static int SigTestContent05Real (int mpm_type) {
+static int SigTestContent05Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901PADabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
@@ -10323,17 +10497,21 @@ end:
     }
     return result;
 }
-static int SigTestContent05B2g (void) {
+static int SigTestContent05B2g (void)
+{
     return SigTestContent05Real(MPM_B2G);
 }
-static int SigTestContent05B3g (void) {
+static int SigTestContent05B3g (void)
+{
     return SigTestContent05Real(MPM_B3G);
 }
-static int SigTestContent05Wm (void) {
+static int SigTestContent05Wm (void)
+{
     return SigTestContent05Real(MPM_WUMANBER);
 }
 
-static int SigTestContent06Real (int mpm_type) {
+static int SigTestContent06Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
@@ -10390,17 +10568,21 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTestContent06B2g (void) {
+static int SigTestContent06B2g (void)
+{
     return SigTestContent06Real(MPM_B2G);
 }
-static int SigTestContent06B3g (void) {
+static int SigTestContent06B3g (void)
+{
     return SigTestContent06Real(MPM_B3G);
 }
-static int SigTestContent06Wm (void) {
+static int SigTestContent06Wm (void)
+{
     return SigTestContent06Real(MPM_WUMANBER);
 }
 
-static int SigTestWithinReal01 (int mpm_type) {
+static int SigTestWithinReal01 (int mpm_type)
+{
     DecodeThreadVars dtv;
     ThreadVars th_v;
     int result = 0;
@@ -10613,17 +10795,21 @@ end:
     return result;
 }
 
-static int SigTestWithinReal01B2g (void) {
+static int SigTestWithinReal01B2g (void)
+{
     return SigTestWithinReal01(MPM_B2G);
 }
-static int SigTestWithinReal01B3g (void) {
+static int SigTestWithinReal01B3g (void)
+{
     return SigTestWithinReal01(MPM_B3G);
 }
-static int SigTestWithinReal01Wm (void) {
+static int SigTestWithinReal01Wm (void)
+{
     return SigTestWithinReal01(MPM_WUMANBER);
 }
 
-static int SigTestDepthOffset01Real (int mpm_type) {
+static int SigTestDepthOffset01Real (int mpm_type)
+{
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
@@ -10665,13 +10851,16 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTestDepthOffset01B2g (void) {
+static int SigTestDepthOffset01B2g (void)
+{
     return SigTestDepthOffset01Real(MPM_B2G);
 }
-static int SigTestDepthOffset01B3g (void) {
+static int SigTestDepthOffset01B3g (void)
+{
     return SigTestDepthOffset01Real(MPM_B3G);
 }
-static int SigTestDepthOffset01Wm (void) {
+static int SigTestDepthOffset01Wm (void)
+{
     return SigTestDepthOffset01Real(MPM_WUMANBER);
 }
 
@@ -11367,7 +11556,8 @@ static const char *dummy_conf_string2 =
     "    HTTP_PORTS: \"80:81,88\"\n"
     "\n";
 
-static int DetectAddressYamlParsing01 (void) {
+static int DetectAddressYamlParsing01 (void)
+{
     int result = 0;
 
     ConfCreateContextBackup();
@@ -11413,7 +11603,8 @@ static const char *dummy_conf_string3 =
     "    HTTP_PORTS: \"80:81,88\"\n"
     "\n";
 
-static int DetectAddressYamlParsing02 (void) {
+static int DetectAddressYamlParsing02 (void)
+{
     int result = 0;
 
     ConfCreateContextBackup();
@@ -11459,7 +11650,8 @@ static const char *dummy_conf_string4 =
     "    HTTP_PORTS: \"80:81,88\"\n"
     "\n";
 
-static int DetectAddressYamlParsing03 (void) {
+static int DetectAddressYamlParsing03 (void)
+{
     int result = 0;
 
     ConfCreateContextBackup();
@@ -11506,7 +11698,8 @@ static const char *dummy_conf_string5 =
     "\n";
 
 /** \test bug #815 */
-static int DetectAddressYamlParsing04 (void) {
+static int DetectAddressYamlParsing04 (void)
+{
     int result = 0;
 
     ConfCreateContextBackup();
@@ -11537,7 +11730,8 @@ end:
 }
 #endif /* UNITTESTS */
 
-void SigRegisterTests(void) {
+void SigRegisterTests(void)
+{
 #ifdef UNITTESTS
     SigParseRegisterTests();
     IPOnlyRegisterTests();
