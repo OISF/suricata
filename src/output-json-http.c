@@ -274,6 +274,9 @@ OutputCtx *OutputHttpLogInit(ConfNode *conf)
     output_ctx->data = http_ctx;
     output_ctx->DeInit = NULL;
 
+    /* enable the logger for the app layer */
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP);
+
     return output_ctx;
 }
 
@@ -305,6 +308,9 @@ OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     }
     output_ctx->data = http_ctx;
     output_ctx->DeInit = NULL;
+
+    /* enable the logger for the app layer */
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP);
 
     return output_ctx;
 }
