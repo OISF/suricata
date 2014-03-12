@@ -626,8 +626,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
             KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_AMATCH);
             for (sm = item->nm; sm != NULL; sm = sm->next) {
-                if (sigmatch_table[sm->type].AppLayerMatch != NULL &&
-                    (alproto == s->alproto || alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2))
+                if (sigmatch_table[sm->type].AppLayerMatch != NULL)
                     {
                         if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
                             smb_state = (SMBState *)alstate;
