@@ -1091,6 +1091,11 @@ static int SSLRegisterPatternsForProtocolDetection(void)
     /***** toclient direction *****/
 
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
+                                               "|15 03 00|", 3, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
                                                "|16 03 00|", 3, 0, STREAM_TOCLIENT) < 0)
     {
         return -1;
@@ -1102,6 +1107,11 @@ static int SSLRegisterPatternsForProtocolDetection(void)
     }
 
     /** TLSv1 */
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
+                                               "|15 03 01|", 3, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
                                                "|16 03 01|", 3, 0, STREAM_TOCLIENT) < 0)
     {
@@ -1115,6 +1125,11 @@ static int SSLRegisterPatternsForProtocolDetection(void)
 
     /** TLSv1.1 */
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
+                                               "|15 03 02|", 3, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
                                                "|16 03 02|", 3, 0, STREAM_TOCLIENT) < 0)
     {
         return -1;
@@ -1126,6 +1141,11 @@ static int SSLRegisterPatternsForProtocolDetection(void)
     }
 
     /** TLSv1.2 */
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
+                                               "|15 03 03|", 3, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
                                                "|16 03 03|", 3, 0, STREAM_TOCLIENT) < 0)
     {
