@@ -24,7 +24,7 @@
 #ifndef __DETECT_LUAJIT_H__
 #define __DETECT_LUAJIT_H__
 
-#ifdef HAVE_LUAJIT
+#ifdef HAVE_LUA
 
 #include <lua.h>
 #include <lualib.h>
@@ -54,7 +54,8 @@ typedef struct DetectLuajitData {
     uint32_t rev;
     uint32_t gid;
 } DetectLuajitData;
-#endif
+
+#endif /* HAVE_LUA */
 
 /* prototypes */
 void DetectLuajitRegister (void);

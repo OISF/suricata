@@ -59,7 +59,7 @@
 #include "util-cpu.h"
 #include "util-var-name.h"
 
-#ifndef HAVE_LUAJIT
+#ifndef HAVE_LUA
 
 static int DetectLuajitSetupNoSupport (DetectEngineCtx *a, Signature *b, char *c) {
     SCLogError(SC_ERR_NO_LUAJIT_SUPPORT, "no LuaJIT support built in, needed for luajit keyword");
@@ -81,9 +81,27 @@ void DetectLuajitRegister(void) {
     return;
 }
 
-#else /* HAVE_LUAJIT */
+#else /* HAVE_LUA */
 
+#ifdef HAVE_LUAJIT
 #include "util-pool.h"
+
+/** \brief lua_State pool
+ *
+ *  Luajit requires states to be alloc'd in memory <2GB. For this reason we
+ *  prealloc the states early during engine startup so we have a better chance
+ *  of getting the states. We protect the pool with a lock as the detect
+ *  threads access it during their init and cleanup.
+ *
+ *  Pool size is automagically determined based on number of keyword occurences,
+ *  cpus/cores and rule reloads being enabled or not.
+ *
+ *  Alternatively, the "detect-engine.luajit-states" var can be set.
+ */
+static Pool *luajit_states = NULL;
+static pthread_mutex_t luajit_states_lock = SCMUTEX_INITIALIZER;
+
+#endif /* HAVE_LUAJIT */
 
 static int DetectLuajitMatch (ThreadVars *, DetectEngineThreadCtx *,
         Packet *, Signature *, SigMatch *);
@@ -108,21 +126,6 @@ void DetectLuajitRegister(void) {
     return;
 }
 
-/** \brief lua_State pool
- *
- *  Luajit requires states to be alloc'd in memory <2GB. For this reason we
- *  prealloc the states early during engine startup so we have a better chance
- *  of getting the states. We protect the pool with a lock as the detect
- *  threads access it during their init and cleanup.
- *
- *  Pool size is automagically determined based on number of keyword occurences,
- *  cpus/cores and rule reloads being enabled or not.
- *
- *  Alternatively, the "detect-engine.luajit-states" var can be set.
- */
-static Pool *luajit_states = NULL;
-static pthread_mutex_t luajit_states_lock = SCMUTEX_INITIALIZER;
-
 #define DATATYPE_PACKET                     (1<<0)
 #define DATATYPE_PAYLOAD                    (1<<1)
 #define DATATYPE_STREAM                     (1<<2)
@@ -144,6 +147,7 @@ static pthread_mutex_t luajit_states_lock = SCMUTEX_INITIALIZER;
 #define DATATYPE_HTTP_RESPONSE_HEADERS      (1<<13)
 #define DATATYPE_HTTP_RESPONSE_HEADERS_RAW  (1<<14)
 
+#ifdef HAVE_LUAJIT
 static void *LuaStatePoolAlloc(void) {
     return luaL_newstate();
 }
@@ -192,22 +196,31 @@ int DetectLuajitSetupStatesPool(int num, int reloads) {
     pthread_mutex_unlock(&luajit_states_lock);
     return retval;
 }
+#endif /* HAVE_LUAJIT */
 
 static lua_State *DetectLuajitGetState(void) {
 
     lua_State *s = NULL;
+#ifdef HAVE_LUAJIT
     pthread_mutex_lock(&luajit_states_lock);
     if (luajit_states != NULL)
         s = (lua_State *)PoolGet(luajit_states);
     pthread_mutex_unlock(&luajit_states_lock);
+#else
+    s = luaL_newstate();
+#endif
     return s;
 }
 
 static void DetectLuajitReturnState(lua_State *s) {
     if (s != NULL) {
+#ifdef HAVE_LUAJIT
         pthread_mutex_lock(&luajit_states_lock);
         PoolReturn(luajit_states, (void *)s);
         pthread_mutex_unlock(&luajit_states_lock);
+#else
+        lua_close(s);
+#endif
     }
 }
 
