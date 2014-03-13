@@ -77,7 +77,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
     int i;
-    char *action = "Pass";
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
@@ -94,10 +93,11 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             continue;
         }
 
-        if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
-            action = "Drop";
-        } else if (pa->action & ACTION_DROP) {
-            action = "wDrop";
+        char *action = "allowed";
+        if (pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) {
+            action = "blocked";
+        } else if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
+            action = "blocked";
         }
 
         json_t *ajs = json_object();
@@ -133,7 +133,6 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
     int i;
     char timebuf[64];
-    char *action = "Pass";
     json_t *js;
 
     if (p->alerts.cnt == 0)
@@ -149,10 +148,11 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
             continue;
         }
 
-        if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
-            action = "Drop";
-        } else if (pa->action & ACTION_DROP) {
-            action = "wDrop";
+        char *action = "allowed";
+        if (pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) {
+            action = "blocked";
+        } else if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
+            action = "blocked";
         }
 
         char buf[(32 * 3) + 1];
