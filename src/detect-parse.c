@@ -1301,7 +1301,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
         }
     }
 
-#ifdef HAVE_LUAJIT
+#ifdef HAVE_LUA
     DetectLuajitPostSetup(s);
 #endif
 
