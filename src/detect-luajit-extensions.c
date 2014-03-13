@@ -58,7 +58,7 @@
 #include "queue.h"
 #include "util-cpu.h"
 
-#ifdef HAVE_LUAJIT
+#ifdef HAVE_LUA
 
 static const char luaext_key_ld[] = "suricata:luajitdata";
 static const char luaext_key_det_ctx[] = "suricata:det_ctx";
@@ -658,4 +658,4 @@ int LuajitRegisterExtensions(lua_State *lua_state) {
     return 0;
 }
 
-#endif /* HAVE_LUAJIT */
+#endif /* HAVE_LUA */
