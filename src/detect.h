@@ -897,7 +897,8 @@ typedef struct SigTableElmt_ {
     void (*RegisterTests)(void);
 
     uint8_t flags;
-    char *name;
+    char *name;     /**< keyword name alias */
+    char *alias;    /**< name alias */
     char *desc;
     char *url;
 

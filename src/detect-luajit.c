@@ -71,6 +71,7 @@ static int DetectLuajitSetupNoSupport (DetectEngineCtx *a, Signature *b, char *c
  */
 void DetectLuajitRegister(void) {
     sigmatch_table[DETECT_LUAJIT].name = "luajit";
+    sigmatch_table[DETECT_LUAJIT].alias = "lua";
     sigmatch_table[DETECT_LUAJIT].Setup = DetectLuajitSetupNoSupport;
     sigmatch_table[DETECT_LUAJIT].Free  = NULL;
     sigmatch_table[DETECT_LUAJIT].RegisterTests = NULL;
@@ -95,6 +96,7 @@ static void DetectLuajitFree(void *);
  */
 void DetectLuajitRegister(void) {
     sigmatch_table[DETECT_LUAJIT].name = "luajit";
+    sigmatch_table[DETECT_LUAJIT].alias = "lua";
     sigmatch_table[DETECT_LUAJIT].desc = "match via a luajit script";
     sigmatch_table[DETECT_LUAJIT].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Lua_scripting";
     sigmatch_table[DETECT_LUAJIT].Match = DetectLuajitMatch;
