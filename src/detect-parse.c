@@ -273,6 +273,8 @@ SigTableElmt *SigTableGet(char *name) {
         if (st->name != NULL) {
             if (strcasecmp(name,st->name) == 0)
                 return st;
+            if (st->alias != NULL && strcasecmp(name,st->alias) == 0)
+                return st;
         }
     }
 
