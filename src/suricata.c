@@ -669,6 +669,9 @@ void SCPrintBuildInfo(void) {
 #ifdef HAVE_NSS
     strlcat(features, "HAVE_NSS ", sizeof(features));
 #endif
+#ifdef HAVE_LUA
+    strlcat(features, "HAVE_LUA ", sizeof(features));
+#endif
 #ifdef HAVE_LUAJIT
     strlcat(features, "HAVE_LUAJIT ", sizeof(features));
 #endif
