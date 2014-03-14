@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2012 ANSSI
+ * Copyright (C) 2011-2014 ANSSI
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,8 @@
 #ifndef __DETECT_TLS_H__
 #define __DETECT_TLS_H__
 
+#include "util-tls.h"
+
 typedef struct DetectTlsData_ {
     uint16_t ver; /** tls version to match */
     uint32_t flags; /** flags containing match variant (Negation for example) */
@@ -41,6 +43,14 @@ typedef struct DetectTlsData_ {
     char * issuerdn; /** tls certificate issuerDN substring to match */
     char * fingerprint; /** tls fingerprint substring to match */
 } DetectTlsData;
+
+typedef struct DetectTlsHandshakeData_ {
+    enum TlsHandshakeDataType t;
+    char * key;      /** the TLS property to match */
+    char * expected; /** the TLS expected value */
+    char op; /** the comparison operator */
+    uint32_t flags;  /** flags containing match variant (Negation for example) */
+} DetectTlsHandshakeData;
 
 /* prototypes */
 void DetectTlsRegister (void);
