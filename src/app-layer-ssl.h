@@ -153,6 +153,12 @@ typedef struct SSLStateConnp_ {
     /* sslv2 client hello session id length */
     uint16_t session_id_length;
 
+    uint16_t handshake_server_hello_ssl_version;
+
+    /* the ciphersuite, chosen by the server */
+    uint16_t ciphersuite;
+    uint8_t compressionmethod;
+
     char *cert0_subject;
     char *cert0_issuerdn;
     char *cert0_serial;
