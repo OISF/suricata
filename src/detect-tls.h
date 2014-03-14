@@ -34,6 +34,8 @@
 #ifndef __DETECT_TLS_H__
 #define __DETECT_TLS_H__
 
+#include "util-tls.h"
+
 typedef struct DetectTlsData_ {
     uint16_t ver; /** tls version to match */
     uint32_t flags; /** flags containing match variant (Negation for example) */
@@ -41,6 +43,13 @@ typedef struct DetectTlsData_ {
     char * issuerdn; /** tls certificate issuerDN substring to match */
     char * fingerprint; /** tls fingerprint substring to match */
 } DetectTlsData;
+
+typedef struct DetectTlsHandshakeData_ {
+    enum TlsHandshakeDataType t;  /** the TLS property to match */
+    const char * expected; /** the TLS expected value */
+    char op; /** the comparison operator */
+    uint32_t flags;  /** flags containing match variant (Negation for example) */
+} DetectTlsHandshakeData;
 
 /* prototypes */
 void DetectTlsRegister (void);

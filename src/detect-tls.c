@@ -57,6 +57,7 @@
 
 #include "app-layer-ssl.h"
 #include "detect-tls.h"
+#include "util-tls.h"
 
 #include "stream-tcp.h"
 
@@ -67,12 +68,27 @@
 #define PARSE_REGEX  "^([A-z0-9\\s\\-\\.=,\\*@]+|\"[A-z0-9\\s\\-\\.=,\\*@]+\")\\s*$"
 #define PARSE_REGEX_FINGERPRINT  "^([A-z0-9\\:\\*]+|\"[A-z0-9\\:\\* ]+\")\\s*$"
 
+/**
+ * \brief Regex for parsing "tls.handshake" options
+ */
+#define TLS_HANDSHAKE_PARSE_REGEX  "^\\s*(\\!*)\\s*([A-z]+[A-z0-9\\.\\* -]+)([=<>])([A-z0-9\\.\\*-]+)\\s*$"
+
+
 static pcre *subject_parse_regex;
 static pcre_extra *subject_parse_regex_study;
 static pcre *issuerdn_parse_regex;
 static pcre_extra *issuerdn_parse_regex_study;
 static pcre *fingerprint_parse_regex;
 static pcre_extra *fingerprint_parse_regex_study;
+static pcre *handshake_parse_regex;
+static pcre_extra *handshake_parse_regex_study;
+
+static int DetectTlsHandshakeMatch (ThreadVars *, DetectEngineThreadCtx *,
+        Flow *, uint8_t, void *, void *,
+        const Signature *, const SigMatchCtx *);
+static int DetectTlsHandshakeSetup (DetectEngineCtx *, Signature *, const char *);
+static void DetectTlsHandshakeRegisterTests(void);
+static void DetectTlsHandshakeFree(void *);
 
 static int DetectTlsSubjectMatch (ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
@@ -115,6 +131,15 @@ static int InspectTlsCert(ThreadVars *tv,
  */
 void DetectTlsRegister (void)
 {
+    sigmatch_table[DETECT_AL_TLS_HANDSHAKE].name = "tls.handshake";
+    sigmatch_table[DETECT_AL_TLS_HANDSHAKE].desc = "match TLS/SSL certificate handshake parameters";
+    sigmatch_table[DETECT_AL_TLS_HANDSHAKE].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tlshandshake";
+    sigmatch_table[DETECT_AL_TLS_HANDSHAKE].AppLayerTxMatch = DetectTlsHandshakeMatch;
+    sigmatch_table[DETECT_AL_TLS_HANDSHAKE].Setup = DetectTlsHandshakeSetup;
+    sigmatch_table[DETECT_AL_TLS_HANDSHAKE].Free  = DetectTlsHandshakeFree;
+    sigmatch_table[DETECT_AL_TLS_HANDSHAKE].RegisterTests = DetectTlsHandshakeRegisterTests;
+    sigmatch_table[DETECT_AL_TLS_HANDSHAKE].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
+
     sigmatch_table[DETECT_AL_TLS_SUBJECT].name = "tls.subject";
     sigmatch_table[DETECT_AL_TLS_SUBJECT].desc = "match TLS/SSL certificate Subject field";
     sigmatch_table[DETECT_AL_TLS_SUBJECT].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tlssubject";
@@ -152,6 +177,8 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_STORE].RegisterTests = NULL;
     sigmatch_table[DETECT_AL_TLS_STORE].flags |= SIGMATCH_NOOPT;
 
+    DetectSetupParseRegexes(PARSE_REGEX,
+            &handshake_parse_regex, &handshake_parse_regex_study);
     DetectSetupParseRegexes(PARSE_REGEX,
             &subject_parse_regex, &subject_parse_regex_study);
     DetectSetupParseRegexes(PARSE_REGEX,
@@ -802,3 +829,242 @@ static int DetectTlsStorePostMatch (ThreadVars *t, DetectEngineThreadCtx *det_ct
 static void DetectTlsIssuerDNRegisterTests(void)
 {
 }
+
+/******** Handshake *********/
+
+static enum TlsHandshakeDataType TlsHandshakeKeyToType(const char *key)
+{
+    if (strcmp(key, "au")==0)
+        return TLS_HS_CIPHERSUITE_AU;
+
+    if (strcmp(key, "enc")==0)
+        return TLS_HS_CIPHERSUITE_ENC;
+
+    if (strcmp(key, "enc-mode")==0)
+        return TLS_HS_CIPHERSUITE_ENC_MODE;
+
+    if (strcmp(key, "enc-size")==0)
+        return TLS_HS_CIPHERSUITE_ENC_SIZE;
+
+    if (strcmp(key, "export")==0)
+        return TLS_HS_CIPHERSUITE_EXP;
+
+    if (strcmp(key, "kx")==0)
+        return TLS_HS_CIPHERSUITE_KX;
+
+    if (strcmp(key, "mac")==0)
+        return TLS_HS_CIPHERSUITE_MAC;
+
+    if (strcmp(key, "mac-size")==0)
+        return TLS_HS_CIPHERSUITE_MAC_SIZE;
+
+    if (strcmp(key, "minversion")==0)
+        return TLS_HS_CIPHERSUITE_MIN_VERSION;
+
+    if (strcmp(key, "maxversion")==0)
+        return TLS_HS_CIPHERSUITE_MAX_VERSION;
+
+    if (strcmp(key, "openssl-name")==0)
+        return TLS_HS_CIPHERSUITE_OPENSSL_NAME;
+
+    if (strcmp(key, "prf")==0)
+        return TLS_HS_CIPHERSUITE_PRF;
+
+    if (strcmp(key, "prf-size")==0)
+        return TLS_HS_CIPHERSUITE_PRF_SIZE;
+
+    if (strcmp(key, "rfc")==0)
+        return TLS_HS_CIPHERSUITE_RFC;
+
+    return TLS_HS_INVALID;
+}
+
+/**
+ * \brief This function is used to parse the TLS handshake sub keyword
+ *
+ * \param str Pointer to the user provided option
+ *
+ * \retval id_d pointer to DetectTlsHandshakeData on success
+ * \retval NULL on failure
+ */
+static DetectTlsHandshakeData *DetectTlsHandshakeParse (const char *str)
+{
+    DetectTlsHandshakeData *tls = NULL;
+#define MAX_SUBSTRINGS 30
+    int ret = 0, res = 0;
+    int ov[MAX_SUBSTRINGS];
+
+    char str_ptr[16], key_ptr[32], op_ptr[16];
+    const char *val_ptr = NULL;
+    uint32_t flags = 0;
+
+    ret = pcre_exec(handshake_parse_regex, handshake_parse_regex_study, str, strlen(str), 0, 0,
+                    ov, MAX_SUBSTRINGS);
+
+    if (ret != 5) {
+        SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.handshake option");
+        goto error;
+    }
+
+    res = pcre_copy_substring((char *)str, ov, MAX_SUBSTRINGS, 1, str_ptr, sizeof(str_ptr));
+    if (res < 0) {
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        goto error;
+    }
+    if (str_ptr[0] == '!')
+        flags = DETECT_CONTENT_NEGATED;
+
+    res = pcre_copy_substring((char *)str, ov, MAX_SUBSTRINGS, 2, key_ptr, sizeof(key_ptr));
+    if (res < 0) {
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        goto error;
+    }
+
+    res = pcre_copy_substring((char *)str, ov, MAX_SUBSTRINGS, 3, op_ptr, sizeof(op_ptr));
+    if (res < 0) {
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        goto error;
+    }
+
+    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 4, &val_ptr);
+    if (res < 0) {
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        goto error;
+    }
+
+    /* We have a correct id option */
+    tls = SCCalloc(1, sizeof(DetectTlsHandshakeData));
+    if (tls == NULL)
+        goto error;
+    tls->flags = flags;
+    tls->expected = NULL;
+    tls->t = TlsHandshakeKeyToType(key_ptr);
+    if (tls->t == TLS_HS_INVALID)
+        goto error;
+
+    tls->expected = val_ptr;
+    tls->op = op_ptr[0];
+
+    SCLogDebug("will look for TLS handshake parameter %s=%s", key_ptr, tls->expected);
+
+    return tls;
+
+error:
+    if (val_ptr != NULL)
+        SCFree((char*)val_ptr);
+    if (tls != NULL)
+        DetectTlsHandshakeFree(tls);
+    return NULL;
+
+}
+
+/**
+ * \brief this function is used to add the parsed "tls.handshake" option
+ * \brief into the current signature
+ *
+ * \param de_ctx pointer to the Detection Engine Context
+ * \param s pointer to the Current Signature
+ * \param str pointer to the user provided "tls.handshake" option
+ *
+ * \retval 0 on Success
+ * \retval -1 on Failure
+ */
+static int DetectTlsHandshakeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    DetectTlsHandshakeData *tls = NULL;
+    SigMatch *sm = NULL;
+
+    tls = DetectTlsHandshakeParse(str);
+    if (tls == NULL)
+        goto error;
+
+    /* Okay so far so good, lets get this into a SigMatch
+     * and put it in the Signature. */
+    sm = SigMatchAlloc();
+    if (sm == NULL)
+        goto error;
+
+    sm->type = DETECT_AL_TLS_HANDSHAKE;
+    sm->ctx = (void *)tls;
+
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+        goto error;
+    }
+
+    s->alproto = ALPROTO_TLS;
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+
+    return 0;
+
+error:
+    if (tls != NULL)
+        DetectTlsSubjectFree(tls);
+    if (sm != NULL)
+        SCFree(sm);
+    return -1;
+
+}
+
+/**
+ * \brief this function will free memory associated with DetectTlsData
+ *
+ * \param id_d pointer to DetectTlsData
+ */
+static void DetectTlsHandshakeFree(void *ptr) {
+    DetectTlsHandshakeData *d = (DetectTlsHandshakeData *)ptr;
+    if (d == NULL)
+        return;
+    if (d->expected != NULL)
+        SCFree((char*)d->expected);
+    SCFree(d);
+}
+
+/**
+ * \brief this function registers unit tests for DetectTlsHandshake
+ */
+static void DetectTlsHandshakeRegisterTests(void) {
+}
+
+/**
+ * \brief match all handshake sub-keywords on a tls session
+ *
+ * \param t pointer to thread vars
+ * \param det_ctx pointer to the pattern matcher thread
+ * \param p pointer to the current packet
+ * \param m pointer to the sigmatch that we will cast into DetectTlsData
+ *
+ * \retval 0 no match
+ * \retval 1 match
+ */
+static int DetectTlsHandshakeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, void *state, void *txv,
+        const Signature *s, const SigMatchCtx *m)
+{
+    SCEnter();
+
+    DetectTlsHandshakeData *tls_data = (DetectTlsHandshakeData *)m;
+    SSLState *ssl_state = (SSLState *)state;
+    if (ssl_state == NULL) {
+        SCLogDebug("no tls state, no match");
+        SCReturnInt(0);
+    }
+
+    int ret = 0;
+
+    SSLStateConnp *connp = NULL;
+    if (flags & STREAM_TOSERVER) {
+        connp = &ssl_state->client_connp;
+    } else {
+        connp = &ssl_state->server_connp;
+    }
+
+    if (connp->ciphersuite != 0) {
+        ret = TlsCiphersuiteMatchGroup(connp->ciphersuite, tls_data->t, tls_data->expected, tls_data->op);
+        if (tls_data->flags & DETECT_CONTENT_NEGATED)
+            ret = !ret;
+    }
+
+    SCReturnInt(ret);
+}
+
