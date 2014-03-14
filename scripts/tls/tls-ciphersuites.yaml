@@ -1,0 +1,5640 @@
+
+%YAML 1.1
+---
+
+tls-ciphersuites:
+
+  - cipher: TLS_NULL_WITH_NULL_NULL
+    cs: 0x0000
+    name: TLS_NULL_WITH_NULL_NULL
+    openssl-name: NULL
+    kx: NULL
+    au: NULL
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: NULL
+    mac-size: 0
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_NULL_MD5
+    cs: 0x0001
+    name: TLS_RSA_WITH_NULL_MD5
+    openssl-name: NULL-MD5
+    kx: RSA
+    au: RSA
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-MD5
+    mac-size: 128
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_NULL_SHA
+    cs: 0x0002
+    name: TLS_RSA_WITH_NULL_SHA
+    openssl-name: NULL-SHA
+    kx: RSA
+    au: RSA
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_EXPORT_WITH_RC4_40_MD5
+    cs: 0x0003
+    name: TLS_RSA_EXPORT_WITH_RC4_40_MD5
+    openssl-name: EXP-RC4-MD5
+    kx: RSA
+    au: RSA
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 40
+    mac: HMAC-MD5
+    mac-size: 128
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 1
+    minversion: 0x0300
+    maxversion: 0x0302
+
+  - cipher: TLS_RSA_WITH_RC4_128_MD5
+    cs: 0x0004
+    name: TLS_RSA_WITH_RC4_128_MD5
+    openssl-name: RC4-MD5
+    kx: RSA
+    au: RSA
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 128
+    mac: HMAC-MD5
+    mac-size: 128
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_RC4_128_SHA
+    cs: 0x0005
+    name: TLS_RSA_WITH_RC4_128_SHA
+    openssl-name: RC4-SHA
+    kx: RSA
+    au: RSA
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5
+    cs: 0x0006
+    name: TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5
+    openssl-name: EXP-RC2-CBC-MD5
+    kx: RSA
+    au: RSA
+    enc: RC2
+    enc-mode: CBC
+    enc-size: 40
+    mac: HMAC-MD5
+    mac-size: 128
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 1
+    minversion: 0x0300
+    maxversion: 0x0302
+
+  - cipher: TLS_RSA_WITH_IDEA_CBC_SHA
+    cs: 0x0007
+    name: TLS_RSA_WITH_IDEA_CBC_SHA
+    openssl-name: NULL
+    kx: RSA
+    au: RSA
+    enc: IDEA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_EXPORT_WITH_DES40_CBC_SHA
+    cs: 0x0008
+    name: TLS_RSA_EXPORT_WITH_DES40_CBC_SHA
+    openssl-name: EXP-DES-CBC-SHA
+    kx: RSA
+    au: RSA
+    enc: DES
+    enc-mode: CBC
+    enc-size: 40
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 1
+    minversion: 0x0300
+    maxversion: 0x0302
+
+  - cipher: TLS_RSA_WITH_DES_CBC_SHA
+    cs: 0x0009
+    name: TLS_RSA_WITH_DES_CBC_SHA
+    openssl-name: DES-CBC-SHA
+    kx: RSA
+    au: RSA
+    enc: DES
+    enc-mode: CBC
+    enc-size: 56
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_3DES_EDE_CBC_SHA
+    cs: 0x000a
+    name: TLS_RSA_WITH_3DES_EDE_CBC_SHA
+    openssl-name: DES-CBC3-SHA
+    kx: RSA
+    au: RSA
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA
+    cs: 0x000b
+    name: TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: DES
+    enc-mode: CBC
+    enc-size: 40
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 1
+    minversion: 0x0300
+    maxversion: 0x0302
+
+  - cipher: TLS_DH_DSS_WITH_DES_CBC_SHA
+    cs: 0x000c
+    name: TLS_DH_DSS_WITH_DES_CBC_SHA
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: DES
+    enc-mode: CBC
+    enc-size: 56
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA
+    cs: 0x000d
+    name: TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA
+    cs: 0x000e
+    name: TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: DES
+    enc-mode: CBC
+    enc-size: 40
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 1
+    minversion: 0x0300
+    maxversion: 0x0302
+
+  - cipher: TLS_DH_RSA_WITH_DES_CBC_SHA
+    cs: 0x000f
+    name: TLS_DH_RSA_WITH_DES_CBC_SHA
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: DES
+    enc-mode: CBC
+    enc-size: 56
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA
+    cs: 0x0010
+    name: TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA
+    cs: 0x0011
+    name: TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA
+    openssl-name: EXP-EDH-DSS-DES-CBC-SHA
+    kx: DHE
+    au: DSS
+    enc: DES
+    enc-mode: CBC
+    enc-size: 40
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 1
+    minversion: 0x0300
+    maxversion: 0x0302
+
+  - cipher: TLS_DHE_DSS_WITH_DES_CBC_SHA
+    cs: 0x0012
+    name: TLS_DHE_DSS_WITH_DES_CBC_SHA
+    openssl-name: EDH-DSS-DES-CBC-SHA
+    kx: DHE
+    au: DSS
+    enc: DES
+    enc-mode: CBC
+    enc-size: 56
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA
+    cs: 0x0013
+    name: TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA
+    openssl-name: EDH-DSS-DES-CBC3-SHA
+    kx: DHE
+    au: DSS
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA
+    cs: 0x0014
+    name: TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA
+    openssl-name: EXP-EDH-RSA-DES-CBC-SHA
+    kx: DHE
+    au: RSA
+    enc: DES
+    enc-mode: CBC
+    enc-size: 40
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 1
+    minversion: 0x0300
+    maxversion: 0x0302
+
+  - cipher: TLS_DHE_RSA_WITH_DES_CBC_SHA
+    cs: 0x0015
+    name: TLS_DHE_RSA_WITH_DES_CBC_SHA
+    openssl-name: EDH-RSA-DES-CBC-SHA
+    kx: DHE
+    au: RSA
+    enc: DES
+    enc-mode: CBC
+    enc-size: 56
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA
+    cs: 0x0016
+    name: TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA
+    openssl-name: EDH-RSA-DES-CBC3-SHA
+    kx: DHE
+    au: RSA
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_EXPORT_WITH_RC4_40_MD5
+    cs: 0x0017
+    name: TLS_DH_anon_EXPORT_WITH_RC4_40_MD5
+    openssl-name: EXP-ADH-RC4-MD5
+    kx: DH
+    au: NULL
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 40
+    mac: HMAC-MD5
+    mac-size: 128
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 1
+    minversion: 0x0300
+    maxversion: 0x0302
+
+  - cipher: TLS_DH_anon_WITH_RC4_128_MD5
+    cs: 0x0018
+    name: TLS_DH_anon_WITH_RC4_128_MD5
+    openssl-name: ADH-RC4-MD5
+    kx: DH
+    au: NULL
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 128
+    mac: HMAC-MD5
+    mac-size: 128
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA
+    cs: 0x0019
+    name: TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA
+    openssl-name: EXP-ADH-DES-CBC-SHA
+    kx: DH
+    au: NULL
+    enc: DES
+    enc-mode: CBC
+    enc-size: 40
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 1
+    minversion: 0x0300
+    maxversion: 0x0302
+
+  - cipher: TLS_DH_anon_WITH_DES_CBC_SHA
+    cs: 0x001a
+    name: TLS_DH_anon_WITH_DES_CBC_SHA
+    openssl-name: ADH-DES-CBC-SHA
+    kx: DH
+    au: NULL
+    enc: DES
+    enc-mode: CBC
+    enc-size: 56
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_3DES_EDE_CBC_SHA
+    cs: 0x001b
+    name: TLS_DH_anon_WITH_3DES_EDE_CBC_SHA
+    openssl-name: ADH-DES-CBC3-SHA
+    kx: DH
+    au: NULL
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_KRB5_WITH_DES_CBC_SHA
+    cs: 0x001e
+    name: TLS_KRB5_WITH_DES_CBC_SHA
+    openssl-name: NULL
+    kx: KRB5
+    au: KRB5
+    enc: DES
+    enc-mode: CBC
+    enc-size: 56
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_KRB5_WITH_3DES_EDE_CBC_SHA
+    cs: 0x001f
+    name: TLS_KRB5_WITH_3DES_EDE_CBC_SHA
+    openssl-name: NULL
+    kx: KRB5
+    au: KRB5
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_KRB5_WITH_RC4_128_SHA
+    cs: 0x0020
+    name: TLS_KRB5_WITH_RC4_128_SHA
+    openssl-name: NULL
+    kx: KRB5
+    au: KRB5
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_KRB5_WITH_IDEA_CBC_SHA
+    cs: 0x0021
+    name: TLS_KRB5_WITH_IDEA_CBC_SHA
+    openssl-name: NULL
+    kx: KRB5
+    au: KRB5
+    enc: IDEA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_KRB5_WITH_DES_CBC_MD5
+    cs: 0x0022
+    name: TLS_KRB5_WITH_DES_CBC_MD5
+    openssl-name: NULL
+    kx: KRB5
+    au: KRB5
+    enc: DES
+    enc-mode: CBC
+    enc-size: 56
+    mac: HMAC-MD5
+    mac-size: 128
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_KRB5_WITH_3DES_EDE_CBC_MD5
+    cs: 0x0023
+    name: TLS_KRB5_WITH_3DES_EDE_CBC_MD5
+    openssl-name: NULL
+    kx: KRB5
+    au: KRB5
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-MD5
+    mac-size: 128
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_KRB5_WITH_RC4_128_MD5
+    cs: 0x0024
+    name: TLS_KRB5_WITH_RC4_128_MD5
+    openssl-name: NULL
+    kx: KRB5
+    au: KRB5
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 128
+    mac: HMAC-MD5
+    mac-size: 128
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_KRB5_WITH_IDEA_CBC_MD5
+    cs: 0x0025
+    name: TLS_KRB5_WITH_IDEA_CBC_MD5
+    openssl-name: NULL
+    kx: KRB5
+    au: KRB5
+    enc: IDEA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-MD5
+    mac-size: 128
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA
+    cs: 0x0026
+    name: TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA
+    openssl-name: NULL
+    kx: KRB5
+    au: KRB5
+    enc: DES
+    enc-mode: CBC
+    enc-size: 40
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 1
+    minversion: 0x0300
+    maxversion: 0x0302
+
+  - cipher: TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA
+    cs: 0x0027
+    name: TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA
+    openssl-name: NULL
+    kx: KRB5
+    au: KRB5
+    enc: RC2
+    enc-mode: CBC
+    enc-size: 40
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 1
+    minversion: 0x0300
+    maxversion: 0x0302
+
+  - cipher: TLS_KRB5_EXPORT_WITH_RC4_40_SHA
+    cs: 0x0028
+    name: TLS_KRB5_EXPORT_WITH_RC4_40_SHA
+    openssl-name: NULL
+    kx: KRB5
+    au: KRB5
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 40
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 1
+    minversion: 0x0300
+    maxversion: 0x0302
+
+  - cipher: TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5
+    cs: 0x0029
+    name: TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5
+    openssl-name: NULL
+    kx: KRB5
+    au: KRB5
+    enc: DES
+    enc-mode: CBC
+    enc-size: 40
+    mac: HMAC-MD5
+    mac-size: 128
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 1
+    minversion: 0x0300
+    maxversion: 0x0302
+
+  - cipher: TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5
+    cs: 0x002a
+    name: TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5
+    openssl-name: NULL
+    kx: KRB5
+    au: KRB5
+    enc: RC2
+    enc-mode: CBC
+    enc-size: 40
+    mac: HMAC-MD5
+    mac-size: 128
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 1
+    minversion: 0x0300
+    maxversion: 0x0302
+
+  - cipher: TLS_KRB5_EXPORT_WITH_RC4_40_MD5
+    cs: 0x002b
+    name: TLS_KRB5_EXPORT_WITH_RC4_40_MD5
+    openssl-name: NULL
+    kx: KRB5
+    au: KRB5
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 40
+    mac: HMAC-MD5
+    mac-size: 128
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 1
+    minversion: 0x0300
+    maxversion: 0x0302
+
+  - cipher: TLS_PSK_WITH_NULL_SHA
+    cs: 0x002c
+    name: TLS_PSK_WITH_NULL_SHA
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_NULL_SHA
+    cs: 0x002d
+    name: TLS_DHE_PSK_WITH_NULL_SHA
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_NULL_SHA
+    cs: 0x002e
+    name: TLS_RSA_PSK_WITH_NULL_SHA
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_AES_128_CBC_SHA
+    cs: 0x002f
+    name: TLS_RSA_WITH_AES_128_CBC_SHA
+    openssl-name: AES128-SHA
+    kx: RSA
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_AES_128_CBC_SHA
+    cs: 0x0030
+    name: TLS_DH_DSS_WITH_AES_128_CBC_SHA
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_AES_128_CBC_SHA
+    cs: 0x0031
+    name: TLS_DH_RSA_WITH_AES_128_CBC_SHA
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_AES_128_CBC_SHA
+    cs: 0x0032
+    name: TLS_DHE_DSS_WITH_AES_128_CBC_SHA
+    openssl-name: DHE-DSS-AES128-SHA
+    kx: DHE
+    au: DSS
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+    cs: 0x0033
+    name: TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+    openssl-name: DHE-RSA-AES128-SHA
+    kx: DHE
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_AES_128_CBC_SHA
+    cs: 0x0034
+    name: TLS_DH_anon_WITH_AES_128_CBC_SHA
+    openssl-name: ADH-AES128-SHA
+    kx: DH
+    au: NULL
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_AES_256_CBC_SHA
+    cs: 0x0035
+    name: TLS_RSA_WITH_AES_256_CBC_SHA
+    openssl-name: AES256-SHA
+    kx: RSA
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_AES_256_CBC_SHA
+    cs: 0x0036
+    name: TLS_DH_DSS_WITH_AES_256_CBC_SHA
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_AES_256_CBC_SHA
+    cs: 0x0037
+    name: TLS_DH_RSA_WITH_AES_256_CBC_SHA
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_AES_256_CBC_SHA
+    cs: 0x0038
+    name: TLS_DHE_DSS_WITH_AES_256_CBC_SHA
+    openssl-name: DHE-DSS-AES256-SHA
+    kx: DHE
+    au: DSS
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+    cs: 0x0039
+    name: TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+    openssl-name: DHE-RSA-AES256-SHA
+    kx: DHE
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_AES_256_CBC_SHA
+    cs: 0x003a
+    name: TLS_DH_anon_WITH_AES_256_CBC_SHA
+    openssl-name: ADH-AES256-SHA
+    kx: DH
+    au: NULL
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_NULL_SHA256
+    cs: 0x003b
+    name: TLS_RSA_WITH_NULL_SHA256
+    openssl-name: NULL-SHA256
+    kx: RSA
+    au: RSA
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 0
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_AES_128_CBC_SHA256
+    cs: 0x003c
+    name: TLS_RSA_WITH_AES_128_CBC_SHA256
+    openssl-name: AES128-SHA256
+    kx: RSA
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 0
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_AES_256_CBC_SHA256
+    cs: 0x003d
+    name: TLS_RSA_WITH_AES_256_CBC_SHA256
+    openssl-name: AES256-SHA256
+    kx: RSA
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 0
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_AES_128_CBC_SHA256
+    cs: 0x003e
+    name: TLS_DH_DSS_WITH_AES_128_CBC_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 0
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_AES_128_CBC_SHA256
+    cs: 0x003f
+    name: TLS_DH_RSA_WITH_AES_128_CBC_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 0
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_AES_128_CBC_SHA256
+    cs: 0x0040
+    name: TLS_DHE_DSS_WITH_AES_128_CBC_SHA256
+    openssl-name: DHE-DSS-AES128-SHA256
+    kx: DHE
+    au: DSS
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 0
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_CAMELLIA_128_CBC_SHA
+    cs: 0x0041
+    name: TLS_RSA_WITH_CAMELLIA_128_CBC_SHA
+    openssl-name: CAMELLIA128-SHA
+    kx: RSA
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA
+    cs: 0x0042
+    name: TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA
+    cs: 0x0043
+    name: TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA
+    cs: 0x0044
+    name: TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA
+    openssl-name: DHE-DSS-CAMELLIA128-SHA
+    kx: DHE
+    au: DSS
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA
+    cs: 0x0045
+    name: TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA
+    openssl-name: DHE-RSA-CAMELLIA128-SHA
+    kx: DHE
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA
+    cs: 0x0046
+    name: TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA
+    openssl-name: ADH-CAMELLIA128-SHA
+    kx: DH
+    au: NULL
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 0
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+    cs: 0x0067
+    name: TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+    openssl-name: DHE-RSA-AES128-SHA256
+    kx: DHE
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5246
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_AES_256_CBC_SHA256
+    cs: 0x0068
+    name: TLS_DH_DSS_WITH_AES_256_CBC_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5246
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_AES_256_CBC_SHA256
+    cs: 0x0069
+    name: TLS_DH_RSA_WITH_AES_256_CBC_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5246
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_AES_256_CBC_SHA256
+    cs: 0x006a
+    name: TLS_DHE_DSS_WITH_AES_256_CBC_SHA256
+    openssl-name: DHE-DSS-AES256-SHA256
+    kx: DHE
+    au: DSS
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5246
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+    cs: 0x006b
+    name: TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+    openssl-name: DHE-RSA-AES256-SHA256
+    kx: DHE
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5246
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_AES_128_CBC_SHA256
+    cs: 0x006c
+    name: TLS_DH_anon_WITH_AES_128_CBC_SHA256
+    openssl-name: ADH-AES128-SHA256
+    kx: DH
+    au: NULL
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5246
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_AES_256_CBC_SHA256
+    cs: 0x006d
+    name: TLS_DH_anon_WITH_AES_256_CBC_SHA256
+    openssl-name: ADH-AES256-SHA256
+    kx: DH
+    au: NULL
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5246
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_CAMELLIA_256_CBC_SHA
+    cs: 0x0084
+    name: TLS_RSA_WITH_CAMELLIA_256_CBC_SHA
+    openssl-name: CAMELLIA256-SHA
+    kx: RSA
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5932
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA
+    cs: 0x0085
+    name: TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5932
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA
+    cs: 0x0086
+    name: TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5932
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA
+    cs: 0x0087
+    name: TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA
+    openssl-name: DHE-DSS-CAMELLIA256-SHA
+    kx: DHE
+    au: DSS
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5932
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA
+    cs: 0x0088
+    name: TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA
+    openssl-name: DHE-RSA-CAMELLIA256-SHA
+    kx: DHE
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5932
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA
+    cs: 0x0089
+    name: TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA
+    openssl-name: ADH-CAMELLIA256-SHA
+    kx: DH
+    au: NULL
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5932
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_RC4_128_SHA
+    cs: 0x008a
+    name: TLS_PSK_WITH_RC4_128_SHA
+    openssl-name: PSK-RC4-SHA
+    kx: PSK
+    au: PSK
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4279
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_3DES_EDE_CBC_SHA
+    cs: 0x008b
+    name: TLS_PSK_WITH_3DES_EDE_CBC_SHA
+    openssl-name: PSK-3DES-EDE-CBC-SHA
+    kx: PSK
+    au: PSK
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4279
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_AES_128_CBC_SHA
+    cs: 0x008c
+    name: TLS_PSK_WITH_AES_128_CBC_SHA
+    openssl-name: PSK-AES128-CBC-SHA
+    kx: PSK
+    au: PSK
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4279
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_AES_256_CBC_SHA
+    cs: 0x008d
+    name: TLS_PSK_WITH_AES_256_CBC_SHA
+    openssl-name: PSK-AES256-CBC-SHA
+    kx: PSK
+    au: PSK
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4279
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_RC4_128_SHA
+    cs: 0x008e
+    name: TLS_DHE_PSK_WITH_RC4_128_SHA
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4279
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA
+    cs: 0x008f
+    name: TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4279
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_AES_128_CBC_SHA
+    cs: 0x0090
+    name: TLS_DHE_PSK_WITH_AES_128_CBC_SHA
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4279
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_AES_256_CBC_SHA
+    cs: 0x0091
+    name: TLS_DHE_PSK_WITH_AES_256_CBC_SHA
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4279
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_RC4_128_SHA
+    cs: 0x0092
+    name: TLS_RSA_PSK_WITH_RC4_128_SHA
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4279
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA
+    cs: 0x0093
+    name: TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4279
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_AES_128_CBC_SHA
+    cs: 0x0094
+    name: TLS_RSA_PSK_WITH_AES_128_CBC_SHA
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4279
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_AES_256_CBC_SHA
+    cs: 0x0095
+    name: TLS_RSA_PSK_WITH_AES_256_CBC_SHA
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4279
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_SEED_CBC_SHA
+    cs: 0x0096
+    name: TLS_RSA_WITH_SEED_CBC_SHA
+    openssl-name: SEED-SHA
+    kx: RSA
+    au: RSA
+    enc: SEED
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4162
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_SEED_CBC_SHA
+    cs: 0x0097
+    name: TLS_DH_DSS_WITH_SEED_CBC_SHA
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: SEED
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4162
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_SEED_CBC_SHA
+    cs: 0x0098
+    name: TLS_DH_RSA_WITH_SEED_CBC_SHA
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: SEED
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4162
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_SEED_CBC_SHA
+    cs: 0x0099
+    name: TLS_DHE_DSS_WITH_SEED_CBC_SHA
+    openssl-name: DHE-DSS-SEED-SHA
+    kx: DHE
+    au: DSS
+    enc: SEED
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4162
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_SEED_CBC_SHA
+    cs: 0x009a
+    name: TLS_DHE_RSA_WITH_SEED_CBC_SHA
+    openssl-name: DHE-RSA-SEED-SHA
+    kx: DHE
+    au: RSA
+    enc: SEED
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4162
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_SEED_CBC_SHA
+    cs: 0x009b
+    name: TLS_DH_anon_WITH_SEED_CBC_SHA
+    openssl-name: ADH-SEED-SHA
+    kx: DH
+    au: NULL
+    enc: SEED
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4162
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_AES_128_GCM_SHA256
+    cs: 0x009c
+    name: TLS_RSA_WITH_AES_128_GCM_SHA256
+    openssl-name: AES128-GCM-SHA256
+    kx: RSA
+    au: RSA
+    enc: AES
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 5288
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_AES_256_GCM_SHA384
+    cs: 0x009d
+    name: TLS_RSA_WITH_AES_256_GCM_SHA384
+    openssl-name: AES256-GCM-SHA384
+    kx: RSA
+    au: RSA
+    enc: AES
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 5288
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+    cs: 0x009e
+    name: TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+    openssl-name: DHE-RSA-AES128-GCM-SHA256
+    kx: DHE
+    au: RSA
+    enc: AES
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 5288
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+    cs: 0x009f
+    name: TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+    openssl-name: DHE-RSA-AES256-GCM-SHA384
+    kx: DHE
+    au: RSA
+    enc: AES
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 5288
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_AES_128_GCM_SHA256
+    cs: 0x00a0
+    name: TLS_DH_RSA_WITH_AES_128_GCM_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: AES
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 5288
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_AES_256_GCM_SHA384
+    cs: 0x00a1
+    name: TLS_DH_RSA_WITH_AES_256_GCM_SHA384
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: AES
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 5288
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_AES_128_GCM_SHA256
+    cs: 0x00a2
+    name: TLS_DHE_DSS_WITH_AES_128_GCM_SHA256
+    openssl-name: DHE-DSS-AES128-GCM-SHA256
+    kx: DHE
+    au: DSS
+    enc: AES
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 5288
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_AES_256_GCM_SHA384
+    cs: 0x00a3
+    name: TLS_DHE_DSS_WITH_AES_256_GCM_SHA384
+    openssl-name: DHE-DSS-AES256-GCM-SHA384
+    kx: DHE
+    au: DSS
+    enc: AES
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 5288
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_AES_128_GCM_SHA256
+    cs: 0x00a4
+    name: TLS_DH_DSS_WITH_AES_128_GCM_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: AES
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 5288
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_AES_256_GCM_SHA384
+    cs: 0x00a5
+    name: TLS_DH_DSS_WITH_AES_256_GCM_SHA384
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: AES
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 5288
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_AES_128_GCM_SHA256
+    cs: 0x00a6
+    name: TLS_DH_anon_WITH_AES_128_GCM_SHA256
+    openssl-name: ADH-AES128-GCM-SHA256
+    kx: DH
+    au: NULL
+    enc: AES
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 5288
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_AES_256_GCM_SHA384
+    cs: 0x00a7
+    name: TLS_DH_anon_WITH_AES_256_GCM_SHA384
+    openssl-name: ADH-AES256-GCM-SHA384
+    kx: DH
+    au: NULL
+    enc: AES
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 5288
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_AES_128_GCM_SHA256
+    cs: 0x00a8
+    name: TLS_PSK_WITH_AES_128_GCM_SHA256
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: AES
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_AES_256_GCM_SHA384
+    cs: 0x00a9
+    name: TLS_PSK_WITH_AES_256_GCM_SHA384
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: AES
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_AES_128_GCM_SHA256
+    cs: 0x00aa
+    name: TLS_DHE_PSK_WITH_AES_128_GCM_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: AES
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_AES_256_GCM_SHA384
+    cs: 0x00ab
+    name: TLS_DHE_PSK_WITH_AES_256_GCM_SHA384
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: AES
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_AES_128_GCM_SHA256
+    cs: 0x00ac
+    name: TLS_RSA_PSK_WITH_AES_128_GCM_SHA256
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: AES
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_AES_256_GCM_SHA384
+    cs: 0x00ad
+    name: TLS_RSA_PSK_WITH_AES_256_GCM_SHA384
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: AES
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_AES_128_CBC_SHA256
+    cs: 0x00ae
+    name: TLS_PSK_WITH_AES_128_CBC_SHA256
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_AES_256_CBC_SHA384
+    cs: 0x00af
+    name: TLS_PSK_WITH_AES_256_CBC_SHA384
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_NULL_SHA256
+    cs: 0x00b0
+    name: TLS_PSK_WITH_NULL_SHA256
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_NULL_SHA384
+    cs: 0x00b1
+    name: TLS_PSK_WITH_NULL_SHA384
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_AES_128_CBC_SHA256
+    cs: 0x00b2
+    name: TLS_DHE_PSK_WITH_AES_128_CBC_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_AES_256_CBC_SHA384
+    cs: 0x00b3
+    name: TLS_DHE_PSK_WITH_AES_256_CBC_SHA384
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_NULL_SHA256
+    cs: 0x00b4
+    name: TLS_DHE_PSK_WITH_NULL_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_NULL_SHA384
+    cs: 0x00b5
+    name: TLS_DHE_PSK_WITH_NULL_SHA384
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_AES_128_CBC_SHA256
+    cs: 0x00b6
+    name: TLS_RSA_PSK_WITH_AES_128_CBC_SHA256
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_AES_256_CBC_SHA384
+    cs: 0x00b7
+    name: TLS_RSA_PSK_WITH_AES_256_CBC_SHA384
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_NULL_SHA256
+    cs: 0x00b8
+    name: TLS_RSA_PSK_WITH_NULL_SHA256
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_NULL_SHA384
+    cs: 0x00b9
+    name: TLS_RSA_PSK_WITH_NULL_SHA384
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 5487
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_CAMELLIA_128_CBC_SHA256
+    cs: 0x00ba
+    name: TLS_RSA_WITH_CAMELLIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: RSA
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5932
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA256
+    cs: 0x00bb
+    name: TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5932
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA256
+    cs: 0x00bc
+    name: TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5932
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA256
+    cs: 0x00bd
+    name: TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: DSS
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5932
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256
+    cs: 0x00be
+    name: TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5932
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA256
+    cs: 0x00bf
+    name: TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: NULL
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5932
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_CAMELLIA_256_CBC_SHA256
+    cs: 0x00c0
+    name: TLS_RSA_WITH_CAMELLIA_256_CBC_SHA256
+    openssl-name: NULL
+    kx: RSA
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5932
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA256
+    cs: 0x00c1
+    name: TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5932
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA256
+    cs: 0x00c2
+    name: TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5932
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA256
+    cs: 0x00c3
+    name: TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: DSS
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5932
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA256
+    cs: 0x00c4
+    name: TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5932
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA256
+    cs: 0x00c5
+    name: TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: NULL
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5932
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_ECDSA_WITH_NULL_SHA
+    cs: 0xc001
+    name: TLS_ECDH_ECDSA_WITH_NULL_SHA
+    openssl-name: ECDH-ECDSA-NULL-SHA
+    kx: ECDH
+    au: ECDSA
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_ECDSA_WITH_RC4_128_SHA
+    cs: 0xc002
+    name: TLS_ECDH_ECDSA_WITH_RC4_128_SHA
+    openssl-name: ECDH-ECDSA-RC4-SHA
+    kx: ECDH
+    au: ECDSA
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA
+    cs: 0xc003
+    name: TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA
+    openssl-name: ECDH-ECDSA-DES-CBC3-SHA
+    kx: ECDH
+    au: ECDSA
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA
+    cs: 0xc004
+    name: TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA
+    openssl-name: ECDH-ECDSA-AES128-SHA
+    kx: ECDH
+    au: ECDSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA
+    cs: 0xc005
+    name: TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA
+    openssl-name: ECDH-ECDSA-AES256-SHA
+    kx: ECDH
+    au: ECDSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_NULL_SHA
+    cs: 0xc006
+    name: TLS_ECDHE_ECDSA_WITH_NULL_SHA
+    openssl-name: ECDHE-ECDSA-NULL-SHA
+    kx: ECDHE
+    au: ECDSA
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_RC4_128_SHA
+    cs: 0xc007
+    name: TLS_ECDHE_ECDSA_WITH_RC4_128_SHA
+    openssl-name: ECDHE-ECDSA-RC4-SHA
+    kx: ECDHE
+    au: ECDSA
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA
+    cs: 0xc008
+    name: TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA
+    openssl-name: ECDHE-ECDSA-DES-CBC3-SHA
+    kx: ECDHE
+    au: ECDSA
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+    cs: 0xc009
+    name: TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+    openssl-name: ECDHE-ECDSA-AES128-SHA
+    kx: ECDHE
+    au: ECDSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+    cs: 0xc00a
+    name: TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+    openssl-name: ECDHE-ECDSA-AES256-SHA
+    kx: ECDHE
+    au: ECDSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_RSA_WITH_NULL_SHA
+    cs: 0xc00b
+    name: TLS_ECDH_RSA_WITH_NULL_SHA
+    openssl-name: ECDH-RSA-NULL-SHA
+    kx: ECDH
+    au: RSA
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_RSA_WITH_RC4_128_SHA
+    cs: 0xc00c
+    name: TLS_ECDH_RSA_WITH_RC4_128_SHA
+    openssl-name: ECDH-RSA-RC4-SHA
+    kx: ECDH
+    au: RSA
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA
+    cs: 0xc00d
+    name: TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA
+    openssl-name: ECDH-RSA-DES-CBC3-SHA
+    kx: ECDH
+    au: RSA
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_RSA_WITH_AES_128_CBC_SHA
+    cs: 0xc00e
+    name: TLS_ECDH_RSA_WITH_AES_128_CBC_SHA
+    openssl-name: ECDH-RSA-AES128-SHA
+    kx: ECDH
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_RSA_WITH_AES_256_CBC_SHA
+    cs: 0xc00f
+    name: TLS_ECDH_RSA_WITH_AES_256_CBC_SHA
+    openssl-name: ECDH-RSA-AES256-SHA
+    kx: ECDH
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_NULL_SHA
+    cs: 0xc010
+    name: TLS_ECDHE_RSA_WITH_NULL_SHA
+    openssl-name: ECDHE-RSA-NULL-SHA
+    kx: ECDHE
+    au: RSA
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_RC4_128_SHA
+    cs: 0xc011
+    name: TLS_ECDHE_RSA_WITH_RC4_128_SHA
+    openssl-name: ECDHE-RSA-RC4-SHA
+    kx: ECDHE
+    au: RSA
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
+    cs: 0xc012
+    name: TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
+    openssl-name: ECDHE-RSA-DES-CBC3-SHA
+    kx: ECDHE
+    au: RSA
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+    cs: 0xc013
+    name: TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+    openssl-name: ECDHE-RSA-AES128-SHA
+    kx: ECDHE
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+    cs: 0xc014
+    name: TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+    openssl-name: ECDHE-RSA-AES256-SHA
+    kx: ECDHE
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_anon_WITH_NULL_SHA
+    cs: 0xc015
+    name: TLS_ECDH_anon_WITH_NULL_SHA
+    openssl-name: AECDH-NULL-SHA
+    kx: ECDH
+    au: NULL
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_anon_WITH_RC4_128_SHA
+    cs: 0xc016
+    name: TLS_ECDH_anon_WITH_RC4_128_SHA
+    openssl-name: AECDH-RC4-SHA
+    kx: ECDH
+    au: NULL
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA
+    cs: 0xc017
+    name: TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA
+    openssl-name: AECDH-DES-CBC3-SHA
+    kx: ECDH
+    au: NULL
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_anon_WITH_AES_128_CBC_SHA
+    cs: 0xc018
+    name: TLS_ECDH_anon_WITH_AES_128_CBC_SHA
+    openssl-name: AECDH-AES128-SHA
+    kx: ECDH
+    au: NULL
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_anon_WITH_AES_256_CBC_SHA
+    cs: 0xc019
+    name: TLS_ECDH_anon_WITH_AES_256_CBC_SHA
+    openssl-name: AECDH-AES256-SHA
+    kx: ECDH
+    au: NULL
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 4492
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_SRP_SHA_WITH_3DES_EDE_CBC_SHA
+    cs: 0xc01a
+    name: TLS_SRP_SHA_WITH_3DES_EDE_CBC_SHA
+    openssl-name: SRP-3DES-EDE-CBC-SHA
+    kx: SRP
+    au: SRP
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5054
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_SRP_SHA_RSA_WITH_3DES_EDE_CBC_SHA
+    cs: 0xc01b
+    name: TLS_SRP_SHA_RSA_WITH_3DES_EDE_CBC_SHA
+    openssl-name: SRP-RSA-3DES-EDE-CBC-SHA
+    kx: SRP
+    au: SRP+RSA
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5054
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_SRP_SHA_DSS_WITH_3DES_EDE_CBC_SHA
+    cs: 0xc01c
+    name: TLS_SRP_SHA_DSS_WITH_3DES_EDE_CBC_SHA
+    openssl-name: SRP-DSS-3DES-EDE-CBC-SHA
+    kx: SRP
+    au: SRP+DSS
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5054
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_SRP_SHA_WITH_AES_128_CBC_SHA
+    cs: 0xc01d
+    name: TLS_SRP_SHA_WITH_AES_128_CBC_SHA
+    openssl-name: SRP-AES-128-CBC-SHA
+    kx: SRP
+    au: SRP
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5054
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_SRP_SHA_RSA_WITH_AES_128_CBC_SHA
+    cs: 0xc01e
+    name: TLS_SRP_SHA_RSA_WITH_AES_128_CBC_SHA
+    openssl-name: SRP-RSA-AES-128-CBC-SHA
+    kx: SRP
+    au: SRP+RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5054
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_SRP_SHA_DSS_WITH_AES_128_CBC_SHA
+    cs: 0xc01f
+    name: TLS_SRP_SHA_DSS_WITH_AES_128_CBC_SHA
+    openssl-name: SRP-DSS-AES-128-CBC-SHA
+    kx: SRP
+    au: SRP+DSS
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5054
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_SRP_SHA_WITH_AES_256_CBC_SHA
+    cs: 0xc020
+    name: TLS_SRP_SHA_WITH_AES_256_CBC_SHA
+    openssl-name: SRP-AES-256-CBC-SHA
+    kx: SRP
+    au: SRP
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5054
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_SRP_SHA_RSA_WITH_AES_256_CBC_SHA
+    cs: 0xc021
+    name: TLS_SRP_SHA_RSA_WITH_AES_256_CBC_SHA
+    openssl-name: SRP-RSA-AES-256-CBC-SHA
+    kx: SRP
+    au: SRP+RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5054
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_SRP_SHA_DSS_WITH_AES_256_CBC_SHA
+    cs: 0xc022
+    name: TLS_SRP_SHA_DSS_WITH_AES_256_CBC_SHA
+    openssl-name: SRP-DSS-AES-256-CBC-SHA
+    kx: SRP
+    au: SRP+DSS
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5054
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+    cs: 0xc023
+    name: TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+    openssl-name: ECDHE-ECDSA-AES128-SHA256
+    kx: ECDHE
+    au: ECDSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5289
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+    cs: 0xc024
+    name: TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+    openssl-name: ECDHE-ECDSA-AES256-SHA384
+    kx: ECDHE
+    au: ECDSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 5289
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256
+    cs: 0xc025
+    name: TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256
+    openssl-name: ECDH-ECDSA-AES128-SHA256
+    kx: ECDH
+    au: ECDSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5289
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384
+    cs: 0xc026
+    name: TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384
+    openssl-name: ECDH-ECDSA-AES256-SHA384
+    kx: ECDH
+    au: ECDSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 5289
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+    cs: 0xc027
+    name: TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+    openssl-name: ECDHE-RSA-AES128-SHA256
+    kx: ECDHE
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5289
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+    cs: 0xc028
+    name: TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+    openssl-name: ECDHE-RSA-AES256-SHA384
+    kx: ECDHE
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 5289
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256
+    cs: 0xc029
+    name: TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256
+    openssl-name: ECDH-RSA-AES128-SHA256
+    kx: ECDH
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5289
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384
+    cs: 0xc02a
+    name: TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384
+    openssl-name: ECDH-RSA-AES256-SHA384
+    kx: ECDH
+    au: RSA
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 5289
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+    cs: 0xc02b
+    name: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+    openssl-name: ECDHE-ECDSA-AES128-GCM-SHA256
+    kx: ECDHE
+    au: ECDSA
+    enc: AES
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 5289
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+    cs: 0xc02c
+    name: TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+    openssl-name: ECDHE-ECDSA-AES256-GCM-SHA384
+    kx: ECDHE
+    au: ECDSA
+    enc: AES
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 5289
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256
+    cs: 0xc02d
+    name: TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256
+    openssl-name: ECDH-ECDSA-AES128-GCM-SHA256
+    kx: ECDH
+    au: ECDSA
+    enc: AES
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 5289
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384
+    cs: 0xc02e
+    name: TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384
+    openssl-name: ECDH-ECDSA-AES256-GCM-SHA384
+    kx: ECDH
+    au: ECDSA
+    enc: AES
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 5289
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+    cs: 0xc02f
+    name: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+    openssl-name: ECDHE-RSA-AES128-GCM-SHA256
+    kx: ECDHE
+    au: RSA
+    enc: AES
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 5289
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+    cs: 0xc030
+    name: TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+    openssl-name: ECDHE-RSA-AES256-GCM-SHA384
+    kx: ECDHE
+    au: RSA
+    enc: AES
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 5289
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256
+    cs: 0xc031
+    name: TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256
+    openssl-name: ECDH-RSA-AES128-GCM-SHA256
+    kx: ECDH
+    au: RSA
+    enc: AES
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 5289
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384
+    cs: 0xc032
+    name: TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384
+    openssl-name: ECDH-RSA-AES256-GCM-SHA384
+    kx: ECDH
+    au: RSA
+    enc: AES
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 5289
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_RC4_128_SHA
+    cs: 0xc033
+    name: TLS_ECDHE_PSK_WITH_RC4_128_SHA
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: RC4
+    enc-mode: NULL
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5489
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_3DES_EDE_CBC_SHA
+    cs: 0xc034
+    name: TLS_ECDHE_PSK_WITH_3DES_EDE_CBC_SHA
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: 3DES
+    enc-mode: CBC
+    enc-size: 168
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5489
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA
+    cs: 0xc035
+    name: TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5489
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA
+    cs: 0xc036
+    name: TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5489
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256
+    cs: 0xc037
+    name: TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: AES
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5489
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384
+    cs: 0xc038
+    name: TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: AES
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 5489
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_NULL_SHA
+    cs: 0xc039
+    name: TLS_ECDHE_PSK_WITH_NULL_SHA
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA1
+    mac-size: 160
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 5489
+    export: 0
+    minversion: 0x0300
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_NULL_SHA256
+    cs: 0xc03a
+    name: TLS_ECDHE_PSK_WITH_NULL_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 5489
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_NULL_SHA384
+    cs: 0xc03b
+    name: TLS_ECDHE_PSK_WITH_NULL_SHA384
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: NULL
+    enc-mode: NULL
+    enc-size: 0
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 5489
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_ARIA_128_CBC_SHA256
+    cs: 0xc03c
+    name: TLS_RSA_WITH_ARIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: RSA
+    au: RSA
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_ARIA_256_CBC_SHA384
+    cs: 0xc03d
+    name: TLS_RSA_WITH_ARIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: RSA
+    au: RSA
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_ARIA_128_CBC_SHA256
+    cs: 0xc03e
+    name: TLS_DH_DSS_WITH_ARIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_ARIA_256_CBC_SHA384
+    cs: 0xc03f
+    name: TLS_DH_DSS_WITH_ARIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_ARIA_128_CBC_SHA256
+    cs: 0xc040
+    name: TLS_DH_RSA_WITH_ARIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_ARIA_256_CBC_SHA384
+    cs: 0xc041
+    name: TLS_DH_RSA_WITH_ARIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_ARIA_128_CBC_SHA256
+    cs: 0xc042
+    name: TLS_DHE_DSS_WITH_ARIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: DSS
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_ARIA_256_CBC_SHA384
+    cs: 0xc043
+    name: TLS_DHE_DSS_WITH_ARIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: DHE
+    au: DSS
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_ARIA_128_CBC_SHA256
+    cs: 0xc044
+    name: TLS_DHE_RSA_WITH_ARIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: RSA
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_ARIA_256_CBC_SHA384
+    cs: 0xc045
+    name: TLS_DHE_RSA_WITH_ARIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: DHE
+    au: RSA
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_ARIA_128_CBC_SHA256
+    cs: 0xc046
+    name: TLS_DH_anon_WITH_ARIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: NULL
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_ARIA_256_CBC_SHA384
+    cs: 0xc047
+    name: TLS_DH_anon_WITH_ARIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: DH
+    au: NULL
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_ARIA_128_CBC_SHA256
+    cs: 0xc048
+    name: TLS_ECDHE_ECDSA_WITH_ARIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: ECDSA
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_ARIA_256_CBC_SHA384
+    cs: 0xc049
+    name: TLS_ECDHE_ECDSA_WITH_ARIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: ECDHE
+    au: ECDSA
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_ECDSA_WITH_ARIA_128_CBC_SHA256
+    cs: 0xc04a
+    name: TLS_ECDH_ECDSA_WITH_ARIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: ECDH
+    au: ECDSA
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_ECDSA_WITH_ARIA_256_CBC_SHA384
+    cs: 0xc04b
+    name: TLS_ECDH_ECDSA_WITH_ARIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: ECDH
+    au: ECDSA
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_ARIA_128_CBC_SHA256
+    cs: 0xc04c
+    name: TLS_ECDHE_RSA_WITH_ARIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: RSA
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_ARIA_256_CBC_SHA384
+    cs: 0xc04d
+    name: TLS_ECDHE_RSA_WITH_ARIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: ECDHE
+    au: RSA
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_RSA_WITH_ARIA_128_CBC_SHA256
+    cs: 0xc04e
+    name: TLS_ECDH_RSA_WITH_ARIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: ECDH
+    au: RSA
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_RSA_WITH_ARIA_256_CBC_SHA384
+    cs: 0xc04f
+    name: TLS_ECDH_RSA_WITH_ARIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: ECDH
+    au: RSA
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_ARIA_128_GCM_SHA256
+    cs: 0xc050
+    name: TLS_RSA_WITH_ARIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: RSA
+    au: RSA
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_ARIA_256_GCM_SHA384
+    cs: 0xc051
+    name: TLS_RSA_WITH_ARIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: RSA
+    au: RSA
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_ARIA_128_GCM_SHA256
+    cs: 0xc052
+    name: TLS_DHE_RSA_WITH_ARIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: RSA
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_ARIA_256_GCM_SHA384
+    cs: 0xc053
+    name: TLS_DHE_RSA_WITH_ARIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: DHE
+    au: RSA
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_ARIA_128_GCM_SHA256
+    cs: 0xc054
+    name: TLS_DH_RSA_WITH_ARIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_ARIA_256_GCM_SHA384
+    cs: 0xc055
+    name: TLS_DH_RSA_WITH_ARIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_ARIA_128_GCM_SHA256
+    cs: 0xc056
+    name: TLS_DHE_DSS_WITH_ARIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: DSS
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_ARIA_256_GCM_SHA384
+    cs: 0xc057
+    name: TLS_DHE_DSS_WITH_ARIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: DHE
+    au: DSS
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_ARIA_128_GCM_SHA256
+    cs: 0xc058
+    name: TLS_DH_DSS_WITH_ARIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_ARIA_256_GCM_SHA384
+    cs: 0xc059
+    name: TLS_DH_DSS_WITH_ARIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_ARIA_128_GCM_SHA256
+    cs: 0xc05a
+    name: TLS_DH_anon_WITH_ARIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: NULL
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_ARIA_256_GCM_SHA384
+    cs: 0xc05b
+    name: TLS_DH_anon_WITH_ARIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: DH
+    au: NULL
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_ARIA_128_GCM_SHA256
+    cs: 0xc05c
+    name: TLS_ECDHE_ECDSA_WITH_ARIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: ECDSA
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_ARIA_256_GCM_SHA384
+    cs: 0xc05d
+    name: TLS_ECDHE_ECDSA_WITH_ARIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: ECDHE
+    au: ECDSA
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_ECDSA_WITH_ARIA_128_GCM_SHA256
+    cs: 0xc05e
+    name: TLS_ECDH_ECDSA_WITH_ARIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: ECDH
+    au: ECDSA
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_ECDSA_WITH_ARIA_256_GCM_SHA384
+    cs: 0xc05f
+    name: TLS_ECDH_ECDSA_WITH_ARIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: ECDH
+    au: ECDSA
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_ARIA_128_GCM_SHA256
+    cs: 0xc060
+    name: TLS_ECDHE_RSA_WITH_ARIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: RSA
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_ARIA_256_GCM_SHA384
+    cs: 0xc061
+    name: TLS_ECDHE_RSA_WITH_ARIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: ECDHE
+    au: RSA
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_RSA_WITH_ARIA_128_GCM_SHA256
+    cs: 0xc062
+    name: TLS_ECDH_RSA_WITH_ARIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: ECDH
+    au: RSA
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_RSA_WITH_ARIA_256_GCM_SHA384
+    cs: 0xc063
+    name: TLS_ECDH_RSA_WITH_ARIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: ECDH
+    au: RSA
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_ARIA_128_CBC_SHA256
+    cs: 0xc064
+    name: TLS_PSK_WITH_ARIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_ARIA_256_CBC_SHA384
+    cs: 0xc065
+    name: TLS_PSK_WITH_ARIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_ARIA_128_CBC_SHA256
+    cs: 0xc066
+    name: TLS_DHE_PSK_WITH_ARIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_ARIA_256_CBC_SHA384
+    cs: 0xc067
+    name: TLS_DHE_PSK_WITH_ARIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_ARIA_128_CBC_SHA256
+    cs: 0xc068
+    name: TLS_RSA_PSK_WITH_ARIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_ARIA_256_CBC_SHA384
+    cs: 0xc069
+    name: TLS_RSA_PSK_WITH_ARIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_ARIA_128_GCM_SHA256
+    cs: 0xc06a
+    name: TLS_PSK_WITH_ARIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_ARIA_256_GCM_SHA384
+    cs: 0xc06b
+    name: TLS_PSK_WITH_ARIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_ARIA_128_GCM_SHA256
+    cs: 0xc06c
+    name: TLS_DHE_PSK_WITH_ARIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_ARIA_256_GCM_SHA384
+    cs: 0xc06d
+    name: TLS_DHE_PSK_WITH_ARIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_ARIA_128_GCM_SHA256
+    cs: 0xc06e
+    name: TLS_RSA_PSK_WITH_ARIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_ARIA_256_GCM_SHA384
+    cs: 0xc06f
+    name: TLS_RSA_PSK_WITH_ARIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: ARIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_ARIA_128_CBC_SHA256
+    cs: 0xc070
+    name: TLS_ECDHE_PSK_WITH_ARIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_ARIA_256_CBC_SHA384
+    cs: 0xc071
+    name: TLS_ECDHE_PSK_WITH_ARIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: ARIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6209
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_CBC_SHA256
+    cs: 0xc072
+    name: TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: ECDSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_CBC_SHA384
+    cs: 0xc073
+    name: TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: ECDHE
+    au: ECDSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_ECDSA_WITH_CAMELLIA_128_CBC_SHA256
+    cs: 0xc074
+    name: TLS_ECDH_ECDSA_WITH_CAMELLIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: ECDH
+    au: ECDSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_ECDSA_WITH_CAMELLIA_256_CBC_SHA384
+    cs: 0xc075
+    name: TLS_ECDH_ECDSA_WITH_CAMELLIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: ECDH
+    au: ECDSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_CAMELLIA_128_CBC_SHA256
+    cs: 0xc076
+    name: TLS_ECDHE_RSA_WITH_CAMELLIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_CAMELLIA_256_CBC_SHA384
+    cs: 0xc077
+    name: TLS_ECDHE_RSA_WITH_CAMELLIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: ECDHE
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_RSA_WITH_CAMELLIA_128_CBC_SHA256
+    cs: 0xc078
+    name: TLS_ECDH_RSA_WITH_CAMELLIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: ECDH
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_RSA_WITH_CAMELLIA_256_CBC_SHA384
+    cs: 0xc079
+    name: TLS_ECDH_RSA_WITH_CAMELLIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: ECDH
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_CAMELLIA_128_GCM_SHA256
+    cs: 0xc07a
+    name: TLS_RSA_WITH_CAMELLIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: RSA
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_CAMELLIA_256_GCM_SHA384
+    cs: 0xc07b
+    name: TLS_RSA_WITH_CAMELLIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: RSA
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_CAMELLIA_128_GCM_SHA256
+    cs: 0xc07c
+    name: TLS_DHE_RSA_WITH_CAMELLIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_CAMELLIA_256_GCM_SHA384
+    cs: 0xc07d
+    name: TLS_DHE_RSA_WITH_CAMELLIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: DHE
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_CAMELLIA_128_GCM_SHA256
+    cs: 0xc07e
+    name: TLS_DH_RSA_WITH_CAMELLIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_RSA_WITH_CAMELLIA_256_GCM_SHA384
+    cs: 0xc07f
+    name: TLS_DH_RSA_WITH_CAMELLIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: DH
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_CAMELLIA_128_GCM_SHA256
+    cs: 0xc080
+    name: TLS_DHE_DSS_WITH_CAMELLIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: DSS
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_DSS_WITH_CAMELLIA_256_GCM_SHA384
+    cs: 0xc081
+    name: TLS_DHE_DSS_WITH_CAMELLIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: DHE
+    au: DSS
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_CAMELLIA_128_GCM_SHA256
+    cs: 0xc082
+    name: TLS_DH_DSS_WITH_CAMELLIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_DSS_WITH_CAMELLIA_256_GCM_SHA384
+    cs: 0xc083
+    name: TLS_DH_DSS_WITH_CAMELLIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: DH
+    au: DSS
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_CAMELLIA_128_GCM_SHA256
+    cs: 0xc084
+    name: TLS_DH_anon_WITH_CAMELLIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: DH
+    au: NULL
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DH_anon_WITH_CAMELLIA_256_GCM_SHA384
+    cs: 0xc085
+    name: TLS_DH_anon_WITH_CAMELLIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: DH
+    au: NULL
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_GCM_SHA256
+    cs: 0xc086
+    name: TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: ECDSA
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_GCM_SHA384
+    cs: 0xc087
+    name: TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: ECDHE
+    au: ECDSA
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_ECDSA_WITH_CAMELLIA_128_GCM_SHA256
+    cs: 0xc088
+    name: TLS_ECDH_ECDSA_WITH_CAMELLIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: ECDH
+    au: ECDSA
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_ECDSA_WITH_CAMELLIA_256_GCM_SHA384
+    cs: 0xc089
+    name: TLS_ECDH_ECDSA_WITH_CAMELLIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: ECDH
+    au: ECDSA
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_CAMELLIA_128_GCM_SHA256
+    cs: 0xc08a
+    name: TLS_ECDHE_RSA_WITH_CAMELLIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_CAMELLIA_256_GCM_SHA384
+    cs: 0xc08b
+    name: TLS_ECDHE_RSA_WITH_CAMELLIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: ECDHE
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_RSA_WITH_CAMELLIA_128_GCM_SHA256
+    cs: 0xc08c
+    name: TLS_ECDH_RSA_WITH_CAMELLIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: ECDH
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDH_RSA_WITH_CAMELLIA_256_GCM_SHA384
+    cs: 0xc08d
+    name: TLS_ECDH_RSA_WITH_CAMELLIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: ECDH
+    au: RSA
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_CAMELLIA_128_GCM_SHA256
+    cs: 0xc08e
+    name: TLS_PSK_WITH_CAMELLIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_CAMELLIA_256_GCM_SHA384
+    cs: 0xc08f
+    name: TLS_PSK_WITH_CAMELLIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_CAMELLIA_128_GCM_SHA256
+    cs: 0xc090
+    name: TLS_DHE_PSK_WITH_CAMELLIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_CAMELLIA_256_GCM_SHA384
+    cs: 0xc091
+    name: TLS_DHE_PSK_WITH_CAMELLIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_CAMELLIA_128_GCM_SHA256
+    cs: 0xc092
+    name: TLS_RSA_PSK_WITH_CAMELLIA_128_GCM_SHA256
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_CAMELLIA_256_GCM_SHA384
+    cs: 0xc093
+    name: TLS_RSA_PSK_WITH_CAMELLIA_256_GCM_SHA384
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: CAMELLIA
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_CAMELLIA_128_CBC_SHA256
+    cs: 0xc094
+    name: TLS_PSK_WITH_CAMELLIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_CAMELLIA_256_CBC_SHA384
+    cs: 0xc095
+    name: TLS_PSK_WITH_CAMELLIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_CAMELLIA_128_CBC_SHA256
+    cs: 0xc096
+    name: TLS_DHE_PSK_WITH_CAMELLIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_CAMELLIA_256_CBC_SHA384
+    cs: 0xc097
+    name: TLS_DHE_PSK_WITH_CAMELLIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_CAMELLIA_128_CBC_SHA256
+    cs: 0xc098
+    name: TLS_RSA_PSK_WITH_CAMELLIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_CAMELLIA_256_CBC_SHA384
+    cs: 0xc099
+    name: TLS_RSA_PSK_WITH_CAMELLIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_CAMELLIA_128_CBC_SHA256
+    cs: 0xc09a
+    name: TLS_ECDHE_PSK_WITH_CAMELLIA_128_CBC_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_CAMELLIA_256_CBC_SHA384
+    cs: 0xc09b
+    name: TLS_ECDHE_PSK_WITH_CAMELLIA_256_CBC_SHA384
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: CAMELLIA
+    enc-mode: CBC
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: SHA384
+    prf-size: 384
+    rfc: 6367
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_AES_128_CCM
+    cs: 0xc09c
+    name: TLS_RSA_WITH_AES_128_CCM
+    openssl-name: NULL
+    kx: RSA
+    au: RSA
+    enc: AES
+    enc-mode: CCM
+    enc-size: 128
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 6655
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_AES_256_CCM
+    cs: 0xc09d
+    name: TLS_RSA_WITH_AES_256_CCM
+    openssl-name: NULL
+    kx: RSA
+    au: RSA
+    enc: AES
+    enc-mode: CCM
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 6655
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_AES_128_CCM
+    cs: 0xc09e
+    name: TLS_DHE_RSA_WITH_AES_128_CCM
+    openssl-name: NULL
+    kx: DHE
+    au: RSA
+    enc: AES
+    enc-mode: CCM
+    enc-size: 128
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 6655
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_AES_256_CCM
+    cs: 0xc09f
+    name: TLS_DHE_RSA_WITH_AES_256_CCM
+    openssl-name: NULL
+    kx: DHE
+    au: RSA
+    enc: AES
+    enc-mode: CCM
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 6655
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_AES_128_CCM_8
+    cs: 0xc0a0
+    name: TLS_RSA_WITH_AES_128_CCM_8
+    openssl-name: NULL
+    kx: RSA
+    au: RSA
+    enc: AES
+    enc-mode: CCM
+    enc-size: 128
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 6655
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_WITH_AES_256_CCM_8
+    cs: 0xc0a1
+    name: TLS_RSA_WITH_AES_256_CCM_8
+    openssl-name: NULL
+    kx: RSA
+    au: RSA
+    enc: AES
+    enc-mode: CCM
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 6655
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_AES_128_CCM_8
+    cs: 0xc0a2
+    name: TLS_DHE_RSA_WITH_AES_128_CCM_8
+    openssl-name: NULL
+    kx: DHE
+    au: RSA
+    enc: AES
+    enc-mode: CCM
+    enc-size: 128
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 6655
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_AES_256_CCM_8
+    cs: 0xc0a3
+    name: TLS_DHE_RSA_WITH_AES_256_CCM_8
+    openssl-name: NULL
+    kx: DHE
+    au: RSA
+    enc: AES
+    enc-mode: CCM
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 6655
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_AES_128_CCM
+    cs: 0xc0a4
+    name: TLS_PSK_WITH_AES_128_CCM
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: AES
+    enc-mode: CCM
+    enc-size: 128
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 6655
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_AES_256_CCM
+    cs: 0xc0a5
+    name: TLS_PSK_WITH_AES_256_CCM
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: AES
+    enc-mode: CCM
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 6655
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_AES_128_CCM
+    cs: 0xc0a6
+    name: TLS_DHE_PSK_WITH_AES_128_CCM
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: AES
+    enc-mode: CCM
+    enc-size: 128
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 6655
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_AES_256_CCM
+    cs: 0xc0a7
+    name: TLS_DHE_PSK_WITH_AES_256_CCM
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: AES
+    enc-mode: CCM
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 6655
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_AES_128_CCM_8
+    cs: 0xc0a8
+    name: TLS_PSK_WITH_AES_128_CCM_8
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: AES
+    enc-mode: CCM
+    enc-size: 128
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 6655
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_AES_256_CCM_8
+    cs: 0xc0a9
+    name: TLS_PSK_WITH_AES_256_CCM_8
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: AES
+    enc-mode: CCM
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 6655
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_DHE_WITH_AES_128_CCM_8
+    cs: 0xc0aa
+    name: TLS_PSK_DHE_WITH_AES_128_CCM_8
+    openssl-name: NULL
+    kx: PSK
+    au: DHE
+    enc: AES
+    enc-mode: CCM
+    enc-size: 128
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 6655
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_DHE_WITH_AES_256_CCM_8
+    cs: 0xc0ab
+    name: TLS_PSK_DHE_WITH_AES_256_CCM_8
+    openssl-name: NULL
+    kx: PSK
+    au: DHE
+    enc: AES
+    enc-mode: CCM
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: 6655
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
