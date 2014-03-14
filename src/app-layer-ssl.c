@@ -42,6 +42,7 @@
 #include "app-layer-ssl.h"
 
 #include "app-layer-tls-handshake.h"
+#include "util-tls.h"
 
 #include "decode-events.h"
 #include "conf.h"
@@ -137,6 +138,12 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
         case SSLV3_HS_SERVER_HELLO:
             ssl_state->flags |= SSL_AL_FLAG_STATE_SERVER_HELLO;
 
+            rc = DecodeTLSHandshakeServerHello(ssl_state, input, input_len);
+            if (rc >= 0) {
+                ssl_state->curr_connp->bytes_processed += rc;
+                input += rc;
+                parsed += rc;
+            }
             break;
 
         case SSLV3_HS_SERVER_KEY_EXCHANGE:
@@ -1208,6 +1215,9 @@ void RegisterSSLParsers(void)
         } else {
             if (ConfGetBool("app-layer.protocols.tls.no-reassemble", &ssl_config.no_reassemble) != 1)
                 ssl_config.no_reassemble = 1;
+        }
+        if (ConfGetNode("tls-ciphersuites") != NULL) {
+            TlsCiphersInit();
         }
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
