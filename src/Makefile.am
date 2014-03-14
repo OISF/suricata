@@ -480,6 +480,7 @@ util-strptime.c \
 util-syslog.c util-syslog.h \
 util-threshold-config.c util-threshold-config.h \
 util-time.c util-time.h \
+util-tls.c util-tls.h \
 util-unittest.c util-unittest.h \
 util-unittest-helper.c util-unittest-helper.h \
 util-validate.h util-affinity.h util-affinity.c \
