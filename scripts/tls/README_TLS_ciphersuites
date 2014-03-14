@@ -1,0 +1,32 @@
+TLS ciphers extraction
+======================
+
+:Date: 2014-03-26
+:Version: 1
+:Author: Pierre Chifflier <chifflier@wzdftpd.net>
+
+
+These scripts are used to auto-generate the YAML configuration file for
+suricata, containing the list of known TLS ciphersuites and parameters.
+
+The first script (extract-iana-ciphers.py) fetch the list from the IANA website
+(http://www.iana.org/assignments/tls-parameters/tls-parameters.xml), and tries
+to convert it to a CSV file. The names and parameters of ciphersuites are
+normalized, to ensure some consistency in the resulting values.
+
+.. note:: The format of the XML file provided by IANA has a lot of small
+  inconsistencies, especially in the values separated by underscores in names.
+  For this reasons, the scripts have to apply many workarounds, and will
+  probably need to be updated for every new version of the XML file.
+  The mapping between openssl ciphersuites names, and IANA names, is also
+  defined in these scripts.
+
+The second script (convert_ciphers_to_yaml.py) takes the output from the
+previous script, and converts it to the YAML format expected by suricata.
+
+The execution of the scripts is done as follows::
+
+ ./extract-iana-ciphers.py
+ ./convert_ciphers_to_yaml.py < tls-ciphersuites.txt > tls-ciphersuites.yaml
+
+.. vim: set ft=rst tw=80:

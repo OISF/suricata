@@ -1,1 +1,1 @@
-SUBDIRS=suricatasc
+SUBDIRS = suricatasc tls
