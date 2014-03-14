@@ -181,6 +181,78 @@ static int LuaCallbackTuple(lua_State *luastate)
     return LuaCallbackTuplePushToStackFromPacket(luastate, p);
 }
 
+/** \internal
+ *  \brief fill lua stack with header info
+ *  \param luastate the lua state
+ *  \param f flow, locked
+ *  \retval cnt number of data items placed on the stack
+ *
+ *  Places: ipver (number), src ip (string), dst ip (string), protocol (number),
+ *          sp or icmp type (number), dp or icmp code (number).
+ */
+static int LuaCallbackTuplePushToStackFromFlow(lua_State *luastate, const Flow *f)
+{
+    int ipver = 0;
+    if (FLOW_IS_IPV4(f)) {
+        ipver = 4;
+    } else if (FLOW_IS_IPV6(f)) {
+        ipver = 6;
+    }
+    lua_pushnumber (luastate, ipver);
+    if (ipver == 0)
+        return 1;
+
+    char srcip[46] = "", dstip[46] = "";
+    if (FLOW_IS_IPV4(f)) {
+        PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), srcip, sizeof(srcip));
+        PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), dstip, sizeof(dstip));
+    } else if (FLOW_IS_IPV6(f)) {
+        PrintInet(AF_INET6, (const void *)&(f->src.address), srcip, sizeof(srcip));
+        PrintInet(AF_INET6, (const void *)&(f->dst.address), dstip, sizeof(dstip));
+    }
+
+    lua_pushstring (luastate, srcip);
+    lua_pushstring (luastate, dstip);
+
+    /* proto and ports (or type/code) */
+    lua_pushnumber (luastate, f->proto);
+    if (f->proto == IPPROTO_TCP || f->proto == IPPROTO_UDP) {
+        lua_pushnumber (luastate, f->sp);
+        lua_pushnumber (luastate, f->dp);
+
+    } else if (f->proto == IPPROTO_ICMP || f->proto == IPPROTO_ICMPV6) {
+        lua_pushnumber (luastate, f->type);
+        lua_pushnumber (luastate, f->code);
+    } else {
+        lua_pushnumber (luastate, 0);
+        lua_pushnumber (luastate, 0);
+    }
+
+    return 6;
+}
+
+/** \internal
+ *  \brief Wrapper for getting tuple info into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackTupleFlow(lua_State *luastate)
+{
+    int r = 0;
+    int lock_hint = 0;
+    Flow *f = LuaStateGetFlow(luastate, &lock_hint);
+    if (f == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    if (lock_hint) {
+        FLOWLOCK_RDLOCK(f);
+        r = LuaCallbackTuplePushToStackFromFlow(luastate, f);
+        FLOWLOCK_UNLOCK(f);
+    } else {
+        r = LuaCallbackTuplePushToStackFromFlow(luastate, f);
+    }
+    return r;
+}
+
 static int LuaCallbackLogPath(lua_State *luastate)
 {
     const char *ld = ConfigGetLogDirectory();
@@ -240,6 +312,8 @@ int LogLuaRegisterFunctions(lua_State *luastate)
     /* registration of the callbacks */
     lua_pushcfunction(luastate, LuaCallbackTuple);
     lua_setglobal(luastate, "SCPacketTuple");
+    lua_pushcfunction(luastate, LuaCallbackTupleFlow);
+    lua_setglobal(luastate, "SCFlowTuple");
     lua_pushcfunction(luastate, LuaCallbackLogPath);
     lua_setglobal(luastate, "SCLogPath");
 
