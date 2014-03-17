@@ -121,14 +121,7 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
     char timebuf[64];
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
-    char srcip[46], dstip[46];
-    if (PKT_IS_IPV4(p)) {
-        PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
-        PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
-    } else if (PKT_IS_IPV6(p)) {
-        PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
-        PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
-    } else {
+    if (!(PKT_IS_IPV4(p)) && !(PKT_IS_IPV6(p))) {
         /* decoder event */
         goto not_supported;
     }
@@ -153,26 +146,12 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
 
         LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
         LuaStateSetFlow(td->lua_ctx->luastate, p->flow, /* unlocked */TRUE);
+        LuaStateSetPacketAlert(td->lua_ctx->luastate, (PacketAlert *)pa);
 
         /* prepare data to pass to script */
         lua_newtable(td->lua_ctx->luastate);
 
-        LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "sid", pa->s->id);
-        LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "gid", pa->s->gid);
-        LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "rev", pa->s->rev);
-        LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "priority", pa->s->prio);
-
-        if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
-            LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "sp", p->sp);
-            LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "dp", p->dp);
-        }
-
-        LogLuaPushTableKeyValueString(td->lua_ctx->luastate, "msg", pa->s->msg);
-        LogLuaPushTableKeyValueString(td->lua_ctx->luastate, "srcip", srcip);
-        LogLuaPushTableKeyValueString(td->lua_ctx->luastate, "dstip", dstip);
         LogLuaPushTableKeyValueString(td->lua_ctx->luastate, "ts", timebuf);
-        LogLuaPushTableKeyValueString(td->lua_ctx->luastate, "ipproto", proto);
-        LogLuaPushTableKeyValueString(td->lua_ctx->luastate, "class", pa->s->class_msg);
 
         int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
         if (retval != 0) {
