@@ -249,7 +249,7 @@ static struct tls_ciphersuite_definition * tls_parse_ciphersuite_from_conf(ConfN
     char *val;
     struct tls_ciphersuite_definition *cipher;
     unsigned long ul;
-    long l;
+    intmax_t im;
     char *end;
     int ret;
 
@@ -286,46 +286,46 @@ static struct tls_ciphersuite_definition * tls_parse_ciphersuite_from_conf(ConfN
     ConfGetChildValueWithDefault(node, NULL, "enc-mode", &val);
     cipher->enc_mode = val;
 
-    ret = ConfGetChildValueInt(node, "enc-size", &l);
+    ret = ConfGetChildValueInt(node, "enc-size", &im);
     if (!ret)
         goto tls_parse_cipher_error;
-    cipher->enc_size = l;
+    cipher->enc_size = im;
 
     ConfGetChildValueWithDefault(node, NULL, "mac", &val);
     cipher->mac = val;
 
-    ret = ConfGetChildValueInt(node, "mac-size", &l);
+    ret = ConfGetChildValueInt(node, "mac-size", &im);
     if (!ret)
         goto tls_parse_cipher_error;
-    cipher->mac_size = l;
+    cipher->mac_size = im;
 
     ConfGetChildValueWithDefault(node, NULL, "prf", &val);
     cipher->prf = val;
 
-    ret = ConfGetChildValueInt(node, "prf-size", &l);
+    ret = ConfGetChildValueInt(node, "prf-size", &im);
     if (!ret)
         goto tls_parse_cipher_error;
-    cipher->prf_size = l;
+    cipher->prf_size = im;
 
-    ret = ConfGetChildValueInt(node, "rfc", &l);
+    ret = ConfGetChildValueInt(node, "rfc", &im);
     if (!ret)
         goto tls_parse_cipher_error;
-    cipher->rfc = l;
+    cipher->rfc = im;
 
-    ret = ConfGetChildValueInt(node, "export", &l);
+    ret = ConfGetChildValueInt(node, "export", &im);
     if (!ret)
         goto tls_parse_cipher_error;
-    cipher->exp = l;
+    cipher->exp = im;
 
-    ret = ConfGetChildValueInt(node, "minversion", &l);
+    ret = ConfGetChildValueInt(node, "minversion", &im);
     if (!ret)
         goto tls_parse_cipher_error;
-    cipher->minversion = l;
+    cipher->minversion = im;
 
-    ret = ConfGetChildValueInt(node, "maxversion", &l);
+    ret = ConfGetChildValueInt(node, "maxversion", &im);
     if (!ret)
         goto tls_parse_cipher_error;
-    cipher->maxversion = l;
+    cipher->maxversion = im;
 
     return cipher;
 tls_parse_cipher_error:
