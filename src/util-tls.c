@@ -85,7 +85,9 @@ static int _compare_integers(uint32_t a, uint32_t b, char op)
 const struct tls_ciphersuite_definition *tls_ciphersuite_get_by_id(uint16_t id)
 {
     const struct tls_ciphersuite_definition *cipher;
-    struct tls_ciphersuite_definition dummy = { 0 };
+    struct tls_ciphersuite_definition dummy;
+
+    memset(&dummy, 0, sizeof(dummy));
 
     dummy.cs = id;
     cipher = HashTableLookup(_tls_hash, &dummy, sizeof(struct tls_ciphersuite_definition));
