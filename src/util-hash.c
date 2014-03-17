@@ -144,6 +144,8 @@ int HashTableAdd(HashTable *ht, void *data, uint16_t datalen)
     return 0;
 
 error:
+    if (hb != NULL)
+        SCFree(hb);
     return -1;
 }
 
