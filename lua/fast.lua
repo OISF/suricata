@@ -12,18 +12,14 @@ function setup (args)
 end
 
 function log(args)
-    sid = args['sid'];
-    rev = args['rev'];
-    gid = args['gid'];
-    msg = args['msg'];
-    srcip = args['srcip'];
-    dstip = args['dstip'];
+    sid, rev, gid = SCRuleIds()
+    ipver, srcip, dstip, proto, sp, dp = SCPacketTuple()
+    msg = SCRuleMsg()
+    class, prio = SCRuleClass()
+    if class == nil then
+        class = "unknown"
+    end
     ts = args['ts'];
-    class = args['class'];
-    prio = args['priority'];
-    proto = args['ipproto'];
-    sp = args['sp'];
-    dp = args['dp'];
 
     print (ts .. "  [**] [" .. gid .. ":" .. sid .. ":" .. rev .. "] " ..
            msg .. " [**] [Classification: " .. class .. "] [Priority: " ..

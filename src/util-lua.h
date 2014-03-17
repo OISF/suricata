@@ -40,6 +40,8 @@ void *LuaStateGetTX(lua_State *luastate);
  */
 Flow *LuaStateGetFlow(lua_State *luastate, int *lock_hint);
 
+PacketAlert *LuaStateGetPacketAlert(lua_State *luastate);
+
 /* sets */
 
 void LuaStateSetPacket(lua_State *luastate, Packet *p);
@@ -52,6 +54,8 @@ void LuaStateSetTX(lua_State *luastate, void *tx);
  *                        or unlocked unlocked (FALSE)
  */
 void LuaStateSetFlow(lua_State *luastate, Flow *f, int need_flow_lock);
+
+void LuaStateSetPacketAlert(lua_State *luastate, PacketAlert *pa);
 
 void LuaPrintStack(lua_State *state);
 
