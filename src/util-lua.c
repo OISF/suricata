@@ -63,6 +63,9 @@ const char lua_ext_key_flow[] = "suricata:lua:flow:ptr";
 /* key for flow lock hint bool */
 const char lua_ext_key_flow_lock_hint[] = "suricata:lua:flow:lock_hint";
 
+/* key for pa (packet alert) pointer */
+const char lua_ext_key_pa[] = "suricata:lua:pkt:alert:ptr";
+
 /** \brief get packet pointer from the lua state */
 Packet *LuaStateGetPacket(lua_State *luastate)
 {
@@ -123,6 +126,22 @@ void LuaStateSetFlow(lua_State *luastate, Flow *f, int need_flow_lock)
     /* flow lock status hint */
     lua_pushlightuserdata(luastate, (void *)&lua_ext_key_flow_lock_hint);
     lua_pushboolean(luastate, need_flow_lock);
+    lua_settable(luastate, LUA_REGISTRYINDEX);
+}
+
+/** \brief get packet alert pointer from the lua state */
+PacketAlert *LuaStateGetPacketAlert(lua_State *luastate)
+{
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_pa);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    void *pa = lua_touserdata(luastate, -1);
+    return (PacketAlert *)pa;
+}
+
+void LuaStateSetPacketAlert(lua_State *luastate, PacketAlert *pa)
+{
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_pa);
+    lua_pushlightuserdata(luastate, (void *)pa);
     lua_settable(luastate, LUA_REGISTRYINDEX);
 }
 
