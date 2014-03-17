@@ -53,6 +53,9 @@ void LuaStateSetTX(lua_State *luastate, void *tx);
  */
 void LuaStateSetFlow(lua_State *luastate, Flow *f, int need_flow_lock);
 
+PacketAlert *LuaStateGetPacketAlert(lua_State *luastate);
+void LuaStateSetPacketAlert(lua_State *luastate, PacketAlert *pa);
+
 void LuaPrintStack(lua_State *state);
 
 #endif /* HAVE_LUA */

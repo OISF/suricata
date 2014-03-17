@@ -253,6 +253,90 @@ static int LuaCallbackTupleFlow(lua_State *luastate)
     return r;
 }
 
+/** \internal
+ *  \brief fill lua stack with alert info
+ *  \param luastate the lua state
+ *  \param pa pointer to packet alert struct
+ *  \retval cnt number of data items placed on the stack
+ *
+ *  Places: sid (number), rev (number), gid (number)
+ */
+static int LuaCallbackRuleIdsPushToStackFromPacketAlert(lua_State *luastate, const PacketAlert *pa)
+{
+    lua_pushnumber (luastate, pa->s->id);
+    lua_pushnumber (luastate, pa->s->rev);
+    lua_pushnumber (luastate, pa->s->gid);
+    return 3;
+}
+
+/** \internal
+ *  \brief Wrapper for getting tuple info into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackRuleIds(lua_State *luastate)
+{
+    const PacketAlert *pa = LuaStateGetPacketAlert(luastate);
+    if (pa == NULL)
+        return LuaCallbackError(luastate, "internal error: no packet");
+
+    return LuaCallbackRuleIdsPushToStackFromPacketAlert(luastate, pa);
+}
+
+/** \internal
+ *  \brief fill lua stack with alert info
+ *  \param luastate the lua state
+ *  \param pa pointer to packet alert struct
+ *  \retval cnt number of data items placed on the stack
+ *
+ *  Places: msg (string)
+ */
+static int LuaCallbackRuleMsgPushToStackFromPacketAlert(lua_State *luastate, const PacketAlert *pa)
+{
+    lua_pushstring (luastate, pa->s->msg);
+    return 1;
+}
+
+/** \internal
+ *  \brief Wrapper for getting tuple info into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackRuleMsg(lua_State *luastate)
+{
+    const PacketAlert *pa = LuaStateGetPacketAlert(luastate);
+    if (pa == NULL)
+        return LuaCallbackError(luastate, "internal error: no packet");
+
+    return LuaCallbackRuleMsgPushToStackFromPacketAlert(luastate, pa);
+}
+
+/** \internal
+ *  \brief fill lua stack with alert info
+ *  \param luastate the lua state
+ *  \param pa pointer to packet alert struct
+ *  \retval cnt number of data items placed on the stack
+ *
+ *  Places: class (string), prio (number)
+ */
+static int LuaCallbackRuleClassPushToStackFromPacketAlert(lua_State *luastate, const PacketAlert *pa)
+{
+    lua_pushstring (luastate, pa->s->class_msg);
+    lua_pushnumber (luastate, pa->s->prio);
+    return 2;
+}
+
+/** \internal
+ *  \brief Wrapper for getting tuple info into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackRuleClass(lua_State *luastate)
+{
+    const PacketAlert *pa = LuaStateGetPacketAlert(luastate);
+    if (pa == NULL)
+        return LuaCallbackError(luastate, "internal error: no packet");
+
+    return LuaCallbackRuleClassPushToStackFromPacketAlert(luastate, pa);
+}
+
 static int LuaCallbackLogPath(lua_State *luastate)
 {
     const char *ld = ConfigGetLogDirectory();
@@ -327,6 +411,14 @@ int LogLuaRegisterFunctions(lua_State *luastate)
     lua_setglobal(luastate, "SCLogWarning");
     lua_pushcfunction(luastate, LuaCallbackLogError);
     lua_setglobal(luastate, "SCLogError");
+
+
+    lua_pushcfunction(luastate, LuaCallbackRuleIds);
+    lua_setglobal(luastate, "SCRuleIds");
+    lua_pushcfunction(luastate, LuaCallbackRuleMsg);
+    lua_setglobal(luastate, "SCRuleMsg");
+    lua_pushcfunction(luastate, LuaCallbackRuleClass);
+    lua_setglobal(luastate, "SCRuleClass");
     return 0;
 }
 
