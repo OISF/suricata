@@ -1008,7 +1008,11 @@ static DetectTlsHandshakeData *DetectTlsHandshakeParse (char *str)
         goto error;
 
     tls->key = SCStrdup(key_ptr);
+    if (tls->key == NULL)
+        goto error;
     tls->expected = SCStrdup(val_ptr);
+    if (tls->expected == NULL)
+        goto error;
     tls->op = op_ptr[0];
 
     SCLogDebug("will look for TLS handshake parameter %s=%s", tls->key, tls->expected);
@@ -1077,7 +1081,7 @@ error:
  */
 static void DetectTlsHandshakeFree(void *ptr) {
     DetectTlsHandshakeData *d = (DetectTlsHandshakeData *)ptr;
-    if (ptr == NULL)
+    if (d == NULL)
         return;
     if (d->key != NULL)
         SCFree(d->key);
