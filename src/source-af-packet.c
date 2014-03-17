@@ -1397,6 +1397,23 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         goto frame_err;
     }
 
+#ifdef HAVE_PACKET_FANOUT
+    /* add binded socket to fanout group */
+    if (ptv->threads > 1) {
+        uint32_t option = 0;
+        uint16_t mode = ptv->cluster_type;
+        uint16_t id = ptv->cluster_id;
+        option = (mode << 16) | (id & 0xffff);
+        r = setsockopt(ptv->socket, SOL_PACKET, PACKET_FANOUT,(void *)&option, sizeof(option));
+        if (r < 0) {
+            SCLogError(SC_ERR_AFP_CREATE,
+                       "Coudn't set fanout mode, error %s",
+                       strerror(errno));
+            goto frame_err;
+        }
+    }
+#endif
+
     int if_flags = AFPGetDevFlags(ptv->socket, ptv->iface);
     if (if_flags == -1) {
         if (verbose) {
@@ -1503,22 +1520,6 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
 
     SCLogInfo("Using interface '%s' via socket %d", (char *)devname, ptv->socket);
 
-#ifdef HAVE_PACKET_FANOUT
-    /* add binded socket to fanout group */
-    if (ptv->threads > 1) {
-        uint32_t option = 0;
-        uint16_t mode = ptv->cluster_type;
-        uint16_t id = ptv->cluster_id;
-        option = (mode << 16) | (id & 0xffff);
-        r = setsockopt(ptv->socket, SOL_PACKET, PACKET_FANOUT,(void *)&option, sizeof(option));
-        if (r < 0) {
-            SCLogError(SC_ERR_AFP_CREATE,
-                       "Coudn't set fanout mode, error %s",
-                       strerror(errno));
-            goto frame_err;
-        }
-    }
-#endif
 
     ptv->datalink = AFPGetDevLinktype(ptv->socket, ptv->iface);
     switch (ptv->datalink) {
