@@ -1016,31 +1016,59 @@ static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv)
     return 0;
 }
 
+/** \brief wait for all afpacket threads to fully init
+ *
+ *  Discard packets before all threads are ready, as the cluster
+ *  setup is not complete yet.
+ *
+ *  if AFPPeersListStarted() returns true init is complete
+ *
+ *  \retval r 1 = happy, otherwise unhappy
+ */
 static int AFPSynchronizeStart(AFPThreadVars *ptv)
 {
     int r;
     struct timeval synctv;
+    struct pollfd fds;
+
+    fds.fd = ptv->socket;
+    fds.events = POLLIN;
 
     /* Set timeval to end of the world */
     synctv.tv_sec = 0xffffffff;
     synctv.tv_usec = 0xffffffff;
 
     while (1) {
-        if (AFPPeersListStarted() && synctv.tv_sec == (time_t) 0xffffffff) {
-            gettimeofday(&synctv, NULL);
-        }
-        if (ptv->flags & AFP_RING_MODE) {
-            r = AFPReadAndDiscardFromRing(ptv, &synctv);
+        r = poll(&fds, 1, POLL_TIMEOUT);
+        if (r > 0 &&
+                (fds.revents & (POLLHUP|POLLRDHUP|POLLERR|POLLNVAL))) {
+            SCLogWarning(SC_ERR_AFP_READ, "poll failed %02x",
+                    fds.revents & (POLLHUP|POLLRDHUP|POLLERR|POLLNVAL));
+            return 0;
+        } else if (r > 0) {
+            if (AFPPeersListStarted() && synctv.tv_sec == (time_t) 0xffffffff) {
+                gettimeofday(&synctv, NULL);
+            }
+            if (ptv->flags & AFP_RING_MODE) {
+                r = AFPReadAndDiscardFromRing(ptv, &synctv);
+            } else {
+                r = AFPReadAndDiscard(ptv, &synctv);
+            }
+            SCLogDebug("Discarding on %s", ptv->tv->name);
+            switch (r) {
+                case 1:
+                    SCLogInfo("Starting to read on %s", ptv->tv->name);
+                    return 1;
+                case -1:
+                    return r;
+            }
+        /* no packets */
+        } else if (r == 0 && AFPPeersListStarted()) {
+            SCLogInfo("Starting to read on %s", ptv->tv->name);
+            return 1;
         } else {
-            r = AFPReadAndDiscard(ptv, &synctv);
-        }
-        SCLogDebug("Discarding on %s", ptv->tv->name);
-        switch (r) {
-            case 1:
-                SCLogInfo("Starting to read on %s", ptv->tv->name);
-                return 1;
-            case -1:
-                return r;
+            SCLogWarning(SC_ERR_AFP_READ, "poll failed with retval %d", r);
+            return 0;
         }
     }
     return 1;
