@@ -1,3 +1,14 @@
+2.0rc3 -- 2014-03-18
+
+Bug #1127: logstash & suricata parsing issue
+Bug #1128: Segmentation fault - live rule reload
+Bug #1129: pfring cluster & ring initialization
+Bug #1130: af-packet flow balancing problems
+Bug #1131: eve-log: missing user agent reported inconsistently
+Bug #1133: eve-log: http depends on regular http log
+Bug #1135: 2.0rc2 release doesn't set optimization flag on GCC
+Bug #1138: alert fastlog drop info missing
+
 2.0rc2 -- 2014-03-06
 
 Bug #611: fp: rule with ports matching on portless proto
