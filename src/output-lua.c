@@ -254,19 +254,12 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
     LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
     LuaStateSetTX(td->lua_ctx->luastate, txptr);
     LuaStateSetFlow(td->lua_ctx->luastate, p->flow, /* locked */FALSE);
+    LuaStateSetFile(td->lua_ctx->luastate, (File *)ff);
 
     /* get the lua function to call */
     lua_getglobal(td->lua_ctx->luastate, "log");
 
-    /* prepare data to pass to script */
-    lua_newtable(td->lua_ctx->luastate);
-
-    LogLuaPushTableKeyValueArray(td->lua_ctx->luastate, "filename", ff->name, ff->name_len);
-    LogLuaPushTableKeyValueString(td->lua_ctx->luastate, "filemagic", ff->magic);
-    LogLuaPushTableKeyValueArray(td->lua_ctx->luastate, "filemd5", ff->md5, sizeof(ff->md5));
-
-    //LuaPrintStack(td->lua_ctx->luastate);
-    int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
+    int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
     if (retval != 0) {
         SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
     }
