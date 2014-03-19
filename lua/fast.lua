@@ -12,6 +12,7 @@ function setup (args)
 end
 
 function log(args)
+    ts = SCPacketTimeString()
     sid, rev, gid = SCRuleIds()
     ipver, srcip, dstip, proto, sp, dp = SCPacketTuple()
     msg = SCRuleMsg()
@@ -19,7 +20,6 @@ function log(args)
     if class == nil then
         class = "unknown"
     end
-    ts = args['ts'];
 
     print (ts .. "  [**] [" .. gid .. ":" .. sid .. ":" .. rev .. "] " ..
            msg .. " [**] [Classification: " .. class .. "] [Priority: " ..
