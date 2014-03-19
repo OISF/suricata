@@ -420,6 +420,95 @@ static int LuaCallbackLogError(lua_State *luastate)
     return 0;
 }
 
+/** \internal
+ *  \brief fill lua stack with file info
+ *  \param luastate the lua state
+ *  \param pa pointer to packet alert struct
+ *  \retval cnt number of data items placed on the stack
+ *
+ *  Places: fileid (number), txid (number), name (string),
+ *          size (number), magic (string), md5 in hex (string)
+ */
+static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const File *file)
+{
+#ifdef HAVE_NSS
+    char md5[33] = "";
+    char *md5ptr = md5;
+    if (file->flags & FILE_MD5) {
+        size_t x;
+        for (x = 0; x < sizeof(file->md5); x++) {
+            char one[3] = "";
+            snprintf(one, sizeof(one), "%02x", file->md5[x]);
+            strlcat(md5, one, sizeof(md5));
+        }
+    }
+#else
+    char *md5ptr = NULL;
+#endif
+
+    lua_pushnumber(luastate, file->file_id);
+    lua_pushnumber(luastate, file->txid);
+    lua_pushlstring(luastate, (char *)file->name, file->name_len);
+    lua_pushnumber(luastate, file->size);
+    lua_pushstring (luastate, file->magic);
+    lua_pushstring(luastate, md5ptr);
+    return 6;
+}
+
+/** \internal
+ *  \brief Wrapper for getting tuple info into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackFileInfo(lua_State *luastate)
+{
+    const File *file = LuaStateGetFile(luastate);
+    if (file == NULL)
+        return LuaCallbackError(luastate, "internal error: no file");
+
+    return LuaCallbackFileInfoPushToStackFromFile(luastate, file);
+}
+
+/** \internal
+ *  \brief fill lua stack with file info
+ *  \param luastate the lua state
+ *  \param pa pointer to packet alert struct
+ *  \retval cnt number of data items placed on the stack
+ *
+ *  Places: state (string), stored (bool)
+ */
+static int LuaCallbackFileStatePushToStackFromFile(lua_State *luastate, const File *file)
+{
+    const char *state = "UNKNOWN";
+    switch (file->state) {
+        case FILE_STATE_CLOSED:
+            state = "CLOSED";
+            break;
+        case FILE_STATE_TRUNCATED:
+            state = "TRUNCATED";
+            break;
+        case FILE_STATE_ERROR:
+            state = "ERROR";
+            break;
+    }
+
+    lua_pushstring (luastate, state);
+    lua_pushboolean (luastate, file->flags & FILE_STORED);
+    return 2;
+}
+
+/** \internal
+ *  \brief Wrapper for getting tuple info into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackFileState(lua_State *luastate)
+{
+    const File *file = LuaStateGetFile(luastate);
+    if (file == NULL)
+        return LuaCallbackError(luastate, "internal error: no file");
+
+    return LuaCallbackFileStatePushToStackFromFile(luastate, file);
+}
+
 int LogLuaRegisterFunctions(lua_State *luastate)
 {
     /* registration of the callbacks */
@@ -451,6 +540,12 @@ int LogLuaRegisterFunctions(lua_State *luastate)
     lua_setglobal(luastate, "SCRuleMsg");
     lua_pushcfunction(luastate, LuaCallbackRuleClass);
     lua_setglobal(luastate, "SCRuleClass");
+
+    lua_pushcfunction(luastate, LuaCallbackFileInfo);
+    lua_setglobal(luastate, "SCFileInfo");
+    lua_pushcfunction(luastate, LuaCallbackFileState);
+    lua_setglobal(luastate, "SCFileState");
+
     return 0;
 }
 
