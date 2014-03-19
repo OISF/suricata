@@ -42,6 +42,9 @@ Flow *LuaStateGetFlow(lua_State *luastate, int *lock_hint);
 
 PacketAlert *LuaStateGetPacketAlert(lua_State *luastate);
 
+/** \brief get file pointer from the lua state */
+File *LuaStateGetFile(lua_State *luastate);
+
 /* sets */
 
 void LuaStateSetPacket(lua_State *luastate, Packet *p);
@@ -56,6 +59,8 @@ void LuaStateSetTX(lua_State *luastate, void *tx);
 void LuaStateSetFlow(lua_State *luastate, Flow *f, int need_flow_lock);
 
 void LuaStateSetPacketAlert(lua_State *luastate, PacketAlert *pa);
+
+void LuaStateSetFile(lua_State *luastate, File *file);
 
 void LuaPrintStack(lua_State *state);
 
