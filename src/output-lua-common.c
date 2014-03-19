@@ -148,6 +148,44 @@ static int LuaCallbackPacketTimeString(lua_State *luastate)
 }
 
 /** \internal
+ *  \brief fill lua stack with time string
+ *  \param luastate the lua state
+ *  \param flow flow
+ *  \retval cnt number of data items placed on the stack
+ *
+ *  Places: ts (string)
+ */
+static int LuaCallbackTimeStringPushToStackFromFlow(lua_State *luastate, const Flow *flow)
+{
+    char timebuf[64];
+    CreateTimeString(&flow->startts, timebuf, sizeof(timebuf));
+    lua_pushstring (luastate, timebuf);
+    return 1;
+}
+
+/** \internal
+ *  \brief Wrapper for getting ts info into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackFlowTimeString(lua_State *luastate)
+{
+    int r = 0;
+    int flow_is_locked = 0;
+    Flow *flow = LuaStateGetFlow(luastate, &flow_is_locked);
+    if (flow == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    if (!flow_is_locked) {
+        FLOWLOCK_RDLOCK(flow);
+        r = LuaCallbackTimeStringPushToStackFromFlow(luastate, flow);
+        FLOWLOCK_UNLOCK(flow);
+    } else {
+        r = LuaCallbackTimeStringPushToStackFromFlow(luastate, flow);
+    }
+    return r;
+}
+
+/** \internal
  *  \brief fill lua stack with header info
  *  \param luastate the lua state
  *  \param p packet
@@ -517,8 +555,11 @@ int LogLuaRegisterFunctions(lua_State *luastate)
     lua_pushcfunction(luastate, LuaCallbackTuple);
     lua_setglobal(luastate, "SCPacketTuple");
 
+    lua_pushcfunction(luastate, LuaCallbackFlowTimeString);
+    lua_setglobal(luastate, "SCFlowTimeString");
     lua_pushcfunction(luastate, LuaCallbackTupleFlow);
     lua_setglobal(luastate, "SCFlowTuple");
+
     lua_pushcfunction(luastate, LuaCallbackLogPath);
     lua_setglobal(luastate, "SCLogPath");
 
