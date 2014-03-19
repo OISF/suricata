@@ -149,11 +149,9 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
         LuaStateSetPacketAlert(td->lua_ctx->luastate, (PacketAlert *)pa);
 
         /* prepare data to pass to script */
-        lua_newtable(td->lua_ctx->luastate);
+        //lua_newtable(td->lua_ctx->luastate);
 
-        LogLuaPushTableKeyValueString(td->lua_ctx->luastate, "ts", timebuf);
-
-        int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
+        int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
         if (retval != 0) {
             SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
         }
