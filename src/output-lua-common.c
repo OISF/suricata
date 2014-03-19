@@ -124,6 +124,35 @@ void LogLuaPushTableKeyValueArray(lua_State *luastate, const char *key, const ui
  *  \param p packet
  *  \retval cnt number of data items placed on the stack
  *
+ *  Places: ts (string)
+ */
+static int LuaCallbackTimeStringPushToStackFromPacket(lua_State *luastate, const Packet *p)
+{
+    char timebuf[64];
+    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+    lua_pushstring (luastate, timebuf);
+    return 1;
+}
+
+/** \internal
+ *  \brief Wrapper for getting tuple info into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackPacketTimeString(lua_State *luastate)
+{
+    const Packet *p = LuaStateGetPacket(luastate);
+    if (p == NULL)
+        return LuaCallbackError(luastate, "internal error: no packet");
+
+    return LuaCallbackTimeStringPushToStackFromPacket(luastate, p);
+}
+
+/** \internal
+ *  \brief fill lua stack with header info
+ *  \param luastate the lua state
+ *  \param p packet
+ *  \retval cnt number of data items placed on the stack
+ *
  *  Places: ipver (number), src ip (string), dst ip (string), protocol (number),
  *          sp or icmp type (number), dp or icmp code (number).
  */
@@ -394,8 +423,11 @@ static int LuaCallbackLogError(lua_State *luastate)
 int LogLuaRegisterFunctions(lua_State *luastate)
 {
     /* registration of the callbacks */
+    lua_pushcfunction(luastate, LuaCallbackPacketTimeString);
+    lua_setglobal(luastate, "SCPacketTimeString");
     lua_pushcfunction(luastate, LuaCallbackTuple);
     lua_setglobal(luastate, "SCPacketTuple");
+
     lua_pushcfunction(luastate, LuaCallbackTupleFlow);
     lua_setglobal(luastate, "SCFlowTuple");
     lua_pushcfunction(luastate, LuaCallbackLogPath);
