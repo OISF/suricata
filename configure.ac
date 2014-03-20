@@ -170,6 +170,10 @@
     #check for os
     AC_MSG_CHECKING([host os])
 
+    # lua pkg-config name differs per OS
+    LUA_PC_NAME="lua5.1"
+    LUA_LIB_NAME="lua5.1"
+
     # If no host os was detected, try with uname
     if test -z "$host" ; then
 	    host="`uname`"
@@ -179,12 +183,15 @@
     e_magic_file="/usr/share/file/magic"
     case "$host" in
         *-*-*freebsd*)
+            LUA_PC_NAME="lua-5.1"
+            LUA_LIB_NAME="lua-5.1"
             CFLAGS="${CFLAGS} -DOS_FREEBSD"
             CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet11"
             LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/local/lib/libnet11"
             e_magic_file="/usr/share/misc/magic"
             ;;
         *-*-openbsd*)
+            LUA_PC_NAME="lua51"
             CFLAGS="${CFLAGS} -D__OpenBSD__"
             CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet-1.1"
             LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1"
@@ -1484,7 +1491,7 @@
         if test "$with_liblua_includes" != "no"; then
             CPPFLAGS="${CPPFLAGS} -I${with_liblua_includes}"
         else
-            PKG_CHECK_MODULES([LUA], [lua5.1], LUA="no")
+            PKG_CHECK_MODULES([LUA], [${LUA_PC_NAME}], LUA="no")
             CPPFLAGS="${CPPFLAGS} ${LUA_CFLAGS}"
         fi
 
@@ -1493,11 +1500,11 @@
             if test "$with_liblua_libraries" != "no"; then
                 LDFLAGS="${LDFLAGS}  -L${with_liblua_libraries}"
             else
-                PKG_CHECK_MODULES([LUA], [lua5.1])
+                PKG_CHECK_MODULES([LUA], [${LUA_PC_NAME}])
                 LDFLAGS="${LDFLAGS} ${LUA_LIBS}"
             fi
 
-            AC_CHECK_LIB(lua5.1, luaL_openlibs,, LUA="no")
+            AC_CHECK_LIB(${LUA_LIB_NAME}, luaL_openlibs,, LUA="no")
 
             if test "$LUA" = "no"; then
                 echo
