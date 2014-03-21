@@ -321,6 +321,45 @@ static int LuaCallbackTupleFlow(lua_State *luastate)
 }
 
 /** \internal
+ *  \brief fill lua stack with AppLayerProto
+ *  \param luastate the lua state
+ *  \param f flow, locked
+ *  \retval cnt number of data items placed on the stack
+ *
+ *  Places: alproto as string (string)
+ */
+static int LuaCallbackAppLayerProtoPushToStackFromFlow(lua_State *luastate, const Flow *f)
+{
+    const char *string = AppProtoToString(f->alproto);
+    if (string == NULL)
+        string = "unknown";
+    lua_pushstring(luastate, string);
+    return 1;
+}
+
+/** \internal
+ *  \brief Wrapper for getting AppLayerProto info into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackAppLayerProtoFlow(lua_State *luastate)
+{
+    int r = 0;
+    int lock_hint = 0;
+    Flow *f = LuaStateGetFlow(luastate, &lock_hint);
+    if (f == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    if (lock_hint) {
+        FLOWLOCK_RDLOCK(f);
+        r = LuaCallbackAppLayerProtoPushToStackFromFlow(luastate, f);
+        FLOWLOCK_UNLOCK(f);
+    } else {
+        r = LuaCallbackAppLayerProtoPushToStackFromFlow(luastate, f);
+    }
+    return r;
+}
+
+/** \internal
  *  \brief fill lua stack with alert info
  *  \param luastate the lua state
  *  \param pa pointer to packet alert struct
@@ -589,6 +628,8 @@ int LogLuaRegisterFunctions(lua_State *luastate)
     lua_setglobal(luastate, "SCFlowTimeString");
     lua_pushcfunction(luastate, LuaCallbackTupleFlow);
     lua_setglobal(luastate, "SCFlowTuple");
+    lua_pushcfunction(luastate, LuaCallbackAppLayerProtoFlow);
+    lua_setglobal(luastate, "SCFlowAppLayerProto");
 
     lua_pushcfunction(luastate, LuaCallbackLogPath);
     lua_setglobal(luastate, "SCLogPath");
