@@ -495,8 +495,10 @@ static int LogTlsCondition(ThreadVars *tv, const Packet *p) {
         goto dontlog;
     }
 
-    /* we only log the state once */
-    if (ssl_state->flags & SSL_AL_FLAG_STATE_LOGGED)
+    /* we only log the state once if we don't have to write
+     * the cert due to tls.store keyword. */
+    if (!(ssl_state->server_connp.cert_log_flag & SSL_TLS_LOG_PEM) &&
+        (ssl_state->flags & SSL_AL_FLAG_STATE_LOGGED))
         goto dontlog;
 
     if (ssl_state->server_connp.cert0_issuerdn == NULL ||
@@ -539,6 +541,11 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
     if (ssl_state->server_connp.cert_log_flag & SSL_TLS_LOG_PEM) {
         LogTlsLogPem(aft, p, ssl_state, hlog, ipproto);
     }
+
+    /* Don't log again the state. If we are here it was because we had
+     * to store the cert. */
+    if (ssl_state->flags & SSL_AL_FLAG_STATE_LOGGED)
+        goto end;
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 #define PRINT_BUF_LEN 46
