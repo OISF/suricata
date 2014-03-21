@@ -105,6 +105,8 @@ static pthread_mutex_t luajit_states_lock = SCMUTEX_INITIALIZER;
 
 #endif /* HAVE_LUAJIT */
 
+#include "util-lua.h"
+
 static int DetectLuajitMatch (ThreadVars *, DetectEngineThreadCtx *,
         Packet *, Signature *, SigMatch *);
 static int DetectLuajitSetup (DetectEngineCtx *, Signature *, char *);
@@ -269,7 +271,7 @@ void LuaDumpStack(lua_State *state)
 
 int DetectLuajitMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm,
         uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
-        Flow *f, int need_flow_lock)
+        Flow *f, int flow_lock)
 {
     SCEnter();
     int ret = 0;
@@ -286,7 +288,7 @@ int DetectLuajitMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMat
         SCReturnInt(0);
 
     /* setup extension data for use in lua c functions */
-    LuajitExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx, f, need_flow_lock);
+    LuajitExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx, f, flow_lock);
 
     /* prepare data to pass to script */
     lua_getglobal(tluajit->luastate, "match");
@@ -396,7 +398,7 @@ static int DetectLuajitMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         SCReturnInt(0);
 
     /* setup extension data for use in lua c functions */
-    LuajitExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx, p->flow, /* flow not locked */0);
+    LuajitExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx, p->flow, /* flow not locked */LUA_FLOW_NOT_LOCKED_BY_PARENT);
 
     if ((tluajit->flags & DATATYPE_PAYLOAD) && p->payload_len == 0)
         SCReturnInt(0);
