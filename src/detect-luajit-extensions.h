@@ -29,7 +29,7 @@ int LuajitRegisterExtensions(lua_State *);
 
 void LuajitExtensionsMatchSetup(lua_State *lua_state,
         DetectLuajitData *, DetectEngineThreadCtx *det_ctx,
-        Flow *f, int need_flow_lock);
+        Flow *f, int flow_locked);
 
 #endif /* HAVE_LUA */
 #endif
