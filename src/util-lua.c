@@ -54,6 +54,8 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+/* key for tv (threadvars) pointer */
+const char lua_ext_key_tv[] = "suricata:lua:tv:ptr";
 /* key for tx pointer */
 const char lua_ext_key_tx[] = "suricata:lua:tx:ptr";
 /* key for p (packet) pointer */
@@ -67,6 +69,22 @@ const char lua_ext_key_flow_lock_hint[] = "suricata:lua:flow:lock_hint";
 const char lua_ext_key_pa[] = "suricata:lua:pkt:alert:ptr";
 /* key for file pointer */
 const char lua_ext_key_file[] = "suricata:lua:file:ptr";
+
+/** \brief get tv pointer from the lua state */
+ThreadVars *LuaStateGetThreadVars(lua_State *luastate)
+{
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_tv);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    void *tv = lua_touserdata(luastate, -1);
+    return (ThreadVars *)tv;
+}
+
+void LuaStateSetThreadVars(lua_State *luastate, ThreadVars *tv)
+{
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_tv);
+    lua_pushlightuserdata(luastate, (void *)tv);
+    lua_settable(luastate, LUA_REGISTRYINDEX);
+}
 
 /** \brief get packet pointer from the lua state */
 Packet *LuaStateGetPacket(lua_State *luastate)

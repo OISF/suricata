@@ -28,6 +28,9 @@
 
 /* gets */
 
+/** \brief get tv pointer from the lua state */
+ThreadVars *LuaStateGetThreadVars(lua_State *luastate);
+
 Packet *LuaStateGetPacket(lua_State *luastate);
 void *LuaStateGetTX(lua_State *luastate);
 
@@ -61,6 +64,8 @@ void LuaStateSetFlow(lua_State *luastate, Flow *f, int need_flow_lock);
 void LuaStateSetPacketAlert(lua_State *luastate, PacketAlert *pa);
 
 void LuaStateSetFile(lua_State *luastate, File *file);
+
+void LuaStateSetThreadVars(lua_State *luastate, ThreadVars *tv);
 
 void LuaPrintStack(lua_State *state);
 

@@ -85,6 +85,7 @@ static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow 
 
     SCMutexLock(&td->lua_ctx->m);
 
+    LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
     LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
     LuaStateSetTX(td->lua_ctx->luastate, txptr);
     LuaStateSetFlow(td->lua_ctx->luastate, f, /* locked */FALSE);
@@ -144,6 +145,7 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
 
         lua_getglobal(td->lua_ctx->luastate, "log");
 
+        LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
         LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
         LuaStateSetFlow(td->lua_ctx->luastate, p->flow, /* unlocked */TRUE);
         LuaStateSetPacketAlert(td->lua_ctx->luastate, (PacketAlert *)pa);
@@ -202,6 +204,7 @@ static int LuaPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     SCMutexLock(&td->lua_ctx->m);
     lua_getglobal(td->lua_ctx->luastate, "log");
 
+    LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
     LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
     LuaStateSetFlow(td->lua_ctx->luastate, p->flow, /* unlocked */TRUE);
 
@@ -251,6 +254,7 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
 
     SCMutexLock(&td->lua_ctx->m);
 
+    LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
     LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
     LuaStateSetTX(td->lua_ctx->luastate, txptr);
     LuaStateSetFlow(td->lua_ctx->luastate, p->flow, /* locked */FALSE);

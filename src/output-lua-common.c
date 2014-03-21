@@ -547,6 +547,36 @@ static int LuaCallbackFileState(lua_State *luastate)
     return LuaCallbackFileStatePushToStackFromFile(luastate, file);
 }
 
+/** \internal
+ *  \brief fill lua stack with thread info
+ *  \param luastate the lua state
+ *  \param pa pointer to packet alert struct
+ *  \retval cnt number of data items placed on the stack
+ *
+ *  Places: thread id (number), thread name (string, thread group name (string)
+ */
+static int LuaCallbackThreadInfoPushToStackFromThreadVars(lua_State *luastate, const ThreadVars *tv)
+{
+    u_long tid = SCGetThreadIdLong();
+    lua_pushinteger (luastate, (lua_Integer)tid);
+    lua_pushstring (luastate, tv->name);
+    lua_pushstring (luastate, tv->thread_group_name);
+    return 3;
+}
+
+/** \internal
+ *  \brief Wrapper for getting tuple info into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackThreadInfo(lua_State *luastate)
+{
+    const ThreadVars *tv = LuaStateGetThreadVars(luastate);
+    if (tv == NULL)
+        return LuaCallbackError(luastate, "internal error: no tv");
+
+    return LuaCallbackThreadInfoPushToStackFromThreadVars(luastate, tv);
+}
+
 int LogLuaRegisterFunctions(lua_State *luastate)
 {
     /* registration of the callbacks */
@@ -587,6 +617,8 @@ int LogLuaRegisterFunctions(lua_State *luastate)
     lua_pushcfunction(luastate, LuaCallbackFileState);
     lua_setglobal(luastate, "SCFileState");
 
+    lua_pushcfunction(luastate, LuaCallbackThreadInfo);
+    lua_setglobal(luastate, "SCThreadInfo");
     return 0;
 }
 
