@@ -54,6 +54,10 @@
 #include "util-unittest-helper.h"
 #include "util-profiling.h"
 
+#ifdef HAVE_LUA
+#include "util-lua.h"
+#endif
+
 /**
  * \brief Run the actual payload match functions
  *
@@ -534,12 +538,12 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
     else if (sm->type == DETECT_LUAJIT) {
         SCLogDebug("lua starting");
         /* for flowvar gets and sets we need to know the flow's lock status */
-        int need_flow_lock = 0;
+        int flow_lock = LUA_FLOW_LOCKED_BY_PARENT;
         if (inspection_mode <= DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM)
-            need_flow_lock = 1;
+            flow_lock = LUA_FLOW_NOT_LOCKED_BY_PARENT;
 
         if (DetectLuajitMatchBuffer(det_ctx, s, sm, buffer, buffer_len,
-                    det_ctx->buffer_offset, f, need_flow_lock) != 1)
+                    det_ctx->buffer_offset, f, flow_lock) != 1)
         {
             SCLogDebug("lua no_match");
             goto no_match;
