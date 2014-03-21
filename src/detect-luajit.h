@@ -61,7 +61,7 @@ typedef struct DetectLuajitData {
 void DetectLuajitRegister (void);
 int DetectLuajitMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm,
         uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
-        Flow *f, int need_flow_lock);
+        Flow *f, int flow_lock);
 
 int DetectLuajitSetupStatesPool(int num, int reloads);
 void DetectLuajitPostSetup(Signature *s);
