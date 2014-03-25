@@ -621,36 +621,40 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 FLOWLOCK_UNLOCK(f);
             }
 
+            /* count AMATCH matches */
+            total_matches = 0;
+
             KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_AMATCH);
             for (sm = item->nm; sm != NULL; sm = sm->next) {
-                if (sigmatch_table[sm->type].AppLayerMatch != NULL &&
-                    (alproto == s->alproto || alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2))
-                    {
-                        if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
-                            smb_state = (SMBState *)alstate;
-                            if (smb_state->dcerpc_present) {
-                                KEYWORD_PROFILING_START;
-                                match = sigmatch_table[sm->type].
-                                    AppLayerMatch(tv, det_ctx, f, flags, &smb_state->dcerpc, s, sm);
-                                KEYWORD_PROFILING_END(det_ctx, sm->type, (match > 0));
-                            }
-                        } else {
+                if (sigmatch_table[sm->type].AppLayerMatch != NULL)
+                {
+                    if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
+                        smb_state = (SMBState *)alstate;
+                        if (smb_state->dcerpc_present) {
                             KEYWORD_PROFILING_START;
                             match = sigmatch_table[sm->type].
-                                AppLayerMatch(tv, det_ctx, f, flags, alstate, s, sm);
+                                AppLayerMatch(tv, det_ctx, f, flags, &smb_state->dcerpc, s, sm);
                             KEYWORD_PROFILING_END(det_ctx, sm->type, (match > 0));
                         }
-
-                        if (match == 0)
-                            break;
-                        else if (match == 2)
-                            inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
+                    } else {
+                        KEYWORD_PROFILING_START;
+                        match = sigmatch_table[sm->type].
+                            AppLayerMatch(tv, det_ctx, f, flags, alstate, s, sm);
+                        KEYWORD_PROFILING_END(det_ctx, sm->type, (match > 0));
                     }
+
+                    if (match == 0)
+                        break;
+                    else if (match == 2)
+                        inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
+                    else if (match == 1)
+                        total_matches++;
+                }
             }
             RULE_PROFILING_END(det_ctx, s, match, p);
 
             if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
-                if (sm == NULL || inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
+                if (total_matches > 0 && (sm == NULL || inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH)) {
                     if (sm == NULL)
                         alert = 1;
                     inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
