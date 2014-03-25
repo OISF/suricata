@@ -1,3 +1,7 @@
+2.0 -- 2014-03-25
+
+Bug #1151: tls.store not working when a TLS filter keyword is used
+
 2.0rc3 -- 2014-03-18
 
 Bug #1127: logstash & suricata parsing issue
