@@ -538,7 +538,7 @@ void usage(const char *progname)
     printf("\t--engine-analysis                    : print reports on analysis of different sections in the engine and exit.\n"
            "\t                                       Please have a look at the conf parameter engine-analysis on what reports\n"
            "\t                                       can be printed\n");
-    printf("\t--pidfile <file>                     : write pid to this file (only for daemon mode)\n");
+    printf("\t--pidfile <file>                     : write pid to this file\n");
     printf("\t--init-errors-fatal                  : enable fatal failure on signature init error\n");
     printf("\t--disable-detection                  : disable detection engine\n");
     printf("\t--dump-config                        : show the running configuration\n");
@@ -1634,19 +1634,24 @@ static int WindowsInitService(int argc, char **argv)
 
 static int MayDaemonize(SCInstance *suri)
 {
+    if (suri->daemon == 1 && suri->pid_filename == NULL) {
+        if (ConfGet("pid-file", &suri->pid_filename) == 1) {
+            SCLogInfo("Use pid file %s from config file.", suri->pid_filename);
+        } else {
+            suri->pid_filename = DEFAULT_PID_FILENAME;
+        }
+    }
+
+    if (suri->pid_filename != NULL && SCPidfileTestRunning(suri->pid_filename) != 0) {
+        suri->pid_filename = NULL;
+        return TM_ECODE_FAILED;
+    }
+
     if (suri->daemon == 1) {
-        if (suri->pid_filename == NULL) {
-            if (ConfGet("pid-file", &suri->pid_filename) == 1) {
-                SCLogInfo("Use pid file %s from config file.", suri->pid_filename);
-            } else {
-                suri->pid_filename = DEFAULT_PID_FILENAME;
-            }
-        }
-        if (SCPidfileTestRunning(suri->pid_filename) != 0) {
-            suri->pid_filename = NULL;
-            return TM_ECODE_FAILED;
-        }
         Daemonize();
+    }
+
+    if (suri->pid_filename != NULL) {
         if (SCPidfileCreate(suri->pid_filename) != 0) {
             suri->pid_filename = NULL;
             SCLogError(SC_ERR_PIDFILE_DAEMON,
@@ -1655,13 +1660,6 @@ static int MayDaemonize(SCInstance *suri)
             SCLogError(SC_ERR_PIDFILE_DAEMON,
                     "PID file creation WILL be mandatory for daemon mode"
                     " in future version");
-        }
-    } else {
-        if (suri->pid_filename != NULL) {
-            SCLogError(SC_ERR_PIDFILE_DAEMON, "The pidfile file option applies "
-                    "only to the daemon modes");
-            suri->pid_filename = NULL;
-            return TM_ECODE_FAILED;
         }
     }
 
