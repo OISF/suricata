@@ -293,6 +293,24 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
+        case MLD_LISTENER_QUERY:
+            SCLogDebug("MLD_LISTENER_QUERY");
+            if (p->icmpv6h->code != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case MLD_LISTENER_REPORT:
+            SCLogDebug("MLD_LISTENER_REPORT");
+            if (p->icmpv6h->code != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case MLD_LISTENER_REDUCTION:
+            SCLogDebug("MLD_LISTENER_REDUCTION");
+            if (p->icmpv6h->code != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
         default:
             SCLogDebug("ICMPV6 Message type %" PRIu8 " not "
                        "implemented yet", ICMPV6_GET_TYPE(p));

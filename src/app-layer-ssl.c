@@ -88,6 +88,7 @@ SslConfig ssl_config;
 #define SSLV3_HS_HELLO_REQUEST        0
 #define SSLV3_HS_CLIENT_HELLO         1
 #define SSLV3_HS_SERVER_HELLO         2
+#define SSLV3_HS_NEW_SESSION_TICKET   4
 #define SSLV3_HS_CERTIFICATE         11
 #define SSLV3_HS_SERVER_KEY_EXCHANGE 12
 #define SSLV3_HS_CERTIFICATE_REQUEST 13
@@ -215,6 +216,9 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
         case SSLV3_HS_FINISHED:
         case SSLV3_HS_CERTIFICATE_URL:
         case SSLV3_HS_CERTIFICATE_STATUS:
+            break;
+        case SSLV3_HS_NEW_SESSION_TICKET:
+            SCLogDebug("new session ticket");
             break;
         default:
             AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
@@ -1091,6 +1095,11 @@ static int SSLRegisterPatternsForProtocolDetection(void)
     /***** toclient direction *****/
 
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
+                                               "|15 03 00|", 3, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
                                                "|16 03 00|", 3, 0, STREAM_TOCLIENT) < 0)
     {
         return -1;
@@ -1102,6 +1111,11 @@ static int SSLRegisterPatternsForProtocolDetection(void)
     }
 
     /** TLSv1 */
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
+                                               "|15 03 01|", 3, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
                                                "|16 03 01|", 3, 0, STREAM_TOCLIENT) < 0)
     {
@@ -1115,6 +1129,11 @@ static int SSLRegisterPatternsForProtocolDetection(void)
 
     /** TLSv1.1 */
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
+                                               "|15 03 02|", 3, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
                                                "|16 03 02|", 3, 0, STREAM_TOCLIENT) < 0)
     {
         return -1;
@@ -1126,6 +1145,11 @@ static int SSLRegisterPatternsForProtocolDetection(void)
     }
 
     /** TLSv1.2 */
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
+                                               "|15 03 03|", 3, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
                                                "|16 03 03|", 3, 0, STREAM_TOCLIENT) < 0)
     {
