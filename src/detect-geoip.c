@@ -39,7 +39,8 @@
 
 #ifndef HAVE_GEOIP
 
-static int DetectGeoipSetupNoSupport (DetectEngineCtx *a, Signature *b, char *c) {
+static int DetectGeoipSetupNoSupport (DetectEngineCtx *a, Signature *b, char *c)
+{
     SCLogError(SC_ERR_NO_GEOIP_SUPPORT, "no GeoIP support built in, needed for geoip keyword");
     return -1;
 }
@@ -359,7 +360,8 @@ error:
  *
  * \param geoipdata pointer to DetectGeoipData
  */
-static void DetectGeoipDataFree(void *ptr) {
+static void DetectGeoipDataFree(void *ptr)
+{
     if (ptr != NULL) {
         DetectGeoipData *geoipdata = (DetectGeoipData *)ptr;
         SCFree(geoipdata);
@@ -368,7 +370,8 @@ static void DetectGeoipDataFree(void *ptr) {
 
 #ifdef UNITTESTS
 
-static int GeoipParseTest(char *rule, int ncountries, char **countries, uint32_t flags) {
+static int GeoipParseTest(char *rule, int ncountries, char **countries, uint32_t flags)
+{
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
     Signature *s = NULL;
@@ -427,43 +430,50 @@ end:
     return result;
 }
 
-static int GeoipParseTest01(void) {
+static int GeoipParseTest01(void)
+{
     char *ccodes[1] = {"US"};
     return GeoipParseTest("alert tcp any any -> any any (geoip:US;sid:1;)", 1, ccodes,
                                 GEOIP_MATCH_ANY_FLAG);
 }
 
-static int GeoipParseTest02(void) {
+static int GeoipParseTest02(void)
+{
     char *ccodes[1] = {"US"};
     return GeoipParseTest("alert tcp any any -> any any (geoip:!US;sid:1;)", 1, ccodes,
                                 GEOIP_MATCH_ANY_FLAG | GEOIP_MATCH_NEGATED);
 }
 
-static int GeoipParseTest03(void) {
+static int GeoipParseTest03(void)
+{
     char *ccodes[1] = {"US"};
     return GeoipParseTest("alert tcp any any -> any any (geoip:!US;sid:1;)", 1, ccodes,
                                 GEOIP_MATCH_ANY_FLAG | GEOIP_MATCH_NEGATED);
 }
 
-static int GeoipParseTest04(void) {
+static int GeoipParseTest04(void)
+{
     char *ccodes[1] = {"US"};
     return GeoipParseTest("alert tcp any any -> any any (geoip:src,US;sid:1;)", 1, ccodes,
                                 GEOIP_MATCH_SRC_FLAG);
 }
 
-static int GeoipParseTest05(void) {
+static int GeoipParseTest05(void)
+{
     char *ccodes[1] = {"US"};
     return GeoipParseTest("alert tcp any any -> any any (geoip:dst,!US;sid:1;)", 1, ccodes,
                                 GEOIP_MATCH_DST_FLAG | GEOIP_MATCH_NEGATED);
 }
 
-static int GeoipParseTest06(void) {
+static int GeoipParseTest06(void)
+{
     char *ccodes[3] = {"US", "ES", "UK"};
     return GeoipParseTest("alert tcp any any -> any any (geoip:US,ES,UK;sid:1;)", 3, ccodes,
                                 GEOIP_MATCH_ANY_FLAG);
 }
 
-static int GeoipParseTest07(void) {
+static int GeoipParseTest07(void)
+{
     char *ccodes[3] = {"US", "ES", "UK"};
     return GeoipParseTest("alert tcp any any -> any any (geoip:both,!US,ES,UK;sid:1;)", 3, ccodes,
                                 GEOIP_MATCH_BOTH_FLAG | GEOIP_MATCH_NEGATED);
@@ -522,48 +532,55 @@ end:
     return result;
 }
 
-static int GeoipMatchTest01(void) {
+static int GeoipMatchTest01(void)
+{
     /* Tests with IP of google DNS as US for both src and dst IPs */
     return GeoipMatchTest("alert tcp any any -> any any (geoip:US;sid:1;)", "8.8.8.8", "8.8.8.8");
     /* Expected result 1 = match */
 }
 
-static int GeoipMatchTest02(void) {
+static int GeoipMatchTest02(void)
+{
     /* Tests with IP of google DNS as US, and m.root-servers.net as japan */
     return GeoipMatchTest("alert tcp any any -> any any (geoip:JP;sid:1;)", "8.8.8.8",
                     "202.12.27.33");
     /* Expected result 1 = match */
 }
 
-static int GeoipMatchTest03(void) {
+static int GeoipMatchTest03(void)
+{
     /* Tests with IP of google DNS as US, and m.root-servers.net as japan */
     return GeoipMatchTest("alert tcp any any -> any any (geoip:dst,JP;sid:1;)",
                     "8.8.8.8", "202.12.27.33");
     /* Expected result 1 = match */
 }
 
-static int GeoipMatchTest04(void) {
+static int GeoipMatchTest04(void)
+{
     /* Tests with IP of google DNS as US, and m.root-servers.net as japan */
     return GeoipMatchTest("alert tcp any any -> any any (geoip:src,JP;sid:1;)",
                     "8.8.8.8", "202.12.27.33");
     /* Expected result 2 = NO match */
 }
 
-static int GeoipMatchTest05(void) {
+static int GeoipMatchTest05(void)
+{
     /* Tests with IP of google DNS as US, and m.root-servers.net as japan */
     return GeoipMatchTest("alert tcp any any -> any any (geoip:src,JP,US;sid:1;)",
                     "8.8.8.8", "202.12.27.33");
     /* Expected result 1 = match */
 }
 
-static int GeoipMatchTest06(void) {
+static int GeoipMatchTest06(void)
+{
     /* Tests with IP of google DNS as US, and m.root-servers.net as japan */
     return GeoipMatchTest("alert tcp any any -> any any (geoip:src,ES,JP,US,UK,PT;sid:1;)",
                     "8.8.8.8", "202.12.27.33");
     /* Expected result 1 = match */
 }
 
-static int GeoipMatchTest07(void) {
+static int GeoipMatchTest07(void)
+{
     /* Tests with IP of google DNS as US, and m.root-servers.net as japan */
     return GeoipMatchTest("alert tcp any any -> any any (geoip:src,!ES,JP,US,UK,PT;sid:1;)",
                     "8.8.8.8", "202.12.27.33");

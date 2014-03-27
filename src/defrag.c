@@ -912,7 +912,8 @@ DefragInit(void)
     DefragInitConfig(FALSE);
 }
 
-void DefragDestroy(void) {
+void DefragDestroy(void)
+{
     DefragHashShutdown();
     DefragContextDestroy(defrag_context);
     defrag_context = NULL;
@@ -2184,7 +2185,8 @@ end:
  * fragments.
  */
 static int
-DefragVlanTest(void) {
+DefragVlanTest(void)
+{
     Packet *p1 = NULL, *p2 = NULL, *r = NULL;
     int ret = 0;
 
@@ -2229,7 +2231,8 @@ end:
  * Like DefragVlanTest, but for QinQ, testing the second level VLAN ID.
  */
 static int
-DefragVlanQinQTest(void) {
+DefragVlanQinQTest(void)
+{
     Packet *p1 = NULL, *p2 = NULL, *r = NULL;
     int ret = 0;
 

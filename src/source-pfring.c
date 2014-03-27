@@ -77,7 +77,8 @@ extern uint8_t suricata_ctl_flags;
 /*Handle cases where we don't have PF_RING support built-in*/
 TmEcode NoPfringSupportExit(ThreadVars *, void *, void **);
 
-void TmModuleReceivePfringRegister (void) {
+void TmModuleReceivePfringRegister (void)
+{
     tmm_modules[TMM_RECEIVEPFRING].name = "ReceivePfring";
     tmm_modules[TMM_RECEIVEPFRING].ThreadInit = NoPfringSupportExit;
     tmm_modules[TMM_RECEIVEPFRING].Func = NULL;
@@ -89,7 +90,8 @@ void TmModuleReceivePfringRegister (void) {
     tmm_modules[TMM_RECEIVEPFRING].flags = TM_FLAG_RECEIVE_TM;
 }
 
-void TmModuleDecodePfringRegister (void) {
+void TmModuleDecodePfringRegister (void)
+{
     tmm_modules[TMM_DECODEPFRING].name = "DecodePfring";
     tmm_modules[TMM_DECODEPFRING].ThreadInit = NoPfringSupportExit;
     tmm_modules[TMM_DECODEPFRING].Func = NULL;
@@ -163,7 +165,8 @@ typedef struct PfringThreadVars_
  * \brief Registration Function for RecievePfring.
  * \todo Unit tests are needed for this module.
  */
-void TmModuleReceivePfringRegister (void) {
+void TmModuleReceivePfringRegister (void)
+{
     tmm_modules[TMM_RECEIVEPFRING].name = "ReceivePfring";
     tmm_modules[TMM_RECEIVEPFRING].ThreadInit = ReceivePfringThreadInit;
     tmm_modules[TMM_RECEIVEPFRING].Func = NULL;
@@ -178,7 +181,8 @@ void TmModuleReceivePfringRegister (void) {
  * \brief Registration Function for DecodePfring.
  * \todo Unit tests are needed for this module.
  */
-void TmModuleDecodePfringRegister (void) {
+void TmModuleDecodePfringRegister (void)
+{
     tmm_modules[TMM_DECODEPFRING].name = "DecodePfring";
     tmm_modules[TMM_DECODEPFRING].ThreadInit = DecodePfringThreadInit;
     tmm_modules[TMM_DECODEPFRING].Func = DecodePfring;
@@ -217,7 +221,8 @@ static inline void PfringDumpCounters(PfringThreadVars *ptv)
  * \param h pointer to pfring packet header
  * \param p pointer to the current packet
  */
-static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Packet *p) {
+static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Packet *p)
+{
 
     PfringThreadVars *ptv = (PfringThreadVars *)user;
 
@@ -394,7 +399,8 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
  * \retval TM_ECODE_OK on success
  * \retval TM_ECODE_FAILED on error
  */
-TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
+TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
+{
     int rc;
     u_int32_t version = 0;
     PfringIfaceConfig *pfconf = (PfringIfaceConfig *) initdata;
@@ -549,7 +555,8 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
  * \param tv pointer to ThreadVars
  * \param data pointer that gets cast into PfringThreadVars for ptv
  */
-void ReceivePfringThreadExitStats(ThreadVars *tv, void *data) {
+void ReceivePfringThreadExitStats(ThreadVars *tv, void *data)
+{
     PfringThreadVars *ptv = (PfringThreadVars *)data;
 
     PfringDumpCounters(ptv);
@@ -566,7 +573,8 @@ void ReceivePfringThreadExitStats(ThreadVars *tv, void *data) {
  * \param data pointer that gets cast into PfringThreadVars for ptvi
  * \retval TM_ECODE_OK is always returned
  */
-TmEcode ReceivePfringThreadDeinit(ThreadVars *tv, void *data) {
+TmEcode ReceivePfringThreadDeinit(ThreadVars *tv, void *data)
+{
     PfringThreadVars *ptv = (PfringThreadVars *)data;
     if (ptv->interface)
         SCFree(ptv->interface);

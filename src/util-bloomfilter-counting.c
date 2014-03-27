@@ -75,7 +75,8 @@ error:
     return NULL;
 }
 
-void BloomFilterCountingFree(BloomFilterCounting *bf) {
+void BloomFilterCountingFree(BloomFilterCounting *bf)
+{
     if (bf != NULL) {
         if (bf->array != NULL)
             SCFree(bf->array);
@@ -84,7 +85,8 @@ void BloomFilterCountingFree(BloomFilterCounting *bf) {
     }
 }
 
-void BloomFilterCountingPrint(BloomFilterCounting *bf) {
+void BloomFilterCountingPrint(BloomFilterCounting *bf)
+{
     printf("\n------ Counting Bloom Filter Stats ------\n");
     printf("Buckets:               %" PRIu32 "\n", bf->array_size);
     printf("Counter size:          %" PRIu32 "\n", bf->type);
@@ -94,7 +96,8 @@ void BloomFilterCountingPrint(BloomFilterCounting *bf) {
     printf("-----------------------------------------\n");
 }
 
-int BloomFilterCountingAdd(BloomFilterCounting *bf, void *data, uint16_t datalen) {
+int BloomFilterCountingAdd(BloomFilterCounting *bf, void *data, uint16_t datalen)
+{
     uint8_t iter = 0;
     uint32_t hash = 0;
 
@@ -121,7 +124,8 @@ int BloomFilterCountingAdd(BloomFilterCounting *bf, void *data, uint16_t datalen
     return 0;
 }
 
-int BloomFilterCountingRemove(BloomFilterCounting *bf, void *data, uint16_t datalen) {
+int BloomFilterCountingRemove(BloomFilterCounting *bf, void *data, uint16_t datalen)
+{
     uint8_t iter = 0;
     uint32_t hash = 0;
 
@@ -176,7 +180,8 @@ int BloomFilterCountingRemove(BloomFilterCounting *bf, void *data, uint16_t data
  * returns 0: for no match
  *         1: match
  */
-int BloomFilterCountingTest(BloomFilterCounting *bf, void *data, uint16_t datalen) {
+int BloomFilterCountingTest(BloomFilterCounting *bf, void *data, uint16_t datalen)
+{
     uint8_t iter = 0;
     uint32_t hash = 0;
     int hit = 1;
@@ -213,7 +218,8 @@ int BloomFilterCountingTest(BloomFilterCounting *bf, void *data, uint16_t datale
  */
 
 #ifdef UNITTESTS
-static uint32_t BloomHash(void *data, uint16_t datalen, uint8_t iter, uint32_t hash_size) {
+static uint32_t BloomHash(void *data, uint16_t datalen, uint8_t iter, uint32_t hash_size)
+{
      uint8_t *d = (uint8_t *)data;
      uint32_t i;
      uint32_t hash = 0;
@@ -229,7 +235,8 @@ static uint32_t BloomHash(void *data, uint16_t datalen, uint8_t iter, uint32_t h
      return hash;
 }
 
-static int BloomFilterCountingTestInit01 (void) {
+static int BloomFilterCountingTestInit01 (void)
+{
     BloomFilterCounting *bf = BloomFilterCountingInit(1024, 4, 4, BloomHash);
     if (bf == NULL)
         return 0;
@@ -239,7 +246,8 @@ static int BloomFilterCountingTestInit01 (void) {
 }
 
 /* no hash function, so it should fail */
-static int BloomFilterCountingTestInit02 (void) {
+static int BloomFilterCountingTestInit02 (void)
+{
     BloomFilterCounting *bf = BloomFilterCountingInit(1024, 4, 4, NULL);
     if (bf == NULL)
         return 1;
@@ -248,7 +256,8 @@ static int BloomFilterCountingTestInit02 (void) {
     return 0;
 }
 
-static int BloomFilterCountingTestInit03 (void) {
+static int BloomFilterCountingTestInit03 (void)
+{
     int result = 0;
     BloomFilterCounting *bf = BloomFilterCountingInit(1024, 4, 4, BloomHash);
     if (bf == NULL)
@@ -261,7 +270,8 @@ static int BloomFilterCountingTestInit03 (void) {
     return result;
 }
 
-static int BloomFilterCountingTestInit04 (void) {
+static int BloomFilterCountingTestInit04 (void)
+{
     BloomFilterCounting *bf = BloomFilterCountingInit(1024, 0, 4, BloomHash);
     if (bf == NULL)
         return 1;
@@ -270,7 +280,8 @@ static int BloomFilterCountingTestInit04 (void) {
     return 0;
 }
 
-static int BloomFilterCountingTestInit05 (void) {
+static int BloomFilterCountingTestInit05 (void)
+{
     BloomFilterCounting *bf = BloomFilterCountingInit(0, 4, 4, BloomHash);
     if (bf == NULL)
         return 1;
@@ -279,7 +290,8 @@ static int BloomFilterCountingTestInit05 (void) {
     return 0;
 }
 
-static int BloomFilterCountingTestInit06 (void) {
+static int BloomFilterCountingTestInit06 (void)
+{
     BloomFilterCounting *bf = BloomFilterCountingInit(32, 3, 4, BloomHash);
     if (bf == NULL)
         return 1;
@@ -288,7 +300,8 @@ static int BloomFilterCountingTestInit06 (void) {
     return 0;
 }
 
-static int BloomFilterCountingTestAdd01 (void) {
+static int BloomFilterCountingTestAdd01 (void)
+{
     int result = 0;
     BloomFilterCounting *bf = BloomFilterCountingInit(1024, 4, 4, BloomHash);
     if (bf == NULL)
@@ -305,7 +318,8 @@ end:
     return result;
 }
 
-static int BloomFilterCountingTestAdd02 (void) {
+static int BloomFilterCountingTestAdd02 (void)
+{
     int result = 0;
     BloomFilterCounting *bf = BloomFilterCountingInit(1024, 4, 4, BloomHash);
     if (bf == NULL)
@@ -322,7 +336,8 @@ end:
     return result;
 }
 
-static int BloomFilterCountingTestFull01 (void) {
+static int BloomFilterCountingTestFull01 (void)
+{
     int result = 0;
     BloomFilterCounting *bf = BloomFilterCountingInit(32, 4, 4, BloomHash);
     if (bf == NULL) {
@@ -356,7 +371,8 @@ end:
     return result;
 }
 
-static int BloomFilterCountingTestFull02 (void) {
+static int BloomFilterCountingTestFull02 (void)
+{
     int result = 0;
     BloomFilterCounting *bf = BloomFilterCountingInit(32, 4, 4, BloomHash);
     if (bf == NULL)
@@ -374,7 +390,8 @@ end:
 }
 #endif
 
-void BloomFilterCountingRegisterTests(void) {
+void BloomFilterCountingRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("BloomFilterCountingTestInit01", BloomFilterCountingTestInit01, 1);
     UtRegisterTest("BloomFilterCountingTestInit02", BloomFilterCountingTestInit02, 1);

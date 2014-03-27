@@ -49,7 +49,8 @@
  *  Based on RINGBUFFER_MUTEX_WAIT define, we either sleep and spin
  *  or use thread condition to wait.
  */
-static inline void RingBuffer8DoWait(RingBuffer8 *rb) {
+static inline void RingBuffer8DoWait(RingBuffer8 *rb)
+{
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCMutexLock(&rb->wait_mutex);
     SCCondWait(&rb->wait_cond, &rb->wait_mutex);
@@ -67,7 +68,8 @@ static inline void RingBuffer8DoWait(RingBuffer8 *rb) {
  *  Based on RINGBUFFER_MUTEX_WAIT define, we either sleep and spin
  *  or use thread condition to wait.
  */
-static inline void RingBufferDoWait(RingBuffer16 *rb) {
+static inline void RingBufferDoWait(RingBuffer16 *rb)
+{
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCMutexLock(&rb->wait_mutex);
     SCCondWait(&rb->wait_cond, &rb->wait_mutex);
@@ -85,7 +87,8 @@ static inline void RingBufferDoWait(RingBuffer16 *rb) {
  *  Based on RINGBUFFER_MUTEX_WAIT define, we either sleep and spin
  *  or use thread condition to wait.
  */
-void RingBufferWait(RingBuffer16 *rb) {
+void RingBufferWait(RingBuffer16 *rb)
+{
     RingBufferDoWait(rb);
 }
 
@@ -93,7 +96,8 @@ void RingBufferWait(RingBuffer16 *rb) {
  *
  *  \param rb ringbuffer
  */
-void RingBuffer8Shutdown(RingBuffer8 *rb) {
+void RingBuffer8Shutdown(RingBuffer8 *rb)
+{
     rb->shutdown = 1;
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
@@ -107,7 +111,8 @@ void RingBuffer8Shutdown(RingBuffer8 *rb) {
  *  \retval 1 empty
  *  \retval 0 not empty
  */
-int RingBuffer8IsEmpty(RingBuffer8 *rb) {
+int RingBuffer8IsEmpty(RingBuffer8 *rb)
+{
     if (SC_ATOMIC_GET(rb->write) == SC_ATOMIC_GET(rb->read)) {
         return 1;
     }
@@ -122,7 +127,8 @@ int RingBuffer8IsEmpty(RingBuffer8 *rb) {
  *  \retval 1 empty
  *  \retval 0 not empty
  */
-int RingBuffer8IsFull(RingBuffer8 *rb) {
+int RingBuffer8IsFull(RingBuffer8 *rb)
+{
     if ((unsigned char)(SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         return 1;
     }
@@ -134,7 +140,8 @@ int RingBuffer8IsFull(RingBuffer8 *rb) {
  *
  *  \param rb ringbuffer
  */
-void RingBufferShutdown(RingBuffer16 *rb) {
+void RingBufferShutdown(RingBuffer16 *rb)
+{
     rb->shutdown = 1;
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
@@ -142,7 +149,8 @@ void RingBufferShutdown(RingBuffer16 *rb) {
 }
 
 /** \brief get number of items in the ringbuffer */
-uint16_t RingBufferSize(RingBuffer16 *rb) {
+uint16_t RingBufferSize(RingBuffer16 *rb)
+{
     SCEnter();
     uint16_t size = (uint16_t)(SC_ATOMIC_GET(rb->write) - SC_ATOMIC_GET(rb->read));
     SCReturnUInt(size);
@@ -155,7 +163,8 @@ uint16_t RingBufferSize(RingBuffer16 *rb) {
  *  \retval 1 empty
  *  \retval 0 not empty
  */
-int RingBufferIsEmpty(RingBuffer16 *rb) {
+int RingBufferIsEmpty(RingBuffer16 *rb)
+{
     if (SC_ATOMIC_GET(rb->write) == SC_ATOMIC_GET(rb->read)) {
         return 1;
     }
@@ -170,7 +179,8 @@ int RingBufferIsEmpty(RingBuffer16 *rb) {
  *  \retval 1 empty
  *  \retval 0 not empty
  */
-int RingBufferIsFull(RingBuffer16 *rb) {
+int RingBufferIsFull(RingBuffer16 *rb)
+{
     if ((unsigned short)(SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         return 1;
     }
@@ -180,7 +190,8 @@ int RingBufferIsFull(RingBuffer16 *rb) {
 
 /* Single Reader, Single Writer, 8 bits */
 
-void *RingBufferSrSw8Get(RingBuffer8 *rb) {
+void *RingBufferSrSw8Get(RingBuffer8 *rb)
+{
     void *ptr = NULL;
 
     /* buffer is empty, wait... */
@@ -201,7 +212,8 @@ void *RingBufferSrSw8Get(RingBuffer8 *rb) {
     return ptr;
 }
 
-int RingBufferSrSw8Put(RingBuffer8 *rb, void *ptr) {
+int RingBufferSrSw8Put(RingBuffer8 *rb, void *ptr)
+{
     /* buffer is full, wait... */
     while ((unsigned char)(SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
@@ -222,7 +234,8 @@ int RingBufferSrSw8Put(RingBuffer8 *rb, void *ptr) {
 
 /* Single Reader, Multi Writer, 8 bites */
 
-void *RingBufferSrMw8Get(RingBuffer8 *rb) {
+void *RingBufferSrMw8Get(RingBuffer8 *rb)
+{
     void *ptr = NULL;
 
     /* buffer is empty, wait... */
@@ -261,7 +274,8 @@ void *RingBufferSrMw8Get(RingBuffer8 *rb) {
  *  \retval 0 ok
  *  \retval -1 wait loop interrupted because of engine flags
  */
-int RingBufferSrMw8Put(RingBuffer8 *rb, void *ptr) {
+int RingBufferSrMw8Put(RingBuffer8 *rb, void *ptr)
+{
     SCLogDebug("ptr %p", ptr);
 
     /* buffer is full, wait... */
@@ -305,7 +319,8 @@ retry:
  *  that the threads don't interfere with one another.
  *
  */
-void *RingBufferMrSw8Get(RingBuffer8 *rb) {
+void *RingBufferMrSw8Get(RingBuffer8 *rb)
+{
     void *ptr;
     /** local pointer for data races. If SCAtomicCompareAndSwap (CAS)
      *  fails we increase our local array idx to try the next array member
@@ -346,7 +361,8 @@ retry:
 /**
  *  \brief put a ptr in the RingBuffer
  */
-int RingBufferMrSw8Put(RingBuffer8 *rb, void *ptr) {
+int RingBufferMrSw8Put(RingBuffer8 *rb, void *ptr)
+{
     SCLogDebug("ptr %p", ptr);
 
     /* buffer is full, wait... */
@@ -377,7 +393,8 @@ int RingBufferMrSw8Put(RingBuffer8 *rb, void *ptr) {
  *  that the threads don't interfere with one another.
  *
  */
-void *RingBufferMrSwGet(RingBuffer16 *rb) {
+void *RingBufferMrSwGet(RingBuffer16 *rb)
+{
     void *ptr;
     /** local pointer for data races. If SCAtomicCompareAndSwap (CAS)
      *  fails we increase our local array idx to try the next array member
@@ -418,7 +435,8 @@ retry:
 /**
  *  \brief put a ptr in the RingBuffer
  */
-int RingBufferMrSwPut(RingBuffer16 *rb, void *ptr) {
+int RingBufferMrSwPut(RingBuffer16 *rb, void *ptr)
+{
     SCLogDebug("ptr %p", ptr);
 
     /* buffer is full, wait... */
@@ -442,7 +460,8 @@ int RingBufferMrSwPut(RingBuffer16 *rb, void *ptr) {
 
 /* Single Reader, Single Writer */
 
-void *RingBufferSrSwGet(RingBuffer16 *rb) {
+void *RingBufferSrSwGet(RingBuffer16 *rb)
+{
     void *ptr = NULL;
 
     /* buffer is empty, wait... */
@@ -463,7 +482,8 @@ void *RingBufferSrSwGet(RingBuffer16 *rb) {
     return ptr;
 }
 
-int RingBufferSrSwPut(RingBuffer16 *rb, void *ptr) {
+int RingBufferSrSwPut(RingBuffer16 *rb, void *ptr)
+{
     /* buffer is full, wait... */
     while ((unsigned short)(SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
@@ -484,7 +504,8 @@ int RingBufferSrSwPut(RingBuffer16 *rb, void *ptr) {
 
 /* Multi Reader, Multi Writer, 8 bits */
 
-RingBuffer8 *RingBuffer8Init(void) {
+RingBuffer8 *RingBuffer8Init(void)
+{
     RingBuffer8 *rb = SCMalloc(sizeof(RingBuffer8));
     if (unlikely(rb == NULL)) {
         return NULL;
@@ -503,7 +524,8 @@ RingBuffer8 *RingBuffer8Init(void) {
     return rb;
 }
 
-void RingBuffer8Destroy(RingBuffer8 *rb) {
+void RingBuffer8Destroy(RingBuffer8 *rb)
+{
     if (rb != NULL) {
         SC_ATOMIC_DESTROY(rb->write);
         SC_ATOMIC_DESTROY(rb->read);
@@ -525,7 +547,8 @@ void RingBuffer8Destroy(RingBuffer8 *rb) {
  *  that the threads don't interfere with one another.
  *
  */
-void *RingBufferMrMw8Get(RingBuffer8 *rb) {
+void *RingBufferMrMw8Get(RingBuffer8 *rb)
+{
     void *ptr;
     /** local pointer for data races. If SCAtomicCompareAndSwap (CAS)
      *  fails we increase our local array idx to try the next array member
@@ -580,7 +603,8 @@ retry:
  *  \retval 0 ok
  *  \retval -1 wait loop interrupted because of engine flags
  */
-int RingBufferMrMw8Put(RingBuffer8 *rb, void *ptr) {
+int RingBufferMrMw8Put(RingBuffer8 *rb, void *ptr)
+{
     SCLogDebug("ptr %p", ptr);
 
     /* buffer is full, wait... */
@@ -617,7 +641,8 @@ retry:
 
 /* Multi Reader, Multi Writer, 16 bits */
 
-RingBuffer16 *RingBufferInit(void) {
+RingBuffer16 *RingBufferInit(void)
+{
     RingBuffer16 *rb = SCMalloc(sizeof(RingBuffer16));
     if (unlikely(rb == NULL)) {
         return NULL;
@@ -636,7 +661,8 @@ RingBuffer16 *RingBufferInit(void) {
     return rb;
 }
 
-void RingBufferDestroy(RingBuffer16 *rb) {
+void RingBufferDestroy(RingBuffer16 *rb)
+{
     if (rb != NULL) {
         SC_ATOMIC_DESTROY(rb->write);
         SC_ATOMIC_DESTROY(rb->read);
@@ -659,7 +685,8 @@ void RingBufferDestroy(RingBuffer16 *rb) {
  *  that the threads don't interfere with one another.
  *
  */
-void *RingBufferMrMwGet(RingBuffer16 *rb) {
+void *RingBufferMrMwGet(RingBuffer16 *rb)
+{
     void *ptr;
     /** local pointer for data races. If SCAtomicCompareAndSwap (CAS)
      *  fails we increase our local array idx to try the next array member
@@ -707,7 +734,8 @@ retry:
  *
  *  \retval ptr pointer to the data, or NULL if buffer is empty
  */
-void *RingBufferMrMwGetNoWait(RingBuffer16 *rb) {
+void *RingBufferMrMwGetNoWait(RingBuffer16 *rb)
+{
     void *ptr;
     /** local pointer for data races. If SCAtomicCompareAndSwap (CAS)
      *  fails we increase our local array idx to try the next array member
@@ -760,7 +788,8 @@ retry:
  *  \retval 0 ok
  *  \retval -1 wait loop interrupted because of engine flags
  */
-int RingBufferMrMwPut(RingBuffer16 *rb, void *ptr) {
+int RingBufferMrMwPut(RingBuffer16 *rb, void *ptr)
+{
     SCLogDebug("ptr %p", ptr);
 
     /* buffer is full, wait... */
@@ -796,7 +825,8 @@ retry:
 }
 
 #ifdef UNITTESTS
-static int RingBuffer8SrSwInit01 (void) {
+static int RingBuffer8SrSwInit01 (void)
+{
     int result = 0;
 
     RingBuffer8 *rb = NULL;
@@ -832,7 +862,8 @@ end:
     return result;
 }
 
-static int RingBuffer8SrSwPut01 (void) {
+static int RingBuffer8SrSwPut01 (void)
+{
     int result = 0;
 
     RingBuffer8 *rb = NULL;
@@ -880,7 +911,8 @@ end:
     return result;
 }
 
-static int RingBuffer8SrSwPut02 (void) {
+static int RingBuffer8SrSwPut02 (void)
+{
     int result = 0;
     RingBuffer8 *rb = NULL;
 
@@ -928,7 +960,8 @@ end:
     return result;
 }
 
-static int RingBuffer8SrSwGet01 (void) {
+static int RingBuffer8SrSwGet01 (void)
+{
     int result = 0;
 
     RingBuffer8 *rb = NULL;
@@ -967,7 +1000,8 @@ end:
     return result;
 }
 
-static int RingBuffer8SrSwGet02 (void) {
+static int RingBuffer8SrSwGet02 (void)
+{
     int result = 0;
     RingBuffer8 *rb = NULL;
 
@@ -1041,7 +1075,8 @@ end:
 
 #endif /* UNITTESTS */
 
-void DetectRingBufferRegisterTests(void) {
+void DetectRingBufferRegisterTests(void)
+{
 #ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("RingBuffer8SrSwInit01", RingBuffer8SrSwInit01, 1);
     UtRegisterTest("RingBuffer8SrSwPut01", RingBuffer8SrSwPut01, 1);

@@ -105,7 +105,8 @@ static int profiling_rules_sort_order = SC_PROFILING_RULES_SORT_BY_TICKS;
  */
 static uint32_t profiling_rules_limit = UINT32_MAX;
 
-void SCProfilingRulesGlobalInit(void) {
+void SCProfilingRulesGlobalInit(void)
+{
     ConfNode *conf;
     const char *val;
 
@@ -456,7 +457,8 @@ SCProfilingRuleUpdateCounter(DetectEngineThreadCtx *det_ctx, uint16_t id, uint64
     }
 }
 
-SCProfileDetectCtx *SCProfilingRuleInitCtx(void) {
+SCProfileDetectCtx *SCProfilingRuleInitCtx(void)
+{
     SCProfileDetectCtx *ctx = SCMalloc(sizeof(SCProfileDetectCtx));
     if (ctx != NULL) {
         memset(ctx, 0x00, sizeof(SCProfileDetectCtx));
@@ -471,7 +473,8 @@ SCProfileDetectCtx *SCProfilingRuleInitCtx(void) {
     return ctx;
 }
 
-void SCProfilingRuleDestroyCtx(SCProfileDetectCtx *ctx) {
+void SCProfilingRuleDestroyCtx(SCProfileDetectCtx *ctx)
+{
     if (ctx != NULL) {
         SCProfilingRuleDump(ctx);
         if (ctx->data != NULL)
@@ -481,7 +484,8 @@ void SCProfilingRuleDestroyCtx(SCProfileDetectCtx *ctx) {
     }
 }
 
-void SCProfilingRuleThreadSetup(SCProfileDetectCtx *ctx, DetectEngineThreadCtx *det_ctx) {
+void SCProfilingRuleThreadSetup(SCProfileDetectCtx *ctx, DetectEngineThreadCtx *det_ctx)
+{
     if (ctx == NULL|| ctx->size == 0)
         return;
 
@@ -494,7 +498,8 @@ void SCProfilingRuleThreadSetup(SCProfileDetectCtx *ctx, DetectEngineThreadCtx *
     }
 }
 
-static void SCProfilingRuleThreadMerge(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx) {
+static void SCProfilingRuleThreadMerge(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
+{
     if (de_ctx == NULL || de_ctx->profile_ctx == NULL || de_ctx->profile_ctx->data == NULL ||
         det_ctx == NULL || det_ctx->rule_perf_data == NULL)
         return;
@@ -510,7 +515,8 @@ static void SCProfilingRuleThreadMerge(DetectEngineCtx *de_ctx, DetectEngineThre
     }
 }
 
-void SCProfilingRuleThreadCleanup(DetectEngineThreadCtx *det_ctx) {
+void SCProfilingRuleThreadCleanup(DetectEngineThreadCtx *det_ctx)
+{
     if (det_ctx == NULL || det_ctx->de_ctx == NULL || det_ctx->rule_perf_data == NULL)
         return;
 

@@ -344,7 +344,8 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
 #ifdef UNITTESTS
 
-static int ICMPV6CalculateValidChecksumtest01(void) {
+static int ICMPV6CalculateValidChecksumtest01(void)
+{
     uint16_t csum = 0;
 
     uint8_t raw_ipv6[] = {
@@ -371,7 +372,8 @@ static int ICMPV6CalculateValidChecksumtest01(void) {
                                             (uint16_t *)(raw_ipv6 + 54), 68));
 }
 
-static int ICMPV6CalculateInvalidChecksumtest02(void) {
+static int ICMPV6CalculateInvalidChecksumtest02(void)
+{
     uint16_t csum = 0;
 
     uint8_t raw_ipv6[] = {

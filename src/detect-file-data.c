@@ -48,7 +48,8 @@ static int DetectFiledataSetup (DetectEngineCtx *, Signature *, char *);
 /**
  * \brief Registration function for keyword: file_data
  */
-void DetectFiledataRegister(void) {
+void DetectFiledataRegister(void)
+{
     sigmatch_table[DETECT_FILE_DATA].name = "file_data";
     sigmatch_table[DETECT_FILE_DATA].desc = "make content keywords match on HTTP response body";
     sigmatch_table[DETECT_FILE_DATA].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#file_data";

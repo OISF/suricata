@@ -62,7 +62,8 @@ extern int run_mode;
 static int DetectReplaceSetup (DetectEngineCtx *, Signature *, char *);
 void DetectReplaceRegisterTests(void);
 
-void DetectReplaceRegister (void) {
+void DetectReplaceRegister (void)
+{
     sigmatch_table[DETECT_REPLACE].name = "replace";
     sigmatch_table[DETECT_REPLACE].Match = NULL;
     sigmatch_table[DETECT_REPLACE].Setup = DetectReplaceSetup;
@@ -303,7 +304,8 @@ end:
 /**
  * \brief Wrapper for DetectContentLongPatternMatchTest
  */
-int DetectReplaceLongPatternMatchTestWrp(char *sig, uint32_t sid, char *sig_rep,  uint32_t sid_rep) {
+int DetectReplaceLongPatternMatchTestWrp(char *sig, uint32_t sid, char *sig_rep,  uint32_t sid_rep)
+{
     int ret;
     /** Real packet with the following tcp data:
      * "Hi, this is a big test to check content matches of splitted"
@@ -350,7 +352,8 @@ int DetectReplaceLongPatternMatchTestWrp(char *sig, uint32_t sid, char *sig_rep,
 /**
  * \brief Wrapper for DetectContentLongPatternMatchTest
  */
-int DetectReplaceLongPatternMatchTestUDPWrp(char *sig, uint32_t sid, char *sig_rep,  uint32_t sid_rep) {
+int DetectReplaceLongPatternMatchTestUDPWrp(char *sig, uint32_t sid, char *sig_rep,  uint32_t sid_rep)
+{
     int ret;
     /** Real UDP DNS packet with a request A to a1.twimg.com
      */

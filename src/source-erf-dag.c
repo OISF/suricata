@@ -37,7 +37,8 @@
 
 TmEcode NoErfDagSupportExit(ThreadVars *, void *, void **);
 
-void TmModuleReceiveErfDagRegister (void) {
+void TmModuleReceiveErfDagRegister (void)
+{
     tmm_modules[TMM_RECEIVEERFDAG].name = "ReceiveErfDag";
     tmm_modules[TMM_RECEIVEERFDAG].ThreadInit = NoErfDagSupportExit;
     tmm_modules[TMM_RECEIVEERFDAG].Func = NULL;
@@ -48,7 +49,8 @@ void TmModuleReceiveErfDagRegister (void) {
     tmm_modules[TMM_RECEIVEERFDAG].flags = TM_FLAG_RECEIVE_TM;
 }
 
-void TmModuleDecodeErfDagRegister (void) {
+void TmModuleDecodeErfDagRegister (void)
+{
     tmm_modules[TMM_DECODEERFDAG].name = "DecodeErfDag";
     tmm_modules[TMM_DECODEERFDAG].ThreadInit = NoErfDagSupportExit;
     tmm_modules[TMM_DECODEERFDAG].Func = NULL;

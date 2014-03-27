@@ -435,7 +435,8 @@ void FlowCleanupAppLayer(Flow *);
  *
  * \param f Flow to set the flag in
  */
-static inline void FlowLockSetNoPacketInspectionFlag(Flow *f) {
+static inline void FlowLockSetNoPacketInspectionFlag(Flow *f)
+{
     SCEnter();
 
     SCLogDebug("flow %p", f);
@@ -450,7 +451,8 @@ static inline void FlowLockSetNoPacketInspectionFlag(Flow *f) {
  *
  * \param f Flow to set the flag in
  */
-static inline  void FlowSetNoPacketInspectionFlag(Flow *f) {
+static inline  void FlowSetNoPacketInspectionFlag(Flow *f)
+{
     SCEnter();
 
     SCLogDebug("flow %p", f);
@@ -463,7 +465,8 @@ static inline  void FlowSetNoPacketInspectionFlag(Flow *f) {
  *
  * \param f Flow to set the flag in
  */
-static inline void FlowLockSetNoPayloadInspectionFlag(Flow *f) {
+static inline void FlowLockSetNoPayloadInspectionFlag(Flow *f)
+{
     SCEnter();
 
     SCLogDebug("flow %p", f);
@@ -478,7 +481,8 @@ static inline void FlowLockSetNoPayloadInspectionFlag(Flow *f) {
  *
  * \param f Flow to set the flag in
  */
-static inline void FlowSetNoPayloadInspectionFlag(Flow *f) {
+static inline void FlowSetNoPayloadInspectionFlag(Flow *f)
+{
     SCEnter();
 
     SCLogDebug("flow %p", f);
@@ -491,7 +495,8 @@ static inline void FlowSetNoPayloadInspectionFlag(Flow *f) {
  *
  *  \param f *LOCKED* flow
  */
-static inline void FlowSetSessionNoApplayerInspectionFlag(Flow *f) {
+static inline void FlowSetSessionNoApplayerInspectionFlag(Flow *f)
+{
     f->flags |= FLOW_NO_APPLAYER_INSPECTION;
 }
 
@@ -524,7 +529,8 @@ static inline void FlowDecrUsecnt(Flow *f)
 /** \brief Reference the flow, bumping the flows use_cnt
  *  \note This should only be called once for a destination
  *        pointer */
-static inline void FlowReference(Flow **d, Flow *f) {
+static inline void FlowReference(Flow **d, Flow *f)
+{
     if (likely(f != NULL)) {
 #ifdef DEBUG_VALIDATION
         BUG_ON(*d == f);
@@ -537,7 +543,8 @@ static inline void FlowReference(Flow **d, Flow *f) {
     }
 }
 
-static inline void FlowDeReference(Flow **d) {
+static inline void FlowDeReference(Flow **d)
+{
     if (likely(*d != NULL)) {
         FlowDecrUsecnt(*d);
         *d = NULL;

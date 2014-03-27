@@ -307,7 +307,8 @@ static uint16_t DNSUdpProbingParser(uint8_t *input, uint32_t ilen, uint32_t *off
     return ALPROTO_DNS;
 }
 
-static void DNSUDPConfigure(void) {
+static void DNSUDPConfigure(void)
+{
     uint32_t request_flood = DNS_CONFIG_DEFAULT_REQUEST_FLOOD;
     uint32_t state_memcap = DNS_CONFIG_DEFAULT_STATE_MEMCAP;
     uint64_t global_memcap = DNS_CONFIG_DEFAULT_GLOBAL_MEMCAP;
@@ -349,7 +350,8 @@ static void DNSUDPConfigure(void) {
     DNSConfigSetGlobalMemcap(global_memcap);
 }
 
-void RegisterDNSUDPParsers(void) {
+void RegisterDNSUDPParsers(void)
+{
     char *proto_name = "dns";
 
     /** DNS */
@@ -422,7 +424,8 @@ void RegisterDNSUDPParsers(void) {
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
 
-static int DNSUDPParserTest01 (void) {
+static int DNSUDPParserTest01 (void)
+{
     int result = 0;
     /* query: abcdefghijk.com
      * TTL: 86400
@@ -459,7 +462,8 @@ end:
     return (result);
 }
 
-void DNSUDPParserRegisterTests(void) {
+void DNSUDPParserRegisterTests(void)
+{
 	UtRegisterTest("DNSUDPParserTest01", DNSUDPParserTest01, 1);
 }
 #endif

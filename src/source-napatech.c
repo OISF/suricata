@@ -42,7 +42,8 @@
 TmEcode NoNapatechSupportExit(ThreadVars *, void *, void **);
 
 
-void TmModuleNapatechStreamRegister (void) {
+void TmModuleNapatechStreamRegister (void)
+{
     tmm_modules[TMM_RECEIVENAPATECH].name = "NapatechStream";
     tmm_modules[TMM_RECEIVENAPATECH].ThreadInit = NoNapatechSupportExit;
     tmm_modules[TMM_RECEIVENAPATECH].Func = NULL;
@@ -52,7 +53,8 @@ void TmModuleNapatechStreamRegister (void) {
     tmm_modules[TMM_RECEIVENAPATECH].cap_flags = SC_CAP_NET_ADMIN;
 }
 
-void TmModuleNapatechDecodeRegister (void) {
+void TmModuleNapatechDecodeRegister (void)
+{
     tmm_modules[TMM_DECODENAPATECH].name = "NapatechDecode";
     tmm_modules[TMM_DECODENAPATECH].ThreadInit = NoNapatechSupportExit;
     tmm_modules[TMM_DECODENAPATECH].Func = NULL;

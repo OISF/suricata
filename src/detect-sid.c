@@ -30,7 +30,8 @@
 
 static int DetectSidSetup (DetectEngineCtx *, Signature *, char *);
 
-void DetectSidRegister (void) {
+void DetectSidRegister (void)
+{
     sigmatch_table[DETECT_SID].name = "sid";
     sigmatch_table[DETECT_SID].desc = "set rule id";
     sigmatch_table[DETECT_SID].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Meta-settings#Sid-signature-id";

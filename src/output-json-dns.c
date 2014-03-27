@@ -70,7 +70,8 @@ typedef struct LogDnsLogThread_ {
     MemBuffer *buffer;
 } LogDnsLogThread;
 
-static void CreateTypeString(uint16_t type, char *str, size_t str_size) {
+static void CreateTypeString(uint16_t type, char *str, size_t str_size)
+{
     if (type == DNS_RECORD_TYPE_A) {
         snprintf(str, str_size, "A");
     } else if (type == DNS_RECORD_TYPE_NS) {
@@ -98,7 +99,8 @@ static void CreateTypeString(uint16_t type, char *str, size_t str_size) {
     }
 }
 
-static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, DNSQueryEntry *entry) {
+static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, DNSQueryEntry *entry)
+{
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
 
     SCLogDebug("got a DNS request and now logging !!");
@@ -136,7 +138,8 @@ static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, DNSQu
     json_object_del(js, "dns");
 }
 
-static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry) {
+static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry)
+{
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
     json_t *js = json_object();
     if (js == NULL)
@@ -191,7 +194,8 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
     return;
 }
 
-static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx) {
+static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx)
+{
 
     SCLogDebug("got a DNS response and now logging !!");
 
@@ -362,7 +366,8 @@ static OutputCtx *JsonDnsLogInitCtx(ConfNode *conf)
 
 
 #define MODULE_NAME "JsonDnsLog"
-void TmModuleJsonDnsLogRegister (void) {
+void TmModuleJsonDnsLogRegister (void)
+{
     tmm_modules[TMM_JSONDNSLOG].name = MODULE_NAME;
     tmm_modules[TMM_JSONDNSLOG].ThreadInit = LogDnsLogThreadInit;
     tmm_modules[TMM_JSONDNSLOG].ThreadDeinit = LogDnsLogThreadDeinit;

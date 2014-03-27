@@ -59,7 +59,8 @@ void DetectDetectionFilterFree(void *);
 /**
  * \brief Registration function for detection_filter: keyword
  */
-void DetectDetectionFilterRegister (void) {
+void DetectDetectionFilterRegister (void)
+{
     sigmatch_table[DETECT_DETECTION_FILTER].name = "detection_filter";
     sigmatch_table[DETECT_DETECTION_FILTER].desc = "alert on every match after a threshold has been reached";
     sigmatch_table[DETECT_DETECTION_FILTER].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Rule-Thresholding#detection_filter";
@@ -93,7 +94,8 @@ error:
     return;
 }
 
-int DetectDetectionFilterMatch (ThreadVars *thv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm) {
+int DetectDetectionFilterMatch (ThreadVars *thv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm)
+{
     return 1;
 }
 
@@ -106,7 +108,8 @@ int DetectDetectionFilterMatch (ThreadVars *thv, DetectEngineThreadCtx *det_ctx,
  * \retval df pointer to DetectThresholdData on success
  * \retval NULL on failure
  */
-DetectThresholdData *DetectDetectionFilterParse (char *rawstr) {
+DetectThresholdData *DetectDetectionFilterParse (char *rawstr)
+{
     DetectThresholdData *df = NULL;
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
@@ -219,7 +222,8 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectDetectionFilterSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr) {
+int DetectDetectionFilterSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+{
     SCEnter();
     DetectThresholdData *df = NULL;
     SigMatch *sm = NULL;
@@ -267,7 +271,8 @@ error:
  *
  * \param df_ptr pointer to DetectDetectionFilterData
  */
-void DetectDetectionFilterFree(void *df_ptr) {
+void DetectDetectionFilterFree(void *df_ptr)
+{
     DetectThresholdData *df = (DetectThresholdData *)df_ptr;
     if (df) SCFree(df);
 }
@@ -290,7 +295,8 @@ void DetectDetectionFilterFree(void *df_ptr) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DetectDetectionFilterTestParse01 (void) {
+int DetectDetectionFilterTestParse01 (void)
+{
     DetectThresholdData *df = NULL;
     df = DetectDetectionFilterParse("track by_dst,count 10,seconds 60");
     if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 60)) {
@@ -307,7 +313,8 @@ int DetectDetectionFilterTestParse01 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DetectDetectionFilterTestParse02 (void) {
+int DetectDetectionFilterTestParse02 (void)
+{
     DetectThresholdData *df = NULL;
     df = DetectDetectionFilterParse("track both,count 10,seconds 60");
     if (df && (df->track == TRACK_DST || df->track == TRACK_SRC) && (df->count == 10) && (df->seconds == 60)) {
@@ -324,7 +331,8 @@ int DetectDetectionFilterTestParse02 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DetectDetectionFilterTestParse03 (void) {
+int DetectDetectionFilterTestParse03 (void)
+{
     DetectThresholdData *df = NULL;
     df = DetectDetectionFilterParse("track by_dst, seconds 60, count 10");
     if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 60)) {
@@ -342,7 +350,8 @@ int DetectDetectionFilterTestParse03 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DetectDetectionFilterTestParse04 (void) {
+int DetectDetectionFilterTestParse04 (void)
+{
     DetectThresholdData *df = NULL;
     df = DetectDetectionFilterParse("count 10, track by_dst, seconds 60, count 10");
     if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 60)) {
@@ -359,7 +368,8 @@ int DetectDetectionFilterTestParse04 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DetectDetectionFilterTestParse05 (void) {
+int DetectDetectionFilterTestParse05 (void)
+{
     DetectThresholdData *df = NULL;
     df = DetectDetectionFilterParse("count 10, track by_dst, seconds 60");
     if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 60)) {
@@ -376,7 +386,8 @@ int DetectDetectionFilterTestParse05 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DetectDetectionFilterTestParse06 (void) {
+int DetectDetectionFilterTestParse06 (void)
+{
     DetectThresholdData *df = NULL;
     df = DetectDetectionFilterParse("count 10, track by_dst, seconds 0");
     if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 0)) {
@@ -395,7 +406,8 @@ int DetectDetectionFilterTestParse06 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-static int DetectDetectionFilterTestSig1(void) {
+static int DetectDetectionFilterTestSig1(void)
+{
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
@@ -465,7 +477,8 @@ end:
  *  \retval 0 on failure
  */
 
-static int DetectDetectionFilterTestSig2(void) {
+static int DetectDetectionFilterTestSig2(void)
+{
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
@@ -536,7 +549,8 @@ end:
 /**
  *  \test drops
  */
-static int DetectDetectionFilterTestSig3(void) {
+static int DetectDetectionFilterTestSig3(void)
+{
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
@@ -631,7 +645,8 @@ end:
 }
 #endif /* UNITTESTS */
 
-void DetectDetectionFilterRegisterTests(void) {
+void DetectDetectionFilterRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DetectDetectionFilterTestParse01", DetectDetectionFilterTestParse01, 1);
     UtRegisterTest("DetectDetectionFilterTestParse02", DetectDetectionFilterTestParse02, 0);

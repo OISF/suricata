@@ -132,7 +132,8 @@ void FlowKillFlowManagerThread(void)
  *
  *  \retval state either FLOW_STATE_NEW, FLOW_STATE_ESTABLISHED or FLOW_STATE_CLOSED
  */
-static inline int FlowGetFlowState(Flow *f) {
+static inline int FlowGetFlowState(Flow *f)
+{
     if (flow_proto[f->protomap].GetProtoState != NULL) {
         return flow_proto[f->protomap].GetProtoState(f->protoctx);
     } else {
@@ -152,7 +153,8 @@ static inline int FlowGetFlowState(Flow *f) {
  *
  *  \retval timeout timeout in seconds
  */
-static inline uint32_t FlowGetFlowTimeout(Flow *f, int state, int emergency) {
+static inline uint32_t FlowGetFlowTimeout(Flow *f, int state, int emergency)
+{
     uint32_t timeout;
 
     if (emergency) {
@@ -196,7 +198,8 @@ static inline uint32_t FlowGetFlowTimeout(Flow *f, int state, int emergency) {
  *  \retval 0 not timed out
  *  \retval 1 timed out
  */
-static int FlowManagerFlowTimeout(Flow *f, int state, struct timeval *ts, int emergency) {
+static int FlowManagerFlowTimeout(Flow *f, int state, struct timeval *ts, int emergency)
+{
     /* set the timeout value according to the flow operating mode,
      * flow's state and protocol.*/
     uint32_t timeout = FlowGetFlowTimeout(f, state, emergency);
@@ -220,7 +223,8 @@ static int FlowManagerFlowTimeout(Flow *f, int state, struct timeval *ts, int em
  *  \retval 0 not timed out just yet
  *  \retval 1 fully timed out, lets kill it
  */
-static int FlowManagerFlowTimedOut(Flow *f, struct timeval *ts) {
+static int FlowManagerFlowTimedOut(Flow *f, struct timeval *ts)
+{
     /** never prune a flow that is used by a packet or stream msg
      *  we are currently processing in one of the threads */
     if (SC_ATOMIC_GET(f->use_cnt) > 0) {
@@ -333,7 +337,8 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
  *
  *  \retval cnt number of timed out flow
  */
-uint32_t FlowTimeoutHash(struct timeval *ts, uint32_t try_cnt, FlowTimeoutCounters *counters) {
+uint32_t FlowTimeoutHash(struct timeval *ts, uint32_t try_cnt, FlowTimeoutCounters *counters)
+{
     uint32_t idx = 0;
     uint32_t cnt = 0;
     int emergency = 0;
@@ -599,7 +604,8 @@ void FlowManagerThreadSpawn()
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int FlowMgrTest01 (void) {
+static int FlowMgrTest01 (void)
+{
     TcpSession ssn;
     Flow f;
     FlowBucket fb;
@@ -646,7 +652,8 @@ static int FlowMgrTest01 (void) {
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int FlowMgrTest02 (void) {
+static int FlowMgrTest02 (void)
+{
     TcpSession ssn;
     Flow f;
     FlowBucket fb;
@@ -703,7 +710,8 @@ static int FlowMgrTest02 (void) {
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int FlowMgrTest03 (void) {
+static int FlowMgrTest03 (void)
+{
     TcpSession ssn;
     Flow f;
     FlowBucket fb;
@@ -749,7 +757,8 @@ static int FlowMgrTest03 (void) {
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int FlowMgrTest04 (void) {
+static int FlowMgrTest04 (void)
+{
 
     TcpSession ssn;
     Flow f;
@@ -808,7 +817,8 @@ static int FlowMgrTest04 (void) {
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int FlowMgrTest05 (void) {
+static int FlowMgrTest05 (void)
+{
     int result = 0;
 
     FlowInitConfig(FLOW_QUIET);
@@ -856,7 +866,8 @@ static int FlowMgrTest05 (void) {
 /**
  *  \brief   Function to register the Flow Unitests.
  */
-void FlowMgrRegisterTests (void) {
+void FlowMgrRegisterTests (void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("FlowMgrTest01 -- Timeout a flow having fresh TcpSession", FlowMgrTest01, 1);
     UtRegisterTest("FlowMgrTest02 -- Timeout a flow having TcpSession with segments", FlowMgrTest02, 1);

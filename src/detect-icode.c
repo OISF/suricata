@@ -54,7 +54,8 @@ void DetectICodeFree(void *);
 /**
  * \brief Registration function for icode: keyword
  */
-void DetectICodeRegister (void) {
+void DetectICodeRegister (void)
+{
     sigmatch_table[DETECT_ICODE].name = "icode";
     sigmatch_table[DETECT_ICODE].desc = "match on specific ICMP id-value";
     sigmatch_table[DETECT_ICODE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#icode";
@@ -97,7 +98,8 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectICodeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m) {
+int DetectICodeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+{
     int ret = 0;
     uint8_t picode;
     DetectICodeData *icd = (DetectICodeData *)m->ctx;
@@ -140,7 +142,8 @@ int DetectICodeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, 
  * \retval icd pointer to DetectICodeData on success
  * \retval NULL on failure
  */
-DetectICodeData *DetectICodeParse(char *icodestr) {
+DetectICodeData *DetectICodeParse(char *icodestr)
+{
     DetectICodeData *icd = NULL;
     char *args[3] = {NULL, NULL, NULL};
 #define MAX_SUBSTRINGS 30
@@ -243,7 +246,8 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, char *icodestr) {
+static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, char *icodestr)
+{
 
     DetectICodeData *icd = NULL;
     SigMatch *sm = NULL;
@@ -273,7 +277,8 @@ error:
  *
  * \param ptr pointer to DetectICodeData
  */
-void DetectICodeFree(void *ptr) {
+void DetectICodeFree(void *ptr)
+{
     DetectICodeData *icd = (DetectICodeData *)ptr;
     SCFree(icd);
 }
@@ -287,7 +292,8 @@ void DetectICodeFree(void *ptr) {
 /**
  * \test DetectICodeParseTest01 is a test for setting a valid icode value
  */
-int DetectICodeParseTest01(void) {
+int DetectICodeParseTest01(void)
+{
     DetectICodeData *icd = NULL;
     int result = 0;
     icd = DetectICodeParse("8");
@@ -303,7 +309,8 @@ int DetectICodeParseTest01(void) {
  * \test DetectICodeParseTest02 is a test for setting a valid icode value
  *       with ">" operator
  */
-int DetectICodeParseTest02(void) {
+int DetectICodeParseTest02(void)
+{
     DetectICodeData *icd = NULL;
     int result = 0;
     icd = DetectICodeParse(">8");
@@ -319,7 +326,8 @@ int DetectICodeParseTest02(void) {
  * \test DetectICodeParseTest03 is a test for setting a valid icode value
  *       with "<" operator
  */
-int DetectICodeParseTest03(void) {
+int DetectICodeParseTest03(void)
+{
     DetectICodeData *icd = NULL;
     int result = 0;
     icd = DetectICodeParse("<8");
@@ -335,7 +343,8 @@ int DetectICodeParseTest03(void) {
  * \test DetectICodeParseTest04 is a test for setting a valid icode value
  *       with "<>" operator
  */
-int DetectICodeParseTest04(void) {
+int DetectICodeParseTest04(void)
+{
     DetectICodeData *icd = NULL;
     int result = 0;
     icd = DetectICodeParse("8<>20");
@@ -351,7 +360,8 @@ int DetectICodeParseTest04(void) {
  * \test DetectICodeParseTest05 is a test for setting a valid icode value
  *       with spaces all around
  */
-int DetectICodeParseTest05(void) {
+int DetectICodeParseTest05(void)
+{
     DetectICodeData *icd = NULL;
     int result = 0;
     icd = DetectICodeParse("  8 ");
@@ -367,7 +377,8 @@ int DetectICodeParseTest05(void) {
  * \test DetectICodeParseTest06 is a test for setting a valid icode value
  *       with ">" operator and spaces all around
  */
-int DetectICodeParseTest06(void) {
+int DetectICodeParseTest06(void)
+{
     DetectICodeData *icd = NULL;
     int result = 0;
     icd = DetectICodeParse("  >  8 ");
@@ -383,7 +394,8 @@ int DetectICodeParseTest06(void) {
  * \test DetectICodeParseTest07 is a test for setting a valid icode value
  *       with "<>" operator and spaces all around
  */
-int DetectICodeParseTest07(void) {
+int DetectICodeParseTest07(void)
+{
     DetectICodeData *icd = NULL;
     int result = 0;
     icd = DetectICodeParse("  8  <>  20 ");
@@ -398,7 +410,8 @@ int DetectICodeParseTest07(void) {
 /**
  * \test DetectICodeParseTest08 is a test for setting an invalid icode value
  */
-int DetectICodeParseTest08(void) {
+int DetectICodeParseTest08(void)
+{
     DetectICodeData *icd = NULL;
     icd = DetectICodeParse("> 8 <> 20");
     if (icd == NULL)
@@ -412,7 +425,8 @@ int DetectICodeParseTest08(void) {
  *       keyword by creating 5 rules and matching a crafted packet against
  *       them. 4 out of 5 rules shall trigger.
  */
-int DetectICodeMatchTest01(void) {
+int DetectICodeMatchTest01(void)
+{
 
     Packet *p = NULL;
     Signature *s = NULL;
@@ -498,7 +512,8 @@ end:
 /**
  * \brief this function registers unit tests for DetectICode
  */
-void DetectICodeRegisterTests(void) {
+void DetectICodeRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DetectICodeParseTest01", DetectICodeParseTest01, 1);
     UtRegisterTest("DetectICodeParseTest02", DetectICodeParseTest02, 1);

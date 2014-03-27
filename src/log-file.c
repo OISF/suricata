@@ -68,7 +68,8 @@ typedef struct LogFileLogThread_ {
     uint32_t file_cnt;
 } LogFileLogThread;
 
-static void LogFileMetaGetUri(FILE *fp, const Packet *p, const File *ff) {
+static void LogFileMetaGetUri(FILE *fp, const Packet *p, const File *ff)
+{
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -86,7 +87,8 @@ static void LogFileMetaGetUri(FILE *fp, const Packet *p, const File *ff) {
     fprintf(fp, "<unknown>");
 }
 
-static void LogFileMetaGetHost(FILE *fp, const Packet *p, const File *ff) {
+static void LogFileMetaGetHost(FILE *fp, const Packet *p, const File *ff)
+{
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -100,7 +102,8 @@ static void LogFileMetaGetHost(FILE *fp, const Packet *p, const File *ff) {
     fprintf(fp, "<unknown>");
 }
 
-static void LogFileMetaGetReferer(FILE *fp, const Packet *p, const File *ff) {
+static void LogFileMetaGetReferer(FILE *fp, const Packet *p, const File *ff)
+{
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -119,7 +122,8 @@ static void LogFileMetaGetReferer(FILE *fp, const Packet *p, const File *ff) {
     fprintf(fp, "<unknown>");
 }
 
-static void LogFileMetaGetUserAgent(FILE *fp, const Packet *p, const File *ff) {
+static void LogFileMetaGetUserAgent(FILE *fp, const Packet *p, const File *ff)
+{
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -142,7 +146,8 @@ static void LogFileMetaGetUserAgent(FILE *fp, const Packet *p, const File *ff) {
  *  \internal
  *  \brief Write meta data on a single line json record
  */
-static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const File *ff, int ipver) {
+static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const File *ff, int ipver)
+{
     SCMutexLock(&aft->file_ctx->fp_mutex);
 
     FILE *fp = aft->file_ctx->fp;
@@ -312,7 +317,8 @@ TmEcode LogFileLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void LogFileLogExitPrintStats(ThreadVars *tv, void *data) {
+void LogFileLogExitPrintStats(ThreadVars *tv, void *data)
+{
     LogFileLogThread *aft = (LogFileLogThread *)data;
     if (aft == NULL) {
         return;
@@ -390,7 +396,8 @@ int LogFileLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const
     return 0;
 }
 
-void TmModuleLogFileLogRegister (void) {
+void TmModuleLogFileLogRegister (void)
+{
     tmm_modules[TMM_FILELOG].name = MODULE_NAME;
     tmm_modules[TMM_FILELOG].ThreadInit = LogFileLogThreadInit;
     tmm_modules[TMM_FILELOG].Func = NULL;

@@ -275,7 +275,8 @@ int DetectFtpbounceTestSetup01(void)
  * \brief This test tests the ftpbounce condition match, based on the
  *   ftp layer parser
  */
-static int DetectFtpbounceTestALMatch02(void) {
+static int DetectFtpbounceTestALMatch02(void)
+{
     int result = 0;
 
     uint8_t ftpbuf1[] = { 'P','O' };
@@ -407,7 +408,8 @@ end:
  * \brief This test tests the ftpbounce condition match, based on
  *  the ftp layer parser
  */
-static int DetectFtpbounceTestALMatch03(void) {
+static int DetectFtpbounceTestALMatch03(void)
+{
     int result = 0;
 
     uint8_t ftpbuf1[] = { 'P','O' };

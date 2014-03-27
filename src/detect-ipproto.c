@@ -573,7 +573,8 @@ void DetectIPProtoRemoveAllSMs(Signature *s)
     return;
 }
 
-static void DetectIPProtoFree(void *ptr) {
+static void DetectIPProtoFree(void *ptr)
+{
     DetectIPProtoData *data = (DetectIPProtoData *)ptr;
     if (data) {
         SCFree(data);

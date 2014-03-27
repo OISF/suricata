@@ -49,7 +49,8 @@ static int DetectFlowvarSetup (DetectEngineCtx *, Signature *, char *);
 static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm);
 static void DetectFlowvarDataFree(void *ptr);
 
-void DetectFlowvarRegister (void) {
+void DetectFlowvarRegister (void)
+{
     sigmatch_table[DETECT_FLOWVAR].name = "flowvar";
     sigmatch_table[DETECT_FLOWVAR].Match = DetectFlowvarMatch;
     sigmatch_table[DETECT_FLOWVAR].Setup = DetectFlowvarSetup;
@@ -92,7 +93,8 @@ error:
  *
  * \param cd pointer to DetectCotentData
  */
-static void DetectFlowvarDataFree(void *ptr) {
+static void DetectFlowvarDataFree(void *ptr)
+{
     if (ptr == NULL)
         SCReturn;
 
@@ -249,7 +251,8 @@ int DetectFlowvarStoreMatch(DetectEngineThreadCtx *det_ctx, uint16_t idx,
 /** \brief Setup a post-match for flowvar storage
  *  We're piggyback riding the DetectFlowvarData struct
  */
-int DetectFlowvarPostMatchSetup(Signature *s, uint16_t idx) {
+int DetectFlowvarPostMatchSetup(Signature *s, uint16_t idx)
+{
     SigMatch *sm = NULL;
     DetectFlowvarData *fv = NULL;
 
@@ -281,7 +284,8 @@ error:
  *  \param sm sigmatch containing the idx to store
  *  \retval 1 or -1 in case of error
  */
-static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm) {
+static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm)
+{
     DetectFlowvarList *fs, *prev;
     DetectFlowvarData *fd;
 
@@ -321,7 +325,8 @@ static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx
 /** \brief Handle flowvar candidate list in det_ctx:
  *         - clean up the list
  *         - enforce storage for type ALWAYS (luajit) */
-void DetectFlowvarProcessList(DetectEngineThreadCtx *det_ctx, Flow *f) {
+void DetectFlowvarProcessList(DetectEngineThreadCtx *det_ctx, Flow *f)
+{
     DetectFlowvarList *fs, *next;
 
     SCLogDebug("det_ctx->flowvarlist %p", det_ctx->flowvarlist);

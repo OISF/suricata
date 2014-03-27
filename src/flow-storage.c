@@ -31,27 +31,33 @@
 #include "flow-util.h"
 #include "util-unittest.h"
 
-unsigned int FlowStorageSize(void) {
+unsigned int FlowStorageSize(void)
+{
     return StorageGetSize(STORAGE_FLOW);
 }
 
-void *FlowGetStorageById(Flow *f, int id) {
+void *FlowGetStorageById(Flow *f, int id)
+{
     return StorageGetById((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW, id);
 }
 
-int FlowSetStorageById(Flow *f, int id, void *ptr) {
+int FlowSetStorageById(Flow *f, int id, void *ptr)
+{
     return StorageSetById((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW, id, ptr);
 }
 
-void *FlowAllocStorageById(Flow *f, int id) {
+void *FlowAllocStorageById(Flow *f, int id)
+{
     return StorageAllocByIdPrealloc((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW, id);
 }
 
-void FlowFreeStorageById(Flow *f, int id) {
+void FlowFreeStorageById(Flow *f, int id)
+{
     StorageFreeById((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW, id);
 }
 
-void FlowFreeStorage(Flow *f) {
+void FlowFreeStorage(Flow *f)
+{
     if (FlowStorageSize() > 0)
         StorageFreeAll((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW);
 }
@@ -62,16 +68,19 @@ int FlowStorageRegister(const char *name, const unsigned int size, void *(*Alloc
 
 #ifdef UNITTESTS
 
-static void *StorageTestAlloc(unsigned int size) {
+static void *StorageTestAlloc(unsigned int size)
+{
     void *x = SCMalloc(size);
     return x;
 }
-static void StorageTestFree(void *x) {
+static void StorageTestFree(void *x)
+{
     if (x)
         SCFree(x);
 }
 
-static int FlowStorageTest01(void) {
+static int FlowStorageTest01(void)
+{
     Flow *f = NULL;
 
     StorageInit();
@@ -150,7 +159,8 @@ error:
     return 0;
 }
 
-static int FlowStorageTest02(void) {
+static int FlowStorageTest02(void)
+{
     Flow *f = NULL;
 
     StorageInit();
@@ -200,7 +210,8 @@ error:
     return 0;
 }
 
-static int FlowStorageTest03(void) {
+static int FlowStorageTest03(void)
+{
     Flow *f = NULL;
 
     StorageInit();
@@ -275,7 +286,8 @@ error:
 }
 #endif
 
-void RegisterFlowStorageTests(void) {
+void RegisterFlowStorageTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("FlowStorageTest01", FlowStorageTest01, 1);
     UtRegisterTest("FlowStorageTest02", FlowStorageTest02, 1);

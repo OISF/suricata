@@ -219,7 +219,8 @@ int sc_set_caps;
 
 char *conf_filename = NULL;
 
-int RunmodeIsUnittests(void) {
+int RunmodeIsUnittests(void)
+{
     if (run_mode == RUNMODE_UNITTEST)
         return 1;
 
@@ -231,11 +232,13 @@ int RunmodeGetCurrent(void)
     return run_mode;
 }
 
-static void SignalHandlerSigint(/*@unused@*/ int sig) {
+static void SignalHandlerSigint(/*@unused@*/ int sig)
+{
     sigint_count = 1;
     suricata_ctl_flags |= SURICATA_STOP;
 }
-static void SignalHandlerSigterm(/*@unused@*/ int sig) {
+static void SignalHandlerSigterm(/*@unused@*/ int sig)
+{
     sigterm_count = 1;
     suricata_ctl_flags |= SURICATA_KILL;
 }
@@ -346,11 +349,13 @@ void GlobalInits()
 /* XXX hack: make sure threads can stop the engine by calling this
    function. Purpose: pcap file mode needs to be able to tell the
    engine the file eof is reached. */
-void EngineStop(void) {
+void EngineStop(void)
+{
     suricata_ctl_flags |= SURICATA_STOP;
 }
 
-void EngineKill(void) {
+void EngineKill(void)
+{
     suricata_ctl_flags |= SURICATA_KILL;
 }
 
@@ -360,11 +365,13 @@ void EngineKill(void) {
  * This is mainly used by pcap-file to tell it has finished
  * to treat a pcap files when running in unix-socket mode.
  */
-void EngineDone(void) {
+void EngineDone(void)
+{
     suricata_ctl_flags |= SURICATA_DONE;
 }
 
-static int SetBpfString(int optind, char *argv[]) {
+static int SetBpfString(int optind, char *argv[])
+{
     char *bpf_filter = NULL;
     uint32_t bpf_len = 0;
     int tmpindex = 0;
@@ -411,7 +418,8 @@ static int SetBpfString(int optind, char *argv[]) {
     return TM_ECODE_OK;
 }
 
-static void SetBpfStringFromFile(char *filename) {
+static void SetBpfStringFromFile(char *filename)
+{
     char *bpf_filter = NULL;
     char *bpf_comment_tmp = NULL;
     char *bpf_comment_start =  NULL;
@@ -581,7 +589,8 @@ void usage(const char *progname)
             progname);
 }
 
-void SCPrintBuildInfo(void) {
+void SCPrintBuildInfo(void)
+{
     char *bits = "<unknown>-bits";
     char *endian = "<unknown>-endian";
     char features[2048] = "";
@@ -840,7 +849,8 @@ void RegisterAllModules()
 
 }
 
-TmEcode LoadYamlConfig(char *conf_filename) {
+TmEcode LoadYamlConfig(char *conf_filename)
+{
     SCEnter();
 
     if (conf_filename == NULL)

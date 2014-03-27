@@ -79,7 +79,8 @@ error:
     return NULL;
 }
 
-void HashListTableFree(HashListTable *ht) {
+void HashListTableFree(HashListTable *ht)
+{
     uint32_t i = 0;
 
     if (ht == NULL)
@@ -104,14 +105,16 @@ void HashListTableFree(HashListTable *ht) {
     SCFree(ht);
 }
 
-void HashListTablePrint(HashListTable *ht) {
+void HashListTablePrint(HashListTable *ht)
+{
     printf("\n----------- Hash Table Stats ------------\n");
     printf("Buckets:               %" PRIu32 "\n", ht->array_size);
     printf("Hash function pointer: %p\n", ht->Hash);
     printf("-----------------------------------------\n");
 }
 
-int HashListTableAdd(HashListTable *ht, void *data, uint16_t datalen) {
+int HashListTableAdd(HashListTable *ht, void *data, uint16_t datalen)
+{
     if (ht == NULL || data == NULL)
         return -1;
 
@@ -151,7 +154,8 @@ error:
     return -1;
 }
 
-int HashListTableRemove(HashListTable *ht, void *data, uint16_t datalen) {
+int HashListTableRemove(HashListTable *ht, void *data, uint16_t datalen)
+{
     uint32_t hash = ht->Hash(ht, data, datalen);
 
     SCLogDebug("ht %p hash %"PRIu32"", ht, hash);
@@ -230,7 +234,8 @@ int HashListTableRemove(HashListTable *ht, void *data, uint16_t datalen) {
     return -1;
 }
 
-char HashListTableDefaultCompare(void *data1, uint16_t len1, void *data2, uint16_t len2) {
+char HashListTableDefaultCompare(void *data1, uint16_t len1, void *data2, uint16_t len2)
+{
     if (len1 != len2)
         return 0;
 
@@ -240,7 +245,8 @@ char HashListTableDefaultCompare(void *data1, uint16_t len1, void *data2, uint16
     return 1;
 }
 
-void *HashListTableLookup(HashListTable *ht, void *data, uint16_t datalen) {
+void *HashListTableLookup(HashListTable *ht, void *data, uint16_t datalen)
+{
 
     if (ht == NULL) {
         SCLogDebug("Hash List table is NULL");
@@ -264,7 +270,8 @@ void *HashListTableLookup(HashListTable *ht, void *data, uint16_t datalen) {
     return NULL;
 }
 
-uint32_t HashListTableGenericHash(HashListTable *ht, void *data, uint16_t datalen) {
+uint32_t HashListTableGenericHash(HashListTable *ht, void *data, uint16_t datalen)
+{
      uint8_t *d = (uint8_t *)data;
      uint32_t i;
      uint32_t hash = 0;
@@ -280,7 +287,8 @@ uint32_t HashListTableGenericHash(HashListTable *ht, void *data, uint16_t datale
      return hash;
 }
 
-HashListTableBucket *HashListTableGetListHead(HashListTable *ht) {
+HashListTableBucket *HashListTableGetListHead(HashListTable *ht)
+{
     return ht->listhead;
 }
 
@@ -289,7 +297,8 @@ HashListTableBucket *HashListTableGetListHead(HashListTable *ht) {
  */
 
 #ifdef UNITTESTS
-static int HashListTableTestInit01 (void) {
+static int HashListTableTestInit01 (void)
+{
     HashListTable *ht = HashListTableInit(1024, HashListTableGenericHash, NULL, NULL);
     if (ht == NULL)
         return 0;
@@ -299,7 +308,8 @@ static int HashListTableTestInit01 (void) {
 }
 
 /* no hash function, so it should fail */
-static int HashListTableTestInit02 (void) {
+static int HashListTableTestInit02 (void)
+{
     HashListTable *ht = HashListTableInit(1024, NULL, NULL, NULL);
     if (ht == NULL)
         return 1;
@@ -308,7 +318,8 @@ static int HashListTableTestInit02 (void) {
     return 0;
 }
 
-static int HashListTableTestInit03 (void) {
+static int HashListTableTestInit03 (void)
+{
     int result = 0;
     HashListTable *ht = HashListTableInit(1024, HashListTableGenericHash, NULL, NULL);
     if (ht == NULL)
@@ -321,7 +332,8 @@ static int HashListTableTestInit03 (void) {
     return result;
 }
 
-static int HashListTableTestInit04 (void) {
+static int HashListTableTestInit04 (void)
+{
     HashListTable *ht = HashListTableInit(0, HashListTableGenericHash, NULL, NULL);
     if (ht == NULL)
         return 1;
@@ -330,7 +342,8 @@ static int HashListTableTestInit04 (void) {
     return 0;
 }
 
-static int HashListTableTestAdd01 (void) {
+static int HashListTableTestAdd01 (void)
+{
     int result = 0;
     HashListTable *ht = HashListTableInit(32, HashListTableGenericHash, NULL, NULL);
     if (ht == NULL)
@@ -347,7 +360,8 @@ end:
     return result;
 }
 
-static int HashListTableTestAdd02 (void) {
+static int HashListTableTestAdd02 (void)
+{
     int result = 0;
     HashListTable *ht = HashListTableInit(32, HashListTableGenericHash, NULL, NULL);
     if (ht == NULL)
@@ -364,7 +378,8 @@ end:
     return result;
 }
 
-static int HashListTableTestAdd03 (void) {
+static int HashListTableTestAdd03 (void)
+{
     int result = 0;
     HashListTable *ht = HashListTableInit(32, HashListTableGenericHash, NULL, NULL);
     if (ht == NULL)
@@ -391,7 +406,8 @@ end:
     return result;
 }
 
-static int HashListTableTestAdd04 (void) {
+static int HashListTableTestAdd04 (void)
+{
     int result = 0;
     HashListTable *ht = HashListTableInit(32, HashListTableGenericHash, NULL, NULL);
     if (ht == NULL)
@@ -429,7 +445,8 @@ end:
     return result;
 }
 
-static int HashListTableTestFull01 (void) {
+static int HashListTableTestFull01 (void)
+{
     int result = 0;
     HashListTable *ht = HashListTableInit(32, HashListTableGenericHash, NULL, NULL);
     if (ht == NULL)
@@ -454,7 +471,8 @@ end:
     return result;
 }
 
-static int HashListTableTestFull02 (void) {
+static int HashListTableTestFull02 (void)
+{
     int result = 0;
     HashListTable *ht = HashListTableInit(32, HashListTableGenericHash, NULL, NULL);
     if (ht == NULL)
@@ -480,7 +498,8 @@ end:
 }
 #endif /* UNITTESTS */
 
-void HashListTableRegisterTests(void) {
+void HashListTableRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("HashListTableTestInit01", HashListTableTestInit01, 1);
     UtRegisterTest("HashListTableTestInit02", HashListTableTestInit02, 1);

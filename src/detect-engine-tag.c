@@ -595,7 +595,8 @@ int TagTimeoutCheck(Host *host, struct timeval *tv)
 /**
  * \test host tagging: packets
  */
-int DetectTagTestPacket01 (void) {
+int DetectTagTestPacket01 (void)
+{
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint8_t *buf2 = (uint8_t *)"lalala!";
@@ -691,7 +692,8 @@ int DetectTagTestPacket01 (void) {
 /**
  * \test host tagging: seconds
  */
-int DetectTagTestPacket02 (void) {
+int DetectTagTestPacket02 (void)
+{
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint8_t *buf2 = (uint8_t *)"lalala!";
@@ -811,7 +813,8 @@ end:
 /**
  * \test host tagging: bytes
  */
-static int DetectTagTestPacket03 (void) {
+static int DetectTagTestPacket03 (void)
+{
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint8_t *buf2 = (uint8_t *)"lalala!";
@@ -927,7 +930,8 @@ end:
 /**
  * \test session tagging: packets
  */
-static int DetectTagTestPacket04 (void) {
+static int DetectTagTestPacket04 (void)
+{
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint8_t *buf2 = (uint8_t *)"lalala!";
@@ -1067,7 +1071,8 @@ end:
 /**
  * \test session tagging: seconds
  */
-static int DetectTagTestPacket05 (void) {
+static int DetectTagTestPacket05 (void)
+{
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint8_t *buf2 = (uint8_t *)"lalala!";
@@ -1212,7 +1217,8 @@ end:
 /**
  * \test session tagging: bytes
  */
-static int DetectTagTestPacket06 (void) {
+static int DetectTagTestPacket06 (void)
+{
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint8_t *buf2 = (uint8_t *)"lalala!";
@@ -1353,7 +1359,8 @@ end:
 /**
  * \test session tagging: bytes, where a 2nd match makes us tag more
  */
-static int DetectTagTestPacket07 (void) {
+static int DetectTagTestPacket07 (void)
+{
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint8_t *buf2 = (uint8_t *)"lalala!";
@@ -1497,7 +1504,8 @@ end:
 /**
  * \brief this function registers unit tests for DetectTag
  */
-void DetectEngineTagRegisterTests(void) {
+void DetectEngineTagRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DetectTagTestPacket01", DetectTagTestPacket01, 1);
     UtRegisterTest("DetectTagTestPacket02", DetectTagTestPacket02, 1);

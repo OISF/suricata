@@ -69,7 +69,8 @@ int LiveRegisterDevice(char *dev)
  *
  *  \retval cnt the number of registered devices
  */
-int LiveGetDeviceCount(void) {
+int LiveGetDeviceCount(void)
+{
     int i = 0;
     LiveDevice *pd;
 
@@ -88,7 +89,8 @@ int LiveGetDeviceCount(void) {
  *  \retval ptr pointer to the string containing the device
  *  \retval NULL on error
  */
-char *LiveGetDeviceName(int number) {
+char *LiveGetDeviceName(int number)
+{
     int i = 0;
     LiveDevice *pd;
 
@@ -111,7 +113,8 @@ char *LiveGetDeviceName(int number) {
  *  \retval ptr pointer to the string containing the device
  *  \retval NULL on error
  */
-LiveDevice *LiveGetDevice(char *name) {
+LiveDevice *LiveGetDevice(char *name)
+{
     int i = 0;
     LiveDevice *pd;
 

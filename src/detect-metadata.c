@@ -31,7 +31,8 @@
 
 static int DetectMetadataSetup (DetectEngineCtx *, Signature *, char *);
 
-void DetectMetadataRegister (void) {
+void DetectMetadataRegister (void)
+{
     sigmatch_table[DETECT_METADATA].name = "metadata";
     sigmatch_table[DETECT_METADATA].desc = "ignored by suricata";
     sigmatch_table[DETECT_METADATA].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Meta-settings#Metadata";

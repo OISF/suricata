@@ -995,7 +995,8 @@ int DetectCsumICMPV4ValidArgsTestParse01(void)
     return result;
 }
 
-int DetectCsumICMPV4InValidArgsTestParse02(void) {
+int DetectCsumICMPV4InValidArgsTestParse02(void)
+{
     Signature s;
     int result = -1;
     SigMatch *temp = NULL;
@@ -1018,7 +1019,8 @@ int DetectCsumICMPV4InValidArgsTestParse02(void) {
     return result;
 }
 
-int DetectCsumICMPV4ValidArgsTestParse03(void) {
+int DetectCsumICMPV4ValidArgsTestParse03(void)
+{
     Signature s;
     DetectCsumData *cd = NULL;
     int result = 0;
@@ -1080,7 +1082,8 @@ int DetectCsumTCPV4ValidArgsTestParse01(void)
     return result;
 }
 
-int DetectCsumTCPV4InValidArgsTestParse02(void) {
+int DetectCsumTCPV4InValidArgsTestParse02(void)
+{
     Signature s;
     int result = -1;
     SigMatch *temp = NULL;
@@ -1103,7 +1106,8 @@ int DetectCsumTCPV4InValidArgsTestParse02(void) {
     return result;
 }
 
-int DetectCsumTCPV4ValidArgsTestParse03(void) {
+int DetectCsumTCPV4ValidArgsTestParse03(void)
+{
     Signature s;
     DetectCsumData *cd = NULL;
     int result = 0;
@@ -1165,7 +1169,8 @@ int DetectCsumUDPV4ValidArgsTestParse01(void)
     return result;
 }
 
-int DetectCsumUDPV4InValidArgsTestParse02(void) {
+int DetectCsumUDPV4InValidArgsTestParse02(void)
+{
     Signature s;
     int result = -1;
     SigMatch *temp = NULL;
@@ -1188,7 +1193,8 @@ int DetectCsumUDPV4InValidArgsTestParse02(void) {
     return result;
 }
 
-int DetectCsumUDPV4ValidArgsTestParse03(void) {
+int DetectCsumUDPV4ValidArgsTestParse03(void)
+{
     Signature s;
     DetectCsumData *cd = NULL;
     int result = 0;
@@ -1250,7 +1256,8 @@ int DetectCsumTCPV6ValidArgsTestParse01(void)
     return result;
 }
 
-int DetectCsumTCPV6InValidArgsTestParse02(void) {
+int DetectCsumTCPV6InValidArgsTestParse02(void)
+{
     Signature s;
     int result = -1;
     SigMatch *temp = NULL;
@@ -1273,7 +1280,8 @@ int DetectCsumTCPV6InValidArgsTestParse02(void) {
     return result;
 }
 
-int DetectCsumTCPV6ValidArgsTestParse03(void) {
+int DetectCsumTCPV6ValidArgsTestParse03(void)
+{
     Signature s;
     DetectCsumData *cd = NULL;
     int result = 0;
@@ -1335,7 +1343,8 @@ int DetectCsumUDPV6ValidArgsTestParse01(void)
     return result;
 }
 
-int DetectCsumUDPV6InValidArgsTestParse02(void) {
+int DetectCsumUDPV6InValidArgsTestParse02(void)
+{
     Signature s;
     int result = -1;
     SigMatch *temp = NULL;
@@ -1358,7 +1367,8 @@ int DetectCsumUDPV6InValidArgsTestParse02(void) {
     return result;
 }
 
-int DetectCsumUDPV6ValidArgsTestParse03(void) {
+int DetectCsumUDPV6ValidArgsTestParse03(void)
+{
     Signature s;
     DetectCsumData *cd = NULL;
     int result = 0;
@@ -1420,7 +1430,8 @@ int DetectCsumICMPV6ValidArgsTestParse01(void)
     return result;
 }
 
-int DetectCsumICMPV6InValidArgsTestParse02(void) {
+int DetectCsumICMPV6InValidArgsTestParse02(void)
+{
     Signature s;
     int result = -1;
     SigMatch *temp = NULL;
@@ -1443,7 +1454,8 @@ int DetectCsumICMPV6InValidArgsTestParse02(void) {
     return result;
 }
 
-int DetectCsumICMPV6ValidArgsTestParse03(void) {
+int DetectCsumICMPV6ValidArgsTestParse03(void)
+{
     Signature s;
     DetectCsumData *cd = NULL;
     int result = 0;

@@ -56,7 +56,8 @@ static void DetectDsizeFree(void *);
 /**
  * \brief Registration function for dsize: keyword
  */
-void DetectDsizeRegister (void) {
+void DetectDsizeRegister (void)
+{
     sigmatch_table[DETECT_DSIZE].name = "dsize";
     sigmatch_table[DETECT_DSIZE].desc = "match on the size of the packet payload";
     sigmatch_table[DETECT_DSIZE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Payload_keywords#Dsize";
@@ -310,7 +311,8 @@ error:
  *
  * \param de pointer to DetectDsizeData
  */
-void DetectDsizeFree(void *de_ptr) {
+void DetectDsizeFree(void *de_ptr)
+{
     DetectDsizeData *dd = (DetectDsizeData *)de_ptr;
     if(dd) SCFree(dd);
 }
@@ -328,7 +330,8 @@ void DetectDsizeFree(void *de_ptr) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse01 (void) {
+int DsizeTestParse01 (void)
+{
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("1");
     if (dd) {
@@ -345,7 +348,8 @@ int DsizeTestParse01 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse02 (void) {
+int DsizeTestParse02 (void)
+{
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse(">10");
     if (dd) {
@@ -362,7 +366,8 @@ int DsizeTestParse02 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse03 (void) {
+int DsizeTestParse03 (void)
+{
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("<100");
     if (dd) {
@@ -379,7 +384,8 @@ int DsizeTestParse03 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse04 (void) {
+int DsizeTestParse04 (void)
+{
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("1<>2");
     if (dd) {
@@ -396,7 +402,8 @@ int DsizeTestParse04 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse05 (void) {
+int DsizeTestParse05 (void)
+{
     int result = 0;
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("1");
@@ -416,7 +423,8 @@ int DsizeTestParse05 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse06 (void) {
+int DsizeTestParse06 (void)
+{
     int result = 0;
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse(">10");
@@ -436,7 +444,8 @@ int DsizeTestParse06 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse07 (void) {
+int DsizeTestParse07 (void)
+{
     int result = 0;
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("<100");
@@ -456,7 +465,8 @@ int DsizeTestParse07 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse08 (void) {
+int DsizeTestParse08 (void)
+{
     int result = 0;
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("1<>2");
@@ -476,7 +486,8 @@ int DsizeTestParse08 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse09 (void) {
+int DsizeTestParse09 (void)
+{
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("A");
     if (dd) {
@@ -493,7 +504,8 @@ int DsizeTestParse09 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse10 (void) {
+int DsizeTestParse10 (void)
+{
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse(">10<>10");
     if (dd) {
@@ -510,7 +522,8 @@ int DsizeTestParse10 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse11 (void) {
+int DsizeTestParse11 (void)
+{
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("<>10");
     if (dd) {
@@ -527,7 +540,8 @@ int DsizeTestParse11 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse12 (void) {
+int DsizeTestParse12 (void)
+{
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("1<>");
     if (dd) {
@@ -544,7 +558,8 @@ int DsizeTestParse12 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse13 (void) {
+int DsizeTestParse13 (void)
+{
     int result = 0;
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("1");
@@ -564,7 +579,8 @@ int DsizeTestParse13 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse14 (void) {
+int DsizeTestParse14 (void)
+{
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("");
     if (dd) {
@@ -581,7 +597,8 @@ int DsizeTestParse14 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse15 (void) {
+int DsizeTestParse15 (void)
+{
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse(" ");
     if (dd) {
@@ -598,7 +615,8 @@ int DsizeTestParse15 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse16 (void) {
+int DsizeTestParse16 (void)
+{
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("2<>1");
     if (dd) {
@@ -615,7 +633,8 @@ int DsizeTestParse16 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse17 (void) {
+int DsizeTestParse17 (void)
+{
     int result = 0;
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse(" 1 <> 2 ");
@@ -635,7 +654,8 @@ int DsizeTestParse17 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse18 (void) {
+int DsizeTestParse18 (void)
+{
     int result = 0;
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("> 2 ");
@@ -655,7 +675,8 @@ int DsizeTestParse18 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse19 (void) {
+int DsizeTestParse19 (void)
+{
     int result = 0;
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("<   12 ");
@@ -675,7 +696,8 @@ int DsizeTestParse19 (void) {
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int DsizeTestParse20 (void) {
+int DsizeTestParse20 (void)
+{
     int result = 0;
     DetectDsizeData *dd = NULL;
     dd = DetectDsizeParse("   12 ");
@@ -694,7 +716,8 @@ int DsizeTestParse20 (void) {
  *       dsize keyword by creating 2 rules and matching a crafted packet
  *       against them. Only the first one shall trigger.
  */
-int DetectDsizeIcmpv6Test01 (void) {
+int DetectDsizeIcmpv6Test01 (void)
+{
     int result = 0;
 
     static uint8_t raw_icmpv6[] = {
@@ -785,7 +808,8 @@ end:
 /**
  * \brief this function registers unit tests for dsize
  */
-void DsizeRegisterTests(void) {
+void DsizeRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DsizeTestParse01", DsizeTestParse01, 1);
     UtRegisterTest("DsizeTestParse02", DsizeTestParse02, 1);

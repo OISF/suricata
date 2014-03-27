@@ -44,7 +44,8 @@ static int DetectGidSetup (DetectEngineCtx *, Signature *, char *);
  * \brief Registration function for gid: keyword
  */
 
-void DetectGidRegister (void) {
+void DetectGidRegister (void)
+{
     sigmatch_table[DETECT_GID].name = "gid";
     sigmatch_table[DETECT_GID].desc = "give different groups of signatures another id value";
     sigmatch_table[DETECT_GID].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Meta-settings#Gid-group-id";
@@ -116,7 +117,8 @@ static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-static int GidTestParse01 (void) {
+static int GidTestParse01 (void)
+{
     int result = 0;
     Signature *s = NULL;
 
@@ -141,7 +143,8 @@ end:
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-static int GidTestParse02 (void) {
+static int GidTestParse02 (void)
+{
     int result = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -162,7 +165,8 @@ end:
 /**
  * \brief this function registers unit tests for Gid
  */
-void GidRegisterTests(void) {
+void GidRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("GidTestParse01", GidTestParse01, 1);
     UtRegisterTest("GidTestParse02", GidTestParse02, 1);

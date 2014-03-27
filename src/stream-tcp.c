@@ -133,17 +133,20 @@ void TmModuleStreamTcpRegister (void)
     tmm_modules[TMM_STREAMTCP].flags = TM_FLAG_STREAM_TM;
 }
 
-void StreamTcpIncrMemuse(uint64_t size) {
+void StreamTcpIncrMemuse(uint64_t size)
+{
     (void) SC_ATOMIC_ADD(st_memuse, size);
     return;
 }
 
-void StreamTcpDecrMemuse(uint64_t size) {
+void StreamTcpDecrMemuse(uint64_t size)
+{
     (void) SC_ATOMIC_SUB(st_memuse, size);
     return;
 }
 
-void StreamTcpMemuseCounter(ThreadVars *tv, StreamTcpThread *stt) {
+void StreamTcpMemuseCounter(ThreadVars *tv, StreamTcpThread *stt)
+{
     uint64_t memusecopy = SC_ATOMIC_GET(st_memuse);
     SCPerfCounterSetUI64(stt->counter_tcp_memuse, tv->sc_perf_pca, memusecopy);
     return;
@@ -155,7 +158,8 @@ void StreamTcpMemuseCounter(ThreadVars *tv, StreamTcpThread *stt) {
  *  \retval 1 if in bounds
  *  \retval 0 if not in bounds
  */
-int StreamTcpCheckMemcap(uint64_t size) {
+int StreamTcpCheckMemcap(uint64_t size)
+{
     if (stream_config.memcap == 0 || size + SC_ATOMIC_GET(st_memuse) <= stream_config.memcap)
         return 1;
     return 0;
@@ -720,7 +724,8 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
  *
  *  \retval size stream size
  */
-uint32_t StreamTcpGetStreamSize(TcpStream *stream) {
+uint32_t StreamTcpGetStreamSize(TcpStream *stream)
+{
     return (stream->last_ack - stream->isn - 1);
 }
 
@@ -754,7 +759,8 @@ uint32_t StreamTcpGetStreamSize(TcpStream *stream) {
     } \
 }
 
-static int StreamTcpPacketIsRetransmission(TcpStream *stream, Packet *p) {
+static int StreamTcpPacketIsRetransmission(TcpStream *stream, Packet *p)
+{
     if (p->payload_len == 0)
         SCReturnInt(0);
 
@@ -1015,7 +1021,8 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 /** \internal
  *  \brief Setup TcpStateQueue based on SYN/ACK packet
  */
-static inline void StreamTcp3whsSynAckToStateQueue(Packet *p, TcpStateQueue *q) {
+static inline void StreamTcp3whsSynAckToStateQueue(Packet *p, TcpStateQueue *q)
+{
     q->flags = 0;
     q->wscale = 0;
     q->ts = 0;
@@ -1040,7 +1047,8 @@ static inline void StreamTcp3whsSynAckToStateQueue(Packet *p, TcpStateQueue *q) 
 /** \internal
  *  \brief Find the Queued SYN/ACK that is the same as this SYN/ACK
  *  \retval q or NULL */
-TcpStateQueue *StreamTcp3whsFindSynAckBySynAck(TcpSession *ssn, Packet *p) {
+TcpStateQueue *StreamTcp3whsFindSynAckBySynAck(TcpSession *ssn, Packet *p)
+{
     TcpStateQueue *q = ssn->queue;
     TcpStateQueue search;
 
@@ -1062,7 +1070,8 @@ TcpStateQueue *StreamTcp3whsFindSynAckBySynAck(TcpSession *ssn, Packet *p) {
     return q;
 }
 
-int StreamTcp3whsQueueSynAck(TcpSession *ssn, Packet *p) {
+int StreamTcp3whsQueueSynAck(TcpSession *ssn, Packet *p)
+{
     /* first see if this is already in our list */
     if (StreamTcp3whsFindSynAckBySynAck(ssn, p) != NULL)
         return 0;
@@ -1098,7 +1107,8 @@ int StreamTcp3whsQueueSynAck(TcpSession *ssn, Packet *p) {
 /** \internal
  *  \brief Find the Queued SYN/ACK that goes with this ACK
  *  \retval q or NULL */
-TcpStateQueue *StreamTcp3whsFindSynAckByAck(TcpSession *ssn, Packet *p) {
+TcpStateQueue *StreamTcp3whsFindSynAckByAck(TcpSession *ssn, Packet *p)
+{
     uint32_t ack = TCP_GET_SEQ(p);
     uint32_t seq = TCP_GET_ACK(p) - 1;
     TcpStateQueue *q = ssn->queue;
@@ -1129,7 +1139,8 @@ TcpStateQueue *StreamTcp3whsFindSynAckByAck(TcpSession *ssn, Packet *p) {
  *  this function can updated based on Packet or TcpStateQueue, where
  *  the latter takes precedence.
  */
-static void StreamTcp3whsSynAckUpdate(TcpSession *ssn, Packet *p, TcpStateQueue *q) {
+static void StreamTcp3whsSynAckUpdate(TcpSession *ssn, Packet *p, TcpStateQueue *q)
+{
     TcpStateQueue update;
     if (likely(q == NULL)) {
         StreamTcp3whsSynAckToStateQueue(p, &update);
@@ -2115,7 +2126,8 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
  *
  *  \retval ack highest ack we need to set
  */
-static inline uint32_t StreamTcpResetGetMaxAck(TcpStream *stream, uint32_t seq) {
+static inline uint32_t StreamTcpResetGetMaxAck(TcpStream *stream, uint32_t seq)
+{
     uint32_t ack = seq;
 
     if (stream->seg_list_tail != NULL) {
@@ -4008,7 +4020,8 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
  *  \retval 1 packet is a keep alive pkt
  *  \retval 0 packet is not a keep alive pkt
  */
-static int StreamTcpPacketIsKeepAlive(TcpSession *ssn, Packet *p) {
+static int StreamTcpPacketIsKeepAlive(TcpSession *ssn, Packet *p)
+{
     TcpStream *stream = NULL, *ostream = NULL;
     uint32_t seq;
     uint32_t ack;
@@ -4054,7 +4067,8 @@ static int StreamTcpPacketIsKeepAlive(TcpSession *ssn, Packet *p) {
  *  \retval 1 packet is a keep alive ACK pkt
  *  \retval 0 packet is not a keep alive ACK pkt
  */
-static int StreamTcpPacketIsKeepAliveACK(TcpSession *ssn, Packet *p) {
+static int StreamTcpPacketIsKeepAliveACK(TcpSession *ssn, Packet *p)
+{
     TcpStream *stream = NULL, *ostream = NULL;
     uint32_t seq;
     uint32_t ack;
@@ -4097,7 +4111,8 @@ static int StreamTcpPacketIsKeepAliveACK(TcpSession *ssn, Packet *p) {
     return 0;
 }
 
-static void StreamTcpClearKeepAliveFlag(TcpSession *ssn, Packet *p) {
+static void StreamTcpClearKeepAliveFlag(TcpSession *ssn, Packet *p)
+{
     TcpStream *stream = NULL;
 
     if (p->flags & PKT_PSEUDO_STREAM_END)
@@ -4119,7 +4134,8 @@ static void StreamTcpClearKeepAliveFlag(TcpSession *ssn, Packet *p) {
  *  \retval 1 packet is a window update pkt
  *  \retval 0 packet is not a window update pkt
  */
-static int StreamTcpPacketIsWindowUpdate(TcpSession *ssn, Packet *p) {
+static int StreamTcpPacketIsWindowUpdate(TcpSession *ssn, Packet *p)
+{
     TcpStream *stream = NULL, *ostream = NULL;
     uint32_t seq;
     uint32_t ack;
@@ -5442,7 +5458,8 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest01 (void) {
+static int StreamTcpTest01 (void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -5487,7 +5504,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest02 (void) {
+static int StreamTcpTest02 (void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -5585,7 +5603,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest03 (void) {
+static int StreamTcpTest03 (void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -5660,7 +5679,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest04 (void) {
+static int StreamTcpTest04 (void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -5728,7 +5748,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest05 (void) {
+static int StreamTcpTest05 (void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -5832,7 +5853,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest06 (void) {
+static int StreamTcpTest06 (void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -5896,7 +5918,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest07 (void) {
+static int StreamTcpTest07 (void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -5984,7 +6007,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest08 (void) {
+static int StreamTcpTest08 (void)
+{
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
@@ -6075,7 +6099,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest09 (void) {
+static int StreamTcpTest09 (void)
+{
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
@@ -6153,7 +6178,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest10 (void) {
+static int StreamTcpTest10 (void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -6254,7 +6280,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest11 (void) {
+static int StreamTcpTest11 (void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -6356,7 +6383,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest12 (void) {
+static int StreamTcpTest12 (void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -6451,7 +6479,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest13 (void) {
+static int StreamTcpTest13 (void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -6650,7 +6679,8 @@ char *StreamTcpParseOSPolicy (char *conf_var_name)
  *  \retval On success it returns 1 and on failure 0
  */
 
-static int StreamTcpTest14 (void) {
+static int StreamTcpTest14 (void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -6821,7 +6851,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcp4WHSTest01 (void) {
+static int StreamTcp4WHSTest01 (void)
+{
     int ret = 0;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
@@ -6902,7 +6933,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcp4WHSTest02 (void) {
+static int StreamTcp4WHSTest02 (void)
+{
     int ret = 0;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
@@ -6972,7 +7004,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcp4WHSTest03 (void) {
+static int StreamTcp4WHSTest03 (void)
+{
     int ret = 0;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
@@ -7052,7 +7085,8 @@ end:
  *  \retval On success it returns 1 and on failure 0
  */
 
-static int StreamTcpTest15 (void) {
+static int StreamTcpTest15 (void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -7223,7 +7257,8 @@ end:
  *  \retval On success it returns 1 and on failure 0
  */
 
-static int StreamTcpTest16 (void) {
+static int StreamTcpTest16 (void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -7395,7 +7430,8 @@ end:
  *  \retval On success it returns 1 and on failure 0
  */
 
-static int StreamTcpTest17 (void) {
+static int StreamTcpTest17 (void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -7561,7 +7597,8 @@ end:
 
 /** \test   Test the various OS policies based on different IP addresses from
             confuguration defined in 'dummy_conf_string1' */
-static int StreamTcpTest18 (void) {
+static int StreamTcpTest18 (void)
+{
 
     struct in_addr addr;
     char os_policy_name[10] = "windows";
@@ -7609,7 +7646,8 @@ end:
 }
 /** \test   Test the various OS policies based on different IP addresses from
             confuguration defined in 'dummy_conf_string1' */
-static int StreamTcpTest19 (void) {
+static int StreamTcpTest19 (void)
+{
 
     struct in_addr addr;
     char os_policy_name[10] = "windows";
@@ -7660,7 +7698,8 @@ end:
 }
 /** \test   Test the various OS policies based on different IP addresses from
             confuguration defined in 'dummy_conf_string1' */
-static int StreamTcpTest20 (void) {
+static int StreamTcpTest20 (void)
+{
 
     struct in_addr addr;
     char os_policy_name[10] = "linux";
@@ -7711,7 +7750,8 @@ end:
 }
 /** \test   Test the various OS policies based on different IP addresses from
             confuguration defined in 'dummy_conf_string1' */
-static int StreamTcpTest21 (void) {
+static int StreamTcpTest21 (void)
+{
 
     struct in_addr addr;
     char os_policy_name[10] = "linux";
@@ -7762,7 +7802,8 @@ end:
 }
 /** \test   Test the various OS policies based on different IP addresses from
             confuguration defined in 'dummy_conf_string1' */
-static int StreamTcpTest22 (void) {
+static int StreamTcpTest22 (void)
+{
 
     struct in_addr addr;
     char os_policy_name[10] = "windows";
@@ -7993,7 +8034,8 @@ end:
  *
  *  \retval On success it returns 1 and on failure 0.
  */
-static int StreamTcpTest25(void) {
+static int StreamTcpTest25(void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -8092,7 +8134,8 @@ end:
  *
  *  \retval On success it returns 1 and on failure 0.
  */
-static int StreamTcpTest26(void) {
+static int StreamTcpTest26(void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -8187,7 +8230,8 @@ end:
  *
  *  \retval On success it returns 1 and on failure 0.
  */
-static int StreamTcpTest27(void) {
+static int StreamTcpTest27(void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -8764,7 +8808,8 @@ end:
  *
  *  \retval On success it returns 1 and on failure 0.
  */
-static int StreamTcpTest32(void) {
+static int StreamTcpTest32(void)
+{
     Packet p;
     Flow f;
     ThreadVars tv;
@@ -8854,7 +8899,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest33 (void) {
+static int StreamTcpTest33 (void)
+{
     Packet p;
     Flow f;
     ThreadVars tv;
@@ -8955,7 +9001,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest34 (void) {
+static int StreamTcpTest34 (void)
+{
     Packet p;
     Flow f;
     ThreadVars tv;
@@ -9020,7 +9067,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest35 (void) {
+static int StreamTcpTest35 (void)
+{
     Packet p;
     Flow f;
     ThreadVars tv;
@@ -9083,7 +9131,8 @@ end:
  *
  *  \retval On success it returns 1 and on failure 0.
  */
-static int StreamTcpTest36(void) {
+static int StreamTcpTest36(void)
+{
     Packet p;
     Flow f;
     ThreadVars tv;
@@ -9173,7 +9222,8 @@ end:
  *
  *  \retval On success it returns 1 and on failure 0.
  */
-static int StreamTcpTest37(void) {
+static int StreamTcpTest37(void)
+{
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -9297,7 +9347,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest38 (void) {
+static int StreamTcpTest38 (void)
+{
     int ret = 0;
     Flow f;
     ThreadVars tv;
@@ -9413,7 +9464,8 @@ end:
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpTest39 (void) {
+static int StreamTcpTest39 (void)
+{
     Flow f;
     ThreadVars tv;
     StreamTcpThread stt;
@@ -9523,7 +9575,8 @@ end:
     return ret;
 }
 
-static int StreamTcpTest40(void) {
+static int StreamTcpTest40(void)
+{
     uint8_t raw_vlan[] = {
         0x00, 0x20, 0x08, 0x00, 0x45, 0x00, 0x00, 0x34,
         0x3b, 0x36, 0x40, 0x00, 0x40, 0x06, 0xb7, 0xc9,
@@ -9580,7 +9633,8 @@ static int StreamTcpTest40(void) {
     return 1;
 }
 
-static int StreamTcpTest41(void) {
+static int StreamTcpTest41(void)
+{
     /* IPV6/TCP/no eth header */
     uint8_t raw_ip[] = {
         0x60, 0x00, 0x00, 0x00, 0x00, 0x28, 0x06, 0x40,
@@ -9647,7 +9701,8 @@ static int StreamTcpTest41(void) {
 }
 
 /** \test multiple different SYN/ACK, pick first */
-static int StreamTcpTest42 (void) {
+static int StreamTcpTest42 (void)
+{
     int ret = 0;
     Flow f;
     ThreadVars tv;
@@ -9738,7 +9793,8 @@ end:
 }
 
 /** \test multiple different SYN/ACK, pick second */
-static int StreamTcpTest43 (void) {
+static int StreamTcpTest43 (void)
+{
     int ret = 0;
     Flow f;
     ThreadVars tv;
@@ -9829,7 +9885,8 @@ end:
 }
 
 /** \test multiple different SYN/ACK, pick neither */
-static int StreamTcpTest44 (void) {
+static int StreamTcpTest44 (void)
+{
     int ret = 0;
     Flow f;
     ThreadVars tv;
@@ -9915,7 +9972,8 @@ end:
 }
 
 /** \test multiple different SYN/ACK, over the limit */
-static int StreamTcpTest45 (void) {
+static int StreamTcpTest45 (void)
+{
     int ret = 0;
     Flow f;
     ThreadVars tv;
@@ -10026,7 +10084,8 @@ end:
 
 #endif /* UNITTESTS */
 
-void StreamTcpRegisterTests (void) {
+void StreamTcpRegisterTests (void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("StreamTcpTest01 -- TCP session allocation",
                     StreamTcpTest01, 1);

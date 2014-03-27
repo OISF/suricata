@@ -1041,7 +1041,8 @@ end:
 }
 
 /** \test multiple pipelined http transactions */
-static int DeStateSigTest02(void) {
+static int DeStateSigTest02(void)
+{
     int result = 0;
     Signature *s = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -1238,7 +1239,8 @@ end:
     return result;
 }
 
-static int DeStateSigTest03(void) {
+static int DeStateSigTest03(void)
+{
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
                          "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
@@ -1364,7 +1366,8 @@ end:
     return result;
 }
 
-static int DeStateSigTest04(void) {
+static int DeStateSigTest04(void)
+{
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
                          "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
@@ -1490,7 +1493,8 @@ end:
     return result;
 }
 
-static int DeStateSigTest05(void) {
+static int DeStateSigTest05(void)
+{
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
                          "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
@@ -1616,7 +1620,8 @@ end:
     return result;
 }
 
-static int DeStateSigTest06(void) {
+static int DeStateSigTest06(void)
+{
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
                          "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
@@ -1742,7 +1747,8 @@ end:
     return result;
 }
 
-static int DeStateSigTest07(void) {
+static int DeStateSigTest07(void)
+{
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
                          "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"

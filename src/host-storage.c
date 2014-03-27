@@ -27,27 +27,33 @@
 #include "host-storage.h"
 #include "util-unittest.h"
 
-unsigned int HostStorageSize(void) {
+unsigned int HostStorageSize(void)
+{
     return StorageGetSize(STORAGE_HOST);
 }
 
-void *HostGetStorageById(Host *h, int id) {
+void *HostGetStorageById(Host *h, int id)
+{
     return StorageGetById((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST, id);
 }
 
-int HostSetStorageById(Host *h, int id, void *ptr) {
+int HostSetStorageById(Host *h, int id, void *ptr)
+{
     return StorageSetById((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST, id, ptr);
 }
 
-void *HostAllocStorageById(Host *h, int id) {
+void *HostAllocStorageById(Host *h, int id)
+{
     return StorageAllocByIdPrealloc((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST, id);
 }
 
-void HostFreeStorageById(Host *h, int id) {
+void HostFreeStorageById(Host *h, int id)
+{
     StorageFreeById((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST, id);
 }
 
-void HostFreeStorage(Host *h) {
+void HostFreeStorage(Host *h)
+{
     if (HostStorageSize() > 0)
         StorageFreeAll((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST);
 }
@@ -58,16 +64,19 @@ int HostStorageRegister(const char *name, const unsigned int size, void *(*Alloc
 
 #ifdef UNITTESTS
 
-static void *StorageTestAlloc(unsigned int size) {
+static void *StorageTestAlloc(unsigned int size)
+{
     void *x = SCMalloc(size);
     return x;
 }
-static void StorageTestFree(void *x) {
+static void StorageTestFree(void *x)
+{
     if (x)
         SCFree(x);
 }
 
-static int HostStorageTest01(void) {
+static int HostStorageTest01(void)
+{
     StorageInit();
 
     int id1 = HostStorageRegister("test", 8, StorageTestAlloc, StorageTestFree);
@@ -145,7 +154,8 @@ error:
     return 0;
 }
 
-static int HostStorageTest02(void) {
+static int HostStorageTest02(void)
+{
     StorageInit();
 
     int id1 = HostStorageRegister("test", sizeof(void *), NULL, StorageTestFree);
@@ -194,7 +204,8 @@ error:
     return 0;
 }
 
-static int HostStorageTest03(void) {
+static int HostStorageTest03(void)
+{
     StorageInit();
 
     int id1 = HostStorageRegister("test1", sizeof(void *), NULL, StorageTestFree);
@@ -269,7 +280,8 @@ error:
 }
 #endif
 
-void RegisterHostStorageTests(void) {
+void RegisterHostStorageTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("HostStorageTest01", HostStorageTest01, 1);
     UtRegisterTest("HostStorageTest02", HostStorageTest02, 1);
