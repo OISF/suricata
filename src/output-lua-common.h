@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,15 +21,21 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_LUAJIT_EXT_H__
-#define __DETECT_LUAJIT_EXT_H__
+#ifndef __OUTPUT_LUA_COMMON_H__
+#define __OUTPUT_LUA_COMMON_H__
 
 #ifdef HAVE_LUA
-int LuajitRegisterExtensions(lua_State *);
 
-void LuajitExtensionsMatchSetup(lua_State *lua_state,
-        DetectLuajitData *, DetectEngineThreadCtx *det_ctx,
-        Flow *f, int need_flow_lock);
+int LuaCallbackError(lua_State *luastate, const char *msg);
+int LuaReturnStringBuffer(lua_State *luastate, const uint8_t *input, size_t input_len);
+const char *LuaGetStringArgument(lua_State *luastate, int argc);
+
+void LogLuaPushTableKeyValueInt(lua_State *luastate, const char *key, int value);
+void LogLuaPushTableKeyValueString(lua_State *luastate, const char *key, const char *value);
+void LogLuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8_t *value, size_t len);
+
+int LogLuaRegisterFunctions(lua_State *luastate);
 
 #endif /* HAVE_LUA */
-#endif
+
+#endif /* __OUTPUT_LUA_COMMON_H__ */
