@@ -81,6 +81,7 @@ detect-detection-filter.c detect-detection-filter.h \
 detect-distance.c detect-distance.h \
 detect-dns-query.c detect-dns-query.h \
 detect-dsize.c detect-dsize.h \
+detect-endswith.c detect-endswith.h \
 detect-engine-address.c detect-engine-address.h \
 detect-engine-address-ipv4.c detect-engine-address-ipv4.h \
 detect-engine-address-ipv6.c detect-engine-address-ipv6.h \
