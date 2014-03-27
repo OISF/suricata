@@ -382,6 +382,9 @@ typedef struct Flow_
     uint32_t tosrcpktcnt;
     uint64_t bytecnt;
 #endif
+#ifdef DEBUG_VALIDATION
+    u_long thread_id;
+#endif
 } Flow;
 
 enum {

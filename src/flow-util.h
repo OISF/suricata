@@ -39,6 +39,14 @@
 #define RESET_COUNTERS(f)
 #endif
 
+#ifdef DEBUG_VALIDATION
+#define RESET_THREAD_ID(f) do { \
+        (f)->thread_id = 0; \
+    } while (0)
+#else
+#define RESET_THREAD_ID(f)
+#endif
+
 #define FLOW_INITIALIZE(f) do { \
         (f)->sp = 0; \
         (f)->dp = 0; \
@@ -70,6 +78,7 @@
         SC_ATOMIC_INIT((f)->autofp_tmqh_flow_qid);  \
         (void) SC_ATOMIC_SET((f)->autofp_tmqh_flow_qid, -1);  \
         RESET_COUNTERS((f)); \
+        RESET_THREAD_ID((f)); \
     } while (0)
 
 /** \brief macro to recycle a flow before it goes into the spare queue for reuse.
@@ -107,6 +116,7 @@
             (void) SC_ATOMIC_SET((f)->autofp_tmqh_flow_qid, -1);   \
         }                                       \
         RESET_COUNTERS((f)); \
+        RESET_THREAD_ID((f)); \
     } while(0)
 
 #define FLOW_DESTROY(f) do { \
