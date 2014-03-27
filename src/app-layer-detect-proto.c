@@ -85,14 +85,16 @@ typedef struct AppLayerProtoDetectProbingParserPort_ {
     /* the port no for which probing parser(s) are invoked */
     uint16_t port;
 
+    /* mask per direction of inspection */
     uint32_t toserver_alproto_mask;
     uint32_t toclient_alproto_mask;
-    /* the max depth for all the probing parsers registered for this port */
-    uint16_t toserver_max_depth;
-    uint16_t toclient_max_depth;
 
-    AppLayerProtoDetectProbingParserElement *toserver;
-    AppLayerProtoDetectProbingParserElement *toclient;
+    /* the max depth for all the probing parsers registered for this port */
+    uint16_t dp_max_depth;
+    uint16_t sp_max_depth;
+
+    AppLayerProtoDetectProbingParserElement *dp;
+    AppLayerProtoDetectProbingParserElement *sp;
 
     struct AppLayerProtoDetectProbingParserPort_ *next;
 } AppLayerProtoDetectProbingParserPort;
@@ -307,7 +309,11 @@ static AppLayerProtoDetectProbingParserPort *AppLayerProtoDetectGetProbingParser
 }
 
 /**
- * \brief Call the probing parser if it exists for this src or dst port.
+ * \brief Call the probing parser if it exists for this flow.
+ *
+ * First we check the flow's dp as it's most likely to match. If that didn't
+ * lead to a PP, we try the sp.
+ *
  */
 static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
                                               uint8_t *buf, uint32_t buflen,
@@ -319,28 +325,45 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
     uint32_t *alproto_masks;
 
     if (direction & STREAM_TOSERVER) {
+        /* first try the destination port */
         pp_port = AppLayerProtoDetectGetProbingParsers(alpd_ctx.ctx_pp, ipproto, f->dp);
         alproto_masks = &f->probing_parser_toserver_alproto_masks;
         if (pp_port == NULL) {
-            SCLogDebug("toserver-No probing parser registered for port %"PRIu16,
+            SCLogDebug("toserver - No probing parser registered for dest port %"PRIu16,
                        f->dp);
-            FLOW_SET_PP_DONE(f, direction);
-            goto end;
+
+            /* dp not found, lets try source port then */
+            pp_port = AppLayerProtoDetectGetProbingParsers(alpd_ctx.ctx_pp, ipproto, f->sp);
+            if (pp_port == NULL) {
+                SCLogDebug("toserver - No probing parser registered for source port %"PRIu16,
+                        f->sp);
+                FLOW_SET_PP_DONE(f, direction);
+                goto end;
+            }
         }
-        pe = pp_port->toserver;
+        pe = pp_port->dp;
     } else {
-        pp_port = AppLayerProtoDetectGetProbingParsers(alpd_ctx.ctx_pp, ipproto, f->sp);
+        /* first try the destination port */
+        pp_port = AppLayerProtoDetectGetProbingParsers(alpd_ctx.ctx_pp, ipproto, f->dp);
         alproto_masks = &f->probing_parser_toclient_alproto_masks;
         if (pp_port == NULL) {
-            SCLogDebug("toclient-No probing parser registered for port %"PRIu16,
-                       f->sp);
-            FLOW_SET_PP_DONE(f, direction);
-            goto end;
+            SCLogDebug("toclient - No probing parser registered for dest port %"PRIu16,
+                       f->dp);
+
+            /* dp not found, lets try source port then */
+            pp_port = AppLayerProtoDetectGetProbingParsers(alpd_ctx.ctx_pp, ipproto, f->sp);
+            if (pp_port == NULL) {
+                SCLogDebug("toclient - No probing parser registered for source port %"PRIu16,
+                        f->sp);
+
+                FLOW_SET_PP_DONE(f, direction);
+                goto end;
+            }
         }
-        pe = pp_port->toclient;
+        pe = pp_port->dp;
     }
 
-
+    /* run the parser(s) */
     while (pe != NULL) {
         if ((buflen < pe->min_depth)  ||
             (alproto_masks[0] & pe->alproto_mask)) {
@@ -387,11 +410,11 @@ static void AppLayerProtoDetectPPGetIpprotos(AppProto alproto,
 
     for (pp = alpd_ctx.ctx_pp; pp != NULL; pp = pp->next) {
         for (pp_port = pp->port; pp_port != NULL; pp_port = pp_port->next) {
-            for (pp_pe = pp_port->toserver; pp_pe != NULL; pp_pe = pp_pe->next) {
+            for (pp_pe = pp_port->dp; pp_pe != NULL; pp_pe = pp_pe->next) {
                 if (alproto == pp_pe->alproto)
                     ipprotos[pp->ipproto / 8] |= 1 << (pp->ipproto % 8);
             }
-            for (pp_pe = pp_port->toclient; pp_pe != NULL; pp_pe = pp_pe->next) {
+            for (pp_pe = pp_port->sp; pp_pe != NULL; pp_pe = pp_pe->next) {
                 if (alproto == pp_pe->alproto)
                     ipprotos[pp->ipproto / 8] |= 1 << (pp->ipproto % 8);
             }
@@ -454,14 +477,14 @@ static void AppLayerProtoDetectProbingParserPortFree(AppLayerProtoDetectProbingP
 
     AppLayerProtoDetectProbingParserElement *e;
 
-    e = p->toserver;
+    e = p->dp;
     while (e != NULL) {
         AppLayerProtoDetectProbingParserElement *e_next = e->next;
         AppLayerProtoDetectProbingParserElementFree(e);
         e = e_next;
     }
 
-    e = p->toclient;
+    e = p->sp;
     while (e != NULL) {
         AppLayerProtoDetectProbingParserElement *e_next = e->next;
         AppLayerProtoDetectProbingParserElementFree(e);
@@ -567,7 +590,7 @@ void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingParser *pp
     AppLayerProtoDetectProbingParserPort *pp_port = NULL;
     AppLayerProtoDetectProbingParserElement *pp_pe = NULL;
 
-    printf("\n");
+    printf("\nProtocol Detection Configuration\n");
 
     for ( ; pp != NULL; pp = pp->next) {
         /* print ip protocol */
@@ -580,62 +603,63 @@ void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingParser *pp
 
         pp_port = pp->port;
         for ( ; pp_port != NULL; pp_port = pp_port->next) {
-            if (pp_port->toserver == NULL)
-                goto AppLayerProtoDetectPrintProbingParsers_jump_toclient;
-            printf("    Port: %"PRIu16 "\n", pp_port->port);
+            if (pp_port->dp != NULL) {
+                printf("    Port: %"PRIu16 "\n", pp_port->port);
 
-            printf("        To_Server: (max-depth: %"PRIu16 ", "
-                   "mask - %"PRIu32")\n",
-                   pp_port->toserver_max_depth,
-                   pp_port->toserver_alproto_mask);
-            pp_pe = pp_port->toserver;
-            for ( ; pp_pe != NULL; pp_pe = pp_pe->next) {
+                printf("        Destination port: (max-depth: %"PRIu16 ", "
+                        "mask - %"PRIu32")\n",
+                        pp_port->dp_max_depth,
+                        pp_port->toserver_alproto_mask);
+                pp_pe = pp_port->dp;
+                for ( ; pp_pe != NULL; pp_pe = pp_pe->next) {
 
-                if (pp_pe->alproto == ALPROTO_HTTP)
-                    printf("            alproto: ALPROTO_HTTP\n");
-                else if (pp_pe->alproto == ALPROTO_FTP)
-                    printf("            alproto: ALPROTO_FTP\n");
-                else if (pp_pe->alproto == ALPROTO_SMTP)
-                    printf("            alproto: ALPROTO_SMTP\n");
-                else if (pp_pe->alproto == ALPROTO_TLS)
-                    printf("            alproto: ALPROTO_TLS\n");
-                else if (pp_pe->alproto == ALPROTO_SSH)
-                    printf("            alproto: ALPROTO_SSH\n");
-                else if (pp_pe->alproto == ALPROTO_IMAP)
-                    printf("            alproto: ALPROTO_IMAP\n");
-                else if (pp_pe->alproto == ALPROTO_MSN)
-                    printf("            alproto: ALPROTO_MSN\n");
-                else if (pp_pe->alproto == ALPROTO_JABBER)
-                    printf("            alproto: ALPROTO_JABBER\n");
-                else if (pp_pe->alproto == ALPROTO_SMB)
-                    printf("            alproto: ALPROTO_SMB\n");
-                else if (pp_pe->alproto == ALPROTO_SMB2)
-                    printf("            alproto: ALPROTO_SMB2\n");
-                else if (pp_pe->alproto == ALPROTO_DCERPC)
-                    printf("            alproto: ALPROTO_DCERPC\n");
-                else if (pp_pe->alproto == ALPROTO_IRC)
-                    printf("            alproto: ALPROTO_IRC\n");
-                else
-                    printf("impossible\n");
+                    if (pp_pe->alproto == ALPROTO_HTTP)
+                        printf("            alproto: ALPROTO_HTTP\n");
+                    else if (pp_pe->alproto == ALPROTO_FTP)
+                        printf("            alproto: ALPROTO_FTP\n");
+                    else if (pp_pe->alproto == ALPROTO_SMTP)
+                        printf("            alproto: ALPROTO_SMTP\n");
+                    else if (pp_pe->alproto == ALPROTO_TLS)
+                        printf("            alproto: ALPROTO_TLS\n");
+                    else if (pp_pe->alproto == ALPROTO_SSH)
+                        printf("            alproto: ALPROTO_SSH\n");
+                    else if (pp_pe->alproto == ALPROTO_IMAP)
+                        printf("            alproto: ALPROTO_IMAP\n");
+                    else if (pp_pe->alproto == ALPROTO_MSN)
+                        printf("            alproto: ALPROTO_MSN\n");
+                    else if (pp_pe->alproto == ALPROTO_JABBER)
+                        printf("            alproto: ALPROTO_JABBER\n");
+                    else if (pp_pe->alproto == ALPROTO_SMB)
+                        printf("            alproto: ALPROTO_SMB\n");
+                    else if (pp_pe->alproto == ALPROTO_SMB2)
+                        printf("            alproto: ALPROTO_SMB2\n");
+                    else if (pp_pe->alproto == ALPROTO_DCERPC)
+                        printf("            alproto: ALPROTO_DCERPC\n");
+                    else if (pp_pe->alproto == ALPROTO_IRC)
+                        printf("            alproto: ALPROTO_IRC\n");
+                    else if (pp_pe->alproto == ALPROTO_DNS)
+                        printf("            alproto: ALPROTO_DNS\n");
+                    else
+                        printf("impossible\n");
 
-                printf("            port: %"PRIu16 "\n", pp_pe->port);
-                printf("            mask: %"PRIu32 "\n", pp_pe->alproto_mask);
-                printf("            min_depth: %"PRIu32 "\n", pp_pe->min_depth);
-                printf("            max_depth: %"PRIu32 "\n", pp_pe->max_depth);
+                    printf("            port: %"PRIu16 "\n", pp_pe->port);
+                    printf("            mask: %"PRIu32 "\n", pp_pe->alproto_mask);
+                    printf("            min_depth: %"PRIu32 "\n", pp_pe->min_depth);
+                    printf("            max_depth: %"PRIu32 "\n", pp_pe->max_depth);
 
-                printf("\n");
+                    printf("\n");
+                }
             }
 
-        AppLayerProtoDetectPrintProbingParsers_jump_toclient:
-            if (pp_port->toclient == NULL) {
+            if (pp_port->sp == NULL) {
                 continue;
             }
 
-            printf("        To_Client: (max-depth: %"PRIu16 ", "
+            printf("        Source port: (max-depth: %"PRIu16 ", "
                    "mask - %"PRIu32")\n",
-                   pp_port->toclient_max_depth,
+                   pp_port->sp_max_depth,
                    pp_port->toclient_alproto_mask);
-            pp_pe = pp_port->toclient;
+            pp_pe = pp_port->sp;
             for ( ; pp_pe != NULL; pp_pe = pp_pe->next) {
 
                 if (pp_pe->alproto == ALPROTO_HTTP)
@@ -662,6 +686,8 @@ void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingParser *pp
                     printf("            alproto: ALPROTO_DCERPC\n");
                 else if (pp_pe->alproto == ALPROTO_IRC)
                     printf("            alproto: ALPROTO_IRC\n");
+                else if (pp_pe->alproto == ALPROTO_DNS)
+                    printf("            alproto: ALPROTO_DNS\n");
                 else
                     printf("impossible\n");
 
@@ -799,9 +825,9 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
         AppLayerProtoDetectProbingParserPortAppend(&curr_pp->port, new_port);
         curr_port = new_port;
         if (direction & STREAM_TOSERVER) {
-            curr_port->toserver_max_depth = max_depth;
+            curr_port->dp_max_depth = max_depth;
         } else {
-            curr_port->toclient_max_depth = max_depth;
+            curr_port->sp_max_depth = max_depth;
         }
 
         AppLayerProtoDetectProbingParserPort *zero_port;
@@ -813,37 +839,37 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
         if (zero_port != NULL) {
             AppLayerProtoDetectProbingParserElement *zero_pe;
 
-            zero_pe = zero_port->toserver;
+            zero_pe = zero_port->dp;
             for ( ; zero_pe != NULL; zero_pe = zero_pe->next) {
-                if (curr_port->toserver == NULL)
-                    curr_port->toserver_max_depth = zero_pe->max_depth;
+                if (curr_port->dp == NULL)
+                    curr_port->dp_max_depth = zero_pe->max_depth;
                 if (zero_pe->max_depth == 0)
-                    curr_port->toserver_max_depth = zero_pe->max_depth;
-                if (curr_port->toserver_max_depth != 0 &&
-                    curr_port->toserver_max_depth < zero_pe->max_depth) {
-                    curr_port->toserver_max_depth = zero_pe->max_depth;
+                    curr_port->dp_max_depth = zero_pe->max_depth;
+                if (curr_port->dp_max_depth != 0 &&
+                    curr_port->dp_max_depth < zero_pe->max_depth) {
+                    curr_port->dp_max_depth = zero_pe->max_depth;
                 }
 
                 AppLayerProtoDetectProbingParserElement *dup_pe =
                     AppLayerProtoDetectProbingParserElementDuplicate(zero_pe);
-                AppLayerProtoDetectProbingParserElementAppend(&curr_port->toserver, dup_pe);
+                AppLayerProtoDetectProbingParserElementAppend(&curr_port->dp, dup_pe);
                 curr_port->toserver_alproto_mask |= dup_pe->alproto_mask;
             }
 
-            zero_pe = zero_port->toclient;
+            zero_pe = zero_port->sp;
             for ( ; zero_pe != NULL; zero_pe = zero_pe->next) {
-                if (curr_port->toclient == NULL)
-                    curr_port->toclient_max_depth = zero_pe->max_depth;
+                if (curr_port->sp == NULL)
+                    curr_port->sp_max_depth = zero_pe->max_depth;
                 if (zero_pe->max_depth == 0)
-                    curr_port->toclient_max_depth = zero_pe->max_depth;
-                if (curr_port->toclient_max_depth != 0 &&
-                    curr_port->toclient_max_depth < zero_pe->max_depth) {
-                    curr_port->toclient_max_depth = zero_pe->max_depth;
+                    curr_port->sp_max_depth = zero_pe->max_depth;
+                if (curr_port->sp_max_depth != 0 &&
+                    curr_port->sp_max_depth < zero_pe->max_depth) {
+                    curr_port->sp_max_depth = zero_pe->max_depth;
                 }
 
                 AppLayerProtoDetectProbingParserElement *dup_pe =
                     AppLayerProtoDetectProbingParserElementDuplicate(zero_pe);
-                AppLayerProtoDetectProbingParserElementAppend(&curr_port->toclient, dup_pe);
+                AppLayerProtoDetectProbingParserElementAppend(&curr_port->sp, dup_pe);
                 curr_port->toclient_alproto_mask |= dup_pe->alproto_mask;
             }
         } /* if (zero_port != NULL) */
@@ -852,9 +878,9 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
     /* insert the pe_pp */
     AppLayerProtoDetectProbingParserElement *curr_pe;
     if (direction & STREAM_TOSERVER)
-        curr_pe = curr_port->toserver;
+        curr_pe = curr_port->dp;
     else
-        curr_pe = curr_port->toclient;
+        curr_pe = curr_port->sp;
     while (curr_pe != NULL) {
         if (curr_pe->alproto == alproto) {
             SCLogError(SC_ERR_ALPARSER, "Duplicate pp registered - "
@@ -879,27 +905,27 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
     curr_pe = new_pe;
     AppLayerProtoDetectProbingParserElement **head_pe;
     if (direction & STREAM_TOSERVER) {
-        if (curr_port->toserver == NULL)
-            curr_port->toserver_max_depth = new_pe->max_depth;
+        if (curr_port->dp == NULL)
+            curr_port->dp_max_depth = new_pe->max_depth;
         if (new_pe->max_depth == 0)
-            curr_port->toserver_max_depth = new_pe->max_depth;
-        if (curr_port->toserver_max_depth != 0 &&
-            curr_port->toserver_max_depth < new_pe->max_depth) {
-            curr_port->toserver_max_depth = new_pe->max_depth;
+            curr_port->dp_max_depth = new_pe->max_depth;
+        if (curr_port->dp_max_depth != 0 &&
+            curr_port->dp_max_depth < new_pe->max_depth) {
+            curr_port->dp_max_depth = new_pe->max_depth;
         }
         curr_port->toserver_alproto_mask |= new_pe->alproto_mask;
-        head_pe = &curr_port->toserver;
+        head_pe = &curr_port->dp;
     } else {
-        if (curr_port->toclient == NULL)
-            curr_port->toclient_max_depth = new_pe->max_depth;
+        if (curr_port->sp == NULL)
+            curr_port->sp_max_depth = new_pe->max_depth;
         if (new_pe->max_depth == 0)
-            curr_port->toclient_max_depth = new_pe->max_depth;
-        if (curr_port->toclient_max_depth != 0 &&
-            curr_port->toclient_max_depth < new_pe->max_depth) {
-            curr_port->toclient_max_depth = new_pe->max_depth;
+            curr_port->sp_max_depth = new_pe->max_depth;
+        if (curr_port->sp_max_depth != 0 &&
+            curr_port->sp_max_depth < new_pe->max_depth) {
+            curr_port->sp_max_depth = new_pe->max_depth;
         }
         curr_port->toclient_alproto_mask |= new_pe->alproto_mask;
-        head_pe = &curr_port->toclient;
+        head_pe = &curr_port->sp;
     }
     AppLayerProtoDetectProbingParserElementAppend(head_pe, new_pe);
 
@@ -907,27 +933,27 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
         AppLayerProtoDetectProbingParserPort *temp_port = curr_pp->port;
         while (temp_port != NULL && temp_port->port != 0) {
             if (direction & STREAM_TOSERVER) {
-                if (temp_port->toserver == NULL)
-                    temp_port->toserver_max_depth = curr_pe->max_depth;
+                if (temp_port->dp == NULL)
+                    temp_port->dp_max_depth = curr_pe->max_depth;
                 if (curr_pe->max_depth == 0)
-                    temp_port->toserver_max_depth = curr_pe->max_depth;
-                if (temp_port->toserver_max_depth != 0 &&
-                    temp_port->toserver_max_depth < curr_pe->max_depth) {
-                    temp_port->toserver_max_depth = curr_pe->max_depth;
+                    temp_port->dp_max_depth = curr_pe->max_depth;
+                if (temp_port->dp_max_depth != 0 &&
+                    temp_port->dp_max_depth < curr_pe->max_depth) {
+                    temp_port->dp_max_depth = curr_pe->max_depth;
                 }
-                AppLayerProtoDetectProbingParserElementAppend(&temp_port->toserver,
+                AppLayerProtoDetectProbingParserElementAppend(&temp_port->dp,
                                                               AppLayerProtoDetectProbingParserElementDuplicate(curr_pe));
                 temp_port->toserver_alproto_mask |= curr_pe->alproto_mask;
             } else {
-                if (temp_port->toclient == NULL)
-                    temp_port->toclient_max_depth = curr_pe->max_depth;
+                if (temp_port->sp == NULL)
+                    temp_port->sp_max_depth = curr_pe->max_depth;
                 if (curr_pe->max_depth == 0)
-                    temp_port->toclient_max_depth = curr_pe->max_depth;
-                if (temp_port->toclient_max_depth != 0 &&
-                    temp_port->toclient_max_depth < curr_pe->max_depth) {
-                    temp_port->toclient_max_depth = curr_pe->max_depth;
+                    temp_port->sp_max_depth = curr_pe->max_depth;
+                if (temp_port->sp_max_depth != 0 &&
+                    temp_port->sp_max_depth < curr_pe->max_depth) {
+                    temp_port->sp_max_depth = curr_pe->max_depth;
                 }
-                AppLayerProtoDetectProbingParserElementAppend(&temp_port->toclient,
+                AppLayerProtoDetectProbingParserElementAppend(&temp_port->sp,
                                                               AppLayerProtoDetectProbingParserElementDuplicate(curr_pe));
                 temp_port->toclient_alproto_mask |= curr_pe->alproto_mask;
             }
@@ -1284,6 +1310,12 @@ int AppLayerProtoDetectPrepareState(void)
         }
     }
 
+#ifdef DEBUG
+    if (SCLogDebugEnabled()) {
+        AppLayerProtoDetectPrintProbingParsers(alpd_ctx.ctx_pp);
+    }
+#endif
+
     goto end;
  error:
     ret = -1;
@@ -1293,6 +1325,10 @@ int AppLayerProtoDetectPrepareState(void)
 
 /***** PP registration *****/
 
+/** \brief register parser at a port
+ *
+ *  \param direction STREAM_TOSERVER or STREAM_TOCLIENT for dp or sp
+ */
 void AppLayerProtoDetectPPRegister(uint8_t ipproto,
                                    char *portstr,
                                    AppProto alproto,
@@ -1366,23 +1402,31 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
             goto end;
     }
 
-    port_node = ConfNodeLookupChild(node, "toserver");
-    if (port_node != NULL && port_node->val != NULL) {
-        AppLayerProtoDetectPPRegister(ipproto,
-                                      port_node->val,
-                                      alproto,
-                                      min_depth, max_depth,
-                                      STREAM_TOSERVER,
-                                      ProbingParser);
-    }
-    port_node = ConfNodeLookupChild(node, "toclient");
+    /* detect by destination port of the flow (e.g. port 53 for DNS) */
+    port_node = ConfNodeLookupChild(node, "dp");
+    if (port_node == NULL)
+        port_node = ConfNodeLookupChild(node, "toserver");
 
     if (port_node != NULL && port_node->val != NULL) {
         AppLayerProtoDetectPPRegister(ipproto,
                                       port_node->val,
                                       alproto,
                                       min_depth, max_depth,
-                                      STREAM_TOCLIENT,
+                                      STREAM_TOSERVER, /* to indicate dp */
+                                      ProbingParser);
+    }
+
+    /* detect by source port of flow */
+    port_node = ConfNodeLookupChild(node, "sp");
+    if (port_node == NULL)
+        port_node = ConfNodeLookupChild(node, "toclient");
+
+    if (port_node != NULL && port_node->val != NULL) {
+        AppLayerProtoDetectPPRegister(ipproto,
+                                      port_node->val,
+                                      alproto,
+                                      min_depth, max_depth,
+                                      STREAM_TOCLIENT, /* to indicate sp */
                                       ProbingParser);
 
     }
@@ -1435,7 +1479,6 @@ int AppLayerProtoDetectSetup(void)
             MpmInitCtx(&alpd_ctx.ctx_ipp[i].ctx_pm[j].mpm_ctx, MPM_AC);
         }
     }
-
     SCReturnInt(0);
 }
 
@@ -2730,8 +2773,8 @@ typedef struct AppLayerProtoDetectPPTestDataPort_ {
     uint16_t port;
     uint32_t toserver_alproto_mask;
     uint32_t toclient_alproto_mask;
-    uint16_t toserver_max_depth;
-    uint16_t toclient_max_depth;
+    uint16_t dp_max_depth;
+    uint16_t sp_max_depth;
 
     AppLayerProtoDetectPPTestDataElement *toserver_element;
     AppLayerProtoDetectPPTestDataElement *toclient_element;
@@ -2768,12 +2811,12 @@ static int AppLayerProtoDetectPPTestData(AppLayerProtoDetectProbingParser *pp,
                 goto end;
             if (pp_port->toclient_alproto_mask != ip_proto[i].port[k].toclient_alproto_mask)
                 goto end;
-            if (pp_port->toserver_max_depth != ip_proto[i].port[k].toserver_max_depth)
+            if (pp_port->dp_max_depth != ip_proto[i].port[k].dp_max_depth)
                 goto end;
-            if (pp_port->toclient_max_depth != ip_proto[i].port[k].toclient_max_depth)
+            if (pp_port->sp_max_depth != ip_proto[i].port[k].sp_max_depth)
                 goto end;
 
-            AppLayerProtoDetectProbingParserElement *pp_element = pp_port->toserver;
+            AppLayerProtoDetectProbingParserElement *pp_element = pp_port->dp;
 #ifdef DEBUG
             dir = 0;
 #endif
@@ -2799,7 +2842,7 @@ static int AppLayerProtoDetectPPTestData(AppLayerProtoDetectProbingParser *pp,
             if (pp_element != NULL)
                 goto end;
 
-            pp_element = pp_port->toclient;
+            pp_element = pp_port->sp;
 #ifdef DEBUG
             dir = 1;
 #endif
