@@ -498,6 +498,8 @@ void AppLayerParserDestroyProtocolParserLocalStorage(uint8_t ipproto, AppProto a
 uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate)
 {
     SCEnter();
+    if (pstate == NULL)
+        SCReturnCT(0ULL, "uint64_t");
 
     SCReturnCT(pstate->log_id, "uint64_t");
 }
@@ -505,15 +507,18 @@ uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate)
 void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate)
 {
     SCEnter();
+    if (pstate == NULL)
+        SCReturn;
 
     pstate->log_id++;
-
     SCReturn;
 }
 
 uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint8_t direction)
 {
     SCEnter();
+    if (pstate == NULL)
+        SCReturnCT(0ULL, "uint64_t");
 
     SCReturnCT(pstate->inspect_id[direction & STREAM_TOSERVER ? 0 : 1], "uint64_t");
 }
@@ -523,6 +528,9 @@ void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
                                            uint8_t direction)
 {
     SCEnter();
+
+    if (unlikely(pstate == NULL || alstate == NULL))
+        SCReturn;
 
     uint8_t dir = (direction & STREAM_TOSERVER) ? 0 : 1;
     uint64_t total_txs = AppLayerParserGetTxCnt(ipproto, alproto, alstate);
@@ -549,14 +557,16 @@ void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
 AppLayerDecoderEvents *AppLayerParserGetDecoderEvents(AppLayerParserState *pstate)
 {
     SCEnter();
+    if (pstate == NULL)
+        SCReturnPtr(NULL, "AppLayerDecoderEvents *");
 
-    SCReturnPtr(pstate->decoder_events,
-                "AppLayerDecoderEvents *");
+    SCReturnPtr(pstate->decoder_events, "AppLayerDecoderEvents *");
 }
 
 void AppLayerParserSetDecoderEvents(AppLayerParserState *pstate, AppLayerDecoderEvents *devents)
 {
-    pstate->decoder_events = devents;
+    if (pstate != NULL)
+        pstate->decoder_events = devents;
 }
 
 AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint8_t ipproto, AppProto alproto,
@@ -603,6 +613,9 @@ FileContainer *AppLayerParserGetFiles(uint8_t ipproto, AppProto alproto,
  *
  *  \retval tx_id lowest tx_id that still needs work */
 uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags) {
+    if (f->alparser == NULL)
+        return 0;
+
     AppLayerParserProtoCtx *p = &alp_ctx.ctxs[FlowGetProtoMapping(f->proto)][f->alproto];
     uint64_t log_id = f->alparser->log_id;
     uint64_t inspect_id = f->alparser->inspect_id[flags & STREAM_TOSERVER ? 0 : 1];
@@ -622,6 +635,9 @@ uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags) {
  *  and no logging, why run a parser in the first place?
  **/
 uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags) {
+    if (f->alparser == NULL)
+        return 0;
+
     AppLayerParserProtoCtx *p = &alp_ctx.ctxs[f->protomap][f->alproto];
 
     if (p->logger == TRUE) {
@@ -745,6 +761,9 @@ uint64_t AppLayerParserGetTransactionActive(uint8_t ipproto, AppProto alproto,
                                             AppLayerParserState *pstate, uint8_t direction)
 {
     SCEnter();
+
+    if (pstate == NULL)
+        SCReturnCT(0, "uint64_t");
 
     uint64_t active_id;
 
@@ -1033,14 +1052,18 @@ void AppLayerParserRegisterProtocolParsers(void)
 void AppLayerParserStateSetFlag(AppLayerParserState *pstate, uint8_t flag)
 {
     SCEnter();
-    pstate->flags |= flag;
+    if (pstate != NULL)
+        pstate->flags |= flag;
     SCReturn;
 }
 
 int AppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint8_t flag)
 {
     SCEnter();
-    SCReturnInt(pstate->flags & flag);
+    if (pstate != NULL)
+        SCReturnInt(pstate->flags & flag);
+    else
+        SCReturnInt(0);
 }
 
 
