@@ -119,6 +119,13 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         /* alert */
         json_object_set_new(js, "alert", ajs);
 
+	/* payload */
+	char payload[p->payload_len + 1];
+	uint32_t offset = 0;
+	PrintStringsToBuffer((uint8_t *)payload, &offset, p->payload_len + 1,
+			 p->payload, p->payload_len);
+	json_object_set_new(js, "payload", json_string(payload));
+
         OutputJSONBuffer(js, aft->file_ctx, aft->buffer);
         json_object_del(js, "alert");
     }
