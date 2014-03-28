@@ -128,6 +128,7 @@ TmEcode ReceiveMpipeThreadInit(ThreadVars *, void *, void **);
 void ReceiveMpipeThreadExitStats(ThreadVars *, void *);
 
 TmEcode DecodeMpipeThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodeMpipeThreadDeinit(ThreadVars *tv, void *data);
 TmEcode DecodeMpipe(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 static int MpipeReceiveOpenIqueue(int rank);
 
@@ -191,7 +192,7 @@ void TmModuleDecodeMpipeRegister (void)
     tmm_modules[TMM_DECODEMPIPE].ThreadInit = DecodeMpipeThreadInit;
     tmm_modules[TMM_DECODEMPIPE].Func = DecodeMpipe;
     tmm_modules[TMM_DECODEMPIPE].ThreadExitPrintStats = NULL;
-    tmm_modules[TMM_DECODEMPIPE].ThreadDeinit = NULL;
+    tmm_modules[TMM_DECODEMPIPE].ThreadDeinit = DecodeMpipeThreadDeinit;
     tmm_modules[TMM_DECODEMPIPE].RegisterTests = NULL;
     tmm_modules[TMM_DECODEMPIPE].cap_flags = 0;
     tmm_modules[TMM_DECODEMPIPE].flags = TM_FLAG_DECODE_TM;
@@ -1021,6 +1022,13 @@ TmEcode DecodeMpipeThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     *data = (void *)dtv;
 
+    SCReturnInt(TM_ECODE_OK);
+}
+
+TmEcode DecodeMpipeThreadDeinit(ThreadVars *tv, void *data)
+{
+    if (data != NULL)
+        DecodeThreadVarsFree(data);
     SCReturnInt(TM_ECODE_OK);
 }
 
