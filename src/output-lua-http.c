@@ -76,6 +76,22 @@ int LuaStateNeedProto(lua_State *luastate, AppProto alproto)
 
 }
 
+static int HttpGetRequestHost(lua_State *luastate)
+{
+    if (!(LuaStateNeedProto(luastate, ALPROTO_HTTP)))
+        return LuaCallbackError(luastate, "error: protocol not http");
+
+    htp_tx_t *tx = LuaStateGetTX(luastate);
+    if (tx == NULL)
+        return LuaCallbackError(luastate, "internal error: no tx");
+
+    if (tx->request_hostname == NULL)
+        return LuaCallbackError(luastate, "no request hostname");
+
+    return LuaReturnStringBuffer(luastate,
+            bstr_ptr(tx->request_hostname), bstr_len(tx->request_hostname));
+}
+
 static int HttpGetRequestUriRaw(lua_State *luastate)
 {
     if (!(LuaStateNeedProto(luastate, ALPROTO_HTTP)))
@@ -285,6 +301,8 @@ int LogLuaRegisterHttpFunctions(lua_State *luastate)
     lua_setglobal(luastate, "HttpGetRequestHeaders");
     lua_pushcfunction(luastate, HttpGetResponseHeaders);
     lua_setglobal(luastate, "HttpGetResponseHeaders");
+    lua_pushcfunction(luastate, HttpGetRequestHost);
+    lua_setglobal(luastate, "HttpGetRequestHost");
     return 0;
 }
 
