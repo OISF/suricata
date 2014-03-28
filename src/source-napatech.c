@@ -97,6 +97,7 @@ void NapatechStreamThreadExitStats(ThreadVars *, void *);
 TmEcode NapatechStreamLoop(ThreadVars *tv, void *data, void *slot);
 
 TmEcode NapatechDecodeThreadInit(ThreadVars *, void *, void **);
+TmEcode NapatechDecodeThreadDeinit(ThreadVars *tv, void *data);
 TmEcode NapatechDecode(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
 /**
@@ -124,7 +125,7 @@ void TmModuleNapatechDecodeRegister(void)
     tmm_modules[TMM_DECODENAPATECH].ThreadInit = NapatechDecodeThreadInit;
     tmm_modules[TMM_DECODENAPATECH].Func = NapatechDecode;
     tmm_modules[TMM_DECODENAPATECH].ThreadExitPrintStats = NULL;
-    tmm_modules[TMM_DECODENAPATECH].ThreadDeinit = NULL;
+    tmm_modules[TMM_DECODENAPATECH].ThreadDeinit = NapatechDecodeThreadDeinit;
     tmm_modules[TMM_DECODENAPATECH].RegisterTests = NULL;
     tmm_modules[TMM_DECODENAPATECH].cap_flags = 0;
     tmm_modules[TMM_DECODENAPATECH].flags = TM_FLAG_DECODE_TM;
@@ -397,6 +398,13 @@ TmEcode NapatechDecodeThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     *data = (void *)dtv;
 
+    SCReturnInt(TM_ECODE_OK);
+}
+
+TmEcode NapatechDecodeThreadDeinit(ThreadVars *tv, void *data)
+{
+    if (data != NULL)
+        DecodeThreadVarsFree(data);
     SCReturnInt(TM_ECODE_OK);
 }
 
