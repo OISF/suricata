@@ -295,6 +295,7 @@ static DetectTlsData *DetectTlsSubjectParse (char *str)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr;
+    char str1[16];
     char *orig = NULL;
     char *tmp_str;
     uint32_t flag = 0;
@@ -307,12 +308,12 @@ static DetectTlsData *DetectTlsSubjectParse (char *str)
         goto error;
     }
 
-    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    res = pcre_copy_substring((char *)str, ov, MAX_SUBSTRINGS, 1, str1, sizeof(str1));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
-    if (str_ptr[0] == '!')
+    if (str1[0] == '!')
         flag = DETECT_CONTENT_NEGATED;
 
     res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 2, &str_ptr);
@@ -322,13 +323,13 @@ static DetectTlsData *DetectTlsSubjectParse (char *str)
     }
 
     /* We have a correct id option */
-    tls = SCMalloc(sizeof(DetectTlsData));
+    tls = SCCalloc(1, sizeof(DetectTlsData));
     if (unlikely(tls == NULL))
         goto error;
     tls->subject = NULL;
     tls->flags = flag;
 
-    orig = SCStrdup((char*)str_ptr);
+    orig = (char*)str_ptr;
     if (unlikely(orig == NULL)) {
         goto error;
     }
@@ -502,6 +503,7 @@ static DetectTlsData *DetectTlsIssuerDNParse(char *str)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr;
+    char str1[16];
     char *orig = NULL;
     char *tmp_str;
     uint32_t flag = 0;
@@ -514,12 +516,12 @@ static DetectTlsData *DetectTlsIssuerDNParse(char *str)
         goto error;
     }
 
-    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    res = pcre_copy_substring((char *)str, ov, MAX_SUBSTRINGS, 1, str1, sizeof(str1));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
-    if (str_ptr[0] == '!')
+    if (str1[0] == '!')
         flag = DETECT_CONTENT_NEGATED;
 
     res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 2, &str_ptr);
@@ -529,13 +531,13 @@ static DetectTlsData *DetectTlsIssuerDNParse(char *str)
     }
 
     /* We have a correct id option */
-    tls = SCMalloc(sizeof(DetectTlsData));
+    tls = SCCalloc(1, sizeof(DetectTlsData));
     if (unlikely(tls == NULL))
         goto error;
     tls->issuerdn = NULL;
     tls->flags = flag;
 
-    orig = SCStrdup((char*)str_ptr);
+    orig = (char*)str_ptr;
     if (unlikely(orig == NULL)) {
         goto error;
     }
@@ -645,6 +647,7 @@ static DetectTlsData *DetectTlsFingerprintParse (char *str)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr;
+    char str1[16];
     char *orig;
     char *tmp_str;
     uint32_t flag = 0;
@@ -657,12 +660,12 @@ static DetectTlsData *DetectTlsFingerprintParse (char *str)
         goto error;
     }
 
-    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    res = pcre_copy_substring((char *)str, ov, MAX_SUBSTRINGS, 1, str1, sizeof(str1));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
-    if (str_ptr[0] == '!')
+    if (str1[0] == '!')
         flag = DETECT_CONTENT_NEGATED;
 
     res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 2, &str_ptr);
@@ -672,13 +675,13 @@ static DetectTlsData *DetectTlsFingerprintParse (char *str)
     }
 
     /* We have a correct id option */
-    tls = SCMalloc(sizeof(DetectTlsData));
+    tls = SCCalloc(1, sizeof(DetectTlsData));
     if (unlikely(tls == NULL))
         goto error;
     tls->fingerprint = NULL;
     tls->flags = flag;
 
-    orig = SCStrdup((char*)str_ptr);
+    orig = (char*)str_ptr;
     if (unlikely(orig == NULL)) {
         goto error;
     }
