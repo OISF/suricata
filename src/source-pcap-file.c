@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -200,12 +200,7 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
 
         /* make sure we have at least one packet in the packet pool, to prevent
          * us from alloc'ing packets at line rate */
-        do {
-            packet_q_len = PacketPoolSize();
-            if (unlikely(packet_q_len == 0)) {
-                PacketPoolWait();
-            }
-        } while (packet_q_len == 0);
+        PacketPoolWait();
 
         /* Right now we just support reading packets one at a time. */
         r = pcap_dispatch(pcap_g.pcap_handle, (int)packet_q_len,
@@ -345,6 +340,9 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     ptv->tv = tv;
     *data = (void *)ptv;
+
+    PacketPoolInit();
+
     SCReturnInt(TM_ECODE_OK);
 }
 
