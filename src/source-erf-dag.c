@@ -105,6 +105,7 @@ void ReceiveErfDagThreadExitStats(ThreadVars *, void *);
 TmEcode ReceiveErfDagThreadDeinit(ThreadVars *, void *);
 
 TmEcode DecodeErfDagThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodeErfDagThreadDeinit(ThreadVars *tv, void *data);
 TmEcode DecodeErfDag(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 void ReceiveErfDagCloseStream(int dagfd, int stream);
 
@@ -136,7 +137,7 @@ TmModuleDecodeErfDagRegister(void)
     tmm_modules[TMM_DECODEERFDAG].ThreadInit = DecodeErfDagThreadInit;
     tmm_modules[TMM_DECODEERFDAG].Func = DecodeErfDag;
     tmm_modules[TMM_DECODEERFDAG].ThreadExitPrintStats = NULL;
-    tmm_modules[TMM_DECODEERFDAG].ThreadDeinit = NULL;
+    tmm_modules[TMM_DECODEERFDAG].ThreadDeinit = DecodeErfDagThreadDeinit;
     tmm_modules[TMM_DECODEERFDAG].RegisterTests = NULL;
     tmm_modules[TMM_DECODEERFDAG].cap_flags = 0;
     tmm_modules[TMM_DECODEERFDAG].flags = TM_FLAG_DECODE_TM;
@@ -641,6 +642,13 @@ TmEcode DecodeErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     *data = (void *)dtv;
 
+    SCReturnInt(TM_ECODE_OK);
+}
+
+TmEcode DecodeErfDagThreadDeinit(ThreadVars *tv, void *data)
+{
+    if (data != NULL)
+        DecodeThreadVarsFree(data);
     SCReturnInt(TM_ECODE_OK);
 }
 
