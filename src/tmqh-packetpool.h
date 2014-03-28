@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,17 +24,28 @@
 #ifndef __TMQH_PACKETPOOL_H__
 #define __TMQH_PACKETPOOL_H__
 
+#include "decode.h"
+
+typedef struct PktPool_ {
+    /* link listed of free packets local to this thread. */
+    Packet *head;
+  
+    /* Return stack, onto which other threads free packets. */
+    struct {
+        /* linked list of free packets. */
+        Packet *return_head;
+        SCMutex return_mutex;
+    } __attribute__((aligned(CLS)));
+} PktPool;
+
 Packet *TmqhInputPacketpool(ThreadVars *);
 void TmqhOutputPacketpool(ThreadVars *, Packet *);
 void TmqhReleasePacketsToPacketPool(PacketQueue *);
-void TmqhPacketpoolRegister (void);
-void TmqhPacketpoolDestroy (void);
+void TmqhPacketpoolRegister(void);
 Packet *PacketPoolGetPacket(void);
-uint16_t PacketPoolSize(void);
-void PacketPoolStorePacket(Packet *);
 void PacketPoolWait(void);
 void PacketPoolReturnPacket(Packet *p);
-void PacketPoolInit(intmax_t max_pending_packets);
+void PacketPoolInit(void);
 void PacketPoolDestroy(void);
 
 #endif /* __TMQH_PACKETPOOL_H__ */

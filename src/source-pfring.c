@@ -317,12 +317,7 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
 
         /* make sure we have at least one packet in the packet pool, to prevent
          * us from alloc'ing packets at line rate */
-        do {
-            packet_q_len = PacketPoolSize();
-            if (unlikely(packet_q_len == 0)) {
-                PacketPoolWait();
-            }
-        } while (packet_q_len == 0);
+        PacketPoolWait();
 
         p = PacketGetFromQueueOrAlloc();
         if (p == NULL) {
@@ -544,6 +539,9 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     *data = (void *)ptv;
     pfconf->DerefFunc(pfconf);
+
+    PacketPoolInit();
+
     return TM_ECODE_OK;
 }
 
