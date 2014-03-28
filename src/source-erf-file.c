@@ -68,6 +68,7 @@ void ReceiveErfFileThreadExitStats(ThreadVars *, void *);
 TmEcode ReceiveErfFileThreadDeinit(ThreadVars *, void *);
 
 TmEcode DecodeErfFileThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodeErfFileThreadDeinit(ThreadVars *tv, void *data);
 TmEcode DecodeErfFile(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
 /**
@@ -98,7 +99,7 @@ TmModuleDecodeErfFileRegister(void)
     tmm_modules[TMM_DECODEERFFILE].ThreadInit = DecodeErfFileThreadInit;
     tmm_modules[TMM_DECODEERFFILE].Func = DecodeErfFile;
     tmm_modules[TMM_DECODEERFFILE].ThreadExitPrintStats = NULL;
-    tmm_modules[TMM_DECODEERFFILE].ThreadDeinit = NULL;
+    tmm_modules[TMM_DECODEERFFILE].ThreadDeinit = DecodeErfFileThreadDeinit;
     tmm_modules[TMM_DECODEERFFILE].RegisterTests = NULL;
     tmm_modules[TMM_DECODEERFFILE].cap_flags = 0;
     tmm_modules[TMM_DECODEERFFILE].flags = TM_FLAG_DECODE_TM;
@@ -261,6 +262,13 @@ DecodeErfFileThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     *data = (void *)dtv;
 
+    SCReturnInt(TM_ECODE_OK);
+}
+
+TmEcode DecodeErfFileThreadDeinit(ThreadVars *tv, void *data)
+{
+    if (data != NULL)
+        DecodeThreadVarsFree(data);
     SCReturnInt(TM_ECODE_OK);
 }
 
