@@ -246,6 +246,7 @@ TmEcode ReceiveAFPThreadDeinit(ThreadVars *, void *);
 TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot);
 
 TmEcode DecodeAFPThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodeAFPThreadDeinit(ThreadVars *tv, void *data);
 TmEcode DecodeAFP(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
 TmEcode AFPSetBPFFilter(AFPThreadVars *ptv);
@@ -483,7 +484,7 @@ void TmModuleDecodeAFPRegister (void) {
     tmm_modules[TMM_DECODEAFP].ThreadInit = DecodeAFPThreadInit;
     tmm_modules[TMM_DECODEAFP].Func = DecodeAFP;
     tmm_modules[TMM_DECODEAFP].ThreadExitPrintStats = NULL;
-    tmm_modules[TMM_DECODEAFP].ThreadDeinit = NULL;
+    tmm_modules[TMM_DECODEAFP].ThreadDeinit = DecodeAFPThreadDeinit;
     tmm_modules[TMM_DECODEAFP].RegisterTests = NULL;
     tmm_modules[TMM_DECODEAFP].cap_flags = 0;
     tmm_modules[TMM_DECODEAFP].flags = TM_FLAG_DECODE_TM;
@@ -1891,6 +1892,13 @@ TmEcode DecodeAFPThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
 #endif
 
+    SCReturnInt(TM_ECODE_OK);
+}
+
+TmEcode DecodeAFPThreadDeinit(ThreadVars *tv, void *data)
+{
+    if (data != NULL)
+        DecodeThreadVarsFree(data);
     SCReturnInt(TM_ECODE_OK);
 }
 
