@@ -148,6 +148,7 @@ TmEcode VerdictNFQThreadDeinit(ThreadVars *, void *);
 
 TmEcode DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode DecodeNFQThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodeNFQThreadDeinit(ThreadVars *tv, void *data);
 
 TmEcode NFQSetVerdict(Packet *p);
 
@@ -199,7 +200,7 @@ void TmModuleDecodeNFQRegister (void) {
     tmm_modules[TMM_DECODENFQ].ThreadInit = DecodeNFQThreadInit;
     tmm_modules[TMM_DECODENFQ].Func = DecodeNFQ;
     tmm_modules[TMM_DECODENFQ].ThreadExitPrintStats = NULL;
-    tmm_modules[TMM_DECODENFQ].ThreadDeinit = NULL;
+    tmm_modules[TMM_DECODENFQ].ThreadDeinit = DecodeNFQThreadDeinit;
     tmm_modules[TMM_DECODENFQ].RegisterTests = NULL;
     tmm_modules[TMM_DECODENFQ].flags = TM_FLAG_DECODE_TM;
 }
@@ -1246,6 +1247,13 @@ TmEcode DecodeNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
     *data = (void *)dtv;
 
     return TM_ECODE_OK;
+}
+
+TmEcode DecodeNFQThreadDeinit(ThreadVars *tv, void *data)
+{
+    if (data != NULL)
+        DecodeThreadVarsFree(data);
+    SCReturnInt(TM_ECODE_OK);
 }
 
 #endif /* NFQ */
