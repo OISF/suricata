@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -717,6 +717,9 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
 #undef T_DATA_SIZE
 
     *data = (void *)ntv;
+
+    PacketPoolInit();
+
     SCMutexUnlock(&nfq_init_lock);
     return TM_ECODE_OK;
 }
