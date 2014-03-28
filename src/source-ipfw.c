@@ -139,6 +139,7 @@ void VerdictIPFWThreadExitStats(ThreadVars *, void *);
 TmEcode VerdictIPFWThreadDeinit(ThreadVars *, void *);
 
 TmEcode DecodeIPFWThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodeIPFWThreadDeinit(ThreadVars *tv, void *data);
 TmEcode DecodeIPFW(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
 /**
@@ -185,7 +186,7 @@ void TmModuleDecodeIPFWRegister (void) {
     tmm_modules[TMM_DECODEIPFW].ThreadInit = DecodeIPFWThreadInit;
     tmm_modules[TMM_DECODEIPFW].Func = DecodeIPFW;
     tmm_modules[TMM_DECODEIPFW].ThreadExitPrintStats = NULL;
-    tmm_modules[TMM_DECODEIPFW].ThreadDeinit = NULL;
+    tmm_modules[TMM_DECODEIPFW].ThreadDeinit = DecodeIPFWThreadDeinit;
     tmm_modules[TMM_DECODEIPFW].RegisterTests = NULL;
     tmm_modules[TMM_DECODEIPFW].flags = TM_FLAG_DECODE_TM;
 }
@@ -495,6 +496,13 @@ TmEcode DecodeIPFWThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     *data = (void *)dtv;
 
+    SCReturnInt(TM_ECODE_OK);
+}
+
+TmEcode DecodeIPFWThreadDeinit(ThreadVars *tv, void *data)
+{
+    if (data != NULL)
+        DecodeThreadVarsFree(data);
     SCReturnInt(TM_ECODE_OK);
 }
 
