@@ -113,6 +113,7 @@ TmEcode ReceivePcapThreadDeinit(ThreadVars *, void *);
 TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot);
 
 TmEcode DecodePcapThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodePcapThreadDeinit(ThreadVars *tv, void *data);
 TmEcode DecodePcap(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
 /** protect pcap_compile and pcap_setfilter, as they are not thread safe:
@@ -144,7 +145,7 @@ void TmModuleDecodePcapRegister (void) {
     tmm_modules[TMM_DECODEPCAP].ThreadInit = DecodePcapThreadInit;
     tmm_modules[TMM_DECODEPCAP].Func = DecodePcap;
     tmm_modules[TMM_DECODEPCAP].ThreadExitPrintStats = NULL;
-    tmm_modules[TMM_DECODEPCAP].ThreadDeinit = NULL;
+    tmm_modules[TMM_DECODEPCAP].ThreadDeinit = DecodePcapThreadDeinit;
     tmm_modules[TMM_DECODEPCAP].RegisterTests = NULL;
     tmm_modules[TMM_DECODEPCAP].cap_flags = 0;
     tmm_modules[TMM_DECODEPCAP].flags = TM_FLAG_DECODE_TM;
@@ -771,6 +772,13 @@ TmEcode DecodePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     *data = (void *)dtv;
 
+    SCReturnInt(TM_ECODE_OK);
+}
+
+TmEcode DecodePcapThreadDeinit(ThreadVars *tv, void *data)
+{
+    if (data != NULL)
+        DecodeThreadVarsFree(data);
     SCReturnInt(TM_ECODE_OK);
 }
 
