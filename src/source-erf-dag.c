@@ -1,4 +1,4 @@
-/* Copyright (C) 2010 Open Information Security Foundation
+/* Copyright (C) 2010-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -72,7 +72,6 @@ TmEcode NoErfDagSupportExit(ThreadVars *tv, void *initdata, void **data)
 #include "source-erf-dag.h"
 #include <dagapi.h>
 
-extern int max_pending_packets;
 extern uint8_t suricata_ctl_flags;
 
 typedef struct ErfDagThreadVars_ {
@@ -293,6 +292,8 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
     SCLogInfo("Starting processing packets from stream: %d on DAG: %s",
               ewtn->dagstream, ewtn->dagname);
 
+    PacketPoolInit();
+    
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -394,12 +395,7 @@ static inline TmEcode ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top,
 
         /* Make sure we have at least one packet in the packet pool,
          * to prevent us from alloc'ing packets at line rate. */
-        do {
-            packet_q_len = PacketPoolSize();
-            if (unlikely(packet_q_len == 0)) {
-                PacketPoolWait();
-            }
-        } while (packet_q_len == 0);
+        PacketPoolWait();
 
         prec = (char *)ewtn->btm;
         dr = (dag_record_t*)prec;
