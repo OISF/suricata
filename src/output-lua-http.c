@@ -277,6 +277,60 @@ static int HttpGetResponseHeaders(lua_State *luastate)
     return HttpGetHeaders(luastate, 1);
 }
 
+static int HttpGetBody(lua_State *luastate, int dir)
+{
+    HtpBody *body = NULL;
+
+    if (!(LuaStateNeedProto(luastate, ALPROTO_HTTP)))
+        return LuaCallbackError(luastate, "error: protocol not http");
+
+    htp_tx_t *tx = LuaStateGetTX(luastate);
+    if (tx == NULL)
+        return LuaCallbackError(luastate, "internal error: no tx");
+
+    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    if (htud == NULL)
+        return LuaCallbackError(luastate, "no htud in tx");
+
+    if (dir == 0)
+        body = &htud->request_body;
+    else
+        body = &htud->response_body;
+
+    if (body->first == NULL)
+        return LuaCallbackError(luastate, "no body");
+
+    int index = 1;
+    HtpBodyChunk *chunk = body->first;
+    lua_newtable(luastate);
+    while (chunk != NULL) {
+        lua_pushinteger(luastate, index);
+        LuaReturnStringBuffer(luastate, chunk->data, chunk->len);
+        lua_settable(luastate, -3);
+
+        chunk = chunk->next;
+        index++;
+    }
+
+    if (body->first && body->last) {
+        lua_pushinteger(luastate, body->first->stream_offset);
+        lua_pushinteger(luastate, body->last->stream_offset + body->last->len);
+        return 3;
+    } else {
+        return 1;
+    }
+}
+
+static int HttpGetRequestBody(lua_State *luastate)
+{
+    return HttpGetBody(luastate, 0);
+}
+
+static int HttpGetResponseBody(lua_State *luastate)
+{
+    return HttpGetBody(luastate, 1);
+}
+
 /** \brief register http lua extensions in a luastate */
 int LogLuaRegisterHttpFunctions(lua_State *luastate)
 {
@@ -303,6 +357,11 @@ int LogLuaRegisterHttpFunctions(lua_State *luastate)
     lua_setglobal(luastate, "HttpGetResponseHeaders");
     lua_pushcfunction(luastate, HttpGetRequestHost);
     lua_setglobal(luastate, "HttpGetRequestHost");
+
+    lua_pushcfunction(luastate, HttpGetRequestBody);
+    lua_setglobal(luastate, "HttpGetRequestBody");
+    lua_pushcfunction(luastate, HttpGetResponseBody);
+    lua_setglobal(luastate, "HttpGetResponseBody");
     return 0;
 }
 
