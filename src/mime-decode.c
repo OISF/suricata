@@ -79,6 +79,7 @@
 /* Globally hold configuration data */
 static MimeDecConfig mime_dec_config = { 1, 1, 1, MAX_HEADER_VALUE };
 
+#ifdef DEBUG
 /* Mime Parser String translation */
 static const char *StateFlags[] = { "NONE",
         "HEADER_READY",
@@ -90,6 +91,7 @@ static const char *StateFlags[] = { "NONE",
         "PARSE_DONE",
         "PARSE_ERROR",
         NULL };
+#endif
 
 /* URL executable file extensions */
 static const char *UrlExeExts[] = { ".exe",
@@ -1019,10 +1021,14 @@ static int FindUrlStrings(const char *line, uint32_t len,
                 } else {
                     /* Not an EXE URL */
                     /* Cut off length at first '/' */
+                    /* If seems that BAESystems had done the following
+                       in support of PEScan.  We don't want it for logging.
+                       Therefore its been removed.
                     tok = FindString(tempUrl, tempUrlLen, "/");
                     if (tok != NULL) {
                         tempUrlLen = tok - tempUrl;
                     }
+                    */
                 }
 
                 /* Make sure remaining URL exists */

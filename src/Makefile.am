@@ -222,10 +222,12 @@ output-flow.c output-flow.h \
 output-json-alert.c output-json-alert.h \
 output-json-dns.c output-json-dns.h \
 output-json-drop.c output-json-drop.h \
+output-json-email-common.c output-json-email-common.h \
 output-json-file.c output-json-file.h \
 output-json-flow.c output-json-flow.h \
 output-json-netflow.c output-json-netflow.h \
 output-json-http.c output-json-http.h \
+output-json-smtp.c output-json-smtp.h \
 output-json-ssh.c output-json-ssh.h \
 output-json-tls.c output-json-tls.h \
 output-lua.c output-lua.h \

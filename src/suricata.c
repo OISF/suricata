@@ -93,6 +93,7 @@
 #include "log-pcap.h"
 #include "log-file.h"
 #include "output-json-file.h"
+#include "output-json-smtp.h"
 #include "log-filestore.h"
 #include "log-tcp-data.h"
 
@@ -870,6 +871,8 @@ void RegisterAllModules()
     TmModuleJsonDropLogRegister();
     /* json log */
     TmModuleOutputJsonRegister();
+    /* email logs */
+    TmModuleJsonSmtpLogRegister();
     /* http log */
     TmModuleLogHttpLogRegister();
     TmModuleJsonHttpLogRegister();
