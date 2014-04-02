@@ -34,6 +34,7 @@
 #include "util-debug.h"
 
 /* Header Flags */
+#define HDR_IS_LOGGED         1
 
 /* Content Flags */
 #define CTNT_IS_MSG           1
