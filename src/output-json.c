@@ -163,7 +163,7 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
     srcip[0] = '\0';
     dstip[0] = '\0';
     if (direction_sensitive) {
-        if ((PKT_IS_TOCLIENT(p))) {
+        if ((PKT_IS_TOSERVER(p))) {
             if (PKT_IS_IPV4(p)) {
                 PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
                 PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
