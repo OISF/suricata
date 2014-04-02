@@ -119,6 +119,33 @@ void LogLuaPushTableKeyValueArray(lua_State *luastate, const char *key, const ui
 }
 
 /** \internal
+ *  \brief fill lua stack with payload
+ *  \param luastate the lua state
+ *  \param p packet
+ *  \retval cnt number of data items placed on the stack
+ *
+ *  Places: payload (string)
+ */
+static int LuaCallbackPacketPayloadPushToStackFromPacket(lua_State *luastate, const Packet *p)
+{
+    lua_pushlstring (luastate, (const char *)p->payload, p->payload_len);
+    return 1;
+}
+
+/** \internal
+ *  \brief Wrapper for getting payload into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackPacketPayload(lua_State *luastate)
+{
+    const Packet *p = LuaStateGetPacket(luastate);
+    if (p == NULL)
+        return LuaCallbackError(luastate, "internal error: no packet");
+
+    return LuaCallbackPacketPayloadPushToStackFromPacket(luastate, p);
+}
+
+/** \internal
  *  \brief fill lua stack with header info
  *  \param luastate the lua state
  *  \param p packet
@@ -619,6 +646,8 @@ static int LuaCallbackThreadInfo(lua_State *luastate)
 int LogLuaRegisterFunctions(lua_State *luastate)
 {
     /* registration of the callbacks */
+    lua_pushcfunction(luastate, LuaCallbackPacketPayload);
+    lua_setglobal(luastate, "SCPacketPayload");
     lua_pushcfunction(luastate, LuaCallbackPacketTimeString);
     lua_setglobal(luastate, "SCPacketTimeString");
     lua_pushcfunction(luastate, LuaCallbackTuple);
