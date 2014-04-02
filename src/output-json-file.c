@@ -187,11 +187,16 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
         return;
     }
 
-    json_object_set_new(hjs, "url", LogFileMetaGetUri(p, ff));
-    json_object_set_new(hjs, "hostname", LogFileMetaGetHost(p, ff));
-    json_object_set_new(hjs, "http_refer", LogFileMetaGetReferer(p, ff));
-    json_object_set_new(hjs, "http_user_agent", LogFileMetaGetUserAgent(p, ff));
-    json_object_set_new(js, "http", hjs);
+    switch (p->flow->alproto) {
+        case ALPROTO_HTTP:
+            json_object_set_new(hjs, "url", LogFileMetaGetUri(p, ff));
+            json_object_set_new(hjs, "hostname", LogFileMetaGetHost(p, ff));
+            json_object_set_new(hjs, "http_refer", LogFileMetaGetReferer(p, ff));
+            json_object_set_new(hjs, "http_user_agent", LogFileMetaGetUserAgent(p, ff));
+            json_object_set_new(js, "http", hjs);
+            break;
+    }
+
 
     json_t *fjs = json_object();
     if (unlikely(fjs == NULL)) {

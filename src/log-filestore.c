@@ -141,7 +141,7 @@ static void LogFilestoreMetaGetUserAgent(FILE *fp, const Packet *p, const File *
     fprintf(fp, "<unknown>");
 }
 
-static void LogFilestoreMetaGetSmtp(FILE *fp, Packet *p, File *ff) {
+static void LogFilestoreMetaGetSmtp(FILE *fp, const Packet *p, const File *ff) {
 
     SMTPState *state = (SMTPState *) p->flow->alstate;
     if (state != NULL && state->msg_tail != NULL) {
