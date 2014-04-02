@@ -237,6 +237,7 @@ runmode-erf-file.c runmode-erf-file.h \
 runmode-ipfw.c runmode-ipfw.h \
 runmode-napatech.c runmode-napatech.h \
 runmode-nfq.c runmode-nfq.h \
+runmode-nflog.c runmode-nflog.h \
 runmode-pcap.c runmode-pcap.h \
 runmode-pcap-file.c runmode-pcap-file.h \
 runmode-pfring.c runmode-pfring.h \
@@ -251,6 +252,7 @@ source-ipfw.c source-ipfw.h \
 source-mpipe.c source-mpipe.h \
 source-napatech.c source-napatech.h \
 source-nfq.c source-nfq.h \
+source-nflog.c source-nflog.h \
 source-pcap.c source-pcap.h \
 source-pcap-file.c source-pcap-file.h \
 source-pfring.c source-pfring.h \

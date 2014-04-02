@@ -135,6 +135,11 @@ LiveDevice *LiveGetDevice(char *name) {
 
 int LiveBuildDeviceList(char * runmode)
 {
+    return LiveBuildDeviceListCustom(runmode, "interface");
+}
+
+int LiveBuildDeviceListCustom(char * runmode, char * itemname)
+{
     ConfNode *base = ConfGetNode(runmode);
     ConfNode *child;
     int i = 0;
@@ -143,14 +148,14 @@ int LiveBuildDeviceList(char * runmode)
         return 0;
 
     TAILQ_FOREACH(child, &base->head, next) {
-        if (!strcmp(child->val, "interface")) {
+        if (!strcmp(child->val, itemname)) {
             ConfNode *subchild;
             TAILQ_FOREACH(subchild, &child->head, next) {
-                if ((!strcmp(subchild->name, "interface"))) {
+                if ((!strcmp(subchild->name, itemname))) {
                     if (!strcmp(subchild->val, "default"))
                         break;
-                    SCLogInfo("Adding interface %s from config file",
-                              subchild->val);
+                    SCLogInfo("Adding %s %s from config file",
+                              itemname, subchild->val);
                     LiveRegisterDevice(subchild->val);
                     i++;
                 }
