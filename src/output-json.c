@@ -217,6 +217,15 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
     if (event_type) {
         json_object_set_new(js, "event_type", json_string(event_type));
     }
+    
+    /* packet
+#define BUFFER_SIZE 2048
+    char packet[BUFFER_SIZE];
+    uint32_t offset = 0;
+    PrintStringsToBuffer((uint8_t *)packet, &offset, BUFFER_SIZE,
+                         GET_PKT_DATA(p), GET_PKT_LEN(p));
+    json_object_set_new(js, "packet", json_string(packet));
+	*/
 
     /* vlan */
     if (p->vlan_idx > 0) {
