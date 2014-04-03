@@ -215,6 +215,19 @@ void PrintRawDataToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32
     return;
 }
 
+void PrintStringsToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32_t dst_buf_size,
+                          uint8_t *src_buf, uint32_t src_buf_len)
+{
+    uint32_t ch = 0;
+    for (ch = 0; ch < src_buf_len; ch++) {
+        PrintBufferData((char *)dst_buf, dst_buf_offset_ptr, dst_buf_size,
+                        "%c",
+                        isprint((uint8_t)src_buf[ch]) || src_buf[ch] == '\n' || src_buf[ch] == '\r' ? (uint8_t)src_buf[ch] : '.');
+    }
+
+    return;
+}
+
 #ifndef s6_addr16
 # define s6_addr16 __u6_addr.__u6_addr16
 #endif
