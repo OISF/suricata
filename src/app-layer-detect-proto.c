@@ -85,9 +85,7 @@ typedef struct AppLayerProtoDetectProbingParserPort_ {
     /* the port no for which probing parser(s) are invoked */
     uint16_t port;
 
-    /* mask per direction of inspection */
-    uint32_t toserver_alproto_mask;
-    uint32_t toclient_alproto_mask;
+    uint32_t alproto_mask;
 
     /* the max depth for all the probing parsers registered for this port */
     uint16_t dp_max_depth;
@@ -422,11 +420,11 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
 
     /* get the mask we need for this direction */
     if (pp_port_dp && pp_port_sp)
-        mask = pp_port_dp->toserver_alproto_mask|pp_port_sp->toclient_alproto_mask;
+        mask = pp_port_dp->alproto_mask|pp_port_sp->alproto_mask;
     else if (pp_port_dp)
-        mask = pp_port_dp->toserver_alproto_mask;
+        mask = pp_port_dp->alproto_mask;
     else if (pp_port_sp)
-        mask = pp_port_sp->toclient_alproto_mask;
+        mask = pp_port_sp->alproto_mask;
     else
         mask = 0;
 
@@ -657,7 +655,7 @@ void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingParser *pp
                 printf("        Destination port: (max-depth: %"PRIu16 ", "
                         "mask - %"PRIu32")\n",
                         pp_port->dp_max_depth,
-                        pp_port->toserver_alproto_mask);
+                        pp_port->alproto_mask);
                 pp_pe = pp_port->dp;
                 for ( ; pp_pe != NULL; pp_pe = pp_pe->next) {
 
@@ -706,7 +704,7 @@ void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingParser *pp
             printf("        Source port: (max-depth: %"PRIu16 ", "
                    "mask - %"PRIu32")\n",
                    pp_port->sp_max_depth,
-                   pp_port->toclient_alproto_mask);
+                   pp_port->alproto_mask);
             pp_pe = pp_port->sp;
             for ( ; pp_pe != NULL; pp_pe = pp_pe->next) {
 
@@ -901,7 +899,7 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
                 AppLayerProtoDetectProbingParserElement *dup_pe =
                     AppLayerProtoDetectProbingParserElementDuplicate(zero_pe);
                 AppLayerProtoDetectProbingParserElementAppend(&curr_port->dp, dup_pe);
-                curr_port->toserver_alproto_mask |= dup_pe->alproto_mask;
+                curr_port->alproto_mask |= dup_pe->alproto_mask;
             }
 
             zero_pe = zero_port->sp;
@@ -918,7 +916,7 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
                 AppLayerProtoDetectProbingParserElement *dup_pe =
                     AppLayerProtoDetectProbingParserElementDuplicate(zero_pe);
                 AppLayerProtoDetectProbingParserElementAppend(&curr_port->sp, dup_pe);
-                curr_port->toclient_alproto_mask |= dup_pe->alproto_mask;
+                curr_port->alproto_mask |= dup_pe->alproto_mask;
             }
         } /* if (zero_port != NULL) */
     } /* if (curr_port == NULL) */
@@ -961,7 +959,7 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
             curr_port->dp_max_depth < new_pe->max_depth) {
             curr_port->dp_max_depth = new_pe->max_depth;
         }
-        curr_port->toserver_alproto_mask |= new_pe->alproto_mask;
+        curr_port->alproto_mask |= new_pe->alproto_mask;
         head_pe = &curr_port->dp;
     } else {
         if (curr_port->sp == NULL)
@@ -972,7 +970,7 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
             curr_port->sp_max_depth < new_pe->max_depth) {
             curr_port->sp_max_depth = new_pe->max_depth;
         }
-        curr_port->toclient_alproto_mask |= new_pe->alproto_mask;
+        curr_port->alproto_mask |= new_pe->alproto_mask;
         head_pe = &curr_port->sp;
     }
     AppLayerProtoDetectProbingParserElementAppend(head_pe, new_pe);
@@ -991,7 +989,7 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
                 }
                 AppLayerProtoDetectProbingParserElementAppend(&temp_port->dp,
                                                               AppLayerProtoDetectProbingParserElementDuplicate(curr_pe));
-                temp_port->toserver_alproto_mask |= curr_pe->alproto_mask;
+                temp_port->alproto_mask |= curr_pe->alproto_mask;
             } else {
                 if (temp_port->sp == NULL)
                     temp_port->sp_max_depth = curr_pe->max_depth;
@@ -1003,7 +1001,7 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
                 }
                 AppLayerProtoDetectProbingParserElementAppend(&temp_port->sp,
                                                               AppLayerProtoDetectProbingParserElementDuplicate(curr_pe));
-                temp_port->toclient_alproto_mask |= curr_pe->alproto_mask;
+                temp_port->alproto_mask |= curr_pe->alproto_mask;
             }
             temp_port = temp_port->next;
         } /* while */
@@ -2819,8 +2817,7 @@ typedef struct AppLayerProtoDetectPPTestDataElement_ {
 
 typedef struct AppLayerProtoDetectPPTestDataPort_ {
     uint16_t port;
-    uint32_t toserver_alproto_mask;
-    uint32_t toclient_alproto_mask;
+    uint32_t alproto_mask;
     uint16_t dp_max_depth;
     uint16_t sp_max_depth;
 
@@ -2855,9 +2852,9 @@ static int AppLayerProtoDetectPPTestData(AppLayerProtoDetectProbingParser *pp,
         for (k = 0; k < ip_proto[i].no_of_port; k++, pp_port = pp_port->next) {
             if (pp_port->port != ip_proto[i].port[k].port)
                 goto end;
-            if (pp_port->toserver_alproto_mask != ip_proto[i].port[k].toserver_alproto_mask)
+            if (pp_port->alproto_mask != ip_proto[i].port[k].alproto_mask)
                 goto end;
-            if (pp_port->toclient_alproto_mask != ip_proto[i].port[k].toclient_alproto_mask)
+            if (pp_port->alproto_mask != ip_proto[i].port[k].alproto_mask)
                 goto end;
             if (pp_port->dp_max_depth != ip_proto[i].port[k].dp_max_depth)
                 goto end;
@@ -3175,7 +3172,7 @@ static int AppLayerProtoDetectTest15(void)
            (1 << ALPROTO_SMTP) | (1 << ALPROTO_TLS) | (1 << ALPROTO_IRC) | (1 << ALPROTO_JABBER)),
           ((1 << ALPROTO_HTTP) | (1 << ALPROTO_SMB) | (1 << ALPROTO_FTP) |
            (1 << ALPROTO_JABBER) | (1 << ALPROTO_IRC) | (1 << ALPROTO_TLS) | (1 << ALPROTO_SMTP)),
-          0, 23,
+          23,
           element_ts_80, element_tc_80,
           sizeof(element_ts_80) / sizeof(AppLayerProtoDetectPPTestDataElement),
           sizeof(element_tc_80) / sizeof(AppLayerProtoDetectPPTestDataElement),
@@ -3185,7 +3182,7 @@ static int AppLayerProtoDetectTest15(void)
            (1 << ALPROTO_SMTP) | (1 << ALPROTO_TLS) | (1 << ALPROTO_IRC) | (1 << ALPROTO_JABBER)),
           ((1 << ALPROTO_FTP) | (1 << ALPROTO_DCERPC) |
            (1 << ALPROTO_JABBER) | (1 << ALPROTO_IRC) | (1 << ALPROTO_TLS) | (1 << ALPROTO_SMTP)),
-          0, 23,
+          23,
           element_ts_81, element_tc_81,
           sizeof(element_ts_81) / sizeof(AppLayerProtoDetectPPTestDataElement),
           sizeof(element_tc_81) / sizeof(AppLayerProtoDetectPPTestDataElement),
@@ -3195,7 +3192,7 @@ static int AppLayerProtoDetectTest15(void)
            (1 << ALPROTO_SMTP) | (1 << ALPROTO_TLS) | (1 << ALPROTO_IRC) | (1 << ALPROTO_JABBER)),
           ((1 << ALPROTO_DCERPC) |
            (1 << ALPROTO_JABBER) | (1 << ALPROTO_IRC) | (1 << ALPROTO_TLS) | (1 << ALPROTO_SMTP)),
-          0, 23,
+          23,
           element_ts_85, element_tc_85,
           sizeof(element_ts_85) / sizeof(AppLayerProtoDetectPPTestDataElement),
           sizeof(element_tc_85) / sizeof(AppLayerProtoDetectPPTestDataElement)
@@ -3204,7 +3201,7 @@ static int AppLayerProtoDetectTest15(void)
           ((1 << ALPROTO_SMTP) | (1 << ALPROTO_TLS) | (1 << ALPROTO_IRC) | (1 << ALPROTO_JABBER)),
           ((1 << ALPROTO_FTP) |
            (1 << ALPROTO_JABBER) | (1 << ALPROTO_IRC) | (1 << ALPROTO_TLS) | (1 << ALPROTO_SMTP)),
-          0, 23,
+          23,
           element_ts_90, element_tc_90,
           sizeof(element_ts_90) / sizeof(AppLayerProtoDetectPPTestDataElement),
           sizeof(element_tc_90) / sizeof(AppLayerProtoDetectPPTestDataElement)
@@ -3212,7 +3209,7 @@ static int AppLayerProtoDetectTest15(void)
         { 0,
           ((1 << ALPROTO_SMTP) | (1 << ALPROTO_TLS) | (1 << ALPROTO_IRC) | (1 << ALPROTO_JABBER)),
           ((1 << ALPROTO_JABBER) | (1 << ALPROTO_IRC) | (1 << ALPROTO_TLS) | (1 << ALPROTO_SMTP)),
-          0, 23,
+          23,
           element_ts_0, element_tc_0,
           sizeof(element_ts_0) / sizeof(AppLayerProtoDetectPPTestDataElement),
           sizeof(element_tc_0) / sizeof(AppLayerProtoDetectPPTestDataElement)
@@ -3223,7 +3220,7 @@ static int AppLayerProtoDetectTest15(void)
         { 85,
             (1 << ALPROTO_IMAP),
             (1 << ALPROTO_IMAP),
-            23, 23,
+            23,
             element_ts_85_udp, element_tc_85_udp,
             sizeof(element_ts_85_udp) / sizeof(AppLayerProtoDetectPPTestDataElement),
             sizeof(element_tc_85_udp) / sizeof(AppLayerProtoDetectPPTestDataElement),
