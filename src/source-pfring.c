@@ -627,7 +627,17 @@ TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pac
         SCPerfCounterIncr(dtv->counter_vlan, tv->sc_perf_pca);
     }
 
-    DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+    switch(p->datalink) {
+        case LINKTYPE_ETHERNET:
+            DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            break;
+        case LINKTYPE_PPP:
+            DecodePPP(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            break;
+        default:
+            SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED, "Error: datalink type %" PRId32 " not yet supported in module DecodePfring", p->datalink);
+            break;
+    }
 
     PacketDecodeFinalize(tv, dtv, p);
 
