@@ -434,6 +434,7 @@ static TmModule *pkt_logger_module = NULL;
 static TmModule *tx_logger_module = NULL;
 static TmModule *file_logger_module = NULL;
 static TmModule *filedata_logger_module = NULL;
+static TmModule *streaming_logger_module = NULL;
 
 /**
  * Cleanup the run mode.
@@ -584,6 +585,27 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
             runmode_output->output_ctx = NULL;
             TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
             SCLogDebug("__filedata_logger__ added");
+        }
+    } else if (module->StreamingLogFunc) {
+        SCLogDebug("%s is a streaming logger", module->name);
+        OutputRegisterStreamingLogger(module->name, module->StreamingLogFunc, output_ctx);
+
+        /* need one instance of the streaming logger module */
+        if (streaming_logger_module == NULL) {
+            streaming_logger_module = TmModuleGetByName("__streaming_logger__");
+            if (streaming_logger_module == NULL) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "TmModuleGetByName for __streaming_logger__ failed");
+                exit(EXIT_FAILURE);
+            }
+
+            RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
+            if (unlikely(runmode_output == NULL))
+                return;
+            runmode_output->tm_module = streaming_logger_module;
+            runmode_output->output_ctx = NULL;
+            TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
+            SCLogDebug("__streaming_logger__ added");
         }
     } else {
         SCLogDebug("%s is a regular logger", module->name);
