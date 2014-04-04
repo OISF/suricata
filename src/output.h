@@ -34,6 +34,7 @@
 #include "output-tx.h"
 #include "output-file.h"
 #include "output-filedata.h"
+#include "output-streaming.h"
 
 typedef struct OutputModule_ {
     const char *name;
@@ -47,6 +48,7 @@ typedef struct OutputModule_ {
     TxLogger TxLogFunc;
     FileLogger FileLogFunc;
     FiledataLogger FiledataLogFunc;
+    StreamingLogger StreamingLogFunc;
     AppProto alproto;
 
     TAILQ_ENTRY(OutputModule_) entries;
@@ -79,6 +81,12 @@ void OutputRegisterFiledataModule(const char *name, const char *conf_name,
 void OutputRegisterFiledataSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
     FiledataLogger FiledataLogFunc);
+
+void OutputRegisterStreamingModule(const char *name, const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *), StreamingLogger StreamingLogFunc);
+void OutputRegisterStreamingSubModule(const char *parent_name, const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
+    StreamingLogger StreamingLogFunc);
 
 OutputModule *OutputGetModuleByConfName(const char *name);
 void OutputDeregisterAll(void);

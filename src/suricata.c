@@ -166,6 +166,7 @@
 #include "output-tx.h"
 #include "output-file.h"
 #include "output-filedata.h"
+#include "output-streaming.h"
 
 #include "util-privs.h"
 
@@ -876,6 +877,7 @@ void RegisterAllModules()
     TmModuleTxLoggerRegister();
     TmModuleFileLoggerRegister();
     TmModuleFiledataLoggerRegister();
+    TmModuleStreamingLoggerRegister();
     TmModuleDebugList();
     /* nflog */
     TmModuleReceiveNFLOGRegister();
