@@ -425,6 +425,76 @@ error:
 }
 
 /**
+ * \brief Register a streaming data output module.
+ *
+ * This function will register an output module so it can be
+ * configured with the configuration file.
+ *
+ * \retval Returns 0 on success, -1 on failure.
+ */
+void
+OutputRegisterStreamingModule(const char *name, const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *), StreamingLogger StreamingLogFunc)
+{
+    if (unlikely(StreamingLogFunc == NULL)) {
+        goto error;
+    }
+
+    OutputModule *module = SCCalloc(1, sizeof(*module));
+    if (unlikely(module == NULL)) {
+        goto error;
+    }
+
+    module->name = name;
+    module->conf_name = conf_name;
+    module->InitFunc = InitFunc;
+    module->StreamingLogFunc = StreamingLogFunc;
+    TAILQ_INSERT_TAIL(&output_modules, module, entries);
+
+    SCLogDebug("Streaming logger \"%s\" registered.", name);
+    return;
+error:
+    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    exit(EXIT_FAILURE);
+}
+
+/**
+ * \brief Register a streaming data output sub-module.
+ *
+ * This function will register an output module so it can be
+ * configured with the configuration file.
+ *
+ * \retval Returns 0 on success, -1 on failure.
+ */
+void
+OutputRegisterStreamingSubModule(const char *parent_name, const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
+    StreamingLogger StreamingLogFunc)
+{
+    if (unlikely(StreamingLogFunc == NULL)) {
+        goto error;
+    }
+
+    OutputModule *module = SCCalloc(1, sizeof(*module));
+    if (unlikely(module == NULL)) {
+        goto error;
+    }
+
+    module->name = name;
+    module->conf_name = conf_name;
+    module->parent_name = parent_name;
+    module->InitSubFunc = InitFunc;
+    module->StreamingLogFunc = StreamingLogFunc;
+    TAILQ_INSERT_TAIL(&output_modules, module, entries);
+
+    SCLogDebug("Streaming logger \"%s\" registered.", name);
+    return;
+error:
+    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    exit(EXIT_FAILURE);
+}
+
+/**
  * \brief Get an output module by name.
  *
  * \retval The OutputModule with the given name or NULL if no output module

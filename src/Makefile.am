@@ -226,6 +226,7 @@ output-json-http.c output-json-http.h \
 output-json-ssh.c output-json-ssh.h \
 output-json-tls.c output-json-tls.h \
 output-packet.c output-packet.h \
+output-streaming.c output-streaming.h \
 output-tx.c output-tx.h \
 output-json.c output-json.h \
 packet-queue.c packet-queue.h \
