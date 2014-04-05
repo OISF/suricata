@@ -229,6 +229,7 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_LOGTLSLOG);
         CASE_CODE (TMM_LOGTLSLOG4);
         CASE_CODE (TMM_LOGTLSLOG6);
+        CASE_CODE (TMM_LOGTCPDATALOG);
         CASE_CODE (TMM_PCAPLOG);
         CASE_CODE (TMM_FILELOG);
         CASE_CODE (TMM_FILESTORE);
