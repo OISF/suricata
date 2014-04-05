@@ -93,6 +93,7 @@
 #include "log-file.h"
 #include "output-json-file.h"
 #include "log-filestore.h"
+#include "log-tcp-data.h"
 
 #include "output-json.h"
 
@@ -869,6 +870,8 @@ void RegisterAllModules()
     /* dns log */
     TmModuleLogDnsLogRegister();
     TmModuleJsonDnsLogRegister();
+    /* tcp streaming data */
+    TmModuleLogTcpDataLogRegister();
 
     TmModuleJsonAlertLogRegister();
 
