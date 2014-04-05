@@ -181,6 +181,9 @@ enum
 #define SEGMENTTCP_FLAG_RAW_PROCESSED       0x01
 /** App Layer reassembly code is done with this segment */
 #define SEGMENTTCP_FLAG_APPLAYER_PROCESSED  0x02
+/** Log API (streaming) has processed this segment */
+#define SEGMENTTCP_FLAG_LOGAPI_PROCESSED    0x04
+
 
 #define PAWS_24DAYS         2073600         /**< 24 days in seconds */
 
