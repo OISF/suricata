@@ -211,6 +211,7 @@ log-file.c log-file.h \
 log-filestore.c log-filestore.h \
 log-httplog.c log-httplog.h \
 log-pcap.c log-pcap.h \
+log-tcp-data.c log-tcp-data.h \
 log-tlslog.c log-tlslog.h \
 output.c output.h \
 output-file.c output-file.h \
