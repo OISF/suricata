@@ -40,4 +40,6 @@ int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc,
 
 void TmModuleTxLoggerRegister (void);
 
+void OutputTxShutdown(void);
+
 #endif /* __OUTPUT_PACKET_H__ */

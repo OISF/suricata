@@ -277,3 +277,13 @@ void TmModuleFileLoggerRegister (void) {
     tmm_modules[TMM_FILELOGGER].ThreadDeinit = OutputFileLogThreadDeinit;
     tmm_modules[TMM_FILELOGGER].cap_flags = 0;
 }
+
+void OutputFileShutdown(void)
+{
+    OutputFileLogger *logger = list;
+    while (logger) {
+        if (logger->output_ctx != NULL && logger->output_ctx->DeInit != NULL)
+            logger->output_ctx->DeInit(logger->output_ctx);
+        logger = logger->next;
+    }
+}

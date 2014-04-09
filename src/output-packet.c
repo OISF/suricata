@@ -217,3 +217,16 @@ void TmModulePacketLoggerRegister (void) {
     tmm_modules[TMM_PACKETLOGGER].ThreadDeinit = OutputPacketLogThreadDeinit;
     tmm_modules[TMM_PACKETLOGGER].cap_flags = 0;
 }
+
+void OutputPacketShutdown(void)
+{
+    OutputPacketLogger *logger = list;
+    while (logger) {
+        if (logger->output_ctx != NULL && logger->output_ctx->DeInit != NULL)
+            logger->output_ctx->DeInit(logger->output_ctx);
+        logger = logger->next;
+    }
+
+    /* FIXME */
+    list = NULL;
+}
