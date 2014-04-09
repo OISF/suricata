@@ -60,6 +60,9 @@ SCEnumCharMap tls_decoder_event_table[ ] = {
     { "INVALID_TLS_HEADER",          TLS_DECODER_EVENT_INVALID_TLS_HEADER },
     { "INVALID_RECORD_TYPE",         TLS_DECODER_EVENT_INVALID_RECORD_TYPE },
     { "INVALID_HANDSHAKE_MESSAGE",   TLS_DECODER_EVENT_INVALID_HANDSHAKE_MESSAGE },
+    { "HEARTBEAT_MESSAGE",           TLS_DECODER_EVENT_HEARTBEAT },
+    { "INVALID_HEARTBEAT_MESSAGE",   TLS_DECODER_EVENT_INVALID_HEARTBEAT },
+    { "OVERFLOW_HEARTBEAT_MESSAGE",  TLS_DECODER_EVENT_OVERFLOW_HEARTBEAT },
     /* Certificates decoding messages */
     { "INVALID_CERTIFICATE",         TLS_DECODER_EVENT_INVALID_CERTIFICATE },
     { "CERTIFICATE_MISSING_ELEMENT", TLS_DECODER_EVENT_CERTIFICATE_MISSING_ELEMENT },
@@ -83,6 +86,7 @@ SslConfig ssl_config;
 #define SSLV3_ALERT_PROTOCOL          21
 #define SSLV3_HANDSHAKE_PROTOCOL      22
 #define SSLV3_APPLICATION_PROTOCOL    23
+#define SSLV3_HEARTBEAT_PROTOCOL      24
 
 /* SSLv3 handshake protocol types */
 #define SSLV3_HS_HELLO_REQUEST        0
@@ -112,6 +116,10 @@ SslConfig ssl_config;
 
 #define SSLV3_RECORD_HDR_LEN 5
 #define SSLV3_MESSAGE_HDR_LEN 4
+
+/* TLS heartbeat protocol types */
+#define TLS_HB_REQUEST              1
+#define TLS_HB_RESPONSE             2
 
 static void SSLParserReset(SSLState *ssl_state)
 {
@@ -320,6 +328,59 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, uint8_t *input,
     input += retval;
 
     return (input - initial_input);
+}
+
+/**
+ * \internal
+ * \brief TLS Heartbeat parser (see RFC 6520)
+ *
+ * \param sslstate  Pointer to the SSL state.
+ * \param input     Pointer the received input data.
+ * \param input_len Length in bytes of the received data.
+ *
+ * \retval The number of bytes parsed on success, 0 if nothing parsed, -1 on failure.
+ */
+static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, uint8_t *input,
+                                       uint32_t input_len)
+{
+    uint8_t hb_type;
+    uint16_t payload_len;
+    uint16_t padding_len;
+
+    // expect at least 3 bytes, heartbeat type (1) + length (2)
+    if (input_len < 3) {
+        return 0;
+    }
+
+    hb_type = *input++;
+
+    if (!(hb_type == TLS_HB_REQUEST || hb_type == TLS_HB_RESPONSE)) {
+        AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_HEARTBEAT);
+        return -1;
+    }
+
+    payload_len = (*input++) << 8;
+    payload_len |= (*input++);
+
+    // check that the requested payload length is really present in record (CVE-2014-0160)
+    if ((uint32_t)(payload_len+3) > ssl_state->curr_connp->record_length) {
+        AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_OVERFLOW_HEARTBEAT);
+        return -1;
+    }
+
+    // check the padding length
+    // it must be at least 16 bytes (RFC 6520, section 4)
+    padding_len = ssl_state->curr_connp->record_length - payload_len - 3;
+    if (padding_len < 16) {
+        AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_HEARTBEAT);
+        return -1;
+    }
+
+    if (input_len < payload_len+padding_len) // we don't have the payload
+        return 0;
+
+    // skip the heartbeat, 3 bytes were already parsed, e.g |18 03 02| for TLS 1.2
+    return (ssl_state->curr_connp->record_length - 3);
 }
 
 static int SSLv3ParseRecord(uint8_t direction, SSLState *ssl_state,
@@ -760,6 +821,17 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
                 return parsed;
             }
 
+            break;
+
+        case SSLV3_HEARTBEAT_PROTOCOL:
+            if (ssl_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC) {
+                // stream is encrypted, so we cannot check the handshake :(
+                //AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_HEARTBEAT);
+                break;
+            }
+            retval = SSLv3ParseHeartbeatProtocol(ssl_state, input + parsed, input_len);
+            if (retval < 0)
+                return -1;
             break;
 
         default:
