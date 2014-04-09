@@ -284,3 +284,13 @@ void TmModuleTxLoggerRegister (void) {
     tmm_modules[TMM_TXLOGGER].ThreadDeinit = OutputTxLogThreadDeinit;
     tmm_modules[TMM_TXLOGGER].cap_flags = 0;
 }
+
+void OutputTxShutdown(void)
+{
+    OutputTxLogger *logger = list;
+    while (logger) {
+        if (logger->output_ctx != NULL && logger->output_ctx->DeInit != NULL)
+            logger->output_ctx->DeInit(logger->output_ctx);
+        logger = logger->next;
+    }
+}

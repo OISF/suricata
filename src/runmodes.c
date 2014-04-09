@@ -408,6 +408,10 @@ void RunModeShutDown(void)
             output->output_ctx->DeInit(output->output_ctx);
         SCFree(output);
     }
+
+    OutputPacketShutdown();
+    OutputTxShutdown();
+    OutputFileShutdown();
 }
 
 static TmModule *pkt_logger_module = NULL;

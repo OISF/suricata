@@ -41,4 +41,6 @@ int OutputRegisterPacketLogger(const char *name, PacketLogger LogFunc,
 
 void TmModulePacketLoggerRegister (void);
 
+void OutputPacketShutdown(void);
+
 #endif /* __OUTPUT_PACKET_H__ */
