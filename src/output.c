@@ -384,6 +384,11 @@ int OutputDropLoggerEnable(void) {
     return 0;
 }
 
+void OutputDropLoggerDisable(void) {
+    if (drop_loggers)
+        drop_loggers--;
+}
+
 static int tls_loggers = 0;
 
 int OutputTlsLoggerEnable(void) {
@@ -393,6 +398,11 @@ int OutputTlsLoggerEnable(void) {
     return 0;
 }
 
+void OutputTlsLoggerDisable(void) {
+    if (tls_loggers)
+        tls_loggers--;
+}
+
 static int ssh_loggers = 0;
 
 int OutputSshLoggerEnable(void) {
@@ -400,4 +410,9 @@ int OutputSshLoggerEnable(void) {
         return -1;
     ssh_loggers++;
     return 0;
+}
+
+void OutputSshLoggerDisable(void) {
+    if (ssh_loggers)
+        ssh_loggers--;
 }
