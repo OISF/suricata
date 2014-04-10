@@ -193,6 +193,14 @@ static void JsonDropLogDeInitCtx(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
+static void JsonDropLogDeInitCtxSub(OutputCtx *output_ctx)
+{
+    OutputDropLoggerDisable();
+
+    SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
+    SCFree(output_ctx);
+}
+
 #define DEFAULT_LOG_FILENAME "drop.json"
 static OutputCtx *JsonDropLogInitCtx(ConfNode *conf)
 {
@@ -238,7 +246,7 @@ static OutputCtx *JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     }
 
     output_ctx->data = ajt->file_ctx;
-    output_ctx->DeInit = JsonDropLogDeInitCtx;
+    output_ctx->DeInit = JsonDropLogDeInitCtxSub;
     return output_ctx;
 }
 
