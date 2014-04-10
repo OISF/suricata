@@ -241,8 +241,10 @@ static TmEcode OutputFileLogThreadDeinit(ThreadVars *tv, void *thread_data) {
             tm_module->ThreadDeinit(tv, store->thread_data);
         }
 
+        OutputLoggerThreadStore *next_store = store->next;
+        SCFree(store);
+        store = next_store;
         logger = logger->next;
-        store = store->next;
     }
     return TM_ECODE_OK;
 }
@@ -282,8 +284,10 @@ void OutputFileShutdown(void)
 {
     OutputFileLogger *logger = list;
     while (logger) {
-        if (logger->output_ctx != NULL && logger->output_ctx->DeInit != NULL)
-            logger->output_ctx->DeInit(logger->output_ctx);
-        logger = logger->next;
+        OutputFileLogger *next_logger = logger->next;
+        SCFree(logger);
+        logger = next_logger;
     }
+
+    list = NULL;
 }

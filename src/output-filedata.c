@@ -396,8 +396,10 @@ static TmEcode OutputFiledataLogThreadDeinit(ThreadVars *tv, void *thread_data) 
             tm_module->ThreadDeinit(tv, store->thread_data);
         }
 
+        OutputLoggerThreadStore *next_store = store->next;
+        SCFree(store);
+        store = next_store;
         logger = logger->next;
-        store = store->next;
     }
 
     SCMutexLock(&g_waldo_mutex);
@@ -443,4 +445,16 @@ void TmModuleFiledataLoggerRegister (void) {
     tmm_modules[TMM_FILEDATALOGGER].cap_flags = 0;
 
     SC_ATOMIC_INIT(file_id);
+}
+
+void OutputFiledataShutdown(void)
+{
+    OutputFiledataLogger *logger = list;
+    while (logger) {
+        OutputFiledataLogger *next_logger = logger->next;
+        SCFree(logger);
+        logger = next_logger;
+    }
+
+    list = NULL;
 }
