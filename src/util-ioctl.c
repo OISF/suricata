@@ -117,7 +117,12 @@ int GetIfaceMTU(char *pcap_dev)
 int GetIfaceMaxPacketSize(char *pcap_dev)
 {
     int ll_header = GetIfaceMaxHWHeaderLength(pcap_dev);
-    int mtu = GetIfaceMTU(pcap_dev);
+    int mtu = 0;
+
+    if ((pcap_dev == NULL) || strlen(pcap_dev) == 0)
+        return 0;
+
+    mtu = GetIfaceMTU(pcap_dev);
     switch (mtu) {
         case 0:
         case -1:
