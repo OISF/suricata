@@ -273,14 +273,6 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         p->root = NULL;
     }
 
-    /* if p uses extended data, free them */
-    if (p->ext_pkt) {
-        if (!(p->flags & PKT_ZERO_COPY)) {
-            SCFree(p->ext_pkt);
-        }
-        p->ext_pkt = NULL;
-    }
-
     PACKET_PROFILING_END(p);
 
     p->ReleasePacket(p);
