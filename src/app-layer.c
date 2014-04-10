@@ -289,6 +289,32 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             PACKET_PROFILING_APP_END(app_tctx, *alproto);
             f->data_al_so_far[dir] = 0;
         } else {
+            /* if the ssn is midstream, we may end up with a case where the
+             * start of an HTTP request is missing. We won't detect HTTP based
+             * on the request. However, the reply is fine, so we detect
+             * HTTP anyway. This leads to passing the incomplete request to
+             * the htp parser.
+             *
+             * This has been observed, where the http parser then saw many
+             * bogus requests in the incomplete data.
+             *
+             * To counter this case, a midstream session MUST find it's
+             * protocol in the toserver direction. If not, we assume the
+             * start of the request/toserver is incomplete and no reliable
+             * detection and parsing is possible. So we give up.
+             */
+            if ((ssn->flags & STREAMTCP_FLAG_MIDSTREAM) && !(ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK)) {
+                if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER)) {
+                    SCLogDebug("midstream end pd %p", ssn);
+                    /* midstream and toserver detection failed: give up */
+                    FlowSetSessionNoApplayerInspectionFlag(f);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+                    goto end;
+                }
+            }
+
             if (*alproto_otherdir != ALPROTO_UNKNOWN) {
                 first_data_dir = AppLayerParserGetFirstDataDir(f->proto, *alproto_otherdir);
 
