@@ -379,6 +379,8 @@ static TmEcode LogTlsLogThreadDeinit(ThreadVars *t, void *data)
 
 static void LogTlsLogDeInitCtx(OutputCtx *output_ctx)
 {
+    OutputTlsLoggerDisable();
+
     LogTlsFileCtx *tlslog_ctx = (LogTlsFileCtx *) output_ctx->data;
     LogFileFreeCtx(tlslog_ctx->file_ctx);
     SCFree(tlslog_ctx);

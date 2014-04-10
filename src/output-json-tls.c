@@ -212,6 +212,16 @@ static TmEcode JsonTlsLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
+static void OutputTlsLogDeinit(OutputCtx *output_ctx)
+{
+    OutputTlsLoggerDisable();
+
+    OutputTlsCtx *tls_ctx = output_ctx->data;
+    LogFileCtx *logfile_ctx = tls_ctx->file_ctx;
+    LogFileFreeCtx(logfile_ctx);
+    SCFree(tls_ctx);
+    SCFree(output_ctx);
+}
 
 #define DEFAULT_LOG_FILENAME "tls.json"
 OutputCtx *OutputTlsLogInit(ConfNode *conf)
@@ -259,9 +269,18 @@ OutputCtx *OutputTlsLogInit(ConfNode *conf)
         }
     }
     output_ctx->data = tls_ctx;
-    output_ctx->DeInit = NULL;
+    output_ctx->DeInit = OutputTlsLogDeinit;
 
     return output_ctx;
+}
+
+static void OutputTlsLogDeinitSub(OutputCtx *output_ctx)
+{
+    OutputTlsLoggerDisable();
+
+    OutputTlsCtx *tls_ctx = output_ctx->data;
+    SCFree(tls_ctx);
+    SCFree(output_ctx);
 }
 
 OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
@@ -297,7 +316,7 @@ OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         }
     }
     output_ctx->data = tls_ctx;
-    output_ctx->DeInit = NULL;
+    output_ctx->DeInit = OutputTlsLogDeinitSub;
 
     return output_ctx;
 }

@@ -181,8 +181,11 @@ static TmEcode OutputPacketLogThreadDeinit(ThreadVars *tv, void *thread_data) {
             tm_module->ThreadDeinit(tv, store->thread_data);
         }
 
+        OutputLoggerThreadStore *next_store = store->next;
+        SCFree(store);
+        store = next_store;
+
         logger = logger->next;
-        store = store->next;
     }
     return TM_ECODE_OK;
 }
@@ -216,4 +219,17 @@ void TmModulePacketLoggerRegister (void) {
     tmm_modules[TMM_PACKETLOGGER].ThreadExitPrintStats = OutputPacketLogExitPrintStats;
     tmm_modules[TMM_PACKETLOGGER].ThreadDeinit = OutputPacketLogThreadDeinit;
     tmm_modules[TMM_PACKETLOGGER].cap_flags = 0;
+}
+
+void OutputPacketShutdown(void)
+{
+    OutputPacketLogger *logger = list;
+    while (logger) {
+        OutputPacketLogger *next_logger = logger->next;
+        SCFree(logger);
+        logger = next_logger;
+    }
+
+    /* reset list pointer */
+    list = NULL;
 }

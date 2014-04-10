@@ -186,8 +186,18 @@ static TmEcode JsonDropLogThreadDeinit(ThreadVars *t, void *data)
 
 static void JsonDropLogDeInitCtx(OutputCtx *output_ctx)
 {
+    OutputDropLoggerDisable();
+
     LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
     LogFileFreeCtx(logfile_ctx);
+    SCFree(output_ctx);
+}
+
+static void JsonDropLogDeInitCtxSub(OutputCtx *output_ctx)
+{
+    OutputDropLoggerDisable();
+
+    SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
     SCFree(output_ctx);
 }
 
@@ -236,7 +246,7 @@ static OutputCtx *JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     }
 
     output_ctx->data = ajt->file_ctx;
-    output_ctx->DeInit = JsonDropLogDeInitCtx;
+    output_ctx->DeInit = JsonDropLogDeInitCtxSub;
     return output_ctx;
 }
 

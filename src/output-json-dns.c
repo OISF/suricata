@@ -285,6 +285,14 @@ static void LogDnsLogDeInitCtx(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
+static void LogDnsLogDeInitCtxSub(OutputCtx *output_ctx)
+{
+    SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
+    LogDnsFileCtx *dnslog_ctx = (LogDnsFileCtx *)output_ctx->data;
+    SCFree(dnslog_ctx);
+    SCFree(output_ctx);
+}
+
 static OutputCtx *JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AlertJsonThread *ajt = parent_ctx->data;
@@ -304,7 +312,7 @@ static OutputCtx *JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     }
 
     output_ctx->data = dnslog_ctx;
-    output_ctx->DeInit = LogDnsLogDeInitCtx;
+    output_ctx->DeInit = LogDnsLogDeInitCtxSub;
 
     SCLogDebug("DNS log sub-module initialized");
 

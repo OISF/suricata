@@ -298,6 +298,12 @@ static TmEcode JsonFileLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
+static void OutputFileLogDeinitSub(OutputCtx *output_ctx)
+{
+    OutputFileCtx *ff_ctx = output_ctx->data;
+    SCFree(ff_ctx);
+    SCFree(output_ctx);
+}
 
 /** \brief Create a new http log LogFileCtx.
  *  \param conf Pointer to ConfNode containing this loggers configuration.
@@ -338,6 +344,7 @@ OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     }
 
     output_ctx->data = output_file_ctx;
+    output_ctx->DeInit = OutputFileLogDeinitSub;
 
     FileForceTrackingEnable();
     return output_ctx;
