@@ -2998,9 +2998,20 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 data_len = 0;
             }
 
+            /* in midstream the window is unreliable as we don't know if
+             * window scaling is used. Therefore we assume max wscale and
+             * the window likely much larger than it should be. In our
+             * gap calc we cap it at 25k */
+            uint32_t window = stream->window;
+            if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) {
+                window = stream->window > 25000 ? 25000 : stream->window;
+                SCLogDebug("midstream: window for gap determination %u (%u)",
+                        window, stream->window);
+            }
+
             /* don't conclude it's a gap straight away. If ra_base_seq is lower
              * than last_ack - the window, we consider it a gap. */
-            if (SEQ_GT((stream->last_ack - stream->window), ra_base_seq) ||
+            if (SEQ_GT((stream->last_ack - window), ra_base_seq) ||
                 ssn->state > TCP_ESTABLISHED)
             {
                 /* see what the length of the gap is, gap length is seg->seq -
@@ -3355,9 +3366,20 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                 smsg = NULL;
             }
 
+            /* in midstream the window is unreliable as we don't know if
+             * window scaling is used. Therefore we assume max wscale and
+             * the window likely much larger than it should be. In our
+             * gap calc we cap it at 25k */
+            uint32_t window = stream->window;
+            if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) {
+                window = stream->window > 25000 ? 25000 : stream->window;
+                SCLogDebug("midstream: window for gap determination %u (%u)",
+                        window, stream->window);
+            }
+
             /* don't conclude it's a gap straight away. If ra_base_seq is lower
              * than last_ack - the window, we consider it a gap. */
-            if (SEQ_GT((stream->last_ack - stream->window), ra_base_seq) ||
+            if (SEQ_GT((stream->last_ack - window), ra_base_seq) ||
                 ssn->state > TCP_ESTABLISHED)
             {
                 /* see what the length of the gap is, gap length is seg->seq -
