@@ -2895,6 +2895,33 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     /* loop through the segments and fill one or more msgs */
     TcpSegment *seg = stream->seg_list;
     SCLogDebug("pre-loop seg %p", seg);
+
+    /* Check if we have a gap at the start of the list. If last_ack is
+     * bigger than the list start and the list start is bigger than
+     * next_seq, we know we are missing data that has been ack'd. That
+     * won't get retransmitted, so it's a data gap.
+     */
+    if (!(p->flow->flags & FLOW_NO_APPLAYER_INSPECTION)) {
+        if (SEQ_GT(seg->seq, next_seq) && SEQ_LT(seg->seq, stream->last_ack)) {
+            /* send gap signal */
+            STREAM_SET_FLAGS(ssn, stream, p, flags);
+            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                    NULL, 0, flags|STREAM_GAP);
+            AppLayerProfilingStore(ra_ctx->app_tctx, p);
+
+            /* set a GAP flag and make sure not bothering this stream anymore */
+            SCLogDebug("STREAMTCP_STREAM_FLAG_GAP set");
+            stream->flags |= STREAMTCP_STREAM_FLAG_GAP;
+
+            StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
+            SCPerfCounterIncr(ra_ctx->counter_tcp_reass_gap, tv->sc_perf_pca);
+#ifdef DEBUG
+            dbg_app_layer_gap++;
+#endif
+            SCReturnInt(0);
+        }
+    }
+
     for (; seg != NULL && SEQ_LT(seg->seq, stream->last_ack);)
     {
         SCLogDebug("seg %p, SEQ %"PRIu32", LEN %"PRIu16", SUM %"PRIu32,
