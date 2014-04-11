@@ -3221,8 +3221,10 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         TcpSegment *next_seg = seg->next;
         next_seq = seg->seq + seg->payload_len;
         if (partial == FALSE) {
-            SCLogDebug("fully done with segment in app layer reassembly");
+            SCLogDebug("fully done with segment in app layer reassembly (seg %p seq %"PRIu32")",
+                    seg, seg->seq);
             seg->flags |= SEGMENTTCP_FLAG_APPLAYER_PROCESSED;
+            SCLogDebug("flags now %02x", seg->flags);
         } else {
             SCLogDebug("not yet fully done with segment in app layer reassembly");
         }
@@ -3300,9 +3302,9 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
     /* loop through the segments and fill one or more msgs */
     for (; seg != NULL && SEQ_LT(seg->seq, stream->last_ack);)
     {
-        SCLogDebug("seg %p, SEQ %"PRIu32", LEN %"PRIu16", SUM %"PRIu32,
+        SCLogDebug("seg %p, SEQ %"PRIu32", LEN %"PRIu16", SUM %"PRIu32", flags %02x",
                 seg, seg->seq, seg->payload_len,
-                (uint32_t)(seg->seq + seg->payload_len));
+                (uint32_t)(seg->seq + seg->payload_len), seg->flags);
 
         if ((p->flow->flags & FLOW_NO_APPLAYER_INSPECTION) ||
             (stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
@@ -3405,6 +3407,8 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
             }
         }
 
+        int partial = FALSE;
+
         /* if the segment ends beyond ra_base_seq we need to consider it */
         if (SEQ_GT((seg->seq + seg->payload_len), ra_base_seq+1)) {
             SCLogDebug("seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 ", "
@@ -3422,6 +3426,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                     } else {
                         payload_len = (stream->last_ack - seg->seq) - payload_offset;
                     }
+                    partial = TRUE;
                 } else {
                     payload_len = seg->payload_len - payload_offset;
                 }
@@ -3435,6 +3440,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
 
                 if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
                     payload_len = stream->last_ack - seg->seq;
+                    partial = TRUE;
                 } else {
                     payload_len = seg->payload_len;
                 }
@@ -3564,8 +3570,15 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
 
         /* done with this segment, return it to the pool */
         TcpSegment *next_seg = seg->next;
-        seg->flags |= SEGMENTTCP_FLAG_RAW_PROCESSED;
         next_seq = seg->seq + seg->payload_len;
+        if (partial == FALSE) {
+            SCLogDebug("fully done with segment in raw reassembly (seg %p seq %"PRIu32")",
+                    seg, seg->seq);
+            seg->flags |= SEGMENTTCP_FLAG_RAW_PROCESSED;
+            SCLogDebug("flags now %02x", seg->flags);
+        } else {
+            SCLogDebug("not yet fully done with segment in raw reassembly");
+        }
         seg = next_seg;
     }
 
