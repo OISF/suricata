@@ -403,6 +403,32 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
                     AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                                      APPLAYER_PROTO_DETECTION_SKIPPED);
+                /* little data in ts direction, pp done, pm not done (max
+                 * depth not reached), ts direction done, lots of data in
+                 * tc direction. */
+                } else if (size_tc > 100000 &&
+                           FLOW_IS_PP_DONE(f, STREAM_TOSERVER) && !(FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) &&
+                           FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT))
+                {
+                    FlowSetSessionNoApplayerInspectionFlag(f);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                                                     APPLAYER_PROTO_DETECTION_SKIPPED);
+                /* little data in tc direction, pp done, pm not done (max
+                 * depth not reached), tc direction done, lots of data in
+                 * ts direction. */
+                } else if (size_ts > 100000 &&
+                           FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) && !(FLOW_IS_PM_DONE(f, STREAM_TOCLIENT)) &&
+                           FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER))
+                {
+                    FlowSetSessionNoApplayerInspectionFlag(f);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                                                     APPLAYER_PROTO_DETECTION_SKIPPED);
                 }
             }
         }
