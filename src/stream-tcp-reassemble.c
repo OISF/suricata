@@ -2740,13 +2740,14 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags) {
 
     for (; seg != NULL && SEQ_LT(seg->seq, stream->last_ack);)
     {
-        SCLogDebug("seg %p, SEQ %"PRIu32", LEN %"PRIu16", SUM %"PRIu32,
+        SCLogDebug("seg %p, SEQ %"PRIu32", LEN %"PRIu16", SUM %"PRIu32", FLAGS %02x",
                 seg, seg->seq, seg->payload_len,
-                (uint32_t)(seg->seq + seg->payload_len));
+                (uint32_t)(seg->seq + seg->payload_len), seg->flags);
 
         if (SEQ_LEQ((seg->seq + seg->payload_len), (ra_base_seq+1)) &&
                    (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
-                   (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) {
+                    StreamTcpAppLayerSegmentProcessed(stream, seg))
+        {
             if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
                 break;
             }
@@ -2761,8 +2762,8 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags) {
             continue;
 
         } else if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream) &&
-                (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
-                (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
+                  (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
+                   StreamTcpAppLayerSegmentProcessed(stream, seg))
         {
             if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
                 break;
