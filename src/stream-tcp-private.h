@@ -147,24 +147,24 @@ enum
  */
 
 /** stream is in a gap state */
-#define STREAMTCP_STREAM_FLAG_GAP               0x01
+#define STREAMTCP_STREAM_FLAG_GAP               0x0001
 /** Flag to avoid stream reassembly/app layer inspection for the stream */
-#define STREAMTCP_STREAM_FLAG_NOREASSEMBLY      0x02
+#define STREAMTCP_STREAM_FLAG_NOREASSEMBLY      0x0002
 /** we received a keep alive */
-#define STREAMTCP_STREAM_FLAG_KEEPALIVE         0x04
+#define STREAMTCP_STREAM_FLAG_KEEPALIVE         0x0004
 /** Stream has reached it's reassembly depth, all further packets are ignored */
-#define STREAMTCP_STREAM_FLAG_DEPTH_REACHED     0x08
+#define STREAMTCP_STREAM_FLAG_DEPTH_REACHED     0x0008
 /** Stream has sent a FIN/RST */
-#define STREAMTCP_STREAM_FLAG_CLOSE_INITIATED   0x10
+#define STREAMTCP_STREAM_FLAG_CLOSE_INITIATED   0x0010
 /** Stream supports TIMESTAMP -- used to set ssn STREAMTCP_FLAG_TIMESTAMP
  *  flag. */
-#define STREAMTCP_STREAM_FLAG_TIMESTAMP         0x20
+#define STREAMTCP_STREAM_FLAG_TIMESTAMP         0x0020
 /** Flag to indicate the zero value of timestamp */
-#define STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP    0x40
+#define STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP    0x0040
 /** App proto detection completed */
-#define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED 0x80
+#define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED 0x0080
 /** App proto detection skipped */
-#define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED 0x100
+#define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED 0x0100
 
 /*
  * Per SEGMENT flags
