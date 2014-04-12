@@ -120,6 +120,8 @@ static TmEcode LogDropLogThreadDeinit(ThreadVars *t, void *data)
  */
 static void LogDropLogDeInitCtx(OutputCtx *output_ctx)
 {
+    OutputDropLoggerDisable();
+
     if (output_ctx != NULL) {
         LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
         if (logfile_ctx != NULL) {

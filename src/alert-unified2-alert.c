@@ -1465,6 +1465,7 @@ static void Unified2AlertDeInitCtx(OutputCtx *output_ctx)
             }
             SCFree(unified2alert_ctx);
         }
+        SCFree(output_ctx);
     }
 }
 

@@ -469,6 +469,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
         json_out = json_ctx->json_out;
     }
 
+    SCLogInfo("returning output_ctx %p", output_ctx);
     return output_ctx;
 }
 
@@ -477,6 +478,7 @@ static void OutputJsonDeInitCtx(OutputCtx *output_ctx)
     OutputJsonCtx *json_ctx = (OutputJsonCtx *)output_ctx->data;
     LogFileCtx *logfile_ctx = json_ctx->file_ctx;
     LogFileFreeCtx(logfile_ctx);
+    SCFree(json_ctx);
     SCFree(output_ctx);
 }
 

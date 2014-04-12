@@ -232,6 +232,15 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     SCReturnInt(TM_ECODE_OK);
 }
 
+static void OutputHttpLogDeinit(OutputCtx *output_ctx)
+{
+    LogHttpFileCtx *http_ctx = output_ctx->data;
+    LogFileCtx *logfile_ctx = http_ctx->file_ctx;
+    LogFileFreeCtx(logfile_ctx);
+    SCFree(http_ctx);
+    SCFree(output_ctx);
+}
+
 #define DEFAULT_LOG_FILENAME "http.json"
 OutputCtx *OutputHttpLogInit(ConfNode *conf)
 {
@@ -272,12 +281,19 @@ OutputCtx *OutputHttpLogInit(ConfNode *conf)
         }
     }
     output_ctx->data = http_ctx;
-    output_ctx->DeInit = NULL;
+    output_ctx->DeInit = OutputHttpLogDeinit;
 
     /* enable the logger for the app layer */
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP);
 
     return output_ctx;
+}
+
+static void OutputHttpLogDeinitSub(OutputCtx *output_ctx)
+{
+    LogHttpFileCtx *http_ctx = output_ctx->data;
+    SCFree(http_ctx);
+    SCFree(output_ctx);
 }
 
 OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
@@ -307,7 +323,7 @@ OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         }
     }
     output_ctx->data = http_ctx;
-    output_ctx->DeInit = NULL;
+    output_ctx->DeInit = OutputHttpLogDeinitSub;
 
     /* enable the logger for the app layer */
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP);

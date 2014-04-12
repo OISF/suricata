@@ -177,6 +177,16 @@ static TmEcode JsonSshLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
+static void OutputSshLogDeinit(OutputCtx *output_ctx)
+{
+    OutputSshLoggerDisable();
+
+    OutputSshCtx *ssh_ctx = output_ctx->data;
+    LogFileCtx *logfile_ctx = ssh_ctx->file_ctx;
+    LogFileFreeCtx(logfile_ctx);
+    SCFree(ssh_ctx);
+    SCFree(output_ctx);
+}
 
 #define DEFAULT_LOG_FILENAME "ssh.json"
 OutputCtx *OutputSshLogInit(ConfNode *conf)
@@ -214,9 +224,18 @@ OutputCtx *OutputSshLogInit(ConfNode *conf)
     ssh_ctx->file_ctx = file_ctx;
 
     output_ctx->data = ssh_ctx;
-    output_ctx->DeInit = NULL;
+    output_ctx->DeInit = OutputSshLogDeinit;
 
     return output_ctx;
+}
+
+static void OutputSshLogDeinitSub(OutputCtx *output_ctx)
+{
+    OutputSshLoggerDisable();
+
+    OutputSshCtx *ssh_ctx = output_ctx->data;
+    SCFree(ssh_ctx);
+    SCFree(output_ctx);
 }
 
 OutputCtx *OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
@@ -242,7 +261,7 @@ OutputCtx *OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     ssh_ctx->file_ctx = ajt->file_ctx;
 
     output_ctx->data = ssh_ctx;
-    output_ctx->DeInit = NULL;
+    output_ctx->DeInit = OutputSshLogDeinitSub;
 
     return output_ctx;
 }
