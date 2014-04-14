@@ -505,7 +505,7 @@ static int PayloadTestSig13(void)
     tv_diff.tv_sec = tv_end.tv_sec - tv_start.tv_sec;
     tv_diff.tv_usec = tv_end.tv_usec - tv_start.tv_usec;
 
-    printf("%ld.%06ld\n", tv_diff.tv_sec, (long int)tv_diff.tv_usec);
+    printf("%ld.%06ld\n", (long int)tv_diff.tv_sec, (long int)tv_diff.tv_usec);
 
     result = 1;
 

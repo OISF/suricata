@@ -169,7 +169,7 @@ static int CreateFileName(LogTlsFileCtx *log, const Packet *p, SSLState *state, 
      * On a live device, we will not be able to overwrite */
     snprintf(filename, filenamelen, "%s/%ld.%ld-%d.pem",
              tls_logfile_base_dir,
-             p->ts.tv_sec,
+             (long int)p->ts.tv_sec,
              (long int)p->ts.tv_usec,
              file_id);
     return 1;
