@@ -1074,7 +1074,7 @@ app-layer:
     tls:
       enabled: yes
       detection-ports:
-        toserver: 443
+        dp: 443
 
       #no-reassemble: yes
     dcerpc:
@@ -1092,7 +1092,7 @@ app-layer:
     smb:
       enabled: yes
       detection-ports:
-        toserver: 139
+        dp: 139
     # smb2 detection is disabled internally inside the engine.
     #smb2:
     #  enabled: yes
@@ -1108,11 +1108,11 @@ app-layer:
       tcp:
         enabled: yes
         detection-ports:
-          toserver: 53
+          dp: 53
       udp:
         enabled: yes
         detection-ports:
-          toserver: 53
+          dp: 53
     http:
       enabled: yes
       # memcap: 64mb
