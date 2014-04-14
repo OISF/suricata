@@ -1067,7 +1067,7 @@ static int AFPSynchronizeStart(AFPThreadVars *ptv)
         } else if (r == 0 && AFPPeersListStarted()) {
             SCLogInfo("Starting to read on %s", ptv->tv->name);
             return 1;
-        } else {
+        } else if (r < 0) { /* only exit on error */
             SCLogWarning(SC_ERR_AFP_READ, "poll failed with retval %d", r);
             return 0;
         }
