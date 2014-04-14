@@ -785,7 +785,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuajitData *ld) {
                 ld->flags |= DATATYPE_HTTP_RESPONSE_HEADERS_RAW;
 
             else {
-                SCLogError(SC_ERR_LUAJIT_ERROR, "unsupported http data type %s", k);
+                SCLogError(SC_ERR_LUAJIT_ERROR, "unsupported http data type %s (misspelled var OR don't use 'http' keyword for your own flowvars or flowint: reserved)", k);
                 goto error;
             }
 
