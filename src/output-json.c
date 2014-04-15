@@ -117,7 +117,6 @@ void OutputJsonRegisterTests (void)
 
 #define OUTPUT_BUFFER_SIZE 65535
 
-extern uint8_t engine_mode;
 #ifndef OS_WIN32
 static int alert_syslog_level = DEFAULT_ALERT_SYSLOG_LEVEL;
 #endif /* OS_WIN32 */

@@ -116,7 +116,6 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
     int i;
     char timebuf[64];
     int decoder_event = 0;
-    extern uint8_t engine_mode;
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
@@ -146,7 +145,7 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
         }
 
         char *action = "";
-        if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
+        if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
             action = "[Drop] ";
         } else if (pa->action & ACTION_DROP) {
             action = "[wDrop] ";

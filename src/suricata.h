@@ -100,20 +100,15 @@ enum {
 };
 
 /* Engine is acting as */
-enum {
+enum EngineMode {
     ENGINE_MODE_IDS,
     ENGINE_MODE_IPS,
 };
 
-/** You can use this macros to set/check if we have real drop capabilities */
-#define SET_ENGINE_MODE_IPS(engine_mode) do { \
-	    (engine_mode) = ENGINE_MODE_IPS; \
-    } while (0)
-#define SET_ENGINE_MODE_IDS(engine_mode) do { \
-	    (engine_mode) = ENGINE_MODE_IDS; \
-    } while (0)
-#define IS_ENGINE_MODE_IPS(engine_mode)  ((engine_mode) == ENGINE_MODE_IPS)
-#define IS_ENGINE_MODE_IDS(engine_mode)  ((engine_mode) == ENGINE_MODE_IDS)
+void EngineModeSetIPS(void);
+void EngineModeSetIDS(void);
+int EngineModeIsIPS(void);
+int EngineModeIsIDS(void);
 
 /* Box is acting as router */
 enum {
