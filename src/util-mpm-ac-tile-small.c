@@ -1,4 +1,4 @@
-/* Copyright (C) 2013 Open Information Security Foundation
+/* Copyright (C) 2013-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -29,10 +29,6 @@
  *
  */
 #ifdef FUNC_NAME
-// Hint to compiler to expect L2 hit latency for Load int16_t
-#undef SLOAD
-#define SLOAD(x) __insn_ld2s_L2((STYPE* restrict)(x))
-
 
 /* This function handles (ctx->state_count < 32767) */
 uint32_t FUNC_NAME(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
