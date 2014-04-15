@@ -180,13 +180,12 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
  * \param det_ctx DetectEngineThreadCtx instance.
  * \param f Pointer to the flow.
  * \param flags Flags.
- * \param alstate App state.
  * \param alproto App protocol.
  * \param alversion Current app layer version.
  */
 void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                     DetectEngineThreadCtx *det_ctx,
-                                    Packet *p, Flow *f, uint8_t flags, void *alstate,
+                                    Packet *p, Flow *f, uint8_t flags,
                                     AppProto alproto, uint16_t alversion);
 
 /**

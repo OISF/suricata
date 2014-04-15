@@ -472,7 +472,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
 void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                     DetectEngineThreadCtx *det_ctx,
-                                    Packet *p, Flow *f, uint8_t flags, void *alstate,
+                                    Packet *p, Flow *f, uint8_t flags,
                                     AppProto alproto, uint16_t alversion)
 {
     SCMutexLock(&f->de_state_m);
@@ -482,6 +482,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     uint16_t file_no_match = 0;
     uint32_t inspect_flags = 0;
 
+    void *alstate = NULL;
     HtpState *htp_state = NULL;
     SMBState *smb_state = NULL;
 
@@ -506,6 +507,13 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
     if (AppLayerParserProtocolSupportsTxs(f->proto, alproto)) {
         FLOWLOCK_RDLOCK(f);
+        alstate = FlowGetAppState(f);
+        if (alstate == NULL) {
+            FLOWLOCK_UNLOCK(f);
+            SCMutexUnlock(&f->de_state_m);
+            return;
+        }
+
         inspect_tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
         total_txs = AppLayerParserGetTxCnt(f->proto, alproto, alstate);
         inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id);
@@ -592,6 +600,12 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
             if (alproto_supports_txs) {
                 FLOWLOCK_WRLOCK(f);
+                alstate = FlowGetAppState(f);
+                if (alstate == NULL) {
+                    FLOWLOCK_UNLOCK(f);
+                    RULE_PROFILING_END(det_ctx, s, match, p);
+                    goto end;
+                }
 
                 if (alproto == ALPROTO_HTTP) {
                     htp_state = (HtpState *)alstate;
@@ -650,6 +664,12 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 /* RDLOCK would be nicer, but at least tlsstore needs
                  * write lock currently. */
                 FLOWLOCK_WRLOCK(f);
+                alstate = FlowGetAppState(f);
+                if (alstate == NULL) {
+                    FLOWLOCK_UNLOCK(f);
+                    RULE_PROFILING_END(det_ctx, s, 0 /* no match */, p);
+                    goto end;
+                }
 
                 for (sm = item->nm; sm != NULL; sm = sm->next) {
                     if (sigmatch_table[sm->type].AppLayerMatch != NULL)
