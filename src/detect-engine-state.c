@@ -240,13 +240,14 @@ int DeStateFlowHasInspectableState(Flow *f, AppProto alproto, uint16_t alversion
 int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                 DetectEngineThreadCtx *det_ctx,
                                 Signature *s, Packet *p, Flow *f, uint8_t flags,
-                                void *alstate, AppProto alproto, uint16_t alversion)
+                                AppProto alproto, uint16_t alversion)
 {
     DetectEngineAppInspectionEngine *engine = NULL;
     SigMatch *sm = NULL;
     uint16_t file_no_match = 0;
     uint32_t inspect_flags = 0;
 
+    void *alstate = NULL;
     HtpState *htp_state = NULL;
     SMBState *smb_state = NULL;
 
@@ -263,12 +264,13 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
     int alert_cnt = 0;
 
-    if (alstate == NULL)
-        goto end;
-
     if (AppLayerParserProtocolSupportsTxs(f->proto, alproto)) {
         FLOWLOCK_WRLOCK(f);
-
+        alstate = FlowGetAppState(f);
+        if (alstate == NULL) {
+            FLOWLOCK_UNLOCK(f);
+            goto end;
+        }
         if (alproto == ALPROTO_HTTP) {
             htp_state = (HtpState *)alstate;
             if (htp_state->conn == NULL) {
@@ -345,6 +347,13 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB ||
                 alproto == ALPROTO_SMB2))
     {
+        FLOWLOCK_WRLOCK(f);
+        alstate = FlowGetAppState(f);
+        if (alstate == NULL) {
+            FLOWLOCK_UNLOCK(f);
+            goto end;
+        }
+
         KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_DMATCH);
         if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
             smb_state = (SMBState *)alstate;
@@ -374,6 +383,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
             }
         }
+        FLOWLOCK_UNLOCK(f);
     }
 
     KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_AMATCH);
@@ -382,6 +392,11 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         /* RDLOCK would be nicer, but at least tlsstore needs
          * write lock currently. */
         FLOWLOCK_WRLOCK(f);
+        alstate = FlowGetAppState(f);
+        if (alstate == NULL) {
+            FLOWLOCK_UNLOCK(f);
+            goto end;
+        }
 
         for (match = 0; sm != NULL; sm = sm->next) {
             match = 0;
