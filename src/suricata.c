@@ -202,7 +202,7 @@ int run_mode = RUNMODE_UNKNOWN;
 
 /** Engine mode: inline (ENGINE_MODE_IPS) or just
   * detection mode (ENGINE_MODE_IDS by default) */
-uint8_t engine_mode = ENGINE_MODE_IDS;
+static enum EngineMode g_engine_mode = ENGINE_MODE_IDS;
 
 /** Host mode: set if box is sniffing only
  * or is a router */
@@ -218,6 +218,26 @@ int g_detect_disabled = 0;
 int sc_set_caps;
 
 char *conf_filename = NULL;
+
+int EngineModeIsIPS(void)
+{
+    return (g_engine_mode == ENGINE_MODE_IPS);
+}
+
+int EngineModeIsIDS(void)
+{
+    return (g_engine_mode == ENGINE_MODE_IDS);
+}
+
+void EngineModeSetIPS(void)
+{
+    g_engine_mode = ENGINE_MODE_IPS;
+}
+
+void EngineModeSetIDS(void)
+{
+    g_engine_mode = ENGINE_MODE_IDS;
+}
 
 int RunmodeIsUnittests(void) {
     if (run_mode == RUNMODE_UNITTEST)
@@ -379,7 +399,7 @@ static int SetBpfString(int optind, char *argv[]) {
     if (bpf_len == 0)
         return TM_ECODE_OK;
 
-    if (IS_ENGINE_MODE_IPS(engine_mode)) {
+    if (EngineModeIsIPS()) {
         SCLogError(SC_ERR_NOT_SUPPORTED,
                    "BPF filter not available in IPS mode."
                    " Use firewall filtering if possible.");
@@ -424,7 +444,7 @@ static void SetBpfStringFromFile(char *filename) {
     FILE *fp = NULL;
     size_t nm = 0;
 
-    if (IS_ENGINE_MODE_IPS(engine_mode)) {
+    if (EngineModeIsIPS()) {
         SCLogError(SC_ERR_NOT_SUPPORTED,
                    "BPF filter not available in IPS mode."
                    " Use firewall filtering if possible.");
@@ -1451,7 +1471,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef NFQ
             if (suri->run_mode == RUNMODE_UNKNOWN) {
                 suri->run_mode = RUNMODE_NFQ;
-                SET_ENGINE_MODE_IPS(engine_mode);
+                EngineModeSetIPS();
                 if (NFQRegisterQueue(optarg) == -1)
                     return TM_ECODE_FAILED;
             } else if (suri->run_mode == RUNMODE_NFQ) {
@@ -1472,7 +1492,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef IPFW
             if (suri->run_mode == RUNMODE_UNKNOWN) {
                 suri->run_mode = RUNMODE_IPFW;
-                SET_ENGINE_MODE_IPS(engine_mode);
+                EngineModeSetIPS();
                 if (IPFWRegisterQueue(optarg) == -1)
                     return TM_ECODE_FAILED;
             } else if (suri->run_mode == RUNMODE_IPFW) {
@@ -1931,14 +1951,14 @@ static int PostConfLoadedSetup(SCInstance *suri)
             if (strcmp(hostmode, "auto") != 0) {
                 WarnInvalidConfEntry("host-mode", "%s", "auto");
             }
-            if (IS_ENGINE_MODE_IPS(engine_mode)) {
+            if (EngineModeIsIPS()) {
                 host_mode = SURI_HOST_IS_ROUTER;
             } else {
                 host_mode = SURI_HOST_IS_SNIFFER_ONLY;
             }
         }
     } else {
-        if (IS_ENGINE_MODE_IPS(engine_mode)) {
+        if (EngineModeIsIPS()) {
             host_mode = SURI_HOST_IS_ROUTER;
             SCLogInfo("No 'host-mode': suricata is in IPS mode, using "
                       "default setting 'router'");
@@ -2049,7 +2069,7 @@ int main(int argc, char **argv)
 
     /* By default use IDS mode, but if nfq or ipfw
      * are specified, IPS mode will overwrite this */
-    SET_ENGINE_MODE_IDS(engine_mode);
+    EngineModeSetIDS();
 
 
 #ifdef OS_WIN32

@@ -114,8 +114,6 @@ static SCMutex ssn_pool_mutex = SCMUTEX_INITIALIZER; /**< init only, protect ini
 static uint64_t ssn_pool_cnt = 0; /** counts ssns, protected by ssn_pool_mutex */
 #endif
 
-extern uint8_t engine_mode;
-
 SC_ATOMIC_DECLARE(uint64_t, st_memuse);
 
 /* stream engine running in "inline" mode. */
@@ -426,7 +424,7 @@ void StreamTcpInitConfig(char quiet)
         /* checking for "auto" and falling back to boolean to provide
          * backward compatibility */
         if (strcmp(temp_stream_inline_str, "auto") == 0) {
-            if (IS_ENGINE_MODE_IPS(engine_mode)) {
+            if (EngineModeIsIPS()) {
                 stream_inline = 1;
             } else {
                 stream_inline = 0;
