@@ -206,7 +206,7 @@ void DetectExitPrintStats(ThreadVars *tv, void *data);
 
 void DbgPrintSigs(DetectEngineCtx *, SigGroupHead *);
 void DbgPrintSigs2(DetectEngineCtx *, SigGroupHead *);
-static void PacketCreateMask(Packet *, SignatureMask *, uint16_t, void *, StreamMsg *, int);
+static void PacketCreateMask(Packet *, SignatureMask *, uint16_t, int, StreamMsg *, int);
 
 /* tm module api functions */
 TmEcode Detect(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
@@ -785,20 +785,26 @@ end:
  * \param p            Packet.
  * \param flags        Flags.
  * \param alproto      Flow alproto.
- * \param alstate      Flow alstate.
+ * \param has_state    Bool indicating we have (al)state
  * \param sms_runflags Used to store state by detection engine.
  */
 static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, StreamMsg *smsg, Packet *p,
-        uint8_t flags, AppProto alproto, void *alstate, uint8_t *sms_runflags)
+        uint8_t flags, AppProto alproto, int has_state, uint8_t *sms_runflags)
 {
     /* have a look at the reassembled stream (if any) */
     if (p->flowflags & FLOW_PKT_ESTABLISHED) {
         SCLogDebug("p->flowflags & FLOW_PKT_ESTABLISHED");
 
         /* all http based mpms */
-        if (alstate != NULL && alproto == ALPROTO_HTTP) {
+        if (has_state && alproto == ALPROTO_HTTP) {
             FLOWLOCK_WRLOCK(p->flow);
+            void *alstate = FlowGetAppState(p->flow);
+            if (alstate == NULL) {
+                SCLogDebug("no alstate");
+                FLOWLOCK_UNLOCK(p->flow);
+                return;
+            }
 
             HtpState *htp_state = (HtpState *)alstate;
             if (htp_state->connp == NULL) {
@@ -922,10 +928,16 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
             FLOWLOCK_UNLOCK(p->flow);
         }
         /* all dns based mpms */
-        else if (alproto == ALPROTO_DNS && alstate != NULL) {
+        else if (alproto == ALPROTO_DNS && has_state) {
             if (p->flowflags & FLOW_PKT_TOSERVER) {
                 if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_DNSQUERY) {
                     FLOWLOCK_RDLOCK(p->flow);
+                    void *alstate = FlowGetAppState(p->flow);
+                    if (alstate == NULL) {
+                        SCLogDebug("no alstate");
+                        FLOWLOCK_UNLOCK(p->flow);
+                        return;
+                    }
 
                     uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
                     uint64_t total_txs = AppLayerParserGetTxCnt(p->flow->proto, alproto, alstate);
@@ -977,11 +989,18 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
     }
 
     /* UDP DNS inspection is independent of est or not */
-    if (alproto == ALPROTO_DNS && alstate != NULL) {
+    if (alproto == ALPROTO_DNS && has_state) {
         if (p->flowflags & FLOW_PKT_TOSERVER) {
             SCLogDebug("mpm inspection");
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_DNSQUERY) {
                 FLOWLOCK_RDLOCK(p->flow);
+                void *alstate = FlowGetAppState(p->flow);
+                if (alstate == NULL) {
+                    SCLogDebug("no alstate");
+                    FLOWLOCK_UNLOCK(p->flow);
+                    return;
+                }
+
                 uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
                 uint64_t total_txs = AppLayerParserGetTxCnt(p->flow->proto, alproto, alstate);
                 for (; idx < total_txs; idx++) {
@@ -1092,7 +1111,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 #endif
     uint32_t idx;
     uint8_t flags = 0;          /* flow/state flags */
-    void *alstate = NULL;
     StreamMsg *smsg = NULL;
     Signature *s = NULL;
     SigMatch *sm = NULL;
@@ -1101,6 +1119,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     int state_alert = 0;
     int alerts = 0;
     int app_decoder_events = 0;
+    int has_state = 0;          /* do we have an alstate to work with? */
 
     SCEnter();
 
@@ -1182,10 +1201,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 (p->proto == IPPROTO_UDP) ||
                 (p->proto == IPPROTO_SCTP && (p->flowflags & FLOW_PKT_ESTABLISHED)))
             {
-                alstate = FlowGetAppState(pflow);
+                has_state = (FlowGetAppState(pflow) != NULL);
                 alproto = FlowGetAppProtocol(pflow);
                 alversion = AppLayerParserGetStateVersion(pflow->alparser);
-                SCLogDebug("alstate %p, alproto %u", alstate, alproto);
+                SCLogDebug("alstate %s, alproto %u", has_state ? "true" : "false", alproto);
             } else {
                 SCLogDebug("packet doesn't have established flag set (proto %d)", p->proto);
             }
@@ -1278,26 +1297,27 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
     /* stateful app layer detection */
-    if ((p->flags & PKT_HAS_FLOW) && alstate != NULL) {
+    if ((p->flags & PKT_HAS_FLOW) && has_state) {
         /* initialize to 0(DE_STATE_MATCH_HAS_NEW_STATE) */
         memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
-        int has_state = DeStateFlowHasInspectableState(pflow, alproto, alversion, flags);
-        if (has_state == 1) {
+        int has_inspectable_state = DeStateFlowHasInspectableState(pflow, alproto, alversion, flags);
+        if (has_inspectable_state == 1) {
             DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p, pflow,
                                            flags, alproto, alversion);
-        } else if (has_state == 2) {
-            alstate = NULL;
+        } else if (has_inspectable_state == 2) {
+            /* no inspectable state, so pretend we don't have a state at all */
+            has_state = 0;
         }
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
 
     /* create our prefilter mask */
     SignatureMask mask = 0;
-    PacketCreateMask(p, &mask, alproto, alstate, smsg, app_decoder_events);
+    PacketCreateMask(p, &mask, alproto, has_state, smsg, app_decoder_events);
 
     /* run the mpm for each type */
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM);
-    DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flags, alproto, alstate, &sms_runflags);
+    DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flags, alproto, has_state, &sms_runflags);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM);
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PREFILTER);
@@ -1498,7 +1518,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* consider stateful sig matches */
         if (s->flags & SIG_FLAG_STATE_MATCH) {
-            if (alstate == NULL) {
+            if (has_state == 0) {
                 SCLogDebug("state matches but no state, we can't match");
                 goto next;
             }
@@ -1551,7 +1571,7 @@ next:
 
 end:
     /* see if we need to increment the inspect_id and reset the de_state */
-    if (alstate != NULL && AppLayerParserProtocolSupportsTxs(p->proto, alproto)) {
+    if (has_state && AppLayerParserProtocolSupportsTxs(p->proto, alproto)) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
         DeStateUpdateInspectTransactionId(pflow, flags);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
@@ -2046,7 +2066,7 @@ deonly:
  * SIG_MASK_REQUIRE_HTTP_STATE, SIG_MASK_REQUIRE_DCE_STATE
  */
 static void
-PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto, void *alstate, StreamMsg *smsg,
+PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto, int has_state, StreamMsg *smsg,
         int app_decoder_events)
 {
     /* no payload inspect flag doesn't apply to smsg */
@@ -2076,7 +2096,7 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto, void *alstate
         SCLogDebug("packet has flow");
         (*mask) |= SIG_MASK_REQUIRE_FLOW;
 
-        if (alstate != NULL) {
+        if (has_state) {
             switch(alproto) {
                 case ALPROTO_HTTP:
                     SCLogDebug("packet/flow has http state");
