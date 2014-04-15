@@ -131,7 +131,6 @@ int DetectSshSoftwareVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx
     }
 
     int ret = 0;
-    FLOWLOCK_RDLOCK(f);
     if ((flags & STREAM_TOCLIENT) && (ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
         SCLogDebug("looking for ssh server softwareversion %s length %"PRIu16" on %s", ssh->software_ver, ssh->len, ssh_state->srv_hdr.software_version);
         ret = (strncmp((char *) ssh_state->srv_hdr.software_version, (char *) ssh->software_ver, ssh->len) == 0)? 1 : 0;
@@ -139,7 +138,6 @@ int DetectSshSoftwareVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx
         SCLogDebug("looking for ssh client softwareversion %s length %"PRIu16" on %s", ssh->software_ver, ssh->len, ssh_state->cli_hdr.software_version);
         ret = (strncmp((char *) ssh_state->cli_hdr.software_version, (char *) ssh->software_ver, ssh->len) == 0)? 1 : 0;
     }
-    FLOWLOCK_UNLOCK(f);
     SCReturnInt(ret);
 }
 

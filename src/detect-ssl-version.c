@@ -131,8 +131,6 @@ int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         SCReturnInt(0);
     }
 
-    FLOWLOCK_RDLOCK(f);
-
     if (flags & STREAM_TOCLIENT) {
         SCLogDebug("server (toclient) version is 0x%02X",
                    app_state->server_connp.version);
@@ -142,8 +140,6 @@ int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                    app_state->client_connp.version);
         ver = app_state->client_connp.version;
     }
-
-    FLOWLOCK_UNLOCK(f);
 
     switch (ver) {
         case SSL_VERSION_2:
