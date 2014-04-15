@@ -1444,11 +1444,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                               s->mpm_pattern_id_mod_8)) {
                             goto next;
                         }
-                        if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, flags, alstate, p) != 1) {
+                        if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, p) != 1) {
                             goto next;
                         }
                     } else {
-                        if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, flags, alstate, p) != 1) {
+                        if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, p) != 1) {
                             goto next;
                         }
                     }
@@ -1460,12 +1460,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                           s->mpm_pattern_id_mod_8)) {
                         goto next;
                     }
-                    if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, flags, alstate, p) != 1) {
+                    if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, p) != 1) {
                         goto next;
                     }
 
                 } else {
-                    if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, flags, alstate, p) != 1)
+                    if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, p) != 1)
                         goto next;
                 }
             }

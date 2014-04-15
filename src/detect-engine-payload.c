@@ -46,16 +46,13 @@
  *  \param det_ctx Detection engine thread context
  *  \param s Signature to inspect
  *  \param f flow (for pcre flowvar storage)
- *  \param flags app layer flags
- *  \param state App layer state
  *  \param p Packet
  *
  *  \retval 0 no match
  *  \retval 1 match
  */
 int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags,
-        void *alstate, Packet *p)
+        DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, Packet *p)
 {
     SCEnter();
     int r = 0;
