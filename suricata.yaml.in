@@ -96,6 +96,9 @@ outputs:
         - alert
         - http:
             extended: yes     # enable this for extended logging information
+            # custom allows additional http fields to be included in eve-log
+            # the example below adds three additional fields when uncommented
+            #custom: [Accept-Encoding, Accept-Language, Authorization]
         - dns
         - tls:
             extended: yes     # enable this for extended logging information
