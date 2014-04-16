@@ -2999,61 +2999,36 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 data_len = 0;
             }
 
-            /* in midstream the window is unreliable as we don't know if
-             * window scaling is used. Therefore we assume max wscale and
-             * the window likely much larger than it should be. In our
-             * gap calc we cap it at 25k */
-            uint32_t window = stream->window;
-            if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) {
-                window = stream->window > 25000 ? 25000 : stream->window;
-                SCLogDebug("midstream: window for gap determination %u (%u)",
-                        window, stream->window);
-            }
-
-            /* don't conclude it's a gap straight away. If ra_base_seq is lower
-             * than last_ack - the window, we consider it a gap. */
-            if (SEQ_GT((stream->last_ack - window), ra_base_seq) ||
-                ssn->state > TCP_ESTABLISHED)
-            {
-                /* see what the length of the gap is, gap length is seg->seq -
-                 * (ra_base_seq +1) */
+            /* see what the length of the gap is, gap length is seg->seq -
+             * (ra_base_seq +1) */
 #ifdef DEBUG
-                uint32_t gap_len = seg->seq - next_seq;
-                SCLogDebug("expected next_seq %" PRIu32 ", got %" PRIu32 " , "
-                        "stream->last_ack %" PRIu32 ". Seq gap %" PRIu32"",
-                        next_seq, seg->seq, stream->last_ack, gap_len);
+            uint32_t gap_len = seg->seq - next_seq;
+            SCLogDebug("expected next_seq %" PRIu32 ", got %" PRIu32 " , "
+                    "stream->last_ack %" PRIu32 ". Seq gap %" PRIu32"",
+                    next_seq, seg->seq, stream->last_ack, gap_len);
 #endif
-                /* We have missed the packet and end host has ack'd it, so
-                 * IDS should advance it's ra_base_seq and should not consider this
-                 * packet any longer, even if it is retransmitted, as end host will
-                 * drop it anyway */
-                ra_base_seq = seg->seq - 1;
+            /* We have missed the packet and end host has ack'd it, so
+             * IDS should advance it's ra_base_seq and should not consider this
+             * packet any longer, even if it is retransmitted, as end host will
+             * drop it anyway */
+            ra_base_seq = seg->seq - 1;
 
-                /* send gap signal */
-                STREAM_SET_FLAGS(ssn, stream, p, flags);
-                AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                                      NULL, 0, flags|STREAM_GAP);
-                AppLayerProfilingStore(ra_ctx->app_tctx, p);
-                data_len = 0;
+            /* send gap signal */
+            STREAM_SET_FLAGS(ssn, stream, p, flags);
+            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                    NULL, 0, flags|STREAM_GAP);
+            AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
-                /* set a GAP flag and make sure not bothering this stream anymore */
-                SCLogDebug("STREAMTCP_STREAM_FLAG_GAP set");
-                stream->flags |= STREAMTCP_STREAM_FLAG_GAP;
+            /* set a GAP flag and make sure not bothering this stream anymore */
+            SCLogDebug("STREAMTCP_STREAM_FLAG_GAP set");
+            stream->flags |= STREAMTCP_STREAM_FLAG_GAP;
 
-                StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
-                SCPerfCounterIncr(ra_ctx->counter_tcp_reass_gap, tv->sc_perf_pca);
+            StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
+            SCPerfCounterIncr(ra_ctx->counter_tcp_reass_gap, tv->sc_perf_pca);
 #ifdef DEBUG
-                dbg_app_layer_gap++;
+            dbg_app_layer_gap++;
 #endif
-                break;
-            } else {
-                SCLogDebug("possible GAP, but waiting to see if out of order "
-                        "packets might solve that");
-#ifdef DEBUG
-                dbg_app_layer_gap_candidate++;
-#endif
-                break;
-            }
+            break;
         }
 
         int partial = FALSE;
@@ -3369,42 +3344,21 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                 smsg = NULL;
             }
 
-            /* in midstream the window is unreliable as we don't know if
-             * window scaling is used. Therefore we assume max wscale and
-             * the window likely much larger than it should be. In our
-             * gap calc we cap it at 25k */
-            uint32_t window = stream->window;
-            if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) {
-                window = stream->window > 25000 ? 25000 : stream->window;
-                SCLogDebug("midstream: window for gap determination %u (%u)",
-                        window, stream->window);
-            }
-
-            /* don't conclude it's a gap straight away. If ra_base_seq is lower
-             * than last_ack - the window, we consider it a gap. */
-            if (SEQ_GT((stream->last_ack - window), ra_base_seq) ||
-                ssn->state > TCP_ESTABLISHED)
-            {
-                /* see what the length of the gap is, gap length is seg->seq -
-                 * (ra_base_seq +1) */
+            /* see what the length of the gap is, gap length is seg->seq -
+             * (ra_base_seq +1) */
 #ifdef DEBUG
-                uint32_t gap_len = seg->seq - next_seq;
-                SCLogDebug("expected next_seq %" PRIu32 ", got %" PRIu32 " , "
-                        "stream->last_ack %" PRIu32 ". Seq gap %" PRIu32"",
-                        next_seq, seg->seq, stream->last_ack, gap_len);
+            uint32_t gap_len = seg->seq - next_seq;
+            SCLogDebug("expected next_seq %" PRIu32 ", got %" PRIu32 " , "
+                    "stream->last_ack %" PRIu32 ". Seq gap %" PRIu32"",
+                    next_seq, seg->seq, stream->last_ack, gap_len);
 #endif
-                stream->ra_raw_base_seq = ra_base_seq;
+            stream->ra_raw_base_seq = ra_base_seq;
 
-                /* We have missed the packet and end host has ack'd it, so
-                 * IDS should advance it's ra_base_seq and should not consider this
-                 * packet any longer, even if it is retransmitted, as end host will
-                 * drop it anyway */
-                ra_base_seq = seg->seq - 1;
-            } else {
-                SCLogDebug("possible GAP, but waiting to see if out of order "
-                        "packets might solve that");
-                break;
-            }
+            /* We have missed the packet and end host has ack'd it, so
+             * IDS should advance it's ra_base_seq and should not consider this
+             * packet any longer, even if it is retransmitted, as end host will
+             * drop it anyway */
+            ra_base_seq = seg->seq - 1;
         }
 
         int partial = FALSE;
