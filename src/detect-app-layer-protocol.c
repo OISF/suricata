@@ -40,10 +40,8 @@ int DetectAppLayerProtocolMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     int r = 0;
     DetectAppLayerProtocolData *data = (DetectAppLayerProtocolData *)m->ctx;
 
-    FLOWLOCK_RDLOCK(f);
     r = (data->negated) ? (f->alproto != data->alproto) :
         (f->alproto == data->alproto);
-    FLOWLOCK_UNLOCK(f);
 
     return r;
 }

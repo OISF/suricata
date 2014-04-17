@@ -142,8 +142,6 @@ int DetectSslStateMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         return 0;
     }
 
-    FLOWLOCK_RDLOCK(f);
-
     if ((ssd->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
         !(ssl_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO)) {
         result = 0;
@@ -166,7 +164,6 @@ int DetectSslStateMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
  end:
-    FLOWLOCK_UNLOCK(f);
     return result;
 }
 

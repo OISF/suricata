@@ -125,7 +125,6 @@ int DetectTlsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
     }
 
     int ret = 0;
-    FLOWLOCK_RDLOCK(f);
     SCLogDebug("looking for tls_data->ver 0x%02X (flags 0x%02X)", tls_data->ver, flags);
 
     if (flags & STREAM_TOCLIENT) {
@@ -137,7 +136,6 @@ int DetectTlsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
         if (tls_data->ver == ssl_state->client_connp.version)
             ret = 1;
     }
-    FLOWLOCK_UNLOCK(f);
 
     SCReturnInt(ret);
 }

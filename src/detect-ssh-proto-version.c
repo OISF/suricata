@@ -126,7 +126,6 @@ int DetectSshVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
     }
 
     int ret = 0;
-    FLOWLOCK_RDLOCK(f);
     if ((flags & STREAM_TOCLIENT) && (ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
         if (ssh->flags & SSH_FLAG_PROTOVERSION_2_COMPAT) {
             SCLogDebug("looking for ssh server protoversion 2 compat");
@@ -150,7 +149,6 @@ int DetectSshVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
             ret = (strncmp((char *) ssh_state->cli_hdr.proto_version, (char *) ssh->ver, ssh->len) == 0)? 1 : 0;
         }
     }
-    FLOWLOCK_UNLOCK(f);
     SCReturnInt(ret);
 }
 
