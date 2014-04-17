@@ -268,8 +268,7 @@ static int LogDropLogNetFilter (ThreadVars *tv, const Packet *p, void *data)
  * \retval bool TRUE or FALSE
  */
 static int LogDropCondition(ThreadVars *tv, const Packet *p) {
-    extern uint8_t engine_mode;
-    if (!IS_ENGINE_MODE_IPS(engine_mode)) {
+    if (!EngineModeIsIPS()) {
         SCLogDebug("engine is not running in inline mode, so returning");
         return FALSE;
     }
@@ -341,8 +340,7 @@ static void LogDropLogExitPrintStats(ThreadVars *tv, void *data) {
 int LogDropLogTest01()
 {
     int result = 0;
-    extern uint8_t engine_mode;
-    SET_ENGINE_MODE_IPS(engine_mode);
+    EngineModeSetIPS();
 
     uint8_t *buf = (uint8_t *) "GET /one/ HTTP/1.1\r\n"
         "Host: one.example.org\r\n";
@@ -404,6 +402,7 @@ int LogDropLogTest01()
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
+    EngineModeSetIDS();
     return result;
 }
 
@@ -411,8 +410,7 @@ int LogDropLogTest01()
 int LogDropLogTest02()
 {
     int result = 0;
-    extern uint8_t engine_mode;
-    SET_ENGINE_MODE_IPS(engine_mode);
+    EngineModeSetIPS();
 
     uint8_t *buf = (uint8_t *) "GET";
 
@@ -473,6 +471,8 @@ int LogDropLogTest02()
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
+
+    EngineModeSetIDS();
     return result;
 }
 

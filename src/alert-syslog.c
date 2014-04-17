@@ -57,7 +57,6 @@
 #define DEFAULT_ALERT_SYSLOG_LEVEL              LOG_ERR
 #define MODULE_NAME                             "AlertSyslog"
 
-extern uint8_t engine_mode;
 static int alert_syslog_level = DEFAULT_ALERT_SYSLOG_LEVEL;
 
 typedef struct AlertSyslogThread_ {
@@ -221,7 +220,7 @@ static TmEcode AlertSyslogIPv4(ThreadVars *tv, const Packet *p, void *data)
         PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
         PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
 
-        if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
+        if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
             action = "[Drop] ";
         } else if (pa->action & ACTION_DROP) {
             action = "[wDrop] ";
@@ -279,7 +278,7 @@ static TmEcode AlertSyslogIPv6(ThreadVars *tv, const Packet *p, void *data)
         PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
 
-        if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
+        if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
             action = "[Drop] ";
         } else if (pa->action & ACTION_DROP) {
             action = "[wDrop] ";
@@ -341,7 +340,7 @@ static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, const Packet *p, void *da
             continue;
         }
 
-        if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
+        if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
             action = "[Drop] ";
         } else if (pa->action & ACTION_DROP) {
             action = "[wDrop] ";

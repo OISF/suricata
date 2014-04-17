@@ -62,8 +62,6 @@
 
 #ifdef HAVE_LIBJANSSON
 
-extern int engine_mode;
-
 typedef struct JsonAlertLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
@@ -96,7 +94,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         char *action = "allowed";
         if (pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) {
             action = "blocked";
-        } else if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
+        } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
             action = "blocked";
         }
 
@@ -151,7 +149,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
         char *action = "allowed";
         if (pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) {
             action = "blocked";
-        } else if ((pa->action & ACTION_DROP) && IS_ENGINE_MODE_IPS(engine_mode)) {
+        } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
             action = "blocked";
         }
 

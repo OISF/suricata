@@ -194,7 +194,6 @@
 
 #include "runmodes.h"
 
-extern uint8_t engine_mode;
 extern int rule_reload;
 
 extern int engine_analysis;
@@ -10980,7 +10979,7 @@ static int SigTestDropFlow03(void)
     uint32_t http_buf2_len = sizeof(http_buf1) - 1;
 
     /* Set the engine mode to IPS */
-    SET_ENGINE_MODE_IPS(engine_mode);
+    EngineModeSetIPS();
 
     TcpSession ssn;
     Packet *p1 = NULL;
@@ -11133,7 +11132,7 @@ end:
     UTHFreePackets(&p2, 1);
 
     /* Restore mode to IDS */
-    SET_ENGINE_MODE_IDS(engine_mode);
+    EngineModeSetIDS();
     return result;
 }
 

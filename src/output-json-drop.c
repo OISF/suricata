@@ -289,8 +289,7 @@ static int JsonDropLogger(ThreadVars *tv, void *thread_data, const Packet *p)
  * \retval bool TRUE or FALSE
  */
 static int JsonDropLogCondition(ThreadVars *tv, const Packet *p) {
-    extern uint8_t engine_mode;
-    if (!IS_ENGINE_MODE_IPS(engine_mode)) {
+    if (!EngineModeIsIPS()) {
         SCLogDebug("engine is not running in inline mode, so returning");
         return FALSE;
     }
