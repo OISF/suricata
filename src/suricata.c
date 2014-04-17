@@ -2133,7 +2133,6 @@ int main(int argc, char **argv)
     NSS_NoDB_Init(NULL);
 #endif
 
-    PacketPoolInit(max_pending_packets);
     HostInitConfig(HOST_VERBOSE);
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         FlowInitConfig(FLOW_VERBOSE);
