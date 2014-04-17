@@ -289,6 +289,32 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             PACKET_PROFILING_APP_END(app_tctx, *alproto);
             f->data_al_so_far[dir] = 0;
         } else {
+            /* if the ssn is midstream, we may end up with a case where the
+             * start of an HTTP request is missing. We won't detect HTTP based
+             * on the request. However, the reply is fine, so we detect
+             * HTTP anyway. This leads to passing the incomplete request to
+             * the htp parser.
+             *
+             * This has been observed, where the http parser then saw many
+             * bogus requests in the incomplete data.
+             *
+             * To counter this case, a midstream session MUST find it's
+             * protocol in the toserver direction. If not, we assume the
+             * start of the request/toserver is incomplete and no reliable
+             * detection and parsing is possible. So we give up.
+             */
+            if ((ssn->flags & STREAMTCP_FLAG_MIDSTREAM) && !(ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK)) {
+                if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER)) {
+                    SCLogDebug("midstream end pd %p", ssn);
+                    /* midstream and toserver detection failed: give up */
+                    FlowSetSessionNoApplayerInspectionFlag(f);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+                    goto end;
+                }
+            }
+
             if (*alproto_otherdir != ALPROTO_UNKNOWN) {
                 first_data_dir = AppLayerParserGetFirstDataDir(f->proto, *alproto_otherdir);
 
@@ -332,12 +358,77 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     f->data_al_so_far[dir] = data_len;
                 }
             } else {
+                /* See if we're going to have to give up:
+                 *
+                 * If we're getting a lot of data in one direction and the
+                 * proto for this direction is unknown, proto detect will
+                 * hold up segments in the segment list in the stream.
+                 * They are held so that if we detect the protocol on the
+                 * opposing stream, we can still parse this side of the stream
+                 * as well. However, some sessions are very unbalanced. FTP
+                 * data channels, large PUT/POST request and many others, can
+                 * lead to cases where we would have to store many megabytes
+                 * worth of segments before we see the opposing stream. This
+                 * leads to risks of resource starvation.
+                 *
+                 * Here a cutoff point is enforced. If we've stored 100k in
+                 * one direction and we've seen no data in the other direction,
+                 * we give up. */
+                uint32_t size_ts = ssn->client.last_ack - ssn->client.isn - 1;
+                uint32_t size_tc = ssn->server.last_ack - ssn->server.isn - 1;
+                SCLogDebug("size_ts %u, size_tc %u", size_ts, size_tc);
+
                 if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
                     FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT)) {
                     FlowSetSessionNoApplayerInspectionFlag(f);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+
+                } else if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
+                        size_ts > 100000 && size_tc == 0)
+                {
+                    FlowSetSessionNoApplayerInspectionFlag(f);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                                                     APPLAYER_PROTO_DETECTION_SKIPPED);
+                } else if (FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) &&
+                        size_tc > 100000 && size_ts == 0)
+                {
+                    FlowSetSessionNoApplayerInspectionFlag(f);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                                                     APPLAYER_PROTO_DETECTION_SKIPPED);
+                /* little data in ts direction, pp done, pm not done (max
+                 * depth not reached), ts direction done, lots of data in
+                 * tc direction. */
+                } else if (size_tc > 100000 &&
+                           FLOW_IS_PP_DONE(f, STREAM_TOSERVER) && !(FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) &&
+                           FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT))
+                {
+                    FlowSetSessionNoApplayerInspectionFlag(f);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                                                     APPLAYER_PROTO_DETECTION_SKIPPED);
+                /* little data in tc direction, pp done, pm not done (max
+                 * depth not reached), tc direction done, lots of data in
+                 * ts direction. */
+                } else if (size_ts > 100000 &&
+                           FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) && !(FLOW_IS_PM_DONE(f, STREAM_TOCLIENT)) &&
+                           FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER))
+                {
+                    FlowSetSessionNoApplayerInspectionFlag(f);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
+                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                                                     APPLAYER_PROTO_DETECTION_SKIPPED);
                 }
             }
         }
