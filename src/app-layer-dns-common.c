@@ -587,7 +587,8 @@ static uint16_t DNSResponseGetNameByOffset(const uint8_t * const input, const ui
     }
 
     while (length != 0) {
-        if (length & 0xc0) {
+        int cnt = 0;
+        while (length & 0xc0) {
             uint16_t offset = ((length & 0x3f) << 8) + *(qdata+1);
             qdata = (const uint8_t *)input + offset;
 
@@ -598,6 +599,11 @@ static uint16_t DNSResponseGetNameByOffset(const uint8_t * const input, const ui
 
             length = *qdata;
             SCLogDebug("qry length %u", length);
+
+            if (cnt++ == 100) {
+                SCLogDebug("too many pointer iterations, loop?");
+                goto bad_data;
+            }
         }
         qdata++;
 
