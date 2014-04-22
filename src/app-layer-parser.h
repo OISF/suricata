@@ -28,10 +28,10 @@
 #include "app-layer-events.h"
 #include "util-file.h"
 
-#define APP_LAYER_PARSER_EOF            0x01
-#define APP_LAYER_PARSER_NO_INSPECTION  0x02
-#define APP_LAYER_PARSER_NO_REASSEMBLY  0x04
-
+#define APP_LAYER_PARSER_EOF                    0x01
+#define APP_LAYER_PARSER_NO_INSPECTION          0x02
+#define APP_LAYER_PARSER_NO_REASSEMBLY          0x04
+#define APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD  0x08
 
 
 /***** transaction handling *****/

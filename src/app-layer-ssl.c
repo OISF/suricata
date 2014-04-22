@@ -63,6 +63,7 @@ SCEnumCharMap tls_decoder_event_table[ ] = {
     { "HEARTBEAT_MESSAGE",           TLS_DECODER_EVENT_HEARTBEAT },
     { "INVALID_HEARTBEAT_MESSAGE",   TLS_DECODER_EVENT_INVALID_HEARTBEAT },
     { "OVERFLOW_HEARTBEAT_MESSAGE",  TLS_DECODER_EVENT_OVERFLOW_HEARTBEAT },
+    { "DATALEAK_HEARTBEAT_MISMATCH", TLS_DECODER_EVENT_DATALEAK_HEARTBEAT_MISMATCH },
     /* Certificates decoding messages */
     { "INVALID_CERTIFICATE",         TLS_DECODER_EVENT_INVALID_CERTIFICATE },
     { "CERTIFICATE_MISSING_ELEMENT", TLS_DECODER_EVENT_CERTIFICATE_MISSING_ELEMENT },
@@ -341,7 +342,7 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, uint8_t *input,
  * \retval The number of bytes parsed on success, 0 if nothing parsed, -1 on failure.
  */
 static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, uint8_t *input,
-                                       uint32_t input_len)
+                                       uint32_t input_len, uint8_t direction)
 {
     uint8_t hb_type;
     uint16_t payload_len;
@@ -351,34 +352,78 @@ static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, uint8_t *input,
     if (input_len < 3) {
         return 0;
     }
-
     hb_type = *input++;
 
-    if (!(hb_type == TLS_HB_REQUEST || hb_type == TLS_HB_RESPONSE)) {
+    if((ssl_state->flags & SSL_AL_FLAG_HB_INFLIGHT) == 0) {
+        ssl_state->flags |= SSL_AL_FLAG_HB_INFLIGHT;
+
+        if (direction) {
+            ssl_state->flags |= SSL_AL_FLAG_HB_SERVER_INIT;
+            SCLogDebug("HeartBeat Record type sent in the toclient "
+                       "direction!");
+        } else {
+            ssl_state->flags |= SSL_AL_FLAG_HB_CLIENT_INIT;
+            SCLogDebug("HeartBeat Record type sent in the toserver "
+                       "direction!");
+        }
+        // if we reach this poin then can we assume that the HB request is encrypted if so lets set the heartbeat record len
+        if (!(hb_type == TLS_HB_REQUEST || hb_type == TLS_HB_RESPONSE)) {
+            SCLogDebug("Encrypted HeartBeat Request In-flight");
+            ssl_state->hb_record_len = ssl_state->curr_connp->record_length;
+            return (ssl_state->curr_connp->record_length - 3);
+        }
+
+        payload_len = (*input++) << 8;
+        payload_len |= (*input++);
+
+        // check that the requested payload length is really present in record (CVE-2014-0160)
+        if ((uint32_t)(payload_len+3) > ssl_state->curr_connp->record_length) {
+            SCLogDebug("We have a short record in HeartBeat Request");
+            AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_OVERFLOW_HEARTBEAT);
+            return -1;
+        }
+
+        // check the padding length
+        // it must be at least 16 bytes (RFC 6520, section 4)
+        padding_len = ssl_state->curr_connp->record_length - payload_len - 3;
+        if (padding_len < 16) {
+            SCLogDebug("We have a short record in HeartBeat Request");
+            AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_HEARTBEAT);
+            return -1;
+        }
+
+        if (input_len < payload_len+padding_len) { // we don't have the payload
+            return 0;
+        }
+
+    //OpenSSL still seems to discard multiple in-flight heartbeats although some tools send multiple at once
+    } else if (direction == 1 && (ssl_state->flags & SSL_AL_FLAG_HB_INFLIGHT) && (ssl_state->flags & SSL_AL_FLAG_HB_SERVER_INIT)) {
+        SCLogDebug("Multiple In-Flight Server Intiated HeartBeats");
         AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_HEARTBEAT);
         return -1;
-    }
-
-    payload_len = (*input++) << 8;
-    payload_len |= (*input++);
-
-    // check that the requested payload length is really present in record (CVE-2014-0160)
-    if ((uint32_t)(payload_len+3) > ssl_state->curr_connp->record_length) {
-        AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_OVERFLOW_HEARTBEAT);
-        return -1;
-    }
-
-    // check the padding length
-    // it must be at least 16 bytes (RFC 6520, section 4)
-    padding_len = ssl_state->curr_connp->record_length - payload_len - 3;
-    if (padding_len < 16) {
+    } else if (direction == 0 && (ssl_state->flags & SSL_AL_FLAG_HB_INFLIGHT) && (ssl_state->flags & SSL_AL_FLAG_HB_CLIENT_INIT)) {
+        SCLogDebug("Multiple In-Flight Client Intiated HeartBeats");
         AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_HEARTBEAT);
         return -1;
+    } else {
+        //we have a HB record in the opposite direction of the request lets reset our flags
+        ssl_state->flags &= ~SSL_AL_FLAG_HB_INFLIGHT;
+        ssl_state->flags &= ~SSL_AL_FLAG_HB_SERVER_INIT;
+        ssl_state->flags &= ~SSL_AL_FLAG_HB_CLIENT_INIT;
+
+        // if we reach this poin then can we assume that the HB request is encrypted if so lets set the heartbeat record len
+        if (!(hb_type == TLS_HB_REQUEST || hb_type == TLS_HB_RESPONSE)) {
+            //check to see if the encrypted response is longer than the encrypted request
+            if (ssl_state->hb_record_len > 0 && ssl_state->hb_record_len < ssl_state->curr_connp->record_length) {
+                SCLogDebug("My Heart It's Bleeding.. OpenSSL HeartBleed Response");
+                AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_DATALEAK_HEARTBEAT_MISMATCH);
+                ssl_state->hb_record_len = 0;
+                return -1;
+            }
+        }
+        // reset the hb record len in-case we have legit hb's followed by a bad one
+        ssl_state->hb_record_len = 0;
     }
-
-    if (input_len < payload_len+padding_len) // we don't have the payload
-        return 0;
-
     // skip the heartbeat, 3 bytes were already parsed, e.g |18 03 02| for TLS 1.2
     return (ssl_state->curr_connp->record_length - 3);
 }
@@ -766,6 +811,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
     }
 
     switch (ssl_state->curr_connp->content_type) {
+
         /* we don't need any data from these types */
         case SSLV3_CHANGE_CIPHER_SPEC:
             ssl_state->flags |= SSL_AL_FLAG_CHANGE_CIPHER_SPEC;
@@ -782,10 +828,12 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
         case SSLV3_APPLICATION_PROTOCOL:
             if ((ssl_state->flags & SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC) &&
                 (ssl_state->flags & SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC)) {
-                /* set flags */
+                /*
                 AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION);
                 if (ssl_config.no_reassemble == 1)
                     AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
+                */
+                AppLayerParserStateSetFlag(pstate,APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD);
             }
 
             break;
@@ -822,14 +870,8 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
             }
 
             break;
-
         case SSLV3_HEARTBEAT_PROTOCOL:
-            if (ssl_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC) {
-                // stream is encrypted, so we cannot check the handshake :(
-                //AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_HEARTBEAT);
-                break;
-            }
-            retval = SSLv3ParseHeartbeatProtocol(ssl_state, input + parsed, input_len);
+            retval = SSLv3ParseHeartbeatProtocol(ssl_state, input + parsed, input_len, direction);
             if (retval < 0)
                 return -1;
             break;
