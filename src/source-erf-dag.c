@@ -78,6 +78,18 @@ NoErfDagSupportExit(ThreadVars *tv, void *initdata, void **data)
 #include "source-erf-dag.h"
 #include <dagapi.h>
 
+/* Minimum amount of data to read from the DAG at a time. */
+#define MINDATA 32768
+
+/* Maximum time (us) to wait for MINDATA to be read. */
+#define MAXWAIT 20000
+
+/* Poll interval in microseconds. */
+#define POLL_INTERVAL 1000;
+
+/* Number of bytes per loop to process before fetching more data. */
+#define BYTES_PER_LOOP (4 * 1024 * 1024) /* 4 MB */
+
 extern int max_pending_packets;
 extern uint8_t suricata_ctl_flags;
 
@@ -277,14 +289,15 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
      * Initialise DAG Polling parameters.
      */
     timerclear(&ewtn->maxwait);
-    ewtn->maxwait.tv_usec = 20 * 1000; /* 20ms timeout */
+    ewtn->maxwait.tv_usec = MAXWAIT;
     timerclear(&ewtn->poll);
-    ewtn->poll.tv_usec = 1 * 1000; /* 1ms poll interval */
+    ewtn->poll.tv_usec = POLL_INTERVAL;
 
     /* 32kB minimum data to return -- we still restrict the number of
      * pkts that are processed to a maximum of dag_max_read_packets.
      */
-    if (dag_set_stream_poll(ewtn->dagfd, ewtn->dagstream, 32*1024, &(ewtn->maxwait), &(ewtn->poll)) < 0) {
+    if (dag_set_stream_poll(ewtn->dagfd, ewtn->dagstream, MINDATA,
+            &(ewtn->maxwait), &(ewtn->poll)) < 0) {
         SCLogError(SC_ERR_ERF_DAG_STREAM_SET_FAILED,
             "Failed to set poll parameters for stream: %d, DAG: %s",
             ewtn->dagstream, ewtn->dagname);
@@ -400,7 +413,7 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
     *pkts_read = 0;
 
     while (((top - ewtn->btm) >= dag_record_size) &&
-        ((processed + dag_record_size) < 4*1024*1024)) {
+        ((processed + dag_record_size) < BYTES_PER_LOOP)) {
 
         /* Make sure we have at least one packet in the packet pool,
          * to prevent us from alloc'ing packets at line rate. */
@@ -416,8 +429,8 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
         rlen = ntohs(dr->rlen);
         hdr_type = dr->type;
 
-        /* If we don't have enough data to finsih processing this ERF record
-         * return and maybe next time we will.
+        /* If we don't have enough data to finish processing this ERF
+         * record return and maybe next time we will.
          */
         if ((top - ewtn->btm) < rlen)
             SCReturnInt(TM_ECODE_OK);
