@@ -86,9 +86,10 @@ static json_t *LogFileMetaGetUri(const Packet *p, const File *ff) {
                 if (s != NULL) {
                     js = json_string(s);
                     SCFree(s);
+                    if (js != NULL)
+                        return js;
                 }
             }
-            return js;
         }
     }
 
@@ -105,8 +106,9 @@ static json_t *LogFileMetaGetHost(const Packet *p, const File *ff) {
             if (s != NULL) {
                 js = json_string(s);
                 SCFree(s);
+                if (js != NULL)
+                    return js;
             }
-            return js;
         }
     }
 
@@ -127,8 +129,9 @@ static json_t *LogFileMetaGetReferer(const Packet *p, const File *ff) {
                 if (s != NULL) {
                     js = json_string(s);
                     SCFree(s);
+                    if (js != NULL)
+                        return js;
                 }
-                return js;
             }
         }
     }
@@ -150,8 +153,9 @@ static json_t *LogFileMetaGetUserAgent(const Packet *p, const File *ff) {
                 if (s != NULL) {
                     js = json_string(s);
                     SCFree(s);
+                    if (js != NULL)
+                        return js;
                 }
-                return js;
             }
         }
     }
