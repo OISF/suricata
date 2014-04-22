@@ -833,6 +833,8 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         ssn->client.next_seq = ssn->client.isn + 1;
 
         ssn->client.last_ack = TCP_GET_ACK(p);
+        ssn->server.last_ack = TCP_GET_SEQ(p);
+
         /** If the client has a wscale option the server had it too,
          *  so set the wscale for the server to max. Otherwise none
          *  will have the wscale opt just like it should. */
