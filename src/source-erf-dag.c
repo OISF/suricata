@@ -31,6 +31,7 @@
 #include "tm-threads.h"
 
 #include "util-privs.h"
+#include "util-device.h"
 #include "tmqh-packetpool.h"
 
 #ifndef HAVE_DAG
@@ -84,6 +85,8 @@ typedef struct ErfDagThreadVars_ {
     char dagname[DAGNAME_BUFSIZE];
 
     struct timeval maxwait, poll;   /* Could possibly be made static */
+
+    LiveDevice *livedev;
 
     uint64_t bytes;
     uint16_t packets;
@@ -189,6 +192,14 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
                    (char*)initdata);
         SCFree(ewtn);
         exit(EXIT_FAILURE);
+    }
+
+    ewtn->livedev = LiveGetDevice(initdata);
+    if (ewtn->livedev == NULL) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Unable to get %s live device",
+            (char *)initdata);
+        SCFree(ewtn);
+        SCReturnInt(TM_ECODE_FAILED);
     }
 
     SCLogInfo("Opening DAG: %s on stream: %d for processing",
@@ -428,7 +439,8 @@ static inline TmEcode ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top,
             break;
         case TYPE_ETH:
             if (dr->lctr) {
-                SCPerfCounterIncr(ewtn->drops, ewtn->tv->sc_perf_pca);
+                SCPerfCounterAddUI64(ewtn->drops, ewtn->tv->sc_perf_pca,
+                    ntohs(dr->lctr));
             }
             break;
         default:
@@ -541,6 +553,11 @@ void
 ReceiveErfDagThreadExitStats(ThreadVars *tv, void *data)
 {
     ErfDagThreadVars *ewtn = (ErfDagThreadVars *)data;
+
+    (void)SC_ATOMIC_SET(ewtn->livedev->pkts,
+        (uint64_t)SCPerfGetLocalCounterValue(ewtn->packets, tv->sc_perf_pca));
+    (void)SC_ATOMIC_SET(ewtn->livedev->drop,
+        (uint64_t)SCPerfGetLocalCounterValue(ewtn->drops, tv->sc_perf_pca));
 
     SCLogInfo("Stream: %d; Bytes: %"PRIu64"; Packets: %"PRIu64
         "; Drops: %"PRIu64,
