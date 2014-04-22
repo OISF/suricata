@@ -330,10 +330,7 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset)
 {
     DetectBytejumpData *data = NULL;
-    char *args[10] = {
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL
-    };
+    char args[10][64];
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
@@ -342,6 +339,8 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset)
     uint32_t nbytes;
     char *str_ptr;
     char *end_ptr;
+
+    memset(args, 0x00, sizeof(args));
 
     /* Execute the regex and populate args with captures. */
     ret = pcre_exec(parse_regex, parse_regex_study, optstr,
@@ -356,10 +355,11 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset)
      * This is because byte_jump can take 10 arguments, but PCRE only
      * supports 9 substrings, sigh.
      */
-    res = pcre_get_substring((char *)optstr, ov,
-                             MAX_SUBSTRINGS, 1, (const char **)&str_ptr);
+    char str[512] = "";
+    res = pcre_copy_substring((char *)optstr, ov,
+                             MAX_SUBSTRINGS, 1, str, sizeof(str));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed "
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_copy_substring failed "
                "for arg 1");
         goto error;
     }
@@ -369,10 +369,10 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset)
      * NOTE: Because of this, we cannot free args[1] as it is part of args[0],
      * and *yes* this *is* ugly.
      */
-    end_ptr = str_ptr;
+    end_ptr = str;
     while (!(isspace((unsigned char)*end_ptr) || (*end_ptr == ','))) end_ptr++;
     *(end_ptr++) = '\0';
-    args[0] = str_ptr;
+    strlcpy(args[0], str, sizeof(args[0]));
     numargs++;
 
     str_ptr = end_ptr;
@@ -381,17 +381,16 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset)
     while (!(isspace((unsigned char)*end_ptr) || (*end_ptr == ',')) && (*end_ptr != '\0'))
         end_ptr++;
     *(end_ptr++) = '\0';
-    args[1] = str_ptr;
+    strlcpy(args[1], str_ptr, sizeof(args[1]));
     numargs++;
 
     /* The remaining args are directly from PCRE substrings */
     for (i = 1; i < (ret - 1); i++) {
-        res = pcre_get_substring((char *)optstr, ov, MAX_SUBSTRINGS, i + 1, (const char **)&str_ptr);
+        res = pcre_copy_substring((char *)optstr, ov, MAX_SUBSTRINGS, i + 1, args[i+1], sizeof(args[0]));
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed for arg %d", i + 1);
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_copy_substring failed for arg %d", i + 1);
             goto error;
         }
-        args[i+1] = str_ptr;
         numargs++;
     }
 
@@ -510,18 +509,15 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset)
     /* This is max 23 so it will fit in a byte (see above) */
     data->nbytes = (uint8_t)nbytes;
 
-    for (i = 0; i < numargs; i++){
-        if (i == 1) continue; /* args[1] is part of args[0] */
-        if (args[i] != NULL) SCFree(args[i]);
-    }
     return data;
 
 error:
-    for (i = 0; i < numargs; i++){
-        if (i == 1) continue; /* args[1] is part of args[0] */
-        if (args[i] != NULL) SCFree(args[i]);
+    if (offset != NULL && *offset != NULL) {
+        SCFree(*offset);
+        *offset = NULL;
     }
-    if (data != NULL) DetectBytejumpFree(data);
+    if (data != NULL)
+        DetectBytejumpFree(data);
     return NULL;
 }
 
