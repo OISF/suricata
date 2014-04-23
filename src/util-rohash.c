@@ -56,7 +56,7 @@ typedef struct ROHashTableOffsets_ {
 
 /** \brief initialize a new rohash
  *
- *  \param hash_bits hash size as 2^hash_bits, so power of 2
+ *  \param hash_bits hash size as 2^hash_bits, so power of 2, max 31
  *  \param item_size size of the data to store
  *
  *  \retval table ptr or NULL on error
@@ -66,8 +66,8 @@ ROHashTable *ROHashInit(uint8_t hash_bits, uint16_t item_size) {
         SCLogError(SC_ERR_HASH_TABLE_INIT, "data size must be multiple of 4");
         return NULL;
     }
-    if (hash_bits < 4 || hash_bits > 32) {
-        SCLogError(SC_ERR_HASH_TABLE_INIT, "invalid hash_bits setting, valid range is 4-32");
+    if (hash_bits < 4 || hash_bits > 31) {
+        SCLogError(SC_ERR_HASH_TABLE_INIT, "invalid hash_bits setting, valid range is 4-31");
         return NULL;
     }
 
