@@ -338,6 +338,7 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, uint8_t *input,
  * \param sslstate  Pointer to the SSL state.
  * \param input     Pointer the received input data.
  * \param input_len Length in bytes of the received data.
+ * \param direction 1 toclient, 0 toserver
  *
  * \retval The number of bytes parsed on success, 0 if nothing parsed, -1 on failure.
  */
@@ -366,10 +367,11 @@ static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, uint8_t *input,
             SCLogDebug("HeartBeat Record type sent in the toserver "
                        "direction!");
         }
-        // if we reach this poin then can we assume that the HB request is encrypted if so lets set the heartbeat record len
+        /* if we reach this poin then can we assume that the HB request
+         * is encrypted if so lets set the heartbeat record len */
         if (!(hb_type == TLS_HB_REQUEST || hb_type == TLS_HB_RESPONSE)) {
-            SCLogDebug("Encrypted HeartBeat Request In-flight");
             ssl_state->hb_record_len = ssl_state->curr_connp->record_length;
+            SCLogDebug("Encrypted HeartBeat Request In-flight. Storing len %u", ssl_state->hb_record_len);
             return (ssl_state->curr_connp->record_length - 3);
         }
 
@@ -396,35 +398,46 @@ static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, uint8_t *input,
             return 0;
         }
 
-    //OpenSSL still seems to discard multiple in-flight heartbeats although some tools send multiple at once
-    } else if (direction == 1 && (ssl_state->flags & SSL_AL_FLAG_HB_INFLIGHT) && (ssl_state->flags & SSL_AL_FLAG_HB_SERVER_INIT)) {
+    /* OpenSSL still seems to discard multiple in-flight
+     * heartbeats although some tools send multiple at once */
+    } else if (direction == 1 && (ssl_state->flags & SSL_AL_FLAG_HB_INFLIGHT) &&
+            (ssl_state->flags & SSL_AL_FLAG_HB_SERVER_INIT)) {
         SCLogDebug("Multiple In-Flight Server Intiated HeartBeats");
         AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_HEARTBEAT);
         return -1;
-    } else if (direction == 0 && (ssl_state->flags & SSL_AL_FLAG_HB_INFLIGHT) && (ssl_state->flags & SSL_AL_FLAG_HB_CLIENT_INIT)) {
+    } else if (direction == 0 && (ssl_state->flags & SSL_AL_FLAG_HB_INFLIGHT) &&
+            (ssl_state->flags & SSL_AL_FLAG_HB_CLIENT_INIT)) {
         SCLogDebug("Multiple In-Flight Client Intiated HeartBeats");
         AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_HEARTBEAT);
         return -1;
     } else {
-        //we have a HB record in the opposite direction of the request lets reset our flags
+        /* we have a HB record in the opposite direction of the request
+         * lets reset our flags */
         ssl_state->flags &= ~SSL_AL_FLAG_HB_INFLIGHT;
         ssl_state->flags &= ~SSL_AL_FLAG_HB_SERVER_INIT;
         ssl_state->flags &= ~SSL_AL_FLAG_HB_CLIENT_INIT;
 
-        // if we reach this poin then can we assume that the HB request is encrypted if so lets set the heartbeat record len
+        /* if we reach this poin then can we assume that the HB request is
+         *encrypted if so lets set the heartbeat record len */
         if (!(hb_type == TLS_HB_REQUEST || hb_type == TLS_HB_RESPONSE)) {
-            //check to see if the encrypted response is longer than the encrypted request
-            if (ssl_state->hb_record_len > 0 && ssl_state->hb_record_len < ssl_state->curr_connp->record_length) {
-                SCLogDebug("My Heart It's Bleeding.. OpenSSL HeartBleed Response");
-                AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_DATALEAK_HEARTBEAT_MISMATCH);
+            /* check to see if the encrypted response is longer than the
+             * encrypted request */
+            if (ssl_state->hb_record_len > 0 &&
+                ssl_state->hb_record_len < ssl_state->curr_connp->record_length)
+            {
+                SCLogDebug("My Heart It's Bleeding.. OpenSSL HeartBleed Response (%u)",
+                        ssl_state->hb_record_len);
+                AppLayerDecoderEventsSetEvent(ssl_state->f,
+                        TLS_DECODER_EVENT_DATALEAK_HEARTBEAT_MISMATCH);
                 ssl_state->hb_record_len = 0;
                 return -1;
             }
         }
-        // reset the hb record len in-case we have legit hb's followed by a bad one
+        /* reset the hb record len in-case we have legit hb's followed by a bad one */
         ssl_state->hb_record_len = 0;
     }
-    // skip the heartbeat, 3 bytes were already parsed, e.g |18 03 02| for TLS 1.2
+
+    /* skip the heartbeat, 3 bytes were already parsed, e.g |18 03 02| for TLS 1.2 */
     return (ssl_state->curr_connp->record_length - 3);
 }
 
