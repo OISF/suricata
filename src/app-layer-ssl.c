@@ -3650,14 +3650,6 @@ static int SSLParserTest23(void)
         goto end;
     }
 
-    if (!AppLayerParserStateIssetFlag(f.alparser, APP_LAYER_PARSER_NO_INSPECTION) &&
-        !(ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
-        !(ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
-        printf("The flags should be set\n");
-        result = 0;
-        goto end;
-    }
-
     if (!(f.flags & FLOW_NOPAYLOAD_INSPECTION)) {
         printf("The flags should be set\n");
         result = 0;
