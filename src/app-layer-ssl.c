@@ -355,7 +355,15 @@ static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, uint8_t *input,
     }
     hb_type = *input++;
 
-    if((ssl_state->flags & SSL_AL_FLAG_HB_INFLIGHT) == 0) {
+    if (!(ssl_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC)) {
+        if (!(hb_type == TLS_HB_REQUEST || hb_type == TLS_HB_RESPONSE)) {
+            AppLayerDecoderEventsSetEvent(ssl_state->f,
+                    TLS_DECODER_EVENT_INVALID_HEARTBEAT);
+            return -1;
+        }
+    }
+
+    if ((ssl_state->flags & SSL_AL_FLAG_HB_INFLIGHT) == 0) {
         ssl_state->flags |= SSL_AL_FLAG_HB_INFLIGHT;
 
         if (direction) {
@@ -369,7 +377,7 @@ static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, uint8_t *input,
         }
         /* if we reach this poin then can we assume that the HB request
          * is encrypted if so lets set the heartbeat record len */
-        if (!(hb_type == TLS_HB_REQUEST || hb_type == TLS_HB_RESPONSE)) {
+        if (ssl_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC) {
             ssl_state->hb_record_len = ssl_state->curr_connp->record_length;
             SCLogDebug("Encrypted HeartBeat Request In-flight. Storing len %u", ssl_state->hb_record_len);
             return (ssl_state->curr_connp->record_length - 3);
@@ -419,7 +427,7 @@ static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, uint8_t *input,
 
         /* if we reach this poin then can we assume that the HB request is
          *encrypted if so lets set the heartbeat record len */
-        if (!(hb_type == TLS_HB_REQUEST || hb_type == TLS_HB_RESPONSE)) {
+        if (ssl_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC) {
             /* check to see if the encrypted response is longer than the
              * encrypted request */
             if (ssl_state->hb_record_len > 0 &&
