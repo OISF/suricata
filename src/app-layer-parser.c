@@ -852,6 +852,7 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
     /* In cases like HeartBleed for TLS we need to inspect AppLayer but not Payload */
     if (pstate->flags & APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD) {
         FlowSetNoPayloadInspectionFlag(f);
+        AppLayerParserTriggerRawStreamReassembly(f);
     }
 
     /* next, see if we can get rid of transactions now */
