@@ -171,6 +171,11 @@ enum {
     AFP_KERNEL_DROP,
 };
 
+enum {
+    AFP_FATAL_ERROR = 1,
+    AFP_RECOVERABLE_ERROR,
+};
+
 union thdr {
     struct tpacket2_hdr *h2;
     void *raw;
@@ -1127,10 +1132,22 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
         /* Wait for our turn, threads before us must have opened the socket */
         while (AFPPeersListWaitTurn(ptv->mpeer)) {
             usleep(1000);
+            if (suricata_ctl_flags != 0) {
+                break;
+            }
         }
         r = AFPCreateSocket(ptv, ptv->iface, 1);
         if (r < 0) {
-            SCLogError(SC_ERR_AFP_CREATE, "Couldn't init AF_PACKET socket");
+            switch (-r) {
+                case AFP_FATAL_ERROR:
+                    SCLogError(SC_ERR_AFP_CREATE, "Couldn't init AF_PACKET socket, fatal error");
+                    /* fatal is fatal, we want suri to exit */
+                    EngineKill();
+                    //tv->aof = THV_ENGINE_EXIT;
+                    SCReturnInt(TM_ECODE_FAILED);
+                case AFP_RECOVERABLE_ERROR:
+                    SCLogWarning(SC_ERR_AFP_CREATE, "Couldn't init AF_PACKET socket, retrying soon");
+            }
         }
         AFPPeersListReachedInc();
     }
@@ -1346,6 +1363,7 @@ frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + siz
 static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
 {
     int r;
+    int ret = AFP_FATAL_ERROR;
     struct packet_mreq sock_params;
     struct sockaddr_ll bind_address;
     int order;
@@ -1367,6 +1385,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
     if (bind_address.sll_ifindex == -1) {
         if (verbose)
             SCLogError(SC_ERR_AFP_CREATE, "Couldn't find iface %s", devname);
+        ret = AFP_RECOVERABLE_ERROR;
         goto socket_err;
     }
 
@@ -1423,6 +1442,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
                         devname, strerror(errno));
             }
         }
+        ret = AFP_RECOVERABLE_ERROR;
         goto frame_err;
     }
 
@@ -1450,6 +1470,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
                     "Can not acces to interface '%s'",
                     ptv->iface);
         }
+        ret = AFP_RECOVERABLE_ERROR;
         goto frame_err;
     }
     if ((if_flags & IFF_UP) == 0) {
@@ -1458,6 +1479,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
                     "Interface '%s' is down",
                     ptv->iface);
         }
+        ret = AFP_RECOVERABLE_ERROR;
         goto frame_err;
     }
 
@@ -1578,7 +1600,7 @@ socket_err:
     close(ptv->socket);
     ptv->socket = -1;
 error:
-    return -1;
+    return -ret;
 }
 
 TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
