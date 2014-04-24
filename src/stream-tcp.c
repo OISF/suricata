@@ -5223,6 +5223,18 @@ void StreamTcpSetSessionNoReassemblyFlag (TcpSession *ssn, char direction)
                 (ssn->client.flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY);
 }
 
+/** \brief  Set the No reassembly flag for the given direction in given TCP
+ *          session.
+ *
+ * \param ssn TCP Session to set the flag in
+ * \param direction direction to set the flag in: 0 toserver, 1 toclient
+ */
+void StreamTcpSetDisableRawReassemblyFlag (TcpSession *ssn, char direction)
+{
+    direction ? (ssn->server.flags |= STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED) :
+                (ssn->client.flags |= STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED);
+}
+
 #define PSEUDO_PKT_SET_IPV4HDR(nipv4h,ipv4h) do { \
         IPV4_SET_RAW_VER(nipv4h, IPV4_GET_RAW_VER(ipv4h)); \
         IPV4_SET_RAW_HLEN(nipv4h, IPV4_GET_RAW_HLEN(ipv4h)); \

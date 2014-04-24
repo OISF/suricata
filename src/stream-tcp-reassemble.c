@@ -1882,6 +1882,14 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     seg->payload_len = size;
     seg->seq = TCP_GET_SEQ(p);
 
+    /* if raw reassembly is disabled for new segments, flag each
+     * segment as complete for raw before insert */
+    if (stream->flags & STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED) {
+        seg->flags |= SEGMENTTCP_FLAG_RAW_PROCESSED;
+        SCLogDebug("segment %p flagged with SEGMENTTCP_FLAG_RAW_PROCESSED, "
+                   "flags %02x", seg, seg->flags);
+    }
+
     /* proto detection skipped, but now we do get data. Set event. */
     if (stream->seg_list == NULL &&
         stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED) {
@@ -1962,6 +1970,12 @@ static int StreamTcpReassembleRawCheckLimit(TcpSession *ssn, TcpStream *stream,
     if (ssn->flags & STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY) {
         SCLogDebug("reassembling now as STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY is set");
         ssn->flags &= ~STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY;
+        SCReturnInt(1);
+    }
+
+    if (stream->flags & STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED) {
+        SCLogDebug("reassembling now as STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED is set, "
+                "so no new segments will be considered");
         SCReturnInt(1);
     }
 
@@ -2725,10 +2739,8 @@ static inline int StreamTcpReturnSegmentCheck(const Flow *f, TcpSession *ssn, Tc
     }
 
     /* check raw reassembly conditions */
-    if (!(f->flags & FLOW_NOPAYLOAD_INSPECTION)) {
-        if (!(seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED)) {
-            SCReturnInt(0);
-        }
+    if (!(seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED)) {
+        SCReturnInt(0);
     }
 
     SCReturnInt(1);
@@ -2933,6 +2945,10 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             TcpSegment *next_seg = seg->next;
             StreamTcpRemoveSegmentFromStream(stream, seg);
             StreamTcpSegmentReturntoPool(seg);
+            seg = next_seg;
+            continue;
+        } else if (StreamTcpAppLayerSegmentProcessed(stream, seg)) {
+            TcpSegment *next_seg = seg->next;
             seg = next_seg;
             continue;
         }
@@ -3235,16 +3251,15 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                 seg, seg->seq, seg->payload_len,
                 (uint32_t)(seg->seq + seg->payload_len), seg->flags);
 
-        if (p->flow->flags & FLOW_NOPAYLOAD_INSPECTION) {
-            SCLogDebug("FLOW_NOPAYLOAD_INSPECTION set, breaking out");
-            break;
-        }
-
         if (StreamTcpReturnSegmentCheck(p->flow, ssn, stream, seg) == 1) {
             SCLogDebug("removing segment");
             TcpSegment *next_seg = seg->next;
             StreamTcpRemoveSegmentFromStream(stream, seg);
             StreamTcpSegmentReturntoPool(seg);
+            seg = next_seg;
+            continue;
+        } else if(seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) {
+            TcpSegment *next_seg = seg->next;
             seg = next_seg;
             continue;
         }
