@@ -55,6 +55,7 @@
 typedef struct LogHttpFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
+    uint64_t fields;/** Store fields */
 } LogHttpFileCtx;
 
 typedef struct JsonHttpLogThread_ {
@@ -68,7 +69,115 @@ typedef struct JsonHttpLogThread_ {
 
 #define LOG_HTTP_DEFAULT 0
 #define LOG_HTTP_EXTENDED 1
-#define LOG_HTTP_CUSTOM 2
+#define LOG_HTTP_REQUEST 2 /* request field */
+#define LOG_HTTP_ARRAY 4 /* require array handling */
+
+typedef enum {
+    LOG_HTTP_ACCEPT = 0,
+    LOG_HTTP_ACCEPT_CHARSET,
+    LOG_HTTP_ACCEPT_ENCODING,
+    LOG_HTTP_ACCEPT_LANGUAGE,
+    LOG_HTTP_ACCEPT_DATETIME,
+    LOG_HTTP_AUTHORIZATION,
+    LOG_HTTP_CACHE_CONTROL,
+    LOG_HTTP_CONNECTION,
+    LOG_HTTP_FROM,
+    LOG_HTTP_MAX_FORWARDS,
+    LOG_HTTP_ORIGIN,
+    LOG_HTTP_PRAGMA,
+    LOG_HTTP_PROXY_AUTHORIZATION,
+    LOG_HTTP_RANGE,
+    LOG_HTTP_TE,
+    LOG_HTTP_VIA,
+    LOG_HTTP_X_REQUESTED_WITH,
+    LOG_HTTP_DNT,
+    LOG_HTTP_X_FORWARDED_PROTO,
+    LOG_HTTP_ACCEPT_RANGES,
+    LOG_HTTP_AGE,
+    LOG_HTTP_ALLOW,
+    LOG_HTTP_CONTENT_ENCODING,
+    LOG_HTTP_CONTENT_LANGUAGE,
+    LOG_HTTP_CONTENT_LENGTH,
+    LOG_HTTP_CONTENT_LOCATION,
+    LOG_HTTP_CONTENT_MD5,
+    LOG_HTTP_CONTENT_RANGE,
+    LOG_HTTP_CONTENT_TYPE,
+    LOG_HTTP_DATE,
+    LOG_HTTP_ETAG,
+    LOG_HTTP_EXPIRES,
+    LOG_HTTP_LAST_MODIFIED,
+    LOG_HTTP_LINK,
+    LOG_HTTP_LOCATION,
+    LOG_HTTP_PROXY_AUTHENTICATE,
+    LOG_HTTP_REFERRER,
+    LOG_HTTP_REFRESH,
+    LOG_HTTP_RETRY_AFTER,
+    LOG_HTTP_SERVER,
+    LOG_HTTP_SET_COOKIE,
+    LOG_HTTP_TRAILER,
+    LOG_HTTP_TRANSFER_ENCODING,
+    LOG_HTTP_UPGRADE,
+    LOG_HTTP_VARY,
+    LOG_HTTP_WARNING,
+    LOG_HTTP_WWW_AUTHENTICATE,
+    LOG_HTTP_SIZE
+} HttpField;
+
+struct {
+    char *config_field;
+    char *htp_field;
+    uint32_t flags;
+} http_fields[] =  {
+    { "accept", "accept", LOG_HTTP_REQUEST },
+    { "accept_charset", "accept-charset", LOG_HTTP_REQUEST },
+    { "accept_encoding", "accept-encoding", LOG_HTTP_REQUEST },
+    { "accept_language", "accept-language", LOG_HTTP_REQUEST },
+    { "accept_datetime", "accept-datetime", LOG_HTTP_REQUEST },
+    { "authorization", "authorization", LOG_HTTP_REQUEST },
+    { "cache_control", "cache-control", LOG_HTTP_REQUEST },
+    { "cookie", "cookie", LOG_HTTP_REQUEST|LOG_HTTP_ARRAY },
+    { "from", "from", LOG_HTTP_REQUEST },
+    { "max_forwards", "max-forwards", LOG_HTTP_REQUEST },
+    { "origin", "origin", LOG_HTTP_REQUEST },
+    { "pragma", "pragma", LOG_HTTP_REQUEST },
+    { "proxy_authorization", "proxy-authorization", LOG_HTTP_REQUEST },
+    { "range", "range", LOG_HTTP_REQUEST },
+    { "te", "te", LOG_HTTP_REQUEST },
+    { "via", "via", LOG_HTTP_REQUEST },
+    { "x_requested_with", "x-requested-with", LOG_HTTP_REQUEST },
+    { "dnt", "dnt", LOG_HTTP_REQUEST },
+    { "x_forwarded_proto", "x-forwarded-proto", LOG_HTTP_REQUEST },
+    { "accept_range", "accept-range", 0 },
+    { "age", "age", 0 },
+    { "allow", "allow", 0 },
+    { "connection", "connection", 0 },
+    { "content_encoding", "content-encoding", 0 },
+    { "content_language", "content-language", 0 },
+    { "content_length", "content-length", 0 },
+    { "content_location", "content-location", 0 },
+    { "content_md5", "content-md5", 0 },
+    { "content_range", "content-range", 0 },
+    { "content_type", "content-type", 0 },
+    { "date", "date", 0 },
+    { "etag", "etags", 0 },
+    { "expires", "expires" , 0 },
+    { "last_modified", "last-modified", 0 },
+    { "link", "link", 0 },
+    { "location", "location", 0 },
+    { "proxy_authenticate", "proxy-authenticate", 0 },
+    { "referrer", "referrer", LOG_HTTP_EXTENDED },
+    { "refresh", "refresh", 0 },
+    { "retry_after", "retry-after", 0 },
+    { "server", "server", 0 },
+    { "set_cookie", "set-cookie", 0 },
+    { "trailer", "trailer", 0 },
+    { "transfer_encoding", "transfser-encoding", 0 },
+    { "upgrade", "upgrade", 0 },
+    { "vary", "vary", 0 },
+    { "warning", "warning", 0 },
+    { "www_authenticate", "www-authenticate", 0 },
+};
+
 
 /* JSON format logging */
 static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
@@ -147,7 +256,49 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
         }
     }
 
+    /* log custom fields if configured */
+    if (http_ctx->fields != 0)
+    {
+        HttpField i;
+        for (i = LOG_HTTP_ACCEPT; i < LOG_HTTP_SIZE; i++)
+        {
+            if ((http_ctx->fields & (1<<i)) != 0)
+            {
+                /* prevent logging a field twice if extended logging is
+                   enabled */
+                if (((http_ctx->flags & LOG_HTTP_EXTENDED) == 0) ||
+                    ((http_ctx->flags & LOG_HTTP_EXTENDED) !=
+                          (http_fields[i].flags & LOG_HTTP_EXTENDED)))
+                {
+                    htp_header_t *h_field = NULL;
+                    if ((http_fields[i].flags & LOG_HTTP_REQUEST) != 0)
+                    {
+                        if (tx->request_headers != NULL) {
+                            h_field = htp_table_get_c(tx->request_headers,
+                                                      http_fields[i].htp_field);
+                        }
+                    } else {
+                        if (tx->response_headers != NULL) {
+                            h_field = htp_table_get_c(tx->response_headers,
+                                                      http_fields[i].htp_field);
+                        }
+                    }
+                    if (h_field != NULL) {
+                        c = bstr_util_strdup_to_c(h_field->value);
+                        if (c != NULL) {
+                            json_object_set_new(hjs,
+                                    http_fields[i].config_field,
+                                    json_string(c));
+                            SCFree(c);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     if (http_ctx->flags & LOG_HTTP_EXTENDED) {
+
         /* referer */
         htp_header_t *h_referer = NULL;
         if (tx->request_headers != NULL) {
@@ -319,6 +470,29 @@ OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         if (extended != NULL) {
             if (ConfValIsTrue(extended)) {
                 http_ctx->flags = LOG_HTTP_EXTENDED;
+            }
+        }
+
+        ConfNode *custom;
+        if ((custom = ConfNodeLookupChild(conf, "custom")) != NULL) {
+            ConfNode *field;
+            TAILQ_FOREACH(field, &custom->head, next)
+            {
+                if (field != NULL)
+                {
+                    HttpField i;
+                    for (i = LOG_HTTP_ACCEPT; i < LOG_HTTP_SIZE; i++)
+                    {
+                        if ((strcmp(http_fields[i].config_field,
+                                   field->val) == 0) ||
+                            (strcasecmp(http_fields[i].htp_field,
+                                        field->val) == 0))
+                        {
+                            http_ctx->fields |= (1<<i);
+                            break;
+                        }
+                    }
+                }
             }
         }
     }
