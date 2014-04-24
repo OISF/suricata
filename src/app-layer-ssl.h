@@ -38,6 +38,7 @@ enum {
     TLS_DECODER_EVENT_HEARTBEAT,
     TLS_DECODER_EVENT_INVALID_HEARTBEAT,
     TLS_DECODER_EVENT_OVERFLOW_HEARTBEAT,
+    TLS_DECODER_EVENT_DATALEAK_HEARTBEAT_MISMATCH,
     /* Certificates decoding messages */
     TLS_DECODER_EVENT_INVALID_CERTIFICATE,
     TLS_DECODER_EVENT_CERTIFICATE_MISSING_ELEMENT,
@@ -70,6 +71,11 @@ enum {
 #define SSL_AL_FLAG_STATE_UNKNOWN               0x2000
 
 #define SSL_AL_FLAG_STATE_LOGGED                0x4000
+
+/* flags specific to HeartBeat state */
+#define SSL_AL_FLAG_HB_INFLIGHT                 0x8000
+#define SSL_AL_FLAG_HB_CLIENT_INIT              0x10000
+#define SSL_AL_FLAG_HB_SERVER_INIT		0x20000
 
 /* config flags */
 #define SSL_TLS_LOG_PEM                         (1 << 0)
@@ -151,6 +157,9 @@ typedef struct SSLState_ {
 
     SSLStateConnp client_connp;
     SSLStateConnp server_connp;
+
+    /* there might be a better place to store this*/
+    uint16_t hb_record_len;
 } SSLState;
 
 void RegisterSSLParsers(void);
