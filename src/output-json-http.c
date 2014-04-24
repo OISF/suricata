@@ -73,54 +73,54 @@ typedef struct JsonHttpLogThread_ {
 #define LOG_HTTP_ARRAY 4 /* require array handling */
 
 typedef enum {
-    LOG_HTTP_ACCEPT = 0,
-    LOG_HTTP_ACCEPT_CHARSET,
-    LOG_HTTP_ACCEPT_ENCODING,
-    LOG_HTTP_ACCEPT_LANGUAGE,
-    LOG_HTTP_ACCEPT_DATETIME,
-    LOG_HTTP_AUTHORIZATION,
-    LOG_HTTP_CACHE_CONTROL,
-    LOG_HTTP_CONNECTION,
-    LOG_HTTP_FROM,
-    LOG_HTTP_MAX_FORWARDS,
-    LOG_HTTP_ORIGIN,
-    LOG_HTTP_PRAGMA,
-    LOG_HTTP_PROXY_AUTHORIZATION,
-    LOG_HTTP_RANGE,
-    LOG_HTTP_TE,
-    LOG_HTTP_VIA,
-    LOG_HTTP_X_REQUESTED_WITH,
-    LOG_HTTP_DNT,
-    LOG_HTTP_X_FORWARDED_PROTO,
-    LOG_HTTP_ACCEPT_RANGES,
-    LOG_HTTP_AGE,
-    LOG_HTTP_ALLOW,
-    LOG_HTTP_CONTENT_ENCODING,
-    LOG_HTTP_CONTENT_LANGUAGE,
-    LOG_HTTP_CONTENT_LENGTH,
-    LOG_HTTP_CONTENT_LOCATION,
-    LOG_HTTP_CONTENT_MD5,
-    LOG_HTTP_CONTENT_RANGE,
-    LOG_HTTP_CONTENT_TYPE,
-    LOG_HTTP_DATE,
-    LOG_HTTP_ETAG,
-    LOG_HTTP_EXPIRES,
-    LOG_HTTP_LAST_MODIFIED,
-    LOG_HTTP_LINK,
-    LOG_HTTP_LOCATION,
-    LOG_HTTP_PROXY_AUTHENTICATE,
-    LOG_HTTP_REFERRER,
-    LOG_HTTP_REFRESH,
-    LOG_HTTP_RETRY_AFTER,
-    LOG_HTTP_SERVER,
-    LOG_HTTP_SET_COOKIE,
-    LOG_HTTP_TRAILER,
-    LOG_HTTP_TRANSFER_ENCODING,
-    LOG_HTTP_UPGRADE,
-    LOG_HTTP_VARY,
-    LOG_HTTP_WARNING,
-    LOG_HTTP_WWW_AUTHENTICATE,
-    LOG_HTTP_SIZE
+    HTTP_FIELD_ACCEPT = 0,
+    HTTP_FIELD_ACCEPT_CHARSET,
+    HTTP_FIELD_ACCEPT_ENCODING,
+    HTTP_FIELD_ACCEPT_LANGUAGE,
+    HTTP_FIELD_ACCEPT_DATETIME,
+    HTTP_FIELD_AUTHORIZATION,
+    HTTP_FIELD_CACHE_CONTROL,
+    HTTP_FIELD_CONNECTION,
+    HTTP_FIELD_FROM,
+    HTTP_FIELD_MAX_FORWARDS,
+    HTTP_FIELD_ORIGIN,
+    HTTP_FIELD_PRAGMA,
+    HTTP_FIELD_PROXY_AUTHORIZATION,
+    HTTP_FIELD_RANGE,
+    HTTP_FIELD_TE,
+    HTTP_FIELD_VIA,
+    HTTP_FIELD_X_REQUESTED_WITH,
+    HTTP_FIELD_DNT,
+    HTTP_FIELD_X_FORWARDED_PROTO,
+    HTTP_FIELD_ACCEPT_RANGES,
+    HTTP_FIELD_AGE,
+    HTTP_FIELD_ALLOW,
+    HTTP_FIELD_CONTENT_ENCODING,
+    HTTP_FIELD_CONTENT_LANGUAGE,
+    HTTP_FIELD_CONTENT_LENGTH,
+    HTTP_FIELD_CONTENT_LOCATION,
+    HTTP_FIELD_CONTENT_MD5,
+    HTTP_FIELD_CONTENT_RANGE,
+    HTTP_FIELD_CONTENT_TYPE,
+    HTTP_FIELD_DATE,
+    HTTP_FIELD_ETAG,
+    HTTP_FIELD_EXPIRES,
+    HTTP_FIELD_LAST_MODIFIED,
+    HTTP_FIELD_LINK,
+    HTTP_FIELD_LOCATION,
+    HTTP_FIELD_PROXY_AUTHENTICATE,
+    HTTP_FIELD_REFERRER,
+    HTTP_FIELD_REFRESH,
+    HTTP_FIELD_RETRY_AFTER,
+    HTTP_FIELD_SERVER,
+    HTTP_FIELD_SET_COOKIE,
+    HTTP_FIELD_TRAILER,
+    HTTP_FIELD_TRANSFER_ENCODING,
+    HTTP_FIELD_UPGRADE,
+    HTTP_FIELD_VARY,
+    HTTP_FIELD_WARNING,
+    HTTP_FIELD_WWW_AUTHENTICATE,
+    HTTP_FIELD_SIZE
 } HttpField;
 
 struct {
@@ -171,7 +171,7 @@ struct {
     { "server", "server", 0 },
     { "set_cookie", "set-cookie", 0 },
     { "trailer", "trailer", 0 },
-    { "transfer_encoding", "transfser-encoding", 0 },
+    { "transfer_encoding", "transfer-encoding", 0 },
     { "upgrade", "upgrade", 0 },
     { "vary", "vary", 0 },
     { "warning", "warning", 0 },
@@ -259,35 +259,35 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
     /* log custom fields if configured */
     if (http_ctx->fields != 0)
     {
-        HttpField i;
-        for (i = LOG_HTTP_ACCEPT; i < LOG_HTTP_SIZE; i++)
+        HttpField f;
+        for (f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++)
         {
-            if ((http_ctx->fields & (1<<i)) != 0)
+            if ((http_ctx->fields & (1<<f)) != 0)
             {
                 /* prevent logging a field twice if extended logging is
                    enabled */
                 if (((http_ctx->flags & LOG_HTTP_EXTENDED) == 0) ||
                     ((http_ctx->flags & LOG_HTTP_EXTENDED) !=
-                          (http_fields[i].flags & LOG_HTTP_EXTENDED)))
+                          (http_fields[f].flags & LOG_HTTP_EXTENDED)))
                 {
                     htp_header_t *h_field = NULL;
-                    if ((http_fields[i].flags & LOG_HTTP_REQUEST) != 0)
+                    if ((http_fields[f].flags & LOG_HTTP_REQUEST) != 0)
                     {
                         if (tx->request_headers != NULL) {
                             h_field = htp_table_get_c(tx->request_headers,
-                                                      http_fields[i].htp_field);
+                                                      http_fields[f].htp_field);
                         }
                     } else {
                         if (tx->response_headers != NULL) {
                             h_field = htp_table_get_c(tx->response_headers,
-                                                      http_fields[i].htp_field);
+                                                      http_fields[f].htp_field);
                         }
                     }
                     if (h_field != NULL) {
                         c = bstr_util_strdup_to_c(h_field->value);
                         if (c != NULL) {
                             json_object_set_new(hjs,
-                                    http_fields[i].config_field,
+                                    http_fields[f].config_field,
                                     json_string(c));
                             SCFree(c);
                         }
@@ -480,15 +480,15 @@ OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
             {
                 if (field != NULL)
                 {
-                    HttpField i;
-                    for (i = LOG_HTTP_ACCEPT; i < LOG_HTTP_SIZE; i++)
+                    HttpField f;
+                    for (f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++)
                     {
-                        if ((strcmp(http_fields[i].config_field,
+                        if ((strcmp(http_fields[f].config_field,
                                    field->val) == 0) ||
-                            (strcasecmp(http_fields[i].htp_field,
+                            (strcasecmp(http_fields[f].htp_field,
                                         field->val) == 0))
                         {
-                            http_ctx->fields |= (1<<i);
+                            http_ctx->fields |= (1<<f);
                             break;
                         }
                     }
