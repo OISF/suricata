@@ -165,6 +165,8 @@ enum
 #define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED 0x0080
 /** App proto detection skipped */
 #define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED 0x0100
+/** Raw reassembly disabled for new segments */
+#define STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED 0x0200
 
 /*
  * Per SEGMENT flags
