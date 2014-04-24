@@ -2699,7 +2699,7 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
  *  \retval 1 yes
  *  \retval 0 no
  */
-static inline int StreamTcpReturnSegmentCheck(TcpSession *ssn, TcpStream *stream, TcpSegment *seg) {
+static inline int StreamTcpReturnSegmentCheck(const Flow *f, TcpSession *ssn, TcpStream *stream, TcpSegment *seg) {
     if (stream == &ssn->client && ssn->toserver_smsg_head != NULL) {
         /* not (seg is entirely before first smsg, skip) */
         if (!(SEQ_LEQ(seg->seq + seg->payload_len, ssn->toserver_smsg_head->seq))) {
@@ -2711,6 +2711,26 @@ static inline int StreamTcpReturnSegmentCheck(TcpSession *ssn, TcpStream *stream
             SCReturnInt(0);
         }
     }
+
+    /* if proto detect isn't done, we're not returning */
+    if (!(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream))) {
+        SCReturnInt(0);
+    }
+
+    /* check app layer conditions */
+    if (!(f->flags & FLOW_NO_APPLAYER_INSPECTION)) {
+        if (!(StreamTcpAppLayerSegmentProcessed(stream, seg))) {
+            SCReturnInt(0);
+        }
+    }
+
+    /* check raw reassembly conditions */
+    if (!(f->flags & FLOW_NOPAYLOAD_INSPECTION)) {
+        if (!(seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED)) {
+            SCReturnInt(0);
+        }
+    }
+
     SCReturnInt(1);
 }
 
@@ -2736,7 +2756,6 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags) {
 
     /* loop through the segments and fill one or more msgs */
     TcpSegment *seg = stream->seg_list;
-    uint32_t ra_base_seq = stream->ra_app_base_seq;
 
     for (; seg != NULL && SEQ_LT(seg->seq, stream->last_ack);)
     {
@@ -2744,40 +2763,15 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags) {
                 seg, seg->seq, seg->payload_len,
                 (uint32_t)(seg->seq + seg->payload_len), seg->flags);
 
-        if (SEQ_LEQ((seg->seq + seg->payload_len), (ra_base_seq+1)) &&
-                   (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
-                    StreamTcpAppLayerSegmentProcessed(stream, seg))
-        {
-            if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
-                break;
-            }
-
-            SCLogDebug("removing pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32
-                    " len %"PRIu16"", ra_base_seq, seg, seg->seq, seg->payload_len);
-
-            TcpSegment *next_seg = seg->next;
-            StreamTcpRemoveSegmentFromStream(stream, seg);
-            StreamTcpSegmentReturntoPool(seg);
-            seg = next_seg;
-            continue;
-
-        } else if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream) &&
-                  (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
-                   StreamTcpAppLayerSegmentProcessed(stream, seg))
-        {
-            if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
-                break;
-            }
-
-            SCLogDebug("segment(%p) of length %"PRIu16" has been processed,"
-                    " so return it to pool", seg, seg->payload_len);
-            TcpSegment *next_seg = seg->next;
-            seg = next_seg;
-            continue;
-        } else {
-            /* give up */
+        if (StreamTcpReturnSegmentCheck(f, ssn, stream, seg) == 0) {
             break;
         }
+
+        TcpSegment *next_seg = seg->next;
+        StreamTcpRemoveSegmentFromStream(stream, seg);
+        StreamTcpSegmentReturntoPool(seg);
+        seg = next_seg;
+        continue;
     }
 }
 
@@ -2930,55 +2924,15 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 (uint32_t)(seg->seq + seg->payload_len));
 
         if (p->flow->flags & FLOW_NO_APPLAYER_INSPECTION) {
-            if (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) {
-                SCLogDebug("removing seg %p seq %"PRIu32
-                           " len %"PRIu16"", seg, seg->seq, seg->payload_len);
+            SCLogDebug("FLOW_NO_APPLAYER_INSPECTION set, breaking out");
+            break;
+        }
 
-                TcpSegment *next_seg = seg->next;
-                StreamTcpRemoveSegmentFromStream(stream, seg);
-                StreamTcpSegmentReturntoPool(seg);
-                seg = next_seg;
-                continue;
-            } else {
-                break;
-            }
-
-            /* Remove the segments which are either completely before the
-             * ra_base_seq and processed by both app layer and raw reassembly. */
-        } else if (SEQ_LEQ((seg->seq + seg->payload_len), (ra_base_seq+1)) &&
-                   (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
-                   (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) {
-            if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
-                seg = seg->next;
-                continue;
-            }
-
-            SCLogDebug("removing pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32
-                    " len %"PRIu16"", ra_base_seq, seg, seg->seq, seg->payload_len);
-
+        if (StreamTcpReturnSegmentCheck(p->flow, ssn, stream, seg) == 1) {
+            SCLogDebug("removing segment");
             TcpSegment *next_seg = seg->next;
             StreamTcpRemoveSegmentFromStream(stream, seg);
             StreamTcpSegmentReturntoPool(seg);
-            seg = next_seg;
-            continue;
-        }
-
-        /* if app layer protocol has been detected, then remove all the segments
-           which has been previously processed and reassembled */
-        if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream) &&
-                (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
-                (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
-        {
-            if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
-                next_seq = seg->seq + seg->payload_len;
-                seg = seg->next;
-                continue;
-            }
-
-            SCLogDebug("segment(%p) of length %"PRIu16" has been processed,"
-                    " so return it to pool", seg, seg->payload_len);
-            next_seq = seg->seq + seg->payload_len;
-            TcpSegment *next_seg = seg->next;
             seg = next_seg;
             continue;
         }
@@ -3281,50 +3235,16 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                 seg, seg->seq, seg->payload_len,
                 (uint32_t)(seg->seq + seg->payload_len), seg->flags);
 
-        if ((p->flow->flags & FLOW_NO_APPLAYER_INSPECTION) ||
-            (stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
-            (stream->flags & STREAMTCP_STREAM_FLAG_GAP))
-        {
-            /* Remove the segments which are either completely before the
-               ra_base_seq or if they are beyond ra_base_seq, but the segment offset
-               from which we need to copy in to smsg is beyond the stream->last_ack.
-               As we are copying until the stream->last_ack only */
-            if (SEQ_LEQ((seg->seq + seg->payload_len), ra_base_seq+1))
-            {
-                if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
-                    seg = seg->next;
-                    continue;
-                }
-
-                SCLogDebug("removing pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32""
-                        " len %"PRIu16"", ra_base_seq, seg, seg->seq,
-                        seg->payload_len);
-
-                TcpSegment *next_seg = seg->next;
-                StreamTcpRemoveSegmentFromStream(stream, seg);
-                StreamTcpSegmentReturntoPool(seg);
-                seg = next_seg;
-                continue;
-            }
+        if (p->flow->flags & FLOW_NOPAYLOAD_INSPECTION) {
+            SCLogDebug("FLOW_NOPAYLOAD_INSPECTION set, breaking out");
+            break;
         }
 
-        /* if app layer protocol has been detected, then remove all the segments
-         * which has been previously processed and reassembled
-         *
-         * If the stream is in GAP state the app layer flag won't be set */
-        if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream) &&
-                (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
-                ((seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED) ||
-                 (stream->flags & STREAMTCP_STREAM_FLAG_GAP)))
-        {
-            if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
-                seg = seg->next;
-                continue;
-            }
-
-            SCLogDebug("segment(%p) of length %"PRIu16" has been processed,"
-                    " so return it to pool", seg, seg->payload_len);
+        if (StreamTcpReturnSegmentCheck(p->flow, ssn, stream, seg) == 1) {
+            SCLogDebug("removing segment");
             TcpSegment *next_seg = seg->next;
+            StreamTcpRemoveSegmentFromStream(stream, seg);
+            StreamTcpSegmentReturntoPool(seg);
             seg = next_seg;
             continue;
         }
