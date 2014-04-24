@@ -859,7 +859,6 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
             if (ssn != NULL) {
                 StreamTcpSetDisableRawReassemblyFlag(ssn, 0);
                 StreamTcpSetDisableRawReassemblyFlag(ssn, 1);
-                AppLayerParserTriggerRawStreamReassembly(f);
             }
         }
     }
