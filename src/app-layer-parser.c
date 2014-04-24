@@ -845,6 +845,21 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
         }
     }
 
+    /* In cases like HeartBleed for TLS we need to inspect AppLayer but not Payload */
+    if (!(f->flags & FLOW_NOPAYLOAD_INSPECTION) && pstate->flags & APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD) {
+        FlowSetNoPayloadInspectionFlag(f);
+        /* Set the no reassembly flag for both the stream in this TcpSession */
+        if (f->proto == IPPROTO_TCP) {
+            /* Used only if it's TCP */
+            TcpSession *ssn = f->protoctx;
+            if (ssn != NULL) {
+                StreamTcpSetDisableRawReassemblyFlag(ssn, 0);
+                StreamTcpSetDisableRawReassemblyFlag(ssn, 1);
+                AppLayerParserTriggerRawStreamReassembly(f);
+            }
+        }
+    }
+
     /* next, see if we can get rid of transactions now */
     AppLayerParserTransactionsCleanup(f);
 

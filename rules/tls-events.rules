@@ -21,5 +21,6 @@ alert tls any any -> any any (msg:"SURICATA TLS invalid record/traffic"; flow:es
 alert tls any any -> any any (msg:"SURICATA TLS heartbeat encountered"; flow:established; app-layer-event:tls.heartbeat_message; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230011; rev:1;)
 alert tls any any -> any any (msg:"SURICATA TLS overflow heartbeat encountered, possible exploit attempt (heartbleed)"; flow:established; app-layer-event:tls.overflow_heartbeat_message; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; reference:cve,2014-0160; sid:2230012; rev:1;)
 alert tls any any -> any any (msg:"SURICATA TLS invalid heartbeat encountered, possible exploit attempt (heartbleed)"; flow:established; app-layer-event:tls.invalid_heartbeat_message; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; reference:cve,2014-0160; sid:2230013; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS invalid encrypted heartbeat encountered, possible exploit attempt (heartbleed)"; flow:established; app-layer-event:tls.dataleak_heartbeat_mismatch; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; reference:cve,2014-0160; sid:2230014; rev:1;)
 
-#next sid is 2230014
+#next sid is 2230015
