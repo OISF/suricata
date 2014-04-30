@@ -502,14 +502,15 @@ uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate)
 {
     SCEnter();
 
-    SCReturnCT(pstate->log_id, "uint64_t");
+    SCReturnCT((pstate == NULL) ? 0 : pstate->log_id, "uint64_t");
 }
 
 void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate)
 {
     SCEnter();
 
-    pstate->log_id++;
+    if (pstate != NULL)
+        pstate->log_id++;
 
     SCReturn;
 }
@@ -517,6 +518,9 @@ void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate)
 uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint8_t direction)
 {
     SCEnter();
+
+    if (pstate == NULL)
+        SCReturnCT(0ULL, "uint64_t");
 
     SCReturnCT(pstate->inspect_id[direction & STREAM_TOSERVER ? 0 : 1], "uint64_t");
 }
