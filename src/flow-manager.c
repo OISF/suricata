@@ -684,6 +684,16 @@ void *FlowRecyclerThread(void *td)
     return NULL;
 }
 
+int FlowRecyclerReadyToShutdown(void)
+{
+    uint32_t len = 0;
+    FQLOCK_LOCK(&flow_recycle_q);
+    len = flow_recycle_q.len;
+    FQLOCK_UNLOCK(&flow_recycle_q);
+
+    return ((len == 0));
+}
+
 /** \brief spawn the flow recycler thread */
 void FlowRecyclerThreadSpawn()
 {
@@ -712,6 +722,8 @@ void FlowRecyclerThreadSpawn()
 /**
  * \brief Used to kill flow recycler thread(s).
  *
+ * \note this should only be called when the flow manager is already gone
+ *
  * \todo Kinda hackish since it uses the tv name to identify flow recycler
  *       thread.  We need an all weather identification scheme.
  */
@@ -720,7 +732,11 @@ void FlowKillFlowRecyclerThread(void)
     ThreadVars *tv = NULL;
     int cnt = 0;
 
-    SCCtrlCondSignal(&flow_recycler_ctrl_cond);
+    /* make sure all flows are processed */
+    do {
+        SCCtrlCondSignal(&flow_recycler_ctrl_cond);
+        usleep(10);
+    } while (FlowRecyclerReadyToShutdown() == 0);
 
     SCMutexLock(&tv_root_lock);
 
