@@ -212,6 +212,11 @@ void DetectEngineStateFree(DetectEngineState *state)
     return;
 }
 
+/**
+ *  \retval 0 no inspectable state
+ *  \retval 1 inspectable state
+ *  \retval 2 inspectable state, but no update
+ */
 int DeStateFlowHasInspectableState(Flow *f, AppProto alproto, uint16_t alversion, uint8_t flags)
 {
     int r = 0;
@@ -220,10 +225,12 @@ int DeStateFlowHasInspectableState(Flow *f, AppProto alproto, uint16_t alversion
     if (f->de_state == NULL || f->de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1].cnt == 0) {
         if (AppLayerParserProtocolSupportsTxs(f->proto, alproto)) {
             FLOWLOCK_RDLOCK(f);
-            if (AppLayerParserGetTransactionInspectId(f->alparser, flags) >= AppLayerParserGetTxCnt(f->proto, alproto, f->alstate))
-                r = 2;
-            else
-                r = 0;
+            if (f->alparser != NULL && f->alstate != NULL) {
+                if (AppLayerParserGetTransactionInspectId(f->alparser, flags) >=
+                    AppLayerParserGetTxCnt(f->proto, alproto, f->alstate)) {
+                    r = 2;
+                }
+            }
             FLOWLOCK_UNLOCK(f);
         }
     } else if (!(flags & STREAM_EOF) &&
