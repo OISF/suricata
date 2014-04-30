@@ -304,6 +304,7 @@ void FlowInitConfig(char quiet)
     SC_ATOMIC_INIT(flow_memuse);
     SC_ATOMIC_INIT(flow_prune_idx);
     FlowQueueInit(&flow_spare_q);
+    FlowQueueInit(&flow_recycle_q);
 
     unsigned int seed = RandomTimePreseed();
     /* set defaults */
@@ -470,6 +471,7 @@ void FlowShutdown(void)
     }
     (void) SC_ATOMIC_SUB(flow_memuse, flow_config.hash_size * sizeof(FlowBucket));
     FlowQueueDestroy(&flow_spare_q);
+    FlowQueueDestroy(&flow_recycle_q);
 
     SC_ATOMIC_DESTROY(flow_prune_idx);
     SC_ATOMIC_DESTROY(flow_memuse);
