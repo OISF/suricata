@@ -291,14 +291,14 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
             f->hnext = NULL;
             f->hprev = NULL;
 
-            FlowClearMemory (f, f->protomap);
+//            FlowClearMemory (f, f->protomap);
 
             /* no one is referring to this flow, use_cnt 0, removed from hash
              * so we can unlock it and move it back to the spare queue. */
             FLOWLOCK_UNLOCK(f);
-
+            FlowEnqueue(&flow_recycle_q, f);
             /* move to spare list */
-            FlowMoveToSpare(f);
+//            FlowMoveToSpare(f);
 
             cnt++;
 
@@ -605,6 +605,7 @@ void *FlowRecyclerThread(void *td)
     struct timespec cond_time;
     int flow_update_delay_sec = FLOW_NORMAL_MODE_UPDATE_DELAY_SEC;
     int flow_update_delay_nsec = FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC;
+    uint64_t recycled_cnt = 0;
 
     if (th_v->thread_setup_flags != 0)
         TmThreadSetupOptions(th_v);
@@ -641,6 +642,19 @@ void *FlowRecyclerThread(void *td)
         len = flow_recycle_q.len;
         FQLOCK_UNLOCK(&flow_recycle_q);
 
+        /* Loop through the queue and clean up all flows in it */
+        if (len) {
+            Flow *f;
+
+            while ((f = FlowDequeue(&flow_recycle_q)) != NULL) {
+                FLOWLOCK_WRLOCK(f);
+                FlowClearMemory (f, f->protomap);
+                FLOWLOCK_UNLOCK(f);
+                FlowMoveToSpare(f);
+                recycled_cnt++;
+            }
+        }
+
         SCLogDebug("%u flows to recycle", len);
 
         if (TmThreadsCheckFlag(th_v, THV_KILL)) {
@@ -659,6 +673,8 @@ void *FlowRecyclerThread(void *td)
 
         SCPerfSyncCountersIfSignalled(th_v);
     }
+
+    SCLogInfo("%"PRIu64" flows processed", recycled_cnt);
 
     TmThreadsSetFlag(th_v, THV_RUNNING_DONE);
     TmThreadWaitForFlag(th_v, THV_DEINIT);
