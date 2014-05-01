@@ -64,6 +64,8 @@
 #include "host-timeout.h"
 #include "defrag-timeout.h"
 
+#include "output-flow.h"
+
 /* Run mode selected at suricata.c */
 extern int run_mode;
 
@@ -606,6 +608,7 @@ void *FlowRecyclerThread(void *td)
     int flow_update_delay_sec = FLOW_NORMAL_MODE_UPDATE_DELAY_SEC;
     int flow_update_delay_nsec = FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC;
     uint64_t recycled_cnt = 0;
+    void *output_thread_data = NULL;
 
     if (th_v->thread_setup_flags != 0)
         TmThreadSetupOptions(th_v);
@@ -622,6 +625,18 @@ void *FlowRecyclerThread(void *td)
     /* Set the threads capability */
     th_v->cap_flags = 0;
     SCDropCaps(th_v);
+
+    if (OutputFlowLogThreadInit(th_v, NULL, &output_thread_data) != TM_ECODE_OK) {
+        SCLogError(SC_ERR_THREAD_INIT, "initializing flow log API for thread failed");
+
+        /* failure */
+        TmThreadsSetFlag(th_v, THV_RUNNING_DONE);
+        TmThreadWaitForFlag(th_v, THV_DEINIT);
+        TmThreadsSetFlag(th_v, THV_CLOSED);
+        pthread_exit((void *) 0);
+        return NULL;
+    }
+    SCLogDebug("output_thread_data %p", output_thread_data);
 
     TmThreadsSetFlag(th_v, THV_INIT_DONE);
     while (1)
@@ -648,6 +663,9 @@ void *FlowRecyclerThread(void *td)
 
             while ((f = FlowDequeue(&flow_recycle_q)) != NULL) {
                 FLOWLOCK_WRLOCK(f);
+
+                (void)OutputFlowLog(th_v, output_thread_data, f);
+
                 FlowClearMemory (f, f->protomap);
                 FLOWLOCK_UNLOCK(f);
                 FlowMoveToSpare(f);
@@ -673,6 +691,9 @@ void *FlowRecyclerThread(void *td)
 
         SCPerfSyncCountersIfSignalled(th_v);
     }
+
+    if (output_thread_data != NULL)
+        OutputFlowLogThreadDeinit(th_v, output_thread_data);
 
     SCLogInfo("%"PRIu64" flows processed", recycled_cnt);
 
