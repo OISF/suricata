@@ -484,6 +484,12 @@ static void AddOutputToFreeList(OutputModule *module, OutputCtx *output_ctx)
 /** \brief Turn output into thread module */
 static void SetupOutput(const char *name, OutputModule *module, OutputCtx *output_ctx)
 {
+    /* flow logger doesn't run in the packet path */
+    if (module->FlowLogFunc) {
+        OutputRegisterFlowLogger(module->name, module->FlowLogFunc, output_ctx);
+        return;
+    }
+
     TmModule *tm_module = TmModuleGetByName(module->name);
     if (tm_module == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,

@@ -355,6 +355,76 @@ error:
 }
 
 /**
+ * \brief Register a flow output module.
+ *
+ * This function will register an output module so it can be
+ * configured with the configuration file.
+ *
+ * \retval Returns 0 on success, -1 on failure.
+ */
+void
+OutputRegisterFlowModule(const char *name, const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *), FlowLogger FlowLogFunc)
+{
+    if (unlikely(FlowLogFunc == NULL)) {
+        goto error;
+    }
+
+    OutputModule *module = SCCalloc(1, sizeof(*module));
+    if (unlikely(module == NULL)) {
+        goto error;
+    }
+
+    module->name = name;
+    module->conf_name = conf_name;
+    module->InitFunc = InitFunc;
+    module->FlowLogFunc = FlowLogFunc;
+    TAILQ_INSERT_TAIL(&output_modules, module, entries);
+
+    SCLogDebug("Flow logger \"%s\" registered.", name);
+    return;
+error:
+    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    exit(EXIT_FAILURE);
+}
+
+/**
+ * \brief Register a flow output sub-module.
+ *
+ * This function will register an output module so it can be
+ * configured with the configuration file.
+ *
+ * \retval Returns 0 on success, -1 on failure.
+ */
+void
+OutputRegisterFlowSubModule(const char *parent_name, const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
+    FlowLogger FlowLogFunc)
+{
+    if (unlikely(FlowLogFunc == NULL)) {
+        goto error;
+    }
+
+    OutputModule *module = SCCalloc(1, sizeof(*module));
+    if (unlikely(module == NULL)) {
+        goto error;
+    }
+
+    module->name = name;
+    module->conf_name = conf_name;
+    module->parent_name = parent_name;
+    module->InitSubFunc = InitFunc;
+    module->FlowLogFunc = FlowLogFunc;
+    TAILQ_INSERT_TAIL(&output_modules, module, entries);
+
+    SCLogDebug("Flow logger \"%s\" registered.", name);
+    return;
+error:
+    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    exit(EXIT_FAILURE);
+}
+
+/**
  * \brief Get an output module by name.
  *
  * \retval The OutputModule with the given name or NULL if no output module
