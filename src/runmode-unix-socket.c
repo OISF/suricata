@@ -286,15 +286,24 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
             SCFree(this->currentfile);
         }
         this->currentfile = NULL;
-        TmThreadKillThreadsFamily(TVT_MGMT);
-        TmThreadClearThreadsFamily(TVT_MGMT);
+
+        /* handle graceful shutdown of the flow engine, it's helper
+         * threads and the packet threads */
+        FlowKillFlowManagerThread();
         TmThreadDisableThreadsWithTMS(TM_FLAG_RECEIVE_TM | TM_FLAG_DECODE_TM);
         FlowForceReassembly();
         TmThreadKillThreadsFamily(TVT_PPT);
         TmThreadClearThreadsFamily(TVT_PPT);
+        FlowKillFlowRecyclerThread();
         RunModeShutDown();
+
+        /* kill remaining mgt threads */
+        TmThreadKillThreadsFamily(TVT_MGMT);
+        TmThreadClearThreadsFamily(TVT_MGMT);
         SCPerfReleaseResources();
-        /* thread killed, we can run non thread-safe shutdown functions */
+
+        /* mgt and ppt threads killed, we can run non thread-safe
+         * shutdown functions */
         FlowShutdown();
         HostCleanup();
         StreamTcpFreeConfig(STREAM_VERBOSE);
@@ -332,6 +341,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         RunModeInitializeOutputs();
         RunModeDispatch(RUNMODE_PCAP_FILE, NULL, this->de_ctx);
         FlowManagerThreadSpawn();
+        FlowRecyclerThreadSpawn();
         SCPerfSpawnThreads();
         /* Un-pause all the paused threads */
         TmThreadContinueThreads();
