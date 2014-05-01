@@ -80,6 +80,7 @@
 #include "alert-pcapinfo.h"
 #include "output-json-alert.h"
 
+#include "output-json-flow.h"
 #include "log-droplog.h"
 #include "output-json-drop.h"
 #include "log-httplog.h"
@@ -870,6 +871,8 @@ void RegisterAllModules()
     TmModuleJsonDnsLogRegister();
 
     TmModuleJsonAlertLogRegister();
+
+    TmModuleJsonFlowLogRegister();
 
     /* log api */
     TmModulePacketLoggerRegister();
