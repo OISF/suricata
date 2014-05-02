@@ -424,6 +424,11 @@ void RunOutputFreeList(void)
     }
 }
 
+static TmModule *pkt_logger_module = NULL;
+static TmModule *tx_logger_module = NULL;
+static TmModule *file_logger_module = NULL;
+static TmModule *filedata_logger_module = NULL;
+
 /**
  * Cleanup the run mode.
  */
@@ -444,12 +449,12 @@ void RunModeShutDown(void)
         SCFree(output);
     }
 
+    /* reset logger pointers */
+    pkt_logger_module = NULL;
+    tx_logger_module = NULL;
+    file_logger_module = NULL;
+    filedata_logger_module = NULL;
 }
-
-static TmModule *pkt_logger_module = NULL;
-static TmModule *tx_logger_module = NULL;
-static TmModule *file_logger_module = NULL;
-static TmModule *filedata_logger_module = NULL;
 
 /** \internal
  *  \brief add Sub RunModeOutput to list for Submodule so we can free
