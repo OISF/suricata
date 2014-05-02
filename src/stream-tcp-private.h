@@ -210,6 +210,8 @@ typedef struct TcpSession_ {
     uint8_t state;
     uint8_t queue_len;                      /**< length of queue list below */
     int8_t data_first_seen_dir;
+    /** track all the tcp flags we've seen */
+    uint8_t tcp_packet_flags;
     /* coccinelle: TcpSession:flags:STREAMTCP_FLAG */
     uint16_t flags;
     TcpStream server;
