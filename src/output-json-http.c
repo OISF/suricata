@@ -262,7 +262,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
         HttpField f;
         for (f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++)
         {
-            if ((http_ctx->fields & (1<<f)) != 0)
+            if ((http_ctx->fields & (1ULL<<f)) != 0)
             {
                 /* prevent logging a field twice if extended logging is
                    enabled */
@@ -489,7 +489,7 @@ OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
                             (strcasecmp(http_fields[f].htp_field,
                                         field->val) == 0))
                         {
-                            http_ctx->fields |= (1<<f);
+                            http_ctx->fields |= (1ULL<<f);
                             break;
                         }
                     }
