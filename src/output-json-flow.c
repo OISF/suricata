@@ -46,6 +46,8 @@
 #include "util-time.h"
 #include "output-json.h"
 
+#include "stream-tcp-private.h"
+
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>
 
@@ -194,6 +196,25 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
 #endif
 
     json_object_set_new(js, "flow", hjs);
+
+
+    /* TCP */
+    if (f->proto == IPPROTO_TCP) {
+        json_t *tjs = json_object();
+        if (tjs == NULL) {
+            return;
+        }
+
+        TcpSession *ssn = f->protoctx;
+
+        char hexflags[3] = "00";
+        if (ssn)
+            snprintf(hexflags, sizeof(hexflags), "%02x",
+                    ssn->tcp_packet_flags);
+        json_object_set_new(tjs, "tcp_flags", json_string(hexflags));
+
+        json_object_set_new(js, "tcp", tjs);
+    }
 }
 
 static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
