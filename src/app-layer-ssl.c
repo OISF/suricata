@@ -58,6 +58,7 @@ SCEnumCharMap tls_decoder_event_table[ ] = {
     /* TLS protocol messages */
     { "INVALID_SSLV2_HEADER",        TLS_DECODER_EVENT_INVALID_SSLV2_HEADER },
     { "INVALID_TLS_HEADER",          TLS_DECODER_EVENT_INVALID_TLS_HEADER },
+    { "INVALID_RECORD_VERSION",      TLS_DECODER_EVENT_INVALID_RECORD_VERSION },
     { "INVALID_RECORD_TYPE",         TLS_DECODER_EVENT_INVALID_RECORD_TYPE },
     { "INVALID_HANDSHAKE_MESSAGE",   TLS_DECODER_EVENT_INVALID_HANDSHAKE_MESSAGE },
     { "HEARTBEAT_MESSAGE",           TLS_DECODER_EVENT_HEARTBEAT },
@@ -829,6 +830,15 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
 
     if (input_len == 0) {
         return parsed;
+    }
+
+    /* check record version */
+    if (ssl_state->curr_connp->version < SSL_VERSION_3 ||
+        ssl_state->curr_connp->version > TLS_VERSION_12) {
+
+        AppLayerDecoderEventsSetEvent(ssl_state->f,
+                TLS_DECODER_EVENT_INVALID_RECORD_VERSION);
+        return -1;
     }
 
     switch (ssl_state->curr_connp->content_type) {
