@@ -502,14 +502,15 @@ uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate)
 {
     SCEnter();
 
-    SCReturnCT(pstate->log_id, "uint64_t");
+    SCReturnCT((pstate == NULL) ? 0 : pstate->log_id, "uint64_t");
 }
 
 void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate)
 {
     SCEnter();
 
-    pstate->log_id++;
+    if (pstate != NULL)
+        pstate->log_id++;
 
     SCReturn;
 }
@@ -517,6 +518,9 @@ void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate)
 uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint8_t direction)
 {
     SCEnter();
+
+    if (pstate == NULL)
+        SCReturnCT(0ULL, "uint64_t");
 
     SCReturnCT(pstate->inspect_id[direction & STREAM_TOSERVER ? 0 : 1], "uint64_t");
 }
@@ -841,6 +845,20 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
                                                     flags & STREAM_TOCLIENT ? 1 : 0);
                 StreamTcpSetSessionNoReassemblyFlag(ssn,
                                                     flags & STREAM_TOSERVER ? 1 : 0);
+            }
+        }
+    }
+
+    /* In cases like HeartBleed for TLS we need to inspect AppLayer but not Payload */
+    if (!(f->flags & FLOW_NOPAYLOAD_INSPECTION) && pstate->flags & APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD) {
+        FlowSetNoPayloadInspectionFlag(f);
+        /* Set the no reassembly flag for both the stream in this TcpSession */
+        if (f->proto == IPPROTO_TCP) {
+            /* Used only if it's TCP */
+            TcpSession *ssn = f->protoctx;
+            if (ssn != NULL) {
+                StreamTcpSetDisableRawReassemblyFlag(ssn, 0);
+                StreamTcpSetDisableRawReassemblyFlag(ssn, 1);
             }
         }
     }
