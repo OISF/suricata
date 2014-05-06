@@ -1040,7 +1040,7 @@ static int FlowMgrTest05 (void) {
     FlowTimeoutCounters counters = { 0, 0, 0, };
     FlowTimeoutHash(&ts, 0 /* check all */, &counters);
 
-    if (flow_spare_q.len > 0) {
+    if (flow_recycle_q.len > 0) {
         result = 1;
     }
 
