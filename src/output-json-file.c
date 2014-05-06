@@ -93,7 +93,7 @@ static json_t *LogFileMetaGetUri(const Packet *p, const File *ff) {
         }
     }
 
-    return json_string("<unknown>");
+    return NULL;
 }
 
 static json_t *LogFileMetaGetHost(const Packet *p, const File *ff) {
@@ -112,7 +112,7 @@ static json_t *LogFileMetaGetHost(const Packet *p, const File *ff) {
         }
     }
 
-    return json_string("<unknown>");
+    return NULL;
 }
 
 static json_t *LogFileMetaGetReferer(const Packet *p, const File *ff) {
@@ -136,7 +136,7 @@ static json_t *LogFileMetaGetReferer(const Packet *p, const File *ff) {
         }
     }
 
-    return json_string("<unknown>");
+    return NULL;
 }
 
 static json_t *LogFileMetaGetUserAgent(const Packet *p, const File *ff) {
@@ -160,7 +160,7 @@ static json_t *LogFileMetaGetUserAgent(const Packet *p, const File *ff) {
         }
     }
 
-    return json_string("<unknown>");
+    return NULL;
 }
 
 /**
@@ -201,8 +201,6 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
         SCFree(s);
     if (ff->magic)
         json_object_set_new(fjs, "magic", json_string((char *)ff->magic));
-    else
-        json_object_set_new(fjs, "magic", json_string("unknown"));
     switch (ff->state) {
         case FILE_STATE_CLOSED:
             json_object_set_new(fjs, "state", json_string("CLOSED"));
