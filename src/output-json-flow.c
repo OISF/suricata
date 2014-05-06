@@ -193,8 +193,10 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
             json_integer(f->todstpktcnt));
     json_object_set_new(hjs, "pkts_toclient",
             json_integer(f->tosrcpktcnt));
-    json_object_set_new(hjs, "bytes",
-            json_integer(f->bytecnt));
+    json_object_set_new(hjs, "bytes_toserver",
+            json_integer(f->todstbytecnt));
+    json_object_set_new(hjs, "bytes_toclient",
+            json_integer(f->tosrcbytecnt));
 
 
 #endif

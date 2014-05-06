@@ -256,6 +256,7 @@ void FlowHandlePacket(ThreadVars *tv, Packet *p)
         }
 #ifdef DEBUG
         f->todstpktcnt++;
+        f->todstbytecnt += GET_PKT_LEN(p);
 #endif
         p->flowflags |= FLOW_PKT_TOSERVER;
     } else {
@@ -264,11 +265,11 @@ void FlowHandlePacket(ThreadVars *tv, Packet *p)
         }
 #ifdef DEBUG
         f->tosrcpktcnt++;
+        f->tosrcbytecnt += GET_PKT_LEN(p);
 #endif
         p->flowflags |= FLOW_PKT_TOCLIENT;
     }
 #ifdef DEBUG
-    f->bytecnt += GET_PKT_LEN(p);
 #endif
 
     if ((f->flags & FLOW_TO_DST_SEEN) && (f->flags & FLOW_TO_SRC_SEEN)) {
