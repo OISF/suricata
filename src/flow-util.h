@@ -48,7 +48,8 @@
         (f)->probing_parser_toserver_alproto_masks = 0; \
         (f)->probing_parser_toclient_alproto_masks = 0; \
         (f)->flags = 0; \
-        (f)->lastts_sec = 0; \
+        (f)->lastts.tv_sec = 0; \
+        (f)->lastts.tv_usec = 0; \
         FLOWLOCK_INIT((f)); \
         (f)->protoctx = NULL; \
         (f)->alproto = 0; \
@@ -87,7 +88,8 @@
         (f)->probing_parser_toserver_alproto_masks = 0; \
         (f)->probing_parser_toclient_alproto_masks = 0; \
         (f)->flags = 0; \
-        (f)->lastts_sec = 0; \
+        (f)->lastts.tv_sec = 0; \
+        (f)->lastts.tv_usec = 0; \
         (f)->protoctx = NULL; \
         (f)->alparser = NULL; \
         (f)->alstate = NULL; \
