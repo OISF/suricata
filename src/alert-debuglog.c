@@ -221,7 +221,7 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
                              "FLOW PKTS TOSRC:   %"PRIu32"\n"
                              "FLOW Total Bytes:  %"PRIu64"\n",
                              p->flow->todstpktcnt, p->flow->tosrcpktcnt,
-                             p->flow->bytecnt);
+                             p->flow->todstbytecnt + p->flow->tosrcbytecnt);
 #endif
         MemBufferWriteString(aft->buffer,
                              "FLOW IPONLY SET:   TOSERVER: %s, TOCLIENT: %s\n"
