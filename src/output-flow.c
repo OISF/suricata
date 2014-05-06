@@ -86,7 +86,10 @@ int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, OutputCtx *ou
  */
 TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f) {
     BUG_ON(thread_data == NULL);
-    BUG_ON(list == NULL);
+
+    if (list == NULL)
+        return TM_ECODE_OK;
+    //BUG_ON(list == NULL);
 
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
     OutputFlowLogger *logger = list;
