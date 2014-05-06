@@ -79,7 +79,11 @@ static json_t *CreateJSONHeaderFromFlow(Flow *f, char *event_type)
     if (unlikely(js == NULL))
         return NULL;
 
-    CreateIsoTimeString(&f->startts, timebuf, sizeof(timebuf));
+    struct timeval tv;
+    memset(&tv, 0x00, sizeof(tv));
+    TimeGet(&tv);
+
+    CreateIsoTimeString(&tv, timebuf, sizeof(timebuf));
 
     srcip[0] = '\0';
     dstip[0] = '\0';
@@ -101,7 +105,7 @@ static json_t *CreateJSONHeaderFromFlow(Flow *f, char *event_type)
         snprintf(proto, sizeof(proto), "%03" PRIu32, f->proto);
     }
 
-    /* time & tx */
+    /* time */
     json_object_set_new(js, "timestamp", json_string(timebuf));
 #if 0 // TODO
     /* sensor id */
@@ -194,6 +198,22 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
 
 
 #endif
+    char timebuf1[64], timebuf2[64];
+    struct timeval tv;
+    memset(&tv, 0x00, sizeof(tv));
+
+    tv.tv_sec = f->lastts_sec;
+
+    CreateIsoTimeString(&tv, timebuf1, sizeof(timebuf1));
+    CreateIsoTimeString(&f->startts, timebuf2, sizeof(timebuf2));
+
+    json_object_set_new(hjs, "start", json_string(timebuf1));
+    json_object_set_new(hjs, "end", json_string(timebuf2));
+
+    int32_t age = f->lastts_sec - f->startts.tv_sec;
+    json_object_set_new(hjs, "age",
+            json_integer(age));
+
 
     json_object_set_new(js, "flow", hjs);
 
