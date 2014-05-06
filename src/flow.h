@@ -380,7 +380,8 @@ typedef struct Flow_
 #ifdef DEBUG
     uint32_t todstpktcnt;
     uint32_t tosrcpktcnt;
-    uint64_t bytecnt;
+    uint64_t todstbytecnt;
+    uint64_t tosrcbytecnt;
 #endif
 } Flow;
 
