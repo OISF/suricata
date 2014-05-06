@@ -317,8 +317,8 @@ typedef struct Flow_
 
     uint32_t flags;
 
-    /* ts of flow init and last update */
-    int32_t lastts_sec;
+    /* time stamp of last update (last packet) */
+    struct timeval lastts;
 
 #ifdef FLOWLOCK_RWLOCK
     SCRWLock r;

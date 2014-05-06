@@ -204,7 +204,7 @@ static int FlowManagerFlowTimeout(Flow *f, int state, struct timeval *ts, int em
     uint32_t timeout = FlowGetFlowTimeout(f, state, emergency);
 
     /* do the timeout check */
-    if ((int32_t)(f->lastts_sec + timeout) >= ts->tv_sec) {
+    if ((int32_t)(f->lastts.tv_sec + timeout) >= ts->tv_sec) {
         return 0;
     }
 
@@ -816,7 +816,7 @@ static int FlowMgrTest01 (void) {
     f.flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
 
     TimeGet(&ts);
-    f.lastts_sec = ts.tv_sec - 5000;
+    f.lastts.tv_sec = ts.tv_sec - 5000;
     f.protoctx = &ssn;
     f.fb = &fb;
 
@@ -875,7 +875,7 @@ static int FlowMgrTest02 (void) {
     ssn.client = client;
     ssn.server = client;
     ssn.state = TCP_ESTABLISHED;
-    f.lastts_sec = ts.tv_sec - 5000;
+    f.lastts.tv_sec = ts.tv_sec - 5000;
     f.protoctx = &ssn;
     f.fb = &fb;
     f.proto = IPPROTO_TCP;
@@ -920,7 +920,7 @@ static int FlowMgrTest03 (void) {
 
     TimeGet(&ts);
     ssn.state = TCP_SYN_SENT;
-    f.lastts_sec = ts.tv_sec - 300;
+    f.lastts.tv_sec = ts.tv_sec - 300;
     f.protoctx = &ssn;
     f.fb = &fb;
     f.proto = IPPROTO_TCP;
@@ -979,7 +979,7 @@ static int FlowMgrTest04 (void) {
     ssn.client = client;
     ssn.server = client;
     ssn.state = TCP_ESTABLISHED;
-    f.lastts_sec = ts.tv_sec - 5000;
+    f.lastts.tv_sec = ts.tv_sec - 5000;
     f.protoctx = &ssn;
     f.fb = &fb;
     f.proto = IPPROTO_TCP;
