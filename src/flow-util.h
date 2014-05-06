@@ -33,7 +33,8 @@
 #define RESET_COUNTERS(f) do { \
         (f)->todstpktcnt = 0; \
         (f)->tosrcpktcnt = 0; \
-        (f)->bytecnt = 0; \
+        (f)->todstbytecnt = 0; \
+        (f)->tosrcbytecnt = 0; \
     } while (0)
 #else
 #define RESET_COUNTERS(f)
