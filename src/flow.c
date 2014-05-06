@@ -247,7 +247,7 @@ void FlowHandlePacket(ThreadVars *tv, Packet *p)
     FlowReference(&p->flow, f);
 
     /* update the last seen timestamp of this flow */
-    f->lastts_sec = p->ts.tv_sec;
+    COPY_TIMESTAMP(&p->ts,&f->lastts);
 
     /* update flags and counters */
     if (FlowGetPacketDirection(f, p) == TOSERVER) {
