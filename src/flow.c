@@ -444,8 +444,11 @@ void FlowShutdown(void)
 
     FlowPrintStats();
 
-    /* free spare queue */
+    /* free queues */
     while((f = FlowDequeue(&flow_spare_q))) {
+        FlowFree(f);
+    }
+    while((f = FlowDequeue(&flow_recycle_q))) {
         FlowFree(f);
     }
 
