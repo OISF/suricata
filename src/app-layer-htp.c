@@ -715,7 +715,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         SCLogDebug("using existing htp handle at %p", hstate->connp);
     }
 
-    htp_time_t ts = { f->lastts_sec, 0 };
+    htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     /* pass the new data to the htp parser */
     r = htp_connp_req_data(hstate->connp, &ts, input, input_len);
 
@@ -792,7 +792,7 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
      * reactivate it if necessary) */
     hstate->flags &=~ HTP_FLAG_NEW_BODY_SET;
 
-    htp_time_t ts = { f->lastts_sec, 0 };
+    htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
     switch(r) {
         case HTP_STREAM_ERROR:
