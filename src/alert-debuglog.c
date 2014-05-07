@@ -216,13 +216,11 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
         FLOWLOCK_RDLOCK(p->flow);
         CreateTimeString(&p->flow->startts, timebuf, sizeof(timebuf));
         MemBufferWriteString(aft->buffer, "FLOW Start TS:     %s\n", timebuf);
-#ifdef DEBUG
         MemBufferWriteString(aft->buffer, "FLOW PKTS TODST:   %"PRIu32"\n"
                              "FLOW PKTS TOSRC:   %"PRIu32"\n"
                              "FLOW Total Bytes:  %"PRIu64"\n",
                              p->flow->todstpktcnt, p->flow->tosrcpktcnt,
                              p->flow->todstbytecnt + p->flow->tosrcbytecnt);
-#endif
         MemBufferWriteString(aft->buffer,
                              "FLOW IPONLY SET:   TOSERVER: %s, TOCLIENT: %s\n"
                              "FLOW ACTION:       DROP: %s\n"
