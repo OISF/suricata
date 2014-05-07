@@ -377,12 +377,11 @@ typedef struct Flow_
     struct Flow_ *lnext; /* list */
     struct Flow_ *lprev;
     struct timeval startts;
-#ifdef DEBUG
+
     uint32_t todstpktcnt;
     uint32_t tosrcpktcnt;
     uint64_t todstbytecnt;
     uint64_t tosrcbytecnt;
-#endif
 } Flow;
 
 enum {

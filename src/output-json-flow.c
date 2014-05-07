@@ -187,8 +187,6 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
 
     json_object_set_new(hjs, "app_proto", json_string(AppProtoToString(f->alproto)));
 
-    /* debug until we move this out of the debug wrapper in the flow code */
-#ifdef DEBUG
     json_object_set_new(hjs, "pkts_toserver",
             json_integer(f->todstpktcnt));
     json_object_set_new(hjs, "pkts_toclient",
@@ -198,8 +196,6 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
     json_object_set_new(hjs, "bytes_toclient",
             json_integer(f->tosrcbytecnt));
 
-
-#endif
     char timebuf1[64], timebuf2[64];
 
     CreateIsoTimeString(&f->startts, timebuf1, sizeof(timebuf1));
