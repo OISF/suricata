@@ -254,23 +254,17 @@ void FlowHandlePacket(ThreadVars *tv, Packet *p)
         if (FlowUpdateSeenFlag(p)) {
             f->flags |= FLOW_TO_DST_SEEN;
         }
-#ifdef DEBUG
         f->todstpktcnt++;
         f->todstbytecnt += GET_PKT_LEN(p);
-#endif
         p->flowflags |= FLOW_PKT_TOSERVER;
     } else {
         if (FlowUpdateSeenFlag(p)) {
             f->flags |= FLOW_TO_SRC_SEEN;
         }
-#ifdef DEBUG
         f->tosrcpktcnt++;
         f->tosrcbytecnt += GET_PKT_LEN(p);
-#endif
         p->flowflags |= FLOW_PKT_TOCLIENT;
     }
-#ifdef DEBUG
-#endif
 
     if ((f->flags & FLOW_TO_DST_SEEN) && (f->flags & FLOW_TO_SRC_SEEN)) {
         SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
