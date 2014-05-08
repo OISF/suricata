@@ -16,7 +16,4 @@ uninstall-local:
 	[ ! -f "$(DESTDIR)$(prefix)/bin/suricatasc" ] || rm -f "$(DESTDIR)$(prefix)/bin/suricatasc"
 	find "$(DESTDIR)$(prefix)/lib" -name "suricatasc-*.egg-info" -delete ||true
 
-distclean-local:
-	-rm -rf $(top_builddir)/scripts/suricatasc/src
-
 endif
