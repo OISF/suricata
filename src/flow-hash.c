@@ -42,12 +42,16 @@
 
 #include "util-hash-lookup3.h"
 
+#include "conf.h"
+#include "output.h"
+#include "output-flow.h"
+
 #define FLOW_DEFAULT_FLOW_PRUNE 5
 
 SC_ATOMIC_EXTERN(unsigned int, flow_prune_idx);
 SC_ATOMIC_EXTERN(unsigned int, flow_flags);
 
-static Flow *FlowGetUsedFlow(void);
+static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv);
 
 #ifdef FLOW_DEBUG_STATS
 #define FLOW_DEBUG_STATS_PROTO_ALL      0
@@ -422,9 +426,12 @@ static inline int FlowCreateCheck(const Packet *p)
  *  Get a new flow. We're checking memcap first and will try to make room
  *  if the memcap is reached.
  *
+ *  \param tv thread vars
+ *  \param dtv decode thread vars (for flow log api thread data)
+ *
  *  \retval f *LOCKED* flow on succes, NULL on error.
  */
-static Flow *FlowGetNew(const Packet *p)
+static Flow *FlowGetNew(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p)
 {
     Flow *f = NULL;
 
@@ -447,7 +454,7 @@ static Flow *FlowGetNew(const Packet *p)
                 FlowWakeupFlowManagerThread();
             }
 
-            f = FlowGetUsedFlow();
+            f = FlowGetUsedFlow(tv, dtv);
             if (f == NULL) {
                 /* very rare, but we can fail. Just giving up */
                 return NULL;
@@ -473,7 +480,7 @@ static Flow *FlowGetNew(const Packet *p)
     return f;
 }
 
-/* FlowGetFlowFromHash
+/** \brief Get Flow for packet
  *
  * Hash retrieval function for flows. Looks up the hash bucket containing the
  * flow pointer. Then compares the packet with the found flow to see if it is
@@ -485,9 +492,12 @@ static Flow *FlowGetNew(const Packet *p)
  *
  * The p->flow pointer is updated to point to the flow.
  *
- * returns a *LOCKED* flow or NULL
+ *  \param tv thread vars
+ *  \param dtv decode thread vars (for flow log api thread data)
+ *
+ *  \retval f *LOCKED* flow or NULL
  */
-Flow *FlowGetFlowFromHash(const Packet *p)
+Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p)
 {
     Flow *f = NULL;
     FlowHashCountInit;
@@ -504,7 +514,7 @@ Flow *FlowGetFlowFromHash(const Packet *p)
 
     /* see if the bucket already has a flow */
     if (fb->head == NULL) {
-        f = FlowGetNew(p);
+        f = FlowGetNew(tv, dtv, p);
         if (f == NULL) {
             FBLOCK_UNLOCK(fb);
             FlowHashCountUpdate;
@@ -538,7 +548,7 @@ Flow *FlowGetFlowFromHash(const Packet *p)
             f = f->hnext;
 
             if (f == NULL) {
-                f = pf->hnext = FlowGetNew(p);
+                f = pf->hnext = FlowGetNew(tv, dtv, p);
                 if (f == NULL) {
                     FBLOCK_UNLOCK(fb);
                     FlowHashCountUpdate;
@@ -603,9 +613,12 @@ Flow *FlowGetFlowFromHash(const Packet *p)
  *  top each time since that would clear the top of the hash leading to longer
  *  and longer search times under high pressure (observed).
  *
+ *  \param tv thread vars
+ *  \param dtv decode thread vars (for flow log api thread data)
+ *
  *  \retval f flow or NULL
  */
-static Flow *FlowGetUsedFlow(void)
+static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv)
 {
     uint32_t idx = SC_ATOMIC_GET(flow_prune_idx) % flow_config.hash_size;
     uint32_t cnt = flow_config.hash_size;
@@ -652,6 +665,10 @@ static Flow *FlowGetUsedFlow(void)
         f->hprev = NULL;
         f->fb = NULL;
         FBLOCK_UNLOCK(fb);
+
+        /* invoke flow log api */
+        if (dtv && dtv->output_flow_thread_data)
+            (void)OutputFlowLog(tv, dtv->output_flow_thread_data, f);
 
         FlowClearMemory(f, f->protomap);
 
