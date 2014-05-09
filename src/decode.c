@@ -63,6 +63,9 @@
 #include "pkt-var.h"
 #include "util-mpm-ac.h"
 
+#include "output.h"
+#include "output-flow.h"
+
 int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         uint8_t *pkt, uint16_t len, PacketQueue *pq, uint8_t proto)
 {
@@ -475,6 +478,12 @@ DecodeThreadVars *DecodeThreadVarsAlloc(ThreadVars *tv)
 
     dtv->app_tctx = AppLayerGetCtxThread(tv);
 
+    if (OutputFlowLogThreadInit(tv, NULL, &dtv->output_flow_thread_data) != TM_ECODE_OK) {
+        SCLogError(SC_ERR_THREAD_INIT, "initializing flow log API for thread failed");
+        DecodeThreadVarsFree(tv, dtv);
+        return NULL;
+    }
+
     /** set config defaults */
     int vlanbool = 0;
     if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
@@ -490,6 +499,10 @@ void DecodeThreadVarsFree(ThreadVars *tv, DecodeThreadVars *dtv)
     if (dtv != NULL) {
         if (dtv->app_tctx != NULL)
             AppLayerDestroyCtxThread(dtv->app_tctx);
+
+        if (dtv->output_flow_thread_data != NULL)
+            OutputFlowLogThreadDeinit(tv, dtv->output_flow_thread_data);
+
         SCFree(dtv);
     }
 }
