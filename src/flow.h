@@ -401,7 +401,7 @@ typedef struct FlowProto_ {
     int (*GetProtoState)(void *);
 } FlowProto;
 
-void FlowHandlePacket (ThreadVars *, Packet *);
+void FlowHandlePacket (ThreadVars *, DecodeThreadVars *, Packet *);
 void FlowInitConfig (char);
 void FlowPrintQueueInfo (void);
 void FlowShutdown(void);
