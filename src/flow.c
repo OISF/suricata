@@ -232,14 +232,15 @@ static inline int FlowUpdateSeenFlag(const Packet *p)
  * This is called for every packet.
  *
  *  \param tv threadvars
+ *  \param dtv decode thread vars (for flow output api thread data)
  *  \param p packet to handle flow for
  */
-void FlowHandlePacket(ThreadVars *tv, Packet *p)
+void FlowHandlePacket(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
     /* Get this packet's flow from the hash. FlowHandlePacket() will setup
      * a new flow if nescesary. If we get NULL, we're out of flow memory.
      * The returned flow is locked. */
-    Flow *f = FlowGetFlowFromHash(p);
+    Flow *f = FlowGetFlowFromHash(tv, dtv, p);
     if (f == NULL)
         return;
 
