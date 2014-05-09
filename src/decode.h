@@ -567,6 +567,9 @@ typedef struct DecodeThreadVars_
 
     int vlan_disabled;
 
+    /* thread data for flow logging api */
+    void *output_flow_thread_data;
+
     /** stats/counters */
     uint16_t counter_pkts;
     uint16_t counter_bytes;
