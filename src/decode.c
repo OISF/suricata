@@ -489,7 +489,7 @@ DecodeThreadVars *DecodeThreadVarsAlloc(ThreadVars *tv)
     return dtv;
 }
 
-void DecodeThreadVarsFree(DecodeThreadVars *dtv)
+void DecodeThreadVarsFree(ThreadVars *tv, DecodeThreadVars *dtv)
 {
     if (dtv != NULL) {
         if (dtv->app_tctx != NULL)
