@@ -398,7 +398,7 @@ TmEcode NapatechDecodeThreadInit(ThreadVars *tv, void *initdata, void **data)
 TmEcode NapatechDecodeThreadDeinit(ThreadVars *tv, void *data)
 {
     if (data != NULL)
-        DecodeThreadVarsFree(data);
+        DecodeThreadVarsFree(tv, data);
     SCReturnInt(TM_ECODE_OK);
 }
 

@@ -262,7 +262,7 @@ DecodeErfFileThreadInit(ThreadVars *tv, void *initdata, void **data)
 TmEcode DecodeErfFileThreadDeinit(ThreadVars *tv, void *data)
 {
     if (data != NULL)
-        DecodeThreadVarsFree(data);
+        DecodeThreadVarsFree(tv, data);
     SCReturnInt(TM_ECODE_OK);
 }
 
