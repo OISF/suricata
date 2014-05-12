@@ -1,3 +1,28 @@
+2.0.1rc1 -- 2014-05-12
+
+Bug #978: clean up app layer parser thread local storage
+Bug #1064: Lack of Thread Deinitialization For Decoder Modules
+Bug #1101: Segmentation in AppLayerParserGetTxCnt
+Bug #1136: negated app-layer-protocol FP on multi-TX flows
+Bug #1141: dns response parsing issue
+Bug #1142: dns tcp toclient protocol detection
+Bug #1143: tls protocol detection in case of tls-alert
+Bug #1144: icmpv6: unknown type events for MLD_* types
+Bug #1145: ipv6: support PAD1 in DST/HOP extension hdr
+Bug #1146: tls: event on 'new session ticket' in handshake
+Bug #1159: Possible memory exhaustion when an invalid bpf-filter is used with AF_PACKET
+Bug #1160: Pcaps submitted via Unix Socket do not finish processing in Suricata 2
+Bug #1161: eve: src and dst mixed up in some cases
+Bug #1162: proto-detect: make sure probing parsers for all registered ports are run
+Bug #1163: HTP Segfault
+Bug #1165: af_packet - one thread consistently not working
+Bug #1170: rohash: CID 1197756: Bad bit shift operation (BAD_SHIFT)
+Bug #1176: AF_PACKET IPS mode is broken in 2.0
+Bug #1177: eve log do not show action 'dropped' just 'allowed'
+Bug #1180: Possible problem in stream tracking
+Feature #1157: Always create pid file if --pidfile command line option is provided.
+Feature #1173: tls: OpenSSL heartbleed detection
+
 2.0 -- 2014-03-25
 
 Bug #1151: tls.store not working when a TLS filter keyword is used
