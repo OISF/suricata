@@ -900,6 +900,42 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
             data += ntohs(head->len);
             break;
         }
+        case DNS_RECORD_TYPE_TXT:
+        {
+            data += sizeof(DNSAnswerHeader);
+
+            if (input + input_len < data + ntohs(head->len)) {
+                SCLogDebug("input buffer too small for data of len %u", ntohs(head->len));
+                goto insufficient_data;
+            }
+
+            uint16_t datalen = ntohs(head->len);
+            uint8_t txtlen = *data;
+            const uint8_t *tdata = data + 1;
+
+            do {
+                //PrintRawDataFp(stdout, (uint8_t*)tdata, txtlen);
+
+                if (txtlen > datalen)
+                    goto bad_data;
+
+                DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
+                        ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
+                        (uint8_t*)tdata, (uint16_t)txtlen, ntohs(dns_header->tx_id));
+
+                datalen -= txtlen;
+                tdata += txtlen;
+                txtlen = *tdata;
+
+                tdata++;
+                datalen--;
+
+                SCLogDebug("datalen %u, txtlen %u", datalen, txtlen);
+            } while (datalen > 1);
+
+            data += ntohs(head->len);
+            break;
+        }
         default:    /* unsupported record */
         {
             data += sizeof(DNSAnswerHeader);
@@ -919,6 +955,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
         }
     }
     return data;
+bad_data:
 insufficient_data:
     return NULL;
 }
