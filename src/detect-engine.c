@@ -496,6 +496,13 @@ static void *DetectEngineLiveRuleSwap(void *arg)
         tv = tv->next;
     }
 
+    if (no_of_detect_tvs == 0) {
+        TmThreadsSetFlag(tv_local, THV_CLOSED);
+        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
+        SCLogInfo("===== Live rule swap FAILURE =====");
+        pthread_exit(NULL);
+    }
+
     DetectEngineThreadCtx *old_det_ctx[no_of_detect_tvs];
     DetectEngineThreadCtx *new_det_ctx[no_of_detect_tvs];
     ThreadVars *detect_tvs[no_of_detect_tvs];

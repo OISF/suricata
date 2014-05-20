@@ -269,6 +269,13 @@ void SignalHandlerSigusr2Disabled(int sig)
     return;
 }
 
+void SignalHandlerSigusr2StartingUp(int sig)
+{
+    SCLogInfo("Live rule reload only possible after engine completely started.");
+
+    return;
+}
+
 void SignalHandlerSigusr2DelayedDetect(int sig)
 {
     SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload blocked while delayed detect is still loading.");
@@ -2071,7 +2078,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
         if (suri->sig_file != NULL)
             UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
         else
-            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
+            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2StartingUp);
     } else {
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Disabled);
     }
@@ -2237,11 +2244,6 @@ int main(int argc, char **argv)
                 exit(EXIT_SUCCESS);
             }
         }
-
-        /* registering singal handlers we use.  We register usr2 here, so that one
-         * can't call it during the first sig load phase */
-        if (suri.sig_file == NULL && suri.rule_reload == 1 && suri.delayed_detect == 0)
-            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
     }
 
     SCAsn1LoadConfig();
@@ -2307,6 +2309,12 @@ int main(int argc, char **argv)
 
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();
+    /* registering singal handlers we use.  We register usr2 here, so that one
+     * can't call it during the first sig load phase or while threads are still
+     * starting up. */
+    if (de_ctx != NULL && suri.sig_file == NULL && suri.rule_reload == 1 &&
+            suri.delayed_detect == 0)
+        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
 
     if (de_ctx != NULL && suri.delayed_detect) {
         if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
