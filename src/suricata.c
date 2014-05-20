@@ -101,6 +101,8 @@
 #include "source-nfq.h"
 #include "source-nfq-prototypes.h"
 
+#include "source-nflog.h"
+
 #include "source-ipfw.h"
 
 #include "source-pcap.h"
@@ -857,6 +859,9 @@ void RegisterAllModules()
     TmModuleFileLoggerRegister();
     TmModuleFiledataLoggerRegister();
     TmModuleDebugList();
+    /* nflog */
+    TmModuleReceiveNFLOGRegister();
+    TmModuleDecodeNFLOGRegister();
 
 }
 
@@ -947,6 +952,14 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
                 SCReturnInt(TM_ECODE_FAILED);
             }
         }
+#ifdef HAVE_NFLOG
+    } else if (run_mode == RUNMODE_NFLOG) {
+        int ret = LiveBuildDeviceListCustom("nflog", "group");
+        if (ret == 0) {
+            SCLogError(SC_ERR_INITIALIZATION, "No group found in config for nflog");
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+#endif
     }
 
     SCReturnInt(TM_ECODE_OK);
@@ -1086,6 +1099,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"mpipe", optional_argument, 0, 0},
 #endif
         {"set", required_argument, 0, 0},
+#ifdef HAVE_NFLOG
+        {"nflog", optional_argument, 0, 0},
+#endif
         {NULL, 0, NULL, 0}
     };
 
@@ -1170,6 +1186,16 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                         "configure when building.");
                 return TM_ECODE_FAILED;
 #endif
+            } else if (strcmp((long_opts[option_index]).name, "nflog") == 0) {
+#ifdef HAVE_NFLOG
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_NFLOG;
+                    LiveBuildDeviceListCustom("nflog", "group");
+                }
+#else
+                SCLogError(SC_ERR_NFLOG_NOSUPPORT, "NFLOG not enabled.");
+                return TM_ECODE_FAILED;
+#endif /* HAVE_NFLOG */
             } else if (strcmp((long_opts[option_index]).name , "pcap") == 0) {
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
                     suri->run_mode = RUNMODE_PCAP_DEV;
