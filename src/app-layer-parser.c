@@ -472,15 +472,16 @@ void AppLayerParserRegisterGetEventInfo(uint8_t ipproto, AppProto alproto,
 void *AppLayerParserGetProtocolParserLocalStorage(uint8_t ipproto, AppProto alproto)
 {
     SCEnter();
+    void * r = NULL;
 
     if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
         LocalStorageAlloc != NULL)
     {
-        SCReturnPtr(alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-                    LocalStorageAlloc(), "void *");
+        r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+                    LocalStorageAlloc();
     }
 
-    SCReturnPtr(NULL, "void *");
+    SCReturnPtr(r, "void *");
 }
 
 void AppLayerParserDestroyProtocolParserLocalStorage(uint8_t ipproto, AppProto alproto,
@@ -705,30 +706,38 @@ int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
                         void *alstate, uint8_t direction)
 {
     SCEnter();
-    SCReturnInt(alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-                StateGetProgress(alstate, direction));
+    int r = 0;
+    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+                StateGetProgress(alstate, direction);
+    SCReturnInt(r);
 }
 
 uint64_t AppLayerParserGetTxCnt(uint8_t ipproto, AppProto alproto, void *alstate)
 {
     SCEnter();
-    SCReturnCT(alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-               StateGetTxCnt(alstate), "uint64_t");
+    uint64_t r = 0;
+    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+               StateGetTxCnt(alstate);
+    SCReturnCT(r, "uint64_t");
 }
 
 void *AppLayerParserGetTx(uint8_t ipproto, AppProto alproto, void *alstate, uint64_t tx_id)
 {
     SCEnter();
-    SCReturnPtr(alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-                StateGetTx(alstate, tx_id), "void *");
+    void * r = NULL;
+    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+                StateGetTx(alstate, tx_id);
+    SCReturnPtr(r, "void *");
 }
 
 int AppLayerParserGetStateProgressCompletionStatus(uint8_t ipproto, AppProto alproto,
                                         uint8_t direction)
 {
     SCEnter();
-    SCReturnInt(alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-                StateGetProgressCompletionStatus(direction));
+    int r = 0;
+    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+                StateGetProgressCompletionStatus(direction);
+    SCReturnInt(r);
 }
 
 int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *event_name,
@@ -744,8 +753,10 @@ int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *ev
 uint8_t AppLayerParserGetFirstDataDir(uint8_t ipproto, AppProto alproto)
 {
     SCEnter();
-    SCReturnCT(alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-               first_data_dir, "uint8_t");
+    uint8_t r = 0;
+    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+               first_data_dir;
+    SCReturnCT(r, "uint8_t");
 }
 
 uint64_t AppLayerParserGetTransactionActive(uint8_t ipproto, AppProto alproto,

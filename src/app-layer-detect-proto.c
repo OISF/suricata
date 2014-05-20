@@ -1490,11 +1490,13 @@ int AppLayerProtoDetectPMRegisterPatternCS(uint8_t ipproto, AppProto alproto,
                                            uint8_t direction)
 {
     SCEnter();
-    SCReturnInt(AppLayerProtoDetectPMRegisterPattern(ipproto, alproto,
+    int r = 0;
+    r = AppLayerProtoDetectPMRegisterPattern(ipproto, alproto,
                                                      pattern,
                                                      depth, offset,
                                                      direction,
-                                                     1 /* case-sensitive */));
+                                                     1 /* case-sensitive */);
+    SCReturnInt(r);
 }
 
 int AppLayerProtoDetectPMRegisterPatternCI(uint8_t ipproto, AppProto alproto,
@@ -1503,11 +1505,13 @@ int AppLayerProtoDetectPMRegisterPatternCI(uint8_t ipproto, AppProto alproto,
                                            uint8_t direction)
 {
     SCEnter();
-    SCReturnInt(AppLayerProtoDetectPMRegisterPattern(ipproto, alproto,
+    int r = 0;
+    r = AppLayerProtoDetectPMRegisterPattern(ipproto, alproto,
                                                      pattern,
                                                      depth, offset,
                                                      direction,
-                                                     0 /* !case-sensitive */));
+                                                     0 /* !case-sensitive */);
+    SCReturnInt(r);
 }
 
 /***** Setup/General Registration *****/
