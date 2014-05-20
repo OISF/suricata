@@ -554,13 +554,15 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
 AppProto AppLayerGetProtoByName(char *alproto_name)
 {
     SCEnter();
-    SCReturnCT(AppLayerProtoDetectGetProtoByName(alproto_name), "AppProto");
+    AppProto r = AppLayerProtoDetectGetProtoByName(alproto_name);
+    SCReturnCT(r, "AppProto");
 }
 
 char *AppLayerGetProtoName(AppProto alproto)
 {
     SCEnter();
-    SCReturnCT(AppLayerProtoDetectGetProtoName(alproto), "char *");
+    char * r = AppLayerProtoDetectGetProtoName(alproto);
+    SCReturnCT(r, "char *");
 }
 
 void AppLayerListSupportedProtocols(void)

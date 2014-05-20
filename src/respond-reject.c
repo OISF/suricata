@@ -97,10 +97,13 @@ TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
 int RejectSendIPv4TCP(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
+    int r = 0;
     if (PACKET_TEST_ACTION(p, ACTION_REJECT)) {
-        SCReturnInt(RejectSendLibnet11L3IPv4TCP(tv, p, data, REJECT_DIR_SRC));
+        r = RejectSendLibnet11L3IPv4TCP(tv, p, data, REJECT_DIR_SRC);
+        SCReturnInt(r);
     } else if (PACKET_TEST_ACTION(p, ACTION_REJECT_DST)) {
-        SCReturnInt(RejectSendLibnet11L3IPv4TCP(tv, p, data, REJECT_DIR_DST));
+        r = RejectSendLibnet11L3IPv4TCP(tv, p, data, REJECT_DIR_DST);
+        SCReturnInt(r);
     } else if(PACKET_TEST_ACTION(p, ACTION_REJECT_BOTH)) {
         int ret;
         ret = RejectSendLibnet11L3IPv4TCP(tv, p, data, REJECT_DIR_SRC);
@@ -116,10 +119,13 @@ int RejectSendIPv4TCP(ThreadVars *tv, Packet *p, void *data)
 int RejectSendIPv4ICMP(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
+    int r = 0;
     if (PACKET_TEST_ACTION(p, ACTION_REJECT)) {
-        SCReturnInt(RejectSendLibnet11L3IPv4ICMP(tv, p, data, REJECT_DIR_SRC));
+        r = RejectSendLibnet11L3IPv4ICMP(tv, p, data, REJECT_DIR_SRC);
+        SCReturnInt(r);
     } else if (PACKET_TEST_ACTION(p, ACTION_REJECT_DST)) {
-        SCReturnInt(RejectSendLibnet11L3IPv4ICMP(tv, p, data, REJECT_DIR_DST));
+        r = RejectSendLibnet11L3IPv4ICMP(tv, p, data, REJECT_DIR_DST);
+        SCReturnInt(r);
     } else if(PACKET_TEST_ACTION(p, ACTION_REJECT_BOTH)) {
         int ret;
         ret = RejectSendLibnet11L3IPv4ICMP(tv, p, data, REJECT_DIR_SRC);
@@ -135,10 +141,13 @@ int RejectSendIPv4ICMP(ThreadVars *tv, Packet *p, void *data)
 int RejectSendIPv6TCP(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
+    int r = 0;
     if (PACKET_TEST_ACTION(p, ACTION_REJECT)) {
-        SCReturnInt(RejectSendLibnet11L3IPv6TCP(tv, p, data, REJECT_DIR_SRC));
+        r = RejectSendLibnet11L3IPv6TCP(tv, p, data, REJECT_DIR_SRC);
+        SCReturnInt(r);
     } else if (PACKET_TEST_ACTION(p, ACTION_REJECT_DST)) {
-        SCReturnInt(RejectSendLibnet11L3IPv6TCP(tv, p, data, REJECT_DIR_DST));
+        r = RejectSendLibnet11L3IPv6TCP(tv, p, data, REJECT_DIR_DST);
+        SCReturnInt(r);
     } else if(PACKET_TEST_ACTION(p, ACTION_REJECT_BOTH)) {
         int ret;
         ret = RejectSendLibnet11L3IPv6TCP(tv, p, data, REJECT_DIR_SRC);
@@ -154,10 +163,13 @@ int RejectSendIPv6TCP(ThreadVars *tv, Packet *p, void *data)
 int RejectSendIPv6ICMP(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
+    int r = 0;
     if (PACKET_TEST_ACTION(p, ACTION_REJECT)) {
-        SCReturnInt(RejectSendLibnet11L3IPv6ICMP(tv, p, data, REJECT_DIR_SRC));
+        r = RejectSendLibnet11L3IPv6ICMP(tv, p, data, REJECT_DIR_SRC);
+        SCReturnInt(r);
     } else if (PACKET_TEST_ACTION(p, ACTION_REJECT_DST)) {
-        SCReturnInt(RejectSendLibnet11L3IPv6ICMP(tv, p, data, REJECT_DIR_DST));
+        r = RejectSendLibnet11L3IPv6ICMP(tv, p, data, REJECT_DIR_DST);
+        SCReturnInt(r);
     } else if(PACKET_TEST_ACTION(p, ACTION_REJECT_BOTH)) {
         int ret;
         ret = RejectSendLibnet11L3IPv6ICMP(tv, p, data, REJECT_DIR_SRC);
