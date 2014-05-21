@@ -80,6 +80,7 @@
 #include "output-json-alert.h"
 
 #include "output-json-flow.h"
+#include "output-json-netflow.h"
 #include "log-droplog.h"
 #include "output-json-drop.h"
 #include "log-httplog.h"
@@ -868,8 +869,9 @@ void RegisterAllModules()
     TmModuleJsonDnsLogRegister();
 
     TmModuleJsonAlertLogRegister();
-
+    /* flow/netflow */
     TmModuleJsonFlowLogRegister();
+    TmModuleJsonNetFlowLogRegister();
 
     /* log api */
     TmModulePacketLoggerRegister();
