@@ -422,16 +422,19 @@ TmEcode ReceiveNFLOGLoop(ThreadVars *tv, void *data, void *slot)
             if (errno == EINTR || errno == EWOULDBLOCK) {
                 /*Nothing for us to process */
                 continue;
-            } else if (errno == ENOBUFS && !ntv->nful_overrun_warned) {
-                int s = ntv->nlbufsiz * 2;
-                if (NFLOGSetnlbufsiz((void *)ntv, s)) {
-                    SCLogWarning(SC_WARN_NFLOG_LOSING_EVENTS,
-                                 "We are losing events, "
-                                 "increasing buffer size "
-                                 "to %d", ntv->nlbufsiz);
-                } else {
-                    ntv->nful_overrun_warned = 1;
+            } else if (errno == ENOBUFS) {
+                if (!ntv->nful_overrun_warned) {
+                    int s = ntv->nlbufsiz * 2;
+                    if (NFLOGSetnlbufsiz((void *)ntv, s)) {
+                        SCLogWarning(SC_WARN_NFLOG_LOSING_EVENTS,
+                                "We are losing events, "
+                                "increasing buffer size "
+                                "to %d", ntv->nlbufsiz);
+                    } else {
+                        ntv->nful_overrun_warned = 1;
+                    }
                 }
+                continue;
             } else {
                 SCLogWarning(SC_WARN_NFLOG_RECV,
                              "Read from NFLOG fd failed: %s",
