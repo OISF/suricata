@@ -221,11 +221,18 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
 
         TcpSession *ssn = f->protoctx;
 
-        char hexflags[3] = "00";
-        if (ssn)
-            snprintf(hexflags, sizeof(hexflags), "%02x",
-                    ssn->tcp_packet_flags);
+        char hexflags[3] = "";
+        snprintf(hexflags, sizeof(hexflags), "%02x",
+                ssn ? ssn->tcp_packet_flags : 0);
         json_object_set_new(tjs, "tcp_flags", json_string(hexflags));
+
+        snprintf(hexflags, sizeof(hexflags), "%02x",
+                ssn ? ssn->client.tcp_flags : 0);
+        json_object_set_new(tjs, "tcp_flags_ts", json_string(hexflags));
+
+        snprintf(hexflags, sizeof(hexflags), "%02x",
+                ssn ? ssn->server.tcp_flags : 0);
+        json_object_set_new(tjs, "tcp_flags_tc", json_string(hexflags));
 
         json_object_set_new(js, "tcp", tjs);
     }
