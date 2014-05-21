@@ -78,6 +78,9 @@ FlowProto flow_proto[FLOW_PROTO_MAX];
 /** spare/unused/prealloced flows live here */
 FlowQueue flow_spare_q;
 
+/** queue to pass flows to cleanup/log thread(s) */
+FlowQueue flow_recycle_q;
+
 FlowBucket *flow_hash;
 FlowConfig flow_config;
 
