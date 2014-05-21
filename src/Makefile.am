@@ -221,6 +221,7 @@ output-json-dns.c output-json-dns.h \
 output-json-drop.c output-json-drop.h \
 output-json-file.c output-json-file.h \
 output-json-flow.c output-json-flow.h \
+output-json-netflow.c output-json-netflow.h \
 output-json-http.c output-json-http.h \
 output-json-ssh.c output-json-ssh.h \
 output-json-tls.c output-json-tls.h \
