@@ -90,6 +90,7 @@ typedef enum {
     TMM_JSONTLSLOG,
     TMM_JSONFILELOG,
     TMM_JSONFLOWLOG,
+    TMM_JSONNETFLOWLOG,
     TMM_SIZE,
 } TmmId;
 
