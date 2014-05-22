@@ -234,6 +234,8 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
                 ssn ? ssn->server.tcp_flags : 0);
         json_object_set_new(tjs, "tcp_flags_tc", json_string(hexflags));
 
+        JsonTcpFlags(ssn ? ssn->tcp_packet_flags : 0, tjs);
+
         json_object_set_new(js, "tcp", tjs);
     }
 }
