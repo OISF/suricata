@@ -317,8 +317,8 @@ typedef struct Flow_
 
     uint32_t flags;
 
-    /* ts of flow init and last update */
-    int32_t lastts_sec;
+    /* time stamp of last update (last packet) */
+    struct timeval lastts;
 
 #ifdef FLOWLOCK_RWLOCK
     SCRWLock r;
@@ -377,11 +377,11 @@ typedef struct Flow_
     struct Flow_ *lnext; /* list */
     struct Flow_ *lprev;
     struct timeval startts;
-#ifdef DEBUG
+
     uint32_t todstpktcnt;
     uint32_t tosrcpktcnt;
-    uint64_t bytecnt;
-#endif
+    uint64_t todstbytecnt;
+    uint64_t tosrcbytecnt;
 } Flow;
 
 enum {
@@ -401,7 +401,7 @@ typedef struct FlowProto_ {
     int (*GetProtoState)(void *);
 } FlowProto;
 
-void FlowHandlePacket (ThreadVars *, Packet *);
+void FlowHandlePacket (ThreadVars *, DecodeThreadVars *, Packet *);
 void FlowInitConfig (char);
 void FlowPrintQueueInfo (void);
 void FlowShutdown(void);
