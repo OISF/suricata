@@ -831,7 +831,7 @@ uint32_t UTHBuildPacketOfFlows(uint32_t start, uint32_t end, uint8_t dir) {
             p->src.addr_data32[0] = i + 1;
             p->dst.addr_data32[0] = i;
         }
-        FlowHandlePacket(NULL, p);
+        FlowHandlePacket(NULL, NULL, p);
         if (p->flow != NULL)
             SC_ATOMIC_RESET(p->flow->use_cnt);
 

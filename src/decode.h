@@ -563,6 +563,9 @@ typedef struct DecodeThreadVars_
 
     int vlan_disabled;
 
+    /* thread data for flow logging api */
+    void *output_flow_thread_data;
+
     /** stats/counters */
     uint16_t counter_pkts;
     uint16_t counter_bytes;
@@ -808,7 +811,7 @@ int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datalen);
 const char *PktSrcToString(enum PktSrcEnum pkt_src);
 
 DecodeThreadVars *DecodeThreadVarsAlloc(ThreadVars *);
-void DecodeThreadVarsFree(DecodeThreadVars *);
+void DecodeThreadVarsFree(ThreadVars *, DecodeThreadVars *);
 
 /* decoder functions */
 int DecodeEthernet(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
