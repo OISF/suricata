@@ -2402,11 +2402,16 @@ int main(int argc, char **argv)
         BUG_ON(global_de_ctx == NULL);
     }
 
+    /* before TmThreadKillThreads, as otherwise that kills it
+     * but more slowly */
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+        FlowKillFlowRecyclerThread();
+    }
+
     TmThreadKillThreads();
 
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         SCPerfReleaseResources();
-        FlowKillFlowRecyclerThread();
         FlowShutdown();
         StreamTcpFreeConfig(STREAM_VERBOSE);
     }

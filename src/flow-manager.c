@@ -769,6 +769,8 @@ void FlowKillFlowRecyclerThread(void)
             TmThreadsSetFlag(tv, THV_KILL);
             TmThreadsSetFlag(tv, THV_DEINIT);
 
+            SCCtrlCondSignal(&flow_recycler_ctrl_cond);
+
             /* be sure it has shut down */
             while (!TmThreadsCheckFlag(tv, THV_CLOSED)) {
                 usleep(100);
