@@ -170,6 +170,10 @@
     #check for os
     AC_MSG_CHECKING([host os])
 
+    # lua pkg-config name differs per OS
+    LUA_PC_NAME="lua5.1"
+    LUA_LIB_NAME="lua5.1"
+
     # If no host os was detected, try with uname
     if test -z "$host" ; then
 	    host="`uname`"
@@ -179,12 +183,15 @@
     e_magic_file="/usr/share/file/magic"
     case "$host" in
         *-*-*freebsd*)
+            LUA_PC_NAME="lua-5.1"
+            LUA_LIB_NAME="lua-5.1"
             CFLAGS="${CFLAGS} -DOS_FREEBSD"
             CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet11"
             LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/local/lib/libnet11"
             e_magic_file="/usr/share/misc/magic"
             ;;
         *-*-openbsd*)
+            LUA_PC_NAME="lua51"
             CFLAGS="${CFLAGS} -D__OpenBSD__"
             CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet-1.1"
             LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1"
@@ -1468,6 +1475,69 @@
         fi
     fi
 
+  # liblua
+    AC_ARG_ENABLE(lua,
+	        AS_HELP_STRING([--enable-lua],[Enable Lua support]),
+	        [ enable_lua="yes"],
+	        [ enable_lua="no"])
+    AC_ARG_WITH(liblua_includes,
+            [  --with-liblua-includes=DIR  liblua include directory],
+            [with_liblua_includes="$withval"],[with_liblua_includes="no"])
+    AC_ARG_WITH(liblua_libraries,
+            [  --with-liblua-libraries=DIR    liblua library directory],
+            [with_liblua_libraries="$withval"],[with_liblua_libraries="no"])
+
+    if test "$enable_lua" = "yes"; then
+        if test "$with_liblua_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_liblua_includes}"
+        else
+            PKG_CHECK_MODULES([LUA], [${LUA_PC_NAME}], LUA="no")
+            CPPFLAGS="${CPPFLAGS} ${LUA_CFLAGS}"
+        fi
+
+        AC_CHECK_HEADER(lualib.h,LUA="yes",LUA="no")
+        if test "$LUA" = "yes"; then
+            if test "$with_liblua_libraries" != "no"; then
+                LDFLAGS="${LDFLAGS}  -L${with_liblua_libraries}"
+            else
+                PKG_CHECK_MODULES([LUA], [${LUA_PC_NAME}])
+                LDFLAGS="${LDFLAGS} ${LUA_LIBS}"
+            fi
+
+            AC_CHECK_LIB(${LUA_LIB_NAME}, luaL_openlibs,, LUA="no")
+
+            if test "$LUA" = "no"; then
+                echo
+                echo "   ERROR!  liblua library not found, go get it"
+                echo "   from http://lua.org/index.html or your distribution:"
+                echo
+                echo "   Ubuntu: apt-get install liblua-5.1-dev"
+                echo
+                echo "   If you installed software in a non-standard prefix"
+                echo "   consider adjusting the PKG_CONFIG_PATH environment variable"
+                echo "   or use --with-liblua-libraries configure option."
+                echo
+                exit 1
+            fi
+
+            AC_DEFINE([HAVE_LUA],[1],[liblua available])
+            enable_lua="yes"
+        else
+	        echo
+                echo "   ERROR!  liblua headers not found, go get them"
+                echo "   from http://lua.org/index.html or your distribution:"
+                echo
+                echo "   Ubuntu: apt-get install liblua-5.1-dev"
+                echo
+                echo "   If you installed software in a non-standard prefix"
+                echo "   consider adjusting the PKG_CONFIG_PATH environment variable"
+                echo "   or use --with-liblua-includes and --with-liblua-libraries"
+                echo "   configure option."
+                echo
+                exit 1
+        fi
+    fi
+
   # libluajit
     AC_ARG_ENABLE(luajit,
 	        AS_HELP_STRING([--enable-luajit],[Enable Luajit support]),
@@ -1513,7 +1583,9 @@
                 exit 1
             fi
 
+            AC_DEFINE([HAVE_LUA],[1],[lua support available])
             AC_DEFINE([HAVE_LUAJIT],[1],[libluajit available])
+            enable_lua="yes"
             enable_luajit="yes"
         else
 	        echo
@@ -1671,6 +1743,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   libjansson support:                      ${enable_jansson}
   Prelude support:                         ${enable_prelude}
   PCRE jit:                                ${pcre_jit_available}
+  LUA support:                             ${enable_lua}
   libluajit:                               ${enable_luajit}
   libgeoip:                                ${enable_geoip}
   Non-bundled htp:                         ${enable_non_bundled_htp}

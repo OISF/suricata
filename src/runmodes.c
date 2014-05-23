@@ -646,6 +646,14 @@ void RunModeInitializeOutputs(void)
                     "files installed to add eve-log support.");
             continue;
 #endif
+        } else if (strcmp(output->val, "lua") == 0) {
+#ifndef HAVE_LUA
+            SCLogWarning(SC_ERR_NOT_SUPPORTED,
+                    "lua support not compiled in. Reconfigure/"
+                    "recompile with lua(jit) and its development "
+                    "files installed to add lua support.");
+            continue;
+#endif
         }
 
         OutputModule *module = OutputGetModuleByConfName(output->val);
@@ -715,6 +723,37 @@ void RunModeInitializeOutputs(void)
              * main output ctx from which the sub-modules share the
              * LogFileCtx */
             AddOutputToFreeList(module, output_ctx);
+
+        } else if (strcmp(output->val, "lua") == 0) {
+            SCLogDebug("handle lua");
+
+            ConfNode *scripts = ConfNodeLookupChild(output_config, "scripts");
+            BUG_ON(scripts == NULL); //TODO
+
+            OutputModule *m;
+            TAILQ_FOREACH(m, &output_ctx->submodules, entries) {
+                SCLogDebug("m %p %s:%s", m, m->name, m->conf_name);
+
+                ConfNode *script = NULL;
+                TAILQ_FOREACH(script, &scripts->head, next) {
+                    SCLogDebug("script %s", script->val);
+                    if (strcmp(script->val, m->conf_name) == 0) {
+                        break;
+                    }
+                }
+                BUG_ON(script == NULL);
+
+                /* pass on parent output_ctx */
+                OutputCtx *sub_output_ctx =
+                    m->InitSubFunc(script, output_ctx);
+                if (sub_output_ctx == NULL) {
+                    SCLogInfo("sub_output_ctx NULL, skipping");
+                    continue;
+                }
+
+                SetupOutput(m->name, m, sub_output_ctx);
+            }
+
         } else {
             AddOutputToFreeList(module, output_ctx);
             SetupOutput(module->name, module, output_ctx);

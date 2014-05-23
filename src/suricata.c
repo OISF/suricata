@@ -162,6 +162,8 @@
 #include "reputation.h"
 
 #include "output.h"
+#include "output-lua.h"
+
 #include "output-packet.h"
 #include "output-tx.h"
 #include "output-file.h"
@@ -669,6 +671,9 @@ void SCPrintBuildInfo(void) {
 #ifdef HAVE_NSS
     strlcat(features, "HAVE_NSS ", sizeof(features));
 #endif
+#ifdef HAVE_LUA
+    strlcat(features, "HAVE_LUA ", sizeof(features));
+#endif
 #ifdef HAVE_LUAJIT
     strlcat(features, "HAVE_LUAJIT ", sizeof(features));
 #endif
@@ -816,6 +821,7 @@ void RegisterAllModules()
     /* respond-reject */
     TmModuleRespondRejectRegister();
 
+    TmModuleLuaLogRegister();
     /* fast log */
     TmModuleAlertFastLogRegister();
     /* debug log */
