@@ -48,6 +48,7 @@
         (f)->lastts.tv_usec = 0; \
         FLOWLOCK_INIT((f)); \
         (f)->protoctx = NULL; \
+        (f)->flow_end_flags = 0; \
         (f)->alproto = 0; \
         (f)->alproto_ts = 0; \
         (f)->alproto_tc = 0; \
@@ -87,6 +88,7 @@
         (f)->lastts.tv_sec = 0; \
         (f)->lastts.tv_usec = 0; \
         (f)->protoctx = NULL; \
+        (f)->flow_end_flags = 0; \
         (f)->alparser = NULL; \
         (f)->alstate = NULL; \
         (f)->alproto = 0; \

@@ -208,6 +208,27 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
     json_object_set_new(hjs, "age",
             json_integer(age));
 
+    if (f->flow_end_flags & FLOW_END_FLAG_EMERGENCY)
+        json_object_set_new(hjs, "emergency", json_true());
+    const char *state = NULL;
+    if (f->flow_end_flags & FLOW_END_FLAG_STATE_NEW)
+        state = "new";
+    else if (f->flow_end_flags & FLOW_END_FLAG_STATE_ESTABLISHED)
+        state = "established";
+    else if (f->flow_end_flags & FLOW_END_FLAG_STATE_CLOSED)
+        state = "closed";
+
+    json_object_set_new(hjs, "state",
+            json_string(state));
+
+    const char *reason = NULL;
+    if (f->flow_end_flags & FLOW_END_FLAG_TIMEOUT)
+        reason = "timeout";
+    else if (f->flow_end_flags & FLOW_END_FLAG_FORCED)
+        reason = "forced";
+
+    json_object_set_new(hjs, "reason",
+            json_string(reason));
 
     json_object_set_new(js, "flow", hjs);
 
