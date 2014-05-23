@@ -666,6 +666,19 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv)
         f->fb = NULL;
         FBLOCK_UNLOCK(fb);
 
+        int state = FlowGetFlowState(f);
+        if (state == FLOW_STATE_NEW)
+            f->flow_end_flags |= FLOW_END_FLAG_STATE_NEW;
+        else if (state == FLOW_STATE_ESTABLISHED)
+            f->flow_end_flags |= FLOW_END_FLAG_STATE_ESTABLISHED;
+        else if (state == FLOW_STATE_CLOSED)
+            f->flow_end_flags |= FLOW_END_FLAG_STATE_CLOSED;
+
+        f->flow_end_flags |= FLOW_END_FLAG_FORCED;
+
+        if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY)
+            f->flow_end_flags |= FLOW_END_FLAG_EMERGENCY;
+
         /* invoke flow log api */
         if (dtv && dtv->output_flow_thread_data)
             (void)OutputFlowLog(tv, dtv->output_flow_thread_data, f);
