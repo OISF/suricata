@@ -275,6 +275,17 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
             f->hnext = NULL;
             f->hprev = NULL;
 
+            if (state == FLOW_STATE_NEW)
+                f->flow_end_flags |= FLOW_END_FLAG_STATE_NEW;
+            else if (state == FLOW_STATE_ESTABLISHED)
+                f->flow_end_flags |= FLOW_END_FLAG_STATE_ESTABLISHED;
+            else if (state == FLOW_STATE_CLOSED)
+                f->flow_end_flags |= FLOW_END_FLAG_STATE_CLOSED;
+
+            if (emergency)
+                f->flow_end_flags |= FLOW_END_FLAG_EMERGENCY;
+            f->flow_end_flags |= FLOW_END_FLAG_TIMEOUT;
+
 //            FlowClearMemory (f, f->protomap);
 
             /* no one is referring to this flow, use_cnt 0, removed from hash
