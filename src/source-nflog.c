@@ -378,7 +378,7 @@ static int NFLOGSetnlbufsiz(void *data, unsigned int size)
 
     SCLogWarning(SC_WARN_NFLOG_MAXBUFSIZ_REACHED,
                  "Maximum buffer size (%d) in NFLOG has been "
-                 "reached. Please, consider rising "
+                 "reached. Please, consider raising "
                  "`buffer-size` and `max-size` in nflog configuration",
                  ntv->nlbufsiz);
     return 0;
