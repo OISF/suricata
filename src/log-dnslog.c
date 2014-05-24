@@ -71,34 +71,6 @@ typedef struct LogDnsLogThread_ {
     MemBuffer *buffer;
 } LogDnsLogThread;
 
-static void CreateTypeString(uint16_t type, char *str, size_t str_size) {
-    if (type == DNS_RECORD_TYPE_A) {
-        snprintf(str, str_size, "A");
-    } else if (type == DNS_RECORD_TYPE_NS) {
-        snprintf(str, str_size, "NS");
-    } else if (type == DNS_RECORD_TYPE_AAAA) {
-        snprintf(str, str_size, "AAAA");
-    } else if (type == DNS_RECORD_TYPE_TXT) {
-        snprintf(str, str_size, "TXT");
-    } else if (type == DNS_RECORD_TYPE_CNAME) {
-        snprintf(str, str_size, "CNAME");
-    } else if (type == DNS_RECORD_TYPE_SOA) {
-        snprintf(str, str_size, "SOA");
-    } else if (type == DNS_RECORD_TYPE_MX) {
-        snprintf(str, str_size, "MX");
-    } else if (type == DNS_RECORD_TYPE_PTR) {
-        snprintf(str, str_size, "PTR");
-    } else if (type == DNS_RECORD_TYPE_ANY) {
-        snprintf(str, str_size, "ANY");
-    } else if (type == DNS_RECORD_TYPE_TKEY) {
-        snprintf(str, str_size, "TKEY");
-    } else if (type == DNS_RECORD_TYPE_TSIG) {
-        snprintf(str, str_size, "TSIG");
-    } else {
-        snprintf(str, str_size, "%04x/%u", type, type);
-    }
-}
-
 static void LogQuery(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dstip, Port sp, Port dp, DNSTransaction *tx, DNSQueryEntry *entry) {
     LogDnsFileCtx *hlog = aft->dnslog_ctx;
 
@@ -117,7 +89,7 @@ static void LogQuery(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dst
             entry->len);
 
     char record[16] = "";
-    CreateTypeString(entry->type, record, sizeof(record));
+    DNSCreateTypeString(entry->type, record, sizeof(record));
     MemBufferWriteString(aft->buffer,
             " [**] %s [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
             record, srcip, sp, dstip, dp);
@@ -156,7 +128,7 @@ static void LogAnswer(LogDnsLogThread *aft, char *timebuf, char *srcip, char *ds
         }
 
         char record[16] = "";
-        CreateTypeString(entry->type, record, sizeof(record));
+        DNSCreateTypeString(entry->type, record, sizeof(record));
         MemBufferWriteString(aft->buffer,
                 " [**] %s [**] TTL %u [**] ", record, entry->ttl);
 

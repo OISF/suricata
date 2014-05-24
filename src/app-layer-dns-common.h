@@ -222,4 +222,6 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
 uint16_t DNSUdpResponseGetNameByOffset(const uint8_t * const input, const uint32_t input_len,
         const uint16_t offset, uint8_t *fqdn, const size_t fqdn_size);
 
+void DNSCreateTypeString(uint16_t type, char *str, size_t str_size);
+
 #endif /* __APP_LAYER_DNS_COMMON_H__ */
