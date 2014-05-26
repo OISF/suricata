@@ -132,6 +132,12 @@ void *ParseNflogConfig(const char *group)
         return NULL;
     }
 
+    if (nflogconf->nlbufsiz > nflogconf->nlbufsiz_max) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "buffer-size value larger "
+                "than max-size value, adjusting buffer-size");
+        nflogconf->nlbufsiz = nflogconf->nlbufsiz_max;
+    }
+
     boolval = ConfGetChildValueIntWithDefault(group_root, group_default,
                                               "qthreshold", &qthreshold);
 
