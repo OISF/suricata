@@ -289,6 +289,18 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, void *initdata, void **data)
 		SCReturnInt(TM_ECODE_FAILED);
     }
 
+    /* set a timeout to the socket so we can check for a signal
+     * in case we don't get packets for a longer period. */
+    struct timeval timev;
+    timev.tv_sec = 1;
+    timev.tv_usec = 0;
+
+    int fd = nflog_fd(ntv->h);
+    if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timev, sizeof(timev)) == -1) {
+        SCLogWarning(SC_WARN_NFLOG_SETSOCKOPT, "can't set socket "
+                "timeout: %s", strerror(errno));
+    }
+
 #ifdef PACKET_STATISTICS
     ntv->capture_kernel_packets = SCPerfTVRegisterCounter("capture.kernel_packets",
                                                            ntv->tv,
