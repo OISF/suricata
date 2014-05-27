@@ -429,8 +429,13 @@ void OutputSshLoggerDisable(void) {
         ssh_loggers--;
 }
 
-void OutputRegisterFileRotationFlag(int *flag)
-{
+/**
+ * \brief Register a flag for file rotation notification.
+ *
+ * \param flag A pointer that will be set to 1 when file rotation is
+ *   requested.
+ */
+void OutputRegisterFileRotationFlag(int *flag) {
     OutputFileRolloverFlag *flag_entry = SCCalloc(1, sizeof(*flag_entry));
     if (unlikely(flag_entry == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC,
@@ -441,8 +446,33 @@ void OutputRegisterFileRotationFlag(int *flag)
     TAILQ_INSERT_TAIL(&output_file_rotation_flags, flag_entry, entries);
 }
 
-void OutputNotifyFileRotation(void)
-{
+/**
+ * \brief Unregister a file rotation flag.
+ *
+ * Note that it is safe to call this function with a flag that may not
+ * have been registered, in which case this function won't do
+ * anything.
+ *
+ * \param flag A pointer that has been previously registered for file
+ *   rotation notifications.
+ */
+void OutputUnregisterFileRotationFlag(int *flag) {
+    OutputFileRolloverFlag *entry, *next;
+    for (entry = TAILQ_FIRST(&output_file_rotation_flags); entry != NULL;
+         entry = next) {
+        next = TAILQ_NEXT(entry, entries);
+        if (entry->flag == flag) {
+            TAILQ_REMOVE(&output_file_rotation_flags, entry, entries);
+            SCFree(entry);
+            break;
+        }
+    }
+}
+
+/**
+ * \brief Notifies all registered file rotation notification flags.
+ */
+void OutputNotifyFileRotation(void) {
     OutputFileRolloverFlag *flag;
     TAILQ_FOREACH(flag, &output_file_rotation_flags, entries) {
         *(flag->flag) = 1;

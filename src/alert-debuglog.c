@@ -445,6 +445,7 @@ static void AlertDebugLogDeInitCtx(OutputCtx *output_ctx)
 {
     if (output_ctx != NULL) {
         LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+        OutputUnregisterFileRotationFlag(&logfile_ctx->rotation_flag);
         if (logfile_ctx != NULL) {
             LogFileFreeCtx(logfile_ctx);
         }
