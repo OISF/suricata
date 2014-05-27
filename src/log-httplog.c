@@ -730,6 +730,7 @@ static void LogHttpLogDeInitCtx(OutputCtx *output_ctx)
     for (i = 0; i < httplog_ctx->cf_n; i++) {
         SCFree(httplog_ctx->cf_nodes[i]);
     }
+    OutputUnregisterFileRotationFlag(&httplog_ctx->file_ctx->rotation_flag);
     LogFileFreeCtx(httplog_ctx->file_ctx);
     SCFree(httplog_ctx);
     SCFree(output_ctx);

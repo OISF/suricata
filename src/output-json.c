@@ -477,6 +477,7 @@ static void OutputJsonDeInitCtx(OutputCtx *output_ctx)
 {
     OutputJsonCtx *json_ctx = (OutputJsonCtx *)output_ctx->data;
     LogFileCtx *logfile_ctx = json_ctx->file_ctx;
+    OutputUnregisterFileRotationFlag(&logfile_ctx->rotation_flag);
     LogFileFreeCtx(logfile_ctx);
     SCFree(json_ctx);
     SCFree(output_ctx);

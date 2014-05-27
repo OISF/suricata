@@ -346,6 +346,7 @@ void LogFileLogExitPrintStats(ThreadVars *tv, void *data) {
 static void LogFileLogDeInitCtx(OutputCtx *output_ctx)
 {
     LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+    OutputUnregisterFileRotationFlag(&logfile_ctx->rotation_flag);
     LogFileFreeCtx(logfile_ctx);
     free(output_ctx);
 }

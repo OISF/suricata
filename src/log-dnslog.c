@@ -288,6 +288,7 @@ static void LogDnsLogExitPrintStats(ThreadVars *tv, void *data) {
 static void LogDnsLogDeInitCtx(OutputCtx *output_ctx)
 {
     LogDnsFileCtx *dnslog_ctx = (LogDnsFileCtx *)output_ctx->data;
+    OutputUnregisterFileRotationFlag(&dnslog_ctx->file_ctx->rotation_flag);
     LogFileFreeCtx(dnslog_ctx->file_ctx);
     SCFree(dnslog_ctx);
     SCFree(output_ctx);

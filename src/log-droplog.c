@@ -125,6 +125,7 @@ static void LogDropLogDeInitCtx(OutputCtx *output_ctx)
     if (output_ctx != NULL) {
         LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
         if (logfile_ctx != NULL) {
+            OutputUnregisterFileRotationFlag(&logfile_ctx->rotation_flag);
             LogFileFreeCtx(logfile_ctx);
         }
         SCFree(output_ctx);

@@ -382,6 +382,7 @@ static void LogTlsLogDeInitCtx(OutputCtx *output_ctx)
     OutputTlsLoggerDisable();
 
     LogTlsFileCtx *tlslog_ctx = (LogTlsFileCtx *) output_ctx->data;
+    OutputUnregisterFileRotationFlag(&tlslog_ctx->file_ctx->rotation_flag);
     LogFileFreeCtx(tlslog_ctx->file_ctx);
     SCFree(tlslog_ctx);
     SCFree(output_ctx);

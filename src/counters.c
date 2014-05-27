@@ -285,6 +285,8 @@ static void SCPerfReleaseOPCtx()
     SCPerfClubTMInst *temp = NULL;
     pctmi = sc_perf_op_ctx->pctmi;
 
+    OutputUnregisterFileRotationFlag(&sc_perf_op_ctx->rotation_flag);
+
     if (sc_perf_op_ctx->fp != NULL)
         fclose(sc_perf_op_ctx->fp);
 
