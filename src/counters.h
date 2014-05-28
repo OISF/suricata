@@ -158,6 +158,10 @@ typedef struct SCPerfOPIfaceContext_ {
 
     SCPerfClubTMInst *pctmi;
     SCMutex pctmi_lock;
+
+    /* Flag set on file rotation notification. */
+    int rotation_flag;
+
 } SCPerfOPIfaceContext;
 
 /* the initialization functions */
