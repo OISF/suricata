@@ -102,19 +102,21 @@ void SCProfilingKeywordsGlobalInit(void) {
 void DoDump(SCProfileKeywordDetectCtx *rules_ctx, FILE *fp, const char *name) {
     int i;
     fprintf(fp, "  ----------------------------------------------"
+            "------------------------------------------------------"
             "----------------------------\n");
     fprintf(fp, "  Stats for: %s\n", name);
     fprintf(fp, "  ----------------------------------------------"
+            "------------------------------------------------------"
             "----------------------------\n");
-    fprintf(fp, "  %-16s %-11s %-8s %-8s %-11s %-11s %-11s %-11s\n", "Keyword", "Ticks", "Checks", "Matches", "Max Ticks", "Avg", "Avg Match", "Avg No Match");
+    fprintf(fp, "  %-16s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n", "Keyword", "Ticks", "Checks", "Matches", "Max Ticks", "Avg", "Avg Match", "Avg No Match");
     fprintf(fp, "  ---------------- "
-                "----------- "
-                "-------- "
-                "-------- "
-                "----------- "
-                "----------- "
-                "----------- "
-                "----------- "
+                "--------------- "
+                "--------------- "
+                "--------------- "
+                "--------------- "
+                "--------------- "
+                "--------------- "
+                "--------------- "
         "\n");
     for (i = 0; i < DETECT_TBLSIZE; i++) {
         SCProfileKeywordData *d = &rules_ctx->data[i];
@@ -135,7 +137,7 @@ void DoDump(SCProfileKeywordDetectCtx *rules_ctx, FILE *fp, const char *name) {
         }
 
         fprintf(fp,
-            "  %-16s %-11"PRIu64" %-8"PRIu64" %-8"PRIu64" %-11"PRIu64" %-11.2f %-11.2f %-11.2f\n",
+            "  %-16s %-15"PRIu64" %-15"PRIu64" %-15"PRIu64" %-15"PRIu64" %-15.2f %-15.2f %-15.2f\n",
             sigmatch_table[i].name,
             ticks,
             d->checks,
@@ -176,6 +178,7 @@ SCProfilingKeywordDump(DetectEngineCtx *de_ctx) {
     }
 
     fprintf(fp, "  ----------------------------------------------"
+            "------------------------------------------------------"
             "----------------------------\n");
     fprintf(fp, "  Date: %" PRId32 "/%" PRId32 "/%04d -- "
             "%02d:%02d:%02d\n", tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900,
