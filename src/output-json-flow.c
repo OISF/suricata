@@ -105,6 +105,8 @@ static json_t *CreateJSONHeaderFromFlow(Flow *f, char *event_type)
         snprintf(proto, sizeof(proto), "%03" PRIu32, f->proto);
     }
 
+    CreateJSONFlowId(js, (const Flow *)f);
+
     /* time */
     json_object_set_new(js, "timestamp", json_string(timebuf));
 #if 0 // TODO

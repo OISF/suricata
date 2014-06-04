@@ -32,6 +32,7 @@ void TmModuleOutputJsonRegister (void);
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 
+void CreateJSONFlowId(json_t *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);
 json_t *CreateJSONHeader(Packet *p, int direction_sensative, char *event_type);
 TmEcode OutputJSON(json_t *js, void *data, uint64_t *count);
