@@ -169,6 +169,18 @@ void JsonTcpFlags(uint8_t flags, json_t *js) {
         json_object_set_new(js, "cwr", json_true());
 }
 
+void CreateJSONFlowId(json_t *js, const Flow *f)
+{
+    if (f == NULL)
+        return;
+#if __WORDSIZE == 64
+    uint64_t addr = (uint64_t)f;
+#else
+    uint32_t addr = (uint32_t)f;
+#endif
+    json_object_set_new(js, "flow_id", json_integer(addr));
+}
+
 json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
 {
     char timebuf[64];
@@ -226,6 +238,8 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
 
     /* time & tx */
     json_object_set_new(js, "timestamp", json_string(timebuf));
+
+    CreateJSONFlowId(js, (const Flow *)p->flow);
 
     /* sensor id */
     if (sensor_id >= 0)
