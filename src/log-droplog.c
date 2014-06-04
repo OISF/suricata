@@ -192,12 +192,9 @@ static int LogDropLogNetFilter (ThreadVars *tv, const Packet *p, void *data)
         dlt->file_ctx->rotation_flag  = 0;
         if (SCConfLogReopen(dlt->file_ctx) != 0) {
             /* Rotation failed, error already logged. */
+            SCMutexUnlock(&dlt->file_ctx->fp_mutex);
             return TM_ECODE_FAILED;
         }
-    }
-
-    if (dlt->file_ctx == NULL) {
-        return TM_ECODE_FAILED;
     }
 
     char srcip[46] = "";
