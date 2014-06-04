@@ -211,6 +211,8 @@
             WINDOWS_PATH="yes"
             ;;
         *-*-cygwin)
+            LUA_PC_NAME="lua"
+            LUA_LIB_NAME="lua"
             WINDOWS_PATH="yes"
             ;;
         *)
