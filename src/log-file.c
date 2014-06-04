@@ -157,6 +157,7 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const
     /* Bail early if no file pointer to write to (in the unlikely
      * event file rotation failed. */
     if (aft->file_ctx->fp == NULL) {
+        SCMutexUnlock(&aft->file_ctx->fp_mutex);
         return;
     }
 
