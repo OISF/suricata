@@ -116,6 +116,9 @@ static json_t *CreateJSONHeaderFromFlow(Flow *f, char *event_type, int dir)
 
     /* time */
     json_object_set_new(js, "timestamp", json_string(timebuf));
+
+    CreateJSONFlowId(js, (const Flow *)f);
+
 #if 0 // TODO
     /* sensor id */
     if (sensor_id >= 0)
