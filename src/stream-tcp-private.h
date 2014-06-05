@@ -62,10 +62,11 @@ typedef struct TcpSegment_ {
 } TcpSegment;
 
 typedef struct TcpStream_ {
-    uint16_t flags;                 /**< Flag specific to the stream e.g. Timestamp */
+    uint16_t flags:12;              /**< Flag specific to the stream e.g. Timestamp */
     /* coccinelle: TcpStream:flags:STREAMTCP_STREAM_FLAG_ */
-    uint8_t wscale;                 /**< wscale setting in this direction */
+    uint16_t wscale:4;              /**< wscale setting in this direction, 4 bits as max val is 15 */
     uint8_t os_policy;              /**< target based OS policy used for reassembly and handling packets*/
+    uint8_t tcp_flags;              /**< TCP flags seen */
 
     uint32_t isn;                   /**< initial sequence number */
     uint32_t next_seq;              /**< next expected sequence number */
@@ -167,6 +168,9 @@ enum
 #define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED 0x0100
 /** Raw reassembly disabled for new segments */
 #define STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED 0x0200
+// vacancy 2x
+/** NOTE: flags field is 12 bits */
+
 
 /*
  * Per SEGMENT flags
@@ -210,6 +214,8 @@ typedef struct TcpSession_ {
     uint8_t state;
     uint8_t queue_len;                      /**< length of queue list below */
     int8_t data_first_seen_dir;
+    /** track all the tcp flags we've seen */
+    uint8_t tcp_packet_flags;
     /* coccinelle: TcpSession:flags:STREAMTCP_FLAG */
     uint16_t flags;
     TcpStream server;

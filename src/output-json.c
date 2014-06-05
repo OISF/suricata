@@ -147,6 +147,40 @@ static enum JsonOutput json_out = ALERT_FILE;
 
 static enum JsonFormat format = COMPACT;
 
+/** \brief jsonify tcp flags field
+ *  Only add 'true' fields in an attempt to keep things reasonably compact.
+ */
+void JsonTcpFlags(uint8_t flags, json_t *js) {
+    if (flags & TH_SYN)
+        json_object_set_new(js, "syn", json_true());
+    if (flags & TH_FIN)
+        json_object_set_new(js, "fin", json_true());
+    if (flags & TH_RST)
+        json_object_set_new(js, "rst", json_true());
+    if (flags & TH_PUSH)
+        json_object_set_new(js, "psh", json_true());
+    if (flags & TH_ACK)
+        json_object_set_new(js, "ack", json_true());
+    if (flags & TH_URG)
+        json_object_set_new(js, "urg", json_true());
+    if (flags & TH_ECN)
+        json_object_set_new(js, "ecn", json_true());
+    if (flags & TH_CWR)
+        json_object_set_new(js, "cwr", json_true());
+}
+
+void CreateJSONFlowId(json_t *js, const Flow *f)
+{
+    if (f == NULL)
+        return;
+#if __WORDSIZE == 64
+    uint64_t addr = (uint64_t)f;
+#else
+    uint32_t addr = (uint32_t)f;
+#endif
+    json_object_set_new(js, "flow_id", json_integer(addr));
+}
+
 json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
 {
     char timebuf[64];
@@ -204,6 +238,8 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
 
     /* time & tx */
     json_object_set_new(js, "timestamp", json_string(timebuf));
+
+    CreateJSONFlowId(js, (const Flow *)p->flow);
 
     /* sensor id */
     if (sensor_id >= 0)
