@@ -209,18 +209,18 @@ static int NFLOGCallback(struct nflog_g_handle *gh, struct nfgenmsg *msg,
 TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     NflogGroupConfig *nflconfig = initdata;
-    NFLOGThreadVars *ntv = SCMalloc(sizeof(NFLOGThreadVars));
-
-    if (unlikely(ntv == NULL)) {
-        nflconfig->DerefFunc(nflconfig);
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-    memset(ntv, 0, sizeof(NFLOGThreadVars));
 
     if (initdata == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "initdata == NULL");
         SCReturnInt(TM_ECODE_FAILED);
     }
+
+    NFLOGThreadVars *ntv = SCMalloc(sizeof(NFLOGThreadVars));
+    if (unlikely(ntv == NULL)) {
+        nflconfig->DerefFunc(nflconfig);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    memset(ntv, 0, sizeof(NFLOGThreadVars));
 
     ntv->tv = tv;
     ntv->group = nflconfig->group;
@@ -233,6 +233,7 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, void *initdata, void **data)
     ntv->h = nflog_open();
     if (ntv->h == NULL) {
         SCLogError(SC_ERR_NFLOG_OPEN, "nflog_open() failed");
+        SCFree(ntv);
         return TM_ECODE_FAILED;
     }
 
@@ -250,11 +251,13 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, void *initdata, void **data)
     ntv->gh = nflog_bind_group(ntv->h, ntv->group);
     if (!ntv->gh) {
         SCLogError(SC_ERR_NFLOG_OPEN, "nflog_bind_group() failed");
+        SCFree(ntv);
         return TM_ECODE_FAILED;
     }
 
     if (nflog_set_mode(ntv->gh, NFULNL_COPY_PACKET, 0xFFFF) < 0) {
         SCLogError(SC_ERR_NFLOG_SET_MODE, "can't set packet_copy mode");
+        SCFree(ntv);
         return TM_ECODE_FAILED;
     }
 
