@@ -45,6 +45,7 @@
 #include "util-byte.h"
 #include "util-misc.h"
 #include "util-cpu.h"
+#include "util-atomic.h"
 
 #include "source-pcap.h"
 
@@ -71,6 +72,8 @@
 #define USE_STREAM_DEPTH_DISABLED       0
 #define USE_STREAM_DEPTH_ENABLED        1
 
+SC_ATOMIC_DECLARE(uint32_t, thread_cnt);
+
 typedef struct PcapFileName_ {
     char *filename;
     char *dirname;
@@ -81,6 +84,8 @@ typedef struct PcapLogProfileData_ {
     uint64_t total;
     uint64_t cnt;
 } PcapLogProfileData;
+
+#define MAX_TOKS 9
 
 /**
  * PcapLog thread vars
@@ -114,12 +119,15 @@ typedef struct PcapLogData_ {
 
     TAILQ_HEAD(, PcapFileName_) pcap_file_list;
 
+    uint32_t thread_number;     /**< thread number, first thread is 1, second 2, etc */
     int use_ringbuffer;         /**< ring buffer mode enabled or disabled */
     int timestamp_format;       /**< timestamp format sec or usec */
     char *prefix;               /**< filename prefix */
     char dir[PATH_MAX];         /**< pcap log directory */
     int reported;
     int threads;                /**< number of threads (only set in the global) */
+    char *filename_parts[MAX_TOKS];
+    int filename_part_cnt;
 } PcapLogData;
 
 typedef struct PcapLogThreadData_ {
@@ -148,6 +156,7 @@ void TmModulePcapLogRegister(void)
 
     OutputRegisterModule(MODULE_NAME, "pcap-log", PcapLogInitCtx);
 
+    SC_ATOMIC_INIT(thread_cnt);
     return;
 }
 
@@ -441,6 +450,14 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
 
     strlcpy(copy->dir, pl->dir, sizeof(copy->dir));
 
+    int i;
+    for (i = 0; i < pl->filename_part_cnt && i < MAX_TOKS; i++)
+        copy->filename_parts[i] = pl->filename_parts[i];
+    copy->filename_part_cnt = pl->filename_part_cnt;
+
+    /* set thread number, first thread is 1 */
+    copy->thread_number = SC_ATOMIC_ADD(thread_cnt, 1);
+
     SCLogDebug("copied, returning %p", copy);
     return copy;
 }
@@ -552,6 +569,92 @@ static TmEcode PcapLogDataDeinit(ThreadVars *t, void *thread_data)
     return TM_ECODE_OK;
 }
 
+static int ParseFilename(PcapLogData *pl, const char *filename)
+{
+    char *toks[MAX_TOKS] = { NULL };
+    int tok = 0;
+    char str[512] = "";
+    int s = 0;
+    int i, x;
+    char *p = NULL;
+
+    if (filename) {
+        for (i = 0; i < (int)strlen(filename); i++) {
+            if (tok >= MAX_TOKS) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "invalid filename option. Max 2 %%-sign options");
+                goto error;
+            }
+
+            str[s++] = filename[i];
+
+            if (filename[i] == '%') {
+                str[s-1] = '\0';
+                SCLogDebug("filename with %%-sign: %s", str);
+
+                p = SCStrdup(str);
+                if (p == NULL)
+                    goto error;
+                toks[tok++] = p;
+
+                s = 0;
+
+                if (i+1 < (int)strlen(filename)) {
+                    if (tok >= MAX_TOKS) {
+                        SCLogError(SC_ERR_INVALID_ARGUMENT,
+                                "invalid filename option. Max 2 %%-sign options");
+                        goto error;
+                    }
+
+                    if (filename[i+1] != 'n' && filename[i+1] != 't' && filename[i+1] != 'i') {
+                        SCLogError(SC_ERR_INVALID_ARGUMENT,
+                                "invalid filename option. Valid %%-sign options: %%n, %%i and %%t");
+                        goto error;
+                    }
+                    str[0] = '%';
+                    str[1] = filename[i+1];
+                    str[2] = '\0';
+                    p = SCStrdup(str);
+                    if (p == NULL)
+                        goto error;
+                    toks[tok++] = p;
+                    i++;
+                }
+            }
+        }
+        if (s) {
+            if (tok >= MAX_TOKS) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "invalid filename option. Max 3 %%-sign options");
+                goto error;
+
+            }
+            str[s++] = '\0';
+            p = SCStrdup(str);
+            if (p == NULL)
+                goto error;
+            toks[tok++] = p;
+        }
+
+        /* finally, store tokens in the pl */
+        for (i = 0; i < tok; i++) {
+            if (toks[i] == NULL)
+                goto error;
+
+            SCLogDebug("toks[%d] %s", i, toks[i]);
+            pl->filename_parts[i] = toks[i];
+        }
+        pl->filename_part_cnt = tok;
+    }
+    return 0;
+error:
+    for (x = 0; x < MAX_TOKS; x++) {
+        if (toks[x] != NULL)
+            SCFree(toks[x]);
+    }
+    return -1;
+}
+
 /** \brief Fill in pcap logging struct from the provided ConfNode.
  *  \param conf The configuration node for this output.
  *  \retval output_ctx
@@ -598,6 +701,11 @@ static OutputCtx *PcapLogInitCtx(ConfNode *conf)
         exit(EXIT_FAILURE);
     }
 
+    if (filename) {
+        if (ParseFilename(pl, filename) != 0)
+            exit(EXIT_FAILURE);
+    }
+
     pl->size_limit = DEFAULT_LIMIT;
     if (conf != NULL) {
         const char *s_limit = NULL;
@@ -633,8 +741,8 @@ static OutputCtx *PcapLogInitCtx(ConfNode *conf)
                 pl->mode = LOGMODE_MULTI;
             } else if (strcasecmp(s_mode, "normal") != 0) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "log-pcap you must specify \"sguil\" or \"normal\" mode "
-                    "option to be set.");
+                    "log-pcap: invalid mode \"%s\". Valid options: \"normal\", "
+                    "\"sguil\", or \"multi\" mode ", s_mode);
                 exit(EXIT_FAILURE);
             }
         }
@@ -682,7 +790,7 @@ static OutputCtx *PcapLogInitCtx(ConfNode *conf)
     }
 
     SCLogInfo("using %s logging", pl->mode == LOGMODE_SGUIL ?
-              "Sguil compatible" : "normal");
+              "Sguil compatible" : (pl->mode == LOGMODE_MULTI ? "multi" : "normal"));
 
     uint32_t max_file_limit = DEFAULT_FILE_LIMIT;
     if (conf != NULL) {
@@ -845,16 +953,58 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
                      pl->prefix, (uint32_t)ts.tv_sec, (uint32_t)ts.tv_usec);
         }
     } else if (pl->mode == LOGMODE_MULTI) {
-        long thread_id = SCGetThreadIdLong();
-        uint64_t tid = (uint64_t)thread_id;
+        if (pl->filename_part_cnt > 0) {
+            /* assemble filename from stored tokens */
 
-        /* create the filename to use */
-        if (pl->timestamp_format == TS_FORMAT_SEC) {
-            snprintf(filename, PATH_MAX, "%s/%s.%"PRIu64".%" PRIu32, pl->dir,
-                     pl->prefix, tid, (uint32_t)ts.tv_sec);
+            strlcpy(filename, pl->dir, PATH_MAX);
+            strlcat(filename, "/", PATH_MAX);
+
+            int i;
+            for (i = 0; i < pl->filename_part_cnt; i++) {
+                if (pl->filename_parts[i] == NULL ||strlen(pl->filename_parts[i]) == 0)
+                    continue;
+
+                /* handle variables */
+                if (pl->filename_parts[i][0] == '%') {
+                    char str[64] = "";
+                    if (strlen(pl->filename_parts[i]) < 2)
+                        continue;
+
+                    switch(pl->filename_parts[i][1]) {
+                        case 'n':
+                            snprintf(str, sizeof(str), "%u", pl->thread_number);
+                            break;
+                        case 'i':
+                        {
+                            long thread_id = SCGetThreadIdLong();
+                            snprintf(str, sizeof(str), "%"PRIu64, (uint64_t)thread_id);
+                            break;
+                        }
+                        case 't':
+                        /* create the filename to use */
+                        if (pl->timestamp_format == TS_FORMAT_SEC) {
+                            snprintf(str, sizeof(str), "%"PRIu32, (uint32_t)ts.tv_sec);
+                        } else {
+                            snprintf(str, sizeof(str), "%"PRIu32".%"PRIu32,
+                                    (uint32_t)ts.tv_sec, (uint32_t)ts.tv_usec);
+                        }
+                    }
+                    strlcat(filename, str, PATH_MAX);
+
+                /* copy the rest over */
+                } else {
+                    strlcat(filename, pl->filename_parts[i], PATH_MAX);
+                }
+            }
         } else {
-            snprintf(filename, PATH_MAX, "%s/%s.%"PRIu64".%" PRIu32 ".%" PRIu32, pl->dir,
-                     pl->prefix, tid, (uint32_t)ts.tv_sec, (uint32_t)ts.tv_usec);
+            /* create the filename to use */
+            if (pl->timestamp_format == TS_FORMAT_SEC) {
+                snprintf(filename, PATH_MAX, "%s/%s.%u.%" PRIu32, pl->dir,
+                        pl->prefix, pl->thread_number, (uint32_t)ts.tv_sec);
+            } else {
+                snprintf(filename, PATH_MAX, "%s/%s.%u.%" PRIu32 ".%" PRIu32, pl->dir,
+                        pl->prefix, pl->thread_number, (uint32_t)ts.tv_sec, (uint32_t)ts.tv_usec);
+            }
         }
         SCLogDebug("multi-mode: filename %s", filename);
     }
