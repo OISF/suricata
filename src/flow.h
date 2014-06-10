@@ -104,6 +104,9 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_FILE_NO_SIZE_TS              (1 << 27)
 #define FLOW_FILE_NO_SIZE_TC              (1 << 28)
 
+#define FLOW_APPLAYER_RESET               (1 << 29)
+#define FLOW_APPLAYER_ACCOUNT             (1 << 30)
+
 #define FLOW_IS_IPV4(f) \
     (((f)->flags & FLOW_IPV4) == FLOW_IPV4)
 #define FLOW_IS_IPV6(f) \

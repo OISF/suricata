@@ -3012,6 +3012,11 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             tmp_seg->flags &= ~SEGMENTTCP_FLAG_APPLAYER_PROCESSED;
             tmp_seg = tmp_seg->next;
         }
+        if (p->flow->flags & FLOW_APPLAYER_ACCOUNT) {
+            SCLogDebug("Updating ra app");
+            stream->ra_app_base_seq = rd.ra_base_seq;
+            p->flow->flags &= ~FLOW_APPLAYER_ACCOUNT;
+        }
     }
     SCLogDebug("stream->ra_app_base_seq %u", stream->ra_app_base_seq);
     SCReturnInt(0);

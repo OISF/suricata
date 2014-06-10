@@ -86,6 +86,43 @@ static void DNSUpdateCounters(ThreadVars *tv, AppLayerThreadCtx *app_tctx)
                          tv->sc_perf_pca, memcap_global);
 }
 
+
+static void AppLayerResetProtoIfNeeded(Flow *f, TcpStream *stream, uint8_t flags)
+{
+    if (f->flags & FLOW_APPLAYER_RESET) {
+        /* we are done with previous alstate */
+        AppLayerParserStateSetFlag(FLOW_GET_CURRENT_APPLAYER(f).alparser,
+                APP_LAYER_PARSER_EOF);
+
+        if (f->applayer_index < FLOW_ALPROTO_CHAINED_MAX) {
+            f->applayer_index++;
+        } else {
+            SCLogInfo("Flow is chaining protocol too deeply");
+            /* FIXME add event ? */
+        }
+
+        FLOW_GET_CURRENT_APPLAYER(f).alproto = ALPROTO_UNKNOWN;
+        f->alproto_ts = ALPROTO_UNKNOWN;
+        f->alproto_tc = ALPROTO_UNKNOWN;
+
+        f->flags &= ~FLOW_TS_PP_ALPROTO_DETECT_DONE;
+        f->flags &= ~FLOW_TC_PP_ALPROTO_DETECT_DONE;
+        f->flags &= ~FLOW_TS_PM_ALPROTO_DETECT_DONE;
+        f->flags &= ~FLOW_TC_PM_ALPROTO_DETECT_DONE;
+
+        StreamTcpResetStreamFlagAppProtoDetectionCompleted(stream);
+        stream->flags &= ~STREAMTCP_STREAM_FLAG_NOREASSEMBLY;
+        stream->flags &= ~STREAMTCP_STREAM_FLAG_DEPTH_REACHED;
+        stream->flags &= ~STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED;
+        stream->flags &= ~STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED;
+        f->flags &= ~FLOW_APPLAYER_RESET;
+        f->flags &= ~FLOW_NOPACKET_INSPECTION;
+        f->flags &= ~FLOW_NOPAYLOAD_INSPECTION;
+        f->flags &= ~FLOW_NO_APPLAYER_INSPECTION;
+
+    }
+}
+
 /***** L7 layer dispatchers *****/
 
 int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
@@ -281,7 +318,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             PACKET_PROFILING_APP_START(app_tctx, *alproto);
             r = AppLayerParserParse(app_tctx->alp_tctx, f, *alproto, flags, data + data_al_so_far, data_len - data_al_so_far);
             PACKET_PROFILING_APP_END(app_tctx, *alproto);
-            f->data_al_so_far[dir] = 0;
+            AppLayerResetProtoIfNeeded(f, stream, flags);
         } else {
             /* if the ssn is midstream, we may end up with a case where the
              * start of an HTTP request is missing. We won't detect HTTP based
@@ -351,6 +388,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 } else {
                     f->data_al_so_far[dir] = data_len;
                 }
+                AppLayerResetProtoIfNeeded(f, stream, flags);
             } else {
                 /* See if we're going to have to give up:
                  *
@@ -450,6 +488,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             PACKET_PROFILING_APP_END(app_tctx,
                                      FlowGetAppProtocol(f));
 
+            AppLayerResetProtoIfNeeded(f, stream, flags);
         } else {
             SCLogDebug(" smsg not start, but no l7 data? Weird");
         }
@@ -584,6 +623,13 @@ void AppLayerListSupportedProtocols(void)
     }
 
     SCReturn;
+}
+
+void AppLayerAskReset(Flow *f, int full)
+{
+    f->flags |= FLOW_APPLAYER_RESET;
+    if (full)
+        f->flags |= FLOW_APPLAYER_ACCOUNT;
 }
 
 /***** Setup/General Registration *****/
