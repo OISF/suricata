@@ -87,6 +87,7 @@ int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc,
 
 static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQueue *pq, PacketQueue *postpq)
 {
+    int i;
     BUG_ON(thread_data == NULL);
     BUG_ON(list == NULL);
 
@@ -104,75 +105,80 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
     Flow * const f = p->flow;
 
     FLOWLOCK_WRLOCK(f); /* WRITE lock before we updated flow logged id */
-    AppProto alproto = f->alproto;//AppLayerGetProtoFromPacket(p);
+    for (i = 0; i < FLOW_ALPROTO_CHAINED_MAX; i++) {
+        AppProto alproto = FLOW_GET_APPLAYER(f, i).alproto;//AppLayerGetProtoFromPacket(p);
 
-    if (AppLayerParserProtocolIsTxAware(p->proto, alproto) == 0)
-        goto end;
-    if (AppLayerParserProtocolHasLogger(p->proto, alproto) == 0)
-        goto end;
+        if (alproto == 0)
+            break;
 
-    void *alstate = f->alstate;//AppLayerGetProtoStateFromPacket((const Packet *)p);
-    if (alstate == NULL) {
-        SCLogDebug("no alstate");
-        goto end;
-    }
-
-    uint64_t total_txs = AppLayerParserGetTxCnt(p->proto, alproto, alstate);
-    uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
-    int tx_progress_done_value_ts =
-        AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto, 0);
-    int tx_progress_done_value_tc =
-        AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto, 1);
-    int proto_logged = 0;
-
-    for (; tx_id < total_txs; tx_id++)
-    {
-        void *tx = AppLayerParserGetTx(p->proto, alproto, alstate, tx_id);
-        if (tx == NULL) {
-            SCLogDebug("tx is NULL not logging");
+        if (AppLayerParserProtocolIsTxAware(p->proto, alproto) == 0)
             continue;
+        if (AppLayerParserProtocolHasLogger(p->proto, alproto) == 0)
+            continue;
+
+        void *alstate = FLOW_GET_APPLAYER(f, i).alstate;//AppLayerGetProtoStateFromPacket((const Packet *)p);
+        if (alstate == NULL) {
+            SCLogDebug("no alstate");
+            goto end;
         }
 
-        if (!(AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF)))
+        uint64_t total_txs = AppLayerParserGetTxCnt(p->proto, alproto, alstate);
+        uint64_t tx_id = AppLayerParserGetTransactionLogId(FLOW_GET_APPLAYER(f, i).alparser);
+        int tx_progress_done_value_ts =
+            AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto, 0);
+        int tx_progress_done_value_tc =
+            AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto, 1);
+        int proto_logged = 0;
+
+        for (; tx_id < total_txs; tx_id++)
         {
-            int tx_progress = AppLayerParserGetStateProgress(p->proto, alproto, tx, 0);
-            if (tx_progress < tx_progress_done_value_ts) {
-                SCLogDebug("progress not far enough, not logging");
-                break;
+            void *tx = AppLayerParserGetTx(p->proto, alproto, alstate, tx_id);
+            if (tx == NULL) {
+                SCLogDebug("tx is NULL not logging");
+                continue;
             }
 
-            tx_progress = AppLayerParserGetStateProgress(p->proto, alproto, tx, 1);
-            if (tx_progress < tx_progress_done_value_tc) {
-                SCLogDebug("progress not far enough, not logging");
-                break;
-            }
-        }
+            if (!(AppLayerParserStateIssetFlag(FLOW_GET_APPLAYER(f, i).alparser, APP_LAYER_PARSER_EOF)))
+            {
+                int tx_progress = AppLayerParserGetStateProgress(p->proto, alproto, tx, 0);
+                if (tx_progress < tx_progress_done_value_ts) {
+                    SCLogDebug("progress not far enough, not logging");
+                    break;
+                }
 
-        // call each logger here (pseudo code)
-        logger = list;
-        store = op_thread_data->store;
-        while (logger && store) {
-            BUG_ON(logger->LogFunc == NULL);
-
-            SCLogDebug("logger %p", logger);
-            if (logger->alproto == alproto) {
-                SCLogDebug("alproto match, logging tx_id %ju", tx_id);
-                PACKET_PROFILING_TMM_START(p, logger->module_id);
-                logger->LogFunc(tv, store->thread_data, p, f, alstate, tx, tx_id);
-                PACKET_PROFILING_TMM_END(p, logger->module_id);
-                proto_logged = 1;
+                tx_progress = AppLayerParserGetStateProgress(p->proto, alproto, tx, 1);
+                if (tx_progress < tx_progress_done_value_tc) {
+                    SCLogDebug("progress not far enough, not logging");
+                    break;
+                }
             }
 
-            logger = logger->next;
-            store = store->next;
+            // call each logger here (pseudo code)
+            logger = list;
+            store = op_thread_data->store;
+            while (logger && store) {
+                BUG_ON(logger->LogFunc == NULL);
 
-            BUG_ON(logger == NULL && store != NULL);
-            BUG_ON(logger != NULL && store == NULL);
-        }
+                SCLogDebug("logger %p", logger);
+                if (logger->alproto == alproto) {
+                    SCLogDebug("alproto match, logging tx_id %ju", tx_id);
+                    PACKET_PROFILING_TMM_START(p, logger->module_id);
+                    logger->LogFunc(tv, store->thread_data, p, f, alstate, tx, tx_id);
+                    PACKET_PROFILING_TMM_END(p, logger->module_id);
+                    proto_logged = 1;
+                }
 
-        if (proto_logged) {
-            SCLogDebug("updating log tx_id %ju", tx_id);
-            AppLayerParserSetTransactionLogId(f->alparser);
+                logger = logger->next;
+                store = store->next;
+
+                BUG_ON(logger == NULL && store != NULL);
+                BUG_ON(logger != NULL && store == NULL);
+            }
+
+            if (proto_logged) {
+                SCLogDebug("updating log tx_id %ju", tx_id);
+                AppLayerParserSetTransactionLogId(FLOW_GET_APPLAYER(f, i).alparser);
+            }
         }
     }
 

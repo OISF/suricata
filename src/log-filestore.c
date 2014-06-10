@@ -1,4 +1,5 @@
 /* Copyright (C) 2007-2013 Open Information Security Foundation
+ * Copyright (C) 2014 European Commission
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -70,7 +71,7 @@ typedef struct LogFilestoreLogThread_ {
 
 static void LogFilestoreMetaGetUri(FILE *fp, const Packet *p, const File *ff)
 {
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
+    HtpState *htp_state = (HtpState *)FlowGetAppState(p->flow);
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL) {
@@ -88,7 +89,7 @@ static void LogFilestoreMetaGetUri(FILE *fp, const Packet *p, const File *ff)
 
 static void LogFilestoreMetaGetHost(FILE *fp, const Packet *p, const File *ff)
 {
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
+    HtpState *htp_state = (HtpState *)FlowGetAppState(p->flow);
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL && tx->request_hostname != NULL) {
@@ -103,7 +104,7 @@ static void LogFilestoreMetaGetHost(FILE *fp, const Packet *p, const File *ff)
 
 static void LogFilestoreMetaGetReferer(FILE *fp, const Packet *p, const File *ff)
 {
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
+    HtpState *htp_state = (HtpState *)FlowGetAppState(p->flow);
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL) {
@@ -123,7 +124,7 @@ static void LogFilestoreMetaGetReferer(FILE *fp, const Packet *p, const File *ff
 
 static void LogFilestoreMetaGetUserAgent(FILE *fp, const Packet *p, const File *ff)
 {
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
+    HtpState *htp_state = (HtpState *)FlowGetAppState(p->flow);
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL) {
@@ -143,7 +144,7 @@ static void LogFilestoreMetaGetUserAgent(FILE *fp, const Packet *p, const File *
 
 static void LogFilestoreMetaGetSmtp(FILE *fp, const Packet *p, const File *ff)
 {
-    SMTPState *state = (SMTPState *) p->flow->alstate;
+    SMTPState *state = (SMTPState *) FlowGetAppState(p->flow);
     if (state != NULL) {
         SMTPTransaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_SMTP, state, ff->txid);
         if (tx == NULL || tx->msg_tail == NULL)
@@ -208,7 +209,7 @@ static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char 
         }
 
         /* Only applicable to HTTP traffic */
-        if (p->flow->alproto == ALPROTO_HTTP) {
+        if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
             fprintf(fp, "HTTP URI:          ");
             LogFilestoreMetaGetUri(fp, p, ff);
             fprintf(fp, "\n");
@@ -221,7 +222,7 @@ static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char 
             fprintf(fp, "HTTP USER AGENT:   ");
             LogFilestoreMetaGetUserAgent(fp, p, ff);
             fprintf(fp, "\n");
-        } else if (p->flow->alproto == ALPROTO_SMTP) {
+        } else if (FlowGetAppProtocol(p->flow) == ALPROTO_SMTP) {
             /* Only applicable to SMTP */
             LogFilestoreMetaGetSmtp(fp, p, ff);
         }

@@ -4464,7 +4464,8 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         }
 
         if (ssn != NULL)
-            SCLogDebug("ssn->alproto %"PRIu16"", p->flow->alproto);
+            SCLogDebug("ssn->alproto %"PRIu16"",
+                       FlowGetAppProtocol(p->flow));
     } else {
         /* special case for PKT_PSEUDO_STREAM_END packets:
          * bypass the state handling and various packet checks,
@@ -5677,7 +5678,7 @@ static int StreamTcpTest01 (void)
     }
     f.protoctx = ssn;
 
-    if (f.alparser != NULL) {
+    if (FlowGetAppParser(&f) != NULL) {
         printf("AppLayer field not set to NULL: ");
         goto end;
     }

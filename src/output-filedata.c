@@ -149,8 +149,10 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data, P
     FLOWLOCK_WRLOCK(f); // < need write lock for FiledataPrune below
     file_trunc = StreamTcpReassembleDepthReached(p);
 
-    FileContainer *ffc = AppLayerParserGetFiles(p->proto, f->alproto,
-                                                f->alstate, flags);
+    FileContainer *ffc = AppLayerParserGetFiles(p->proto,
+                                                FlowGetAppProtocol(f),
+                                                FlowGetAppState(f),
+                                                flags);
     SCLogDebug("ffc %p", ffc);
     if (ffc != NULL) {
         File *ff;

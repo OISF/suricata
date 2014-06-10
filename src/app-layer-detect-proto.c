@@ -3300,7 +3300,7 @@ static int AppLayerProtoDetectTest16(void)
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
 
-    f->alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -3330,7 +3330,7 @@ static int AppLayerProtoDetectTest16(void)
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -3394,7 +3394,7 @@ static int AppLayerProtoDetectTest17(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f->alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -3424,7 +3424,7 @@ static int AppLayerProtoDetectTest17(void)
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -3490,7 +3490,7 @@ static int AppLayerProtoDetectTest18(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f->alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -3520,7 +3520,7 @@ static int AppLayerProtoDetectTest18(void)
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -3582,7 +3582,7 @@ static int AppLayerProtoDetectTest19(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f->alproto = ALPROTO_FTP;
+    FlowSetAppProtocol(f, ALPROTO_FTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -3669,7 +3669,7 @@ static int AppLayerProtoDetectTest20(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f->alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(f, ALPROTO_HTTP);
     f->proto = IPPROTO_TCP;
     p->flags |= PKT_STREAM_ADD;
     p->flags |= PKT_STREAM_EOF;
