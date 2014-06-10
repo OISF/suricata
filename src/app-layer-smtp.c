@@ -1,4 +1,5 @@
 /* Copyright (C) 2007-2012 Open Information Security Foundation
+ * Copyright (C) 2014 European Commission
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -294,7 +295,7 @@ static int ProcessDataChunk(const uint8_t *chunk, uint32_t len,
 
     int ret = MIME_DEC_OK;
     Flow *flow = (Flow *) state->data;
-    SMTPState *smtp_state = (SMTPState *) flow->alstate;
+    SMTPState *smtp_state = (SMTPState *) FlowGetAppState(flow);
     MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
     FileContainer *files = NULL;
     uint16_t flags = 0;
@@ -1486,7 +1487,7 @@ int SMTPParserTest01(void)
         goto end;
     }
     SCMutexUnlock(&f.m);
-    SMTPState *smtp_state = f.alstate;
+    SMTPState *smtp_state = FlowGetAppState(&f);
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -1844,7 +1845,7 @@ int SMTPParserTest02(void)
         goto end;
     }
     SCMutexUnlock(&f.m);
-    SMTPState *smtp_state = f.alstate;
+    SMTPState *smtp_state = FlowGetAppState(&f);
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -2478,7 +2479,7 @@ int SMTPParserTest03(void)
         goto end;
     }
     SCMutexUnlock(&f.m);
-    SMTPState *smtp_state = f.alstate;
+    SMTPState *smtp_state = FlowGetAppState(&f);
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -2625,7 +2626,7 @@ int SMTPParserTest04(void)
         goto end;
     }
     SCMutexUnlock(&f.m);
-    SMTPState *smtp_state = f.alstate;
+    SMTPState *smtp_state = FlowGetAppState(&f);
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -2772,7 +2773,7 @@ int SMTPParserTest05(void)
         goto end;
     }
     SCMutexUnlock(&f.m);
-    SMTPState *smtp_state = f.alstate;
+    SMTPState *smtp_state = FlowGetAppState(&f);
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -3068,7 +3069,7 @@ int SMTPParserTest06(void)
         goto end;
     }
     SCMutexUnlock(&f.m);
-    SMTPState *smtp_state = f.alstate;
+    SMTPState *smtp_state = FlowGetAppState(&f);
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -3306,7 +3307,7 @@ int SMTPParserTest07(void)
         goto end;
     }
     SCMutexUnlock(&f.m);
-    SMTPState *smtp_state = f.alstate;
+    SMTPState *smtp_state = FlowGetAppState(&f);
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -3419,7 +3420,7 @@ int SMTPParserTest08(void)
         goto end;
     }
     SCMutexUnlock(&f.m);
-    SMTPState *smtp_state = f.alstate;
+    SMTPState *smtp_state = FlowGetAppState(&f);
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -3532,7 +3533,7 @@ int SMTPParserTest09(void)
         goto end;
     }
     SCMutexUnlock(&f.m);
-    SMTPState *smtp_state = f.alstate;
+    SMTPState *smtp_state = FlowGetAppState(&f);
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -3645,7 +3646,7 @@ int SMTPParserTest10(void)
         goto end;
     }
     SCMutexUnlock(&f.m);
-    SMTPState *smtp_state = f.alstate;
+    SMTPState *smtp_state = FlowGetAppState(&f);
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -3752,7 +3753,7 @@ int SMTPParserTest11(void)
         goto end;
     }
     SCMutexUnlock(&f.m);
-    SMTPState *smtp_state = f.alstate;
+    SMTPState *smtp_state = FlowGetAppState(&f);
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -3837,7 +3838,7 @@ int SMTPParserTest12(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_SMTP;
+    FlowSetAppProtocol(&f, ALPROTO_SMTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -3867,7 +3868,7 @@ int SMTPParserTest12(void)
     }
     SCMutexUnlock(&f.m);
 
-    smtp_state = f.alstate;
+    smtp_state = FlowGetAppState(&f);
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -3976,7 +3977,7 @@ int SMTPParserTest13(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_SMTP;
+    FlowSetAppProtocol(&f, ALPROTO_SMTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -4007,7 +4008,7 @@ int SMTPParserTest13(void)
     }
     SCMutexUnlock(&f.m);
 
-    smtp_state = f.alstate;
+    smtp_state = FlowGetAppState(&f);
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -4268,7 +4269,7 @@ int SMTPParserTest14(void)
         goto end;
     }
     SCMutexUnlock(&f.m);
-    SMTPState *smtp_state = f.alstate;
+    SMTPState *smtp_state = FlowGetAppState(&f);
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -4478,7 +4479,7 @@ int SMTPParserTest14(void)
         goto end;
     }
 
-    SMTPState *state = (SMTPState *) f.alstate;
+    SMTPState *state = (SMTPState *) FlowGetAppState(&f);
     FileContainer *files = state->files_ts;
     if (files != NULL && files->head != NULL) {
         File *file = files->head;
@@ -4640,7 +4641,7 @@ int SMTPProcessDataChunkTest02(void){
 
     Flow f;
     FLOW_INITIALIZE(&f);
-    f.alstate = SMTPStateAlloc();
+    FlowSetAppState(&f, SMTPStateAlloc());
     MimeDecParseState *state = MimeDecInitParser(&f, NULL);
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;
     state->body_begin = 1;
@@ -4669,7 +4670,7 @@ int SMTPProcessDataChunkTest03(void){
 
     Flow f;
     FLOW_INITIALIZE(&f);
-    f.alstate = SMTPStateAlloc();
+    FlowSetAppState(&f, SMTPStateAlloc());
     MimeDecParseState *state = MimeDecInitParser(&f, NULL);
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;
     int ret;
@@ -4722,7 +4723,7 @@ int SMTPProcessDataChunkTest04(void){
 
     Flow f;
     FLOW_INITIALIZE(&f);
-    f.alstate = SMTPStateAlloc();
+    FlowSetAppState(&f, SMTPStateAlloc());
     MimeDecParseState *state = MimeDecInitParser(&f, NULL);
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;
     int ret = MIME_DEC_OK;
@@ -4758,7 +4759,7 @@ int SMTPProcessDataChunkTest05(void){
 
     Flow f;
     FLOW_INITIALIZE(&f);
-    f.alstate = SMTPStateAlloc();
+    FlowSetAppState(&f, SMTPStateAlloc());
     MimeDecParseState *state = MimeDecInitParser(&f, NULL);
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;
     state->body_begin = 1;
@@ -4767,7 +4768,7 @@ int SMTPProcessDataChunkTest05(void){
     ret = ProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state);
     state->body_begin = 0;
     if(ret){goto end;}
-    SMTPState *smtp_state = (SMTPState *)((Flow *)state->data)->alstate;
+    SMTPState *smtp_state = (SMTPState *)FlowGetAppState(((Flow *)state->data));
     FileContainer *files = smtp_state->files_ts;
     File *file = files->head;
     file_size = file->size;

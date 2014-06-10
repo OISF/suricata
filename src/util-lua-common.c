@@ -368,7 +368,7 @@ static int LuaCallbackTupleFlow(lua_State *luastate)
  */
 static int LuaCallbackAppLayerProtoPushToStackFromFlow(lua_State *luastate, const Flow *f)
 {
-    const char *string = AppProtoToString(f->alproto);
+    const char *string = AppProtoToString(FlowGetAppProtocol(f));
     if (string == NULL)
         string = "unknown";
     lua_pushstring(luastate, string);
@@ -757,10 +757,10 @@ int LuaStateNeedProto(lua_State *luastate, AppProto alproto)
 
     if (locked == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
         FLOWLOCK_RDLOCK(flow);
-        flow_alproto = flow->alproto;
+        flow_alproto = FlowGetAppProtocol(flow);
         FLOWLOCK_UNLOCK(flow);
     } else {
-        flow_alproto = flow->alproto;
+        flow_alproto = FlowGetAppProtocol(flow);
     }
 
     return (alproto == flow_alproto);

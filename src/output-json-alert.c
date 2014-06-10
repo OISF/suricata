@@ -101,9 +101,9 @@ static int AlertJsonPrintStreamSegmentCallback(const Packet *p, void *data, uint
  */
 static void AlertJsonHttp(const Flow *f, json_t *js)
 {
-    HtpState *htp_state = (HtpState *)f->alstate;
+    HtpState *htp_state = (HtpState *)FlowGetAppState(f);
     if (htp_state) {
-        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
+        uint64_t tx_id = AppLayerParserGetTransactionLogId(FlowGetAppParser(f));
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
 
         if (tx) {

@@ -434,7 +434,7 @@ static int DetectSslVersionTestDetect01(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
-    f.alproto = ALPROTO_TLS;
+    FlowSetAppProtocol(&f, ALPROTO_TLS);
 
     StreamTcpInitConfig(TRUE);
 
@@ -483,7 +483,7 @@ static int DetectSslVersionTestDetect01(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *app_state = f.alstate;
+    SSLState *app_state = FlowGetAppState(&f);
     if (app_state == NULL) {
         printf("no ssl state: ");
         goto end;
@@ -559,7 +559,7 @@ static int DetectSslVersionTestDetect02(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
-    f.alproto = ALPROTO_TLS;
+    FlowSetAppProtocol(&f, ALPROTO_TLS);
 
     StreamTcpInitConfig(TRUE);
 
@@ -608,7 +608,7 @@ static int DetectSslVersionTestDetect02(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *app_state = f.alstate;
+    SSLState *app_state = FlowGetAppState(&f);
     if (app_state == NULL) {
         printf("no ssl state: ");
         goto end;
@@ -680,7 +680,7 @@ static int DetectSslVersionTestDetect03(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
-    f.alproto = ALPROTO_TLS;
+    FlowSetAppProtocol(&f, ALPROTO_TLS);
     f.proto = p->proto;
 
     StreamTcpInitConfig(TRUE);
@@ -742,7 +742,7 @@ static int DetectSslVersionTestDetect03(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *app_state = f.alstate;
+    SSLState *app_state = FlowGetAppState(&f);
     if (app_state == NULL) {
         printf("no ssl state: ");
         goto end;

@@ -577,8 +577,11 @@ void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld, DetectEngi
     LuaStateSetFlow(lua_state, f, flow_locked);
 
     if (det_ctx->tx_id_set && flow_locked == LUA_FLOW_LOCKED_BY_PARENT) {
-        if (f && f->alstate) {
-            void *txptr = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, det_ctx->tx_id);
+        if (f && FlowGetAppState(f)) {
+            void *txptr = AppLayerParserGetTx(f->proto,
+                                              FlowGetAppProtocol(f),
+                                              FlowGetAppState(f),
+                                              det_ctx->tx_id);
             if (txptr) {
                 LuaStateSetTX(lua_state, txptr);
             }
