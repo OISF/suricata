@@ -740,7 +740,8 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             hstate->flags |= HTP_FLAG_STATE_DATA;
             break;
         case HTP_STREAM_TUNNEL:
-            break;
+            AppLayerAskReset(hstate->f, 0);
+            SCReturnInt(ret);
         default:
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
             hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
