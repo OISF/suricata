@@ -195,7 +195,7 @@ static void JsonNetFlowLogJSONToServer(JsonNetFlowLogThread *aft, json_t *js, Fl
     }
 
     json_object_set_new(hjs, "app_proto",
-            json_string(AppProtoToString(f->alproto_ts ? f->alproto_ts : f->alproto)));
+            json_string(AppProtoToString(f->alproto_ts ? f->alproto_ts : FlowGetAppProtocol(f))));
 
     json_object_set_new(hjs, "pkts",
             json_integer(f->todstpktcnt));
@@ -244,7 +244,7 @@ static void JsonNetFlowLogJSONToClient(JsonNetFlowLogThread *aft, json_t *js, Fl
     }
 
     json_object_set_new(hjs, "app_proto",
-            json_string(AppProtoToString(f->alproto_tc ? f->alproto_tc : f->alproto)));
+            json_string(AppProtoToString(f->alproto_tc ? f->alproto_tc : FlowGetAppProtocol(f))));
 
     json_object_set_new(hjs, "pkts",
             json_integer(f->tosrcpktcnt));

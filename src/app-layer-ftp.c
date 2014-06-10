@@ -396,7 +396,7 @@ int FTPParserTest01(void)
     }
     SCMutexUnlock(&f.m);
 
-    FtpState *ftp_state = f.alstate;
+    FtpState *ftp_state = FlowGetAppState(&f);
     if (ftp_state == NULL) {
         SCLogDebug("no ftp state: ");
         result = 0;
@@ -468,7 +468,7 @@ int FTPParserTest03(void)
     }
     SCMutexUnlock(&f.m);
 
-    FtpState *ftp_state = f.alstate;
+    FtpState *ftp_state = FlowGetAppState(&f);
     if (ftp_state == NULL) {
         SCLogDebug("no ftp state: ");
         result = 0;
@@ -517,7 +517,7 @@ int FTPParserTest06(void)
     }
     SCMutexUnlock(&f.m);
 
-    FtpState *ftp_state = f.alstate;
+    FtpState *ftp_state = FlowGetAppState(&f);
     if (ftp_state == NULL) {
         SCLogDebug("no ftp state: ");
         result = 0;
@@ -579,7 +579,7 @@ int FTPParserTest07(void)
     }
     SCMutexUnlock(&f.m);
 
-    FtpState *ftp_state = f.alstate;
+    FtpState *ftp_state = FlowGetAppState(&f);
     if (ftp_state == NULL) {
         SCLogDebug("no ftp state: ");
         result = 0;
@@ -640,7 +640,7 @@ int FTPParserTest10(void)
         SCMutexUnlock(&f.m);
     }
 
-    FtpState *ftp_state = f.alstate;
+    FtpState *ftp_state = FlowGetAppState(&f);
     if (ftp_state == NULL) {
         SCLogDebug("no ftp state: ");
         result = 0;

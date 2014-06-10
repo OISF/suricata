@@ -449,10 +449,11 @@ static int DNSUDPParserTest01 (void)
     if (f == NULL)
         goto end;
     f->proto = IPPROTO_UDP;
-    f->alproto = ALPROTO_DNS;
-    f->alstate = DNSStateAlloc();
+    FlowSetAppProtocol(f, ALPROTO_DNS);
+    FlowSetAppState(f, DNSStateAlloc());
 
-    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL);
+    int r = DNSUDPResponseParse(f, FlowGetAppState(f),
+                                NULL, buf, buflen, NULL);
     if (r != 1)
         goto end;
 
@@ -484,10 +485,11 @@ static int DNSUDPParserTest02 (void)
     if (f == NULL)
         goto end;
     f->proto = IPPROTO_UDP;
-    f->alproto = ALPROTO_DNS;
-    f->alstate = DNSStateAlloc();
+    FlowSetAppProtocol(f, ALPROTO_DNS);
+    FlowSetAppState(f, DNSStateAlloc());
 
-    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL);
+    int r = DNSUDPResponseParse(f, FlowGetAppState(f),
+                                NULL, buf, buflen, NULL);
     if (r != 1)
         goto end;
 
@@ -519,10 +521,11 @@ static int DNSUDPParserTest03 (void)
     if (f == NULL)
         goto end;
     f->proto = IPPROTO_UDP;
-    f->alproto = ALPROTO_DNS;
-    f->alstate = DNSStateAlloc();
+    FlowSetAppProtocol(f, ALPROTO_DNS);
+    FlowSetAppState(f, DNSStateAlloc());
 
-    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL);
+    int r = DNSUDPResponseParse(f, FlowGetAppState(f),
+                                NULL, buf, buflen, NULL);
     if (r != 1)
         goto end;
 
@@ -557,10 +560,11 @@ static int DNSUDPParserTest04 (void)
     if (f == NULL)
         goto end;
     f->proto = IPPROTO_UDP;
-    f->alproto = ALPROTO_DNS;
-    f->alstate = DNSStateAlloc();
+    FlowSetAppProtocol(f, ALPROTO_DNS);
+    FlowSetAppState(f, DNSStateAlloc());
 
-    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL);
+    int r = DNSUDPResponseParse(f, FlowGetAppState(f),
+                                NULL, buf, buflen, NULL);
     if (r != 1)
         goto end;
 
@@ -595,10 +599,11 @@ static int DNSUDPParserTest05 (void)
     if (f == NULL)
         goto end;
     f->proto = IPPROTO_UDP;
-    f->alproto = ALPROTO_DNS;
-    f->alstate = DNSStateAlloc();
+    FlowSetAppProtocol(f, ALPROTO_DNS);
+    FlowSetAppState(f, DNSStateAlloc());
 
-    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL);
+    int r = DNSUDPResponseParse(f, FlowGetAppState(f),
+                                NULL, buf, buflen, NULL);
     if (r != -1)
         goto end;
 

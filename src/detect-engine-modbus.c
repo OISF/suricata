@@ -354,7 +354,7 @@ static int DetectEngineInspectModbusTest01(void)
     p = UTHBuildPacket(readCoilsReq, sizeof(readCoilsReq), IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
-    f.alproto   = ALPROTO_MODBUS;
+    FlowSetAppProtocol(&f, ALPROTO_MODBUS);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
     f.flags     |= FLOW_IPV4;
@@ -390,7 +390,7 @@ static int DetectEngineInspectModbusTest01(void)
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;
@@ -443,7 +443,7 @@ static int DetectEngineInspectModbusTest02(void)
     p = UTHBuildPacket(readCoilsReq, sizeof(readCoilsReq), IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
-    f.alproto   = ALPROTO_MODBUS;
+    FlowSetAppProtocol(&f, ALPROTO_MODBUS);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
     f.flags     |= FLOW_IPV4;
@@ -479,7 +479,7 @@ static int DetectEngineInspectModbusTest02(void)
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;
@@ -532,7 +532,7 @@ static int DetectEngineInspectModbusTest03(void)
     p = UTHBuildPacket(readCoilsReq, sizeof(readCoilsReq), IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
-    f.alproto   = ALPROTO_MODBUS;
+    FlowSetAppProtocol(&f, ALPROTO_MODBUS);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
     f.flags     |= FLOW_IPV4;
@@ -569,7 +569,7 @@ static int DetectEngineInspectModbusTest03(void)
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;
@@ -622,7 +622,7 @@ static int DetectEngineInspectModbusTest04(void)
     p = UTHBuildPacket(readCoilsReq, sizeof(readCoilsReq), IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
-    f.alproto   = ALPROTO_MODBUS;
+    FlowSetAppProtocol(&f, ALPROTO_MODBUS);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
     f.flags     |= FLOW_IPV4;
@@ -658,7 +658,7 @@ static int DetectEngineInspectModbusTest04(void)
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;
@@ -711,7 +711,7 @@ static int DetectEngineInspectModbusTest05(void)
     p = UTHBuildPacket(readCoilsReq, sizeof(readCoilsReq), IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
-    f.alproto   = ALPROTO_MODBUS;
+    FlowSetAppProtocol(&f, ALPROTO_MODBUS);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
     f.flags     |= FLOW_IPV4;
@@ -748,7 +748,7 @@ static int DetectEngineInspectModbusTest05(void)
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;
@@ -801,7 +801,7 @@ static int DetectEngineInspectModbusTest06(void)
     p = UTHBuildPacket(readCoilsReq, sizeof(readCoilsReq), IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
-    f.alproto   = ALPROTO_MODBUS;
+    FlowSetAppProtocol(&f, ALPROTO_MODBUS);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
     f.flags     |= FLOW_IPV4;
@@ -838,7 +838,7 @@ static int DetectEngineInspectModbusTest06(void)
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState *modbus_state = f.alstate;
+    ModbusState *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;
@@ -891,7 +891,7 @@ static int DetectEngineInspectModbusTest07(void)
     p = UTHBuildPacket(readCoilsReq, sizeof(readCoilsReq), IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
-    f.alproto   = ALPROTO_MODBUS;
+    FlowSetAppProtocol(&f, ALPROTO_MODBUS);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
     f.flags     |= FLOW_IPV4;
@@ -927,7 +927,7 @@ static int DetectEngineInspectModbusTest07(void)
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;
@@ -980,7 +980,7 @@ static int DetectEngineInspectModbusTest08(void)
     p = UTHBuildPacket(readCoilsReq, sizeof(readCoilsReq), IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
-    f.alproto   = ALPROTO_MODBUS;
+    FlowSetAppProtocol(&f, ALPROTO_MODBUS);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
     f.flags     |= FLOW_IPV4;
@@ -1065,7 +1065,7 @@ static int DetectEngineInspectModbusTest08(void)
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;
@@ -1163,7 +1163,7 @@ static int DetectEngineInspectModbusTest09(void)
     p = UTHBuildPacket(readCoilsReq, sizeof(readCoilsReq), IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
-    f.alproto   = ALPROTO_MODBUS;
+    FlowSetAppProtocol(&f, ALPROTO_MODBUS);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
     f.flags     |= FLOW_IPV4;
@@ -1250,7 +1250,7 @@ static int DetectEngineInspectModbusTest09(void)
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;

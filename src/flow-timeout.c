@@ -228,7 +228,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     memset(&p->ts, 0, sizeof(struct timeval));
     TimeGet(&p->ts);
 
-    AppLayerParserSetEOF(f->alparser);
+    AppLayerParserSetEOF(FlowGetAppParser(f));
 
     return p;
 }
@@ -290,19 +290,21 @@ int FlowForceReassemblyNeedReassembly(Flow *f, int *server, int *client)
     }
 
     /* if app layer still needs some love, push through */
-    if (f->alproto != ALPROTO_UNKNOWN && f->alstate != NULL &&
-        AppLayerParserProtocolSupportsTxs(f->proto, f->alproto))
+    if (FlowGetAppProtocol(f) != ALPROTO_UNKNOWN && FlowGetAppState(f) != NULL &&
+        AppLayerParserProtocolSupportsTxs(f->proto, FlowGetAppProtocol(f)))
     {
-        uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, f->alproto, f->alstate);
+        uint64_t total_txs = AppLayerParserGetTxCnt(f->proto,
+                                                    FlowGetAppProtocol(f),
+                                                    FlowGetAppState(f));
 
-        if (AppLayerParserGetTransactionActive(f->proto, f->alproto,
-                                               f->alparser, STREAM_TOCLIENT) < total_txs)
+        if (AppLayerParserGetTransactionActive(f->proto, FlowGetAppProtocol(f),
+                                               FlowGetAppParser(f), STREAM_TOCLIENT) < total_txs)
         {
             if (*server != STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY)
                 *server = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
         }
-        if (AppLayerParserGetTransactionActive(f->proto, f->alproto,
-                                               f->alparser, STREAM_TOSERVER) < total_txs)
+        if (AppLayerParserGetTransactionActive(f->proto, FlowGetAppProtocol(f),
+                                               FlowGetAppParser(f), STREAM_TOSERVER) < total_txs)
         {
             if (*client != STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY)
                 *client = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;

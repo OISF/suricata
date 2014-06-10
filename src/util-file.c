@@ -689,7 +689,10 @@ void FileDisableStoring(Flow *f, uint8_t direction)
     else
         f->flags |= FLOW_FILE_NO_STORE_TC;
 
-    FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto, f->alstate, direction);
+    FileContainer *ffc = AppLayerParserGetFiles(f->proto,
+                                                FlowGetAppProtocol(f),
+                                                FlowGetAppState(f),
+                                                direction);
     if (ffc != NULL) {
         for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
             /* if we're already storing, we'll continue */
@@ -721,7 +724,10 @@ void FileDisableMagic(Flow *f, uint8_t direction)
     else
         f->flags |= FLOW_FILE_NO_MAGIC_TC;
 
-    FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto, f->alstate, direction);
+    FileContainer *ffc = AppLayerParserGetFiles(f->proto,
+                                                FlowGetAppProtocol(f),
+                                                FlowGetAppState(f),
+                                                direction);
     if (ffc != NULL) {
         for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
             SCLogDebug("disabling magic for file %p from direction %s",
@@ -752,7 +758,10 @@ void FileDisableMd5(Flow *f, uint8_t direction)
     else
         f->flags |= FLOW_FILE_NO_MD5_TC;
 
-    FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto, f->alstate, direction);
+    FileContainer *ffc = AppLayerParserGetFiles(f->proto,
+                                                FlowGetAppProtocol(f),
+                                                FlowGetAppState(f),
+                                                direction);
     if (ffc != NULL) {
         for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
             SCLogDebug("disabling md5 for file %p from direction %s",
@@ -791,7 +800,10 @@ void FileDisableFilesize(Flow *f, uint8_t direction)
     else
         f->flags |= FLOW_FILE_NO_SIZE_TC;
 
-    FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto, f->alstate, direction);
+    FileContainer *ffc = AppLayerParserGetFiles(f->proto,
+                                                FlowGetAppProtocol(f),
+                                                FlowGetAppState(f),
+                                                direction);
     if (ffc != NULL) {
         for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
             SCLogDebug("disabling size tracking for file %p from direction %s",
@@ -841,7 +853,10 @@ void FileDisableStoringForTransaction(Flow *f, uint8_t direction, uint64_t tx_id
 
     SCEnter();
 
-    FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto, f->alstate, direction);
+    FileContainer *ffc = AppLayerParserGetFiles(f->proto,
+                                                FlowGetAppProtocol(f),
+                                                FlowGetAppState(f),
+                                                direction);
     if (ffc != NULL) {
         for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
             if (ptr->txid == tx_id) {

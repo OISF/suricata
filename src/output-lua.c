@@ -130,8 +130,11 @@ static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f,
     SCLogDebug("flags %02x", flags);
 
     if (flags & OUTPUT_STREAMING_FLAG_TRANSACTION) {
-        if (f && f->alstate)
-            txptr = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, tx_id);
+        if (f && FlowGetAppState(f))
+            txptr = AppLayerParserGetTx(f->proto,
+                                        FlowGetAppProtocol(f),
+                                        FlowGetAppState(f),
+                                        tx_id);
     }
 
     LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
@@ -306,8 +309,10 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
     /* Get the TX so the script can get more context about it.
      * TODO hardcoded to HTTP currently */
     void *txptr = NULL;
-    if (p && p->flow && p->flow->alstate)
-        txptr = AppLayerParserGetTx(p->proto, ALPROTO_HTTP, p->flow->alstate, ff->txid);
+    if (p && p->flow && FlowGetAppState(p->flow))
+        txptr = AppLayerParserGetTx(p->proto, ALPROTO_HTTP,
+                                    FlowGetAppState(p->flow),
+                                    ff->txid);
 
     SCMutexLock(&td->lua_ctx->m);
 

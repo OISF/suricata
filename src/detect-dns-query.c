@@ -167,7 +167,7 @@ static int DetectDnsQueryTest01(void)
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW;
     p->flowflags |= FLOW_PKT_TOSERVER;
-    f.alproto = ALPROTO_DNS;
+    FlowSetAppProtocol(&f, ALPROTO_DNS);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -195,7 +195,7 @@ static int DetectDnsQueryTest01(void)
     }
     SCMutexUnlock(&f.m);
 
-    dns_state = f.alstate;
+    dns_state = FlowGetAppState(&f);
     if (dns_state == NULL) {
         printf("no dns state: ");
         goto end;
@@ -284,7 +284,7 @@ static int DetectDnsQueryTest02(void)
     f.flags |= FLOW_IPV4;
     f.proto = IPPROTO_UDP;
     f.protomap = FlowGetProtoMapping(f.proto);
-    f.alproto = ALPROTO_DNS;
+    FlowSetAppProtocol(&f, ALPROTO_DNS);
 
     p1->flow = &f;
     p1->flags |= PKT_HAS_FLOW;
@@ -333,7 +333,7 @@ static int DetectDnsQueryTest02(void)
     }
     SCMutexUnlock(&f.m);
 
-    dns_state = f.alstate;
+    dns_state = FlowGetAppState(&f);
     if (dns_state == NULL) {
         printf("no dns state: ");
         goto end;
@@ -449,7 +449,7 @@ static int DetectDnsQueryTest03(void)
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER|FLOW_PKT_ESTABLISHED;
-    f.alproto = ALPROTO_DNS;
+    FlowSetAppProtocol(&f, ALPROTO_DNS);
 
     StreamTcpInitConfig(TRUE);
 
@@ -479,7 +479,7 @@ static int DetectDnsQueryTest03(void)
     }
     SCMutexUnlock(&f.m);
 
-    dns_state = f.alstate;
+    dns_state = FlowGetAppState(&f);
     if (dns_state == NULL) {
         printf("no dns state: ");
         goto end;
@@ -547,7 +547,7 @@ static int DetectDnsQueryTest04(void)
     f.flags |= FLOW_IPV4;
     f.proto = IPPROTO_TCP;
     f.protomap = FlowGetProtoMapping(f.proto);
-    f.alproto = ALPROTO_DNS;
+    FlowSetAppProtocol(&f, ALPROTO_DNS);
 
     p1->flow = &f;
     p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -585,7 +585,7 @@ static int DetectDnsQueryTest04(void)
     }
     SCMutexUnlock(&f.m);
 
-    dns_state = f.alstate;
+    dns_state = FlowGetAppState(&f);
     if (dns_state == NULL) {
         printf("no dns state: ");
         goto end;
@@ -703,7 +703,7 @@ static int DetectDnsQueryTest05(void)
     f.flags |= FLOW_IPV4;
     f.proto = IPPROTO_TCP;
     f.protomap = FlowGetProtoMapping(f.proto);
-    f.alproto = ALPROTO_DNS;
+    FlowSetAppProtocol(&f, ALPROTO_DNS);
 
     p1->flow = &f;
     p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -755,7 +755,7 @@ static int DetectDnsQueryTest05(void)
     }
     SCMutexUnlock(&f.m);
 
-    dns_state = f.alstate;
+    dns_state = FlowGetAppState(&f);
     if (dns_state == NULL) {
         printf("no dns state: ");
         goto end;
@@ -890,7 +890,7 @@ static int DetectDnsQueryTest06(void)
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW;
     p->flowflags |= FLOW_PKT_TOSERVER;
-    f.alproto = ALPROTO_DNS;
+    FlowSetAppProtocol(&f, ALPROTO_DNS);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -927,7 +927,7 @@ static int DetectDnsQueryTest06(void)
     }
     SCMutexUnlock(&f.m);
 
-    dns_state = f.alstate;
+    dns_state = FlowGetAppState(&f);
     if (dns_state == NULL) {
         printf("no dns state: ");
         goto end;
@@ -1021,7 +1021,7 @@ static int DetectDnsQueryTest07(void)
     f.flags |= FLOW_IPV4;
     f.proto = IPPROTO_UDP;
     f.protomap = FlowGetProtoMapping(f.proto);
-    f.alproto = ALPROTO_DNS;
+    FlowSetAppProtocol(&f, ALPROTO_DNS);
 
     p1->flow = &f;
     p1->flags |= PKT_HAS_FLOW;
@@ -1076,7 +1076,7 @@ static int DetectDnsQueryTest07(void)
     }
     SCMutexUnlock(&f.m);
 
-    dns_state = f.alstate;
+    dns_state = FlowGetAppState(&f);
     if (dns_state == NULL) {
         printf("no dns state: ");
         goto end;

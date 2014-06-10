@@ -93,12 +93,20 @@ extern int run_mode;
 
 void FlowCleanupAppLayer(Flow *f)
 {
+    int i;
+
     if (f == NULL || f->proto == 0)
         return;
 
-    AppLayerParserStateCleanup(f->proto, f->alproto, f->alstate, f->alparser);
-    f->alstate = NULL;
-    f->alparser = NULL;
+    for (i = 0; i < FLOW_ALPROTO_CHAINED_MAX; i++) {
+        if (FLOW_GET_APPLAYER(f, i).alproto == 0)
+            break;
+        AppLayerParserStateCleanup(f->proto, FLOW_GET_APPLAYER(f, i).alproto,
+                FLOW_GET_APPLAYER(f, i).alstate,
+                FLOW_GET_APPLAYER(f, i).alparser);
+        FLOW_GET_APPLAYER(f, i).alstate = NULL;
+        FLOW_GET_APPLAYER(f, i).alparser = NULL;
+    }
     return;
 }
 
@@ -862,12 +870,32 @@ int FlowSetProtoEmergencyTimeout(uint8_t proto, uint32_t emerg_new_timeout,
 
 AppProto FlowGetAppProtocol(const Flow *f)
 {
-    return f->alproto;
+    return FLOW_GET_CURRENT_APPLAYER(f).alproto;
 }
 
 void *FlowGetAppState(const Flow *f)
 {
-    return f->alstate;
+    return FLOW_GET_CURRENT_APPLAYER(f).alstate;
+}
+
+AppLayerParserState *FlowGetAppParser(const Flow *f)
+{
+    return FLOW_GET_CURRENT_APPLAYER(f).alparser;
+}
+
+void FlowSetAppProtocol(Flow *f, AppProto proto)
+{
+    FLOW_GET_CURRENT_APPLAYER(f).alproto = proto;
+}
+
+void FlowSetAppState(Flow *f, void *state)
+{
+    FLOW_GET_CURRENT_APPLAYER(f).alstate = state;
+}
+
+void FlowSetAppParser(Flow *f, void *parser)
+{
+    FLOW_GET_CURRENT_APPLAYER(f).alparser = parser;
 }
 
 /************************************Unittests*******************************/
