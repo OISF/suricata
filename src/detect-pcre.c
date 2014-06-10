@@ -739,22 +739,29 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     if (!(pd->flags & DETECT_PCRE_RELATIVE))
         goto okay;
 
+    /* errors below shouldn't free pd */
+
     SigMatch *prev_pm = SigMatchGetLastSMFromLists(s, 4,
                                                    DETECT_CONTENT, sm->prev,
                                                    DETECT_PCRE, sm->prev);
-    if (prev_pm == NULL)
+    if (s->list == DETECT_SM_LIST_NOTSET && prev_pm == NULL) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre with /R (relative) needs "
+                "preceeding match in the same buffer");
+        goto error_nofree;
+    /* null is allowed when we use a sticky buffer */
+    } else if (prev_pm == NULL)
         goto okay;
     if (prev_pm->type == DETECT_CONTENT) {
         DetectContentData *cd = (DetectContentData *)prev_pm->ctx;
         cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
     } else if (prev_pm->type == DETECT_PCRE) {
-        DetectPcreData *pd = (DetectPcreData *)prev_pm->ctx;
-        pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
+        DetectPcreData *tmp = (DetectPcreData *)prev_pm->ctx;
+        tmp->flags |= DETECT_PCRE_RELATIVE_NEXT;
     }
 
     if (pd->capidx != 0) {
         if (DetectFlowvarPostMatchSetup(s, pd->capidx) < 0)
-            goto error;
+            goto error_nofree;
     }
 
  okay:
@@ -762,6 +769,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     SCReturnInt(ret);
  error:
     DetectPcreFree(pd);
+ error_nofree:
     SCReturnInt(ret);
 }
 
@@ -1539,7 +1547,7 @@ int DetectPcreParseTest23(void)
                                "content:\"GET\"; "
                                "http_cookie; pcre:\"/abc/RM\"; sid:1;)");
 
-    if (de_ctx->sig_list != NULL) {
+    if (de_ctx->sig_list == NULL) {
         result = 1;
     } else {
         printf("sig parse shouldn't have failed: ");
@@ -1625,6 +1633,34 @@ static int DetectPcreParseTest26(void)
                                "alert http any any -> any any "
                                "(msg:\"Testing inconsistent pcre modifiers\"; "
                                "pcre:\"/abc/F\"; sid:1;)");
+
+    if (de_ctx->sig_list == NULL) {
+        result = 1;
+    } else {
+        printf("sig parse should have failed: ");
+    }
+
+ end:
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/** \test Bug 1098 */
+static int DetectPcreParseTest27(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any 80 "
+            "(content:\"baduricontent\"; http_raw_uri; "
+            "pcre:\"/^[a-z]{5}\\.html/R\"; sid:2; rev:2;)");
 
     if (de_ctx->sig_list == NULL) {
         result = 1;
@@ -4049,6 +4085,7 @@ void DetectPcreRegisterTests(void) {
     UtRegisterTest("DetectPcreParseTest24", DetectPcreParseTest24, 1);
     UtRegisterTest("DetectPcreParseTest25", DetectPcreParseTest25, 1);
     UtRegisterTest("DetectPcreParseTest26", DetectPcreParseTest26, 1);
+    UtRegisterTest("DetectPcreParseTest27", DetectPcreParseTest27, 1);
 
     UtRegisterTest("DetectPcreTestSig01B2g -- pcre test", DetectPcreTestSig01B2g, 1);
     UtRegisterTest("DetectPcreTestSig01B3g -- pcre test", DetectPcreTestSig01B3g, 1);
