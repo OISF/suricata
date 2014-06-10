@@ -169,12 +169,29 @@ outputs:
   - pcap-info:
       enabled: no
 
-  # Packet log... log packets in pcap format. 2 modes of operation: "normal"
-  # and "sguil".
+  # Packet log... log packets in pcap format. 3 modes of operation: "normal"
+  # "multi" and "sguil".
   #
   # In normal mode a pcap file "filename" is created in the default-log-dir,
-  # or are as specified by "dir". In Sguil mode "dir" indicates the base directory.
-  # In this base dir the pcaps are created in th directory structure Sguil expects:
+  # or are as specified by "dir".
+  # In multi mode, a file is created per thread. This will perform much
+  # better, but will create multiple files where 'normal' would create one.
+  # In multi mode the filename takes a few special variables:
+  # - %n -- thread number
+  # - %i -- thread id
+  # - %t -- timestamp (secs or secs.usecs based on 'ts-format'
+  # E.g. filename: pcap.%n.%t
+  #
+  # Note that it's possible to use directories, but the directories are not
+  # created by Suricata. E.g. filename: pcaps/%n/log.%s will log into the
+  # per thread directory.
+  #
+  # Also note that the limit and max-files settings are enforced per thread.
+  # So the size limit when using 8 threads with 1000mb files and 2000 files
+  # is: 8*1000*2000 ~ 16TiB.
+  #
+  # In Sguil mode "dir" indicates the base directory. In this base dir the
+  # pcaps are created in th directory structure Sguil expects:
   #
   # $sguil-base-dir/YYYY-MM-DD/$filename.<timestamp>
   #
