@@ -2087,6 +2087,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     TmModuleRunInit();
 
+    PcapLogProfileSetup();
     SCReturnInt(TM_ECODE_OK);
 }
 
