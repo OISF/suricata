@@ -161,6 +161,7 @@ struct HtpBodyChunk_ {
     struct HtpBodyChunk_ *next; /**< Pointer to the next chunk */
     uint64_t stream_offset;
     uint32_t len;               /**< Length of the chunk */
+    int logged;
 } __attribute__((__packed__));
 typedef struct HtpBodyChunk_ HtpBodyChunk;
 
