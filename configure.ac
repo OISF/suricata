@@ -1248,7 +1248,7 @@
     *-*-linux*)
     AC_ARG_WITH(libcap_ng_includes,
             [  --with-libcap_ng-includes=DIR  libcap_ng include directory],
-            [with_libcap-ng_includes="$withval"],[with_libcap_ng_includes=no])
+            [with_libcap_ng_includes="$withval"],[with_libcap_ng_includes=no])
     AC_ARG_WITH(libcap_ng_libraries,
             [  --with-libcap_ng-libraries=DIR    libcap_ng library directory],
             [with_libcap_ng_libraries="$withval"],[with_libcap_ng_libraries="no"])
