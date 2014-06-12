@@ -434,7 +434,8 @@ error:
  */
 void
 OutputRegisterStreamingModule(const char *name, const char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *), StreamingLogger StreamingLogFunc)
+    OutputCtx *(*InitFunc)(ConfNode *), StreamingLogger StreamingLogFunc,
+    enum OutputStreamingType stream_type)
 {
     if (unlikely(StreamingLogFunc == NULL)) {
         goto error;
@@ -449,6 +450,7 @@ OutputRegisterStreamingModule(const char *name, const char *conf_name,
     module->conf_name = conf_name;
     module->InitFunc = InitFunc;
     module->StreamingLogFunc = StreamingLogFunc;
+    module->stream_type = stream_type;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Streaming logger \"%s\" registered.", name);
@@ -469,7 +471,7 @@ error:
 void
 OutputRegisterStreamingSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
-    StreamingLogger StreamingLogFunc)
+    StreamingLogger StreamingLogFunc, enum OutputStreamingType stream_type)
 {
     if (unlikely(StreamingLogFunc == NULL)) {
         goto error;
@@ -485,6 +487,7 @@ OutputRegisterStreamingSubModule(const char *parent_name, const char *name,
     module->parent_name = parent_name;
     module->InitSubFunc = InitFunc;
     module->StreamingLogFunc = StreamingLogFunc;
+    module->stream_type = stream_type;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Streaming logger \"%s\" registered.", name);
