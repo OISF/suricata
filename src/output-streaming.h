@@ -34,11 +34,17 @@
 #define OUTPUT_STREAMING_FLAG_TOSERVER  0x04
 #define OUTPUT_STREAMING_FLAG_TOCLIENT  0x08
 
+enum OutputStreamingType {
+    STREAMING_TCP_DATA,
+    STREAMING_HTTP_BODIES,
+};
+
 /** filedata logger function pointer type */
 typedef int (*StreamingLogger)(ThreadVars *, void *thread_data,
         const Flow *f, const uint8_t *data, uint32_t data_len, uint8_t flags);
 
-int OutputRegisterStreamingLogger(const char *name, StreamingLogger LogFunc, OutputCtx *);
+int OutputRegisterStreamingLogger(const char *name, StreamingLogger LogFunc, OutputCtx *,
+        enum OutputStreamingType);
 
 void TmModuleStreamingLoggerRegister (void);
 

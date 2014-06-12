@@ -52,6 +52,7 @@ typedef struct OutputModule_ {
     FlowLogger FlowLogFunc;
     StreamingLogger StreamingLogFunc;
     AppProto alproto;
+    enum OutputStreamingType stream_type;
 
     TAILQ_ENTRY(OutputModule_) entries;
 } OutputModule;
@@ -91,10 +92,11 @@ void OutputRegisterFlowSubModule(const char *parent_name, const char *name,
     FlowLogger FlowLogFunc);
 
 void OutputRegisterStreamingModule(const char *name, const char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *), StreamingLogger StreamingLogFunc);
+    OutputCtx *(*InitFunc)(ConfNode *), StreamingLogger StreamingLogFunc,
+    enum OutputStreamingType stream_type);
 void OutputRegisterStreamingSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
-    StreamingLogger StreamingLogFunc);
+    StreamingLogger StreamingLogFunc, enum OutputStreamingType stream_type);
 
 OutputModule *OutputGetModuleByConfName(const char *name);
 void OutputDeregisterAll(void);
