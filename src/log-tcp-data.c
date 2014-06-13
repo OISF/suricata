@@ -79,6 +79,8 @@ typedef struct LogTcpDataFileCtx_ {
     LogFileCtx *file_ctx;
     enum OutputStreamingType type;
     const char *log_dir;
+    int file;
+    int dir;
 } LogTcpDataFileCtx;
 
 typedef struct LogTcpDataLogThread_ {
@@ -87,7 +89,7 @@ typedef struct LogTcpDataLogThread_ {
     MemBuffer *buffer;
 } LogTcpDataLogThread;
 
-int LogTcpDataLogger(ThreadVars *tv, void *thread_data, const Flow *f, const uint8_t *data, uint32_t data_len, uint8_t flags)
+static int LogTcpDataLoggerDir(ThreadVars *tv, void *thread_data, const Flow *f, const uint8_t *data, uint32_t data_len, uint8_t flags)
 {
     SCEnter();
     LogTcpDataLogThread *aft = thread_data;
@@ -122,6 +124,58 @@ int LogTcpDataLogger(ThreadVars *tv, void *thread_data, const Flow *f, const uin
 
         fclose(fp);
     }
+    SCReturnInt(TM_ECODE_OK);
+}
+
+static int LogTcpDataLoggerFile(ThreadVars *tv, void *thread_data, const Flow *f, const uint8_t *data, uint32_t data_len, uint8_t flags)
+{
+    SCEnter();
+    LogTcpDataLogThread *aft = thread_data;
+    LogTcpDataFileCtx *td = aft->tcpdatalog_ctx;
+
+    if (data && data_len) {
+        MemBufferReset(aft->buffer);
+
+        char srcip[46] = "", dstip[46] = "";
+        if (FLOW_IS_IPV4(f)) {
+            PrintInet(AF_INET, (const void *)&f->src.addr_data32[0], srcip, sizeof(srcip));
+            PrintInet(AF_INET, (const void *)&f->dst.addr_data32[0], dstip, sizeof(dstip));
+        } else if (FLOW_IS_IPV6(f)) {
+            PrintInet(AF_INET6, (const void *)f->src.addr_data32, srcip, sizeof(srcip));
+            PrintInet(AF_INET6, (const void *)f->dst.addr_data32, dstip, sizeof(dstip));
+        }
+
+        char name[PATH_MAX];
+        snprintf(name, sizeof(name), "%s_%u-%s_%u-%s:",
+                srcip, f->sp, dstip, f->dp,
+                flags & OUTPUT_STREAMING_FLAG_TOSERVER ? "ts" : "tc");
+
+        PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
+                aft->buffer->size, (uint8_t *)name,strlen(name));
+        MemBufferWriteString(aft->buffer, "\n");
+
+        PrintRawDataToBuffer(aft->buffer->buffer, &aft->buffer->offset,
+                aft->buffer->size, (uint8_t *)data,data_len);
+
+        SCMutexLock(&td->file_ctx->fp_mutex);
+        td->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
+                MEMBUFFER_OFFSET(aft->buffer), td->file_ctx);
+        SCMutexUnlock(&td->file_ctx->fp_mutex);
+    }
+    SCReturnInt(TM_ECODE_OK);
+}
+
+int LogTcpDataLogger(ThreadVars *tv, void *thread_data, const Flow *f, const uint8_t *data, uint32_t data_len, uint8_t flags)
+{
+    SCEnter();
+    LogTcpDataLogThread *aft = thread_data;
+    LogTcpDataFileCtx *td = aft->tcpdatalog_ctx;
+
+    if (td->dir == 1)
+        LogTcpDataLoggerDir(tv, thread_data, f, data, data_len, flags);
+    if (td->file == 1)
+        LogTcpDataLoggerFile(tv, thread_data, f, data, data_len, flags);
+
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -180,14 +234,13 @@ void LogTcpDataLogExitPrintStats(ThreadVars *tv, void *data) {
  * */
 OutputCtx *LogTcpDataLogInitCtx(ConfNode *conf)
 {
+    char filename[PATH_MAX] = "";
+    char dirname[32] = "";
+    strlcpy(filename, DEFAULT_LOG_FILENAME, sizeof(filename));
+
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_HTTP_LOG_GENERIC, "couldn't create new file_ctx");
-        return NULL;
-    }
-
-    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME) < 0) {
-        LogFileFreeCtx(file_ctx);
         return NULL;
     }
 
@@ -200,15 +253,61 @@ OutputCtx *LogTcpDataLogInitCtx(ConfNode *conf)
 
     tcpdatalog_ctx->file_ctx = file_ctx;
 
-    if (conf && conf->name) {
-        if (strcmp(conf->name, "tcp-data") == 0) {
-            tcpdatalog_ctx->type = STREAMING_TCP_DATA;
-        } else if (strcmp(conf->name, "http-body-data") == 0) {
-            tcpdatalog_ctx->type = STREAMING_HTTP_BODIES;
+    if (conf) {
+        if (conf->name) {
+            if (strcmp(conf->name, "tcp-data") == 0) {
+                tcpdatalog_ctx->type = STREAMING_TCP_DATA;
+                snprintf(filename, sizeof(filename), "%s.log", conf->name);
+                strlcpy(dirname, "tcp", sizeof(dirname));
+            } else if (strcmp(conf->name, "http-body-data") == 0) {
+                tcpdatalog_ctx->type = STREAMING_HTTP_BODIES;
+                snprintf(filename, sizeof(filename), "%s.log", conf->name);
+                strlcpy(dirname, "http", sizeof(dirname));
+            }
+        }
+
+        const char *logtype = ConfNodeLookupChildValue(conf, "type");
+        if (logtype == NULL)
+            logtype = "file";
+
+        if (strcmp(logtype, "file") == 0) {
+            tcpdatalog_ctx->file = 1;
+        } else if (strcmp(logtype, "dir") == 0) {
+            tcpdatalog_ctx->dir = 1;
+        } else if (strcmp(logtype, "both") == 0) {
+            tcpdatalog_ctx->file = 1;
+            tcpdatalog_ctx->dir = 1;
+        }
+    } else {
+        tcpdatalog_ctx->file = 1;
+        tcpdatalog_ctx->dir = 0;
+    }
+
+    if (tcpdatalog_ctx->file == 1) {
+        SCLogInfo("opening logfile");
+        if (SCConfLogOpenGeneric(conf, file_ctx, filename) < 0) {
+            LogFileFreeCtx(file_ctx);
+            SCFree(tcpdatalog_ctx);
+            return NULL;
         }
     }
 
-    tcpdatalog_ctx->log_dir = ConfigGetLogDirectory();
+    if (tcpdatalog_ctx->dir == 1) {
+        tcpdatalog_ctx->log_dir = ConfigGetLogDirectory();
+        char dirfull[PATH_MAX];
+
+        /* create the filename to use */
+        snprintf(dirfull, PATH_MAX, "%s/%s", tcpdatalog_ctx->log_dir, dirname);
+
+        SCLogInfo("using directory %s", dirfull);
+
+        /* if mkdir fails file open will fail, so deal with errors there */
+#ifndef OS_WIN32
+        (void)mkdir(dirfull, 0700);
+#else
+        (void)mkdir(dirfull);
+#endif
+    }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
