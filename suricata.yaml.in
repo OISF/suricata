@@ -94,9 +94,6 @@ outputs:
                    ## Error, Warning, Notice, Info, Debug
       types:
         - alert
-#            packet: raw      # raw - for dumping base64-d packet
-                              # pcap - for dumping base64-d pcap dump
-#            payload: yes     # if packet == text, log payload as text
         - http:
             extended: yes     # enable this for extended logging information
             # custom allows additional http fields to be included in eve-log

@@ -65,118 +65,22 @@
 
 #define LOG_JSON_PAYLOAD 1
 #define LOG_JSON_PACKET 2
-#define LOG_JSON_PACKET_PCAP 4
-
-#define PCAP_FILE_SIZE (9 * 1024)
-#define PCAP_BASE64_SIZE (9 * 1024 * 2)
-
-extern int engine_mode;
 
 typedef struct JsonAlertLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
     MemBuffer *buffer;
-    /** For pcap dumping */
-    pcap_t *pcap_handle;
-    pcap_dumper_t *pcap_dumper;
-    FILE *pcap_dump_fp;
 } JsonAlertLogThread;
-
-// Borrowed from unified2 logger
-typedef struct _FakeIPv4Hdr {
-    IPV4Hdr ip4h;
-    TCPHdr tcph;
-} FakeIPv4Hdr;
-
-typedef struct _FakeIPv6Hdr {
-    IPV6Hdr ip6h;
-    TCPHdr tcph;
-} FakeIPv6Hdr;
-
-/* Callback function to pack payload contents from a stream into a PCAP dumper */
-static int AlertJsonDumpPcapStreamSegmentCallback(const Packet *p, void *data, uint8_t *buf, uint32_t buflen)
-{
-    JsonAlertLogThread *ajt = (JsonAlertLogThread *)data;
-
-    u_char buffer[8192] = { 0 };
-    EthernetHdr ethhdr = *(p->ethh);
-    int packet_length = sizeof(EthernetHdr) + buflen;
-
-    memmove(buffer, &ethhdr, sizeof(EthernetHdr));
-
-    /* Prepare IPv6/IPv4 header just like unified2 logger does */
-    if (PKT_IS_IPV4(p)) {
-        FakeIPv4Hdr fakehdr;
-        memset(&fakehdr, 0, sizeof(FakeIPv4Hdr));
-
-        fakehdr.ip4h.ip_verhl = p->ip4h->ip_verhl;
-        fakehdr.ip4h.ip_proto = p->ip4h->ip_proto;
-        fakehdr.ip4h.s_ip_src.s_addr = p->ip4h->s_ip_src.s_addr;
-        fakehdr.ip4h.s_ip_dst.s_addr = p->ip4h->s_ip_dst.s_addr;
-        fakehdr.ip4h.ip_len = htons((uint16_t)(sizeof(FakeIPv4Hdr) + buflen));
-        fakehdr.tcph.th_sport = p->tcph->th_sport;
-        fakehdr.tcph.th_dport = p->tcph->th_dport;
-        fakehdr.tcph.th_offx2 = 0x50; /* just the TCP header, no options */
-
-        memmove(buffer + sizeof(EthernetHdr), &fakehdr, sizeof(FakeIPv4Hdr));
-        memmove(buffer + sizeof(EthernetHdr) + sizeof(FakeIPv4Hdr), buf, buflen);
-
-        packet_length += sizeof(FakeIPv4Hdr);
-    } else if (PKT_IS_IPV6(p)) {
-        FakeIPv6Hdr fakehdr;
-        memset(&fakehdr, 0, sizeof(FakeIPv6Hdr));
-
-        fakehdr.ip6h.s_ip6_vfc = p->ip6h->s_ip6_vfc;
-        fakehdr.ip6h.s_ip6_nxt = IPPROTO_TCP;
-        fakehdr.ip6h.s_ip6_plen = htons(sizeof(TCPHdr) + buflen);
-        memcpy(fakehdr.ip6h.s_ip6_addrs, p->ip6h->s_ip6_addrs, 32);
-        fakehdr.tcph.th_sport = p->tcph->th_sport;
-        fakehdr.tcph.th_dport = p->tcph->th_dport;
-
-        fakehdr.tcph.th_offx2 = 0x50; /* just the TCP header, no options */
-
-        memmove(buffer + sizeof(EthernetHdr), &fakehdr, sizeof(FakeIPv6Hdr));
-        memmove(buffer + sizeof(EthernetHdr) + sizeof(FakeIPv6Hdr), buf, buflen);
-
-        packet_length += sizeof(FakeIPv6Hdr);
-    }
-
-    /* rebuild checksum */
-    if (PKT_IS_IPV6(p)) {
-        FakeIPv6Hdr *fakehdr = (FakeIPv6Hdr *)(buffer + sizeof(EthernetHdr));
-
-        fakehdr->tcph.th_sum = TCPV6CalculateChecksum(fakehdr->ip6h.s_ip6_addrs,
-                (uint16_t *)&fakehdr->tcph, buflen + sizeof(TCPHdr));
-    } else {
-        FakeIPv4Hdr *fakehdr = (FakeIPv4Hdr *)(buffer + sizeof(EthernetHdr));
-
-        fakehdr->tcph.th_sum = TCPCalculateChecksum(fakehdr->ip4h.s_ip_addrs,
-                (uint16_t *)&fakehdr->tcph, buflen + sizeof(TCPHdr));
-        fakehdr->ip4h.ip_csum = IPV4CalculateChecksum((uint16_t *)&fakehdr->ip4h,
-                IPV4_GET_RAW_HLEN(&fakehdr->ip4h));
-    }
-
-    struct pcap_pkthdr hdr;
-    hdr.ts.tv_sec = p->ts.tv_sec;
-    hdr.ts.tv_usec = p->ts.tv_usec;
-    hdr.caplen = packet_length;
-    hdr.len = packet_length;
-
-    pcap_dump((u_char *)ajt->pcap_dumper, &hdr, buffer);
-
-    return 1;
-}
 
 /* Callback function to pack payload contents from a stream into a buffer
  * so we can report them in JSON output. */
 static int AlertJsonPrintStreamSegmentCallback(const Packet *p, void *data, uint8_t *buf, uint32_t buflen)
 {
-    MemBuffer *payload = (MemBuffer *)data;
+	MemBuffer *payload = (MemBuffer *)data;
 
-    PrintStringsToBuffer(payload->buffer, &payload->offset, payload->size,
+	PrintStringsToBuffer(payload->buffer, &payload->offset, payload->size,
                          buf, buflen);
-
-    return 1;
+	return 1;
 }
 
 /** Handle the case where no JSON support is compiled in.
@@ -184,12 +88,13 @@ static int AlertJsonPrintStreamSegmentCallback(const Packet *p, void *data, uint
  */
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
+    MemBuffer *buffer = (MemBuffer *)aft->buffer;
     int i;
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
-    MemBufferReset(aft->buffer);
+    MemBufferReset(buffer);
 
     json_t *js = CreateJSONHeader((Packet *)p, 0, "alert");
     if (unlikely(js == NULL))
@@ -227,93 +132,51 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         /* alert */
         json_object_set_new(js, "alert", ajs);
 
-        /* payload */
-        if (aft->file_ctx->flags & LOG_JSON_PAYLOAD || aft->file_ctx->flags & LOG_JSON_PACKET_PCAP) {
-            /* Is this a stream?  If so, pack part of it into the payload field */
-            int stream = (p->proto == IPPROTO_TCP) ?
-                         (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH) ? 1 : 0) : 0;
-
-            if (stream) {
-                uint8_t flag;
+	/* payload */
+	if (aft->file_ctx->flags & LOG_JSON_PAYLOAD)
+	{
+		/* Is this a stream?  If so, pack part of it into the payload field */
+		if (pa->flags & PACKET_ALERT_FLAG_STREAM_MATCH && PKT_IS_TCP(p) && p->flow != NULL && p->flow->protoctx != NULL)
+		{
+			uint8_t flag;
 
 #define JSON_STREAM_BUFFER_SIZE 4096
-                MemBuffer *payload = MemBufferCreateNew(JSON_STREAM_BUFFER_SIZE);
-                MemBufferReset(payload);
+			MemBuffer *payload = MemBufferCreateNew(JSON_STREAM_BUFFER_SIZE);
+			MemBufferReset(payload);
 
-                if (p->flowflags & FLOW_PKT_TOSERVER) {
-                    flag = FLOW_PKT_TOCLIENT;
-                } else {
-                    flag = FLOW_PKT_TOSERVER;
-                }
+			if (p->flowflags & FLOW_PKT_TOSERVER) {
+				flag = FLOW_PKT_TOCLIENT;
+			} else {
+				flag = FLOW_PKT_TOSERVER;
+			}
 
-                if (aft->file_ctx->flags & LOG_JSON_PACKET_PCAP) {
-                    StreamSegmentForEach((const Packet *)p, flag,
-                        AlertJsonDumpPcapStreamSegmentCallback,
-                        (void *)aft);
-                } else {
-                    StreamSegmentForEach((const Packet *)p, flag,
-                        AlertJsonPrintStreamSegmentCallback,
-                        (void *)payload);
-                    json_object_set_new(js, "payload", json_string((char *)payload->buffer));
-                }
+			StreamSegmentForEach((const Packet *)p, flag,
+				AlertJsonPrintStreamSegmentCallback,
+				(void *)payload);
+			json_object_set_new(js, "payload", json_string((char *)payload->buffer));
+			json_object_set_new(js, "stream", json_integer(1));
+		}
+		/* This is a single packet and not a stream */
+		else
+		{
+			char payload[p->payload_len + 1];
+			uint32_t offset = 0;
+			PrintStringsToBuffer((uint8_t *)payload, &offset, p->payload_len + 1,
+					 p->payload, p->payload_len);
+			json_object_set_new(js, "payload", json_string(payload));
+			json_object_set_new(js, "stream", json_integer(0));
+		}
+	}
+	
+	/* base64-encoded full packet */
+	if (aft->file_ctx->flags & LOG_JSON_PACKET)
+	{
+		unsigned long len = GET_PKT_LEN(p) * 2;
+		unsigned char encoded_packet[len];
+		Base64Encode((unsigned char*) GET_PKT_DATA(p), GET_PKT_LEN(p), encoded_packet, &len);
+		json_object_set_new(js, "packet", json_string((char *)encoded_packet));
+	}
 
-                json_object_set_new(js, "stream", json_integer(1));
-            } else {
-                /* This is a single packet and not a stream */
-                if (aft->file_ctx->flags & LOG_JSON_PACKET_PCAP) {
-                        struct pcap_pkthdr hdr;
-                        hdr.ts.tv_sec = p->ts.tv_sec;
-                        hdr.ts.tv_usec = p->ts.tv_usec;
-                        hdr.caplen = GET_PKT_LEN(p);
-                        hdr.len = GET_PKT_LEN(p);
-
-                        pcap_dump((u_char *)aft->pcap_dumper, &hdr, GET_PKT_DATA(p));
-                    } else {
-                        char payload[p->payload_len + 1];
-                        uint32_t offset = 0;
-                        PrintStringsToBuffer((uint8_t *)payload, &offset, p->payload_len + 1,
-                            p->payload, p->payload_len);
-                        json_object_set_new(js, "payload", json_string(payload));
-                    }
-
-                    json_object_set_new(js, "stream", json_integer(0));
-            }
-        }
-
-        /* base64-encoded full packet */
-        if (aft->file_ctx->flags & LOG_JSON_PACKET) {
-            unsigned long len = GET_PKT_LEN(p) * 2;
-            unsigned char encoded_packet[len];
-            Base64Encode((unsigned char*) GET_PKT_DATA(p), GET_PKT_LEN(p), encoded_packet, &len);
-            json_object_set_new(js, "packet", json_string((char *)encoded_packet));
-        } else if (aft->file_ctx->flags & LOG_JSON_PACKET_PCAP) {
-            unsigned char temp_buf[PCAP_FILE_SIZE] = { 0 };
-            unsigned char pcap_base64_buffer[PCAP_BASE64_SIZE] = { 0 };
-
-            fseek(aft->pcap_dump_fp, 0L, SEEK_END);
-            size_t lSize = ftell(aft->pcap_dump_fp);
-            rewind(aft->pcap_dump_fp);
-
-            size_t read = fread(temp_buf, sizeof(unsigned char),
-                                lSize > PCAP_FILE_SIZE ? PCAP_FILE_SIZE : lSize,
-                                aft->pcap_dump_fp);
-
-            if (!read) {
-                SCLogError(SC_ERR_FATAL, "Failed to read temporary PCAP file content: %s", strerror(errno));
-                return TM_ECODE_FAILED;
-            }
-
-            unsigned long outlen = sizeof(pcap_base64_buffer);
-            int ret = Base64Encode(temp_buf, lSize, pcap_base64_buffer, &outlen);
-            outlen = 0;
-
-            if (ret != SC_BASE64_OK) {
-                SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "Invalid return of Base64Encode function");
-                return TM_ECODE_FAILED;
-            }
-
-            json_object_set_new(js, "packet_pcap", json_string((char *)pcap_base64_buffer));
-        }
 
         OutputJSONBuffer(js, aft->file_ctx, aft->buffer);
         json_object_del(js, "alert");
@@ -398,41 +261,11 @@ static int JsonAlertLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     JsonAlertLogThread *aft = thread_data;
 
-    if (aft->file_ctx->flags & LOG_JSON_PACKET_PCAP) {
-        aft->pcap_dump_fp = fmemopen(NULL, PCAP_FILE_SIZE, "w+b");
-
-        if (!aft->pcap_dump_fp) {
-            SCLogInfo("Failed to open temporary PCAP file: %s", strerror(errno));
-            return TM_ECODE_FAILED;
-        }
-
-        if ((aft->pcap_handle = pcap_open_dead(p->datalink, -1)) == NULL) {
-            fclose(aft->pcap_dump_fp);
-            SCLogInfo("Error opening dead pcap handle");
-            return TM_ECODE_FAILED;
-        }
-
-        if ((aft->pcap_dumper = pcap_dump_fopen(aft->pcap_handle, aft->pcap_dump_fp)) == NULL) {
-            fclose(aft->pcap_dump_fp);
-            pcap_close(aft->pcap_handle);
-            SCLogInfo("Error opening dump file %s", pcap_geterr(aft->pcap_handle));
-            return TM_ECODE_FAILED;
-        }
-    }
-
     if (PKT_IS_IPV4(p) || PKT_IS_IPV6(p)) {
         return AlertJson(tv, aft, p);
     } else if (p->alerts.cnt > 0) {
         return AlertJsonDecoderEvent(tv, aft, p);
     }
-
-    if (aft->file_ctx->flags & LOG_JSON_PACKET_PCAP) {
-        pcap_dump_close(aft->pcap_dumper);
-        pcap_close(aft->pcap_handle);
-        aft->pcap_dumper = NULL;
-        aft->pcap_handle = NULL;
-    }
-
     return 0;
 }
 
@@ -486,8 +319,15 @@ static TmEcode JsonAlertLogThreadDeinit(ThreadVars *t, void *data)
 
 static void JsonAlertLogDeInitCtx(OutputCtx *output_ctx)
 {
+    SCLogDebug("cleaning up output_ctx");
     LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
     LogFileFreeCtx(logfile_ctx);
+    SCFree(output_ctx);
+}
+
+static void JsonAlertLogDeInitCtxSub(OutputCtx *output_ctx)
+{
+    SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
     SCFree(output_ctx);
 }
 
@@ -501,9 +341,8 @@ static void JsonAlertLogDeInitCtx(OutputCtx *output_ctx)
 static OutputCtx *JsonAlertLogInitCtx(ConfNode *conf)
 {
     LogFileCtx *logfile_ctx = LogFileNewCtx();
-
     if (logfile_ctx == NULL) {
-        SCLogDebug("JsonAlertLogInitCtx: Could not create new LogFileCtx");
+        SCLogDebug("AlertFastLogInitCtx2: Could not create new LogFileCtx");
         return NULL;
     }
 
@@ -528,12 +367,12 @@ static OutputCtx *JsonAlertLogInitCtx(ConfNode *conf)
  */
 static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    JsonAlertLogThread *ajt = (JsonAlertLogThread *)parent_ctx->data;
+    AlertJsonThread *ajt = parent_ctx->data;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
         return NULL;
-
+    
     if (conf) {
         const char *payload = ConfNodeLookupChildValue(conf, "payload");
         const char *packet  = ConfNodeLookupChildValue(conf, "packet");
@@ -544,17 +383,14 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
             }
         }
         if (packet != NULL) {
-            if (!strncasecmp(packet, "pcap", 4)) {
-                SCLogInfo("JsonALertLog: log to PCAP enabled");
-                ajt->file_ctx->flags |= LOG_JSON_PACKET_PCAP;
-            } else {
+            if (ConfValIsTrue(packet)) {
                 ajt->file_ctx->flags |= LOG_JSON_PACKET;
             }
-        }
+	}
     }
 
     output_ctx->data = ajt->file_ctx;
-    output_ctx->DeInit = JsonAlertLogDeInitCtx;
+    output_ctx->DeInit = JsonAlertLogDeInitCtxSub;
 
     return output_ctx;
 }
