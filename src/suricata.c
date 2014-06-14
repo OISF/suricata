@@ -77,7 +77,6 @@
 #include "alert-debuglog.h"
 #include "alert-prelude.h"
 #include "alert-syslog.h"
-#include "alert-pcapinfo.h"
 #include "output-json-alert.h"
 
 #include "log-droplog.h"
@@ -844,8 +843,6 @@ void RegisterAllModules()
     TmModuleAlertSyslogRegister();
     /* unified2 log */
     TmModuleUnified2AlertRegister();
-    /* pcap info log */
-    TmModuleAlertPcapInfoRegister();
     /* drop log */
     TmModuleLogDropLogRegister();
     TmModuleJsonDropLogRegister();

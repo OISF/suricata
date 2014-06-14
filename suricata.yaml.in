@@ -162,13 +162,6 @@ outputs:
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
-  # a line based log to used with pcap file study.
-  # this module is dedicated to offline pcap parsing (empty output
-  # if used with another kind of input). It can interoperate with
-  # pcap parser like wireshark via the suriwire plugin.
-  - pcap-info:
-      enabled: no
-
   # Packet log... log packets in pcap format. 3 modes of operation: "normal"
   # "multi" and "sguil".
   #
