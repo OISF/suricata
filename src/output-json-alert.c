@@ -175,6 +175,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 		unsigned char encoded_packet[len];
 		Base64Encode((unsigned char*) GET_PKT_DATA(p), GET_PKT_LEN(p), encoded_packet, &len);
 		json_object_set_new(js, "packet", json_string((char *)encoded_packet));
+		json_object_set_new(js, "packet_len", json_integer(GET_PKT_LEN(p)));
 	}
 
 
