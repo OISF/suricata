@@ -66,10 +66,12 @@
 #define LOG_JSON_PAYLOAD 1
 #define LOG_JSON_PACKET 2
 
+
 typedef struct JsonAlertLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
     MemBuffer *buffer;
+    MemBuffer *payload_buffer;
 } JsonAlertLogThread;
 
 /* Callback function to pack payload contents from a stream into a buffer
@@ -136,12 +138,12 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 	if (aft->file_ctx->flags & LOG_JSON_PAYLOAD)
 	{
 		/* Is this a stream?  If so, pack part of it into the payload field */
-		if (pa->flags & PACKET_ALERT_FLAG_STREAM_MATCH && PKT_IS_TCP(p) && p->flow != NULL && p->flow->protoctx != NULL)
+		if (pa->flags & PACKET_ALERT_FLAG_STREAM_MATCH && PKT_IS_TCP(p) &&
+		    p->flow != NULL && p->flow->protoctx != NULL)
 		{
 			uint8_t flag;
 
-#define JSON_STREAM_BUFFER_SIZE 4096
-			MemBuffer *payload = MemBufferCreateNew(JSON_STREAM_BUFFER_SIZE);
+			MemBuffer *payload = aft->payload_buffer;
 			MemBufferReset(payload);
 
 			if (p->flowflags & FLOW_PKT_TOSERVER) {
@@ -153,7 +155,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 			StreamSegmentForEach((const Packet *)p, flag,
 				AlertJsonPrintStreamSegmentCallback,
 				(void *)payload);
-			json_object_set_new(js, "payload", json_string((char *)payload->buffer));
+			json_object_set_new(js, "payload",
+			                    json_string((char *)payload->buffer));
 			json_object_set_new(js, "stream", json_integer(1));
 		}
 		/* This is a single packet and not a stream */
@@ -161,8 +164,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 		{
 			char payload[p->payload_len + 1];
 			uint32_t offset = 0;
-			PrintStringsToBuffer((uint8_t *)payload, &offset, p->payload_len + 1,
-					 p->payload, p->payload_len);
+			PrintStringsToBuffer((uint8_t *)payload, &offset,
+			    p->payload_len + 1, p->payload, p->payload_len);
 			json_object_set_new(js, "payload", json_string(payload));
 			json_object_set_new(js, "stream", json_integer(0));
 		}
@@ -173,7 +176,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 	{
 		unsigned long len = GET_PKT_LEN(p) * 2;
 		unsigned char encoded_packet[len];
-		Base64Encode((unsigned char*) GET_PKT_DATA(p), GET_PKT_LEN(p), encoded_packet, &len);
+		Base64Encode((unsigned char*) GET_PKT_DATA(p),
+		    GET_PKT_LEN(p), encoded_packet, &len);
 		json_object_set_new(js, "packet", json_string((char *)encoded_packet));
 		json_object_set_new(js, "packet_len", json_integer(GET_PKT_LEN(p)));
 	}
@@ -276,6 +280,7 @@ static int JsonAlertLogCondition(ThreadVars *tv, const Packet *p)
 }
 
 #define OUTPUT_BUFFER_SIZE 65535
+#define JSON_STREAM_BUFFER_SIZE 4096
 static TmEcode JsonAlertLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     JsonAlertLogThread *aft = SCMalloc(sizeof(JsonAlertLogThread));
@@ -291,6 +296,12 @@ static TmEcode JsonAlertLogThreadInit(ThreadVars *t, void *initdata, void **data
 
     aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+    
+    aft->payload_buffer = MemBufferCreateNew(JSON_STREAM_BUFFER_SIZE);
+    if (aft->payload_buffer == NULL) {
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
@@ -310,6 +321,7 @@ static TmEcode JsonAlertLogThreadDeinit(ThreadVars *t, void *data)
     }
 
     MemBufferFree(aft->buffer);
+    MemBufferFree(aft->payload_buffer);
 
     /* clear memory */
     memset(aft, 0, sizeof(JsonAlertLogThread));
