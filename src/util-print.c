@@ -222,7 +222,9 @@ void PrintStringsToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32
     for (ch = 0; ch < src_buf_len; ch++) {
         PrintBufferData((char *)dst_buf, dst_buf_offset_ptr, dst_buf_size,
                         "%c",
-                        isprint((uint8_t)src_buf[ch]) || src_buf[ch] == '\n' || src_buf[ch] == '\r' ? (uint8_t)src_buf[ch] : '.');
+                        (isprint((uint8_t)src_buf[ch]) ||
+                        src_buf[ch] == '\n' ||
+                        src_buf[ch] == '\r') ? (uint8_t)src_buf[ch] : '.');
     }
 
     return;
