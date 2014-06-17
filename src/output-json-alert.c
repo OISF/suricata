@@ -65,11 +65,15 @@
 
 #define LOG_JSON_PAYLOAD 1
 #define LOG_JSON_PACKET 2
+#define LOG_JSON_PAYLOAD_BASE64 4
+
+#define JSON_STREAM_BUFFER_SIZE 4096
 
 typedef struct JsonAlertLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
-    MemBuffer *buffer;
+    MemBuffer *json_buffer;
+    MemBuffer *payload_buffer;
 } JsonAlertLogThread;
 
 /* Callback function to pack payload contents from a stream into a buffer
@@ -80,6 +84,7 @@ static int AlertJsonPrintStreamSegmentCallback(const Packet *p, void *data, uint
 
     PrintStringsToBuffer(payload->buffer, &payload->offset, payload->size,
                          buf, buflen);
+
     return 1;
 }
 
@@ -88,13 +93,14 @@ static int AlertJsonPrintStreamSegmentCallback(const Packet *p, void *data, uint
  */
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
+    MemBuffer *payload = aft->payload_buffer;
+
     int i;
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
-    MemBufferReset(buffer);
+    MemBufferReset(aft->json_buffer);
 
     json_t *js = CreateJSONHeader((Packet *)p, 0, "alert");
     if (unlikely(js == NULL))
@@ -137,12 +143,11 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 int stream = (p->proto == IPPROTO_TCP) ?
                              (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH) ?
                              1 : 0) : 0;
+
                 /* Is this a stream?  If so, pack part of it into the payload field */
                 if (stream) {
                     uint8_t flag;
 
-#define JSON_STREAM_BUFFER_SIZE 4096
-                    MemBuffer *payload = MemBufferCreateNew(JSON_STREAM_BUFFER_SIZE);
                     MemBufferReset(payload);
 
                     if (p->flowflags & FLOW_PKT_TOSERVER) {
@@ -154,19 +159,36 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     StreamSegmentForEach((const Packet *)p, flag,
                                         AlertJsonPrintStreamSegmentCallback,
                                         (void *)payload);
-                    json_object_set_new(js, "payload",
-                                        json_string((char *)payload->buffer));
-                    json_object_set_new(js, "stream", json_integer(1));
+
+                    if (aft->file_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
+                        unsigned long len = JSON_STREAM_BUFFER_SIZE * 2;
+                        unsigned char encoded[len];
+                        Base64Encode((unsigned char *)payload, payload->offset, encoded, &len);
+                        json_object_set_new(js, "payload", json_string((char *)encoded));
+                    } else {
+                        json_object_set_new(js, "payload",
+                                            json_string((char *)payload->buffer));
+                    }
                 } else {
                     /* This is a single packet and not a stream */
-                    char payload[p->payload_len + 1];
+                    unsigned char payload[p->payload_len + 1];
                     uint32_t offset = 0;
-                    PrintStringsToBuffer((uint8_t *)payload, &offset,
+
+                    PrintStringsToBuffer(payload, &offset,
                                          p->payload_len + 1,
                                          p->payload, p->payload_len);
-                    json_object_set_new(js, "payload", json_string(payload));
-                    json_object_set_new(js, "stream", json_integer(0));
+
+                    if (aft->file_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
+                        unsigned long len = sizeof(payload) * 2;
+                        unsigned char encoded[len];
+                        Base64Encode(payload, sizeof(payload), encoded, &len);
+                        json_object_set_new(js, "payload", json_string((char *)encoded));
+                    } else {
+                        json_object_set_new(js, "payload", json_string((char *)payload));
+                    }
                 }
+
+                json_object_set_new(js, "stream", json_integer(stream));
         }
 
         /* base64-encoded full packet */
@@ -177,7 +199,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             json_object_set_new(js, "packet", json_string((char *)encoded_packet));
         }
 
-        OutputJSONBuffer(js, aft->file_ctx, aft->buffer);
+        OutputJSONBuffer(js, aft->file_ctx, aft->json_buffer);
         json_object_del(js, "alert");
     }
     json_object_clear(js);
@@ -188,7 +210,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
 static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
+    MemBuffer *buffer = (MemBuffer *)aft->json_buffer;
     int i;
     char timebuf[64];
     json_t *js;
@@ -287,8 +309,14 @@ static TmEcode JsonAlertLogThreadInit(ThreadVars *t, void *initdata, void **data
         return TM_ECODE_FAILED;
     }
 
-    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
-    if (aft->buffer == NULL) {
+    aft->json_buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    if (aft->json_buffer == NULL) {
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
+    aft->payload_buffer = MemBufferCreateNew(JSON_STREAM_BUFFER_SIZE);
+    if (aft->payload_buffer == NULL) {
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
@@ -307,7 +335,7 @@ static TmEcode JsonAlertLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
-    MemBufferFree(aft->buffer);
+    MemBufferFree(aft->json_buffer);
 
     /* clear memory */
     memset(aft, 0, sizeof(JsonAlertLogThread));
@@ -375,17 +403,23 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     if (conf) {
         const char *payload = ConfNodeLookupChildValue(conf, "payload");
         const char *packet  = ConfNodeLookupChildValue(conf, "packet");
+        const char *payload_base64 = ConfNodeLookupChildValue(conf, "payload-base64");
 
         if (payload != NULL) {
             if (ConfValIsTrue(payload)) {
                 ajt->file_ctx->flags |= LOG_JSON_PAYLOAD;
             }
         }
+        if (payload_base64 != NULL) {
+            if (ConfValIsTrue(payload_base64)) {
+                ajt->file_ctx->flags |= LOG_JSON_PAYLOAD_BASE64;
+            }
+        }
         if (packet != NULL) {
             if (ConfValIsTrue(packet)) {
                 ajt->file_ctx->flags |= LOG_JSON_PACKET;
             }
-	}
+        }
     }
 
     output_ctx->data = ajt->file_ctx;
