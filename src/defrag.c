@@ -697,7 +697,7 @@ insert:
 
     Frag *frag;
     TAILQ_FOREACH(frag, &tracker->frags, next) {
-        if (frag_offset < frag->offset)
+        if (new->offset < frag->offset)
             break;
     }
     if (frag == NULL) {
