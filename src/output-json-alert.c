@@ -171,20 +171,20 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     }
                 } else {
                     /* This is a single packet and not a stream */
-                    unsigned char payload[p->payload_len + 1];
+                    unsigned char packet_buf[p->payload_len + 1];
                     uint32_t offset = 0;
 
-                    PrintStringsToBuffer(payload, &offset,
+                    PrintStringsToBuffer(packet_buf, &offset,
                                          p->payload_len + 1,
                                          p->payload, p->payload_len);
 
                     if (aft->file_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
                         unsigned long len = sizeof(payload) * 2;
                         unsigned char encoded[len];
-                        Base64Encode(payload, sizeof(payload), encoded, &len);
+                        Base64Encode(packet_buf, offset, encoded, &len);
                         json_object_set_new(js, "payload", json_string((char *)encoded));
                     } else {
-                        json_object_set_new(js, "payload", json_string((char *)payload));
+                        json_object_set_new(js, "payload", json_string((char *)packet_buf));
                     }
                 }
 
