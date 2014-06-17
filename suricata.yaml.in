@@ -280,6 +280,28 @@ outputs:
       force-magic: no   # force logging magic on all logged files
       force-md5: no     # force logging of md5 checksums
 
+  # Log TCP data after stream normalization
+  # 2 types: file or dir. File logs into a single logfile. Dir creates
+  # 2 files per TCP session and stores the raw TCP data into them.
+  # Using 'both' will enable both file and dir modes.
+  #
+  # Note: limited by stream.depth
+  - tcp-data:
+      enabled: no
+      type: file
+      filename: tcp-data.log
+
+  # Log HTTP body data after normalization, dechunking and unzipping.
+  # 2 types: file or dir. File logs into a single logfile. Dir creates
+  # 2 files per HTTP session and stores the normalized data into them.
+  # Using 'both' will enable both file and dir modes.
+  #
+  # Note: limited by the body limit settings
+  - http-body-data:
+      enabled: no
+      type: file
+      filename: http-data.log
+
 # Magic file. The extension .mgc is added to the value here.
 #magic-file: /usr/share/file/magic
 magic-file: @e_magic_file@
