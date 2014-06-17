@@ -784,8 +784,8 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
         SCLogError(SC_ERR_ALPARSER, "HTP state has no connp");
         /* till we have the new libhtp changes that allow response first,
          * let's take response in first. */
-        BUG_ON(1);
-        //SCReturnInt(-1);
+        //BUG_ON(1);
+        SCReturnInt(-1);
     }
 
     /* Unset the body inspection (the callback should
