@@ -29,10 +29,11 @@
 #include "decode.h"
 #include "util-file.h"
 
-#define OUTPUT_STREAMING_FLAG_OPEN      0x01
-#define OUTPUT_STREAMING_FLAG_CLOSE     0x02
-#define OUTPUT_STREAMING_FLAG_TOSERVER  0x04
-#define OUTPUT_STREAMING_FLAG_TOCLIENT  0x08
+#define OUTPUT_STREAMING_FLAG_OPEN          0x01
+#define OUTPUT_STREAMING_FLAG_CLOSE         0x02
+#define OUTPUT_STREAMING_FLAG_TOSERVER      0x04
+#define OUTPUT_STREAMING_FLAG_TOCLIENT      0x08
+#define OUTPUT_STREAMING_FLAG_TRANSACTION   0x10
 
 enum OutputStreamingType {
     STREAMING_TCP_DATA,
@@ -41,7 +42,8 @@ enum OutputStreamingType {
 
 /** filedata logger function pointer type */
 typedef int (*StreamingLogger)(ThreadVars *, void *thread_data,
-        const Flow *f, const uint8_t *data, uint32_t data_len, uint8_t flags);
+        const Flow *f, const uint8_t *data, uint32_t data_len,
+        uint64_t tx_id, uint8_t flags);
 
 int OutputRegisterStreamingLogger(const char *name, StreamingLogger LogFunc, OutputCtx *,
         enum OutputStreamingType);

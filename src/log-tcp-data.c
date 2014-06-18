@@ -58,7 +58,7 @@ TmEcode LogTcpDataLogThreadDeinit(ThreadVars *, void *);
 void LogTcpDataLogExitPrintStats(ThreadVars *, void *);
 static void LogTcpDataLogDeInitCtx(OutputCtx *);
 
-int LogTcpDataLogger(ThreadVars *tv, void *thread_data, const Flow *f, const uint8_t *data, uint32_t data_len, uint8_t flags);
+int LogTcpDataLogger(ThreadVars *tv, void *thread_data, const Flow *f, const uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags);
 
 void TmModuleLogTcpDataLogRegister (void) {
     tmm_modules[TMM_LOGTCPDATALOG].name = MODULE_NAME;
@@ -89,7 +89,8 @@ typedef struct LogTcpDataLogThread_ {
     MemBuffer *buffer;
 } LogTcpDataLogThread;
 
-static int LogTcpDataLoggerDir(ThreadVars *tv, void *thread_data, const Flow *f, const uint8_t *data, uint32_t data_len, uint8_t flags)
+static int LogTcpDataLoggerDir(ThreadVars *tv, void *thread_data, const Flow *f,
+        const uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags)
 {
     SCEnter();
     LogTcpDataLogThread *aft = thread_data;
@@ -110,10 +111,15 @@ static int LogTcpDataLoggerDir(ThreadVars *tv, void *thread_data, const Flow *f,
         }
 
         char name[PATH_MAX];
-        snprintf(name, sizeof(name), "%s/%s/%s_%u-%s_%u-%s.data",
+
+        char tx[64] = "";
+        if (flags & OUTPUT_STREAMING_FLAG_TRANSACTION)
+            snprintf(tx, sizeof(tx), "%"PRIu64, tx_id);
+
+        snprintf(name, sizeof(name), "%s/%s/%s_%u-%s_%u-%s-%s.data",
                 td->log_dir,
                 td->type == STREAMING_HTTP_BODIES ? "http" : "tcp",
-                srcip, f->sp, dstip, f->dp,
+                srcip, f->sp, dstip, f->dp, tx,
                 flags & OUTPUT_STREAMING_FLAG_TOSERVER ? "ts" : "tc");
 
         FILE *fp = fopen(name, mode);
@@ -127,7 +133,8 @@ static int LogTcpDataLoggerDir(ThreadVars *tv, void *thread_data, const Flow *f,
     SCReturnInt(TM_ECODE_OK);
 }
 
-static int LogTcpDataLoggerFile(ThreadVars *tv, void *thread_data, const Flow *f, const uint8_t *data, uint32_t data_len, uint8_t flags)
+static int LogTcpDataLoggerFile(ThreadVars *tv, void *thread_data, const Flow *f,
+        const uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags)
 {
     SCEnter();
     LogTcpDataLogThread *aft = thread_data;
@@ -165,16 +172,17 @@ static int LogTcpDataLoggerFile(ThreadVars *tv, void *thread_data, const Flow *f
     SCReturnInt(TM_ECODE_OK);
 }
 
-int LogTcpDataLogger(ThreadVars *tv, void *thread_data, const Flow *f, const uint8_t *data, uint32_t data_len, uint8_t flags)
+int LogTcpDataLogger(ThreadVars *tv, void *thread_data, const Flow *f,
+        const uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags)
 {
     SCEnter();
     LogTcpDataLogThread *aft = thread_data;
     LogTcpDataFileCtx *td = aft->tcpdatalog_ctx;
 
     if (td->dir == 1)
-        LogTcpDataLoggerDir(tv, thread_data, f, data, data_len, flags);
+        LogTcpDataLoggerDir(tv, thread_data, f, data, data_len, tx_id, flags);
     if (td->file == 1)
-        LogTcpDataLoggerFile(tv, thread_data, f, data, data_len, flags);
+        LogTcpDataLoggerFile(tv, thread_data, f, data, data_len, tx_id, flags);
 
     SCReturnInt(TM_ECODE_OK);
 }

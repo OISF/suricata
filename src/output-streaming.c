@@ -98,7 +98,7 @@ typedef struct StreamerCallbackData_ {
     enum OutputStreamingType type;
 } StreamerCallbackData;
 
-int Streamer(void *cbdata, Flow *f, uint8_t *data, uint32_t data_len, uint8_t flags)
+int Streamer(void *cbdata, Flow *f, uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags)
 {
     StreamerCallbackData *streamer_cbdata = (StreamerCallbackData *)cbdata;
     BUG_ON(streamer_cbdata == NULL);
@@ -117,7 +117,7 @@ int Streamer(void *cbdata, Flow *f, uint8_t *data, uint32_t data_len, uint8_t fl
         if (logger->type == streamer_cbdata->type) {
             SCLogDebug("logger %p", logger);
             PACKET_PROFILING_TMM_START(p, logger->module_id);
-            logger->LogFunc(tv, store->thread_data, (const Flow *)f, data, data_len, flags);
+            logger->LogFunc(tv, store->thread_data, (const Flow *)f, data, data_len, tx_id, flags);
             PACKET_PROFILING_TMM_END(p, logger->module_id);
         }
 
@@ -143,10 +143,14 @@ int Streamer(void *cbdata, Flow *f, uint8_t *data, uint32_t data_len, uint8_t fl
 int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
 {
     SCLogDebug("called with %p, %d, %p, %02x", f, close, cbdata, iflags);
-    int logged = 0;
 
     HtpState *s = f->alstate;
     if (s != NULL && s->conn != NULL) {
+        int tx_progress_done_value_ts =
+            AppLayerParserGetStateProgressCompletionStatus(IPPROTO_TCP, ALPROTO_HTTP, 0);
+        int tx_progress_done_value_tc =
+            AppLayerParserGetStateProgressCompletionStatus(IPPROTO_TCP, ALPROTO_HTTP, 1);
+
         // for each tx
         uint64_t tx_id = 0;
         uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, f->alproto, f->alstate);
@@ -154,6 +158,17 @@ int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
         for (tx_id = 0; tx_id < total_txs; tx_id++) { // TODO optimization store log tx
             htp_tx_t *tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, tx_id);
             if (tx != NULL) {
+                int tx_done = 0;
+                int tx_logged = 0;
+
+                int tx_progress_ts = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, 0);
+                if (tx_progress_ts >= tx_progress_done_value_ts) {
+                    int tx_progress_tc = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, 1);
+                    if (tx_progress_tc >= tx_progress_done_value_tc) {
+                        tx_done = 1;
+                    }
+                }
+
                 SCLogDebug("tx %p", tx);
                 HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
                 if (htud != NULL) {
@@ -166,15 +181,15 @@ int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
 
                     if (body == NULL) {
                         SCLogDebug("no body");
-                        continue;
+                        goto next;
                     }
                     if (body->first == NULL) {
                         SCLogDebug("no body chunks");
-                        continue;
+                        goto next;
                     }
                     if (body->last->logged == 1) {
                         SCLogDebug("all logged already");
-                        continue;
+                        goto next;
                     }
 
                     // for each chunk
@@ -185,31 +200,35 @@ int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
                             continue;
                         }
 
-                        uint8_t flags = iflags;
+                        uint8_t flags = iflags | OUTPUT_STREAMING_FLAG_TRANSACTION;
                         if (chunk->stream_offset == 0)
                             flags |= OUTPUT_STREAMING_FLAG_OPEN;
                         /* if we need to close and we're at the last segment in the list
                          * we add the 'close' flag so the logger can close up. */
-                        if (close && chunk->next == NULL)
+                        if ((tx_done || close) && chunk->next == NULL) {
                             flags |= OUTPUT_STREAMING_FLAG_CLOSE;
+                        }
 
                         // invoke Streamer
-                        Streamer(cbdata, f, chunk->data, (uint32_t)chunk->len, flags);
+                        Streamer(cbdata, f, chunk->data, (uint32_t)chunk->len, tx_id, flags);
                         //PrintRawDataFp(stdout, chunk->data, chunk->len);
                         chunk->logged = 1;
-                        logged = 1;
+                        tx_logged = 1;
+                    }
+
+                  next:
+                    /* if we need to close we need to invoke the Streamer for sure. If we
+                     * logged no chunks, we call the Streamer with NULL data so it can
+                     * close up. */
+                    if (tx_logged == 0 && (close||tx_done)) {
+                        Streamer(cbdata, f, NULL, 0, tx_id,
+                                OUTPUT_STREAMING_FLAG_CLOSE|OUTPUT_STREAMING_FLAG_TRANSACTION);
                     }
                 }
             }
         }
     }
 
-    /* if we need to close we need to invoke the Streamer for sure. If we
-     * logged no chunks, we call the Streamer with NULL data so it can
-     * close up. */
-    if (logged == 0 && close) {
-        Streamer(cbdata, f, NULL, 0, OUTPUT_STREAMING_FLAG_CLOSE);
-    }
 
     return 0;
 }
@@ -245,7 +264,7 @@ int StreamIterator(Flow *f, TcpStream *stream, int close, void *cbdata, uint8_t 
             if (close && seg->next == NULL)
                 flags |= OUTPUT_STREAMING_FLAG_CLOSE;
 
-            Streamer(cbdata, f, seg->payload, (uint32_t)seg->payload_len, flags);
+            Streamer(cbdata, f, seg->payload, (uint32_t)seg->payload_len, 0, flags);
 
             seg->flags |= SEGMENTTCP_FLAG_LOGAPI_PROCESSED;
 
@@ -259,7 +278,7 @@ int StreamIterator(Flow *f, TcpStream *stream, int close, void *cbdata, uint8_t 
      * logged no segments, we call the Streamer with NULL data so it can
      * close up. */
     if (logged == 0 && close) {
-        Streamer(cbdata, f, NULL, 0, OUTPUT_STREAMING_FLAG_CLOSE);
+        Streamer(cbdata, f, NULL, 0, 0, OUTPUT_STREAMING_FLAG_CLOSE);
     }
 
     return 0;
