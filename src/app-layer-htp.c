@@ -2571,12 +2571,22 @@ static int HTPStateGetAlstateProgress(void *tx, uint8_t direction)
 
 static uint64_t HTPStateGetTxCnt(void *alstate)
 {
-    return (uint64_t)htp_list_size(((htp_tx_t *)alstate)->conn->transactions);
+    HtpState *http_state = (HtpState *)alstate;
+
+    if (http_state != NULL && http_state->conn != NULL)
+        return (uint64_t)htp_list_size(http_state->conn->transactions);
+    else
+        return 0ULL;
 }
 
 static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
 {
-    return htp_list_get(((htp_tx_t *)alstate)->conn->transactions, tx_id);
+    HtpState *http_state = (HtpState *)alstate;
+
+    if (http_state != NULL && http_state->conn != NULL)
+        return htp_list_get(http_state->conn->transactions, tx_id);
+    else
+        return NULL;
 }
 
 static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction)
