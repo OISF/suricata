@@ -331,7 +331,7 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
     ptv->slot = s->slot_next;
     Packet *p = NULL;
     int cpu = tmc_cpus_get_my_cpu();
-    int rank = cpu - 1;
+    int rank = tv->rank;
     int max_queued = 0;
     char *ctype;
 
@@ -875,8 +875,7 @@ static int MpipeReceiveOpenEgress(char *out_iface, int iface_idx,
 TmEcode ReceiveMpipeThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     SCEnter();
-    int cpu = tmc_cpus_get_my_cpu();
-    int rank = (cpu-1); // FIXME: Assumes worker CPUs start at 1.
+    int rank = tv->rank;
     int num_buckets = 4096; 
     int num_workers = tile_num_pipelines;
 
@@ -896,13 +895,6 @@ TmEcode ReceiveMpipeThreadInit(ThreadVars *tv, void *initdata, void **data)
     int result;
     char *link_name = (char *)initdata;
   
-    /* Bind to a single cpu. */
-    cpu_set_t cpus;
-    result = tmc_cpus_get_my_affinity(&cpus);
-    VERIFY(result, "tmc_cpus_get_my_affinity()");
-    result = tmc_cpus_set_my_cpu(tmc_cpus_find_first_cpu(&cpus));
-    VERIFY(result, "tmc_cpus_set_my_cpu()");
-
     MpipeRegisterPerfCounters(ptv, tv);
 
     *data = (void *)ptv;
