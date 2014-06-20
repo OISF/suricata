@@ -382,6 +382,7 @@ int RunModeUnixSocketSingle(DetectEngineCtx *de_ctx)
     }
     pcapcmd->de_ctx = de_ctx;
     TAILQ_INIT(&pcapcmd->files);
+    pcapcmd->running = 0;
     pcapcmd->currentfile = NULL;
 
     UnixManagerThreadSpawn(de_ctx, 1);
