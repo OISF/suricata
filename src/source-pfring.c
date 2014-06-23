@@ -472,6 +472,8 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     if ((ptv->threads == 1) && (strncmp(ptv->interface, "dna", 3) == 0)) {
         SCLogInfo("DNA interface detected, not adding thread to cluster");
+    } else if (strncmp(ptv->interface, "zc", 2) == 0) {
+        SCLogInfo("ZC interface detected, not adding thread to cluster");
     } else {
 #ifdef HAVE_PFRING_CLUSTER_TYPE
         ptv->ctype = pfconf->ctype;
