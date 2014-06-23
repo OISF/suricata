@@ -371,6 +371,13 @@
         CFLAGS="${CFLAGS} -DPROFILING -DPROFILE_LOCKING"
     ])
 
+  # gtp decoding support
+    AC_ARG_ENABLE(gtp-decoder,
+           AS_HELP_STRING([--enable-gtp-decoder], [Enable GTP-U decoder]),,[enable_gtp_decoder=no])
+    AS_IF([test "x$enable_gtp_decoder" = "xyes"], [
+        CFLAGS="${CFLAGS} -DGTP_DECODER"
+    ])
+
   # enable support for IPFW
     AC_ARG_ENABLE(ipfw,
             AS_HELP_STRING([--enable-ipfw], [Enable FreeBSD IPFW support for inline IDP]),,[enable_ipfw=no])
@@ -1754,6 +1761,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Non-bundled htp:                         ${enable_non_bundled_htp}
   Old barnyard2 support:                   ${enable_old_barnyard2}
   CUDA enabled:                            ${enable_cuda}
+  GTP-U decoding:                          ${enable_gtp_decoder}
 
   Suricatasc install:                      ${enable_python}
 

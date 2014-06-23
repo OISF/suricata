@@ -34,6 +34,7 @@
 #include "decode.h"
 #include "decode-udp.h"
 #include "decode-teredo.h"
+#include "decode-gtp.h"
 #include "decode-events.h"
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -88,6 +89,14 @@ int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
         FlowHandlePacket(tv, p);
         return TM_ECODE_OK;
     }
+
+#ifdef GTP_DECODER
+    if (UDP_GET_DST_PORT(p) == GTP_U_PORT &&
+        unlikely(DecodeGTP(tv, dtv, p, p->payload,
+                p->payload_len, pq) == TM_ECODE_OK)) {
+        return TM_ECODE_OK;
+    }
+#endif /* GTP_DECODER */
 
     /* Flow is an integral part of us */
     FlowHandlePacket(tv, p);
