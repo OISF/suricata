@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1441,8 +1441,8 @@ void MpmWuManberRegister (void) {
     mpm_table[MPM_WUMANBER].RegisterUnittests = WmRegisterTests;
 
     /* create table for O(1) lowercase conversion lookup */
-    uint8_t c = 0;
-    for ( ; c < 255; c++) {
+    int c = 0;
+    for ( ; c < 256; c++) {
        if (c >= 'A' && c <= 'Z')
            lowercasetable[c] = (c + ('a' - 'A'));
        else
