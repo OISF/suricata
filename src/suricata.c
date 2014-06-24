@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -346,9 +346,9 @@ void CreateLowercaseTable()
 {
     /* create table for O(1) lowercase conversion lookup.  It was removed, but
      * we still need it for cuda.  So resintalling it back into the codebase */
-    uint8_t c = 0;
+    int c = 0;
     memset(g_u8_lowercasetable, 0x00, sizeof(g_u8_lowercasetable));
-    for ( ; c < 255; c++) {
+    for ( ; c < 256; c++) {
         if (c >= 'A' && c <= 'Z')
             g_u8_lowercasetable[c] = (c + ('a' - 'A'));
         else

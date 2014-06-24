@@ -1711,7 +1711,7 @@ static void *SCACCudaDispatcher(void *arg)
 #endif
 
     uint8_t g_u8_lowercasetable[256];
-    for (uint8_t c = 0; c < 255; c++)
+    for (int c = 0; c < 256; c++)
         g_u8_lowercasetable[c] = tolower((uint8_t)c);
     CUdeviceptr cuda_g_u8_lowercasetable_d = 0;
     CUdeviceptr cuda_packets_buffer_d = 0;
