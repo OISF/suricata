@@ -446,6 +446,8 @@ void RunModeShutDown(void)
     OutputTxShutdown();
     OutputFileShutdown();
     OutputFiledataShutdown();
+    
+    RunModeNapatechUnregister();
 
     /* Close any log files. */
     RunModeOutput *output;
