@@ -105,6 +105,49 @@ static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow 
 }
 
 /** \internal
+ *  \brief Streaming logger for lua scripts
+ *
+ *  Hooks into the Streaming Logger API. Gets called for each chunk of new
+ *  streaming data.
+ */
+static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f,
+        const uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags)
+{
+    SCEnter();
+
+    void *txptr = NULL;
+
+    SCLogDebug("flags %02x", flags);
+
+    if (flags & OUTPUT_STREAMING_FLAG_TRANSACTION) {
+        if (f && f->alstate)
+            txptr = AppLayerParserGetTx(f->proto, ALPROTO_HTTP, f->alstate, tx_id);
+    }
+
+    LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
+
+    SCMutexLock(&td->lua_ctx->m);
+
+    LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
+    LuaStateSetTX(td->lua_ctx->luastate, txptr);
+    LuaStateSetFlow(td->lua_ctx->luastate, (Flow *)f, /* locked */LUA_FLOW_LOCKED_BY_PARENT);
+
+    /* prepare data to pass to script */
+    lua_getglobal(td->lua_ctx->luastate, "log");
+    lua_newtable(td->lua_ctx->luastate);
+    LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "tx_id", (int)(tx_id));
+
+    int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
+    if (retval != 0) {
+        SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
+    }
+
+    SCMutexUnlock(&td->lua_ctx->m);
+
+    SCReturnInt(TM_ECODE_OK);
+}
+
+/** \internal
  *  \brief Packet Logger for lua scripts, for alerts
  *
  *  A single call to this function will run one script for a single
@@ -276,6 +319,9 @@ typedef struct LogLuaScriptOptions_ {
     int packet;
     int alerts;
     int file;
+    int streaming;
+    int tcp_data;
+    int http_body;
 } LogLuaScriptOptions;
 
 /** \brief load and evaluate the script
@@ -374,6 +420,10 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
             options->alerts = 1;
         else if (strcmp(k, "type") == 0 && strcmp(v, "file") == 0)
             options->file = 1;
+        else if (strcmp(k, "type") == 0 && strcmp(v, "streaming") == 0)
+            options->streaming = 1;
+        else if (strcmp(k, "filter") == 0 && strcmp(v, "tcp") == 0)
+            options->tcp_data = 1;
         else
             SCLogInfo("unknown key and/or value: k='%s', v='%s'", k, v);
     }
@@ -572,6 +622,8 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
             om->PacketConditionFunc = LuaPacketCondition;
         } else if (opts.file) {
             om->FileLogFunc = LuaFileLogger;
+        } else if (opts.streaming && opts.tcp_data) {
+            om->StreamingLogFunc = LuaStreamingLogger;
         } else {
             SCLogError(SC_ERR_LUAJIT_ERROR, "failed to setup thread module");
             SCFree(om);
