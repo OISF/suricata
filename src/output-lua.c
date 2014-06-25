@@ -114,6 +114,7 @@ static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f,
     SCEnter();
 
     void *txptr = NULL;
+    LuaStreamingBuffer b = { data, data_len, flags };
 
     SCLogInfo("I live!");
 
@@ -130,7 +131,7 @@ static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f,
     if (flags & OUTPUT_STREAMING_FLAG_TRANSACTION) {
         SCLogInfo("transaction");
         if (f && f->alstate)
-            txptr = AppLayerParserGetTx(f->proto, ALPROTO_HTTP, f->alstate, tx_id);
+            txptr = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, tx_id);
     }
 
     LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
@@ -139,13 +140,17 @@ static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f,
 
     LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
 //    LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
-    LuaStateSetTX(td->lua_ctx->luastate, txptr);
+    if (flags & OUTPUT_STREAMING_FLAG_TRANSACTION)
+        LuaStateSetTX(td->lua_ctx->luastate, txptr);
     LuaStateSetFlow(td->lua_ctx->luastate, (Flow *)f, /* locked */LUA_FLOW_LOCKED_BY_PARENT);
+    LuaStateSetStreamingBuffer(td->lua_ctx->luastate, &b);
 
     /* prepare data to pass to script */
     lua_getglobal(td->lua_ctx->luastate, "log");
     lua_newtable(td->lua_ctx->luastate);
-    LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "tx_id", (int)(tx_id));
+
+    if (flags & OUTPUT_STREAMING_FLAG_TRANSACTION)
+        LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "tx_id", (int)(tx_id));
 
     int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
     if (retval != 0) {
@@ -622,7 +627,10 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
         om->conf_name = script->val;
         om->InitSubFunc = OutputLuaLogInitSub;
 
-        if (opts.alproto == ALPROTO_HTTP) {
+        if (opts.alproto == ALPROTO_HTTP && opts.streaming) {
+            om->StreamingLogFunc = LuaStreamingLogger;
+            om->alproto = ALPROTO_HTTP;
+        } else if (opts.alproto == ALPROTO_HTTP) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_HTTP;
         } else if (opts.packet && opts.alerts) {

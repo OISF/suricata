@@ -54,6 +54,8 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#include "util-lua.h"
+
 /* key for tv (threadvars) pointer */
 const char lua_ext_key_tv[] = "suricata:lua:tv:ptr";
 /* key for tx pointer */
@@ -69,6 +71,8 @@ const char lua_ext_key_flow_lock_hint[] = "suricata:lua:flow:lock_hint";
 const char lua_ext_key_pa[] = "suricata:lua:pkt:alert:ptr";
 /* key for file pointer */
 const char lua_ext_key_file[] = "suricata:lua:file:ptr";
+/* key for streaming buffer pointer */
+const char lua_ext_key_streaming_buffer[] = "suricata:lua:streaming_buffer:ptr";
 
 /** \brief get tv pointer from the lua state */
 ThreadVars *LuaStateGetThreadVars(lua_State *luastate)
@@ -178,6 +182,21 @@ void LuaStateSetFile(lua_State *luastate, File *file)
 {
     lua_pushlightuserdata(luastate, (void *)&lua_ext_key_file);
     lua_pushlightuserdata(luastate, (void *)file);
+    lua_settable(luastate, LUA_REGISTRYINDEX);
+}
+
+LuaStreamingBuffer *LuaStateGetStreamingBuffer(lua_State *luastate)
+{
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_streaming_buffer);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    void *b = lua_touserdata(luastate, -1);
+    return (LuaStreamingBuffer *)b;
+}
+
+void LuaStateSetStreamingBuffer(lua_State *luastate, LuaStreamingBuffer *b)
+{
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_streaming_buffer);
+    lua_pushlightuserdata(luastate, (void *)b);
     lua_settable(luastate, LUA_REGISTRYINDEX);
 }
 
