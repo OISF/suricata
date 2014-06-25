@@ -126,6 +126,34 @@ void LogLuaPushTableKeyValueArray(lua_State *luastate, const char *key, const ui
  *
  *  Places: payload (string)
  */
+static int LuaCallbackStreamingBufferPushToStack(lua_State *luastate, const LuaStreamingBuffer *b)
+{
+    //PrintRawDataFp(stdout, (uint8_t *)b->data, b->data_len);
+    lua_pushlstring (luastate, (const char *)b->data, b->data_len);
+    return 1;
+}
+
+/** \internal
+ *  \brief Wrapper for getting payload into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackStreamingBuffer(lua_State *luastate)
+{
+    const LuaStreamingBuffer *b = LuaStateGetStreamingBuffer(luastate);
+    if (b == NULL)
+        return LuaCallbackError(luastate, "internal error: no buffer");
+
+    return LuaCallbackStreamingBufferPushToStack(luastate, b);
+}
+
+/** \internal
+ *  \brief fill lua stack with payload
+ *  \param luastate the lua state
+ *  \param p packet
+ *  \retval cnt number of data items placed on the stack
+ *
+ *  Places: payload (string)
+ */
 static int LuaCallbackPacketPayloadPushToStackFromPacket(lua_State *luastate, const Packet *p)
 {
     lua_pushlstring (luastate, (const char *)p->payload, p->payload_len);
@@ -659,6 +687,9 @@ int LogLuaRegisterFunctions(lua_State *luastate)
     lua_setglobal(luastate, "SCFlowTuple");
     lua_pushcfunction(luastate, LuaCallbackAppLayerProtoFlow);
     lua_setglobal(luastate, "SCFlowAppLayerProto");
+
+    lua_pushcfunction(luastate, LuaCallbackStreamingBuffer);
+    lua_setglobal(luastate, "SCStreamingBuffer");
 
     lua_pushcfunction(luastate, LuaCallbackLogPath);
     lua_setglobal(luastate, "SCLogPath");
