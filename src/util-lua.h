@@ -26,6 +26,12 @@
 
 #ifdef HAVE_LUA
 
+typedef struct LuaStreamingBuffer_ {
+    const uint8_t *data;
+    uint32_t data_len;
+    uint8_t flags;
+} LuaStreamingBuffer;
+
 #define LUA_FLOW_LOCKED_BY_PARENT       0
 #define LUA_FLOW_NOT_LOCKED_BY_PARENT   1
 
@@ -52,6 +58,8 @@ PacketAlert *LuaStateGetPacketAlert(lua_State *luastate);
 /** \brief get file pointer from the lua state */
 File *LuaStateGetFile(lua_State *luastate);
 
+LuaStreamingBuffer *LuaStateGetStreamingBuffer(lua_State *luastate);
+
 /* sets */
 
 void LuaStateSetPacket(lua_State *luastate, Packet *p);
@@ -71,6 +79,8 @@ void LuaStateSetPacketAlert(lua_State *luastate, PacketAlert *pa);
 void LuaStateSetFile(lua_State *luastate, File *file);
 
 void LuaStateSetThreadVars(lua_State *luastate, ThreadVars *tv);
+
+void LuaStateSetStreamingBuffer(lua_State *luastate, LuaStreamingBuffer *b);
 
 void LuaPrintStack(lua_State *state);
 
