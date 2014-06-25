@@ -1,3 +1,19 @@
+2.0.2 -- 2014-06-25
+
+Bug #1098: http_raw_uri with relative pcre parsing issue
+Bug #1175: unix socket: valgrind warning
+Bug #1189: abort() in 2.0dev (rev 6fbb955) with pf_ring 5.6.3
+Bug #1195: nflog: cppcheck reports memleaks
+Bug #1206: ZC pf_ring not working with Suricata 2.0.1 (or latest git)
+Bug #1211: defrag issue
+Bug #1212: core dump (after a while) when app-layer.protocols.http.enabled = yes
+Bug #1214: Global Thresholds (sig_id 0, gid_id 0) not applied correctly if a signature has event vars
+Bug #1217: Segfault in unix-manager.c line 529 when using --unix-socket and sending pcap files to be analized via socket
+Feature #781: IDS using NFLOG iptables target
+Feature #1158: Parser DNS TXT data parsing and logging
+Feature #1197: liblua support
+Feature #1200: sighup for log rotation
+
 2.0.1 -- 2014-05-21
 
 No changes since 2.0.1rc1
