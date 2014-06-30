@@ -51,6 +51,9 @@
 /* TODO: Handle case without __thread */
 __thread PktPool thread_pkt_pool;
 
+/* Number of freed packet to save for one pool before freeing them. */
+#define MAX_PENDING_RETURN_PACKETS 32
+
 /**
  * \brief TmqhPacketpoolRegister
  * \initonly
@@ -64,7 +67,7 @@ void TmqhPacketpoolRegister (void) {
 static int PacketPoolIsEmpty(void)
 {
     /* Check local stack first. */
-    if (thread_pkt_pool.head || thread_pkt_pool.return_head)
+    if (thread_pkt_pool.head || thread_pkt_pool.return_stack.head)
         return 0;
 
     return 1;
@@ -111,18 +114,18 @@ Packet *PacketPoolGetPacket(void)
 
     /* Local Stack is empty, so check the return stack, which requires
      * locking. */
-    SCMutexLock(&pool->return_mutex);
+    SCMutexLock(&pool->return_stack.mutex);
     /* Move all the packets from the locked return stack to the local stack. */
-    pool->head = pool->return_head;
-    pool->return_head = NULL;
-    SCMutexUnlock(&pool->return_mutex);
+    pool->head = pool->return_stack.head;
+    pool->return_stack.head = NULL;
+    SCMutexUnlock(&pool->return_stack.mutex);
 
     /* Try to allocate again. Need to check for not empty again, since the
      * return stack might have been empty too.
      */
     if (pool->head) {
         /* Stack is not empty. */
-        Packet *p = pool->head;
+        Packet *p = pool->return_stack.head;
         pool->head = p->next;
         p->pool = pool;
         return p;
@@ -151,11 +154,34 @@ void PacketPoolReturnPacket(Packet *p)
         p->next = thread_pkt_pool.head;
         thread_pkt_pool.head = p;
     } else {
-        /* Push onto return stack for this pool */
-        SCMutexLock(&pool->return_mutex);
-        p->next = pool->return_head;
-        pool->return_head = p;
-        SCMutexUnlock(&pool->return_mutex);
+        PktPool *pending_pool = thread_pkt_pool.pending_pool;
+        if (pending_pool == NULL) {
+            /* No pending packet, so store the current packet. */
+            thread_pkt_pool.pending_pool = pool;
+            thread_pkt_pool.pending_head = p;
+            thread_pkt_pool.pending_tail = p;
+            thread_pkt_pool.pending_count = 1;
+        } else if (pending_pool == pool) {
+            /* Another packet for the pending pool list. */
+            p->next = thread_pkt_pool.pending_head;
+            thread_pkt_pool.pending_head->next = p;
+            thread_pkt_pool.pending_count++;
+            if (thread_pkt_pool.pending_count > MAX_PENDING_RETURN_PACKETS) {
+                /* Return the entire list of pending packets. */
+                SCMutexLock(&pool->return_stack.mutex);
+                thread_pkt_pool.pending_tail->next = pool->return_stack.head;
+                pool->return_stack.head = thread_pkt_pool.pending_head;
+                SCMutexUnlock(&pool->return_stack.mutex);
+                /* Clear the list of pending packets to return. */
+                thread_pkt_pool.pending_pool = NULL;
+            }
+        } else {
+            /* Push onto return stack for this pool */
+            SCMutexLock(&pool->return_stack.mutex);
+            p->next = pool->return_stack.head;
+            pool->return_stack.head = p;
+            SCMutexUnlock(&pool->return_stack.mutex);
+        }
     }
 }
 
@@ -163,10 +189,11 @@ void PacketPoolInit(void)
 {
     extern intmax_t max_pending_packets;
 
-    SCMutexInit(&thread_pkt_pool.return_mutex, NULL);
+    SCMutexInit(&thread_pkt_pool.return_stack.mutex, NULL);
 
     /* pre allocate packets */
-    SCLogDebug("preallocating packets... packet size %" PRIuMAX "", (uintmax_t)SIZE_OF_PACKET);
+    SCLogDebug("preallocating packets... packet size %" PRIuMAX "",
+               (uintmax_t)SIZE_OF_PACKET);
     int i = 0;
     for (i = 0; i < max_pending_packets; i++) {
         Packet *p = PacketGetFromAlloc();
@@ -296,6 +323,14 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         }
         p->root->ReleasePacket(p->root);
         p->root = NULL;
+    }
+
+    /* if p uses extended data, free them */
+    if (p->ext_pkt) {
+        if (!(p->flags & PKT_ZERO_COPY)) {
+            SCFree(p->ext_pkt);
+        }
+        p->ext_pkt = NULL;
     }
 
     PACKET_PROFILING_END(p);

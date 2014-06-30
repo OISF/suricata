@@ -25,17 +25,39 @@
 #define __TMQH_PACKETPOOL_H__
 
 #include "decode.h"
+#include "threads.h"
+
+    /* Return stack, onto which other threads free packets. */
+typedef struct PktPoolLockedStack_{
+    /* linked list of free packets. */
+    SCSpinlock mutex;
+    Packet *head;
+} __attribute__((aligned(CLS))) PktPoolLockedStack;
 
 typedef struct PktPool_ {
-    /* link listed of free packets local to this thread. */
+    /* link listed of free packets local to this thread. 
+     * No mutex is needed.
+     */
     Packet *head;
-  
-    /* Return stack, onto which other threads free packets. */
-    struct {
-        /* linked list of free packets. */
-        Packet *return_head;
-        SCMutex return_mutex;
-    } __attribute__((aligned(CLS)));
+    /* Packets waiting (pending) to be returned to the given Packet
+     * Pool. Accumulate packets for the same pool until a theshold is
+     * reached, then return them all at once.  Keep the head and tail
+     * to fast insertion of the entire list onto a return stack.
+     */
+    struct PktPool_ *pending_pool;
+    Packet *pending_head;
+    Packet *pending_tail;
+    uint32_t pending_count;
+    
+    /* All members above this point are accessed locally by only one thread, so 
+     * these should live on their own cache line.
+     */
+
+    /* Return stack, where other threads put packets that they free that belong
+     * to this thread.
+     */
+    PktPoolLockedStack return_stack;
+
 } PktPool;
 
 Packet *TmqhInputPacketpool(ThreadVars *);
