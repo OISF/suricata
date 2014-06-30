@@ -143,8 +143,6 @@ void TmModuleOutputJsonRegister (void) {
 /* Default Sensor ID value */
 static int64_t sensor_id = -1; /* -1 = not defined */
 
-static enum JsonOutput json_out = ALERT_FILE;
-
 static enum JsonFormat format = COMPACT;
 
 json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
@@ -299,9 +297,9 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer) {
         return TM_ECODE_OK;
 
     SCMutexLock(&file_ctx->fp_mutex);
-    if (json_out == ALERT_SYSLOG) {
+    if (file_ctx->json_out == ALERT_SYSLOG) {
         syslog(alert_syslog_level, "%s", js_s);
-    } else if (json_out == ALERT_FILE) {
+    } else if (file_ctx->json_out == ALERT_FILE) {
         MemBufferWriteString(buffer, "%s\n", js_s);
         file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
             MEMBUFFER_OFFSET(buffer), file_ctx);
@@ -374,6 +372,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
         SCFree(json_ctx);
         return NULL;
     }
+    json_ctx->file_ctx->json_out = ALERT_FILE; /* default */
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
@@ -389,13 +388,13 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
         const char *output_s = ConfNodeLookupChildValue(conf, "type");
         if (output_s != NULL) {
             if (strcmp(output_s, "file") == 0) {
-                json_ctx->json_out = ALERT_FILE;
+                json_ctx->file_ctx->json_out = ALERT_FILE;
             } else if (strcmp(output_s, "syslog") == 0) {
-                json_ctx->json_out = ALERT_SYSLOG;
+                json_ctx->file_ctx->json_out = ALERT_SYSLOG;
             } else if (strcmp(output_s, "unix_dgram") == 0) {
-                json_ctx->json_out = ALERT_UNIX_DGRAM;
+                json_ctx->file_ctx->json_out = ALERT_UNIX_DGRAM;
             } else if (strcmp(output_s, "unix_stream") == 0) {
-                json_ctx->json_out = ALERT_UNIX_STREAM;
+                json_ctx->file_ctx->json_out = ALERT_UNIX_STREAM;
             } else {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                            "Invalid JSON output option: %s", output_s);
@@ -403,7 +402,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
             }
         }
 
-        if (json_ctx->json_out == ALERT_FILE) {
+        if (json_ctx->file_ctx->json_out == ALERT_FILE) {
 
             if (SCConfLogOpenGeneric(conf, json_ctx->file_ctx, DEFAULT_LOG_FILENAME) < 0) {
                 LogFileFreeCtx(json_ctx->file_ctx);
@@ -425,7 +424,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                     exit(EXIT_FAILURE);
                 }
             }
-        } else if (json_ctx->json_out == ALERT_SYSLOG) {
+        } else if (json_ctx->file_ctx->json_out == ALERT_SYSLOG) {
             const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
             if (facility_s == NULL) {
                 facility_s = DEFAULT_ALERT_SYSLOG_FACILITY_STR;
@@ -466,7 +465,6 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
         }
 
         format = json_ctx->format;
-        json_out = json_ctx->json_out;
     }
 
     SCLogInfo("returning output_ctx %p", output_ctx);
