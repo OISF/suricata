@@ -107,6 +107,7 @@ outputs:
             force-md5: no     # force logging of md5 checksums
         #- drop
         - ssh
+        - stats
 
   # alert output for use with Barnyard2
   - unified2-alert:
