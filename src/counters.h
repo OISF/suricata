@@ -156,6 +156,11 @@ typedef struct SCPerfOPIfaceContext_ {
     /* more interfaces to be supported later.  For now just a file */
     FILE *fp;
 
+    /* eve enabled */
+    uint32_t eve_enabled; /* non zero when eve logging of counters is enabled */
+    void *eve_file_ctx;
+    void *eve_buffer;
+
     SCPerfClubTMInst *pctmi;
     SCMutex pctmi_lock;
 
@@ -177,6 +182,7 @@ uint16_t SCPerfTVRegisterMaxCounter(char *, struct ThreadVars_ *, int, char *);
 uint16_t SCPerfRegisterCounter(char *, char *, int, char *, SCPerfContext *);
 uint16_t SCPerfRegisterAvgCounter(char *, char *, int, char *, SCPerfContext *);
 uint16_t SCPerfRegisterMaxCounter(char *, char *, int, char *, SCPerfContext *);
+void SCPerfRegisterEveFile(void *, void *);
 
 /* utility functions */
 int SCPerfAddToClubbedTMTable(char *, SCPerfContext *);
