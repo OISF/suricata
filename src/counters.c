@@ -747,35 +747,23 @@ json_t *SCPerfLookupJson(json_t *js, char *cname)
     void *iter;
     char *s = strndup(cname, index(cname, '.') - cname);
 
-//printf("lookup \"%s\"\n", s);
     iter = json_object_iter_at(js, s);
     json_t *value;
     value = json_object_iter_value(iter);
     if (value == NULL) {
-        //printf("not found\n");
         value = json_object();
         char *s1 = index(cname, '.');
-//printf("s1 \"%s\"\n", s1);
         char *s2 = index(s1+1, '.');
-//printf("s2 \"%s\"\n", s2);
         if (s2 == NULL) {
             json_object_set(js, s, value);
-            //printf("adding \"%s\"\n", s);
         } else {
-            //char *s2 = strndup(cname, s1 - cname);
-            //printf("found DOT adding \"%s\"\n", s);
             json_object_set(js, s, value);
-            //printf("secondary lookup \"%s\"\n", &cname[index(cname,'.')-cname+1]);
             return SCPerfLookupJson(value, &cname[index(cname,'.')-cname+1]);
         }
     } else {
-//printf("found\n");
         char *s1 = index(cname, '.');
-//printf("s1 \"%s\"\n", s1);
         char *s2 = index(s1+1, '.');
-//printf("s2 \"%s\"\n", s2);
         if (s2 != NULL) {
-            //printf("secondary lookup \"%s\"\n", &cname[index(cname,'.')-cname+1]);
             return SCPerfLookupJson(value, &cname[index(cname,'.')-cname+1]);
         }
     }
@@ -783,7 +771,7 @@ json_t *SCPerfLookupJson(json_t *js, char *cname)
 }
 
 /**
- * \brief The file output interface for the Perf Counter api
+ * \brief The eve-log output interface for the Perf Counter api
  */
 static int SCPerfOutputCounterEveIface()
 {
@@ -799,22 +787,6 @@ static int SCPerfOutputCounterEveIface()
 
     uint32_t u = 0;
     int flag = 0;
-
-#if 0
-    if (sc_perf_op_ctx->fp == NULL) {
-        SCLogDebug("perf_op_ctx->fp is NULL");
-        return 0;
-    }
-
-    if (sc_perf_op_ctx->rotation_flag) {
-        SCLogDebug("Rotating log file");
-        sc_perf_op_ctx->rotation_flag = 0;
-        if (!SCPerfFileReopen(sc_perf_op_ctx)) {
-            /* Rotation failed, error already logged. */
-            return 0;
-        }
-    }
-#endif
 
     memset(&tval, 0, sizeof(struct timeval));
 
@@ -842,33 +814,19 @@ static int SCPerfOutputCounterEveIface()
         return 0;
     }
     char date[128];
-    sprintf(date,  "%" PRId32 "/%" PRId32 "/%04d -- %02d:%02d:%02d",
-            tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900, tms->tm_hour,
-            tms->tm_min, tms->tm_sec);
+    snprintf(date, sizeof(date),
+             "%" PRId32 "/%" PRId32 "/%04d -- %02d:%02d:%02d",
+             tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900, tms->tm_hour,
+             tms->tm_min, tms->tm_sec);
 
     json_object_set_new(js_stats, "date", json_string(date));
 
     char uptime[128];
-    sprintf(uptime, "%"PRId32"d, %02dh %02dm %02ds", days, hours, min, sec);
+    snprintf(uptime, sizeof(uptime),
+             "%"PRId32"d, %02dh %02dm %02ds", days, hours, min, sec);
 
     json_object_set_new(js_stats, "uptime", json_string(uptime));
    
-
-#if 0
-    fprintf(sc_perf_op_ctx->fp, "----------------------------------------------"
-            "---------------------\n");
-    fprintf(sc_perf_op_ctx->fp, "Date: %" PRId32 "/%" PRId32 "/%04d -- "
-            "%02d:%02d:%02d (uptime: %"PRId32"d, %02dh %02dm %02ds)\n",
-            tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900, tms->tm_hour,
-            tms->tm_min, tms->tm_sec, days, hours, min, sec);
-    fprintf(sc_perf_op_ctx->fp, "----------------------------------------------"
-            "---------------------\n");
-    fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | %-s\n", "Counter", "TM Name",
-            "Value");
-    fprintf(sc_perf_op_ctx->fp, "----------------------------------------------"
-            "---------------------\n");
-#endif
-
     pctmi = sc_perf_op_ctx->pctmi;
     while (pctmi != NULL) {
         if ((pc_heads = SCMalloc(pctmi->size * sizeof(SCPerfCounter *))) == NULL)
@@ -898,15 +856,7 @@ static int SCPerfOutputCounterEveIface()
                     flag = 0;
             }
 
-#if 0
-            fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | %-" PRIu64 "\n",
-                    pc->cname, pctmi->tm_name, ui64_result);
-#endif
-#if 0
-            json_t *js_counter = json_object();
-#else
             json_t *js_type = SCPerfLookupJson(js_stats, pc->cname);
-#endif
           
             if (js_type != NULL) {
                 json_t *js_counter = json_object();
@@ -915,7 +865,6 @@ static int SCPerfOutputCounterEveIface()
                 json_object_set_new(js_counter, "value", json_integer(ui64_result));
                 
                 char *s = &pc->cname[rindex(pc->cname, '.')-pc->cname+1];
-//printf("adding: \"%s\"\n", s);
                 json_object_set_new(js_type, s, js_counter);
             }
         }
@@ -926,31 +875,14 @@ static int SCPerfOutputCounterEveIface()
         pctmi = pctmi->next;
 
         SCFree(pc_heads);
-
-#if 0
-        fflush(sc_perf_op_ctx->fp);
-#endif
     }
     json_object_set_new(js, "stats", js_stats); 
-#if 0
-    char *js_s = json_dumps(js,
-                            JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
-#ifdef JSON_ESCAPE_SLASH
-                            JSON_ESCAPE_SLASH
-#else
-                            0
-#endif
-                            );
-    if (unlikely(js_s == NULL)) {
-        json_decref(js);
-        return 0;
-    }
 
-    printf("JSON: \"%s\"\n", js_s);
-#endif 
     OutputJSONBuffer(js,
                      sc_perf_op_ctx->eve_file_ctx,
                      sc_perf_op_ctx->eve_buffer);
+    json_object_clear(js);
+    json_decref(js);
 
     return 1;
 }
