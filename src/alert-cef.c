@@ -120,13 +120,12 @@ static inline void AlertCefLogOutputAlert(AlertCefLogThread *aft, char *buffer,
     SCMutexUnlock(file_lock);
 }
 
-static inline void AlertCefLoggerHttp(const Packet *p, char *alert_buffer, int *psize) 
+static inline void AlertCefLoggerHttp(const Packet *p, const PacketAlert *pa,char *alert_buffer, int *psize) 
 {
     /* Print HTTP Fields using CEF Dictionary Extension */
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if ( htp_state ) {
-        uint64_t tx_id = AppLayerParserGetTransactionLogId(p->flow->alparser);
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, pa->tx_id);
         if (tx) {
             char *method = NULL;
             if ( (method = bstr_util_strdup_to_c(tx->request_method)) ) {
@@ -200,13 +199,12 @@ static inline void AlertCefLoggerHttp(const Packet *p, char *alert_buffer, int *
     } 
 }
 
-static inline void AlertCefLoggerHttpShort(const Packet *p, char *alert_buffer, int *psize) 
+static inline void AlertCefLoggerHttpShort(const Packet *p,const PacketAlert *pa, char *alert_buffer, int *psize) 
 {
     /* Print HTTP Fields using CEF Dictionary Extension */
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if ( htp_state ) {
-        uint64_t tx_id = AppLayerParserGetTransactionLogId(p->flow->alparser);
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, pa->tx_id);
         if (tx) {
             char *method = NULL;
             if ( (method = bstr_util_strdup_to_c(tx->request_method)) ) {
@@ -380,9 +378,9 @@ int AlertCefLogger(ThreadVars *tv, void *data, const Packet *p)
             if (likely(aft->http_extensions)) {
                 if (p->flow->alproto_ts == ALPROTO_HTTP || p->flow->alproto_tc == ALPROTO_HTTP) {
                     if ( likely(aft->short_labels ))
-                        AlertCefLoggerHttpShort(p,alert_buffer,&size);
+                        AlertCefLoggerHttpShort(p,pa,alert_buffer,&size);
                     else
-                        AlertCefLoggerHttp(p,alert_buffer,&size);
+                        AlertCefLoggerHttp(p,pa,alert_buffer,&size);
                 }
             } 
 
