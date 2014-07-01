@@ -18,7 +18,7 @@
 /**
  * \file
  *
- * \author Tom DeCanio <tom.decanio@fireeye.com>
+ * \author Tom DeCanio <td@npulsetech.com>
  *
  * Implements JSON stats counters logging portion of the engine.
  */
