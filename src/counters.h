@@ -59,6 +59,7 @@ enum {
     SC_PERF_IFACE_FILE,
     SC_PERF_IFACE_CONSOLE,
     SC_PERF_IFACE_SYSLOG,
+    SC_PERF_IFACE_EVE,
     SC_PERF_IFACE_MAX,
 };
 
@@ -182,7 +183,7 @@ uint16_t SCPerfTVRegisterMaxCounter(char *, struct ThreadVars_ *, int, char *);
 uint16_t SCPerfRegisterCounter(char *, char *, int, char *, SCPerfContext *);
 uint16_t SCPerfRegisterAvgCounter(char *, char *, int, char *, SCPerfContext *);
 uint16_t SCPerfRegisterMaxCounter(char *, char *, int, char *, SCPerfContext *);
-void SCPerfRegisterEveFile(void *, void *);
+void SCPerfRegisterEveFile(void *, void *, uint32_t);
 
 /* utility functions */
 int SCPerfAddToClubbedTMTable(char *, SCPerfContext *);

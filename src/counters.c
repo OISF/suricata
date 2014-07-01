@@ -193,6 +193,65 @@ static int SCPerfFileReopen(SCPerfOPIfaceContext *sc_perf_op_ctx)
  *
  * \todo Support multiple interfaces
  */
+static void SCPerfStartOPCtx(uint32_t iface, ConfNode *stats)
+{
+    SCEnter();
+
+    /* Store the engine start time */
+    time(&sc_start_time);
+
+    if ( (sc_perf_op_ctx = SCMalloc(sizeof(SCPerfOPIfaceContext))) == NULL) {
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCPerfInitOPCtx. Exiting...");
+        exit(EXIT_FAILURE);
+    }
+    memset(sc_perf_op_ctx, 0, sizeof(SCPerfOPIfaceContext));
+
+    sc_perf_op_ctx->iface = iface;
+
+    if (iface == SC_PERF_IFACE_FILE) {
+
+    if ( (sc_perf_op_ctx->file = SCPerfGetLogFilename(stats)) == NULL) {
+        SCLogInfo("Error retrieving Perf Counter API output file path");
+    }
+
+    char *mode;
+    if (sc_counter_append)
+        mode = "a+";
+    else
+        mode = "w+";
+
+    if ( (sc_perf_op_ctx->fp = fopen(sc_perf_op_ctx->file, mode)) == NULL) {
+        SCLogError(SC_ERR_FOPEN, "fopen error opening file \"%s\".  Resorting "
+                   "to using the standard output for output",
+                   sc_perf_op_ctx->file);
+
+        SCFree(sc_perf_op_ctx->file);
+
+        /* Let us use the standard output for output */
+        sc_perf_op_ctx->fp = stdout;
+        if ( (sc_perf_op_ctx->file = SCStrdup("stdout")) == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+    }
+    else {
+        /* File opened, register for rotation notification. */
+        OutputRegisterFileRotationFlag(&sc_perf_op_ctx->rotation_flag);
+    }
+    }
+
+    /* init the lock used by SCPerfClubTMInst */
+    if (SCMutexInit(&sc_perf_op_ctx->pctmi_lock, NULL) != 0) {
+        SCLogError(SC_ERR_INITIALIZATION, "error initializing pctmi mutex");
+        exit(EXIT_FAILURE);
+    }
+    SCReturn;
+}
+/**
+ * \brief Initializes the output interface context
+ *
+ * \todo Support multiple interfaces
+ */
 static void SCPerfInitOPCtx(void)
 {
     SCEnter();
@@ -224,51 +283,7 @@ static void SCPerfInitOPCtx(void)
             sc_counter_append = ConfValIsTrue(append);
     }
 
-    /* Store the engine start time */
-    time(&sc_start_time);
-
-    if ( (sc_perf_op_ctx = SCMalloc(sizeof(SCPerfOPIfaceContext))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCPerfInitOPCtx. Exiting...");
-        exit(EXIT_FAILURE);
-    }
-    memset(sc_perf_op_ctx, 0, sizeof(SCPerfOPIfaceContext));
-
-    sc_perf_op_ctx->iface = SC_PERF_IFACE_FILE;
-
-    if ( (sc_perf_op_ctx->file = SCPerfGetLogFilename(stats)) == NULL) {
-        SCLogInfo("Error retrieving Perf Counter API output file path");
-    }
-
-    char *mode;
-    if (sc_counter_append)
-        mode = "a+";
-    else
-        mode = "w+";
-
-    if ( (sc_perf_op_ctx->fp = fopen(sc_perf_op_ctx->file, mode)) == NULL) {
-        SCLogError(SC_ERR_FOPEN, "fopen error opening file \"%s\".  Resorting "
-                   "to using the standard output for output",
-                   sc_perf_op_ctx->file);
-
-        SCFree(sc_perf_op_ctx->file);
-
-        /* Let us use the standard output for output */
-        sc_perf_op_ctx->fp = stdout;
-        if ( (sc_perf_op_ctx->file = SCStrdup("stdout")) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
-        }
-    }
-    else {
-        /* File opened, register for rotation notification. */
-        OutputRegisterFileRotationFlag(&sc_perf_op_ctx->rotation_flag);
-    }
-
-    /* init the lock used by SCPerfClubTMInst */
-    if (SCMutexInit(&sc_perf_op_ctx->pctmi_lock, NULL) != 0) {
-        SCLogError(SC_ERR_INITIALIZATION, "error initializing pctmi mutex");
-        exit(EXIT_FAILURE);
-    }
+    SCPerfStartOPCtx(SC_PERF_IFACE_FILE, stats);
 
     SCReturn;
 }
@@ -887,13 +902,21 @@ static int SCPerfOutputCounterEveIface()
     return 1;
 }
 
-void SCPerfRegisterEveFile(void *file_ctx, void *buffer)
+void SCPerfRegisterEveFile(void *file_ctx, void *buffer, uint32_t interval)
 {
     if (sc_perf_op_ctx != NULL) {
         sc_perf_op_ctx->eve_enabled = 1;
 
         sc_perf_op_ctx->eve_file_ctx = file_ctx;
         sc_perf_op_ctx->eve_buffer = buffer;
+    } else {
+        sc_counter_enabled = TRUE;
+        SCPerfStartOPCtx(SC_PERF_IFACE_EVE, NULL);
+        sc_perf_op_ctx->eve_file_ctx = file_ctx;
+        sc_perf_op_ctx->eve_buffer = buffer;
+    }
+    if (interval != 0) {
+        sc_counter_tts = interval;
     }
 }
 
@@ -1470,8 +1493,13 @@ void SCPerfOutputCounters()
             /* yet to be implemented */
 
             break;
+        case SC_PERF_IFACE_EVE:
+            SCPerfOutputCounterEveIface();
+
+            break;
     }
 
+    /* permit eve logging of counters while logging to file */
     if (sc_perf_op_ctx->eve_enabled) {
         SCPerfOutputCounterEveIface();
     }
