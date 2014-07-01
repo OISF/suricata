@@ -110,7 +110,7 @@ outputs:
         # stats enables logging of various counters of the suricata engine.
         # The interval field (in seconds) tells after how often output will be
         # emitted in the json stream.
-        - stats
+        - stats:
             interval: 8
 
   # alert output for use with Barnyard2
