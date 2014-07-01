@@ -1,17 +1,15 @@
 @banned@
-identifier func =~ "^(sprintf|strcat|strcpy|strncpy|strncat|strndup|strchrdup)$";
+identifier i;
 position p1;
 @@
 
-<+...
-func(...)@p1
-...+>
+\(sprintf@i\|strcat@i\|strcpy@i\|strncpy@i\|strncat@i\|strndup@i\|strchrdup@i\)(...)@p1
 
-@ script:python @
+@script:python@
 p1 << banned.p1;
-func << banned.func;
+i << banned.i;
 @@
 
-print "Banned function %s() used at %s:%s" % (func, p1[0].file, p1[0].line)
+print("Banned function '%s' used at %s:%s" % (i, p1[0].file, p1[0].line))
 import sys
 sys.exit(1)
