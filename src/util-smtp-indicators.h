@@ -16,10 +16,10 @@
 #define SMTP_FILE_OBJECT_HASHES 0x04
 
 typedef struct SMTPIndicatorsFileObject_ {
-	uint8_t fieldsUsed;
+	uint8_t fields_used;
 
-	uint8_t *fileExtension;
-	size_t sizeInBytes;
+	uint8_t *file_extension;
+	size_t size_in_bytes;
 
 	uint8_t** hashes;
 	struct SMTPIndicatorsFileObject_ *next;
@@ -42,7 +42,7 @@ typedef struct SMTPIndicator_{
 	uint8_t *name;
 	SMTPAddressIndicator *from;
 
-	SMTPIndicatorsFileObject *relatedFileObjects;
+	SMTPIndicatorsFileObject *related_file_objects;
 	uint8_t relatedObjectsCount;
 
 	struct SMTPIndicator_ *next;
@@ -50,18 +50,19 @@ typedef struct SMTPIndicator_{
 
 typedef struct SMTPIndicatorsCtx_ {
     /** Linked list of SMTP indicators */
-	SMTPIndicator *smtpIndicators;
+	SMTPIndicator *smtp_indicators;
 
     /** Mutex to support concurrent access */
-	SCMutex mutex;;
+	SCMutex mutex;
 }SMTPIndicatorsCtx;
 
 int SMTPIndicatorsCreateContext();
 SMTPIndicator *SMTPIndicatorGetRootIndicator();
 SMTPAddressIndicator *SMTPIndicatorCreateAddressIndicator(const uint8_t *value, enum SMTPIndicatorAddressValueCondition condition );
-SMTPIndicatorsFileObject * SMTPIndicatorCreateFileObject(const uint8_t *fileExtention, uint8_t **hashes, int hashCount, uint16_t sizeInBytes, int useSizeInBytes);
-SMTPIndicator *SMTPIndicatorCreateIndicator(const uint8_t *name, SMTPAddressIndicator *from, SMTPIndicatorsFileObject *relatedFileObjects);
+SMTPIndicatorsFileObject * SMTPIndicatorCreateFileObject(const uint8_t *file_extension, uint8_t **hashes, int hash_count, uint16_t size_in_bytes, int use_size_in_bytes);
+SMTPIndicator *SMTPIndicatorCreateIndicator(const uint8_t *name, SMTPAddressIndicator *from, SMTPIndicatorsFileObject *related_file_objects);
 int SMTPIndicatorAddIndicator(SMTPIndicator *indicator);
 
 
 #endif /* UTIL_SMTL_WATCHLIST_H_ */
+

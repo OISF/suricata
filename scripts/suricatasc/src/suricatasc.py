@@ -159,9 +159,9 @@ class SuricataSC:
             self.cmd_list = cmdret["message"]["commands"]
             self.cmd_list.append("quit")
 
-
     def close(self):
         self.socket.close()
+        
 
     def interactive(self):
         print "Command list: " + ", ".join(self.cmd_list)

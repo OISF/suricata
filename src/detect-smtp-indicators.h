@@ -28,5 +28,5 @@ void
 DetectSMPTIndicatorsRegister(void);
 void SMPTIndicatorsRegisterTests(void);
 
-
 #endif /* DETECT_SMPT_INDICATORS_H_ */
+

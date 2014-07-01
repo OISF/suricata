@@ -268,7 +268,6 @@ int UnixCommandSendCallback(const char *buffer, size_t size, void *data)
 int UnixCommandAccept(UnixCommand *this)
 {
     char buffer[UNIX_PROTO_VERSION_LENGTH + 1];
-    //char buffer[10 + 1];
     json_t *client_msg;
     json_t *server_msg;
     json_t *version;
@@ -821,17 +820,17 @@ TmEcode UnixManagerAddIndicator(json_t *cmd, json_t *answer, void *data)
             SCLogWarning(SC_ERR_INITIALIZATION, "cybox_obj_type is : '%s'", cybox_obj_type);
             SCLogWarning(SC_ERR_INITIALIZATION, "category is : '%s'", category);
 
-            enum SMTPIndicatorAddressValueCondition addressCondition = contains;
+            enum SMTPIndicatorAddressValueCondition address_condition = contains;
 
             if(strcmp(category, "Contains") ==  0){
-            	addressCondition = contains;
+                address_condition = contains;
             } else if(strcmp(category, "Equals") == 0){
-            	addressCondition = equals;
+                address_condition = equals;
 
             }
-            SMTPAddressIndicator *addressIndicator = SMTPIndicatorCreateAddressIndicator((uint8_t*)addr_text, addressCondition);
-            SMTPIndicatorsFileObject *fileObject = SMTPIndicatorCreateFileObject((uint8_t*)file_ext, (uint8_t**)&cybox_simple_hash, 1, atol(file_size), 1);
-            SMTPIndicator *indicator = SMTPIndicatorCreateIndicator((uint8_t*)cybox_id, addressIndicator, fileObject);
+            SMTPAddressIndicator *address_indicator = SMTPIndicatorCreateAddressIndicator((uint8_t*)addr_text, address_condition);
+            SMTPIndicatorsFileObject *file_object = SMTPIndicatorCreateFileObject((uint8_t*)file_ext, (uint8_t**)&cybox_simple_hash, 1, atol(file_size), 1);
+            SMTPIndicator *indicator = SMTPIndicatorCreateIndicator((uint8_t*)cybox_id, address_indicator, file_object);
             SMTPIndicatorAddIndicator(indicator);
         }
     } else {
@@ -1120,3 +1119,4 @@ void UnixSocketKillSocketThread(void)
 }
 
 #endif /* BUILD_UNIX_SOCKET */
+

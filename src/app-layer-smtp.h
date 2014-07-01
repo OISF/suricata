@@ -90,42 +90,42 @@ typedef struct SMTPState_ {
     uint16_t cmds_idx;
 
     /** buffer for bytes that make up the header */
-	uint8_t *header_bytes;
-	/** size of the bytes used */
-	size_t header_size;
-	/** number of bytes allocated for the header */
-	size_t header_allocated;
+    uint8_t *header_bytes;
+    /** size of the bytes used */
+    size_t header_size;
+    /** number of bytes allocated for the header */
+    size_t header_allocated;
 
-	/** keeps track of how much of header_bytes is really the header */
-	size_t headerPortion;
+    /** keeps track of how much of header_bytes is really the header */
+    size_t header_portion;
 
-	/** htp config needed to init multi-part config */
-	htp_cfg_t *mpartp_config;
-	/** multi-part parser config */
-	htp_mpartp_t* mpartp_parser;
+    /** htp config needed to init multi-part config */
+    htp_cfg_t *mpartp_config;
+    /** multi-part parser config */
+    htp_mpartp_t* mpartp_parser;
 
-	/** status from finding the boundary */
-	htp_status_t findBoundaryStatus;
+    /** status from finding the boundary */
+    htp_status_t find_boundary_status;
 
-	/** status from the last add to the multi-part */
-	htp_status_t lastMpartParseStatus;
+    /** status from the last add to the multi-part */
+    htp_status_t last_mpart_parse_status;
 
-	/** status from the call to finalize if any */
-	htp_status_t finalizeStatus;
+    /** status from the call to finalize if any */
+    htp_status_t finalize_status;
 
-	htp_table_t *mailHeader;
+    htp_table_t *mail_header;
 
-	/** holds the content of the from field */
-	uint8_t *from;
+    /** holds the content of the from field */
+    uint8_t *from;
 
-	/** holds an array of the to fields */
-	uint8_t **to;
+    /** holds an array of the to fields */
+    uint8_t **to;
 
-	/** holds the length of the to fields */
-	size_t to_len;
+    /** holds the length of the to fields */
+    size_t to_len;
 
-	/** holds the length of the to fields allocated */
-	size_t to_len_allocated;
+    /** holds the length of the to fields allocated */
+    size_t to_len_allocated;
 
 } SMTPState;
 
@@ -133,3 +133,4 @@ void RegisterSMTPParsers(void);
 void SMTPParserRegisterTests(void);
 
 #endif /* __APP_LAYER_SMTP_H__ */
+
