@@ -18,7 +18,7 @@
 /**
  * \file
  *
- * \author Tom DeCanio <tom.decanio@fireeye.com>
+ * \author Tom DeCanio <td@npulsetech.com>
  */
 
 #ifndef __OUTPUT_JSON_COUNTERS_H__

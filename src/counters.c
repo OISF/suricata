@@ -210,34 +210,34 @@ static void SCPerfStartOPCtx(uint32_t iface, ConfNode *stats)
 
     if (iface == SC_PERF_IFACE_FILE) {
 
-    if ( (sc_perf_op_ctx->file = SCPerfGetLogFilename(stats)) == NULL) {
-        SCLogInfo("Error retrieving Perf Counter API output file path");
-    }
-
-    char *mode;
-    if (sc_counter_append)
-        mode = "a+";
-    else
-        mode = "w+";
-
-    if ( (sc_perf_op_ctx->fp = fopen(sc_perf_op_ctx->file, mode)) == NULL) {
-        SCLogError(SC_ERR_FOPEN, "fopen error opening file \"%s\".  Resorting "
-                   "to using the standard output for output",
-                   sc_perf_op_ctx->file);
-
-        SCFree(sc_perf_op_ctx->file);
-
-        /* Let us use the standard output for output */
-        sc_perf_op_ctx->fp = stdout;
-        if ( (sc_perf_op_ctx->file = SCStrdup("stdout")) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
+        if ( (sc_perf_op_ctx->file = SCPerfGetLogFilename(stats)) == NULL) {
+            SCLogInfo("Error retrieving Perf Counter API output file path");
         }
-    }
-    else {
-        /* File opened, register for rotation notification. */
-        OutputRegisterFileRotationFlag(&sc_perf_op_ctx->rotation_flag);
-    }
+
+        char *mode;
+        if (sc_counter_append)
+            mode = "a+";
+        else
+            mode = "w+";
+
+        if ( (sc_perf_op_ctx->fp = fopen(sc_perf_op_ctx->file, mode)) == NULL) {
+            SCLogError(SC_ERR_FOPEN, "fopen error opening file \"%s\".  Resorting "
+                       "to using the standard output for output",
+                       sc_perf_op_ctx->file);
+
+            SCFree(sc_perf_op_ctx->file);
+
+            /* Let us use the standard output for output */
+            sc_perf_op_ctx->fp = stdout;
+            if ( (sc_perf_op_ctx->file = SCStrdup("stdout")) == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                exit(EXIT_FAILURE);
+            }
+        }
+        else {
+            /* File opened, register for rotation notification. */
+            OutputRegisterFileRotationFlag(&sc_perf_op_ctx->rotation_flag);
+        }
     }
 
     /* init the lock used by SCPerfClubTMInst */
@@ -763,24 +763,16 @@ json_t *SCPerfLookupJson(json_t *js, char *cname)
     char *s = strndup(cname, index(cname, '.') - cname);
 
     iter = json_object_iter_at(js, s);
-    json_t *value;
-    value = json_object_iter_value(iter);
+    char *s1 = index(cname, '.');
+    char *s2 = index(s1+1, '.');
+
+    json_t *value = json_object_iter_value(iter);
     if (value == NULL) {
         value = json_object();
-        char *s1 = index(cname, '.');
-        char *s2 = index(s1+1, '.');
-        if (s2 == NULL) {
-            json_object_set(js, s, value);
-        } else {
-            json_object_set(js, s, value);
-            return SCPerfLookupJson(value, &cname[index(cname,'.')-cname+1]);
-        }
-    } else {
-        char *s1 = index(cname, '.');
-        char *s2 = index(s1+1, '.');
-        if (s2 != NULL) {
-            return SCPerfLookupJson(value, &cname[index(cname,'.')-cname+1]);
-        }
+        json_object_set(js, s, value);
+    }
+    if (s2 != NULL) {
+        return SCPerfLookupJson(value, &cname[index(cname,'.')-cname+1]);
     }
     return value;
 }
