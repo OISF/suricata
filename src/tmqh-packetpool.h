@@ -30,7 +30,7 @@
     /* Return stack, onto which other threads free packets. */
 typedef struct PktPoolLockedStack_{
     /* linked list of free packets. */
-    SCSpinlock mutex;
+    SCMutex mutex;
     Packet *head;
 } __attribute__((aligned(CLS))) PktPoolLockedStack;
 
