@@ -111,7 +111,6 @@ TmModuleDecodeErfFileRegister(void)
 TmEcode ReceiveErfFileLoop(ThreadVars *tv, void *data, void *slot)
 {
     Packet *p = NULL;
-    uint16_t packet_q_len = 0;
     ErfFileThreadVars *etv = (ErfFileThreadVars *)data;
 
     etv->slot = ((TmSlot *)slot)->slot_next;
