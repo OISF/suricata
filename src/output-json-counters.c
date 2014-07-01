@@ -159,6 +159,7 @@ OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AlertJsonThread *ajt = parent_ctx->data;
     MemBuffer *buffer;
+    uint32_t interval = 0;
 
     OutputStatsCtx *stats_ctx = SCMalloc(sizeof(OutputStatsCtx));
     if (unlikely(stats_ctx == NULL))
@@ -182,7 +183,13 @@ OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    SCPerfRegisterEveFile(stats_ctx->file_ctx, buffer);
+    if (conf) {
+        const char *interval_s = ConfNodeLookupChildValue(conf, "interval");
+        if (interval_s != NULL)
+            interval = (uint32_t) atoi(interval_s);
+    }
+
+    SCPerfRegisterEveFile(stats_ctx->file_ctx, buffer, interval);
 
     return output_ctx;
 }
