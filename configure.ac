@@ -226,7 +226,7 @@
     # check if our target supports thread local storage
     AC_MSG_CHECKING(for thread local storage __thread support)
     AC_TRY_COMPILE([#include <stdlib.h>],
-        [ void somefunc (void) { static __thread int i; i = 1; i++; } ],
+        [ static __thread int i; i = 1; i++; ],
         [AC_DEFINE([TLS], [1], [Thread local storage])
          AC_MSG_RESULT([yes]) ],
         [AC_MSG_RESULT([no])])
