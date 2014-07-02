@@ -1,4 +1,4 @@
-/* Copyright (C) 2012 Open Information Security Foundation
+/* Copyright (C) 2012-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -171,6 +171,8 @@ TmEcode NapatechStreamThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     *data = (void *)ntv;
 
+    PacketPoolInit();
+
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -208,12 +210,7 @@ TmEcode NapatechStreamLoop(ThreadVars *tv, void *data, void *slot)
     while (!(suricata_ctl_flags & (SURICATA_STOP | SURICATA_KILL))) {
         /* make sure we have at least one packet in the packet pool, to prevent
          * us from alloc'ing packets at line rate */
-        do {
-            packet_q_len = PacketPoolSize();
-            if (unlikely(packet_q_len == 0)) {
-                PacketPoolWait();
-            }
-        } while (packet_q_len == 0);
+        PacketPoolWait();
 
         /*
          * Napatech returns packets 1 at a time

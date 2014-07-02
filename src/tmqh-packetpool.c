@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -20,12 +20,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Packetpool queue handlers. Packet pool is implemented as a ringbuffer.
- * We're using a multi reader / multi writer version of the ringbuffer,
- * that is relatively expensive due to the CAS function. But it is necessary
- * because every thread can return packets to the pool and multiple parts
- * of the code retrieve packets (Decode, Defrag) and these can run in their
- * own threads as well.
+ * Packetpool queue handlers. Packet pool is implemented as a stack.
  */
 
 #include "suricata.h"
@@ -48,13 +43,73 @@
 
 #include "tmqh-packetpool.h"
 
-#include "util-ringbuffer.h"
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-profiling.h"
 #include "util-device.h"
 
-static RingBuffer16 *ringbuffer = NULL;
+#ifdef TLS
+__thread PktPool thread_pkt_pool;
+
+static inline PktPool *GetThreadPacketPool(void)
+{
+    return &thread_pkt_pool;
+}
+
+static inline PktPool *ThreadPacketPoolCreate(void)
+{
+    /* Nothing to do since __thread allocates the memory. */ 
+    return GetThreadPacketPool();
+}
+
+
+#else
+/* __thread not supported. */
+static pthread_key_t pkt_pool_thread_key;
+
+static inline PktPool *GetThreadPacketPool(void)
+{
+    return (PktPool*)pthread_getspecific(pkt_pool_thread_key);
+}
+
+static inline PktPool *ThreadPacketPoolCreate(void)
+{
+    /* Check that the pool is not already created */
+    PktPool *pool = GetThreadPacketPool();
+    if (pool)
+        return pool;
+
+    /* Create a new pool for this thread. */
+    pool = (PktPool*)SCMallocAligned(sizeof(PktPool), CLS);
+    if (pool == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
+        exit(EXIT_FAILURE);
+    }
+    pthread_setspecific(pkt_pool_thread_key, pool);
+
+    return pool;
+}
+
+static void PktPoolThreadDestroy(void * buf)
+{
+    free(buf);
+}
+
+#endif
+
+/* Number of freed packet to save for one pool before freeing them. */
+#define MAX_PENDING_RETURN_PACKETS 32
+
+void TmqhPacketpoolInit(void)
+{
+#ifndef TLS
+    /* Create the pthread Key that is used to look up thread specific
+     * data buffer. Needs to be created only once.
+     */
+    pthread_key_create(&pkt_pool_thread_key, PktPoolThreadDestroy);
+#endif
+}
+
 /**
  * \brief TmqhPacketpoolRegister
  * \initonly
@@ -64,57 +119,81 @@ void TmqhPacketpoolRegister (void) {
     tmqh_table[TMQH_PACKETPOOL].InHandler = TmqhInputPacketpool;
     tmqh_table[TMQH_PACKETPOOL].OutHandler = TmqhOutputPacketpool;
 
-    ringbuffer = RingBufferInit();
-    if (ringbuffer == NULL) {
-        SCLogError(SC_ERR_FATAL, "Error registering Packet pool handler (at ring buffer init)");
-        exit(EXIT_FAILURE);
-    }
+    TmqhPacketpoolInit();
 }
 
-void TmqhPacketpoolDestroy (void) {
-    /* doing this clean up PacketPoolDestroy now,
-     * where we also clean the packets */
+static int PacketPoolIsEmpty(PktPool *pool)
+{
+    /* Check local stack first. */
+    if (pool->head || pool->return_stack.head)
+        return 0;
+
+    return 1;
 }
 
-int PacketPoolIsEmpty(void) {
-    return RingBufferIsEmpty(ringbuffer);
-}
+void PacketPoolWait(void)
+{
+    PktPool *my_pool = GetThreadPacketPool();
 
-uint16_t PacketPoolSize(void) {
-    return RingBufferSize(ringbuffer);
-}
-
-void PacketPoolWait(void) {
-    RingBufferWait(ringbuffer);
+    while(PacketPoolIsEmpty(my_pool))
+        ;
 }
 
 /** \brief a initialized packet
  *
  *  \warning Use *only* at init, not at packet runtime
  */
-void PacketPoolStorePacket(Packet *p) {
-    if (RingBufferIsFull(ringbuffer)) {
-        exit(1);
-    }
-
+static void PacketPoolStorePacket(Packet *p)
+{
     /* Clear the PKT_ALLOC flag, since that indicates to push back
      * onto the ring buffer. */
     p->flags &= ~PKT_ALLOC;
+    p->pool = GetThreadPacketPool();
     p->ReleasePacket = PacketPoolReturnPacket;
     PacketPoolReturnPacket(p);
-
-    SCLogDebug("buffersize %u", RingBufferSize(ringbuffer));
 }
 
-/** \brief get a packet from the packet pool, but if the
- *         pool is empty, don't wait, just return NULL
+/** \brief Get a new packet from the packet pool
+ *
+ * Only allocates from the thread's local stack, or mallocs new packets.
+ * If the local stack is empty, first move all the return stack packets to
+ * the local stack.
+ *  \retval Packet pointer, or NULL on failure.
  */
-Packet *PacketPoolGetPacket(void) {
-    if (RingBufferIsEmpty(ringbuffer))
-        return NULL;
+Packet *PacketPoolGetPacket(void)
+{
+    PktPool *pool = GetThreadPacketPool();
 
-    Packet *p = RingBufferMrMwGetNoWait(ringbuffer);
-    return p;
+    if (pool->head) {
+        /* Stack is not empty. */
+        Packet *p = pool->head;
+        pool->head = p->next;
+        p->pool = pool;
+        return p;
+    }
+
+    /* Local Stack is empty, so check the return stack, which requires
+     * locking. */
+    SCMutexLock(&pool->return_stack.mutex);
+    /* Move all the packets from the locked return stack to the local stack. */
+    pool->head = pool->return_stack.head;
+    pool->return_stack.head = NULL;
+    SCMutexUnlock(&pool->return_stack.mutex);
+
+    /* Try to allocate again. Need to check for not empty again, since the
+     * return stack might have been empty too.
+     */
+    if (pool->head) {
+        /* Stack is not empty. */
+        Packet *p = pool->head;
+        pool->head = p->next;
+        p->pool = pool;
+        return p;
+    }
+
+    /* Failed to allocate a packet, so return NULL. */
+    /* Optionally, could allocate a new packet here. */
+    return NULL;
 }
 
 /** \brief Return packet to Packet pool
@@ -122,13 +201,63 @@ Packet *PacketPoolGetPacket(void) {
  */
 void PacketPoolReturnPacket(Packet *p)
 {
+    PktPool *my_pool = GetThreadPacketPool();
+
+    PktPool *pool = p->pool;
+    if (pool == NULL) {
+        free(p);
+        return;
+    }
+   
     PACKET_RECYCLE(p);
-    RingBufferMrMwPut(ringbuffer, (void *)p);
+
+    if (pool == my_pool) {
+        /* Push back onto this thread's own stack, so no locking. */
+        p->next = my_pool->head;
+        my_pool->head = p;
+    } else {
+        PktPool *pending_pool = my_pool->pending_pool;
+        if (pending_pool == NULL) {
+            /* No pending packet, so store the current packet. */
+            my_pool->pending_pool = pool;
+            my_pool->pending_head = p;
+            my_pool->pending_tail = p;
+            my_pool->pending_count = 1;
+        } else if (pending_pool == pool) {
+            /* Another packet for the pending pool list. */
+            p->next = my_pool->pending_head;
+            my_pool->pending_head->next = p;
+            my_pool->pending_count++;
+            if (my_pool->pending_count > MAX_PENDING_RETURN_PACKETS) {
+                /* Return the entire list of pending packets. */
+                SCMutexLock(&pool->return_stack.mutex);
+                my_pool->pending_tail->next = pool->return_stack.head;
+                pool->return_stack.head = my_pool->pending_head;
+                SCMutexUnlock(&pool->return_stack.mutex);
+                /* Clear the list of pending packets to return. */
+                my_pool->pending_pool = NULL;
+            }
+        } else {
+            /* Push onto return stack for this pool */
+            SCMutexLock(&pool->return_stack.mutex);
+            p->next = pool->return_stack.head;
+            pool->return_stack.head = p;
+            SCMutexUnlock(&pool->return_stack.mutex);
+        }
+    }
 }
 
-void PacketPoolInit(intmax_t max_pending_packets) {
+void PacketPoolInit(void)
+{
+    extern intmax_t max_pending_packets;
+
+    PktPool *my_pool = ThreadPacketPoolCreate();
+
+    SCMutexInit(&my_pool->return_stack.mutex, NULL);
+
     /* pre allocate packets */
-    SCLogDebug("preallocating packets... packet size %" PRIuMAX "", (uintmax_t)SIZE_OF_PACKET);
+    SCLogDebug("preallocating packets... packet size %" PRIuMAX "",
+               (uintmax_t)SIZE_OF_PACKET);
     int i = 0;
     for (i = 0; i < max_pending_packets; i++) {
         Packet *p = PacketGetFromAlloc();
@@ -143,31 +272,18 @@ void PacketPoolInit(intmax_t max_pending_packets) {
 }
 
 void PacketPoolDestroy(void) {
-    if (ringbuffer == NULL) {
-        return;
-    }
-
+#if 0
     Packet *p = NULL;
     while ((p = PacketPoolGetPacket()) != NULL) {
         PACKET_CLEANUP(p);
         SCFree(p);
     }
-
-    RingBufferDestroy(ringbuffer);
-    ringbuffer = NULL;
+#endif
 }
 
-Packet *TmqhInputPacketpool(ThreadVars *t)
+Packet *TmqhInputPacketpool(ThreadVars *tv)
 {
-    Packet *p = NULL;
-
-    while (p == NULL && ringbuffer->shutdown == FALSE) {
-        p = RingBufferMrMwGet(ringbuffer);
-    }
-
-    /* packet is clean */
-
-    return p;
+    return PacketPoolGetPacket();
 }
 
 void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
@@ -271,6 +387,14 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         }
         p->root->ReleasePacket(p->root);
         p->root = NULL;
+    }
+
+    /* if p uses extended data, free them */
+    if (p->ext_pkt) {
+        if (!(p->flags & PKT_ZERO_COPY)) {
+            SCFree(p->ext_pkt);
+        }
+        p->ext_pkt = NULL;
     }
 
     PACKET_PROFILING_END(p);

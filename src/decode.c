@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -169,12 +169,8 @@ void PacketFreeOrRelease(Packet *p)
  */
 Packet *PacketGetFromQueueOrAlloc(void)
 {
-    Packet *p = NULL;
-
     /* try the pool first */
-    if (PacketPoolSize() > 0) {
-        p = PacketPoolGetPacket();
-    }
+    Packet *p = PacketPoolGetPacket();
 
     if (p == NULL) {
         /* non fatal, we're just not processing a packet then */
