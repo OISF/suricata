@@ -58,7 +58,7 @@ static inline PktPool *GetThreadPacketPool(void)
 
 static inline PktPool *ThreadPacketPoolCreate(void)
 {
-    /* Nothing to do since __thread allocates the memory. */ 
+    /* Nothing to do since __thread statically allocates the memory. */
     return GetThreadPacketPool();
 }
 
@@ -85,7 +85,11 @@ static inline PktPool *ThreadPacketPoolCreate(void)
         SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         exit(EXIT_FAILURE);
     }
-    pthread_setspecific(pkt_pool_thread_key, pool);
+    int r = pthread_setspecific(pkt_pool_thread_key, pool);
+    if (r != 0) {
+        SCLogError(SC_ERR_MEM_ALLOC, "pthread_setspecific failed with %d", r);
+        exit(EXIT_FAILURE);
+    }
 
     return pool;
 }
@@ -106,7 +110,11 @@ void TmqhPacketpoolInit(void)
     /* Create the pthread Key that is used to look up thread specific
      * data buffer. Needs to be created only once.
      */
-    pthread_key_create(&pkt_pool_thread_key, PktPoolThreadDestroy);
+    int r = pthread_key_create(&pkt_pool_thread_key, PktPoolThreadDestroy);
+    if (r != 0) {
+        SCLogError(SC_ERR_MEM_ALLOC, "pthread_key_create failed with %d", r);
+        exit(EXIT_FAILURE);
+    }
 #endif
 }
 
