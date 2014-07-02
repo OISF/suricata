@@ -266,6 +266,19 @@ outputs:
       force-magic: no   # force logging magic on all logged files
       force-md5: no     # force logging of md5 checksums
 
+  # output module to log events in common event format
+  - cef:
+      enabled: no
+      filename: cef.log
+      append: yes
+      devicename: Suricata
+      httpextension: yes    # enable http application layer details
+      # cef output support 'short' labels; if option is disabled it will 
+      # generate standard (but more verbose) CS labels to describe 
+      # application layer fields
+      shortlabels: yes
+ 
+
 # Magic file. The extension .mgc is added to the value here.
 #magic-file: /usr/share/file/magic
 magic-file: @e_magic_file@
