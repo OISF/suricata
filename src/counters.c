@@ -757,13 +757,13 @@ static int SCPerfOutputCounterFileIface()
 }
 
 static 
-json_t *SCPerfLookupJson(json_t *js, char *cname)
+json_t *SCPerfLookupJson(json_t *js, char *key)
 {
     void *iter;
-    char *s = strndup(cname, index(cname, '.') - cname);
+    char *s = strndup(key, index(key, '.') - key);
 
     iter = json_object_iter_at(js, s);
-    char *s1 = index(cname, '.');
+    char *s1 = index(key, '.');
     char *s2 = index(s1+1, '.');
 
     json_t *value = json_object_iter_value(iter);
@@ -772,7 +772,7 @@ json_t *SCPerfLookupJson(json_t *js, char *cname)
         json_object_set(js, s, value);
     }
     if (s2 != NULL) {
-        return SCPerfLookupJson(value, &cname[index(cname,'.')-cname+1]);
+        return SCPerfLookupJson(value, &key[index(key,'.')-key+1]);
     }
     return value;
 }
@@ -863,16 +863,12 @@ static int SCPerfOutputCounterEveIface()
                     flag = 0;
             }
 
-            json_t *js_type = SCPerfLookupJson(js_stats, pc->cname);
+            char str[256];
+            snprintf(str, sizeof(str), "%s.%s", pctmi->tm_name, pc->cname);
+            json_t *js_type = SCPerfLookupJson(js_stats, str);
           
             if (js_type != NULL) {
-                json_t *js_counter = json_object();
-                
-                json_object_set_new(js_counter, "tm_name", json_string(pctmi->tm_name));
-                json_object_set_new(js_counter, "value", json_integer(ui64_result));
-                
-                char *s = &pc->cname[rindex(pc->cname, '.')-pc->cname+1];
-                json_object_set_new(js_type, s, js_counter);
+                json_object_set_new(js_type, &str[rindex(str, '.')-str+1], json_integer(ui64_result));
             }
         }
 
