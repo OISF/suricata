@@ -96,7 +96,7 @@ typedef struct AlertCefLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
     const char *device_name;
-    int http_extensions;
+    int applayer_fallback;
     int short_labels;
 } AlertCefLogThread;
 
@@ -366,7 +366,7 @@ int AlertCefLogger(ThreadVars *tv, void *data, const Packet *p)
     
             if ( likely(raw_print == 0 && p->flow) ) {
                 /* Print CEF Key: Service ( Service Protocol )*/
-                if (p->flow->flags & STREAM_TOSERVER && p->flow->alproto_ts ) {
+                if ( (p->flow->flags & STREAM_TOSERVER) && p->flow->alproto_ts ) {
                     PrintBufferData(alert_buffer,&size,MAX_CEFLOG_ALERT_SIZE,
                             " service=%s",AppProtoToString(p->flow->alproto_ts ));
                 } else if( p->flow->alproto_tc ) {
@@ -375,7 +375,7 @@ int AlertCefLogger(ThreadVars *tv, void *data, const Packet *p)
                 }         
             }
     
-            if (likely(aft->http_extensions)) {
+            if ( (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH) || aft->applayer_fallback) {
                 if (p->flow->alproto_ts == ALPROTO_HTTP || p->flow->alproto_tc == ALPROTO_HTTP) {
                     if ( likely(aft->short_labels ))
                         AlertCefLoggerHttpShort(p,pa,alert_buffer,&size);
@@ -449,12 +449,12 @@ OutputCtx *AlertCefLogInitCtx(ConfNode *conf)
         return NULL;
 
     aft->file_ctx = logfile_ctx;
-    aft->device_name = ConfNodeLookupChildValue(conf,"devicename");
-    if ( ConfNodeChildValueIsTrue(conf,"httpextension") )
-        aft->http_extensions = 1;
+    aft->device_name = ConfNodeLookupChildValue(conf,"device-name");
+    if ( ConfNodeChildValueIsTrue(conf,"applayer-fallback") )
+        aft->applayer_fallback = 1;
     else
-        aft->http_extensions = 0;
-    if ( ConfNodeChildValueIsTrue(conf,"shortlabels") )
+        aft->applayer_fallback = 0;
+    if ( ConfNodeChildValueIsTrue(conf,"short-labels") )
         aft->short_labels = 1;
     else
         aft->short_labels = 0;
