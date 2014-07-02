@@ -234,8 +234,6 @@ ReceiveErfFileThreadInit(ThreadVars *tv, void *initdata, void **data)
     etv->tv = tv;
     *data = (void *)etv;
 
-    PacketPoolInit();
-
     SCLogInfo("Processing ERF file %s", (char *)initdata);
 
     SCReturnInt(TM_ECODE_OK);

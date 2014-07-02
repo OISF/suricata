@@ -374,8 +374,6 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     *data = (void *)ntv;
 
-    PacketPoolInit();
-
     SCReturnInt(TM_ECODE_OK);
 }
 

@@ -540,8 +540,6 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     *data = (void *)ptv;
     pfconf->DerefFunc(pfconf);
 
-    PacketPoolInit();
-
     return TM_ECODE_OK;
 }
 

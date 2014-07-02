@@ -316,8 +316,6 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
     SCLogInfo("Starting processing packets from stream: %d on DAG: %s",
         ewtn->dagstream, ewtn->dagname);
 
-    PacketPoolInit();
-    
     SCReturnInt(TM_ECODE_OK);
 }
 

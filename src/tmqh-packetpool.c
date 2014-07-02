@@ -48,6 +48,9 @@
 #include "util-profiling.h"
 #include "util-device.h"
 
+/* Number of freed packet to save for one pool before freeing them. */
+#define MAX_PENDING_RETURN_PACKETS 32
+
 #ifdef TLS
 __thread PktPool thread_pkt_pool;
 
@@ -58,22 +61,51 @@ static inline PktPool *GetThreadPacketPool(void)
 
 static inline PktPool *ThreadPacketPoolCreate(void)
 {
-    /* Nothing to do since __thread allocates the memory. */ 
+    /* Nothing to do since __thread statically allocates the memory. */
     return GetThreadPacketPool();
 }
-
-
 #else
 /* __thread not supported. */
 static pthread_key_t pkt_pool_thread_key;
+static SCMutex pkt_pool_thread_key_mutex = SCMUTEX_INITIALIZER;
+static int pkt_pool_thread_key_initialized = 0;
 
 static inline PktPool *GetThreadPacketPool(void)
 {
     return (PktPool*)pthread_getspecific(pkt_pool_thread_key);
 }
 
+static void PktPoolThreadDestroy(void * buf)
+{
+    free(buf);
+}
+
+static void TmqhPacketpoolInit(void)
+{
+    SCMutexLock(&pkt_pool_thread_key_mutex);
+    if (pkt_pool_thread_key_initialized) {
+        /* Key has already been created. */
+        SCMutexUnlock(&pkt_pool_thread_key_mutex);
+        return;
+    }
+
+    /* Create the pthread Key that is used to look up thread specific
+     * data buffer. Needs to be created only once.
+     */
+    int r = pthread_key_create(&pkt_pool_thread_key, PktPoolThreadDestroy);
+    if (r != 0) {
+        SCLogError(SC_ERR_MEM_ALLOC, "pthread_key_create failed with %d", r);
+        exit(EXIT_FAILURE);
+    }
+
+    pkt_pool_thread_key_initialized = 1;
+    SCMutexUnlock(&pkt_pool_thread_key_mutex);
+}
+
 static inline PktPool *ThreadPacketPoolCreate(void)
 {
+    TmqhPacketpoolInit();
+
     /* Check that the pool is not already created */
     PktPool *pool = GetThreadPacketPool();
     if (pool)
@@ -85,30 +117,15 @@ static inline PktPool *ThreadPacketPoolCreate(void)
         SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         exit(EXIT_FAILURE);
     }
-    pthread_setspecific(pkt_pool_thread_key, pool);
+    int r = pthread_setspecific(pkt_pool_thread_key, pool);
+    if (r != 0) {
+        SCLogError(SC_ERR_MEM_ALLOC, "pthread_setspecific failed with %d", r);
+        exit(EXIT_FAILURE);
+    }
 
     return pool;
 }
-
-static void PktPoolThreadDestroy(void * buf)
-{
-    free(buf);
-}
-
 #endif
-
-/* Number of freed packet to save for one pool before freeing them. */
-#define MAX_PENDING_RETURN_PACKETS 32
-
-void TmqhPacketpoolInit(void)
-{
-#ifndef TLS
-    /* Create the pthread Key that is used to look up thread specific
-     * data buffer. Needs to be created only once.
-     */
-    pthread_key_create(&pkt_pool_thread_key, PktPoolThreadDestroy);
-#endif
-}
 
 /**
  * \brief TmqhPacketpoolRegister
@@ -118,8 +135,6 @@ void TmqhPacketpoolRegister (void) {
     tmqh_table[TMQH_PACKETPOOL].name = "packetpool";
     tmqh_table[TMQH_PACKETPOOL].InHandler = TmqhInputPacketpool;
     tmqh_table[TMQH_PACKETPOOL].OutHandler = TmqhOutputPacketpool;
-
-    TmqhPacketpoolInit();
 }
 
 static int PacketPoolIsEmpty(PktPool *pool)

@@ -898,8 +898,6 @@ TmEcode ReceiveMpipeThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     *data = (void *)ptv;
 
-    PacketPoolInit();
-
     /* Only rank 0 does initialization of mpipe */
     if (rank != 0)
         SCReturnInt(TM_ECODE_OK);

@@ -718,8 +718,6 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     *data = (void *)ntv;
 
-    PacketPoolInit();
-
     SCMutexUnlock(&nfq_init_lock);
     return TM_ECODE_OK;
 }

@@ -1781,8 +1781,6 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
         ptv->vlan_disabled = 1;
     }
 
-    PacketPoolInit();
-
     SCReturnInt(TM_ECODE_OK);
 }
 
