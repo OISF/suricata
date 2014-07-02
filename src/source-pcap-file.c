@@ -341,8 +341,6 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
     ptv->tv = tv;
     *data = (void *)ptv;
 
-    PacketPoolInit();
-
     SCReturnInt(TM_ECODE_OK);
 }
 

@@ -638,8 +638,6 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     *data = (void *)ptv;
 
-    PacketPoolInit();
-
     /* Dereference config */
     pcapconfig->DerefFunc(pcapconfig);
     SCReturnInt(TM_ECODE_OK);
