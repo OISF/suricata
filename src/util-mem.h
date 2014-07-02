@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -277,8 +277,12 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 #define SCMallocAligned(a, b) ({ \
     void *ptrmem = NULL; \
     \
-    ptrmem = _mm_malloc((a), (b)); \
-    if (ptrmem == NULL) { \
+    int r = posix_memalign(&ptrmem, (b), (a)); \
+    if (r != 0 || ptrmem == NULL) { \
+        if (ptrmem != NULL) { \
+            free(ptrmem); \
+            ptrmem = NULL; \
+        } \
         if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
             SCLogError(SC_ERR_MEM_ALLOC, "SCMallocAligned(posix_memalign) failed: %s, while trying " \
                 "to allocate %"PRIuMAX" bytes, alignment %"PRIuMAX, strerror(errno), (uintmax_t)a, (uintmax_t)b); \
@@ -296,7 +300,7 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
  * _mm_free.
  */
 #define SCFreeAligned(a) ({ \
-    _mm_free((a)); \
+    free(a); \
 })
 
 #endif /* __WIN32 */
