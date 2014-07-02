@@ -142,6 +142,8 @@ void *TmThreadsSlot1NoIn(void *td)
     /* Drop the capabilities for this thread */
     SCDropCaps(tv);
 
+    PacketPoolInit();
+
     if (s->SlotThreadInit != NULL) {
         void *slot_data = NULL;
         r = s->SlotThreadInit(tv, s->slot_initdata, &slot_data);
@@ -252,6 +254,8 @@ void *TmThreadsSlot1NoOut(void *td)
     /* Drop the capabilities for this thread */
     SCDropCaps(tv);
 
+    PacketPoolInit();
+
     if (s->SlotThreadInit != NULL) {
         void *slot_data = NULL;
         r = s->SlotThreadInit(tv, s->slot_initdata, &slot_data);
@@ -343,6 +347,8 @@ void *TmThreadsSlot1NoInOut(void *td)
     /* Drop the capabilities for this thread */
     SCDropCaps(tv);
 
+    PacketPoolInit();
+
     SCLogDebug("%s starting", tv->name);
 
     if (s->SlotThreadInit != NULL) {
@@ -430,6 +436,8 @@ void *TmThreadsSlot1(void *td)
 
     /* Drop the capabilities for this thread */
     SCDropCaps(tv);
+
+    PacketPoolInit();
 
     SCLogDebug("%s starting", tv->name);
 
@@ -649,6 +657,8 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
 
     /* Drop the capabilities for this thread */
     SCDropCaps(tv);
+
+    PacketPoolInit();
 
     /* check if we are setup properly */
     if (s == NULL || s->PktAcqLoop == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
