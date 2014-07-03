@@ -523,6 +523,34 @@ error:
     return -1;
 }
 
+static void SCACTileReallocState(SCACTileCtx *ctx, int new_state_count)
+{
+    void *ptmp;
+    int size = 0;
+
+    /* reallocate space in the goto table to include a new state */
+    size = ctx->allocated_state_count * sizeof(int32_t) * 256;
+    ptmp = SCRealloc(ctx->goto_table, size);
+    if (ptmp == NULL) {
+        SCFree(ctx->goto_table);
+        ctx->goto_table = NULL;
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    ctx->goto_table = ptmp;
+
+    /* reallocate space in the output table for the new state */
+    size = ctx->allocated_state_count * sizeof(SCACTileOutputTable);
+    ptmp = SCRealloc(ctx->output_table, size);
+    if (ptmp == NULL) {
+        SCFree(ctx->output_table);
+        ctx->output_table = NULL;
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    ctx->output_table = ptmp;
+}
+
 /**
  * \internal
  * \brief Initialize a new state in the goto and output tables.
@@ -533,38 +561,24 @@ error:
  */
 static inline int SCACTileInitNewState(MpmCtx *mpm_ctx)
 {
-    void *ptmp;
     SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
     SCACTileCtx *ctx = search_ctx->init_ctx;
     int aa = 0;
-    int size = 0;
 
-    /* reallocate space in the goto table to include a new state */
-    size = (ctx->state_count + 1) * sizeof(int32_t) * 256;
-    ptmp = SCRealloc(ctx->goto_table, size);
-    if (ptmp == NULL) {
-        SCFree(ctx->goto_table);
-        ctx->goto_table = NULL;
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+    /* Exponentially increase the allocated space when needed. */
+    if (ctx->allocated_state_count < ctx->state_count + 1) {
+        if (ctx->allocated_state_count == 0)
+            ctx->allocated_state_count = 256;
+        else
+            ctx->allocated_state_count *= 2;
+
+        SCACTileReallocState(ctx, ctx->allocated_state_count);
     }
-    ctx->goto_table = ptmp;
 
     /* set all transitions for the newly assigned state as FAIL transitions */
     for (aa = 0; aa < ctx->alphabet_size; aa++) {
         ctx->goto_table[ctx->state_count][aa] = SC_AC_TILE_FAIL;
     }
-
-    /* reallocate space in the output table for the new state */
-    size = (ctx->state_count + 1) * sizeof(SCACTileOutputTable);
-    ptmp = SCRealloc(ctx->output_table, size);
-    if (ptmp == NULL) {
-        SCFree(ctx->output_table);
-        ctx->output_table = NULL;
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
-    ctx->output_table = ptmp;
 
     memset(ctx->output_table + ctx->state_count, 0,
            sizeof(SCACTileOutputTable));
@@ -1117,6 +1131,9 @@ static void SCACTilePrepareSearch(MpmCtx *mpm_ctx)
 {
     SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
     SCACTileCtx *ctx = search_ctx->init_ctx;
+
+    /* Resize the output table to be only as big as its final size. */
+    SCACTileReallocState(ctx, ctx->state_count);
 
     search_ctx->search = ctx->search;
     memcpy(search_ctx->translate_table, ctx->translate_table, sizeof(ctx->translate_table));
