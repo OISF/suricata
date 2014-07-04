@@ -85,7 +85,7 @@ outputs:
   # Extensible Event Format (nicknamed EVE) event log in JSON format
   - eve-log:
       enabled: yes
-      type: file #file|syslog|unix_dgram|unix_stream
+      filetype: file #file|syslog|unix_dgram|unix_stream
       filename: eve.json
       # the following are valid when type: syslog above
       #identity: "suricata"
@@ -93,7 +93,10 @@ outputs:
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
       types:
-        - alert
+        - alert:
+            # payload: yes        # enable dumping payload
+            # payload-base64: yes # if payload dumping is enabled, dumps it in Base64
+            # packet: yes         # enable dumping of packet (loses payload in stream segments)
         - http:
             extended: yes     # enable this for extended logging information
             # custom allows additional http fields to be included in eve-log
