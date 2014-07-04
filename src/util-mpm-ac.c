@@ -374,15 +374,13 @@ error:
  *
  * \retval The state id, of the newly created state.
  */
-static inline int SCACInitNewState(MpmCtx *mpm_ctx)
+static inline int SCACReallocState(SCACCtx *ctx, uint32_t cnt)
 {
     void *ptmp;
-    SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
-    int ascii_code = 0;
     int size = 0;
 
     /* reallocate space in the goto table to include a new state */
-    size = (ctx->state_count + 1) * ctx->single_state_size;
+    size = cnt * ctx->single_state_size;
     ptmp = SCRealloc(ctx->goto_table, size);
     if (ptmp == NULL) {
         SCFree(ctx->goto_table);
@@ -392,13 +390,12 @@ static inline int SCACInitNewState(MpmCtx *mpm_ctx)
     }
     ctx->goto_table = ptmp;
 
-    /* set all transitions for the newly assigned state as FAIL transitions */
-    for (ascii_code = 0; ascii_code < 256; ascii_code++) {
-        ctx->goto_table[ctx->state_count][ascii_code] = SC_AC_FAIL;
-    }
-
     /* reallocate space in the output table for the new state */
-    size = (ctx->state_count + 1) * sizeof(SCACOutputTable);
+    int oldsize = ctx->state_count * sizeof(SCACOutputTable);
+    size = cnt * sizeof(SCACOutputTable);
+    SCLogDebug("oldsize %d size %d cnt %u ctx->state_count %u",
+            oldsize, size, cnt, ctx->state_count);
+
     ptmp = SCRealloc(ctx->output_table, size);
     if (ptmp == NULL) {
         SCFree(ctx->output_table);
@@ -408,7 +405,7 @@ static inline int SCACInitNewState(MpmCtx *mpm_ctx)
     }
     ctx->output_table = ptmp;
 
-    memset(ctx->output_table + ctx->state_count, 0, sizeof(SCACOutputTable));
+    memset(((uint8_t *)ctx->output_table + oldsize), 0, (size - oldsize));
 
     /* \todo using it temporarily now during dev, since I have restricted
      *       state var in SCACCtx->state_table to uint16_t. */
@@ -416,6 +413,35 @@ static inline int SCACInitNewState(MpmCtx *mpm_ctx)
     //    printf("state count exceeded\n");
     //    exit(EXIT_FAILURE);
     //}
+
+    return 0;//ctx->state_count++;
+}
+
+static inline int SCACInitNewState(MpmCtx *mpm_ctx)
+{
+    SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;;
+
+    /* Exponentially increase the allocated space when needed. */
+    if (ctx->allocated_state_count < ctx->state_count + 1) {
+        if (ctx->allocated_state_count == 0)
+            ctx->allocated_state_count = 256;
+        else
+            ctx->allocated_state_count *= 2;
+
+        SCACReallocState(ctx, ctx->allocated_state_count);
+
+    }
+#if 0
+    if (ctx->allocated_state_count > 260) {
+        SCACOutputTable *output_state = &ctx->output_table[260];
+        SCLogInfo("output_state %p %p %u", output_state, output_state->pids, output_state->no_of_entries);
+    }
+#endif
+    int ascii_code = 0;
+    /* set all transitions for the newly assigned state as FAIL transitions */
+    for (ascii_code = 0; ascii_code < 256; ascii_code++) {
+        ctx->goto_table[ctx->state_count][ascii_code] = SC_AC_FAIL;
+    }
 
     return ctx->state_count++;
 }

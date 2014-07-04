@@ -92,6 +92,8 @@ typedef struct SCACCtx_ {
     uint16_t single_state_size;
     uint16_t max_pat_id;
 
+    uint32_t allocated_state_count;
+
 #ifdef __SC_CUDA_SUPPORT__
     CUdeviceptr state_table_u16_cuda;
     CUdeviceptr state_table_u32_cuda;
