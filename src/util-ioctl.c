@@ -151,7 +151,7 @@ int GetIfaceMaxPacketSize(char *pcap_dev)
  */
 int GetIfaceOffloading(char *pcap_dev)
 {
-#ifdef ETHTOOL_GGRO
+#if defined (ETHTOOL_GGRO) && defined (ETHTOOL_GFLAGS)
     struct ifreq ifr;
     int fd;
     struct ethtool_value ethv;
