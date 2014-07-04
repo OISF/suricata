@@ -3,9 +3,10 @@ compiler:
   - gcc
   - clang
 # Change this to your needs
-script: sh autogen.sh && ./configure --enable-nfqueue --enable-unittests && make && ./src/suricata -l /tmp/ -u
+script: sh autogen.sh && ./configure --enable-nfqueue --enable-unittests && make && make check
 before_install:
+  - sudo add-apt-repository -y ppa:npalix/coccinelle
   - sudo apt-get update -qq
-  - sudo apt-get install -y libpcre3 libpcre3-dbg libpcre3-dev build-essential autoconf automake libtool libpcap-dev libnet1-dev libyaml-0-2 libyaml-dev zlib1g zlib1g-dev libcap-ng-dev libcap-ng0 make libmagic-dev libnetfilter-queue-dev libnetfilter-queue1 libnfnetlink-dev libnfnetlink0
+  - sudo apt-get install -y libpcre3 libpcre3-dbg libpcre3-dev build-essential autoconf automake libtool libpcap-dev libnet1-dev libyaml-0-2 libyaml-dev zlib1g zlib1g-dev libcap-ng-dev libcap-ng0 make libmagic-dev libnetfilter-queue-dev libnetfilter-queue1 libnfnetlink-dev libnfnetlink0 coccinelle
   - ./qa/travis-libhtp.sh
 
