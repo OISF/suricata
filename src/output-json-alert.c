@@ -166,7 +166,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                         Base64Encode((unsigned char *)payload, payload->offset, encoded, &len);
                         json_object_set_new(js, "payload", json_string((char *)encoded));
                     } else {
-                        json_object_set_new(js, "payload",
+                        json_object_set_new(js, "payload_printable",
                                             json_string((char *)payload->buffer));
                     }
                 } else {
@@ -184,7 +184,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                         Base64Encode(packet_buf, offset, encoded, &len);
                         json_object_set_new(js, "payload", json_string((char *)encoded));
                     } else {
-                        json_object_set_new(js, "payload", json_string((char *)packet_buf));
+                        json_object_set_new(js, "payload_printable", json_string((char *)packet_buf));
                     }
                 }
 
