@@ -57,6 +57,7 @@
 #include "util-optimize.h"
 #include "util-buffer.h"
 #include "util-logopenfile.h"
+#include "util-device.h"
 
 
 #ifndef HAVE_LIBJANSSON
@@ -208,6 +209,10 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
     /* sensor id */
     if (sensor_id >= 0)
         json_object_set_new(js, "sensor_id", json_integer(sensor_id));
+
+    /* interface */
+    if (p->livedev)
+        json_object_set_new(js, "interface", json_string(p->livedev->dev));
 
     /* pcap_cnt */
     if (p->pcap_cnt != 0) {
