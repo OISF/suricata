@@ -107,6 +107,11 @@ outputs:
             force-md5: no     # force logging of md5 checksums
         #- drop
         - ssh
+        # stats enables logging of various counters of the suricata engine.
+        # The interval field (in seconds) tells after how often output will be
+        # emitted in the json stream.
+        - stats:
+            interval: 8
 
   # alert output for use with Barnyard2
   - unified2-alert:
