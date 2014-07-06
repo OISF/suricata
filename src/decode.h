@@ -88,6 +88,8 @@ enum PktSrcEnum {
 struct DetectionEngineThreadCtx_;
 typedef struct AppLayerThreadCtx_ AppLayerThreadCtx;
 
+struct PktPool_;
+
 /* declare these here as they are called from the
  * PACKET_RECYCLE and PACKET_CLEANUP macro's. */
 typedef struct AppLayerDecoderEvents_ AppLayerDecoderEvents;
@@ -528,6 +530,10 @@ typedef struct Packet_
     /* tunnel packet ref count */
     uint16_t tunnel_tpr_cnt;
 
+    /* The Packet pool from which this packet was allocated. Used when returning
+     * the packet to its owner's stack. If NULL, then allocated with malloc.
+     */
+    struct PktPool_ *pool;
 
 #ifdef PROFILING
     PktProfiling *profile;
