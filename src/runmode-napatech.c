@@ -59,6 +59,13 @@ const char *RunModeNapatechGetDefaultMode(void)
     return default_mode;
 }
 
+void RunModeNapatechUnregister(void)
+{
+#ifdef HAVE_NAPATECH
+	NT_Done();
+#endif
+}
+
 void RunModeNapatechRegister(void)
 {
 #ifdef HAVE_NAPATECH
