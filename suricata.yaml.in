@@ -6,9 +6,9 @@
 # https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricatayaml
 
 
-# Number of packets allowed to be processed simultaneously.  Default is a
-# conservative 1024. A higher number will make sure CPU's/CPU cores will be
-# more easily kept busy, but may negatively impact caching.
+# Number of packets preallocated per thread. The default is 1024. A higher number 
+# will make sure each CPU will be more easily kept busy, but may negatively 
+# impact caching.
 #
 # If you are using the CUDA pattern matcher (mpm-algo: ac-cuda), different rules
 # apply. In that case try something like 60000 or more. This is because the CUDA

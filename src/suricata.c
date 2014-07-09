@@ -187,12 +187,12 @@ volatile sig_atomic_t sigterm_count = 0;
 
 /*
  * Flag to indicate if the engine is at the initialization
- * or already processing packets. 2 stages: SURICATA_INIT,
+ * or already processing packets. 3 stages: SURICATA_INIT,
  * SURICATA_RUNTIME and SURICATA_FINALIZE
  */
 SC_ATOMIC_DECLARE(unsigned int, engine_stage);
 
-/* Max packets processed simultaniously. */
+/* Max packets processed simultaniously per thread. */
 #define DEFAULT_MAX_PENDING_PACKETS 1024
 
 /** suricata engine control flags */
