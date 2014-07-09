@@ -645,7 +645,6 @@ typedef struct DecodeThreadVars_
 
 /**
  *  \brief Recycle a packet structure for reuse.
- *  \todo the mutex destroy & init is necessary because of the memset, reconsider
  */
 #define PACKET_RECYCLE_POST(p) do {             \
         CLEAR_ADDR(&(p)->src);                  \
@@ -703,8 +702,6 @@ typedef struct DecodeThreadVars_
         (p)->pcap_cnt = 0;                      \
         (p)->tunnel_rtv_cnt = 0;                \
         (p)->tunnel_tpr_cnt = 0;                \
-        SCMutexDestroy(&(p)->tunnel_mutex);     \
-        SCMutexInit(&(p)->tunnel_mutex, NULL);  \
         (p)->events.cnt = 0;                    \
         AppLayerDecoderEventsResetEvents((p)->app_layer_events); \
         (p)->next = NULL;                       \
