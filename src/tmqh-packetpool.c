@@ -149,8 +149,7 @@ void PacketPoolDestroy(void) {
 
     Packet *p = NULL;
     while ((p = PacketPoolGetPacket()) != NULL) {
-        PACKET_CLEANUP(p);
-        SCFree(p);
+        PacketFree(p);
     }
 
     RingBufferDestroy(ringbuffer);
