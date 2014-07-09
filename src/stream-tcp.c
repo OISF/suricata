@@ -9785,8 +9785,7 @@ static int StreamTcpTest41(void)
     PACKET_INITIALIZE(p);
 
     if (PacketCopyData(p, raw_ip, sizeof(raw_ip)) == -1) {
-        PACKET_CLEANUP(p);
-        SCFree(p);
+        PacketFree(p);
         return 1;
     }
 

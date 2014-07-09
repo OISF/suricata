@@ -103,7 +103,7 @@ static inline void PacketFreeExtData(Packet *p)
  */
 void PacketFree(Packet *p)
 {
-    PACKET_CLEANUP(p);
+    PACKET_DESTRUCTOR(p);
     SCFree(p);
 }
 
