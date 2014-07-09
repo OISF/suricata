@@ -187,6 +187,7 @@ Packet *PacketPoolGetPacket(void)
         Packet *p = pool->head;
         pool->head = p->next;
         p->pool = pool;
+        PACKET_REINIT(p);
         return p;
     }
 
@@ -202,6 +203,7 @@ Packet *PacketPoolGetPacket(void)
         Packet *p = pool->head;
         pool->head = p->next;
         p->pool = pool;
+        PACKET_REINIT(p);
         return p;
     }
 
@@ -217,13 +219,13 @@ void PacketPoolReturnPacket(Packet *p)
 {
     PktPool *my_pool = GetThreadPacketPool();
 
+    PACKET_RELEASE_REFS(p);
+
     PktPool *pool = p->pool;
     if (pool == NULL) {
         free(p);
         return;
     }
-
-    PACKET_RECYCLE(p);
 
     if (pool == my_pool) {
         /* Push back onto this thread's own stack, so no locking. */
