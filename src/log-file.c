@@ -74,12 +74,14 @@ static void LogFileMetaGetUri(FILE *fp, const Packet *p, const File *ff) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL) {
             HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-            if (tx_ud->request_uri_normalized != NULL) {
-                PrintRawJsonFp(fp,
-                               bstr_ptr(tx_ud->request_uri_normalized),
-                               bstr_len(tx_ud->request_uri_normalized));
+            if (tx_ud != NULL) {
+                if (tx_ud->request_uri_normalized != NULL) {
+                    PrintRawJsonFp(fp,
+                                   bstr_ptr(tx_ud->request_uri_normalized),
+                                   bstr_len(tx_ud->request_uri_normalized));
+                    return;
+                }
             }
-            return;
         }
     }
 
