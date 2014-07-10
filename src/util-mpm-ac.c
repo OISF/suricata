@@ -417,6 +417,34 @@ static inline int SCACReallocState(SCACCtx *ctx, uint32_t cnt)
     return 0;//ctx->state_count++;
 }
 
+/** \internal
+ *  \brief Shrink state after setup is done
+ *
+ *  Shrinks only the output table, goto table is freed after calling this
+ */
+static void SCACShrinkState(SCACCtx *ctx)
+{
+    /* reallocate space in the output table for the new state */
+#ifdef DEBUG
+    int oldsize = ctx->allocated_state_count * sizeof(SCACOutputTable);
+#endif
+    int newsize = ctx->state_count * sizeof(SCACOutputTable);
+
+    SCLogDebug("oldsize %d newsize %d ctx->allocated_state_count %u "
+               "ctx->state_count %u: shrink by %d bytes", oldsize,
+               newsize, ctx->allocated_state_count, ctx->state_count,
+               oldsize - newsize);
+
+    void *ptmp = SCRealloc(ctx->output_table, newsize);
+    if (ptmp == NULL) {
+        SCFree(ctx->output_table);
+        ctx->output_table = NULL;
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    ctx->output_table = ptmp;
+}
+
 static inline int SCACInitNewState(MpmCtx *mpm_ctx)
 {
     SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;;
@@ -950,6 +978,9 @@ static inline void SCACPrepareStateTable(MpmCtx *mpm_ctx)
 
     /* club nocase entries */
     SCACInsertCaseSensitiveEntriesForPatterns(mpm_ctx);
+
+    /* shrink the memory */
+    SCACShrinkState(ctx);
 
 #if 0
     SCACPrintDeltaTable(mpm_ctx);
