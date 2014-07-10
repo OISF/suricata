@@ -2,6 +2,7 @@
 
 
     AC_INIT(suricata, 2.0dev)
+    AM_SILENT_RULES([yes])
     AC_CONFIG_HEADERS([config.h])
     AC_CONFIG_SRCDIR([src/suricata.c])
     AC_CONFIG_MACRO_DIR(m4)
