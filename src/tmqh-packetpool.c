@@ -114,6 +114,8 @@ Packet *PacketPoolGetPacket(void) {
         return NULL;
 
     Packet *p = RingBufferMrMwGetNoWait(ringbuffer);
+    if (p)
+        PACKET_RECYCLE_POST(p);
     return p;
 }
 
@@ -122,7 +124,7 @@ Packet *PacketPoolGetPacket(void) {
  */
 void PacketPoolReturnPacket(Packet *p)
 {
-    PACKET_RECYCLE(p);
+    PACKET_RECYCLE_PRE(p);
     RingBufferMrMwPut(ringbuffer, (void *)p);
 }
 
