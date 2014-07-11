@@ -73,6 +73,7 @@
 #include "conf-yaml-loader.h"
 
 #include "alert-fastlog.h"
+#include "alert-cef.h"
 #include "alert-unified2-alert.h"
 #include "alert-debuglog.h"
 #include "alert-prelude.h"
@@ -870,6 +871,9 @@ void RegisterAllModules()
     TmModuleJsonDnsLogRegister();
 
     TmModuleJsonAlertLogRegister();
+
+    /* cef log */
+    TmModuleAlertCefLogRegister();
 
     /* log api */
     TmModulePacketLoggerRegister();
