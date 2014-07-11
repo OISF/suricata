@@ -118,6 +118,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
         goto end;
     }
     cd->flags |= DETECT_CONTENT_NOCASE;
+
     /* Recreate the context with nocase chars */
     BoyerMooreCtxToNocase(cd->bm_ctx, cd->content, cd->content_len);
 
