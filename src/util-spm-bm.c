@@ -325,7 +325,8 @@ uint8_t *BoyerMooreNocase(uint8_t *x, uint16_t m, uint8_t *y, int32_t n, uint16_
 #endif
     j = 0;
     while (j <= n - m ) {
-        for (i = m - 1; i >= 0 && u8_tolower(x[i]) == u8_tolower(y[i + j]); --i);
+        /* x is stored in lowercase. */
+        for (i = m - 1; i >= 0 && x[i] == u8_tolower(y[i + j]); --i);
 
         if (i < 0) {
             return y + j;
