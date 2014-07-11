@@ -220,8 +220,7 @@ static int DetectFilemagicMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         /* we include the \0 in the inspection, so patterns can match on the
          * end of the string. */
         if (BoyerMooreNocase(filemagic->name, filemagic->len, (uint8_t *)file->magic,
-                    strlen(file->magic) + 1, filemagic->bm_ctx->bmGs,
-                    filemagic->bm_ctx->bmBc) != NULL)
+                    strlen(file->magic) + 1, filemagic->bm_ctx) != NULL)
         {
 #ifdef DEBUG
             if (SCLogDebugEnabled()) {
