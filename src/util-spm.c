@@ -103,16 +103,10 @@ uint8_t *Bs2bmNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uin
  */
 uint8_t *BoyerMooreSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen)
 {
-    uint16_t bmBc[ALPHABET_SIZE];
-    uint16_t *bmGs = SCMalloc(sizeof(uint16_t)*(needlelen + 1));
-    if (unlikely(bmGs == NULL))
-        return NULL;
+    BmCtx *bm_ctx = BoyerMooreCtxInit(needle, needlelen);
 
-    PreBmGs(needle, needlelen, bmGs);
-    PreBmBc(needle, needlelen, bmBc);
-
-    uint8_t *ret = BoyerMoore(needle, needlelen, text, textlen, bmGs, bmBc);
-    SCFree(bmGs);
+    uint8_t *ret = BoyerMoore(needle, needlelen, text, textlen, bm_ctx);
+    BoyerMooreCtxDeInit(bm_ctx);
 
     return ret;
 }
@@ -128,16 +122,11 @@ uint8_t *BoyerMooreSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint
  */
 uint8_t *BoyerMooreNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen)
 {
-    uint16_t bmBc[ALPHABET_SIZE];
-    uint16_t *bmGs = SCMalloc(sizeof(uint16_t)*(needlelen + 1));
-    if (unlikely(bmGs == NULL))
-        return NULL;
+    BmCtx *bm_ctx = BoyerMooreCtxInit(needle, needlelen);
+    BoyerMooreCtxToNocase(bm_ctx, needle, needlelen);
 
-    PreBmGsNocase(needle, needlelen, bmGs);
-    PreBmBcNocase(needle, needlelen, bmBc);
-
-    uint8_t *ret = BoyerMooreNocase(needle, needlelen, text, textlen, bmGs, bmBc);
-    SCFree(bmGs);
+    uint8_t *ret = BoyerMooreNocase(needle, needlelen, text, textlen, bm_ctx);
+    BoyerMooreCtxDeInit(bm_ctx);
 
     return ret;
 }
@@ -241,24 +230,18 @@ uint8_t *BoyerMooreWrapper(uint8_t *text, uint8_t *needle, int times)
     uint32_t textlen = strlen((char *)text);
     uint16_t needlelen = strlen((char *)needle);
 
-    uint16_t bmBc[ALPHABET_SIZE];
-    uint16_t *bmGs = SCMalloc(sizeof(uint16_t)*(needlelen + 1));
-    if (unlikely(bmGs == NULL))
-        return NULL;
+    BmCtx *bm_ctx = BoyerMooreCtxInit(needle, needlelen);
 
     uint8_t *ret = NULL;
     int i = 0;
 
-    PreBmGs(needle, needlelen, bmGs);
-    PreBmBc(needle, needlelen, bmBc);
-
     CLOCK_INIT;
     if (times > 1) CLOCK_START;
     for (i = 0; i < times; i++) {
-        ret = BoyerMoore(needle, needlelen, text, textlen, bmGs, bmBc);
+        ret = BoyerMoore(needle, needlelen, text, textlen, bm_ctx);
     }
     if (times > 1) { CLOCK_END; CLOCK_PRINT_SEC; };
-    SCFree(bmGs);
+    BoyerMooreCtxDeInit(bm_ctx);
     return ret;
 }
 
@@ -267,24 +250,25 @@ uint8_t *BoyerMooreNocaseWrapper(uint8_t *text, uint8_t *needle, int times)
     uint32_t textlen = strlen((char *)text);
     uint16_t needlelen = strlen((char *)needle);
 
-    uint16_t bmBc[ALPHABET_SIZE];
-    uint16_t *bmGs = SCMalloc(sizeof(uint16_t)*(needlelen + 1));
-    if (unlikely(bmGs == NULL))
+    uint8_t *low_needle = SCMalloc(needlelen);
+    if (low_needle == NULL)
         return NULL;
+    memcpy(low_needle, needle, needlelen);
+
+    BmCtx *bm_ctx = BoyerMooreCtxInit(low_needle, needlelen);
+    BoyerMooreCtxToNocase(bm_ctx, low_needle, needlelen);
 
     uint8_t *ret = NULL;
     int i = 0;
 
-    PreBmGsNocase(needle, needlelen, bmGs);
-    PreBmBcNocase(needle, needlelen, bmBc);
-
     CLOCK_INIT;
     if (times > 1) CLOCK_START;
     for (i = 0; i < times; i++) {
-        ret = BoyerMooreNocase(needle, needlelen, text, textlen, bmGs, bmBc);
+        ret = BoyerMooreNocase(low_needle, needlelen, text, textlen, bm_ctx);
     }
     if (times > 1) { CLOCK_END; CLOCK_PRINT_SEC; };
-    SCFree(bmGs);
+    BoyerMooreCtxDeInit(bm_ctx);
+    free(low_needle);
     return ret;
 
 }
@@ -379,10 +363,7 @@ uint8_t *BoyerMooreCtxWrapper(uint8_t *text, uint8_t *needle, int times)
     uint32_t textlen = strlen((char *)text);
     uint16_t needlelen = strlen((char *)needle);
 
-    uint16_t bmBc[ALPHABET_SIZE];
-    uint16_t *bmGs = SCMalloc(sizeof(uint16_t)*(needlelen + 1));
-    if (unlikely(bmGs == NULL))
-        return NULL;
+    BmCtx *bm_ctx = BoyerMooreCtxInit(needle, needlelen);
 
     uint8_t *ret = NULL;
     int i = 0;
@@ -391,13 +372,11 @@ uint8_t *BoyerMooreCtxWrapper(uint8_t *text, uint8_t *needle, int times)
     if (times > 1) CLOCK_START;
     for (i = 0; i < times; i++) {
         /* Stats including context building */
-        PreBmGs(needle, needlelen, bmGs);
-        PreBmBc(needle, needlelen, bmBc);
-
-        ret = BoyerMoore(needle, needlelen, text, textlen, bmGs, bmBc);
+        ret = BoyerMoore(needle, needlelen, text, textlen, bm_ctx);
     }
     if (times > 1) { CLOCK_END; CLOCK_PRINT_SEC; };
-    SCFree(bmGs);
+    BoyerMooreCtxDeInit(bm_ctx);
+
     return ret;
 }
 
@@ -423,10 +402,12 @@ uint8_t *BoyerMooreNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int times)
     uint32_t textlen = strlen((char *)text);
     uint16_t needlelen = strlen((char *)needle);
 
-    uint16_t bmBc[ALPHABET_SIZE];
-    uint16_t *bmGs = SCMalloc(sizeof(uint16_t)*(needlelen + 1));
-    if (unlikely(bmGs == NULL))
+    uint8_t *low_needle = SCMalloc(needlelen);
+    if (low_needle == NULL)
         return NULL;
+    memcpy(low_needle, needle, needlelen);
+
+    BmCtx *bm_ctx = BoyerMooreCtxInit(low_needle, needlelen);
 
     uint8_t *ret = NULL;
     int i = 0;
@@ -435,12 +416,12 @@ uint8_t *BoyerMooreNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int times)
     if (times > 1) CLOCK_START;
     for (i = 0; i < times; i++) {
         /* Stats including context building */
-        PreBmGsNocase(needle, needlelen, bmGs);
-        PreBmBcNocase(needle, needlelen, bmBc);
-        ret = BoyerMooreNocase(needle, needlelen, text, textlen, bmGs, bmBc);
+        BoyerMooreCtxToNocase(bm_ctx, low_needle, needlelen);
+        ret = BoyerMooreNocase(low_needle, needlelen, text, textlen, bm_ctx);
     }
     if (times > 1) { CLOCK_END; CLOCK_PRINT_SEC; };
-    SCFree(bmGs);
+    BoyerMooreCtxDeInit(bm_ctx);
+    free(low_needle);
     return ret;
 
 }

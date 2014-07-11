@@ -105,8 +105,7 @@ static int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         SCReturnInt(0);
 
     if (BoyerMooreNocase(filename->name, filename->len, file->name,
-                file->name_len, filename->bm_ctx->bmGs,
-                filename->bm_ctx->bmBc) != NULL)
+                file->name_len, filename->bm_ctx) != NULL)
     {
 #ifdef DEBUG
         if (SCLogDebugEnabled()) {
