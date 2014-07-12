@@ -64,6 +64,8 @@
 #include "host-timeout.h"
 #include "defrag-timeout.h"
 
+#include "output-flow.h"
+
 /* Run mode selected at suricata.c */
 extern int run_mode;
 
@@ -126,24 +128,6 @@ void FlowKillFlowManagerThread(void)
 }
 
 /** \internal
- *  \brief Get the flow's state
- *
- *  \param f flow
- *
- *  \retval state either FLOW_STATE_NEW, FLOW_STATE_ESTABLISHED or FLOW_STATE_CLOSED
- */
-static inline int FlowGetFlowState(Flow *f) {
-    if (flow_proto[f->protomap].GetProtoState != NULL) {
-        return flow_proto[f->protomap].GetProtoState(f->protoctx);
-    } else {
-        if ((f->flags & FLOW_TO_SRC_SEEN) && (f->flags & FLOW_TO_DST_SEEN))
-            return FLOW_STATE_ESTABLISHED;
-        else
-            return FLOW_STATE_NEW;
-    }
-}
-
-/** \internal
  *  \brief get timeout for flow
  *
  *  \param f flow
@@ -202,7 +186,7 @@ static int FlowManagerFlowTimeout(Flow *f, int state, struct timeval *ts, int em
     uint32_t timeout = FlowGetFlowTimeout(f, state, emergency);
 
     /* do the timeout check */
-    if ((int32_t)(f->lastts_sec + timeout) >= ts->tv_sec) {
+    if ((int32_t)(f->lastts.tv_sec + timeout) >= ts->tv_sec) {
         return 0;
     }
 
@@ -291,14 +275,25 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
             f->hnext = NULL;
             f->hprev = NULL;
 
-            FlowClearMemory (f, f->protomap);
+            if (state == FLOW_STATE_NEW)
+                f->flow_end_flags |= FLOW_END_FLAG_STATE_NEW;
+            else if (state == FLOW_STATE_ESTABLISHED)
+                f->flow_end_flags |= FLOW_END_FLAG_STATE_ESTABLISHED;
+            else if (state == FLOW_STATE_CLOSED)
+                f->flow_end_flags |= FLOW_END_FLAG_STATE_CLOSED;
+
+            if (emergency)
+                f->flow_end_flags |= FLOW_END_FLAG_EMERGENCY;
+            f->flow_end_flags |= FLOW_END_FLAG_TIMEOUT;
+
+//            FlowClearMemory (f, f->protomap);
 
             /* no one is referring to this flow, use_cnt 0, removed from hash
              * so we can unlock it and move it back to the spare queue. */
             FLOWLOCK_UNLOCK(f);
-
+            FlowEnqueue(&flow_recycle_q, f);
             /* move to spare list */
-            FlowMoveToSpare(f);
+//            FlowMoveToSpare(f);
 
             cnt++;
 
@@ -590,6 +585,203 @@ void FlowManagerThreadSpawn()
     return;
 }
 
+/** \brief Thread that manages timed out flows.
+ *
+ *  \param td ThreadVars casted to void ptr
+ */
+void *FlowRecyclerThread(void *td)
+{
+    /* block usr2. usr2 to be handled by the main thread only */
+    UtilSignalBlock(SIGUSR2);
+
+    ThreadVars *th_v = (ThreadVars *)td;
+    struct timeval ts;
+    struct timespec cond_time;
+    int flow_update_delay_sec = FLOW_NORMAL_MODE_UPDATE_DELAY_SEC;
+    int flow_update_delay_nsec = FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC;
+    uint64_t recycled_cnt = 0;
+    void *output_thread_data = NULL;
+
+    if (th_v->thread_setup_flags != 0)
+        TmThreadSetupOptions(th_v);
+
+    memset(&ts, 0, sizeof(ts));
+
+    /* set the thread name */
+    if (SCSetThreadName(th_v->name) < 0) {
+        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
+    } else {
+        SCLogDebug("%s started...", th_v->name);
+    }
+
+    /* Set the threads capability */
+    th_v->cap_flags = 0;
+    SCDropCaps(th_v);
+
+    if (OutputFlowLogThreadInit(th_v, NULL, &output_thread_data) != TM_ECODE_OK) {
+        SCLogError(SC_ERR_THREAD_INIT, "initializing flow log API for thread failed");
+
+        /* failure */
+        TmThreadsSetFlag(th_v, THV_RUNNING_DONE);
+        TmThreadWaitForFlag(th_v, THV_DEINIT);
+        TmThreadsSetFlag(th_v, THV_CLOSED);
+        pthread_exit((void *) 0);
+        return NULL;
+    }
+    SCLogDebug("output_thread_data %p", output_thread_data);
+
+    TmThreadsSetFlag(th_v, THV_INIT_DONE);
+    while (1)
+    {
+        if (TmThreadsCheckFlag(th_v, THV_PAUSE)) {
+            TmThreadsSetFlag(th_v, THV_PAUSED);
+            TmThreadTestThreadUnPaused(th_v);
+            TmThreadsUnsetFlag(th_v, THV_PAUSED);
+        }
+
+        /* Get the time */
+        memset(&ts, 0, sizeof(ts));
+        TimeGet(&ts);
+        SCLogDebug("ts %" PRIdMAX "", (intmax_t)ts.tv_sec);
+
+        uint32_t len = 0;
+        FQLOCK_LOCK(&flow_recycle_q);
+        len = flow_recycle_q.len;
+        FQLOCK_UNLOCK(&flow_recycle_q);
+
+        /* Loop through the queue and clean up all flows in it */
+        if (len) {
+            Flow *f;
+
+            while ((f = FlowDequeue(&flow_recycle_q)) != NULL) {
+                FLOWLOCK_WRLOCK(f);
+
+                (void)OutputFlowLog(th_v, output_thread_data, f);
+
+                FlowClearMemory (f, f->protomap);
+                FLOWLOCK_UNLOCK(f);
+                FlowMoveToSpare(f);
+                recycled_cnt++;
+            }
+        }
+
+        SCLogDebug("%u flows to recycle", len);
+
+        if (TmThreadsCheckFlag(th_v, THV_KILL)) {
+            SCPerfSyncCounters(th_v);
+            break;
+        }
+
+        cond_time.tv_sec = time(NULL) + flow_update_delay_sec;
+        cond_time.tv_nsec = flow_update_delay_nsec;
+        SCCtrlMutexLock(&flow_recycler_ctrl_mutex);
+        SCCtrlCondTimedwait(&flow_recycler_ctrl_cond,
+                &flow_recycler_ctrl_mutex, &cond_time);
+        SCCtrlMutexUnlock(&flow_recycler_ctrl_mutex);
+
+        SCLogDebug("woke up...");
+
+        SCPerfSyncCountersIfSignalled(th_v);
+    }
+
+    if (output_thread_data != NULL)
+        OutputFlowLogThreadDeinit(th_v, output_thread_data);
+
+    SCLogInfo("%"PRIu64" flows processed", recycled_cnt);
+
+    TmThreadsSetFlag(th_v, THV_RUNNING_DONE);
+    TmThreadWaitForFlag(th_v, THV_DEINIT);
+
+    TmThreadsSetFlag(th_v, THV_CLOSED);
+    pthread_exit((void *) 0);
+    return NULL;
+}
+
+int FlowRecyclerReadyToShutdown(void)
+{
+    uint32_t len = 0;
+    FQLOCK_LOCK(&flow_recycle_q);
+    len = flow_recycle_q.len;
+    FQLOCK_UNLOCK(&flow_recycle_q);
+
+    return ((len == 0));
+}
+
+/** \brief spawn the flow recycler thread */
+void FlowRecyclerThreadSpawn()
+{
+    ThreadVars *tv_flowmgr = NULL;
+
+    SCCtrlCondInit(&flow_recycler_ctrl_cond, NULL);
+    SCCtrlMutexInit(&flow_recycler_ctrl_mutex, NULL);
+
+    tv_flowmgr = TmThreadCreateMgmtThread("FlowRecyclerThread",
+                                          FlowRecyclerThread, 0);
+
+    TmThreadSetCPU(tv_flowmgr, MANAGEMENT_CPU_SET);
+
+    if (tv_flowmgr == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(1);
+    }
+    if (TmThreadSpawn(tv_flowmgr) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
+
+    return;
+}
+
+/**
+ * \brief Used to kill flow recycler thread(s).
+ *
+ * \note this should only be called when the flow manager is already gone
+ *
+ * \todo Kinda hackish since it uses the tv name to identify flow recycler
+ *       thread.  We need an all weather identification scheme.
+ */
+void FlowKillFlowRecyclerThread(void)
+{
+    ThreadVars *tv = NULL;
+    int cnt = 0;
+
+    /* make sure all flows are processed */
+    do {
+        SCCtrlCondSignal(&flow_recycler_ctrl_cond);
+        usleep(10);
+    } while (FlowRecyclerReadyToShutdown() == 0);
+
+    SCMutexLock(&tv_root_lock);
+
+    /* flow manager thread(s) is/are a part of mgmt threads */
+    tv = tv_root[TVT_MGMT];
+
+    while (tv != NULL) {
+        if (strcasecmp(tv->name, "FlowRecyclerThread") == 0) {
+            TmThreadsSetFlag(tv, THV_KILL);
+            TmThreadsSetFlag(tv, THV_DEINIT);
+
+            SCCtrlCondSignal(&flow_recycler_ctrl_cond);
+
+            /* be sure it has shut down */
+            while (!TmThreadsCheckFlag(tv, THV_CLOSED)) {
+                usleep(100);
+            }
+            cnt++;
+        }
+        tv = tv->next;
+    }
+
+    /* not possible, unless someone decides to rename FlowManagerThread */
+    if (cnt == 0) {
+        SCMutexUnlock(&tv_root_lock);
+        abort();
+    }
+
+    SCMutexUnlock(&tv_root_lock);
+    return;
+}
+
 #ifdef UNITTESTS
 
 /**
@@ -618,7 +810,7 @@ static int FlowMgrTest01 (void) {
     f.flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
 
     TimeGet(&ts);
-    f.lastts_sec = ts.tv_sec - 5000;
+    f.lastts.tv_sec = ts.tv_sec - 5000;
     f.protoctx = &ssn;
     f.fb = &fb;
 
@@ -677,7 +869,7 @@ static int FlowMgrTest02 (void) {
     ssn.client = client;
     ssn.server = client;
     ssn.state = TCP_ESTABLISHED;
-    f.lastts_sec = ts.tv_sec - 5000;
+    f.lastts.tv_sec = ts.tv_sec - 5000;
     f.protoctx = &ssn;
     f.fb = &fb;
     f.proto = IPPROTO_TCP;
@@ -722,7 +914,7 @@ static int FlowMgrTest03 (void) {
 
     TimeGet(&ts);
     ssn.state = TCP_SYN_SENT;
-    f.lastts_sec = ts.tv_sec - 300;
+    f.lastts.tv_sec = ts.tv_sec - 300;
     f.protoctx = &ssn;
     f.fb = &fb;
     f.proto = IPPROTO_TCP;
@@ -781,7 +973,7 @@ static int FlowMgrTest04 (void) {
     ssn.client = client;
     ssn.server = client;
     ssn.state = TCP_ESTABLISHED;
-    f.lastts_sec = ts.tv_sec - 5000;
+    f.lastts.tv_sec = ts.tv_sec - 5000;
     f.protoctx = &ssn;
     f.fb = &fb;
     f.proto = IPPROTO_TCP;
@@ -842,7 +1034,7 @@ static int FlowMgrTest05 (void) {
     FlowTimeoutCounters counters = { 0, 0, 0, };
     FlowTimeoutHash(&ts, 0 /* check all */, &counters);
 
-    if (flow_spare_q.len > 0) {
+    if (flow_recycle_q.len > 0) {
         result = 1;
     }
 
