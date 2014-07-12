@@ -180,7 +180,7 @@ struct {
 
 
 /* JSON format logging */
-static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
+static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx, uint64_t tx_id)
 {
     LogHttpFileCtx *http_ctx = aft->httplog_ctx;
     json_t *hjs = json_object();
@@ -348,6 +348,9 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx)
         json_object_set_new(hjs, "length", json_integer(tx->response_message_len));
     }
 
+    /* tx id for correlation with alerts */
+    json_object_set_new(hjs, "tx_id", json_integer(tx_id));
+
     json_object_set_new(js, "http", hjs);
 }
 
@@ -368,7 +371,7 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     /* reset */
     MemBufferReset(buffer);
 
-    JsonHttpLogJSON(jhl, js, tx);
+    JsonHttpLogJSON(jhl, js, tx, tx_id);
 
     OutputJSONBuffer(js, jhl->httplog_ctx->file_ctx, buffer);
     json_object_del(js, "http");
