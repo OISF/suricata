@@ -70,7 +70,9 @@ typedef struct LogDnsLogThread_ {
     MemBuffer *buffer;
 } LogDnsLogThread;
 
-static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, DNSQueryEntry *entry) {
+static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
+        uint64_t tx_id, DNSQueryEntry *entry)
+{
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
 
     SCLogDebug("got a DNS request and now logging !!");
@@ -101,6 +103,9 @@ static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, DNSQu
     char record[16] = "";
     DNSCreateTypeString(entry->type, record, sizeof(record));
     json_object_set_new(djs, "rrtype", json_string(record));
+
+    /* tx id (tx counter) */
+    json_object_set_new(djs, "tx_id", json_integer(tx_id));
 
     /* dns */
     json_object_set_new(js, "dns", djs);
@@ -174,7 +179,7 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
     return;
 }
 
-static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx) {
+static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, uint64_t tx_id) {
 
     SCLogDebug("got a DNS response and now logging !!");
 
@@ -208,7 +213,7 @@ static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
         if (unlikely(js == NULL))
             return TM_ECODE_OK;
 
-        LogQuery(td, js, tx, query);
+        LogQuery(td, js, tx, tx_id, query);
 
         json_decref(js);
     }
@@ -217,7 +222,7 @@ static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-    LogAnswers(td, js, tx);
+    LogAnswers(td, js, tx, tx_id);
 
     json_decref(js);
 

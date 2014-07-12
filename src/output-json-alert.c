@@ -135,6 +135,9 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                             json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
         json_object_set_new(ajs, "severity", json_integer(pa->s->prio));
 
+        if (pa->flags & PACKET_ALERT_FLAG_TX)
+            json_object_set_new(ajs, "tx_id", json_integer(pa->tx_id));
+
         /* alert */
         json_object_set_new(js, "alert", ajs);
 
