@@ -42,4 +42,6 @@ SCCtrlMutex flow_recycler_ctrl_mutex;
 void FlowRecyclerThreadSpawn(void);
 void FlowKillFlowRecyclerThread(void);
 
+void TmModuleFlowManagerRegister (void);
+
 #endif /* __FLOW_MANAGER_H__ */

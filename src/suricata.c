@@ -793,6 +793,8 @@ int g_ut_covered;
 
 void RegisterAllModules()
 {
+    /* managers */
+    TmModuleFlowManagerRegister();
     /* nfq */
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();

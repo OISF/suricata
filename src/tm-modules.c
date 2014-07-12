@@ -255,6 +255,8 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_JSONSSHLOG);
         CASE_CODE (TMM_JSONTLSLOG);
         CASE_CODE (TMM_OUTPUTJSON);
+        CASE_CODE (TMM_FLOWMANAGER);
+        CASE_CODE (TMM_FLOWRECYCLER);
 
         CASE_CODE (TMM_SIZE);
     }
