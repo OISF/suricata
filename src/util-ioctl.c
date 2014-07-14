@@ -29,6 +29,7 @@
 #endif
 
 #ifdef HAVE_LINUX_ETHTOOL_H
+#include <linux/types.h>
 #include <linux/ethtool.h>
 #ifdef HAVE_LINUX_SOCKIOS_H
 #include <linux/sockios.h>
