@@ -80,6 +80,11 @@ int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             DecodeVLAN(tv, dtv, p, pkt + ETHERNET_HEADER_LEN,
                                  len - ETHERNET_HEADER_LEN, pq);
             break;
+        case ETHERNET_TYPE_MPLS_UNICAST:
+        case ETHERNET_TYPE_MPLS_MULTICAST:
+            DecodeMPLS(tv, dtv, p, pkt + ETHERNET_HEADER_LEN,
+                       len - ETHERNET_HEADER_LEN, pq);
+            break;
         default:
             SCLogDebug("p %p pkt %p ether type %04x not supported", p,
                        pkt, ntohs(p->ethh->eth_type));
