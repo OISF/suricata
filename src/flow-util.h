@@ -29,15 +29,12 @@
 
 #define COPY_TIMESTAMP(src,dst) ((dst)->tv_sec = (src)->tv_sec, (dst)->tv_usec = (src)->tv_usec)
 
-#ifdef DEBUG
 #define RESET_COUNTERS(f) do { \
         (f)->todstpktcnt = 0; \
         (f)->tosrcpktcnt = 0; \
-        (f)->bytecnt = 0; \
+        (f)->todstbytecnt = 0; \
+        (f)->tosrcbytecnt = 0; \
     } while (0)
-#else
-#define RESET_COUNTERS(f)
-#endif
 
 #define FLOW_INITIALIZE(f) do { \
         (f)->sp = 0; \
@@ -47,9 +44,11 @@
         (f)->probing_parser_toserver_alproto_masks = 0; \
         (f)->probing_parser_toclient_alproto_masks = 0; \
         (f)->flags = 0; \
-        (f)->lastts_sec = 0; \
+        (f)->lastts.tv_sec = 0; \
+        (f)->lastts.tv_usec = 0; \
         FLOWLOCK_INIT((f)); \
         (f)->protoctx = NULL; \
+        (f)->flow_end_flags = 0; \
         (f)->alproto = 0; \
         (f)->alproto_ts = 0; \
         (f)->alproto_tc = 0; \
@@ -86,8 +85,10 @@
         (f)->probing_parser_toserver_alproto_masks = 0; \
         (f)->probing_parser_toclient_alproto_masks = 0; \
         (f)->flags = 0; \
-        (f)->lastts_sec = 0; \
+        (f)->lastts.tv_sec = 0; \
+        (f)->lastts.tv_usec = 0; \
         (f)->protoctx = NULL; \
+        (f)->flow_end_flags = 0; \
         (f)->alparser = NULL; \
         (f)->alstate = NULL; \
         (f)->alproto = 0; \

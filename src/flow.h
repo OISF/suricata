@@ -178,6 +178,13 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** \todo only used by flow keyword internally. */
 #define FLOW_PKT_ONLYSTREAM             0x80
 
+#define FLOW_END_FLAG_STATE_NEW         0x01
+#define FLOW_END_FLAG_STATE_ESTABLISHED 0x02
+#define FLOW_END_FLAG_STATE_CLOSED      0x04
+#define FLOW_END_FLAG_EMERGENCY         0x08
+#define FLOW_END_FLAG_TIMEOUT           0x10
+#define FLOW_END_FLAG_FORCED            0x20
+
 /** Mutex or RWLocks for the flow. */
 //#define FLOWLOCK_RWLOCK
 #define FLOWLOCK_MUTEX
@@ -317,8 +324,8 @@ typedef struct Flow_
 
     uint32_t flags;
 
-    /* ts of flow init and last update */
-    int32_t lastts_sec;
+    /* time stamp of last update (last packet) */
+    struct timeval lastts;
 
 #ifdef FLOWLOCK_RWLOCK
     SCRWLock r;
@@ -334,7 +341,9 @@ typedef struct Flow_
     /** mapping to Flow's protocol specific protocols for timeouts
         and state and free functions. */
     uint8_t protomap;
-    uint8_t pad0;
+
+    uint8_t flow_end_flags;
+    /* coccinelle: Flow:flow_end_flags:FLOW_END_FLAG_ */
 
     AppProto alproto; /**< \brief application level protocol */
     AppProto alproto_ts;
@@ -377,11 +386,11 @@ typedef struct Flow_
     struct Flow_ *lnext; /* list */
     struct Flow_ *lprev;
     struct timeval startts;
-#ifdef DEBUG
+
     uint32_t todstpktcnt;
     uint32_t tosrcpktcnt;
-    uint64_t bytecnt;
-#endif
+    uint64_t todstbytecnt;
+    uint64_t tosrcbytecnt;
 } Flow;
 
 enum {
@@ -401,7 +410,7 @@ typedef struct FlowProto_ {
     int (*GetProtoState)(void *);
 } FlowProto;
 
-void FlowHandlePacket (ThreadVars *, Packet *);
+void FlowHandlePacket (ThreadVars *, DecodeThreadVars *, Packet *);
 void FlowInitConfig (char);
 void FlowPrintQueueInfo (void);
 void FlowShutdown(void);

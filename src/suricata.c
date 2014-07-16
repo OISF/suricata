@@ -80,6 +80,8 @@
 #include "alert-pcapinfo.h"
 #include "output-json-alert.h"
 
+#include "output-json-flow.h"
+#include "output-json-netflow.h"
 #include "log-droplog.h"
 #include "output-json-drop.h"
 #include "log-httplog.h"
@@ -792,6 +794,8 @@ int g_ut_covered;
 
 void RegisterAllModules()
 {
+    /* managers */
+    TmModuleFlowManagerRegister();
     /* nfq */
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();
@@ -870,6 +874,9 @@ void RegisterAllModules()
     TmModuleJsonDnsLogRegister();
 
     TmModuleJsonAlertLogRegister();
+    /* flow/netflow */
+    TmModuleJsonFlowLogRegister();
+    TmModuleJsonNetFlowLogRegister();
 
     /* log api */
     TmModulePacketLoggerRegister();
@@ -2285,6 +2292,7 @@ int main(int argc, char **argv)
         }
         /* Spawn the flow manager thread */
         FlowManagerThreadSpawn();
+        FlowRecyclerThreadSpawn();
         StreamTcpInitConfig(STREAM_VERBOSE);
 
         SCPerfSpawnThreads();
@@ -2397,6 +2405,12 @@ int main(int argc, char **argv)
     DetectEngineCtx *global_de_ctx = DetectEngineGetGlobalDeCtx();
     if (suri.run_mode != RUNMODE_UNIX_SOCKET && de_ctx != NULL) {
         BUG_ON(global_de_ctx == NULL);
+    }
+
+    /* before TmThreadKillThreads, as otherwise that kills it
+     * but more slowly */
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+        FlowKillFlowRecyclerThread();
     }
 
     TmThreadKillThreads();
