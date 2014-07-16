@@ -895,6 +895,82 @@ void *TmThreadsSlotVar(void *td)
     return NULL;
 }
 
+static void *TmThreadsManagement(void *td)
+{
+    /* block usr2.  usr2 to be handled by the main thread only */
+    UtilSignalBlock(SIGUSR2);
+
+    ThreadVars *tv = (ThreadVars *)td;
+    TmSlot *s = (TmSlot *)tv->tm_slots;
+    TmEcode r = TM_ECODE_OK;
+
+    BUG_ON(s == NULL);
+
+    /* Set the thread name */
+    if (SCSetThreadName(tv->name) < 0) {
+        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
+    }
+
+    if (tv->thread_setup_flags != 0)
+        TmThreadSetupOptions(tv);
+
+    /* Drop the capabilities for this thread */
+    SCDropCaps(tv);
+
+    SCLogDebug("%s starting", tv->name);
+
+    if (s->SlotThreadInit != NULL) {
+        void *slot_data = NULL;
+        r = s->SlotThreadInit(tv, s->slot_initdata, &slot_data);
+        if (r != TM_ECODE_OK) {
+            EngineKill();
+
+            TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
+            pthread_exit((void *) -1);
+            return NULL;
+        }
+        (void)SC_ATOMIC_SET(s->slot_data, slot_data);
+    }
+    memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
+    memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
+
+    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
+    SCPerfAddToClubbedTMTable((tv->thread_group_name != NULL) ?
+            tv->thread_group_name : tv->name, &tv->sc_perf_pctx);
+
+    TmThreadsSetFlag(tv, THV_INIT_DONE);
+
+    r = s->Management(tv, SC_ATOMIC_GET(s->slot_data));
+    /* handle error */
+    if (r == TM_ECODE_FAILED) {
+        TmThreadsSetFlag(tv, THV_FAILED);
+    }
+
+    if (TmThreadsCheckFlag(tv, THV_KILL)) {
+        SCPerfSyncCounters(tv);
+    }
+
+    TmThreadsSetFlag(tv, THV_RUNNING_DONE);
+    TmThreadWaitForFlag(tv, THV_DEINIT);
+
+    if (s->SlotThreadExitPrintStats != NULL) {
+        s->SlotThreadExitPrintStats(tv, SC_ATOMIC_GET(s->slot_data));
+    }
+
+    if (s->SlotThreadDeinit != NULL) {
+        r = s->SlotThreadDeinit(tv, SC_ATOMIC_GET(s->slot_data));
+        if (r != TM_ECODE_OK) {
+            TmThreadsSetFlag(tv, THV_CLOSED);
+            pthread_exit((void *) -1);
+            return NULL;
+        }
+    }
+
+    TmThreadsSetFlag(tv, THV_CLOSED);
+    pthread_exit((void *) 0);
+    return NULL;
+}
+
 /**
  * \brief We set the slot functions.
  *
@@ -929,6 +1005,8 @@ TmEcode TmThreadSetSlots(ThreadVars *tv, char *name, void *(*fn_p)(void *))
         tv->tm_func = TmThreadsSlotVar;
     } else if (strcmp(name, "pktacqloop") == 0) {
         tv->tm_func = TmThreadsSlotPktAcqLoop;
+    } else if (strcmp(name, "management") == 0) {
+        tv->tm_func = TmThreadsManagement;
     } else if (strcmp(name, "custom") == 0) {
         if (fn_p == NULL)
             goto error;
@@ -994,6 +1072,7 @@ static inline TmSlot * _TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *
     SC_ATOMIC_INIT(slot->SlotFunc);
     (void)SC_ATOMIC_SET(slot->SlotFunc, tm->Func);
     slot->PktAcqLoop = tm->PktAcqLoop;
+    slot->Management = tm->Management;
     slot->SlotThreadExitPrintStats = tm->ThreadExitPrintStats;
     slot->SlotThreadDeinit = tm->ThreadDeinit;
     /* we don't have to check for the return value "-1".  We wouldn't have
@@ -1533,6 +1612,38 @@ ThreadVars *TmThreadCreateMgmtThread(char *name, void *(fn_p)(void *),
     if (tv != NULL) {
         tv->type = TVT_MGMT;
         TmThreadSetCPU(tv, MANAGEMENT_CPU_SET);
+    }
+
+    return tv;
+}
+
+/**
+ * \brief Creates and returns the TV instance for a Management thread(MGMT).
+ *        This function supports only custom slot functions and hence a
+ *        function pointer should be sent as an argument.
+ *
+ * \param name       Name of this TV instance
+ * \param module     Name of TmModule with MANAGEMENT flag set.
+ * \param mucond     Flag to indicate whether to initialize the condition
+ *                   and the mutex variables for this newly created TV.
+ *
+ * \retval the newly created TV instance, or NULL on error
+ */
+ThreadVars *TmThreadCreateMgmtThreadByName(char *name, char *module,
+                                     int mucond)
+{
+    ThreadVars *tv = NULL;
+
+    tv = TmThreadCreate(name, NULL, NULL, NULL, NULL, "management", NULL, mucond);
+
+    if (tv != NULL) {
+        tv->type = TVT_MGMT;
+        TmThreadSetCPU(tv, MANAGEMENT_CPU_SET);
+
+        TmModule *m = TmModuleGetByName(module);
+        if (m) {
+            TmSlotSetFuncAppend(tv, m, NULL);
+        }
     }
 
     return tv;
