@@ -33,6 +33,7 @@
 #define TM_FLAG_STREAM_TM       0x04
 #define TM_FLAG_DETECT_TM       0x08
 #define TM_FLAG_LOGAPI_TM       0x10 /**< TM is run by Log API */
+#define TM_FLAG_MANAGEMENT_TM   0x20
 
 typedef struct TmModule_ {
     char *name;
@@ -46,6 +47,8 @@ typedef struct TmModule_ {
     TmEcode (*Func)(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
     TmEcode (*PktAcqLoop)(ThreadVars *, void *, void *);
+
+    TmEcode (*Management)(ThreadVars *, void *);
 
     /** global Init/DeInit */
     TmEcode (*Init)(void);
