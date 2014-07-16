@@ -4210,6 +4210,75 @@ static int StreamTcpPacketIsWindowUpdate(TcpSession *ssn, Packet *p)
     return 0;
 }
 
+/**
+ *  Try to detect packets doing bad window updates
+ *
+ *  See bug 1238.
+ *
+ *  Find packets that are unexpected, and shrink the window to the point
+ *  where the packets we do expect are rejected for being out of window.
+ *
+ *  The logic we use here is:
+ *  - packet seq > next_seq
+ *  - packet acq > next_seq (packet acks unseen data)
+ *  - packet shrinks window more than it's own data size
+ *    (in case of no data, any shrinking is rejected)
+ *
+ *  Packets coming in after packet loss can look quite a bit like this.
+ */
+static int StreamTcpPacketIsBadWindowUpdate(TcpSession *ssn, Packet *p)
+{
+    TcpStream *stream = NULL, *ostream = NULL;
+    uint32_t seq;
+    uint32_t ack;
+    uint32_t pkt_win;
+
+    if (p->flags & PKT_PSEUDO_STREAM_END)
+        return 0;
+
+    if (ssn->state < TCP_ESTABLISHED)
+        return 0;
+
+    if ((p->tcph->th_flags & (TH_SYN|TH_FIN|TH_RST)) != 0)
+        return 0;
+
+    if (PKT_IS_TOSERVER(p)) {
+        stream = &ssn->client;
+        ostream = &ssn->server;
+    } else {
+        stream = &ssn->server;
+        ostream = &ssn->client;
+    }
+
+    seq = TCP_GET_SEQ(p);
+    ack = TCP_GET_ACK(p);
+
+    pkt_win = TCP_GET_WINDOW(p) << ostream->wscale;
+
+    if (pkt_win < ostream->window) {
+        uint32_t diff = ostream->window - pkt_win;
+        if (diff > p->payload_len &&
+                SEQ_GT(ack, ostream->next_seq) &&
+                SEQ_GT(seq, stream->next_seq))
+        {
+            SCLogDebug("%"PRIu64", pkt_win %u, stream win %u, diff %u, dsize %u",
+                p->pcap_cnt, pkt_win, ostream->window, diff, p->payload_len);
+            SCLogDebug("%"PRIu64", pkt_win %u, stream win %u",
+                p->pcap_cnt, pkt_win, ostream->window);
+            SCLogDebug("%"PRIu64", seq %u ack %u ostream->next_seq %u stream->last_ack %u, diff %u (%u)",
+                p->pcap_cnt, seq, ack, ostream->next_seq, stream->last_ack,
+                ostream->next_seq - ostream->last_ack, stream->next_seq - stream->last_ack);
+
+            StreamTcpSetEvent(p, STREAM_PKT_BAD_WINDOW_UPDATE);
+            return 1;
+        }
+
+    }
+    SCLogDebug("seq %u (%u), ack %u (%u)", seq, stream->next_seq, ack, ostream->last_ack);
+    return 0;
+}
+
+
 /* flow is and stays locked */
 int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                      PacketQueue *pq)
@@ -4274,7 +4343,6 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK)
             StreamTcpPacketSwitchDir(ssn, p);
 
-        StreamTcpPacketIsWindowUpdate(ssn, p);
         if (StreamTcpPacketIsKeepAlive(ssn, p) == 1) {
             goto skip;
         }
@@ -4283,6 +4351,12 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
             goto skip;
         }
         StreamTcpClearKeepAliveFlag(ssn, p);
+
+        /* if packet is not a valid window update, check if it is perhaps
+         * a bad window update that we should ignore (and alert on) */
+        if (StreamTcpPacketIsWindowUpdate(ssn, p) == 0)
+            if (StreamTcpPacketIsBadWindowUpdate(ssn,p))
+                goto skip;
 
         switch (ssn->state) {
             case TCP_SYN_SENT:

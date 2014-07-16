@@ -211,6 +211,7 @@ struct DetectEngineEvents_ {
     { "stream.reassembly_no_segment", STREAM_REASSEMBLY_NO_SEGMENT, },
     { "stream.reassembly_seq_gap", STREAM_REASSEMBLY_SEQ_GAP, },
     { "stream.reassembly_overlap_different_data", STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA, },
+    { "stream.pkt_bad_window_update", STREAM_PKT_BAD_WINDOW_UPDATE, },
 
     /* SCTP EVENTS */
     { "sctp.pkt_too_small", SCTP_PKT_TOO_SMALL, },

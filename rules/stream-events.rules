@@ -60,6 +60,8 @@ alert tcp any any -> any any (msg:"SURICATA STREAM SHUTDOWN RST invalid ack"; st
 # Sequence gap: missing data in the reassembly engine. Usually due to packet loss. Will be very noisy on a overloaded link / sensor.
 #alert tcp any any -> any any (msg:"SURICATA STREAM reassembly sequence GAP -- missing packet(s)"; stream-event:reassembly_seq_gap; classtype:protocol-command-decode; sid:2210048; rev:2;)
 alert tcp any any -> any any (msg:"SURICATA STREAM reassembly overlap with different data"; stream-event:reassembly_overlap_different_data; classtype:protocol-command-decode; sid:2210050; rev:2;)
+# Bad Window Update: see bug 1238 for an explanation
+alert tcp any any -> any any (msg:"SURICATA STREAM bad window update"; stream-event:pkt_bad_window_update; classtype:protocol-command-decode; sid:2210056; rev:1;)
 
 # retransmission detection
 #
@@ -79,5 +81,5 @@ alert tcp any any -> any any (msg:"SURICATA STREAM Packet is retransmission"; st
 # rule to alert if a stream has excessive retransmissions
 alert tcp any any -> any any (msg:"SURICATA STREAM excessive retransmissions"; flowbits:isnotset,tcp.retransmission.alerted; flowint:tcp.retransmission.count,>=,10; flowbits:set,tcp.retransmission.alerted; classtype:protocol-command-decode; sid:2210054; rev:1;)
 
-# next sid 2210056
+# next sid 2210057
 
