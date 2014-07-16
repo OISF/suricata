@@ -654,6 +654,15 @@ TcpSession *StreamTcpNewSession (Packet *p, int id)
 
         ssn->state = TCP_NONE;
         ssn->flags = stream_config.ssn_init_flags;
+        ssn->tcp_packet_flags = p->tcph ? p->tcph->th_flags : 0;
+
+        if (PKT_IS_TOSERVER(p)) {
+            ssn->client.tcp_flags = p->tcph ? p->tcph->th_flags : 0;
+            ssn->server.tcp_flags = 0;
+        } else if (PKT_IS_TOCLIENT(p)) {
+            ssn->server.tcp_flags = p->tcph ? p->tcph->th_flags : 0;
+            ssn->client.tcp_flags = 0;
+        }
     }
 
     return ssn;
@@ -4196,6 +4205,15 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
     SCLogDebug("p->pcap_cnt %"PRIu64, p->pcap_cnt);
 
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
+
+    /* track TCP flags */
+    if (ssn != NULL) {
+        ssn->tcp_packet_flags |= p->tcph->th_flags;
+        if (PKT_IS_TOSERVER(p))
+            ssn->client.tcp_flags |= p->tcph->th_flags;
+        else if (PKT_IS_TOCLIENT(p))
+            ssn->server.tcp_flags |= p->tcph->th_flags;
+    }
 
     /* update counters */
     if ((p->tcph->th_flags & (TH_SYN|TH_ACK)) == (TH_SYN|TH_ACK)) {
