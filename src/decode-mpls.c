@@ -26,16 +26,24 @@
 #include "suricata-common.h"
 #include "decode.h"
 
-#define MPLS_HEADER_LEN    4
-#define MPLS_BOTTOM(shim)  ((ntohl(shim) >> 8) & 0x1)
-#define MPLS_PROTO_IPV4    4
-#define MPLS_PROTO_IPV6    6
+#define MPLS_HEADER_LEN         4
+#define MPLS_PW_LEN             4
+#define MPLS_MAX_RESERVED_LABEL 15
+#define MPLS_LABEL_IPV4         0
+#define MPLS_LABEL_IPV6         2
+#define MPLS_LABEL(shim)        ntohl(shim) >> 12
+#define MPLS_BOTTOM(shim)       ((ntohl(shim) >> 8) & 0x1)
+
+/* Inner protocol guessing values. */
+#define MPLS_PROTO_ETHERNET     0
+#define MPLS_PROTO_IPV4         4
+#define MPLS_PROTO_IPV6         6
 
 int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
     uint16_t len, PacketQueue *pq)
 {
     uint32_t shim;
-    uint8_t ip_ver;
+    int label;
 
     SCPerfCounterIncr(dtv->counter_mpls, tv->sc_perf_pca);
 
@@ -48,19 +56,33 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
         len -= MPLS_HEADER_LEN;
     } while (MPLS_BOTTOM(shim) == 0);
 
-    /* Best guess at inner packet. */
-    ip_ver = pkt[0] >> 4;
-
-    switch (ip_ver) {
-    case MPLS_PROTO_IPV4:
+    label = MPLS_LABEL(shim);
+    if (label == MPLS_LABEL_IPV4) {
         return DecodeIPV4(tv, dtv, p, pkt, len, pq);
+    }
+    else if (label == MPLS_LABEL_IPV6) {
+        return DecodeIPV6(tv, dtv, p, pkt, len, pq);
+    }
+    else if (label < MPLS_MAX_RESERVED_LABEL) {
+        return TM_ECODE_FAILED;
+    }
+
+    /* Best guess at inner packet. */
+    switch (pkt[0] >> 4) {
+    case MPLS_PROTO_IPV4:
+        DecodeIPV4(tv, dtv, p, pkt, len, pq);
         break;
     case MPLS_PROTO_IPV6:
-        return DecodeIPV6(tv, dtv, p, pkt, len, pq);
+        DecodeIPV6(tv, dtv, p, pkt, len, pq);
+        break;
+    case MPLS_PROTO_ETHERNET:
+        /* Looks like it could be an ethernet pseudowire. */
+        DecodeEthernet(tv, dtv, p, pkt + MPLS_PW_LEN, len - MPLS_PW_LEN,
+            pq);
         break;
     default:
         break;
     }
 
-    return TM_ECODE_FAILED;
+    return TM_ECODE_OK;
 }
