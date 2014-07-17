@@ -191,6 +191,8 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                         memcpy(&IPV6_EXTHDR_RH(p)->ip6rh0_addr[i], pkt+(i*16)+8, sizeof(IPV6_EXTHDR_RH(p)->ip6rh0_addr[i]));
                     }
                     IPV6_EXTHDR_RH(p)->ip6rh0_num_addrs = i;
+
+                    ENGINE_SET_EVENT(p, IPV6_EXTHDR_RH_TYPE_0);
                 }
 
                 nh = *pkt;

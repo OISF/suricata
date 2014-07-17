@@ -79,6 +79,8 @@ enum {
     IPV6_DSTOPTS_UNKNOWN_OPT,       /**< unknown DST opt */
     IPV6_DSTOPTS_ONLY_PADDING,      /**< all options in DST opts are padding */
 
+    IPV6_EXTHDR_RH_TYPE_0,          /**< RH 0 is deprecated as per rfc5095 */
+
     IPV6_WITH_ICMPV4,               /**< IPv6 packet with ICMPv4 header */
 
     /* TCP EVENTS */
