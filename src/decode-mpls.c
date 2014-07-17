@@ -34,19 +34,22 @@
 int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
     uint16_t len, PacketQueue *pq)
 {
-    if (len < MPLS_HEADER_LEN) {
-        return TM_ECODE_FAILED;
-    }
-
     uint32_t shim;
+    uint8_t ip_ver;
+
+    SCPerfCounterIncr(dtv->counter_mpls, tv->sc_perf_pca);
+
     do {
+        if (len < MPLS_HEADER_LEN) {
+            return TM_ECODE_FAILED;
+        }
         shim = *(uint32_t *)pkt;
         pkt += MPLS_HEADER_LEN;
         len -= MPLS_HEADER_LEN;
     } while (MPLS_BOTTOM(shim) == 0);
 
     /* Best guess at inner packet. */
-    uint8_t ip_ver = pkt[0] >> 4;
+    ip_ver = pkt[0] >> 4;
 
     switch (ip_ver) {
     case MPLS_PROTO_IPV4:
