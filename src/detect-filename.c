@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -154,7 +154,7 @@ static DetectFilenameData *DetectFilenameParse (char *str)
         goto error;
     }
 
-    filename->bm_ctx = BoyerMooreCtxInit(filename->name, filename->len);
+    filename->bm_ctx = BoyerMooreNocaseCtxInit(filename->name, filename->len);
     if (filename->bm_ctx == NULL) {
         goto error;
     }
@@ -164,7 +164,6 @@ static DetectFilenameData *DetectFilenameParse (char *str)
         SCLogDebug("negated filename");
     }
 
-    BoyerMooreCtxToNocase(filename->bm_ctx, filename->name, filename->len);
 #ifdef DEBUG
     if (SCLogDebugEnabled()) {
         char *name = SCMalloc(filename->len + 1);

@@ -65,7 +65,7 @@ void BoyerMooreCtxToNocase(BmCtx *bm_ctx, uint8_t *needle, uint16_t needle_len) 
 }
 
 /**
- * \brief Setup a Booyer More context.
+ * \brief Setup a Booyer Moore context.
  *
  * \param str pointer to the pattern string
  * \param size length of the string
@@ -98,7 +98,24 @@ BmCtx *BoyerMooreCtxInit(uint8_t *needle, uint16_t needle_len) {
 }
 
 /**
- * \brief Free the memory allocated to Booyer More context.
+ * \brief Setup a Booyer Moore context for nocase search
+ *
+ * \param str pointer to the pattern string
+ * \param size length of the string
+ * \retval BmCtx pointer to the newly created Context for the pattern
+ * \initonly BoyerMoore contexts should be created at init
+ */
+BmCtx *BoyerMooreNocaseCtxInit(uint8_t *needle, uint16_t needle_len)
+{
+    BmCtx *bm_ctx = BoyerMooreCtxInit(needle, needle_len);
+
+    BoyerMooreCtxToNocase(bm_ctx, needle, needle_len);
+
+    return bm_ctx;
+}
+
+/**
+ * \brief Free the memory allocated to Booyer Moore context.
  *
  * \param bmCtx pointer to the Context for the pattern
  */

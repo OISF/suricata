@@ -1253,8 +1253,10 @@ static int AppLayerProtoDetectPMRegisterPattern(uint8_t ipproto, AppProto alprot
         goto error;
     cd->depth = depth;
     cd->offset = offset;
-    if (!is_cs)
+    if (!is_cs) {
+        BoyerMooreCtxToNocase(cd->bm_ctx, cd->content, cd->content_len);
         cd->flags |= DETECT_CONTENT_NOCASE;
+    }
     if (depth < cd->content_len)
         goto error;
 
