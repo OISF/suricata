@@ -57,29 +57,50 @@
 #include "util-optimize.h"
 #include "util-buffer.h"
 #include "util-logopenfile.h"
+#include "util-crypt.h"
 
 #define MODULE_NAME "JsonAlertLog"
 
 #ifdef HAVE_LIBJANSSON
 
+#define LOG_JSON_PAYLOAD 1
+#define LOG_JSON_PACKET 2
+#define LOG_JSON_PAYLOAD_BASE64 4
+
+#define JSON_STREAM_BUFFER_SIZE 4096
+
 typedef struct JsonAlertLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
-    MemBuffer *buffer;
+    MemBuffer *json_buffer;
+    MemBuffer *payload_buffer;
 } JsonAlertLogThread;
+
+/* Callback function to pack payload contents from a stream into a buffer
+ * so we can report them in JSON output. */
+static int AlertJsonPrintStreamSegmentCallback(const Packet *p, void *data, uint8_t *buf, uint32_t buflen)
+{
+    MemBuffer *payload = (MemBuffer *)data;
+
+    PrintStringsToBuffer(payload->buffer, &payload->offset, payload->size,
+                         buf, buflen);
+
+    return 1;
+}
 
 /** Handle the case where no JSON support is compiled in.
  *
  */
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
+    MemBuffer *payload = aft->payload_buffer;
+
     int i;
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
-    MemBufferReset(buffer);
+    MemBufferReset(aft->json_buffer);
 
     json_t *js = CreateJSONHeader((Packet *)p, 0, "alert");
     if (unlikely(js == NULL))
@@ -117,7 +138,72 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         /* alert */
         json_object_set_new(js, "alert", ajs);
 
-        OutputJSONBuffer(js, aft->file_ctx, aft->buffer);
+        /* payload */
+        if (aft->file_ctx->flags & (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64)) {
+            int stream = (p->proto == IPPROTO_TCP) ?
+                         (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH) ?
+                         1 : 0) : 0;
+
+            /* Is this a stream?  If so, pack part of it into the payload field */
+            if (stream) {
+                uint8_t flag;
+
+                MemBufferReset(payload);
+
+                if (p->flowflags & FLOW_PKT_TOSERVER) {
+                    flag = FLOW_PKT_TOCLIENT;
+                } else {
+                    flag = FLOW_PKT_TOSERVER;
+                }
+
+                StreamSegmentForEach((const Packet *)p, flag,
+                                    AlertJsonPrintStreamSegmentCallback,
+                                    (void *)payload);
+
+                if (aft->file_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
+                    unsigned long len = JSON_STREAM_BUFFER_SIZE * 2;
+                    unsigned char encoded[len];
+                    Base64Encode((unsigned char *)payload, payload->offset, encoded, &len);
+                    json_object_set_new(js, "payload", json_string((char *)encoded));
+                }
+
+                if (aft->file_ctx->flags & LOG_JSON_PAYLOAD) {
+                    json_object_set_new(js, "payload_printable",
+                                        json_string((char *)payload->buffer));
+                }
+            } else {
+                /* This is a single packet and not a stream */
+                unsigned char packet_buf[p->payload_len + 1];
+                uint32_t offset = 0;
+
+                PrintStringsToBuffer(packet_buf, &offset,
+                                     p->payload_len + 1,
+                                     p->payload, p->payload_len);
+
+                if (aft->file_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
+                    unsigned long len = sizeof(packet_buf) * 2;
+                    unsigned char encoded[len];
+                    Base64Encode(packet_buf, offset, encoded, &len);
+                    json_object_set_new(js, "payload", json_string((char *)encoded));
+                }
+
+                if (aft->file_ctx->flags & LOG_JSON_PAYLOAD) {
+                    json_object_set_new(js, "payload_printable", json_string((char *)packet_buf));
+                }
+            }
+
+            json_object_set_new(js, "stream", json_integer(stream));
+        }
+
+        /* base64-encoded full packet */
+        if (aft->file_ctx->flags & LOG_JSON_PACKET) {
+            unsigned long len = GET_PKT_LEN(p) * 2;
+            unsigned char encoded_packet[len];
+            Base64Encode((unsigned char*) GET_PKT_DATA(p), GET_PKT_LEN(p), encoded_packet, &len);
+            json_object_set_new(js, "packet", json_string((char *)encoded_packet));
+        }
+
+        OutputJSONBuffer(js, aft->file_ctx, aft->json_buffer);
         json_object_del(js, "alert");
     }
     json_object_clear(js);
@@ -128,7 +214,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
 static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
+    MemBuffer *buffer = (MemBuffer *)aft->json_buffer;
     int i;
     char timebuf[64];
     json_t *js;
@@ -227,8 +313,14 @@ static TmEcode JsonAlertLogThreadInit(ThreadVars *t, void *initdata, void **data
         return TM_ECODE_FAILED;
     }
 
-    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
-    if (aft->buffer == NULL) {
+    aft->json_buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    if (aft->json_buffer == NULL) {
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
+    aft->payload_buffer = MemBufferCreateNew(JSON_STREAM_BUFFER_SIZE);
+    if (aft->payload_buffer == NULL) {
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
@@ -247,7 +339,7 @@ static TmEcode JsonAlertLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
-    MemBufferFree(aft->buffer);
+    MemBufferFree(aft->json_buffer);
 
     /* clear memory */
     memset(aft, 0, sizeof(JsonAlertLogThread));
@@ -271,6 +363,7 @@ static void JsonAlertLogDeInitCtxSub(OutputCtx *output_ctx)
 }
 
 #define DEFAULT_LOG_FILENAME "alert.json"
+
 /**
  * \brief Create a new LogFileCtx for "fast" output style.
  * \param conf The configuration node for this output.
@@ -310,6 +403,28 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
         return NULL;
+
+    if (conf) {
+        const char *payload = ConfNodeLookupChildValue(conf, "payload");
+        const char *packet  = ConfNodeLookupChildValue(conf, "packet");
+        const char *payload_printable = ConfNodeLookupChildValue(conf, "payload-printable");
+
+        if (payload_printable != NULL) {
+            if (ConfValIsTrue(payload_printable)) {
+                ajt->file_ctx->flags |= LOG_JSON_PAYLOAD;
+            }
+        }
+        if (payload != NULL) {
+            if (ConfValIsTrue(payload)) {
+                ajt->file_ctx->flags |= LOG_JSON_PAYLOAD_BASE64;
+            }
+        }
+        if (packet != NULL) {
+            if (ConfValIsTrue(packet)) {
+                ajt->file_ctx->flags |= LOG_JSON_PACKET;
+            }
+        }
+    }
 
     output_ctx->data = ajt->file_ctx;
     output_ctx->DeInit = JsonAlertLogDeInitCtxSub;
