@@ -386,7 +386,13 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
     output_ctx->DeInit = OutputJsonDeInitCtx;
 
     if (conf) {
-        const char *output_s = ConfNodeLookupChildValue(conf, "type");
+        const char *output_s = ConfNodeLookupChildValue(conf, "filetype");
+
+        // Backwards compatibility
+        if (output_s == NULL) {
+            output_s = ConfNodeLookupChildValue(conf, "type");
+        }
+
         if (output_s != NULL) {
             if (strcmp(output_s, "file") == 0) {
                 json_ctx->json_out = ALERT_FILE;
