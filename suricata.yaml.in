@@ -94,9 +94,9 @@ outputs:
                    ## Error, Warning, Notice, Info, Debug
       types:
         - alert:
-            # payload: yes        # enable dumping payload
-            # payload-base64: yes # if payload dumping is enabled, dumps it in Base64
-            # packet: yes         # enable dumping of packet (loses payload in stream segments)
+            # payload: yes           # enable dumping payload in Base64
+            # payload-printable: yes # enable dumping payload in printable (lossy) format
+            # packet: yes            # enable dumping of packet (without stream segments)
         - http:
             extended: yes     # enable this for extended logging information
             # custom allows additional http fields to be included in eve-log
