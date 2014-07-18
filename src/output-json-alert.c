@@ -139,56 +139,60 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         json_object_set_new(js, "alert", ajs);
 
         /* payload */
-        if (aft->file_ctx->flags & LOG_JSON_PAYLOAD) {
-                int stream = (p->proto == IPPROTO_TCP) ?
-                             (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH) ?
-                             1 : 0) : 0;
+        if (aft->file_ctx->flags & (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64)) {
+            int stream = (p->proto == IPPROTO_TCP) ?
+                         (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH) ?
+                         1 : 0) : 0;
 
-                /* Is this a stream?  If so, pack part of it into the payload field */
-                if (stream) {
-                    uint8_t flag;
+            /* Is this a stream?  If so, pack part of it into the payload field */
+            if (stream) {
+                uint8_t flag;
 
-                    MemBufferReset(payload);
+                MemBufferReset(payload);
 
-                    if (p->flowflags & FLOW_PKT_TOSERVER) {
-                        flag = FLOW_PKT_TOCLIENT;
-                    } else {
-                        flag = FLOW_PKT_TOSERVER;
-                    }
-
-                    StreamSegmentForEach((const Packet *)p, flag,
-                                        AlertJsonPrintStreamSegmentCallback,
-                                        (void *)payload);
-
-                    if (aft->file_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
-                        unsigned long len = JSON_STREAM_BUFFER_SIZE * 2;
-                        unsigned char encoded[len];
-                        Base64Encode((unsigned char *)payload, payload->offset, encoded, &len);
-                        json_object_set_new(js, "payload", json_string((char *)encoded));
-                    } else {
-                        json_object_set_new(js, "payload_printable",
-                                            json_string((char *)payload->buffer));
-                    }
+                if (p->flowflags & FLOW_PKT_TOSERVER) {
+                    flag = FLOW_PKT_TOCLIENT;
                 } else {
-                    /* This is a single packet and not a stream */
-                    unsigned char packet_buf[p->payload_len + 1];
-                    uint32_t offset = 0;
-
-                    PrintStringsToBuffer(packet_buf, &offset,
-                                         p->payload_len + 1,
-                                         p->payload, p->payload_len);
-
-                    if (aft->file_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
-                        unsigned long len = sizeof(payload) * 2;
-                        unsigned char encoded[len];
-                        Base64Encode(packet_buf, offset, encoded, &len);
-                        json_object_set_new(js, "payload", json_string((char *)encoded));
-                    } else {
-                        json_object_set_new(js, "payload_printable", json_string((char *)packet_buf));
-                    }
+                    flag = FLOW_PKT_TOSERVER;
                 }
 
-                json_object_set_new(js, "stream", json_integer(stream));
+                StreamSegmentForEach((const Packet *)p, flag,
+                                    AlertJsonPrintStreamSegmentCallback,
+                                    (void *)payload);
+
+                if (aft->file_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
+                    unsigned long len = JSON_STREAM_BUFFER_SIZE * 2;
+                    unsigned char encoded[len];
+                    Base64Encode((unsigned char *)payload, payload->offset, encoded, &len);
+                    json_object_set_new(js, "payload", json_string((char *)encoded));
+                }
+
+                if (aft->file_ctx->flags & LOG_JSON_PAYLOAD) {
+                    json_object_set_new(js, "payload_printable",
+                                        json_string((char *)payload->buffer));
+                }
+            } else {
+                /* This is a single packet and not a stream */
+                unsigned char packet_buf[p->payload_len + 1];
+                uint32_t offset = 0;
+
+                PrintStringsToBuffer(packet_buf, &offset,
+                                     p->payload_len + 1,
+                                     p->payload, p->payload_len);
+
+                if (aft->file_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
+                    unsigned long len = sizeof(packet_buf) * 2;
+                    unsigned char encoded[len];
+                    Base64Encode(packet_buf, offset, encoded, &len);
+                    json_object_set_new(js, "payload", json_string((char *)encoded));
+                }
+
+                if (aft->file_ctx->flags & LOG_JSON_PAYLOAD) {
+                    json_object_set_new(js, "payload_printable", json_string((char *)packet_buf));
+                }
+            }
+
+            json_object_set_new(js, "stream", json_integer(stream));
         }
 
         /* base64-encoded full packet */
@@ -403,15 +407,15 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     if (conf) {
         const char *payload = ConfNodeLookupChildValue(conf, "payload");
         const char *packet  = ConfNodeLookupChildValue(conf, "packet");
-        const char *payload_base64 = ConfNodeLookupChildValue(conf, "payload-base64");
+        const char *payload_printable = ConfNodeLookupChildValue(conf, "payload-printable");
 
-        if (payload != NULL) {
-            if (ConfValIsTrue(payload)) {
+        if (payload_printable != NULL) {
+            if (ConfValIsTrue(payload_printable)) {
                 ajt->file_ctx->flags |= LOG_JSON_PAYLOAD;
             }
         }
-        if (payload_base64 != NULL) {
-            if (ConfValIsTrue(payload_base64)) {
+        if (payload != NULL) {
+            if (ConfValIsTrue(payload)) {
                 ajt->file_ctx->flags |= LOG_JSON_PAYLOAD_BASE64;
             }
         }
