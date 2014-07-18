@@ -81,8 +81,12 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
         SCConfLogReopen(log_ctx);
     }
 
-    int ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
-    fflush(log_ctx->fp);
+    int ret = 0;
+
+    if (log_ctx->fp) {
+        ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
+        fflush(log_ctx->fp);
+    }
 
     return ret;
 }
