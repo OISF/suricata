@@ -78,6 +78,9 @@ FlowProto flow_proto[FLOW_PROTO_MAX];
 /** spare/unused/prealloced flows live here */
 FlowQueue flow_spare_q;
 
+/** queue to pass flows to cleanup/log thread(s) */
+FlowQueue flow_recycle_q;
+
 FlowBucket *flow_hash;
 FlowConfig flow_config;
 
@@ -92,6 +95,24 @@ uint32_t flowbits_added;
 uint32_t flowbits_removed;
 SCMutex flowbits_mutex;
 #endif /* FLOWBITS_STATS */
+
+/** \internal
+ *  \brief Get the flow's state
+ *
+ *  \param f flow
+ *
+ *  \retval state either FLOW_STATE_NEW, FLOW_STATE_ESTABLISHED or FLOW_STATE_CLOSED
+ */
+static inline int FlowGetFlowState(Flow *f) {
+    if (flow_proto[f->protomap].GetProtoState != NULL) {
+        return flow_proto[f->protomap].GetProtoState(f->protoctx);
+    } else {
+        if ((f->flags & FLOW_TO_SRC_SEEN) && (f->flags & FLOW_TO_DST_SEEN))
+            return FLOW_STATE_ESTABLISHED;
+        else
+            return FLOW_STATE_NEW;
+    }
+}
 
 #endif /* __FLOW_PRIVATE_H__ */
 
