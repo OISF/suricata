@@ -81,6 +81,8 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
             pq);
         break;
     default:
+        /* Attempt ethernet without PW. */
+        DecodeEthernet(tv, dtv, p, pkt, len, pq);
         break;
     }
 
