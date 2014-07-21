@@ -795,6 +795,7 @@ void RegisterAllModules()
 {
     /* managers */
     TmModuleFlowManagerRegister();
+    TmModuleFlowRecyclerRegister();
     /* nfq */
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();
