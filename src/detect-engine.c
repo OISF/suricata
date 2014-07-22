@@ -59,6 +59,7 @@
 #include "detect-engine-hrhhd.h"
 #include "detect-engine-file.h"
 #include "detect-engine-dns.h"
+#include "detect-engine-modbus.h"
 
 #include "detect-engine.h"
 #include "detect-engine-state.h"
@@ -247,6 +248,14 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_DNSQUERY_INSPECT,
           0,
           DetectEngineInspectDnsQueryName },
+        /* Modbus */
+        { IPPROTO_TCP,
+          ALPROTO_MODBUS,
+          DETECT_SM_LIST_MODBUS_MATCH,
+          DE_STATE_FLAG_MODBUS_INSPECT,
+          DE_STATE_FLAG_MODBUS_INSPECT,
+          0,
+          DetectEngineInspectModbus },
     };
 
     struct tmp_t data_toclient[] = {
@@ -298,7 +307,15 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_HSCD_INSPECT,
           DE_STATE_FLAG_HSCD_INSPECT,
           1,
-          DetectEngineInspectHttpStatCode }
+          DetectEngineInspectHttpStatCode },
+        /* Modbus */
+        { IPPROTO_TCP,
+          ALPROTO_MODBUS,
+          DETECT_SM_LIST_MODBUS_MATCH,
+          DE_STATE_FLAG_MODBUS_INSPECT,
+          DE_STATE_FLAG_MODBUS_INSPECT,
+          0,
+          DetectEngineInspectModbus }
     };
 
     size_t i;
