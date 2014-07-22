@@ -78,6 +78,7 @@
 #include "alert-prelude.h"
 #include "alert-syslog.h"
 #include "output-json-alert.h"
+#include "output-json-counters.h"
 
 #include "log-droplog.h"
 #include "output-json-drop.h"
@@ -867,6 +868,7 @@ void RegisterAllModules()
     TmModuleJsonDnsLogRegister();
 
     TmModuleJsonAlertLogRegister();
+    TmModuleJsonStatsLogRegister();
 
     /* log api */
     TmModulePacketLoggerRegister();

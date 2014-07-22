@@ -34,8 +34,11 @@
 #include "util-debug.h"
 #include "util-privs.h"
 #include "util-signal.h"
+#include "util-logopenfile.h"
+#include "util-buffer.h"
 #include "unix-manager.h"
 #include "output.h"
+#include "output-json.h"
 
 /** \todo Get the default log directory from some global resource. */
 #define SC_PERF_DEFAULT_LOG_FILENAME "stats.log"
@@ -190,6 +193,65 @@ static int SCPerfFileReopen(SCPerfOPIfaceContext *sc_perf_op_ctx)
  *
  * \todo Support multiple interfaces
  */
+static void SCPerfStartOPCtx(uint32_t iface, ConfNode *stats)
+{
+    SCEnter();
+
+    /* Store the engine start time */
+    time(&sc_start_time);
+
+    if ( (sc_perf_op_ctx = SCMalloc(sizeof(SCPerfOPIfaceContext))) == NULL) {
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCPerfInitOPCtx. Exiting...");
+        exit(EXIT_FAILURE);
+    }
+    memset(sc_perf_op_ctx, 0, sizeof(SCPerfOPIfaceContext));
+
+    sc_perf_op_ctx->iface = iface;
+
+    if (iface == SC_PERF_IFACE_FILE) {
+
+        if ( (sc_perf_op_ctx->file = SCPerfGetLogFilename(stats)) == NULL) {
+            SCLogInfo("Error retrieving Perf Counter API output file path");
+        }
+
+        char *mode;
+        if (sc_counter_append)
+            mode = "a+";
+        else
+            mode = "w+";
+
+        if ( (sc_perf_op_ctx->fp = fopen(sc_perf_op_ctx->file, mode)) == NULL) {
+            SCLogError(SC_ERR_FOPEN, "fopen error opening file \"%s\".  Resorting "
+                       "to using the standard output for output",
+                       sc_perf_op_ctx->file);
+
+            SCFree(sc_perf_op_ctx->file);
+
+            /* Let us use the standard output for output */
+            sc_perf_op_ctx->fp = stdout;
+            if ( (sc_perf_op_ctx->file = SCStrdup("stdout")) == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                exit(EXIT_FAILURE);
+            }
+        }
+        else {
+            /* File opened, register for rotation notification. */
+            OutputRegisterFileRotationFlag(&sc_perf_op_ctx->rotation_flag);
+        }
+    }
+
+    /* init the lock used by SCPerfClubTMInst */
+    if (SCMutexInit(&sc_perf_op_ctx->pctmi_lock, NULL) != 0) {
+        SCLogError(SC_ERR_INITIALIZATION, "error initializing pctmi mutex");
+        exit(EXIT_FAILURE);
+    }
+    SCReturn;
+}
+/**
+ * \brief Initializes the output interface context
+ *
+ * \todo Support multiple interfaces
+ */
 static void SCPerfInitOPCtx(void)
 {
     SCEnter();
@@ -221,51 +283,7 @@ static void SCPerfInitOPCtx(void)
             sc_counter_append = ConfValIsTrue(append);
     }
 
-    /* Store the engine start time */
-    time(&sc_start_time);
-
-    if ( (sc_perf_op_ctx = SCMalloc(sizeof(SCPerfOPIfaceContext))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCPerfInitOPCtx. Exiting...");
-        exit(EXIT_FAILURE);
-    }
-    memset(sc_perf_op_ctx, 0, sizeof(SCPerfOPIfaceContext));
-
-    sc_perf_op_ctx->iface = SC_PERF_IFACE_FILE;
-
-    if ( (sc_perf_op_ctx->file = SCPerfGetLogFilename(stats)) == NULL) {
-        SCLogInfo("Error retrieving Perf Counter API output file path");
-    }
-
-    char *mode;
-    if (sc_counter_append)
-        mode = "a+";
-    else
-        mode = "w+";
-
-    if ( (sc_perf_op_ctx->fp = fopen(sc_perf_op_ctx->file, mode)) == NULL) {
-        SCLogError(SC_ERR_FOPEN, "fopen error opening file \"%s\".  Resorting "
-                   "to using the standard output for output",
-                   sc_perf_op_ctx->file);
-
-        SCFree(sc_perf_op_ctx->file);
-
-        /* Let us use the standard output for output */
-        sc_perf_op_ctx->fp = stdout;
-        if ( (sc_perf_op_ctx->file = SCStrdup("stdout")) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
-        }
-    }
-    else {
-        /* File opened, register for rotation notification. */
-        OutputRegisterFileRotationFlag(&sc_perf_op_ctx->rotation_flag);
-    }
-
-    /* init the lock used by SCPerfClubTMInst */
-    if (SCMutexInit(&sc_perf_op_ctx->pctmi_lock, NULL) != 0) {
-        SCLogError(SC_ERR_INITIALIZATION, "error initializing pctmi mutex");
-        exit(EXIT_FAILURE);
-    }
+    SCPerfStartOPCtx(SC_PERF_IFACE_FILE, stats);
 
     SCReturn;
 }
@@ -736,6 +754,158 @@ static int SCPerfOutputCounterFileIface()
     }
 
     return 1;
+}
+
+static 
+json_t *SCPerfLookupJson(json_t *js, char *key)
+{
+    void *iter;
+    char *s = strndup(key, index(key, '.') - key);
+
+    iter = json_object_iter_at(js, s);
+    char *s1 = index(key, '.');
+    char *s2 = index(s1+1, '.');
+
+    json_t *value = json_object_iter_value(iter);
+    if (value == NULL) {
+        value = json_object();
+        json_object_set(js, s, value);
+    }
+    if (s2 != NULL) {
+        return SCPerfLookupJson(value, &key[index(key,'.')-key+1]);
+    }
+    return value;
+}
+
+/**
+ * \brief The eve-log output interface for the Perf Counter api
+ */
+static int SCPerfOutputCounterEveIface()
+{
+    SCPerfClubTMInst *pctmi = NULL;
+    SCPerfCounter *pc = NULL;
+    SCPerfCounter **pc_heads = NULL;
+
+    uint64_t ui64_temp = 0;
+    uint64_t ui64_result = 0;
+
+    struct timeval tval;
+    struct tm *tms;
+
+    uint32_t u = 0;
+    int flag = 0;
+
+    memset(&tval, 0, sizeof(struct timeval));
+
+    gettimeofday(&tval, NULL);
+    struct tm local_tm;
+    tms = SCLocalTime(tval.tv_sec, &local_tm);
+
+    /* Calculate the Engine uptime */
+    int up_time = (int)difftime(tval.tv_sec, sc_start_time);
+    int sec = up_time % 60;     // Seconds in a minute
+    int in_min = up_time / 60;
+    int min = in_min % 60;      // Minutes in a hour
+    int in_hours = in_min / 60;
+    int hours = in_hours % 24;  // Hours in a day
+    int days = in_hours / 24;
+
+    json_t *js = json_object();
+    if (unlikely(js == NULL))
+        return 0;
+
+    json_object_set_new(js, "event_type", json_string("stats"));
+    json_t *js_stats = json_object();
+    if (unlikely(js_stats == NULL)) {
+        json_decref(js);
+        return 0;
+    }
+    char date[128];
+    snprintf(date, sizeof(date),
+             "%" PRId32 "/%" PRId32 "/%04d -- %02d:%02d:%02d",
+             tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900, tms->tm_hour,
+             tms->tm_min, tms->tm_sec);
+
+    json_object_set_new(js_stats, "date", json_string(date));
+
+    char uptime[128];
+    snprintf(uptime, sizeof(uptime),
+             "%"PRId32"d, %02dh %02dm %02ds", days, hours, min, sec);
+
+    json_object_set_new(js_stats, "uptime", json_string(uptime));
+   
+    pctmi = sc_perf_op_ctx->pctmi;
+    while (pctmi != NULL) {
+        if ((pc_heads = SCMalloc(pctmi->size * sizeof(SCPerfCounter *))) == NULL)
+            return 0;
+        memset(pc_heads, 0, pctmi->size * sizeof(SCPerfCounter *));
+
+        for (u = 0; u < pctmi->size; u++) {
+            pc_heads[u] = pctmi->head[u]->head;
+            SCMutexLock(&pctmi->head[u]->m);
+        }
+
+        flag = 1;
+        while (flag) {
+            ui64_result = 0;
+            if (pc_heads[0] == NULL)
+                break;
+            /* keep ptr to first pc to we can use it to print the cname */
+            pc = pc_heads[0];
+
+            for (u = 0; u < pctmi->size; u++) {
+                ui64_temp = SCPerfOutputCalculateCounterValue(pc_heads[u]);
+                ui64_result += ui64_temp;
+
+                if (pc_heads[u] != NULL)
+                    pc_heads[u] = pc_heads[u]->next;
+                if (pc_heads[u] == NULL)
+                    flag = 0;
+            }
+
+            char str[256];
+            snprintf(str, sizeof(str), "%s.%s", pctmi->tm_name, pc->cname);
+            json_t *js_type = SCPerfLookupJson(js_stats, str);
+          
+            if (js_type != NULL) {
+                json_object_set_new(js_type, &str[rindex(str, '.')-str+1], json_integer(ui64_result));
+            }
+        }
+
+        for (u = 0; u < pctmi->size; u++)
+            SCMutexUnlock(&pctmi->head[u]->m);
+
+        pctmi = pctmi->next;
+
+        SCFree(pc_heads);
+    }
+    json_object_set_new(js, "stats", js_stats); 
+
+    OutputJSONBuffer(js,
+                     sc_perf_op_ctx->eve_file_ctx,
+                     sc_perf_op_ctx->eve_buffer);
+    json_object_clear(js);
+    json_decref(js);
+
+    return 1;
+}
+
+void SCPerfRegisterEveFile(void *file_ctx, void *buffer, uint32_t interval)
+{
+    if (sc_perf_op_ctx != NULL) {
+        sc_perf_op_ctx->eve_enabled = 1;
+
+        sc_perf_op_ctx->eve_file_ctx = file_ctx;
+        sc_perf_op_ctx->eve_buffer = buffer;
+    } else {
+        sc_counter_enabled = TRUE;
+        SCPerfStartOPCtx(SC_PERF_IFACE_EVE, NULL);
+        sc_perf_op_ctx->eve_file_ctx = file_ctx;
+        sc_perf_op_ctx->eve_buffer = buffer;
+    }
+    if (interval != 0) {
+        sc_counter_tts = interval;
+    }
 }
 
 #ifdef BUILD_UNIX_SOCKET
@@ -1311,6 +1481,15 @@ void SCPerfOutputCounters()
             /* yet to be implemented */
 
             break;
+        case SC_PERF_IFACE_EVE:
+            SCPerfOutputCounterEveIface();
+
+            break;
+    }
+
+    /* permit eve logging of counters while logging to file */
+    if (sc_perf_op_ctx->eve_enabled) {
+        SCPerfOutputCounterEveIface();
     }
 
     return;
