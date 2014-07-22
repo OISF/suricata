@@ -114,6 +114,8 @@ Packet *PacketPoolGetPacket(void) {
         return NULL;
 
     Packet *p = RingBufferMrMwGetNoWait(ringbuffer);
+    if (p != NULL)
+        PACKET_REINIT(p);
     return p;
 }
 
@@ -122,7 +124,7 @@ Packet *PacketPoolGetPacket(void) {
  */
 void PacketPoolReturnPacket(Packet *p)
 {
-    PACKET_RECYCLE(p);
+    PACKET_RELEASE_REFS(p);
     RingBufferMrMwPut(ringbuffer, (void *)p);
 }
 
@@ -149,8 +151,7 @@ void PacketPoolDestroy(void) {
 
     Packet *p = NULL;
     while ((p = PacketPoolGetPacket()) != NULL) {
-        PACKET_CLEANUP(p);
-        SCFree(p);
+        PacketFree(p);
     }
 
     RingBufferDestroy(ringbuffer);
