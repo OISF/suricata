@@ -1028,6 +1028,7 @@ rule-files:
  - smtp-events.rules    # available in suricata sources under rules dir
  - dns-events.rules     # available in suricata sources under rules dir
  - tls-events.rules     # available in suricata sources under rules dir
+ - modbus-events.rules  # available in suricata sources under rules dir
 
 classification-file: @e_sysconfdir@classification.config
 reference-config-file: @e_sysconfdir@reference.config
@@ -1080,6 +1081,8 @@ vars:
     SSH_PORTS: 22
 
     DNP3_PORTS: 20000
+
+    MODBUS_PORTS: 502
 
 # Set the order of alerts bassed on actions
 # The default order is pass, drop, reject, alert
@@ -1186,6 +1189,19 @@ app-layer:
       enabled: yes
       detection-ports:
         dp: 139
+    # Note: Modbus probe parser is minimalist due to the poor significant field
+    # Only Modbus message length (greater than Modbus header length)
+    # And Protocol ID (equal to 0) are checked in probing parser
+    # It is important to enable detection port and define Modbus port
+    # to avoid false positive
+    modbus:
+      # How many unreplied Modbus requests are considered a flood.
+      # If the limit is reached, app-layer-event:modbus.flooded; will match.
+      #request-flood: 500
+
+      enabled: yes
+      detection-ports:
+        dp: 502
     # smb2 detection is disabled internally inside the engine.
     #smb2:
     #  enabled: yes
