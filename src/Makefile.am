@@ -26,6 +26,7 @@ app-layer-htp.c app-layer-htp.h \
 app-layer-htp-file.c app-layer-htp-file.h \
 app-layer-htp-libhtp.c app-layer-htp-libhtp.h \
 app-layer-htp-mem.c app-layer-htp-mem.h \
+app-layer-modbus.c app-layer-modbus.h \
 app-layer-parser.c app-layer-parser.h \
 app-layer-protos.c app-layer-protos.h \
 app-layer-smb2.c app-layer-smb2.h \
