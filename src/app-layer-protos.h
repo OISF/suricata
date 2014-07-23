@@ -41,6 +41,7 @@ enum {
     ALPROTO_IRC,
 
     ALPROTO_DNS,
+    ALPROTO_MODBUS,
 
     /* used by the probing parser when alproto detection fails
      * permanently for that particular stream */
