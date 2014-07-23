@@ -57,6 +57,7 @@
 #include "app-layer-smtp.h"
 #include "app-layer-dns-udp.h"
 #include "app-layer-dns-tcp.h"
+#include "app-layer-modbus.h"
 
 #include "conf.h"
 #include "util-spm.h"
@@ -1033,6 +1034,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterSMTPParsers();
     RegisterDNSUDPParsers();
     RegisterDNSTCPParsers();
+    RegisterModbusParsers();
 
     /** IMAP */
     AppLayerProtoDetectRegisterProtocol(ALPROTO_IMAP, "imap");

@@ -1043,6 +1043,8 @@ vars:
 
     DNP3_PORTS: 20000
 
+    MODBUS_PORTS: 502
+
 # Set the order of alerts bassed on actions
 # The default order is pass, drop, reject, alert
 action-order:
@@ -1129,6 +1131,15 @@ app-layer:
       enabled: yes
       detection-ports:
         dp: 139
+    # Note: Modbus probe parser is minimalist due to the poor significant field
+    # Only Modbus message length (greater than Modbus header length)
+    # And Protocol ID (equal to 0) are checked in probing parser
+    # It is important to enable detection port and define Modbus port
+    # to avoid false positive
+    modbus:
+      enabled: yes
+      detection-ports:
+        dp: 502
     # smb2 detection is disabled internally inside the engine.
     #smb2:
     #  enabled: yes
