@@ -70,6 +70,10 @@ typedef struct TmSlot_ {
 
     /* linked list, only used when you have multiple slots(used by TmVarSlot) */
     struct TmSlot_ *slot_next;
+
+    /* just called once, so not perf critical */
+    TmEcode (*Management)(ThreadVars *, void *);
+
 } TmSlot;
 
 extern ThreadVars *tv_root[TVT_MAX];
@@ -85,6 +89,8 @@ ThreadVars *TmThreadCreate(char *, char *, char *, char *, char *, char *,
 ThreadVars *TmThreadCreatePacketHandler(char *, char *, char *, char *, char *,
                                         char *);
 ThreadVars *TmThreadCreateMgmtThread(char *name, void *(fn_p)(void *), int);
+ThreadVars *TmThreadCreateMgmtThreadByName(char *name, char *module,
+                                     int mucond);
 ThreadVars *TmThreadCreateCmdThread(char *name, void *(fn_p)(void *), int);
 TmEcode TmThreadSpawn(ThreadVars *);
 void TmThreadSetFlags(ThreadVars *, uint8_t);
