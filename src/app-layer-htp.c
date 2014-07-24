@@ -1041,8 +1041,9 @@ static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, HtpTxUserData *htud) {
                 SCLogDebug("invalid boundary");
                 return -1;
             }
+            SCReturnInt(1);
         }
-        SCReturnInt(1);
+        //SCReturnInt(1);
     }
     SCReturnInt(0);
 }
