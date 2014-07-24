@@ -441,6 +441,7 @@ void *FlowManagerThread(void *td)
     /* Set the threads capability */
     th_v->cap_flags = 0;
     SCDropCaps(th_v);
+    PacketPoolInit();
 
     FlowHashDebugInit();
 
