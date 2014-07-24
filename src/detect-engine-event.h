@@ -90,6 +90,7 @@ struct DetectEngineEvents_ {
     { "ipv6.dstopts_unknown_opt", IPV6_DSTOPTS_UNKNOWN_OPT, },
     { "ipv6.dstopts_only_padding", IPV6_DSTOPTS_ONLY_PADDING, },
     { "ipv6.rh_type_0", IPV6_EXTHDR_RH_TYPE_0, },
+    { "ipv6.zero_len_padn", IPV6_EXTHDR_ZERO_LEN_PADN, },
     { "ipv6.icmpv4", IPV6_WITH_ICMPV4, },
 
     /* TCP EVENTS */

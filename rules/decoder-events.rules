@@ -37,6 +37,8 @@ alert pkthdr any any -> any any (msg:"SURICATA IPv6 DSTOPTS unknown option"; dec
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 DSTOPTS only padding"; decode-event:ipv6.dstopts_only_padding; sid:2200089; rev:1;)
 # Type 0 Routing header deprecated per RFC 5095
 alert ipv6 any any -> any any (msg:"SURICATA RH Type 0"; decode-event:ipv6.rh_type_0; sid:2200093; rev:1;)
+# padN option with zero length field
+alert ipv6 any any -> any any (msg:"SURICATA zero length padN option"; decode-event:ipv6.zero_len_padn; sid:2200094; rev:1;)
 alert ipv6 any any -> any any (msg:"SURICATA IPv6 with ICMPv4 header"; decode-event:ipv6.icmpv4; sid:2200090; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA ICMPv4 packet too small"; decode-event:icmpv4.pkt_too_small; sid:2200023; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA ICMPv4 unknown type"; decode-event:icmpv4.unknown_type; sid:2200024; rev:1;)
@@ -108,5 +110,5 @@ alert pkthdr any any -> any any (msg:"SURICATA IPv4-in-IPv6 invalid protocol"; d
 alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 packet too short"; decode-event:ipv6.ipv6_in_ipv6_too_small; sid:2200084; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 invalid protocol"; decode-event:ipv6.ipv6_in_ipv6_wrong_version; sid:2200085; rev:1;)
 
-# next sid is 2200094
+# next sid is 2200095
 

@@ -298,15 +298,39 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                         continue;
                     }
 
+                    if (offset + 1 >= optslen) {
+                        ENGINE_SET_EVENT(p, IPV6_EXTHDR_INVALID_OPTLEN);
+                        break;
+                    }
+
+                    /* length field for each opt */
+                    uint8_t ip6_optlen = *(ptr + 1);
+
+                    /* see if the optlen from the packet fits the total optslen */
+                    if ((offset + 1 + ip6_optlen) > optslen) {
+                        ENGINE_SET_EVENT(p, IPV6_EXTHDR_INVALID_OPTLEN);
+                        break;
+                    }
+
                     if (*ptr == IPV6OPT_PADN) /* PadN */
                     {
                         //printf("PadN option\n");
                         padn_cnt++;
+
+                        /* a zero padN len would be weird */
+                        if (ip6_optlen == 0)
+                            ENGINE_SET_EVENT(p, IPV6_EXTHDR_ZERO_LEN_PADN);
                     }
                     else if (*ptr == IPV6OPT_RA) /* RA */
                     {
                         ra->ip6ra_type = *(ptr);
-                        ra->ip6ra_len  = *(ptr + 1);
+                        ra->ip6ra_len  = ip6_optlen;
+
+                        if (ip6_optlen < sizeof(ra->ip6ra_value)) {
+                            ENGINE_SET_EVENT(p, IPV6_EXTHDR_INVALID_OPTLEN);
+                            break;
+                        }
+
                         memcpy(&ra->ip6ra_value, (ptr + 2), sizeof(ra->ip6ra_value));
                         ra->ip6ra_value = ntohs(ra->ip6ra_value);
                         //printf("RA option: type %" PRIu32 " len %" PRIu32 " value %" PRIu32 "\n",
@@ -316,7 +340,13 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                     else if (*ptr == IPV6OPT_JUMBO) /* Jumbo */
                     {
                         jumbo->ip6j_type = *(ptr);
-                        jumbo->ip6j_len  = *(ptr+1);
+                        jumbo->ip6j_len  = ip6_optlen;
+
+                        if (ip6_optlen < sizeof(jumbo->ip6j_payload_len)) {
+                            ENGINE_SET_EVENT(p, IPV6_EXTHDR_INVALID_OPTLEN);
+                            break;
+                        }
+
                         memcpy(&jumbo->ip6j_payload_len, (ptr+2), sizeof(jumbo->ip6j_payload_len));
                         jumbo->ip6j_payload_len = ntohl(jumbo->ip6j_payload_len);
                         //printf("Jumbo option: type %" PRIu32 " len %" PRIu32 " payload len %" PRIu32 "\n",
@@ -325,7 +355,13 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                     else if (*ptr == IPV6OPT_HAO) /* HAO */
                     {
                         hao->ip6hao_type = *(ptr);
-                        hao->ip6hao_len  = *(ptr+1);
+                        hao->ip6hao_len  = ip6_optlen;
+
+                        if (ip6_optlen < sizeof(hao->ip6hao_hoa)) {
+                            ENGINE_SET_EVENT(p, IPV6_EXTHDR_INVALID_OPTLEN);
+                            break;
+                        }
+
                         memcpy(&hao->ip6hao_hoa, (ptr+2), sizeof(hao->ip6hao_hoa));
                         //printf("HAO option: type %" PRIu32 " len %" PRIu32 " ",
                         //    hao->ip6hao_type, hao->ip6hao_len);
