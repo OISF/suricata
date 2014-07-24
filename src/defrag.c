@@ -409,6 +409,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     }
     PKT_SET_SRC(rp, PKT_SRC_DEFRAG);
 
+    int unfragmentable_len = 0;
     int fragmentable_offset = 0;
     int fragmentable_len = 0;
     int ip_hdr_offset = 0;
@@ -439,6 +440,12 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
              * this. */
             fragmentable_offset = frag->frag_hdr_offset;
             fragmentable_len = frag->data_len;
+
+            /* unfragmentable part is the part between the ipv6 header
+             * and the frag header. */
+            unfragmentable_len = (fragmentable_offset - ip_hdr_offset) - IPV6_HEADER_LEN;
+            if (unfragmentable_len >= fragmentable_offset)
+                goto remove_tracker;
         }
         else {
             if (PacketCopyDataOffset(rp, fragmentable_offset + frag->offset + frag->ltrim,
@@ -451,9 +458,15 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     }
 
     rp->ip6h = (IPV6Hdr *)(GET_PKT_DATA(rp) + ip_hdr_offset);
-    rp->ip6h->s_ip6_plen = htons(fragmentable_len);
-    rp->ip6h->s_ip6_nxt = next_hdr;
-    SET_PKT_LEN(rp, ip_hdr_offset + sizeof(IPV6Hdr) + fragmentable_len);
+    rp->ip6h->s_ip6_plen = htons(fragmentable_len + unfragmentable_len);
+    /* if we have no unfragmentable part, so no ext hdrs before the frag
+     * header, we need to update the ipv6 headers next header field. This
+     * points to the frag header, and we will make it point to the layer
+     * directly after the frag header. */
+    if (unfragmentable_len == 0)
+        rp->ip6h->s_ip6_nxt = next_hdr;
+    SET_PKT_LEN(rp, ip_hdr_offset + sizeof(IPV6Hdr) +
+            unfragmentable_len + fragmentable_len);
 
 remove_tracker:
     /** \todo check locking */
@@ -500,6 +513,11 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
     /* Address family */
     int af = tracker->af;
 
+    /* settings for updating a payload when an ip6 fragment with
+     * unfragmentable exthdrs are encountered. */
+    int ip6_nh_set_offset = 0;
+    uint8_t ip6_nh_set_value = 0;
+
 #ifdef DEBUG
     uint64_t pcap_cnt = p->pcap_cnt;
 #endif
@@ -530,6 +548,22 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
         frag_end = frag_offset + data_len;
         ip_hdr_offset = (uint8_t *)p->ip6h - GET_PKT_DATA(p);
         frag_hdr_offset = (uint8_t *)p->ip6eh.ip6fh - GET_PKT_DATA(p);
+
+        /* handle unfragmentable exthdrs */
+        if (ip_hdr_offset + IPV6_HEADER_LEN < frag_hdr_offset) {
+            SCLogDebug("we have exthdrs before fraghdr %u bytes (%u hdrs total)",
+                    (uint32_t)(frag_hdr_offset - (ip_hdr_offset + IPV6_HEADER_LEN)),
+                    p->ip6eh.ip6_exthdrs_cnt);
+
+            /* get the offset of the 'next' field in exthdr before the FH,
+             * relative to the buffer start */
+            int t_offset = (int)((p->ip6eh.ip6_exthdrs[p->ip6eh.ip6_exthdrs_cnt - 2].data - 2) - GET_PKT_DATA(p));
+
+            /* store offset and FH 'next' value for updating frag buffer below */
+            ip6_nh_set_offset = (int)t_offset;
+            ip6_nh_set_value = IPV6_EXTHDR_GET_FH_NH(p);
+            SCLogDebug("offset %d, value %u", ip6_nh_set_offset, ip6_nh_set_value);
+        }
 
         /* Ignore fragment if the end of packet extends past the
          * maximum size of a packet. */
@@ -685,6 +719,17 @@ insert:
     }
     memcpy(new->pkt, GET_PKT_DATA(p) + ltrim, GET_PKT_LEN(p) - ltrim);
     new->len = GET_PKT_LEN(p) - ltrim;
+    /* in case of unfragmentable exthdrs, update the 'next hdr' field
+     * in the raw buffer so the reassembled packet will point to the
+     * correct next header after stripping the frag header */
+    if (ip6_nh_set_offset > 0 && frag_offset == 0 && ltrim == 0) {
+        if (new->len > ip6_nh_set_offset) {
+            SCLogDebug("updating frag to have 'correct' nh value: %u -> %u",
+                    new->pkt[ip6_nh_set_offset], ip6_nh_set_value);
+            new->pkt[ip6_nh_set_offset] = ip6_nh_set_value;
+        }
+    }
+
     new->hlen = hlen;
     new->offset = frag_offset + ltrim;
     new->data_offset = data_offset;
