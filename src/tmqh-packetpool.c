@@ -151,7 +151,7 @@ void PacketPoolWait(void)
     PktPool *my_pool = GetThreadPacketPool();
 
     while(PacketPoolIsEmpty(my_pool))
-        ;
+        cc_barrier();
 }
 
 /** \brief a initialized packet
