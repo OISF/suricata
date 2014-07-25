@@ -27,6 +27,11 @@
 #include "conf.h"            /* ConfNode   */
 #include "tm-modules.h"      /* LogFileCtx */
 
+enum JsonOutput { ALERT_FILE,
+                  ALERT_SYSLOG,
+                  ALERT_UNIX_DGRAM,
+                  ALERT_UNIX_STREAM };
+
 typedef struct {
     uint16_t fileno;
 } PcieFile;
@@ -68,6 +73,11 @@ typedef struct LogFileCtx_ {
 
     /* Flag set when file rotation notification is received. */
     int rotation_flag;
+
+    /* When this is used by eve-out json logging indicates output by
+     * usual logfile mechanisms or overridded with syslog. */
+    enum JsonOutput json_out;
+
 } LogFileCtx;
 
 /* flags for LogFileCtx */

@@ -37,10 +37,6 @@ TmEcode OutputJSON(json_t *js, void *data, uint64_t *count);
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer);
 OutputCtx *OutputJsonInitCtx(ConfNode *);
 
-enum JsonOutput { ALERT_FILE,
-                  ALERT_SYSLOG,
-                  ALERT_UNIX_DGRAM,
-                  ALERT_UNIX_STREAM };
 enum JsonFormat { COMPACT, INDENT };
 
 /*
@@ -48,7 +44,6 @@ enum JsonFormat { COMPACT, INDENT };
  */
 typedef struct OutputJsonCtx_ {
     LogFileCtx *file_ctx;
-    enum JsonOutput json_out;
     enum JsonFormat format;
 } OutputJsonCtx;
 
