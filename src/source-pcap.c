@@ -294,7 +294,7 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
 {
     SCEnter();
 
-    uint16_t packet_q_len = 0;
+    int packet_q_len = 64;
     PcapThreadVars *ptv = (PcapThreadVars *)data;
     int r;
     TmSlot *s = (TmSlot *)slot;
@@ -312,7 +312,7 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
         PacketPoolWait();
 
         /* Right now we just support reading packets one at a time. */
-        r = pcap_dispatch(ptv->pcap_handle, (int)packet_q_len,
+        r = pcap_dispatch(ptv->pcap_handle, packet_q_len,
                           (pcap_handler)PcapCallbackLoop, (u_char *)ptv);
         if (unlikely(r < 0)) {
             int dbreak = 0;
