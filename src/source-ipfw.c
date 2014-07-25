@@ -228,7 +228,6 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
     struct pollfd IPFWpoll;
     struct timeval IPFWts;
     Packet *p = NULL;
-    uint16_t packet_q_len = 0;
 
     nq = IPFWGetQueue(ptv->ipfw_index);
     if (nq == NULL) {
