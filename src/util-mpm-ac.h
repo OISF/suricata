@@ -205,6 +205,8 @@ uint32_t  SCACCudaPacketResultsProcessing(Packet *p, MpmCtx *mpm_ctx,
                                           PatternMatcherQueue *pmq);
 void DetermineCudaStateTableSize(DetectEngineCtx *de_ctx);
 
+void CudaReleasePacket(Packet *p);
+
 #endif /* __SC_CUDA_SUPPORT__ */
 
 

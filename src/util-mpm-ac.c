@@ -1691,6 +1691,18 @@ void DetermineCudaStateTableSize(DetectEngineCtx *de_ctx)
 
 }
 
+void CudaReleasePacket(Packet *p)
+{
+    if (p->cuda_pkt_vars.cuda_mpm_enabled == 1) {
+        p->cuda_pkt_vars.cuda_mpm_enabled = 0;
+        SCMutexLock(&p->cuda_pkt_vars.cuda_mutex);
+        p->cuda_pkt_vars.cuda_done = 0;
+        SCMutexUnlock(&p->cuda_pkt_vars.cuda_mutex);
+    }
+
+    return;
+}
+
 /* \todos
  * - Use texture memory - Can we fit all the arrays into a 3d texture.
  *   Texture memory definitely offers slightly better performance even
@@ -1890,6 +1902,13 @@ static void *SCACCudaDispatcher(void *arg)
         for (uint32_t i = 0; i < no_of_items; i++, i_op_start_offset++) {
             Packet *p = (Packet *)cb_data->p_buffer[i_op_start_offset];
 
+            SCMutexLock(&p->cuda_pkt_vars.cuda_mutex);
+            if (p->cuda_pkt_vars.cuda_mpm_enabled == 0) {
+                p->cuda_pkt_vars.cuda_done = 0;
+                SCMutexUnlock(&p->cuda_pkt_vars.cuda_mutex);
+                continue;
+            }
+
             p->cuda_pkt_vars.cuda_gpu_matches =
                 cuda_results_buffer_h[((o_buffer[i_op_start_offset] - d_buffer_start_offset) * 2)];
             if (p->cuda_pkt_vars.cuda_gpu_matches != 0) {
@@ -1900,7 +1919,6 @@ static void *SCACCudaDispatcher(void *arg)
                                                 d_buffer_start_offset) * 2)] * sizeof(uint32_t)) + 4);
             }
 
-            SCMutexLock(&p->cuda_pkt_vars.cuda_mutex);
             p->cuda_pkt_vars.cuda_done = 1;
             SCMutexUnlock(&p->cuda_pkt_vars.cuda_mutex);
             SCCondSignal(&p->cuda_pkt_vars.cuda_cond);
