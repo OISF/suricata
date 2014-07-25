@@ -183,7 +183,6 @@ TmEcode NapatechStreamLoop(ThreadVars *tv, void *data, void *slot)
 
     int32_t status;
     char errbuf[100];
-    uint16_t packet_q_len = 0;
     uint64_t pkt_ts;
     NtNetBuf_t packet_buffer;
     NapatechThreadVars *ntv = (NapatechThreadVars *)data;

@@ -408,7 +408,6 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
     int rlen;
     char hdr_type = 0;
     int processed = 0;
-    int packet_q_len = 0;
 
     *pkts_read = 0;
 

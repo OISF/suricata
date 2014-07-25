@@ -290,7 +290,6 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
 {
     SCEnter();
 
-    uint16_t packet_q_len = 0;
     PfringThreadVars *ptv = (PfringThreadVars *)data;
     Packet *p = NULL;
     struct pfring_pkthdr hdr;
