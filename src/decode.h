@@ -79,6 +79,7 @@ enum PktSrcEnum {
 #include "decode-sctp.h"
 #include "decode-raw.h"
 #include "decode-vlan.h"
+#include "decode-mpls.h"
 
 #include "detect-reference.h"
 
@@ -593,6 +594,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_vlan_qinq;
     uint16_t counter_pppoe;
     uint16_t counter_teredo;
+    uint16_t counter_mpls;
     uint16_t counter_ipv4inipv6;
     uint16_t counter_ipv6inipv6;
     uint16_t counter_avg_pkt_size;
@@ -837,6 +839,7 @@ int DecodeUDP(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, P
 int DecodeSCTP(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 int DecodeGRE(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 int DecodeVLAN(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
+int DecodeMPLS(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 
 void AddressDebugPrint(Address *);
 
