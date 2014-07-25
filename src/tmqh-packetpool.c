@@ -223,7 +223,7 @@ void PacketPoolReturnPacket(Packet *p)
         free(p);
         return;
     }
-   
+
     PACKET_RECYCLE(p);
 
     if (pool == my_pool) {
@@ -241,7 +241,7 @@ void PacketPoolReturnPacket(Packet *p)
         } else if (pending_pool == pool) {
             /* Another packet for the pending pool list. */
             p->next = my_pool->pending_head;
-            my_pool->pending_head->next = p;
+            my_pool->pending_head = p;
             my_pool->pending_count++;
             if (my_pool->pending_count > MAX_PENDING_RETURN_PACKETS) {
                 /* Return the entire list of pending packets. */
