@@ -93,6 +93,7 @@ struct DetectEngineEvents_ {
     { "ipv6.zero_len_padn", IPV6_EXTHDR_ZERO_LEN_PADN, },
     { "ipv6.fh_non_zero_reserved_field", IPV6_FH_NON_ZERO_RES_FIELD, },
     { "ipv6.data_after_none_header", IPV6_DATA_AFTER_NONE_HEADER, },
+    { "ipv6.unknown_next_header", IPV6_UNKNOWN_NEXT_HEADER, },
     { "ipv6.icmpv4", IPV6_WITH_ICMPV4, },
 
     /* TCP EVENTS */

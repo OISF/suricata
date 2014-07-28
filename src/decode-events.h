@@ -84,6 +84,7 @@ enum {
     IPV6_FH_NON_ZERO_RES_FIELD,     /**< reserved field not zero */
     IPV6_DATA_AFTER_NONE_HEADER,    /**< data after 'none' (59) header */
 
+    IPV6_UNKNOWN_NEXT_HEADER,       /**< unknown/unsupported next header */
     IPV6_WITH_ICMPV4,               /**< IPv6 packet with ICMPv4 header */
 
     /* TCP EVENTS */
