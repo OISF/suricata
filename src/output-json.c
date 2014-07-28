@@ -394,7 +394,8 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
         }
 
         if (output_s != NULL) {
-            if (strcmp(output_s, "file") == 0) {
+            if (strcmp(output_s, "file") == 0 ||
+                strcmp(output_s, "regular") == 0) {
                 json_ctx->json_out = ALERT_FILE;
             } else if (strcmp(output_s, "syslog") == 0) {
                 json_ctx->json_out = ALERT_SYSLOG;
