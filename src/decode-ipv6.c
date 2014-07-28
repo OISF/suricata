@@ -412,6 +412,12 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                     SCReturn;
                 }
 
+                /* for the frag header, the length field is reserved */
+                if (*(pkt + 1) != 0) {
+                    ENGINE_SET_EVENT(p, IPV6_FH_NON_ZERO_RES_FIELD);
+                    /* non fatal, lets try to continue */
+                }
+
                 if(p->IPV6_EH_CNT<IPV6_MAX_OPT)
                 {
                     p->IPV6_EXTHDRS[p->IPV6_EH_CNT].type = nh;

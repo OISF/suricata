@@ -81,6 +81,7 @@ enum {
 
     IPV6_EXTHDR_RH_TYPE_0,          /**< RH 0 is deprecated as per rfc5095 */
     IPV6_EXTHDR_ZERO_LEN_PADN,      /**< padN w/o data (0 len) */
+    IPV6_FH_NON_ZERO_RES_FIELD,     /**< reserved field not zero */
 
     IPV6_WITH_ICMPV4,               /**< IPv6 packet with ICMPv4 header */
 
