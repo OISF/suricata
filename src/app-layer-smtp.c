@@ -4068,127 +4068,147 @@ int SMTPParserTest14(void)
     uint32_t reply5_len = sizeof(reply5);
 
     TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
-    void *thread_local_data = SMTPLocalStorageAlloc();
 
-    /* EHLO Request */
-    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOSERVER,
-            request1, request1_len);
+    SCMutexLock(&f.m);
+    /* Welcome reply */
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT,
+            welcome_reply, welcome_reply_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     SMTPState *smtp_state = f.alstate;
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-            smtp_state->cmds_cnt != 1 ||
+            smtp_state->cmds_cnt != 0 ||
             smtp_state->cmds_idx != 0 ||
-            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
-            smtp_state->parser_state != 0) {
-        printf("smtp parser in inconsistent state\n");
+            smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+        printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
     }
 
-    /* Welcome reply */
-    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOCLIENT,
-            welcome_reply, welcome_reply_len);
+    SCMutexLock(&f.m);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER,
+                            request1, request1_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     if (smtp_state->input_len != 0 ||
             smtp_state->cmds_cnt != 1 ||
             smtp_state->cmds_idx != 0 ||
             smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
             smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
-        printf("smtp parser in inconsistent state\n");
+        printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
     }
 
+    SCMutexLock(&f.m);
     /* EHLO Reply */
-    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOCLIENT,
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT,
             reply1, reply1_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     if (smtp_state->input_len != 0 ||
             smtp_state->cmds_cnt != 0 ||
             smtp_state->cmds_idx != 0 ||
             smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
-        printf("smtp parser in inconsistent state\n");
+        printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
     }
 
+    SCMutexLock(&f.m);
     /* MAIL FROM Request */
-    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOSERVER,
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER,
             request2, request2_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     if (smtp_state->input_len != 0 ||
             smtp_state->cmds_cnt != 1 ||
             smtp_state->cmds_idx != 0 ||
             smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
             smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
-        printf("smtp parser in inconsistent state\n");
+        printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
     }
 
+    SCMutexLock(&f.m);
     /* MAIL FROM Reply */
-    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOCLIENT,
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT,
             reply2, reply2_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     if (smtp_state->input_len != 0 ||
             smtp_state->cmds_cnt != 0 ||
             smtp_state->cmds_idx != 0 ||
             smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
-        printf("smtp parser in inconsistent state\n");
+        printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
     }
 
+    SCMutexLock(&f.m);
     /* RCPT TO Request */
-    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOSERVER,
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER,
             request3, request3_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     if (smtp_state->input_len != 0 ||
             smtp_state->cmds_cnt != 1 ||
             smtp_state->cmds_idx != 0 ||
             smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
             smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
-        printf("smtp parser in inconsistent state\n");
+        printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
     }
 
+    SCMutexLock(&f.m);
     /* RCPT TO Reply */
-    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOCLIENT,
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT,
             reply3, reply3_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     if (smtp_state->input_len != 0 ||
             smtp_state->cmds_cnt != 0 ||
             smtp_state->cmds_idx != 0 ||
             smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
-        printf("smtp parser in inconsistent state\n");
+        printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
     }
 
@@ -4198,46 +4218,55 @@ int SMTPParserTest14(void)
     smtp_config.mime_config.decode_quoted_printable = 1;
     MimeDecSetConfig(&smtp_config.mime_config);
 
+    SCMutexLock(&f.m);
     /* DATA request */
-    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOSERVER,
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER,
             request4, request4_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     if (smtp_state->input_len != 0 ||
             smtp_state->cmds_cnt != 1 ||
             smtp_state->cmds_idx != 0 ||
             smtp_state->cmds[0] != SMTP_COMMAND_DATA ||
             smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
-        printf("smtp parser in inconsistent state\n");
+        printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
     }
 
+    SCMutexLock(&f.m);
     /* Data reply */
-    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOCLIENT,
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT,
             reply4, reply4_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     if (smtp_state->input_len != 0 ||
             smtp_state->cmds_cnt != 0 ||
             smtp_state->cmds_idx != 0 ||
             smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
                     SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
-        printf("smtp parser in inconsistent state\n");
+        printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
     }
 
+    SCMutexLock(&f.m);
     /* DATA message */
-    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOSERVER,
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER,
             request4_msg, request4_msg_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     if (smtp_state->input_len != 0 ||
             smtp_state->cmds_cnt != 0 ||
@@ -4245,17 +4274,20 @@ int SMTPParserTest14(void)
             smtp_state->mime_state == NULL || smtp_state->msg_head == NULL || /* MIME data structures */
             smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
                     SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
-        printf("smtp parser in inconsistent state\n");
+        printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
     }
 
+    SCMutexLock(&f.m);
     /* DATA . request */
-    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOSERVER,
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER,
             request4_end, request4_end_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
 
     if (smtp_state->input_len != 0 ||
             smtp_state->cmds_cnt != 1 ||
@@ -4263,7 +4295,7 @@ int SMTPParserTest14(void)
             smtp_state->cmds[0] != SMTP_COMMAND_DATA_MODE ||
             smtp_state->mime_state == NULL || smtp_state->msg_head == NULL || /* MIME data structures */
             smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
-        printf("smtp parser in inconsistent state\n");
+        printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
     }
 
@@ -4306,57 +4338,67 @@ int SMTPParserTest14(void)
         }
     }
 
+    SCMutexLock(&f.m);
     /* DATA . reply */
-    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOCLIENT,
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT,
             reply4_end, reply4_end_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     if (smtp_state->input_len != 0 ||
             smtp_state->cmds_cnt != 0 ||
             smtp_state->cmds_idx != 0 ||
             smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
-        printf("smtp parser in inconsistent state\n");
+        printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
     }
 
+    SCMutexLock(&f.m);
     /* QUIT Request */
-    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOSERVER,
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER,
             request5, request5_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     if (smtp_state->input_len != 0 ||
             smtp_state->cmds_cnt != 1 ||
             smtp_state->cmds_idx != 0 ||
             smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
             smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
-        printf("smtp parser in inconsistent state\n");
+        printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
     }
 
+    SCMutexLock(&f.m);
     /* QUIT Reply */
-    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOCLIENT,
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT,
             reply5, reply5_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
         goto end;
     }
+    SCMutexUnlock(&f.m);
     if (smtp_state->input_len != 0 ||
             smtp_state->cmds_cnt != 0 ||
             smtp_state->cmds_idx != 0 ||
             smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
-        printf("smtp parser in inconsistent state\n");
+        printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
     }
 
     result = 1;
-    end:
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
-    SMTPLocalStorageFree(thread_local_data);
     return result;
 }
 
