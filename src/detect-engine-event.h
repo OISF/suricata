@@ -91,6 +91,7 @@ struct DetectEngineEvents_ {
     { "ipv6.dstopts_only_padding", IPV6_DSTOPTS_ONLY_PADDING, },
     { "ipv6.rh_type_0", IPV6_EXTHDR_RH_TYPE_0, },
     { "ipv6.zero_len_padn", IPV6_EXTHDR_ZERO_LEN_PADN, },
+    { "ipv6.fh_non_zero_reserved_field", IPV6_FH_NON_ZERO_RES_FIELD, },
     { "ipv6.icmpv4", IPV6_WITH_ICMPV4, },
 
     /* TCP EVENTS */
