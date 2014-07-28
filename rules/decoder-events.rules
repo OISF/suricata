@@ -43,6 +43,8 @@ alert ipv6 any any -> any any (msg:"SURICATA zero length padN option"; decode-ev
 alert ipv6 any any -> any any (msg:"SURICATA reserved field in Frag Header not zero"; decode-event:ipv6.fh_non_zero_reserved_field; sid:2200095; rev:1;)
 # Data after the 'none' header (59) is suspicious.
 alert ipv6 any any -> any any (msg:"SURICATA data after none (59) header"; decode-event:ipv6.data_after_none_header; sid:2200096; rev:1;)
+# unknown/unsupported next header / protocol. Valid protocols are not yet supported, so disabling by default
+#alert ipv6 any any -> any any (msg:"SURICATA unknown next header / protocol"; decode-event:ipv6.unknown_next_header; sid:2200097; rev:1;)
 alert ipv6 any any -> any any (msg:"SURICATA IPv6 with ICMPv4 header"; decode-event:ipv6.icmpv4; sid:2200090; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA ICMPv4 packet too small"; decode-event:icmpv4.pkt_too_small; sid:2200023; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA ICMPv4 unknown type"; decode-event:icmpv4.unknown_type; sid:2200024; rev:1;)
@@ -114,5 +116,5 @@ alert pkthdr any any -> any any (msg:"SURICATA IPv4-in-IPv6 invalid protocol"; d
 alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 packet too short"; decode-event:ipv6.ipv6_in_ipv6_too_small; sid:2200084; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 invalid protocol"; decode-event:ipv6.ipv6_in_ipv6_wrong_version; sid:2200085; rev:1;)
 
-# next sid is 2200097
+# next sid is 2200098
 

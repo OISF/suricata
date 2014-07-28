@@ -562,6 +562,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 plen -= hdrextlen;
                 break;
             default:
+                ENGINE_SET_EVENT(p, IPV6_UNKNOWN_NEXT_HEADER);
                 IPV6_SET_L4PROTO(p,nh);
                 SCReturn;
         }
@@ -662,6 +663,7 @@ int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
             ENGINE_SET_EVENT(p,IPV6_WITH_ICMPV4);
             break;
         default:
+            ENGINE_SET_EVENT(p, IPV6_UNKNOWN_NEXT_HEADER);
             IPV6_SET_L4PROTO (p, IPV6_GET_NH(p));
             break;
     }
