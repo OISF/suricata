@@ -903,6 +903,19 @@ void AddressDebugPrint(Address *);
 #define IPPROTO_SCTP 132
 #endif
 
+#ifndef IPPROTO_MH
+#define IPPROTO_MH 135
+#endif
+
+/* Host Identity Protocol (rfc 5201) */
+#ifndef IPPROTO_HIP
+#define IPPROTO_HIP 139
+#endif
+
+#ifndef IPPROTO_SHIM6
+#define IPPROTO_SHIM6 140
+#endif
+
 /* pcap provides this, but we don't want to depend on libpcap */
 #ifndef DLT_EN10MB
 #define DLT_EN10MB 1

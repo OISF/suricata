@@ -107,7 +107,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
     SCEnter();
 
     uint8_t *orig_pkt = pkt;
-    uint8_t nh;
+    uint8_t nh = 0; /* careful, 0 is actually a real type */
     uint16_t hdrextlen;
     uint16_t plen;
     char dstopts = 0;
@@ -118,6 +118,12 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
 
     while(1)
     {
+        /* No upper layer, but we do have data. Suspicious. */
+        if (nh == IPPROTO_NONE && plen > 0) {
+            ENGINE_SET_EVENT(p, IPV6_DATA_AFTER_NONE_HEADER);
+            SCReturn;
+        }
+
         if (plen < 2) { /* minimal needed in a hdr */
             SCReturn;
         }
@@ -535,12 +541,26 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 IPV6_SET_L4PROTO(p,nh);
                 DecodeIPv4inIPv6(tv, dtv, p, pkt, plen, pq);
                 SCReturn;
+            /* none, last header */
             case IPPROTO_NONE:
                 IPV6_SET_L4PROTO(p,nh);
                 SCReturn;
             case IPPROTO_ICMP:
                 ENGINE_SET_EVENT(p,IPV6_WITH_ICMPV4);
                 SCReturn;
+            /* no parsing yet, just skip it */
+            case IPPROTO_MH:
+            case IPPROTO_HIP:
+            case IPPROTO_SHIM6:
+                hdrextlen = 8 + (*(pkt+1) * 8);  /* 8 bytes + length in 8 octet units */
+                if (hdrextlen > plen) {
+                    ENGINE_SET_EVENT(p, IPV6_TRUNC_EXTHDR);
+                    SCReturn;
+                }
+                nh = *pkt;
+                pkt += hdrextlen;
+                plen -= hdrextlen;
+                break;
             default:
                 IPV6_SET_L4PROTO(p,nh);
                 SCReturn;
@@ -633,6 +653,9 @@ int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
         case IPPROTO_DSTOPTS:
         case IPPROTO_AH:
         case IPPROTO_ESP:
+        case IPPROTO_MH:
+        case IPPROTO_HIP:
+        case IPPROTO_SHIM6:
             DecodeIPV6ExtHdrs(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq);
             break;
         case IPPROTO_ICMP:
