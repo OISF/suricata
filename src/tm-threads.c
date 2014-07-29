@@ -211,6 +211,8 @@ void *TmThreadsSlot1NoIn(void *td)
         }
     } /* while (run) */
 
+    PacketPoolDestroy();
+
     TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
 
@@ -305,6 +307,8 @@ void *TmThreadsSlot1NoOut(void *td)
         }
     } /* while (run) */
 
+    PacketPoolDestroy();
+
     TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
 
@@ -393,6 +397,8 @@ void *TmThreadsSlot1NoInOut(void *td)
             run = 0;
         }
     } /* while (run) */
+
+    PacketPoolDestroy();
 
     TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
@@ -522,6 +528,8 @@ void *TmThreadsSlot1(void *td)
             run = 0;
         }
     } /* while (run) */
+
+    PacketPoolDestroy();
 
     TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
@@ -721,6 +729,8 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
         }
     }
     SCPerfSyncCounters(tv);
+
+    PacketPoolDestroy();
 
     TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
