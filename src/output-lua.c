@@ -319,6 +319,36 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
     return 0;
 }
 
+/** \internal
+ *  \brief Flow API Logger function for Lua scripts
+ *
+ *  Executes a script once for one flow
+ *
+ *  Note: flow 'f' is locked
+ */
+static int LuaFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
+{
+    SCEnter();
+    LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
+
+    SCLogDebug("f %p", f);
+
+    SCMutexLock(&td->lua_ctx->m);
+
+    LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
+    LuaStateSetFlow(td->lua_ctx->luastate, f, /* locked */LUA_FLOW_LOCKED_BY_PARENT);
+
+    /* get the lua function to call */
+    lua_getglobal(td->lua_ctx->luastate, "log");
+
+    int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
+    if (retval != 0) {
+        SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
+    }
+    SCMutexUnlock(&td->lua_ctx->m);
+    return 0;
+}
+
 typedef struct LogLuaScriptOptions_ {
     AppProto alproto;
     int packet;
@@ -327,6 +357,7 @@ typedef struct LogLuaScriptOptions_ {
     int streaming;
     int tcp_data;
     int http_body;
+    int flow;
 } LogLuaScriptOptions;
 
 /** \brief load and evaluate the script
@@ -427,6 +458,8 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
             options->file = 1;
         else if (strcmp(k, "type") == 0 && strcmp(v, "streaming") == 0)
             options->streaming = 1;
+        else if (strcmp(k, "type") == 0 && strcmp(v, "flow") == 0)
+            options->flow = 1;
         else if (strcmp(k, "filter") == 0 && strcmp(v, "tcp") == 0)
             options->tcp_data = 1;
         else
@@ -632,6 +665,8 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
             om->FileLogFunc = LuaFileLogger;
         } else if (opts.streaming && opts.tcp_data) {
             om->StreamingLogFunc = LuaStreamingLogger;
+        } else if (opts.flow) {
+            om->FlowLogFunc = LuaFlowLogger;
         } else {
             SCLogError(SC_ERR_LUAJIT_ERROR, "failed to setup thread module");
             SCFree(om);
