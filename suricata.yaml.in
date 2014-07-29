@@ -97,6 +97,15 @@ outputs:
             # payload: yes           # enable dumping payload in Base64
             # payload-printable: yes # enable dumping payload in printable (lossy) format
             # packet: yes            # enable dumping of packet (without stream segments)
+
+            # HTTP X-Forwarded-For support by adding a field that will contain the
+            # client IP address. This field  will contain the address or addresses
+            # and the respective order of appearence in the header. This is helpful
+            # when reviewing alerts for traffic that is being reversed proxied.
+            xff:
+              enabled: no
+              # Header name where the actual IP address or addresses will be reported.
+              header: X-Forwarded-For
         - http:
             extended: yes     # enable this for extended logging information
             # custom allows additional http fields to be included in eve-log
@@ -125,8 +134,8 @@ outputs:
 
       # HTTP X-Forwarded-For support by adding the unified2 extra header that
       # will contain the actual client IP address or by overwriting the source
-      # IP address (helpful when inspecting traffic that is being reversed
-      # proxied).
+      # IP address. This is helpful when reviewing alerts for traffic that is
+      # being reversed proxied.
       xff:
         enabled: no
         # Two operation modes are available, "extra-data" and "overwrite". Note
@@ -137,7 +146,7 @@ outputs:
         # Header name were the actual IP address will be reported, if more than
         # one IP address is present, the last IP address will be the one taken
         # into consideration.
-        header: X-Forwarded-For 
+        header: X-Forwarded-For
 
   # a line based log of HTTP requests (no alerts)
   - http-log:
