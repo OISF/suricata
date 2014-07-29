@@ -468,7 +468,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                     exit(EXIT_FAILURE);
                 }
             }
-        } else if (json_out == ALERT_SYSLOG) {
+        } else if (json_ctx->json_out == ALERT_SYSLOG) {
             const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
             if (facility_s == NULL) {
                 facility_s = DEFAULT_ALERT_SYSLOG_FACILITY_STR;
