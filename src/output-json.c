@@ -347,7 +347,7 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer)
     SCMutexLock(&file_ctx->fp_mutex);
     if (json_out == ALERT_SYSLOG) {
         syslog(alert_syslog_level, "%s", js_s);
-    } else if (json_out == ALERT_FILE) {
+    } else if (json_out == ALERT_FILE || json_out == ALERT_UNIX_DGRAM || json_out == ALERT_UNIX_STREAM) {
         MemBufferWriteString(buffer, "%s\n", js_s);
         file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
             MEMBUFFER_OFFSET(buffer), file_ctx);
@@ -457,7 +457,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
             }
         }
 
-        if (json_ctx->json_out == ALERT_FILE) {
+        if (json_ctx->json_out == ALERT_FILE || json_ctx->json_out == ALERT_UNIX_DGRAM || json_ctx->json_out == ALERT_UNIX_STREAM) {
 
             if (SCConfLogOpenGeneric(conf, json_ctx->file_ctx, DEFAULT_LOG_FILENAME) < 0) {
                 LogFileFreeCtx(json_ctx->file_ctx);
