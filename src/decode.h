@@ -50,6 +50,7 @@ enum PktSrcEnum {
     PKT_SRC_DECODER_IPV4,
     PKT_SRC_DECODER_IPV6,
     PKT_SRC_DECODER_TEREDO,
+    PKT_SRC_DECODER_GTP,
     PKT_SRC_DEFRAG,
     PKT_SRC_STREAM_TCP_STREAM_END_PSEUDO,
     PKT_SRC_FFR_V2,
@@ -598,6 +599,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_teredo;
     uint16_t counter_ipv4inipv6;
     uint16_t counter_ipv6inipv6;
+    uint16_t counter_gtp_data;
     uint16_t counter_avg_pkt_size;
     uint16_t counter_max_pkt_size;
 

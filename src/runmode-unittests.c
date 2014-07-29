@@ -58,6 +58,8 @@
 #include "flow-bit.h"
 #include "pkt-var.h"
 
+#include "decode-gtp.h"
+
 #include "host.h"
 #include "unix-manager.h"
 
@@ -206,6 +208,7 @@ int RunUnittests(int list_unittests, char *regex_arg)
     DecodeUDPV4RegisterTests();
     DecodeGRERegisterTests();
     DecodeAsn1RegisterTests();
+    DecodeGTPRegisterUnitTests();
     AppLayerProtoDetectUnittestsRegister();
     ConfRegisterTests();
     ConfYamlRegisterTests();

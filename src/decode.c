@@ -414,6 +414,8 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
                                                SC_PERF_TYPE_UINT64, "NULL");
     dtv->counter_ipv6inipv6 = SCPerfTVRegisterCounter("decoder.ipv6_in_ipv6", tv,
                                                SC_PERF_TYPE_UINT64, "NULL");
+    dtv->counter_gtp_data = SCPerfTVRegisterCounter("decoder.gtp_data", tv,
+                                               SC_PERF_TYPE_UINT64, "NULL");
     dtv->counter_avg_pkt_size = SCPerfTVRegisterAvgCounter("decoder.avg_pkt_size", tv,
                                                            SC_PERF_TYPE_UINT64, "NULL");
     dtv->counter_max_pkt_size = SCPerfTVRegisterMaxCounter("decoder.max_pkt_size", tv,
@@ -544,6 +546,9 @@ const char *PktSrcToString(enum PktSrcEnum pkt_src)
             break;
         case PKT_SRC_DECODER_TEREDO:
             pkt_src_str = "teredo tunnel";
+            break;
+        case PKT_SRC_DECODER_GTP:
+            pkt_src_str = "gtp tunnel";
             break;
         case PKT_SRC_DEFRAG:
             pkt_src_str = "defrag";
