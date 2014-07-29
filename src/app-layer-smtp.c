@@ -4332,7 +4332,7 @@ int SMTPParserTest14(void)
                 0x2E, 0x39, 0x33, 0x2E, 0x36, 0x38, 0x2E, 0x36,
                 0x5C, 0x7A, 0x00, 0x00, 0x38,};
         uint64_t z;
-        for (z=0; z <= filesize; z++){
+        for (z=0; z < filesize; z++){
             if(org_binary[z] != file->chunks_head->data[z]){
                 printf("smtp-mime file data incorrect\n");
                 goto end;
