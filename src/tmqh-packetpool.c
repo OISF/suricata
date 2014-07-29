@@ -96,7 +96,7 @@ static PktPool *ThreadPacketPoolCreate(void)
     TmqhPacketpoolInit();
 
     /* Create a new pool for this thread. */
-    pool = (PktPool*)SCMallocAligned(sizeof(PktPool), CLS);
+    PktPool* pool = (PktPool*)SCMallocAligned(sizeof(PktPool), CLS);
     if (pool == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         exit(EXIT_FAILURE);
@@ -284,14 +284,13 @@ void PacketPoolInit(void)
             max_pending_packets, (uintmax_t)(max_pending_packets*SIZE_OF_PACKET));
 }
 
-void PacketPoolDestroy(void) {
-#if 0
+void PacketPoolDestroy(void)
+{
     Packet *p = NULL;
     while ((p = PacketPoolGetPacket()) != NULL) {
         PACKET_CLEANUP(p);
         SCFree(p);
     }
-#endif
 }
 
 Packet *TmqhInputPacketpool(ThreadVars *tv)
