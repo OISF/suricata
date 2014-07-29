@@ -187,15 +187,6 @@ int RunUnittests(int list_unittests, char *regex_arg)
     DecodePPPRegisterTests();
     DecodeVLANRegisterTests();
     HTPParserRegisterTests();
-/* we are disabling the ssh parser temporarily, since we are moving away
- * from some of the archaic features we use in the app layer.  We will
- * reintroduce this parser.  Also do note that keywords that rely on
- * the ssh parser would now be disabled */
-#if 0
-    SSHParserRegisterTests();
-#endif
-    SMBParserRegisterTests();
-    FTPParserRegisterTests();
     DecodeRawRegisterTests();
     DecodePPPOERegisterTests();
     DecodeICMPV4RegisterTests();
@@ -250,7 +241,6 @@ int RunUnittests(int list_unittests, char *regex_arg)
     DetectEngineHttpHRHRegisterTests();
     DetectEngineRegisterTests();
     SCLogRegisterTests();
-    SMTPParserRegisterTests();
     MagicRegisterTests();
     UtilMiscRegisterTests();
     DetectAddressTests();
