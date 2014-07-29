@@ -58,22 +58,11 @@ static inline PktPool *GetThreadPacketPool(void)
 {
     return &thread_pkt_pool;
 }
-
-static inline PktPool *ThreadPacketPoolCreate(void)
-{
-    /* Nothing to do since __thread statically allocates the memory. */
-    return GetThreadPacketPool();
-}
 #else
 /* __thread not supported. */
 static pthread_key_t pkt_pool_thread_key;
 static SCMutex pkt_pool_thread_key_mutex = SCMUTEX_INITIALIZER;
 static int pkt_pool_thread_key_initialized = 0;
-
-static inline PktPool *GetThreadPacketPool(void)
-{
-    return (PktPool*)pthread_getspecific(pkt_pool_thread_key);
-}
 
 static void PktPoolThreadDestroy(void * buf)
 {
@@ -102,14 +91,9 @@ static void TmqhPacketpoolInit(void)
     SCMutexUnlock(&pkt_pool_thread_key_mutex);
 }
 
-static inline PktPool *ThreadPacketPoolCreate(void)
+static PktPool *ThreadPacketPoolCreate(void)
 {
     TmqhPacketpoolInit();
-
-    /* Check that the pool is not already created */
-    PktPool *pool = GetThreadPacketPool();
-    if (pool)
-        return pool;
 
     /* Create a new pool for this thread. */
     pool = (PktPool*)SCMallocAligned(sizeof(PktPool), CLS);
@@ -123,6 +107,15 @@ static inline PktPool *ThreadPacketPoolCreate(void)
         exit(EXIT_FAILURE);
     }
 
+    return pool;
+}
+
+static inline PktPool *GetThreadPacketPool(void)
+{
+    PktPool* pool = (PktPool*)pthread_getspecific(pkt_pool_thread_key);
+    if (pool == NULL)
+      pool = ThreadPacketPoolCreate();
+    
     return pool;
 }
 #endif
@@ -168,6 +161,15 @@ static void PacketPoolStorePacket(Packet *p)
     PacketPoolReturnPacket(p);
 }
 
+static void PacketPoolGetReturnedPackets(PktPool *pool)
+{
+    SCMutexLock(&pool->return_stack.mutex);
+    /* Move all the packets from the locked return stack to the local stack. */
+    pool->head = pool->return_stack.head;
+    pool->return_stack.head = NULL;
+    SCMutexUnlock(&pool->return_stack.mutex);
+}
+
 /** \brief Get a new packet from the packet pool
  *
  * Only allocates from the thread's local stack, or mallocs new packets.
@@ -189,11 +191,7 @@ Packet *PacketPoolGetPacket(void)
 
     /* Local Stack is empty, so check the return stack, which requires
      * locking. */
-    SCMutexLock(&pool->return_stack.mutex);
-    /* Move all the packets from the locked return stack to the local stack. */
-    pool->head = pool->return_stack.head;
-    pool->return_stack.head = NULL;
-    SCMutexUnlock(&pool->return_stack.mutex);
+    PacketPoolGetReturnedPackets(pool);
 
     /* Try to allocate again. Need to check for not empty again, since the
      * return stack might have been empty too.
@@ -266,7 +264,7 @@ void PacketPoolInit(void)
 {
     extern intmax_t max_pending_packets;
 
-    PktPool *my_pool = ThreadPacketPoolCreate();
+    PktPool *my_pool = GetThreadPacketPool();
 
     SCMutexInit(&my_pool->return_stack.mutex, NULL);
 
