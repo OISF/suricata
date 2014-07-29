@@ -74,6 +74,8 @@ typedef struct OutputCtx_ {
 
     /** Pointer to a cleanup function. */
     void (*DeInit)(struct OutputCtx_ *);
+
+    TAILQ_HEAD(, OutputModule_) submodules;
 } OutputCtx;
 
 TmModule *TmModuleGetByName(const char *name);
