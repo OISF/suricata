@@ -254,6 +254,7 @@ int RunUnittests(int list_unittests, char *regex_arg)
     AppLayerUnittestsRegister();
     if (list_unittests) {
         UtListTests(regex_arg);
+        return TM_ECODE_OK;
     } else {
         uint32_t failed = UtRunTests(regex_arg);
         UtCleanup();
@@ -263,7 +264,7 @@ int RunUnittests(int list_unittests, char *regex_arg)
         CudaHandlerFreeProfiles();
 #endif
         if (failed) {
-            exit(EXIT_FAILURE);
+            return TM_ECODE_FAILED;
         }
     }
 
@@ -271,10 +272,10 @@ int RunUnittests(int list_unittests, char *regex_arg)
     SCLogInfo("Total memory used (without SCFree()): %"PRIdMAX, (intmax_t)global_mem);
 #endif
 
-    exit(EXIT_SUCCESS);
+    return TM_ECODE_OK;
 #else
     SCLogError(SC_ERR_NOT_SUPPORTED, "Unittests are not build-in");
-    exit(EXIT_FAILURE);
+    return TM_ECODE_FAILED;
 #endif /* UNITTESTS */
 }
 
