@@ -481,7 +481,7 @@ static TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
         td->pcap_log = pl;
     BUG_ON(td->pcap_log == NULL);
 
-    SCMutexLock(&td->pcap_log->plog_lock);
+    PcapLogLock(td->pcap_log);
 
     /** Use the Ouptut Context (file pointer and mutex) */
     td->pcap_log->pkt_cnt = 0;
@@ -496,7 +496,7 @@ static TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
     struct tm *tms = SCLocalTime(ts.tv_sec, &local_tm);
     td->pcap_log->prev_day = tms->tm_mday;
 
-    SCMutexUnlock(&td->pcap_log->plog_lock);
+    PcapLogUnlock(td->pcap_log);
 
     /* count threads in the global structure */
     SCMutexLock(&pl->plog_lock);
