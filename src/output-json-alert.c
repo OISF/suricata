@@ -439,7 +439,7 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         const char *xff = ConfNodeLookupChildValue(conf, "xff");
 
         if (xff != NULL) {
-            if (ConfValIsTrue(payload)) {
+            if (ConfValIsTrue(xff)) {
                 ajt->file_ctx->flags |= LOG_JSON_XFF;
             }
         }
