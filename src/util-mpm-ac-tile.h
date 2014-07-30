@@ -102,6 +102,8 @@ typedef struct SCACTileCtx_ {
 
     /* Number of states used by ac-tile */
     int state_count;
+    /* Number of states allocated for ac-tile. */
+    int allocated_state_count;
 
     /* Largest Pattern Identifier. */
     uint16_t max_pat_id;
