@@ -223,6 +223,7 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_LOGTLSLOG);
         CASE_CODE (TMM_LOGTLSLOG4);
         CASE_CODE (TMM_LOGTLSLOG6);
+        CASE_CODE (TMM_LOGTCPDATALOG);
         CASE_CODE (TMM_PCAPLOG);
         CASE_CODE (TMM_FILELOG);
         CASE_CODE (TMM_FILESTORE);
@@ -245,6 +246,7 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_TXLOGGER);
         CASE_CODE (TMM_FILELOGGER);
         CASE_CODE (TMM_FILEDATALOGGER);
+        CASE_CODE (TMM_STREAMINGLOGGER);
         CASE_CODE (TMM_JSONALERTLOG);
         CASE_CODE (TMM_JSONDROPLOG);
         CASE_CODE (TMM_JSONDNSLOG);
@@ -257,6 +259,7 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_OUTPUTJSON);
         CASE_CODE (TMM_FLOWMANAGER);
         CASE_CODE (TMM_FLOWRECYCLER);
+        CASE_CODE (TMM_LUALOG);
 
         CASE_CODE (TMM_SIZE);
     }

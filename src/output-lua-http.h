@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,15 +21,13 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_LUAJIT_EXT_H__
-#define __DETECT_LUAJIT_EXT_H__
+#ifndef __OUTPUT_LUA_HTTP_H__
+#define __OUTPUT_LUA_HTTP_H__
 
 #ifdef HAVE_LUA
-int LuajitRegisterExtensions(lua_State *);
 
-void LuajitExtensionsMatchSetup(lua_State *lua_state,
-        DetectLuajitData *, DetectEngineThreadCtx *det_ctx,
-        Flow *f, int flow_locked);
+int LogLuaRegisterHttpFunctions(lua_State *luastate);
 
 #endif /* HAVE_LUA */
-#endif
+
+#endif /* __OUTPUT_LUA_HTTP_H__ */
