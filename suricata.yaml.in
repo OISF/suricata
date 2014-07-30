@@ -206,7 +206,7 @@ outputs:
       # If set to a value will enable ring buffer mode. Will keep Maximum of "max-files" of size "limit"
       max-files: 2000
 
-      mode: normal # normal or sguil.
+      mode: normal # normal, multi or sguil.
       #sguil-base-dir: /nsm_data/
       #ts-format: usec # sec or usec second format (default) is filename.sec usec is filename.sec.usec
       use-stream-depth: no #If set to "yes" packets seen after reaching stream inspection depth are ignored. "no" logs all packets
