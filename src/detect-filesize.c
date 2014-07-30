@@ -483,7 +483,8 @@ end:
  *       context and setting up the signature itself.
  */
 
-static int DetectFilesizeSetpTest01(void) {
+static int DetectFilesizeSetpTest01(void)
+{
 
     DetectFilesizeData *fsd = NULL;
     uint8_t res = 0;

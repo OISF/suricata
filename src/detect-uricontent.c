@@ -96,7 +96,8 @@ uint32_t DetectUricontentMaxId(DetectEngineCtx *de_ctx)
  *
  * \param cd pointer to DetectUricotentData
  */
-void DetectUricontentFree(void *ptr) {
+void DetectUricontentFree(void *ptr)
+{
     SCEnter();
     DetectContentData *cd = (DetectContentData *)ptr;
 
@@ -274,7 +275,8 @@ end:
 
 /** \test Test case where path traversal has been sent as a path string in the
  *        HTTP URL and normalized path string is checked */
-static int HTTPUriTest01(void) {
+static int HTTPUriTest01(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "GET /../../images.gif HTTP/1.1\r\nHost: www.ExA"
@@ -339,7 +341,8 @@ end:
 
 /** \test Test case where path traversal has been sent in special characters in
  *        HEX encoding in the HTTP URL and normalized path string is checked */
-static int HTTPUriTest02(void) {
+static int HTTPUriTest02(void)
+{
     int result = 0;
     Flow f;
     HtpState *htp_state = NULL;
@@ -408,7 +411,8 @@ end:
 
 /** \test Test case where NULL character has been sent in HEX encoding in the
  *        HTTP URL and normalized path string is checked */
-static int HTTPUriTest03(void) {
+static int HTTPUriTest03(void)
+{
     int result = 0;
     Flow f;
     HtpState *htp_state = NULL;
@@ -478,7 +482,8 @@ end:
 
 /** \test Test case where self referencing directories request has been sent
  *        in the HTTP URL and normalized path string is checked */
-static int HTTPUriTest04(void) {
+static int HTTPUriTest04(void)
+{
     int result = 0;
     Flow f;
     HtpState *htp_state = NULL;
@@ -592,7 +597,8 @@ int DetectUriSigTest01(void)
 }
 
 /** \test Check the signature working to alert when http_cookie is matched . */
-static int DetectUriSigTest02(void) {
+static int DetectUriSigTest02(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST /one HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\nCookie:"
@@ -704,7 +710,8 @@ end:
 
 /** \test Check the working of search once per packet only in applayer
  *        match */
-static int DetectUriSigTest03(void) {
+static int DetectUriSigTest03(void)
+{
     int result = 0;
     Flow f;
     HtpState *http_state = NULL;
@@ -845,7 +852,8 @@ end:
  * \test Check that modifiers of content apply only to content keywords
  *       and the same for uricontent modifiers
  */
-static int DetectUriSigTest04(void) {
+static int DetectUriSigTest04(void)
+{
     int result = 0;
     Signature *s = NULL;
 
@@ -1045,7 +1053,8 @@ end:
 /** \test Check the modifiers for uricontent and content
  *        match
  */
-static int DetectUriSigTest05(void) {
+static int DetectUriSigTest05(void)
+{
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
     Flow f;
@@ -1171,7 +1180,8 @@ end:
 /** \test Check the modifiers for uricontent and content
  *        match
  */
-static int DetectUriSigTest06(void) {
+static int DetectUriSigTest06(void)
+{
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
     Flow f;
@@ -1310,7 +1320,8 @@ end:
 /** \test Check the modifiers for uricontent and content
  *        match
  */
-static int DetectUriSigTest07(void) {
+static int DetectUriSigTest07(void)
+{
     int result = 0;
     Flow f;
     HtpState *http_state = NULL;
@@ -1935,7 +1946,8 @@ int DetectUriContentParseTest24(void)
 
 #endif /* UNITTESTS */
 
-void HttpUriRegisterTests(void) {
+void HttpUriRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("HTTPUriTest01", HTTPUriTest01, 1);
     UtRegisterTest("HTTPUriTest02", HTTPUriTest02, 1);

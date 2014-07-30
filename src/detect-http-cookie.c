@@ -312,7 +312,8 @@ end:
 }
 
 /** \test Check the signature working to alert when http_cookie is matched . */
-static int DetectHttpCookieSigTest01(void) {
+static int DetectHttpCookieSigTest01(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\nCookie:"
@@ -417,7 +418,8 @@ end:
 }
 
 /** \test Check the signature working to alert when http_cookie is not present */
-static int DetectHttpCookieSigTest02(void) {
+static int DetectHttpCookieSigTest02(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n\r\n";
@@ -509,7 +511,8 @@ end:
 }
 
 /** \test Check the signature working to alert when http_cookie is not present */
-static int DetectHttpCookieSigTest03(void) {
+static int DetectHttpCookieSigTest03(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
@@ -601,7 +604,8 @@ end:
 }
 
 /** \test Check the signature working to alert when http_cookie is not present */
-static int DetectHttpCookieSigTest04(void) {
+static int DetectHttpCookieSigTest04(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
@@ -694,7 +698,8 @@ end:
 }
 
 /** \test Check the signature working to alert when http_cookie is not present */
-static int DetectHttpCookieSigTest05(void) {
+static int DetectHttpCookieSigTest05(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
@@ -787,7 +792,8 @@ end:
 }
 
 /** \test Check the signature working to alert when http_cookie is not present */
-static int DetectHttpCookieSigTest06(void) {
+static int DetectHttpCookieSigTest06(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
@@ -880,7 +886,8 @@ end:
 }
 
 /** \test Check the signature working to alert when http_cookie is not present */
-static int DetectHttpCookieSigTest07(void) {
+static int DetectHttpCookieSigTest07(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"

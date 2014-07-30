@@ -54,7 +54,8 @@ static int DetectIPRepSetup (DetectEngineCtx *, Signature *, char *);
 void DetectIPRepFree (void *);
 void IPRepRegisterTests(void);
 
-void DetectIPRepRegister (void) {
+void DetectIPRepRegister (void)
+{
     sigmatch_table[DETECT_IPREP].name = "iprep";
     sigmatch_table[DETECT_IPREP].Match = DetectIPRepMatch;
     sigmatch_table[DETECT_IPREP].Setup = DetectIPRepSetup;
@@ -87,7 +88,8 @@ error:
     return;
 }
 
-static uint8_t GetHostRepSrc(Packet *p, uint8_t cat, uint32_t version) {
+static uint8_t GetHostRepSrc(Packet *p, uint8_t cat, uint32_t version)
+{
     uint8_t val = 0;
     Host *h = NULL;
 
@@ -125,7 +127,8 @@ static uint8_t GetHostRepSrc(Packet *p, uint8_t cat, uint32_t version) {
     return val;
 }
 
-static uint8_t GetHostRepDst(Packet *p, uint8_t cat, uint32_t version) {
+static uint8_t GetHostRepDst(Packet *p, uint8_t cat, uint32_t version)
+{
     uint8_t val = 0;
     Host *h = NULL;
 
@@ -164,7 +167,8 @@ static uint8_t GetHostRepDst(Packet *p, uint8_t cat, uint32_t version) {
     return val;
 }
 
-static inline int RepMatch(uint8_t op, uint8_t val1, uint8_t val2) {
+static inline int RepMatch(uint8_t op, uint8_t val1, uint8_t val2)
+{
     if (op == DETECT_IPREP_OP_GT && val1 > val2) {
         return 1;
     } else if (op == DETECT_IPREP_OP_LT && val1 < val2) {
@@ -367,7 +371,8 @@ error:
     return -1;
 }
 
-void DetectIPRepFree (void *ptr) {
+void DetectIPRepFree (void *ptr)
+{
     DetectIPRepData *fd = (DetectIPRepData *)ptr;
 
     if (fd == NULL)
@@ -382,7 +387,8 @@ void DetectIPRepFree (void *ptr) {
 /**
  * \brief this function registers unit tests for IPRep
  */
-void IPRepRegisterTests(void) {
+void IPRepRegisterTests(void)
+{
 #ifdef UNITTESTS
 #endif /* UNITTESTS */
 }

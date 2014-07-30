@@ -67,7 +67,8 @@ void DetectTlsVersionFree(void *);
 /**
  * \brief Registration function for keyword: tls.version
  */
-void DetectTlsVersionRegister (void) {
+void DetectTlsVersionRegister (void)
+{
     sigmatch_table[DETECT_AL_TLS_VERSION].name = "tls.version";
     sigmatch_table[DETECT_AL_TLS_VERSION].desc = "match on TLS/SSL version";
     sigmatch_table[DETECT_AL_TLS_VERSION].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/TLS-keywords#tlsversion";
@@ -269,7 +270,8 @@ error:
  *
  * \param id_d pointer to DetectTlsVersionData
  */
-void DetectTlsVersionFree(void *ptr) {
+void DetectTlsVersionFree(void *ptr)
+{
     DetectTlsVersionData *id_d = (DetectTlsVersionData *)ptr;
     SCFree(id_d);
 }
@@ -280,7 +282,8 @@ void DetectTlsVersionFree(void *ptr) {
  * \test DetectTlsVersionTestParse01 is a test to make sure that we parse the "id"
  *       option correctly when given valid id option
  */
-int DetectTlsVersionTestParse01 (void) {
+int DetectTlsVersionTestParse01 (void)
+{
     DetectTlsVersionData *tls = NULL;
     tls = DetectTlsVersionParse("1.0");
     if (tls != NULL && tls->ver == TLS_VERSION_10) {
@@ -296,7 +299,8 @@ int DetectTlsVersionTestParse01 (void) {
  *       option correctly when given an invalid id option
  *       it should return id_d = NULL
  */
-int DetectTlsVersionTestParse02 (void) {
+int DetectTlsVersionTestParse02 (void)
+{
     DetectTlsVersionData *tls = NULL;
     tls = DetectTlsVersionParse("2.5");
     if (tls == NULL) {
@@ -310,7 +314,8 @@ int DetectTlsVersionTestParse02 (void) {
 #include "stream-tcp-reassemble.h"
 
 /** \test Send a get request in three chunks + more data. */
-static int DetectTlsVersionTestDetect01(void) {
+static int DetectTlsVersionTestDetect01(void)
+{
     int result = 0;
     Flow f;
     uint8_t tlsbuf1[] = { 0x16 };
@@ -437,7 +442,8 @@ end:
     return result;
 }
 
-static int DetectTlsVersionTestDetect02(void) {
+static int DetectTlsVersionTestDetect02(void)
+{
     int result = 0;
     Flow f;
     uint8_t tlsbuf1[] = { 0x16 };
@@ -560,7 +566,8 @@ end:
     return result;
 }
 
-static int DetectTlsVersionTestDetect03(void) {
+static int DetectTlsVersionTestDetect03(void)
+{
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
     Flow f;
@@ -702,7 +709,8 @@ end:
 /**
  * \brief this function registers unit tests for DetectTlsVersion
  */
-void DetectTlsVersionRegisterTests(void) {
+void DetectTlsVersionRegisterTests(void)
+{
 #ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectTlsVersionTestParse01", DetectTlsVersionTestParse01, 1);
     UtRegisterTest("DetectTlsVersionTestParse02", DetectTlsVersionTestParse02, 1);

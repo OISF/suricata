@@ -1554,7 +1554,8 @@ end:
 #endif
 
 /* Register unittests */
-void UtilActionRegisterTests(void) {
+void UtilActionRegisterTests(void)
+{
 #ifdef UNITTESTS
     /* Generic tests */
     UtRegisterTest("UtilActionTest01", UtilActionTest01, 1);

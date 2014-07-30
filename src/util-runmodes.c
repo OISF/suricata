@@ -296,7 +296,8 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
  *
  *  The string will be "pickup1,pickup2,pickup3\0"
  */
-char *RunmodeAutoFpCreatePickupQueuesString(int n) {
+char *RunmodeAutoFpCreatePickupQueuesString(int n)
+{
     char *queues = NULL;
     /* 13 because pickup12345, = 12 + \0 */
     size_t queues_size = n * 13;

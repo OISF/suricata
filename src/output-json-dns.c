@@ -113,7 +113,8 @@ static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
     json_object_del(js, "dns");
 }
 
-static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry) {
+static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry)
+{
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
     json_t *js = json_object();
     if (js == NULL)
@@ -179,7 +180,8 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
     return;
 }
 
-static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, uint64_t tx_id) {
+static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, uint64_t tx_id)
+{
 
     SCLogDebug("got a DNS response and now logging !!");
 
@@ -365,7 +367,8 @@ static OutputCtx *JsonDnsLogInitCtx(ConfNode *conf)
 
 
 #define MODULE_NAME "JsonDnsLog"
-void TmModuleJsonDnsLogRegister (void) {
+void TmModuleJsonDnsLogRegister (void)
+{
     tmm_modules[TMM_JSONDNSLOG].name = MODULE_NAME;
     tmm_modules[TMM_JSONDNSLOG].ThreadInit = LogDnsLogThreadInit;
     tmm_modules[TMM_JSONDNSLOG].ThreadDeinit = LogDnsLogThreadDeinit;

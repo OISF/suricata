@@ -128,7 +128,8 @@ int DetectEngineInspectStreamPayload(DetectEngineCtx *de_ctx,
 
 /** \test Not the first but the second occurence of "abc" should be used
   *       for the 2nd match */
-static int PayloadTestSig01 (void) {
+static int PayloadTestSig01 (void)
+{
     uint8_t *buf = (uint8_t *)
                     "abcabcd";
     uint16_t buflen = strlen((char *)buf);
@@ -149,7 +150,8 @@ end:
 }
 
 /** \test Nocase matching */
-static int PayloadTestSig02 (void) {
+static int PayloadTestSig02 (void)
+{
     uint8_t *buf = (uint8_t *)
                     "abcaBcd";
     uint16_t buflen = strlen((char *)buf);
@@ -170,7 +172,8 @@ end:
 }
 
 /** \test Negative distance matching */
-static int PayloadTestSig03 (void) {
+static int PayloadTestSig03 (void)
+{
     uint8_t *buf = (uint8_t *)
                     "abcaBcd";
     uint16_t buflen = strlen((char *)buf);
@@ -1065,7 +1068,8 @@ end:
 
 #endif /* UNITTESTS */
 
-void PayloadRegisterTests(void) {
+void PayloadRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("PayloadTestSig01", PayloadTestSig01, 1);
     UtRegisterTest("PayloadTestSig02", PayloadTestSig02, 1);

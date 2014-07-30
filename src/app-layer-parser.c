@@ -610,7 +610,8 @@ FileContainer *AppLayerParserGetFiles(uint8_t ipproto, AppProto alproto,
 /** \brief active TX retrieval for normal ops: so with detection and logging
  *
  *  \retval tx_id lowest tx_id that still needs work */
-uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags) {
+uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags)
+{
     AppLayerParserProtoCtx *p = &alp_ctx.ctxs[FlowGetProtoMapping(f->proto)][f->alproto];
     uint64_t log_id = f->alparser->log_id;
     uint64_t inspect_id = f->alparser->inspect_id[flags & STREAM_TOSERVER ? 0 : 1];
@@ -629,7 +630,8 @@ uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags) {
  *  in running this function in that case though. With no detection
  *  and no logging, why run a parser in the first place?
  **/
-uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags) {
+uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags)
+{
     AppLayerParserProtoCtx *p = &alp_ctx.ctxs[f->protomap][f->alproto];
 
     if (p->logger == TRUE) {
@@ -660,7 +662,8 @@ uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags) {
     return idx;
 }
 
-void RegisterAppLayerGetActiveTxIdFunc(GetActiveTxIdFunc FuncPtr) {
+void RegisterAppLayerGetActiveTxIdFunc(GetActiveTxIdFunc FuncPtr)
+{
     //BUG_ON(AppLayerGetActiveTxIdFuncPtr != NULL);
     AppLayerGetActiveTxIdFuncPtr = FuncPtr;
     SCLogDebug("AppLayerGetActiveTxIdFuncPtr is now %p", AppLayerGetActiveTxIdFuncPtr);
@@ -671,7 +674,8 @@ void RegisterAppLayerGetActiveTxIdFunc(GetActiveTxIdFunc FuncPtr) {
  *
  *  \retval id tx id
  */
-static uint64_t AppLayerTransactionGetActive(Flow *f, uint8_t flags) {
+static uint64_t AppLayerTransactionGetActive(Flow *f, uint8_t flags)
+{
     BUG_ON(AppLayerGetActiveTxIdFuncPtr == NULL);
 
     return AppLayerGetActiveTxIdFuncPtr(f, flags);

@@ -640,7 +640,8 @@ int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 /**
  * \test fragment decoding
  */
-static int DecodeIPV6FragTest01 (void)   {
+static int DecodeIPV6FragTest01 (void)
+{
 
     uint8_t raw_frag1[] = {
         0x60, 0x0f, 0x1a, 0xcf, 0x05, 0xa8, 0x2c, 0x36, 0x20, 0x01, 0x04, 0x70, 0x00, 0x01, 0x00, 0x18,
@@ -807,7 +808,8 @@ end:
 /**
  * \test routing header decode
  */
-static int DecodeIPV6RouteTest01 (void)   {
+static int DecodeIPV6RouteTest01 (void)
+{
 
     uint8_t raw_pkt1[] = {
         0x60, 0x00, 0x00, 0x00, 0x00, 0x1c, 0x2b, 0x40,
@@ -916,7 +918,8 @@ end:
  * \brief this function registers unit tests for IPV6 decoder
  */
 
-void DecodeIPV6RegisterTests(void) {
+void DecodeIPV6RegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DecodeIPV6FragTest01", DecodeIPV6FragTest01, 1);
     UtRegisterTest("DecodeIPV6RouteTest01", DecodeIPV6RouteTest01, 1);

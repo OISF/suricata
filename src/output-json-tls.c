@@ -108,7 +108,8 @@ static void LogTlsLogExtendedJSON(json_t *tjs, SSLState * state)
     json_object_set_new(tjs, "version", json_string(ssl_version));
 }
 
-static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
+static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p)
+{
     JsonTlsLogThread *aft = (JsonTlsLogThread *)thread_data;
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
     OutputTlsCtx *tls_ctx = aft->tlslog_ctx;
@@ -325,7 +326,8 @@ OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
  *  \brief Condition function for TLS logger
  *  \retval bool true or false -- log now?
  */
-static int JsonTlsCondition(ThreadVars *tv, const Packet *p) {
+static int JsonTlsCondition(ThreadVars *tv, const Packet *p)
+{
     if (p->flow == NULL) {
         return FALSE;
     }
@@ -362,7 +364,8 @@ dontlog:
     return FALSE;
 }
 
-void TmModuleJsonTlsLogRegister (void) {
+void TmModuleJsonTlsLogRegister (void)
+{
     tmm_modules[TMM_JSONTLSLOG].name = "JsonTlsLog";
     tmm_modules[TMM_JSONTLSLOG].ThreadInit = JsonTlsLogThreadInit;
     tmm_modules[TMM_JSONTLSLOG].ThreadDeinit = JsonTlsLogThreadDeinit;

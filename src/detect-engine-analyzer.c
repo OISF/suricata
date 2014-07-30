@@ -295,7 +295,8 @@ void CleanupFPAnalyzer(void)
 }
 
 
-void CleanupRuleAnalyzer(void) {
+void CleanupRuleAnalyzer(void)
+{
     if (rule_engine_analysis_FD != NULL) {
          SCLogInfo("Engine-Analyis for rules printed to file - %s", log_path);
         fclose(rule_engine_analysis_FD);

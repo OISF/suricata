@@ -103,7 +103,8 @@ SCMutex flowbits_mutex;
  *
  *  \retval state either FLOW_STATE_NEW, FLOW_STATE_ESTABLISHED or FLOW_STATE_CLOSED
  */
-static inline int FlowGetFlowState(Flow *f) {
+static inline int FlowGetFlowState(Flow *f)
+{
     if (flow_proto[f->protomap].GetProtoState != NULL) {
         return flow_proto[f->protomap].GetProtoState(f->protoctx);
     } else {

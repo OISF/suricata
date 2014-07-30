@@ -227,15 +227,18 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
     return ret;
 }
 
-uint32_t DbgGetSrcPortAnyCnt(void) {
+uint32_t DbgGetSrcPortAnyCnt(void)
+{
     return dbg_srcportany_cnt;
 }
 
-uint32_t DbgGetDstPortAnyCnt(void) {
+uint32_t DbgGetDstPortAnyCnt(void)
+{
     return dbg_dstportany_cnt;
 }
 
-SigMatch *SigMatchAlloc(void) {
+SigMatch *SigMatchAlloc(void)
+{
     SigMatch *sm = SCMalloc(sizeof(SigMatch));
     if (unlikely(sm == NULL))
         return NULL;
@@ -249,7 +252,8 @@ SigMatch *SigMatchAlloc(void) {
 /** \brief free a SigMatch
  *  \param sm SigMatch to free.
  */
-void SigMatchFree(SigMatch *sm) {
+void SigMatchFree(SigMatch *sm)
+{
     if (sm == NULL)
         return;
 
@@ -263,7 +267,8 @@ void SigMatchFree(SigMatch *sm) {
 }
 
 /* Get the detection module by name */
-SigTableElmt *SigTableGet(char *name) {
+SigTableElmt *SigTableGet(char *name)
+{
     SigTableElmt *st = NULL;
     int i = 0;
 
@@ -456,7 +461,8 @@ int SigMatchListSMBelongsTo(Signature *s, SigMatch *key_sm)
     return -1;
 }
 
-void SigParsePrepare(void) {
+void SigParsePrepare(void)
+{
     char *regexstr = CONFIG_PCRE;
     const char *eb;
     int eo;
@@ -495,7 +501,8 @@ void SigParsePrepare(void) {
     }
 }
 
-static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, char *output, size_t output_size) {
+static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, char *output, size_t output_size)
+{
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
     int ret = 0;
@@ -601,7 +608,8 @@ error:
  * \retval  0 On successfully parsing the protocl sent as the argument.
  * \retval -1 On failure
  */
-int SigParseProto(Signature *s, const char *protostr) {
+int SigParseProto(Signature *s, const char *protostr)
+{
     SCEnter();
 
     int r = DetectProtoParse(&s->proto, (char *)protostr);
@@ -673,7 +681,8 @@ int SigParsePort(Signature *s, const char *portstr, char flag)
 /** \retval 1 valid
  *  \retval 0 invalid
  */
-static int SigParseActionRejectValidate(const char *action) {
+static int SigParseActionRejectValidate(const char *action)
+{
 #ifdef HAVE_LIBNET11
 #ifdef HAVE_LIBCAP_NG
     if (sc_set_caps == TRUE) {
@@ -703,7 +712,8 @@ static int SigParseActionRejectValidate(const char *action) {
  *            Signature.
  * \retval -1 On failure.
  */
-int SigParseAction(Signature *s, const char *action) {
+int SigParseAction(Signature *s, const char *action)
+{
     if (strcasecmp(action, "alert") == 0) {
         s->action = ACTION_ALERT;
         return 0;
@@ -743,7 +753,8 @@ int SigParseAction(Signature *s, const char *action) {
  *  \internal
  *  \brief split a signature string into a few blocks for further parsing
  */
-static int SigParseBasics(Signature *s, char *sigstr, SignatureParser *parser, uint8_t addrs_direction) {
+static int SigParseBasics(Signature *s, char *sigstr, SignatureParser *parser, uint8_t addrs_direction)
+{
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
     int ret = 0;
@@ -828,7 +839,8 @@ error:
  *  \param -1 parse error
  *  \param 0 ok
  */
-int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_direction) {
+int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_direction)
+{
     SCEnter();
 
     SignatureParser parser;
@@ -870,7 +882,8 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
     SCReturnInt(ret);
 }
 
-Signature *SigAlloc (void) {
+Signature *SigAlloc (void)
+{
     Signature *sig = SCMalloc(sizeof(Signature));
     if (unlikely(sig == NULL))
         return NULL;
@@ -892,7 +905,8 @@ Signature *SigAlloc (void) {
  *
  * \param s Pointer to the signature
  */
-static void SigRefFree (Signature *s) {
+static void SigRefFree (Signature *s)
+{
     SCEnter();
 
     DetectReference *ref = NULL;
@@ -915,7 +929,8 @@ static void SigRefFree (Signature *s) {
     SCReturn;
 }
 
-void SigFree(Signature *s) {
+void SigFree(Signature *s)
+{
     if (s == NULL)
         return;
 
@@ -972,7 +987,8 @@ void SigFree(Signature *s) {
  *
  *  \param s the signature
  */
-static void SigBuildAddressMatchArray(Signature *s) {
+static void SigBuildAddressMatchArray(Signature *s)
+{
     /* source addresses */
     uint16_t cnt = 0;
     uint16_t idx = 0;
@@ -1079,7 +1095,8 @@ static void SigBuildAddressMatchArray(Signature *s) {
  *  \retval 0 invalid
  *  \retval 1 valid
  */
-int SigValidate(DetectEngineCtx *de_ctx, Signature *s) {
+int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
+{
     uint32_t u = 0;
     uint32_t sig_flags = 0;
     SigMatch *sm, *pm;
@@ -1879,7 +1896,8 @@ error:
  */
 
 #ifdef UNITTESTS
-int SigParseTest01 (void) {
+int SigParseTest01 (void)
+{
     int result = 1;
     Signature *sig = NULL;
 
@@ -1897,7 +1915,8 @@ end:
     return result;
 }
 
-int SigParseTest02 (void) {
+int SigParseTest02 (void)
+{
     int result = 0;
     Signature *sig = NULL;
     DetectPort *port = NULL;
@@ -1936,7 +1955,8 @@ end:
 /**
  * \test SigParseTest03 test for invalid direction operator in rule
  */
-int SigParseTest03 (void) {
+int SigParseTest03 (void)
+{
     int result = 1;
     Signature *sig = NULL;
 
@@ -1956,7 +1976,8 @@ end:
     return result;
 }
 
-int SigParseTest04 (void) {
+int SigParseTest04 (void)
+{
     int result = 1;
     Signature *sig = NULL;
 
@@ -1975,7 +1996,8 @@ end:
 }
 
 /** \test Port validation */
-int SigParseTest05 (void) {
+int SigParseTest05 (void)
+{
     int result = 0;
     Signature *sig = NULL;
 
@@ -1997,7 +2019,8 @@ end:
 }
 
 /** \test Parsing bug debugging at 2010-03-18 */
-int SigParseTest06 (void) {
+int SigParseTest06 (void)
+{
     int result = 0;
     Signature *sig = NULL;
 
@@ -2023,7 +2046,8 @@ end:
 /**
  * \test Parsing duplicate sigs.
  */
-int SigParseTest07(void) {
+int SigParseTest07(void)
+{
     int result = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2044,7 +2068,8 @@ end:
 /**
  * \test Parsing duplicate sigs.
  */
-int SigParseTest08(void) {
+int SigParseTest08(void)
+{
     int result = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2066,7 +2091,8 @@ end:
 /**
  * \test Parsing duplicate sigs.
  */
-int SigParseTest09(void) {
+int SigParseTest09(void)
+{
     int result = 1;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2116,7 +2142,8 @@ end:
 /**
  * \test Parsing duplicate sigs.
  */
-int SigParseTest10(void) {
+int SigParseTest10(void)
+{
     int result = 1;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2147,7 +2174,8 @@ end:
  * \test Parsing sig with trailing space(s) as reported by
  *       Morgan Cox on oisf-users.
  */
-int SigParseTest11(void) {
+int SigParseTest11(void)
+{
     int result = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2178,7 +2206,8 @@ end:
 /**
  * \test file_data with rawbytes
  */
-static int SigParseTest12(void) {
+static int SigParseTest12(void)
+{
     int result = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2203,7 +2232,8 @@ end:
 /**
  * \test packet/stream sig
  */
-static int SigParseTest13(void) {
+static int SigParseTest13(void)
+{
     int result = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2239,7 +2269,8 @@ end:
 /**
  * \test packet/stream sig
  */
-static int SigParseTest14(void) {
+static int SigParseTest14(void)
+{
     int result = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2275,7 +2306,8 @@ end:
 /**
  * \test packet/stream sig
  */
-static int SigParseTest15(void) {
+static int SigParseTest15(void)
+{
     int result = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2311,7 +2343,8 @@ end:
 /**
  * \test packet/stream sig
  */
-static int SigParseTest16(void) {
+static int SigParseTest16(void)
+{
     int result = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2347,7 +2380,8 @@ end:
 /**
  * \test packet/stream sig
  */
-static int SigParseTest17(void) {
+static int SigParseTest17(void)
+{
     int result = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2381,7 +2415,8 @@ end:
 }
 
 /** \test sid value too large. Bug #779 */
-static int SigParseTest18 (void) {
+static int SigParseTest18 (void)
+{
     int result = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2399,7 +2434,8 @@ end:
 }
 
 /** \test gid value too large. Related to bug #779 */
-static int SigParseTest19 (void) {
+static int SigParseTest19 (void)
+{
     int result = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2417,7 +2453,8 @@ end:
 }
 
 /** \test rev value too large. Related to bug #779 */
-static int SigParseTest20 (void) {
+static int SigParseTest20 (void)
+{
     int result = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2435,7 +2472,8 @@ end:
 }
 
 /** \test address parsing */
-static int SigParseTest21 (void) {
+static int SigParseTest21 (void)
+{
     int result = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2453,7 +2491,8 @@ end:
 }
 
 /** \test address parsing */
-static int SigParseTest22 (void) {
+static int SigParseTest22 (void)
+{
     int result = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2471,7 +2510,8 @@ end:
 }
 
 /** \test Direction operator validation (invalid) */
-int SigParseBidirecTest06 (void) {
+int SigParseBidirecTest06 (void)
+{
     int result = 1;
     Signature *sig = NULL;
 
@@ -2490,7 +2530,8 @@ end:
 }
 
 /** \test Direction operator validation (invalid) */
-int SigParseBidirecTest07 (void) {
+int SigParseBidirecTest07 (void)
+{
     int result = 1;
     Signature *sig = NULL;
 
@@ -2509,7 +2550,8 @@ end:
 }
 
 /** \test Direction operator validation (invalid) */
-int SigParseBidirecTest08 (void) {
+int SigParseBidirecTest08 (void)
+{
     int result = 1;
     Signature *sig = NULL;
 
@@ -2528,7 +2570,8 @@ end:
 }
 
 /** \test Direction operator validation (invalid) */
-int SigParseBidirecTest09 (void) {
+int SigParseBidirecTest09 (void)
+{
     int result = 1;
     Signature *sig = NULL;
 
@@ -2547,7 +2590,8 @@ end:
 }
 
 /** \test Direction operator validation (invalid) */
-int SigParseBidirecTest10 (void) {
+int SigParseBidirecTest10 (void)
+{
     int result = 1;
     Signature *sig = NULL;
 
@@ -2566,7 +2610,8 @@ end:
 }
 
 /** \test Direction operator validation (invalid) */
-int SigParseBidirecTest11 (void) {
+int SigParseBidirecTest11 (void)
+{
     int result = 1;
     Signature *sig = NULL;
 
@@ -2585,7 +2630,8 @@ end:
 }
 
 /** \test Direction operator validation (invalid) */
-int SigParseBidirecTest12 (void) {
+int SigParseBidirecTest12 (void)
+{
     int result = 1;
     Signature *sig = NULL;
 
@@ -2604,7 +2650,8 @@ end:
 }
 
 /** \test Direction operator validation (valid) */
-int SigParseBidirecTest13 (void) {
+int SigParseBidirecTest13 (void)
+{
     int result = 1;
     Signature *sig = NULL;
 
@@ -2622,7 +2669,8 @@ end:
 }
 
 /** \test Direction operator validation (valid) */
-int SigParseBidirecTest14 (void) {
+int SigParseBidirecTest14 (void)
+{
     int result = 1;
     Signature *sig = NULL;
 
@@ -2642,7 +2690,8 @@ end:
 /** \test Ensure that we don't set bidirectional in a
  *         normal (one direction) Signature
  */
-int SigTestBidirec01 (void) {
+int SigTestBidirec01 (void)
+{
     Signature *sig = NULL;
     int result = 0;
 
@@ -2672,7 +2721,8 @@ end:
 }
 
 /** \test Ensure that we set a bidirectional Signature correctly */
-int SigTestBidirec02 (void) {
+int SigTestBidirec02 (void)
+{
     int result = 0;
     Signature *sig = NULL;
     Signature *copy = NULL;
@@ -2716,7 +2766,8 @@ end:
 *         and we install it with the rest of the signatures, checking
 *         also that it match with the correct addr directions
 */
-int SigTestBidirec03 (void) {
+int SigTestBidirec03 (void)
+{
     int result = 0;
     Signature *sig = NULL;
     Packet *p = NULL;
@@ -2836,7 +2887,8 @@ end:
 *         and we install it with the rest of the signatures, checking
 *         also that it match with the correct addr directions
 */
-int SigTestBidirec04 (void) {
+int SigTestBidirec04 (void)
+{
     int result = 0;
     Signature *sig = NULL;
     Packet *p = NULL;
@@ -2985,7 +3037,8 @@ end:
 /**
  * \test check that we don't allow invalid negation options
  */
-static int SigParseTestNegation01 (void) {
+static int SigParseTestNegation01 (void)
+{
     int result = 0;
     DetectEngineCtx *de_ctx;
     Signature *s=NULL;
@@ -3010,7 +3063,8 @@ end:
 /**
  * \test check that we don't allow invalid negation options
  */
-static int SigParseTestNegation02 (void) {
+static int SigParseTestNegation02 (void)
+{
     int result = 0;
     DetectEngineCtx *de_ctx;
     Signature *s=NULL;
@@ -3035,7 +3089,8 @@ end:
 /**
  * \test check that we don't allow invalid negation options
  */
-static int SigParseTestNegation03 (void) {
+static int SigParseTestNegation03 (void)
+{
     int result = 0;
     DetectEngineCtx *de_ctx;
     Signature *s=NULL;
@@ -3060,7 +3115,8 @@ end:
 /**
  * \test check that we don't allow invalid negation options
  */
-static int SigParseTestNegation04 (void) {
+static int SigParseTestNegation04 (void)
+{
     int result = 0;
     DetectEngineCtx *de_ctx;
     Signature *s=NULL;
@@ -3085,7 +3141,8 @@ end:
 /**
  * \test check that we don't allow invalid negation options
  */
-static int SigParseTestNegation05 (void) {
+static int SigParseTestNegation05 (void)
+{
     int result = 0;
     DetectEngineCtx *de_ctx;
     Signature *s=NULL;
@@ -3110,7 +3167,8 @@ end:
 /**
  * \test check that we don't allow invalid negation options
  */
-static int SigParseTestNegation06 (void) {
+static int SigParseTestNegation06 (void)
+{
     int result = 0;
     DetectEngineCtx *de_ctx;
     Signature *s=NULL;
@@ -3136,7 +3194,8 @@ end:
 /**
  * \test check that we don't allow invalid negation options
  */
-static int SigParseTestNegation07 (void) {
+static int SigParseTestNegation07 (void)
+{
     int result = 0;
     DetectEngineCtx *de_ctx;
     Signature *s=NULL;
@@ -3162,7 +3221,8 @@ end:
 /**
  * \test check valid negation bug 1079
  */
-static int SigParseTestNegation08 (void) {
+static int SigParseTestNegation08 (void)
+{
     int result = 0;
     DetectEngineCtx *de_ctx;
     Signature *s=NULL;
@@ -3187,7 +3247,8 @@ end:
 /**
  * \test mpm
  */
-int SigParseTestMpm01 (void) {
+int SigParseTestMpm01 (void)
+{
     int result = 0;
     Signature *sig = NULL;
 
@@ -3227,7 +3288,8 @@ end:
 /**
  * \test mpm
  */
-int SigParseTestMpm02 (void) {
+int SigParseTestMpm02 (void)
+{
     int result = 0;
     Signature *sig = NULL;
 
@@ -3267,7 +3329,8 @@ end:
 /**
  * \test test tls (app layer) rule
  */
-static int SigParseTestAppLayerTLS01(void) {
+static int SigParseTestAppLayerTLS01(void)
+{
     int result = 0;
     DetectEngineCtx *de_ctx;
     Signature *s=NULL;
@@ -3301,7 +3364,8 @@ end:
 /**
  * \test test tls (app layer) rule
  */
-static int SigParseTestAppLayerTLS02(void) {
+static int SigParseTestAppLayerTLS02(void)
+{
     int result = 0;
     DetectEngineCtx *de_ctx;
     Signature *s=NULL;
@@ -3334,7 +3398,8 @@ end:
 /**
  * \test test tls (app layer) rule
  */
-static int SigParseTestAppLayerTLS03(void) {
+static int SigParseTestAppLayerTLS03(void)
+{
     int result = 0;
     DetectEngineCtx *de_ctx;
     Signature *s=NULL;
@@ -3359,7 +3424,8 @@ end:
 
 #endif /* UNITTESTS */
 
-void SigParseRegisterTests(void) {
+void SigParseRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("SigParseTest01", SigParseTest01, 1);
     UtRegisterTest("SigParseTest02", SigParseTest02, 1);

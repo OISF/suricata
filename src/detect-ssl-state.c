@@ -327,7 +327,8 @@ error:
  *
  * \param ptr pointer to the data to be freed.
  */
-void DetectSslStateFree(void *ptr) {
+void DetectSslStateFree(void *ptr)
+{
     if (ptr != NULL)
         SCFree(ptr);
 

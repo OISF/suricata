@@ -61,7 +61,8 @@ typedef struct ROHashTableOffsets_ {
  *
  *  \retval table ptr or NULL on error
  */
-ROHashTable *ROHashInit(uint8_t hash_bits, uint16_t item_size) {
+ROHashTable *ROHashInit(uint8_t hash_bits, uint16_t item_size)
+{
     if (item_size % 4 != 0 || item_size == 0) {
         SCLogError(SC_ERR_HASH_TABLE_INIT, "data size must be multiple of 4");
         return NULL;
@@ -88,7 +89,8 @@ ROHashTable *ROHashInit(uint8_t hash_bits, uint16_t item_size) {
     return table;
 }
 
-void ROHashFree(ROHashTable *table) {
+void ROHashFree(ROHashTable *table)
+{
     if (table != NULL) {
         if (table->data != NULL) {
             SCFree(table->data);
@@ -98,7 +100,8 @@ void ROHashFree(ROHashTable *table) {
     }
 }
 
-uint32_t ROHashMemorySize(ROHashTable *table) {
+uint32_t ROHashMemorySize(ROHashTable *table)
+{
     return (uint32_t)(hashsize(table->hash_bits) * sizeof(ROHashTableOffsets) +
             table->items * table->item_size + sizeof(ROHashTable));
 }
@@ -107,7 +110,8 @@ uint32_t ROHashMemorySize(ROHashTable *table) {
  *  \retval NULL not found
  *  \retval ptr found
  */
-void *ROHashLookup(ROHashTable *table, void *data, uint16_t size) {
+void *ROHashLookup(ROHashTable *table, void *data, uint16_t size)
+{
     if (data == NULL || size != table->item_size) {
         SCReturnPtr(NULL, "void");
     }
@@ -145,7 +149,8 @@ void *ROHashLookup(ROHashTable *table, void *data, uint16_t size) {
  *  \retval 0 error
  *  \retval 1 ok
  */
-int ROHashInitQueueValue(ROHashTable *table, void *value, uint16_t size) {
+int ROHashInitQueueValue(ROHashTable *table, void *value, uint16_t size)
+{
     if (table->locked) {
         SCLogError(SC_ERR_HASH_TABLE_INIT, "can't add value to locked table");
         return 0;
@@ -175,7 +180,8 @@ int ROHashInitQueueValue(ROHashTable *table, void *value, uint16_t size) {
  *
  *  \note after this call the nothing can be added to the hash anymore.
  */
-int ROHashInitFinalize(ROHashTable *table) {
+int ROHashInitFinalize(ROHashTable *table)
+{
     if (table->locked) {
         SCLogError(SC_ERR_HASH_TABLE_INIT, "table already locked");
         return 0;

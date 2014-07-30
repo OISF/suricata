@@ -38,15 +38,18 @@ typedef struct DNSConfig_ {
 } DNSConfig;
 static DNSConfig dns_config;
 
-void DNSConfigInit(void) {
+void DNSConfigInit(void)
+{
     memset(&dns_config, 0x00, sizeof(dns_config));
 }
 
-void DNSConfigSetRequestFlood(uint32_t value) {
+void DNSConfigSetRequestFlood(uint32_t value)
+{
     dns_config.request_flood = value;
 }
 
-void DNSConfigSetStateMemcap(uint32_t value) {
+void DNSConfigSetStateMemcap(uint32_t value)
+{
     dns_config.state_memcap = value;
 }
 
@@ -54,7 +57,8 @@ SC_ATOMIC_DECLARE(uint64_t, dns_memuse); /**< byte counter of current memuse */
 SC_ATOMIC_DECLARE(uint64_t, dns_memcap_state); /**< counts number of 'rejects' */
 SC_ATOMIC_DECLARE(uint64_t, dns_memcap_global); /**< counts number of 'rejects' */
 
-void DNSConfigSetGlobalMemcap(uint64_t value) {
+void DNSConfigSetGlobalMemcap(uint64_t value)
+{
     dns_config.global_memcap = value;
 
     SC_ATOMIC_INIT(dns_memuse);
@@ -62,14 +66,16 @@ void DNSConfigSetGlobalMemcap(uint64_t value) {
     SC_ATOMIC_INIT(dns_memcap_global);
 }
 
-void DNSIncrMemcap(uint32_t size, DNSState *state) {
+void DNSIncrMemcap(uint32_t size, DNSState *state)
+{
     if (state != NULL) {
         state->memuse += size;
     }
     SC_ATOMIC_ADD(dns_memuse, size);
 }
 
-void DNSDecrMemcap(uint32_t size, DNSState *state) {
+void DNSDecrMemcap(uint32_t size, DNSState *state)
+{
     if (state != NULL) {
         BUG_ON(size > state->memuse); /**< TODO remove later */
         state->memuse -= size;
@@ -79,7 +85,8 @@ void DNSDecrMemcap(uint32_t size, DNSState *state) {
     (void)SC_ATOMIC_SUB(dns_memuse, size);
 }
 
-int DNSCheckMemcap(uint32_t want, DNSState *state) {
+int DNSCheckMemcap(uint32_t want, DNSState *state)
+{
     if (state != NULL) {
         if (state->memuse + want > dns_config.state_memcap) {
             SC_ATOMIC_ADD(dns_memcap_state, 1);
@@ -139,7 +146,8 @@ void DNSAppLayerRegisterGetEventInfo(uint8_t ipproto, AppProto alproto)
     return;
 }
 
-AppLayerDecoderEvents *DNSGetEvents(void *state, uint64_t id) {
+AppLayerDecoderEvents *DNSGetEvents(void *state, uint64_t id)
+{
     DNSState *dns_state = (DNSState *)state;
     DNSTransaction *tx;
 
@@ -154,12 +162,14 @@ AppLayerDecoderEvents *DNSGetEvents(void *state, uint64_t id) {
     return NULL;
 }
 
-int DNSHasEvents(void *state) {
+int DNSHasEvents(void *state)
+{
     DNSState *dns_state = (DNSState *)state;
     return (dns_state->events > 0);
 }
 
-void *DNSGetTx(void *alstate, uint64_t tx_id) {
+void *DNSGetTx(void *alstate, uint64_t tx_id)
+{
     DNSState *dns_state = (DNSState *)alstate;
     DNSTransaction *tx = NULL;
 
@@ -178,12 +188,14 @@ void *DNSGetTx(void *alstate, uint64_t tx_id) {
     return NULL;
 }
 
-uint64_t DNSGetTxCnt(void *alstate) {
+uint64_t DNSGetTxCnt(void *alstate)
+{
     DNSState *dns_state = (DNSState *)alstate;
     return (uint64_t)dns_state->transaction_max;
 }
 
-int DNSGetAlstateProgress(void *tx, uint8_t direction) {
+int DNSGetAlstateProgress(void *tx, uint8_t direction)
+{
     DNSTransaction *dns_tx = (DNSTransaction *)tx;
     if (direction == 1)
         return dns_tx->replied|dns_tx->reply_lost;
@@ -197,11 +209,13 @@ int DNSGetAlstateProgress(void *tx, uint8_t direction) {
  *
  *  For DNS we use a simple bool.
  */
-int DNSGetAlstateProgressCompletionStatus(uint8_t direction) {
+int DNSGetAlstateProgressCompletionStatus(uint8_t direction)
+{
     return 1;
 }
 
-void DNSSetEvent(DNSState *s, uint8_t e) {
+void DNSSetEvent(DNSState *s, uint8_t e)
+{
     if (s && s->curr) {
         SCLogDebug("s->curr->decoder_events %p", s->curr->decoder_events);
         AppLayerDecoderEventsSetEventRaw(&s->curr->decoder_events, e);
@@ -215,7 +229,8 @@ void DNSSetEvent(DNSState *s, uint8_t e) {
 /** \internal
  *  \brief Allocate a DNS TX
  *  \retval tx or NULL */
-static DNSTransaction *DNSTransactionAlloc(DNSState *state, const uint16_t tx_id) {
+static DNSTransaction *DNSTransactionAlloc(DNSState *state, const uint16_t tx_id)
+{
     if (DNSCheckMemcap(sizeof(DNSTransaction), state) < 0)
         return NULL;
 
@@ -237,7 +252,8 @@ static DNSTransaction *DNSTransactionAlloc(DNSState *state, const uint16_t tx_id
 /** \internal
  *  \brief Free a DNS TX
  *  \param tx DNS TX to free */
-static void DNSTransactionFree(DNSTransaction *tx, DNSState *state) {
+static void DNSTransactionFree(DNSTransaction *tx, DNSState *state)
+{
     SCEnter();
 
     DNSQueryEntry *q = NULL;
@@ -269,7 +285,8 @@ static void DNSTransactionFree(DNSTransaction *tx, DNSState *state) {
 /**
  *  \brief dns transaction cleanup callback
  */
-void DNSStateTransactionFree(void *state, uint64_t tx_id) {
+void DNSStateTransactionFree(void *state, uint64_t tx_id)
+{
     SCEnter();
 
     DNSState *dns_state = state;
@@ -305,7 +322,8 @@ void DNSStateTransactionFree(void *state, uint64_t tx_id) {
  *  \brief Find the DNS Tx in the state
  *  \param tx_id id of the tx
  *  \retval tx or NULL if not found */
-DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16_t tx_id) {
+DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16_t tx_id)
+{
     if (dns_state->curr == NULL)
         return NULL;
 
@@ -326,7 +344,8 @@ DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16
     return NULL;
 }
 
-void *DNSStateAlloc(void) {
+void *DNSStateAlloc(void)
+{
     void *s = SCMalloc(sizeof(DNSState));
     if (unlikely(s == NULL))
         return NULL;
@@ -341,7 +360,8 @@ void *DNSStateAlloc(void) {
     return s;
 }
 
-void DNSStateFree(void *s) {
+void DNSStateFree(void *s)
+{
     SCEnter();
     if (s) {
         DNSState *dns_state = (DNSState *) s;
@@ -372,7 +392,8 @@ void DNSStateFree(void *s) {
  *  \retval 0 ok
  *  \retval -1 error
  */
-int DNSValidateRequestHeader(DNSState *dns_state, const DNSHeader *dns_header) {
+int DNSValidateRequestHeader(DNSState *dns_state, const DNSHeader *dns_header)
+{
     uint16_t flags = ntohs(dns_header->flags);
 
     if ((flags & 0x8000) != 0) {
@@ -399,7 +420,8 @@ bad_data:
  *  \retval 0 ok
  *  \retval -1 error
  */
-int DNSValidateResponseHeader(DNSState *dns_state, const DNSHeader *dns_header) {
+int DNSValidateResponseHeader(DNSState *dns_state, const DNSHeader *dns_header)
+{
     uint16_t flags = ntohs(dns_header->flags);
 
     if ((flags & 0x8000) == 0) {
@@ -424,7 +446,8 @@ bad_data:
  *  \retval bool true or false
  */
 static int QueryIsDuplicate(DNSTransaction *tx, const uint8_t *fqdn, const uint16_t fqdn_len,
-        const uint16_t type, const uint16_t class) {
+        const uint16_t type, const uint16_t class)
+{
     DNSQueryEntry *q = NULL;
 
     TAILQ_FOREACH(q, &tx->query_list, next) {
@@ -960,7 +983,8 @@ insufficient_data:
     return NULL;
 }
 
-void DNSCreateTypeString(uint16_t type, char *str, size_t str_size) {
+void DNSCreateTypeString(uint16_t type, char *str, size_t str_size)
+{
     switch (type) {
         case DNS_RECORD_TYPE_A:
             snprintf(str, str_size, "A");

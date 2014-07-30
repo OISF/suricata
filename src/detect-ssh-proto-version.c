@@ -70,7 +70,8 @@ void DetectSshVersionFree(void *);
 /**
  * \brief Registration function for keyword: ssh.protoversion
  */
-void DetectSshVersionRegister(void) {
+void DetectSshVersionRegister(void)
+{
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].name = "ssh.protoversion";
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Match = NULL;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].AppLayerMatch = DetectSshVersionMatch;
@@ -270,7 +271,8 @@ error:
  *
  * \param id_d pointer to DetectSshVersionData
  */
-void DetectSshVersionFree(void *ptr) {
+void DetectSshVersionFree(void *ptr)
+{
     DetectSshVersionData *id_d = (DetectSshVersionData *)ptr;
     SCFree(id_d);
 }
@@ -281,7 +283,8 @@ void DetectSshVersionFree(void *ptr) {
  * \test DetectSshVersionTestParse01 is a test to make sure that we parse
  *       a proto version correctly
  */
-int DetectSshVersionTestParse01 (void) {
+int DetectSshVersionTestParse01 (void)
+{
     DetectSshVersionData *ssh = NULL;
     ssh = DetectSshVersionParse("1.0");
     if (ssh != NULL && strncmp((char *) ssh->ver, "1.0", 3) == 0) {
@@ -296,7 +299,8 @@ int DetectSshVersionTestParse01 (void) {
  * \test DetectSshVersionTestParse02 is a test to make sure that we parse
  *       the proto version (compatible with proto version 2) correctly
  */
-int DetectSshVersionTestParse02 (void) {
+int DetectSshVersionTestParse02 (void)
+{
     DetectSshVersionData *ssh = NULL;
     ssh = DetectSshVersionParse("2_compat");
     if (ssh->flags & SSH_FLAG_PROTOVERSION_2_COMPAT) {
@@ -311,7 +315,8 @@ int DetectSshVersionTestParse02 (void) {
  * \test DetectSshVersionTestParse03 is a test to make sure that we
  *       don't return a ssh_data with an invalid value specified
  */
-int DetectSshVersionTestParse03 (void) {
+int DetectSshVersionTestParse03 (void)
+{
     DetectSshVersionData *ssh = NULL;
     ssh = DetectSshVersionParse("2_com");
     if (ssh != NULL) {
@@ -341,7 +346,8 @@ int DetectSshVersionTestParse03 (void) {
 #include "stream-tcp-reassemble.h"
 
 /** \test Send a get request in three chunks + more data. */
-static int DetectSshVersionTestDetect01(void) {
+static int DetectSshVersionTestDetect01(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-1.";
@@ -453,7 +459,8 @@ end:
 }
 
 /** \test Send a get request in three chunks + more data. */
-static int DetectSshVersionTestDetect02(void) {
+static int DetectSshVersionTestDetect02(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-1.";
@@ -563,7 +570,8 @@ end:
 }
 
 /** \test Send a get request in three chunks + more data. */
-static int DetectSshVersionTestDetect03(void) {
+static int DetectSshVersionTestDetect03(void)
+{
     int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-1.";
@@ -678,7 +686,8 @@ end:
 /**
  * \brief this function registers unit tests for DetectSshVersion
  */
-void DetectSshVersionRegisterTests(void) {
+void DetectSshVersionRegisterTests(void)
+{
 #ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectSshVersionTestParse01", DetectSshVersionTestParse01, 1);
     UtRegisterTest("DetectSshVersionTestParse02", DetectSshVersionTestParse02, 1);

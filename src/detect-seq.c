@@ -46,7 +46,8 @@ static void DetectSeqRegisterTests(void);
 static void DetectSeqFree(void *);
 
 
-void DetectSeqRegister(void) {
+void DetectSeqRegister(void)
+{
     sigmatch_table[DETECT_SEQ].name = "seq";
     sigmatch_table[DETECT_SEQ].desc = "check for a specific TCP sequence number";
     sigmatch_table[DETECT_SEQ].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#seq";

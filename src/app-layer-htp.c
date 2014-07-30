@@ -251,7 +251,8 @@ void HTPSetEvent(HtpState *s, HtpTxUserData *htud, uint8_t e)
     SCLogDebug("couldn't set event %u", e);
 }
 
-static int HTPHasEvents(void *state) {
+static int HTPHasEvents(void *state)
+{
     HtpState *htp_state = (HtpState *)state;
     return (htp_state->events > 0);
 }
@@ -303,7 +304,8 @@ error:
     SCReturnPtr(NULL, "void");
 }
 
-static void HtpTxUserDataFree(HtpTxUserData *htud) {
+static void HtpTxUserDataFree(HtpTxUserData *htud)
+{
     if (htud) {
         HtpBodyFree(&htud->request_body);
         HtpBodyFree(&htud->response_body);
@@ -377,7 +379,8 @@ void HTPStateFree(void *state)
  *  \warning We cannot actually free the transactions here. It seems that
  *           HTP only accepts freeing of transactions in the response callback.
  */
-static void HTPStateTransactionFree(void *state, uint64_t id) {
+static void HTPStateTransactionFree(void *state, uint64_t id)
+{
     SCEnter();
 
     HtpState *s = (HtpState *)state;
@@ -429,7 +432,8 @@ void AppLayerHtpEnableResponseBodyCallback(void)
  *
  * \initonly
  */
-void AppLayerHtpNeedMultipartHeader(void) {
+void AppLayerHtpNeedMultipartHeader(void)
+{
     SCEnter();
     AppLayerHtpEnableRequestBodyCallback();
 
@@ -507,7 +511,8 @@ struct {
  *
  *  \retval id the id or 0 in case of not found
  */
-static int HTPHandleWarningGetId(const char *msg) {
+static int HTPHandleWarningGetId(const char *msg)
+{
     SCLogDebug("received warning \"%s\"", msg);
     size_t idx;
     for (idx = 0; idx < HTP_WARNING_MAX; idx++) {
@@ -530,7 +535,8 @@ static int HTPHandleWarningGetId(const char *msg) {
  *
  *  \retval id the id or 0 in case of not found
  */
-static int HTPHandleErrorGetId(const char *msg) {
+static int HTPHandleErrorGetId(const char *msg)
+{
     SCLogDebug("received error \"%s\"", msg);
 
     size_t idx;
@@ -552,7 +558,8 @@ static int HTPHandleErrorGetId(const char *msg) {
  *
  *  \param s state
  */
-static void HTPHandleError(HtpState *s) {
+static void HTPHandleError(HtpState *s)
+{
     if (s == NULL || s->conn == NULL ||
         s->conn->messages == NULL) {
         return;
@@ -1008,7 +1015,8 @@ static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
  *  If the request contains a multipart message, this function will
  *  set the HTP_BOUNDARY_SET in the transaction.
  */
-static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, HtpTxUserData *htud) {
+static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, HtpTxUserData *htud)
+{
     htp_header_t *cl = htp_table_get_c(d->tx->request_headers, "content-length");
     if (cl != NULL)
         htud->request_body.content_len = SC_htp_parse_content_length(cl->value);
@@ -1531,7 +1539,8 @@ end:
 
 /** \brief setup things for put request
  *  \todo really needed? */
-int HtpRequestBodySetupPUT(htp_tx_data_t *d, HtpTxUserData *htud) {
+int HtpRequestBodySetupPUT(htp_tx_data_t *d, HtpTxUserData *htud)
+{
 //    if (d->tx->parsed_uri == NULL || d->tx->parsed_uri->path == NULL) {
 //        return -1;
 //    }
@@ -1955,7 +1964,8 @@ void HTPFreeConfig(void)
  *  \param  connp   pointer to the current connection parser which has the htp
  *                  state in it as user data
  */
-static int HTPCallbackRequest(htp_tx_t *tx) {
+static int HTPCallbackRequest(htp_tx_t *tx)
+{
     SCEnter();
 
     if (tx == NULL) {
@@ -1995,7 +2005,8 @@ static int HTPCallbackRequest(htp_tx_t *tx) {
  *  \param  connp   pointer to the current connection parser which has the htp
  *                  state in it as user data
  */
-static int HTPCallbackResponse(htp_tx_t *tx) {
+static int HTPCallbackResponse(htp_tx_t *tx)
+{
     SCEnter();
 
     HtpState *hstate = htp_connp_get_user_data(tx->connp);
@@ -2535,7 +2546,8 @@ void HTPConfigure(void)
     SCReturn;
 }
 
-void AppLayerHtpPrintStats(void) {
+void AppLayerHtpPrintStats(void)
+{
 #ifdef DEBUG
     SCMutexLock(&htp_state_mem_lock);
     SCLogInfo("htp memory %"PRIu64" (%"PRIu64")", htp_state_memuse, htp_state_memcnt);
@@ -2549,7 +2561,8 @@ void AppLayerHtpPrintStats(void) {
  *  \param direction flow direction
  *  \retval files files ptr
  */
-static FileContainer *HTPStateGetFiles(void *state, uint8_t direction) {
+static FileContainer *HTPStateGetFiles(void *state, uint8_t direction)
+{
     if (state == NULL)
         return NULL;
 
@@ -2786,7 +2799,8 @@ void HtpConfigRestoreBackup(void)
 
 /** \test Test case where chunks are sent in smaller chunks and check the
  *        response of the parser from HTP library. */
-int HTPParserTest01(void) {
+int HTPParserTest01(void)
+{
     int result = 1;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\nPost"
@@ -2863,7 +2877,8 @@ end:
 }
 
 /** \test See how it deals with an incomplete request. */
-int HTPParserTest02(void) {
+int HTPParserTest02(void)
+{
     int result = 1;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "POST";
@@ -2921,7 +2936,8 @@ end:
 
 /** \test Test case where method is invalid and data is sent in smaller chunks
  *        and check the response of the parser from HTP library. */
-int HTPParserTest03(void) {
+int HTPParserTest03(void)
+{
     int result = 1;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "HELLO / HTTP/1.0\r\n";
@@ -2993,7 +3009,8 @@ end:
 
 /** \test Test case where invalid data is sent and check the response of the
  *        parser from HTP library. */
-int HTPParserTest04(void) {
+int HTPParserTest04(void)
+{
     int result = 1;
     Flow *f = NULL;
     HtpState *htp_state = NULL;
@@ -3053,7 +3070,8 @@ end:
 
 /** \test Test both sides of a http stream mixed up to see if the HTP parser
  *        properly parsed them and also keeps them separated. */
-int HTPParserTest05(void) {
+int HTPParserTest05(void)
+{
     int result = 1;
     Flow *f = NULL;
     HtpState *http_state = NULL;
@@ -3176,7 +3194,8 @@ end:
 
 /** \test Test proper chunked encoded response body
  */
-int HTPParserTest06(void) {
+int HTPParserTest06(void)
+{
     int result = 1;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "GET /ld/index.php?id=412784631&cid=0064&version=4&"
@@ -3296,7 +3315,8 @@ end:
 
 /** \test
  */
-int HTPParserTest07(void) {
+int HTPParserTest07(void)
+{
     int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "GET /awstats.pl?/migratemigrate%20=%20| HTTP/1.0\r\n\r\n";
@@ -3386,7 +3406,8 @@ end:
 
 /** \test Abort
  */
-int HTPParserTest08(void) {
+int HTPParserTest08(void)
+{
     int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "GET /secondhouse/image/js/\%ce\%de\%ce\%fd_RentCity.js?v=2011.05.02 HTTP/1.0\r\n\r\n";
@@ -3471,7 +3492,8 @@ end:
 
 /** \test Abort
  */
-int HTPParserTest09(void) {
+int HTPParserTest09(void)
+{
     int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "GET /secondhouse/image/js/\%ce\%de\%ce\%fd_RentCity.js?v=2011.05.02 HTTP/1.0\r\n\r\n";
@@ -3557,7 +3579,8 @@ end:
 
 /** \test Host:www.google.com <- missing space between name:value (rfc violation)
  */
-int HTPParserTest10(void) {
+int HTPParserTest10(void)
+{
     int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "GET / HTTP/1.0\r\nHost:www.google.com\r\n\r\n";
@@ -3648,7 +3671,8 @@ end:
 
 /** \test double encoding in path
  */
-static int HTPParserTest11(void) {
+static int HTPParserTest11(void)
+{
     int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "GET /%2500 HTTP/1.0\r\n\r\n";
@@ -3732,7 +3756,8 @@ end:
 
 /** \test double encoding in query
  */
-static int HTPParserTest12(void) {
+static int HTPParserTest12(void)
+{
     int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "GET /?a=%2500 HTTP/1.0\r\n\r\n";
@@ -3819,7 +3844,8 @@ static int HTPParserTest12(void) {
 
 /** \test Host:www.google.com0dName: Value0d0a <- missing space between name:value (rfc violation)
  */
-int HTPParserTest13(void) {
+int HTPParserTest13(void)
+{
     int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "GET / HTTP/1.0\r\nHost:www.google.com\rName: Value\r\n\r\n";
@@ -5598,7 +5624,8 @@ end:
 }
 
 /** \test BG crash */
-static int HTPSegvTest01(void) {
+static int HTPSegvTest01(void)
+{
     int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "POST /uri HTTP/1.1\r\nHost: hostname.com\r\nKeep-Alive: 115\r\nAccept-Charset: utf-8\r\nUser-Agent: Mozilla/5.0 (X11; Linux i686; rv:9.0.1) Gecko/20100101 Firefox/9.0.1\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nConnection: keep-alive\r\nContent-length: 68102\r\nReferer: http://otherhost.com\r\nAccept-Encoding: gzip\r\nContent-Type: multipart/form-data; boundary=e5a320f21416a02493a0a6f561b1c494\r\nCookie: blah\r\nAccept-Language: us\r\n\r\n--e5a320f21416a02493a0a6f561b1c494\r\nContent-Disposition: form-data; name=\"uploadfile\"; filename=\"D2GUef.jpg\"\r";
@@ -5688,7 +5715,8 @@ end:
 }
 
 /** \test Test really long request, this should result in HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG */
-int HTPParserTest14(void) {
+int HTPParserTest14(void)
+{
     int result = 0;
     Flow *f = NULL;
     char *httpbuf = NULL;
@@ -5830,7 +5858,8 @@ end:
 
 /** \test Test really long request (same as HTPParserTest14), now with config
  *        update to allow it */
-int HTPParserTest15(void) {
+int HTPParserTest15(void)
+{
     int result = 0;
     Flow *f = NULL;
     char *httpbuf = NULL;
@@ -5956,7 +5985,8 @@ end:
 /**
  *  \brief  Register the Unit tests for the HTTP protocol
  */
-void HTPParserRegisterTests(void) {
+void HTPParserRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("HTPParserTest01", HTPParserTest01, 1);
     UtRegisterTest("HTPParserTest02", HTPParserTest02, 1);

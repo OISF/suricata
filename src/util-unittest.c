@@ -44,7 +44,8 @@ static UtTest *ut_list;
  * \retval ut Pointer to UtTest
  */
 
-static UtTest *UtAllocTest(void) {
+static UtTest *UtAllocTest(void)
+{
     UtTest *ut = SCMalloc(sizeof(UtTest));
     if (unlikely(ut == NULL))
         return NULL;
@@ -63,7 +64,8 @@ static UtTest *UtAllocTest(void) {
  * \retval 0 Function always returns zero
  */
 
-static int UtAppendTest(UtTest **list, UtTest *test) {
+static int UtAppendTest(UtTest **list, UtTest *test)
+{
     if (*list == NULL) {
         *list = test;
     } else {
@@ -87,7 +89,8 @@ static int UtAppendTest(UtTest **list, UtTest *test) {
  *
  */
 
-void UtRegisterTest(char *name, int(*TestFn)(void), int evalue) {
+void UtRegisterTest(char *name, int(*TestFn)(void), int evalue)
+{
     UtTest *ut = UtAllocTest();
     if (ut == NULL)
         return;
@@ -110,7 +113,8 @@ void UtRegisterTest(char *name, int(*TestFn)(void), int evalue) {
  * \retval -1 Regex error
  */
 
-int UtRegex (char *regex_arg) {
+int UtRegex (char *regex_arg)
+{
     const char *eb;
     int eo;
     int opts = PCRE_CASELESS;;
@@ -144,7 +148,8 @@ error:
  *
  *  \param regex_arg Regular expression to limit listed tests.
  */
-void UtListTests(char *regex_arg) {
+void UtListTests(char *regex_arg)
+{
     UtTest *ut;
     int ret = 0, rcomp = 0;
     int ov[MAX_SUBSTRINGS];
@@ -173,7 +178,8 @@ void UtListTests(char *regex_arg) {
  *  \retval result number of tests that failed
  */
 
-uint32_t UtRunTests(char *regex_arg) {
+uint32_t UtRunTests(char *regex_arg)
+{
     UtTest *ut;
     uint32_t good = 0, bad = 0, matchcnt = 0;
     int ret = 0, rcomp = 0;
@@ -229,7 +235,8 @@ uint32_t UtRunTests(char *regex_arg) {
  * \brief Initialize unit test list
  */
 
-void UtInitialize(void) {
+void UtInitialize(void)
+{
     ut_list = NULL;
 }
 
@@ -237,7 +244,8 @@ void UtInitialize(void) {
  * \brief Cleanup unit test list
  */
 
-void UtCleanup(void) {
+void UtCleanup(void)
+{
 
     UtTest *tmp = ut_list, *otmp;
 
@@ -270,7 +278,8 @@ void UtRunModeRegister(void)
  *  \retval 0 False
  */
 
-int UtSelftestTrue(void) {
+int UtSelftestTrue(void)
+{
     if (1)return 1;
     else  return 0;
 }
@@ -281,7 +290,8 @@ int UtSelftestTrue(void) {
  *  \retval 0 True
  */
 
-int UtSelftestFalse(void) {
+int UtSelftestFalse(void)
+{
     if (0)return 1;
     else  return 0;
 }
@@ -294,7 +304,8 @@ int UtSelftestFalse(void) {
  *  \retval 0 all successful
  */
 
-int UtRunSelftest (char *regex_arg) {
+int UtRunSelftest (char *regex_arg)
+{
 #ifdef UNITTESTS
     printf("* Running Unittesting subsystem selftests...\n");
 

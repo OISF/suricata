@@ -46,7 +46,8 @@ void BloomFilterRegisterTests(void);
 
 static inline int BloomFilterTest(BloomFilter *, void *, uint16_t);
 
-static inline int BloomFilterTest(BloomFilter *bf, void *data, uint16_t datalen) {
+static inline int BloomFilterTest(BloomFilter *bf, void *data, uint16_t datalen)
+{
     uint8_t iter = 0;
     uint32_t hash = 0;
     int hit = 1;

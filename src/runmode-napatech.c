@@ -159,7 +159,8 @@ int NapatechRegisterDeviceStreams()
     return 0;
 }
 
-void *NapatechConfigParser(const char *device) {
+void *NapatechConfigParser(const char *device)
+{
     // Expect device to be of the form nt%d where %d is the stream id to use
     int dev_len = strlen(device);
     struct NapatechStreamDevConf *conf = SCMalloc(sizeof(struct NapatechStreamDevConf));
@@ -188,7 +189,8 @@ int NapatechGetThreadsCount(void *conf __attribute__((unused))) {
     return 1;
 }
 
-int NapatechInit(DetectEngineCtx *de_ctx, int runmode) {
+int NapatechInit(DetectEngineCtx *de_ctx, int runmode)
+{
     int ret;
     char errbuf[100];
 
@@ -235,15 +237,18 @@ int NapatechInit(DetectEngineCtx *de_ctx, int runmode) {
     return 0;
 }
 
-int RunModeNapatechAuto(DetectEngineCtx *de_ctx) {
+int RunModeNapatechAuto(DetectEngineCtx *de_ctx)
+{
     return NapatechInit(de_ctx, NT_RUNMODE_AUTO);
 }
 
-int RunModeNapatechAutoFp(DetectEngineCtx *de_ctx) {
+int RunModeNapatechAutoFp(DetectEngineCtx *de_ctx)
+{
     return NapatechInit(de_ctx, NT_RUNMODE_AUTOFP);
 }
 
-int RunModeNapatechWorkers(DetectEngineCtx *de_ctx) {
+int RunModeNapatechWorkers(DetectEngineCtx *de_ctx)
+{
     return NapatechInit(de_ctx, NT_RUNMODE_WORKERS);
 }
 

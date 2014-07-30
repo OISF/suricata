@@ -29,7 +29,8 @@
 
 static int DetectNoalertSetup (DetectEngineCtx *, Signature *, char *);
 
-void DetectNoalertRegister (void) {
+void DetectNoalertRegister (void)
+{
     sigmatch_table[DETECT_NOALERT].name = "noalert";
     sigmatch_table[DETECT_NOALERT].Match = NULL;
     sigmatch_table[DETECT_NOALERT].Setup = DetectNoalertSetup;

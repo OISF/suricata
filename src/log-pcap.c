@@ -277,7 +277,8 @@ static int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
     return 0;
 }
 
-static int PcapLogOpenHandles(PcapLogData *pl, Packet *p) {
+static int PcapLogOpenHandles(PcapLogData *pl, Packet *p)
+{
     PCAPLOG_PROFILE_START;
 
     SCLogDebug("Setting pcap-log link type to %u", p->datalink);
@@ -1029,7 +1030,8 @@ static int profiling_pcaplog_output_to_file = 0;
 static char *profiling_pcaplog_file_name = NULL;
 static char *profiling_pcaplog_file_mode = "a";
 
-static void FormatNumber(uint64_t num, char *str, size_t size) {
+static void FormatNumber(uint64_t num, char *str, size_t size)
+{
     if (num < 1000UL)
         snprintf(str, size, "%"PRIu64, num);
     else if (num < 1000000UL)
@@ -1040,7 +1042,8 @@ static void FormatNumber(uint64_t num, char *str, size_t size) {
         snprintf(str, size, "%3.1fb", (float)num/1000000000UL);
 }
 
-static void ProfileReportPair(FILE *fp, const char *name, PcapLogProfileData *p) {
+static void ProfileReportPair(FILE *fp, const char *name, PcapLogProfileData *p)
+{
     char ticks_str[32] = "n/a";
     char cnt_str[32] = "n/a";
     char avg_str[32] = "n/a";
@@ -1053,7 +1056,8 @@ static void ProfileReportPair(FILE *fp, const char *name, PcapLogProfileData *p)
     fprintf(fp, "%-28s %-10s %-10s %-10s\n", name, cnt_str, avg_str, ticks_str);
 }
 
-static void ProfileReport(FILE *fp, PcapLogData *pl) {
+static void ProfileReport(FILE *fp, PcapLogData *pl)
+{
     ProfileReportPair(fp, "open", &pl->profile_open);
     ProfileReportPair(fp, "close", &pl->profile_close);
     ProfileReportPair(fp, "write", &pl->profile_write);
@@ -1063,7 +1067,8 @@ static void ProfileReport(FILE *fp, PcapLogData *pl) {
     ProfileReportPair(fp, "unlock", &pl->profile_unlock);
 }
 
-static void FormatBytes(uint64_t num, char *str, size_t size) {
+static void FormatBytes(uint64_t num, char *str, size_t size)
+{
     if (num < 1000UL)
         snprintf(str, size, "%"PRIu64, num);
     else if (num < 1048576UL)
@@ -1074,7 +1079,8 @@ static void FormatBytes(uint64_t num, char *str, size_t size) {
         snprintf(str, size, "%3.1fGiB", (float)num/1000000000UL);
 }
 
-static void PcapLogProfilingDump(PcapLogData *pl) {
+static void PcapLogProfilingDump(PcapLogData *pl)
+{
     FILE *fp = NULL;
 
     if (profiling_pcaplog_enabled == 0)
@@ -1134,7 +1140,8 @@ static void PcapLogProfilingDump(PcapLogData *pl) {
         fclose(fp);
 }
 
-void PcapLogProfileSetup(void) {
+void PcapLogProfileSetup(void)
+{
     ConfNode *conf = ConfGetNode("profiling.pcap-log");
     if (conf != NULL && ConfNodeChildValueIsTrue(conf, "enabled")) {
         profiling_pcaplog_enabled = 1;

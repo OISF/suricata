@@ -265,7 +265,8 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
     SCReturnInt(ret);
 }
 
-static int DetectPcreSetList(int list, int set) {
+static int DetectPcreSetList(int list, int set)
+{
     if (list != DETECT_SM_LIST_NOTSET) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "only one pcre option to specify a buffer type is allowed");
         return -1;
@@ -4057,7 +4058,8 @@ end:
 /**
  * \brief this function registers unit tests for DetectPcre
  */
-void DetectPcreRegisterTests(void) {
+void DetectPcreRegisterTests(void)
+{
 #ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectPcreParseTest01", DetectPcreParseTest01, 1);
     UtRegisterTest("DetectPcreParseTest02", DetectPcreParseTest02, 1);

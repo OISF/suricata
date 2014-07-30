@@ -72,7 +72,8 @@ void DetectHttpStatCodeFree(void *);
 /**
  * \brief Registration function for keyword: http_stat_code
  */
-void DetectHttpStatCodeRegister (void) {
+void DetectHttpStatCodeRegister (void)
+{
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].name = "http_stat_code";
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].desc = "content modifier to match only on HTTP stat-code-buffer";
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#http_stat_code";
@@ -214,7 +215,8 @@ end:
 }
 
 /** \test Check the signature working to alert when http_stat_code is matched . */
-static int DetectHttpStatCodeSigTest01(void) {
+static int DetectHttpStatCodeSigTest01(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n\r\n";
@@ -315,7 +317,8 @@ end:
 }
 
 /** \test Check the signature working to alert when http_stat_code is not matched . */
-static int DetectHttpStatCodeSigTest02(void) {
+static int DetectHttpStatCodeSigTest02(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n\r\n";
@@ -430,7 +433,8 @@ end:
 
 /** \test Check the signature working to alert when http_stat_code is matched for
  *        for nocase or not */
-static int DetectHttpStatCodeSigTest03(void) {
+static int DetectHttpStatCodeSigTest03(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n\r\n";
@@ -545,7 +549,8 @@ end:
 
 /** \test Check the signature working to alert when http_stat_code is matched for
  *        for negatoin or not */
-static int DetectHttpStatCodeSigTest04(void) {
+static int DetectHttpStatCodeSigTest04(void)
+{
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n\r\n";

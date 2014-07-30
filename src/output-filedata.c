@@ -91,7 +91,8 @@ int OutputRegisterFiledataLogger(const char *name, FiledataLogger LogFunc, Outpu
 
 SC_ATOMIC_DECLARE(unsigned int, file_id);
 
-static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQueue *pq, PacketQueue *postpq) {
+static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQueue *pq, PacketQueue *postpq)
+{
     BUG_ON(thread_data == NULL);
     BUG_ON(list == NULL);
 
@@ -233,7 +234,8 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data, P
  *
  *  \param path full path for the waldo file
  */
-static void LogFiledataLogLoadWaldo(const char *path) {
+static void LogFiledataLogLoadWaldo(const char *path)
+{
     char line[16] = "";
     unsigned int id = 0;
 
@@ -259,7 +261,8 @@ static void LogFiledataLogLoadWaldo(const char *path) {
  *
  *  \param path full path for the waldo file
  */
-static void LogFiledataLogStoreWaldo(const char *path) {
+static void LogFiledataLogStoreWaldo(const char *path)
+{
     char line[16] = "";
 
     if (SC_ATOMIC_GET(file_id) == 0) {
@@ -282,7 +285,8 @@ static void LogFiledataLogStoreWaldo(const char *path) {
 /** \brief thread init for the tx logger
  *  This will run the thread init functions for the individual registered
  *  loggers */
-static TmEcode OutputFiledataLogThreadInit(ThreadVars *tv, void *initdata, void **data) {
+static TmEcode OutputFiledataLogThreadInit(ThreadVars *tv, void *initdata, void **data)
+{
     OutputLoggerThreadData *td = SCMalloc(sizeof(*td));
     if (td == NULL)
         return TM_ECODE_FAILED;
@@ -379,7 +383,8 @@ static TmEcode OutputFiledataLogThreadInit(ThreadVars *tv, void *initdata, void 
     return TM_ECODE_OK;
 }
 
-static TmEcode OutputFiledataLogThreadDeinit(ThreadVars *tv, void *thread_data) {
+static TmEcode OutputFiledataLogThreadDeinit(ThreadVars *tv, void *thread_data)
+{
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
     OutputLoggerThreadStore *store = op_thread_data->store;
     OutputFiledataLogger *logger = list;
@@ -414,7 +419,8 @@ static TmEcode OutputFiledataLogThreadDeinit(ThreadVars *tv, void *thread_data) 
     return TM_ECODE_OK;
 }
 
-static void OutputFiledataLogExitPrintStats(ThreadVars *tv, void *thread_data) {
+static void OutputFiledataLogExitPrintStats(ThreadVars *tv, void *thread_data)
+{
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
     OutputLoggerThreadStore *store = op_thread_data->store;
     OutputFiledataLogger *logger = list;
@@ -436,7 +442,8 @@ static void OutputFiledataLogExitPrintStats(ThreadVars *tv, void *thread_data) {
     }
 }
 
-void TmModuleFiledataLoggerRegister (void) {
+void TmModuleFiledataLoggerRegister (void)
+{
     tmm_modules[TMM_FILEDATALOGGER].name = "__filedata_logger__";
     tmm_modules[TMM_FILEDATALOGGER].ThreadInit = OutputFiledataLogThreadInit;
     tmm_modules[TMM_FILEDATALOGGER].Func = OutputFiledataLog;

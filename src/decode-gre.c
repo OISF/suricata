@@ -261,7 +261,8 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
  * \test DecodeGRETest01 is a test for small gre packet
  */
 
-static int DecodeGREtest01 (void)   {
+static int DecodeGREtest01 (void)
+{
 
     uint8_t raw_gre[] = { 0x00 ,0x6e ,0x62 };
     Packet *p = PacketGetFromAlloc();
@@ -288,7 +289,8 @@ static int DecodeGREtest01 (void)   {
  * \test DecodeGRETest02 is a test for wrong gre version
  */
 
-static int DecodeGREtest02 (void)   {
+static int DecodeGREtest02 (void)
+{
     uint8_t raw_gre[] = {
         0x00, 0x6e, 0x62, 0xac, 0x40, 0x00, 0x40, 0x2f,
         0xc2, 0xc7, 0x0a, 0x00, 0x00, 0x64, 0x0a, 0x00,
@@ -329,7 +331,8 @@ static int DecodeGREtest02 (void)   {
  * \test DecodeGRETest03 is a test for valid gre packet
  */
 
-static int DecodeGREtest03 (void)   {
+static int DecodeGREtest03 (void)
+{
     uint8_t raw_gre[] = {
         0x00, 0x6e, 0x62, 0xac, 0x40, 0x00, 0x40, 0x2f,
         0xc2, 0xc7, 0x0a, 0x00, 0x00, 0x64, 0x0a, 0x00,
@@ -371,7 +374,8 @@ static int DecodeGREtest03 (void)   {
  * \brief this function registers unit tests for GRE decoder
  */
 
-void DecodeGRERegisterTests(void) {
+void DecodeGRERegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DecodeGREtest01", DecodeGREtest01, 1);
     UtRegisterTest("DecodeGREtest02", DecodeGREtest02, 1);

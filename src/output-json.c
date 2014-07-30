@@ -72,7 +72,8 @@ TmEcode OutputJsonThreadDeinit(ThreadVars *, void *);
 int OutputJsonOpenFileCtx(LogFileCtx *, char *);
 void OutputJsonRegisterTests(void);
 
-void TmModuleOutputJsonRegister (void) {
+void TmModuleOutputJsonRegister (void)
+{
     tmm_modules[TMM_OUTPUTJSON].name = "OutputJSON";
     tmm_modules[TMM_OUTPUTJSON].ThreadInit = OutputJsonThreadInit;
     tmm_modules[TMM_OUTPUTJSON].Func = OutputJson;
@@ -129,7 +130,8 @@ void OutputJsonExitPrintStats(ThreadVars *, void *);
 void OutputJsonRegisterTests(void);
 static void OutputJsonDeInitCtx(OutputCtx *);
 
-void TmModuleOutputJsonRegister (void) {
+void TmModuleOutputJsonRegister (void)
+{
     tmm_modules[TMM_OUTPUTJSON].name = MODULE_NAME;
     tmm_modules[TMM_OUTPUTJSON].ThreadInit = OutputJsonThreadInit;
     tmm_modules[TMM_OUTPUTJSON].Func = OutputJson;
@@ -151,7 +153,8 @@ static enum JsonFormat format = COMPACT;
 /** \brief jsonify tcp flags field
  *  Only add 'true' fields in an attempt to keep things reasonably compact.
  */
-void JsonTcpFlags(uint8_t flags, json_t *js) {
+void JsonTcpFlags(uint8_t flags, json_t *js)
+{
     if (flags & TH_SYN)
         json_object_set_new(js, "syn", json_true());
     if (flags & TH_FIN)
@@ -328,7 +331,8 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
     return js;
 }
 
-int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer) {
+int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer)
+{
     char *js_s = json_dumps(js,
                             JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
 #ifdef JSON_ESCAPE_SLASH
@@ -387,7 +391,8 @@ TmEcode OutputJsonThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void OutputJsonExitPrintStats(ThreadVars *tv, void *data) {
+void OutputJsonExitPrintStats(ThreadVars *tv, void *data)
+{
     AlertJsonThread *aft = (AlertJsonThread *)data;
     if (aft == NULL) {
         return;

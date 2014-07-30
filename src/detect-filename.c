@@ -59,7 +59,8 @@ static void DetectFilenameFree(void *);
 /**
  * \brief Registration function for keyword: filename
  */
-void DetectFilenameRegister(void) {
+void DetectFilenameRegister(void)
+{
     sigmatch_table[DETECT_FILENAME].name = "filename";
     sigmatch_table[DETECT_FILENAME].desc = "match on the file name";
     sigmatch_table[DETECT_FILENAME].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/File-keywords#filename";
@@ -239,7 +240,8 @@ error:
  *
  * \param filename pointer to DetectFilenameData
  */
-static void DetectFilenameFree(void *ptr) {
+static void DetectFilenameFree(void *ptr)
+{
     if (ptr != NULL) {
         DetectFilenameData *filename = (DetectFilenameData *)ptr;
         if (filename->bm_ctx != NULL) {
@@ -256,7 +258,8 @@ static void DetectFilenameFree(void *ptr) {
 /**
  * \test DetectFilenameTestParse01
  */
-int DetectFilenameTestParse01 (void) {
+int DetectFilenameTestParse01 (void)
+{
     DetectFilenameData *dnd = DetectFilenameParse("\"secret.pdf\"");
     if (dnd != NULL) {
         DetectFilenameFree(dnd);
@@ -268,7 +271,8 @@ int DetectFilenameTestParse01 (void) {
 /**
  * \test DetectFilenameTestParse02
  */
-int DetectFilenameTestParse02 (void) {
+int DetectFilenameTestParse02 (void)
+{
     int result = 0;
 
     DetectFilenameData *dnd = DetectFilenameParse("\"backup.tar.gz\"");
@@ -286,7 +290,8 @@ int DetectFilenameTestParse02 (void) {
 /**
  * \test DetectFilenameTestParse03
  */
-int DetectFilenameTestParse03 (void) {
+int DetectFilenameTestParse03 (void)
+{
     int result = 0;
 
     DetectFilenameData *dnd = DetectFilenameParse("\"cmd.exe\"");
@@ -306,7 +311,8 @@ int DetectFilenameTestParse03 (void) {
 /**
  * \brief this function registers unit tests for DetectFilename
  */
-void DetectFilenameRegisterTests(void) {
+void DetectFilenameRegisterTests(void)
+{
 #ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectFilenameTestParse01", DetectFilenameTestParse01, 1);
     UtRegisterTest("DetectFilenameTestParse02", DetectFilenameTestParse02, 1);

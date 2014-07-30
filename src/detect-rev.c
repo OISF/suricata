@@ -30,7 +30,8 @@
 
 static int DetectRevSetup (DetectEngineCtx *, Signature *, char *);
 
-void DetectRevRegister (void) {
+void DetectRevRegister (void)
+{
     sigmatch_table[DETECT_REV].name = "rev";
     sigmatch_table[DETECT_REV].desc = "set version of the rule";
     sigmatch_table[DETECT_REV].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Meta-settings#Rev-Revision";

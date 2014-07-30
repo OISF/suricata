@@ -74,7 +74,8 @@ int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
  *  \brief Valid Raw packet
  *  \retval 0 Expected test value
  */
-static int DecodeRawTest01 (void)   {
+static int DecodeRawTest01 (void)
+{
 
     /* IPV6/TCP/no eth header */
     uint8_t raw_ip[] = {
@@ -122,7 +123,8 @@ static int DecodeRawTest01 (void)   {
  *  \brief Valid Raw packet
  *  \retval 0 Expected test value
  */
-static int DecodeRawTest02 (void)   {
+static int DecodeRawTest02 (void)
+{
 
     /* IPV4/TCP/no eth header */
     uint8_t raw_ip[] = {
@@ -167,7 +169,8 @@ static int DecodeRawTest02 (void)   {
  *  \brief Valid Raw packet
  *  \retval 0 Expected test value
  */
-static int DecodeRawTest03 (void)   {
+static int DecodeRawTest03 (void)
+{
 
     /* IPV13 */
     uint8_t raw_ip[] = {
@@ -216,7 +219,8 @@ static int DecodeRawTest03 (void)   {
  * \brief Registers Raw unit tests
  * \todo More Raw tests
  */
-void DecodeRawRegisterTests(void) {
+void DecodeRawRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DecodeRawTest01", DecodeRawTest01, 0);
     UtRegisterTest("DecodeRawTest02", DecodeRawTest02, 0);

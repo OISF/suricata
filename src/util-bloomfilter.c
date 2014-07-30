@@ -65,7 +65,8 @@ error:
     return NULL;
 }
 
-void BloomFilterFree(BloomFilter *bf) {
+void BloomFilterFree(BloomFilter *bf)
+{
     if (bf != NULL) {
         if (bf->bitarray != NULL)
             SCFree(bf->bitarray);
@@ -74,7 +75,8 @@ void BloomFilterFree(BloomFilter *bf) {
     }
 }
 
-void BloomFilterPrint(BloomFilter *bf) {
+void BloomFilterPrint(BloomFilter *bf)
+{
     printf("\n---------- Bloom Filter Stats -----------\n");
     printf("Buckets:               %" PRIu32 "\n", bf->bitarray_size);
     printf("Memory size:           %" PRIu32 " bytes\n", bf->bitarray_size/8 + 1);
@@ -83,7 +85,8 @@ void BloomFilterPrint(BloomFilter *bf) {
     printf("-----------------------------------------\n");
 }
 
-int BloomFilterAdd(BloomFilter *bf, void *data, uint16_t datalen) {
+int BloomFilterAdd(BloomFilter *bf, void *data, uint16_t datalen)
+{
     uint8_t iter = 0;
     uint32_t hash = 0;
 
@@ -98,14 +101,16 @@ int BloomFilterAdd(BloomFilter *bf, void *data, uint16_t datalen) {
     return 0;
 }
 
-uint32_t BloomFilterMemoryCnt(BloomFilter *bf) {
+uint32_t BloomFilterMemoryCnt(BloomFilter *bf)
+{
      if (bf == NULL)
          return 0;
 
      return 2;
 }
 
-uint32_t BloomFilterMemorySize(BloomFilter *bf) {
+uint32_t BloomFilterMemorySize(BloomFilter *bf)
+{
      if (bf == NULL)
          return 0;
 
@@ -117,7 +122,8 @@ uint32_t BloomFilterMemorySize(BloomFilter *bf) {
  */
 
 #ifdef UNITTESTS
-static uint32_t BloomFilterTestHash(void *data, uint16_t datalen, uint8_t iter, uint32_t hash_size) {
+static uint32_t BloomFilterTestHash(void *data, uint16_t datalen, uint8_t iter, uint32_t hash_size)
+{
      uint8_t *d = (uint8_t *)data;
      uint32_t i;
      uint32_t hash = 0;
@@ -133,7 +139,8 @@ static uint32_t BloomFilterTestHash(void *data, uint16_t datalen, uint8_t iter, 
      return hash;
 }
 
-static int BloomFilterTestInit01 (void) {
+static int BloomFilterTestInit01 (void)
+{
     BloomFilter *bf = BloomFilterInit(1024, 4, BloomFilterTestHash);
     if (bf == NULL)
         return 0;
@@ -143,7 +150,8 @@ static int BloomFilterTestInit01 (void) {
 }
 
 /* no hash function, so it should fail */
-static int BloomFilterTestInit02 (void) {
+static int BloomFilterTestInit02 (void)
+{
     BloomFilter *bf = BloomFilterInit(1024, 4, NULL);
     if (bf == NULL)
         return 1;
@@ -152,7 +160,8 @@ static int BloomFilterTestInit02 (void) {
     return 0;
 }
 
-static int BloomFilterTestInit03 (void) {
+static int BloomFilterTestInit03 (void)
+{
     int result = 0;
     BloomFilter *bf = BloomFilterInit(1024, 4, BloomFilterTestHash);
     if (bf == NULL)
@@ -165,7 +174,8 @@ static int BloomFilterTestInit03 (void) {
     return result;
 }
 
-static int BloomFilterTestInit04 (void) {
+static int BloomFilterTestInit04 (void)
+{
     BloomFilter *bf = BloomFilterInit(1024, 0, BloomFilterTestHash);
     if (bf == NULL)
         return 1;
@@ -174,7 +184,8 @@ static int BloomFilterTestInit04 (void) {
     return 0;
 }
 
-static int BloomFilterTestInit05 (void) {
+static int BloomFilterTestInit05 (void)
+{
     BloomFilter *bf = BloomFilterInit(0, 4, BloomFilterTestHash);
     if (bf == NULL)
         return 1;
@@ -183,7 +194,8 @@ static int BloomFilterTestInit05 (void) {
     return 0;
 }
 
-static int BloomFilterTestAdd01 (void) {
+static int BloomFilterTestAdd01 (void)
+{
     int result = 0;
     BloomFilter *bf = BloomFilterInit(1024, 4, BloomFilterTestHash);
     if (bf == NULL)
@@ -200,7 +212,8 @@ end:
     return result;
 }
 
-static int BloomFilterTestAdd02 (void) {
+static int BloomFilterTestAdd02 (void)
+{
     int result = 0;
     BloomFilter *bf = BloomFilterInit(1024, 4, BloomFilterTestHash);
     if (bf == NULL)
@@ -217,7 +230,8 @@ end:
     return result;
 }
 
-static int BloomFilterTestFull01 (void) {
+static int BloomFilterTestFull01 (void)
+{
     int result = 0;
     BloomFilter *bf = BloomFilterInit(32, 4, BloomFilterTestHash);
     if (bf == NULL)
@@ -238,7 +252,8 @@ end:
     return result;
 }
 
-static int BloomFilterTestFull02 (void) {
+static int BloomFilterTestFull02 (void)
+{
     int result = 0;
     BloomFilter *bf = BloomFilterInit(32, 4, BloomFilterTestHash);
     if (bf == NULL)
@@ -256,7 +271,8 @@ end:
 }
 #endif /* UNITTESTS */
 
-void BloomFilterRegisterTests(void) {
+void BloomFilterRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("BloomFilterTestInit01", BloomFilterTestInit01, 1);
     UtRegisterTest("BloomFilterTestInit02", BloomFilterTestInit02, 1);

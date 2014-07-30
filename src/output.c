@@ -459,42 +459,48 @@ OutputDeregisterAll(void)
 
 static int drop_loggers = 0;
 
-int OutputDropLoggerEnable(void) {
+int OutputDropLoggerEnable(void)
+{
     if (drop_loggers)
         return -1;
     drop_loggers++;
     return 0;
 }
 
-void OutputDropLoggerDisable(void) {
+void OutputDropLoggerDisable(void)
+{
     if (drop_loggers)
         drop_loggers--;
 }
 
 static int tls_loggers = 0;
 
-int OutputTlsLoggerEnable(void) {
+int OutputTlsLoggerEnable(void)
+{
     if (tls_loggers)
         return -1;
     tls_loggers++;
     return 0;
 }
 
-void OutputTlsLoggerDisable(void) {
+void OutputTlsLoggerDisable(void)
+{
     if (tls_loggers)
         tls_loggers--;
 }
 
 static int ssh_loggers = 0;
 
-int OutputSshLoggerEnable(void) {
+int OutputSshLoggerEnable(void)
+{
     if (ssh_loggers)
         return -1;
     ssh_loggers++;
     return 0;
 }
 
-void OutputSshLoggerDisable(void) {
+void OutputSshLoggerDisable(void)
+{
     if (ssh_loggers)
         ssh_loggers--;
 }
@@ -505,7 +511,8 @@ void OutputSshLoggerDisable(void) {
  * \param flag A pointer that will be set to 1 when file rotation is
  *   requested.
  */
-void OutputRegisterFileRotationFlag(int *flag) {
+void OutputRegisterFileRotationFlag(int *flag)
+{
     OutputFileRolloverFlag *flag_entry = SCCalloc(1, sizeof(*flag_entry));
     if (unlikely(flag_entry == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC,
@@ -526,10 +533,12 @@ void OutputRegisterFileRotationFlag(int *flag) {
  * \param flag A pointer that has been previously registered for file
  *   rotation notifications.
  */
-void OutputUnregisterFileRotationFlag(int *flag) {
+void OutputUnregisterFileRotationFlag(int *flag)
+{
     OutputFileRolloverFlag *entry, *next;
     for (entry = TAILQ_FIRST(&output_file_rotation_flags); entry != NULL;
-         entry = next) {
+         entry = next)
+{
         next = TAILQ_NEXT(entry, entries);
         if (entry->flag == flag) {
             TAILQ_REMOVE(&output_file_rotation_flags, entry, entries);

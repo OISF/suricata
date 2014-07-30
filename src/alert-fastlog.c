@@ -77,7 +77,8 @@ static void AlertFastLogDeInitCtx(OutputCtx *);
 int AlertFastLogCondition(ThreadVars *tv, const Packet *p);
 int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p);
 
-void TmModuleAlertFastLogRegister (void) {
+void TmModuleAlertFastLogRegister (void)
+{
     tmm_modules[TMM_ALERTFASTLOG].name = MODULE_NAME;
     tmm_modules[TMM_ALERTFASTLOG].ThreadInit = AlertFastLogThreadInit;
     tmm_modules[TMM_ALERTFASTLOG].ThreadExitPrintStats = AlertFastLogExitPrintStats;
@@ -95,7 +96,8 @@ typedef struct AlertFastLogThread_ {
     LogFileCtx* file_ctx;
 } AlertFastLogThread;
 
-int AlertFastLogCondition(ThreadVars *tv, const Packet *p) {
+int AlertFastLogCondition(ThreadVars *tv, const Packet *p)
+{
     return (p->alerts.cnt ? TRUE : FALSE);
 }
 

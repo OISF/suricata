@@ -307,7 +307,8 @@ static uint16_t DNSUdpProbingParser(uint8_t *input, uint32_t ilen, uint32_t *off
     return ALPROTO_DNS;
 }
 
-static void DNSUDPConfigure(void) {
+static void DNSUDPConfigure(void)
+{
     uint32_t request_flood = DNS_CONFIG_DEFAULT_REQUEST_FLOOD;
     uint32_t state_memcap = DNS_CONFIG_DEFAULT_STATE_MEMCAP;
     uint64_t global_memcap = DNS_CONFIG_DEFAULT_GLOBAL_MEMCAP;
@@ -349,7 +350,8 @@ static void DNSUDPConfigure(void) {
     DNSConfigSetGlobalMemcap(global_memcap);
 }
 
-void RegisterDNSUDPParsers(void) {
+void RegisterDNSUDPParsers(void)
+{
     char *proto_name = "dns";
 
     /** DNS */
@@ -422,7 +424,8 @@ void RegisterDNSUDPParsers(void) {
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
 
-static int DNSUDPParserTest01 (void) {
+static int DNSUDPParserTest01 (void)
+{
     int result = 0;
     /* query: abcdefghijk.com
      * TTL: 86400
@@ -459,7 +462,8 @@ end:
     return (result);
 }
 
-static int DNSUDPParserTest02 (void) {
+static int DNSUDPParserTest02 (void)
+{
     int result = 0;
     uint8_t buf[] = {
         0x6D,0x08,0x84,0x80,0x00,0x01,0x00,0x08,0x00,0x00,0x00,0x01,0x03,0x57,0x57,0x57,
@@ -493,7 +497,8 @@ end:
     return (result);
 }
 
-static int DNSUDPParserTest03 (void) {
+static int DNSUDPParserTest03 (void)
+{
     int result = 0;
     uint8_t buf[] = {
         0x6F,0xB4,0x84,0x80,0x00,0x01,0x00,0x02,0x00,0x02,0x00,0x03,0x03,0x57,0x57,0x77,
@@ -528,7 +533,8 @@ end:
 }
 
 /** \test TXT records in answer */
-static int DNSUDPParserTest04 (void) {
+static int DNSUDPParserTest04 (void)
+{
     int result = 0;
     uint8_t buf[] = {
         0xc2,0x2f,0x81,0x80,0x00,0x01,0x00,0x01,0x00,0x01,0x00,0x01,0x0a,0x41,0x41,0x41,
@@ -565,7 +571,8 @@ end:
 }
 
 /** \test TXT records in answer, bad txtlen */
-static int DNSUDPParserTest05 (void) {
+static int DNSUDPParserTest05 (void)
+{
     int result = 0;
     uint8_t buf[] = {
         0xc2,0x2f,0x81,0x80,0x00,0x01,0x00,0x01,0x00,0x01,0x00,0x01,0x0a,0x41,0x41,0x41,
@@ -602,7 +609,8 @@ end:
 }
 
 
-void DNSUDPParserRegisterTests(void) {
+void DNSUDPParserRegisterTests(void)
+{
 	UtRegisterTest("DNSUDPParserTest01", DNSUDPParserTest01, 1);
 	UtRegisterTest("DNSUDPParserTest02", DNSUDPParserTest02, 1);
 	UtRegisterTest("DNSUDPParserTest03", DNSUDPParserTest03, 1);

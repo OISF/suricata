@@ -39,7 +39,8 @@
 
 static int DetectRawbytesSetup (DetectEngineCtx *, Signature *, char *);
 
-void DetectRawbytesRegister (void) {
+void DetectRawbytesRegister (void)
+{
     sigmatch_table[DETECT_RAWBYTES].name = "rawbytes";
     sigmatch_table[DETECT_RAWBYTES].Match = NULL;
     sigmatch_table[DETECT_RAWBYTES].Setup = DetectRawbytesSetup;

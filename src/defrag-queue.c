@@ -31,7 +31,8 @@
 #include "util-debug.h"
 #include "util-print.h"
 
-DefragTrackerQueue *DefragTrackerQueueInit (DefragTrackerQueue *q) {
+DefragTrackerQueue *DefragTrackerQueueInit (DefragTrackerQueue *q)
+{
     if (q != NULL) {
         memset(q, 0, sizeof(DefragTrackerQueue));
         DQLOCK_INIT(q);
@@ -39,7 +40,8 @@ DefragTrackerQueue *DefragTrackerQueueInit (DefragTrackerQueue *q) {
     return q;
 }
 
-DefragTrackerQueue *DefragTrackerQueueNew() {
+DefragTrackerQueue *DefragTrackerQueueNew()
+{
     DefragTrackerQueue *q = (DefragTrackerQueue *)SCMalloc(sizeof(DefragTrackerQueue));
     if (q == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in DefragTrackerQueueNew. Exiting...");
@@ -54,7 +56,8 @@ DefragTrackerQueue *DefragTrackerQueueNew() {
  *
  *  \param q the tracker queue to destroy
  */
-void DefragTrackerQueueDestroy (DefragTrackerQueue *q) {
+void DefragTrackerQueueDestroy (DefragTrackerQueue *q)
+{
     DQLOCK_DESTROY(q);
 }
 
@@ -64,7 +67,8 @@ void DefragTrackerQueueDestroy (DefragTrackerQueue *q) {
  *  \param q queue
  *  \param dt tracker
  */
-void DefragTrackerEnqueue (DefragTrackerQueue *q, DefragTracker *dt) {
+void DefragTrackerEnqueue (DefragTrackerQueue *q, DefragTracker *dt)
+{
 #ifdef DEBUG
     BUG_ON(q == NULL || dt == NULL);
 #endif
@@ -96,7 +100,8 @@ void DefragTrackerEnqueue (DefragTrackerQueue *q, DefragTracker *dt) {
  *
  *  \retval dt tracker or NULL if empty list.
  */
-DefragTracker *DefragTrackerDequeue (DefragTrackerQueue *q) {
+DefragTracker *DefragTrackerDequeue (DefragTrackerQueue *q)
+{
     DQLOCK_LOCK(q);
 
     DefragTracker *dt = q->bot;
@@ -128,7 +133,8 @@ DefragTracker *DefragTrackerDequeue (DefragTrackerQueue *q) {
     return dt;
 }
 
-uint32_t DefragTrackerQueueLen(DefragTrackerQueue *q) {
+uint32_t DefragTrackerQueueLen(DefragTrackerQueue *q)
+{
     uint32_t len;
     DQLOCK_LOCK(q);
     len = q->len;

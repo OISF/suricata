@@ -91,7 +91,8 @@ static int DetectTlsStoreMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, u
 /**
  * \brief Registration function for keyword: tls.version
  */
-void DetectTlsRegister (void) {
+void DetectTlsRegister (void)
+{
     sigmatch_table[DETECT_AL_TLS_SUBJECT].name = "tls.subject";
     sigmatch_table[DETECT_AL_TLS_SUBJECT].desc = "match TLS/SSL certificate Subject field";
     sigmatch_table[DETECT_AL_TLS_SUBJECT].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/TLS-keywords#tlssubject";
@@ -377,7 +378,8 @@ error:
  *
  * \param id_d pointer to DetectTlsData
  */
-static void DetectTlsSubjectFree(void *ptr) {
+static void DetectTlsSubjectFree(void *ptr)
+{
     DetectTlsData *id_d = (DetectTlsData *)ptr;
     if (ptr == NULL)
         return;
@@ -389,7 +391,8 @@ static void DetectTlsSubjectFree(void *ptr) {
 /**
  * \brief this function registers unit tests for DetectTlsSubject
  */
-static void DetectTlsSubjectRegisterTests(void) {
+static void DetectTlsSubjectRegisterTests(void)
+{
 }
 
 /**
@@ -774,7 +777,8 @@ error:
  *
  * \param pointer to DetectTlsData
  */
-static void DetectTlsFingerprintFree(void *ptr) {
+static void DetectTlsFingerprintFree(void *ptr)
+{
     DetectTlsData *id_d = (DetectTlsData *)ptr;
     if (id_d->fingerprint)
         SCFree(id_d->fingerprint);

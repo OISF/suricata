@@ -33,7 +33,8 @@
 #include "util-debug.h"
 
 /* puts a new value into a flowvar */
-static void FlowVarUpdateStr(FlowVar *fv, uint8_t *value, uint16_t size) {
+static void FlowVarUpdateStr(FlowVar *fv, uint8_t *value, uint16_t size)
+{
     if (fv->data.fv_str.value)
         SCFree(fv->data.fv_str.value);
     fv->data.fv_str.value = value;
@@ -41,7 +42,8 @@ static void FlowVarUpdateStr(FlowVar *fv, uint8_t *value, uint16_t size) {
 }
 
 /* puts a new value into a flowvar */
-static void FlowVarUpdateInt(FlowVar *fv, uint32_t value) {
+static void FlowVarUpdateInt(FlowVar *fv, uint32_t value)
+{
     fv->data.fv_int.value = value;
 }
 
@@ -49,7 +51,8 @@ static void FlowVarUpdateInt(FlowVar *fv, uint32_t value) {
  *  \note flow is not locked by this function, caller is
  *        responsible
  */
-FlowVar *FlowVarGet(Flow *f, uint16_t idx) {
+FlowVar *FlowVarGet(Flow *f, uint16_t idx)
+{
     GenericVar *gv = f->flowvar;
 
     for ( ; gv != NULL; gv = gv->next) {
@@ -61,7 +64,8 @@ FlowVar *FlowVarGet(Flow *f, uint16_t idx) {
 }
 
 /* add a flowvar to the flow, or update it */
-void FlowVarAddStrNoLock(Flow *f, uint16_t idx, uint8_t *value, uint16_t size) {
+void FlowVarAddStrNoLock(Flow *f, uint16_t idx, uint8_t *value, uint16_t size)
+{
     FlowVar *fv = FlowVarGet(f, idx);
     if (fv == NULL) {
         fv = SCMalloc(sizeof(FlowVar));
@@ -82,14 +86,16 @@ void FlowVarAddStrNoLock(Flow *f, uint16_t idx, uint8_t *value, uint16_t size) {
 }
 
 /* add a flowvar to the flow, or update it */
-void FlowVarAddStr(Flow *f, uint16_t idx, uint8_t *value, uint16_t size) {
+void FlowVarAddStr(Flow *f, uint16_t idx, uint8_t *value, uint16_t size)
+{
     FLOWLOCK_WRLOCK(f);
     FlowVarAddStrNoLock(f, idx, value, size);
     FLOWLOCK_UNLOCK(f);
 }
 
 /* add a flowvar to the flow, or update it */
-void FlowVarAddIntNoLock(Flow *f, uint16_t idx, uint32_t value) {
+void FlowVarAddIntNoLock(Flow *f, uint16_t idx, uint32_t value)
+{
     FlowVar *fv = FlowVarGet(f, idx);
     if (fv == NULL) {
         fv = SCMalloc(sizeof(FlowVar));
@@ -109,13 +115,15 @@ void FlowVarAddIntNoLock(Flow *f, uint16_t idx, uint32_t value) {
 }
 
 /* add a flowvar to the flow, or update it */
-void FlowVarAddInt(Flow *f, uint16_t idx, uint32_t value) {
+void FlowVarAddInt(Flow *f, uint16_t idx, uint32_t value)
+{
     FLOWLOCK_WRLOCK(f);
     FlowVarAddIntNoLock(f, idx, value);
     FLOWLOCK_UNLOCK(f);
 }
 
-void FlowVarFree(FlowVar *fv) {
+void FlowVarFree(FlowVar *fv)
+{
     if (fv == NULL)
         return;
 
@@ -126,7 +134,8 @@ void FlowVarFree(FlowVar *fv) {
     SCFree(fv);
 }
 
-void FlowVarPrint(GenericVar *gv) {
+void FlowVarPrint(GenericVar *gv)
+{
     uint16_t u;
 
     if (!SCLogDebugEnabled())

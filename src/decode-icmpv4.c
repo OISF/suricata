@@ -310,7 +310,8 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
  *  \brief
  *  \retval 1 Expected test value
  */
-static int DecodeICMPV4test01(void) {
+static int DecodeICMPV4test01(void)
+{
     uint8_t raw_icmpv4[] = {
         0x08, 0x00, 0x78, 0x47, 0xfc, 0x55, 0x00, 0x04,
         0x52, 0xab, 0x86, 0x4a, 0x84, 0x50, 0x0e, 0x00,
@@ -361,7 +362,8 @@ static int DecodeICMPV4test01(void) {
  *  \brief
  *  \retval 1 Expected test value
  */
-static int DecodeICMPV4test02(void) {
+static int DecodeICMPV4test02(void)
+{
     uint8_t raw_icmpv4[] = {
         0x00, 0x00, 0x57, 0x64, 0xfb, 0x55, 0x00, 0x03,
         0x43, 0xab, 0x86, 0x4a, 0xf6, 0x49, 0x02, 0x00,
@@ -411,7 +413,8 @@ static int DecodeICMPV4test02(void) {
  *  \brief  TTL exceeded
  *  \retval Expected test value: 1
  */
-static int DecodeICMPV4test03(void) {
+static int DecodeICMPV4test03(void)
+{
     uint8_t raw_icmpv4[] = {
         0x0b, 0x00, 0x6a, 0x3d, 0x00, 0x00, 0x00, 0x00,
         0x45, 0x00, 0x00, 0x3c, 0x64, 0x15, 0x00, 0x00,
@@ -488,7 +491,8 @@ end:
  *  \brief dest. unreachable, administratively prohibited
  *  \retval 1 Expected test value
  */
-static int DecodeICMPV4test04(void) {
+static int DecodeICMPV4test04(void)
+{
     uint8_t raw_icmpv4[] = {
         0x03, 0x0a, 0x36, 0xc3, 0x00, 0x00, 0x00, 0x00,
         0x45, 0x00, 0x00, 0x3c, 0x62, 0xee, 0x40, 0x00,
@@ -559,7 +563,8 @@ end:
  *  \brief dest. unreachable, administratively prohibited
  *  \retval 1 Expected test value
  */
-static int DecodeICMPV4test05(void) {
+static int DecodeICMPV4test05(void)
+{
     uint8_t raw_icmpv4[] = {
 	0x0b, 0x00, 0x5c, 0x46, 0x00, 0x00, 0x00, 0x00, 0x45,
 	0x00, 0x00, 0x30, 0x02, 0x17, 0x40, 0x00, 0x01, 0x06,
@@ -624,7 +629,8 @@ end:
     return ret;
 }
 
-static int ICMPV4CalculateValidChecksumtest05(void) {
+static int ICMPV4CalculateValidChecksumtest05(void)
+{
     uint16_t csum = 0;
 
     uint8_t raw_icmpv4[] = {
@@ -641,7 +647,8 @@ static int ICMPV4CalculateValidChecksumtest05(void) {
     return (csum == ICMPV4CalculateChecksum((uint16_t *)raw_icmpv4, sizeof(raw_icmpv4)));
 }
 
-static int ICMPV4CalculateInvalidChecksumtest06(void) {
+static int ICMPV4CalculateInvalidChecksumtest06(void)
+{
     uint16_t csum = 0;
 
     uint8_t raw_icmpv4[] = {
@@ -658,7 +665,8 @@ static int ICMPV4CalculateInvalidChecksumtest06(void) {
     return (csum == ICMPV4CalculateChecksum((uint16_t *)raw_icmpv4, sizeof(raw_icmpv4)));
 }
 
-static int ICMPV4InvalidType07(void) {
+static int ICMPV4InvalidType07(void)
+{
 
     uint8_t raw_icmpv4[] = {
         0xff, 0x00, 0xab, 0x9b, 0x7f, 0x2b, 0x05, 0x2c,
@@ -709,7 +717,8 @@ static int ICMPV4InvalidType07(void) {
  *  \brief
  *  \retval 1 Expected test value - what we really want is not to segfault
  */
-static int DecodeICMPV4test08(void) {
+static int DecodeICMPV4test08(void)
+{
     uint8_t raw_icmpv4[] = {
         0x08, 0x00, 0x78, 0x47, 0xfc, 0x55, 0x00, 0x00
     };
@@ -754,7 +763,8 @@ static int DecodeICMPV4test08(void) {
 /**
  * \brief Registers ICMPV4 unit test
  */
-void DecodeICMPV4RegisterTests(void) {
+void DecodeICMPV4RegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DecodeICMPV4test01", DecodeICMPV4test01, 1);
     UtRegisterTest("DecodeICMPV4test02", DecodeICMPV4test02, 1);

@@ -548,7 +548,8 @@ static TmEcode JsonHttpLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void TmModuleJsonHttpLogRegister (void) {
+void TmModuleJsonHttpLogRegister (void)
+{
     tmm_modules[TMM_JSONHTTPLOG].name = "JsonHttpLog";
     tmm_modules[TMM_JSONHTTPLOG].ThreadInit = JsonHttpLogThreadInit;
     tmm_modules[TMM_JSONHTTPLOG].ThreadDeinit = JsonHttpLogThreadDeinit;

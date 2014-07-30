@@ -67,7 +67,8 @@ void DetectHttpMethodFree(void *);
 /**
  * \brief Registration function for keyword: http_method
  */
-void DetectHttpMethodRegister(void) {
+void DetectHttpMethodRegister(void)
+{
     sigmatch_table[DETECT_AL_HTTP_METHOD].name = "http_method";
     sigmatch_table[DETECT_AL_HTTP_METHOD].desc = "content modifier to match only on the HTTP method-buffer";
     sigmatch_table[DETECT_AL_HTTP_METHOD].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#http_method";
@@ -107,7 +108,8 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
  *
  * \param id_d pointer to DetectContentData
  */
-void DetectHttpMethodFree(void *ptr) {
+void DetectHttpMethodFree(void *ptr)
+{
     DetectContentData *data = (DetectContentData *)ptr;
 
     if (data->content != NULL)
@@ -805,7 +807,8 @@ end:
 /**
  * \brief this function registers unit tests for DetectHttpMethod
  */
-void DetectHttpMethodRegisterTests(void) {
+void DetectHttpMethodRegisterTests(void)
+{
 #ifdef UNITTESTS /* UNITTESTS */
     SCLogDebug("Registering tests for DetectHttpMethod...");
     UtRegisterTest("DetectHttpMethodTest01", DetectHttpMethodTest01, 1);

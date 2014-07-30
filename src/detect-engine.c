@@ -767,7 +767,8 @@ DetectEngineCtx *DetectEngineGetGlobalDeCtx(void)
     return NULL;
 }
 
-DetectEngineCtx *DetectEngineCtxInit(void) {
+DetectEngineCtx *DetectEngineCtxInit(void)
+{
     DetectEngineCtx *de_ctx;
 
     ConfNode *seq_node = NULL;
@@ -851,7 +852,8 @@ error:
     return NULL;
 }
 
-static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx) {
+static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx)
+{
     DetectEngineThreadKeywordCtxItem *item = de_ctx->keyword_list;
     while (item) {
         DetectEngineThreadKeywordCtxItem *next = item->next;
@@ -866,7 +868,8 @@ static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx) {
  *
  * \param de_ctx DetectEngineCtx:: to be freed
  */
-void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
+void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
+{
 
     if (de_ctx == NULL)
         return;
@@ -924,7 +927,8 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
  *  \retval 0 if no config provided, 1 if config was provided
  *          and loaded successfuly
  */
-static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
+static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
+{
     uint8_t profile = ENGINE_PROFILE_UNKNOWN;
     char *de_ctx_profile = NULL;
 
@@ -1186,15 +1190,18 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
  * getting & (re)setting the internal sig i
  */
 
-//inline uint32_t DetectEngineGetMaxSigId(DetectEngineCtx *de_ctx) {
+//inline uint32_t DetectEngineGetMaxSigId(DetectEngineCtx *de_ctx)
+{
 //    return de_ctx->signum;
 //}
 
-void DetectEngineResetMaxSigId(DetectEngineCtx *de_ctx) {
+void DetectEngineResetMaxSigId(DetectEngineCtx *de_ctx)
+{
     de_ctx->signum = 0;
 }
 
-static int DetectEngineThreadCtxInitKeywords(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx) {
+static int DetectEngineThreadCtxInitKeywords(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
+{
     if (de_ctx->keyword_id > 0) {
         det_ctx->keyword_ctxs_array = SCMalloc(de_ctx->keyword_id * sizeof(void *));
         if (det_ctx->keyword_ctxs_array == NULL) {
@@ -1220,7 +1227,8 @@ static int DetectEngineThreadCtxInitKeywords(DetectEngineCtx *de_ctx, DetectEngi
     return TM_ECODE_OK;
 }
 
-static void DetectEngineThreadCtxDeinitKeywords(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx) {
+static void DetectEngineThreadCtxDeinitKeywords(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
+{
     if (de_ctx->keyword_id > 0) {
         DetectEngineThreadKeywordCtxItem *item = de_ctx->keyword_list;
         while (item) {
@@ -1238,7 +1246,8 @@ static void DetectEngineThreadCtxDeinitKeywords(DetectEngineCtx *de_ctx, DetectE
 /** \internal
  *  \brief Helper for DetectThread setup functions
  */
-static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx) {
+static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
+{
     int i;
 
     /** \todo we still depend on the global mpm_ctx here
@@ -1384,7 +1393,8 @@ static TmEcode DetectEngineThreadCtxInitForLiveRuleSwap(ThreadVars *tv, void *in
     return TM_ECODE_OK;
 }
 
-TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data) {
+TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
+{
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
 
     if (det_ctx == NULL) {
@@ -1457,7 +1467,8 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data) {
     return TM_ECODE_OK;
 }
 
-void DetectEngineThreadCtxInfo(ThreadVars *t, DetectEngineThreadCtx *det_ctx) {
+void DetectEngineThreadCtxInfo(ThreadVars *t, DetectEngineThreadCtx *det_ctx)
+{
     /* XXX */
     PatternMatchThreadPrint(&det_ctx->mtc, det_ctx->de_ctx->mpm_matcher);
     PatternMatchThreadPrint(&det_ctx->mtcu, det_ctx->de_ctx->mpm_matcher);
@@ -1479,7 +1490,8 @@ void DetectEngineThreadCtxInfo(ThreadVars *t, DetectEngineThreadCtx *det_ctx) {
  *        recommended to store it in the keywords global ctx so that
  *        it's freed when the de_ctx is freed.
  */
-int DetectRegisterThreadCtxFuncs(DetectEngineCtx *de_ctx, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int mode) {
+int DetectRegisterThreadCtxFuncs(DetectEngineCtx *de_ctx, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int mode)
+{
     BUG_ON(de_ctx == NULL || InitFunc == NULL || FreeFunc == NULL || data == NULL);
 
     if (mode) {
@@ -1518,14 +1530,16 @@ int DetectRegisterThreadCtxFuncs(DetectEngineCtx *de_ctx, const char *name, void
  *
  *  \retval ctx or NULL on error
  */
-void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, int id) {
+void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, int id)
+{
     if (id < 0 || id > det_ctx->keyword_ctxs_size || det_ctx->keyword_ctxs_array == NULL)
         return NULL;
 
     return det_ctx->keyword_ctxs_array[id];
 }
 
-const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type) {
+const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
+{
     switch (type) {
         case DETECT_SM_LIST_MATCH:
             return "packet";

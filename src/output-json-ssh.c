@@ -65,7 +65,8 @@ typedef struct JsonSshLogThread_ {
     MemBuffer *buffer;
 } JsonSshLogThread;
 
-static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
+static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p)
+{
     JsonSshLogThread *aft = (JsonSshLogThread *)thread_data;
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
     OutputSshCtx *ssh_ctx = aft->sshlog_ctx;
@@ -270,7 +271,8 @@ OutputCtx *OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
  *  \brief Condition function for SSH logger
  *  \retval bool true or false -- log now?
  */
-static int JsonSshCondition(ThreadVars *tv, const Packet *p) {
+static int JsonSshCondition(ThreadVars *tv, const Packet *p)
+{
     if (p->flow == NULL) {
         return FALSE;
     }
@@ -307,7 +309,8 @@ dontlog:
     return FALSE;
 }
 
-void TmModuleJsonSshLogRegister (void) {
+void TmModuleJsonSshLogRegister (void)
+{
     tmm_modules[TMM_JSONSSHLOG].name = "JsonSshLog";
     tmm_modules[TMM_JSONSSHLOG].ThreadInit = JsonSshLogThreadInit;
     tmm_modules[TMM_JSONSSHLOG].ThreadDeinit = JsonSshLogThreadDeinit;

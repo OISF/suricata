@@ -2315,7 +2315,8 @@ int UtilSpmNocaseSearchStatsTest07()
 #endif
 
 /* Register unittests */
-void UtilSpmSearchRegistertests(void) {
+void UtilSpmSearchRegistertests(void)
+{
 #ifdef UNITTESTS
     /* Generic tests */
     UtRegisterTest("UtilSpmBasicSearchTest01", UtilSpmBasicSearchTest01, 1);

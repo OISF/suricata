@@ -47,28 +47,33 @@ SC_ATOMIC_DECLARE(uint32_t, srep_eversion);
  *  so hosts will always have a minial value of 1 */
 static uint32_t srep_version = 0;
 
-static uint32_t SRepIncrVersion(void) {
+static uint32_t SRepIncrVersion(void)
+{
     return ++srep_version;
 }
 
-static uint32_t SRepGetVersion(void) {
+static uint32_t SRepGetVersion(void)
+{
     return srep_version;
 }
 
-static uint32_t SRepGetEffectiveVersion(void) {
+static uint32_t SRepGetEffectiveVersion(void)
+{
     return SC_ATOMIC_GET(srep_eversion);
 }
 
 /** \brief Increment effective reputation version after
  *         a rule/reputatio reload is complete. */
-void SRepReloadComplete(void) {
+void SRepReloadComplete(void)
+{
     (void) SC_ATOMIC_ADD(srep_eversion, 1);
     SCLogDebug("effective Reputation version %u", SRepGetEffectiveVersion());
 }
 
 /** \brief Set effective reputation version after
  *         reputation initialization is complete. */
-void SRepInitComplete(void) {
+void SRepInitComplete(void)
+{
     (void) SC_ATOMIC_SET(srep_eversion, 1);
     SCLogDebug("effective Reputation version %u", SRepGetEffectiveVersion());
 }
@@ -83,7 +88,8 @@ void SRepInitComplete(void) {
  *  \retval 0 not timed out
  *  \retval 1 timed out
  */
-int SRepHostTimedOut(Host *h) {
+int SRepHostTimedOut(Host *h)
+{
     BUG_ON(h == NULL);
 
     if (h->iprep == NULL)
@@ -105,7 +111,8 @@ int SRepHostTimedOut(Host *h) {
     return 0;
 }
 
-static int SRepCatSplitLine(char *line, uint8_t *cat, char *shortname, size_t shortname_len) {
+static int SRepCatSplitLine(char *line, uint8_t *cat, char *shortname, size_t shortname_len)
+{
     size_t line_len = strlen(line);
     char *ptrs[2] = {NULL,NULL};
     int i = 0;
@@ -155,7 +162,8 @@ static int SRepCatSplitLine(char *line, uint8_t *cat, char *shortname, size_t sh
  *  \retval 1 header
  *  \retval -1 boo
  */
-static int SRepSplitLine(char *line, uint32_t *ip, uint8_t *cat, uint8_t *value) {
+static int SRepSplitLine(char *line, uint32_t *ip, uint8_t *cat, uint8_t *value)
+{
     size_t line_len = strlen(line);
     char *ptrs[3] = {NULL,NULL,NULL};
     int i = 0;
@@ -216,7 +224,8 @@ static int SRepSplitLine(char *line, uint32_t *ip, uint8_t *cat, uint8_t *value)
 #define SREP_SHORTNAME_LEN 32
 static char srep_cat_table[SREP_MAX_CATS][SREP_SHORTNAME_LEN];
 
-int SRepCatValid(uint8_t cat) {
+int SRepCatValid(uint8_t cat)
+{
     if (cat >= SREP_MAX_CATS)
         return 0;
 
@@ -226,7 +235,8 @@ int SRepCatValid(uint8_t cat) {
     return 1;
 }
 
-uint8_t SRepCatGetByShortname(char *shortname) {
+uint8_t SRepCatGetByShortname(char *shortname)
+{
     uint8_t cat;
     for (cat = 0; cat < SREP_MAX_CATS; cat++) {
         if (strcmp(srep_cat_table[cat], shortname) == 0)
@@ -236,7 +246,8 @@ uint8_t SRepCatGetByShortname(char *shortname) {
     return 0;
 }
 
-int SRepLoadCatFile(char *filename) {
+int SRepLoadCatFile(char *filename)
+{
     char line[8192] = "";
     Address a;
     memset(&a, 0x00, sizeof(a));
@@ -292,7 +303,8 @@ int SRepLoadCatFile(char *filename) {
     return 0;
 }
 
-static int SRepLoadFile(char *filename) {
+static int SRepLoadFile(char *filename)
+{
     char line[8192] = "";
     Address a;
     memset(&a, 0x00, sizeof(a));
@@ -439,7 +451,8 @@ static char *SRepCompleteFilePath(char *file)
  *  If this function is called more than once, the category file
  *  is not reloaded.
  */
-int SRepInit(DetectEngineCtx *de_ctx) {
+int SRepInit(DetectEngineCtx *de_ctx)
+{
     ConfNode *files;
     ConfNode *file = NULL;
     int r = 0;
@@ -510,7 +523,8 @@ int SRepInit(DetectEngineCtx *de_ctx) {
 }
 
 #ifdef UNITTESTS
-static int SRepTest01(void) {
+static int SRepTest01(void)
+{
     char str[] = "1.2.3.4,1,2";
 
     uint32_t ip = 0;
@@ -534,7 +548,8 @@ static int SRepTest01(void) {
     return 1;
 }
 
-static int SRepTest02(void) {
+static int SRepTest02(void)
+{
     char str[] = "1.1.1.1,";
 
     uint32_t ip = 0;
@@ -545,7 +560,8 @@ static int SRepTest02(void) {
     return 1;
 }
 
-static int SRepTest03(void) {
+static int SRepTest03(void)
+{
     char str[] = "1,Shortname,Long Name";
 
     uint8_t cat = 0;
@@ -581,7 +597,8 @@ IPReputationCtx *rep_ctx;
  * \retval Pointer to the IPReputationCtx created
  *         NULL Error initializing moule;
  */
-IPReputationCtx *SCReputationInitCtx(void) {
+IPReputationCtx *SCReputationInitCtx(void)
+{
     rep_ctx = (IPReputationCtx *)SCMalloc(sizeof(IPReputationCtx));
     if (rep_ctx == NULL)
         return NULL;
@@ -684,7 +701,8 @@ void SCReputationTransactionFreeData(void *data)
  * \param rep_data pointer to the reputation to update
  * \param rtx pointer to the transaction data
  */
-void SCReputationApplyTransaction(Reputation *rep_data, ReputationTransaction *rtx) {
+void SCReputationApplyTransaction(Reputation *rep_data, ReputationTransaction *rtx)
+{
     int i = 0;
 
     /* No modification needed */

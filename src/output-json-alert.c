@@ -436,7 +436,8 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     return output_ctx;
 }
 
-void TmModuleJsonAlertLogRegister (void) {
+void TmModuleJsonAlertLogRegister (void)
+{
     tmm_modules[TMM_JSONALERTLOG].name = MODULE_NAME;
     tmm_modules[TMM_JSONALERTLOG].ThreadInit = JsonAlertLogThreadInit;
     tmm_modules[TMM_JSONALERTLOG].ThreadDeinit = JsonAlertLogThreadDeinit;

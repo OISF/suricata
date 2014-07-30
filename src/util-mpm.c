@@ -420,7 +420,8 @@ void MpmCudaEnvironmentSetup()
  *  \retval -1 error
  *  \retval 0 ok
  */
-int PmqSetup(PatternMatcherQueue *pmq, uint32_t patmaxid) {
+int PmqSetup(PatternMatcherQueue *pmq, uint32_t patmaxid)
+{
     SCEnter();
     SCLogDebug("patmaxid %u", patmaxid);
 
@@ -497,7 +498,8 @@ MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, uint32_t pati
  *  \param src source pmq
  *  \param dst destination pmq to merge into
  */
-void PmqMerge(PatternMatcherQueue *src, PatternMatcherQueue *dst) {
+void PmqMerge(PatternMatcherQueue *src, PatternMatcherQueue *dst)
+{
     uint32_t u;
 
     if (src->pattern_id_array_cnt == 0)
@@ -515,7 +517,8 @@ void PmqMerge(PatternMatcherQueue *src, PatternMatcherQueue *dst) {
  *  \todo memset is expensive, but we need it as we merge pmq's. We might use
  *        a flag so we can clear pmq's the old way if we can.
  */
-void PmqReset(PatternMatcherQueue *pmq) {
+void PmqReset(PatternMatcherQueue *pmq)
+{
     if (pmq == NULL)
         return;
 
@@ -534,7 +537,8 @@ void PmqReset(PatternMatcherQueue *pmq) {
 /** \brief Cleanup a Pmq
   * \param pmq Pattern matcher queue to be cleaned up.
   */
-void PmqCleanup(PatternMatcherQueue *pmq) {
+void PmqCleanup(PatternMatcherQueue *pmq)
+{
     if (pmq == NULL)
         return;
 
@@ -554,23 +558,27 @@ void PmqCleanup(PatternMatcherQueue *pmq) {
 /** \brief Cleanup and free a Pmq
   * \param pmq Pattern matcher queue to be free'd.
   */
-void PmqFree(PatternMatcherQueue *pmq) {
+void PmqFree(PatternMatcherQueue *pmq)
+{
     if (pmq == NULL)
         return;
 
     PmqCleanup(pmq);
 }
 
-void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t matcher, uint32_t max_id) {
+void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t matcher, uint32_t max_id)
+{
     mpm_table[matcher].InitThreadCtx(NULL, mpm_thread_ctx, max_id);
 }
 
-void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher) {
+void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher)
+{
     mpm_ctx->mpm_type = matcher;
     mpm_table[matcher].InitCtx(mpm_ctx);
 }
 
-void MpmTableSetup(void) {
+void MpmTableSetup(void)
+{
     memset(mpm_table, 0, sizeof(mpm_table));
 
     MpmWuManberRegister();
@@ -668,7 +676,8 @@ int MpmAddPatternCI(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
 #ifdef UNITTESTS
 #endif /* UNITTESTS */
 
-void MpmRegisterTests(void) {
+void MpmRegisterTests(void)
+{
 #ifdef UNITTESTS
     uint16_t i;
 

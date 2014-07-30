@@ -53,7 +53,8 @@ static void PreBmGsNocase(const uint8_t *x, uint16_t m, uint16_t *bmGs);
  * \param str pointer to the pattern string
  * \param size length of the string
  */
-void BoyerMooreCtxToNocase(BmCtx *bm_ctx, uint8_t *needle, uint16_t needle_len) {
+void BoyerMooreCtxToNocase(BmCtx *bm_ctx, uint8_t *needle, uint16_t needle_len)
+{
     /* Store the content as lower case to make searching faster */
     memcpy_tolower(needle, needle, needle_len);
 
@@ -72,7 +73,8 @@ void BoyerMooreCtxToNocase(BmCtx *bm_ctx, uint8_t *needle, uint16_t needle_len) 
  * \retval BmCtx pointer to the newly created Context for the pattern
  * \initonly BoyerMoore contexts should be created at init
  */
-BmCtx *BoyerMooreCtxInit(uint8_t *needle, uint16_t needle_len) {
+BmCtx *BoyerMooreCtxInit(uint8_t *needle, uint16_t needle_len)
+{
     BmCtx *new = SCMalloc(sizeof(BmCtx));
     if (unlikely(new == NULL)) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in BoyerMooreCtxInit. Exiting...");
@@ -159,7 +161,8 @@ static void PreBmBc(const uint8_t *x, uint16_t m, uint16_t *bmBc)
  * \param m length of the string
  * \param suff pointer to an empty array that will hold the prefixes (shifts)
  */
-static void BoyerMooreSuffixes(const uint8_t *x, uint16_t m, uint16_t *suff) {
+static void BoyerMooreSuffixes(const uint8_t *x, uint16_t m, uint16_t *suff)
+{
     int32_t f = 0, g, i;
     suff[m - 1] = m;
     g = m - 1;

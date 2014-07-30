@@ -1613,7 +1613,8 @@ int DetectAddressCmp(DetectAddress *a, DetectAddress *b)
  *
  *  \todo array should be ordered, so we can break out of the loop
  */
-int DetectAddressMatchIPv4(DetectMatchAddressIPv4 *addrs, uint16_t addrs_cnt, Address *a) {
+int DetectAddressMatchIPv4(DetectMatchAddressIPv4 *addrs, uint16_t addrs_cnt, Address *a)
+{
     SCEnter();
 
     if (addrs == NULL || addrs_cnt == 0) {
@@ -1646,7 +1647,8 @@ int DetectAddressMatchIPv4(DetectMatchAddressIPv4 *addrs, uint16_t addrs_cnt, Ad
  *
  *  \todo array should be ordered, so we can break out of the loop
  */
-int DetectAddressMatchIPv6(DetectMatchAddressIPv6 *addrs, uint16_t addrs_cnt, Address *a) {
+int DetectAddressMatchIPv6(DetectMatchAddressIPv6 *addrs, uint16_t addrs_cnt, Address *a)
+{
     SCEnter();
 
     if (addrs == NULL || addrs_cnt == 0) {
@@ -1871,7 +1873,8 @@ typedef struct UTHValidateDetectAddressHeadRange_ {
     const char *two;
 } UTHValidateDetectAddressHeadRange;
 
-int UTHValidateDetectAddressHead(DetectAddressHead *gh, int nranges, UTHValidateDetectAddressHeadRange *expectations) {
+int UTHValidateDetectAddressHead(DetectAddressHead *gh, int nranges, UTHValidateDetectAddressHeadRange *expectations)
+{
     int expect = nranges;
     int have = 0;
 
@@ -4052,7 +4055,8 @@ int AddressTestAddressGroupSetup35(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup36 (void) {
+int AddressTestAddressGroupSetup36 (void)
+{
     int result = 0;
 
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -4814,7 +4818,8 @@ int AddressConfVarsTest05(void)
 /**
  * \test Test sig distribution over address groups
  */
-static int AddressTestFunctions01(void) {
+static int AddressTestFunctions01(void)
+{
     DetectAddress *a1 = NULL;
     DetectAddress *a2 = NULL;
     DetectAddressHead *h = NULL;
@@ -4891,7 +4896,8 @@ end:
 /**
  * \test Test sig distribution over address groups
  */
-static int AddressTestFunctions02(void) {
+static int AddressTestFunctions02(void)
+{
     DetectAddress *a1 = NULL;
     DetectAddress *a2 = NULL;
     DetectAddressHead *h = NULL;
@@ -4968,7 +4974,8 @@ end:
 /**
  * \test Test sig distribution over address groups
  */
-static int AddressTestFunctions03(void) {
+static int AddressTestFunctions03(void)
+{
     DetectAddress *a1 = NULL;
     DetectAddress *a2 = NULL;
     DetectAddressHead *h = NULL;
@@ -5045,7 +5052,8 @@ end:
 /**
  * \test Test sig distribution over address groups
  */
-static int AddressTestFunctions04(void) {
+static int AddressTestFunctions04(void)
+{
     DetectAddress *a1 = NULL;
     DetectAddress *a2 = NULL;
     DetectAddressHead *h = NULL;

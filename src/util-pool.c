@@ -222,7 +222,8 @@ error:
 }
 
 
-void PoolFree(Pool *p) {
+void PoolFree(Pool *p)
+{
     if (p == NULL)
         return;
 
@@ -269,13 +270,15 @@ void PoolFree(Pool *p) {
     SCFree(p);
 }
 
-void PoolPrint(Pool *p) {
+void PoolPrint(Pool *p)
+{
     printf("\n----------- Hash Table Stats ------------\n");
     printf("Buckets:               %" PRIu32 "\n", p->empty_stack_size + p->alloc_stack_size);
     printf("-----------------------------------------\n");
 }
 
-void *PoolGet(Pool *p) {
+void *PoolGet(Pool *p)
+{
     SCEnter();
 
     PoolBucket *pb = p->alloc_stack;
@@ -331,7 +334,8 @@ void *PoolGet(Pool *p) {
     SCReturnPtr(ptr,"void");
 }
 
-void PoolReturn(Pool *p, void *data) {
+void PoolReturn(Pool *p, void *data)
+{
     SCEnter();
 
     PoolBucket *pb = p->empty_stack;
@@ -370,7 +374,8 @@ void PoolReturn(Pool *p, void *data) {
     SCReturn;
 }
 
-void PoolPrintSaturation(Pool *p) {
+void PoolPrintSaturation(Pool *p)
+{
     SCLogDebug("pool %p is using %"PRIu32" out of %"PRIu32" items (%02.1f%%), max %"PRIu32" (%02.1f%%): pool struct memory %"PRIu64".", p, p->outstanding, p->max_buckets, (float)(p->outstanding/(float)(p->max_buckets))*100, p->max_outstanding, (float)(p->max_outstanding/(float)(p->max_buckets))*100, (uint64_t)(p->max_buckets * sizeof(PoolBucket)));
 }
 
@@ -378,13 +383,15 @@ void PoolPrintSaturation(Pool *p) {
  * ONLY TESTS BELOW THIS COMMENT
  */
 
-void *PoolTestAlloc() {
+void *PoolTestAlloc()
+{
     void *ptr = SCMalloc(10);
     if (unlikely(ptr == NULL))
         return NULL;
     return ptr;
 }
-int PoolTestInitArg(void *data, void *allocdata) {
+int PoolTestInitArg(void *data, void *allocdata)
+{
     size_t len = strlen((char *)allocdata) + 1;
     char *str = data;
     if (str != NULL)
@@ -392,12 +399,14 @@ int PoolTestInitArg(void *data, void *allocdata) {
     return 1;
 }
 
-void PoolTestFree(void *ptr) {
+void PoolTestFree(void *ptr)
+{
     return;
 }
 
 #ifdef UNITTESTS
-static int PoolTestInit01 (void) {
+static int PoolTestInit01 (void)
+{
     Pool *p = PoolInit(10,5,10,PoolTestAlloc,NULL,NULL,PoolTestFree, NULL);
     if (p == NULL)
         return 0;
@@ -406,7 +415,8 @@ static int PoolTestInit01 (void) {
     return 1;
 }
 
-static int PoolTestInit02 (void) {
+static int PoolTestInit02 (void)
+{
     int retval = 0;
 
     Pool *p = PoolInit(10,5,10,PoolTestAlloc,NULL,NULL,PoolTestFree, NULL);
@@ -441,7 +451,8 @@ end:
     return retval;
 }
 
-static int PoolTestInit03 (void) {
+static int PoolTestInit03 (void)
+{
     int retval = 0;
     void *data = NULL;
 
@@ -475,7 +486,8 @@ end:
     return retval;
 }
 
-static int PoolTestInit04 (void) {
+static int PoolTestInit04 (void)
+{
     int retval = 0;
     char *str = NULL;
 
@@ -515,7 +527,8 @@ end:
     return retval;
 }
 
-static int PoolTestInit05 (void) {
+static int PoolTestInit05 (void)
+{
     int retval = 0;
     void *data = NULL;
 
@@ -564,7 +577,8 @@ end:
     return retval;
 }
 
-static int PoolTestInit06 (void) {
+static int PoolTestInit06 (void)
+{
     int retval = 0;
     void *data = NULL;
     void *data2 = NULL;
@@ -622,7 +636,8 @@ end:
 }
 
 /** \test pool with unlimited size */
-static int PoolTestInit07 (void) {
+static int PoolTestInit07 (void)
+{
     int retval = 0;
     void *data = NULL;
     void *data2 = NULL;
@@ -701,7 +716,8 @@ end:
 }
 #endif /* UNITTESTS */
 
-void PoolRegisterTests(void) {
+void PoolRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("PoolTestInit01", PoolTestInit01, 1);
     UtRegisterTest("PoolTestInit02", PoolTestInit02, 1);

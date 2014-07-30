@@ -84,7 +84,8 @@ int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, OutputCtx *ou
 /** \brief Run flow logger(s)
  *  \note flow is already write locked
  */
-TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f) {
+TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f)
+{
     BUG_ON(thread_data == NULL);
 
     if (list == NULL)
@@ -122,7 +123,8 @@ TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f) {
 /** \brief thread init for the flow logger
  *  This will run the thread init functions for the individual registered
  *  loggers */
-TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void *initdata, void **data) {
+TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void *initdata, void **data)
+{
     OutputLoggerThreadData *td = SCMalloc(sizeof(*td));
     if (td == NULL)
         return TM_ECODE_FAILED;
@@ -170,7 +172,8 @@ TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void *initdata, void **data) {
     return TM_ECODE_OK;
 }
 
-TmEcode OutputFlowLogThreadDeinit(ThreadVars *tv, void *thread_data) {
+TmEcode OutputFlowLogThreadDeinit(ThreadVars *tv, void *thread_data)
+{
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
     OutputLoggerThreadStore *store = op_thread_data->store;
     OutputFlowLogger *logger = list;
@@ -197,7 +200,8 @@ TmEcode OutputFlowLogThreadDeinit(ThreadVars *tv, void *thread_data) {
     return TM_ECODE_OK;
 }
 
-void OutputFlowLogExitPrintStats(ThreadVars *tv, void *thread_data) {
+void OutputFlowLogExitPrintStats(ThreadVars *tv, void *thread_data)
+{
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
     OutputLoggerThreadStore *store = op_thread_data->store;
     OutputFlowLogger *logger = list;

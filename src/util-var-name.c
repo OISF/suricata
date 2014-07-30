@@ -35,7 +35,8 @@ typedef struct VariableName_ {
     uint16_t idx;
 } VariableName;
 
-static uint32_t VariableNameHash(HashListTable *ht, void *buf, uint16_t buflen) {
+static uint32_t VariableNameHash(HashListTable *ht, void *buf, uint16_t buflen)
+{
      VariableName *fn = (VariableName *)buf;
      uint32_t hash = strlen(fn->name) + fn->type;
      uint16_t u;
@@ -47,7 +48,8 @@ static uint32_t VariableNameHash(HashListTable *ht, void *buf, uint16_t buflen) 
      return hash;
 }
 
-static char VariableNameCompare(void *buf1, uint16_t len1, void *buf2, uint16_t len2) {
+static char VariableNameCompare(void *buf1, uint16_t len1, void *buf2, uint16_t len2)
+{
     VariableName *fn1 = (VariableName *)buf1;
     VariableName *fn2 = (VariableName *)buf2;
 
@@ -81,7 +83,8 @@ static char VariableIdxCompare(void *buf1, uint16_t len1, void *buf2, uint16_t l
     return 0;
 }
 
-static void VariableNameFree(void *data) {
+static void VariableNameFree(void *data)
+{
     VariableName *fn = (VariableName *)data;
 
     if (fn == NULL)
@@ -100,7 +103,8 @@ static void VariableNameFree(void *data) {
  *  \retval -1 in case of error
  *  \retval 0 in case of success
  */
-int VariableNameInitHash(DetectEngineCtx *de_ctx) {
+int VariableNameInitHash(DetectEngineCtx *de_ctx)
+{
     de_ctx->variable_names = HashListTableInit(4096, VariableNameHash, VariableNameCompare, VariableNameFree);
     if (de_ctx->variable_names == NULL)
         return -1;
@@ -113,7 +117,8 @@ int VariableNameInitHash(DetectEngineCtx *de_ctx) {
     return 0;
 }
 
-void VariableNameFreeHash(DetectEngineCtx *de_ctx) {
+void VariableNameFreeHash(DetectEngineCtx *de_ctx)
+{
     if (de_ctx->variable_names != NULL) {
         HashListTableFree(de_ctx->variable_names);
         HashListTableFree(de_ctx->variable_idxs);
@@ -130,7 +135,8 @@ void VariableNameFreeHash(DetectEngineCtx *de_ctx) {
  *  \retval 0 in case of error
  *  \retval _ the idx.
  */
-uint16_t VariableNameGetIdx(DetectEngineCtx *de_ctx, char *name, uint8_t type) {
+uint16_t VariableNameGetIdx(DetectEngineCtx *de_ctx, char *name, uint8_t type)
+{
     uint16_t idx = 0;
 
     VariableName *fn = SCMalloc(sizeof(VariableName));

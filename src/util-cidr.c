@@ -27,7 +27,8 @@
 
 static uint32_t cidrs[33];
 
-void CIDRInit(void) {
+void CIDRInit(void)
+{
     int i = 0;
 
     /* skip 0 as it will result in 0xffffffff */
@@ -38,7 +39,8 @@ void CIDRInit(void) {
     }
 }
 
-uint32_t CIDRGet(int cidr) {
+uint32_t CIDRGet(int cidr)
+{
     if (cidr < 0 || cidr > 32)
         return 0;
     return cidrs[cidr];

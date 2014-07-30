@@ -54,7 +54,8 @@ void DetectITypeFree(void *);
 /**
  * \brief Registration function for itype: keyword
  */
-void DetectITypeRegister (void) {
+void DetectITypeRegister (void)
+{
     sigmatch_table[DETECT_ITYPE].name = "itype";
     sigmatch_table[DETECT_ITYPE].desc = "matching on a specific ICMP type";
     sigmatch_table[DETECT_ITYPE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#itype";
@@ -97,7 +98,8 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectITypeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m) {
+int DetectITypeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+{
     int ret = 0;
     uint8_t pitype;
     DetectITypeData *itd = (DetectITypeData *)m->ctx;
@@ -140,7 +142,8 @@ int DetectITypeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, 
  * \retval itd pointer to DetectITypeData on success
  * \retval NULL on failure
  */
-DetectITypeData *DetectITypeParse(char *itypestr) {
+DetectITypeData *DetectITypeParse(char *itypestr)
+{
     DetectITypeData *itd = NULL;
     char *args[3] = {NULL, NULL, NULL};
 #define MAX_SUBSTRINGS 30
@@ -243,7 +246,8 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectITypeSetup(DetectEngineCtx *de_ctx, Signature *s, char *itypestr) {
+static int DetectITypeSetup(DetectEngineCtx *de_ctx, Signature *s, char *itypestr)
+{
 
     DetectITypeData *itd = NULL;
     SigMatch *sm = NULL;
@@ -273,7 +277,8 @@ error:
  *
  * \param ptr pointer to DetectITypeData
  */
-void DetectITypeFree(void *ptr) {
+void DetectITypeFree(void *ptr)
+{
     DetectITypeData *itd = (DetectITypeData *)ptr;
     SCFree(itd);
 }
@@ -287,7 +292,8 @@ void DetectITypeFree(void *ptr) {
 /**
  * \test DetectITypeParseTest01 is a test for setting a valid itype value
  */
-int DetectITypeParseTest01(void) {
+int DetectITypeParseTest01(void)
+{
     DetectITypeData *itd = NULL;
     int result = 0;
     itd = DetectITypeParse("8");
@@ -303,7 +309,8 @@ int DetectITypeParseTest01(void) {
  * \test DetectITypeParseTest02 is a test for setting a valid itype value
  *       with ">" operator
  */
-int DetectITypeParseTest02(void) {
+int DetectITypeParseTest02(void)
+{
 DetectITypeData *itd = NULL;
     int result = 0;
     itd = DetectITypeParse(">8");
@@ -319,7 +326,8 @@ DetectITypeData *itd = NULL;
  * \test DetectITypeParseTest03 is a test for setting a valid itype value
  *       with "<" operator
  */
-int DetectITypeParseTest03(void) {
+int DetectITypeParseTest03(void)
+{
     DetectITypeData *itd = NULL;
     int result = 0;
     itd = DetectITypeParse("<8");
@@ -335,7 +343,8 @@ int DetectITypeParseTest03(void) {
  * \test DetectITypeParseTest04 is a test for setting a valid itype value
  *       with "<>" operator
  */
-int DetectITypeParseTest04(void) {
+int DetectITypeParseTest04(void)
+{
 DetectITypeData *itd = NULL;
     int result = 0;
     itd = DetectITypeParse("8<>20");
@@ -351,7 +360,8 @@ DetectITypeData *itd = NULL;
  * \test DetectITypeParseTest05 is a test for setting a valid itype value
  *       with spaces all around
  */
-int DetectITypeParseTest05(void) {
+int DetectITypeParseTest05(void)
+{
 DetectITypeData *itd = NULL;
     int result = 0;
     itd = DetectITypeParse("   8 ");
@@ -367,7 +377,8 @@ DetectITypeData *itd = NULL;
  * \test DetectITypeParseTest06 is a test for setting a valid itype value
  *       with ">" operator and spaces all around
  */
-int DetectITypeParseTest06(void) {
+int DetectITypeParseTest06(void)
+{
 DetectITypeData *itd = NULL;
     int result = 0;
     itd = DetectITypeParse("  >  8  ");
@@ -383,7 +394,8 @@ DetectITypeData *itd = NULL;
  * \test DetectITypeParseTest07 is a test for setting a valid itype value
  *       with "<>" operator and spaces all around
  */
-int DetectITypeParseTest07(void) {
+int DetectITypeParseTest07(void)
+{
 DetectITypeData *itd = NULL;
     int result = 0;
     itd = DetectITypeParse("  8  <> 20  ");
@@ -398,7 +410,8 @@ DetectITypeData *itd = NULL;
 /**
  * \test DetectITypeParseTest08 is a test for setting an invalid itype value
  */
-int DetectITypeParseTest08(void) {
+int DetectITypeParseTest08(void)
+{
     DetectITypeData *itd = NULL;
     itd = DetectITypeParse("> 8 <> 20");
     if (itd == NULL)
@@ -412,7 +425,8 @@ int DetectITypeParseTest08(void) {
  *       keyword by creating 5 rules and matching a crafted packet against
  *       them. 4 out of 5 rules shall trigger.
  */
-int DetectITypeMatchTest01(void) {
+int DetectITypeMatchTest01(void)
+{
 
     Packet *p = NULL;
     Signature *s = NULL;
@@ -499,7 +513,8 @@ end:
 /**
  * \brief this function registers unit tests for DetectIType
  */
-void DetectITypeRegisterTests(void) {
+void DetectITypeRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DetectITypeParseTest01", DetectITypeParseTest01, 1);
     UtRegisterTest("DetectITypeParseTest02", DetectITypeParseTest02, 1);

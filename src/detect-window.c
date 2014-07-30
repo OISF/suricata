@@ -55,7 +55,8 @@ void DetectWindowFree(void *);
 /**
  * \brief Registration function for window: keyword
  */
-void DetectWindowRegister (void) {
+void DetectWindowRegister (void)
+{
     sigmatch_table[DETECT_WINDOW].name = "window";
     sigmatch_table[DETECT_WINDOW].desc = "check for a specific TCP window size";
     sigmatch_table[DETECT_WINDOW].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#Window";
@@ -103,7 +104,8 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectWindowMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m) {
+int DetectWindowMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+{
     DetectWindowData *wd = (DetectWindowData *)m->ctx;
 
     if ( !(PKT_IS_TCP(p)) || wd == NULL || PKT_IS_PSEUDOPKT(p)) {
@@ -125,7 +127,8 @@ int DetectWindowMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, 
  * \retval wd pointer to DetectWindowData on success
  * \retval NULL on failure
  */
-DetectWindowData *DetectWindowParse(char *windowstr) {
+DetectWindowData *DetectWindowParse(char *windowstr)
+{
     DetectWindowData *wd = NULL;
     char *args[3] = {NULL,NULL,NULL}; /* PR: Why PCRE MAX_SUBSTRING must be multiple of 3? */
 	#define MAX_SUBSTRINGS 30
@@ -235,7 +238,8 @@ error:
  *
  * \param wd pointer to DetectWindowData
  */
-void DetectWindowFree(void *ptr) {
+void DetectWindowFree(void *ptr)
+{
     DetectWindowData *wd = (DetectWindowData *)ptr;
     SCFree(wd);
 }
@@ -246,7 +250,8 @@ void DetectWindowFree(void *ptr) {
  * \test DetectWindowTestParse01 is a test to make sure that we set the size correctly
  *  when given valid window opt
  */
-int DetectWindowTestParse01 (void) {
+int DetectWindowTestParse01 (void)
+{
     int result = 0;
     DetectWindowData *wd = NULL;
     wd = DetectWindowParse("35402");
@@ -261,7 +266,8 @@ int DetectWindowTestParse01 (void) {
 /**
  * \test DetectWindowTestParse02 is a test for setting the window opt negated
  */
-int DetectWindowTestParse02 (void) {
+int DetectWindowTestParse02 (void)
+{
     int result = 0;
     DetectWindowData *wd = NULL;
     wd = DetectWindowParse("!35402");
@@ -280,7 +286,8 @@ int DetectWindowTestParse02 (void) {
 /**
  * \test DetectWindowTestParse03 is a test to check for an empty value
  */
-int DetectWindowTestParse03 (void) {
+int DetectWindowTestParse03 (void)
+{
     int result = 0;
     DetectWindowData *wd = NULL;
     wd = DetectWindowParse("");
@@ -297,7 +304,8 @@ int DetectWindowTestParse03 (void) {
 /**
  * \test DetectWindowTestParse03 is a test to check for a big value
  */
-int DetectWindowTestParse04 (void) {
+int DetectWindowTestParse04 (void)
+{
     int result = 0;
     DetectWindowData *wd = NULL;
     wd = DetectWindowParse("1235402");
@@ -313,7 +321,8 @@ int DetectWindowTestParse04 (void) {
 /**
  * \test DetectWindowTestPacket01 is a test to check window with constructed packets
  */
-int DetectWindowTestPacket01 (void) {
+int DetectWindowTestPacket01 (void)
+{
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint16_t buflen = strlen((char *)buf);
@@ -356,7 +365,8 @@ end:
 /**
  * \brief this function registers unit tests for DetectWindow
  */
-void DetectWindowRegisterTests(void) {
+void DetectWindowRegisterTests(void)
+{
     #ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectWindowTestParse01", DetectWindowTestParse01, 1);
     UtRegisterTest("DetectWindowTestParse02", DetectWindowTestParse02, 1);

@@ -55,7 +55,8 @@ static int DetectFlowbitSetup (DetectEngineCtx *, Signature *, char *);
 void DetectFlowbitFree (void *);
 void FlowBitsRegisterTests(void);
 
-void DetectFlowbitsRegister (void) {
+void DetectFlowbitsRegister (void)
+{
     sigmatch_table[DETECT_FLOWBITS].name = "flowbits";
     sigmatch_table[DETECT_FLOWBITS].desc = "operate on flow flag";
     sigmatch_table[DETECT_FLOWBITS].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Flow-keywords#Flowbits";
@@ -91,7 +92,8 @@ error:
 }
 
 
-static int DetectFlowbitMatchToggle (Packet *p, DetectFlowbitsData *fd) {
+static int DetectFlowbitMatchToggle (Packet *p, DetectFlowbitsData *fd)
+{
     if (p->flow == NULL)
         return 0;
 
@@ -99,7 +101,8 @@ static int DetectFlowbitMatchToggle (Packet *p, DetectFlowbitsData *fd) {
     return 1;
 }
 
-static int DetectFlowbitMatchUnset (Packet *p, DetectFlowbitsData *fd) {
+static int DetectFlowbitMatchUnset (Packet *p, DetectFlowbitsData *fd)
+{
     if (p->flow == NULL)
         return 0;
 
@@ -107,7 +110,8 @@ static int DetectFlowbitMatchUnset (Packet *p, DetectFlowbitsData *fd) {
     return 1;
 }
 
-static int DetectFlowbitMatchSet (Packet *p, DetectFlowbitsData *fd) {
+static int DetectFlowbitMatchSet (Packet *p, DetectFlowbitsData *fd)
+{
     if (p->flow == NULL)
         return 0;
 
@@ -115,14 +119,16 @@ static int DetectFlowbitMatchSet (Packet *p, DetectFlowbitsData *fd) {
     return 1;
 }
 
-static int DetectFlowbitMatchIsset (Packet *p, DetectFlowbitsData *fd) {
+static int DetectFlowbitMatchIsset (Packet *p, DetectFlowbitsData *fd)
+{
     if (p->flow == NULL)
         return 0;
 
     return FlowBitIsset(p->flow,fd->idx);
 }
 
-static int DetectFlowbitMatchIsnotset (Packet *p, DetectFlowbitsData *fd) {
+static int DetectFlowbitMatchIsnotset (Packet *p, DetectFlowbitsData *fd)
+{
     if (p->flow == NULL)
         return 0;
 
@@ -272,7 +278,8 @@ error:
     return -1;
 }
 
-void DetectFlowbitFree (void *ptr) {
+void DetectFlowbitFree (void *ptr)
+{
     DetectFlowbitsData *fd = (DetectFlowbitsData *)ptr;
 
     if (fd == NULL)
@@ -289,7 +296,8 @@ void DetectFlowbitFree (void *ptr) {
  *  \retval 0 on failure
  */
 
-static int FlowBitsTestSig01(void) {
+static int FlowBitsTestSig01(void)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
@@ -363,7 +371,8 @@ end:
  *  \retval 0 on failure
  */
 
-static int FlowBitsTestSig02(void) {
+static int FlowBitsTestSig02(void)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
@@ -484,7 +493,8 @@ end:
  *  \retval 0 on failure
  */
 
-static int FlowBitsTestSig03(void) {
+static int FlowBitsTestSig03(void)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
@@ -561,7 +571,8 @@ end:
  *  \retval 0 on failure
  */
 
-static int FlowBitsTestSig04(void) {
+static int FlowBitsTestSig04(void)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
@@ -642,7 +653,8 @@ end:
  *  \retval 0 on failure
  */
 
-static int FlowBitsTestSig05(void) {
+static int FlowBitsTestSig05(void)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
@@ -720,7 +732,8 @@ end:
  *  \retval 0 on failure
  */
 
-static int FlowBitsTestSig06(void) {
+static int FlowBitsTestSig06(void)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
@@ -823,7 +836,8 @@ end:
  *  \retval 0 on failure
  */
 
-static int FlowBitsTestSig07(void) {
+static int FlowBitsTestSig07(void)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
@@ -929,7 +943,8 @@ end:
  *  \retval 0 on failure
  */
 
-static int FlowBitsTestSig08(void) {
+static int FlowBitsTestSig08(void)
+{
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
                     "Host: one.example.org\r\n"
@@ -1034,7 +1049,8 @@ end:
 /**
  * \brief this function registers unit tests for FlowBits
  */
-void FlowBitsRegisterTests(void) {
+void FlowBitsRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("FlowBitsTestSig01", FlowBitsTestSig01, 0);
     UtRegisterTest("FlowBitsTestSig02", FlowBitsTestSig02, 0);

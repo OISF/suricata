@@ -124,7 +124,8 @@ static inline PktPool *GetThreadPacketPool(void)
  * \brief TmqhPacketpoolRegister
  * \initonly
  */
-void TmqhPacketpoolRegister (void) {
+void TmqhPacketpoolRegister (void)
+{
     tmqh_table[TMQH_PACKETPOOL].name = "packetpool";
     tmqh_table[TMQH_PACKETPOOL].InHandler = TmqhInputPacketpool;
     tmqh_table[TMQH_PACKETPOOL].OutHandler = TmqhOutputPacketpool;
