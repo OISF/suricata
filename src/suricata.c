@@ -1821,13 +1821,7 @@ int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
             RunModeListRunmodes();
             return TM_ECODE_DONE;
         case RUNMODE_LIST_UNITTEST:
-            {
-                int ret = RunUnittests(1, suri->regex_arg);
-                if (ret == TM_ECODE_OK)
-                    return TM_ECODE_DONE;
-                else
-                    return ret;
-            }
+            RunUnittests(1, suri->regex_arg);
 #ifdef OS_WIN32
         case RUNMODE_INSTALL_SERVICE:
             if (SCServiceInstall(argc, argv)) {
@@ -2159,7 +2153,7 @@ int main(int argc, char **argv)
     }
 
     if (suri.run_mode == RUNMODE_UNITTEST)
-        return RunUnittests(0, suri.regex_arg);
+        RunUnittests(0, suri.regex_arg);
 
 #ifdef __SC_CUDA_SUPPORT__
     /* Init the CUDA environment */
