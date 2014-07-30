@@ -44,6 +44,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-reference.h"
 #include "app-layer-parser.h"
+#include "app-layer-htp.h"
 #include "util-classification-config.h"
 #include "util-syslog.h"
 
@@ -58,6 +59,7 @@
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 #include "util-crypt.h"
+#include "util-xff.h"
 
 #define MODULE_NAME "JsonAlertLog"
 
@@ -66,6 +68,12 @@
 #define LOG_JSON_PAYLOAD 1
 #define LOG_JSON_PACKET 2
 #define LOG_JSON_PAYLOAD_BASE64 4
+#define LOG_JSON_XFF 8
+
+/** Default XFF header name */
+#define LOG_JSON_XFF_DEFAULT "X-Forwarded-For"
+/** Single XFF IP maximum length */
+#define LOG_JSON_XFF_MAXLEN 46
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -201,6 +209,25 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             unsigned char encoded_packet[len];
             Base64Encode((unsigned char*) GET_PKT_DATA(p), GET_PKT_LEN(p), encoded_packet, &len);
             json_object_set_new(js, "packet", json_string((char *)encoded_packet));
+        }
+
+        /* xff header */
+        if ((aft->file_ctx->flags & LOG_JSON_XFF) && p->flow != NULL) {
+            FLOWLOCK_RDLOCK(p->flow);
+            if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
+                char buffer[LOG_JSON_XFF_MAXLEN];
+                int have_xff_ip = 0;
+
+                if (pa->flags & PACKET_ALERT_FLAG_TX) {
+                    have_xff_ip = GetXFFIPFromTx(p, pa->tx_id, LOG_JSON_XFF_DEFAULT, buffer, LOG_JSON_XFF_MAXLEN);
+                } else {
+                    have_xff_ip = GetXFFIP(p, LOG_JSON_XFF_DEFAULT, buffer, LOG_JSON_XFF_MAXLEN);
+                }
+                if (have_xff_ip) {
+                    json_object_set_new(js, "xff", json_string(buffer));
+                }
+            }
+            FLOWLOCK_UNLOCK(p->flow);
         }
 
         OutputJSONBuffer(js, aft->file_ctx, aft->json_buffer);
@@ -405,11 +432,17 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     if (unlikely(output_ctx == NULL))
         return NULL;
 
-    if (conf) {
+    if (conf != NULL) {
         const char *payload = ConfNodeLookupChildValue(conf, "payload");
         const char *packet  = ConfNodeLookupChildValue(conf, "packet");
         const char *payload_printable = ConfNodeLookupChildValue(conf, "payload-printable");
+        const char *xff = ConfNodeLookupChildValue(conf, "xff");
 
+        if (xff != NULL) {
+            if (ConfValIsTrue(payload)) {
+                ajt->file_ctx->flags |= LOG_JSON_XFF;
+            }
+        }
         if (payload_printable != NULL) {
             if (ConfValIsTrue(payload_printable)) {
                 ajt->file_ctx->flags |= LOG_JSON_PAYLOAD;
