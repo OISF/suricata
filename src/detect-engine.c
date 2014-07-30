@@ -1191,7 +1191,7 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
  */
 
 //inline uint32_t DetectEngineGetMaxSigId(DetectEngineCtx *de_ctx)
-{
+//{
 //    return de_ctx->signum;
 //}
 
