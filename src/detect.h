@@ -1141,6 +1141,9 @@ enum {
 
     DETECT_AL_DNS_QUERY,
 
+    DETECT_STIX_IPWATCH,
+    DETECT_STIX_SMTP_INDICATORS,
+
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };
