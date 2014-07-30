@@ -118,7 +118,16 @@
 void RegisterAllModules();
 void TmqhSetup (void);
 
-int RunUnittests(int list_unittests, char *regex_arg)
+/**
+ * Run or list unittests
+ *
+ * \param list_unittests If set to 1, list unittests. Run them if set to 0.
+ * \param regex_arg A regular expression to select unittests to run
+ *
+ * This function is terminal and will call exit after being called.
+ */
+
+void RunUnittests(int list_unittests, char *regex_arg)
 {
 #ifdef UNITTESTS
     /* Initializations for global vars, queues, etc (memsets, mutex init..) */
