@@ -49,6 +49,7 @@
 
 #include "output.h"
 #include "output-json.h"
+#include "output-json-http.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -66,6 +67,7 @@
 #define LOG_JSON_PAYLOAD 1
 #define LOG_JSON_PACKET 2
 #define LOG_JSON_PAYLOAD_BASE64 4
+#define LOG_JSON_HTTP 5
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -91,6 +93,28 @@ static int AlertJsonPrintStreamSegmentCallback(const Packet *p, void *data, uint
 /** Handle the case where no JSON support is compiled in.
  *
  */
+static void AlertJsonHttp(const Flow *f, json_t *js)
+{
+    HtpState *htp_state = (HtpState *)f->alstate;
+    if (htp_state) {
+        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
+
+        if (tx) {
+            json_t *hjs = json_object();
+            if (unlikely(hjs == NULL))
+                return;
+
+            JsonHttpLogJSONBasic(hjs, tx);
+            JsonHttpLogJSONExtended(hjs, tx);
+
+            json_object_set_new(js, "http", hjs);
+        }
+    }
+
+    return;
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *payload = aft->payload_buffer;
@@ -140,6 +164,17 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         /* alert */
         json_object_set_new(js, "alert", ajs);
+
+        if (p->flow != NULL) {
+            FLOWLOCK_WRLOCK(p->flow);
+            uint16_t proto = FlowGetAppProtocol(p->flow);
+
+            /* http alert */
+            if (aft->file_ctx->flags & LOG_JSON_HTTP && proto == ALPROTO_HTTP)
+                AlertJsonHttp(p->flow, js);
+
+            FLOWLOCK_UNLOCK(p->flow);
+        }
 
         /* payload */
         if (aft->file_ctx->flags & (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64)) {
@@ -208,7 +243,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         OutputJSONBuffer(js, aft->file_ctx, aft->json_buffer);
         json_object_del(js, "alert");
-    }
+        json_object_del(js, "http");
+}
     json_object_clear(js);
     json_decref(js);
 
@@ -412,6 +448,7 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         const char *payload = ConfNodeLookupChildValue(conf, "payload");
         const char *packet  = ConfNodeLookupChildValue(conf, "packet");
         const char *payload_printable = ConfNodeLookupChildValue(conf, "payload-printable");
+        const char *http = ConfNodeLookupChildValue(conf, "http");
 
         if (payload_printable != NULL) {
             if (ConfValIsTrue(payload_printable)) {
@@ -426,6 +463,11 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         if (packet != NULL) {
             if (ConfValIsTrue(packet)) {
                 ajt->file_ctx->flags |= LOG_JSON_PACKET;
+            }
+        }
+        if (http != NULL) {
+            if (ConfValIsTrue(http)) {
+                ajt->file_ctx->flags |= LOG_JSON_HTTP;
             }
         }
     }
