@@ -45,6 +45,7 @@
 #include "detect-reference.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
+#include "app-layer-htp-xff.h"
 #include "util-classification-config.h"
 #include "util-syslog.h"
 
@@ -59,7 +60,6 @@
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 #include "util-crypt.h"
-#include "util-xff.h"
 
 #define MODULE_NAME "JsonAlertLog"
 

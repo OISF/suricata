@@ -26,6 +26,7 @@ app-layer-htp.c app-layer-htp.h \
 app-layer-htp-file.c app-layer-htp-file.h \
 app-layer-htp-libhtp.c app-layer-htp-libhtp.h \
 app-layer-htp-mem.c app-layer-htp-mem.h \
+app-layer-htp-xff.c app-layer-htp-xff.h \
 app-layer-parser.c app-layer-parser.h \
 app-layer-protos.c app-layer-protos.h \
 app-layer-smb2.c app-layer-smb2.h \
@@ -369,7 +370,6 @@ util-validate.h util-affinity.h util-affinity.c \
 util-var.c util-var.h \
 util-var-name.c util-var-name.h \
 util-vector.h \
-util-xff.c util-xff.h \
 win32-misc.c win32-misc.h \
 win32-service.c win32-service.h \
 win32-syslog.h

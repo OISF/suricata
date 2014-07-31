@@ -22,10 +22,10 @@
  */
 
 #include "suricata-common.h"
-#include "util-xff.h"
 
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
+#include "app-layer-htp-xff.h"
 
 /** XFF header value minimal length */
 #define XFF_CHAIN_MINLEN 7

@@ -57,6 +57,7 @@
 
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
+#include "app-layer-htp-xff.h"
 #include "app-layer.h"
 
 #include "output.h"
@@ -67,7 +68,6 @@
 #include "stream-tcp-inline.h"
 
 #include "util-optimize.h"
-#include "util-xff.h"
 #include "util-memrchr.h"
 
 #ifndef IPPROTO_SCTP

@@ -21,11 +21,11 @@
  * \author Duarte Silva <duarte.silva@serializing.me>
  */
 
-#ifndef __UTIL_XFF_H__
-#define __UTIL_XFF_H__
+#ifndef __APP_LAYER_HTP_XFF_H__
+#define __APP_LAYER_HTP_XFF_H__
 
 int GetXFFIPFromTx(const Packet *p, uint64_t tx_id, char *xff_header, char *dstbuf, int dstbuflen);
 
 int GetXFFIP(const Packet *p, char *xff_header, char *dstbuf, int dstbuflen);
 
-#endif /* __UTIL_XFF_H__ */
+#endif /* __APP_LAYER_HTP_XFF_H__ */
