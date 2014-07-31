@@ -415,6 +415,45 @@ static int LuaCallbackAppLayerProtoFlow(lua_State *luastate)
 }
 
 /** \internal
+ *  \brief fill lua stack with flow stats
+ *  \param luastate the lua state
+ *  \param f flow, locked
+ *  \retval cnt number of data items placed on the stack
+ *
+ *  Places: ts pkts (number), ts bytes (number), tc pkts (number), tc bytes (number)
+ */
+static int LuaCallbackStatsPushToStackFromFlow(lua_State *luastate, const Flow *f)
+{
+    lua_pushnumber(luastate, f->todstpktcnt);
+    lua_pushnumber(luastate, f->todstbytecnt);
+    lua_pushnumber(luastate, f->tosrcpktcnt);
+    lua_pushnumber(luastate, f->tosrcbytecnt);
+    return 4;
+}
+
+/** \internal
+ *  \brief Wrapper for getting AppLayerProto info into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackStatsFlow(lua_State *luastate)
+{
+    int r = 0;
+    int lock_hint = 0;
+    Flow *f = LuaStateGetFlow(luastate, &lock_hint);
+    if (f == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    if (lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
+        FLOWLOCK_RDLOCK(f);
+        r = LuaCallbackStatsPushToStackFromFlow(luastate, f);
+        FLOWLOCK_UNLOCK(f);
+    } else {
+        r = LuaCallbackStatsPushToStackFromFlow(luastate, f);
+    }
+    return r;
+}
+
+/** \internal
  *  \brief fill lua stack with alert info
  *  \param luastate the lua state
  *  \param pa pointer to packet alert struct
@@ -687,6 +726,8 @@ int LogLuaRegisterFunctions(lua_State *luastate)
     lua_setglobal(luastate, "SCFlowTuple");
     lua_pushcfunction(luastate, LuaCallbackAppLayerProtoFlow);
     lua_setglobal(luastate, "SCFlowAppLayerProto");
+    lua_pushcfunction(luastate, LuaCallbackStatsFlow);
+    lua_setglobal(luastate, "SCFlowStats");
 
     lua_pushcfunction(luastate, LuaCallbackStreamingBuffer);
     lua_setglobal(luastate, "SCStreamingBuffer");
