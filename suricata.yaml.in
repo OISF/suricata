@@ -6,9 +6,9 @@
 # https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricatayaml
 
 
-# Number of packets allowed to be processed simultaneously.  Default is a
-# conservative 1024. A higher number will make sure CPU's/CPU cores will be
-# more easily kept busy, but may negatively impact caching.
+# Number of packets preallocated per thread. The default is 1024. A higher number 
+# will make sure each CPU will be more easily kept busy, but may negatively 
+# impact caching.
 #
 # If you are using the CUDA pattern matcher (mpm-algo: ac-cuda), different rules
 # apply. In that case try something like 60000 or more. This is because the CUDA
@@ -85,7 +85,7 @@ outputs:
   # Extensible Event Format (nicknamed EVE) event log in JSON format
   - eve-log:
       enabled: yes
-      type: file #file|syslog|unix_dgram|unix_stream
+      filetype: regular #regular|syslog|unix_dgram|unix_stream
       filename: eve.json
       # the following are valid when type: syslog above
       #identity: "suricata"
@@ -93,7 +93,10 @@ outputs:
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
       types:
-        - alert
+        - alert:
+            # payload: yes           # enable dumping payload in Base64
+            # payload-printable: yes # enable dumping payload in printable (lossy) format
+            # packet: yes            # enable dumping of packet (without stream segments)
         - http:
             extended: yes     # enable this for extended logging information
             # custom allows additional http fields to be included in eve-log
@@ -162,19 +165,29 @@ outputs:
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
-  # a line based log to used with pcap file study.
-  # this module is dedicated to offline pcap parsing (empty output
-  # if used with another kind of input). It can interoperate with
-  # pcap parser like wireshark via the suriwire plugin.
-  - pcap-info:
-      enabled: no
-
-  # Packet log... log packets in pcap format. 2 modes of operation: "normal"
-  # and "sguil".
+  # Packet log... log packets in pcap format. 3 modes of operation: "normal"
+  # "multi" and "sguil".
   #
   # In normal mode a pcap file "filename" is created in the default-log-dir,
-  # or are as specified by "dir". In Sguil mode "dir" indicates the base directory.
-  # In this base dir the pcaps are created in th directory structure Sguil expects:
+  # or are as specified by "dir".
+  # In multi mode, a file is created per thread. This will perform much
+  # better, but will create multiple files where 'normal' would create one.
+  # In multi mode the filename takes a few special variables:
+  # - %n -- thread number
+  # - %i -- thread id
+  # - %t -- timestamp (secs or secs.usecs based on 'ts-format'
+  # E.g. filename: pcap.%n.%t
+  #
+  # Note that it's possible to use directories, but the directories are not
+  # created by Suricata. E.g. filename: pcaps/%n/log.%s will log into the
+  # per thread directory.
+  #
+  # Also note that the limit and max-files settings are enforced per thread.
+  # So the size limit when using 8 threads with 1000mb files and 2000 files
+  # is: 8*1000*2000 ~ 16TiB.
+  #
+  # In Sguil mode "dir" indicates the base directory. In this base dir the
+  # pcaps are created in th directory structure Sguil expects:
   #
   # $sguil-base-dir/YYYY-MM-DD/$filename.<timestamp>
   #
@@ -193,7 +206,7 @@ outputs:
       # If set to a value will enable ring buffer mode. Will keep Maximum of "max-files" of size "limit"
       max-files: 2000
 
-      mode: normal # normal or sguil.
+      mode: normal # normal, multi or sguil.
       #sguil-base-dir: /nsm_data/
       #ts-format: usec # sec or usec second format (default) is filename.sec usec is filename.sec.usec
       use-stream-depth: no #If set to "yes" packets seen after reaching stream inspection depth are ignored. "no" logs all packets
@@ -610,6 +623,8 @@ flow:
   hash-size: 65536
   prealloc: 10000
   emergency-recovery: 30
+  #managers: 1 # default to one flow manager
+  #recyclers: 1 # default to one flow recycler thread
 
 # This option controls the use of vlan ids in the flow (and defrag)
 # hashing. Normally this should be enabled, but in some (broken)
@@ -1293,6 +1308,11 @@ profiling:
   locks:
     enabled: no
     filename: lock_stats.log
+    append: yes
+
+  pcap-log:
+    enabled: no
+    filename: pcaplog_stats.log
     append: yes
 
 # Suricata core dump configuration. Limits the size of the core dump file to

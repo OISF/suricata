@@ -29,6 +29,7 @@
 #endif
 
 #ifdef HAVE_LINUX_ETHTOOL_H
+#include <linux/types.h>
 #include <linux/ethtool.h>
 #ifdef HAVE_LINUX_SOCKIOS_H
 #include <linux/sockios.h>
@@ -151,7 +152,7 @@ int GetIfaceMaxPacketSize(char *pcap_dev)
  */
 int GetIfaceOffloading(char *pcap_dev)
 {
-#ifdef ETHTOOL_GGRO
+#if defined (ETHTOOL_GGRO) && defined (ETHTOOL_GFLAGS)
     struct ifreq ifr;
     int fd;
     struct ethtool_value ethv;

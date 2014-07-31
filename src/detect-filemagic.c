@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -220,8 +220,7 @@ static int DetectFilemagicMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         /* we include the \0 in the inspection, so patterns can match on the
          * end of the string. */
         if (BoyerMooreNocase(filemagic->name, filemagic->len, (uint8_t *)file->magic,
-                    strlen(file->magic) + 1, filemagic->bm_ctx->bmGs,
-                    filemagic->bm_ctx->bmBc) != NULL)
+                    strlen(file->magic) + 1, filemagic->bm_ctx) != NULL)
         {
 #ifdef DEBUG
             if (SCLogDebugEnabled()) {
@@ -269,7 +268,7 @@ static DetectFilemagicData *DetectFilemagicParse (char *str)
         goto error;
     }
 
-    filemagic->bm_ctx = BoyerMooreCtxInit(filemagic->name, filemagic->len);
+    filemagic->bm_ctx = BoyerMooreNocaseCtxInit(filemagic->name, filemagic->len);
     if (filemagic->bm_ctx == NULL) {
         goto error;
     }
@@ -279,7 +278,6 @@ static DetectFilemagicData *DetectFilemagicParse (char *str)
         SCLogDebug("negated filemagic");
     }
 
-    BoyerMooreCtxToNocase(filemagic->bm_ctx, filemagic->name, filemagic->len);
 #ifdef DEBUG
     if (SCLogDebugEnabled()) {
         char *name = SCMalloc(filemagic->len + 1);

@@ -34,6 +34,7 @@
 #include "output-tx.h"
 #include "output-file.h"
 #include "output-filedata.h"
+#include "output-flow.h"
 
 typedef struct OutputModule_ {
     const char *name;
@@ -47,6 +48,7 @@ typedef struct OutputModule_ {
     TxLogger TxLogFunc;
     FileLogger FileLogFunc;
     FiledataLogger FiledataLogFunc;
+    FlowLogger FlowLogFunc;
     AppProto alproto;
 
     TAILQ_ENTRY(OutputModule_) entries;
@@ -80,6 +82,12 @@ void OutputRegisterFiledataSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
     FiledataLogger FiledataLogFunc);
 
+void OutputRegisterFlowModule(const char *name, const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *), FlowLogger FlowLogFunc);
+void OutputRegisterFlowSubModule(const char *parent_name, const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
+    FlowLogger FlowLogFunc);
+
 OutputModule *OutputGetModuleByConfName(const char *name);
 void OutputDeregisterAll(void);
 
@@ -91,5 +99,9 @@ void OutputTlsLoggerDisable(void);
 
 int OutputSshLoggerEnable(void);
 void OutputSshLoggerDisable(void);
+
+void OutputRegisterFileRotationFlag(int *flag);
+void OutputUnregisterFileRotationFlag(int *flag);
+void OutputNotifyFileRotation(void);
 
 #endif /* ! __OUTPUT_H__ */

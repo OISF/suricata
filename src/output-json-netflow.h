@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,20 +15,15 @@
  * 02110-1301, USA.
  */
 
-
 /**
  * \file
  *
- * \author William Metcalf <William.Metcalf@gmail.com>
- * \author Victor Julien <victor@inliniac.net>
- *
- * Pcap packet logging module.
+ * Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __LOG_PCAP_H__
-#define __LOG_PCAP_H__
+#ifndef __OUTPUT_JSON_NETFLOW_H__
+#define __OUTPUT_JSON_NETFLOW_H__
 
-void TmModulePcapLogRegister (void);
-void PcapLogProfileSetup(void);
+void TmModuleJsonNetFlowLogRegister (void);
 
-#endif /* __LOG_PCAP_H__ */
+#endif /* __OUTPUT_JSON_FLOW_H__ */

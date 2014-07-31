@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -77,9 +77,10 @@
 #include "alert-debuglog.h"
 #include "alert-prelude.h"
 #include "alert-syslog.h"
-#include "alert-pcapinfo.h"
 #include "output-json-alert.h"
 
+#include "output-json-flow.h"
+#include "output-json-netflow.h"
 #include "log-droplog.h"
 #include "output-json-drop.h"
 #include "log-httplog.h"
@@ -188,12 +189,12 @@ volatile sig_atomic_t sigterm_count = 0;
 
 /*
  * Flag to indicate if the engine is at the initialization
- * or already processing packets. 2 stages: SURICATA_INIT,
+ * or already processing packets. 3 stages: SURICATA_INIT,
  * SURICATA_RUNTIME and SURICATA_FINALIZE
  */
 SC_ATOMIC_DECLARE(unsigned int, engine_stage);
 
-/* Max packets processed simultaniously. */
+/* Max packets processed simultaniously per thread. */
 #define DEFAULT_MAX_PENDING_PACKETS 1024
 
 /** suricata engine control flags */
@@ -269,6 +270,13 @@ void SignalHandlerSigusr2Disabled(int sig)
     return;
 }
 
+void SignalHandlerSigusr2StartingUp(int sig)
+{
+    SCLogInfo("Live rule reload only possible after engine completely started.");
+
+    return;
+}
+
 void SignalHandlerSigusr2DelayedDetect(int sig)
 {
     SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload blocked while delayed detect is still loading.");
@@ -313,6 +321,14 @@ void SignalHandlerSigusr2(int sig)
     return;
 }
 
+/**
+ * SIGHUP handler.  Just set sighup_count.  The main loop will act on
+ * it.
+ */
+static void SignalHandlerSigHup(/*@unused@*/ int sig) {
+    sighup_count = 1;
+}
+
 #ifdef DBG_MEM_ALLOC
 #ifndef _GLOBAL_MEM_
 #define _GLOBAL_MEM_
@@ -331,9 +347,9 @@ void CreateLowercaseTable()
 {
     /* create table for O(1) lowercase conversion lookup.  It was removed, but
      * we still need it for cuda.  So resintalling it back into the codebase */
-    uint8_t c = 0;
+    int c = 0;
     memset(g_u8_lowercasetable, 0x00, sizeof(g_u8_lowercasetable));
-    for ( ; c < 255; c++) {
+    for ( ; c < 256; c++) {
         if (c >= 'A' && c <= 'Z')
             g_u8_lowercasetable[c] = (c + ('a' - 'A'));
         else
@@ -669,6 +685,9 @@ void SCPrintBuildInfo(void) {
 #ifdef HAVE_NSS
     strlcat(features, "HAVE_NSS ", sizeof(features));
 #endif
+#ifdef HAVE_LUA
+    strlcat(features, "HAVE_LUA ", sizeof(features));
+#endif
 #ifdef HAVE_LUAJIT
     strlcat(features, "HAVE_LUAJIT ", sizeof(features));
 #endif
@@ -774,6 +793,9 @@ int g_ut_covered;
 
 void RegisterAllModules()
 {
+    /* managers */
+    TmModuleFlowManagerRegister();
+    TmModuleFlowRecyclerRegister();
     /* nfq */
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();
@@ -826,8 +848,6 @@ void RegisterAllModules()
     TmModuleAlertSyslogRegister();
     /* unified2 log */
     TmModuleUnified2AlertRegister();
-    /* pcap info log */
-    TmModuleAlertPcapInfoRegister();
     /* drop log */
     TmModuleLogDropLogRegister();
     TmModuleJsonDropLogRegister();
@@ -852,6 +872,9 @@ void RegisterAllModules()
     TmModuleJsonDnsLogRegister();
 
     TmModuleJsonAlertLogRegister();
+    /* flow/netflow */
+    TmModuleJsonFlowLogRegister();
+    TmModuleJsonNetFlowLogRegister();
 
     /* log api */
     TmModulePacketLoggerRegister();
@@ -1722,7 +1745,7 @@ static int InitSignalHandler(SCInstance *suri)
 
 #ifndef OS_WIN32
     /* SIGHUP is not implemented on WIN32 */
-    UtilSignalHandlerSetup(SIGHUP, SIG_IGN);
+    UtilSignalHandlerSetup(SIGHUP, SignalHandlerSigHup);
 
     /* Try to get user/group to run suricata as if
        command line as not decide of that */
@@ -2060,7 +2083,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
         if (suri->sig_file != NULL)
             UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
         else
-            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
+            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2StartingUp);
     } else {
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Disabled);
     }
@@ -2069,6 +2092,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     TmModuleRunInit();
 
+    PcapLogProfileSetup();
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -2179,7 +2203,6 @@ int main(int argc, char **argv)
     NSS_NoDB_Init(NULL);
 #endif
 
-    PacketPoolInit(max_pending_packets);
     HostInitConfig(HOST_VERBOSE);
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         FlowInitConfig(FLOW_VERBOSE);
@@ -2226,11 +2249,6 @@ int main(int argc, char **argv)
                 exit(EXIT_SUCCESS);
             }
         }
-
-        /* registering singal handlers we use.  We register usr2 here, so that one
-         * can't call it during the first sig load phase */
-        if (suri.sig_file == NULL && suri.rule_reload == 1 && suri.delayed_detect == 0)
-            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
     }
 
     SCAsn1LoadConfig();
@@ -2272,6 +2290,7 @@ int main(int argc, char **argv)
         }
         /* Spawn the flow manager thread */
         FlowManagerThreadSpawn();
+        FlowRecyclerThreadSpawn();
         StreamTcpInitConfig(STREAM_VERBOSE);
 
         SCPerfSpawnThreads();
@@ -2296,6 +2315,12 @@ int main(int argc, char **argv)
 
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();
+    /* registering singal handlers we use.  We register usr2 here, so that one
+     * can't call it during the first sig load phase or while threads are still
+     * starting up. */
+    if (de_ctx != NULL && suri.sig_file == NULL && suri.rule_reload == 1 &&
+            suri.delayed_detect == 0)
+        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
 
     if (de_ctx != NULL && suri.delayed_detect) {
         if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
@@ -2329,6 +2354,11 @@ int main(int argc, char **argv)
         }
 
         TmThreadCheckThreadState();
+
+        if (sighup_count > 0) {
+            OutputNotifyFileRotation();
+            sighup_count--;
+        }
 
         usleep(10* 1000);
     }
@@ -2373,6 +2403,12 @@ int main(int argc, char **argv)
     DetectEngineCtx *global_de_ctx = DetectEngineGetGlobalDeCtx();
     if (suri.run_mode != RUNMODE_UNIX_SOCKET && de_ctx != NULL) {
         BUG_ON(global_de_ctx == NULL);
+    }
+
+    /* before TmThreadKillThreads, as otherwise that kills it
+     * but more slowly */
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+        FlowKillFlowRecyclerThread();
     }
 
     TmThreadKillThreads();

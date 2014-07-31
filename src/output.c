@@ -35,6 +35,18 @@ static TAILQ_HEAD(, OutputModule_) output_modules =
     TAILQ_HEAD_INITIALIZER(output_modules);
 
 /**
+ * Registry of flags to be updated on file rotation notification.
+ */
+typedef struct OutputFileRolloverFlag_ {
+    int *flag;
+
+    TAILQ_ENTRY(OutputFileRolloverFlag_) entries;
+} OutputFileRolloverFlag;
+
+TAILQ_HEAD(, OutputFileRolloverFlag_) output_file_rotation_flags =
+    TAILQ_HEAD_INITIALIZER(output_file_rotation_flags);
+
+/**
  * \brief Register an output module.
  *
  * This function will register an output module so it can be
@@ -343,6 +355,76 @@ error:
 }
 
 /**
+ * \brief Register a flow output module.
+ *
+ * This function will register an output module so it can be
+ * configured with the configuration file.
+ *
+ * \retval Returns 0 on success, -1 on failure.
+ */
+void
+OutputRegisterFlowModule(const char *name, const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *), FlowLogger FlowLogFunc)
+{
+    if (unlikely(FlowLogFunc == NULL)) {
+        goto error;
+    }
+
+    OutputModule *module = SCCalloc(1, sizeof(*module));
+    if (unlikely(module == NULL)) {
+        goto error;
+    }
+
+    module->name = name;
+    module->conf_name = conf_name;
+    module->InitFunc = InitFunc;
+    module->FlowLogFunc = FlowLogFunc;
+    TAILQ_INSERT_TAIL(&output_modules, module, entries);
+
+    SCLogDebug("Flow logger \"%s\" registered.", name);
+    return;
+error:
+    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    exit(EXIT_FAILURE);
+}
+
+/**
+ * \brief Register a flow output sub-module.
+ *
+ * This function will register an output module so it can be
+ * configured with the configuration file.
+ *
+ * \retval Returns 0 on success, -1 on failure.
+ */
+void
+OutputRegisterFlowSubModule(const char *parent_name, const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
+    FlowLogger FlowLogFunc)
+{
+    if (unlikely(FlowLogFunc == NULL)) {
+        goto error;
+    }
+
+    OutputModule *module = SCCalloc(1, sizeof(*module));
+    if (unlikely(module == NULL)) {
+        goto error;
+    }
+
+    module->name = name;
+    module->conf_name = conf_name;
+    module->parent_name = parent_name;
+    module->InitSubFunc = InitFunc;
+    module->FlowLogFunc = FlowLogFunc;
+    TAILQ_INSERT_TAIL(&output_modules, module, entries);
+
+    SCLogDebug("Flow logger \"%s\" registered.", name);
+    return;
+error:
+    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    exit(EXIT_FAILURE);
+}
+
+/**
  * \brief Get an output module by name.
  *
  * \retval The OutputModule with the given name or NULL if no output module
@@ -415,4 +497,54 @@ int OutputSshLoggerEnable(void) {
 void OutputSshLoggerDisable(void) {
     if (ssh_loggers)
         ssh_loggers--;
+}
+
+/**
+ * \brief Register a flag for file rotation notification.
+ *
+ * \param flag A pointer that will be set to 1 when file rotation is
+ *   requested.
+ */
+void OutputRegisterFileRotationFlag(int *flag) {
+    OutputFileRolloverFlag *flag_entry = SCCalloc(1, sizeof(*flag_entry));
+    if (unlikely(flag_entry == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+            "Failed to allocate memory to register file rotation flag");
+        return;
+    }
+    flag_entry->flag = flag;
+    TAILQ_INSERT_TAIL(&output_file_rotation_flags, flag_entry, entries);
+}
+
+/**
+ * \brief Unregister a file rotation flag.
+ *
+ * Note that it is safe to call this function with a flag that may not
+ * have been registered, in which case this function won't do
+ * anything.
+ *
+ * \param flag A pointer that has been previously registered for file
+ *   rotation notifications.
+ */
+void OutputUnregisterFileRotationFlag(int *flag) {
+    OutputFileRolloverFlag *entry, *next;
+    for (entry = TAILQ_FIRST(&output_file_rotation_flags); entry != NULL;
+         entry = next) {
+        next = TAILQ_NEXT(entry, entries);
+        if (entry->flag == flag) {
+            TAILQ_REMOVE(&output_file_rotation_flags, entry, entries);
+            SCFree(entry);
+            break;
+        }
+    }
+}
+
+/**
+ * \brief Notifies all registered file rotation notification flags.
+ */
+void OutputNotifyFileRotation(void) {
+    OutputFileRolloverFlag *flag;
+    TAILQ_FOREACH(flag, &output_file_rotation_flags, entries) {
+        *(flag->flag) = 1;
+    }
 }

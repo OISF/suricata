@@ -125,6 +125,7 @@ static void LogDropLogDeInitCtx(OutputCtx *output_ctx)
     if (output_ctx != NULL) {
         LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
         if (logfile_ctx != NULL) {
+            OutputUnregisterFileRotationFlag(&logfile_ctx->rotation_flag);
             LogFileFreeCtx(logfile_ctx);
         }
         SCFree(output_ctx);
@@ -154,6 +155,7 @@ static OutputCtx *LogDropLogInitCtx(ConfNode *conf)
         LogFileFreeCtx(logfile_ctx);
         return NULL;
     }
+    OutputRegisterFileRotationFlag(&logfile_ctx->rotation_flag);
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
@@ -185,6 +187,15 @@ static int LogDropLogNetFilter (ThreadVars *tv, const Packet *p, void *data)
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     SCMutexLock(&dlt->file_ctx->fp_mutex);
+
+    if (dlt->file_ctx->rotation_flag) {
+        dlt->file_ctx->rotation_flag  = 0;
+        if (SCConfLogReopen(dlt->file_ctx) != 0) {
+            /* Rotation failed, error already logged. */
+            SCMutexUnlock(&dlt->file_ctx->fp_mutex);
+            return TM_ECODE_FAILED;
+        }
+    }
 
     char srcip[46] = "";
     char dstip[46] = "";

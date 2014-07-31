@@ -97,7 +97,7 @@ char *profiling_csv_file_name;
 const char *profiling_packets_file_mode = "a";
 
 static int rate = 1;
-static SC_ATOMIC_DECL_AND_INIT(uint64_t, samples);
+static SC_ATOMIC_DECLARE(uint64_t, samples);
 
 /**
  * Used as a check so we don't double enter a profiling run.
@@ -125,6 +125,8 @@ void
 SCProfilingInit(void)
 {
     ConfNode *conf;
+
+    SC_ATOMIC_INIT(samples);
 
     intmax_t rate_v = 0;
     (void)ConfGetInt("profiling.sample-rate", &rate_v);

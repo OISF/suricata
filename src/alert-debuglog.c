@@ -216,13 +216,11 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
         FLOWLOCK_RDLOCK(p->flow);
         CreateTimeString(&p->flow->startts, timebuf, sizeof(timebuf));
         MemBufferWriteString(aft->buffer, "FLOW Start TS:     %s\n", timebuf);
-#ifdef DEBUG
         MemBufferWriteString(aft->buffer, "FLOW PKTS TODST:   %"PRIu32"\n"
                              "FLOW PKTS TOSRC:   %"PRIu32"\n"
                              "FLOW Total Bytes:  %"PRIu64"\n",
                              p->flow->todstpktcnt, p->flow->tosrcpktcnt,
-                             p->flow->bytecnt);
-#endif
+                             p->flow->todstbytecnt + p->flow->tosrcbytecnt);
         MemBufferWriteString(aft->buffer,
                              "FLOW IPONLY SET:   TOSERVER: %s, TOCLIENT: %s\n"
                              "FLOW ACTION:       DROP: %s\n"
@@ -382,8 +380,8 @@ static TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, const Packet *p, void *
                          GET_PKT_DATA(p), GET_PKT_LEN(p));
 
     SCMutexLock(&aft->file_ctx->fp_mutex);
-    (void)MemBufferPrintToFPAsString(aft->buffer, aft->file_ctx->fp);
-    fflush(aft->file_ctx->fp);
+    aft->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
+        MEMBUFFER_OFFSET(aft->buffer), aft->file_ctx);
     aft->file_ctx->alerts += p->alerts.cnt;
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
 
@@ -445,6 +443,7 @@ static void AlertDebugLogDeInitCtx(OutputCtx *output_ctx)
 {
     if (output_ctx != NULL) {
         LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+        OutputUnregisterFileRotationFlag(&logfile_ctx->rotation_flag);
         if (logfile_ctx != NULL) {
             LogFileFreeCtx(logfile_ctx);
         }
@@ -472,6 +471,7 @@ static OutputCtx *AlertDebugLogInitCtx(ConfNode *conf)
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME) < 0) {
         goto error;
     }
+    OutputRegisterFileRotationFlag(&file_ctx->rotation_flag);
 
     OutputCtx *output_ctx = SCMalloc(sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))

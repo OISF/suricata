@@ -1,4 +1,4 @@
-/* Copyright (C) 2010 Open Information Security Foundation
+/* Copyright (C) 2010-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -111,7 +111,6 @@ TmModuleDecodeErfFileRegister(void)
 TmEcode ReceiveErfFileLoop(ThreadVars *tv, void *data, void *slot)
 {
     Packet *p = NULL;
-    uint16_t packet_q_len = 0;
     ErfFileThreadVars *etv = (ErfFileThreadVars *)data;
 
     etv->slot = ((TmSlot *)slot)->slot_next;
@@ -123,12 +122,7 @@ TmEcode ReceiveErfFileLoop(ThreadVars *tv, void *data, void *slot)
 
         /* Make sure we have at least one packet in the packet pool,
          * to prevent us from alloc'ing packets at line rate. */
-        do {
-            packet_q_len = PacketPoolSize();
-            if (unlikely(packet_q_len == 0)) {
-                PacketPoolWait();
-            }
-        } while (packet_q_len == 0);
+        PacketPoolWait();
 
         p = PacketGetFromQueueOrAlloc();
         if (unlikely(p == NULL)) {
@@ -268,7 +262,7 @@ DecodeErfFileThreadInit(ThreadVars *tv, void *initdata, void **data)
 TmEcode DecodeErfFileThreadDeinit(ThreadVars *tv, void *data)
 {
     if (data != NULL)
-        DecodeThreadVarsFree(data);
+        DecodeThreadVarsFree(tv, data);
     SCReturnInt(TM_ECODE_OK);
 }
 

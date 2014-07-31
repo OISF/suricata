@@ -715,7 +715,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         SCLogDebug("using existing htp handle at %p", hstate->connp);
     }
 
-    htp_time_t ts = { f->lastts_sec, 0 };
+    htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     /* pass the new data to the htp parser */
     r = htp_connp_req_data(hstate->connp, &ts, input, input_len);
 
@@ -781,18 +781,18 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
     HtpState *hstate = (HtpState *)htp_state;
     hstate->f = f;
     if (hstate->connp == NULL) {
-        SCLogError(SC_ERR_ALPARSER, "HTP state has no connp");
+        SCLogDebug("HTP state has no connp");
         /* till we have the new libhtp changes that allow response first,
          * let's take response in first. */
-        BUG_ON(1);
-        //SCReturnInt(-1);
+        //BUG_ON(1);
+        SCReturnInt(-1);
     }
 
     /* Unset the body inspection (the callback should
      * reactivate it if necessary) */
     hstate->flags &=~ HTP_FLAG_NEW_BODY_SET;
 
-    htp_time_t ts = { f->lastts_sec, 0 };
+    htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
     switch(r) {
         case HTP_STREAM_ERROR:
@@ -1041,8 +1041,9 @@ static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, HtpTxUserData *htud) {
                 SCLogDebug("invalid boundary");
                 return -1;
             }
+            SCReturnInt(1);
         }
-        SCReturnInt(1);
+        //SCReturnInt(1);
     }
     SCReturnInt(0);
 }
@@ -2571,12 +2572,22 @@ static int HTPStateGetAlstateProgress(void *tx, uint8_t direction)
 
 static uint64_t HTPStateGetTxCnt(void *alstate)
 {
-    return (uint64_t)htp_list_size(((htp_tx_t *)alstate)->conn->transactions);
+    HtpState *http_state = (HtpState *)alstate;
+
+    if (http_state != NULL && http_state->conn != NULL)
+        return (uint64_t)htp_list_size(http_state->conn->transactions);
+    else
+        return 0ULL;
 }
 
 static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
 {
-    return htp_list_get(((htp_tx_t *)alstate)->conn->transactions, tx_id);
+    HtpState *http_state = (HtpState *)alstate;
+
+    if (http_state != NULL && http_state->conn != NULL)
+        return htp_list_get(http_state->conn->transactions, tx_id);
+    else
+        return NULL;
 }
 
 static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction)

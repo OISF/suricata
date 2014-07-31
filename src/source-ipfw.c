@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -228,7 +228,6 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
     struct pollfd IPFWpoll;
     struct timeval IPFWts;
     Packet *p = NULL;
-    uint16_t packet_q_len = 0;
 
     nq = IPFWGetQueue(ptv->ipfw_index);
     if (nq == NULL) {
@@ -271,12 +270,7 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
 
         /* make sure we have at least one packet in the packet pool, to prevent
          * us from alloc'ing packets at line rate */
-        do {
-            packet_q_len = PacketPoolSize();
-            if (unlikely(packet_q_len == 0)) {
-                PacketPoolWait();
-            }
-        } while (packet_q_len == 0);
+        PacketPoolWait();
 
         p = PacketGetFromQueueOrAlloc();
         if (p == NULL) {
@@ -502,7 +496,7 @@ TmEcode DecodeIPFWThreadInit(ThreadVars *tv, void *initdata, void **data)
 TmEcode DecodeIPFWThreadDeinit(ThreadVars *tv, void *data)
 {
     if (data != NULL)
-        DecodeThreadVarsFree(data);
+        DecodeThreadVarsFree(tv, data);
     SCReturnInt(TM_ECODE_OK);
 }
 

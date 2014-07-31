@@ -12,6 +12,20 @@
    fun:main
 }
 {
+   Known issue with libmagic on Ubuntu 14.04-64bit
+   Memcheck:Addr1
+   obj:/usr/lib/x86_64-linux-gnu/libmagic.so.1.0.0
+   obj:/usr/lib/x86_64-linux-gnu/libmagic.so.1.0.0
+   obj:/usr/lib/x86_64-linux-gnu/libmagic.so.1.0.0
+   obj:/usr/lib/x86_64-linux-gnu/libmagic.so.1.0.0
+   fun:magic_buffer
+   fun:MagicGlobalLookup
+   fun:MagicDetectTest10ValgrindError
+   fun:UtRunTests
+   fun:RunUnittests
+   fun:main
+}
+{
    Known warning, see Bug 1083
    Memcheck:Param
    socketcall.setsockopt(optval)

@@ -61,6 +61,9 @@ void HTPParseMemcap()
         /* default to unlimited */
         htp_config_memcap = 0;
     }
+
+    SC_ATOMIC_INIT(htp_memuse);
+    SC_ATOMIC_INIT(htp_memcap);
 }
 
 void HTPIncrMemuse(uint64_t size)
