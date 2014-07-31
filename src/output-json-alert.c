@@ -69,6 +69,11 @@
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
+typedef struct AlertJsonOutputCtx_ {
+    LogFileCtx* file_ctx;
+    uint8_t flags;
+} AlertJsonOutputCtx;
+
 typedef struct JsonAlertLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
@@ -328,8 +333,9 @@ static TmEcode JsonAlertLogThreadInit(ThreadVars *t, void *initdata, void **data
         return TM_ECODE_FAILED;
     }
 
-    /** Use the Ouptut Context (file pointer and mutex) */
-    aft->file_ctx = ((OutputCtx *)initdata)->data;
+    /** Use the Output Context (file pointer and mutex) */
+    AlertJsonOutputCtx *json_output_ctx = ((OutputCtx *)initdata)->data;
+    aft->file_ctx = json_output_ctx->file_ctx;
 
     *data = (void *)aft;
     return TM_ECODE_OK;
@@ -363,6 +369,12 @@ static void JsonAlertLogDeInitCtx(OutputCtx *output_ctx)
 static void JsonAlertLogDeInitCtxSub(OutputCtx *output_ctx)
 {
     SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
+
+    AlertJsonOutputCtx *json_output_ctx = (AlertJsonOutputCtx *) output_ctx->data;
+
+    if (json_output_ctx != NULL) {
+        SCFree(json_output_ctx);
+    }
     SCFree(output_ctx);
 }
 
@@ -408,29 +420,38 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     if (unlikely(output_ctx == NULL))
         return NULL;
 
-    if (conf) {
+    AlertJsonOutputCtx *json_output_ctx = SCMalloc(sizeof(AlertJsonOutputCtx));
+    if (unlikely(json_output_ctx == NULL)) {
+        SCFree(output_ctx);
+        return NULL;
+    }
+
+    memset(json_output_ctx, 0, sizeof(AlertJsonOutputCtx));
+    json_output_ctx->file_ctx = ajt->file_ctx;
+
+    if (conf != NULL) {
         const char *payload = ConfNodeLookupChildValue(conf, "payload");
         const char *packet  = ConfNodeLookupChildValue(conf, "packet");
         const char *payload_printable = ConfNodeLookupChildValue(conf, "payload-printable");
 
         if (payload_printable != NULL) {
             if (ConfValIsTrue(payload_printable)) {
-                ajt->file_ctx->flags |= LOG_JSON_PAYLOAD;
+                json_output_ctx->file_ctx->flags |= LOG_JSON_PAYLOAD;
             }
         }
         if (payload != NULL) {
             if (ConfValIsTrue(payload)) {
-                ajt->file_ctx->flags |= LOG_JSON_PAYLOAD_BASE64;
+                json_output_ctx->file_ctx->flags |= LOG_JSON_PAYLOAD_BASE64;
             }
         }
         if (packet != NULL) {
             if (ConfValIsTrue(packet)) {
-                ajt->file_ctx->flags |= LOG_JSON_PACKET;
+                json_output_ctx->file_ctx->flags |= LOG_JSON_PACKET;
             }
         }
     }
 
-    output_ctx->data = ajt->file_ctx;
+    output_ctx->data = json_output_ctx;
     output_ctx->DeInit = JsonAlertLogDeInitCtxSub;
 
     return output_ctx;
