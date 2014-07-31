@@ -49,6 +49,7 @@
 
 #include "output.h"
 #include "output-json.h"
+#include "output-json-http.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -91,6 +92,28 @@ static int AlertJsonPrintStreamSegmentCallback(const Packet *p, void *data, uint
 /** Handle the case where no JSON support is compiled in.
  *
  */
+static void AlertJsonHttp(const Packet *p, json_t *js)
+{
+    HtpState *htp_state = (HtpState *)p->flow->alstate;
+    if (htp_state) {
+        uint64_t tx_id = AppLayerParserGetTransactionLogId(p->flow->alparser);
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
+
+        if (tx) {
+            json_t *hjs = json_object();
+            if (unlikely(hjs == NULL))
+                return;
+
+            JsonHttpLogJSONBasic(hjs, tx);
+            JsonHttpLogJSONExtended(hjs, tx);
+
+            json_object_set_new(js, "http", hjs);
+        }
+    }
+
+    return;
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *payload = aft->payload_buffer;
@@ -140,6 +163,16 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         /* alert */
         json_object_set_new(js, "alert", ajs);
+
+        if (p->flow != NULL) {
+            FLOWLOCK_WRLOCK(p->flow);
+            uint16_t proto = FlowGetAppProtocol(p->flow);
+            FLOWLOCK_UNLOCK(p->flow);
+
+            /* http alert */
+            if (proto == ALPROTO_HTTP)
+                AlertJsonHttp(p, js);
+        }
 
         /* payload */
         if (aft->file_ctx->flags & (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64)) {
@@ -208,7 +241,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         OutputJSONBuffer(js, aft->file_ctx, aft->json_buffer);
         json_object_del(js, "alert");
-    }
+        json_object_del(js, "http");
+}
     json_object_clear(js);
     json_decref(js);
 
