@@ -25,6 +25,8 @@
 #define __OUTPUT_JSON_HTTP_H__
 
 void TmModuleJsonHttpLogRegister (void);
+void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx);
+void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx);
 
 #endif /* __OUTPUT_JSON_HTTP_H__ */
 
