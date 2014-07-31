@@ -537,8 +537,7 @@ void OutputUnregisterFileRotationFlag(int *flag)
 {
     OutputFileRolloverFlag *entry, *next;
     for (entry = TAILQ_FIRST(&output_file_rotation_flags); entry != NULL;
-         entry = next)
-{
+         entry = next) {
         next = TAILQ_NEXT(entry, entries);
         if (entry->flag == flag) {
             TAILQ_REMOVE(&output_file_rotation_flags, entry, entries);
