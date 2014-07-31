@@ -71,10 +71,8 @@ static void PktPoolThreadDestroy(void * buf)
 
 static void TmqhPacketpoolInit(void)
 {
-    SCMutexLock(&pkt_pool_thread_key_mutex);
     if (pkt_pool_thread_key_initialized) {
         /* Key has already been created. */
-        SCMutexUnlock(&pkt_pool_thread_key_mutex);
         return;
     }
 
@@ -88,15 +86,23 @@ static void TmqhPacketpoolInit(void)
     }
 
     pkt_pool_thread_key_initialized = 1;
-    SCMutexUnlock(&pkt_pool_thread_key_mutex);
 }
 
 static PktPool *ThreadPacketPoolCreate(void)
 {
+    SCMutexLock(&pkt_pool_thread_key_mutex);
     TmqhPacketpoolInit();
 
+    /* Recheck the pool has not already been created. */
+    PktPool* pool = (PktPool*)pthread_getspecific(pkt_pool_thread_key);
+    if (pool) {
+        /* Already created. */
+        SCMutexUnlock(&pkt_pool_thread_key_mutex);
+        return pool;
+    }
+
     /* Create a new pool for this thread. */
-    PktPool* pool = (PktPool*)SCMallocAligned(sizeof(PktPool), CLS);
+    pool = (PktPool*)SCMallocAligned(sizeof(PktPool), CLS);
     if (pool == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         exit(EXIT_FAILURE);
@@ -107,6 +113,7 @@ static PktPool *ThreadPacketPoolCreate(void)
         exit(EXIT_FAILURE);
     }
 
+    SCMutexUnlock(&pkt_pool_thread_key_mutex);
     return pool;
 }
 
