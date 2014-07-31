@@ -23,7 +23,7 @@ import sys
 #  - github user
 #  - buildbot user and password
 
-BASE_URI="https://buildbot.suricata-ids.org/"
+BASE_URI="https://buildbot.openinfosecfoundation.org/"
 BUILDERS_URI=BASE_URI+"builders/"
 JSON_BUILDERS_URI=BASE_URI+"json/builders/"
 
@@ -64,7 +64,7 @@ def OpenBuildbotSession():
     params = urllib.urlencode(auth_params)
     opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie))
     urllib2.install_opener(opener)
-    request = urllib2.Request(BASE_URI + '/login', params)
+    request = urllib2.Request(BASE_URI + 'login', params)
     page = urllib2.urlopen(request)
     return cookie
 
