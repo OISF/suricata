@@ -265,6 +265,10 @@ void PacketPoolInit(void)
 {
     extern intmax_t max_pending_packets;
 
+#ifndef TLS
+    TmqhPacketPoolInit();
+#endif
+
     PktPool *my_pool = GetThreadPacketPool();
 
     SCMutexInit(&my_pool->return_stack.mutex, NULL);
