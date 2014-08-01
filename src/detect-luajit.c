@@ -299,16 +299,7 @@ int DetectLuajitMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMat
     lua_settable(tluajit->luastate, -3);
 
     lua_pushstring (tluajit->luastate, luajit->buffername); /* stack at -2 */
-    if (buffer_len % 4) {
-        size_t tmpbuflen = buffer_len + (buffer_len % 4);
-        uint8_t tmpbuf[tmpbuflen];
-        memset(tmpbuf, 0x00, tmpbuflen);
-        memcpy(tmpbuf, buffer, buffer_len);
-        tmpbuf[buffer_len] = '\0';
-        lua_pushlstring (tluajit->luastate, (const char *)tmpbuf, (size_t)buffer_len);
-    } else {
-        lua_pushlstring (tluajit->luastate, (const char *)buffer, (size_t)buffer_len);
-    }
+    LuaPushStringBuffer(tluajit->luastate, (const uint8_t *)buffer, (size_t)buffer_len);
     lua_settable(tluajit->luastate, -3);
 
     int retval = lua_pcall(tluajit->luastate, 1, 1, 0);
@@ -421,12 +412,12 @@ static int DetectLuajitMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 
     if ((tluajit->flags & DATATYPE_PAYLOAD) && p->payload_len) {
         lua_pushliteral(tluajit->luastate, "payload"); /* stack at -2 */
-        lua_pushlstring (tluajit->luastate, (const char *)p->payload, (size_t)p->payload_len); /* stack at -3 */
+        LuaPushStringBuffer (tluajit->luastate, (const uint8_t *)p->payload, (size_t)p->payload_len); /* stack at -3 */
         lua_settable(tluajit->luastate, -3);
     }
     if ((tluajit->flags & DATATYPE_PACKET) && GET_PKT_LEN(p)) {
         lua_pushliteral(tluajit->luastate, "packet"); /* stack at -2 */
-        lua_pushlstring (tluajit->luastate, (const char *)GET_PKT_DATA(p), (size_t)GET_PKT_LEN(p)); /* stack at -3 */
+        LuaPushStringBuffer (tluajit->luastate, (const uint8_t *)GET_PKT_DATA(p), (size_t)GET_PKT_LEN(p)); /* stack at -3 */
         lua_settable(tluajit->luastate, -3);
     }
     if (tluajit->alproto == ALPROTO_HTTP) {
@@ -445,8 +436,8 @@ static int DetectLuajitMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                 if ((tluajit->flags & DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
                     bstr_len(tx->request_line) > 0) {
                     lua_pushliteral(tluajit->luastate, "http.request_line"); /* stack at -2 */
-                    lua_pushlstring (tluajit->luastate,
-                                     (const char *)bstr_ptr(tx->request_line),
+                    LuaPushStringBuffer(tluajit->luastate,
+                                     (const uint8_t *)bstr_ptr(tx->request_line),
                                      bstr_len(tx->request_line));
                     lua_settable(tluajit->luastate, -3);
                 }
