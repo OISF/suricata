@@ -21,14 +21,14 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_LUAJIT_EXT_H__
-#define __DETECT_LUAJIT_EXT_H__
+#ifndef __DETECT_LUA_EXT_H__
+#define __DETECT_LUA_EXT_H__
 
 #ifdef HAVE_LUA
-int LuajitRegisterExtensions(lua_State *);
+int LuaRegisterExtensions(lua_State *);
 
-void LuajitExtensionsMatchSetup(lua_State *lua_state,
-        DetectLuajitData *, DetectEngineThreadCtx *det_ctx,
+void LuaExtensionsMatchSetup(lua_State *lua_state,
+        DetectLuaData *, DetectEngineThreadCtx *det_ctx,
         Flow *f, int flow_locked);
 
 #endif /* HAVE_LUA */

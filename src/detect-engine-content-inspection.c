@@ -41,7 +41,7 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-uricontent.h"
 #include "detect-urilen.h"
-#include "detect-luajit.h"
+#include "detect-lua.h"
 
 #include "app-layer-dcerpc.h"
 
@@ -535,14 +535,14 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         goto no_match;
 #ifdef HAVE_LUA
     }
-    else if (sm->type == DETECT_LUAJIT) {
+    else if (sm->type == DETECT_LUA) {
         SCLogDebug("lua starting");
         /* for flowvar gets and sets we need to know the flow's lock status */
         int flow_lock = LUA_FLOW_LOCKED_BY_PARENT;
         if (inspection_mode <= DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM)
             flow_lock = LUA_FLOW_NOT_LOCKED_BY_PARENT;
 
-        if (DetectLuajitMatchBuffer(det_ctx, s, sm, buffer, buffer_len,
+        if (DetectLuaMatchBuffer(det_ctx, s, sm, buffer, buffer_len,
                     det_ctx->buffer_offset, f, flow_lock) != 1)
         {
             SCLogDebug("lua no_match");

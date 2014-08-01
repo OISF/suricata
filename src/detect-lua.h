@@ -30,16 +30,16 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
-typedef struct DetectLuajitThreadData {
+typedef struct DetectLuaThreadData {
     lua_State *luastate;
     uint32_t flags;
     int alproto;
-} DetectLuajitThreadData;
+} DetectLuaThreadData;
 
 #define DETECT_LUAJIT_MAX_FLOWVARS  15
 #define DETECT_LUAJIT_MAX_FLOWINTS  15
 
-typedef struct DetectLuajitData {
+typedef struct DetectLuaData {
     int thread_ctx_id;
     int negated;
     char *filename;
@@ -53,17 +53,20 @@ typedef struct DetectLuajitData {
     uint32_t sid;
     uint32_t rev;
     uint32_t gid;
-} DetectLuajitData;
+} DetectLuaData;
 
 #endif /* HAVE_LUA */
 
 /* prototypes */
-void DetectLuajitRegister (void);
-int DetectLuajitMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm,
+void DetectLuaRegister (void);
+int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm,
         uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
         Flow *f, int flow_lock);
 
+#ifdef HAVE_LUAJIT
 int DetectLuajitSetupStatesPool(int num, int reloads);
-void DetectLuajitPostSetup(Signature *s);
+#endif /* HAVE_LUAJIT */
+
+void DetectLuaPostSetup(Signature *s);
 
 #endif /* __DETECT_FILELUAJIT_H__ */
