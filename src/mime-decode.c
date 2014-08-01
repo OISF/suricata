@@ -164,26 +164,58 @@ MimeDecConfig * MimeDecGetConfig(void) {
 }
 
 /**
- * \brief Recursively frees a mime entity tree
+ * \brief Follow the 'next' pointers to the leaf
+ *
+ * \param node The root entity
+ *
+ * \return Pointer to leaf on 'next' side
+ *
+ */
+static MimeDecEntity *findLastSibling(MimeDecEntity *node)
+{
+    if (node == NULL)
+        return NULL;
+    while(node->next != NULL)
+        node = node->next;
+    return node;
+}
+
+/**
+ * \brief Frees a mime entity tree
  *
  * \param entity The root entity
  *
  * \return none
  *
  */
-void MimeDecFreeEntity (MimeDecEntity *entity) {
+void MimeDecFreeEntity (MimeDecEntity *entity)
+{
+    if (entity == NULL)
+        return;
+    MimeDecEntity *lastSibling = findLastSibling(entity);
+    while (entity != NULL)
+    {
+        /**
+         * Move child to next
+         * Transform tree into list
+         */
+        if (entity->child != NULL)
+        {
+            lastSibling->next = entity->child;
+            lastSibling = findLastSibling(lastSibling);
+        }
 
-    if (entity != NULL) {
+        /**
+         * Move to next element
+         */
+        MimeDecEntity *old = entity;
+        entity = entity->next;
 
-        MimeDecFreeField(entity->field_list);
-        MimeDecFreeUrl(entity->url_list);
-        SCFree(entity->filename);
+        MimeDecFreeField(old->field_list);
+        MimeDecFreeUrl(old->url_list);
+        SCFree(old->filename);
 
-        /* Use recursion */
-        MimeDecFreeEntity(entity->child);
-        MimeDecFreeEntity(entity->next);
-
-        SCFree(entity);
+        SCFree(old);
     }
 }
 
@@ -1085,47 +1117,52 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
         MimeDecParseState *state) {
 
     int ret = MIME_DEC_OK;
-    MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
     char *remainPtr, *tok;
     uint32_t tokLen;
 
     MimeDecConfig *mdcfg = MimeDecGetConfig();
     if (mdcfg != NULL && mdcfg->extract_urls) {
-        /* If plain text or html, then look for URLs */
-        if ((entity->ctnt_flags & CTNT_IS_TEXT) ||
-                (entity->ctnt_flags & CTNT_IS_HTML)) {
+        if ((state->stack != NULL) && (state->stack->top != NULL)) {
+            MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
+            /* If plain text or html, then look for URLs */
+            if (((entity->ctnt_flags & CTNT_IS_TEXT) ||
+                (entity->ctnt_flags & CTNT_IS_HTML)) &&
+                ((entity->ctnt_flags & CTNT_IS_ATTACHMENT) == 0)) {
 
-            /* Remainder from previous line */
-            if (state->linerem_len > 0) {
-                // TODO
-            } else {
-                /* No remainder from previous line */
-                /* Parse each line one by one */
-                remainPtr = (char *) chunk;
-                do {
-                    tok = GetLine(remainPtr, len - (remainPtr - (char *) chunk),
-                            &remainPtr, &tokLen);
-                    if (tok != remainPtr) {
-                        // DEBUG - ADDED
-                        /* If last token found without CR/LF delimiter, then save
-                         * and reconstruct with next chunk
-                         */
-                        if (tok + tokLen - (char *) chunk == len) {
-                            PrintChars(SC_LOG_DEBUG, "LAST CHUNK LINE - CUTOFF",
-                                    tok, tokLen);
-                            SCLogDebug("\nCHUNK CUTOFF CHARS: %d delim %ld\n", tokLen, len - (tok + tokLen - (char *) chunk));
-                        } else {
-                            /* Search line for URL */
-                            ret = FindUrlStrings(tok, tokLen, state);
-                            if (ret != MIME_DEC_OK) {
-                                SCLogDebug("Error: FindUrlStrings() function"
-                                        " failed: %d", ret);
-                                break;
+                /* Remainder from previous line */
+                if (state->linerem_len > 0) {
+                    // TODO
+                } else {
+                    /* No remainder from previous line */
+                    /* Parse each line one by one */
+                    remainPtr = (char *) chunk;
+                    do {
+                        tok = GetLine(remainPtr, len - (remainPtr - (char *) chunk),
+                                &remainPtr, &tokLen);
+                        if (tok != remainPtr) {
+                            // DEBUG - ADDED
+                            /* If last token found without CR/LF delimiter, then save
+                             * and reconstruct with next chunk
+                             */
+                            if (tok + tokLen - (char *) chunk == len) {
+                                PrintChars(SC_LOG_DEBUG, "LAST CHUNK LINE - CUTOFF",
+                                        tok, tokLen);
+                                SCLogDebug("\nCHUNK CUTOFF CHARS: %d delim %ld\n", tokLen, len - (tok + tokLen - (char *) chunk));
+                            } else {
+                                /* Search line for URL */
+                                ret = FindUrlStrings(tok, tokLen, state);
+                                if (ret != MIME_DEC_OK) {
+                                    SCLogDebug("Error: FindUrlStrings() function"
+                                            " failed: %d", ret);
+                                    break;
+                                }
                             }
                         }
-                    }
-                } while (tok != remainPtr && remainPtr - (char *) chunk < len);
+                    } while (tok != remainPtr && remainPtr - (char *) chunk < len);
+                }
             }
+        } else {
+            SCLogDebug("Error: Stack pointer missing");
         }
     }
 
