@@ -126,25 +126,11 @@ static int LuajitGetFlowvar(lua_State *luastate)
         return 2;
     }
 
-    //SCLogInfo("returning:");
-    //PrintRawDataFp(stdout,fv->data.fv_str.value,fv->data.fv_str.value_len);
-
-    /* we're using a buffer sized at a multiple of 4 as lua_pushlstring generates
-     * invalid read errors in valgrind otherwise. Adding in a nul to be sure.
-     *
-     * Buffer size = len + 1 (for nul) + whatever makes it a multiple of 4 */
-    size_t reallen = fv->data.fv_str.value_len;
-    size_t buflen = fv->data.fv_str.value_len + 1 + ((fv->data.fv_str.value_len + 1) % 4);
-    uint8_t buf[buflen];
-    memset(buf, 0x00, buflen);
-    memcpy(buf, fv->data.fv_str.value, fv->data.fv_str.value_len);
-    buf[fv->data.fv_str.value_len] = '\0';
+    LuaPushStringBuffer(luastate, (const uint8_t *)fv->data.fv_str.value,
+            (size_t)fv->data.fv_str.value_len);
 
     if (flow_lock == LUA_FLOW_NOT_LOCKED_BY_PARENT)
         FLOWLOCK_UNLOCK(f);
-
-    /* return value through luastate, as a luastring */
-    lua_pushlstring(luastate, (char *)buf, reallen);
 
     return 1;
 
