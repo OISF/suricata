@@ -69,7 +69,7 @@ static void PktPoolThreadDestroy(void * buf)
     free(buf);
 }
 
-static void TmqhPacketpoolInit(void)
+static void TmqhPacketPoolInit(void)
 {
     SCMutexLock(&pkt_pool_thread_key_mutex);
     if (pkt_pool_thread_key_initialized) {
@@ -93,7 +93,7 @@ static void TmqhPacketpoolInit(void)
 
 static PktPool *ThreadPacketPoolCreate(void)
 {
-    TmqhPacketpoolInit();
+    TmqhPacketPoolInit();
 
     /* Create a new pool for this thread. */
     PktPool* pool = (PktPool*)SCMallocAligned(sizeof(PktPool), CLS);
@@ -114,8 +114,8 @@ static inline PktPool *GetThreadPacketPool(void)
 {
     PktPool* pool = (PktPool*)pthread_getspecific(pkt_pool_thread_key);
     if (pool == NULL)
-      pool = ThreadPacketPoolCreate();
-    
+        pool = ThreadPacketPoolCreate();
+
     return pool;
 }
 #endif
