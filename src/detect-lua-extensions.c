@@ -53,7 +53,7 @@
 
 #include "stream-tcp.h"
 
-#include "detect-luajit.h"
+#include "detect-lua.h"
 
 #include "queue.h"
 #include "util-cpu.h"
@@ -65,13 +65,13 @@
 static const char luaext_key_ld[] = "suricata:luajitdata";
 static const char luaext_key_det_ctx[] = "suricata:det_ctx";
 
-static int LuajitGetFlowvar(lua_State *luastate)
+static int LuaGetFlowvar(lua_State *luastate)
 {
     uint16_t idx;
     int id;
     Flow *f;
     FlowVar *fv;
-    DetectLuajitData *ld;
+    DetectLuaData *ld;
     int flow_lock = 0;
 
     /* need luajit data for id -> idx conversion */
@@ -136,7 +136,7 @@ static int LuajitGetFlowvar(lua_State *luastate)
 
 }
 
-int LuajitSetFlowvar(lua_State *luastate)
+int LuaSetFlowvar(lua_State *luastate)
 {
     uint16_t idx;
     int id;
@@ -145,7 +145,7 @@ int LuajitSetFlowvar(lua_State *luastate)
     int len;
     uint8_t *buffer;
     DetectEngineThreadCtx *det_ctx;
-    DetectLuajitData *ld;
+    DetectLuaData *ld;
     int flow_lock = 0;
 
     /* need luajit data for id -> idx conversion */
@@ -241,13 +241,13 @@ int LuajitSetFlowvar(lua_State *luastate)
     return 0;
 }
 
-static int LuajitGetFlowint(lua_State *luastate)
+static int LuaGetFlowint(lua_State *luastate)
 {
     uint16_t idx;
     int id;
     Flow *f;
     FlowVar *fv;
-    DetectLuajitData *ld;
+    DetectLuaData *ld;
     int flow_lock = 0;
     uint32_t number;
 
@@ -319,13 +319,13 @@ static int LuajitGetFlowint(lua_State *luastate)
 
 }
 
-int LuajitSetFlowint(lua_State *luastate)
+int LuaSetFlowint(lua_State *luastate)
 {
     uint16_t idx;
     int id;
     Flow *f;
     DetectEngineThreadCtx *det_ctx;
-    DetectLuajitData *ld;
+    DetectLuaData *ld;
     int flow_lock = 0;
     uint32_t number;
     lua_Number luanumber;
@@ -402,13 +402,13 @@ int LuajitSetFlowint(lua_State *luastate)
     return 0;
 }
 
-static int LuajitIncrFlowint(lua_State *luastate)
+static int LuaIncrFlowint(lua_State *luastate)
 {
     uint16_t idx;
     int id;
     Flow *f;
     FlowVar *fv;
-    DetectLuajitData *ld;
+    DetectLuaData *ld;
     int flow_lock = 0;
     uint32_t number;
 
@@ -478,13 +478,13 @@ static int LuajitIncrFlowint(lua_State *luastate)
 
 }
 
-static int LuajitDecrFlowint(lua_State *luastate)
+static int LuaDecrFlowint(lua_State *luastate)
 {
     uint16_t idx;
     int id;
     Flow *f;
     FlowVar *fv;
-    DetectLuajitData *ld;
+    DetectLuaData *ld;
     int flow_lock = 0;
     uint32_t number;
 
@@ -554,7 +554,7 @@ static int LuajitDecrFlowint(lua_State *luastate)
 
 }
 
-void LuajitExtensionsMatchSetup(lua_State *lua_state, DetectLuajitData *ld, DetectEngineThreadCtx *det_ctx, Flow *f, int flow_locked)
+void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld, DetectEngineThreadCtx *det_ctx, Flow *f, int flow_locked)
 {
     SCLogDebug("det_ctx %p, f %p", det_ctx, f);
 
@@ -574,24 +574,24 @@ void LuajitExtensionsMatchSetup(lua_State *lua_state, DetectLuajitData *ld, Dete
 /**
  *  \brief Register Suricata Lua functions
  */
-int LuajitRegisterExtensions(lua_State *lua_state)
+int LuaRegisterExtensions(lua_State *lua_state)
 {
-    lua_pushcfunction(lua_state, LuajitGetFlowvar);
+    lua_pushcfunction(lua_state, LuaGetFlowvar);
     lua_setglobal(lua_state, "ScFlowvarGet");
 
-    lua_pushcfunction(lua_state, LuajitSetFlowvar);
+    lua_pushcfunction(lua_state, LuaSetFlowvar);
     lua_setglobal(lua_state, "ScFlowvarSet");
 
-    lua_pushcfunction(lua_state, LuajitGetFlowint);
+    lua_pushcfunction(lua_state, LuaGetFlowint);
     lua_setglobal(lua_state, "ScFlowintGet");
 
-    lua_pushcfunction(lua_state, LuajitSetFlowint);
+    lua_pushcfunction(lua_state, LuaSetFlowint);
     lua_setglobal(lua_state, "ScFlowintSet");
 
-    lua_pushcfunction(lua_state, LuajitIncrFlowint);
+    lua_pushcfunction(lua_state, LuaIncrFlowint);
     lua_setglobal(lua_state, "ScFlowintIncr");
 
-    lua_pushcfunction(lua_state, LuajitDecrFlowint);
+    lua_pushcfunction(lua_state, LuaDecrFlowint);
     lua_setglobal(lua_state, "ScFlowintDecr");
 
     return 0;

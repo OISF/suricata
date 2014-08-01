@@ -147,7 +147,7 @@
 #include "detect-replace.h"
 #include "detect-tos.h"
 #include "detect-app-layer-event.h"
-#include "detect-luajit.h"
+#include "detect-lua.h"
 #include "detect-iprep.h"
 #include "detect-geoip.h"
 #include "detect-dns-query.h"
@@ -4808,7 +4808,7 @@ void SigTableSetup(void)
     DetectHttpUARegister();
     DetectHttpHHRegister();
     DetectHttpHRHRegister();
-    DetectLuajitRegister();
+    DetectLuaRegister();
     DetectIPRepRegister();
     DetectDnsQueryRegister();
     DetectAppLayerProtocolRegister();

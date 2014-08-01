@@ -52,8 +52,8 @@
 
 #include "stream-tcp.h"
 
-#include "detect-luajit.h"
-#include "detect-luajit-extensions.h"
+#include "detect-lua.h"
+#include "detect-lua-extensions.h"
 
 #include "queue.h"
 #include "util-cpu.h"
@@ -61,25 +61,25 @@
 
 #ifndef HAVE_LUA
 
-static int DetectLuajitSetupNoSupport (DetectEngineCtx *a, Signature *b, char *c)
+static int DetectLuaSetupNoSupport (DetectEngineCtx *a, Signature *b, char *c)
 {
-    SCLogError(SC_ERR_NO_LUAJIT_SUPPORT, "no LuaJIT support built in, needed for luajit keyword");
+    SCLogError(SC_ERR_NO_LUA_SUPPORT, "no Lua support built in, needed for lua/luajit keyword");
     return -1;
 }
 
 /**
  * \brief Registration function for keyword: luajit
  */
-void DetectLuajitRegister(void)
+void DetectLuaRegister(void)
 {
-    sigmatch_table[DETECT_LUAJIT].name = "luajit";
-    sigmatch_table[DETECT_LUAJIT].alias = "lua";
-    sigmatch_table[DETECT_LUAJIT].Setup = DetectLuajitSetupNoSupport;
-    sigmatch_table[DETECT_LUAJIT].Free  = NULL;
-    sigmatch_table[DETECT_LUAJIT].RegisterTests = NULL;
-    sigmatch_table[DETECT_LUAJIT].flags = SIGMATCH_NOT_BUILT;
+    sigmatch_table[DETECT_LUA].name = "lua";
+    sigmatch_table[DETECT_LUA].alias = "luajit";
+    sigmatch_table[DETECT_LUA].Setup = DetectLuaSetupNoSupport;
+    sigmatch_table[DETECT_LUA].Free  = NULL;
+    sigmatch_table[DETECT_LUA].RegisterTests = NULL;
+    sigmatch_table[DETECT_LUA].flags = SIGMATCH_NOT_BUILT;
 
-	SCLogDebug("registering luajit rule option");
+	SCLogDebug("registering lua rule option");
     return;
 }
 
@@ -90,7 +90,7 @@ void DetectLuajitRegister(void)
 
 /** \brief lua_State pool
  *
- *  Luajit requires states to be alloc'd in memory <2GB. For this reason we
+ *  Lua requires states to be alloc'd in memory <2GB. For this reason we
  *  prealloc the states early during engine startup so we have a better chance
  *  of getting the states. We protect the pool with a lock as the detect
  *  threads access it during their init and cleanup.
@@ -107,25 +107,25 @@ static pthread_mutex_t luajit_states_lock = SCMUTEX_INITIALIZER;
 
 #include "util-lua.h"
 
-static int DetectLuajitMatch (ThreadVars *, DetectEngineThreadCtx *,
+static int DetectLuaMatch (ThreadVars *, DetectEngineThreadCtx *,
         Packet *, Signature *, SigMatch *);
-static int DetectLuajitSetup (DetectEngineCtx *, Signature *, char *);
-static void DetectLuajitRegisterTests(void);
-static void DetectLuajitFree(void *);
+static int DetectLuaSetup (DetectEngineCtx *, Signature *, char *);
+static void DetectLuaRegisterTests(void);
+static void DetectLuaFree(void *);
 
 /**
  * \brief Registration function for keyword: luajit
  */
-void DetectLuajitRegister(void)
+void DetectLuaRegister(void)
 {
-    sigmatch_table[DETECT_LUAJIT].name = "luajit";
-    sigmatch_table[DETECT_LUAJIT].alias = "lua";
-    sigmatch_table[DETECT_LUAJIT].desc = "match via a luajit script";
-    sigmatch_table[DETECT_LUAJIT].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Lua_scripting";
-    sigmatch_table[DETECT_LUAJIT].Match = DetectLuajitMatch;
-    sigmatch_table[DETECT_LUAJIT].Setup = DetectLuajitSetup;
-    sigmatch_table[DETECT_LUAJIT].Free  = DetectLuajitFree;
-    sigmatch_table[DETECT_LUAJIT].RegisterTests = DetectLuajitRegisterTests;
+    sigmatch_table[DETECT_LUA].name = "lua";
+    sigmatch_table[DETECT_LUA].alias = "luajit";
+    sigmatch_table[DETECT_LUA].desc = "match via a luajit script";
+    sigmatch_table[DETECT_LUA].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Lua_scripting";
+    sigmatch_table[DETECT_LUA].Match = DetectLuaMatch;
+    sigmatch_table[DETECT_LUA].Setup = DetectLuaSetup;
+    sigmatch_table[DETECT_LUA].Free  = DetectLuaFree;
+    sigmatch_table[DETECT_LUA].RegisterTests = DetectLuaRegisterTests;
 
 	SCLogDebug("registering luajit rule option");
     return;
@@ -196,7 +196,7 @@ int DetectLuajitSetupStatesPool(int num, int reloads)
 
         luajit_states = PoolInit(0, cnt, 0, LuaStatePoolAlloc, NULL, NULL, NULL, LuaStatePoolFree);
         if (luajit_states == NULL) {
-            SCLogError(SC_ERR_LUAJIT_ERROR, "luastate pool init failed, luajit keywords won't work");
+            SCLogError(SC_ERR_LUA_ERROR, "luastate pool init failed, lua/luajit keywords won't work");
             retval = -1;
         }
     }
@@ -206,7 +206,7 @@ int DetectLuajitSetupStatesPool(int num, int reloads)
 }
 #endif /* HAVE_LUAJIT */
 
-static lua_State *DetectLuajitGetState(void)
+static lua_State *DetectLuaGetState(void)
 {
 
     lua_State *s = NULL;
@@ -221,7 +221,7 @@ static lua_State *DetectLuajitGetState(void)
     return s;
 }
 
-static void DetectLuajitReturnState(lua_State *s)
+static void DetectLuaReturnState(lua_State *s)
 {
     if (s != NULL) {
 #ifdef HAVE_LUAJIT
@@ -269,7 +269,7 @@ void LuaDumpStack(lua_State *state)
     }
 }
 
-int DetectLuajitMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm,
+int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm,
         uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
         Flow *f, int flow_lock)
 {
@@ -279,16 +279,16 @@ int DetectLuajitMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMat
     if (buffer == NULL || buffer_len == 0)
         SCReturnInt(0);
 
-    DetectLuajitData *luajit = (DetectLuajitData *)sm->ctx;
+    DetectLuaData *luajit = (DetectLuaData *)sm->ctx;
     if (luajit == NULL)
         SCReturnInt(0);
 
-    DetectLuajitThreadData *tluajit = (DetectLuajitThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, luajit->thread_ctx_id);
+    DetectLuaThreadData *tluajit = (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, luajit->thread_ctx_id);
     if (tluajit == NULL)
         SCReturnInt(0);
 
     /* setup extension data for use in lua c functions */
-    LuajitExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx, f, flow_lock);
+    LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx, f, flow_lock);
 
     /* prepare data to pass to script */
     lua_getglobal(tluajit->luastate, "match");
@@ -370,26 +370,26 @@ int DetectLuajitMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMat
  * \param det_ctx pattern matcher thread local data
  * \param p packet
  * \param s signature being inspected
- * \param m sigmatch that we will cast into DetectLuajitData
+ * \param m sigmatch that we will cast into DetectLuaData
  *
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectLuajitMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
+static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         Packet *p, Signature *s, SigMatch *m)
 {
     SCEnter();
     int ret = 0;
-    DetectLuajitData *luajit = (DetectLuajitData *)m->ctx;
+    DetectLuaData *luajit = (DetectLuaData *)m->ctx;
     if (luajit == NULL)
         SCReturnInt(0);
 
-    DetectLuajitThreadData *tluajit = (DetectLuajitThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, luajit->thread_ctx_id);
+    DetectLuaThreadData *tluajit = (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, luajit->thread_ctx_id);
     if (tluajit == NULL)
         SCReturnInt(0);
 
     /* setup extension data for use in lua c functions */
-    LuajitExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx, p->flow, /* flow not locked */LUA_FLOW_NOT_LOCKED_BY_PARENT);
+    LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx, p->flow, /* flow not locked */LUA_FLOW_NOT_LOCKED_BY_PARENT);
 
     if ((tluajit->flags & DATATYPE_PAYLOAD) && p->payload_len == 0)
         SCReturnInt(0);
@@ -509,31 +509,31 @@ static int DetectLuajitMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 static const char *ut_script = NULL;
 #endif
 
-static void *DetectLuajitThreadInit(void *data)
+static void *DetectLuaThreadInit(void *data)
 {
     int status;
-    DetectLuajitData *luajit = (DetectLuajitData *)data;
+    DetectLuaData *luajit = (DetectLuaData *)data;
     BUG_ON(luajit == NULL);
 
-    DetectLuajitThreadData *t = SCMalloc(sizeof(DetectLuajitThreadData));
+    DetectLuaThreadData *t = SCMalloc(sizeof(DetectLuaThreadData));
     if (unlikely(t == NULL)) {
-        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't alloc ctx memory");
+        SCLogError(SC_ERR_LUA_ERROR, "couldn't alloc ctx memory");
         return NULL;
     }
-    memset(t, 0x00, sizeof(DetectLuajitThreadData));
+    memset(t, 0x00, sizeof(DetectLuaThreadData));
 
     t->alproto = luajit->alproto;
     t->flags = luajit->flags;
 
-    t->luastate = DetectLuajitGetState();
+    t->luastate = DetectLuaGetState();
     if (t->luastate == NULL) {
-        SCLogError(SC_ERR_LUAJIT_ERROR, "luastate pool depleted");
+        SCLogError(SC_ERR_LUA_ERROR, "luastate pool depleted");
         goto error;
     }
 
     luaL_openlibs(t->luastate);
 
-    LuajitRegisterExtensions(t->luastate);
+    LuaRegisterExtensions(t->luastate);
 
     lua_pushinteger(t->luastate, (lua_Integer)(luajit->sid));
     lua_setglobal(t->luastate, "SCRuleSid");
@@ -547,14 +547,14 @@ static void *DetectLuajitThreadInit(void *data)
     if (ut_script != NULL) {
         status = luaL_loadbuffer(t->luastate, ut_script, strlen(ut_script), "unittest");
         if (status) {
-            SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't load file: %s", lua_tostring(t->luastate, -1));
+            SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(t->luastate, -1));
             goto error;
         }
     } else {
 #endif
         status = luaL_loadfile(t->luastate, luajit->filename);
         if (status) {
-            SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't load file: %s", lua_tostring(t->luastate, -1));
+            SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(t->luastate, -1));
             goto error;
         }
 #ifdef UNITTESTS
@@ -563,7 +563,7 @@ static void *DetectLuajitThreadInit(void *data)
 
     /* prime the script (or something) */
     if (lua_pcall(t->luastate, 0, 0, 0) != 0) {
-        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't prime file: %s", lua_tostring(t->luastate, -1));
+        SCLogError(SC_ERR_LUA_ERROR, "couldn't prime file: %s", lua_tostring(t->luastate, -1));
         goto error;
     }
 
@@ -571,17 +571,17 @@ static void *DetectLuajitThreadInit(void *data)
 
 error:
     if (t->luastate != NULL)
-        DetectLuajitReturnState(t->luastate);
+        DetectLuaReturnState(t->luastate);
     SCFree(t);
     return NULL;
 }
 
-static void DetectLuajitThreadFree(void *ctx)
+static void DetectLuaThreadFree(void *ctx)
 {
     if (ctx != NULL) {
-        DetectLuajitThreadData *t = (DetectLuajitThreadData *)ctx;
+        DetectLuaThreadData *t = (DetectLuaThreadData *)ctx;
         if (t->luastate != NULL)
-            DetectLuajitReturnState(t->luastate);
+            DetectLuaReturnState(t->luastate);
         SCFree(t);
     }
 }
@@ -591,19 +591,19 @@ static void DetectLuajitThreadFree(void *ctx)
  *
  * \param str Pointer to the user provided option
  *
- * \retval luajit pointer to DetectLuajitData on success
+ * \retval luajit pointer to DetectLuaData on success
  * \retval NULL on failure
  */
-static DetectLuajitData *DetectLuajitParse (char *str)
+static DetectLuaData *DetectLuaParse (char *str)
 {
-    DetectLuajitData *luajit = NULL;
+    DetectLuaData *luajit = NULL;
 
     /* We have a correct luajit option */
-    luajit = SCMalloc(sizeof(DetectLuajitData));
+    luajit = SCMalloc(sizeof(DetectLuaData));
     if (unlikely(luajit == NULL))
         goto error;
 
-    memset(luajit, 0x00, sizeof(DetectLuajitData));
+    memset(luajit, 0x00, sizeof(DetectLuaData));
 
     if (strlen(str) && str[0] == '!') {
         luajit->negated = 1;
@@ -620,11 +620,11 @@ static DetectLuajitData *DetectLuajitParse (char *str)
 
 error:
     if (luajit != NULL)
-        DetectLuajitFree(luajit);
+        DetectLuaFree(luajit);
     return NULL;
 }
 
-static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuajitData *ld)
+static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
 {
     int status;
 
@@ -638,14 +638,14 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuajitData *ld)
     if (ut_script != NULL) {
         status = luaL_loadbuffer(luastate, ut_script, strlen(ut_script), "unittest");
         if (status) {
-            SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
+            SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
             goto error;
         }
     } else {
 #endif
         status = luaL_loadfile(luastate, ld->filename);
         if (status) {
-            SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
+            SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
             goto error;
         }
 #ifdef UNITTESTS
@@ -654,19 +654,19 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuajitData *ld)
 
     /* prime the script (or something) */
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
-        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't prime file: %s", lua_tostring(luastate, -1));
+        SCLogError(SC_ERR_LUA_ERROR, "couldn't prime file: %s", lua_tostring(luastate, -1));
         goto error;
     }
 
     lua_getglobal(luastate, "init");
     if (lua_type(luastate, -1) != LUA_TFUNCTION) {
-        SCLogError(SC_ERR_LUAJIT_ERROR, "no init function in script");
+        SCLogError(SC_ERR_LUA_ERROR, "no init function in script");
         goto error;
     }
 
     lua_newtable(luastate); /* stack at -1 */
     if (lua_gettop(luastate) == 0 || lua_type(luastate, 2) != LUA_TTABLE) {
-        SCLogError(SC_ERR_LUAJIT_ERROR, "no table setup");
+        SCLogError(SC_ERR_LUA_ERROR, "no table setup");
         goto error;
     }
 
@@ -675,17 +675,17 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuajitData *ld)
     lua_settable(luastate, -3);
 
     if (lua_pcall(luastate, 1, 1, 0) != 0) {
-        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't run script 'init' function: %s", lua_tostring(luastate, -1));
+        SCLogError(SC_ERR_LUA_ERROR, "couldn't run script 'init' function: %s", lua_tostring(luastate, -1));
         goto error;
     }
 
     /* process returns from script */
     if (lua_gettop(luastate) == 0) {
-        SCLogError(SC_ERR_LUAJIT_ERROR, "init function in script should return table, nothing returned");
+        SCLogError(SC_ERR_LUA_ERROR, "init function in script should return table, nothing returned");
         goto error;
     }
     if (lua_type(luastate, 1) != LUA_TTABLE) {
-        SCLogError(SC_ERR_LUAJIT_ERROR, "init function in script should return table, returned is not table");
+        SCLogError(SC_ERR_LUA_ERROR, "init function in script should return table, returned is not table");
         goto error;
     }
 
@@ -708,7 +708,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuajitData *ld)
                     lua_pop(luastate, 1);
 
                     if (ld->flowvars == DETECT_LUAJIT_MAX_FLOWVARS) {
-                        SCLogError(SC_ERR_LUAJIT_ERROR, "too many flowvars registered");
+                        SCLogError(SC_ERR_LUA_ERROR, "too many flowvars registered");
                         goto error;
                     }
 
@@ -730,7 +730,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuajitData *ld)
                     lua_pop(luastate, 1);
 
                     if (ld->flowints == DETECT_LUAJIT_MAX_FLOWINTS) {
-                        SCLogError(SC_ERR_LUAJIT_ERROR, "too many flowints registered");
+                        SCLogError(SC_ERR_LUA_ERROR, "too many flowints registered");
                         goto error;
                     }
 
@@ -755,11 +755,11 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuajitData *ld)
             ld->flags |= DATATYPE_PAYLOAD;
         } else if (strncmp(k, "http", 4) == 0 && strcmp(v, "true") == 0) {
             if (ld->alproto != ALPROTO_UNKNOWN && ld->alproto != ALPROTO_HTTP) {
-                SCLogError(SC_ERR_LUAJIT_ERROR, "can just inspect script against one app layer proto like HTTP at a time");
+                SCLogError(SC_ERR_LUA_ERROR, "can just inspect script against one app layer proto like HTTP at a time");
                 goto error;
             }
             if (ld->flags != 0) {
-                SCLogError(SC_ERR_LUAJIT_ERROR, "when inspecting HTTP buffers only a single buffer can be inspected");
+                SCLogError(SC_ERR_LUA_ERROR, "when inspecting HTTP buffers only a single buffer can be inspected");
                 goto error;
             }
 
@@ -803,18 +803,18 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuajitData *ld)
                 ld->flags |= DATATYPE_HTTP_RESPONSE_HEADERS_RAW;
 
             else {
-                SCLogError(SC_ERR_LUAJIT_ERROR, "unsupported http data type %s", k);
+                SCLogError(SC_ERR_LUA_ERROR, "unsupported http data type %s", k);
                 goto error;
             }
 
             ld->buffername = SCStrdup(k);
             if (ld->buffername == NULL) {
-                SCLogError(SC_ERR_LUAJIT_ERROR, "alloc error");
+                SCLogError(SC_ERR_LUA_ERROR, "alloc error");
                 goto error;
             }
 
         } else {
-            SCLogError(SC_ERR_LUAJIT_ERROR, "unsupported data type %s", k);
+            SCLogError(SC_ERR_LUA_ERROR, "unsupported data type %s", k);
             goto error;
         }
     }
@@ -839,12 +839,12 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectLuajitSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    DetectLuajitData *luajit = NULL;
+    DetectLuaData *luajit = NULL;
     SigMatch *sm = NULL;
 
-    luajit = DetectLuajitParse(str);
+    luajit = DetectLuaParse(str);
     if (luajit == NULL)
         goto error;
 
@@ -853,8 +853,8 @@ static int DetectLuajitSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     }
 
     luajit->thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "luajit",
-            DetectLuajitThreadInit, (void *)luajit,
-            DetectLuajitThreadFree, 0);
+            DetectLuaThreadInit, (void *)luajit,
+            DetectLuaThreadFree, 0);
     if (luajit->thread_ctx_id == -1)
         goto error;
 
@@ -871,7 +871,7 @@ static int DetectLuajitSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     if (sm == NULL)
         goto error;
 
-    sm->type = DETECT_LUAJIT;
+    sm->type = DETECT_LUA;
     sm->ctx = (void *)luajit;
 
     if (luajit->alproto == ALPROTO_UNKNOWN)
@@ -898,7 +898,7 @@ static int DetectLuajitSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         else
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
     } else {
-        SCLogError(SC_ERR_LUAJIT_ERROR, "luajit can't be used with protocol %s",
+        SCLogError(SC_ERR_LUA_ERROR, "luajit can't be used with protocol %s",
                    AppLayerGetProtoName(luajit->alproto));
         goto error;
     }
@@ -908,7 +908,7 @@ static int DetectLuajitSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 
 error:
     if (luajit != NULL)
-        DetectLuajitFree(luajit);
+        DetectLuaFree(luajit);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -917,17 +917,17 @@ error:
 /** \brief post-sig parse function to set the sid,rev,gid into the
  *         ctx, as this isn't available yet during parsing.
  */
-void DetectLuajitPostSetup(Signature *s)
+void DetectLuaPostSetup(Signature *s)
 {
     int i;
     SigMatch *sm;
 
     for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
         for (sm = s->sm_lists[i]; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_LUAJIT)
+            if (sm->type != DETECT_LUA)
                 continue;
 
-            DetectLuajitData *ld = sm->ctx;
+            DetectLuaData *ld = sm->ctx;
             ld->sid = s->id;
             ld->rev = s->rev;
             ld->gid = s->gid;
@@ -936,14 +936,14 @@ void DetectLuajitPostSetup(Signature *s)
 }
 
 /**
- * \brief this function will free memory associated with DetectLuajitData
+ * \brief this function will free memory associated with DetectLuaData
  *
- * \param luajit pointer to DetectLuajitData
+ * \param luajit pointer to DetectLuaData
  */
-static void DetectLuajitFree(void *ptr)
+static void DetectLuaFree(void *ptr)
 {
     if (ptr != NULL) {
-        DetectLuajitData *luajit = (DetectLuajitData *)ptr;
+        DetectLuaData *luajit = (DetectLuaData *)ptr;
 
         if (luajit->buffername)
             SCFree(luajit->buffername);
@@ -956,7 +956,7 @@ static void DetectLuajitFree(void *ptr)
 
 #ifdef UNITTESTS
 /** \test http buffer */
-static int LuajitMatchTest01(void)
+static int LuaMatchTest01(void)
 {
     const char script[] =
         "function init (args)\n"
@@ -1120,7 +1120,7 @@ end:
 }
 
 /** \test payload buffer */
-static int LuajitMatchTest02(void)
+static int LuaMatchTest02(void)
 {
     const char script[] =
         "function init (args)\n"
@@ -1256,7 +1256,7 @@ end:
 }
 
 /** \test packet buffer */
-static int LuajitMatchTest03(void)
+static int LuaMatchTest03(void)
 {
     const char script[] =
         "function init (args)\n"
@@ -1392,7 +1392,7 @@ end:
 }
 
 /** \test http buffer, flowints */
-static int LuajitMatchTest04(void)
+static int LuaMatchTest04(void)
 {
     const char script[] =
         "function init (args)\n"
@@ -1547,7 +1547,7 @@ end:
 }
 
 /** \test http buffer, flowints */
-static int LuajitMatchTest05(void)
+static int LuaMatchTest05(void)
 {
     const char script[] =
         "function init (args)\n"
@@ -1695,7 +1695,7 @@ end:
 }
 
 /** \test http buffer, flowints */
-static int LuajitMatchTest06(void)
+static int LuaMatchTest06(void)
 {
     const char script[] =
         "function init (args)\n"
@@ -1849,17 +1849,16 @@ end:
 
 #endif
 
-void DetectLuajitRegisterTests(void)
+void DetectLuaRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("LuajitMatchTest01", LuajitMatchTest01, 1);
-    UtRegisterTest("LuajitMatchTest02", LuajitMatchTest02, 1);
-    UtRegisterTest("LuajitMatchTest03", LuajitMatchTest03, 1);
-    UtRegisterTest("LuajitMatchTest04", LuajitMatchTest04, 1);
-    UtRegisterTest("LuajitMatchTest05", LuajitMatchTest05, 1);
-    UtRegisterTest("LuajitMatchTest06", LuajitMatchTest06, 1);
+    UtRegisterTest("LuaMatchTest01", LuaMatchTest01, 1);
+    UtRegisterTest("LuaMatchTest02", LuaMatchTest02, 1);
+    UtRegisterTest("LuaMatchTest03", LuaMatchTest03, 1);
+    UtRegisterTest("LuaMatchTest04", LuaMatchTest04, 1);
+    UtRegisterTest("LuaMatchTest05", LuaMatchTest05, 1);
+    UtRegisterTest("LuaMatchTest06", LuaMatchTest06, 1);
 #endif
 }
 
 #endif /* HAVE_LUAJIT */
-
