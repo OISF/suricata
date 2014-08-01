@@ -63,7 +63,7 @@ int LuaCallbackError(lua_State *luastate, const char *msg)
     return 2;
 }
 
-int LuaReturnStringBuffer(lua_State *luastate, const uint8_t *input, size_t input_len)
+int LuaPushStringBuffer(lua_State *luastate, const uint8_t *input, size_t input_len)
 {
     /* we're using a buffer sized at a multiple of 4 as lua_pushlstring generates
      * invalid read errors in valgrind otherwise. Adding in a nul to be sure.
@@ -114,7 +114,7 @@ void LogLuaPushTableKeyValueString(lua_State *luastate, const char *key, const c
 void LogLuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8_t *value, size_t len)
 {
     lua_pushstring(luastate, key);
-    LuaReturnStringBuffer(luastate, value, len);
+    LuaPushStringBuffer(luastate, value, len);
     lua_settable(luastate, -3);
 }
 
@@ -543,7 +543,7 @@ static int LuaCallbackLogPath(lua_State *luastate)
     if (ld == NULL)
         return LuaCallbackError(luastate, "internal error: no log dir");
 
-    return LuaReturnStringBuffer(luastate, (const uint8_t *)ld, strlen(ld));
+    return LuaPushStringBuffer(luastate, (const uint8_t *)ld, strlen(ld));
 }
 
 static int LuaCallbackLogDebug(lua_State *luastate)

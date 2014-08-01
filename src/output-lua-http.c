@@ -88,7 +88,7 @@ static int HttpGetRequestHost(lua_State *luastate)
     if (tx->request_hostname == NULL)
         return LuaCallbackError(luastate, "no request hostname");
 
-    return LuaReturnStringBuffer(luastate,
+    return LuaPushStringBuffer(luastate,
             bstr_ptr(tx->request_hostname), bstr_len(tx->request_hostname));
 }
 
@@ -104,7 +104,7 @@ static int HttpGetRequestUriRaw(lua_State *luastate)
     if (tx->request_uri == NULL)
         return LuaCallbackError(luastate, "no request uri");
 
-    return LuaReturnStringBuffer(luastate,
+    return LuaPushStringBuffer(luastate,
             bstr_ptr(tx->request_uri), bstr_len(tx->request_uri));
 }
 
@@ -126,7 +126,7 @@ static int HttpGetRequestUriNormalized(lua_State *luastate)
         bstr_len(htud->request_uri_normalized) == 0)
         return LuaCallbackError(luastate, "no normalized uri");
 
-    return LuaReturnStringBuffer(luastate,
+    return LuaPushStringBuffer(luastate,
             bstr_ptr(htud->request_uri_normalized),
             bstr_len(htud->request_uri_normalized));
 }
@@ -143,7 +143,7 @@ static int HttpGetRequestLine(lua_State *luastate)
     if (tx->request_line == NULL)
         return LuaCallbackError(luastate, "no request_line");
 
-    return LuaReturnStringBuffer(luastate,
+    return LuaPushStringBuffer(luastate,
             bstr_ptr(tx->request_line), bstr_len(tx->request_line));
 }
 
@@ -159,7 +159,7 @@ static int HttpGetResponseLine(lua_State *luastate)
     if (tx->response_line == NULL)
         return LuaCallbackError(luastate, "no response_line");
 
-    return LuaReturnStringBuffer(luastate,
+    return LuaPushStringBuffer(luastate,
             bstr_ptr(tx->response_line), bstr_len(tx->response_line));
 }
 
@@ -186,7 +186,7 @@ static int HttpGetHeader(lua_State *luastate, int dir)
     if (h == NULL || bstr_len(h->value) == 0)
         return LuaCallbackError(luastate, "header not found");
 
-    return LuaReturnStringBuffer(luastate,
+    return LuaPushStringBuffer(luastate,
             bstr_ptr(h->value), bstr_len(h->value));
 }
 
@@ -223,7 +223,7 @@ static int HttpGetRawHeaders(lua_State *luastate, int dir)
     if (raw == NULL || raw_len == 0)
         return LuaCallbackError(luastate, "no raw headers");
 
-    return LuaReturnStringBuffer(luastate, raw, raw_len);
+    return LuaPushStringBuffer(luastate, raw, raw_len);
 }
 
 static int HttpGetRawRequestHeaders(lua_State *luastate)
@@ -258,8 +258,8 @@ static int HttpGetHeaders(lua_State *luastate, int dir)
     size_t no_of_headers = htp_table_size(table);
     for (; i < no_of_headers; i++) {
         h = htp_table_get_index(table, i, NULL);
-        LuaReturnStringBuffer(luastate, bstr_ptr(h->name), bstr_len(h->name));
-        LuaReturnStringBuffer(luastate, bstr_ptr(h->value), bstr_len(h->value));
+        LuaPushStringBuffer(luastate, bstr_ptr(h->name), bstr_len(h->name));
+        LuaPushStringBuffer(luastate, bstr_ptr(h->value), bstr_len(h->value));
         lua_settable(luastate, -3);
     }
     return 1;
@@ -305,7 +305,7 @@ static int HttpGetBody(lua_State *luastate, int dir)
     lua_newtable(luastate);
     while (chunk != NULL) {
         lua_pushinteger(luastate, index);
-        LuaReturnStringBuffer(luastate, chunk->data, chunk->len);
+        LuaPushStringBuffer(luastate, chunk->data, chunk->len);
         lua_settable(luastate, -3);
 
         chunk = chunk->next;
