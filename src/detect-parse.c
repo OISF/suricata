@@ -41,7 +41,7 @@
 #include "detect-flow.h"
 #include "detect-app-layer-protocol.h"
 #include "detect-engine-apt-event.h"
-#include "detect-luajit.h"
+#include "detect-lua.h"
 #include "detect-app-layer-event.h"
 
 #include "pkt-var.h"
@@ -1319,7 +1319,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     }
 
 #ifdef HAVE_LUA
-    DetectLuajitPostSetup(s);
+    DetectLuaPostSetup(s);
 #endif
 
 #ifdef DEBUG
