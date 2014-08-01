@@ -44,6 +44,8 @@
 #include "detect-engine-mpm.h"
 #include "detect-reference.h"
 #include "app-layer-parser.h"
+#include "app-layer-htp.h"
+#include "app-layer-htp-xff.h"
 #include "util-classification-config.h"
 #include "util-syslog.h"
 
@@ -66,6 +68,12 @@
 #define LOG_JSON_PAYLOAD 1
 #define LOG_JSON_PACKET 2
 #define LOG_JSON_PAYLOAD_BASE64 4
+#define LOG_JSON_XFF 8
+
+/** Default XFF header name */
+#define LOG_JSON_XFF_DEFAULT "X-Forwarded-For"
+/** Single XFF IP maximum length */
+#define LOG_JSON_XFF_MAXLEN 46
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -74,7 +82,15 @@ typedef struct JsonAlertLogThread_ {
     LogFileCtx* file_ctx;
     MemBuffer *json_buffer;
     MemBuffer *payload_buffer;
+    /** XFF Header name */
+    char *xff_header;
 } JsonAlertLogThread;
+
+typedef struct AlertJsonOutputCtx_ {
+    LogFileCtx* file_ctx;
+    /** XFF Header name */
+    char *xff_header;
+} AlertJsonOutputCtx;
 
 /* Callback function to pack payload contents from a stream into a buffer
  * so we can report them in JSON output. */
@@ -206,6 +222,25 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             json_object_set_new(js, "packet", json_string((char *)encoded_packet));
         }
 
+        /* xff header */
+        if ((aft->file_ctx->flags & LOG_JSON_XFF) && p->flow != NULL) {
+            FLOWLOCK_RDLOCK(p->flow);
+            if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
+                char buffer[LOG_JSON_XFF_MAXLEN];
+                int have_xff_ip = 0;
+
+                if (pa->flags & PACKET_ALERT_FLAG_TX) {
+                    have_xff_ip = GetXFFIPFromTx(p, pa->tx_id, aft->xff_header, buffer, LOG_JSON_XFF_MAXLEN);
+                } else {
+                    have_xff_ip = GetXFFIP(p, aft->xff_header, buffer, LOG_JSON_XFF_MAXLEN);
+                }
+                if (have_xff_ip) {
+                    json_object_set_new(js, "xff", json_string(buffer));
+                }
+            }
+            FLOWLOCK_UNLOCK(p->flow);
+        }
+
         OutputJSONBuffer(js, aft->file_ctx, aft->json_buffer);
         json_object_del(js, "alert");
     }
@@ -328,8 +363,10 @@ static TmEcode JsonAlertLogThreadInit(ThreadVars *t, void *initdata, void **data
         return TM_ECODE_FAILED;
     }
 
-    /** Use the Ouptut Context (file pointer and mutex) */
-    aft->file_ctx = ((OutputCtx *)initdata)->data;
+    /** Use the Output Context (file pointer, mutex and XFF header) */
+    AlertJsonOutputCtx *json_output_ctx = ((OutputCtx *)initdata)->data;
+    aft->file_ctx = json_output_ctx->file_ctx;
+    aft->xff_header = json_output_ctx->xff_header;
 
     *data = (void *)aft;
     return TM_ECODE_OK;
@@ -363,6 +400,12 @@ static void JsonAlertLogDeInitCtx(OutputCtx *output_ctx)
 static void JsonAlertLogDeInitCtxSub(OutputCtx *output_ctx)
 {
     SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
+
+    AlertJsonOutputCtx *json_output_ctx = (AlertJsonOutputCtx *) output_ctx->data;
+
+    if (json_output_ctx != NULL) {
+        SCFree(json_output_ctx);
+    }
     SCFree(output_ctx);
 }
 
@@ -408,29 +451,52 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     if (unlikely(output_ctx == NULL))
         return NULL;
 
-    if (conf) {
+    AlertJsonOutputCtx *json_output_ctx = SCMalloc(sizeof(AlertJsonOutputCtx));
+    if (unlikely(json_output_ctx == NULL)) {
+        SCFree(output_ctx);
+        return NULL;
+    }
+
+    memset(json_output_ctx, 0, sizeof(AlertJsonOutputCtx));
+    json_output_ctx->file_ctx = ajt->file_ctx;
+
+    if (conf != NULL) {
         const char *payload = ConfNodeLookupChildValue(conf, "payload");
         const char *packet  = ConfNodeLookupChildValue(conf, "packet");
         const char *payload_printable = ConfNodeLookupChildValue(conf, "payload-printable");
+        const char *xff = ConfNodeLookupChildValue(conf, "xff");
+        const char *xff_header = ConfNodeLookupChildValue(conf, "xff-header");
 
+        if (xff != NULL) {
+            if (ConfValIsTrue(xff)) {
+                json_output_ctx->file_ctx->flags |= LOG_JSON_XFF;
+            }
+        }
+        if (xff_header != NULL) {
+            json_output_ctx->xff_header = (char *) xff_header;
+        } else {
+            SCLogWarning(SC_WARN_XFF_INVALID_HEADER, "The JSON alert XFF header hasn't been defined, using the default %s",
+                    LOG_JSON_XFF_DEFAULT);
+            json_output_ctx->xff_header = LOG_JSON_XFF_DEFAULT;
+        }
         if (payload_printable != NULL) {
             if (ConfValIsTrue(payload_printable)) {
-                ajt->file_ctx->flags |= LOG_JSON_PAYLOAD;
+                json_output_ctx->file_ctx->flags |= LOG_JSON_PAYLOAD;
             }
         }
         if (payload != NULL) {
             if (ConfValIsTrue(payload)) {
-                ajt->file_ctx->flags |= LOG_JSON_PAYLOAD_BASE64;
+                json_output_ctx->file_ctx->flags |= LOG_JSON_PAYLOAD_BASE64;
             }
         }
         if (packet != NULL) {
             if (ConfValIsTrue(packet)) {
-                ajt->file_ctx->flags |= LOG_JSON_PACKET;
+                json_output_ctx->file_ctx->flags |= LOG_JSON_PACKET;
             }
         }
     }
 
-    output_ctx->data = ajt->file_ctx;
+    output_ctx->data = json_output_ctx;
     output_ctx->DeInit = JsonAlertLogDeInitCtxSub;
 
     return output_ctx;
