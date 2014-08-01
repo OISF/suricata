@@ -27,7 +27,6 @@
 #ifdef HAVE_LUA
 
 int LuaCallbackError(lua_State *luastate, const char *msg);
-int LuaPushStringBuffer(lua_State *luastate, const uint8_t *input, size_t input_len);
 const char *LuaGetStringArgument(lua_State *luastate, int argc);
 
 void LogLuaPushTableKeyValueInt(lua_State *luastate, const char *key, int value);

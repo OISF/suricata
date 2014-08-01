@@ -84,6 +84,8 @@ void LuaStateSetStreamingBuffer(lua_State *luastate, LuaStreamingBuffer *b);
 
 void LuaPrintStack(lua_State *state);
 
+int LuaPushStringBuffer(lua_State *luastate, const uint8_t *input, size_t input_len);
+
 #endif /* HAVE_LUA */
 
 #endif /* __UTIL_LUA_H__ */
