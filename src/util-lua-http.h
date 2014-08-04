@@ -21,13 +21,13 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __OUTPUT_LUA_HTTP_H__
-#define __OUTPUT_LUA_HTTP_H__
+#ifndef __UTIL_LUA_HTTP_H__
+#define __UTIL_LUA_HTTP_H__
 
 #ifdef HAVE_LUA
 
-int LogLuaRegisterHttpFunctions(lua_State *luastate);
+int LuaRegisterHttpFunctions(lua_State *luastate);
 
 #endif /* HAVE_LUA */
 
-#endif /* __OUTPUT_LUA_HTTP_H__ */
+#endif /* __UTIL_LUA_HTTP_H__ */

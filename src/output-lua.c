@@ -55,7 +55,7 @@
 
 #include "util-lua.h"
 #include "output-lua-common.h"
-#include "output-lua-http.h"
+#include "util-lua-http.h"
 
 #define MODULE_NAME "LuaLog"
 
@@ -546,7 +546,7 @@ static lua_State *LuaScriptSetup(const char *filename)
     LogLuaRegisterFunctions(luastate);
     /* unconditionally register http function. They will only work
      * if the tx is registered in the state at runtime though. */
-    LogLuaRegisterHttpFunctions(luastate);
+    LuaRegisterHttpFunctions(luastate);
 
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
         SCLogError(SC_ERR_LUA_ERROR, "couldn't run script 'setup' function: %s", lua_tostring(luastate, -1));
