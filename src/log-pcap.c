@@ -72,6 +72,9 @@
 #define USE_STREAM_DEPTH_DISABLED       0
 #define USE_STREAM_DEPTH_ENABLED        1
 
+#define HONOR_PASS_RULES_DISABLED       0
+#define HONOR_PASS_RULES_ENABLED        1
+
 SC_ATOMIC_DECLARE(uint32_t, thread_cnt);
 
 typedef struct PcapFileName_ {
@@ -94,6 +97,7 @@ typedef struct PcapLogProfileData_ {
  */
 typedef struct PcapLogData_ {
     int use_stream_depth;       /**< use stream depth i.e. ignore packets that reach limit */
+    int honor_pass_rules;       /**< don't log if pass rules have matched */
     int is_private;             /**< TRUE if ctx is thread local */
     SCMutex plog_lock;
     uint64_t pkt_cnt;		    /**< total number of packets */
@@ -354,7 +358,8 @@ static TmEcode PcapLog (ThreadVars *t, Packet *p, void *thread_data, PacketQueue
     if ((p->flags & PKT_PSEUDO_STREAM_END) ||
         ((p->flags & PKT_STREAM_NOPCAPLOG) &&
          (pl->use_stream_depth == USE_STREAM_DEPTH_ENABLED)) ||
-        (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)))
+        (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) ||
+        (pl->honor_pass_rules && (p->flags & PKT_NOPACKET_INSPECTION)))
     {
         return TM_ECODE_OK;
     }
@@ -682,6 +687,7 @@ static OutputCtx *PcapLogInitCtx(ConfNode *conf)
     pl->use_ringbuffer = RING_BUFFER_MODE_DISABLED;
     pl->timestamp_format = TS_FORMAT_SEC;
     pl->use_stream_depth = USE_STREAM_DEPTH_DISABLED;
+    pl->honor_pass_rules = HONOR_PASS_RULES_DISABLED;
 
     TAILQ_INIT(&pl->pcap_file_list);
 
@@ -843,6 +849,22 @@ static OutputCtx *PcapLogInitCtx(ConfNode *conf)
         } else {
             SCLogError(SC_ERR_INVALID_ARGUMENT,
                 "log-pcap use_stream_depth specified is invalid must be");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    const char *honor_pass_rules = NULL;
+    if (conf != NULL) { /* To faciliate unit tests. */
+        honor_pass_rules = ConfNodeLookupChildValue(conf, "honor-pass-rules");
+    }
+    if (honor_pass_rules != NULL) {
+        if (ConfValIsFalse(honor_pass_rules)) {
+            pl->honor_pass_rules = HONOR_PASS_RULES_DISABLED;
+        } else if (ConfValIsTrue(honor_pass_rules)) {
+            pl->honor_pass_rules = HONOR_PASS_RULES_ENABLED;
+        } else {
+            SCLogError(SC_ERR_INVALID_ARGUMENT,
+                "log-pcap honor-pass-rules specified is invalid");
             exit(EXIT_FAILURE);
         }
     }
