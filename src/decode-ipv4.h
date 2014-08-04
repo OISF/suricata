@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -84,7 +84,7 @@ typedef struct IPV4Hdr_
         } ip4_un1;
         uint16_t ip_addrs[4];
     } ip4_hdrun1;
-} IPV4Hdr;
+} __attribute__((__packed__)) IPV4Hdr;
 
 
 #define s_ip_src                          ip4_hdrun1.ip4_un1.ip_src

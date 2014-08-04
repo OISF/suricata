@@ -16,9 +16,11 @@
  */
 
 /**
- * \file
+ * \file decode-gre.h
  *
  * \author Breno Silva <breno.silva@gmail.com>
+ *
+ * Generic Route Encapsulation (GRE) from RFC 1701.
  */
 
 #ifndef __DECODE_GRE_H__
@@ -37,15 +39,17 @@ typedef struct GREHdr_
     uint8_t version; /**< GRE version */
     uint16_t ether_type; /**< ether type of the encapsulated traffic */
 
-} GREHdr;
+} __attribute__((__packed__)) GREHdr;
 
+/* Generic Routing Encapsulation Source Route Entries (SREs).
+ * The header is followed by a variable amount of Routing Information.
+ */
 typedef struct GRESreHdr_
 {
     uint16_t af; /**< Address family */
     uint8_t sre_offset;
     uint8_t sre_length;
-    uint8_t *routing;
-} GRESreHdr;
+} __attribute__((__packed__)) GRESreHdr;
 
 #define GRE_VERSION_0           0x0000
 #define GRE_VERSION_1           0x0001
