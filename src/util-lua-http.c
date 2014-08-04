@@ -332,7 +332,7 @@ static int HttpGetResponseBody(lua_State *luastate)
 }
 
 /** \brief register http lua extensions in a luastate */
-int LogLuaRegisterHttpFunctions(lua_State *luastate)
+int LuaRegisterHttpFunctions(lua_State *luastate)
 {
     /* registration of the callbacks */
     lua_pushcfunction(luastate, HttpGetRequestHeader);

@@ -228,7 +228,6 @@ output-json-ssh.c output-json-ssh.h \
 output-json-tls.c output-json-tls.h \
 output-lua.c output-lua.h \
 output-lua-common.c output-lua-common.h \
-output-lua-http.c output-lua-http.h \
 output-packet.c output-packet.h \
 output-streaming.c output-streaming.h \
 output-tx.c output-tx.h \
@@ -321,6 +320,7 @@ util-ip.h util-ip.c \
 util-logopenfile.h util-logopenfile.c \
 util-logopenfile-tile.h util-logopenfile-tile.c \
 util-lua.c util-lua.h \
+util-lua-http.c util-lua-http.h \
 util-magic.c util-magic.h \
 util-memcmp.c util-memcmp.h \
 util-memcpy.h \
