@@ -579,7 +579,8 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
     }
 
     /* Update timeout. */
-    tracker->timeout = p->ts.tv_sec + tracker->host_timeout;
+    tracker->timeout.tv_sec = p->ts.tv_sec + tracker->host_timeout;
+    tracker->timeout.tv_usec = p->ts.tv_usec;
 
     Frag *prev = NULL, *next;
     int overlap = 0;
