@@ -76,7 +76,7 @@ const char *LuaGetStringArgument(lua_State *luastate, int argc)
     return str;
 }
 
-void LogLuaPushTableKeyValueInt(lua_State *luastate, const char *key, int value)
+void LuaPushTableKeyValueInt(lua_State *luastate, const char *key, int value)
 {
     lua_pushstring(luastate, key);
     lua_pushnumber(luastate, value);
@@ -87,14 +87,14 @@ void LogLuaPushTableKeyValueInt(lua_State *luastate, const char *key, int value)
  *
  *  If value is NULL, string "(null")" will be put on the stack.
  */
-void LogLuaPushTableKeyValueString(lua_State *luastate, const char *key, const char *value)
+void LuaPushTableKeyValueString(lua_State *luastate, const char *key, const char *value)
 {
     lua_pushstring(luastate, key);
     lua_pushstring(luastate, value ? value : "(null)");
     lua_settable(luastate, -3);
 }
 
-void LogLuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8_t *value, size_t len)
+void LuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8_t *value, size_t len)
 {
     lua_pushstring(luastate, key);
     LuaPushStringBuffer(luastate, value, len);
@@ -693,7 +693,7 @@ static int LuaCallbackThreadInfo(lua_State *luastate)
     return LuaCallbackThreadInfoPushToStackFromThreadVars(luastate, tv);
 }
 
-int LogLuaRegisterFunctions(lua_State *luastate)
+int LuaRegisterFunctions(lua_State *luastate)
 {
     /* registration of the callbacks */
     lua_pushcfunction(luastate, LuaCallbackPacketPayload);
