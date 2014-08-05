@@ -54,7 +54,7 @@
 #include <lauxlib.h>
 
 #include "util-lua.h"
-#include "output-lua-common.h"
+#include "util-lua-common.h"
 #include "util-lua-http.h"
 
 #define MODULE_NAME "LuaLog"

@@ -54,7 +54,7 @@
 #include <lauxlib.h>
 
 #include "util-lua.h"
-#include "output-lua-common.h"
+#include "util-lua-common.h"
 
 int LuaStateNeedProto(lua_State *luastate, AppProto alproto)
 {
