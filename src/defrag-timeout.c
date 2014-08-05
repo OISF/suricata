@@ -53,7 +53,7 @@ static int DefragTrackerTimedOut(DefragTracker *dt, struct timeval *ts)
     }
 
     /* retain if remove is not set and not timed out */
-    if (!dt->remove && dt->timeout > (uint32_t)ts->tv_sec)
+    if (!dt->remove && timercmp(&dt->timeout, ts, >))
         return 0;
 
     return 1;
