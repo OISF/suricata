@@ -93,7 +93,7 @@ static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow 
     /* prepare data to pass to script */
     lua_getglobal(td->lua_ctx->luastate, "log");
     lua_newtable(td->lua_ctx->luastate);
-    LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "tx_id", (int)(tx_id));
+    LuaPushTableKeyValueInt(td->lua_ctx->luastate, "tx_id", (int)(tx_id));
 
     int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
     if (retval != 0) {
@@ -140,7 +140,7 @@ static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f,
     lua_newtable(td->lua_ctx->luastate);
 
     if (flags & OUTPUT_STREAMING_FLAG_TRANSACTION)
-        LogLuaPushTableKeyValueInt(td->lua_ctx->luastate, "tx_id", (int)(tx_id));
+        LuaPushTableKeyValueInt(td->lua_ctx->luastate, "tx_id", (int)(tx_id));
 
     int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
     if (retval != 0) {
@@ -543,7 +543,7 @@ static lua_State *LuaScriptSetup(const char *filename)
     lua_getglobal(luastate, "setup");
 
     /* register functions common to all */
-    LogLuaRegisterFunctions(luastate);
+    LuaRegisterFunctions(luastate);
     /* unconditionally register http function. They will only work
      * if the tx is registered in the state at runtime though. */
     LuaRegisterHttpFunctions(luastate);

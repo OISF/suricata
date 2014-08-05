@@ -29,11 +29,11 @@
 int LuaCallbackError(lua_State *luastate, const char *msg);
 const char *LuaGetStringArgument(lua_State *luastate, int argc);
 
-void LogLuaPushTableKeyValueInt(lua_State *luastate, const char *key, int value);
-void LogLuaPushTableKeyValueString(lua_State *luastate, const char *key, const char *value);
-void LogLuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8_t *value, size_t len);
+void LuaPushTableKeyValueInt(lua_State *luastate, const char *key, int value);
+void LuaPushTableKeyValueString(lua_State *luastate, const char *key, const char *value);
+void LuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8_t *value, size_t len);
 
-int LogLuaRegisterFunctions(lua_State *luastate);
+int LuaRegisterFunctions(lua_State *luastate);
 
 #endif /* HAVE_LUA */
 
