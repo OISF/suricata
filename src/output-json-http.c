@@ -178,23 +178,16 @@ struct {
     { "www_authenticate", "www-authenticate", 0 },
 };
 
-
-/* JSON format logging */
-static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx, uint64_t tx_id)
+void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
 {
-    LogHttpFileCtx *http_ctx = aft->httplog_ctx;
-    json_t *hjs = json_object();
-    if (hjs == NULL) {
-        return;
-    }
-
     char *c;
+
     /* hostname */
     if (tx->request_hostname != NULL)
     {
         c = bstr_util_strdup_to_c(tx->request_hostname);
         if (c != NULL) {
-            json_object_set_new(hjs, "hostname", json_string(c));
+            json_object_set_new(js, "hostname", json_string(c));
             SCFree(c);
         }
     }
@@ -204,7 +197,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx, ui
     {
         c = bstr_util_strdup_to_c(tx->request_uri);
         if (c != NULL) {
-            json_object_set_new(hjs, "url", json_string(c));
+            json_object_set_new(js, "url", json_string(c));
             SCFree(c);
         }
     }
@@ -217,7 +210,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx, ui
     if (h_user_agent != NULL) {
         c = bstr_util_strdup_to_c(h_user_agent->value);
         if (c != NULL) {
-            json_object_set_new(hjs, "http_user_agent", json_string(c));
+            json_object_set_new(js, "http_user_agent", json_string(c));
             SCFree(c);
         }
     }
@@ -230,7 +223,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx, ui
     if (h_x_forwarded_for != NULL) {
         c = bstr_util_strdup_to_c(h_x_forwarded_for->value);
         if (c != NULL) {
-            json_object_set_new(hjs, "xff", json_string(c));
+            json_object_set_new(js, "xff", json_string(c));
             SCFree(c);
         }
     }
@@ -247,106 +240,126 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx, ui
             p = strchr(c, ';');
             if (p != NULL)
                 *p = '\0';
-            json_object_set_new(hjs, "http_content_type", json_string(c));
+            json_object_set_new(js, "http_content_type", json_string(c));
+            SCFree(c);
+        }
+    }
+}
+
+static void JsonHttpLogJSONCustom(LogHttpFileCtx *http_ctx, json_t *js, htp_tx_t *tx)
+{
+    char *c;
+    HttpField f;
+
+    for (f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++)
+    {
+        if ((http_ctx->fields & (1ULL<<f)) != 0)
+        {
+            /* prevent logging a field twice if extended logging is
+                enabled */
+            if (((http_ctx->flags & LOG_HTTP_EXTENDED) == 0) ||
+                ((http_ctx->flags & LOG_HTTP_EXTENDED) !=
+                      (http_fields[f].flags & LOG_HTTP_EXTENDED)))
+            {
+                htp_header_t *h_field = NULL;
+                if ((http_fields[f].flags & LOG_HTTP_REQUEST) != 0)
+                {
+                    if (tx->request_headers != NULL) {
+                        h_field = htp_table_get_c(tx->request_headers,
+                                                  http_fields[f].htp_field);
+                    }
+                } else {
+                    if (tx->response_headers != NULL) {
+                        h_field = htp_table_get_c(tx->response_headers,
+                                                  http_fields[f].htp_field);
+                    }
+                }
+                if (h_field != NULL) {
+                    c = bstr_util_strdup_to_c(h_field->value);
+                    if (c != NULL) {
+                        json_object_set_new(js,
+                                http_fields[f].config_field,
+                                json_string(c));
+                        SCFree(c);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
+{
+    char *c;
+
+    /* referer */
+    htp_header_t *h_referer = NULL;
+    if (tx->request_headers != NULL) {
+        h_referer = htp_table_get_c(tx->request_headers, "referer");
+    }
+    if (h_referer != NULL) {
+        c = bstr_util_strdup_to_c(h_referer->value);
+        if (c != NULL) {
+            json_object_set_new(js, "http_refer", json_string(c));
             SCFree(c);
         }
     }
 
+    /* method */
+    if (tx->request_method != NULL) {
+        c = bstr_util_strdup_to_c(tx->request_method);
+        if (c != NULL) {
+            json_object_set_new(js, "http_method", json_string(c));
+            SCFree(c);
+        }
+    }
+
+    /* protocol */
+    if (tx->request_protocol != NULL) {
+        c = bstr_util_strdup_to_c(tx->request_protocol);
+        if (c != NULL) {
+            json_object_set_new(js, "protocol", json_string(c));
+            SCFree(c);
+        }
+    }
+
+    /* response status */
+    if (tx->response_status != NULL) {
+        c = bstr_util_strdup_to_c(tx->response_status);
+        if (c != NULL) {
+            json_object_set_new(js, "status", json_string(c));
+            SCFree(c);
+        }
+
+        htp_header_t *h_location = htp_table_get_c(tx->response_headers, "location");
+        if (h_location != NULL) {
+            c = bstr_util_strdup_to_c(h_location->value);
+            if (c != NULL) {
+                json_object_set_new(js, "redirect", json_string(c));
+                SCFree(c);
+            }
+        }
+    }
+
+    /* length */
+    json_object_set_new(js, "length", json_integer(tx->response_message_len));
+}
+
+/* JSON format logging */
+static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx, uint64_t tx_id)
+{
+    LogHttpFileCtx *http_ctx = aft->httplog_ctx;
+    json_t *hjs = json_object();
+    if (hjs == NULL) {
+        return;
+    }
+
+    JsonHttpLogJSONBasic(hjs, tx);
     /* log custom fields if configured */
     if (http_ctx->fields != 0)
-    {
-        HttpField f;
-        for (f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++)
-        {
-            if ((http_ctx->fields & (1ULL<<f)) != 0)
-            {
-                /* prevent logging a field twice if extended logging is
-                   enabled */
-                if (((http_ctx->flags & LOG_HTTP_EXTENDED) == 0) ||
-                    ((http_ctx->flags & LOG_HTTP_EXTENDED) !=
-                          (http_fields[f].flags & LOG_HTTP_EXTENDED)))
-                {
-                    htp_header_t *h_field = NULL;
-                    if ((http_fields[f].flags & LOG_HTTP_REQUEST) != 0)
-                    {
-                        if (tx->request_headers != NULL) {
-                            h_field = htp_table_get_c(tx->request_headers,
-                                                      http_fields[f].htp_field);
-                        }
-                    } else {
-                        if (tx->response_headers != NULL) {
-                            h_field = htp_table_get_c(tx->response_headers,
-                                                      http_fields[f].htp_field);
-                        }
-                    }
-                    if (h_field != NULL) {
-                        c = bstr_util_strdup_to_c(h_field->value);
-                        if (c != NULL) {
-                            json_object_set_new(hjs,
-                                    http_fields[f].config_field,
-                                    json_string(c));
-                            SCFree(c);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if (http_ctx->flags & LOG_HTTP_EXTENDED) {
-
-        /* referer */
-        htp_header_t *h_referer = NULL;
-        if (tx->request_headers != NULL) {
-            h_referer = htp_table_get_c(tx->request_headers, "referer");
-        }
-        if (h_referer != NULL) {
-            c = bstr_util_strdup_to_c(h_referer->value);
-            if (c != NULL) {
-                json_object_set_new(hjs, "http_refer", json_string(c));
-                SCFree(c);
-            }
-        }
-
-        /* method */
-        if (tx->request_method != NULL) {
-            c = bstr_util_strdup_to_c(tx->request_method);
-            if (c != NULL) {
-                json_object_set_new(hjs, "http_method", json_string(c));
-                SCFree(c);
-            }
-        }
-
-        /* protocol */
-        if (tx->request_protocol != NULL) {
-            c = bstr_util_strdup_to_c(tx->request_protocol);
-            if (c != NULL) {
-                json_object_set_new(hjs, "protocol", json_string(c));
-                SCFree(c);
-            }
-        }
-
-        /* response status */
-        if (tx->response_status != NULL) {
-            c = bstr_util_strdup_to_c(tx->response_status);
-            if (c != NULL) {
-                json_object_set_new(hjs, "status", json_string(c));
-                SCFree(c);
-            }
-
-            htp_header_t *h_location = htp_table_get_c(tx->response_headers, "location");
-            if (h_location != NULL) {
-                c = bstr_util_strdup_to_c(h_location->value);
-                if (c != NULL) {
-                    json_object_set_new(hjs, "redirect", json_string(c));
-                    SCFree(c);
-                }
-            }
-        }
-
-        /* length */
-        json_object_set_new(hjs, "length", json_integer(tx->response_message_len));
-    }
+        JsonHttpLogJSONCustom(http_ctx, hjs, tx);
+    if (http_ctx->flags & LOG_HTTP_EXTENDED)
+        JsonHttpLogJSONExtended(hjs, tx);
 
     /* tx id for correlation with alerts */
     json_object_set_new(hjs, "tx_id", json_integer(tx_id));
