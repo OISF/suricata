@@ -212,7 +212,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 IPV6OptHAO *hao = NULL;
                 IPV6OptRA *ra = NULL;
                 IPV6OptJumbo *jumbo = NULL;
-                uint8_t optslen = 0;
+                uint16_t optslen = 0;
 
                 IPV6_SET_L4PROTO(p,nh);
                 hdrextlen =  (*(pkt+1) + 1) << 3;
