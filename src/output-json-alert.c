@@ -49,6 +49,7 @@
 
 #include "output.h"
 #include "output-json.h"
+#include "output-json-http.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -66,6 +67,7 @@
 #define LOG_JSON_PAYLOAD 1
 #define LOG_JSON_PACKET 2
 #define LOG_JSON_PAYLOAD_BASE64 4
+#define LOG_JSON_HTTP 5
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -79,6 +81,7 @@ typedef struct JsonAlertLogThread_ {
     LogFileCtx* file_ctx;
     MemBuffer *json_buffer;
     MemBuffer *payload_buffer;
+    AlertJsonOutputCtx* json_output_ctx;
 } JsonAlertLogThread;
 
 /* Callback function to pack payload contents from a stream into a buffer
@@ -96,9 +99,32 @@ static int AlertJsonPrintStreamSegmentCallback(const Packet *p, void *data, uint
 /** Handle the case where no JSON support is compiled in.
  *
  */
+static void AlertJsonHttp(const Flow *f, json_t *js)
+{
+    HtpState *htp_state = (HtpState *)f->alstate;
+    if (htp_state) {
+        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
+
+        if (tx) {
+            json_t *hjs = json_object();
+            if (unlikely(hjs == NULL))
+                return;
+
+            JsonHttpLogJSONBasic(hjs, tx);
+            JsonHttpLogJSONExtended(hjs, tx);
+
+            json_object_set_new(js, "http", hjs);
+        }
+    }
+
+    return;
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *payload = aft->payload_buffer;
+    AlertJsonOutputCtx *json_output_ctx = aft->json_output_ctx;
 
     int i;
 
@@ -145,6 +171,19 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         /* alert */
         json_object_set_new(js, "alert", ajs);
+
+        if (json_output_ctx->flags & LOG_JSON_HTTP) {
+            if (p->flow != NULL) {
+                FLOWLOCK_RDLOCK(p->flow);
+                uint16_t proto = FlowGetAppProtocol(p->flow);
+
+                /* http alert */
+                if (proto == ALPROTO_HTTP)
+                    AlertJsonHttp(p->flow, js);
+
+                FLOWLOCK_UNLOCK(p->flow);
+            }
+        }
 
         /* payload */
         if (aft->file_ctx->flags & (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64)) {
@@ -336,6 +375,7 @@ static TmEcode JsonAlertLogThreadInit(ThreadVars *t, void *initdata, void **data
     /** Use the Output Context (file pointer and mutex) */
     AlertJsonOutputCtx *json_output_ctx = ((OutputCtx *)initdata)->data;
     aft->file_ctx = json_output_ctx->file_ctx;
+    aft->json_output_ctx = json_output_ctx;
 
     *data = (void *)aft;
     return TM_ECODE_OK;
@@ -433,7 +473,13 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         const char *payload = ConfNodeLookupChildValue(conf, "payload");
         const char *packet  = ConfNodeLookupChildValue(conf, "packet");
         const char *payload_printable = ConfNodeLookupChildValue(conf, "payload-printable");
+        const char *http = ConfNodeLookupChildValue(conf, "http");
 
+        if (http != NULL) {
+            if (ConfValIsTrue(http)) {
+                json_output_ctx->flags |= LOG_JSON_HTTP;
+            }
+        }
         if (payload_printable != NULL) {
             if (ConfValIsTrue(payload_printable)) {
                 json_output_ctx->file_ctx->flags |= LOG_JSON_PAYLOAD;
