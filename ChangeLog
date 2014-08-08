@@ -1,3 +1,11 @@
+2.0.3 -- 2014-08-08
+
+Bug #1236: fix potential crash in http parsing
+Bug #1244: ipv6 defrag issue
+Bug #1238: Possible evasion in stream-tcp-reassemble.c
+Bug #1221: lowercase conversion table missing last value
+Support #1207: Cannot compile on CentOS 5 x64 with --enable-profiling
+
 2.0.2 -- 2014-06-25
 
 Bug #1098: http_raw_uri with relative pcre parsing issue
