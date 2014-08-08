@@ -49,6 +49,7 @@
 
 #include "output.h"
 #include "output-json.h"
+#include "output-json-http.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -66,6 +67,7 @@
 #define LOG_JSON_PAYLOAD 1
 #define LOG_JSON_PACKET 2
 #define LOG_JSON_PAYLOAD_BASE64 4
+#define LOG_JSON_HTTP 5
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -75,6 +77,10 @@ typedef struct JsonAlertLogThread_ {
     MemBuffer *json_buffer;
     MemBuffer *payload_buffer;
 } JsonAlertLogThread;
+
+typedef struct AlertJsonOutputCtx_ {
+    LogFileCtx* file_ctx;
+} AlertJsonOutputCtx;
 
 /* Callback function to pack payload contents from a stream into a buffer
  * so we can report them in JSON output. */
@@ -91,6 +97,28 @@ static int AlertJsonPrintStreamSegmentCallback(const Packet *p, void *data, uint
 /** Handle the case where no JSON support is compiled in.
  *
  */
+static void AlertJsonHttp(const Flow *f, json_t *js)
+{
+    HtpState *htp_state = (HtpState *)f->alstate;
+    if (htp_state) {
+        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
+
+        if (tx) {
+            json_t *hjs = json_object();
+            if (unlikely(hjs == NULL))
+                return;
+
+            JsonHttpLogJSONBasic(hjs, tx);
+            JsonHttpLogJSONExtended(hjs, tx);
+
+            json_object_set_new(js, "http", hjs);
+        }
+    }
+
+    return;
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *payload = aft->payload_buffer;
@@ -140,6 +168,17 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         /* alert */
         json_object_set_new(js, "alert", ajs);
+
+        if (p->flow != NULL) {
+            FLOWLOCK_RDLOCK(p->flow);
+            uint16_t proto = FlowGetAppProtocol(p->flow);
+
+            /* http alert */
+            if (aft->file_ctx->flags & LOG_JSON_HTTP && proto == ALPROTO_HTTP)
+                AlertJsonHttp(p->flow, js);
+
+            FLOWLOCK_UNLOCK(p->flow);
+        }
 
         /* payload */
         if (aft->file_ctx->flags & (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64)) {
@@ -328,8 +367,9 @@ static TmEcode JsonAlertLogThreadInit(ThreadVars *t, void *initdata, void **data
         return TM_ECODE_FAILED;
     }
 
-    /** Use the Ouptut Context (file pointer and mutex) */
-    aft->file_ctx = ((OutputCtx *)initdata)->data;
+    /** Use the Output Context (file pointer and mutex) */
+    AlertJsonOutputCtx *json_output_ctx = ((OutputCtx *)initdata)->data;
+    aft->file_ctx = json_output_ctx->file_ctx;
 
     *data = (void *)aft;
     return TM_ECODE_OK;
@@ -363,6 +403,12 @@ static void JsonAlertLogDeInitCtx(OutputCtx *output_ctx)
 static void JsonAlertLogDeInitCtxSub(OutputCtx *output_ctx)
 {
     SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
+
+    AlertJsonOutputCtx *json_output_ctx = (AlertJsonOutputCtx *) output_ctx->data;
+
+    if (json_output_ctx != NULL) {
+        SCFree(json_output_ctx);
+    }
     SCFree(output_ctx);
 }
 
@@ -408,29 +454,44 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     if (unlikely(output_ctx == NULL))
         return NULL;
 
-    if (conf) {
+    AlertJsonOutputCtx *json_output_ctx = SCMalloc(sizeof(AlertJsonOutputCtx));
+    if (unlikely(json_output_ctx == NULL)) {
+        SCFree(output_ctx);
+        return NULL;
+    }
+
+    memset(json_output_ctx, 0, sizeof(AlertJsonOutputCtx));
+    json_output_ctx->file_ctx = ajt->file_ctx;
+
+    if (conf != NULL) {
         const char *payload = ConfNodeLookupChildValue(conf, "payload");
         const char *packet  = ConfNodeLookupChildValue(conf, "packet");
         const char *payload_printable = ConfNodeLookupChildValue(conf, "payload-printable");
+        const char *http = ConfNodeLookupChildValue(conf, "http");
 
+        if (http != NULL) {
+            if (ConfValIsTrue(http)) {
+                json_output_ctx->file_ctx->flags |= LOG_JSON_HTTP;
+            }
+        }
         if (payload_printable != NULL) {
             if (ConfValIsTrue(payload_printable)) {
-                ajt->file_ctx->flags |= LOG_JSON_PAYLOAD;
+                json_output_ctx->file_ctx->flags |= LOG_JSON_PAYLOAD;
             }
         }
         if (payload != NULL) {
             if (ConfValIsTrue(payload)) {
-                ajt->file_ctx->flags |= LOG_JSON_PAYLOAD_BASE64;
+                json_output_ctx->file_ctx->flags |= LOG_JSON_PAYLOAD_BASE64;
             }
         }
         if (packet != NULL) {
             if (ConfValIsTrue(packet)) {
-                ajt->file_ctx->flags |= LOG_JSON_PACKET;
+                json_output_ctx->file_ctx->flags |= LOG_JSON_PACKET;
             }
         }
     }
 
-    output_ctx->data = ajt->file_ctx;
+    output_ctx->data = json_output_ctx;
     output_ctx->DeInit = JsonAlertLogDeInitCtxSub;
 
     return output_ctx;
