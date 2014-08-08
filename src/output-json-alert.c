@@ -186,7 +186,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         }
 
         /* payload */
-        if (aft->file_ctx->flags & (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64)) {
+        if (json_output_ctx->flags & (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64)) {
             int stream = (p->proto == IPPROTO_TCP) ?
                          (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH) ?
                          1 : 0) : 0;
@@ -207,14 +207,14 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                                     AlertJsonPrintStreamSegmentCallback,
                                     (void *)payload);
 
-                if (aft->file_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
+                if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
                     unsigned long len = JSON_STREAM_BUFFER_SIZE * 2;
                     unsigned char encoded[len];
                     Base64Encode((unsigned char *)payload, payload->offset, encoded, &len);
                     json_object_set_new(js, "payload", json_string((char *)encoded));
                 }
 
-                if (aft->file_ctx->flags & LOG_JSON_PAYLOAD) {
+                if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
                     json_object_set_new(js, "payload_printable",
                                         json_string((char *)payload->buffer));
                 }
@@ -227,14 +227,14 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                                      p->payload_len + 1,
                                      p->payload, p->payload_len);
 
-                if (aft->file_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
+                if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
                     unsigned long len = sizeof(packet_buf) * 2;
                     unsigned char encoded[len];
                     Base64Encode(packet_buf, offset, encoded, &len);
                     json_object_set_new(js, "payload", json_string((char *)encoded));
                 }
 
-                if (aft->file_ctx->flags & LOG_JSON_PAYLOAD) {
+                if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
                     json_object_set_new(js, "payload_printable", json_string((char *)packet_buf));
                 }
             }
@@ -243,7 +243,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         }
 
         /* base64-encoded full packet */
-        if (aft->file_ctx->flags & LOG_JSON_PACKET) {
+        if (json_output_ctx->flags & LOG_JSON_PACKET) {
             unsigned long len = GET_PKT_LEN(p) * 2;
             unsigned char encoded_packet[len];
             Base64Encode((unsigned char*) GET_PKT_DATA(p), GET_PKT_LEN(p), encoded_packet, &len);
@@ -482,17 +482,17 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         }
         if (payload_printable != NULL) {
             if (ConfValIsTrue(payload_printable)) {
-                json_output_ctx->file_ctx->flags |= LOG_JSON_PAYLOAD;
+                json_output_ctx->flags |= LOG_JSON_PAYLOAD;
             }
         }
         if (payload != NULL) {
             if (ConfValIsTrue(payload)) {
-                json_output_ctx->file_ctx->flags |= LOG_JSON_PAYLOAD_BASE64;
+                json_output_ctx->flags |= LOG_JSON_PAYLOAD_BASE64;
             }
         }
         if (packet != NULL) {
             if (ConfValIsTrue(packet)) {
-                json_output_ctx->file_ctx->flags |= LOG_JSON_PACKET;
+                json_output_ctx->flags |= LOG_JSON_PACKET;
             }
         }
     }
