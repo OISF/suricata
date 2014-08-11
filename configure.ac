@@ -1496,7 +1496,16 @@
         if test "$with_liblua_includes" != "no"; then
             CPPFLAGS="${CPPFLAGS} -I${with_liblua_includes}"
         else
-            PKG_CHECK_MODULES([LUA], [${LUA_PC_NAME}], LUA="no")
+            # lua lua51 lua5.1 lua-5.1
+            PKG_CHECK_MODULES([LUA], [lua], [LUA="yes"], [
+                PKG_CHECK_MODULES([LUA], [lua5.1], [LUA="yes"], [
+                    PKG_CHECK_MODULES([LUA], [lua-5.1], [LUA="yes"], [
+                        PKG_CHECK_MODULES([LUA], [lua51], [LUA="yes"], [
+                            LUA="no"
+                        ])
+                    ])
+                ])
+            ])
             CPPFLAGS="${CPPFLAGS} ${LUA_CFLAGS}"
         fi
 
@@ -1504,25 +1513,33 @@
         if test "$LUA" = "yes"; then
             if test "$with_liblua_libraries" != "no"; then
                 LDFLAGS="${LDFLAGS}  -L${with_liblua_libraries}"
+                AC_CHECK_LIB(${LUA_LIB_NAME}, luaL_openlibs,, LUA="no")
+                if test "$LUA" = "no"; then
+                    echo
+                    echo "   ERROR!  liblua library not found, go get it"
+                    echo "   from http://lua.org/index.html or your distribution:"
+                    echo
+                    echo "   Ubuntu: apt-get install liblua-5.1-dev"
+                    echo "   CentOS/Fedora: yum install lua-devel"
+                    echo
+                    echo "   If you installed software in a non-standard prefix"
+                    echo "   consider adjusting the PKG_CONFIG_PATH environment variable"
+                    echo "   or use --with-liblua-libraries configure option."
+                    echo
+                    exit 1
+                fi
             else
-                PKG_CHECK_MODULES([LUA], [${LUA_PC_NAME}])
+                # lua lua51 lua5.1 lua-5.1
+                PKG_CHECK_MODULES([LUA], [lua], [LUA="yes"], [
+                    PKG_CHECK_MODULES([LUA], [lua5.1], [LUA="yes"], [
+                        PKG_CHECK_MODULES([LUA], [lua-5.1], [LUA="yes"], [
+                            PKG_CHECK_MODULES([LUA], [lua51], [LUA="yes"], [
+                                LUA="no"
+                            ])
+                        ])
+                    ])
+                ])
                 LDFLAGS="${LDFLAGS} ${LUA_LIBS}"
-            fi
-
-            AC_CHECK_LIB(${LUA_LIB_NAME}, luaL_openlibs,, LUA="no")
-
-            if test "$LUA" = "no"; then
-                echo
-                echo "   ERROR!  liblua library not found, go get it"
-                echo "   from http://lua.org/index.html or your distribution:"
-                echo
-                echo "   Ubuntu: apt-get install liblua-5.1-dev"
-                echo
-                echo "   If you installed software in a non-standard prefix"
-                echo "   consider adjusting the PKG_CONFIG_PATH environment variable"
-                echo "   or use --with-liblua-libraries configure option."
-                echo
-                exit 1
             fi
 
             AC_DEFINE([HAVE_LUA],[1],[liblua available])
@@ -1533,6 +1550,7 @@
                 echo "   from http://lua.org/index.html or your distribution:"
                 echo
                 echo "   Ubuntu: apt-get install liblua-5.1-dev"
+                echo "   CentOS/Fedora: yum install lua-devel"
                 echo
                 echo "   If you installed software in a non-standard prefix"
                 echo "   consider adjusting the PKG_CONFIG_PATH environment variable"
