@@ -1394,7 +1394,6 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
     output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
         goto error;
-    output_ctx->data = file_ctx;
 
     Unified2AlertFileCtx *unified2alert_ctx = SCMalloc(sizeof(Unified2AlertFileCtx));
     if (unlikely(unified2alert_ctx == NULL)) {

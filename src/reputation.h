@@ -88,7 +88,7 @@ typedef struct Reputation_ {
 /* flags for transactions */
 #define TRANSACTION_FLAG_NEEDSYNC 0x01 /**< We will apply the transaction only if necesary */
 #define TRANSACTION_FLAG_INCS     0x02 /**< We will increment only if necesary */
-#define TRANSACTION_FLAG_DECS     0x03 /**< We will decrement only if necesary */
+#define TRANSACTION_FLAG_DECS     0x04 /**< We will decrement only if necesary */
 
 /* transaction for feedback */
 typedef struct ReputationTransaction_ {
