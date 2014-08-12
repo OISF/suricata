@@ -500,9 +500,7 @@ static int AlertDebugLogCondition(ThreadVars *tv, const Packet *p)
 
 static int AlertDebugLogLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
-    if (PKT_IS_IPV4(p)) {
-        return AlertDebugLogger(tv, p, thread_data);
-    } else if (PKT_IS_IPV6(p)) {
+    if (PKT_IS_IPV4(p) || PKT_IS_IPV6(p)) {
         return AlertDebugLogger(tv, p, thread_data);
     } else if (p->events.cnt > 0) {
         return AlertDebugLogDecoderEvent(tv, p, thread_data);
