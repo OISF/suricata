@@ -434,6 +434,7 @@ static TmModule *pkt_logger_module = NULL;
 static TmModule *tx_logger_module = NULL;
 static TmModule *file_logger_module = NULL;
 static TmModule *filedata_logger_module = NULL;
+static TmModule *streaming_logger_module = NULL;
 
 /**
  * Cleanup the run mode.
@@ -585,6 +586,28 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
             TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
             SCLogDebug("__filedata_logger__ added");
         }
+    } else if (module->StreamingLogFunc) {
+        SCLogDebug("%s is a streaming logger", module->name);
+        OutputRegisterStreamingLogger(module->name, module->StreamingLogFunc,
+                output_ctx, module->stream_type);
+
+        /* need one instance of the streaming logger module */
+        if (streaming_logger_module == NULL) {
+            streaming_logger_module = TmModuleGetByName("__streaming_logger__");
+            if (streaming_logger_module == NULL) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "TmModuleGetByName for __streaming_logger__ failed");
+                exit(EXIT_FAILURE);
+            }
+
+            RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
+            if (unlikely(runmode_output == NULL))
+                return;
+            runmode_output->tm_module = streaming_logger_module;
+            runmode_output->output_ctx = NULL;
+            TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
+            SCLogDebug("__streaming_logger__ added");
+        }
     } else {
         SCLogDebug("%s is a regular logger", module->name);
 
@@ -650,6 +673,14 @@ void RunModeInitializeOutputs(void)
                     "Eve-log support not compiled in. Reconfigure/"
                     "recompile with libjansson and its development "
                     "files installed to add eve-log support.");
+            continue;
+#endif
+        } else if (strcmp(output->val, "lua") == 0) {
+#ifndef HAVE_LUA
+            SCLogWarning(SC_ERR_NOT_SUPPORTED,
+                    "lua support not compiled in. Reconfigure/"
+                    "recompile with lua(jit) and its development "
+                    "files installed to add lua support.");
             continue;
 #endif
         }
@@ -721,6 +752,37 @@ void RunModeInitializeOutputs(void)
              * main output ctx from which the sub-modules share the
              * LogFileCtx */
             AddOutputToFreeList(module, output_ctx);
+
+        } else if (strcmp(output->val, "lua") == 0) {
+            SCLogDebug("handle lua");
+
+            ConfNode *scripts = ConfNodeLookupChild(output_config, "scripts");
+            BUG_ON(scripts == NULL); //TODO
+
+            OutputModule *m;
+            TAILQ_FOREACH(m, &output_ctx->submodules, entries) {
+                SCLogDebug("m %p %s:%s", m, m->name, m->conf_name);
+
+                ConfNode *script = NULL;
+                TAILQ_FOREACH(script, &scripts->head, next) {
+                    SCLogDebug("script %s", script->val);
+                    if (strcmp(script->val, m->conf_name) == 0) {
+                        break;
+                    }
+                }
+                BUG_ON(script == NULL);
+
+                /* pass on parent output_ctx */
+                OutputCtx *sub_output_ctx =
+                    m->InitSubFunc(script, output_ctx);
+                if (sub_output_ctx == NULL) {
+                    SCLogInfo("sub_output_ctx NULL, skipping");
+                    continue;
+                }
+
+                SetupOutput(m->name, m, sub_output_ctx);
+            }
+
         } else {
             AddOutputToFreeList(module, output_ctx);
             SetupOutput(module->name, module, output_ctx);

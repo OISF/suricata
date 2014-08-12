@@ -35,6 +35,7 @@
 #include "output-file.h"
 #include "output-filedata.h"
 #include "output-flow.h"
+#include "output-streaming.h"
 
 typedef struct OutputModule_ {
     const char *name;
@@ -49,7 +50,9 @@ typedef struct OutputModule_ {
     FileLogger FileLogFunc;
     FiledataLogger FiledataLogFunc;
     FlowLogger FlowLogFunc;
+    StreamingLogger StreamingLogFunc;
     AppProto alproto;
+    enum OutputStreamingType stream_type;
 
     TAILQ_ENTRY(OutputModule_) entries;
 } OutputModule;
@@ -87,6 +90,13 @@ void OutputRegisterFlowModule(const char *name, const char *conf_name,
 void OutputRegisterFlowSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
     FlowLogger FlowLogFunc);
+
+void OutputRegisterStreamingModule(const char *name, const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *), StreamingLogger StreamingLogFunc,
+    enum OutputStreamingType stream_type);
+void OutputRegisterStreamingSubModule(const char *parent_name, const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
+    StreamingLogger StreamingLogFunc, enum OutputStreamingType stream_type);
 
 OutputModule *OutputGetModuleByConfName(const char *name);
 void OutputDeregisterAll(void);
