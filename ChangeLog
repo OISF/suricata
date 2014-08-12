@@ -1,3 +1,12 @@
+2.1beta1 -- 2014-08-12
+
+Feature #1155: Log packet payloads in eve alerts
+Feature #1208: JSON Output Enhancement - Include Payload(s)
+Feature #1248: flow/connection logging
+Feature #1258: json: include HTTP info with Alert output
+Optimization #1039: Packetpool should be a stack
+Optimization #1241: pcap recording: record per thread
+
 2.0.3 -- 2014-08-08
 
 Bug #1236: fix potential crash in http parsing
