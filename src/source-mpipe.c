@@ -540,7 +540,7 @@ static TmEcode ReceiveMpipeAllocatePacketBuffers(void)
     unsigned long available_pagesizes = tmc_alloc_get_pagesizes();
 
     void *packet_page = NULL;
-    size_t tile_vhuge_size;
+    size_t tile_vhuge_size = 64 * 1024;
 
     /* Try the largest available page size first to see if any
      * pages of that size can be allocated. */
