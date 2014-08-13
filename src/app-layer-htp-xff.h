@@ -18,6 +18,7 @@
 /**
  * \file
  *
+ * \author Ignacio Sanchez <sanchezmartin.ji@gmail.com>
  * \author Duarte Silva <duarte.silva@serializing.me>
  */
 
