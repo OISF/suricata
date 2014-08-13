@@ -396,23 +396,9 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         SCLogDebug("getting rid of root pkt... alloc'd %s", p->root->flags & PKT_ALLOC ? "true" : "false");
 
         FlowDeReference(&p->root->flow);
-        /* if p->root uses extended data, free them */
-        if (p->root->ext_pkt) {
-            if (!(p->root->flags & PKT_ZERO_COPY)) {
-                SCFree(p->root->ext_pkt);
-            }
-            p->root->ext_pkt = NULL;
-        }
+
         p->root->ReleasePacket(p->root);
         p->root = NULL;
-    }
-
-    /* if p uses extended data, free them */
-    if (p->ext_pkt) {
-        if (!(p->flags & PKT_ZERO_COPY)) {
-            SCFree(p->ext_pkt);
-        }
-        p->ext_pkt = NULL;
     }
 
     PACKET_PROFILING_END(p);

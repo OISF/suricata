@@ -623,6 +623,8 @@ typedef struct DecodeThreadVars_
         (p)->level4_comp_csum = -1;   \
     } while (0)
 
+void PacketFreeExtData(Packet *p);
+
 /**
  *  \brief Initialize a packet structure for use.
  */
@@ -662,6 +664,7 @@ typedef struct DecodeThreadVars_
         (p)->dp = 0;                            \
         (p)->proto = 0;                         \
         (p)->recursion_level = 0;               \
+        PacketFreeExtData(p);                   \
         (p)->flags = (p)->flags & PKT_ALLOC;    \
         (p)->flowflags = 0;                     \
         (p)->pkt_src = 0;                       \
@@ -733,6 +736,7 @@ typedef struct DecodeThreadVars_
         if ((p)->pktvar != NULL) {              \
             PktVarFree((p)->pktvar);            \
         }                                       \
+        PacketFreeExtData(p);                   \
         SCMutexDestroy(&(p)->tunnel_mutex);     \
         AppLayerDecoderEventsFreeEvents(&(p)->app_layer_events); \
         PACKET_PROFILING_RESET((p));            \
