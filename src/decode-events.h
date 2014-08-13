@@ -228,6 +228,11 @@ enum {
     IPV6_IN_IPV6_PKT_TOO_SMALL,
     IPV6_IN_IPV6_WRONG_IP_VER,
 
+    /* MPLS decode events. */
+    MPLS_BAD_LABEL_ROUTER_ALERT,
+    MPLS_BAD_LABEL_IMPLICIT_NULL,
+    MPLS_BAD_LABEL_RESERVED,
+
     /* should always be last! */
     DECODE_EVENT_MAX,
 };

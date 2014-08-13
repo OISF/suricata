@@ -29,4 +29,6 @@
 #define ETHERNET_TYPE_MPLS_UNICAST   0x8847
 #define ETHERNET_TYPE_MPLS_MULTICAST 0x8848
 
+void DecodeMPLSRegisterTests(void);
+
 #endif /* !__DECODE_MPLS_H__ */
