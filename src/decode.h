@@ -623,7 +623,15 @@ typedef struct DecodeThreadVars_
         (p)->level4_comp_csum = -1;   \
     } while (0)
 
-void PacketFreeExtData(Packet *p);
+/* if p uses extended data, free them */
+#define PACKET_FREE_EXTDATA(p) do {                 \
+        if ((p)->ext_pkt) {                         \
+            if (!((p)->flags & PKT_ZERO_COPY)) {    \
+                SCFree((p)->ext_pkt);               \
+            }                                       \
+            (p)->ext_pkt = NULL;                    \
+        }                                           \
+    } while(0)
 
 /**
  *  \brief Initialize a packet structure for use.
@@ -664,7 +672,7 @@ void PacketFreeExtData(Packet *p);
         (p)->dp = 0;                            \
         (p)->proto = 0;                         \
         (p)->recursion_level = 0;               \
-        PacketFreeExtData(p);                   \
+        PACKET_FREE_EXTDATA((p));               \
         (p)->flags = (p)->flags & PKT_ALLOC;    \
         (p)->flowflags = 0;                     \
         (p)->pkt_src = 0;                       \
@@ -736,7 +744,7 @@ void PacketFreeExtData(Packet *p);
         if ((p)->pktvar != NULL) {              \
             PktVarFree((p)->pktvar);            \
         }                                       \
-        PacketFreeExtData(p);                   \
+        PACKET_FREE_EXTDATA((p));               \
         SCMutexDestroy(&(p)->tunnel_mutex);     \
         AppLayerDecoderEventsFreeEvents(&(p)->app_layer_events); \
         PACKET_PROFILING_RESET((p));            \
