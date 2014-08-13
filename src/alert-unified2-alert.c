@@ -57,6 +57,7 @@
 
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
+#include "app-layer-htp-xff.h"
 #include "app-layer.h"
 
 #include "output.h"
@@ -193,10 +194,6 @@ typedef struct AlertUnified2Packet_ {
 #define UNIFIED2_ALERT_XFF_DEFAULT "X-Forwarded-For"
 /** Single XFF IP maximum length */
 #define UNIFIED2_ALERT_XFF_MAXLEN 46
-/** XFF header value minimal length */
-#define UNIFIED2_ALERT_XFF_CHAIN_MINLEN 7
-/** XFF header value maximum length */
-#define UNIFIED2_ALERT_XFF_CHAIN_MAXLEN 256
 
 typedef struct Unified2AlertFileCtx_ {
     LogFileCtx *file_ctx;
@@ -326,85 +323,6 @@ static int Unified2Write(Unified2AlertThread *aun)
 
     aun->unified2alert_ctx->file_ctx->size_current += aun->length;
     return 1;
-}
-
-static int GetXFFIPFromTx(const Packet *p, uint64_t tx_id, char *xff_header, char *dstbuf, int dstbuflen)
-{
-    uint8_t xff_chain[UNIFIED2_ALERT_XFF_CHAIN_MAXLEN];
-    HtpState *htp_state = NULL;
-    htp_tx_t *tx = NULL;
-    uint64_t total_txs = 0;
-
-    htp_state = (HtpState *)FlowGetAppState(p->flow);
-
-    if (htp_state == NULL) {
-        SCLogDebug("no http state, XFF IP cannot be retrieved");
-        return 0;
-    }
-
-    total_txs = AppLayerParserGetTxCnt(p->flow->proto, ALPROTO_HTTP, htp_state);
-    if (tx_id >= total_txs)
-        return 0;
-
-    tx = AppLayerParserGetTx(p->flow->proto, ALPROTO_HTTP, htp_state, tx_id);
-    if (tx == NULL) {
-        SCLogDebug("tx is NULL, XFF cannot be retrieved");
-        return 0;
-    }
-
-    htp_header_t *h_xff = NULL;
-    if (tx->request_headers != NULL) {
-        h_xff = htp_table_get_c(tx->request_headers, xff_header);
-    }
-
-    if (h_xff != NULL && bstr_len(h_xff->value) >= UNIFIED2_ALERT_XFF_CHAIN_MINLEN &&
-            bstr_len(h_xff->value) < UNIFIED2_ALERT_XFF_CHAIN_MAXLEN) {
-
-        memcpy(xff_chain, bstr_ptr(h_xff->value), bstr_len(h_xff->value));
-        xff_chain[bstr_len(h_xff->value)]=0;
-        /** Check for chained IP's separated by ", ", we will get the last one */
-        uint8_t *p_xff = memrchr(xff_chain, ' ', bstr_len(h_xff->value));
-        if (p_xff == NULL) {
-            p_xff = xff_chain;
-        } else {
-            p_xff++;
-        }
-        /** Sanity check on extracted IP for IPv4 and IPv6 */
-        uint32_t ip[4];
-        if ( inet_pton(AF_INET, (char *)p_xff, ip ) == 1 ||
-                inet_pton(AF_INET6, (char *)p_xff, ip ) == 1 ) {
-            strlcpy(dstbuf, (char *)p_xff, dstbuflen);
-            return 1; // OK
-        }
-    }
-    return 0;
-}
-
-/**
- *  \brief Function to return XFF IP if any...
- *  \retval 1 if the IP has been found and returned in dstbuf
- *  \retval 0 if the IP has not being found or error
- */
-static int GetXFFIP(const Packet *p, char *xff_header, char *dstbuf, int dstbuflen)
-{
-    HtpState *htp_state = NULL;
-    uint64_t tx_id = 0;
-    uint64_t total_txs = 0;
-
-    htp_state = (HtpState *)FlowGetAppState(p->flow);
-    if (htp_state == NULL) {
-        SCLogDebug("no http state, XFF IP cannot be retrieved");
-        goto end;
-    }
-
-    total_txs = AppLayerParserGetTxCnt(p->flow->proto, ALPROTO_HTTP, htp_state);
-    for (; tx_id < total_txs; tx_id++) {
-        if (GetXFFIPFromTx(p, tx_id, xff_header, dstbuf, dstbuflen) == 1)
-            return 1;
-    }
-
-end:
-    return 0; // Not found
 }
 
 int Unified2Condition(ThreadVars *tv, const Packet *p) {
