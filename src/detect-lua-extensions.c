@@ -63,6 +63,8 @@
 #ifdef HAVE_LUA
 
 #include "util-lua.h"
+#include "util-lua-common.h"
+#include "util-lua-http.h"
 
 static const char luaext_key_ld[] = "suricata:luajitdata";
 static const char luaext_key_det_ctx[] = "suricata:det_ctx";
@@ -605,6 +607,8 @@ int LuaRegisterExtensions(lua_State *lua_state)
     lua_pushcfunction(lua_state, LuaDecrFlowint);
     lua_setglobal(lua_state, "ScFlowintDecr");
 
+    LuaRegisterFunctions(lua_state);
+    LuaRegisterHttpFunctions(lua_state);
     return 0;
 }
 
