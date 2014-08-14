@@ -58,6 +58,8 @@
 #include "queue.h"
 #include "util-cpu.h"
 
+#include "app-layer-parser.h"
+
 #ifdef HAVE_LUA
 
 #include "util-lua.h"
@@ -569,6 +571,15 @@ void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld, DetectEngi
     lua_settable(lua_state, LUA_REGISTRYINDEX);
 
     LuaStateSetFlow(lua_state, f, flow_locked);
+
+    if (det_ctx->tx_id_set && flow_locked == LUA_FLOW_LOCKED_BY_PARENT) {
+        if (f && f->alstate) {
+            void *txptr = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, det_ctx->tx_id);
+            if (txptr) {
+                LuaStateSetTX(lua_state, txptr);
+            }
+        }
+    }
 }
 
 /**
