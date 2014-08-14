@@ -223,9 +223,6 @@ int DetectFileInspectHttp(ThreadVars *tv,
     else
         ffc = htp_state->files_ts;
 
-    /* inspect files for this transaction */
-    det_ctx->tx_id = (uint16_t)tx_id;
-
     int match = DetectFileInspect(tv, det_ctx, f, s, flags, ffc);
     if (match == 1) {
         r = DETECT_ENGINE_INSPECT_SIG_MATCH;

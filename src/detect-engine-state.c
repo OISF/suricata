@@ -295,6 +295,8 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             tx = AppLayerParserGetTx(f->proto, alproto, alstate, tx_id);
             if (tx == NULL)
                 continue;
+            det_ctx->tx_id = tx_id;
+            det_ctx->tx_id_set = 1;
             engine = app_inspection_engine[FlowGetProtoMapping(f->proto)][alproto][direction];
             inspect_flags = 0;
             while (engine != NULL) {
@@ -474,6 +476,8 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     SCMutexUnlock(&f->de_state_m);
 
  end:
+    det_ctx->tx_id = 0;
+    det_ctx->tx_id_set = 0;
     return alert_cnt ? 1:0;
 }
 
@@ -623,6 +627,8 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     }
                 }
 
+                det_ctx->tx_id = inspect_tx_id;
+                det_ctx->tx_id_set = 1;
                 engine = app_inspection_engine[FlowGetProtoMapping(f->proto)][alproto][(flags & STREAM_TOSERVER) ? 0 : 1];
                 inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id);
                 if (inspect_tx == NULL) {
@@ -765,6 +771,8 @@ end:
         DetectEngineStateReset(f->de_state, flags);
 
     SCMutexUnlock(&f->de_state_m);
+    det_ctx->tx_id = 0;
+    det_ctx->tx_id_set = 0;
     return;
 }
 
