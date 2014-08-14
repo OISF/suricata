@@ -1090,7 +1090,6 @@ static int FindUrlStrings(const char *line, uint32_t len,
                     } else {
                         SCFree(tempUrl);
                     }
-
                     /* Increment counter */
                     url->url_cnt++;
                 } else {
@@ -1120,12 +1119,14 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
     char *remainPtr, *tok;
     uint32_t tokLen;
 
-    MimeDecConfig *mdcfg = MimeDecGetConfig();
-    if (mdcfg != NULL && mdcfg->extract_urls) {
-        if ((state->stack != NULL) && (state->stack->top != NULL)) {
+    if ((state->stack != NULL) && (state->stack->top != NULL) &&
+        (state->stack->top->data != NULL)) {
+        MimeDecConfig *mdcfg = MimeDecGetConfig();
+        if (mdcfg != NULL && mdcfg->extract_urls) {
             MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
             /* If plain text or html, then look for URLs */
             if (((entity->ctnt_flags & CTNT_IS_TEXT) ||
+                (entity->ctnt_flags & CTNT_IS_MSG) ||
                 (entity->ctnt_flags & CTNT_IS_HTML)) &&
                 ((entity->ctnt_flags & CTNT_IS_ATTACHMENT) == 0)) {
 
@@ -1161,18 +1162,19 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
                     } while (tok != remainPtr && remainPtr - (char *) chunk < len);
                 }
             }
-        } else {
-            SCLogDebug("Error: Stack pointer missing");
         }
-    }
 
-    /* Now invoke callback */
-    if (state->dataChunkProcessor != NULL) {
-        ret = state->dataChunkProcessor(chunk, len, state);
-        if (ret != MIME_DEC_OK) {
-            SCLogDebug("Error: state->dataChunkProcessor() callback function"
-                    " failed");
+        /* Now invoke callback */
+        if (state->dataChunkProcessor != NULL) {
+            ret = state->dataChunkProcessor(chunk, len, state);
+            if (ret != MIME_DEC_OK) {
+                SCLogDebug("Error: state->dataChunkProcessor() callback function"
+                            " failed");
+            }
         }
+    } else {
+        SCLogDebug("Error: Stack pointer missing");
+        ret = MIME_DEC_ERR_DATA;
     }
 
     /* Reset data chunk buffer */
