@@ -156,8 +156,8 @@ detect-iprep.c detect-iprep.h \
 detect-isdataat.c detect-isdataat.h \
 detect-itype.c detect-itype.h \
 detect-l3proto.c detect-l3proto.h \
-detect-luajit.c detect-luajit.h \
-detect-luajit-extensions.c detect-luajit-extensions.h \
+detect-lua.c detect-lua.h \
+detect-lua-extensions.c detect-lua-extensions.h \
 detect-mark.c detect-mark.h \
 detect-metadata.c detect-metadata.h \
 detect-msg.c detect-msg.h \
@@ -211,6 +211,7 @@ log-file.c log-file.h \
 log-filestore.c log-filestore.h \
 log-httplog.c log-httplog.h \
 log-pcap.c log-pcap.h \
+log-tcp-data.c log-tcp-data.h \
 log-tlslog.c log-tlslog.h \
 output.c output.h \
 output-file.c output-file.h \
@@ -225,7 +226,9 @@ output-json-netflow.c output-json-netflow.h \
 output-json-http.c output-json-http.h \
 output-json-ssh.c output-json-ssh.h \
 output-json-tls.c output-json-tls.h \
+output-lua.c output-lua.h \
 output-packet.c output-packet.h \
+output-streaming.c output-streaming.h \
 output-tx.c output-tx.h \
 output-json.c output-json.h \
 packet-queue.c packet-queue.h \
@@ -315,6 +318,9 @@ util-ioctl.h util-ioctl.c \
 util-ip.h util-ip.c \
 util-logopenfile.h util-logopenfile.c \
 util-logopenfile-tile.h util-logopenfile-tile.c \
+util-lua.c util-lua.h \
+util-lua-common.c util-lua-common.h \
+util-lua-http.c util-lua-http.h \
 util-magic.c util-magic.h \
 util-memcmp.c util-memcmp.h \
 util-memcpy.h \

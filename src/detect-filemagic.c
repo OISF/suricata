@@ -309,7 +309,7 @@ static void *DetectFilemagicThreadInit(void *data)
 
     DetectFilemagicThreadData *t = SCMalloc(sizeof(DetectFilemagicThreadData));
     if (unlikely(t == NULL)) {
-        SCLogError(SC_ERR_LUAJIT_ERROR, "couldn't alloc ctx memory");
+        SCLogError(SC_ERR_MEM_ALLOC, "couldn't alloc ctx memory");
         return NULL;
     }
     memset(t, 0x00, sizeof(DetectFilemagicThreadData));

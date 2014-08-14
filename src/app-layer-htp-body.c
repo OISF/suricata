@@ -92,6 +92,7 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
         bd->len = len;
         bd->stream_offset = 0;
         bd->next = NULL;
+        bd->logged = 0;
 
         bd->data = HTPMalloc(len);
         if (bd->data == NULL) {
@@ -110,6 +111,7 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
         bd->len = len;
         bd->stream_offset = body->content_len_so_far;
         bd->next = NULL;
+        bd->logged = 0;
 
         bd->data = HTPMalloc(len);
         if (bd->data == NULL) {
