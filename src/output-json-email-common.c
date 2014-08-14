@@ -166,7 +166,7 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft,
             /* Subject: */
             field = MimeDecFindField(entity, "Subject");
             if (field != NULL) {
-                char *s = strndup(field->value, (int) field->value_len);
+                char *s = BytesToString((uint8_t *)field->value, (size_t) field->value_len);
                 if (likely(s != NULL)) {
                     //printf("Subject: \"%s\"\n", s);
                     json_object_set_new(sjs, "subject", json_string(s));
@@ -181,6 +181,20 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft,
             int url_cnt = 0;
             json_t *js_attch = json_array();
             json_t *js_url = json_array();
+            if (entity->url_list != NULL) {
+                MimeDecUrl *url;
+                for (url = entity->url_list; url != NULL; url = url->next) {
+                    char *s = BytesToString((uint8_t *)url->url,
+                                            (size_t)url->url_len);
+                    if (s != NULL) {
+                        //printf("URL: \"%s\"\n", s);
+                        json_array_append_new(js_url,
+                                          json_string(s));
+                        SCFree(s);
+                        url_cnt += 1;
+                    }
+                }
+            }
             for (entity = entity->child; entity != NULL; entity = entity->next) {
                 if (entity->ctnt_flags & CTNT_IS_ATTACHMENT) {
 
