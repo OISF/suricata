@@ -29,7 +29,7 @@ int LuaRegisterExtensions(lua_State *);
 
 void LuaExtensionsMatchSetup(lua_State *lua_state,
         DetectLuaData *, DetectEngineThreadCtx *det_ctx,
-        Flow *f, int flow_locked);
+        Flow *f, int flow_locked, Packet *p);
 
 #endif /* HAVE_LUA */
 #endif

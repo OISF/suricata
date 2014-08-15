@@ -288,7 +288,8 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch 
         SCReturnInt(0);
 
     /* setup extension data for use in lua c functions */
-    LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx, f, flow_lock);
+    LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
+            f, flow_lock, /* no packet in the ctx */NULL);
 
     /* prepare data to pass to script */
     lua_getglobal(tluajit->luastate, "match");
@@ -389,7 +390,8 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         SCReturnInt(0);
 
     /* setup extension data for use in lua c functions */
-    LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx, p->flow, /* flow not locked */LUA_FLOW_NOT_LOCKED_BY_PARENT);
+    LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
+            p->flow, /* flow not locked */LUA_FLOW_NOT_LOCKED_BY_PARENT, p);
 
     if ((tluajit->flags & DATATYPE_PAYLOAD) && p->payload_len == 0)
         SCReturnInt(0);

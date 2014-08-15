@@ -558,7 +558,8 @@ static int LuaDecrFlowint(lua_State *luastate)
 
 }
 
-void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld, DetectEngineThreadCtx *det_ctx, Flow *f, int flow_locked)
+void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld, DetectEngineThreadCtx *det_ctx,
+        Flow *f, int flow_locked, Packet *p)
 {
     SCLogDebug("det_ctx %p, f %p", det_ctx, f);
 
@@ -582,6 +583,9 @@ void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld, DetectEngi
             }
         }
     }
+
+    if (p != NULL)
+        LuaStateSetPacket(lua_state, p);
 }
 
 /**
