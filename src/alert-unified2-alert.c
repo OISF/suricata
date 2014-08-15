@@ -180,25 +180,14 @@ typedef struct AlertUnified2Packet_ {
     uint8_t packet_data[4];         /**< packet data */
 } Unified2Packet;
 
-/** XFF is disabled */
-#define UNIFIED2_ALERT_XFF_DISABLED 1
-/** XFF extra data mode */
-#define UNIFIED2_ALERT_XFF_EXTRADATA 2
-/** XFF overwrite mode */
-#define UNIFIED2_ALERT_XFF_OVERWRITE 4
 /** Extracted XFF IP is v4 */
 #define UNIFIED2_ALERT_XFF_IPV4 8
 /** Extracted XFF IP is v4 */
 #define UNIFIED2_ALERT_XFF_IPV6 16
-/** Default XFF header name */
-#define UNIFIED2_ALERT_XFF_DEFAULT "X-Forwarded-For"
-/** Single XFF IP maximum length */
-#define UNIFIED2_ALERT_XFF_MAXLEN 46
 
 typedef struct Unified2AlertFileCtx_ {
     LogFileCtx *file_ctx;
-    uint8_t xff_mode; /**< XFF operation mode */
-    char *xff_header; /**< XFF Header name */
+    XFFCfg *xff_cfg;
 } Unified2AlertFileCtx;
 
 /**
@@ -341,17 +330,19 @@ int Unified2Logger(ThreadVars *t, void *data, const Packet *p)
 {
     int ret = 0;
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
-    aun->xff_flags = UNIFIED2_ALERT_XFF_DISABLED;
+    aun->xff_flags = XFF_DISABLED;
+
+    XFFCfg *xff_cfg = aun->unified2alert_ctx->xff_cfg;
 
     /* overwrite mode can only work per u2 block, not per individual
      * alert. So we'll look for an XFF record once */
-    if ((aun->unified2alert_ctx->xff_mode & UNIFIED2_ALERT_XFF_OVERWRITE) && p->flow != NULL) {
+    if ((xff_cfg->mode & XFF_OVERWRITE) && p->flow != NULL) {
         FLOWLOCK_RDLOCK(p->flow);
 
         if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
-            char buffer[UNIFIED2_ALERT_XFF_MAXLEN];
+            char buffer[XFF_MAXLEN];
 
-            if (GetXFFIP(p, aun->unified2alert_ctx->xff_header, buffer, UNIFIED2_ALERT_XFF_MAXLEN) == 1) {
+            if (GetXFFIP(p, xff_cfg->header, buffer, XFF_MAXLEN) == 1) {
                 /** Be sure that we have a nice zeroed buffer */
                 memset(aun->xff_ip, 0, 4 * sizeof(uint32_t));
 
@@ -360,15 +351,15 @@ int Unified2Logger(ThreadVars *t, void *data, const Packet *p)
                 if (inet_pton(AF_INET, buffer, aun->xff_ip) == 1) {
                     SCLogDebug("valid ipv4 xff, setting flags %s", buffer);
                     if (PKT_IS_IPV4(p)) {
-                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV4|UNIFIED2_ALERT_XFF_OVERWRITE);
+                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV4|XFF_OVERWRITE);
                     } else {
-                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV4|UNIFIED2_ALERT_XFF_EXTRADATA);
+                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV4|XFF_EXTRADATA);
                     }
                 } else if (inet_pton(AF_INET6, buffer, aun->xff_ip) == 1) {
                     if (PKT_IS_IPV6(p)) {
-                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV6|UNIFIED2_ALERT_XFF_OVERWRITE);
+                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV6|XFF_OVERWRITE);
                     } else {
-                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV6|UNIFIED2_ALERT_XFF_EXTRADATA);
+                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV6|XFF_EXTRADATA);
                     }
                 }
             }
@@ -473,7 +464,7 @@ static int Unified2PrintStreamSegmentCallback(const Packet *p, void *data, uint8
     aun->offset = 0;
 
     // If XFF is in extra data mode...
-    if (aun->xff_flags & UNIFIED2_ALERT_XFF_EXTRADATA) {
+    if (aun->xff_flags & XFF_EXTRADATA) {
         memset(dhdr, 0, sizeof(Unified2ExtraData));
 
         if (aun->xff_flags & UNIFIED2_ALERT_XFF_IPV4) {
@@ -579,7 +570,7 @@ static int Unified2PrintStreamSegmentCallback(const Packet *p, void *data, uint8
             goto error;
         }
         /** If XFF is in overwrite mode... */
-        if (aun->xff_flags & UNIFIED2_ALERT_XFF_OVERWRITE) {
+        if (aun->xff_flags & XFF_OVERWRITE) {
             BUG_ON(aun->xff_flags & UNIFIED2_ALERT_XFF_IPV6);
             if (p->flowflags & FLOW_PKT_TOCLIENT) {
                 fakehdr.ip4h.s_ip_dst.s_addr = aun->xff_ip[0];
@@ -621,7 +612,7 @@ static int Unified2PrintStreamSegmentCallback(const Packet *p, void *data, uint8
             goto error;
         }
         /** If XFF is in overwrite mode... */
-        if (aun->xff_flags & UNIFIED2_ALERT_XFF_OVERWRITE) {
+        if (aun->xff_flags & XFF_OVERWRITE) {
             BUG_ON(aun->xff_flags & UNIFIED2_ALERT_XFF_IPV4);
 
             if (p->flowflags & FLOW_PKT_TOCLIENT) {
@@ -841,7 +832,7 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
     gphdr.src_ip = *(struct in6_addr*)GET_IPV6_SRC_ADDR(p);
     gphdr.dst_ip = *(struct in6_addr*)GET_IPV6_DST_ADDR(p);
     /** If XFF is in overwrite mode... */
-    if (aun->xff_flags & UNIFIED2_ALERT_XFF_OVERWRITE) {
+    if (aun->xff_flags & XFF_OVERWRITE) {
         BUG_ON(aun->xff_flags & UNIFIED2_ALERT_XFF_IPV4);
 
         if (p->flowflags & FLOW_PKT_TOCLIENT) {
@@ -901,25 +892,27 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
         if (unlikely(pa->s == NULL))
             continue;
 
-        if ((aun->unified2alert_ctx->xff_mode & UNIFIED2_ALERT_XFF_EXTRADATA) && p->flow != NULL) {
+        XFFCfg *xff_cfg = aun->unified2alert_ctx->xff_cfg;
+
+        if ((xff_cfg->mode & XFF_EXTRADATA) && p->flow != NULL) {
             FLOWLOCK_RDLOCK(p->flow);
             if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
-                char buffer[UNIFIED2_ALERT_XFF_MAXLEN];
+                char buffer[XFF_MAXLEN];
                 int have_xff_ip = 0;
 
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
-                    have_xff_ip = GetXFFIPFromTx(p, pa->tx_id, aun->unified2alert_ctx->xff_header, buffer, UNIFIED2_ALERT_XFF_MAXLEN);
+                    have_xff_ip = GetXFFIPFromTx(p, pa->tx_id, xff_cfg->header, buffer, XFF_MAXLEN);
                 } else {
-                    have_xff_ip = GetXFFIP(p, aun->unified2alert_ctx->xff_header, buffer, UNIFIED2_ALERT_XFF_MAXLEN);
+                    have_xff_ip = GetXFFIP(p, xff_cfg->header, buffer, XFF_MAXLEN);
                 }
                 if (have_xff_ip) {
                     memset(aun->xff_ip, 0, 4 * sizeof(uint32_t));
 
                     if (inet_pton(AF_INET, buffer, aun->xff_ip) == 1) {
                         SCLogDebug("valid ipv4 xff, setting flag");
-                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV4|UNIFIED2_ALERT_XFF_EXTRADATA);
+                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV4|XFF_EXTRADATA);
                     } else if (inet_pton(AF_INET6, buffer, aun->xff_ip) == 1) {
-                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV6|UNIFIED2_ALERT_XFF_EXTRADATA);
+                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV6|XFF_EXTRADATA);
                     }
                 }
             }
@@ -1026,7 +1019,7 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
     gphdr.src_ip = p->ip4h->s_ip_src.s_addr;
     gphdr.dst_ip = p->ip4h->s_ip_dst.s_addr;
     /** If XFF is in overwrite mode... */
-    if (aun->xff_flags & UNIFIED2_ALERT_XFF_OVERWRITE) {
+    if (aun->xff_flags & XFF_OVERWRITE) {
         BUG_ON(aun->xff_flags & UNIFIED2_ALERT_XFF_IPV6);
 
         if (p->flowflags & FLOW_PKT_TOCLIENT) {
@@ -1076,16 +1069,18 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
         if (unlikely(pa->s == NULL))
             continue;
 
-        if ((aun->unified2alert_ctx->xff_mode & UNIFIED2_ALERT_XFF_EXTRADATA) && p->flow != NULL) {
+        XFFCfg *xff_cfg = aun->unified2alert_ctx->xff_cfg;
+
+        if ((xff_cfg->mode & XFF_EXTRADATA) && p->flow != NULL) {
             FLOWLOCK_RDLOCK(p->flow);
             if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
-                char buffer[UNIFIED2_ALERT_XFF_MAXLEN];
+                char buffer[XFF_MAXLEN];
                 int have_xff_ip = 0;
 
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
-                    have_xff_ip = GetXFFIPFromTx(p, pa->tx_id, aun->unified2alert_ctx->xff_header, buffer, UNIFIED2_ALERT_XFF_MAXLEN);
+                    have_xff_ip = GetXFFIPFromTx(p, pa->tx_id, xff_cfg->header, buffer, XFF_MAXLEN);
                 } else {
-                    have_xff_ip = GetXFFIP(p, aun->unified2alert_ctx->xff_header, buffer, UNIFIED2_ALERT_XFF_MAXLEN);
+                    have_xff_ip = GetXFFIP(p, xff_cfg->header, buffer, XFF_MAXLEN);
                 }
                 if (have_xff_ip) {
                     SCLogDebug("buffer %s", buffer);
@@ -1093,9 +1088,9 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
 
                     if (inet_pton(AF_INET, buffer, aun->xff_ip) == 1) {
                         SCLogDebug("valid ipv4 xff, setting flags %s", buffer);
-                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV4|UNIFIED2_ALERT_XFF_EXTRADATA);
+                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV4|XFF_EXTRADATA);
                     } else if (inet_pton(AF_INET6, buffer, aun->xff_ip) == 1) {
-                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV6|UNIFIED2_ALERT_XFF_EXTRADATA);
+                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV6|XFF_EXTRADATA);
                     }
                 }
             }
@@ -1249,7 +1244,7 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
     int ret = 0;
     LogFileCtx* file_ctx = NULL;
     OutputCtx* output_ctx = NULL;
-    ConfNode *xff_node = NULL;
+    XFFCfg *xff_cfg = NULL;
 
     file_ctx = LogFileNewCtx();
     if (file_ctx == NULL) {
@@ -1313,48 +1308,26 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
     if (unlikely(output_ctx == NULL))
         goto error;
 
+    xff_cfg = SCMalloc(sizeof(XFFCfg));
+    if (unlikely(xff_cfg == NULL)) {
+        goto error;
+    }
+    memset(xff_cfg, 0x00, sizeof(XFFCfg));
+
+    if (conf != NULL) {
+        GetXFFCfg(conf, xff_cfg);
+    }
+
     Unified2AlertFileCtx *unified2alert_ctx = SCMalloc(sizeof(Unified2AlertFileCtx));
     if (unlikely(unified2alert_ctx == NULL)) {
         goto error;
     }
     memset(unified2alert_ctx, 0x00, sizeof(Unified2AlertFileCtx));
+
     unified2alert_ctx->file_ctx = file_ctx;
+    unified2alert_ctx->xff_cfg = xff_cfg;
     output_ctx->data = unified2alert_ctx;
-
     output_ctx->DeInit = Unified2AlertDeInitCtx;
-
-    if (conf != NULL)
-        xff_node = ConfNodeLookupChild(conf, "xff");
-
-    if (xff_node != NULL && ConfNodeChildValueIsTrue(xff_node, "enabled")) {
-        const char *xff_mode = ConfNodeLookupChildValue(xff_node, "mode");
-
-        if (xff_mode != NULL && strcasecmp(xff_mode, "overwrite") == 0) {
-                unified2alert_ctx->xff_mode |= UNIFIED2_ALERT_XFF_OVERWRITE;
-        } else {
-            if (xff_mode == NULL) {
-                SCLogWarning(SC_WARN_XFF_INVALID_MODE, "The unified2 output XFF mode hasn't been defined, falling back to extra-data mode");
-            }
-            else if (strcasecmp(xff_mode, "extra-data") != 0) {
-                SCLogWarning(SC_WARN_XFF_INVALID_MODE, "The unified2 output XFF mode %s is invalid, falling back to extra-data mode",
-                        xff_mode);
-            }
-            unified2alert_ctx->xff_mode |= UNIFIED2_ALERT_XFF_EXTRADATA;
-        }
-
-        const char *xff_header = ConfNodeLookupChildValue(xff_node, "header");
-
-        if (xff_header != NULL) {
-            unified2alert_ctx->xff_header = (char *) xff_header;
-        } else {
-            SCLogWarning(SC_WARN_XFF_INVALID_HEADER, "The unified2 output XFF header hasn't been defined, using the default %s",
-                    UNIFIED2_ALERT_XFF_DEFAULT);
-            unified2alert_ctx->xff_header = UNIFIED2_ALERT_XFF_DEFAULT;
-        }
-    }
-    else {
-        unified2alert_ctx->xff_mode = UNIFIED2_ALERT_XFF_DISABLED;
-    }
 
     SCLogInfo("Unified2-alert initialized: filename %s, limit %"PRIu64" MB",
               filename, file_ctx->size_limit / (1024*1024));
@@ -1364,6 +1337,9 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
     return output_ctx;
 
 error:
+    if (xff_cfg != NULL) {
+        SCFree(xff_cfg);
+    }
     if (output_ctx != NULL) {
         SCFree(output_ctx);
     }
@@ -1379,6 +1355,10 @@ static void Unified2AlertDeInitCtx(OutputCtx *output_ctx)
             LogFileCtx *logfile_ctx = unified2alert_ctx->file_ctx;
             if (logfile_ctx != NULL) {
                 LogFileFreeCtx(logfile_ctx);
+            }
+            XFFCfg *xff_cfg = unified2alert_ctx->xff_cfg;
+            if (xff_cfg != NULL) {
+                SCFree(xff_cfg);
             }
             SCFree(unified2alert_ctx);
         }

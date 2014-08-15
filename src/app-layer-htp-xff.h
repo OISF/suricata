@@ -25,6 +25,22 @@
 #ifndef __APP_LAYER_HTP_XFF_H__
 #define __APP_LAYER_HTP_XFF_H__
 
+/** XFF is disabled */
+#define XFF_DISABLED 1
+/** XFF extra data mode */
+#define XFF_EXTRADATA 2
+/** XFF overwrite mode */
+#define XFF_OVERWRITE 4
+/** Single XFF IP maximum length (default value based on IPv6 address length) */
+#define XFF_MAXLEN 46
+
+typedef struct XFFCfg_ {
+    uint8_t mode; /**< XFF operation mode */
+    char *header; /**< XFF header name */
+} XFFCfg;
+
+void GetXFFCfg(ConfNode *conf, XFFCfg *result);
+
 int GetXFFIPFromTx(const Packet *p, uint64_t tx_id, char *xff_header, char *dstbuf, int dstbuflen);
 
 int GetXFFIP(const Packet *p, char *xff_header, char *dstbuf, int dstbuflen);
