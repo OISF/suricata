@@ -337,34 +337,35 @@ int Unified2Logger(ThreadVars *t, void *data, const Packet *p)
     /* overwrite mode can only work per u2 block, not per individual
      * alert. So we'll look for an XFF record once */
     if ((xff_cfg->mode & XFF_OVERWRITE) && p->flow != NULL) {
+        char buffer[XFF_MAXLEN];
+        int have_xff_ip = 0;
+
         FLOWLOCK_RDLOCK(p->flow);
-
         if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
-            char buffer[XFF_MAXLEN];
+            have_xff_ip = GetXFFIP(p, xff_cfg->header, buffer, XFF_MAXLEN);
+        }
+        FLOWLOCK_UNLOCK(p->flow);
 
-            if (GetXFFIP(p, xff_cfg->header, buffer, XFF_MAXLEN) == 1) {
-                /** Be sure that we have a nice zeroed buffer */
-                memset(aun->xff_ip, 0, 4 * sizeof(uint32_t));
+        if (have_xff_ip) {
+            /** Be sure that we have a nice zeroed buffer */
+            memset(aun->xff_ip, 0, 4 * sizeof(uint32_t));
 
-                /** We can only have override mode if packet IP version matches
-                 * the XFF IP version, otherwise fall-back to extra data */
-                if (inet_pton(AF_INET, buffer, aun->xff_ip) == 1) {
-                    SCLogDebug("valid ipv4 xff, setting flags %s", buffer);
-                    if (PKT_IS_IPV4(p)) {
-                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV4|XFF_OVERWRITE);
-                    } else {
-                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV4|XFF_EXTRADATA);
-                    }
-                } else if (inet_pton(AF_INET6, buffer, aun->xff_ip) == 1) {
-                    if (PKT_IS_IPV6(p)) {
-                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV6|XFF_OVERWRITE);
-                    } else {
-                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV6|XFF_EXTRADATA);
-                    }
+            /** We can only have override mode if packet IP version matches
+             * the XFF IP version, otherwise fall-back to extra data */
+            if (inet_pton(AF_INET, buffer, aun->xff_ip) == 1) {
+                if (PKT_IS_IPV4(p)) {
+                    aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV4|XFF_OVERWRITE);
+                } else {
+                    aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV4|XFF_EXTRADATA);
+                }
+            } else if (inet_pton(AF_INET6, buffer, aun->xff_ip) == 1) {
+                if (PKT_IS_IPV6(p)) {
+                    aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV6|XFF_OVERWRITE);
+                } else {
+                    aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV6|XFF_EXTRADATA);
                 }
             }
         }
-        FLOWLOCK_UNLOCK(p->flow);
     }
 
     if (PKT_IS_IPV4(p)) {
@@ -572,6 +573,7 @@ static int Unified2PrintStreamSegmentCallback(const Packet *p, void *data, uint8
         /** If XFF is in overwrite mode... */
         if (aun->xff_flags & XFF_OVERWRITE) {
             BUG_ON(aun->xff_flags & UNIFIED2_ALERT_XFF_IPV6);
+
             if (p->flowflags & FLOW_PKT_TOCLIENT) {
                 fakehdr.ip4h.s_ip_dst.s_addr = aun->xff_ip[0];
             } else {
@@ -895,28 +897,28 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
         XFFCfg *xff_cfg = aun->unified2alert_ctx->xff_cfg;
 
         if ((xff_cfg->mode & XFF_EXTRADATA) && p->flow != NULL) {
+            char buffer[XFF_MAXLEN];
+            int have_xff_ip = 0;
+
             FLOWLOCK_RDLOCK(p->flow);
             if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
-                char buffer[XFF_MAXLEN];
-                int have_xff_ip = 0;
-
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
                     have_xff_ip = GetXFFIPFromTx(p, pa->tx_id, xff_cfg->header, buffer, XFF_MAXLEN);
                 } else {
                     have_xff_ip = GetXFFIP(p, xff_cfg->header, buffer, XFF_MAXLEN);
                 }
-                if (have_xff_ip) {
-                    memset(aun->xff_ip, 0, 4 * sizeof(uint32_t));
-
-                    if (inet_pton(AF_INET, buffer, aun->xff_ip) == 1) {
-                        SCLogDebug("valid ipv4 xff, setting flag");
-                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV4|XFF_EXTRADATA);
-                    } else if (inet_pton(AF_INET6, buffer, aun->xff_ip) == 1) {
-                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV6|XFF_EXTRADATA);
-                    }
-                }
             }
             FLOWLOCK_UNLOCK(p->flow);
+
+            if (have_xff_ip) {
+                memset(aun->xff_ip, 0, 4 * sizeof(uint32_t));
+
+                if (inet_pton(AF_INET, buffer, aun->xff_ip) == 1) {
+                    aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV4|XFF_EXTRADATA);
+                } else if (inet_pton(AF_INET6, buffer, aun->xff_ip) == 1) {
+                    aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV6|XFF_EXTRADATA);
+                }
+            }
         }
 
         /* reset length and offset */
@@ -1072,29 +1074,28 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
         XFFCfg *xff_cfg = aun->unified2alert_ctx->xff_cfg;
 
         if ((xff_cfg->mode & XFF_EXTRADATA) && p->flow != NULL) {
+            char buffer[XFF_MAXLEN];
+            int have_xff_ip = 0;
+
             FLOWLOCK_RDLOCK(p->flow);
             if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
-                char buffer[XFF_MAXLEN];
-                int have_xff_ip = 0;
-
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
                     have_xff_ip = GetXFFIPFromTx(p, pa->tx_id, xff_cfg->header, buffer, XFF_MAXLEN);
                 } else {
                     have_xff_ip = GetXFFIP(p, xff_cfg->header, buffer, XFF_MAXLEN);
                 }
-                if (have_xff_ip) {
-                    SCLogDebug("buffer %s", buffer);
-                    memset(aun->xff_ip, 0, 4 * sizeof(uint32_t));
-
-                    if (inet_pton(AF_INET, buffer, aun->xff_ip) == 1) {
-                        SCLogDebug("valid ipv4 xff, setting flags %s", buffer);
-                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV4|XFF_EXTRADATA);
-                    } else if (inet_pton(AF_INET6, buffer, aun->xff_ip) == 1) {
-                        aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV6|XFF_EXTRADATA);
-                    }
-                }
             }
             FLOWLOCK_UNLOCK(p->flow);
+
+            if (have_xff_ip) {
+                memset(aun->xff_ip, 0, 4 * sizeof(uint32_t));
+
+                if (inet_pton(AF_INET, buffer, aun->xff_ip) == 1) {
+                    aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV4|XFF_EXTRADATA);
+                } else if (inet_pton(AF_INET6, buffer, aun->xff_ip) == 1) {
+                    aun->xff_flags = (UNIFIED2_ALERT_XFF_IPV6|XFF_EXTRADATA);
+                }
+            }
         }
 
         /* reset length and offset */
