@@ -4011,6 +4011,8 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         SigGroupHeadSetFilesizeFlag(de_ctx, sgh);
         SigGroupHeadSetFilestoreCount(de_ctx, sgh);
         SCLogDebug("filestore count %u", sgh->filestore_cnt);
+
+        SigGroupHeadBuildNonMpmArray(de_ctx, sgh);
     }
 
     if (de_ctx->decoder_event_sgh != NULL) {
