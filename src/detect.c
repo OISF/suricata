@@ -773,6 +773,61 @@ end:
     SCReturnPtr(smsg, "StreamMsg");
 }
 
+#define MIN(x, y) ( ((x)<(y))?(x):(y) )
+static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, SigGroupHead *sgh)
+{
+        //det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt,
+//      for (idx = 0; idx < det_ctx->match_array_cnt; idx++) {
+
+    uint32_t m = 0;
+    uint32_t n = 0;
+
+    uint32_t mpm = -1;
+    uint32_t nonmpm = -1;
+//SCLogInfo("starting");
+//BUG_ON(det_ctx->match_array_cnt != 0);
+    det_ctx->match_array_cnt = 0;
+    while (1) {
+//        SCLogInfo("m %u (%u) n %u (%u)", m,  det_ctx->pmq.rule_id_array_cnt, n, sgh->non_mpm_id_cnt);
+
+        if (m < det_ctx->pmq.rule_id_array_cnt)
+            mpm = det_ctx->pmq.rule_id_array[m];
+        else
+            mpm = -1;
+        if (n < sgh->non_mpm_id_cnt)
+            nonmpm = sgh->non_mpm_id_array[n];
+        else
+            nonmpm = -1;
+
+        uint32_t id = MIN(mpm, nonmpm);
+
+//        SCLogInfo("id %u, mpm %u, nonmpm %u", id, mpm, nonmpm);
+
+        if (id == (uint32_t)-1)
+            return;
+        else if (id == mpm) {
+            m++;
+            BUG_ON(m > det_ctx->pmq.rule_id_array_cnt);
+        } else if (id == nonmpm) {
+            n++;
+            BUG_ON(n > sgh->non_mpm_id_cnt);
+        }
+
+        Signature *s = de_ctx->sig_array[id];
+
+        /* as the mpm list can contain duplicates, check for this here */
+        if (det_ctx->match_array_cnt == 0 || det_ctx->match_array[det_ctx->match_array_cnt - 1] != s)
+            det_ctx->match_array[det_ctx->match_array_cnt++] = s;
+//        SCLogInfo("m %u n %u", m, n);
+
+        if (m >= det_ctx->pmq.rule_id_array_cnt && n >= sgh->non_mpm_id_cnt)
+            break;
+
+    }
+        BUG_ON((det_ctx->pmq.rule_id_array_cnt + sgh->non_mpm_id_cnt) < det_ctx->match_array_cnt);
+}
+
 #define SMS_USE_FLOW_SGH        0x01
 #define SMS_USED_PM             0x02
 #define SMS_USED_STREAM_PM      0x04
@@ -1337,7 +1392,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PREFILTER);
     /* build the match array */
-    SigMatchSignaturesBuildMatchArray(det_ctx, p, mask, alproto);
+//    SigMatchSignaturesBuildMatchArray(det_ctx, p, mask, alproto);
+    DetectPrefilterMergeSort(de_ctx, det_ctx, det_ctx->sgh);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PREFILTER);
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES);
@@ -1351,6 +1407,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         s = det_ctx->match_array[idx];
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
+
+        if (det_ctx->de_state_sig_array[s->num] == DE_STATE_MATCH_NO_NEW_STATE)
+            goto next;
+
 
         /* check if this signature has a requirement for flowvars of some type
          * and if so, if we actually have any in the flow. If not, the sig
