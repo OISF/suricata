@@ -205,6 +205,12 @@ void SigGroupHeadFree(SigGroupHead *sgh)
         sgh->match_array = NULL;
     }
 
+    if (sgh->non_mpm_id_array != NULL) {
+        SCFree(sgh->non_mpm_id_array);
+        sgh->non_mpm_id_array = NULL;
+        sgh->non_mpm_id_cnt = 0;
+    }
+
     sgh->sig_cnt = 0;
 
     if (sgh->init != NULL) {
@@ -1694,6 +1700,49 @@ void SigGroupHeadSetFilestoreCount(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     }
 
     return;
+}
+
+/* build an array of rule id's for sigs with no mpm */
+int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
+    Signature *s = NULL;
+    uint32_t sig = 0;
+    uint32_t non_mpm = 0;
+
+    if (sgh == NULL)
+        return 0;
+
+    BUG_ON(sgh->non_mpm_id_array != NULL);
+
+    for (sig = 0; sig < sgh->sig_cnt; sig++) {
+        s = sgh->match_array[sig];
+        if (s == NULL)
+            continue;
+
+        if (s->mpm_sm == NULL)
+            non_mpm++;
+    }
+
+    if (non_mpm == 0) {
+        sgh->non_mpm_id_array = NULL;
+        return 0;
+    }
+
+    sgh->non_mpm_id_array = SCMalloc(non_mpm * sizeof(uint32_t));
+    BUG_ON(sgh->non_mpm_id_array == NULL);
+    memset(sgh->non_mpm_id_array, 0, non_mpm * sizeof(uint32_t));
+
+    for (sig = 0; sig < sgh->sig_cnt; sig++) {
+        s = sgh->match_array[sig];
+        if (s == NULL)
+            continue;
+        if (s->mpm_sm != NULL)
+            continue;
+
+        BUG_ON(sgh->non_mpm_id_cnt >= non_mpm);
+        sgh->non_mpm_id_array[sgh->non_mpm_id_cnt++] = s->num;
+    }
+    return 0;
 }
 
 int SigGroupHeadBuildHeadArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
