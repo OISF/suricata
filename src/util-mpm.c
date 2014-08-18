@@ -452,6 +452,16 @@ int PmqSetup(PatternMatcherQueue *pmq, uint32_t patmaxid)
 
         SCLogDebug("pmq->pattern_id_array %p, pmq->pattern_id_bitarray %p",
                 pmq->pattern_id_array, pmq->pattern_id_bitarray);
+
+        pmq->rule_id_array_size = 65536 * sizeof(uint32_t);
+
+        pmq->rule_id_array = SCMalloc(pmq->rule_id_array_size);
+        if (pmq->rule_id_array == NULL) {
+            SCReturnInt(-1);
+        }
+        memset(pmq->rule_id_array, 0, pmq->rule_id_array_size);
+        pmq->rule_id_array_cnt = 0;
+
     }
 
     SCReturnInt(0);
@@ -510,6 +520,12 @@ void PmqMerge(PatternMatcherQueue *src, PatternMatcherQueue *dst)
     }
 
     /** \todo now set merged flag? */
+
+    if (src->rule_id_array && dst->rule_id_array) {
+        for (u = 0; u < src->rule_id_array_cnt; u++) {
+            dst->rule_id_array[dst->rule_id_array_cnt++] = src->rule_id_array[u];
+        }
+    }
 }
 
 /** \brief Reset a Pmq for reusage. Meant to be called after a single search.
@@ -532,6 +548,7 @@ void PmqReset(PatternMatcherQueue *pmq)
     }
     pmq->pattern_id_array_cnt = 0;
 */
+    pmq->rule_id_array_cnt = 0;
 }
 
 /** \brief Cleanup a Pmq
@@ -550,6 +567,11 @@ void PmqCleanup(PatternMatcherQueue *pmq)
     if (pmq->pattern_id_bitarray != NULL) {
         SCFree(pmq->pattern_id_bitarray);
         pmq->pattern_id_bitarray = NULL;
+    }
+
+    if (pmq->rule_id_array != NULL) {
+        SCFree(pmq->rule_id_array);
+        pmq->rule_id_array = NULL;
     }
 
     pmq->pattern_id_array_cnt = 0;

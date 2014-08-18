@@ -106,6 +106,12 @@ typedef struct PatternMatcherQueue_ {
 
     uint8_t *pattern_id_bitarray;   /** bitarray with pattern id matches */
     uint32_t pattern_id_bitarray_size; /**< size in bytes */
+
+    /* used for storing rule id's */
+    uint32_t rule_id_array_size;
+    uint32_t *rule_id_array;
+    uint32_t rule_id_array_cnt;
+
 } PatternMatcherQueue;
 
 typedef struct MpmCtx_ {
