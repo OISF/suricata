@@ -1721,6 +1721,8 @@ int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
         if (s->mpm_sm == NULL)
             non_mpm++;
+        else if (s->flags & (SIG_FLAG_MPM_PACKET_NEG|SIG_FLAG_MPM_STREAM_NEG|SIG_FLAG_MPM_APPLAYER_NEG))
+            non_mpm++;
     }
 
     if (non_mpm == 0) {
@@ -1736,11 +1738,14 @@ int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         s = sgh->match_array[sig];
         if (s == NULL)
             continue;
-        if (s->mpm_sm != NULL)
-            continue;
 
-        BUG_ON(sgh->non_mpm_id_cnt >= non_mpm);
-        sgh->non_mpm_id_array[sgh->non_mpm_id_cnt++] = s->num;
+        if (s->mpm_sm == NULL) {
+            BUG_ON(sgh->non_mpm_id_cnt >= non_mpm);
+            sgh->non_mpm_id_array[sgh->non_mpm_id_cnt++] = s->num;
+        } else if (s->flags & (SIG_FLAG_MPM_PACKET_NEG|SIG_FLAG_MPM_STREAM_NEG|SIG_FLAG_MPM_APPLAYER_NEG)) {
+            BUG_ON(sgh->non_mpm_id_cnt >= non_mpm);
+            sgh->non_mpm_id_array[sgh->non_mpm_id_cnt++] = s->num;
+        }
     }
     return 0;
 }
