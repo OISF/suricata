@@ -778,6 +778,8 @@ end:
 static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, SigGroupHead *sgh)
 {
+//#define MERGE_PRINT 1
+
         //det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt,
 //      for (idx = 0; idx < det_ctx->match_array_cnt; idx++) {
 
@@ -788,6 +790,27 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
     uint32_t nonmpm = -1;
 //SCLogInfo("starting");
 //BUG_ON(det_ctx->match_array_cnt != 0);
+#if MERGE_PRINT
+    SCLogInfo("sgh %p", sgh);
+    uint32_t x;
+    printf("SIGS (mpm): ");
+    if (det_ctx->pmq.rule_id_array_cnt) {
+        for (x = 0; x < det_ctx->pmq.rule_id_array_cnt; x++) {
+            printf("%u ", det_ctx->pmq.rule_id_array[x]);
+        }
+    } else
+        printf("none");
+    printf("\n");
+
+    printf("SIGS (non-mpm): ");
+    if (sgh->non_mpm_id_cnt) {
+        for (x = 0; x < sgh->non_mpm_id_cnt; x++) {
+            printf("%u ", sgh->non_mpm_id_array[x]);
+        }
+    } else
+        printf("none");
+    printf("\n");
+#endif
     det_ctx->match_array_cnt = 0;
     while (1) {
 //        SCLogInfo("m %u (%u) n %u (%u)", m,  det_ctx->pmq.rule_id_array_cnt, n, sgh->non_mpm_id_cnt);
@@ -827,6 +850,17 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
 
     }
         BUG_ON((det_ctx->pmq.rule_id_array_cnt + sgh->non_mpm_id_cnt) < det_ctx->match_array_cnt);
+#if MERGE_PRINT
+    printf("SIGS (post): ");
+    for (x = 0; x < det_ctx->match_array_cnt; x++) {
+        printf("%u ", det_ctx->match_array[x]->num);
+    }
+    printf("(");
+    for (x = 0; x < det_ctx->match_array_cnt; x++) {
+        printf("%u ", det_ctx->match_array[x]->id);
+    }
+    printf(")\n\n");
+#endif
 }
 
 #define SMS_USE_FLOW_SGH        0x01
