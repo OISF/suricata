@@ -1307,6 +1307,9 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     /* \todo Change it for stateful MPM.  Supply the state using mpm_thread_ctx */
     SCACPatternList *pid_pat_list = ctx->pid_pat_list;
 
+    uint8_t bitarray[pmq->pattern_id_array_size];
+    memset(&bitarray, 0, pmq->pattern_id_array_size);
+
     if (ctx->state_count < 32767) {
         register SC_AC_STATE_TYPE_U16 state = 0;
         SC_AC_STATE_TYPE_U16 (*state_table_u16)[256] = ctx->state_table_u16;
@@ -1324,10 +1327,11 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                             /* inside loop */
                             continue;
                         }
-                        if (pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] & (1 << ((pids[k] & 0x0000FFFF) % 8))) {
+                        if (bitarray[(pids[k] & 0x0000FFFF) / 8] & (1 << ((pids[k] & 0x0000FFFF) % 8))) {
                             ;
                         } else {
                             pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] |= (1 << ((pids[k] & 0x0000FFFF) % 8));
+                            bitarray[(pids[k] & 0x0000FFFF) / 8] |= (1 << ((pids[k] & 0x0000FFFF) % 8));
                             pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k] & 0x0000FFFF;
 
                             uint32_t x;
@@ -1337,12 +1341,12 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         }
                         matches++;
                     } else {
-                        if (pmq->pattern_id_bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
+                        if (bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
                             ;
                         } else {
-                            pmq->pattern_id_bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
+                            pmq->pattern_id_bitarray[(pids[k]) / 8] |= (1 << ((pids[k]) % 8));
+                            bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
                             pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k];
-
                             uint32_t x;
                             for (x = 0; x < pid_pat_list[pids[k]].sids_size; x++) {
                                 pmq->rule_id_array[pmq->rule_id_array_cnt++] = pid_pat_list[pids[k]].sids[x];
@@ -1373,10 +1377,11 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                             /* inside loop */
                             continue;
                         }
-                        if (pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] & (1 << ((pids[k] & 0x0000FFFF) % 8))) {
+                        if (bitarray[(pids[k] & 0x0000FFFF) / 8] & (1 << ((pids[k] & 0x0000FFFF) % 8))) {
                             ;
                         } else {
                             pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] |= (1 << ((pids[k] & 0x0000FFFF) % 8));
+                            bitarray[(pids[k] & 0x0000FFFF) / 8] |= (1 << ((pids[k] & 0x0000FFFF) % 8));
                             pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k] & 0x0000FFFF;
 
                             uint32_t x;
@@ -1386,10 +1391,11 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         }
                         matches++;
                     } else {
-                        if (pmq->pattern_id_bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
+                        if (bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
                             ;
                         } else {
-                            pmq->pattern_id_bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
+                            pmq->pattern_id_bitarray[(pids[k]) / 8] |= (1 << ((pids[k]) % 8));
+                            bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
                             pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k];
 
                             uint32_t x;
