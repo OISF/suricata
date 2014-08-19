@@ -1396,8 +1396,57 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         s = det_ctx->match_array[idx];
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
 
-        if (det_ctx->de_state_sig_array[s->num] == DE_STATE_MATCH_NO_NEW_STATE)
-            goto next;
+        /* if the sig has alproto and the session as well they should match */
+        if (likely(s->flags & SIG_FLAG_APPLAYER)) {
+            if (s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
+                if (s->alproto == ALPROTO_DCERPC) {
+                    if (alproto != ALPROTO_SMB && alproto != ALPROTO_SMB2) {
+                        SCLogDebug("DCERPC sig, alproto not SMB or SMB2");
+                        goto next;
+                    }
+                } else {
+                    SCLogDebug("alproto mismatch");
+                    goto next;
+                }
+            }
+        }
+
+        if (unlikely(s->flags & SIG_FLAG_DSIZE)) {
+            if (likely(p->payload_len < s->dsize_low || p->payload_len > s->dsize_high)) {
+                SCLogDebug("kicked out as p->payload_len %u, dsize low %u, hi %u",
+                        p->payload_len, s->dsize_low, s->dsize_high);
+                goto next;
+            }
+        }
+
+        /* check for a pattern match of the one pattern in this sig. */
+        if (likely(s->flags & (SIG_FLAG_MPM_PACKET|SIG_FLAG_MPM_STREAM|SIG_FLAG_MPM_APPLAYER)))
+        {
+            /* filter out sigs that want pattern matches, but
+             * have no matches */
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
+                if (s->flags & SIG_FLAG_MPM_PACKET) {
+                    if (!(s->flags & SIG_FLAG_MPM_PACKET_NEG)) {
+                        goto next;
+                    }
+                } else if (s->flags & SIG_FLAG_MPM_STREAM) {
+                    /* filter out sigs that want pattern matches, but
+                     * have no matches */
+                    if (!(s->flags & SIG_FLAG_MPM_STREAM_NEG)) {
+                        goto next;
+                    }
+                } else if (s->flags & SIG_FLAG_MPM_APPLAYER) {
+                    if (!(s->flags & SIG_FLAG_MPM_APPLAYER_NEG)) {
+                        goto next;
+                    }
+                }
+            }
+        }
+
+        if (s->flags & SIG_FLAG_STATE_MATCH) {
+            if (det_ctx->de_state_sig_array[s->num] == DE_STATE_MATCH_NO_NEW_STATE)
+                goto next;
+        }
 
         /* check if this signature has a requirement for flowvars of some type
          * and if so, if we actually have any in the flow. If not, the sig
