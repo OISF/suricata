@@ -110,6 +110,7 @@ outputs:
             force-magic: no   # force logging magic on all logged files
             force-md5: no     # force logging of md5 checksums
         #- drop
+        - smtp
         - ssh
         # bi-directional flows
         #- flow
@@ -1299,7 +1300,7 @@ smtp-mime:
 
   # Decode MIME messages from SMTP transactions (may be resource intensive)
   # This field supercedes all others because it turns the entire process on or off
-  decode-mime: no
+  decode-mime: yes
 
   # Decode MIME entity bodies (ie. base64, quoted-printable, etc.)
   decode-base64: yes
