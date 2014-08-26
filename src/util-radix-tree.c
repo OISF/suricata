@@ -1001,7 +1001,7 @@ SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *u
 
         /* Get binary values for cidr mask */
         cidr = atoi(mask_str);
-        if ((cidr < 0) || (cidr > 32)) {
+        if ((cidr < 0) || (cidr > 128)) {
             return NULL;
         }
         netmask = (uint8_t)cidr;
