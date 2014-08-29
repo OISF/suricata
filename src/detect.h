@@ -46,6 +46,8 @@
 
 #define DETECT_MAX_RULE_SIZE 8192
 
+#define SREP_MAX_CATS 60
+
 /* forward declarations for the structures from detect-engine-sigorder.h */
 struct SCSigOrderFunc_;
 struct SCSigSignatureWrapper_;
@@ -575,6 +577,11 @@ typedef struct DetectEngineThreadKeywordCtxItem_ {
     const char *name; /* keyword name, for error printing */
 } DetectEngineThreadKeywordCtxItem;
 
+typedef struct SRepCIDRTree_ {
+    SCRadixTree *srepIPV4_tree[SREP_MAX_CATS];
+    SCRadixTree *srepIPV6_tree[SREP_MAX_CATS];
+} SRepCIDRTree;
+
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
     uint8_t flags;
@@ -585,6 +592,9 @@ typedef struct DetectEngineCtx_ {
 
     /* version of the srep data */
     uint32_t srep_version;
+
+    /* reputation for netblocks */
+    SRepCIDRTree *srepCIDR_ctx;
 
     Signature **sig_array;
     uint32_t sig_array_size; /* size in bytes */
