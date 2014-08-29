@@ -76,6 +76,12 @@ typedef struct IPReputationCtx_ {
     SCMutex reputationIPV6_lock;
 }IPReputationCtx;
 
+uint8_t SRepCIDRGetIPRepSrc(SRepCIDRTree *cidr_ctx, Packet *p, uint8_t cat, uint32_t version);
+uint8_t SRepCIDRGetIPRepDst(SRepCIDRTree *cidr_ctx, Packet *p, uint8_t cat, uint32_t version);
+void SRepResetVersion();
+int SRepLoadCatFileFromFD(FILE *fp);
+int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp);
+
 /** Reputation Data */
 //TODO: Add a timestamp here to know the last update of this reputation.
 typedef struct Reputation_ {
