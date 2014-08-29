@@ -47,6 +47,8 @@ SC_ATOMIC_DECLARE(uint32_t, srep_eversion);
  *  so hosts will always have a minial value of 1 */
 static uint32_t srep_version = 0;
 
+static SRepCIDRTree *srepCIDR_ctx;
+
 static uint32_t SRepIncrVersion(void)
 {
     return ++srep_version;
@@ -60,6 +62,88 @@ static uint32_t SRepGetVersion(void)
 static uint32_t SRepGetEffectiveVersion(void)
 {
     return SC_ATOMIC_GET(srep_eversion);
+}
+
+static void SRepCIDRFreeUserData(void *data)
+{
+    if (data != NULL)
+        SCFree(data);
+
+    return;
+}
+
+static void SRepCIDRAddNetblock(char *ip, int cat, int value)
+{
+    SReputation *user_data = NULL;
+    if ((user_data = SCMalloc(sizeof(SReputation))) == NULL) {
+        SCLogError(SC_ERR_FATAL, "Error allocating memory. Exiting");
+        exit(EXIT_FAILURE);
+    }
+    memset(user_data, 0x00, sizeof(SReputation));
+
+    user_data->version = SRepGetVersion();
+    user_data->rep[cat] = value;
+
+    if (strchr(ip, ':') != NULL) {
+        SCLogDebug("adding ipv6 host %s", ip);
+        if (SCRadixAddKeyIPV6String(ip, srepCIDR_ctx->srepIPV6_tree, (void *)user_data) == NULL) {
+            SCLogWarning(SC_ERR_INVALID_VALUE,
+                        "failed to add ipv6 host %s", ip);
+        }
+
+    } else {
+        SCLogDebug("adding ipv4 host %s", ip);
+        if (SCRadixAddKeyIPV4String(ip, srepCIDR_ctx->srepIPV4_tree, (void *)user_data) == NULL) {
+            SCLogWarning(SC_ERR_INVALID_VALUE,
+                        "failed to add ipv4 host %s", ip);
+        }
+    }
+}
+
+static uint8_t SRepCIDRGetIPv4IPRep(uint8_t *ipv4_addr, uint8_t cat)
+{
+    void *user_data = NULL;
+    (void)SCRadixFindKeyIPV4BestMatch(ipv4_addr, srepCIDR_ctx->srepIPV4_tree, &user_data);
+    if (user_data == NULL)
+        return 0;
+
+    SReputation *r = (SReputation *)user_data;
+    return r->rep[cat];
+}
+
+static uint8_t SRepCIDRGetIPv6IPRep(uint8_t *ipv6_addr, uint8_t cat)
+{
+    void *user_data = NULL;
+    (void)SCRadixFindKeyIPV6BestMatch(ipv6_addr, srepCIDR_ctx->srepIPV6_tree, &user_data);
+    if (user_data == NULL)
+        return 0;
+
+    SReputation *r = (SReputation *)user_data;
+    return r->rep[cat];
+}
+
+uint8_t SRepCIDRGetIPRepSrc(Packet *p, uint8_t cat, uint32_t version)
+{
+    uint8_t rep = 0;
+
+    if (PKT_IS_IPV4(p))
+        rep = SRepCIDRGetIPv4IPRep((uint8_t *)GET_IPV4_SRC_ADDR_PTR(p), cat);
+    else if (PKT_IS_IPV6(p))
+        rep = SRepCIDRGetIPv6IPRep((uint8_t *)GET_IPV6_SRC_ADDR(p), cat);
+
+    return rep;
+}
+
+uint8_t SRepCIDRGetIPRepDst(Packet *p, uint8_t cat, uint32_t version)
+{
+    uint8_t rep = 0;
+
+    if (PKT_IS_IPV4(p))
+        rep = SRepCIDRGetIPv4IPRep((uint8_t *)GET_IPV4_DST_ADDR_PTR(p), cat);
+    else if (PKT_IS_IPV6(p))
+        rep = SRepCIDRGetIPv6IPRep((uint8_t *)GET_IPV6_DST_ADDR(p), cat);
+
+    return rep;
 }
 
 /** \brief Increment effective reputation version after
@@ -200,11 +284,6 @@ static int SRepSplitLine(char *line, uint32_t *ip, uint8_t *cat, uint8_t *value)
     if (strcmp(ptrs[0], "ip") == 0)
         return 1;
 
-    uint32_t addr;
-    if (inet_pton(AF_INET, ptrs[0], &addr) <= 0) {
-        return -1;
-    }
-
     int c = atoi(ptrs[1]);
     if (c < 0 || c >= SREP_MAX_CATS) {
         return -1;
@@ -215,9 +294,19 @@ static int SRepSplitLine(char *line, uint32_t *ip, uint8_t *cat, uint8_t *value)
         return -1;
     }
 
-    *ip = addr;
-    *cat = c;
-    *value = v;
+    if (strchr(ptrs[0], '/') != NULL) {
+        SRepCIDRAddNetblock(ptrs[0], c, v);
+    } else {
+        uint32_t addr;
+        if (inet_pton(AF_INET, ptrs[0], &addr) <= 0) {
+            return -1;
+        }
+
+        *ip = addr;
+        *cat = c;
+        *value = v;
+    }
+
     return 0;
 }
 
@@ -459,6 +548,25 @@ int SRepInit(DetectEngineCtx *de_ctx)
     char *sfile = NULL;
     char *filename = NULL;
     int init = 0;
+
+    srepCIDR_ctx = (SRepCIDRTree *)SCMalloc(sizeof(SRepCIDRTree));
+    if (srepCIDR_ctx == NULL)
+        exit(EXIT_FAILURE);
+    memset(srepCIDR_ctx, 0, sizeof(SRepCIDRTree));
+
+    srepCIDR_ctx->srepIPV4_tree = SCRadixCreateRadixTree(SRepCIDRFreeUserData, NULL);
+    if (srepCIDR_ctx->srepIPV4_tree == NULL) {
+        SCLogDebug("Error initializing Reputation IPV4 with CIDR module");
+        exit(EXIT_FAILURE);
+    }
+    SCLogDebug("Reputation IPV4 with CIDR module initialized");
+
+    srepCIDR_ctx->srepIPV6_tree = SCRadixCreateRadixTree(SRepCIDRFreeUserData, NULL);
+    if (srepCIDR_ctx->srepIPV6_tree == NULL) {
+        SCLogDebug("Error initializing Reputation IPV6 with CIDR module");
+        exit(EXIT_FAILURE);
+    }
+    SCLogDebug("Reputation IPV6 with CIDR module initialized");
 
     if (SRepGetVersion() == 0) {
         SC_ATOMIC_INIT(srep_eversion);
