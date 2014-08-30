@@ -1,0 +1,311 @@
+Installation from GIT with PF RING on Ubuntu server 14.04
+
+This guide is based on using Ubuntu Server 14.04
+Linux ubuntu 3.13.0-24-generic x86_64 GNU/Linux
+
+--------------------------------------------------------------------------
+Pre installation requirements
+--------------------------------------------------------------------------
+
+Install the following packages, to make sure you have everything needed for the
+installation:
+
+  sudo apt-get -y install libpcre3 libpcre3-dbg libpcre3-dev \
+  build-essential autoconf automake pkg-config libtool libpcap-dev libnet1-dev \
+  libyaml-0-2 libyaml-dev zlib1g zlib1g-dev libcap-ng-dev libcap-ng0 \
+  libgeoip-dev libmagic-dev make flex bison libnuma-dev git subversion 
+
+--------------------------------------------------------------------------
+Compile and install PF_RING
+--------------------------------------------------------------------------
+
+Go to your download directory and get the latest PF_RING:
+
+  svn co https://svn.ntop.org/svn/ntop/trunk/PF_RING
+
+Compile and install
+
+Next, enter the following commands for configuration and installation (Not as root):
+
+  cd PF_RING/kernel && make && sudo make install && sudo insmod ./pf_ring.ko
+  cd ../userland && make
+  cd ./lib && sudo make install
+  cd ../libpcap-1.1.1-ring && sudo make install
+  cd ../tcpdump-4.1.1 && sudo make install
+  sudo ldconfig
+  
+Then we load the module:
+  
+  lsmod |grep pf_ring
+  sudo modprobe pf_ring
+
+Elevate as root and check if you have everything you need, enter:
+
+  modinfo pf_ring && cat /proc/net/pf_ring/info
+  
+The default pf_ring setup will look something like this:  
+ 
+  root@nbox-ubuntu:/home/nbox/suricata# cat /proc/net/pf_ring/info
+  PF_RING Version          : 6.0.2 ($Revision: 8137$)
+  Total rings              : 0
+  
+  Standard (non DNA) Options
+  Ring slots               : 4096
+  Slot version             : 16
+  Capture TX               : Yes [RX+TX]
+  IP Defragment            : No
+  Socket Mode              : Standard
+  Transparent mode         : Yes [mode 0]
+  Total plugins            : 0
+  Cluster Fragment Queue   : 0
+  Cluster Fragment Discard : 0
+
+Notice the ring slots above. We would actually like to increase that in order to meet the needs of a high speed network that we are going to monitor with Suricata.
+
+So we do:
+  
+  rmmod pf_ring
+  modprobe pf_ring transparent_mode=0 min_num_slots=65534
+  
+  
+  root@nbox-ubuntu:/home/nbox/suricata# cat /proc/net/pf_ring/info
+  PF_RING Version          : 6.0.2 ($Revision: 8137$)
+  Total rings              : 0
+  
+  Standard (non DNA) Options
+  Ring slots               : 65534
+  Slot version             : 16
+  Capture TX               : No [RX only]
+  IP Defragment            : No
+  Socket Mode              : Standard
+  Transparent mode         : Yes [mode 0]
+  Total plugins            : 0
+  Cluster Fragment Queue   : 0
+  Cluster Fragment Discard : 0
+
+
+To check if PF_RING is functional, enter the following:
+  
+  cd ../examples 
+  sudo ./pfcount -i eth0
+
+--------------------------------------------------------------------------
+Compile and install Suricata with PF_RING enabled
+--------------------------------------------------------------------------
+
+Go to your download directory of choice, and enter:
+
+  git clone git://phalanx.openinfosecfoundation.org/oisf.git
+  cd oisf && git clone https://github.com/ironbee/libhtp.git
+  ./autogen.sh && LIBS="-lrt -lnuma" ./configure --prefix=/usr/ --sysconfdir=/etc/ --localstatedir=/var/ \
+  --enable-pfring --enable-geoip  && sudo make clean && sudo make && sudo make install-full && sudo ldconfig
+
+You can always check if PF_RING is build in properly, by entering:
+
+  suricata --build-info
+  
+--------------------------------------------------------------------------
+PF_RING – suricata.yaml tune up and configuration
+--------------------------------------------------------------------------
+
+The following values and variables in the default suricata.yaml need to be changed:
+
+We make sure we use runmode workers (feel free to try other modes and experiment what is best for your specific set up):
+  
+  #runmode: autofp
+  runmode: workers
+  
+Adjust the packet size:
+
+  # Preallocated size for packet. Default is 1514 which is the classical
+  
+  # size for pcap on ethernet. You should adjust this value to the highest
+  
+  # packet size (MTU + hardware header) on your system.
+  
+  default-packet-size: 1522
+  
+  
+Adjust your defrag settings:
+
+  # Defrag settings:
+  
+  defrag:
+    memcap: 512mb
+    hash-size: 65536
+    trackers: 65535 # number of defragmented flows to follow
+    max-frags: 65535 # number of fragments to keep
+    prealloc: yes
+    timeout: 30
+
+Adjust your flow settings:
+
+  flow:
+    memcap: 1gb
+    hash-size: 1048576
+    prealloc: 1048576
+    emergency-recovery: 30
+
+
+Adjust your per protocol timeout values:
+
+  flow-timeouts:
+
+    default:
+      new: 3
+      established: 30
+      closed: 0
+      emergency-new: 10
+      emergency-established: 10
+      emergency-closed: 0
+    tcp:
+      new: 6
+      established: 100
+      closed: 12
+      emergency-new: 1
+      emergency-established: 5
+      emergency-closed: 2
+    udp:
+      new: 3
+      established: 30
+      emergency-new: 3
+      emergency-established: 10
+    icmp:
+      new: 3
+      established: 30
+      emergency-new: 1
+      emergency-established: 10
+      
+      
+Adjust your stream engine settings:
+
+  stream:
+    memcap: 12gb
+    checksum-validation: no     # reject wrong csums
+    prealloc-sessions: 500000   # per thread
+    inline: no                  # auto will use inline mode in IPS mode, yes or no set it statically
+    midstream: true
+    asyn-oneside: true
+    reassembly:
+      memcap: 20gb
+      depth: 12mb                  # reassemble 1mb into a stream
+      toserver-chunk-size: 2560
+      toclient-chunk-size: 2560
+      randomize-chunk-size: yes
+      
+
+Make sure you enable suricata.log for troubleshooting if something goes wrong:
+
+   outputs:
+    - console:
+        enabled: yes
+    - file:
+        enabled: yes
+        filename: /usr/local/var/log/suricata.log
+
+
+The PF_RING section:  
+
+  # PF_RING configuration. for use with native PF_RING support
+  # for more info see http://www.ntop.org/PF_RING.html
+  pfring:
+    - interface: eth0
+      # Number of receive threads (>1 will enable experimental flow pinned
+      # runmode)
+      threads: 2
+  
+      # Default clusterid.  PF_RING will load balance packets based on flow.
+      # All threads/processes that will participate need to have the same
+      # clusterid.
+      cluster-id: 99
+  
+      # Default PF_RING cluster type. PF_RING can load balance per flow or per hash.
+      # This is only supported in versions of PF_RING > 4.1.1.
+      cluster-type: cluster_flow
+      # bpf filter for this interface
+      #bpf-filter: tcp
+      # Choose checksum verification mode for the interface. At the moment
+      # of the capture, some packets may be with an invalid checksum due to
+      # offloading to the network card of the checksum computation.
+      # Possible values are:
+      #  - rxonly: only compute checksum for packets received by network card.
+      #  - yes: checksum validation is forced
+      #  - no: checksum validation is disabled
+      #  - auto: suricata uses a statistical approach to detect when
+      #  checksum off-loading is used. (default)
+      # Warning: 'checksum-validation' must be set to yes to have any validation
+      #checksum-checks: auto
+    # Second interface
+    #- interface: eth1
+    #  threads: 3
+    #  cluster-id: 93
+    #  cluster-type: cluster_flow
+    # Put default values here
+    - interface: default
+      #threads: 2
+
+--------------------------------------------------------------------------
+To run Suricata with PF_RING, enter:
+--------------------------------------------------------------------------
+
+With all that done and in place  – you can start Suricata like this
+
+  LD_LIBRARY_PATH=/usr/local/pfring/lib suricata –pfring-int=eth3 –pfring-cluster-id=99 –pfring-cluster-type=cluster_flow -c /etc/suricata/suricata.yaml -D -v
+
+this would also work:
+
+  suricata --pfring-int=eth0 --pfring-cluster-id=99 --pfring-cluster-type=cluster_flow -c /etc/suricata/suricata.yaml -v -D
+
+After you start Suricata with PF_RING, you could use htop and the logs info of suricata.log to determine if everything is ok
+EXAMPLE:
+
+nbox@nbox-ubuntu:~$ sudo suricata --pfring-int=eth0 --pfring-cluster-id=99 --pfring-cluster-type=cluster_flow -c /usr/local/etc/suricata/suricata.yaml -v
+[9225] 25/8/2014 -- 18:05:19 - (suricata.c:1058) <Notice> (SCPrintVersion) -- This is Suricata version 2.1dev (rev 22272f6)
+[9225] 25/8/2014 -- 18:05:19 - (util-cpu.c:170) <Info> (UtilCpuPrintSummary) -- CPUs/cores online: 4
+.....
+[9225] 25/8/2014 -- 18:05:25 - (detect.c:455) <Info> (SigLoadSignatures) -- 47 rule files processed. 14856 rules successfully loaded, 0 rules failed
+[9225] 25/8/2014 -- 18:05:25 - (detect.c:2610) <Info> (SigAddressPrepareStage1) -- 14864 signatures processed. 882 are IP-only rules, 4231 are inspecting packet payload, 11308 inspect application layer, 89 are decoder event only
+[9225] 25/8/2014 -- 18:05:25 - (detect.c:2613) <Info> (SigAddressPrepareStage1) -- building signature grouping structure, stage 1: preprocessing rules... complete
+[9225] 25/8/2014 -- 18:05:25 - (detect.c:3246) <Info> (SigAddressPrepareStage2) -- building signature grouping structure, stage 2: building source address list... complete
+[9225] 25/8/2014 -- 18:05:28 - (detect.c:3892) <Info> (SigAddressPrepareStage3) -- building signature grouping structure, stage 3: building destination address lists... complete
+[9225] 25/8/2014 -- 18:05:29 - (util-threshold-config.c:1203) <Info> (SCThresholdConfParseFile) -- Threshold config parsed: 0 rule(s) found
+[9225] 25/8/2014 -- 18:05:29 - (util-coredump-config.c:122) <Info> (CoredumpLoadConfig) -- Core dump size set to unlimited.
+[9225] 25/8/2014 -- 18:05:29 - (util-logopenfile.c:227) <Info> (SCConfLogOpenGeneric) -- fast output device (regular) initialized: fast.log
+[9225] 25/8/2014 -- 18:05:29 - (alert-unified2-alert.c:1442) <Info> (Unified2AlertInitCtx) -- Unified2-alert initialized: filename unified2.alert, limit 32 MB
+[9225] 25/8/2014 -- 18:05:29 - (util-logopenfile.c:227) <Info> (SCConfLogOpenGeneric) -- http-log output device (regular) initialized: http.log
+[9225] 25/8/2014 -- 18:05:29 - (runmode-pfring.c:332) <Info> (ParsePfringConfig) -- Using flow cluster mode for PF_RING (iface eth0)
+[9225] 25/8/2014 -- 18:05:29 - (util-runmodes.c:559) <Info> (RunModeSetLiveCaptureWorkersForDevice) -- Going to use 2 thread(s)
+[9231] 25/8/2014 -- 18:05:29 - (tmqh-packetpool.c:291) <Info> (PacketPoolInit) -- preallocated 1024 packets. Total memory 3581952
+[9231] 25/8/2014 -- 18:05:29 - (source-pfring.c:496) <Info> (ReceivePfringThreadInit) -- (RxPFReth01) Using PF_RING v.6.0.2, interface eth0, cluster-id 99
+[9232] 25/8/2014 -- 18:05:29 - (tmqh-packetpool.c:291) <Info> (PacketPoolInit) -- preallocated 1024 packets. Total memory 3581952
+[9232] 25/8/2014 -- 18:05:29 - (source-pfring.c:496) <Info> (ReceivePfringThreadInit) -- (RxPFReth02) Using PF_RING v.6.0.2, interface eth0, cluster-id 99
+[9225] 25/8/2014 -- 18:05:29 - (runmode-pfring.c:564) <Info> (RunModeIdsPfringWorkers) -- RunModeIdsPfringWorkers initialised
+[9225] 25/8/2014 -- 18:05:29 - (flow-manager.c:635) <Info> (FlowManagerThreadSpawn) -- using 1 flow manager threads
+...
+[9225] 25/8/2014 -- 18:05:29 - (tm-threads.c:2330) <Notice> (TmThreadWaitOnThreadInit) -- all 2 packet processing threads, 4 management threads initialized, engine started.
+
+So after running for some hrs:
+
+--------------------------------------------------------------------------
+On a side note
+--------------------------------------------------------------------------
+
+You could also use linux-tools to do some more analyzing and performance tuning:
+
+apt-get install linux-tools
+
+  Example: perf top
+
+Some more info 
+
+  https://perf.wiki.kernel.org/index.php/Tutorial 
+
+and thanks to Regit 
+
+  https://home.regit.org/2013/11/using-linux-perf-tools-for-suricata-performance-analysis/.
+
+Your task of tuning up is not yet done. You could also do a dry test runs with profiling enabled in Suricata and determine the most “expensive rules” and tune them accordingly.
+
+
+Continue with the Basic_Setup.
+
