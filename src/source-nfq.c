@@ -289,7 +289,7 @@ void NFQInitConfig(char quiet)
                 break;
             case NFQ_ROUTE_MODE:
                 SCLogInfo("NFQ running in route mode with next queue %"PRIu32,
-                        nfq_config.next_queue);
+                        nfq_config.next_queue >> 16);
             break;
         }
     }
