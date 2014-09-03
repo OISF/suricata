@@ -40,12 +40,20 @@ typedef struct SCACTilePattern_ {
     /* pattern id */
     uint32_t id;
 
+    /* sid(s) for this pattern */
+    uint32_t sids_size;
+    uint32_t *sids;
+
     struct SCACTilePattern_ *next;
 } SCACTilePattern;
 
 typedef struct SCACTilePatternList_ {
     uint8_t *cs;
     uint16_t patlen;
+
+    /* sid(s) for this pattern */
+    uint32_t sids_size;
+    uint32_t *sids;
 } SCACTilePatternList;
 
 typedef struct SCACTileOutputTable_ {
@@ -85,8 +93,6 @@ typedef struct SCACTileCtx_ {
     SCACTileOutputTable *output_table;
     SCACTilePatternList *pid_pat_list;
 
-    /* the stuff below is only used at initialization time */
-
     /* hash used during ctx initialization */
     SCACTilePattern **init_hash;
 
@@ -101,9 +107,9 @@ typedef struct SCACTileCtx_ {
     int32_t *failure_table;
 
     /* Number of states used by ac-tile */
-    int state_count;
+    uint32_t state_count;
     /* Number of states allocated for ac-tile. */
-    int allocated_state_count;
+    uint32_t allocated_state_count;
 
     /* Largest Pattern Identifier. */
     uint16_t max_pat_id;
