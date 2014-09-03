@@ -197,11 +197,15 @@ int DetectIPRepMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, 
     switch(rd->cmd) {
         case DETECT_IPREP_CMD_ANY:
             val = GetHostRepSrc(p, rd->cat, version);
+            if (val == 0)
+                val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
             if (val > 0) {
                 if (RepMatch(rd->op, val, rd->val) == 1)
                     return 1;
             }
             val = GetHostRepDst(p, rd->cat, version);
+            if (val == 0)
+                val = SRepCIDRGetIPRepDst(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
             if (val > 0) {
                 return RepMatch(rd->op, val, rd->val);
             }
@@ -210,6 +214,8 @@ int DetectIPRepMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, 
         case DETECT_IPREP_CMD_SRC:
             val = GetHostRepSrc(p, rd->cat, version);
             SCLogDebug("checking src -- val %u (looking for cat %u, val %u)", val, rd->cat, rd->val);
+            if (val == 0)
+                val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
             if (val > 0) {
                 return RepMatch(rd->op, val, rd->val);
             }
@@ -218,6 +224,8 @@ int DetectIPRepMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, 
         case DETECT_IPREP_CMD_DST:
             SCLogDebug("checking dst");
             val = GetHostRepDst(p, rd->cat, version);
+            if (val == 0)
+                val = SRepCIDRGetIPRepDst(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
             if (val > 0) {
                 return RepMatch(rd->op, val, rd->val);
             }
@@ -225,9 +233,13 @@ int DetectIPRepMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, 
 
         case DETECT_IPREP_CMD_BOTH:
             val = GetHostRepSrc(p, rd->cat, version);
+            if (val == 0)
+                val = SRepCIDRGetIPRepSrc(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
             if (val == 0 || RepMatch(rd->op, val, rd->val) == 0)
                 return 0;
             val = GetHostRepDst(p, rd->cat, version);
+            if (val == 0)
+                val = SRepCIDRGetIPRepDst(det_ctx->de_ctx->srepCIDR_ctx, p, rd->cat, version);
             if (val > 0) {
                 return RepMatch(rd->op, val, rd->val);
             }
