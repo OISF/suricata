@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -324,34 +324,27 @@ static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx
 
 /** \brief Handle flowvar candidate list in det_ctx:
  *         - clean up the list
- *         - enforce storage for type ALWAYS (luajit) */
-void DetectFlowvarProcessList(DetectEngineThreadCtx *det_ctx, Flow *f)
+ *         - enforce storage for type ALWAYS (luajit)
+ *   Only called from DetectFlowvarProcessList() when flowvarlist is not NULL .
+ */
+void DetectFlowvarProcessListInternal(DetectFlowvarList *fs, Flow *f)
 {
-    DetectFlowvarList *fs, *next;
+    DetectFlowvarList *next;
 
-    SCLogDebug("det_ctx->flowvarlist %p", det_ctx->flowvarlist);
+    do {
+        next = fs->next;
 
-    if (det_ctx->flowvarlist != NULL) {
-        fs = det_ctx->flowvarlist;
-        while (fs != NULL) {
-            next = fs->next;
-
-            if (fs->type == DETECT_FLOWVAR_TYPE_ALWAYS) {
-                BUG_ON(f == NULL);
-                SCLogDebug("adding to the flow %u:", fs->idx);
-                //PrintRawDataFp(stdout, fs->buffer, fs->len);
-
-                FlowVarAddStr(f, fs->idx, fs->buffer, fs->len);
-                /* memory at fs->buffer is now the responsibility of
-                 * the flowvar code. */
-            } else {
-                SCFree(fs->buffer);
-            }
-            SCFree(fs);
-            fs = next;
-        }
-
-        det_ctx->flowvarlist = NULL;
-    }
+        if (fs->type == DETECT_FLOWVAR_TYPE_ALWAYS) {
+            BUG_ON(f == NULL);
+            SCLogDebug("adding to the flow %u:", fs->idx);
+            //PrintRawDataFp(stdout, fs->buffer, fs->len);
+            
+            FlowVarAddStr(f, fs->idx, fs->buffer, fs->len);
+            /* memory at fs->buffer is now the responsibility of
+             * the flowvar code. */
+        } else
+            SCFree(fs->buffer);
+        SCFree(fs);
+        fs = next;
+    } while (fs != NULL);
 }
-
