@@ -968,13 +968,22 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                         goto error;
 
                     DetectAddress *tmp_ad;
+                    DetectAddress *tmp_ad2;
 #ifdef DEBUG
-                    SCLogDebug("tmp_gh");
+                    SCLogDebug("tmp_gh: IPv4");
                     for (tmp_ad = tmp_gh.ipv4_head; tmp_ad; tmp_ad = tmp_ad->next) {
                         DetectAddressPrint(tmp_ad);
                     }
-                    SCLogDebug("tmp_ghn");
+                    SCLogDebug("tmp_ghn: IPv4");
                     for (tmp_ad = tmp_ghn.ipv4_head; tmp_ad; tmp_ad = tmp_ad->next) {
+                        DetectAddressPrint(tmp_ad);
+                    }
+                    SCLogDebug("tmp_gh: IPv6");
+                    for (tmp_ad = tmp_gh.ipv6_head; tmp_ad; tmp_ad = tmp_ad->next) {
+                        DetectAddressPrint(tmp_ad);
+                    }
+                    SCLogDebug("tmp_ghn: IPv6");
+                    for (tmp_ad = tmp_ghn.ipv6_head; tmp_ad; tmp_ad = tmp_ad->next) {
                         DetectAddressPrint(tmp_ad);
                     }
 #endif
@@ -983,12 +992,31 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
 
                     SCLogDebug("merged succesfully");
 
-                    /* insert the addresses into the negated list */
+                    /* insert the IPv4 addresses into the negated list */
                     for (tmp_ad = tmp_gh.ipv4_head; tmp_ad; tmp_ad = tmp_ad->next) {
-                        DetectAddressPrint(tmp_ad);
-                        DetectAddressInsert(NULL, ghn, tmp_ad);
+                        /* work with a copy of the address group */
+                        tmp_ad2 = DetectAddressCopy(tmp_ad);
+                        if (tmp_ad2 == NULL) {
+                            SCLogDebug("DetectAddressCopy failed");
+                            goto error;
+                        }
+                        DetectAddressPrint(tmp_ad2);
+                        DetectAddressInsert(NULL, ghn, tmp_ad2);
                     }
 
+                    /* insert the IPv6 addresses into the negated list */
+                    for (tmp_ad = tmp_gh.ipv6_head; tmp_ad; tmp_ad = tmp_ad->next) {
+                        /* work with a copy of the address group */
+                        tmp_ad2 = DetectAddressCopy(tmp_ad);
+                        if (tmp_ad2 == NULL) {
+                            SCLogDebug("DetectAddressCopy failed");
+                            goto error;
+                        }
+                        DetectAddressPrint(tmp_ad2);
+                        DetectAddressInsert(NULL, ghn, tmp_ad2);
+                    }
+
+                    DetectAddressHeadCleanup(&tmp_gh);
                     DetectAddressHeadCleanup(&tmp_ghn);
                 }
                 n_set = 0;
@@ -1656,21 +1684,68 @@ int DetectAddressMatchIPv6(DetectMatchAddressIPv6 *addrs, uint16_t addrs_cnt, Ad
     }
 
     uint16_t idx;
+    int i = 0;
+    uint16_t result1, result2;
+
+    /* See if the packet address is within the range of any entry in the
+     * signature's address match array.
+     */
     for (idx = 0; idx < addrs_cnt; idx++) {
-        if ((ntohl(a->addr_data32[0]) >= addrs[idx].ip[0] &&
-             ntohl(a->addr_data32[0]) <= addrs[idx].ip2[0]) &&
+        result1 = result2 = 0;
 
-            (ntohl(a->addr_data32[1]) >= addrs[idx].ip[1] &&
-             ntohl(a->addr_data32[1]) <= addrs[idx].ip2[1]) &&
-
-            (ntohl(a->addr_data32[2]) >= addrs[idx].ip[2] &&
-             ntohl(a->addr_data32[2]) <= addrs[idx].ip2[2]) &&
-
-            (ntohl(a->addr_data32[3]) >= addrs[idx].ip[3] &&
-             ntohl(a->addr_data32[3]) <= addrs[idx].ip2[3]))
+        /* See if packet address equals either limit. Return 1 if true. */
+        if (ntohl(a->addr_data32[0]) == addrs[idx].ip[0] &&
+            ntohl(a->addr_data32[1]) == addrs[idx].ip[1] &&
+            ntohl(a->addr_data32[2]) == addrs[idx].ip[2] &&
+            ntohl(a->addr_data32[3]) == addrs[idx].ip[3])
         {
             SCReturnInt(1);
         }
+        if (ntohl(a->addr_data32[0]) == addrs[idx].ip2[0] &&
+            ntohl(a->addr_data32[1]) == addrs[idx].ip2[1] &&
+            ntohl(a->addr_data32[2]) == addrs[idx].ip2[2] &&
+            ntohl(a->addr_data32[3]) == addrs[idx].ip2[3])
+        {
+            SCReturnInt(1);
+        }
+
+        /* See if packet address is greater than lower limit
+         * of the current signature address match pair.
+         */
+        for (i = 0; i < 4; i++) {
+            if (ntohl(a->addr_data32[i]) > addrs[idx].ip[i]) {
+                result1 = 1;
+                break;
+            }
+            if (ntohl(a->addr_data32[i]) < addrs[idx].ip[i]) {
+                result1 = 0;
+                break;
+            }
+        }
+
+        /* If not greater than lower limit, try next address match entry */
+        if (result1 == 0)
+            continue;
+
+        /* See if packet address is less than upper limit
+         * of the current signature address match pair.
+         */
+        for (i = 0; i < 4; i++) {
+            if (ntohl(a->addr_data32[i]) < addrs[idx].ip2[i]) {
+                result2 = 1;
+                break;
+            }
+            if (ntohl(a->addr_data32[i]) > addrs[idx].ip2[i]) {
+                result2 = 0;
+                break;
+            }
+        }
+
+        /* Return a match if packet address is between the two
+         * signature address match limits.
+         */
+        if (result1 == 1 && result2 == 1)
+            SCReturnInt(1);
     }
 
     SCReturnInt(0);
