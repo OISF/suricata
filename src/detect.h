@@ -372,8 +372,8 @@ typedef struct SignatureHeader_ {
 
 /** \brief a single match condition for a signature */
 typedef struct SigMatch_ {
-    uint16_t idx; /**< position in the signature */
     uint8_t type; /**< match type */
+    uint16_t idx; /**< position in the signature */
     void *ctx; /**< plugin specific data */
     struct SigMatch_ *next;
     struct SigMatch_ *prev;
