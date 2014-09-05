@@ -929,7 +929,8 @@ SCRadixNode *SCRadixAddKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree,
  *
  * \retval node Pointer to the newly created node
  */
-SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *user) {
+SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *user)
+{
     uint32_t ip;
     uint8_t netmask = 32;
     char ip_str[32]; /* Max length for full ipv4/mask string with NUL */
@@ -977,7 +978,8 @@ SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *u
  *
  * \retval node Pointer to the newly created node
  */
-SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *user) {
+SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *user)
+{
     uint8_t netmask = 128;
     char ip_str[80]; /* Max length for full ipv6/mask string with NUL */
     char *mask_str = NULL;
@@ -999,7 +1001,7 @@ SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *u
 
         /* Get binary values for cidr mask */
         cidr = atoi(mask_str);
-        if ((cidr < 0) || (cidr > 32)) {
+        if ((cidr < 0) || (cidr > 128)) {
             return NULL;
         }
         netmask = (uint8_t)cidr;
