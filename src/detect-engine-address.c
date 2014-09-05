@@ -51,7 +51,6 @@ void DetectAddressPrint(DetectAddress *);
 static int DetectAddressCutNot(DetectAddress *, DetectAddress **);
 static int DetectAddressCut(DetectEngineCtx *, DetectAddress *, DetectAddress *,
                             DetectAddress **);
-static int DetectAddressPacketIPv6InRange(Address *, DetectMatchAddressIPv6 *);
 int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn);
 
 /** memory usage counters
@@ -1662,51 +1661,6 @@ int DetectAddressMatchIPv4(DetectMatchAddressIPv4 *addrs, uint16_t addrs_cnt, Ad
 }
 
 /**
- * \internal
- * \brief Tests if the supplied IPv6 packet address is within the
- *        range specified by the supplied DetectMatchAddressIPv6 pair.  
- *        The test is equivalent to greater-than-or-equal lower limit 
- *        and less-than-or-equal upper limit of DetectMatchAddressIPv6 range.
- *
- *  \param addrs a signatures DetectMatchAddressIPv6 entity
- *  \param a packets address
- *
- *  \retval 0 not in the range
- *  \retval 1 within the range
- *
- *  \note addresses in addrs are in host order
- */
-static int DetectAddressPacketIPv6InRange(Address *a, DetectMatchAddressIPv6 *addrs)
-{
-    int i = 0;
-
-    /* First see if packet address equals either DetectMatchAddress limit. */
-    if (ntohl(a->addr_data32[0]) == addrs->ip[0] &&
-        ntohl(a->addr_data32[1]) == addrs->ip[1] &&
-        ntohl(a->addr_data32[2]) == addrs->ip[2] &&
-        ntohl(a->addr_data32[3]) == addrs->ip[3])
-    {
-        return 1;
-    }
-    if (ntohl(a->addr_data32[0]) == addrs->ip2[0] &&
-        ntohl(a->addr_data32[1]) == addrs->ip2[1] &&
-        ntohl(a->addr_data32[2]) == addrs->ip2[2] &&
-        ntohl(a->addr_data32[3]) == addrs->ip2[3])
-    {
-        return 1;
-    }
-
-    /* Not equal to either limit, so see if it is between them. */
-    for (i = 0; i < 4; i++) {
-        if (ntohl(a->addr_data32[i]) > addrs->ip[i] &&
-            ntohl(a->addr_data32[i]) < addrs->ip2[i])
-            return 1;
-    }
-
-    return 0;
-}
-
-/**
  *  \brief Match a packets address against a signatures addrs array
  *
  *  \param addrs array of DetectMatchAddressIPv6's
@@ -1728,12 +1682,67 @@ int DetectAddressMatchIPv6(DetectMatchAddressIPv6 *addrs, uint16_t addrs_cnt, Ad
     }
 
     uint16_t idx;
+    int i = 0;
+    uint16_t result1, result2;
 
     /* See if the packet address is within the ranges of any entry in the 
      * signature's address match array.
      */
     for (idx = 0; idx < addrs_cnt; idx++) {
-        if (DetectAddressPacketIPv6InRange(a, &addrs[idx]) == 1)
+        result1 = result2 = 0;
+
+        /* See if packet address equals either limit. Return 1 if true. */
+        if (ntohl(a->addr_data32[0]) == addrs[idx].ip[0] &&
+            ntohl(a->addr_data32[1]) == addrs[idx].ip[1] &&
+            ntohl(a->addr_data32[2]) == addrs[idx].ip[2] &&
+            ntohl(a->addr_data32[3]) == addrs[idx].ip[3])
+        {
+            SCReturnInt(1);
+        }
+        if (ntohl(a->addr_data32[0]) == addrs[idx].ip2[0] &&
+            ntohl(a->addr_data32[1]) == addrs[idx].ip2[1] &&
+            ntohl(a->addr_data32[2]) == addrs[idx].ip2[2] &&
+            ntohl(a->addr_data32[3]) == addrs[idx].ip2[3])
+        {
+            SCReturnInt(1);
+        }
+
+        /* See if packet address is greater than lower limit
+         * of the current signature address match pair.
+         */
+        for (i = 0; i < 4; i++) {
+            if (ntohl(a->addr_data32[i]) > addrs[idx].ip[i]) {
+                result1 = 1;
+                break;
+            }
+            if (ntohl(a->addr_data32[i]) < addrs[idx].ip[i]) {
+                result1 = 0;
+                break;
+            }
+        }
+
+        /* If not greater than lower limit, try next address match entry */
+	if (result1 == 0)
+            continue;
+
+        /* See if packet address is less than upper limit
+         * of the current signature address match pair.
+         */
+        for (i = 0; i < 4; i++) {
+            if (ntohl(a->addr_data32[i]) < addrs[idx].ip2[i]) {
+                result2 = 1;
+                break;
+            }
+            if (ntohl(a->addr_data32[i]) > addrs[idx].ip2[i]) {
+                result2 = 0;
+                break;
+            }
+        }
+
+        /* Return a match if packet address is between the two
+         * signature address match limits.
+         */
+        if (result1 == 1 && result2 == 1)
             SCReturnInt(1);
     }
 
