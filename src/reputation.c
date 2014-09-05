@@ -665,41 +665,70 @@ int SRepInit(DetectEngineCtx *de_ctx)
 }
 
 #ifdef UNITTESTS
+
+#include "conf-yaml-loader.h"
+#include "detect-engine.h"
+#include "stream-tcp-private.h"
+#include "stream-tcp-reassemble.h"
+#include "stream-tcp.h"
+#include "util-unittest.h"
+#include "util-unittest-helper.h"
+
 static int SRepTest01(void)
 {
     char str[] = "1.2.3.4,1,2";
+    int result = 0;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        return 0;
+    }
 
+    SRepInit(de_ctx);
     uint32_t ip = 0;
     uint8_t cat = 0, value = 0;
-    if (SRepSplitLine(str, &ip, &cat, &value) != 0) {
-        return 0;
+    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &ip, &cat, &value) != 0) {
+        goto end;
     }
 
     char ipstr[16];
     PrintInet(AF_INET, (const void *)&ip, ipstr, sizeof(ipstr));
 
     if (strcmp(ipstr, "1.2.3.4") != 0)
-        return 0;
+        goto end;
 
     if (cat != 1)
-        return 0;
+        goto end;
 
     if (value != 2)
-        return 0;
+        goto end;
 
-    return 1;
+    result = 1;
+
+end:
+    DetectEngineCtxFree(de_ctx);
+    return result;
 }
 
 static int SRepTest02(void)
 {
     char str[] = "1.1.1.1,";
-
-    uint32_t ip = 0;
-    uint8_t cat = 0, value = 0;
-    if (SRepSplitLine(str, &ip, &cat, &value) == 0) {
+    int result = 0;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         return 0;
     }
-    return 1;
+
+    SRepInit(de_ctx);
+    uint32_t ip = 0;
+    uint8_t cat = 0, value = 0;
+    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &ip, &cat, &value) == 0) {
+        goto end;
+    }
+    result = 1;
+
+end:
+    DetectEngineCtxFree(de_ctx);
+    return result;
 }
 
 static int SRepTest03(void)
@@ -727,7 +756,115 @@ static int SRepTest03(void)
     return 1;
 }
 
+static int SRepTest04(void)
+{
+    int result = 0;
 
+    DetectEngineCtx *de_ctx;
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    SRepInit(de_ctx);
+
+    char str[] = "10.0.0.0/16,1,2";
+
+    uint32_t ip = 0;
+    uint8_t cat = 0, value = 0;
+    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &ip, &cat, &value) != 1) {
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int SRepTest05(void)
+{
+    Packet *p = NULL;
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+
+    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+    if (p == NULL) {
+        return result;
+    }
+
+    p->src.addr_data32[0] = UTHSetIPv4Address("10.0.0.1");
+
+    DetectEngineCtx *de_ctx;
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        return result;
+    }
+    SRepInit(de_ctx);
+
+    char str[] = "10.0.0.0/16,1,20";
+
+    uint32_t ip = 0;
+    uint8_t cat = 0, value = 0;
+    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &ip, &cat, &value) != 1) {
+        goto end;
+    }
+    cat = 1;
+    value = SRepCIDRGetIPRepSrc(de_ctx->srepCIDR_ctx, p, cat, 0);
+    if (value != 20) {
+        goto end;
+    }
+    result = 1;
+
+end:
+    UTHFreePacket(p);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int SRepTest06(void)
+{
+    Packet *p = NULL;
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+
+    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+    if (p == NULL) {
+        return result;
+    }
+
+    p->src.addr_data32[0] = UTHSetIPv4Address("192.168.0.1");
+
+    DetectEngineCtx *de_ctx;
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        return result;
+    }
+    SRepInit(de_ctx);
+
+    char str[] =
+        "0.0.0.0/0,1,10\n"
+        "192.168.0.0/16,2,127";
+
+    uint32_t ip = 0;
+    uint8_t cat = 0, value = 0;
+    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &ip, &cat, &value) != 1) {
+        goto end;
+    }
+    cat = 1;
+    value = SRepCIDRGetIPRepSrc(de_ctx->srepCIDR_ctx, p, cat, 0);
+    if (value != 10) {
+        goto end;
+    }
+    result = 1;
+
+end:
+    UTHFreePacket(p);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
 #endif
 
 /** Global trees that hold host reputation for IPV4 and IPV6 hosts */
@@ -2162,6 +2299,9 @@ void SCReputationRegisterTests(void)
     UtRegisterTest("SRepTest01", SRepTest01, 1);
     UtRegisterTest("SRepTest02", SRepTest02, 1);
     UtRegisterTest("SRepTest03", SRepTest03, 1);
+    UtRegisterTest("SRepTest04", SRepTest04, 1);
+    UtRegisterTest("SRepTest05", SRepTest05, 1);
+    UtRegisterTest("SRepTest06", SRepTest06, 1);
 #endif /* UNITTESTS */
 }
 
