@@ -151,6 +151,46 @@ class SuricataSC:
     def close(self):
         self.socket.close()
 
+    def parse_command(self, command):
+        arguments = None
+        if command.split(' ', 2)[0] in self.cmd_list:
+            if "pcap-file " in command:
+                try:
+                    [cmd, filename, output] = command.split(' ', 2)
+                except:
+                    raise SuricataCommandException("Arguments to command '%s' is missing" % (command))
+                if cmd != "pcap-file":
+                    raise SuricataCommandException("Invalid command '%s'" % (command))
+                else:
+                    arguments = {}
+                    arguments["filename"] = filename
+                    arguments["output-dir"] = output
+            elif "iface-stat" in command:
+                try:
+                    [cmd, iface] = command.split(' ', 1)
+                except:
+                    raise SuricataCommandException("Unable to split command '%s'" % (command))
+                if cmd != "iface-stat":
+                    raise SuricataCommandException("Invalid command '%s'" % (command))
+                else:
+                    arguments = {}
+                    arguments["iface"] = iface
+            elif "conf-get" in command:
+                try:
+                    [cmd, variable] = command.split(' ', 1)
+                except:
+                    raise SuricataCommandException("Unable to split command '%s'" % (command))
+                if cmd != "conf-get":
+                    raise SuricataCommandException("Invalid command '%s'" % (command))
+                else:
+                    arguments = {}
+                    arguments["variable"] = variable
+            else:
+                cmd = command
+        else:
+            raise SuricataCommandException("Unknown command '%s'" % (command))
+        return (cmd, arguments)
+
     def interactive(self):
         print "Command list: " + ", ".join(self.cmd_list)
         try:
@@ -159,53 +199,13 @@ class SuricataSC:
             readline.parse_and_bind('tab: complete')
             while True:
                 command = raw_input(">>> ").strip()
-                arguments = None
-                if command.split(' ', 2)[0] in self.cmd_list:
-                    if command == "quit":
-                        break;
-                    if "pcap-file " in command:
-                        try:
-                            [cmd, filename, output] = command.split(' ', 2)
-                        except:
-                            print "Error: arguments to command '%s' is missing" % (command)
-                            continue
-                        if cmd != "pcap-file":
-                            print "Error: invalid command '%s'" % (command)
-                            continue
-                        else:
-                            arguments = {}
-                            arguments["filename"] = filename
-                            arguments["output-dir"] = output
-                    elif "iface-stat" in command:
-                        try:
-                            [cmd, iface] = command.split(' ', 1)
-                        except:
-                            print "Error: unable to split command '%s'" % (command)
-                            continue
-                        if cmd != "iface-stat":
-                            print "Error: invalid command '%s'" % (command)
-                            continue
-                        else:
-                            arguments = {}
-                            arguments["iface"] = iface
-                    elif "conf-get" in command:
-                        try:
-                            [cmd, variable] = command.split(' ', 1)
-                        except:
-                            print "Error: unable to split command '%s'" % (command)
-                            continue
-                        if cmd != "conf-get":
-                            print "Error: invalid command '%s'" % (command)
-                            continue
-                        else:
-                            arguments = {}
-                            arguments["variable"] = variable
-                    else:
-                        cmd = command
-                else:
-                    print "Error: unknown command '%s'" % (command)
+                if command == "quit":
+                    break;
+                try:
+                    (cmd, arguments) = self.parse_command(command)
+                except SuricataCommandException, err:
+                    print err
                     continue
-
                 cmdret = self.send_command(cmd, arguments)
                 #decode json message
                 if cmdret["return"] == "NOK":
