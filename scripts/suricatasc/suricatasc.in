@@ -20,6 +20,7 @@ from suricatasc import *
 
 parser = argparse.ArgumentParser(prog='suricatasc', description='Client for Suricata unix socket')
 parser.add_argument('-v', '--verbose', action='store_const', const=True, help='verbose output (including JSON dump)')
+parser.add_argument('-c', '--command', default=None, help='execute on single command and return JSON')
 parser.add_argument('socket', metavar='socket', nargs='?', help='socket file to connnect to', default=None)
 args = parser.parse_args()
 
@@ -37,6 +38,13 @@ except SuricataNetException, err:
 except SuricataReturnException, err:
     print "Unable to negotiate version with server: %s" % (err)
     sys.exit(1)
+
+if args.command:
+    (command, arguments) = sc.parse_command(args.command)
+    print sc.send_command(command, arguments)
+    sc.close()
+    sys.exit(0)
+
 try:
     sc.interactive()
 except SuricataNetException, err:
