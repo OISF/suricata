@@ -80,5 +80,6 @@ typedef union HashState_ {
 
 unsigned char* ComputeSHA1(unsigned char* buff, int bufflen);
 int Base64Encode(const unsigned char *in,  unsigned long inlen, unsigned char *out, unsigned long *outlen);
+int Base64Decode(const unsigned char *in,  unsigned long inlen, unsigned char *out, unsigned long *outlen);
 
 #endif /* UTIL_CRYPT_H_ */
