@@ -251,7 +251,7 @@ static void JsonHttpLogJSONCustom(LogHttpFileCtx *http_ctx, json_t *js, htp_tx_t
     char *c;
     HttpField f;
 
-    for (f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++)
+    for (f = HTTP_FIELD_ACCEPT; f <= HTTP_FIELD_SIZE; f++)
     {
         if ((http_ctx->fields & (1ULL<<f)) != 0)
         {
@@ -494,7 +494,7 @@ OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
                 if (field != NULL)
                 {
                     HttpField f;
-                    for (f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++)
+                    for (f = HTTP_FIELD_ACCEPT; f <= HTTP_FIELD_SIZE; f++)
                     {
                         if ((strcmp(http_fields[f].config_field,
                                    field->val) == 0) ||
