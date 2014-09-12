@@ -89,6 +89,9 @@ static int SSHParseBanner(SshState *state, SshHeader *header, const uint8_t *inp
         SCReturnInt(-1);
     }
 
+    /* don't search things behind the end of banner */
+    line_len = banner_end - line_ptr;
+
     /* ok, we have found the version line/string, skip it and parse proto version */
     line_ptr += 4;
     line_len -= 4;
@@ -119,6 +122,13 @@ static int SSHParseBanner(SshState *state, SshHeader *header, const uint8_t *inp
     }
 
     uint64_t sw_ver_len = (uint64_t)(banner_end - line_ptr);
+    /* sanity check on this arithmetic */
+    if ((sw_ver_len <= 1) || (sw_ver_len >= input_len)) {
+        SCLogError(SC_ERR_INVALID_VALUE,
+                   "Should not have sw version length '%" PRIu64 "'", sw_ver_len);
+        SCReturnInt(-1);
+    }
+
     header->software_version = SCMalloc(sw_ver_len + 1);
     if (header->software_version == NULL) {
         SCReturnInt(-1);
@@ -2469,6 +2479,89 @@ end:
     return result;
 }
 
+/** \test Send a version string in one chunk (client version str). */
+static int SSHParserTest23(void)
+{
+    int result = 0;
+    Flow f;
+    uint8_t sshbuf[] = "SSH-2.0\r-MySSHClient-0.5.1\n";
+    uint32_t sshlen = sizeof(sshbuf) - 1;
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    SCMutexLock(&f.m);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
+    if (r == 0) {
+        printf("toclient chunk 1 returned 0 expected non null: ");
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    result = 1;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    return result;
+}
+
+/** \test Send a version string in one chunk (client version str). */
+static int SSHParserTest24(void)
+{
+    int result = 0;
+    Flow f;
+    uint8_t sshbuf[] = "SSH-2.0-\rMySSHClient-0.5.1\n";
+    uint32_t sshlen = sizeof(sshbuf) - 1;
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    SCMutexLock(&f.m);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
+    if (r != 0) {
+        printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    SshState *ssh_state = f.alstate;
+    if (ssh_state == NULL) {
+        printf("no ssh state: ");
+        goto end;
+    }
+
+    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
+        printf("Client version string not parsed: ");
+        goto end;
+    }
+
+    if (ssh_state->cli_hdr.software_version) {
+        printf("Client version string should not be parsed: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    return result;
+}
+
+
 #endif /* UNITTESTS */
 
 void SSHParserRegisterTests(void)
@@ -2496,6 +2589,8 @@ void SSHParserRegisterTests(void)
     UtRegisterTest("SSHParserTest20", SSHParserTest20, 1);
     UtRegisterTest("SSHParserTest21", SSHParserTest21, 1);
     UtRegisterTest("SSHParserTest22", SSHParserTest22, 1);
+    UtRegisterTest("SSHParserTest23", SSHParserTest23, 1);
+    UtRegisterTest("SSHParserTest24", SSHParserTest24, 1);
 #endif /* UNITTESTS */
 }
 
