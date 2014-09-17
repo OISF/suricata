@@ -164,10 +164,12 @@ typedef struct IPV6RouteHdr_
                                         including first 8 bytes. */
     uint8_t ip6rh_type;              /* routing type */
     uint8_t ip6rh_segsleft;          /* segments left */
+#if 0
     struct in6_addr ip6rh0_addr[23];  /* type 0 addresses */
     uint8_t ip6rh0_num_addrs;        /* number of actual addresses in the
                                         array/packet. The array is guarranteed
                                         to be filled up to this number. */
+#endif
 } __attribute__((__packed__)) IPV6RouteHdr;
 
 #define IPV6_EXTHDR_GET_RAW_RH_NH(p)        ((p)->ip6eh.ip6rh->ip6rh_nxt)

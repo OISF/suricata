@@ -181,13 +181,13 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 }
 
                 IPV6_EXTHDR_SET_RH(p, pkt);
-                IPV6_EXTHDR_RH(p)->ip6rh_len = hdrextlen;
+
                 /** \todo move into own function and load on demand */
                 if (IPV6_EXTHDR_RH(p)->ip6rh_type == 0) {
+#if 0 // XXX usused and broken, original packet is modified in the memcpy
                     uint8_t i;
 
-                    uint8_t n = IPV6_EXTHDR_RH(p)->ip6rh_len / 2;
-
+                    uint8_t n = hdrextlen / 2;
                     /* because we devide the header len by 2 (as rfc 2460 tells us to)
                      * we devide the result by 8 and not 16 as the header fields are
                      * sized */
@@ -197,7 +197,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                         memcpy(&IPV6_EXTHDR_RH(p)->ip6rh0_addr[i], pkt+(i*16)+8, sizeof(IPV6_EXTHDR_RH(p)->ip6rh0_addr[i]));
                     }
                     IPV6_EXTHDR_RH(p)->ip6rh0_num_addrs = i;
-
+#endif
                     ENGINE_SET_EVENT(p, IPV6_EXTHDR_RH_TYPE_0);
                 }
 
