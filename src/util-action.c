@@ -107,7 +107,11 @@ int ActionInitConfig()
 
     /* Let's load the order of actions from the general config */
     action_order = ConfGetNode("action-order");
-    if (action_order != NULL) {
+    if (action_order == NULL) {
+        /* No configuration, use defaults. */
+        return 0;
+    }
+    else {
         TAILQ_FOREACH(action, &action_order->head, next) {
             SCLogDebug("Loading action order : %s", action->val);
             action_flag = ActionAsciiToFlag(action->val);
@@ -1547,7 +1551,43 @@ cleanup:
         DetectEngineCtxFree(de_ctx);
     }
 
+    /* Restore default values */
+    action_order_sigs[0] = ACTION_PASS;
+    action_order_sigs[1] = ACTION_DROP;
+    action_order_sigs[2] = ACTION_REJECT;
+    action_order_sigs[3] = ACTION_ALERT;
+
 end:
+    return res;
+}
+
+/**
+ * \test Check that the expected defaults are loaded if the
+ *     action-order configuration is not present.
+ */
+int UtilActionTest24(void)
+{
+    int res = 1;
+    char config[] = "%YAML 1.1\n"
+        "---\n";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(config, strlen(config));
+
+    if (ActionInitConfig() != 0) {
+        res = 0;
+        goto done;
+    }
+    if (action_order_sigs[0] != ACTION_PASS ||
+        action_order_sigs[1] != ACTION_DROP ||
+        action_order_sigs[2] != ACTION_REJECT ||
+        action_order_sigs[3] != ACTION_ALERT) {
+        res = 0;
+    }
+
+done:
+    ConfRestoreContextBackup();
     return res;
 }
 
@@ -1582,5 +1622,6 @@ void UtilActionRegisterTests(void)
     UtRegisterTest("UtilActionTest21", UtilActionTest21, 1);
     UtRegisterTest("UtilActionTest22", UtilActionTest22, 1);
     UtRegisterTest("UtilActionTest23", UtilActionTest23, 1);
+    UtRegisterTest("UtilActionTest24", UtilActionTest24, 1);
 #endif
 }
