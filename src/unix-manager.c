@@ -32,6 +32,8 @@
 #include "util-privs.h"
 #include "util-debug.h"
 #include "util-signal.h"
+#include "util-ipwatchlist.h"
+#include <util-smtp-indicators.h>
 
 #include <sys/un.h>
 #include <sys/stat.h>
@@ -349,7 +351,7 @@ int UnixCommandAccept(UnixCommand *this)
 
     uclient = SCMalloc(sizeof(UnixClient));
     if (unlikely(uclient == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate new cient");
+        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate new client");
         return 0;
     }
     uclient->fd = client;
@@ -700,6 +702,163 @@ TmEcode UnixManagerListCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
+/*
+ * Possible Values for <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.0">
+ * - Malicious E-mail
+ * - IP Watchlist
+ * - URL Watchlist
+ */
+TmEcode UnixManagerAddIndicator(json_t *cmd, json_t *answer, void *data)
+{
+    SCEnter();
+
+    /*Common variables used by all Indicator JSON*/
+    const char *indic_title = NULL;
+    const char *indic_type = NULL;
+    const char *indic_type_text = NULL;
+    const char *obs_id = NULL;
+    const char *cybox_id = NULL;
+    const char *cybox_obj_type = NULL;
+
+    /*Variables used by IP Watchlist Indicators*/
+    const char *cond = NULL;
+    const char *apply_cond = NULL;
+    char *ip_values = NULL;
+
+    /*Variables used by Malicious E-mail Indicators*/
+    const char *category = NULL;
+    const char *addr_cond = NULL;
+    const char *addr_text = NULL;
+    const char *related_obj_type = NULL;
+    const char *file_ext = NULL;
+    const char *file_size = NULL;
+    const char *cybox_hash_type = NULL;
+    const char *cybox_hash_text = NULL;
+    const char *cybox_simple_hash = NULL;
+    const char *cybox_relation_type = NULL;
+    const char *cybox_relation_text = NULL;
+
+    char **ip_list = NULL;
+    size_t ip_count = 1;
+    char *ip_tmp = NULL;
+    char *ip_last_delim = 0;
+
+    /*Pull the Observable from the JSON Indicator*/
+    json_t *observable = NULL;
+    if (json_unpack(cmd,
+                "{s: {s: {s: s,s: {s: s, s: s }, s: o}}}",
+                "stix:Indicators", "stix:Indicator", "indicator:Title", 
+                &indic_title, "indicator:Type", "@xsi:type", &indic_type,
+                "#text", &indic_type_text, "indicator:Observable", &observable) != 0) {
+        json_object_set_new(answer, "message",
+                json_string("internal error: json validation failed"));
+        return TM_ECODE_FAILED;
+    }
+
+    if (indic_title == NULL || indic_type == NULL || indic_type_text == NULL || observable == NULL) {
+        json_object_set_new(answer, "message", json_string("internal error: json parsing failed"));
+        return TM_ECODE_FAILED;
+    }
+
+    /*Process the Observable based on Indicator Type in the JSON*/
+    if (strcmp(indic_type, "stixVocabs:IndicatorTypeVocab-1.0") == 0) {
+
+        if (strcmp(indic_type_text, "IP Watchlist") == 0) {
+
+            if (json_unpack(observable, "{s: {s: s, s: {s: s, s: {s: s, s:s, s:s}}}}",
+                        "cybox:Object", "@id", &cybox_id, "cybox:Properties",
+                        "@xsi:type", &cybox_obj_type, "AddressObject:Address_Value",
+                        "@condition", &cond,"@apply_condition", &apply_cond,
+                        "#text", &ip_values) == 0) {
+
+                if (ip_values != NULL) {
+                    /*determine number of IPs in the list*/
+                    ip_tmp = strstr(ip_values, "##comma##");
+                    while (ip_tmp != NULL) {
+                        ip_count++;
+                        ip_last_delim = ip_tmp + 9;
+                        ip_tmp = strstr(ip_last_delim, "##comma##");
+                    }
+
+                    /*create array of IP lists to send to detect engine*/
+                    char *tmp_ip_values = SCMalloc((strlen(ip_values) + 1) * sizeof(char));
+                    if (unlikely(tmp_ip_values == NULL)) {
+                        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate IP values");
+                        SCReturn(TM_ECODE_FAILED);
+                    }
+                    memset(tmp_ip_values, 0, (strlen(ip_values) + 1) * sizeof(char));
+                    memcpy(tmp_ip_values, ip_values, (strlen(ip_values)));
+                    ip_list = SCMalloc((ip_count+1) * sizeof(char *));
+                    if (ip_list != NULL) {
+                        size_t ip_index  = 0;
+                        char *ip_token = strtok(tmp_ip_values, "##comma##");
+                        while (ip_token != NULL) {
+                            *(ip_list + ip_index++) = strdup(ip_token);
+                            ip_token = strtok(NULL, "##comma##");
+                        }
+                        *(ip_list + ip_index) = NULL;
+                    }
+                    SCFree(tmp_ip_values);
+
+                    char *indicator_title_copy = SCMalloc((strlen(indic_title) + 1) * sizeof(char));
+                    if (unlikely(indicator_title_copy == NULL)) {
+                        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate indicator title copy");
+                        SCReturn(TM_ECODE_FAILED);
+                    }
+                    memset(indicator_title_copy, 0, (strlen(indic_title) + 1) * sizeof(char));
+                    memcpy(indicator_title_copy, indic_title, strlen(indic_title));
+
+                    /*add IPs to watch list*/
+                    AddIpaddressesToWatchList(indicator_title_copy, ip_list, ip_count);
+                }
+            }
+        } else if (strcmp(indic_type_text, "URL Watchlist") == 0) {
+            //TODO Implement parsing of URL Watchlist STIX JSON message
+
+        } else if (strcmp(indic_type_text, "Malicious E-mail") == 0) {
+            json_unpack(observable,
+                    "{s:{s:s,s:{s:s,s:{s:{s:s,s:{s:s,s:s}}}},s:{s:{s:{s:s,s:s,s:s,s:{s:{s:{s:s,s:s},s:s}}},s:{s:s, s:s}}}}}",
+                    "cybox:Object", "@id", &cybox_id,
+                    "cybox:Properties", "@xsi:type", &cybox_obj_type,
+                    "EmailMessageObj:Header", "EmailMessageObj:From", 
+                    "@category", &category,
+                    "AddressObj:Address_Value", "@condition", &addr_cond,
+                    "#text", &addr_text, "cybox:Related_Objects",
+                    "cybox:Related_Object", "cybox:Properties",
+                    "@xsi:type", &related_obj_type, 
+                    "FileObj:File_Extension", &file_ext,
+                    "FileObj:Size_In_Bytes", &file_size, 
+                    "FileObj:Hashes", "cyboxCommon:Hash",
+                    "cyboxCommon:Type", "@xsi:type", &cybox_hash_type,
+                    "#text", &cybox_hash_text,
+                    "cyboxCommon:Simple_Hash_Value", &cybox_simple_hash,
+                    "cybox:Relationship", "@xsi:type", &cybox_relation_type,
+                    "#text", &cybox_relation_text);
+            SCLogWarning(SC_ERR_INITIALIZATION, "cybox_id is : '%s'", cybox_id);
+            SCLogWarning(SC_ERR_INITIALIZATION, "cybox_obj_type is : '%s'", cybox_obj_type);
+            SCLogWarning(SC_ERR_INITIALIZATION, "category is : '%s'", category);
+
+            enum SMTPIndicatorAddressValueCondition address_condition = contains;
+
+            if(strcmp(category, "Contains") ==  0){
+                address_condition = contains;
+            } else if(strcmp(category, "Equals") == 0){
+                address_condition = equals;
+
+            }
+            SMTPAddressIndicator *address_indicator = SMTPIndicatorCreateAddressIndicator((uint8_t*)addr_text, address_condition);
+            SMTPIndicatorsFileObject *file_object = SMTPIndicatorCreateFileObject((uint8_t*)file_ext, (uint8_t**)&cybox_simple_hash, 1, atol(file_size), 1);
+            SMTPIndicator *indicator = SMTPIndicatorCreateIndicator((uint8_t*)cybox_id, address_indicator, file_object);
+            SMTPIndicatorAddIndicator(indicator);       
+        }
+    } else {
+        SCLogWarning(SC_ERR_INITIALIZATION, "wrong indicator type");
+        json_object_set_new(answer, "message", json_string("internal error: json unsupported indicator type sent in"));
+        return TM_ECODE_FAILED;
+    }
+
+    SCReturnInt(TM_ECODE_OK);
+}
 
 #if 0
 TmEcode UnixManagerReloadRules(json_t *cmd,
@@ -858,6 +1017,7 @@ void *UnixManagerThread(void *td)
     UnixManagerRegisterCommand("running-mode", UnixManagerRunningModeCommand, &command, 0);
     UnixManagerRegisterCommand("capture-mode", UnixManagerCaptureModeCommand, &command, 0);
     UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("add-indicator", UnixManagerAddIndicator, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("dump-counters", SCPerfOutputCounterSocket, NULL, 0);
 #if 0
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
@@ -977,3 +1137,4 @@ void UnixSocketKillSocketThread(void)
 }
 
 #endif /* BUILD_UNIX_SOCKET */
+
