@@ -1081,11 +1081,11 @@ vars:
 
 # Set the order of alerts bassed on actions
 # The default order is pass, drop, reject, alert
-action-order:
-  - pass
-  - drop
-  - reject
-  - alert
+# action-order:
+#   - pass
+#   - drop
+#   - reject
+#   - alert
 
 # IP Reputation
 #reputation-categories-file: @e_sysconfdir@iprep/categories.txt
