@@ -51,6 +51,7 @@
 #include "detect-engine-state.h"
 #include "detect-engine-tag.h"
 #include "detect-fast-pattern.h"
+#include "detect-watchlist.h"
 #include "flow.h"
 #include "flow-timeout.h"
 #include "flow-manager.h"
@@ -261,6 +262,7 @@ void RunUnittests(int list_unittests, char *regex_arg)
     CudaBufferRegisterUnittests();
 #endif
     AppLayerUnittestsRegister();
+    WatchListRegisterTests();
     if (list_unittests) {
         UtListTests(regex_arg);
     } else {
