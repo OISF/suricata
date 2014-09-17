@@ -165,6 +165,7 @@
 #include "detect-http-stat-code.h"
 #include "detect-ssl-version.h"
 #include "detect-ssl-state.h"
+#include "detect-modbus.h"
 
 #include "action-globals.h"
 #include "tm-threads.h"
@@ -4811,6 +4812,7 @@ void SigTableSetup(void)
     DetectLuaRegister();
     DetectIPRepRegister();
     DetectDnsQueryRegister();
+    DetectModbusRegister();
     DetectAppLayerProtocolRegister();
 }
 
