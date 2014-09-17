@@ -1081,10 +1081,11 @@ IPV6BuildTestPacket(uint32_t id, uint16_t off, int mf, const char content,
     p->ip6h = (IPV6Hdr *)GET_PKT_DATA(p);
     IPV6_SET_RAW_VER(p->ip6h, 6);
     /* Fragmentation header. */
-    p->ip6eh.ip6fh = (IPV6FragHdr *)(GET_PKT_DATA(p) + sizeof(IPV6Hdr));
-    p->ip6eh.ip6fh->ip6fh_nxt = IPPROTO_ICMP;
-    p->ip6eh.ip6fh->ip6fh_ident = htonl(id);
-    p->ip6eh.ip6fh->ip6fh_offlg = htons((off << 3) | mf);
+    IPV6FragHdr *fh = (IPV6FragHdr *)(GET_PKT_DATA(p) + sizeof(IPV6Hdr));
+    fh->ip6fh_nxt = IPPROTO_ICMP;
+    fh->ip6fh_ident = htonl(id);
+    fh->ip6fh_offlg = htons((off << 3) | mf);
+    p->ip6eh.ip6fh = fh;
 
     pcontent = SCCalloc(1, content_len);
     if (unlikely(pcontent == NULL))

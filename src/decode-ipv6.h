@@ -264,18 +264,18 @@ typedef struct IPV6GenOptHdr_
 
 typedef struct IPV6ExtHdrs_
 {
-    IPV6FragHdr    *ip6fh;
+    const IPV6FragHdr    *ip6fh;
     /* In fh_offset we store the offset of this extension into the packet past
      * the ipv6 header. We use it in defrag for creating a defragmented packet
      * without the frag header */
     uint16_t      fh_offset;
 
-    IPV6RouteHdr   *ip6rh;
-    IPV6AuthHdr    *ip6ah;
-    IPV6EspHdr     *ip6eh;
-    IPV6DstOptsHdr *ip6dh1;
-    IPV6DstOptsHdr *ip6dh2;
-    IPV6HopOptsHdr *ip6hh;
+    const IPV6RouteHdr   *ip6rh;
+    const IPV6AuthHdr    *ip6ah;
+    const IPV6EspHdr     *ip6eh;
+    const IPV6DstOptsHdr *ip6dh1;
+    const IPV6DstOptsHdr *ip6dh2;
+    const IPV6HopOptsHdr *ip6hh;
 
     /* Hop-By-Hop options */
     IPV6OptHAO ip6hh_opt_hao;
