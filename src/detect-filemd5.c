@@ -75,7 +75,7 @@ void DetectFileMd5Register(void)
     sigmatch_table[DETECT_FILEMD5].RegisterTests = NULL;
     sigmatch_table[DETECT_FILEMD5].flags = SIGMATCH_NOT_BUILT;
 
-	SCLogDebug("registering filemd5 rule option");
+    SCLogDebug("registering filemd5 rule option");
     return;
 }
 
@@ -101,7 +101,7 @@ void DetectFileMd5Register(void)
     sigmatch_table[DETECT_FILEMD5].Free  = DetectFileMd5Free;
     sigmatch_table[DETECT_FILEMD5].RegisterTests = DetectFileMd5RegisterTests;
 
-	SCLogDebug("registering filemd5 rule option");
+    SCLogDebug("registering filemd5 rule option");
     return;
 }
 
