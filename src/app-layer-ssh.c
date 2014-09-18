@@ -124,8 +124,7 @@ static int SSHParseBanner(SshState *state, SshHeader *header, const uint8_t *inp
     uint64_t sw_ver_len = (uint64_t)(banner_end - line_ptr);
     /* sanity check on this arithmetic */
     if ((sw_ver_len <= 1) || (sw_ver_len >= input_len)) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                   "Should not have sw version length '%" PRIu64 "'", sw_ver_len);
+        SCLogDebug("Should not have sw version length '%" PRIu64 "'", sw_ver_len);
         SCReturnInt(-1);
     }
 
