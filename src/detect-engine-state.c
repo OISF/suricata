@@ -528,14 +528,11 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         inspect_tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
         total_txs = AppLayerParserGetTxCnt(f->proto, alproto, alstate);
         inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id);
-        if (inspect_tx == NULL) {
-            FLOWLOCK_UNLOCK(f);
-            SCMutexUnlock(&f->de_state_m);
-            return;
-        }
-        if (AppLayerParserGetStateProgress(f->proto, alproto, inspect_tx, flags) >=
-            AppLayerParserGetStateProgressCompletionStatus(f->proto, alproto, flags)) {
-            reset_de_state = 1;
+        if (inspect_tx != NULL) {
+            if (AppLayerParserGetStateProgress(f->proto, alproto, inspect_tx, flags) >=
+                    AppLayerParserGetStateProgressCompletionStatus(f->proto, alproto, flags)) {
+                reset_de_state = 1;
+            }
         }
         FLOWLOCK_UNLOCK(f);
         alproto_supports_txs = 1;
