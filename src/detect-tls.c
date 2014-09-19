@@ -658,7 +658,7 @@ static DetectTlsData *DetectTlsFingerprintParse (char *str)
 
     SCFree(orig);
 
-    SCLogDebug("will look for TLS fingerprint %s", tls->subject);
+    SCLogDebug("will look for TLS fingerprint %s", tls->fingerprint);
 
     return tls;
 
