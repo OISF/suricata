@@ -552,6 +552,14 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         }
     }
 
+    if (!(st->flags & SIGMATCH_NOOPT)) {
+        if (strlen(optvalue) == 0) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid formatting or malformed option to %s keyword: \'%s\'",
+                    optname, optstr);
+            goto error;
+        }
+    }
+
     /* setup may or may not add a new SigMatch to the list */
     if (st->Setup(de_ctx, s, strlen(optvalue) ? optvalue : NULL) < 0) {
         SCLogDebug("\"%s\" failed to setup", st->name);
