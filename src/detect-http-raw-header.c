@@ -76,6 +76,7 @@ void DetectHttpRawHeaderRegister(void)
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].RegisterTests = DetectHttpRawHeaderRegisterTests;
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].alproto = ALPROTO_HTTP;
 
+    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].flags |= SIGMATCH_PAYLOAD;
 
     return;
