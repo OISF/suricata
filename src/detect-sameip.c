@@ -55,6 +55,7 @@ void DetectSameipRegister(void)
     sigmatch_table[DETECT_SAMEIP].Setup = DetectSameipSetup;
     sigmatch_table[DETECT_SAMEIP].Free = NULL;
     sigmatch_table[DETECT_SAMEIP].RegisterTests = DetectSameipRegisterTests;
+    sigmatch_table[DETECT_SAMEIP].flags = SIGMATCH_NOOPT;
 }
 
 /**

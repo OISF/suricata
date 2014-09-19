@@ -59,6 +59,7 @@ void DetectFiledataRegister(void)
     sigmatch_table[DETECT_FILE_DATA].Setup = DetectFiledataSetup;
     sigmatch_table[DETECT_FILE_DATA].Free  = NULL;
     sigmatch_table[DETECT_FILE_DATA].RegisterTests = NULL;
+    sigmatch_table[DETECT_FILE_DATA].flags = SIGMATCH_NOOPT;
 }
 
 /**

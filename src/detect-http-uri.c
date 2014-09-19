@@ -73,6 +73,7 @@ void DetectHttpUriRegister (void)
     sigmatch_table[DETECT_AL_HTTP_URI].Free  = NULL;
     sigmatch_table[DETECT_AL_HTTP_URI].RegisterTests = DetectHttpUriRegisterTests;
 
+    sigmatch_table[DETECT_AL_HTTP_URI].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_URI].flags |= SIGMATCH_PAYLOAD;
 }
 

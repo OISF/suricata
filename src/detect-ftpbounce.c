@@ -70,6 +70,7 @@ void DetectFtpbounceRegister(void)
     sigmatch_table[DETECT_FTPBOUNCE].alproto = ALPROTO_FTP;
     sigmatch_table[DETECT_FTPBOUNCE].Free  = NULL;
     sigmatch_table[DETECT_FTPBOUNCE].RegisterTests = DetectFtpbounceRegisterTests;
+    sigmatch_table[DETECT_FTPBOUNCE].flags = SIGMATCH_NOOPT;
     return;
 }
 

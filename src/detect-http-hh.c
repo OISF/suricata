@@ -76,6 +76,7 @@ void DetectHttpHHRegister(void)
     sigmatch_table[DETECT_AL_HTTP_HOST].RegisterTests = DetectHttpHHRegisterTests;
     sigmatch_table[DETECT_AL_HTTP_HOST].alproto = ALPROTO_HTTP;
 
+    sigmatch_table[DETECT_AL_HTTP_HOST].flags |= SIGMATCH_NOOPT ;
     sigmatch_table[DETECT_AL_HTTP_HOST].flags |= SIGMATCH_PAYLOAD ;
 
     return;

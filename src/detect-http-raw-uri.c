@@ -71,6 +71,7 @@ void DetectHttpRawUriRegister(void)
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].Setup = DetectHttpRawUriSetup;
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].Free = NULL;
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].RegisterTests = DetectHttpRawUriRegisterTests;
+    sigmatch_table[DETECT_AL_HTTP_RAW_URI].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].flags |= SIGMATCH_PAYLOAD;
 
     return;

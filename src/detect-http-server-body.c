@@ -78,6 +78,7 @@ void DetectHttpServerBodyRegister(void)
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].RegisterTests = DetectHttpServerBodyRegisterTests;
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].alproto = ALPROTO_HTTP;
 
+    sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].flags |= SIGMATCH_PAYLOAD ;
 }
 

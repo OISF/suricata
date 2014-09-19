@@ -58,6 +58,7 @@ void DetectPktDataRegister(void)
     sigmatch_table[DETECT_PKT_DATA].Setup = DetectPktDataSetup;
     sigmatch_table[DETECT_PKT_DATA].Free  = NULL;
     sigmatch_table[DETECT_PKT_DATA].RegisterTests = DetectPktDataTestRegister;
+    sigmatch_table[DETECT_PKT_DATA].flags = SIGMATCH_NOOPT;
 }
 
 /**

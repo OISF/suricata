@@ -161,6 +161,7 @@ void DetectFastPatternRegister(void)
     sigmatch_table[DETECT_FAST_PATTERN].Free  = NULL;
     sigmatch_table[DETECT_FAST_PATTERN].RegisterTests = DetectFastPatternRegisterTests;
 
+    sigmatch_table[DETECT_FAST_PATTERN].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_FAST_PATTERN].flags |= SIGMATCH_PAYLOAD;
 
     const char *eb;

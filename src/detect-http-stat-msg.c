@@ -84,6 +84,7 @@ void DetectHttpStatMsgRegister (void)
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].Free  = NULL;
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].RegisterTests = DetectHttpStatMsgRegisterTests;
 
+    sigmatch_table[DETECT_AL_HTTP_STAT_MSG].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].flags |= SIGMATCH_PAYLOAD;
 }
 

@@ -78,6 +78,7 @@ void DetectHttpMethodRegister(void)
     sigmatch_table[DETECT_AL_HTTP_METHOD].Setup = DetectHttpMethodSetup;
     sigmatch_table[DETECT_AL_HTTP_METHOD].Free  = DetectHttpMethodFree;
     sigmatch_table[DETECT_AL_HTTP_METHOD].RegisterTests = DetectHttpMethodRegisterTests;
+    sigmatch_table[DETECT_AL_HTTP_METHOD].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_METHOD].flags |= SIGMATCH_PAYLOAD;
 
     SCLogDebug("registering http_method rule option");
