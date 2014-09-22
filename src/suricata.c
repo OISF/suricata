@@ -993,6 +993,10 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
                 SCLogError(SC_ERR_INITIALIZATION, "No interface found in config for af-packet");
                 SCReturnInt(TM_ECODE_FAILED);
             }
+            if (AFPRunModeIsIPS()) {
+                SCLogInfo("AF_PACKET: Setting IPS mode");
+                EngineModeSetIPS();
+            }
         }
 #ifdef HAVE_NFLOG
     } else if (run_mode == RUNMODE_NFLOG) {
