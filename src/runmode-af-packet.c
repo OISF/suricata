@@ -353,6 +353,10 @@ int AFPRunModeIsIPS()
 
     for (ldev = 0; ldev < nlive; ldev++) {
         char *live_dev = LiveGetDeviceName(ldev);
+        if (live_dev == NULL) {
+            SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+            return 0;
+        }
         char *copymodestr = NULL;
         if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", live_dev);
 
@@ -379,6 +383,10 @@ int AFPRunModeIsIPS()
         SCLogInfo("AF_PACKET mode using IPS and IDS mode");
         for (ldev = 0; ldev < nlive; ldev++) {
             char *live_dev = LiveGetDeviceName(ldev);
+            if (live_dev == NULL) {
+                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                return 0;
+            }
             if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", live_dev);
             char *copymodestr = NULL;
 
