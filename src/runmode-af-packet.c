@@ -333,6 +333,76 @@ int AFPConfigGeThreadsCount(void *conf)
     return afp->threads;
 }
 
+int AFPRunModeIsIPS()
+{
+    int nlive = LiveGetDeviceCount();
+    int ldev;
+    ConfNode *if_root;
+    ConfNode *if_default = NULL;
+    ConfNode *af_packet_node;
+    int has_ips = 0;
+    int has_ids = 0;
+
+    /* Find initial node */
+    af_packet_node = ConfGetNode("af-packet");
+    if (af_packet_node == NULL) {
+        return 0;
+    }
+
+    if_default = ConfNodeLookupKeyValue(af_packet_node, "interface", "default");
+
+    for (ldev = 0; ldev < nlive; ldev++) {
+        char *live_dev = LiveGetDeviceName(ldev);
+        char *copymodestr = NULL;
+        if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", live_dev);
+
+        if (if_root == NULL) {
+            if (if_default == NULL) {
+                SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                return 0;
+            }
+            if_root = if_default;
+        }
+
+        if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
+            if (strcmp(copymodestr, "ips") == 0) {
+                has_ips = 1;
+            } else {
+                has_ids = 1;
+            }
+        } else {
+            has_ids = 1;
+        }
+    }
+
+    if (has_ids && has_ips) {
+        SCLogInfo("AF_PACKET mode using IPS and IDS mode");
+        for (ldev = 0; ldev < nlive; ldev++) {
+            char *live_dev = LiveGetDeviceName(ldev);
+            if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", live_dev);
+            char *copymodestr = NULL;
+
+            if (if_root == NULL) {
+                if (if_default == NULL) {
+                    SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
+                    return 0;
+                }
+                if_root = if_default;
+            }
+
+            if (! ((ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) &&
+                        (strcmp(copymodestr, "ips") == 0))) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "AF_PACKET IPS mode used and interface '%s' is in IDS or TAP mode. "
+                        "Sniffing '%s' but expect bad result as stream-inline is activated.",
+                        live_dev, live_dev);
+            }
+        }
+    }
+
+    return has_ips;
+}
+
 /**
  * \brief RunModeIdsAFPAuto set up the following thread packet handlers:
  *        - Receive thread (from live iface)

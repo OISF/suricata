@@ -29,5 +29,6 @@ int RunModeIdsAFPAutoFp(DetectEngineCtx *);
 int RunModeIdsAFPWorkers(DetectEngineCtx *);
 void RunModeIdsAFPRegister(void);
 const char *RunModeAFPGetDefaultMode(void);
+int AFPRunModeIsIPS();
 
 #endif /* __RUNMODE_AF_PACKET_H__ */
