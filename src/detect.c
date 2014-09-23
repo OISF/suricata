@@ -195,6 +195,8 @@
 
 #include "runmodes.h"
 
+#include <urcu.h>
+
 extern int rule_reload;
 
 extern int engine_analysis;
@@ -225,6 +227,10 @@ void TmModuleDetectRegister (void)
     tmm_modules[TMM_DETECT].flags = TM_FLAG_DETECT_TM;
 
     PacketAlertTagInit();
+
+    /* TODO: maybe put that in suricata.c but as we are the only user for now... */
+    rcu_init();
+
 }
 
 void DetectExitPrintStats(ThreadVars *tv, void *data)
@@ -1746,11 +1752,13 @@ error:
 
 TmEcode DetectThreadInit(ThreadVars *t, void *initdata, void **data)
 {
+    rcu_register_thread();
     return DetectEngineThreadCtxInit(t,initdata,data);
 }
 
 TmEcode DetectThreadDeinit(ThreadVars *t, void *data)
 {
+    rcu_unregister_thread();
     return DetectEngineThreadCtxDeinit(t,data);
 }
 

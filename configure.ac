@@ -585,6 +585,16 @@
         exit 1
     fi
 
+    AC_CHECK_LIB(urcu, rcu_init_memb,, URCU="no")
+    if test "$URCU" = "no"; then
+        AC_CHECK_LIB(urcu, rcu_init_mb,, OLDURCU="no")
+        if test "$OLDURCU" = "no"; then
+            echo
+            echo "   ERROR!  liburcu library not found"
+            exit 1
+        fi
+    fi
+
   # libjansson
     enable_jansson="no"
     AC_ARG_WITH(libjansson_includes,
