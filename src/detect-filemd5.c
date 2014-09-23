@@ -170,7 +170,8 @@ static int BuildMd5File(DetectFileMd5 *filemd5)
     if (ROHashInitFinalize(fhash) != 1) {
         goto error;
     }
-    SCLogInfo("MD5 hash size %u bytes", ROHashMemorySize(fhash));
+    /* FIXME add ROhash helper */
+    SCLogInfo("MD5 hash size %u bytes (items: %u)", ROHashMemorySize(fhash), fhash->items);
 
     old = filemd5->hash;
 
