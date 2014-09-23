@@ -1,3 +1,12 @@
+2.0.4 -- 2014-09-23
+
+Bug #1276: ipv6 defrag issue with routing headers
+Bug #1278: ssh banner parser issue
+Bug #1254: sig parsing crash on malformed rev keyword
+Bug #1267: issue with ipv6 logging
+Bug #1273: Lua - http.request_line not working
+Bug #1284: AF_PACKET IPS mode not logging drops and stream inline issue
+
 2.0.3 -- 2014-08-08
 
 Bug #1236: fix potential crash in http parsing
