@@ -185,8 +185,19 @@ class SuricataSC:
                 else:
                     arguments = {}
                     arguments["variable"] = variable
+            elif "filemd5-reload" in command:
+                try:
+                    [cmd, filename] = command.split(' ', 1)
+                except:
+                    raise SuricataCommandException("Unable to split command '%s'" % (command))
+                if cmd != "filemd5-reload":
+                    raise SuricataCommandException("Invalid command '%s'" % (command))
+                else:
+                    arguments = {}
+                    arguments["filename"] = filename
             else:
                 cmd = command
+
         else:
             raise SuricataCommandException("Unknown command '%s'" % (command))
         return (cmd, arguments)

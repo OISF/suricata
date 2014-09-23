@@ -2313,7 +2313,7 @@ int main(int argc, char **argv)
             /* FIXME */
             SCLogNotice("Registering 'filemd5' commands to unix socket");
             UnixManagerRegisterCommand("filemd5-list", DetectFileMd5CommandList, 0, 0);
-            //UnixManagerRegisterCommand("filemd5-reload", DetectFileMd5CommandReload, NULL, UNIX_CMD_TAKE_ARGS);
+            UnixManagerRegisterCommand("filemd5-reload", DetectFileMd5CommandReload, NULL, UNIX_CMD_TAKE_ARGS);
 #endif
         }
         /* Spawn the flow manager thread */

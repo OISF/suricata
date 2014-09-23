@@ -262,6 +262,38 @@ TmEcode DetectFileMd5CommandList(json_t *cmd, json_t* answer, void *data)
     return TM_ECODE_OK;
 }
 
+TmEcode DetectFileMd5CommandReload(json_t *cmd, json_t* answer, void *data)
+{
+    DetectFileMd5 *file;
+    const char *filename;
+    json_t *jarg = json_object_get(cmd, "filename");
+
+    if (!json_is_string(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("command is not a string"));
+        return TM_ECODE_FAILED;
+    }
+
+    filename = json_string_value(jarg);
+
+    file = DetectFileMd5InList(filename);
+
+    if (file == NULL) {
+        json_object_set_new(answer, "message", json_string("md5 file not known by Suricata"));
+        return TM_ECODE_FAILED;
+    }
+
+    if (BuildMd5File(file) != 1) {
+        json_object_set_new(answer, "message", json_string("unable to reload MD5 file"));
+        return TM_ECODE_FAILED;
+    }
+
+    SCLogInfo("Reloaded MD5 file: '%s' ", filename);
+    json_object_set_new(answer, "message", json_string("Reload succesful"));
+    return TM_ECODE_OK;
+}
+
+
 /**
  * \brief Registration function for keyword: filemd5
  */
