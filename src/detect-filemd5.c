@@ -46,6 +46,8 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
+#include "unix-manager.h"
+
 #include "app-layer.h"
 
 #include "stream-tcp.h"
@@ -230,6 +232,36 @@ error:
     return NULL;
 }
 
+TmEcode UnixSocketFileMd5List(json_t *cmd, json_t* answer, void *data)
+{
+    int i = 0;
+    DetectFileMd5 *file;
+    json_t *jdata;
+    json_t *jarray;
+
+    jdata = json_object();
+    if (jdata == NULL) {
+        json_object_set_new(answer, "message",
+                            json_string("internal error at json object creation"));
+        return TM_ECODE_FAILED;
+    }
+    jarray = json_array();
+    if (jarray == NULL) {
+        json_decref(jdata);
+        json_object_set_new(answer, "message",
+                            json_string("internal error at json object creation"));
+        return TM_ECODE_FAILED;
+    }
+    TAILQ_FOREACH(file, &md5_files, next) {
+        json_array_append_new(jarray, json_string(file->filename));
+        i++;
+    }
+    json_object_set_new(jdata, "count", json_integer(i));
+    json_object_set_new(jdata, "files", jarray);
+    json_object_set_new(answer, "message", jdata);
+    return TM_ECODE_OK;
+}
+
 /**
  * \brief Registration function for keyword: filemd5
  */
@@ -244,6 +276,8 @@ void DetectFileMd5Register(void)
     sigmatch_table[DETECT_FILEMD5].Free  = DetectFileMd5DataFree;
     sigmatch_table[DETECT_FILEMD5].RegisterTests = DetectFileMd5RegisterTests;
 
+    UnixManagerRegisterCommand("filemd5-list", UnixSocketFileMd5List, NULL, 0);
+    //UnixManagerRegisterCommand("filemd5-reload", UnixSocketFileMd5Reload, NULL, UNIX_CMD_TAKE_ARGS);
     SCLogDebug("registering filemd5 rule option");
     return;
 }
