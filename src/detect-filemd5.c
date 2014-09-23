@@ -232,7 +232,7 @@ error:
     return NULL;
 }
 
-TmEcode UnixSocketFileMd5List(json_t *cmd, json_t* answer, void *data)
+TmEcode DetectFileMd5CommandList(json_t *cmd, json_t* answer, void *data)
 {
     int i = 0;
     DetectFileMd5 *file;
@@ -276,8 +276,6 @@ void DetectFileMd5Register(void)
     sigmatch_table[DETECT_FILEMD5].Free  = DetectFileMd5DataFree;
     sigmatch_table[DETECT_FILEMD5].RegisterTests = DetectFileMd5RegisterTests;
 
-    UnixManagerRegisterCommand("filemd5-list", UnixSocketFileMd5List, NULL, 0);
-    //UnixManagerRegisterCommand("filemd5-reload", UnixSocketFileMd5Reload, NULL, UNIX_CMD_TAKE_ARGS);
     SCLogDebug("registering filemd5 rule option");
     return;
 }
@@ -387,6 +385,7 @@ static int DetectFileMd5Match (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     SCReturnInt(ret);
 }
+
 
 /**
  * \brief Parse the filemd5 keyword

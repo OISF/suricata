@@ -40,5 +40,6 @@ typedef struct DetectFileMd5Data_ {
 
 /* prototypes */
 void DetectFileMd5Register (void);
+TmEcode DetectFileMd5CommandList(json_t *cmd, json_t* answer, void *data);
 
 #endif /* __DETECT_FILEMD5_H__ */
