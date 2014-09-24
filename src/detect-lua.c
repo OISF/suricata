@@ -870,6 +870,15 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
             ld->flags |= DATATYPE_PACKET;
         } else if (strcmp(k, "payload") == 0 && strcmp(v, "true") == 0) {
             ld->flags |= DATATYPE_PAYLOAD;
+        } else if (strcmp(k, "stream") == 0 && strcmp(v, "true") == 0) {
+            ld->flags |= DATATYPE_STREAM;
+
+            ld->buffername = SCStrdup("stream");
+            if (ld->buffername == NULL) {
+                SCLogError(SC_ERR_LUA_ERROR, "alloc error");
+                goto error;
+            }
+
         } else if (strncmp(k, "http", 4) == 0 && strcmp(v, "true") == 0) {
             if (ld->alproto != ALPROTO_UNKNOWN && ld->alproto != ALPROTO_HTTP) {
                 SCLogError(SC_ERR_LUA_ERROR, "can just inspect script against one app layer proto like HTTP at a time");
@@ -991,9 +1000,12 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     sm->type = DETECT_LUA;
     sm->ctx = (void *)luajit;
 
-    if (luajit->alproto == ALPROTO_UNKNOWN)
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-    else if (luajit->alproto == ALPROTO_HTTP) {
+    if (luajit->alproto == ALPROTO_UNKNOWN) {
+        if (luajit->flags & DATATYPE_STREAM)
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
+        else
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    } else if (luajit->alproto == ALPROTO_HTTP) {
         if (luajit->flags & DATATYPE_HTTP_RESPONSE_BODY)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
         else if (luajit->flags & DATATYPE_HTTP_REQUEST_BODY)
