@@ -151,9 +151,9 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
             ssl_state->flags |= SSL_AL_FLAG_STATE_SERVER_HELLO;
 
             rc = DecodeTLSHandshakeServerHello(ssl_state, input, input_len);
-            if (rc >= 0) {
-                ssl_state->curr_connp->bytes_processed += rc;
-                parsed += rc;
+            if (rc < 0) {
+                AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
+                return -1;
             }
             break;
 
