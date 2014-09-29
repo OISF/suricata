@@ -127,7 +127,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {
         SigMatch *bed_sm =
-            DetectByteExtractRetrieveSMVar(str, s, SigMatchListSMBelongsTo(s, pm));
+            DetectByteExtractRetrieveSMVar(str, s);
         if (bed_sm == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_extract var "
                        "seen in offset - %s\n", str);

@@ -138,7 +138,7 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, char *within
         goto end;
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {
-        SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(str, s, SigMatchListSMBelongsTo(s, pm));
+        SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(str, s);
         if (bed_sm == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_extract var "
                        "seen in within - %s\n", str);
@@ -251,7 +251,6 @@ static int DetectWithinTestVarSetup(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
-#if 1 /* FAILs */
     char sig[] = "alert tcp any any -> any any ( "
         "msg:\"test rule\"; "
         "content:\"abc\"; "
@@ -261,17 +260,6 @@ static int DetectWithinTestVarSetup(void)
         "within:somevar; "
         "http_client_body; "
         "sid:4; rev:1;)";
-#else /* WORKs */
-    char sig[] = "alert tcp any any -> any any ( "
-        "msg:\"test rule\"; "
-        "content:\"abc\"; "
-        "http_client_body; "
-        "byte_extract:2,0,somevar,relative; "
-        "content:\"def\"; "
-        "http_client_body; "
-        "within:somevar; "
-        "sid:4; rev:1;)";
-#endif
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {

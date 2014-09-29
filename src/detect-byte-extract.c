@@ -770,22 +770,30 @@ void DetectByteExtractFree(void *ptr)
     return;
 }
 
-SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, Signature *s, int list)
+/**
+ * \brief Lookup the SigMatch for a named byte_extract variable.
+ *
+ * \param arg The name of the byte_extract variable to lookup.
+ * \param s Pointer the signature to look in.
+ *
+ * \retval A pointer to the SigMatch if found, otherwise NULL.
+ */
+SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, Signature *s)
 {
-    if (list == -1)
-        return NULL;
-
     DetectByteExtractData *bed = NULL;
-    SigMatch *sm = s->sm_lists[list];
+    int list;
 
-    while (sm != NULL) {
-        if (sm->type == DETECT_BYTE_EXTRACT) {
-            bed = (DetectByteExtractData *)sm->ctx;
-            if (strcmp(bed->name, arg) == 0) {
-                return sm;
+    for (list = 0; list < DETECT_SM_LIST_MAX; list++) {
+        SigMatch *sm = s->sm_lists[list];
+        while (sm != NULL) {
+            if (sm->type == DETECT_BYTE_EXTRACT) {
+                bed = (DetectByteExtractData *)sm->ctx;
+                if (strcmp(bed->name, arg) == 0) {
+                    return sm;
+                }
             }
+            sm = sm->next;
         }
-        sm = sm->next;
     }
 
     return NULL;
