@@ -127,7 +127,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
         goto end;
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {
-        SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(str, s, SigMatchListSMBelongsTo(s, pm));
+        SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(str, s);
         if (bed_sm == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_extract var "
                        "seen in depth - %s\n", str);
