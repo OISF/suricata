@@ -29,6 +29,7 @@
 #include "decode.h"
 
 #include "detect.h"
+#include "detect-engine.h"
 #include "detect-parse.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
@@ -246,6 +247,50 @@ end:
     return result;
 }
 
+static int DetectWithinTestVarSetup(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+#if 1 /* FAILs */
+    char sig[] = "alert tcp any any -> any any ( "
+        "msg:\"test rule\"; "
+        "content:\"abc\"; "
+        "http_client_body; "
+        "byte_extract:2,0,somevar,relative; "
+        "content:\"def\"; "
+        "within:somevar; "
+        "http_client_body; "
+        "sid:4; rev:1;)";
+#else /* WORKs */
+    char sig[] = "alert tcp any any -> any any ( "
+        "msg:\"test rule\"; "
+        "content:\"abc\"; "
+        "http_client_body; "
+        "byte_extract:2,0,somevar,relative; "
+        "content:\"def\"; "
+        "http_client_body; "
+        "within:somevar; "
+        "sid:4; rev:1;)";
+#endif
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->sig_list = SigInit(de_ctx, sig);
+    if (de_ctx->sig_list == NULL) {
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
 
 #endif /* UNITTESTS */
 
@@ -254,5 +299,6 @@ void DetectWithinRegisterTests(void)
     #ifdef UNITTESTS
     UtRegisterTest("DetectWithinTestPacket01", DetectWithinTestPacket01, 1);
     UtRegisterTest("DetectWithinTestPacket02", DetectWithinTestPacket02, 1);
+    UtRegisterTest("DetectWithinTestVarSetup", DetectWithinTestVarSetup, 1);
     #endif /* UNITTESTS */
 }
