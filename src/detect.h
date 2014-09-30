@@ -1023,6 +1023,9 @@ typedef struct SigGroupHead_ {
 #define SIGMATCH_PAYLOAD        (1 << 3)
 /**< Flag to indicate that the signature is not built-in */
 #define SIGMATCH_NOT_BUILT      (1 << 4)
+/** sigmatch may have options, so the parser should be ready to
+ *  deal with both cases */
+#define SIGMATCH_OPTIONAL_OPT   (1 << 5)
 
 /** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
 
