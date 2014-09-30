@@ -306,6 +306,16 @@ outputs:
       type: file
       filename: http-data.log
 
+  # Lua Output Support - execute lua script to generate alert and event
+  # output.
+  # Documented at:
+  # https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Lua_Output
+  - lua:
+      enabled: no
+      #scripts-dir: /etc/suricata/lua-output/
+      scripts:
+      #   - script1.lua
+
 # Magic file. The extension .mgc is added to the value here.
 #magic-file: /usr/share/file/magic
 magic-file: @e_magic_file@
