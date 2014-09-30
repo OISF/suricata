@@ -552,7 +552,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         }
     }
 
-    if (!(st->flags & SIGMATCH_NOOPT)) {
+    if (!(st->flags & (SIGMATCH_NOOPT|SIGMATCH_OPTIONAL_OPT))) {
         if (strlen(optvalue) == 0) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid formatting or malformed option to %s keyword: \'%s\'",
                     optname, optstr);

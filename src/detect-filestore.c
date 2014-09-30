@@ -77,7 +77,7 @@ void DetectFilestoreRegister(void)
     sigmatch_table[DETECT_FILESTORE].Setup = DetectFilestoreSetup;
     sigmatch_table[DETECT_FILESTORE].Free  = DetectFilestoreFree;
     sigmatch_table[DETECT_FILESTORE].RegisterTests = NULL;
-    sigmatch_table[DETECT_FILESTORE].flags = SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_FILESTORE].flags = SIGMATCH_OPTIONAL_OPT;
 
     const char *eb;
     int eo;
