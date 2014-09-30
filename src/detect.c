@@ -846,6 +846,13 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
     BUG_ON((det_ctx->pmq.rule_id_array_cnt + sgh->non_mpm_id_cnt) < det_ctx->match_array_cnt);
 }
 
+static int DoSort(const void *a, const void *b)
+{
+    uint32_t x = *(uint32_t *)a;
+    uint32_t y = *(uint32_t *)b;
+    return x - y;
+}
+
 #define SMS_USE_FLOW_SGH        0x01
 #define SMS_USED_PM             0x02
 #define SMS_USED_STREAM_PM      0x04
@@ -1096,11 +1103,6 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
     /* Sort the rule list to lets look at pmq.
      * NOTE due to merging of 'stream' pmqs we *MAY* have duplicate entries */
     if (det_ctx->pmq.rule_id_array_cnt) {
-        int DoSort(const void *a, const void *b) {
-            uint32_t x = *(uint32_t *)a;
-            uint32_t y = *(uint32_t *)b;
-            return x - y;
-        }
         qsort(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt,
                 sizeof(uint32_t), DoSort);
     }
