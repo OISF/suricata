@@ -1524,8 +1524,8 @@ uint32_t SCACTileSearchLarge(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ct
 
     SCACTilePatternList *pid_pat_list = ctx->pid_pat_list;
 
-    uint8_t bitarray[pmq->pattern_id_array_size];
-    memset(&bitarray, 0, pmq->pattern_id_array_size);
+    uint8_t bitarray[pmq->pattern_id_bitarray_size];
+    memset(bitarray, 0, pmq->pattern_id_bitarray_size);
 
     uint8_t* restrict xlate = ctx->translate_table;
     register int state = 0;

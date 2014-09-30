@@ -262,7 +262,11 @@ void B2gmFreePattern(MpmCtx *mpm_ctx, B2gmPattern *p)
             mpm_ctx->memory_cnt--;
             mpm_ctx->memory_size -= p->len;
         }
-
+        if (p->sids) {
+            SCFree(p->sids);
+            mpm_ctx->memory_cnt--;
+            mpm_ctx->memory_size -= p->sid_size * sizeof(uint32_t);
+        }
         SCFree(p);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= sizeof(B2gmPattern);
@@ -317,6 +321,13 @@ static int B2gmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16
             memcpy(p->pat, pat, patlen);
         }
 
+        p->sids_size = 1;
+        p->sids = SCMalloc(p->sids_size * sizeof(uint32_t));
+        BUG_ON(p->sids == NULL);
+        p->sids[0] = sid;
+        mpm_ctx->memory_cnt++;
+        mpm_ctx->memory_size += sizeof(uint32_t);
+
         /* put in the pattern hash */
         B2gmInitHashAdd(ctx, p);
 
@@ -339,6 +350,27 @@ static int B2gmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16
             mpm_ctx->minlen = patlen;
         else if (mpm_ctx->minlen > patlen)
             mpm_ctx->minlen = patlen;
+    } else {
+        /* Multiple sids for the same pid, so keep an array of sids. */
+
+        /* TODO figure out how we can be called multiple times for the
+         * same CTX with the same sid */
+        int found = 0;
+        uint32_t x = 0;
+        for (x = 0; x < p->sids_size; x++) {
+            if (p->sids[x] == sid) {
+                found = 1;
+                break;
+            }
+        }
+        if (!found) {
+            uint32_t *sids = SCRealloc(p->sids, (sizeof(uint32_t) * (p->sids_size + 1)));
+            BUG_ON(sids == NULL);
+            p->sids = sids;
+            p->sids[p->sids_size] = sid;
+            p->sids_size++;
+            mpm_ctx->memory_size += sizeof(uint32_t);
+        }
     }
 
     return 0;
@@ -986,6 +1018,9 @@ uint32_t B2gmSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternM
     if (buflen < ctx->m)
         return 0;
 
+    uint8_t bitarray[pmq->pattern_id_array_size];
+    memset(&bitarray, 0, pmq->pattern_id_array_size);
+
     while (pos <= (uint32_t)(buflen - B2GM_Q + 1)) {
         uint16_t h = B2GM_HASH16(buf[pos - 1],buf[pos]);
         d = ctx->B2GM[h];
@@ -1022,7 +1057,7 @@ uint32_t B2gmSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternM
 #endif
                                             COUNT(tctx->stat_loop_match++);
 
-                                            matches += MpmVerifyMatch(mpm_thread_ctx, pmq, thi->id);
+                                            matches += MpmVerifyMatch(mpm_thread_ctx, pmq, thi->id, bitarray, thi->sids, thi->sid_size);
                                         } else {
                                             COUNT(tctx->stat_loop_no_match++);
                                         }
@@ -1033,7 +1068,7 @@ uint32_t B2gmSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternM
 #endif
                                             COUNT(tctx->stat_loop_match++);
 
-                                            matches += MpmVerifyMatch(mpm_thread_ctx, pmq, thi->id);
+                                            matches += MpmVerifyMatch(mpm_thread_ctx, pmq, thi->id, bitarray, thi->sids, thi->sid_size);
                                         } else {
                                             COUNT(tctx->stat_loop_no_match++);
                                         }
@@ -1080,6 +1115,9 @@ uint32_t B2gmSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatche
 
     if (buflen < ctx->m)
         return 0;
+
+    uint8_t bitarray[pmq->pattern_id_array_size];
+    memset(&bitarray, 0, pmq->pattern_id_array_size);
 
     while (pos <= (buflen - ctx->m)) {
         j = ctx->m - 1;
@@ -1128,7 +1166,7 @@ uint32_t B2gmSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatche
                         if (memcmp_lowercase(thi->pat, buf+pos, thi->len) == 0) {
                             COUNT(tctx->stat_loop_match++);
 
-                            matches += MpmVerifyMatch(mpm_thread_ctx, pmq, thi->id);
+                            matches += MpmVerifyMatch(mpm_thread_ctx, pmq, thi->id, bitarray, thi->sids, thi->sid_size);
                         } else {
                             COUNT(tctx->stat_loop_no_match++);
                         }
@@ -1136,7 +1174,7 @@ uint32_t B2gmSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatche
                         if (memcmp(thi->pat, buf+pos, thi->len) == 0) {
                             COUNT(tctx->stat_loop_match++);
 
-                            matches += MpmVerifyMatch(mpm_thread_ctx, pmq, thi->id);
+                            matches += MpmVerifyMatch(mpm_thread_ctx, pmq, thi->id, bitarray, thi->sids, thi->sid_size);
                         } else {
                             COUNT(tctx->stat_loop_no_match++);
                         }
@@ -1188,12 +1226,12 @@ uint32_t B2gmSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatch
                 if (hdr->flags & B2GM_FLAG_NOCASE) {
                     SCLogDebug("nocase compare, %02X", *buf);
 
-                    cnt += MpmVerifyMatch(mpm_thread_ctx, pmq, hdr->id);
+                    cnt += MpmVerifyMatch(mpm_thread_ctx, pmq, hdr->id, bitarray, hdr->sids, hdr->sid_size);
                 } else {
                     SCLogDebug("case sensitive compare, %02X", *buf);
 
                     if (*buf == hdr->pat) {
-                        cnt += MpmVerifyMatch(mpm_thread_ctx, pmq, hdr->id);
+                        cnt += MpmVerifyMatch(mpm_thread_ctx, pmq, hdr->id, bitarray, hdr->sids, hdr->sid_size);
                     }
                 }
 

@@ -58,10 +58,13 @@ typedef struct B2gmPattern_ {
     uint8_t len;
     uint8_t flags;
     uint16_t id;
-#if __WORDSIZE == 64
-    uint32_t pad;
-#endif
+
+    /* sid(s) for this pattern */
+    uint32_t sids_size;
+    uint32_t *sids;
+
     uint8_t *pat;
+
     struct B2gmPattern_ *next;
 } B2gmPattern;
 

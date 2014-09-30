@@ -249,7 +249,8 @@ void PmqFree(PatternMatcherQueue *);
 void MpmTableSetup(void);
 void MpmRegisterTests(void);
 
-int MpmVerifyMatch(MpmThreadCtx *, PatternMatcherQueue *, uint32_t);
+int MpmVerifyMatch(MpmThreadCtx *, PatternMatcherQueue *, uint32_t,
+                   uint8_t *bitarray, uint32_t *sids, uint32_t sid_size);
 void MpmInitCtx(MpmCtx *mpm_ctx, uint16_t matcher);
 void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t, uint32_t);
 uint32_t MpmGetHashSize(const char *);

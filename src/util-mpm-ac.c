@@ -1307,8 +1307,8 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     /* \todo Change it for stateful MPM.  Supply the state using mpm_thread_ctx */
     SCACPatternList *pid_pat_list = ctx->pid_pat_list;
 
-    uint8_t bitarray[pmq->pattern_id_array_size];
-    memset(&bitarray, 0, pmq->pattern_id_array_size);
+    uint8_t bitarray[pmq->pattern_id_bitarray_size];
+    memset(bitarray, 0, pmq->pattern_id_bitarray_size);
 
     if (ctx->state_count < 32767) {
         register SC_AC_STATE_TYPE_U16 state = 0;
