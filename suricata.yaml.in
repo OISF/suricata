@@ -111,6 +111,10 @@ outputs:
             force-md5: no     # force logging of md5 checksums
         #- drop
         - ssh
+        # bi-directional flows
+        #- flow
+        # uni-directional flows
+        #- newflow
 
   # alert output for use with Barnyard2
   - unified2-alert:
