@@ -59,6 +59,15 @@
 
 #define MODULE_NAME "LuaLog"
 
+/** \brief structure containing global config
+ *  The OutputLuaLogInitSub which is run per script
+ *  can access this to get global config info through
+ *  it's parent_ctx->data ptr.
+ */
+typedef struct LogLuaMasterCtx_ {
+    char path[PATH_MAX]; /**< contains script-dir */
+} LogLuaMasterCtx;
+
 typedef struct LogLuaCtx_ {
     SCMutex m;
     lua_State *luastate;
@@ -582,10 +591,18 @@ static OutputCtx *OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 
     SCMutexInit(&lua_ctx->m, NULL);
 
-    //    SCLogInfo("script %s", conf->val);
+    const char *dir = "";
+    if (parent_ctx && parent_ctx->data) {
+        LogLuaMasterCtx *mc = parent_ctx->data;
+        dir = mc->path;
+    }
+
+    char path[PATH_MAX] = "";
+    snprintf(path, sizeof(path),"%s%s%s", dir, strlen(dir) ? "/" : "", conf->val);
+    SCLogDebug("script full path %s", path);
 
     SCMutexLock(&lua_ctx->m);
-    lua_ctx->luastate = LuaScriptSetup(conf->val);
+    lua_ctx->luastate = LuaScriptSetup(path);
     SCMutexUnlock(&lua_ctx->m);
     if (lua_ctx->luastate == NULL)
         goto error;
@@ -603,6 +620,12 @@ error:
     return NULL;
 }
 
+static void LogLuaMasterFree(OutputCtx *oc) {
+    BUG_ON(oc == NULL);
+    if (oc->data)
+        SCFree(oc->data);
+}
+
 /** \internal
  *  \brief initialize output instance for lua module
  *
@@ -612,6 +635,10 @@ error:
  */
 static OutputCtx *OutputLuaLogInit(ConfNode *conf)
 {
+    const char *dir = ConfNodeLookupChildValue(conf, "script-dir");
+    if (dir == NULL)
+        dir = "";
+
     ConfNode *scripts = ConfNodeLookupChild(conf, "scripts");
     if (scripts == NULL) {
         /* No "outputs" section in the configuration. */
@@ -619,19 +646,33 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
         return NULL;
     }
 
+    /* global output ctx setup */
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         return NULL;
     }
+    output_ctx->data = SCCalloc(1, sizeof(LogLuaMasterCtx));
+    if (unlikely(output_ctx->data == NULL)) {
+        SCFree(output_ctx);
+        return NULL;
+    }
+    output_ctx->DeInit = LogLuaMasterFree;
+    LogLuaMasterCtx *master_config = output_ctx->data;
+    strlcpy(master_config->path, dir, sizeof(master_config->path));
     TAILQ_INIT(&output_ctx->submodules);
 
+    /* check the enables scripts and set them up as submodules */
     ConfNode *script;
     TAILQ_FOREACH(script, &scripts->head, next) {
-        SCLogInfo("script %s", script->val);
+        SCLogInfo("enabling script %s", script->val);
         LogLuaScriptOptions opts;
         memset(&opts, 0x00, sizeof(opts));
 
-        int r = LuaScriptInit(script->val, &opts);
+        char path[PATH_MAX] = "";
+        snprintf(path, sizeof(path),"%s%s%s", dir, strlen(dir) ? "/" : "", script->val);
+        SCLogDebug("script full path %s", path);
+
+        int r = LuaScriptInit(path, &opts);
         if (r != 0) {
             SCLogError(SC_ERR_LUA_ERROR, "couldn't initialize scipt");
             continue;
