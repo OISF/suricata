@@ -693,9 +693,12 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
         if (opts.alproto == ALPROTO_HTTP && opts.streaming) {
             om->StreamingLogFunc = LuaStreamingLogger;
             om->alproto = ALPROTO_HTTP;
+            AppLayerHtpEnableRequestBodyCallback();
+            AppLayerHtpEnableResponseBodyCallback();
         } else if (opts.alproto == ALPROTO_HTTP) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_HTTP;
+            AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP);
         } else if (opts.packet && opts.alerts) {
             om->PacketLogFunc = LuaPacketLoggerAlerts;
             om->PacketConditionFunc = LuaPacketConditionAlerts;
@@ -704,6 +707,7 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
             om->PacketConditionFunc = LuaPacketCondition;
         } else if (opts.file) {
             om->FileLogFunc = LuaFileLogger;
+            AppLayerHtpNeedFileInspection();
         } else if (opts.streaming && opts.tcp_data) {
             om->StreamingLogFunc = LuaStreamingLogger;
         } else if (opts.flow) {
