@@ -395,6 +395,87 @@ next:
     return cnt;
 }
 
+/**
+ *  \internal
+ *
+ *  \brief move all flows out of a hash row
+ *
+ *  \param f last flow in the hash row
+ *
+ *  \retval cnt removed out flows
+ */
+static uint32_t FlowManagerHashRowCleanup(Flow *f)
+{
+    uint32_t cnt = 0;
+
+    do {
+        FLOWLOCK_WRLOCK(f);
+
+        Flow *next_flow = f->hprev;
+
+        int state = FlowGetFlowState(f);
+
+        /* remove from the hash */
+        if (f->hprev != NULL)
+            f->hprev->hnext = f->hnext;
+        if (f->hnext != NULL)
+            f->hnext->hprev = f->hprev;
+        if (f->fb->head == f)
+            f->fb->head = f->hnext;
+        if (f->fb->tail == f)
+            f->fb->tail = f->hprev;
+
+        f->hnext = NULL;
+        f->hprev = NULL;
+
+        if (state == FLOW_STATE_NEW)
+            f->flow_end_flags |= FLOW_END_FLAG_STATE_NEW;
+        else if (state == FLOW_STATE_ESTABLISHED)
+            f->flow_end_flags |= FLOW_END_FLAG_STATE_ESTABLISHED;
+        else if (state == FLOW_STATE_CLOSED)
+            f->flow_end_flags |= FLOW_END_FLAG_STATE_CLOSED;
+
+        f->flow_end_flags |= FLOW_END_FLAG_TIMEOUT;
+
+        /* no one is referring to this flow, use_cnt 0, removed from hash
+         * so we can unlock it and move it to the recycle queue. */
+        FLOWLOCK_UNLOCK(f);
+
+        FlowEnqueue(&flow_recycle_q, f);
+
+        cnt++;
+
+        f = next_flow;
+    } while (f != NULL);
+
+    return cnt;
+}
+
+/**
+ *  \brief remove all flows from the hash
+ *
+ *  \retval cnt number of removes out flows
+ */
+static uint32_t FlowCleanupHash(void){
+    uint32_t idx = 0;
+    uint32_t cnt = 0;
+
+    for (idx = 0; idx < flow_config.hash_size; idx++) {
+        FlowBucket *fb = &flow_hash[idx];
+
+        FBLOCK_LOCK(fb);
+
+        if (fb->tail != NULL) {
+            /* we have a flow, or more than one */
+            cnt += FlowManagerHashRowCleanup(fb->tail);
+        }
+
+        FBLOCK_UNLOCK(fb);
+    }
+
+    return cnt;
+}
+
 extern int g_detect_disabled;
 
 typedef struct FlowManagerThreadData_ {
@@ -836,6 +917,9 @@ void FlowKillFlowRecyclerThread(void)
 {
     ThreadVars *tv = NULL;
     int cnt = 0;
+
+    /* move all flows still in the hash to the recycler queue */
+    FlowCleanupHash();
 
     /* make sure all flows are processed */
     do {
