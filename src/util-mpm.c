@@ -31,8 +31,6 @@
 #include "util-mpm-wumanber.h"
 #include "util-mpm-b2g.h"
 #include "util-mpm-b3g.h"
-#include "util-mpm-b2gc.h"
-#include "util-mpm-b2gm.h"
 #include "util-mpm-ac.h"
 #include "util-mpm-ac-gfbs.h"
 #include "util-mpm-ac-bs.h"
@@ -481,7 +479,8 @@ int PmqSetup(PatternMatcherQueue *pmq, uint32_t patmaxid)
  *  \retval 1 (new) match
  */
 int
-MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, uint32_t patid)
+MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, uint32_t patid,
+               uint8_t *bitarray, uint32_t *sids, uint32_t sids_size)
 {
     SCEnter();
 
@@ -489,13 +488,22 @@ MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, uint32_t pati
     if (pmq != NULL && pmq->pattern_id_bitarray != NULL) {
         SCLogDebug("using pattern id arrays, storing %"PRIu32, patid);
 
-        if (!(pmq->pattern_id_bitarray[(patid / 8)] & (1<<(patid % 8)))) {
+        if ((bitarray[(patid / 8)] & (1<<(patid % 8))) == 0) {
+            bitarray[(patid / 8)] |= (1<<(patid % 8));
             /* flag this pattern id as being added now */
             pmq->pattern_id_bitarray[(patid / 8)] |= (1<<(patid % 8));
             /* append the pattern_id to the array with matches */
             pmq->pattern_id_array[pmq->pattern_id_array_cnt] = patid;
             pmq->pattern_id_array_cnt++;
             SCLogDebug("pattern_id_array_cnt %u", pmq->pattern_id_array_cnt);
+
+            SCLogDebug("Adding %u sids", sids_size);
+            // Add SIDs for this pattern
+            uint32_t x;
+            for (x = 0; x < sids_size; x++) {
+                pmq->rule_id_array[pmq->rule_id_array_cnt++] = sids[x];
+            }
+
         }
     }
 
@@ -606,8 +614,6 @@ void MpmTableSetup(void)
     MpmWuManberRegister();
     MpmB2gRegister();
     MpmB3gRegister();
-    MpmB2gcRegister();
-    MpmB2gmRegister();
     MpmACRegister();
     MpmACBSRegister();
     MpmACGfbsRegister();

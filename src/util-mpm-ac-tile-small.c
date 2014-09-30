@@ -37,8 +37,8 @@ uint32_t FUNC_NAME(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
     int i = 0;
     int matches = 0;
 
-    uint8_t bitarray[pmq->pattern_id_array_size];
-    memset(&bitarray, 0, pmq->pattern_id_array_size);
+    uint8_t bitarray[pmq->pattern_id_bitarray_size];
+    memset(bitarray, 0, pmq->pattern_id_bitarray_size);
 
     uint8_t* restrict xlate = ctx->translate_table;
     STYPE *state_table = (STYPE*)ctx->state_table;
