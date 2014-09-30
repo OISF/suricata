@@ -35,6 +35,7 @@
 
 typedef struct DetectSslStateData_ {
     uint32_t flags;
+    uint32_t mask;
 } DetectSslStateData;
 
 void DetectSslStateRegister(void);
