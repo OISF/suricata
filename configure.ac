@@ -909,6 +909,69 @@
         LIBNET_DETECT_FAIL="yes"
         LIBNET_FAIL_WARN($libnet_dir)
     fi
+
+  # libpcap
+    AC_ARG_WITH(libpcap_includes,
+            [  --with-libpcap-includes=DIR  libpcap include directory],
+            [with_libpcap_includes="$withval"],[with_libpcap_includes=no])
+    AC_ARG_WITH(libpcap_libraries,
+            [  --with-libpcap-libraries=DIR    libpcap library directory],
+            [with_libpcap_libraries="$withval"],[with_libpcap_libraries="no"])
+
+    if test "$with_libpcap_includes" != "no"; then
+        CPPFLAGS="${CPPFLAGS} -I${with_libpcap_includes}"
+    fi
+
+    AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
+
+    if test "$with_libpcap_libraries" != "no"; then
+        LDFLAGS="${LDFLAGS}  -L${with_libpcap_libraries}"
+    fi
+    AC_CHECK_HEADERS([pcap.h pcap/pcap.h pcap/bpf.h])
+
+    LIBPCAP=""
+    AC_CHECK_LIB(pcap, pcap_open_live,, LIBPCAP="no", [-lpthread])
+    if test "$LIBPCAP" = "no"; then
+        echo
+        echo "   ERROR!  libpcap library not found, go get it"
+        echo "   from http://www.tcpdump.org or your distribution:"
+        echo
+        echo "   Ubuntu: apt-get install libpcap-dev"
+        echo "   Fedora: yum install libpcap-devel"
+        echo
+        exit 1
+    fi
+
+    # pcap_activate and pcap_create only exists in libpcap >= 1.0
+    LIBPCAPVTEST=""
+    #To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
+    #see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
+    TMPLIBS="${LIBS}"
+    AC_CHECK_LIB(pcap, pcap_activate,, LPCAPVTEST="no")
+    if test "$LPCAPVTEST" != "no"; then
+        AC_PATH_PROG(HAVE_PCAP_CONFIG, pcap-config, "no")
+        if test "$HAVE_PCAP_CONFIG" = "no"; then
+            CFLAGS="${CFLAGS} -DLIBPCAP_VERSION_MAJOR=1"
+        else
+            CFLAGS="${CFLAGS} `pcap-config --defines` `pcap-config --cflags` -DLIBPCAP_VERSION_MAJOR=1"
+        fi
+    else
+        CFLAGS="${CFLAGS} -DLIBPCAP_VERSION_MAJOR=0"
+    fi
+    LIBS="${TMPLIBS}"
+
+    #Appears as if pcap_set_buffer_size is linux only?
+    LIBPCAPSBUFF=""
+    #To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
+    #see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
+    TMPLIBS="${LIBS}"
+    AC_CHECK_LIB(pcap, pcap_set_buffer_size,, LPCAPSBUFF="no")
+    if test "$LPCAPSBUFF" != "no"; then
+        CFLAGS="${CFLAGS} -DHAVE_PCAP_SET_BUFF"
+    fi
+    LIBS="${TMPLIBS}"
+
+  # libpfring
     # libpfring (currently only supported for libpcap enabled pfring)
     # Error on the side of caution. If libpfring enabled pcap is being used and we don't link against -lpfring compilation will fail.
     AC_ARG_ENABLE(pfring,
@@ -1015,68 +1078,6 @@
         CFLAGS="${STORECFLAGS}"
 
     ])
-
-
-  # libpcap
-    AC_ARG_WITH(libpcap_includes,
-            [  --with-libpcap-includes=DIR  libpcap include directory],
-            [with_libpcap_includes="$withval"],[with_libpcap_includes=no])
-    AC_ARG_WITH(libpcap_libraries,
-            [  --with-libpcap-libraries=DIR    libpcap library directory],
-            [with_libpcap_libraries="$withval"],[with_libpcap_libraries="no"])
-
-    if test "$with_libpcap_includes" != "no"; then
-        CPPFLAGS="${CPPFLAGS} -I${with_libpcap_includes}"
-    fi
-
-    AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
-
-    if test "$with_libpcap_libraries" != "no"; then
-        LDFLAGS="${LDFLAGS}  -L${with_libpcap_libraries}"
-    fi
-    AC_CHECK_HEADERS([pcap.h pcap/pcap.h pcap/bpf.h])
-
-    LIBPCAP=""
-    AC_CHECK_LIB(pcap, pcap_open_live,, LIBPCAP="no", [-lpthread])
-    if test "$LIBPCAP" = "no"; then
-        echo
-        echo "   ERROR!  libpcap library not found, go get it"
-        echo "   from http://www.tcpdump.org or your distribution:"
-        echo
-        echo "   Ubuntu: apt-get install libpcap-dev"
-        echo "   Fedora: yum install libpcap-devel"
-        echo
-        exit 1
-    fi
-
-    # pcap_activate and pcap_create only exists in libpcap >= 1.0
-    LIBPCAPVTEST=""
-    #To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
-    #see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
-    TMPLIBS="${LIBS}"
-    AC_CHECK_LIB(pcap, pcap_activate,, LPCAPVTEST="no")
-    if test "$LPCAPVTEST" != "no"; then
-        AC_PATH_PROG(HAVE_PCAP_CONFIG, pcap-config, "no")
-        if test "$HAVE_PCAP_CONFIG" = "no"; then
-            CFLAGS="${CFLAGS} -DLIBPCAP_VERSION_MAJOR=1"
-        else
-            CFLAGS="${CFLAGS} `pcap-config --defines` `pcap-config --cflags` -DLIBPCAP_VERSION_MAJOR=1"
-        fi
-    else
-        CFLAGS="${CFLAGS} -DLIBPCAP_VERSION_MAJOR=0"
-    fi
-    LIBS="${TMPLIBS}"
-
-    #Appears as if pcap_set_buffer_size is linux only?
-    LIBPCAPSBUFF=""
-    #To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
-    #see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
-    TMPLIBS="${LIBS}"
-    AC_CHECK_LIB(pcap, pcap_set_buffer_size,, LPCAPSBUFF="no")
-    if test "$LPCAPSBUFF" != "no"; then
-        CFLAGS="${CFLAGS} -DHAVE_PCAP_SET_BUFF"
-    fi
-    LIBS="${TMPLIBS}"
 
   # AF_PACKET support
     AC_ARG_ENABLE(af-packet,
