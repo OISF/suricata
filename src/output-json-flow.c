@@ -229,6 +229,8 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
         reason = "timeout";
     else if (f->flow_end_flags & FLOW_END_FLAG_FORCED)
         reason = "forced";
+    else if (f->flow_end_flags & FLOW_END_FLAG_SHUTDOWN)
+        reason = "shutdown";
 
     json_object_set_new(hjs, "reason",
             json_string(reason));

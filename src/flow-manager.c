@@ -435,7 +435,7 @@ static uint32_t FlowManagerHashRowCleanup(Flow *f)
         else if (state == FLOW_STATE_CLOSED)
             f->flow_end_flags |= FLOW_END_FLAG_STATE_CLOSED;
 
-        f->flow_end_flags |= FLOW_END_FLAG_TIMEOUT;
+        f->flow_end_flags |= FLOW_END_FLAG_SHUTDOWN;
 
         /* no one is referring to this flow, use_cnt 0, removed from hash
          * so we can unlock it and move it to the recycle queue. */

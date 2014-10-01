@@ -184,6 +184,7 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_END_FLAG_EMERGENCY         0x08
 #define FLOW_END_FLAG_TIMEOUT           0x10
 #define FLOW_END_FLAG_FORCED            0x20
+#define FLOW_END_FLAG_SHUTDOWN          0x40
 
 /** Mutex or RWLocks for the flow. */
 //#define FLOWLOCK_RWLOCK
