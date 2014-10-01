@@ -166,7 +166,7 @@ void *OldParsePfringConfig(const char *iface)
         SCLogInfo("DNA interface detected, not setting cluster type for PF_RING (iface %s)",
                 pfconf->iface);
     } else if (ConfGet("pfring.cluster-type", &tmpctype) != 1) {
-        SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,"Could not get cluster-type fron config");
+        SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,"Could not get cluster-type from config");
     } else if (strcmp(tmpctype, "cluster_round_robin") == 0) {
         SCLogInfo("Using round-robin cluster mode for PF_RING (iface %s)",
                 pfconf->iface);
@@ -340,7 +340,7 @@ void *ParsePfringConfig(const char *iface)
                     pfconf->iface);
         } else if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) != 1) {
             SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,
-                       "Could not get cluster-type fron config");
+                       "Could not get cluster-type from config");
         } else {
             getctype = 1;
         }
