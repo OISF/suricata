@@ -146,7 +146,12 @@ void *OldParsePfringConfig(const char *iface)
     SC_ATOMIC_RESET(pfconf->ref);
     (void) SC_ATOMIC_ADD(pfconf->ref, pfconf->threads);
 
-    if (ConfGet("pfring.cluster-id", &tmpclusterid) != 1) {
+    if (strncmp(pfconf->iface, "zc", 2) == 0) {
+        SCLogInfo("ZC interface detected, not setting cluster-id");
+    }
+    else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
+        SCLogInfo("DNA interface detected, not setting cluster-id");
+    } else if (ConfGet("pfring.cluster-id", &tmpclusterid) != 1) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,"Could not get cluster-id from config");
     } else {
         pfconf->cluster_id = (uint16_t)atoi(tmpclusterid);
@@ -154,7 +159,13 @@ void *OldParsePfringConfig(const char *iface)
     }
 
 #ifdef HAVE_PFRING_CLUSTER_TYPE
-    if (ConfGet("pfring.cluster-type", &tmpctype) != 1) {
+    if (strncmp(pfconf->iface, "zc", 2) == 0) {
+        SCLogInfo("ZC interface detected, not setting cluster type for PF_RING (iface %s)",
+                pfconf->iface);
+    } else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
+        SCLogInfo("DNA interface detected, not setting cluster type for PF_RING (iface %s)",
+                pfconf->iface);
+    } else if (ConfGet("pfring.cluster-type", &tmpctype) != 1) {
         SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,"Could not get cluster-type fron config");
     } else if (strcmp(tmpctype, "cluster_round_robin") == 0) {
         SCLogInfo("Using round-robin cluster mode for PF_RING (iface %s)",
@@ -271,7 +282,14 @@ void *ParsePfringConfig(const char *iface)
         SCLogDebug("Going to use command-line provided cluster-id %" PRId32,
                    pfconf->cluster_id);
     } else {
-        if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) != 1) {
+
+        if (strncmp(pfconf->iface, "zc", 2) == 0) {
+            SCLogInfo("ZC interface detected, not setting cluster-id for PF_RING (iface %s)",
+                    pfconf->iface);
+        } else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
+            SCLogInfo("DNA interface detected, not setting cluster-id for PF_RING (iface %s)",
+                    pfconf->iface);
+        } else if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) != 1) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,
                        "Could not get cluster-id from config");
         } else {
@@ -314,7 +332,13 @@ void *ParsePfringConfig(const char *iface)
         SCLogDebug("Going to use command-line provided cluster-type");
         getctype = 1;
     } else {
-        if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) != 1) {
+        if (strncmp(pfconf->iface, "zc", 2) == 0) {
+            SCLogInfo("ZC interface detected, not setting cluster type for PF_RING (iface %s)",
+                    pfconf->iface);
+        } else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
+            SCLogInfo("DNA interface detected, not setting cluster type for PF_RING (iface %s)",
+                    pfconf->iface);
+        } else if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) != 1) {
             SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,
                        "Could not get cluster-type fron config");
         } else {
