@@ -66,6 +66,9 @@ static const char *Oid2ShortStr(const char *oid)
     if (strcmp(oid, "2.5.4.11")==0)
         return "OU";
 
+    if (strcmp(oid, "0.9.2342.19200300.100.1.25")==0)
+        return "DC";
+
     return "unknown";
 }
 
