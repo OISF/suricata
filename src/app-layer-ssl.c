@@ -244,7 +244,7 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
 
     switch (ssl_state->curr_connp->handshake_type) {
         case SSLV3_HS_CLIENT_HELLO:
-            ssl_state->flags |= SSL_AL_FLAG_STATE_CLIENT_HELLO;
+            ssl_state->current_flags = SSL_AL_FLAG_STATE_CLIENT_HELLO;
 
             /* skip version */
             input += SSLV3_CLIENT_HELLO_VERSION_LEN;
@@ -371,15 +371,15 @@ end:
             break;
 
         case SSLV3_HS_SERVER_HELLO:
-            ssl_state->flags |= SSL_AL_FLAG_STATE_SERVER_HELLO;
+            ssl_state->current_flags = SSL_AL_FLAG_STATE_SERVER_HELLO;
             break;
 
         case SSLV3_HS_SERVER_KEY_EXCHANGE:
-            ssl_state->flags |= SSL_AL_FLAG_STATE_SERVER_KEYX;
+            ssl_state->current_flags = SSL_AL_FLAG_STATE_SERVER_KEYX;
             break;
 
         case SSLV3_HS_CLIENT_KEY_EXCHANGE:
-            ssl_state->flags |= SSL_AL_FLAG_STATE_CLIENT_KEYX;
+            ssl_state->current_flags = SSL_AL_FLAG_STATE_CLIENT_KEYX;
             break;
 
         case SSLV3_HS_CERTIFICATE:
@@ -479,6 +479,8 @@ end:
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
             return -1;
     }
+
+    ssl_state->flags |= ssl_state->current_flags;
 
     uint32_t write_len = 0;
     if ((ssl_state->curr_connp->bytes_processed + input_len) >=
@@ -907,8 +909,8 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
             break;
 
         case SSLV2_MT_CLIENT_HELLO:
-            ssl_state->flags |= SSL_AL_FLAG_STATE_CLIENT_HELLO;
-            ssl_state->flags |= SSL_AL_FLAG_SSL_CLIENT_HS;
+            ssl_state->current_flags = SSL_AL_FLAG_STATE_CLIENT_HELLO;
+            ssl_state->current_flags |= SSL_AL_FLAG_SSL_CLIENT_HS;
 
             if (ssl_state->curr_connp->record_lengths_length == 3) {
                 switch (ssl_state->curr_connp->bytes_processed) {
@@ -920,7 +922,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                             input_len -= 6;
                             ssl_state->curr_connp->bytes_processed += 6;
                             if (ssl_state->curr_connp->session_id_length == 0) {
-                                ssl_state->flags |= SSL_AL_FLAG_SSL_NO_SESSION_ID;
+                                ssl_state->current_flags |= SSL_AL_FLAG_SSL_NO_SESSION_ID;
                             }
 
                             break;
@@ -979,7 +981,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                             input_len -= 6;
                             ssl_state->curr_connp->bytes_processed += 6;
                             if (ssl_state->curr_connp->session_id_length == 0) {
-                                ssl_state->flags |= SSL_AL_FLAG_SSL_NO_SESSION_ID;
+                                ssl_state->current_flags |= SSL_AL_FLAG_SSL_NO_SESSION_ID;
                             }
 
                             break;
@@ -1029,8 +1031,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                 SCLogDebug("Client hello is not seen before master key "
                            "message!");
             }
-
-            ssl_state->flags |= SSL_AL_FLAG_SSL_CLIENT_MASTER_KEY;
+            ssl_state->current_flags = SSL_AL_FLAG_SSL_CLIENT_MASTER_KEY;
 
             break;
 
@@ -1039,7 +1040,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                 SCLogDebug("Incorrect SSL Record type sent in the toclient "
                            "direction!");
             } else {
-                ssl_state->flags |= SSL_AL_FLAG_STATE_CLIENT_KEYX;
+                ssl_state->current_flags = SSL_AL_FLAG_STATE_CLIENT_KEYX;
             }
 
             /* fall through */
@@ -1061,14 +1062,14 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
 
                 if (direction == 0) {
                     if (ssl_state->flags & SSL_AL_FLAG_SSL_NO_SESSION_ID) {
-                        ssl_state->flags |= SSL_AL_FLAG_SSL_CLIENT_SSN_ENCRYPTED;
+                        ssl_state->current_flags |= SSL_AL_FLAG_SSL_CLIENT_SSN_ENCRYPTED;
                         SCLogDebug("SSLv2 client side has started the encryption");
                     } else if (ssl_state->flags & SSL_AL_FLAG_SSL_CLIENT_MASTER_KEY) {
-                        ssl_state->flags |= SSL_AL_FLAG_SSL_CLIENT_SSN_ENCRYPTED;
+                        ssl_state->current_flags = SSL_AL_FLAG_SSL_CLIENT_SSN_ENCRYPTED;
                         SCLogDebug("SSLv2 client side has started the encryption");
                     }
                 } else {
-                    ssl_state->flags |= SSL_AL_FLAG_SSL_SERVER_SSN_ENCRYPTED;
+                    ssl_state->current_flags = SSL_AL_FLAG_SSL_SERVER_SSN_ENCRYPTED;
                     SCLogDebug("SSLv2 Server side has started the encryption");
                 }
 
@@ -1086,11 +1087,13 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
             break;
 
         case SSLV2_MT_SERVER_HELLO:
-            ssl_state->flags |= SSL_AL_FLAG_STATE_SERVER_HELLO;
-            ssl_state->flags |= SSL_AL_FLAG_SSL_SERVER_HS;
+            ssl_state->current_flags = SSL_AL_FLAG_STATE_SERVER_HELLO;
+            ssl_state->current_flags |= SSL_AL_FLAG_SSL_SERVER_HS;
 
             break;
     }
+
+    ssl_state->flags |= ssl_state->current_flags;
 
     if (input_len + ssl_state->curr_connp->bytes_processed >=
             (ssl_state->curr_connp->record_length +
@@ -1315,6 +1318,11 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
         ssl_state->curr_connp = &ssl_state->client_connp;
     else
         ssl_state->curr_connp = &ssl_state->server_connp;
+
+    /* If entering on a new record, reset the current flags. */
+    if (ssl_state->curr_connp->bytes_processed == 0) {
+        ssl_state->current_flags = 0;
+    }
 
     /* if we have more than one record */
     while (input_len > 0) {
