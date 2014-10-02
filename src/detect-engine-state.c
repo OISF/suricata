@@ -217,17 +217,19 @@ void DetectEngineStateFree(DetectEngineState *state)
  *  \retval 1 inspectable state
  *  \retval 2 inspectable state, but no update
  */
-int DeStateFlowHasInspectableState(Flow *f, AppProto alproto, uint16_t alversion, uint8_t flags)
+int DeStateFlowHasInspectableState(Flow *f, uint8_t alindex, uint16_t alversion, uint8_t flags)
 {
+    AppProto alproto;
     int r = 0;
 
+    alproto =  FlowGetAppProtocolAtIndex(f, alindex);
     SCMutexLock(&f->de_state_m);
     if (f->de_state == NULL || f->de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1].cnt == 0) {
         if (AppLayerParserProtocolSupportsTxs(f->proto, alproto)) {
             FLOWLOCK_RDLOCK(f);
-            if (FlowGetAppParser(f) != NULL && FlowGetAppState(f) != NULL) {
-                if (AppLayerParserGetTransactionInspectId(FlowGetAppParser(f), flags) >=
-                    AppLayerParserGetTxCnt(f->proto, alproto, FlowGetAppState(f))) {
+            if (FlowGetAppParserAtIndex(f, alindex) != NULL && FlowGetAppStateAtIndex(f, alindex) != NULL) {
+                if (AppLayerParserGetTransactionInspectId(FlowGetAppParserAtIndex(f, alindex), flags) >=
+                    AppLayerParserGetTxCnt(f->proto, alproto, FlowGetAppStateAtIndex(f, alindex))) {
                     r = 2;
                 }
             }
@@ -485,7 +487,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                     DetectEngineThreadCtx *det_ctx,
                                     Packet *p, Flow *f, uint8_t flags,
-                                    AppProto alproto, uint16_t alversion)
+                                    uint8_t alindex, uint16_t alversion)
 {
     SCMutexLock(&f->de_state_m);
 
@@ -503,6 +505,8 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     int match = 0;
     uint8_t alert = 0;
 
+    AppProto alproto = FlowGetAppProtocolAtIndex(f, alindex);
+
     DetectEngineStateDirection *dir_state = &f->de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1];
     DeStateStore *store = dir_state->head;
     void *inspect_tx = NULL;
@@ -519,14 +523,14 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
     if (AppLayerParserProtocolSupportsTxs(f->proto, alproto)) {
         FLOWLOCK_RDLOCK(f);
-        alstate = FlowGetAppState(f);
+        alstate = FlowGetAppStateAtIndex(f, alindex);
         if (alstate == NULL) {
             FLOWLOCK_UNLOCK(f);
             SCMutexUnlock(&f->de_state_m);
             return;
         }
 
-        inspect_tx_id = AppLayerParserGetTransactionInspectId(FlowGetAppParser(f),
+        inspect_tx_id = AppLayerParserGetTransactionInspectId(FlowGetAppParserAtIndex(f, alindex),
                                                               flags);
         total_txs = AppLayerParserGetTxCnt(f->proto, alproto, alstate);
         inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id);
@@ -610,7 +614,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
             if (alproto_supports_txs) {
                 FLOWLOCK_WRLOCK(f);
-                alstate = FlowGetAppState(f);
+                alstate = FlowGetAppStateAtIndex(f, alindex);
                 if (alstate == NULL) {
                     FLOWLOCK_UNLOCK(f);
                     RULE_PROFILING_END(det_ctx, s, match, p);
@@ -676,7 +680,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 /* RDLOCK would be nicer, but at least tlsstore needs
                  * write lock currently. */
                 FLOWLOCK_WRLOCK(f);
-                alstate = FlowGetAppState(f);
+                alstate = FlowGetAppStateAtIndex(f, alindex);
                 if (alstate == NULL) {
                     FLOWLOCK_UNLOCK(f);
                     RULE_PROFILING_END(det_ctx, s, 0 /* no match */, p);
@@ -749,7 +753,9 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     DeStateStoreStateVersion(f->de_state, alversion, flags);
     DeStateStoreFileNoMatchCnt(f->de_state, file_no_match, flags);
 
-    if (!(dir_state->flags & DETECT_ENGINE_STATE_FLAG_FILE_STORE_DISABLED)) {
+    /* Don't enter here if we have a protocol change */
+    if (!(dir_state->flags & DETECT_ENGINE_STATE_FLAG_FILE_STORE_DISABLED) &&
+            (alproto == FlowGetAppProtocol(f))) {
         if (DeStateStoreFilestoreSigsCantMatch(det_ctx->sgh, f->de_state, flags) == 1) {
             SCLogDebug("disabling file storage for transaction");
 
@@ -778,14 +784,14 @@ end:
 /** \brief update flow's inspection id's
  *
  *  \note it is possible that f->alstate, f->alparser are NULL */
-void DeStateUpdateInspectTransactionId(Flow *f, uint8_t direction)
+void DeStateUpdateInspectTransactionId(Flow *f, uint8_t alindex,  uint8_t direction)
 {
     FLOWLOCK_WRLOCK(f);
     if (FlowGetAppParser(f) && FlowGetAppState(f)) {
-        AppLayerParserSetTransactionInspectId(FlowGetAppParser(f),
+        AppLayerParserSetTransactionInspectId(FlowGetAppParserAtIndex(f, alindex),
                                               f->proto,
-                                              FlowGetAppProtocol(f),
-                                              FlowGetAppState(f),
+                                              FlowGetAppProtocolAtIndex(f, alindex),
+                                              FlowGetAppStateAtIndex(f, alindex),
                                               direction);
     }
     FLOWLOCK_UNLOCK(f);

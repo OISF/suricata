@@ -582,6 +582,10 @@ AppLayerParserState *FlowGetAppParser(const Flow *f);
 void FlowSetAppProtocol(Flow *f, AppProto proto);
 void FlowSetAppState(Flow *f, void *state);
 void FlowSetAppParser(Flow *f, void *parser);
+uint8_t FlowGetAppLayerIndex(const Flow *f);
+AppProto FlowGetAppProtocolAtIndex(const Flow *f, uint8_t index);
+void *FlowGetAppStateAtIndex(const Flow *f, uint8_t index);
+AppLayerParserState *FlowGetAppParserAtIndex(const Flow *f, uint8_t index);
 
 
 

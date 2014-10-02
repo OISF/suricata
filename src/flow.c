@@ -835,9 +835,19 @@ int FlowSetProtoEmergencyTimeout(uint8_t proto, uint32_t emerg_new_timeout,
     return 1;
 }
 
+uint8_t FlowGetAppLayerIndex(const Flow *f)
+{
+    return f->applayer_index;
+}
+
 AppProto FlowGetAppProtocol(const Flow *f)
 {
     return FLOW_GET_CURRENT_APPLAYER(f).alproto;
+}
+
+AppProto FlowGetAppProtocolAtIndex(const Flow *f, uint8_t index)
+{
+    return FLOW_GET_APPLAYER(f, index).alproto;
 }
 
 void *FlowGetAppState(const Flow *f)
@@ -845,9 +855,19 @@ void *FlowGetAppState(const Flow *f)
     return FLOW_GET_CURRENT_APPLAYER(f).alstate;
 }
 
+void *FlowGetAppStateAtIndex(const Flow *f, uint8_t index)
+{
+    return FLOW_GET_APPLAYER(f, index).alstate;
+}
+
 AppLayerParserState *FlowGetAppParser(const Flow *f)
 {
     return FLOW_GET_CURRENT_APPLAYER(f).alparser;
+}
+
+AppLayerParserState *FlowGetAppParserAtIndex(const Flow *f, uint8_t index)
+{
+    return FLOW_GET_APPLAYER(f, index).alparser;
 }
 
 void FlowSetAppProtocol(Flow *f, AppProto proto)
