@@ -678,7 +678,7 @@
             echo "   ERROR!  nfnetlink library not found, go get it"
             echo "   from www.netfilter.org."
             echo "   we automatically append libnetfilter_queue/ when searching"
-            echo "   for headers etc. when the --with-libnfnetlink-inlcudes directive"
+            echo "   for headers etc. when the --with-libnfnetlink-includes directive"
             echo "   is used"
             echo
         fi
