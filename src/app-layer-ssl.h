@@ -184,6 +184,8 @@ typedef struct SSLState_ {
 
     uint16_t events;
 
+    uint32_t current_flags;
+
     SSLStateConnp *curr_connp;
 
     SSLStateConnp client_connp;
