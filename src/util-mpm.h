@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -108,9 +108,12 @@ typedef struct PatternMatcherQueue_ {
     uint32_t pattern_id_bitarray_size; /**< size in bytes */
 
     /* used for storing rule id's */
-    uint32_t rule_id_array_size;
+    /* Array of rule IDs found. */
     uint32_t *rule_id_array;
+    /* Number of rule IDs in the array. */
     uint32_t rule_id_array_cnt;
+    /* The number of slots allocated for storing rule IDs */
+    uint32_t rule_id_array_size;
 
 } PatternMatcherQueue;
 
@@ -262,5 +265,32 @@ int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
 int MpmAddPatternCI(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
                     uint16_t offset, uint16_t depth,
                     uint32_t pid, uint32_t sid, uint8_t flags);
+
+/* Resize ID array. Only called from MpmAddSids(). */
+void MpmAddSidsResize(PatternMatcherQueue *pmq, uint32_t new_size);
+
+/** \brief Add array of Signature IDs to rule ID array.
+ *
+ *   Checks size of the array first. Calls MpmAddSidsResize to increase
+ *   The size of the array, since that is the slow path.
+ *
+ *  \param pmq storage for match results
+ *  \param sids pointer to array of Signature IDs
+ *  \param sids_size number of Signature IDs in sids array.
+ *
+ */
+static inline void
+MpmAddSids(PatternMatcherQueue *pmq, uint32_t *sids, uint32_t sids_size)
+{
+    uint32_t new_size = pmq->rule_id_array_cnt + sids_size;
+    if (new_size > pmq->rule_id_array_size) {
+      MpmAddSidsResize(pmq, new_size);
+    }
+    SCLogDebug("Adding %u sids", sids_size);
+    // Add SIDs for this pattern to the end of the array
+    memcpy(pmq->rule_id_array + pmq->rule_id_array_cnt,
+           sids, sids_size * sizeof(uint32_t));
+    pmq->rule_id_array_cnt += sids_size;
+}
 
 #endif /* __UTIL_MPM_H__ */
