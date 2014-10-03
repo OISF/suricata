@@ -1490,23 +1490,21 @@ uint32_t SCACBSSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 uint32_t k;
                 for (k = 0; k < no_of_entries; k++) {
                     if (pids[k] & 0xFFFF0000) {
-                        if (SCMemcmp(pid_pat_list[pids[k] & 0x0000FFFF].cs,
-                                     buf + i - pid_pat_list[pids[k] & 0x0000FFFF].patlen + 1,
-                                     pid_pat_list[pids[k] & 0x0000FFFF].patlen) != 0) {
+                        uint32_t lower_pid = pids[k] & 0x0000FFFF;
+                        if (SCMemcmp(pid_pat_list[lower_pid].cs,
+                                     buf + i - pid_pat_list[lower_pid].patlen + 1,
+                                     pid_pat_list[lower_pid].patlen) != 0) {
                             /* inside loop */
                             continue;
                         }
-                        if (bitarray[(pids[k] & 0x0000FFFF) / 8] & (1 << ((pids[k] & 0x0000FFFF) % 8))) {
+                        if (bitarray[(lower_pid) / 8] & (1 << ((lower_pid) % 8))) {
                             ;
                         } else {
-                            bitarray[(pids[k] & 0x0000FFFF) / 8] |= (1 << ((pids[k] & 0x0000FFFF) % 8));
-                            pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] |= (1 << ((pids[k] & 0x0000FFFF) % 8));
-                            pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k] & 0x0000FFFF;
+                            bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
+                            pmq->pattern_id_bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
+                            pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = lower_pid;
 
-                            uint32_t x;
-                            for (x = 0; x < pid_pat_list[pids[k] & 0x0000FFFF].sids_size; x++) {
-                                pmq->rule_id_array[pmq->rule_id_array_cnt++] = pid_pat_list[pids[k] & 0x0000FFFF].sids[x];
-                            }
+                            MpmAddSids(pmq, pid_pat_list[lower_pid].sids, pid_pat_list[lower_pid].sids_size);
                         }
                         matches++;
                     } else {
@@ -1517,10 +1515,7 @@ uint32_t SCACBSSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                             pmq->pattern_id_bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
                             pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k];
 
-                            uint32_t x;
-                            for (x = 0; x < pid_pat_list[pids[k] & 0x0000FFFF].sids_size; x++) {
-                                pmq->rule_id_array[pmq->rule_id_array_cnt++] = pid_pat_list[pids[k] & 0x0000FFFF].sids[x];
-                            }
+                            MpmAddSids(pmq, pid_pat_list[pids[k]].sids, pid_pat_list[pids[k]].sids_size);
                         }
                         matches++;
                     }
@@ -1583,23 +1578,21 @@ uint32_t SCACBSSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 uint32_t k;
                 for (k = 0; k < no_of_entries; k++) {
                     if (pids[k] & 0xFFFF0000) {
-                        if (SCMemcmp(pid_pat_list[pids[k] & 0x0000FFFF].cs,
-                                     buf + i - pid_pat_list[pids[k] & 0x0000FFFF].patlen + 1,
-                                     pid_pat_list[pids[k] & 0x0000FFFF].patlen) != 0) {
+                        uint32_t lower_pid = pids[k] & 0x0000FFFF;
+                        if (SCMemcmp(pid_pat_list[lower_pid].cs,
+                                     buf + i - pid_pat_list[lower_pid].patlen + 1,
+                                     pid_pat_list[lower_pid].patlen) != 0) {
                             /* inside loop */
                             continue;
                         }
-                        if (bitarray[(pids[k] & 0x0000FFFF) / 8] & (1 << ((pids[k] & 0x0000FFFF) % 8))) {
+                        if (bitarray[(lower_pid) / 8] & (1 << ((lower_pid) % 8))) {
                             ;
                         } else {
-                            bitarray[(pids[k] & 0x0000FFFF) / 8] |= (1 << ((pids[k] & 0x0000FFFF) % 8));
-                            pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] |= (1 << ((pids[k] & 0x0000FFFF) % 8));
-                            pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k] & 0x0000FFFF;
+                            bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
+                            pmq->pattern_id_bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
+                            pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = lower_pid;
 
-                            uint32_t x;
-                            for (x = 0; x < pid_pat_list[pids[k] & 0x0000FFFF].sids_size; x++) {
-                                pmq->rule_id_array[pmq->rule_id_array_cnt++] = pid_pat_list[pids[k] & 0x0000FFFF].sids[x];
-                            }
+                            MpmAddSids(pmq, pid_pat_list[lower_pid].sids, pid_pat_list[lower_pid].sids_size);
                         }
                         matches++;
                     } else {
@@ -1610,10 +1603,7 @@ uint32_t SCACBSSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                             pmq->pattern_id_bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
                             pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k];
 
-                            uint32_t x;
-                            for (x = 0; x < pid_pat_list[pids[k] & 0x0000FFFF].sids_size; x++) {
-                                pmq->rule_id_array[pmq->rule_id_array_cnt++] = pid_pat_list[pids[k] & 0x0000FFFF].sids[x];
-                            }
+                            MpmAddSids(pmq, pid_pat_list[pids[k]].sids, pid_pat_list[pids[k]].sids_size);
                         }
                         matches++;
                     }
