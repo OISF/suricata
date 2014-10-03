@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -451,18 +451,46 @@ int PmqSetup(PatternMatcherQueue *pmq, uint32_t patmaxid)
         SCLogDebug("pmq->pattern_id_array %p, pmq->pattern_id_bitarray %p",
                 pmq->pattern_id_array, pmq->pattern_id_bitarray);
 
-        pmq->rule_id_array_size = 65536 * sizeof(uint32_t);
-
-        pmq->rule_id_array = SCMalloc(pmq->rule_id_array_size);
-        if (pmq->rule_id_array == NULL) {
-            SCReturnInt(-1);
-        }
-        memset(pmq->rule_id_array, 0, pmq->rule_id_array_size);
+        pmq->rule_id_array_size = 128;
         pmq->rule_id_array_cnt = 0;
 
+        uint32_t bytes = pmq->rule_id_array_size * sizeof(uint32_t);
+        pmq->rule_id_array = SCMalloc(bytes);
+        if (pmq->rule_id_array == NULL) {
+            pmq->rule_id_array_size = 0;
+            SCReturnInt(-1);
+        }
+        // Don't need to zero memory since it is always written first.
     }
 
     SCReturnInt(0);
+}
+
+/** \brief Add array of Signature IDs to rule ID array.
+ *
+ *   Checks size of the array first
+ *
+ *  \param pmq storage for match results
+ *  \param new_size number of Signature IDs needing to be stored.
+ *
+ */
+void
+MpmAddSidsResize(PatternMatcherQueue *pmq, uint32_t new_size)
+{
+    /* Need to make the array bigger. Double the size needed to
+     * also handle the case that sids_size might still be
+     * larger than the old size.
+     */
+    new_size = new_size * 2;
+    uint32_t *new_array = (uint32_t*)SCRealloc(pmq->rule_id_array,
+                                               new_size * sizeof(uint32_t));
+    if (unlikely(new_array == NULL)) {
+      SCLogError(SC_ERR_MEM_ALLOC, "Failed to realloc PatternMatchQueue"
+                 " rule ID array. Some signature ID matches lost");
+      return;
+    }
+    pmq->rule_id_array = new_array;
+    pmq->rule_id_array_size = new_size;
 }
 
 /** \brief Verify and store a match
@@ -471,9 +499,10 @@ int PmqSetup(PatternMatcherQueue *pmq, uint32_t patmaxid)
  *
  *  \param thread_ctx mpm thread ctx
  *  \param pmq storage for match results
- *  \param list end match to check against (entire list will be checked)
- *  \param offset match offset in the buffer
- *  \param patlen length of the pattern we're checking
+ *  \param patid pattern ID being checked
+ *  \param bitarray Array of bits for patterns IDs found in current search
+ *  \param sids pointer to array of Signature IDs
+ *  \param sids_size number of Signature IDs in sids array.
  *
  *  \retval 0 no match after all
  *  \retval 1 (new) match
@@ -497,13 +526,7 @@ MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, uint32_t pati
             pmq->pattern_id_array_cnt++;
             SCLogDebug("pattern_id_array_cnt %u", pmq->pattern_id_array_cnt);
 
-            SCLogDebug("Adding %u sids", sids_size);
-            // Add SIDs for this pattern
-            uint32_t x;
-            for (x = 0; x < sids_size; x++) {
-                pmq->rule_id_array[pmq->rule_id_array_cnt++] = sids[x];
-            }
-
+            MpmAddSids(pmq, sids, sids_size);
         }
     }
 
@@ -557,6 +580,7 @@ void PmqReset(PatternMatcherQueue *pmq)
     pmq->pattern_id_array_cnt = 0;
 */
     pmq->rule_id_array_cnt = 0;
+    /* TODO: Realloc the rule id array smaller at some size? */
 }
 
 /** \brief Cleanup a Pmq
@@ -583,6 +607,7 @@ void PmqCleanup(PatternMatcherQueue *pmq)
     }
 
     pmq->pattern_id_array_cnt = 0;
+    pmq->pattern_id_array_size = 0;
 }
 
 /** \brief Cleanup and free a Pmq
