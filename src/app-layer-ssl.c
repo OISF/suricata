@@ -42,6 +42,7 @@
 #include "app-layer-ssl.h"
 
 #include "app-layer-tls-handshake.h"
+#include "util-tls.h"
 
 #include "decode-events.h"
 #include "conf.h"
@@ -126,6 +127,7 @@ SslConfig ssl_config;
 static void SSLParserReset(SSLState *ssl_state)
 {
     ssl_state->curr_connp->bytes_processed = 0;
+    ssl_state->curr_connp->hs_bytes_processed = 0;
 }
 
 static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
@@ -148,6 +150,11 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
         case SSLV3_HS_SERVER_HELLO:
             ssl_state->flags |= SSL_AL_FLAG_STATE_SERVER_HELLO;
 
+            rc = DecodeTLSHandshakeServerHello(ssl_state, input, input_len);
+            if (rc >= 0) {
+                ssl_state->curr_connp->bytes_processed += rc;
+                parsed += rc;
+            }
             break;
 
         case SSLV3_HS_SERVER_KEY_EXCHANGE:
@@ -1377,6 +1384,9 @@ void RegisterSSLParsers(void)
         } else {
             if (ConfGetBool("app-layer.protocols.tls.no-reassemble", &ssl_config.no_reassemble) != 1)
                 ssl_config.no_reassemble = 1;
+        }
+        if (ConfGetNode("tls-ciphersuites") != NULL) {
+            TlsCiphersInit();
         }
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
@@ -4144,15 +4154,9 @@ static int SSLParserTest25(void)
     }
     SCMutexUnlock(&f.m);
 
-    /* The reason hs_bytes_processed is 2 is because, the record
-     * immediately after the client key exchange is 2 bytes long,
-     * and next time we see a new handshake, it is after we have
-     * seen a change cipher spec.  Hence when we process the
-     * handshake, we immediately break and don't parse the pdu from
-     * where we left off, and leave the hs_bytes_processed var
-     * isn't reset. */
+    /* SSLParserReset() is called so hs_bytes_processed is 0 */
     if (ssl_state->client_connp.bytes_processed != 0 ||
-        ssl_state->client_connp.hs_bytes_processed != 2)
+        ssl_state->client_connp.hs_bytes_processed != 0)
     {
         printf("client_key_exchange_cipher_enc_hs error\n");
         goto end;

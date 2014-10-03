@@ -125,6 +125,11 @@ int HashTableAdd(HashTable *ht, void *data, uint16_t datalen)
     hb->size = datalen;
     hb->next = NULL;
 
+    if (hash >= ht->array_size) {
+        SCLogWarning(SC_ERR_INVALID_VALUE, "attempt to insert element out of hash array\n");
+        goto error;
+    }
+
     if (ht->array[hash] == NULL) {
         ht->array[hash] = hb;
     } else {
@@ -139,6 +144,8 @@ int HashTableAdd(HashTable *ht, void *data, uint16_t datalen)
     return 0;
 
 error:
+    if (hb != NULL)
+        SCFree(hb);
     return -1;
 }
 
@@ -191,6 +198,11 @@ void *HashTableLookup(HashTable *ht, void *data, uint16_t datalen)
         return NULL;
 
     hash = ht->Hash(ht, data, datalen);
+
+    if (hash >= ht->array_size) {
+        SCLogWarning(SC_ERR_INVALID_VALUE, "attempt to access element out of hash array\n");
+        return NULL;
+    }
 
     if (ht->array[hash] == NULL)
         return NULL;
