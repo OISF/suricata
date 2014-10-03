@@ -51,15 +51,18 @@ typedef struct SCACTilePatternList_ {
     uint8_t *cs;
     uint16_t patlen;
 
+    /* Pattern Id */
+    uint32_t pid;
+
     /* sid(s) for this pattern */
     uint32_t sids_size;
     uint32_t *sids;
 } SCACTilePatternList;
 
 typedef struct SCACTileOutputTable_ {
-    /* list of pattern sids */
-    uint32_t *pids;
-    /* no of entries we have in pids */
+    /* list of pattern indexes */
+    MpmPatternIndex *patterns;
+    /* number of entries in pattern list */
     uint32_t no_of_entries;
 } SCACTileOutputTable;
 
@@ -90,8 +93,10 @@ typedef struct SCACTileCtx_ {
     void (*set_next_state)(struct SCACTileCtx_ *ctx, int state, int aa,
                            int new_state, int outputs);
 
+    /* List of patterns that match for this state. Indexed by State Number */
     SCACTileOutputTable *output_table;
-    SCACTilePatternList *pid_pat_list;
+    /* Indexed by MpmPatternIndex */
+    SCACTilePatternList *pattern_list;
 
     /* hash used during ctx initialization */
     SCACTilePattern **init_hash;
@@ -110,9 +115,6 @@ typedef struct SCACTileCtx_ {
     uint32_t state_count;
     /* Number of states allocated for ac-tile. */
     uint32_t allocated_state_count;
-
-    /* Largest Pattern Identifier. */
-    uint16_t max_pat_id;
 
     uint32_t alpha_hist[256];
     /* Number of characters in the compressed alphabet. */
@@ -147,8 +149,12 @@ typedef struct SCACTileSearchCtx_ {
     /* the all important memory hungry state_table */
     void *state_table;
 
+    /* List of patterns that match for this state. Indexed by State Number */
     SCACTileOutputTable *output_table;
-    SCACTilePatternList *pid_pat_list;
+    SCACTilePatternList *pattern_list;
+
+    /* Number of bytes in the array of bits. One bit per pattern in this MPM. */
+    uint32_t mpm_bitarray_size;
 
     /* MPM Creation data, only used at initialization. */
     SCACTileCtx *init_ctx;
