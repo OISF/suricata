@@ -82,6 +82,9 @@ enum {
 #define DEFAULT_MPM   MPM_AC
 #endif
 
+/* Internal Pattern Index: 0 to pattern_cnt-1 */
+typedef uint32_t MpmPatternIndex;
+
 typedef struct MpmMatchBucket_ {
     uint32_t len;
 } MpmMatchBucket;
@@ -101,8 +104,8 @@ typedef struct PatternMatcherQueue_ {
     uint32_t *pattern_id_array;     /** array with pattern id's that had a
                                         pattern match. These will be inspected
                                         futher by the detection engine. */
-    uint32_t pattern_id_array_cnt;
-    uint32_t pattern_id_array_size; /**< size in bytes */
+    uint32_t pattern_id_array_cnt;  /**< Number currently stored */
+    uint32_t pattern_id_array_size; /**< Allocated size in bytes */
 
     uint8_t *pattern_id_bitarray;   /** bitarray with pattern id matches */
     uint32_t pattern_id_bitarray_size; /**< size in bytes */
