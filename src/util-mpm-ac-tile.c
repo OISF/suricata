@@ -511,10 +511,6 @@ static int SCACTileAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
                 mpm_ctx->minlen = patlen;
         }
 
-        /* we need the max pat id */
-        if (pid > ctx->max_pat_id)
-            ctx->max_pat_id = pid;
-
         p->sids_size = 1;
         p->sids = SCMalloc(p->sids_size * sizeof(uint32_t));
         BUG_ON(p->sids == NULL);
@@ -625,7 +621,7 @@ static inline int SCACTileInitNewState(MpmCtx *mpm_ctx)
  * \param pid     The pattern id to add.
  * \param mpm_ctx Pointer to the mpm context.
  */
-static void SCACTileSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
+static void SCACTileSetOutputState(int32_t state, MpmPatternIndex pindex, MpmCtx *mpm_ctx)
 {
     void *ptmp;
     SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
@@ -636,24 +632,24 @@ static void SCACTileSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
 
     /* Don't add the pattern more than once to the same state. */
     for (i = 0; i < output_state->no_of_entries; i++) {
-        if (output_state->pids[i] == pid)
+        if (output_state->patterns[i] == pindex)
             return;
     }
 
     /* Increase the size of the array of pids for this state and add
      * the new pid. */
     output_state->no_of_entries++;
-    ptmp = SCRealloc(output_state->pids,
-                     output_state->no_of_entries * sizeof(uint32_t));
+    ptmp = SCRealloc(output_state->patterns,
+                     output_state->no_of_entries * sizeof(MpmPatternIndex));
     if (ptmp == NULL) {
-        SCFree(output_state->pids);
-        output_state->pids = NULL;
+        SCFree(output_state->patterns);
+        output_state->patterns = NULL;
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
-    output_state->pids = ptmp;
+    output_state->patterns = ptmp;
 
-    output_state->pids[output_state->no_of_entries - 1] = pid;
+    output_state->patterns[output_state->no_of_entries - 1] = pindex;
 }
 
 /**
@@ -667,7 +663,7 @@ static void SCACTileSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
  * \param mpm_ctx     Pointer to the mpm context.
  */
 static void SCACTileEnter(uint8_t *pattern, uint16_t pattern_len,
-                          uint32_t pid, MpmCtx *mpm_ctx)
+                          MpmPatternIndex pindex, MpmCtx *mpm_ctx)
 {
     SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
     SCACTileCtx *ctx = search_ctx->init_ctx;
@@ -698,7 +694,7 @@ static void SCACTileEnter(uint8_t *pattern, uint16_t pattern_len,
 
     /* Add this pattern id, to the output table of the last state, where the
      * pattern ends in the trie */
-    SCACTileSetOutputState(state, pid, mpm_ctx);
+    SCACTileSetOutputState(state, pindex, mpm_ctx);
 }
 
 /**
@@ -717,7 +713,7 @@ static void SCACTileCreateGotoTable(MpmCtx *mpm_ctx)
     /* add each pattern to create the goto table */
     for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
         SCACTileEnter(ctx->parray[i]->ci, ctx->parray[i]->len,
-                      ctx->parray[i]->id, mpm_ctx);
+                      i, mpm_ctx);
     }
 
     int aa = 0;
@@ -797,25 +793,25 @@ static void SCACTileClubOutputStates(int32_t dst_state,
 
     for (i = 0; i < output_src_state->no_of_entries; i++) {
         for (j = 0; j < output_dst_state->no_of_entries; j++) {
-            if (output_src_state->pids[i] == output_dst_state->pids[j]) {
+            if (output_src_state->patterns[i] == output_dst_state->patterns[j]) {
                 break;
             }
         }
         if (j == output_dst_state->no_of_entries) {
             output_dst_state->no_of_entries++;
 
-            ptmp = SCRealloc(output_dst_state->pids,
+            ptmp = SCRealloc(output_dst_state->patterns,
                              (output_dst_state->no_of_entries * sizeof(uint32_t)));
             if (ptmp == NULL) {
-                SCFree(output_dst_state->pids);
-                output_dst_state->pids = NULL;
+                SCFree(output_dst_state->patterns);
+                output_dst_state->patterns = NULL;
                 SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
                 exit(EXIT_FAILURE);
             }
-            output_dst_state->pids = ptmp;
+            output_dst_state->patterns = ptmp;
 
-            output_dst_state->pids[output_dst_state->no_of_entries - 1] =
-                output_src_state->pids[i];
+            output_dst_state->patterns[output_dst_state->no_of_entries - 1] =
+                output_src_state->patterns[i];
         }
     }
 }
@@ -1083,9 +1079,10 @@ static inline void SCACTileInsertCaseSensitiveEntriesForPatterns(MpmCtx *mpm_ctx
             continue;
 
         for (k = 0; k < ctx->output_table[state].no_of_entries; k++) {
-            if (ctx->pid_pat_list[ctx->output_table[state].pids[k]].cs != NULL) {
-                ctx->output_table[state].pids[k] &= 0x0000FFFF;
-                ctx->output_table[state].pids[k] |= 1 << 16;
+            if (ctx->pattern_list[ctx->output_table[state].patterns[k]].cs != NULL) {
+              /* TODO - Find better way to store this. */
+                ctx->output_table[state].patterns[k] &= 0x0000FFFF;
+                ctx->output_table[state].patterns[k] |= 1 << 16;
             }
         }
     }
@@ -1178,8 +1175,11 @@ static void SCACTilePrepareSearch(MpmCtx *mpm_ctx)
     search_ctx->output_table = ctx->output_table;
     ctx->output_table = NULL;
 
-    search_ctx->pid_pat_list = ctx->pid_pat_list;
-    ctx->pid_pat_list = NULL;
+    search_ctx->pattern_list = ctx->pattern_list;
+    ctx->pattern_list = NULL;
+
+    /* One bit per pattern, rounded up to the next byte size. */
+    search_ctx->mpm_bitarray_size = (mpm_ctx->pattern_cnt + 7) / 8;
 
     /* Can now free the Initialization data */
     SCACTileDestroyInitCtx(mpm_ctx);
@@ -1241,7 +1241,7 @@ int SCACTilePreparePatterns(MpmCtx *mpm_ctx)
         }
     }
 
-    size_t pattern_list_size = (ctx->max_pat_id + 1) * sizeof(SCACTilePatternList);
+    size_t pattern_list_size = mpm_ctx->pattern_cnt * sizeof(SCACTilePatternList);
     size_t mem_size = string_space_needed + pattern_list_size;
     void *mem_block = SCCalloc(1, mem_size);
     if (mem_block == NULL) {
@@ -1251,7 +1251,7 @@ int SCACTilePreparePatterns(MpmCtx *mpm_ctx)
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += mem_size;
     /* Split the allocated block into pattern list array and string space. */
-    ctx->pid_pat_list = mem_block;
+    ctx->pattern_list = mem_block;
     uint8_t *string_space = mem_block + pattern_list_size;
 
     /* Now make the copies of the no-case strings. */
@@ -1260,15 +1260,15 @@ int SCACTilePreparePatterns(MpmCtx *mpm_ctx)
             uint32_t len = ctx->parray[i]->len;
             uint32_t space = ((len + 7) / 8) * 8;
             memcpy(string_space, ctx->parray[i]->original_pat, len);
-            ctx->pid_pat_list[ctx->parray[i]->id].cs = string_space;
-            ctx->pid_pat_list[ctx->parray[i]->id].patlen = len;
+            ctx->pattern_list[i].cs = string_space;
+            ctx->pattern_list[i].patlen = len;
             string_space += space;
         }
+        ctx->pattern_list[i].pid = ctx->parray[i]->id;
 
         /* ACPatternList now owns this memory */
-        //SCLogInfo("ctx->parray[i]->sids_size %u", ctx->parray[i]->sids_size);
-        ctx->pid_pat_list[ctx->parray[i]->id].sids_size = ctx->parray[i]->sids_size;
-        ctx->pid_pat_list[ctx->parray[i]->id].sids = ctx->parray[i]->sids;
+        ctx->pattern_list[i].sids_size = ctx->parray[i]->sids_size;
+        ctx->pattern_list[i].sids = ctx->parray[i]->sids;
     }
 
     /* prepare the state table required by AC */
@@ -1403,22 +1403,22 @@ static void SCACTileDestroyInitCtx(MpmCtx *mpm_ctx)
     if (ctx->output_table != NULL) {
         int state;
         for (state = 0; state < ctx->state_count; state++) {
-            if (ctx->output_table[state].pids != NULL) {
-                SCFree(ctx->output_table[state].pids);
+            if (ctx->output_table[state].patterns != NULL) {
+                SCFree(ctx->output_table[state].patterns);
             }
         }
         SCFree(ctx->output_table);
     }
 
-    if (ctx->pid_pat_list != NULL) {
-        int i;
-        for (i = 0; i < (ctx->max_pat_id + 1); i++) {
-            if (ctx->pid_pat_list[i].cs != NULL)
-                SCFree(ctx->pid_pat_list[i].cs);
-            if (ctx->pid_pat_list[i].sids != NULL)
-                SCFree(ctx->pid_pat_list[i].sids);
+    if (ctx->pattern_list != NULL) {
+        uint32_t i;
+        for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
+            if (ctx->pattern_list[i].cs != NULL)
+                SCFree(ctx->pattern_list[i].cs);
+            if (ctx->pattern_list[i].sids != NULL)
+                SCFree(ctx->pattern_list[i].sids);
         }
-        SCFree(ctx->pid_pat_list);
+        SCFree(ctx->pattern_list);
     }
 
     SCFree(ctx);
@@ -1443,7 +1443,7 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
 
     /* Free Search tables */
     SCFree(search_ctx->state_table);
-    SCFree(search_ctx->pid_pat_list);
+    SCFree(search_ctx->pattern_list);
     SCFree(search_ctx->output_table);
 
     SCFree(search_ctx);
@@ -1467,45 +1467,53 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
 
 int CheckMatch(SCACTileSearchCtx *ctx, PatternMatcherQueue *pmq,
                uint8_t *buf, uint16_t buflen,
-               uint16_t state, int i, int matches, uint8_t *bitarray)
+               uint16_t state, int i, int matches,
+               uint8_t *mpm_bitarray)
 {
-    SCACTilePatternList *pid_pat_list = ctx->pid_pat_list;
+    SCACTilePatternList *pattern_list = ctx->pattern_list;
     uint8_t *buf_offset = buf + i + 1; // Lift out of loop
     uint32_t no_of_entries = ctx->output_table[state].no_of_entries;
-    uint32_t *pids = ctx->output_table[state].pids;
+    uint32_t *patterns = ctx->output_table[state].patterns;
     uint8_t *pmq_bitarray = pmq->pattern_id_bitarray;
     uint32_t k;
 
-    /* Where to start storing new patterns */
-    uint32_t *orig_pattern = pmq->pattern_id_array + pmq->pattern_id_array_cnt;
-    uint32_t *new_pattern = orig_pattern;
-
     for (k = 0; k < no_of_entries; k++) {
-        uint16_t lower_pid = pids[k] & 0x0000FFFF;
-        if (pids[k] & 0xFFFF0000) {
-            uint16_t patlen = pid_pat_list[lower_pid].patlen;
-            if (SCMemcmp(pid_pat_list[lower_pid].cs, buf_offset - patlen, patlen) != 0) {
-                /* inside loop */
+        MpmPatternIndex pindex = patterns[k] & 0x0000FFFF;
+        if (mpm_bitarray[pindex / 8] & (1 << (pindex % 8))) {
+            /* Pattern already seen by this MPM. */
+            /* NOTE: This is faster then rechecking if it is a case-sensitive match
+             * since we know this pattern has already been seen, but imcrementing
+             * matches here could over report matches. For example if the case-sensitive
+             * pattern is "Foo" and the string is "Foo bar foo", matches would be reported
+             * as 2, when it should really be 1, since "foo" is not a true match.
+             */
+            matches++;
+            continue;
+        }
+        uint32_t pid = pattern_list[pindex].pid;
+        /* Double check case-sensitve match now. */
+        if (patterns[k] & 0xFFFF0000) {
+            uint16_t patlen = pattern_list[pindex].patlen;
+            if (SCMemcmp(pattern_list[pindex].cs, buf_offset - patlen, patlen) != 0) {
+                /* Case-sensitive match failed. */
                 continue;
             }
         }
-        if (bitarray[(lower_pid) / 8] & (1 << ((lower_pid) % 8))) {
-            ;
-        } else {
-            bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
-            pmq_bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
-            *new_pattern++ = lower_pid;
+        /* New match found */
+        mpm_bitarray[pindex / 8] |= (1 << (pindex % 8));
 
-            MpmAddSids(pmq, pid_pat_list[lower_pid].sids,
-                       pid_pat_list[lower_pid].sids_size);
+        if ((pmq_bitarray[pid / 8] & (1 << (pid % 8))) == 0) {
+            pmq_bitarray[(pid) / 8] |= (1 << ((pid) % 8));
+            MpmAddPid(pmq, pid);
         }
+
+        /* Always add the Signature IDs, since they could be different in the current MPM
+         * than in a previous MPM on the same PMQ when finding the same pattern.
+         */
+        MpmAddSids(pmq, pattern_list[pindex].sids,
+                   pattern_list[pindex].sids_size);
         matches++;
     }
-    /* Only update the pattern count if a new pattern was added.
-     * No need to compute it or dirty that cache data for no change.
-     */
-    if (new_pattern != orig_pattern)
-        pmq->pattern_id_array_cnt = new_pattern - orig_pattern;
 
     return matches;
 }
@@ -1542,10 +1550,8 @@ uint32_t SCACTileSearchLarge(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ct
     int i = 0;
     int matches = 0;
 
-    SCACTilePatternList *pid_pat_list = ctx->pid_pat_list;
-
-    uint8_t bitarray[pmq->pattern_id_bitarray_size];
-    memset(bitarray, 0, pmq->pattern_id_bitarray_size);
+    uint8_t mpm_bitarray[ctx->mpm_bitarray_size];
+    memset(mpm_bitarray, 0, ctx->mpm_bitarray_size);
 
     uint8_t* restrict xlate = ctx->translate_table;
     register int state = 0;
@@ -1553,44 +1559,7 @@ uint32_t SCACTileSearchLarge(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ct
     for (i = 0; i < buflen; i++) {
         state = state_table_u32[state & 0x00FFFFFF][xlate[buf[i]]];
         if (SCHECK(state)) {
-            uint32_t no_of_entries = ctx->output_table[state].no_of_entries;
-            uint32_t *pids = ctx->output_table[state].pids;
-            uint32_t k;
-            for (k = 0; k < no_of_entries; k++) {
-                if (pids[k] & 0xFFFF0000) {
-                    uint32_t lower_pid = pids[k] & 0x0000FFFF;
-                    if (SCMemcmp(pid_pat_list[lower_pid].cs,
-                                 buf + i - pid_pat_list[lower_pid].patlen + 1,
-                                 pid_pat_list[lower_pid].patlen) != 0) {
-                        /* inside loop */
-                        continue;
-                    }
-                    if (bitarray[(lower_pid) / 8] & (1 << ((lower_pid) % 8))) {
-                        ;
-                    } else {
-                        bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
-                        pmq->pattern_id_bitarray[(lower_pid) / 8] |=
-                          (1 << ((lower_pid) % 8));
-                        pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = lower_pid;
-
-                        MpmAddSids(pmq, pid_pat_list[lower_pid].sids,
-                                   pid_pat_list[lower_pid].sids_size);
-                    }
-                    matches++;
-                } else {
-                    if (bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
-                        ;
-                    } else {
-                        bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
-                        pmq->pattern_id_bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
-                        pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k];
-
-                        MpmAddSids(pmq, pid_pat_list[pids[k]].sids,
-                                   pid_pat_list[pids[k]].sids_size);
-                    }
-                    matches++;
-                }
-            }
+            matches = CheckMatch(ctx, pmq, buf, buflen, state, i, matches, mpm_bitarray);
         }
     } /* for (i = 0; i < buflen; i++) */
 
