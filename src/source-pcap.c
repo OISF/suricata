@@ -235,7 +235,6 @@ void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
 
     PcapThreadVars *ptv = (PcapThreadVars *)user;
     Packet *p = PacketGetFromQueueOrAlloc();
-    struct timeval current_time;
 
     if (unlikely(p == NULL)) {
         SCReturn;
@@ -281,10 +280,9 @@ void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
     }
 
     /* Trigger one dump of stats every second */
-    TimeGet(&current_time);
-    if (current_time.tv_sec != ptv->last_stats_dump) {
+    if (h->ts.tv_sec != ptv->last_stats_dump) {
         PcapDumpCounters(ptv);
-        ptv->last_stats_dump = current_time.tv_sec;
+        ptv->last_stats_dump = h->ts.tv_sec;
     }
 
     SCReturn;
