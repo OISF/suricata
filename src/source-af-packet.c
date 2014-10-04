@@ -527,9 +527,10 @@ static inline void AFPDumpCounters(AFPThreadVars *ptv)
  * From here the packets are picked up by the DecodeAFP thread.
  *
  * \param user pointer to AFPThreadVars
+ * \param[out] ts store timevals in this pointer
  * \retval TM_ECODE_FAILED on failure and TM_ECODE_OK on success
  */
-int AFPRead(AFPThreadVars *ptv)
+static int AFPRead(AFPThreadVars *ptv, struct timeval *ts)
 {
     Packet *p = NULL;
     /* XXX should try to use read that get directly to packet */
@@ -581,6 +582,8 @@ int AFPRead(AFPThreadVars *ptv)
         TmqhOutputPacketpool(ptv->tv, p);
         SCReturnInt(AFP_READ_FAILURE);
     }
+    ts->tv_sec = p->ts.tv_sec;
+    ts->tv_usec = p->ts.tv_usec;
 
     ptv->pkts++;
     ptv->bytes += caplen + offset;
@@ -721,9 +724,10 @@ void AFPReleasePacket(Packet *p)
  * From here the packets are picked up by the DecodeAFP thread.
  *
  * \param user pointer to AFPThreadVars
+ * \param[out] ts store timevals in this pointer
  * \retval TM_ECODE_FAILED on failure and TM_ECODE_OK on success
  */
-int AFPReadFromRing(AFPThreadVars *ptv)
+static int AFPReadFromRing(AFPThreadVars *ptv, struct timeval *ts)
 {
     Packet *p = NULL;
     union thdr h;
@@ -842,6 +846,8 @@ int AFPReadFromRing(AFPThreadVars *ptv)
         /* Timestamp */
         p->ts.tv_sec = h.h2->tp_sec;
         p->ts.tv_usec = h.h2->tp_nsec/1000;
+        ts->tv_sec = p->ts.tv_sec;
+        ts->tv_usec = p->ts.tv_usec;
         SCLogDebug("pktlen: %" PRIu32 " (pkt %p, pkt data %p)",
                 GET_PKT_LEN(p), p, GET_PKT_DATA(p));
 
@@ -1212,10 +1218,10 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
             }
         } else if (r > 0) {
             if (ptv->flags & AFP_RING_MODE) {
-                r = AFPReadFromRing(ptv);
+                r = AFPReadFromRing(ptv, &current_time);
             } else {
                 /* AFPRead will call TmThreadsSlotProcessPkt on read packets */
-                r = AFPRead(ptv);
+                r = AFPRead(ptv, &current_time);
             }
             switch (r) {
                 case AFP_READ_FAILURE:
@@ -1231,7 +1237,6 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                     break;
                 case AFP_READ_OK:
                     /* Trigger one dump of stats every second */
-                    TimeGet(&current_time);
                     if (current_time.tv_sec != last_dump) {
                         AFPDumpCounters(ptv);
                         last_dump = current_time.tv_sec;
