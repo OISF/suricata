@@ -1199,10 +1199,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 #ifdef PROFILING
     int smatch = 0; /* signature match: 1, no match: 0 */
 #endif
-    uint32_t idx;
     uint8_t flags = 0;          /* flow/state flags */
     StreamMsg *smsg = NULL;
     Signature *s = NULL;
+    Signature *next_s = NULL;
     SigMatch *sm = NULL;
     uint16_t alversion = 0;
     int reset_de_state = 0;
@@ -1416,22 +1416,37 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     DetectPrefilterMergeSort(de_ctx, det_ctx, det_ctx->sgh);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PREFILTER);
 
-    SCLogDebug("match array count %d", det_ctx->match_array_cnt);
-
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES);
     /* inspect the sigs against the packet */
-    for (idx = 0; idx < det_ctx->match_array_cnt; idx++) {
+    /* Prefetch the next signature. */
+    SigIntId match_cnt = det_ctx->match_array_cnt;
+    Signature **match_array = det_ctx->match_array;
+
+    uint32_t sflags, next_sflags = 0;
+    if (match_cnt) {
+      next_s = *match_array++;
+      next_sflags = next_s->flags;
+    }
+
+    while (match_cnt--) {
         RULE_PROFILING_START(p);
         state_alert = 0;
 #ifdef PROFILING
         smatch = 0;
 #endif
 
-        s = det_ctx->match_array[idx];
+        s = next_s;
+        sflags = next_sflags;
+        if (match_cnt) {
+          next_s = *match_array++;
+          next_sflags = next_s->flags;
+        }
+        uint8_t s_proto_flags = s->proto.flags;
+
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
 
         /* if the sig has alproto and the session as well they should match */
-        if (likely(s->flags & SIG_FLAG_APPLAYER)) {
+        if (likely(sflags & SIG_FLAG_APPLAYER)) {
             if (s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
                 if (s->alproto == ALPROTO_DCERPC) {
                     if (alproto != ALPROTO_SMB && alproto != ALPROTO_SMB2) {
@@ -1445,7 +1460,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
-        if (unlikely(s->flags & SIG_FLAG_DSIZE)) {
+        if (unlikely(sflags & SIG_FLAG_DSIZE)) {
             if (likely(p->payload_len < s->dsize_low || p->payload_len > s->dsize_high)) {
                 SCLogDebug("kicked out as p->payload_len %u, dsize low %u, hi %u",
                         p->payload_len, s->dsize_low, s->dsize_high);
@@ -1454,29 +1469,29 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
 
     /* check for a pattern match of the one pattern in this sig. */
-    if (likely(s->flags & (SIG_FLAG_MPM_PACKET|SIG_FLAG_MPM_STREAM|SIG_FLAG_MPM_APPLAYER)))
+    if (likely(sflags & (SIG_FLAG_MPM_PACKET|SIG_FLAG_MPM_STREAM|SIG_FLAG_MPM_APPLAYER)))
     {
         /* filter out sigs that want pattern matches, but
          * have no matches */
         if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
-            if (s->flags & SIG_FLAG_MPM_PACKET) {
-                if (!(s->flags & SIG_FLAG_MPM_PACKET_NEG)) {
+            if (sflags & SIG_FLAG_MPM_PACKET) {
+                if (!(sflags & SIG_FLAG_MPM_PACKET_NEG)) {
                     goto next;
                 }
-            } else if (s->flags & SIG_FLAG_MPM_STREAM) {
+            } else if (sflags & SIG_FLAG_MPM_STREAM) {
                 /* filter out sigs that want pattern matches, but
                  * have no matches */
-                if (!(s->flags & SIG_FLAG_MPM_STREAM_NEG)) {
+                if (!(sflags & SIG_FLAG_MPM_STREAM_NEG)) {
                     goto next;
                 }
-            } else if (s->flags & SIG_FLAG_MPM_APPLAYER) {
-                if (!(s->flags & SIG_FLAG_MPM_APPLAYER_NEG)) {
+            } else if (sflags & SIG_FLAG_MPM_APPLAYER) {
+                if (!(sflags & SIG_FLAG_MPM_APPLAYER_NEG)) {
                     goto next;
                 }
             }
         }
     }
-        if (s->flags & SIG_FLAG_STATE_MATCH) {
+        if (sflags & SIG_FLAG_STATE_MATCH) {
             if (det_ctx->de_state_sig_array[s->num] == DE_STATE_MATCH_NO_NEW_STATE)
                 goto next;
         }
@@ -1485,7 +1500,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         /* check if this signature has a requirement for flowvars of some type
          * and if so, if we actually have any in the flow. If not, the sig
          * can't match and we skip it. */
-        if ((p->flags & PKT_HAS_FLOW) && (s->flags & SIG_FLAG_REQUIRE_FLOWVAR)) {
+        if ((p->flags & PKT_HAS_FLOW) && (sflags & SIG_FLAG_REQUIRE_FLOWVAR)) {
             FLOWLOCK_RDLOCK(pflow);
             int m  = pflow->flowvar ? 1 : 0;
             FLOWLOCK_UNLOCK(pflow);
@@ -1498,11 +1513,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
-        if ((s->proto.flags & DETECT_PROTO_IPV4) && !PKT_IS_IPV4(p)) {
+        if ((s_proto_flags & DETECT_PROTO_IPV4) && !PKT_IS_IPV4(p)) {
             SCLogDebug("ip version didn't match");
             goto next;
         }
-        if ((s->proto.flags & DETECT_PROTO_IPV6) && !PKT_IS_IPV6(p)) {
+        if ((s_proto_flags & DETECT_PROTO_IPV6) && !PKT_IS_IPV6(p)) {
             SCLogDebug("ip version didn't match");
             goto next;
         }
@@ -1514,7 +1529,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* check the source & dst port in the sig */
         if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP || p->proto == IPPROTO_SCTP) {
-            if (!(s->flags & SIG_FLAG_DP_ANY)) {
+            if (!(sflags & SIG_FLAG_DP_ANY)) {
                 if (p->flags & PKT_IS_FRAGMENT)
                     goto next;
                 DetectPort *dport = DetectPortLookupGroup(s->dp,p->dp);
@@ -1523,7 +1538,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     goto next;
                 }
             }
-            if (!(s->flags & SIG_FLAG_SP_ANY)) {
+            if (!(sflags & SIG_FLAG_SP_ANY)) {
                 if (p->flags & PKT_IS_FRAGMENT)
                     goto next;
                 DetectPort *sport = DetectPortLookupGroup(s->sp,p->sp);
@@ -1532,13 +1547,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     goto next;
                 }
             }
-        } else if ((s->flags & (SIG_FLAG_DP_ANY|SIG_FLAG_SP_ANY)) != (SIG_FLAG_DP_ANY|SIG_FLAG_SP_ANY)) {
+        } else if ((sflags & (SIG_FLAG_DP_ANY|SIG_FLAG_SP_ANY)) != (SIG_FLAG_DP_ANY|SIG_FLAG_SP_ANY)) {
             SCLogDebug("port-less protocol and sig needs ports");
             goto next;
         }
 
         /* check the destination address */
-        if (!(s->flags & SIG_FLAG_DST_ANY)) {
+        if (!(sflags & SIG_FLAG_DST_ANY)) {
             if (PKT_IS_IPV4(p)) {
                 if (DetectAddressMatchIPv4(s->addr_dst_match4, s->addr_dst_match4_cnt, &p->dst) == 0)
                     goto next;
@@ -1548,7 +1563,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
         /* check the source address */
-        if (!(s->flags & SIG_FLAG_SRC_ANY)) {
+        if (!(sflags & SIG_FLAG_SRC_ANY)) {
             if (PKT_IS_IPV4(p)) {
                 if (DetectAddressMatchIPv4(s->addr_src_match4, s->addr_src_match4_cnt, &p->src) == 0)
                     goto next;
@@ -1564,7 +1579,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_PMATCH);
             /* if we have stream msgs, inspect against those first,
              * but not for a "dsize" signature */
-            if (s->flags & SIG_FLAG_REQUIRE_STREAM) {
+            if (sflags & SIG_FLAG_REQUIRE_STREAM) {
                 char pmatch = 0;
                 if (smsg != NULL) {
                     uint8_t pmq_idx = 0;
@@ -1572,7 +1587,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     for ( ; smsg_inspect != NULL; smsg_inspect = smsg_inspect->next, pmq_idx++) {
                         /* filter out sigs that want pattern matches, but
                          * have no matches */
-                        if ((s->flags & SIG_FLAG_MPM_STREAM) && !(s->flags & SIG_FLAG_MPM_STREAM_NEG) &&
+                        if ((sflags & SIG_FLAG_MPM_STREAM) && !(sflags & SIG_FLAG_MPM_STREAM_NEG) &&
                             !(det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
                             SCLogDebug("no match in this smsg");
                             continue;
@@ -1598,13 +1613,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 if (pmatch == 0) {
                     SCLogDebug("no match in smsg, fall back to packet payload");
 
-                    if (!(s->flags & SIG_FLAG_REQUIRE_PACKET)) {
+                    if (!(sflags & SIG_FLAG_REQUIRE_PACKET)) {
                         if (p->flags & PKT_STREAM_ADD)
                             goto next;
                     }
 
                     if (sms_runflags & SMS_USED_PM) {
-                        if ((s->flags & SIG_FLAG_MPM_PACKET) && !(s->flags & SIG_FLAG_MPM_PACKET_NEG) &&
+                        if ((sflags & SIG_FLAG_MPM_PACKET) && !(sflags & SIG_FLAG_MPM_PACKET_NEG) &&
                             !(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] &
                               s->mpm_pattern_id_mod_8)) {
                             goto next;
@@ -1620,7 +1635,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 }
             } else {
                 if (sms_runflags & SMS_USED_PM) {
-                    if ((s->flags & SIG_FLAG_MPM_PACKET) && !(s->flags & SIG_FLAG_MPM_PACKET_NEG) &&
+                    if ((sflags & SIG_FLAG_MPM_PACKET) && !(sflags & SIG_FLAG_MPM_PACKET_NEG) &&
                         !(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] &
                           s->mpm_pattern_id_mod_8)) {
                         goto next;
@@ -1662,7 +1677,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 s->sm_lists[DETECT_SM_LIST_HCDMATCH]);
 
         /* consider stateful sig matches */
-        if (s->flags & SIG_FLAG_STATE_MATCH) {
+        if (sflags & SIG_FLAG_STATE_MATCH) {
             if (has_state == 0) {
                 SCLogDebug("state matches but no state, we can't match");
                 goto next;
@@ -1694,7 +1709,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         SigMatchSignaturesRunPostMatch(th_v, de_ctx, det_ctx, p, s);
 
-        if (!(s->flags & SIG_FLAG_NOALERT)) {
+        if (!(sflags & SIG_FLAG_NOALERT)) {
             /* stateful sigs call PacketAlertAppend from DeStateDetectStartDetection */
             if (!state_alert)
                 PacketAlertAppend(det_ctx, s, p, 0, alert_flags);
