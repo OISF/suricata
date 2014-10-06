@@ -31,6 +31,8 @@
 #include "stream-tcp-reassemble.h"
 #include "stream.h"
 
+#include "util-profiling.h"
+
 #define APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER \
     (~STREAM_TOSERVER & ~STREAM_TOCLIENT)
 
@@ -108,8 +110,26 @@ AppLayerThreadCtx *AppLayerGetCtxThread(ThreadVars *tv);
 void AppLayerDestroyCtxThread(AppLayerThreadCtx *tctx);
 
 
-void AppLayerProfilingReset(AppLayerThreadCtx *tctx);
-void AppLayerProfilingStore(AppLayerThreadCtx *tctx, Packet *p);
+/***** Profiling *****/
+
+void AppLayerProfilingResetInternal(AppLayerThreadCtx *app_tctx);
+
+static inline void AppLayerProfilingReset(AppLayerThreadCtx *app_tctx)
+{
+#ifdef PROFILING
+    AppLayerProfilingResetInternal(app_tctx);
+#endif
+}
+
+void AppLayerProfilingStoreInternal(AppLayerThreadCtx *app_tctx, Packet *p);
+
+static inline void AppLayerProfilingStore(AppLayerThreadCtx *app_tctx, Packet *p)
+{
+#ifdef PROFILING
+    AppLayerProfilingStoreInternal(app_tctx, p);
+#endif
+}
+
 
 /***** Unittests *****/
 
