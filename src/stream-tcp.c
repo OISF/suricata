@@ -4444,6 +4444,11 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                                        ~FLOW_TS_PP_ALPROTO_DETECT_DONE &
                                        ~FLOW_TC_PM_ALPROTO_DETECT_DONE &
                                        ~FLOW_TC_PP_ALPROTO_DETECT_DONE);
+                    if (p->flow->de_state != NULL) {
+                        SCMutexLock(&p->flow->de_state_m);
+                        DetectEngineStateReset(p->flow->de_state, (STREAM_TOSERVER | STREAM_TOCLIENT));
+                        SCMutexUnlock(&p->flow->de_state_m);
+                    }
 
                     if (StreamTcpPacketStateNone(tv,p,stt,ssn, &stt->pseudo_queue)) {
                         goto error;
