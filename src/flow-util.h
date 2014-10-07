@@ -98,7 +98,9 @@
         (f)->data_al_so_far[1] = 0; \
         (f)->de_ctx_id = 0; \
         if ((f)->de_state != NULL) { \
+            SCMutexLock(&(f)->de_state_m); \
             DetectEngineStateReset((f)->de_state, (STREAM_TOSERVER | STREAM_TOCLIENT)); \
+            SCMutexUnlock(&(f)->de_state_m); \
         } \
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
@@ -116,7 +118,9 @@
         \
         FLOWLOCK_DESTROY((f)); \
         if ((f)->de_state != NULL) { \
+            SCMutexLock(&(f)->de_state_m); \
             DetectEngineStateFree((f)->de_state); \
+            SCMutexUnlock(&(f)->de_state_m); \
         } \
         GenericVarFree((f)->flowvar); \
         SCMutexDestroy(&(f)->de_state_m); \
