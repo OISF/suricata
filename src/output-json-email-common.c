@@ -40,12 +40,6 @@
 #include "util-debug.h"
 #include "app-layer-parser.h"
 #include "output.h"
-#ifdef HAVE_APP_LAYER_IMAP
-#include "app-layer-imap.h"
-#endif
-#ifdef HAVE_APP_LAYER_POP3
-#include "app-layer-pop3.h"
-#endif
 #include "app-layer-smtp.h"
 #include "app-layer.h"
 #include "util-privs.h"
@@ -66,12 +60,6 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft,
                                 json_t *js,
                                 const Packet *p)
 {
-#ifdef HAVE_APP_LAYER_IMAP
-    IMAPState *imap_state;
-#endif
-#ifdef HAVE_APP_LAYER_POP3
-    POP3State *pop3_state;
-#endif
     SMTPState *smtp_state;
     MimeDecParseState *mime_state;
     MimeDecEntity *entity;
@@ -91,32 +79,6 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft,
     FLOWLOCK_WRLOCK(p->flow); /* WRITE lock before we updated flow logged id */
     uint16_t proto = FlowGetAppProtocol(p->flow);
     switch (proto) {
-#ifdef HAVE_APP_LAYER_IMAP
-        case ALPROTO_IMAP:
-            imap_state = (IMAPState *)FlowGetAppState(p->flow);
-            if (imap_state == NULL) {
-                SCLogDebug("no imap state, so no request logging");
-                FLOWLOCK_UNLOCK(p->flow);
-                SCReturnInt(TM_ECODE_FAILED);
-            }
-            mime_state = imap_state->mime_state;
-            entity = imap_state->msg_tail;
-            protos = "imap";
-            break;
-#endif
-#ifdef HAVE_APP_LAYER_POP3
-        case ALPROTO_POP3:
-            pop3_state = (POP3State *)FlowGetAppState(p->flow);
-            if (pop3_state == NULL) {
-                SCLogDebug("no pop3 state, so no request logging");
-                FLOWLOCK_UNLOCK(p->flow);
-                SCReturnInt(TM_ECODE_FAILED);
-            }
-            mime_state = pop3_state->mime_state;
-            entity = pop3_state->msg_tail;
-            protos = "pop3";
-            break;
-#endif
         case ALPROTO_SMTP:
             smtp_state = (SMTPState *)FlowGetAppState(p->flow);
             if (smtp_state == NULL) {
