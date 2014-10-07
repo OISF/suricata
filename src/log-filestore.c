@@ -205,7 +205,7 @@ static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char 
         }
 
         /* Only applicable to HTTP traffic */
-        if (ff->txid != 0) {
+        if (p->flow->alproto == ALPROTO_HTTP) {
             fprintf(fp, "HTTP URI:          ");
             LogFilestoreMetaGetUri(fp, p, ff);
             fprintf(fp, "\n");
