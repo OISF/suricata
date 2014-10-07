@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -349,6 +349,11 @@ static inline SigMatch *SigMatchGetLastSM(SigMatch *sm, uint8_t type)
     return NULL;
 }
 
+/**
+ * \brief Returns the sm with the largest index (added latest) from all the lists.
+ *
+ * \retval Pointer to Last sm.
+ */
 SigMatch *SigMatchGetLastSMFromLists(Signature *s, int args, ...)
 {
     if (args == 0 || args % 2 != 0) {
@@ -360,55 +365,26 @@ SigMatch *SigMatchGetLastSMFromLists(Signature *s, int args, ...)
         BUG_ON(1);
     }
 
-    SigMatch *sm_list[args / 2];
-    int sm_type[args / 2];
-    int list_index = 0;
+    SigMatch *sm_last = NULL;
+    SigMatch *sm_new;
+    int i;
 
     va_list ap;
-    int i = 0, j = 0;
-
     va_start(ap, args);
 
     for (i = 0; i < args; i += 2) {
-        sm_type[list_index] = va_arg(ap, int);
-
-        sm_list[list_index] = va_arg(ap, SigMatch *);
-
-        if (sm_list[list_index] != NULL)
-            list_index++;
-
+        int sm_type = va_arg(ap, int);
+        SigMatch *sm_list = va_arg(ap, SigMatch *);
+        sm_new = SigMatchGetLastSM(sm_list, sm_type);
+        if (sm_new == NULL)
+          continue;
+        if (sm_last == NULL || sm_new->idx > sm_last->idx)
+          sm_last = sm_new;
     }
 
     va_end(ap);
 
-    if (list_index == 0)
-        return NULL;
-
-    SigMatch *sm[list_index];
-    int sm_entries = 0;
-    for (i = 0; i < list_index; i++) {
-        sm[sm_entries] = SigMatchGetLastSM(sm_list[i], sm_type[i]);
-        if (sm[sm_entries] != NULL)
-            sm_entries++;
-    }
-
-    if (sm_entries == 0)
-        return NULL;
-
-    SigMatch *temp_sm = NULL;
-    for (i = 1; i < sm_entries; i++) {
-        for (j = i - 1; j >= 0; j--) {
-            if (sm[j + 1]->idx > sm[j]->idx) {
-                temp_sm = sm[j + 1];
-                sm[j + 1] = sm[j];
-                sm[j] = temp_sm;
-                continue;
-            }
-            break;
-        }
-    }
-
-    return sm[0];
+    return sm_last;
 }
 
 void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
