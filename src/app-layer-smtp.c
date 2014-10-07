@@ -218,7 +218,7 @@ typedef struct SMTPConfig {
 static SMTPConfig smtp_config = { 0, { 0, 0, 0, 0 } };
 
 /**
- * \brief Configure SMTP Mime Decoder by parsing out 'smtp-mime' section of YAML
+ * \brief Configure SMTP Mime Decoder by parsing out mime section of YAML
  * config file
  *
  * \return none
@@ -229,7 +229,7 @@ static void SMTPConfigure(void) {
     int ret = 0, val;
     intmax_t imval;
 
-    ConfNode *config = ConfGetNode("smtp-mime");
+    ConfNode *config = ConfGetNode("app-layer.protocols.smtp.mime");
     if (config != NULL) {
 
         ret = ConfGetChildValueBool(config, "decode-mime", &val);
@@ -1171,7 +1171,7 @@ static int SMTPRegisterPatternsForProtocolDetection(void)
 }
 
 /**
- * \brief Register the SMPT Protocol parser.
+ * \brief Register the SMTP Protocol parser.
  */
 void RegisterSMTPParsers(void)
 {
