@@ -232,6 +232,11 @@ struct DetectEngineEvents_ {
     { "ipv6.ipv6_in_ipv6_too_small", IPV6_IN_IPV6_PKT_TOO_SMALL, },
     { "ipv6.ipv6_in_ipv6_wrong_version", IPV6_IN_IPV6_WRONG_IP_VER, },
 
+    /* MPLS events */
+    { "mpls.bad_label_router_alert", MPLS_BAD_LABEL_ROUTER_ALERT, },
+    { "mpls.bad_label_implicit_null", MPLS_BAD_LABEL_IMPLICIT_NULL, },
+    { "mpls.bad_label_reserved", MPLS_BAD_LABEL_RESERVED, },
+
     { NULL, 0 },
 };
 #endif /* DETECT_EVENTS */

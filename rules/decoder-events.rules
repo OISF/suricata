@@ -116,5 +116,10 @@ alert pkthdr any any -> any any (msg:"SURICATA IPv4-in-IPv6 invalid protocol"; d
 alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 packet too short"; decode-event:ipv6.ipv6_in_ipv6_too_small; sid:2200084; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 invalid protocol"; decode-event:ipv6.ipv6_in_ipv6_wrong_version; sid:2200085; rev:1;)
 
-# next sid is 2200098
+# MPLS rules
+alert pkthdr any any -> any any (msg:"SURICATA MPLS bad router alert label"; mpls.bad_label_router_alert; sid: 2200098; rev:1;)
+alert pkthdr any any -> any any (msg:"SURICATA MPLS bad implicit null label"; mpls.bad_label_implicit_null; sid: 2200099; rev:1;)
+alert pkthdr any any -> any any (msg:"SURICATA MPLS reserved label"; mpls.bad_label_reserved; sid: 2200100; rev:1;)
+
+# next sid is 2200101
 
