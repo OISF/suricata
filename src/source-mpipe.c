@@ -330,7 +330,7 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
     TmSlot *s = (TmSlot *)slot;
     ptv->slot = s->slot_next;
     Packet *p = NULL;
-    int cpu = tmc_cpus_get_my_cpu();
+    //int cpu = tmc_cpus_get_my_cpu();
     int rank = tv->rank;
     int max_queued = 0;
     char *ctype;
@@ -915,7 +915,7 @@ TmEcode ReceiveMpipeThreadInit(ThreadVars *tv, void *initdata, void **data)
                 SCReturnInt(TM_ECODE_FAILED);
             }
         }
-        gxio_mpipe_init(context, instance);
+        result = gxio_mpipe_init(context, instance);
         VERIFY(result, "gxio_mpipe_init()");
         /* open ingress interfaces */
         for (int i = 0; i < nlive; i++) {
