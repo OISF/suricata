@@ -120,6 +120,7 @@ alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 invalid protocol"; d
 alert pkthdr any any -> any any (msg:"SURICATA MPLS bad router alert label"; mpls.bad_label_router_alert; sid: 2200098; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA MPLS bad implicit null label"; mpls.bad_label_implicit_null; sid: 2200099; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA MPLS reserved label"; mpls.bad_label_reserved; sid: 2200100; rev:1;)
+alert pkthdr any any -> any any (msg:"SURICATA MPLS unknown payload type"; mpls.unknown_payload_type; sid: 2200101; rev:1;)
 
-# next sid is 2200101
+# next sid is 2200102
 
