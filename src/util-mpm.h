@@ -266,7 +266,7 @@ int MpmAddPatternCI(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
                     uint16_t offset, uint16_t depth,
                     uint32_t pid, uint32_t sid, uint8_t flags);
 
-/* Resize ID array. Only called from MpmAddSids(). */
+/* Resize Signature ID array. Only called from MpmAddSids(). */
 void MpmAddSidsResize(PatternMatcherQueue *pmq, uint32_t new_size);
 
 /** \brief Add array of Signature IDs to rule ID array.
@@ -284,7 +284,7 @@ MpmAddSids(PatternMatcherQueue *pmq, uint32_t *sids, uint32_t sids_size)
 {
     uint32_t new_size = pmq->rule_id_array_cnt + sids_size;
     if (new_size > pmq->rule_id_array_size) {
-      MpmAddSidsResize(pmq, new_size);
+        MpmAddSidsResize(pmq, new_size);
     }
     SCLogDebug("Adding %u sids", sids_size);
     // Add SIDs for this pattern to the end of the array
@@ -293,4 +293,17 @@ MpmAddSids(PatternMatcherQueue *pmq, uint32_t *sids, uint32_t sids_size)
     pmq->rule_id_array_cnt += sids_size;
 }
 
+/* Resize Pattern ID array. Only called from MpmAddPid(). */
+void MpmAddPidResize(PatternMatcherQueue *pmq, uint32_t new_size);
+
+static inline void
+MpmAddPid(PatternMatcherQueue *pmq, uint32_t patid)
+{
+    uint32_t new_size = pmq->pattern_id_array_cnt + 1;
+    if (new_size > pmq->pattern_id_array_size) 
+        MpmAddPidResize(pmq, new_size);
+    pmq->pattern_id_array[pmq->pattern_id_array_cnt] = patid;
+    pmq->pattern_id_array_cnt = new_size;
+    SCLogDebug("pattern_id_array_cnt %u", pmq->pattern_id_array_cnt);
+}
 #endif /* __UTIL_MPM_H__ */
