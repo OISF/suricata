@@ -40,7 +40,7 @@
 #define MPLS_BOTTOM(shim)       ((ntohl(shim) >> 8) & 0x1)
 
 /* Inner protocol guessing values. */
-#define MPLS_PROTO_ETHERNET     0
+#define MPLS_PROTO_ETHERNET_PW  0
 #define MPLS_PROTO_IPV4         4
 #define MPLS_PROTO_IPV6         6
 
@@ -82,8 +82,7 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
     }
 
     if (event) {
-        ENGINE_SET_EVENT(p, event);
-        return TM_ECODE_OK;
+        goto end;
     }
 
     /* Best guess at inner packet. */
@@ -94,17 +93,19 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
     case MPLS_PROTO_IPV6:
         DecodeIPV6(tv, dtv, p, pkt, len, pq);
         break;
-    case MPLS_PROTO_ETHERNET:
-        /* Looks like it could be an ethernet pseudowire. */
+    case MPLS_PROTO_ETHERNET_PW:
         DecodeEthernet(tv, dtv, p, pkt + MPLS_PW_LEN, len - MPLS_PW_LEN,
             pq);
         break;
     default:
-        /* Attempt ethernet without PW. */
-        DecodeEthernet(tv, dtv, p, pkt, len, pq);
+        event = MPLS_UNKNOWN_PAYLOAD_TYPE;
         break;
     }
 
+end:
+    if (event) {
+        ENGINE_SET_EVENT(p, event);
+    }
     return TM_ECODE_OK;
 }
 
@@ -230,6 +231,50 @@ static int DecodeMPLSTestBadLabelReserved(void)
     return ret;
 }
 
+static int DecodeMPLSTestUnknownPayloadType(void)
+{
+    int ret = 1;
+
+    /* Valid label: 21.
+     * Unknown payload type: 1.
+     */
+    uint8_t pkt[] = {
+        0x00, 0x01, 0x51, 0xff, 0x15, 0x00, 0x00, 0x64,
+        0x00, 0x0a, 0x00, 0x00, 0xff, 0x01, 0xa5, 0x6a,
+        0x0a, 0x01, 0x02, 0x01, 0x0a, 0x22, 0x00, 0x01,
+        0x08, 0x00, 0x3a, 0x77, 0x0a, 0x39, 0x06, 0x2b,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x33, 0x50,
+        0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
+        0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
+        0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
+        0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
+        0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
+        0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
+        0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
+        0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd
+    };
+
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (unlikely(p == NULL)) {
+        return 0;
+    }
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&tv,  0, sizeof(ThreadVars));
+    memset(p, 0, SIZE_OF_PACKET);
+
+    DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt), NULL);
+
+    if (!ENGINE_ISSET_EVENT(p, MPLS_UNKNOWN_PAYLOAD_TYPE)) {
+        ret = 0;
+    }
+
+    SCFree(p);
+    return ret;
+}
+
 #endif /* UNITTESTS */
 
 void DecodeMPLSRegisterTests(void)
@@ -241,5 +286,7 @@ void DecodeMPLSRegisterTests(void)
         DecodeMPLSTestBadLabelImplicitNull, 1);
     UtRegisterTest("DecodeMPLSTestBadLabelReserved",
         DecodeMPLSTestBadLabelReserved, 1);
+    UtRegisterTest("DecodeMPLSTestUnknownPayloadType",
+        DecodeMPLSTestUnknownPayloadType, 1);
 #endif /* UNITTESTS */
 }
