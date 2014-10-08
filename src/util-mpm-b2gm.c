@@ -1018,8 +1018,8 @@ uint32_t B2gmSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternM
     if (buflen < ctx->m)
         return 0;
 
-    uint8_t bitarray[pmq->pattern_id_array_size];
-    memset(&bitarray, 0, pmq->pattern_id_array_size);
+    uint8_t bitarray[pmq->pattern_id_bitarray_size];
+    memset(&bitarray, 0, pmq->pattern_id_bitarray_size);
 
     while (pos <= (uint32_t)(buflen - B2GM_Q + 1)) {
         uint16_t h = B2GM_HASH16(buf[pos - 1],buf[pos]);
@@ -1116,8 +1116,8 @@ uint32_t B2gmSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatche
     if (buflen < ctx->m)
         return 0;
 
-    uint8_t bitarray[pmq->pattern_id_array_size];
-    memset(&bitarray, 0, pmq->pattern_id_array_size);
+    uint8_t bitarray[pmq->pattern_id_bitarray_size];
+    memset(&bitarray, 0, pmq->pattern_id_bitarray_size);
 
     while (pos <= (buflen - ctx->m)) {
         j = ctx->m - 1;

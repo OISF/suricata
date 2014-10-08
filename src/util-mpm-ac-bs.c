@@ -1502,8 +1502,7 @@ uint32_t SCACBSSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         } else {
                             bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
                             pmq->pattern_id_bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
-                            pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = lower_pid;
-
+                            MpmAddPid(pmq, lower_pid);
                             MpmAddSids(pmq, pid_pat_list[lower_pid].sids, pid_pat_list[lower_pid].sids_size);
                         }
                         matches++;
@@ -1513,8 +1512,8 @@ uint32_t SCACBSSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         } else {
                             bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
                             pmq->pattern_id_bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
-                            pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k];
 
+                            MpmAddPid(pmq, pids[k]);
                             MpmAddSids(pmq, pid_pat_list[pids[k]].sids, pid_pat_list[pids[k]].sids_size);
                         }
                         matches++;
@@ -1590,8 +1589,8 @@ uint32_t SCACBSSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         } else {
                             bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
                             pmq->pattern_id_bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
-                            pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = lower_pid;
 
+                            MpmAddPid(pmq, lower_pid);
                             MpmAddSids(pmq, pid_pat_list[lower_pid].sids, pid_pat_list[lower_pid].sids_size);
                         }
                         matches++;
@@ -1601,8 +1600,8 @@ uint32_t SCACBSSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         } else {
                             bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
                             pmq->pattern_id_bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
-                            pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k];
 
+                            MpmAddPid(pmq, pids[k]);
                             MpmAddSids(pmq, pid_pat_list[pids[k]].sids, pid_pat_list[pids[k]].sids_size);
                         }
                         matches++;
