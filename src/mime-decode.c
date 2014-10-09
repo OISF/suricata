@@ -2760,6 +2760,8 @@ static int MimeDecParseFullMsgTest01(void) {
         return -1;
     }
 
+    MimeDecFreeEntity(entity);
+
     if (expected_count != line_count) {
         SCLogInfo("Warning: Line count is invalid: expected - %d actual - %d",
                 expected_count, line_count);
