@@ -215,14 +215,14 @@ static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, char *str
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
+    if (s->alproto != ALPROTO_HTTP && s->alproto != ALPROTO_SMTP) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
         goto error;
     }
 
-    AppLayerHtpNeedFileInspection();
-
-    s->alproto = ALPROTO_HTTP;
+    if (s->alproto == ALPROTO_HTTP) {
+        AppLayerHtpNeedFileInspection();
+    }
 
     s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_FILENAME);
     return 0;
