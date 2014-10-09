@@ -2349,6 +2349,7 @@ MimeDecParseState * MimeDecInitParser(void *data,
     state->stack = SCMalloc(sizeof(MimeDecStack));
     if (unlikely(state->stack == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
+        SCFree(state);
         return NULL;
     }
     memset(state->stack, 0x00, sizeof(MimeDecStack));
@@ -2356,6 +2357,8 @@ MimeDecParseState * MimeDecInitParser(void *data,
     mimeMsg = SCMalloc(sizeof(MimeDecEntity));
     if (unlikely(mimeMsg == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
+        SCFree(state->stack);
+        SCFree(state);
         return NULL;
     }
     memset(mimeMsg, 0x00, sizeof(MimeDecEntity));
@@ -2366,6 +2369,8 @@ MimeDecParseState * MimeDecInitParser(void *data,
     PushStack(state->stack);
     if (state->stack->top == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
+        SCFree(state->stack);
+        SCFree(state);
         return NULL;
     }
     state->stack->top->data = mimeMsg;
