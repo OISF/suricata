@@ -91,7 +91,7 @@ uint32_t DecodeBase64(uint8_t *dest, const char *src, uint32_t len) {
     int val;
     uint32_t padding = 0, numDecoded = 0, bbidx = 0, valid = 1, i;
     uint8_t *dptr = dest;
-    uint8_t b64[B64_BLOCK];
+    uint8_t b64[B64_BLOCK] = { 0,0,0,0 };
 
     /* Traverse through each alpha-numeric letter in the source array */
     for(i = 0; i < len && src[i] != 0; i++) {
