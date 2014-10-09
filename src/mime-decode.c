@@ -872,7 +872,7 @@ static int IsExeUrl(char *url, uint32_t len) {
     for (i = 0; UrlExeExts[i] != NULL; i++) {
         extLen = strlen(UrlExeExts[i]);
         ext = FindString(url, len, UrlExeExts[i]);
-        if (ext != NULL && (ext + extLen - url == len || ext[extLen] == '?')) {
+        if (ext != NULL && (ext + extLen - url == (int)len || ext[extLen] == '?')) {
             isExeUrl = 1;
             break;
         }
@@ -1145,7 +1145,7 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
                             /* If last token found without CR/LF delimiter, then save
                              * and reconstruct with next chunk
                              */
-                            if (tok + tokLen - (char *) chunk == len) {
+                            if (tok + tokLen - (char *) chunk == (int)len) {
                                 PrintChars(SC_LOG_DEBUG, "LAST CHUNK LINE - CUTOFF",
                                         tok, tokLen);
                                 SCLogDebug("\nCHUNK CUTOFF CHARS: %d delim %ld\n", tokLen, len - (tok + tokLen - (char *) chunk));
@@ -1159,7 +1159,7 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
                                 }
                             }
                         }
-                    } while (tok != remainPtr && remainPtr - (char *) chunk < len);
+                    } while (tok != remainPtr && remainPtr - (char *) chunk < (int)len);
                 }
             }
         }
@@ -1671,14 +1671,14 @@ static int FindMimeHeader(const char *buf, uint32_t blen,
 
         /* Value starts after 'header:' (normalize spaces) */
         hval = hname + hlen + 1;
-        if (hval - buf >= blen) {
+        if (hval - buf >= (int)blen) {
             SCLogDebug("No Header value found");
             hval = NULL;
         } else {
             while (hval[0] == ' ') {
 
                 /* If last character before end of bounds, set to NULL */
-                if (hval - buf >= blen - 1) {
+                if (hval - buf >= (int)blen - 1) {
                     SCLogDebug("No Header value found");
                     hval = NULL;
                     break;
@@ -2542,7 +2542,7 @@ MimeDecEntity * MimeDecParseFullMsg(const char *buf, uint32_t blen, void *data,
             }
         }
 
-    } while (tok != remainPtr && remainPtr - buf < blen);
+    } while (tok != remainPtr && remainPtr - buf < (int)blen);
 
     if (ret == MIME_DEC_OK) {
         SCLogDebug("Message parser was successful");
