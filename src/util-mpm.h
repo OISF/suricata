@@ -285,6 +285,9 @@ int MpmAddSidsResize(PatternMatcherQueue *pmq, uint32_t new_size);
 static inline void
 MpmAddSids(PatternMatcherQueue *pmq, uint32_t *sids, uint32_t sids_size)
 {
+    if (sids_size == 0)
+        return;
+
     uint32_t new_size = pmq->rule_id_array_cnt + sids_size;
     if (new_size > pmq->rule_id_array_size) {
         if (MpmAddSidsResize(pmq, new_size) == 0) {
@@ -295,8 +298,11 @@ MpmAddSids(PatternMatcherQueue *pmq, uint32_t *sids, uint32_t sids_size)
     }
     SCLogDebug("Adding %u sids", sids_size);
     // Add SIDs for this pattern to the end of the array
-    memcpy(pmq->rule_id_array + pmq->rule_id_array_cnt,
-           sids, sids_size * sizeof(uint32_t));
+    uint32_t *ptr = pmq->rule_id_array + pmq->rule_id_array_cnt;
+    uint32_t *end = ptr + sids_size;
+    do {
+        *ptr++ = *sids++;
+    } while (ptr != end);
     pmq->rule_id_array_cnt += sids_size;
 }
 
