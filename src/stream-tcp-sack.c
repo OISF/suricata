@@ -73,6 +73,17 @@ static int StreamTcpSackInsertRange(TcpStream *stream, uint32_t le, uint32_t re)
 #ifdef DEBUG
     StreamTcpSackPrintList(stream);
 #endif
+
+    /* if to the left of last_ack then ignore */
+    if (SEQ_LT(re, stream->last_ack)) {
+        SCLogDebug("too far left. discarding");
+        goto end;
+    }
+    /* if to the right of the tcp window then ignore */
+    if (SEQ_GT(le, (stream->last_ack + stream->window))) {
+        SCLogDebug("too far right. discarding");
+        goto end;
+    }
     if (stream->sack_head != NULL) {
         StreamTcpSackRecord *rec;
 
@@ -225,6 +236,7 @@ static int StreamTcpSackInsertRange(TcpStream *stream, uint32_t le, uint32_t re)
         stream->sack_tail = stsr;
     }
 
+    StreamTcpSackPruneList(stream);
 end:
     SCReturnInt(0);
 }
@@ -356,6 +368,7 @@ static int StreamTcpSackTest01 (void)
     int retval = 0;
 
     memset(&stream, 0, sizeof(stream));
+    stream.window = 100;
 
     StreamTcpSackInsertRange(&stream, 1, 10);
     StreamTcpSackInsertRange(&stream, 10, 20);
@@ -393,6 +406,7 @@ static int StreamTcpSackTest02 (void)
     int retval = 0;
 
     memset(&stream, 0, sizeof(stream));
+    stream.window = 100;
 
     StreamTcpSackInsertRange(&stream, 10, 20);
     StreamTcpSackInsertRange(&stream, 1, 20);
@@ -428,6 +442,7 @@ static int StreamTcpSackTest03 (void)
     int retval = 0;
 
     memset(&stream, 0, sizeof(stream));
+    stream.window = 100;
 
     StreamTcpSackInsertRange(&stream, 10, 20);
     StreamTcpSackInsertRange(&stream,  5, 15);
@@ -465,6 +480,7 @@ static int StreamTcpSackTest04 (void)
     int retval = 0;
 
     memset(&stream, 0, sizeof(stream));
+    stream.window = 100;
 
     StreamTcpSackInsertRange(&stream, 0,  20);
     StreamTcpSackInsertRange(&stream, 30, 50);
@@ -499,6 +515,7 @@ static int StreamTcpSackTest05 (void)
     int retval = 0;
 
     memset(&stream, 0, sizeof(stream));
+    stream.window = 100;
 
     StreamTcpSackInsertRange(&stream, 0,  20);
     StreamTcpSackInsertRange(&stream, 30, 50);
@@ -533,6 +550,7 @@ static int StreamTcpSackTest06 (void)
     int retval = 0;
 
     memset(&stream, 0, sizeof(stream));
+    stream.window = 100;
 
     StreamTcpSackInsertRange(&stream, 0,  9);
     StreamTcpSackInsertRange(&stream, 11, 19);
@@ -569,6 +587,7 @@ static int StreamTcpSackTest07 (void)
     int retval = 0;
 
     memset(&stream, 0, sizeof(stream));
+    stream.window = 100;
 
     StreamTcpSackInsertRange(&stream, 0,  9);
     StreamTcpSackInsertRange(&stream, 11, 19);
@@ -614,6 +633,7 @@ static int StreamTcpSackTest08 (void)
     int retval = 0;
 
     memset(&stream, 0, sizeof(stream));
+    stream.window = 100;
 
     StreamTcpSackInsertRange(&stream, 0,  9);
     StreamTcpSackInsertRange(&stream, 11, 19);
@@ -659,6 +679,7 @@ static int StreamTcpSackTest09 (void)
     int retval = 0;
 
     memset(&stream, 0, sizeof(stream));
+    stream.window = 100;
 
     StreamTcpSackInsertRange(&stream, 0,  9);
     StreamTcpSackInsertRange(&stream, 11, 19);
@@ -705,6 +726,7 @@ static int StreamTcpSackTest10 (void)
     int retval = 0;
 
     memset(&stream, 0, sizeof(stream));
+    stream.window = 1000;
 
     StreamTcpSackInsertRange(&stream, 100, 119);
     StreamTcpSackInsertRange(&stream, 111, 119);
@@ -750,6 +772,7 @@ static int StreamTcpSackTest11 (void)
     int retval = 0;
 
     memset(&stream, 0, sizeof(stream));
+    stream.window = 1000;
 
     StreamTcpSackInsertRange(&stream, 100, 119);
     StreamTcpSackInsertRange(&stream, 111, 119);
@@ -795,6 +818,7 @@ static int StreamTcpSackTest12 (void)
     int retval = 0;
 
     memset(&stream, 0, sizeof(stream));
+    stream.window = 2000;
 
     StreamTcpSackInsertRange(&stream, 800, 1000);
     StreamTcpSackInsertRange(&stream, 700, 900);
@@ -835,6 +859,70 @@ end:
     SCReturnInt(retval);
 }
 
+/**
+ *  \test   Test the insertion on out of window condition.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcpSackTest13 (void) {
+    TcpStream stream;
+    int retval = 0;
+    int i;
+
+    memset(&stream, 0, sizeof(stream));
+    stream.last_ack = 10000;
+    stream.window = 2000;
+
+    for (i = 0; i < 10; i++) {
+        StreamTcpSackInsertRange(&stream, 100+(20*i), 110+(20*i));
+    }
+#ifdef DEBUG
+    StreamTcpSackPrintList(&stream);
+#endif /* DEBUG */
+
+    if (StreamTcpSackedSize(&stream) != 0) {
+        printf("Sacked size is %u: ", StreamTcpSackedSize(&stream));
+        goto end;
+    }
+
+    retval = 1;
+end:
+    SCReturnInt(retval);
+}
+
+/**
+ *  \test   Test the insertion of out of window condition.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcpSackTest14 (void) {
+    TcpStream stream;
+    int retval = 0;
+    int i;
+
+    memset(&stream, 0, sizeof(stream));
+    stream.last_ack = 1000;
+    stream.window = 2000;
+
+    for (i = 0; i < 10; i++) {
+        StreamTcpSackInsertRange(&stream, 4000+(20*i), 4010+(20*i));
+    }
+#ifdef DEBUG
+    StreamTcpSackPrintList(&stream);
+#endif /* DEBUG */
+
+    if (StreamTcpSackedSize(&stream) != 0) {
+        printf("Sacked size is %u: ", StreamTcpSackedSize(&stream));
+        goto end;
+    }
+
+    retval = 1;
+end:
+    SCReturnInt(retval);
+}
+
 #endif /* UNITTESTS */
 
 void StreamTcpSackRegisterTests (void)
@@ -864,5 +952,9 @@ void StreamTcpSackRegisterTests (void)
                     StreamTcpSackTest11, 1);
     UtRegisterTest("StreamTcpSackTest12 -- Insertion && Pruning",
                     StreamTcpSackTest12, 1);
+    UtRegisterTest("StreamTcpSackTest13 -- Insertion out of window",
+                    StreamTcpSackTest13, 1);
+    UtRegisterTest("StreamTcpSackTest14 -- Insertion out of window",
+                    StreamTcpSackTest14, 1);
 #endif
 }
