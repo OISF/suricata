@@ -541,6 +541,10 @@ File *FileOpenFile(FileContainer *ffc, uint8_t *name,
         SCLogDebug("not doing md5 for this file");
         ff->flags |= FILE_NOMD5;
     }
+    if (g_detect_disabled && (g_file_force_md5 == 0)) {
+        SCLogDebug("not doing md5 for this file");
+        ff->flags |= FILE_NOMD5;
+    }
 
 #ifdef HAVE_NSS
     if (!(ff->flags & FILE_NOMD5) || g_file_force_md5) {
