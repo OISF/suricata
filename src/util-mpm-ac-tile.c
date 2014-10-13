@@ -1469,7 +1469,7 @@ int CheckMatch(SCACTileSearchCtx *ctx, PatternMatcherQueue *pmq,
         /* Double check case-sensitve match now. */
         if (patterns[k] & 0xFFFF0000) {
             uint16_t patlen = pattern_list[pindex].patlen;
-            if (SCMemcmp(pattern_list[pindex].cs, buf_offset - patlen, patlen) != 0) {
+            if (SCMemcmpNZ(pattern_list[pindex].cs, buf_offset - patlen, patlen) != 0) {
                 /* Case-sensitive match failed. */
                 continue;
             }
