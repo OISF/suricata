@@ -365,13 +365,11 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
 
 #include <ctype.h>
 
-static inline int SCMemcmp(const void *s1, const void *s2, size_t len)
+/* Compare to non-zero sequence of bytes. */
+static inline int SCMemcmpNZ(const void *s1, const void *s2, size_t len)
 {
     uint64_t b1, w1, aligned1;
     uint64_t b2, w2, aligned2;
-
-    if (len == 0)
-        return 0;
 
     /* Load aligned words containing the beginning of each string.
      * These loads don't trigger unaligned events.
@@ -411,6 +409,13 @@ static inline int SCMemcmp(const void *s1, const void *s2, size_t len)
     return 0;
 }
 
+/* Compare two sequences of bytes. */
+static inline int SCMemcmp(const void *s1, const void *s2, size_t len)
+{
+    if (len == 0)
+        return 0;
+    return SCMemcmpNZ(s1, s2, len);
+}
 /** \brief Convert 8 characters to lower case using SIMD.
  *  \param Word containing the 8 bytes.
  *  \return Word containing 8-bytes each converted to lowercase.
