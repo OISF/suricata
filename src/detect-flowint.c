@@ -52,7 +52,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectFlowintMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                        Signature *, SigMatch *);
+                        Signature *, SigMatchCtx *);
 static int DetectFlowintSetup(DetectEngineCtx *, Signature *, char *);
 void DetectFlowintFree(void *);
 void DetectFlowintRegisterTests(void);
@@ -105,9 +105,9 @@ error:
  * condition
  */
 int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Packet *p, Signature *s, SigMatch *m)
+                        Packet *p, Signature *s, SigMatchCtx *ctx)
 {
-    DetectFlowintData *sfd =(DetectFlowintData *) m->ctx;
+    DetectFlowintData *sfd = (DetectFlowintData *)ctx;
     FlowVar *fv;
     FlowVar *fvt;
     uint32_t targetval;
@@ -388,7 +388,7 @@ static int DetectFlowintSetup(DetectEngineCtx *de_ctx, Signature *s, char *rawst
         goto error;
 
     sm->type = DETECT_FLOWINT;
-    sm->ctx = (void *)sfd;
+    sm->ctx = (SigMatchCtx *)sfd;
 
     switch (sfd->modifier) {
         case FLOWINT_MODIFIER_SET:

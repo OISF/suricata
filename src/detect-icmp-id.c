@@ -42,7 +42,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectIcmpIdMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectIcmpIdMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
 static int DetectIcmpIdSetup(DetectEngineCtx *, Signature *, char *);
 void DetectIcmpIdRegisterTests(void);
 void DetectIcmpIdFree(void *);
@@ -92,10 +92,10 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectIcmpIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectIcmpIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
 {
     uint16_t pid;
-    DetectIcmpIdData *iid = (DetectIcmpIdData *)m->ctx;
+    DetectIcmpIdData *iid = (DetectIcmpIdData *)ctx;
 
     if (PKT_IS_PSEUDOPKT(p))
         return 0;
@@ -240,7 +240,7 @@ static int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, char *icmpi
     if (sm == NULL) goto error;
 
     sm->type = DETECT_ICMP_ID;
-    sm->ctx = (void *)iid;
+    sm->ctx = (SigMatchCtx *)iid;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;

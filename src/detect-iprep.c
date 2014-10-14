@@ -52,7 +52,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectIPRepMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectIPRepMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
 static int DetectIPRepSetup (DetectEngineCtx *, Signature *, char *);
 void DetectIPRepFree (void *);
 void IPRepRegisterTests(void);
@@ -187,9 +187,9 @@ static inline int RepMatch(uint8_t op, uint8_t val1, uint8_t val2)
  *         1: match
  *        -1: error
  */
-int DetectIPRepMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectIPRepMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
 {
-    DetectIPRepData *rd = (DetectIPRepData *)m->ctx;
+    DetectIPRepData *rd = (DetectIPRepData *)ctx;
     if (rd == NULL)
         return 0;
 
@@ -368,7 +368,7 @@ int DetectIPRepSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
         goto error;
 
     sm->type = DETECT_IPREP;
-    sm->ctx = (void *)cd;
+    sm->ctx = (SigMatchCtx *)cd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 

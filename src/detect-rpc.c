@@ -48,7 +48,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectRpcMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectRpcMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
 int DetectRpcSetup (DetectEngineCtx *, Signature *, char *);
 void DetectRpcRegisterTests(void);
 void DetectRpcFree(void *);
@@ -107,10 +107,10 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectRpcMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectRpcMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
 {
     /* PrintRawDataFp(stdout, p->payload, p->payload_len); */
-    DetectRpcData *rd = (DetectRpcData *)m->ctx;
+    DetectRpcData *rd = (DetectRpcData *)ctx;
     char *rpcmsg = (char *)p->payload;
 
     if (PKT_IS_TCP(p)) {
@@ -286,7 +286,7 @@ int DetectRpcSetup (DetectEngineCtx *de_ctx, Signature *s, char *rpcstr)
         goto error;
 
     sm->type = DETECT_RPC;
-    sm->ctx = (void *)rd;
+    sm->ctx = (SigMatchCtx *)rd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;

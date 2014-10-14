@@ -256,7 +256,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
             while (sm) {
                 /* tags are set only for alerts */
                 KEYWORD_PROFILING_START;
-                sigmatch_table[sm->type].Match(NULL, det_ctx, p, s, sm);
+                sigmatch_table[sm->type].Match(NULL, det_ctx, p, s, sm->ctx);
                 KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
                 sm = sm->next;
             }

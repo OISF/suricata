@@ -236,7 +236,7 @@ int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
             FileStoreFileById(ffc, det_ctx->filestore[u].file_id);
         }
     } else {
-        DetectFilestoreData *filestore = s->filestore_sm->ctx;
+      DetectFilestoreData *filestore = (DetectFilestoreData *)s->filestore_sm->ctx;
         uint16_t u;
 
         for (u = 0; u < det_ctx->filestore_cnt; u++) {
@@ -406,9 +406,9 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
                 fd->scope = FILESTORE_SCOPE_DEFAULT;
         }
 
-        sm->ctx = fd;
+        sm->ctx = (SigMatchCtx*)fd;
     } else {
-        sm->ctx = NULL;
+        sm->ctx = (SigMatchCtx*)NULL;
     }
 
     if (s->alproto != ALPROTO_HTTP && s->alproto != ALPROTO_SMTP) {
