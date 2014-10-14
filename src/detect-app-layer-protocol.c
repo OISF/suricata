@@ -208,7 +208,7 @@ int DetectAppLayerProtocolTest03(void)
         printf("signature alproto should be http\n");
         goto end;
     }
-    data = s->sm_lists[DETECT_SM_LIST_AMATCH]->ctx;
+    data = (DetectAppLayerProtocolData *)s->sm_lists[DETECT_SM_LIST_AMATCH]->ctx;
     if (data->alproto != ALPROTO_HTTP || data->negated) {
         printf("if (data->alproto != ALPROTO_HTTP || data->negated)\n");
         goto end;
@@ -243,7 +243,7 @@ int DetectAppLayerProtocolTest04(void)
         printf("if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL)\n");
         goto end;
     }
-    data = s->sm_lists[DETECT_SM_LIST_AMATCH]->ctx;
+    data = (DetectAppLayerProtocolData*)s->sm_lists[DETECT_SM_LIST_AMATCH]->ctx;
     if (data == NULL) {
         printf("if (data == NULL)\n");
         goto end;

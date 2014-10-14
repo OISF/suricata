@@ -39,7 +39,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectPktvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectPktvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectPktvarSetup (DetectEngineCtx *, Signature *, char *);
 
 void DetectPktvarRegister (void)
@@ -82,10 +82,10 @@ error:
  *        -1: error
  */
 
-int DetectPktvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectPktvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     int ret = 0;
-    DetectPktvarData *pd = (DetectPktvarData *)m->ctx;
+    const DetectPktvarData *pd = (const DetectPktvarData *)ctx;
 
     PktVar *pv = PktVarGet(p, pd->name);
     if (pv != NULL) {
@@ -236,7 +236,7 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawst
         goto error;
 
     sm->type = DETECT_PKTVAR;
-    sm->ctx = (void *)cd;
+    sm->ctx = (SigMatchCtx *)cd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
