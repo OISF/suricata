@@ -44,7 +44,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 /*prototypes*/
-int DetectStreamSizeMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectStreamSizeMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
 static int DetectStreamSizeSetup (DetectEngineCtx *, Signature *, char *);
 void DetectStreamSizeFree(void *);
 void DetectStreamSizeRegisterTests(void);
@@ -141,11 +141,11 @@ static int DetectStreamSizeCompare (uint32_t diff, uint32_t stream_size, uint8_t
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectStreamSizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectStreamSizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
 {
 
     int ret = 0;
-    DetectStreamSizeData *sd = (DetectStreamSizeData *) m->ctx;
+    DetectStreamSizeData *sd = (DetectStreamSizeData *)ctx;
 
     if (!(PKT_IS_TCP(p)))
         return ret;
@@ -320,7 +320,7 @@ static int DetectStreamSizeSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
         goto error;
 
     sm->type = DETECT_STREAM_SIZE;
-    sm->ctx = (void *)sd;
+    sm->ctx = (SigMatchCtx *)sd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
@@ -447,9 +447,9 @@ static int DetectStreamSizeParseTest03 (void)
     f.protoctx = &ssn;
     p->flow = &f;
     p->tcph = &tcph;
-    sm.ctx = sd;
+    sm.ctx = (SigMatchCtx*)sd;
 
-    result = DetectStreamSizeMatch(&tv, &dtx, p, &s, &sm);
+    result = DetectStreamSizeMatch(&tv, &dtx, p, &s, sm.ctx);
     if (result == 0) {
         printf("result 0 != 1: ");
     }
@@ -507,9 +507,9 @@ static int DetectStreamSizeParseTest04 (void)
     f.protoctx = &ssn;
     p->flow = &f;
     p->ip4h = &ip4h;
-    sm.ctx = sd;
+    sm.ctx = (SigMatchCtx*)sd;
 
-    if (!DetectStreamSizeMatch(&tv, &dtx, p, &s, &sm))
+    if (!DetectStreamSizeMatch(&tv, &dtx, p, &s, sm.ctx))
         result = 1;
 
     SCFree(p);

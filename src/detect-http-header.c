@@ -1237,8 +1237,8 @@ int DetectHttpHeaderTest20(void)
         goto end;
     }
 
-    DetectContentData *hhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->ctx;
-    DetectContentData *hhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
+    DetectContentData *hhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->ctx;
+    DetectContentData *hhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
     if (hhd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(hhd1->content, "one", hhd1->content_len) != 0 ||
         hhd2->flags != DETECT_CONTENT_DISTANCE ||
@@ -1281,8 +1281,8 @@ int DetectHttpHeaderTest21(void)
         goto end;
     }
 
-    DetectContentData *hhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->ctx;
-    DetectContentData *hhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
+    DetectContentData *hhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->ctx;
+    DetectContentData *hhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
     if (hhd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(hhd1->content, "one", hhd1->content_len) != 0 ||
         hhd2->flags != DETECT_CONTENT_WITHIN ||
@@ -1405,8 +1405,8 @@ int DetectHttpHeaderTest25(void)
         goto end;
     }
 
-    DetectPcreData *pd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->ctx;
-    DetectContentData *hhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
+    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->ctx;
+    DetectContentData *hhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
     if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
         hhd2->flags != DETECT_CONTENT_WITHIN ||
         memcmp(hhd2->content, "two", hhd2->content_len) != 0) {
@@ -1456,8 +1456,8 @@ int DetectHttpHeaderTest26(void)
         goto end;
     }
 
-    DetectContentData *hhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->ctx;
-    DetectPcreData *pd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
+    DetectContentData *hhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->ctx;
+    DetectPcreData *pd2 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
     if (pd2->flags != (DETECT_PCRE_RELATIVE) ||
         hhd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(hhd1->content, "two", hhd1->content_len) != 0) {
@@ -1507,8 +1507,8 @@ int DetectHttpHeaderTest27(void)
         goto end;
     }
 
-    DetectPcreData *pd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->ctx;
-    DetectContentData *hhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
+    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->ctx;
+    DetectContentData *hhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
     if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
         hhd2->flags != DETECT_CONTENT_DISTANCE ||
         memcmp(hhd2->content, "two", hhd2->content_len) != 0) {
