@@ -386,6 +386,13 @@ typedef struct SigMatch_ {
     struct SigMatch_ *prev;
 } SigMatch;
 
+/** \brief Data needed for Match() */
+typedef struct SigMatchData_ {
+    uint8_t type; /**< match type */
+    uint8_t is_last; /**< Last element of the list */
+    SigMatchCtx *ctx; /**< plugin specific data */
+} SigMatchData;
+
 
 /** \brief Signature container */
 typedef struct Signature_ {
@@ -428,6 +435,9 @@ typedef struct Signature_ {
     uint32_t rev;
 
     int prio;
+
+    /* Hold copies of the sm lists for Match() */
+    SigMatchData *sm_arrays[DETECT_SM_LIST_MAX];
 
     /* holds all sm lists */
     struct SigMatch_ *sm_lists[DETECT_SM_LIST_MAX];
