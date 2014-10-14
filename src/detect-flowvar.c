@@ -44,9 +44,9 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectFlowvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectFlowvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectFlowvarSetup (DetectEngineCtx *, Signature *, char *);
-static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm);
+static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx);
 static void DetectFlowvarDataFree(void *ptr);
 
 void DetectFlowvarRegister (void)
@@ -114,10 +114,10 @@ static void DetectFlowvarDataFree(void *ptr)
  *        -1: error
  */
 
-int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     int ret = 0;
-    DetectFlowvarData *fd = (DetectFlowvarData *)m->ctx;
+    DetectFlowvarData *fd = (DetectFlowvarData *)ctx;
 
     /* we need a lock */
     FLOWLOCK_RDLOCK(p->flow);
@@ -197,7 +197,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
         goto error;
 
     sm->type = DETECT_FLOWVAR;
-    sm->ctx = (void *)fd;
+    sm->ctx = (SigMatchCtx *)fd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
@@ -269,7 +269,7 @@ int DetectFlowvarPostMatchSetup(Signature *s, uint16_t idx)
         goto error;
 
     sm->type = DETECT_FLOWVAR_POSTMATCH;
-    sm->ctx = (void *)fv;
+    sm->ctx = (SigMatchCtx *)fv;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
     return 0;
@@ -284,15 +284,15 @@ error:
  *  \param sm sigmatch containing the idx to store
  *  \retval 1 or -1 in case of error
  */
-static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm)
+static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     DetectFlowvarList *fs, *prev;
-    DetectFlowvarData *fd;
+    const DetectFlowvarData *fd;
 
     if (det_ctx->flowvarlist == NULL || p->flow == NULL)
         return 1;
 
-    fd = (DetectFlowvarData *)sm->ctx;
+    fd = (const DetectFlowvarData *)ctx;
 
     prev = NULL;
     fs = det_ctx->flowvarlist;

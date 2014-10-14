@@ -55,7 +55,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectIsdataatMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectIsdataatMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 int DetectIsdataatSetup (DetectEngineCtx *, Signature *, char *);
 void DetectIsdataatRegisterTests(void);
 void DetectIsdataatFree(void *);
@@ -109,9 +109,9 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectIsdataatMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectIsdataatMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    DetectIsdataatData *idad = (DetectIsdataatData *)m->ctx;
+    const DetectIsdataatData *idad = (const DetectIsdataatData *)ctx;
 
     SCLogDebug("payload_len: %u , dataat? %u ; relative? %u...", p->payload_len,idad->dataat,idad->flags &ISDATAAT_RELATIVE);
 
@@ -390,7 +390,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
     if (sm == NULL)
         goto end;
     sm->type = DETECT_ISDATAAT;
-    sm->ctx = (void *)idad;
+    sm->ctx = (SigMatchCtx *)idad;
     SigMatchAppendSMToList(s, sm, sm_list);
 
     if (!(idad->flags & ISDATAAT_RELATIVE)) {

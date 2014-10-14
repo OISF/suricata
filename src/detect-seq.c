@@ -41,7 +41,7 @@
 
 static int DetectSeqSetup(DetectEngineCtx *, Signature *, char *);
 static int DetectSeqMatch(ThreadVars *, DetectEngineThreadCtx *,
-                          Packet *, Signature *, SigMatch *);
+                          Packet *, Signature *, const SigMatchCtx *);
 static void DetectSeqRegisterTests(void);
 static void DetectSeqFree(void *);
 
@@ -70,9 +70,9 @@ void DetectSeqRegister(void)
  * \retval 1 match
  */
 static int DetectSeqMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                          Packet *p, Signature *s, SigMatch *m)
+                          Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    DetectSeqData *data = (DetectSeqData *)m->ctx;
+    const DetectSeqData *data = (const DetectSeqData *)ctx;
 
     /* This is only needed on TCP packets */
     if (!(PKT_IS_TCP(p)) || PKT_IS_PSEUDOPKT(p)) {
@@ -111,7 +111,7 @@ static int DetectSeqSetup (DetectEngineCtx *de_ctx, Signature *s, char *optstr)
     if (-1 == ByteExtractStringUint32(&data->seq, 10, 0, optstr)) {
         goto error;
     }
-    sm->ctx = data;
+    sm->ctx = (SigMatchCtx*)data;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
