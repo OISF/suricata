@@ -604,16 +604,21 @@ int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
                                    Signature *s)
 {
     /* run the packet match functions */
-    if (s->sm_lists[DETECT_SM_LIST_POSTMATCH] != NULL) {
+    if (s->sm_arrays[DETECT_SM_LIST_POSTMATCH] != NULL) {
         KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_POSTMATCH);
 
-        SigMatch *sm = s->sm_lists[DETECT_SM_LIST_POSTMATCH];
-        SCLogDebug("running match functions, sm %p", sm);
+        SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
+        SCLogDebug("running match functions, sm %p", smd);
 
-        for ( ; sm != NULL; sm = sm->next) {
-            KEYWORD_PROFILING_START;
-            (void)sigmatch_table[sm->type].Match(tv, det_ctx, p, s, sm->ctx);
-            KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
+        if (smd != NULL) {
+            while (1) {
+                KEYWORD_PROFILING_START;
+                (void)sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx);
+                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+                if (smd->is_last)
+                    break;
+                smd++;
+            }
         }
     }
 
@@ -1194,7 +1199,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     StreamMsg *smsg = NULL;
     Signature *s = NULL;
     Signature *next_s = NULL;
-    SigMatch *sm = NULL;
     uint16_t alversion = 0;
     int reset_de_state = 0;
     int state_alert = 0;
@@ -1563,7 +1567,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* Check the payload keywords. If we are a MPM sig and we've made
          * to here, we've had at least one of the patterns match */
-        if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        if (s->sm_arrays[DETECT_SM_LIST_PMATCH] != NULL) {
             KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_PMATCH);
             /* if we have stream msgs, inspect against those first,
              * but not for a "dsize" signature */
@@ -1640,18 +1644,23 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
 
         /* run the packet match functions */
-        if (s->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        if (s->sm_arrays[DETECT_SM_LIST_MATCH] != NULL) {
             KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_MATCH);
-            sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+            SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_MATCH];
 
-            SCLogDebug("running match functions, sm %p", sm);
-            for ( ; sm != NULL; sm = sm->next) {
-                KEYWORD_PROFILING_START;
-                if (sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm->ctx) <= 0) {
-                    KEYWORD_PROFILING_END(det_ctx, sm->type, 0);
-                    goto next;
+            SCLogDebug("running match functions, sm %p", smd);
+            if (smd != NULL) {
+                while (1) {
+                    KEYWORD_PROFILING_START;
+                    if (sigmatch_table[smd->type].Match(th_v, det_ctx, p, s, smd->ctx) <= 0) {
+                        KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
+                        goto next;
+                    }
+                    KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+                    if (smd->is_last)
+                        break;
+                    smd++;
                 }
-                KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
             }
         }
 
@@ -4475,6 +4484,47 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx)
     return 0;
 }
 
+static int SigMatchListLen(SigMatch *sm)
+{
+    int len = 0;
+    for (; sm != NULL; sm = sm->next)
+        len++;
+
+    return len;
+}
+
+static int SigMatchPrepare(DetectEngineCtx *de_ctx)
+{
+    SCEnter();
+
+    Signature *s = de_ctx->sig_list;
+    for (; s != NULL; s = s->next) {
+        int type;
+        for (type = 0; type < DETECT_SM_LIST_MAX; type++) {
+            SigMatch *sm = s->sm_lists[type];
+            int len = SigMatchListLen(sm);
+            if (len == 0)
+                s->sm_arrays[type] = NULL;
+            else {
+                SigMatchData *smd = (SigMatchData*)SCMalloc(len * sizeof(SigMatchData));
+                if (smd == NULL) {
+                    SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
+                    exit(EXIT_FAILURE);
+                }
+                /* Copy sm type and Context into array */
+                s->sm_arrays[type] = smd;
+                for (; sm != NULL; sm = sm->next, smd++) {
+                    smd->type = sm->type;
+                    smd->ctx = sm->ctx;
+                    smd->is_last = (sm->next == NULL);
+                }
+            }
+        }
+    }
+
+    SCReturnInt(0);
+}
+
 /**
  * \brief Convert the signature list into the runtime match structure.
  *
@@ -4743,6 +4793,12 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
 //    DetectAddressPrintMemory();
 //    DetectSigGroupPrintMemory();
 //    DetectPortPrintMemory();
+
+    if (SigMatchPrepare(de_ctx) != 0) {
+        SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
+        exit(EXIT_FAILURE);
+    }
+
 #ifdef PROFILING
     SCProfilingRuleInitCounters(de_ctx);
 #endif
