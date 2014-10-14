@@ -1062,16 +1062,21 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                     SCLogDebug("Signum %"PRIu16" match (sid: %"PRIu16", msg: %s)",
                                u * 8 + i, s->id, s->msg);
 
-                    if (s->sm_lists[DETECT_SM_LIST_POSTMATCH] != NULL) {
+                    if (s->sm_arrays[DETECT_SM_LIST_POSTMATCH] != NULL) {
                         KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_POSTMATCH);
-                        SigMatch *sm = s->sm_lists[DETECT_SM_LIST_POSTMATCH];
+                        SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
 
-                        SCLogDebug("running match functions, sm %p", sm);
+                        SCLogDebug("running match functions, sm %p", smd);
 
-                        for ( ; sm != NULL; sm = sm->next) {
-                            KEYWORD_PROFILING_START;
-                            (void)sigmatch_table[sm->type].Match(tv, det_ctx, p, s, sm->ctx);
-                            KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
+                        if (smd != NULL) {
+                            while (1) {
+                                KEYWORD_PROFILING_START;
+                                (void)sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx);
+                                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+                                if (smd->is_last)
+                                    break;
+                                smd++;
+                            }
                         }
                     }
                     if (!(s->flags & SIG_FLAG_NOALERT)) {
