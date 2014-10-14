@@ -296,8 +296,8 @@ int DetectHttpUriTest12(void)
         goto end;
     }
 
-    DetectContentData *ud1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
-    DetectContentData *ud2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
+    DetectContentData *ud2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (ud1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(ud1->content, "one", ud1->content_len) != 0 ||
         ud2->flags != DETECT_CONTENT_DISTANCE ||
@@ -340,8 +340,8 @@ int DetectHttpUriTest13(void)
         goto end;
     }
 
-    DetectContentData *ud1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
-    DetectContentData *ud2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
+    DetectContentData *ud2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (ud1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(ud1->content, "one", ud1->content_len) != 0 ||
         ud2->flags != DETECT_CONTENT_WITHIN ||
@@ -402,7 +402,7 @@ int DetectHttpUriTest15(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *cd = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (memcmp(cd->content, "one", cd->content_len) != 0 ||
         cd->flags != DETECT_CONTENT_WITHIN) {
         goto end;
@@ -467,8 +467,8 @@ int DetectHttpUriTest17(void)
         goto end;
     }
 
-    DetectContentData *ud1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
-    DetectContentData *ud2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
+    DetectContentData *ud2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (ud1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(ud1->content, "one", ud1->content_len) != 0 ||
         ud2->flags != DETECT_CONTENT_DISTANCE ||
@@ -511,8 +511,8 @@ int DetectHttpUriTest18(void)
         goto end;
     }
 
-    DetectContentData *ud1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
-    DetectContentData *ud2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
+    DetectContentData *ud2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (ud1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(ud1->content, "one", ud1->content_len) != 0 ||
         ud2->flags != DETECT_CONTENT_WITHIN ||

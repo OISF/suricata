@@ -51,7 +51,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectDetectionFilterMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectDetectionFilterMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectDetectionFilterSetup(DetectEngineCtx *, Signature *, char *);
 void DetectDetectionFilterRegisterTests(void);
 void DetectDetectionFilterFree(void *);
@@ -94,7 +94,7 @@ error:
     return;
 }
 
-int DetectDetectionFilterMatch (ThreadVars *thv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm)
+int DetectDetectionFilterMatch (ThreadVars *thv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     return 1;
 }
@@ -253,7 +253,7 @@ int DetectDetectionFilterSetup (DetectEngineCtx *de_ctx, Signature *s, char *raw
         goto error;
 
     sm->type = DETECT_DETECTION_FILTER;
-    sm->ctx = (void *)df;
+    sm->ctx = (SigMatchCtx *)df;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
 

@@ -364,14 +364,22 @@ typedef struct SignatureHeader_ {
     struct Signature_ *full_sig;
 } SignatureHeader;
 
+/** \brief Used to start a pointer to SigMatch context
+ * Should never be dereferenced without casting to something else.
+ */
+typedef struct SigMatchCtx_ {
+  int foo;
+} SigMatchCtx;
+
 /** \brief a single match condition for a signature */
 typedef struct SigMatch_ {
     uint8_t type; /**< match type */
     uint16_t idx; /**< position in the signature */
-    void *ctx; /**< plugin specific data */
+    SigMatchCtx *ctx; /**< plugin specific data */
     struct SigMatch_ *next;
     struct SigMatch_ *prev;
 } SigMatch;
+
 
 /** \brief Signature container */
 typedef struct Signature_ {
@@ -881,7 +889,7 @@ typedef struct DetectionEngineThreadCtx_ {
  */
 typedef struct SigTableElmt_ {
     /** Packet match function pointer */
-    int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+    int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 
     /** AppLayer match function  pointer */
     int (*AppLayerMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t flags, void *alstate, Signature *, SigMatch *);

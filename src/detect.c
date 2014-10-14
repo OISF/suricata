@@ -612,7 +612,7 @@ int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
 
         for ( ; sm != NULL; sm = sm->next) {
             KEYWORD_PROFILING_START;
-            (void)sigmatch_table[sm->type].Match(tv, det_ctx, p, s, sm);
+            (void)sigmatch_table[sm->type].Match(tv, det_ctx, p, s, sm->ctx);
             KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
         }
     }
@@ -1647,7 +1647,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             SCLogDebug("running match functions, sm %p", sm);
             for ( ; sm != NULL; sm = sm->next) {
                 KEYWORD_PROFILING_START;
-                if (sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm) <= 0) {
+                if (sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm->ctx) <= 0) {
                     KEYWORD_PROFILING_END(det_ctx, sm->type, 0);
                     goto next;
                 }
