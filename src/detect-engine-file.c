@@ -174,7 +174,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         if (sm != NULL && sm->next == NULL && sm->type == DETECT_FILESTORE &&
                 sm->ctx != NULL)
         {
-            DetectFilestoreData *fd = sm->ctx;
+            DetectFilestoreData *fd = (DetectFilestoreData *)sm->ctx;
             if (fd->scope > FILESTORE_SCOPE_DEFAULT) {
                 KEYWORD_PROFILING_START;
                 match = sigmatch_table[sm->type].
