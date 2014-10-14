@@ -36,6 +36,14 @@
 #include "app-layer-parser.h"
 #include "util-validate.h"
 
+#define HASH_Create MD5_NewContext
+#define HASH_Destroy MD5_DestroyContext
+#define HASH_Begin MD5_Begin
+#define HASH_End MD5_End
+#define HASH_Update MD5_Update
+
+extern int g_detect_disabled;
+
 /** \brief switch to force magic checks on all files
  *         regardless of the rules.
  */
