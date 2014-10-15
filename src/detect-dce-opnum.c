@@ -142,6 +142,10 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
     char *comma_token = NULL;
     char *hyphen_token = NULL;
 
+    if (arg == NULL) {
+        goto error;
+    }
+
     ret = pcre_exec(parse_regex, parse_regex_study, arg, strlen(arg), 0, 0, ov,
                     MAX_SUBSTRINGS);
     if (ret < 2) {
@@ -305,6 +309,12 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
     DetectDceOpnumData *dod = NULL;
     SigMatch *sm = NULL;
+
+    if (arg == NULL) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_opnum option in "
+                   "signature, option needs a value");
+        goto error;
+    }
 
     dod = DetectDceOpnumArgParse(arg);
     if (dod == NULL) {
