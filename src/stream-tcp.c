@@ -4437,6 +4437,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                                        ~FLOW_TS_PP_ALPROTO_DETECT_DONE &
                                        ~FLOW_TC_PM_ALPROTO_DETECT_DONE &
                                        ~FLOW_TC_PP_ALPROTO_DETECT_DONE);
+                    p->flow->flags &= ~ FLOW_NO_APPLAYER_INSPECTION;
                     if (p->flow->de_state != NULL) {
                         SCMutexLock(&p->flow->de_state_m);
                         DetectEngineStateReset(p->flow->de_state, (STREAM_TOSERVER | STREAM_TOCLIENT));
