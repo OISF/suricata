@@ -79,11 +79,9 @@ void PfringDerefConfig(void *conf)
 {
     PfringIfaceConfig *pfp = (PfringIfaceConfig *)conf;
     if (SC_ATOMIC_SUB(pfp->ref, 1) == 0) {
-#ifdef HAVE_PFRING_SET_BPF_FILTER
         if (pfp->bpf_filter) {
             SCFree(pfp->bpf_filter);
         }
-#endif
         SCFree(pfp);
     }
 }
@@ -106,7 +104,7 @@ void *OldParsePfringConfig(const char *iface)
     char *threadsstr = NULL;
     PfringIfaceConfig *pfconf = SCMalloc(sizeof(*pfconf));
     char *tmpclusterid;
-#ifdef HAVE_PFRING_CLUSTER_TYPE
+#ifdef HAVE_PFRING
     char *tmpctype = NULL;
     cluster_type default_ctype = CLUSTER_ROUND_ROBIN;
 #endif
@@ -123,7 +121,7 @@ void *OldParsePfringConfig(const char *iface)
     strlcpy(pfconf->iface, iface, sizeof(pfconf->iface));
     pfconf->threads = 1;
     pfconf->cluster_id = 1;
-#ifdef HAVE_PFRING_CLUSTER_TYPE
+#ifdef HAVE_PFRING
     pfconf->ctype = default_ctype;
 #endif
     pfconf->DerefFunc = PfringDerefConfig;
@@ -158,7 +156,7 @@ void *OldParsePfringConfig(const char *iface)
         SCLogDebug("Going to use cluster-id %" PRId32, pfconf->cluster_id);
     }
 
-#ifdef HAVE_PFRING_CLUSTER_TYPE
+#ifdef HAVE_PFRING
     if (strncmp(pfconf->iface, "zc", 2) == 0) {
         SCLogInfo("ZC interface detected, not setting cluster type for PF_RING (iface %s)",
                 pfconf->iface);
@@ -180,7 +178,7 @@ void *OldParsePfringConfig(const char *iface)
         SCFree(pfconf);
         return NULL;
     }
-#endif
+#endif /* HAVE_PFRING */
 
     return pfconf;
 }
@@ -207,13 +205,11 @@ void *ParsePfringConfig(const char *iface)
     PfringIfaceConfig *pfconf = SCMalloc(sizeof(*pfconf));
     char *tmpclusterid;
     char *tmpctype = NULL;
-#ifdef HAVE_PFRING_CLUSTER_TYPE
+#ifdef HAVE_PFRING
     cluster_type default_ctype = CLUSTER_ROUND_ROBIN;
     int getctype = 0;
 #endif
-#ifdef HAVE_PFRING_SET_BPF_FILTER
     char *bpf_filter = NULL;
-#endif /* HAVE_PFRING_SET_BPF_FILTER */
 
     if (unlikely(pfconf == NULL)) {
         return NULL;
@@ -228,7 +224,7 @@ void *ParsePfringConfig(const char *iface)
     strlcpy(pfconf->iface, iface, sizeof(pfconf->iface));
     pfconf->threads = 1;
     pfconf->cluster_id = 1;
-#ifdef HAVE_PFRING_CLUSTER_TYPE
+#ifdef HAVE_PFRING
     pfconf->ctype = (cluster_type)default_ctype;
 #endif
     pfconf->DerefFunc = PfringDerefConfig;
@@ -297,7 +293,7 @@ void *ParsePfringConfig(const char *iface)
             SCLogDebug("Going to use cluster-id %" PRId32, pfconf->cluster_id);
         }
     }
-#ifdef HAVE_PFRING_SET_BPF_FILTER
+
     /*load pfring bpf filter*/
     /* command line value has precedence */
     if (ConfGet("bpf-filter", &bpf_filter) == 1) {
@@ -325,9 +321,8 @@ void *ParsePfringConfig(const char *iface)
             }
         }
     }
-#endif /* HAVE_PFRING_SET_BPF_FILTER */
 
-#ifdef HAVE_PFRING_CLUSTER_TYPE
+#ifdef HAVE_PFRING
     if (ConfGet("pfring.cluster-type", &tmpctype) == 1) {
         SCLogDebug("Going to use command-line provided cluster-type");
         getctype = 1;
@@ -363,9 +358,7 @@ void *ParsePfringConfig(const char *iface)
             return NULL;
         }
     }
-
-#endif /* HAVE_PFRING_CLUSTER_TYPE */
-
+#endif /* HAVE_PFRING */
     if (ConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
             pfconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;

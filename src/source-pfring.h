@@ -35,15 +35,15 @@ typedef struct PfringIfaceConfig_
 {
     /* cluster param */
     int cluster_id;
-#ifdef HAVE_PFRING_CLUSTER_TYPE
+#ifdef HAVE_PFRING
     cluster_type ctype;
-#endif /* HAVE_PFRING_CLUSTER_TYPE */
+#endif
     char iface[PFRING_IFACE_NAME_LENGTH];
     /* number of threads */
     int threads;
-#ifdef HAVE_PFRING_SET_BPF_FILTER
+
     char *bpf_filter;
-#endif /* HAVE_PFRING_SET_BPF_FILTER */
+
     ChecksumValidationMode checksum_mode;
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);
