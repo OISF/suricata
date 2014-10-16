@@ -4640,6 +4640,9 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->counter_tcp_pseudo = SCPerfTVRegisterCounter("tcp.pseudo", tv,
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");
+    stt->counter_tcp_pseudo_failed = SCPerfTVRegisterCounter("tcp.pseudo_failed", tv,
+                                                        SC_PERF_TYPE_UINT64,
+                                                        "NULL");
     stt->counter_tcp_invalid_checksum = SCPerfTVRegisterCounter("tcp.invalid_checksum", tv,
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");
@@ -5489,6 +5492,7 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(ThreadVars *tv, StreamTcpThread 
     Packet *np = StreamTcpPseudoSetup(p, GET_PKT_DATA(p), GET_PKT_LEN(p));
     if (np == NULL) {
         SCLogDebug("The packet received from packet allocation is NULL");
+        SCPerfCounterIncr(stt->counter_tcp_pseudo_failed, tv->sc_perf_pca);
         SCReturn;
     }
     PKT_SET_SRC(np, PKT_SRC_STREAM_TCP_STREAM_END_PSEUDO);
