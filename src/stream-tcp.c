@@ -1829,6 +1829,42 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
 
             StreamTcpSetEvent(p, STREAM_3WHS_RIGHT_SEQ_WRONG_ACK_EVASION);
             return -1;
+
+        /* if we get a packet with a proper ack, but a seq that is beyond
+         * next_seq but in-window, we probably missed some packets */
+        } else if (SEQ_GT(TCP_GET_SEQ(p), ssn->client.next_seq) &&
+                   SEQ_LEQ(TCP_GET_SEQ(p),ssn->client.next_win) &&
+                   SEQ_EQ(TCP_GET_ACK(p), ssn->server.next_seq))
+        {
+            SCLogDebug("ssn %p: ACK for missing data", ssn);
+
+            if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                StreamTcpHandleTimestamp(ssn, p);
+            }
+
+            StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+
+            ssn->client.next_seq = TCP_GET_SEQ(p) + p->payload_len;
+            ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
+
+            ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
+
+            if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) {
+                ssn->client.window = TCP_GET_WINDOW(p);
+                ssn->server.next_win = ssn->server.last_ack +
+                    ssn->server.window;
+                /* window scaling for midstream pickups, we can't do much
+                 * other than assume that it's set to the max value: 14 */
+                ssn->server.wscale = TCP_WSCALE_MAX;
+                ssn->client.wscale = TCP_WSCALE_MAX;
+                ssn->flags |= STREAMTCP_FLAG_SACKOK;
+            }
+
+            StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
+            SCLogDebug("ssn %p: =~ ssn state is now TCP_ESTABLISHED", ssn);
+
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                    &ssn->client, p, pq);
         } else {
             SCLogDebug("ssn %p: wrong seq nr on packet", ssn);
 
