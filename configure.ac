@@ -997,86 +997,40 @@
 
         LIBPFRING=""
         AC_CHECK_LIB(pfring, pfring_open,, LIBPFRING="no", [-lpcap])
-        if test "$LIBPFRING" = "no"; then
-            LIBPFRING=""
-            AC_CHECK_LIB(pfring, pfring_stats,, LIBPFRING="no", [-lpcap -lrt])
-            if test "$LIBPFRING" = "no"; then
+        if test "$LIBPFRING" != "no"; then
+            STORECFLAGS="${CFLAGS}"
+            CFLAGS="${CFLAGS} -Werror"
+            AC_COMPILE_IFELSE(
+                [AC_LANG_PROGRAM(
+                    [
+                    #include <pfring.h>
+                    ],
+                    [
+                    pfring_recv_chunk(NULL, NULL, 0, 0);
+                    ])],
+                [pfring_recv_chunk="yes"],
+                [pfring_recv_chunk="no"])
+            CFLAGS="${STORECFLAGS}"
+            if test "x$pfring_recv_chunk" != "xyes"; then
                 if test "x$enable_pfring" = "xyes"; then
                 echo
-                echo "   ERROR! --enable-pfring was passed but the library was not found or version is >4, go get it"
-                echo "   from http://www.ntop.org/PF_RING.html"
+                echo "   ERROR! --enable-pfring was passed but the library version is < 6, go get it"
+                echo "   from http://www.ntop.org/products/pf_ring/"
                 echo
                 exit 1
                 fi
             else
-                LIBS="${LIBS} -lrt"
+                LIBS="${LIBS} -lrt -lnuma"
+            fi
+        else
+            if test "x$enable_pfring" = "xyes"; then
+            echo
+            echo "   ERROR! --enable-pfring was passed but the library was not found, go get it"
+            echo "   from http://www.ntop.org/products/pf_ring/"
+            echo
+            exit 1
             fi
         fi
-
-        LIBPFRING_ENABLE_RING=""
-        AC_CHECK_LIB(pfring, pfring_enable_ring,, LIBPFRING_ENABLE_RING="no", [-lpcap])
-        if test "$LIBPFRING_ENABLE_RING" != "no"; then
-            AC_DEFINE([HAVE_PFRING_ENABLE],[1],[PF_RING pfring_enable_ring is available])
-        fi
-
-        LIBPFRING_CLUSTER_TYPE=""
-        AC_CHECK_LIB(pfring, pfring_set_cluster,
-                        , LIBPFRING_CLUSTER_TYPE="no", [-lpcap])
-        if test "$LIBPFRING_CLUSTER_TYPE" != "no"; then
-            AC_DEFINE([HAVE_PFRING_CLUSTER_TYPE],[1],[PF_RING pfring_set_cluster is available])
-        fi
-
-        LIBPFRING_BPF_FILTER=""
-        AC_CHECK_LIB(pfring, pfring_set_bpf_filter,
-                        , LIBPFRING_BPF_FILTER="no", [-lpcap])
-        LIBPFRING_REMOVE_BPF_FILTER=""
-        AC_CHECK_LIB(pfring, pfring_remove_bpf_filter,
-                        , LIBPFRING_REMOVE_BPF_FILTER="no", [-lpcap])
-        if test "$LIBPFRING_BPF_FILTER" != "no" -a "$LIBPFRING_REMOVE_BPF_FILTER" != "no"; then
-            AC_DEFINE([HAVE_PFRING_SET_BPF_FILTER],[1],[PF_RING pfring_set_bpf_filter is available])
-        fi
-
-        STORE_CFLAGS="${CFLAGS}"
-        CFLAGS="${CFLAGS} -Werror"
-        AC_MSG_CHECKING([if pfring_recv expects u_char**])
-        AC_TRY_COMPILE([
-                    #include <pfring.h>
-                ],
-                [
-                    u_char *buffer;
-                    pfring_recv(NULL, &buffer, 0, NULL, 1);
-                ],
-                [ pfring_recv_uchar_buff=yes ], [:])
-
-        CFLAGS="${STORE_CFLAGS}"
-
-        if test "$pfring_recv_uchar_buff" = "yes"; then
-            AC_DEFINE([HAVE_PFRING_RECV_UCHAR],[1],[PF_RING pfring_recv buffer is u_char**])
-            AC_MSG_RESULT(yes)
-        else
-            AC_MSG_RESULT(no)
-        fi
-
-        # check if the argument to nfq_get_payload is signed or unsigned
-        AC_MSG_CHECKING([for post 5.4.0 pfring_open function])
-        STORECFLAGS="${CFLAGS}"
-        CFLAGS="${CFLAGS} -Werror"
-        AC_COMPILE_IFELSE(
-            [AC_LANG_PROGRAM(
-                [
-                #include <pfring.h>
-                ],
-                [
-                pfring_open(NULL, 0, 0);
-                ])],
-            [pfring_new_open="yes"],
-            [pfring_new_open="no"])
-        AC_MSG_RESULT($pfring_new_open)
-        if test "x$pfring_new_open" = "xyes"; then
-            AC_DEFINE([HAVE_PFRING_OPEN_NEW], [1], [For post 5.4.0 version of pfring_open])
-        fi
-        CFLAGS="${STORECFLAGS}"
-
     ])
 
   # AF_PACKET support
