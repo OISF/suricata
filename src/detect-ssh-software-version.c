@@ -61,7 +61,7 @@
 /**
  * \brief Regex for parsing the softwareversion string
  */
-#define PARSE_REGEX  "^\\s*\"?\\s*?([0-9a-zA-Z\\.\\-\\_]+)\\s*\"?\\s*$"
+#define PARSE_REGEX  "^\\s*\"?\\s*?([0-9a-zA-Z\\.\\-\\_\\+\\s+]+)\\s*\"?\\s*$"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
