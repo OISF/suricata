@@ -101,7 +101,7 @@ void StreamTcpReturnStreamSegments (TcpStream *);
 void StreamTcpInitConfig(char);
 int StreamTcpGetFlowState(void *);
 void StreamTcpSetOSPolicy(TcpStream*, Packet*);
-void StreamTcpPseudoPacketCreateStreamEndPacket(Packet *, TcpSession *, PacketQueue *);
+void StreamTcpPseudoPacketCreateStreamEndPacket(ThreadVars *tv, StreamTcpThread *stt, Packet *p, TcpSession *ssn, PacketQueue *pq);
 
 static int StreamTcpValidateTimestamp(TcpSession * , Packet *);
 static int StreamTcpHandleTimestamp(TcpSession * , Packet *);
@@ -2171,8 +2171,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
             return -1;
 
         /* force both streams to reassemble, if necessary */
-        StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
-        SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
+        StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
 
         if (PKT_IS_TOSERVER(p)) {
             StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
@@ -2509,8 +2508,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
             return -1;
 
         /* force both streams to reassemble, if necessary */
-        StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
-        SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
+        StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
 
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
         ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
@@ -2970,8 +2968,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
             return -1;
 
         /* force both streams to reassemble, if necessary */
-        StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
-        SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
+        StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
 
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
         ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
@@ -3281,8 +3278,7 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
             return -1;
 
         /* force both streams to reassemble, if necessary */
-        StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
-        SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
+        StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
 
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
         ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
@@ -3464,8 +3460,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
             return -1;
 
         /* force both streams to reassemble, if necessary */
-        StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
-        SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
+        StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
 
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
         ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
@@ -3759,8 +3754,7 @@ static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
             return -1;
 
         /* force both streams to reassemble, if necessary */
-        StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
-        SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
+        StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
 
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
         ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
@@ -3887,8 +3881,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
             return -1;
 
         /* force both streams to reassemble, if necessary */
-        StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
-        SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
+        StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
 
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
         ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
@@ -3985,7 +3978,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
                     "%" PRIu32 "", ssn, ssn->client.next_seq,
                     ssn->server.last_ack);
 
-            StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
+            StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
         } else {
             SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ "
                     "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
@@ -4037,7 +4030,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
                     "%" PRIu32 "", ssn, ssn->server.next_seq,
                     ssn->client.last_ack);
 
-            StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
+            StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
         }
 
     } else {
@@ -5480,7 +5473,7 @@ static void StreamTcpPseudoPacketSetupHeader(Packet *np, Packet *p)
  *  \param p real packet
  *  \param pq packet queue to store the new pseudo packet in
  */
-void StreamTcpPseudoPacketCreateStreamEndPacket(Packet *p, TcpSession *ssn, PacketQueue *pq)
+void StreamTcpPseudoPacketCreateStreamEndPacket(ThreadVars *tv, StreamTcpThread *stt, Packet *p, TcpSession *ssn, PacketQueue *pq)
 {
     SCEnter();
 
@@ -5530,6 +5523,7 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(Packet *p, TcpSession *ssn, Pack
 
     PacketEnqueue(pq, np);
 
+    SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
     SCReturn;
 }
 
