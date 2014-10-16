@@ -4240,6 +4240,45 @@ static int StreamTcpPacketIsWindowUpdate(TcpSession *ssn, Packet *p)
 }
 
 /**
+ *  Try to detect whether a packet is a valid FIN 4whs final ack.
+ *
+ */
+static int StreamTcpPacketIsFinShutdownAck(TcpSession *ssn, Packet *p)
+{
+    TcpStream *stream = NULL, *ostream = NULL;
+    uint32_t seq;
+    uint32_t ack;
+
+    if (p->flags & PKT_PSEUDO_STREAM_END)
+        return 0;
+    if (ssn->state != TCP_TIME_WAIT)
+        return 0;
+    if (p->tcph->th_flags != TH_ACK)
+        return 0;
+    if (p->payload_len != 0)
+        return 0;
+
+    if (PKT_IS_TOSERVER(p)) {
+        stream = &ssn->client;
+        ostream = &ssn->server;
+    } else {
+        stream = &ssn->server;
+        ostream = &ssn->client;
+    }
+
+    seq = TCP_GET_SEQ(p);
+    ack = TCP_GET_ACK(p);
+
+    SCLogDebug("%"PRIu64", seq %u ack %u stream->next_seq %u ostream->next_seq %u",
+            p->pcap_cnt, seq, ack, stream->next_seq, ostream->next_seq);
+
+    if (SEQ_EQ(stream->next_seq + 1, seq) && SEQ_EQ(ack, ostream->next_seq + 1)) {
+        return 1;
+    }
+    return 0;
+}
+
+/**
  *  Try to detect packets doing bad window updates
  *
  *  See bug 1238.
@@ -4383,9 +4422,10 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
         /* if packet is not a valid window update, check if it is perhaps
          * a bad window update that we should ignore (and alert on) */
-        if (StreamTcpPacketIsWindowUpdate(ssn, p) == 0)
-            if (StreamTcpPacketIsBadWindowUpdate(ssn,p))
-                goto skip;
+        if (StreamTcpPacketIsFinShutdownAck(ssn, p) == 0)
+            if (StreamTcpPacketIsWindowUpdate(ssn, p) == 0)
+                if (StreamTcpPacketIsBadWindowUpdate(ssn,p))
+                    goto skip;
 
         switch (ssn->state) {
             case TCP_SYN_SENT:
