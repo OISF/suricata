@@ -1081,8 +1081,8 @@ static inline void SCACTileInsertCaseSensitiveEntriesForPatterns(MpmCtx *mpm_ctx
         for (k = 0; k < ctx->output_table[state].no_of_entries; k++) {
             if (ctx->pattern_list[ctx->output_table[state].patterns[k]].cs != NULL) {
               /* TODO - Find better way to store this. */
-                ctx->output_table[state].patterns[k] &= 0x0000FFFF;
-                ctx->output_table[state].patterns[k] |= 1 << 16;
+                ctx->output_table[state].patterns[k] &= 0x0FFFFFFF;
+                ctx->output_table[state].patterns[k] |= 1 << 31;
             }
         }
     }
@@ -1478,7 +1478,7 @@ int CheckMatch(SCACTileSearchCtx *ctx, PatternMatcherQueue *pmq,
     uint32_t k;
 
     for (k = 0; k < no_of_entries; k++) {
-        MpmPatternIndex pindex = patterns[k] & 0x0000FFFF;
+        MpmPatternIndex pindex = patterns[k] & 0x0FFFFFFF;
         if (mpm_bitarray[pindex / 8] & (1 << (pindex % 8))) {
             /* Pattern already seen by this MPM. */
             /* NOTE: This is faster then rechecking if it is a case-sensitive match
@@ -1492,7 +1492,7 @@ int CheckMatch(SCACTileSearchCtx *ctx, PatternMatcherQueue *pmq,
         }
         uint32_t pid = pattern_list[pindex].pid;
         /* Double check case-sensitve match now. */
-        if (patterns[k] & 0xFFFF0000) {
+        if (patterns[k] >> 31) {
             uint16_t patlen = pattern_list[pindex].patlen;
             if (SCMemcmpNZ(pattern_list[pindex].cs, buf_offset - patlen, patlen) != 0) {
                 /* Case-sensitive match failed. */
