@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -617,8 +617,7 @@ int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
         }
     }
 
-    DetectReplaceExecute(p, det_ctx->replist);
-    det_ctx->replist = NULL;
+    DetectReplaceExecute(p, det_ctx);
 
     if (s->flags & SIG_FLAG_FILESTORE)
         DetectFilestorePostMatch(tv, det_ctx, p, s);
@@ -1564,8 +1563,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         alerts++;
 next:
         DetectFlowvarProcessList(det_ctx, pflow);
-        DetectReplaceFree(det_ctx->replist);
-        det_ctx->replist = NULL;
+        DetectReplaceFree(det_ctx);
         RULE_PROFILING_END(det_ctx, s, smatch, p);
 
         det_ctx->flags = 0;
