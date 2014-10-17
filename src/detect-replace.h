@@ -1,4 +1,4 @@
-/* Copyright (C) 2011 Open Information Security Foundation
+/* Copyright (C) 2011-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,8 +25,27 @@
 #define __DETECT_REPLACE_H__
 
 DetectReplaceList * DetectReplaceAddToList(DetectReplaceList *replist, uint8_t *found, DetectContentData *cd);
-void DetectReplaceExecute(Packet *p, DetectReplaceList *replist);
-void DetectReplaceFree(DetectReplaceList *replist);
+
+/* Internal functions are only called via the inline functions below. */
+void DetectReplaceExecuteInternal(Packet *p, DetectReplaceList *replist);
+void DetectReplaceFreeInternal(DetectReplaceList *replist);
+
+static inline void DetectReplaceExecute(Packet *p, DetectEngineThreadCtx *det_ctx)
+{
+    if (p == NULL || det_ctx->replist == NULL)
+        return;
+    DetectReplaceExecuteInternal(p, det_ctx->replist);
+    det_ctx->replist = NULL;
+}
+
+static inline void DetectReplaceFree(DetectEngineThreadCtx *det_ctx)
+{
+    if (det_ctx->replist) {
+        DetectReplaceFreeInternal(det_ctx->replist);
+        det_ctx->replist = NULL;
+    }
+}
+
 void DetectReplaceRegister (void);
 
 #endif
