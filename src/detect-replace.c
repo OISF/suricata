@@ -174,12 +174,9 @@ DetectReplaceList * DetectReplaceAddToList(DetectReplaceList *replist, uint8_t *
 }
 
 
-void DetectReplaceExecute(Packet *p, DetectReplaceList *replist)
+void DetectReplaceExecuteInternal(Packet *p, DetectReplaceList *replist)
 {
     DetectReplaceList *tlist = NULL;
-
-    if (p == NULL)
-        return;
 
     SCLogDebug("replace: Executing match");
     while(replist) {
@@ -194,7 +191,7 @@ void DetectReplaceExecute(Packet *p, DetectReplaceList *replist)
 }
 
 
-void DetectReplaceFree(DetectReplaceList *replist)
+void DetectReplaceFreeInternal(DetectReplaceList *replist)
 {
     DetectReplaceList *tlist = NULL;
     while(replist) {
