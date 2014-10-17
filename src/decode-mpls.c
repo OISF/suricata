@@ -55,6 +55,7 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
 
     do {
         if (len < MPLS_HEADER_LEN) {
+            ENGINE_SET_INVALID_EVENT(p, MPLS_HEADER_TOO_SMALL);
             return TM_ECODE_FAILED;
         }
         shim = *(uint32_t *)pkt;
@@ -98,8 +99,8 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
             pq);
         break;
     default:
-        event = MPLS_UNKNOWN_PAYLOAD_TYPE;
-        break;
+        ENGINE_SET_INVALID_EVENT(p, MPLS_UNKNOWN_PAYLOAD_TYPE);
+        return TM_ECODE_OK;
     }
 
 end:
@@ -110,6 +111,36 @@ end:
 }
 
 #ifdef UNITTESTS
+
+static int DecodeMPLSTestHeaderTooSmall(void)
+{
+    int ret = 1;
+
+    /* A packet that is too small to have a complete MPLS header. */
+    uint8_t pkt[] = {
+        0x00, 0x00, 0x11
+    };
+
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (unlikely(p == NULL)) {
+        return 0;
+    }
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&tv,  0, sizeof(ThreadVars));
+    memset(p, 0, SIZE_OF_PACKET);
+
+    DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt), NULL);
+
+    if (!ENGINE_ISSET_EVENT(p, MPLS_HEADER_TOO_SMALL)) {
+        ret = 0;
+    }
+
+    SCFree(p);
+    return ret;
+}
 
 static int DecodeMPLSTestBadLabelRouterAlert(void)
 {
@@ -280,6 +311,8 @@ static int DecodeMPLSTestUnknownPayloadType(void)
 void DecodeMPLSRegisterTests(void)
 {
 #ifdef UNITTESTS
+    UtRegisterTest("DecodeMPLSTestHeaderTooSmall",
+        DecodeMPLSTestHeaderTooSmall, 1);
     UtRegisterTest("DecodeMPLSTestBadLabelRouterAlert",
         DecodeMPLSTestBadLabelRouterAlert, 1);
     UtRegisterTest("DecodeMPLSTestBadLabelImplicitNull",
