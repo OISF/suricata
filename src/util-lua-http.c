@@ -56,26 +56,6 @@
 #include "util-lua.h"
 #include "util-lua-common.h"
 
-int LuaStateNeedProto(lua_State *luastate, AppProto alproto)
-{
-    AppProto flow_alproto = 0;
-    int locked = 0;
-    Flow *flow = LuaStateGetFlow(luastate, &locked);
-    if (flow == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
-
-    if (locked == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
-        FLOWLOCK_RDLOCK(flow);
-        flow_alproto = flow->alproto;
-        FLOWLOCK_UNLOCK(flow);
-    } else {
-        flow_alproto = flow->alproto;
-    }
-
-    return (alproto == flow_alproto);
-
-}
-
 static int HttpGetRequestHost(lua_State *luastate)
 {
     if (!(LuaStateNeedProto(luastate, ALPROTO_HTTP)))
