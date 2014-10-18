@@ -35,6 +35,8 @@ void LuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8
 
 int LuaRegisterFunctions(lua_State *luastate);
 
+int LuaStateNeedProto(lua_State *luastate, AppProto alproto);
+
 #endif /* HAVE_LUA */
 
 #endif /* __UTIL_LUA_COMMON_H__ */
