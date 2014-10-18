@@ -65,6 +65,7 @@
 #include "util-lua.h"
 #include "util-lua-common.h"
 #include "util-lua-http.h"
+#include "util-lua-dns.h"
 
 static const char luaext_key_ld[] = "suricata:luajitdata";
 static const char luaext_key_det_ctx[] = "suricata:det_ctx";
@@ -613,6 +614,7 @@ int LuaRegisterExtensions(lua_State *lua_state)
 
     LuaRegisterFunctions(lua_state);
     LuaRegisterHttpFunctions(lua_state);
+    LuaRegisterDnsFunctions(lua_state);
     return 0;
 }
 
