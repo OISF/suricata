@@ -49,5 +49,21 @@
    fun:start_thread
    fun:clone
 }
+{
+   Warning on ARM, not Suricata related
+   Memcheck:Addr4
+   fun:strlen
+   fun:_dl_open
+   fun:do_dlopen
+   fun:_dl_catch_error
+   fun:dlerror_run
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   fun:__nss_lookup
+   fun:getprotobyname_r@@GLIBC_2.4
+   fun:getprotobyname
+   fun:DetectIPProtoParse
+   fun:DetectIPProtoTestParse02
+}
 
 
