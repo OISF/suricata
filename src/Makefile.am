@@ -321,6 +321,7 @@ util-logopenfile.h util-logopenfile.c \
 util-logopenfile-tile.h util-logopenfile-tile.c \
 util-lua.c util-lua.h \
 util-lua-common.c util-lua-common.h \
+util-lua-dns.c util-lua-dns.h \
 util-lua-http.c util-lua-http.h \
 util-magic.c util-magic.h \
 util-memcmp.c util-memcmp.h \
