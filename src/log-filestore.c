@@ -46,6 +46,7 @@
 #include "util-atomic.h"
 #include "util-file.h"
 #include "util-time.h"
+#include "util-buffer.h"
 
 #include "output.h"
 
@@ -60,7 +61,7 @@
 
 #define META_FORMAT_REGULAR 0
 #define META_FORMAT_JSON 1
-#define BUFFER_SIZE 2048
+#define BUFFER_SIZE 20480
 
 #include "output-json.h"
 
@@ -111,10 +112,18 @@ static void LogFilestoreMetaGetUri(const Packet *p, const File *ff, MemBuffer *b
                 return;
 #endif
             }
-            return;
         }
     }
-    sprintf((char *)buffer->buffer, "unknown");
+
+#ifdef HAVE_LIBJANSSON
+    if (fflag & META_FORMAT_JSON) {
+        snprintf((char *)buffer->buffer, buffer->size, "unknown");
+    } else {
+        snprintf((char *)buffer->buffer, buffer->size, "<unknown>");
+    }
+#else
+    snprintf((char *)buffer->buffer, buffer->size, "<unknown>");
+#endif
 }
 
 static void LogFilestoreMetaGetHost(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
@@ -141,7 +150,15 @@ static void LogFilestoreMetaGetHost(const Packet *p, const File *ff, MemBuffer *
 #endif
         }
     }
-    sprintf((char *)buffer->buffer, "unknown");
+#ifdef HAVE_LIBJANSSON
+    if (fflag & META_FORMAT_JSON) {
+        snprintf((char *)buffer->buffer, buffer->size, "unknown");
+    } else {
+        snprintf((char *)buffer->buffer, buffer->size, "<unknown>");
+    }
+#else
+    snprintf((char *)buffer->buffer, buffer->size, "<unknown>");
+#endif
 }
 
 static void LogFilestoreMetaGetReferer(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
@@ -172,7 +189,16 @@ static void LogFilestoreMetaGetReferer(const Packet *p, const File *ff, MemBuffe
             }
         }
     }
-    sprintf((char *)buffer->buffer, "unknown");
+#ifdef HAVE_LIBJANSSON
+    if (fflag & META_FORMAT_JSON) {
+        snprintf((char *)buffer->buffer, buffer->size, "unknown");
+    } else {
+        snprintf((char *)buffer->buffer, buffer->size, "<unknown>");
+    }
+#else
+    snprintf((char *)buffer->buffer, buffer->size, "<unknown>");
+#endif
+
 }
 
 static void LogFilestoreMetaGetUserAgent(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
@@ -203,7 +229,15 @@ static void LogFilestoreMetaGetUserAgent(const Packet *p, const File *ff, MemBuf
             }
         }
     }
-    sprintf((char *)buffer->buffer, "unknown");
+#ifdef HAVE_LIBJANSSON
+    if (fflag & META_FORMAT_JSON) {
+        snprintf((char *)buffer->buffer, buffer->size, "unknown");
+    } else {
+        snprintf((char *)buffer->buffer, buffer->size, "<unknown>");
+    }
+#else
+    snprintf((char *)buffer->buffer, buffer->size, "<unknown>");
+#endif
 }
 
 
@@ -313,10 +347,69 @@ static void LogFilestoreLogCloseMetaFileRegular(const File *ff) {
 }
 
 #ifdef HAVE_LIBJANSSON
-static json_t *LogFilestoreLogCloseMetaFileJson(const File *ff) {
+static void LogFilestoreLogPrintJsonObj(const char *filename, json_t *js) {
+    char metafilename[PATH_MAX] = "";
+    snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
+    FILE *fp = fopen(metafilename, "w");
+    if (fp != NULL) {
+        char *js_data = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|JSON_ESCAPE_SLASH);
+        fprintf(fp, "%s", js_data);
+        fclose(fp);
+    } else {
+        SCLogInfo("Opening %s failed: %s", metafilename, strerror(errno));
+    }
+}
+
+static void LogFilestoreLogCreateMetaFileJson(const Packet *p, const File *ff,
+        const char *filename, uint32_t fflag) {
+    /* Create the JSON header and the sub-objects for the initial structure*/
+    json_t *js = CreateJSONHeader((Packet *)p, 1, "file-store");
+    json_t *fjs = json_object();
+    json_t *hjs = json_object();
+
+    /* Create MemBuffer to hold answers. Collect HTTP information */
+    MemBuffer *buffer;
+    buffer = MemBufferCreateNew(BUFFER_SIZE);
+
+    MemBufferReset(buffer);
+    LogFilestoreMetaGetUri(p, ff, buffer, fflag);
+    json_object_set_new(hjs, "uri", json_string((char *)buffer->buffer));    
+
+    MemBufferReset(buffer);
+    LogFilestoreMetaGetHost(p, ff, buffer, fflag);
+    json_object_set_new(hjs, "host", json_string((char *)buffer->buffer)); 
+
+    MemBufferReset(buffer);
+    LogFilestoreMetaGetReferer(p, ff, buffer, fflag);
+    json_object_set_new(hjs, "host", json_string((char *)buffer->buffer));
+
+    MemBufferReset(buffer);
+    LogFilestoreMetaGetUserAgent(p, ff, buffer, fflag);
+    json_object_set_new(hjs, "useragent", json_string((char *)buffer->buffer));
+
+    MemBufferReset(buffer);
+    PrintRawJsonBuf((char *)buffer->buffer, &buffer->offset, buffer->size,
+                    ff->name, ff->name_len);
+    json_object_set_new(hjs, "filename", json_string((char *)buffer->buffer)); 
+
+    MemBufferFree(buffer);
+
+    /* Merge and build the JSON structure, write to file */
+    json_object_set_new(fjs, "http", hjs);
+    json_object_set_new(js, "file-store", fjs);
+
+    LogFilestoreLogPrintJsonObj(filename, js);
+}
+
+static void LogFilestoreLogCloseMetaFileJson(const File *ff, const char *filename) {
+    char metafilename[PATH_MAX] = "";
+    snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
+
+    /* Read back JSON structure from file. Create the new sub-structures */
+    json_error_t *error;
+    json_t *main_js = json_load_file(metafilename, 0, &error);
+    json_t *fjs = json_object_get(main_js, "file-store");
     json_t *js = json_object();
-    if (unlikely(js == NULL))
-        return NULL;
 
     if (ff->magic == NULL) {
         json_object_set_new(js, "magic", json_string("unknown"));
@@ -329,10 +422,12 @@ static json_t *LogFilestoreLogCloseMetaFileJson(const File *ff) {
             json_object_set_new(js, "state", json_string("closed"));
 #ifdef HAVE_NSS
             if (ff->flags & FILE_MD5) {
-                char md5_buffer[512];
+                char md5_buffer[BUFFER_SIZE];
                 size_t x;
+                uint32_t buf_len = 0;
                 for (x = 0; x < sizeof(ff->md5); x++) {
-                    sprintf(md5_buffer, "%02x", ff->md5[x]);
+                    buf_len += snprintf(md5_buffer+buf_len, BUFFER_SIZE-buf_len,
+                                        "%02x", ff->md5[x]);
                 }
                 json_object_set_new(js, "md5", json_string(md5_buffer));
             }
@@ -350,54 +445,12 @@ static json_t *LogFilestoreLogCloseMetaFileJson(const File *ff) {
     }
 
     char size_buffer[BUFFER_SIZE];
-    sprintf(size_buffer, "%"PRIu64"", ff->size);
+    snprintf(size_buffer, BUFFER_SIZE, "%"PRIu64"", ff->size);
     json_object_set_new(js, "size", json_string(size_buffer));
-    return js;
-}
 
-static json_t *LogFilestoreLogCreateMetaFileJson(const Packet *p, const File *ff, uint32_t fflag) {
-    json_t *js = json_object();
-    if (unlikely(js == NULL))
-        return NULL;
-
-    MemBuffer *buffer;
-    buffer = MemBufferCreateNew(BUFFER_SIZE);
-
-    LogFilestoreMetaGetUri(p, ff, buffer, fflag);
-    json_object_set_new(js, "uri", json_string((char *)buffer->buffer));    
-    MemBufferReset(buffer);
-
-    LogFilestoreMetaGetHost(p, ff, buffer, fflag);
-    json_object_set_new(js, "host", json_string((char *)buffer->buffer));
-    MemBufferReset(buffer);
-
-    LogFilestoreMetaGetReferer(p, ff, buffer, fflag);
-    json_object_set_new(js, "host", json_string((char *)buffer->buffer));
-    MemBufferReset(buffer);
-
-    LogFilestoreMetaGetUserAgent(p, ff, buffer, fflag);
-    json_object_set_new(js, "useragent", json_string((char *)buffer->buffer));
-    MemBufferReset(buffer);
-
-    PrintRawJsonBuf((char *)buffer->buffer, &buffer->offset, buffer->size,
-                    ff->name, ff->name_len);
-    json_object_set_new(js, "filename", json_string((char *)buffer->buffer)); 
-
-    MemBufferFree(buffer);
-    return js;
-}
-
-static void LogFilestoreLogPrintJsonObj(const char *filename, json_t *js) {
-    char metafilename[PATH_MAX] = "";
-    snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
-    FILE *fp = fopen(metafilename, "w");
-    if (fp != NULL) {
-        char *js_data = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|JSON_ESCAPE_SLASH);
-        fprintf(fp, "%s", js_data);
-        fclose(fp);
-    } else {
-        SCLogInfo("Opening %s failed: %s", metafilename, strerror(errno));
-    }
+    /* Merge and build the final JSON structure, write to file */ 
+    json_object_set_new(fjs, "metadata", js);
+    LogFilestoreLogPrintJsonObj(filename, main_js);
 }
 #endif
 
@@ -428,22 +481,12 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
     snprintf(filename, sizeof(filename), "%s/file.%u",
             g_logfile_base_dir, ff->file_id);
 
-#ifdef HAVE_LIBJANSSON
-    json_t *js = CreateJSONHeader((Packet *)p, 1, "file-store");
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
-    json_t *http_json;
-    json_t *meta_json;
-    json_t *filemeta_json = json_object();
-#endif
-
-
     if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {
         aft->file_cnt++;
 
 #ifdef HAVE_LIBJANSSON
 	if (flog->flags & META_FORMAT_JSON) {
-            http_json = LogFilestoreLogCreateMetaFileJson(p, ff, flog->flags);
+            LogFilestoreLogCreateMetaFileJson(p, ff, filename, flog->flags);
         } else {
             LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog->flags);
         }
@@ -476,16 +519,10 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
 #ifdef HAVE_LIBJANSSON
     if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
         if (flog->flags & META_FORMAT_JSON) {
-            meta_json = LogFilestoreLogCloseMetaFileJson(ff);
+            LogFilestoreLogCloseMetaFileJson(ff, filename);
         } else {
             LogFilestoreLogCloseMetaFileRegular(ff);
         }
-    }
-    if (flog->flags & META_FORMAT_JSON) {
-        json_object_set_new(filemeta_json, "http", http_json);
-        json_object_set_new(filemeta_json, "meta", meta_json);
-        json_object_set_new(js, "file-store", filemeta_json);
-        LogFilestoreLogPrintJsonObj(filename, js);
     }
 #else
     if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
