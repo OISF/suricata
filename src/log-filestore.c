@@ -79,7 +79,6 @@ typedef struct LogFilestoreLogThread_ {
     LogFilestoreFileCtx *file_ctx;
     /** LogFilestoreCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t file_cnt;
-    MemBuffer *buffer;
 } LogFilestoreLogThread;
 
 
@@ -208,7 +207,7 @@ static void LogFilestoreMetaGetUserAgent(const Packet *p, const File *ff, MemBuf
 }
 
 
-static void LogFilestoreLogCreateMetaFileRegular(const Packet *p, const File *ff, const char *filename, int ipver, uint32_t fflag, MemBuffer *buffer) {
+static void LogFilestoreLogCreateMetaFileRegular(const Packet *p, const File *ff, const char *filename, int ipver, uint32_t fflag) {
     char metafilename[PATH_MAX] = "";
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
     FILE *fp = fopen(metafilename, "w+");
@@ -246,7 +245,8 @@ static void LogFilestoreLogCreateMetaFileRegular(const Packet *p, const File *ff
             fprintf(fp, "DST PORT:          %" PRIu16 "\n", dp);
         }
 
-        MemBufferReset(buffer);
+        MemBuffer *buffer;
+        buffer = MemBufferCreateNew(BUFFER_SIZE);
 
         LogFilestoreMetaGetUri(p, ff, buffer, fflag);
         fprintf(fp, "HTTP URI:          %s\n", buffer->buffer); 
@@ -269,6 +269,7 @@ static void LogFilestoreLogCreateMetaFileRegular(const Packet *p, const File *ff
         fprintf(fp, "FILENAME:          %s\n", buffer->buffer);
         
         fclose(fp);
+        MemBufferFree(buffer);
     }
 }
 
@@ -354,12 +355,13 @@ static json_t *LogFilestoreLogCloseMetaFileJson(const File *ff) {
     return js;
 }
 
-static json_t *LogFilestoreLogCreateMetaFileJson(const Packet *p, const File *ff, uint32_t fflag, MemBuffer *buffer) {
+static json_t *LogFilestoreLogCreateMetaFileJson(const Packet *p, const File *ff, uint32_t fflag) {
     json_t *js = json_object();
     if (unlikely(js == NULL))
         return NULL;
 
-    MemBufferReset(buffer);
+    MemBuffer *buffer;
+    buffer = MemBufferCreateNew(BUFFER_SIZE);
 
     LogFilestoreMetaGetUri(p, ff, buffer, fflag);
     json_object_set_new(js, "uri", json_string((char *)buffer->buffer));    
@@ -381,6 +383,7 @@ static json_t *LogFilestoreLogCreateMetaFileJson(const Packet *p, const File *ff
                     ff->name, ff->name_len);
     json_object_set_new(js, "filename", json_string((char *)buffer->buffer)); 
 
+    MemBufferFree(buffer);
     return js;
 }
 
@@ -440,12 +443,12 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
 
 #ifdef HAVE_LIBJANSSON
 	if (flog->flags & META_FORMAT_JSON) {
-            http_json = LogFilestoreLogCreateMetaFileJson(p, ff, flog->flags, aft->buffer);
+            http_json = LogFilestoreLogCreateMetaFileJson(p, ff, flog->flags);
         } else {
-            LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog->flags, aft->buffer);
+            LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog->flags);
         }
 #else
-        LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog-flags, aft->buffer);
+        LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog-flags);
 #endif
 
         file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
@@ -509,12 +512,6 @@ static TmEcode LogFilestoreLogThreadInit(ThreadVars *t, void *initdata, void **d
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->file_ctx = ((OutputCtx *)initdata)->data;
 
-    aft->buffer = MemBufferCreateNew(BUFFER_SIZE);
-    if (aft->buffer == NULL) {
-        SCFree(aft);
-        return TM_ECODE_FAILED;
-    }
-
     struct stat stat_buf;
     if (stat(g_logfile_base_dir, &stat_buf) != 0) {
         int ret;
@@ -545,7 +542,6 @@ static TmEcode LogFilestoreLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
-    MemBufferFree(aft->buffer);
     /* clear memory */
     memset(aft, 0, sizeof(LogFilestoreLogThread));
 
