@@ -46,6 +46,8 @@ void PrintRawUriFp(FILE *, uint8_t *, uint32_t);
 void PrintRawUriBuf(char *, uint32_t *, uint32_t,
                     uint8_t *, uint32_t);
 void PrintRawJsonFp(FILE *, uint8_t *, uint32_t);
+void PrintRawJsonBuf(char *, uint32_t *, uint32_t,
+                     uint8_t *, uint32_t);
 void PrintRawDataFp(FILE *, uint8_t *, uint32_t);
 void PrintRawDataToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32_t dst_buf_size,
                           uint8_t *src_buf, uint32_t src_buf_len);

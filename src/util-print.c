@@ -90,6 +90,23 @@ void PrintRawJsonFp(FILE *fp, uint8_t *buf, uint32_t buflen)
     fprintf(fp, "%s", nbuf);
 }
 
+void PrintRawJsonBuf(char *retbuf, uint32_t *offset, uint32_t retbuflen,
+                    uint8_t *buf, uint32_t buflen)
+{
+    uint32_t u = 0;
+    for (u = 0; u < buflen; u++) {
+        if (buf[u] == '\\' || buf[u] == '/' || buf[u] == '\"') {
+            PrintBufferData(retbuf, offset, retbuflen, "\\%c", buf[u]);
+        } else if (isprint(buf[u])) {
+            PrintBufferData(retbuf, offset, retbuflen, "%c", buf[u]);
+        } else {
+            PrintBufferData(retbuf, offset, retbuflen, "\\\\x%02X", buf[u]);
+        }
+    }
+    return;
+}
+
+
 void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
 {
 #define BUFFER_LENGTH 2048

@@ -19,7 +19,7 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
- *
+ * \author Andreas Moe <moe.andreas@gmail.com>
  */
 
 #include "suricata-common.h"
@@ -60,6 +60,13 @@
 
 #define META_FORMAT_REGULAR 0
 #define META_FORMAT_JSON 1
+#define BUFFER_SIZE 2048
+
+#include "output-json.h"
+
+#ifdef HAVE_LIBJANSSON
+#include <jansson.h>
+#endif
 
 static char g_logfile_base_dir[PATH_MAX] = "/tmp";
 
@@ -72,52 +79,73 @@ typedef struct LogFilestoreLogThread_ {
     LogFilestoreFileCtx *file_ctx;
     /** LogFilestoreCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t file_cnt;
+    MemBuffer *buffer;
 } LogFilestoreLogThread;
 
-static void LogFilestoreMetaGetUri(FILE *fp, const Packet *p, const File *ff, uint32_t fflag) {
+
+
+static void LogFilestoreMetaGetUri(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL) {
             HtpTxUserData *tx_ud = htp_tx_get_user_data(tx); 
             if (tx_ud->request_uri_normalized != NULL) {
+#ifdef HAVE_LIBJANSSON
                 if (fflag & META_FORMAT_JSON) {
-                    PrintRawJsonFp(fp, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+                    PrintRawJsonBuf((char *)buffer->buffer, &buffer->offset,
+                                    buffer->size,
+                                    (uint8_t *)bstr_ptr(tx_ud->request_uri_normalized),
+                                    bstr_len(tx_ud->request_uri_normalized));
                 } else {
-                    PrintRawUriFp(fp, bstr_ptr(tx_ud->request_uri_normalized), bstr_len(tx_ud->request_uri_normalized));
+                    PrintRawUriBuf((char *)buffer->buffer, &buffer->offset,
+                                   buffer->size,
+                                   (uint8_t *)bstr_ptr(tx_ud->request_uri_normalized),
+                                   bstr_len(tx_ud->request_uri_normalized));
                 }
+                return;
+#else
+                PrintRawUriBuf((char *)buffer->buffer, &buffer->offset,
+                               buffer->size,
+                               (uint8_t *)bstr_ptr(tx_ud->request_uri_normalized),
+                               bstr_len(tx_ud->request_uri_normalized));
+                return;
+#endif
             }
             return;
         }
     }
-    if (fflag & META_FORMAT_JSON) {
-        fprintf(fp, "unknown");
-    } else {
-        fprintf(fp, "<unknown>");
-    }
+    sprintf((char *)buffer->buffer, "unknown");
 }
 
-static void LogFilestoreMetaGetHost(FILE *fp, const Packet *p, const File *ff, uint32_t fflag) {
+static void LogFilestoreMetaGetHost(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
         if (tx != NULL && tx->request_hostname != NULL) {
+#ifdef HAVE_LIBJANSSON
             if (fflag & META_FORMAT_JSON) {
-                PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(tx->request_hostname), bstr_len(tx->request_hostname));
+                PrintRawJsonBuf((char *)buffer->buffer, &buffer->offset, buffer->size,
+                                (uint8_t *)bstr_ptr(tx->request_hostname),
+                                bstr_len(tx->request_hostname));
             } else {
-                PrintRawUriFp(fp, (uint8_t *)bstr_ptr(tx->request_hostname), bstr_len(tx->request_hostname));
+                PrintRawUriBuf((char *)buffer->buffer, &buffer->offset, buffer->size,
+                               (uint8_t *)bstr_ptr(tx->request_hostname),
+                               bstr_len(tx->request_hostname)); 
             }
             return;
+#else
+            PrintRawUriBuf((char *)buffer->buffer, &buffer->offset, buffer->size,
+                           (uint8_t *)bstr_ptr(tx->request_hostname),
+                           bstr_len(tx->request_hostname));
+            return;
+#endif
         }
     }
-    if (fflag & META_FORMAT_JSON) {
-        fprintf(fp, "unknown");
-    } else {
-        fprintf(fp, "<unknown>");
-    }
+    sprintf((char *)buffer->buffer, "unknown");
 }
 
-static void LogFilestoreMetaGetReferer(FILE *fp, const Packet *p, const File *ff, uint32_t fflag) {
+static void LogFilestoreMetaGetReferer(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -125,23 +153,30 @@ static void LogFilestoreMetaGetReferer(FILE *fp, const Packet *p, const File *ff
             htp_header_t *h = NULL;
             h = (htp_header_t *)htp_table_get_c(tx->request_headers, "Referer");
             if (h != NULL) {
+#ifdef HAVE_LIBJANSSON
                 if (fflag & META_FORMAT_JSON) {
-                    PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(h->value), bstr_len(h->value));
+                    PrintRawJsonBuf((char *)buffer->buffer, &buffer->offset,
+                                    buffer->size, (uint8_t *)bstr_ptr(h->value),
+                                    bstr_len(h->value));
                 } else {
-                    PrintRawUriFp(fp, (uint8_t *)bstr_ptr(h->value), bstr_len(h->value));
+                    PrintRawUriBuf((char *)buffer->buffer, &buffer->offset,
+                                   buffer->size, (uint8_t *)bstr_ptr(h->value),
+                                   bstr_len(h->value));    
                 }
                 return;
+#else
+                PrintRawUriBuf((char *)buffer->buffer, &buffer->offset,
+                               buffer->size, (uint8_t *)bstr_ptr(h->value),
+                               bstr_len(h->value));
+                return;
+#endif
             }
         }
     }
-    if (fflag & META_FORMAT_JSON) {
-        fprintf(fp, "unknown");
-    } else {
-        fprintf(fp, "<unknown>");
-    }
+    sprintf((char *)buffer->buffer, "unknown");
 }
 
-static void LogFilestoreMetaGetUserAgent(FILE *fp, const Packet *p, const File *ff, uint32_t fflag) {
+static void LogFilestoreMetaGetUserAgent(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -149,23 +184,31 @@ static void LogFilestoreMetaGetUserAgent(FILE *fp, const Packet *p, const File *
             htp_header_t *h = NULL;
             h = (htp_header_t *)htp_table_get_c(tx->request_headers, "User-Agent");
             if (h != NULL) {
+#ifdef HAVE_LIBJANSSON
                 if (fflag & META_FORMAT_JSON) {
-                    PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(h->value), bstr_len(h->value));
+                    PrintRawJsonBuf((char *)buffer->buffer, &buffer->offset,
+                                    buffer->size, (uint8_t *)bstr_ptr(h->value),
+                                    bstr_len(h->value));
                 } else {
-                    PrintRawUriFp(fp, (uint8_t *)bstr_ptr(h->value), bstr_len(h->value));
+                    PrintRawUriBuf((char *)buffer->buffer, &buffer->offset,
+                                   buffer->size, (uint8_t *)bstr_ptr(h->value),
+                                   bstr_len(h->value));    
                 }
                 return;
+#else
+                PrintRawUriBuf((char *)buffer->buffer, &buffer->offset,
+                               buffer->size, (uint8_t *)bstr_ptr(h->value),
+                               bstr_len(h->value));
+                return;
+#endif
             }
         }
     }
-    if (fflag & META_FORMAT_JSON) {
-        fprintf(fp, "unknown");
-    } else {
-        fprintf(fp, "<unknown>");
-    }
+    sprintf((char *)buffer->buffer, "unknown");
 }
 
-static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, const char *filename, int ipver, uint32_t format_flag) {
+
+static void LogFilestoreLogCreateMetaFileRegular(const Packet *p, const File *ff, const char *filename, int ipver, uint32_t fflag, MemBuffer *buffer) {
     char metafilename[PATH_MAX] = "";
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
     FILE *fp = fopen(metafilename, "w+");
@@ -185,148 +228,175 @@ static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, const
                 PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
                 break;
             default:
-                if (format_flag & META_FORMAT_JSON) {
-                    strlcpy(srcip, "unknown", sizeof(srcip));
-                    strlcpy(dstip, "unknown", sizeof(dstip));
-                } else {
-                    strlcpy(srcip, "<unknown>", sizeof(srcip));
-                    strlcpy(dstip, "<unknown>", sizeof(dstip));
-                }
+                strlcpy(srcip, "<unknown>", sizeof(srcip));
+                strlcpy(dstip, "<unknown>", sizeof(dstip));
                 break;
         }
         sp = p->sp;
         dp = p->dp;
-
-        if (format_flag & META_FORMAT_JSON) {
-            fprintf(fp, "{\"timestamp\": \"%s\", ", timebuf);
-            if (p->pcap_cnt > 0) {
-                fprintf(fp, "\"pcap_packet_number\": %"PRIu64", ", p->pcap_cnt);
-            }
-            fprintf(fp, "\"src_ip\": \"%s\", ", srcip);
-            fprintf(fp, "\"dst_ip\": \"%s\", ", dstip);
-            fprintf(fp, "\"proto\": %" PRIu32 ", ", p->proto);
-            if (PKT_IS_TCP(p) || PKT_IS_UDP(p)) {
-                fprintf(fp, "\"src_port\": %"PRIu16", ", sp);
-                fprintf(fp, "\"dst_port\": %"PRIu16", ", dp);
-            }
-            fprintf(fp, "\"http_uri\": \"");
-            LogFilestoreMetaGetUri(fp, p, ff, format_flag);
-            fprintf(fp, "\", ");
-            fprintf(fp, "\"http_host\": \"");
-            LogFilestoreMetaGetHost(fp, p, ff, format_flag);
-            fprintf(fp, "\", ");
-            fprintf(fp, "\"http_refer\": \"");
-            LogFilestoreMetaGetReferer(fp, p, ff, format_flag);
-            fprintf(fp, "\", ");
-            fprintf(fp, "\"user_agent\": \"");
-            LogFilestoreMetaGetUserAgent(fp, p, ff, format_flag);
-            fprintf(fp, "\", ");
-            fprintf(fp, "\"filename\": \"");
-            PrintRawJsonFp(fp, ff->name, ff->name_len);
-            fprintf(fp, "\"}\n");
-        } else {
-            fprintf(fp, "TIME:              %s\n", timebuf);
-            if (p->pcap_cnt > 0) {
-                fprintf(fp, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
-            }
-            fprintf(fp, "SRC IP:            %s\n", srcip);
-            fprintf(fp, "DST IP:            %s\n", dstip);
-            fprintf(fp, "PROTO:             %" PRIu32 "\n", p->proto);
-            if (PKT_IS_TCP(p) || PKT_IS_UDP(p)) {
-                fprintf(fp, "SRC PORT:          %" PRIu16 "\n", sp);
-                fprintf(fp, "DST PORT:          %" PRIu16 "\n", dp);
-            }
-            fprintf(fp, "HTTP URI:          ");
-            LogFilestoreMetaGetUri(fp, p, ff, format_flag);
-            fprintf(fp, "\n");
-            fprintf(fp, "HTTP HOST:         ");
-            LogFilestoreMetaGetHost(fp, p, ff, format_flag);
-            fprintf(fp, "\n");
-            fprintf(fp, "HTTP REFERER:      ");
-            LogFilestoreMetaGetReferer(fp, p, ff, format_flag);
-            fprintf(fp, "\n");
-            fprintf(fp, "HTTP USER AGENT:   ");
-            LogFilestoreMetaGetUserAgent(fp, p, ff, format_flag);
-            fprintf(fp, "\n");
-            fprintf(fp, "FILENAME:          ");
-            PrintRawUriFp(fp, ff->name, ff->name_len);
-            fprintf(fp, "\n");
+        fprintf(fp, "TIME:              %s\n", timebuf);
+        if (p->pcap_cnt > 0) {
+            fprintf(fp, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
         }
+        fprintf(fp, "SRC IP:            %s\n", srcip);
+        fprintf(fp, "DST IP:            %s\n", dstip);
+        fprintf(fp, "PROTO:             %" PRIu32 "\n", p->proto);
+        if (PKT_IS_TCP(p) || PKT_IS_UDP(p)) {
+            fprintf(fp, "SRC PORT:          %" PRIu16 "\n", sp);
+            fprintf(fp, "DST PORT:          %" PRIu16 "\n", dp);
+        }
+
+        MemBufferReset(buffer);
+
+        LogFilestoreMetaGetUri(p, ff, buffer, fflag);
+        fprintf(fp, "HTTP URI:          %s\n", buffer->buffer); 
+        MemBufferReset(buffer);
+
+        LogFilestoreMetaGetHost(p, ff, buffer, fflag);
+        fprintf(fp, "HTTP HOST:         %s\n", buffer->buffer);
+        MemBufferReset(buffer);
+
+        LogFilestoreMetaGetReferer(p, ff, buffer, fflag);
+        fprintf(fp, "HTTP REFERER:      %s\n", buffer->buffer);
+        MemBufferReset(buffer);
+
+        LogFilestoreMetaGetUserAgent(p, ff, buffer, fflag);
+        fprintf(fp, "HTTP USER AGENT:   %s\n", buffer->buffer);
+        MemBufferReset(buffer);
+
+        PrintRawUriBuf((char *)buffer->buffer, &buffer->offset, buffer->size,
+                        ff->name, ff->name_len);
+        fprintf(fp, "FILENAME:          %s\n", buffer->buffer);
+        
         fclose(fp);
     }
 }
 
-static void LogFilestoreLogCloseMetaFile(const File *ff, uint32_t format_flag) {
+static void LogFilestoreLogCloseMetaFileRegular(const File *ff) {
     char filename[PATH_MAX] = "";
     snprintf(filename, sizeof(filename), "%s/file.%u", g_logfile_base_dir, ff->file_id);
     char metafilename[PATH_MAX] = "";
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
-    FILE *fp = fopen(metafilename, "r+");
+    FILE *fp = fopen(metafilename, "a");
     if (fp != NULL) {
-        if (format_flag & META_FORMAT_JSON) {
-            fseek(fp, -2, SEEK_END);
-            fprintf(fp, ", ");
-            fprintf(fp, "\"magic\": \"%s\", ", ff->magic ? ff->magic : "unknown");
-            switch (ff->state) {
-                case FILE_STATE_CLOSED:
-                    fprintf(fp, "\"state\": \"closed\", ");
+        fprintf(fp, "MAGIC:             %s\n", ff->magic ? ff->magic : "<unknown>");
+        switch (ff->state) {
+            case FILE_STATE_CLOSED:
+                fprintf(fp, "STATE:             CLOSED\n");
 #ifdef HAVE_NSS
-                    if (ff->flags & FILE_MD5) {
-                        fprintf(fp, "\"md5\": \"");
-                        size_t x;
-                        for (x = 0; x < sizeof(ff->md5); x++) {
-                            fprintf(fp, "%02x", ff->md5[x]);
-                        }
-                        fprintf(fp, "\", ");
+                if (ff->flags & FILE_MD5) {
+                    fprintf(fp, "MD5:               ");
+                    size_t x;
+                    for (x = 0; x < sizeof(ff->md5); x++) {
+                        fprintf(fp, "%02x", ff->md5[x]);
                     }
+                    fprintf(fp, "\n");
+                }
 #endif
-                    break;
-                case FILE_STATE_TRUNCATED:
-                    fprintf(fp, "\"state\": \"truncated\", ");
-                    break;
-                case FILE_STATE_ERROR:
-                    fprintf(fp, "\"state\": \"error\", ");
-                    break;
-                default:
-                    fprintf(fp, "\"state\": \"unknown\", ");
-                    break;
-            }
-            fprintf(fp, "\"size\": %"PRIu64"}\n", ff->size);
-
-        } else {
-            fseek(fp, 0, SEEK_END);
-            fprintf(fp, "MAGIC:             %s\n", ff->magic ? ff->magic : "<unknown>");
-            switch (ff->state) {
-                case FILE_STATE_CLOSED:
-                    fprintf(fp, "STATE:             CLOSED\n");
-#ifdef HAVE_NSS
-                    if (ff->flags & FILE_MD5) {
-                        fprintf(fp, "MD5:               ");
-                        size_t x;
-                        for (x = 0; x < sizeof(ff->md5); x++) {
-                            fprintf(fp, "%02x", ff->md5[x]);
-                        }
-                        fprintf(fp, "\n");
-                    }
-#endif
-                    break;
-                case FILE_STATE_TRUNCATED:
-                    fprintf(fp, "STATE:             TRUNCATED\n");
-                    break;
-                case FILE_STATE_ERROR:
-                    fprintf(fp, "STATE:             ERROR\n");
-                    break;
-                default:
-                    fprintf(fp, "STATE:             UNKNOWN\n");
-                    break;
-            }
-            fprintf(fp, "SIZE:              %"PRIu64"\n", ff->size);
+                break;
+            case FILE_STATE_TRUNCATED:
+                fprintf(fp, "STATE:             TRUNCATED\n");
+                break;
+            case FILE_STATE_ERROR:
+                fprintf(fp, "STATE:             ERROR\n");
+                break;
+            default:
+                fprintf(fp, "STATE:             UNKNOWN\n");
+                break;
         }
+        fprintf(fp, "SIZE:              %"PRIu64"\n", ff->size);
         fclose(fp);
     } else {
         SCLogInfo("Opening %s failed: %s", metafilename, strerror(errno));
     }
 }
+
+#ifdef HAVE_LIBJANSSON
+static json_t *LogFilestoreLogCloseMetaFileJson(const File *ff) {
+    json_t *js = json_object();
+    if (unlikely(js == NULL))
+        return NULL;
+
+    if (ff->magic == NULL) {
+        json_object_set_new(js, "magic", json_string("unknown"));
+    } else {
+        json_object_set_new(js, "magic", json_string(ff->magic));
+    }
+    
+    switch(ff->state) {
+        case FILE_STATE_CLOSED:
+            json_object_set_new(js, "state", json_string("closed"));
+#ifdef HAVE_NSS
+            if (ff->flags & FILE_MD5) {
+                char md5_buffer[512];
+                size_t x;
+                for (x = 0; x < sizeof(ff->md5); x++) {
+                    sprintf(md5_buffer, "%02x", ff->md5[x]);
+                }
+                json_object_set_new(js, "md5", json_string(md5_buffer));
+            }
+#endif
+            break;
+        case FILE_STATE_TRUNCATED:
+            json_object_set_new(js, "state", json_string("truncated"));
+            break;
+        case FILE_STATE_ERROR:
+            json_object_set_new(js, "state", json_string("error"));
+            break;
+        default:
+            json_object_set_new(js, "state", json_string("unknown"));
+            break;
+    }
+
+    char size_buffer[BUFFER_SIZE];
+    sprintf(size_buffer, "%"PRIu64"", ff->size);
+    json_object_set_new(js, "size", json_string(size_buffer));
+    return js;
+}
+
+static json_t *LogFilestoreLogCreateMetaFileJson(const Packet *p, const File *ff, uint32_t fflag, MemBuffer *buffer) {
+    json_t *js = json_object();
+    if (unlikely(js == NULL))
+        return NULL;
+
+    MemBufferReset(buffer);
+
+    LogFilestoreMetaGetUri(p, ff, buffer, fflag);
+    json_object_set_new(js, "uri", json_string((char *)buffer->buffer));    
+    MemBufferReset(buffer);
+
+    LogFilestoreMetaGetHost(p, ff, buffer, fflag);
+    json_object_set_new(js, "host", json_string((char *)buffer->buffer));
+    MemBufferReset(buffer);
+
+    LogFilestoreMetaGetReferer(p, ff, buffer, fflag);
+    json_object_set_new(js, "host", json_string((char *)buffer->buffer));
+    MemBufferReset(buffer);
+
+    LogFilestoreMetaGetUserAgent(p, ff, buffer, fflag);
+    json_object_set_new(js, "useragent", json_string((char *)buffer->buffer));
+    MemBufferReset(buffer);
+
+    PrintRawJsonBuf((char *)buffer->buffer, &buffer->offset, buffer->size,
+                    ff->name, ff->name_len);
+    json_object_set_new(js, "filename", json_string((char *)buffer->buffer)); 
+
+    return js;
+}
+
+static void LogFilestoreLogPrintJsonObj(const char *filename, json_t *js) {
+    char metafilename[PATH_MAX] = "";
+    snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
+    FILE *fp = fopen(metafilename, "w");
+    if (fp != NULL) {
+        char *js_data = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|JSON_ESCAPE_SLASH);
+        fprintf(fp, "%s", js_data);
+        fclose(fp);
+    } else {
+        SCLogInfo("Opening %s failed: %s", metafilename, strerror(errno));
+    }
+}
+#endif
 
 static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff, const FileData *ffd, uint8_t flags)
 {
@@ -355,10 +425,28 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
     snprintf(filename, sizeof(filename), "%s/file.%u",
             g_logfile_base_dir, ff->file_id);
 
+#ifdef HAVE_LIBJANSSON
+    json_t *js = CreateJSONHeader((Packet *)p, 1, "file-store");
+    if (unlikely(js == NULL))
+        return TM_ECODE_OK;
+    json_t *http_json;
+    json_t *meta_json;
+    json_t *filemeta_json = json_object();
+#endif
+
+
     if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {
         aft->file_cnt++;
 
-        LogFilestoreLogCreateMetaFile(p, ff, filename, ipver, flog->flags);
+#ifdef HAVE_LIBJANSSON
+	if (flog->flags & META_FORMAT_JSON) {
+            http_json = LogFilestoreLogCreateMetaFileJson(p, ff, flog->flags, aft->buffer);
+        } else {
+            LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog->flags, aft->buffer);
+        }
+#else
+        LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog-flags, aft->buffer);
+#endif
 
         file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
         if (file_fd == -1) {
@@ -382,10 +470,25 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
         close(file_fd);
     }
 
+#ifdef HAVE_LIBJANSSON
     if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
-        LogFilestoreLogCloseMetaFile(ff, flog->flags);
+        if (flog->flags & META_FORMAT_JSON) {
+            meta_json = LogFilestoreLogCloseMetaFileJson(ff);
+        } else {
+            LogFilestoreLogCloseMetaFileRegular(ff);
+        }
     }
-
+    if (flog->flags & META_FORMAT_JSON) {
+        json_object_set_new(filemeta_json, "http", http_json);
+        json_object_set_new(filemeta_json, "meta", meta_json);
+        json_object_set_new(js, "file-store", filemeta_json);
+        LogFilestoreLogPrintJsonObj(filename, js);
+    }
+#else
+    if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
+        LogFilestoreLogCloseMetaFileRegular(ff);
+    }
+#endif
     return 0;
 }
 
@@ -405,6 +508,12 @@ static TmEcode LogFilestoreLogThreadInit(ThreadVars *t, void *initdata, void **d
 
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->file_ctx = ((OutputCtx *)initdata)->data;
+
+    aft->buffer = MemBufferCreateNew(BUFFER_SIZE);
+    if (aft->buffer == NULL) {
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
 
     struct stat stat_buf;
     if (stat(g_logfile_base_dir, &stat_buf) != 0) {
@@ -436,6 +545,7 @@ static TmEcode LogFilestoreLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
+    MemBufferFree(aft->buffer);
     /* clear memory */
     memset(aft, 0, sizeof(LogFilestoreLogThread));
 
@@ -503,7 +613,6 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
         goto filectx_error;
     filestorelog_ctx->file_ctx = file_ctx;
 
-
     filestorelog_ctx->flags = 0;
     const char *metaformat = ConfNodeLookupChildValue(conf, "format");
     if (metaformat != NULL) {
@@ -511,8 +620,13 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
             filestorelog_ctx->flags = META_FORMAT_REGULAR;
             SCLogInfo("Setting filestore metadata format to regular");
         } else if (strcmp(metaformat, "json") == 0) {
+#ifdef HAVE_LIBJANSSON
             filestorelog_ctx->flags = META_FORMAT_JSON;
             SCLogInfo("Setting filestore metadata format to JSON");
+#else
+            SCLogError(SC_ERR_NO_JSON_SUPPORT);
+            exit(EXIT_FAILURE);
+#endif
         } else {
             SCLogError(SC_ERR_INVALID_ARGUMENT,
                        "Invalid filestore meta format %s", metaformat);
