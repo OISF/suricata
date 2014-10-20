@@ -44,6 +44,7 @@
 
 #include "output.h"
 #include "output-json.h"
+#include "output-json-alert.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -133,6 +134,20 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
             break;
     }
     json_object_set_new(js, "drop", djs);
+
+    int i;
+    for (i = 0; i < p->alerts.cnt; i++) {
+        const PacketAlert *pa = &p->alerts.alerts[i];
+        if (unlikely(pa->s == NULL)) {
+            continue;
+        }
+        if ((pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) ||
+           ((pa->action & ACTION_DROP) && EngineModeIsIPS()))
+        {
+            AlertJsonHeader(pa, js);
+        }
+    }
+
     OutputJSONBuffer(js, aft->file_ctx, buffer);
     json_object_del(js, "drop");
     json_object_clear(js);
