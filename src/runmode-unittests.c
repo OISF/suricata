@@ -206,6 +206,7 @@ void RunUnittests(int list_unittests, char *regex_arg)
     DecodeUDPV4RegisterTests();
     DecodeGRERegisterTests();
     DecodeAsn1RegisterTests();
+    DecodeMPLSRegisterTests();
     AppLayerProtoDetectUnittestsRegister();
     ConfRegisterTests();
     ConfYamlRegisterTests();
