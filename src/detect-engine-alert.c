@@ -286,8 +286,8 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 }
             }
 
-            /* set verdict on packet */
-            PACKET_UPDATE_ACTION(p, p->alerts.alerts[i].action);
+            /* set actions on packet */
+            DetectSignatureApplyActions(p, p->alerts.alerts[i].s);
 
             if (PACKET_TEST_ACTION(p, ACTION_PASS)) {
                 /* Ok, reset the alert cnt to end in the previous of pass

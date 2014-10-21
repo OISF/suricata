@@ -1207,6 +1207,7 @@ void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *, int);
 int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
                                    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
                                    Signature *s);
+void DetectSignatureApplyActions(Packet *p, const Signature *s);
 
 #endif /* __DETECT_H__ */
 
