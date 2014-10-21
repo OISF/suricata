@@ -1081,7 +1081,7 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                             PacketAlertAppend(det_ctx, s, p, 0, 0);
                     } else {
                         /* apply actions for noalert/rule suppressed as well */
-                        PACKET_UPDATE_ACTION(p, s->action);
+                        DetectSignatureApplyActions(p, s);
                     }
                 }
             }
