@@ -142,6 +142,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     json_object_set_new(js, "drop", djs);
 
     if (aft->drop_ctx->flags & LOG_DROP_ALERTS) {
+        int logged = 0;
         int i;
         for (i = 0; i < p->alerts.cnt; i++) {
             const PacketAlert *pa = &p->alerts.alerts[i];
@@ -151,6 +152,13 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
             if ((pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) ||
                ((pa->action & ACTION_DROP) && EngineModeIsIPS()))
             {
+                AlertJsonHeader(pa, js);
+                logged = 1;
+            }
+        }
+        if (logged == 0) {
+            if (p->alerts.drop.num != 0) {
+                const PacketAlert *pa = &p->alerts.drop;
                 AlertJsonHeader(pa, js);
             }
         }
@@ -365,6 +373,8 @@ static int JsonDropLogCondition(ThreadVars *tv, const Packet *p)
 
     if (p->flow != NULL) {
         int ret = FALSE;
+
+        /* for a flow that will be dropped fully, log just once per direction */
         FLOWLOCK_RDLOCK(p->flow);
         if (p->flow->flags & FLOW_ACTION_DROP) {
             if (PKT_IS_TOSERVER(p) && !(p->flow->flags & FLOW_TOSERVER_DROP_LOGGED))
@@ -373,6 +383,11 @@ static int JsonDropLogCondition(ThreadVars *tv, const Packet *p)
                 ret = TRUE;
         }
         FLOWLOCK_UNLOCK(p->flow);
+
+        /* if drop is caused by signature, log anyway */
+        if (p->alerts.drop.num != 0)
+            ret = TRUE;
+
         return ret;
     } else if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
         return TRUE;
