@@ -46,7 +46,6 @@ void PacketAlertTagInit(void)
 
     memset(&g_tag_pa, 0x00, sizeof(g_tag_pa));
 
-    g_tag_pa.order_id = 1000;
     g_tag_pa.action = ACTION_ALERT;
     g_tag_pa.s = &g_tag_signature;
 }
