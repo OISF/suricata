@@ -1688,7 +1688,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 PacketAlertAppend(det_ctx, s, p, 0, alert_flags);
         } else {
             /* apply actions even if not alerting */
-            PACKET_UPDATE_ACTION(p, s->action);
+            DetectSignatureApplyActions(p, s);
         }
         alerts++;
 next:
@@ -1824,6 +1824,21 @@ end:
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_CLEANUP);
 
     SCReturnInt((int)(alerts > 0));
+}
+
+/** \brief Apply action(s) and Set 'drop' sig info,
+ *         if applicable */
+void DetectSignatureApplyActions(Packet *p, const Signature *s)
+{
+    PACKET_UPDATE_ACTION(p, s->action);
+
+    if (s->action & ACTION_DROP) {
+        if (p->alerts.drop.action == 0) {
+            p->alerts.drop.num = s->num;
+            p->alerts.drop.action = s->action;
+            p->alerts.drop.s = (Signature *)s;
+        }
+    }
 }
 
 /* tm module api functions */
