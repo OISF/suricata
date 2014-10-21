@@ -255,7 +255,6 @@ typedef uint16_t Port;
  * found in this packet */
 typedef struct PacketAlert_ {
     SigIntId num; /* Internal num, used for sorting */
-    SigIntId order_id; /* Internal num, used for sorting */
     uint8_t action; /* Internal num, used for sorting */
     uint8_t flags;
     struct Signature_ *s;
