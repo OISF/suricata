@@ -723,6 +723,7 @@ typedef struct DecodeThreadVars_
         (p)->payload_len = 0;                   \
         (p)->pktlen = 0;                        \
         (p)->alerts.cnt = 0;                    \
+        (p)->alerts.drop.num = 0;               \
         (p)->pcap_cnt = 0;                      \
         (p)->tunnel_rtv_cnt = 0;                \
         (p)->tunnel_tpr_cnt = 0;                \
