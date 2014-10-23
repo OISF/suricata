@@ -127,7 +127,7 @@ void PrintChars(int log_level, char *label, char *src, uint32_t len) {
 
             /* Add label and source */
             int num = snprintf(tempbuf, llen +4 < max_len ? llen + 4 : max_len, "[%s] ", label);
-            strlcpy(tempbuf + num, src, len + num < max_len ? len + num : max_len - num - 1);
+            strncpy(tempbuf + num, src, len + num < max_len ? len + num : max_len - num - 1);
 
             SCLog(log_level, "%s", tempbuf);
         }
@@ -431,7 +431,7 @@ MimeDecField * MimeDecFillField(MimeDecEntity *entity, const char *name,
                 SCFree(field);
                 return NULL;
             }
-            strlcpy(field->name, name, nlen);
+            strncpy(field->name, name, nlen);
         } else {
             field->name = (char *) name;
         }
@@ -446,7 +446,7 @@ MimeDecField * MimeDecFillField(MimeDecEntity *entity, const char *name,
                 SCFree(field);
                 return NULL;
             }
-            strlcpy(field->value, value, vlen);
+            strncpy(field->value, value, vlen);
         } else {
             field->value = (char *) value;
         }
@@ -648,12 +648,12 @@ static char * GetFullValue(DataValue *dv, uint32_t *len) {
 
         curr = dv;
         while (curr != NULL) {
-            strlcpy(val + offset, (char *) curr->value, curr->value_len);
+            strncpy(val + offset, (char *) curr->value, curr->value_len);
             offset += curr->value_len;
 
             /* Add CRLF except on last one */
             if (curr->next != NULL) {
-                strlcpy(val + offset, CRLF, 2);
+                strncpy(val + offset, CRLF, 2);
                 offset += 2;
             }
             curr = curr->next;
@@ -911,7 +911,7 @@ static int IsIpv4Host(char *urlhost, uint32_t len) {
     }
 
     /* Create null-terminated string */
-    strlcpy(tempIp, urlhost, i);
+    strncpy(tempIp, urlhost, i);
     tempIp[i] = 0;
 
     return inet_pton(AF_INET, tempIp, &(sa.sin_addr));
@@ -947,7 +947,7 @@ static int IsIpv6Host(char *urlhost, uint32_t len) {
     }
 
     /* Create null-terminated string */
-    strlcpy(tempIp, urlhost, i);
+    strncpy(tempIp, urlhost, i);
     tempIp[i] = 0;
 
     return inet_pton(AF_INET6, tempIp, &(sa.sin_addr));
@@ -1208,7 +1208,7 @@ static uint8_t ProcessBase64Remainder(const char *buf, uint32_t len,
     /* Fill in block with first few bytes of current line */
     remainder = B64_BLOCK - state->bvr_len;
     remainder = remainder < len ? remainder : len;
-    strlcpy(state->bvremain + state->bvr_len, buf, remainder);
+    strncpy(state->bvremain + state->bvr_len, buf, remainder);
     state->bvr_len += remainder;
 
     /* If data chunk buffer will be full, then clear it now */
@@ -1303,7 +1303,7 @@ static int ProcessBase64BodyLine(const char *buf, uint32_t len,
 
             SCLogDebug("Base64 saving remainder: %u", rem2);
 
-            strlcpy(state->bvremain, buf + (len - rem2), rem2);
+            strncpy(state->bvremain, buf + (len - rem2), rem2);
             state->bvr_len = rem2;
         }
 
@@ -1732,7 +1732,7 @@ static int FindMimeHeader(const char *buf, uint32_t blen,
                 SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
                 return MIME_DEC_ERR_MEM;
             }
-            strlcpy(dv->value, (char *) buf, vlen);
+            strncpy(dv->value, (char *) buf, vlen);
             dv->value_len = vlen;
             state->hvlen += vlen;
         }
@@ -1773,7 +1773,7 @@ static int FindMimeHeader(const char *buf, uint32_t blen,
             SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
             return MIME_DEC_ERR_MEM;
         }
-        strlcpy(state->hname, hname, hlen);
+        strncpy(state->hname, hname, hlen);
         state->hlen = hlen;
 
         if (state->hvalue != NULL) {
@@ -1805,7 +1805,7 @@ static int FindMimeHeader(const char *buf, uint32_t blen,
                     SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
                     return MIME_DEC_ERR_MEM;
                 }
-                strlcpy(state->hvalue->value, hval, vlen);
+                strncpy(state->hvalue->value, hval, vlen);
                 state->hvalue->value_len = vlen;
                 state->hvlen += vlen;
             }
@@ -1903,7 +1903,7 @@ static int ProcessMimeHeaders(const char *buf, uint32_t len,
                     SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
                     return MIME_DEC_ERR_MEM;
                 }
-                strlcpy(entity->filename, bptr, blen);
+                strncpy(entity->filename, bptr, blen);
                 entity->filename_len = blen;
             }
         }
@@ -1925,7 +1925,7 @@ static int ProcessMimeHeaders(const char *buf, uint32_t len,
                     SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
                     return MIME_DEC_ERR_MEM;
                 }
-                strlcpy(state->stack->top->bdef, bptr, blen);
+                strncpy(state->stack->top->bdef, bptr, blen);
                 state->stack->top->bdef_len = blen;
             }
 
@@ -1942,7 +1942,7 @@ static int ProcessMimeHeaders(const char *buf, uint32_t len,
                         SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
                         return MIME_DEC_ERR_MEM;
                     }
-                    strlcpy(entity->filename, bptr, blen);
+                    strncpy(entity->filename, bptr, blen);
                     entity->filename_len = blen;
                 }
             }
@@ -2230,8 +2230,8 @@ static int ProcessMimeBody(const char *buf, uint32_t len,
         if (len > 1 && buf[0] == '-' && buf[1] == '-') {
 
             tlen = node->bdef_len + 2;
-            strlcpy(temp, "--", 2);
-            strlcpy(temp + 2, node->bdef, node->bdef_len);
+            strncpy(temp, "--", 2);
+            strncpy(temp + 2, node->bdef, node->bdef_len);
             temp[tlen] = 0;
 
             SCLogDebug("Boundary to search: [%s]", temp);
