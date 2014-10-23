@@ -872,7 +872,7 @@ mpipe:
     size16384: 0
 
 # PF_RING configuration. for use with native PF_RING support
-# for more info see http://www.ntop.org/PF_RING.html
+# for more info see http://www.ntop.org/products/pf_ring/
 pfring:
   - interface: eth0
     # Number of receive threads (>1 will enable experimental flow pinned
@@ -884,8 +884,8 @@ pfring:
     # clusterid.
     cluster-id: 99
 
-    # Default PF_RING cluster type. PF_RING can load balance per flow or per hash.
-    # This is only supported in versions of PF_RING > 4.1.1.
+    # Default PF_RING cluster type. PF_RING can load balance per flow.
+    # Possible values are cluster_flow or cluster_round_robin.
     cluster-type: cluster_flow
     # bpf filter for this interface
     #bpf-filter: tcp
