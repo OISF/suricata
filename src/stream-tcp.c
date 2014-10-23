@@ -4251,7 +4251,7 @@ static int StreamTcpPacketIsFinShutdownAck(TcpSession *ssn, Packet *p)
 
     if (p->flags & PKT_PSEUDO_STREAM_END)
         return 0;
-    if (ssn->state != TCP_TIME_WAIT)
+    if (!(ssn->state == TCP_TIME_WAIT || ssn->state == TCP_CLOSE_WAIT || ssn->state == TCP_LAST_ACK))
         return 0;
     if (p->tcph->th_flags != TH_ACK)
         return 0;
@@ -4288,9 +4288,10 @@ static int StreamTcpPacketIsFinShutdownAck(TcpSession *ssn, Packet *p)
  *
  *  The logic we use here is:
  *  - packet seq > next_seq
- *  - packet acq > next_seq (packet acks unseen data)
+ *  - packet ack > next_seq (packet acks unseen data)
  *  - packet shrinks window more than it's own data size
- *    (in case of no data, any shrinking is rejected)
+ *  - packet shrinks window more than the diff between it's ack and the
+ *    last_ack value
  *
  *  Packets coming in after packet loss can look quite a bit like this.
  */
@@ -4304,7 +4305,7 @@ static int StreamTcpPacketIsBadWindowUpdate(TcpSession *ssn, Packet *p)
     if (p->flags & PKT_PSEUDO_STREAM_END)
         return 0;
 
-    if (ssn->state < TCP_ESTABLISHED)
+    if (ssn->state < TCP_ESTABLISHED || ssn->state == TCP_CLOSED)
         return 0;
 
     if ((p->tcph->th_flags & (TH_SYN|TH_FIN|TH_RST)) != 0)
@@ -4333,12 +4334,25 @@ static int StreamTcpPacketIsBadWindowUpdate(TcpSession *ssn, Packet *p)
                 p->pcap_cnt, pkt_win, ostream->window, diff, p->payload_len);
             SCLogDebug("%"PRIu64", pkt_win %u, stream win %u",
                 p->pcap_cnt, pkt_win, ostream->window);
-            SCLogDebug("%"PRIu64", seq %u ack %u ostream->next_seq %u stream->last_ack %u, diff %u (%u)",
-                p->pcap_cnt, seq, ack, ostream->next_seq, stream->last_ack,
-                ostream->next_seq - ostream->last_ack, stream->next_seq - stream->last_ack);
+            SCLogDebug("%"PRIu64", seq %u ack %u ostream->next_seq %u ostream->last_ack %u, ostream->next_win %u, diff %u (%u)",
+                    p->pcap_cnt, seq, ack, ostream->next_seq, ostream->last_ack, ostream->next_win,
+                    ostream->next_seq - ostream->last_ack, stream->next_seq - stream->last_ack);
 
-            StreamTcpSetEvent(p, STREAM_PKT_BAD_WINDOW_UPDATE);
-            return 1;
+            /* get the expected window shrinking from looking at ack vs last_ack.
+             * Observed a lot of just a little overrunning that value. So added some
+             * margin that is still ok. To make sure this isn't a loophole to still
+             * close the window, this is limited to windows above 1024. Both values
+             * are rather arbitrary. */
+            uint32_t adiff = ack - ostream->last_ack;
+            if (((pkt_win > 1024) && (diff > (adiff + 32))) ||
+                ((pkt_win <= 1024) && (diff > adiff)))
+            {
+                SCLogDebug("pkt ACK %u is %u bytes beyond last_ack %u, shrinks window by %u "
+                        "(allowing 32 bytes extra): pkt WIN %u", ack, adiff, ostream->last_ack, diff, pkt_win);
+                SCLogDebug("%u - %u = %u (state %u)", diff, adiff, diff - adiff, ssn->state);
+                StreamTcpSetEvent(p, STREAM_PKT_BAD_WINDOW_UPDATE);
+                return 1;
+            }
         }
 
     }
