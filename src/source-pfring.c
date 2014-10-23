@@ -521,6 +521,19 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
         ptv->vlan_disabled = 1;
     }
 
+    /* Since VLAN is disabled we force the cluster type to CLUSTER_FLOW_5_TUPLE */
+    if (ptv->vlan_disabled == 1 && ptv->ctype == CLUSTER_FLOW) {
+        SCLogInfo("VLAN disabled, setting cluster type to CLUSTER_FLOW_5_TUPLE");
+        rc = pfring_set_cluster(ptv->pd, ptv->cluster_id, CLUSTER_FLOW_5_TUPLE);
+
+        if (rc != 0) {
+            SCLogError(SC_ERR_PF_RING_SET_CLUSTER_FAILED, "pfring_set_cluster "
+                    "returned %d for cluster-id: %d", rc, ptv->cluster_id);
+            pfconf->DerefFunc(pfconf);
+            return TM_ECODE_FAILED;
+        }
+    }
+
     *data = (void *)ptv;
     pfconf->DerefFunc(pfconf);
 

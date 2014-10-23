@@ -60,5 +60,5 @@ void PfringLoadConfig(void);
 /* We don't have to use an enum that sucks in our code */
 #define CLUSTER_FLOW 0
 #define CLUSTER_ROUND_ROBIN 1
-
+#define CLUSTER_FLOW_5_TUPLE 4
 #endif /* __SOURCE_PFRING_H__ */
