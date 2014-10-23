@@ -18,25 +18,16 @@
 /**
  * \file
  *
- * \author Victor Julien <victor@inliniac.net>
+ * \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __UTIL_LUA_COMMON_H__
-#define __UTIL_LUA_COMMON_H__
+#ifndef __UTIL_LUA_DNS_H__
+#define __UTIL_LUA_DNS_H__
 
 #ifdef HAVE_LUA
 
-int LuaCallbackError(lua_State *luastate, const char *msg);
-const char *LuaGetStringArgument(lua_State *luastate, int argc);
-
-void LuaPushTableKeyValueInt(lua_State *luastate, const char *key, int value);
-void LuaPushTableKeyValueString(lua_State *luastate, const char *key, const char *value);
-void LuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8_t *value, size_t len);
-
-int LuaRegisterFunctions(lua_State *luastate);
-
-int LuaStateNeedProto(lua_State *luastate, AppProto alproto);
+int LuaRegisterDnsFunctions(lua_State *luastate);
 
 #endif /* HAVE_LUA */
 
-#endif /* __UTIL_LUA_COMMON_H__ */
+#endif /* __UTIL_LUA_HTTP_H__ */
