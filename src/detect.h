@@ -39,6 +39,7 @@
 #include "util-error.h"
 #include "util-radix-tree.h"
 #include "util-file.h"
+#include "reputation.h"
 
 #include "detect-mark.h"
 
@@ -585,6 +586,9 @@ typedef struct DetectEngineCtx_ {
 
     /* version of the srep data */
     uint32_t srep_version;
+
+    /* reputation for netblocks */
+    SRepCIDRTree *srepCIDR_ctx;
 
     Signature **sig_array;
     uint32_t sig_array_size; /* size in bytes */
