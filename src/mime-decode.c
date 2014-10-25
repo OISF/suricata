@@ -806,7 +806,6 @@ static int StoreMimeHeader(MimeDecParseState *state) {
         SCLogDebug("Storing last header");
         val = GetFullValue(state->hvalue, &vlen);
         if (val != NULL) {
-
             if (state->hname == NULL) {
                 SCLogDebug("Error: Invalid parser state - header value without"
                         " name");
@@ -833,6 +832,7 @@ static int StoreMimeHeader(MimeDecParseState *state) {
         /* Do cleanup here */
         if (!stored) {
             SCFree(state->hname);
+            SCFree(val);
         }
         state->hname = NULL;
         FreeDataValue(state->hvalue);
