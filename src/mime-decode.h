@@ -202,7 +202,7 @@ typedef struct MimeDecParseState {
     int body_begin;  /**< Currently at beginning of body */
     int body_end;  /**< Currently at end of body */
     void *data;  /**< Pointer to data specific to the caller */
-    int (*dataChunkProcessor) (const uint8_t *chunk, uint32_t len,
+    int (*DataChunkProcessorFunc) (const uint8_t *chunk, uint32_t len,
             struct MimeDecParseState *state);  /**< Data chunk processing function callback */
 } MimeDecParseState;
 
@@ -232,7 +232,7 @@ void MimeDecDeInitParser(MimeDecParseState *state);
 int MimeDecParseComplete(MimeDecParseState *state);
 int MimeDecParseLine(const uint8_t *line, const uint32_t len, MimeDecParseState *state);
 MimeDecEntity * MimeDecParseFullMsg(const uint8_t *buf, uint32_t blen, void *data,
-        int (*dcpfunc)(const uint8_t *chunk, uint32_t len, MimeDecParseState *state));
+        int (*DataChunkProcessorFunc)(const uint8_t *chunk, uint32_t len, MimeDecParseState *state));
 
 /* Test functions */
 void MimeDecRegisterTests(void);
