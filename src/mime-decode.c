@@ -2620,26 +2620,29 @@ static int MimeDecParseLineTest01(void) {
             TestDataChunkCallback);
 
     char *str = "From: Sender1";
-    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
     str = "To: Recipient1";
-    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
     str = "Content-Type: text/plain";
-    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
     str = "";
-    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
     str = "A simple message line 1";
-    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
     str = "A simple message line 2";
-    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
     str = "A simple message line 3";
-    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
+    if (ret != MIME_DEC_OK) {
+        return ret;
+    }
     /* Completed */
     ret = MimeDecParseComplete(state);
     if (ret != MIME_DEC_OK) {
@@ -2684,24 +2687,27 @@ static int MimeDecParseLineTest02(void) {
             TestDataChunkCallback);
 
     char *str = "From: Sender1";
-    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
     str = "To: Recipient1";
-    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
     str = "Content-Type: text/plain";
-    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
     str = "";
-    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
     str = "A simple message line 1";
-    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
     str = "A simple message line 2 click on http://www.test.com/malware.exe?"
             "hahah hopefully you click this link";
-    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
+    if (ret != MIME_DEC_OK) {
+        return ret;
+    }
     /* Completed */
     ret = MimeDecParseComplete(state);
     if (ret != MIME_DEC_OK) {
