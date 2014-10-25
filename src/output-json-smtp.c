@@ -61,6 +61,26 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     SCReturnInt(JsonEmailLogger(tv, thread_data, p));
 }
 
+static void OutputSmtpLogDeInitCtx(OutputCtx *output_ctx)
+{
+    OutputJsonEmailCtx *email_ctx = output_ctx->data;
+    if (email_ctx != NULL) {
+        LogFileFreeCtx(email_ctx->file_ctx);
+        SCFree(email_ctx);
+    }
+    SCFree(output_ctx);
+}
+
+static void OutputSmtpLogDeInitCtxSub(OutputCtx *output_ctx)
+{
+    SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
+    OutputJsonEmailCtx *email_ctx = output_ctx->data;
+    if (email_ctx != NULL) {
+        SCFree(email_ctx);
+    }
+    SCFree(output_ctx);
+}
+
 #define DEFAULT_LOG_FILENAME "smtp.json"
 OutputCtx *OutputSmtpLogInit(ConfNode *conf)
 {
@@ -91,7 +111,7 @@ OutputCtx *OutputSmtpLogInit(ConfNode *conf)
     email_ctx->file_ctx = file_ctx;
 
     output_ctx->data = email_ctx;
-    output_ctx->DeInit = NULL;
+    output_ctx->DeInit = OutputSmtpLogDeInitCtx;
 
     /* enable the logger for the app layer */
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SMTP);
@@ -116,7 +136,7 @@ static OutputCtx *OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     email_ctx->file_ctx = ajt->file_ctx;
 
     output_ctx->data = email_ctx;
-    output_ctx->DeInit = NULL;
+    output_ctx->DeInit = OutputSmtpLogDeInitCtxSub;
 
     /* enable the logger for the app layer */
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SMTP);
