@@ -56,7 +56,7 @@
 
 #include "app-layer-htp.h"
 #include "app-layer-smtp.h"
-#include "mime-decode.h"
+#include "util-decode-mime.h"
 #include "util-memcmp.h"
 #include "stream-tcp-reassemble.h"
 

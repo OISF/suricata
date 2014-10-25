@@ -25,7 +25,7 @@
 #define __APP_LAYER_SMTP_H__
 
 #include "decode-events.h"
-#include "mime-decode.h"
+#include "util-decode-mime.h"
 
 enum {
     SMTP_DECODER_EVENT_INVALID_REPLY,

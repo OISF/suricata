@@ -24,7 +24,7 @@
 
 #include "suricata-common.h"
 
-#include "mime-decode.h"
+#include "util-decode-mime.h"
 
 #include "util-spm-bs.h"
 #include "util-unittest.h"

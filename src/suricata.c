@@ -152,7 +152,7 @@
 
 #include "util-coredump-config.h"
 
-#include "mime-decode.h"
+#include "util-decode-mime.h"
 
 #include "defrag.h"
 
