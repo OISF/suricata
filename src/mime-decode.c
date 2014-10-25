@@ -299,17 +299,14 @@ MimeDecField * MimeDecAddField(MimeDecEntity *entity) {
     }
     memset(node, 0x00, sizeof(MimeDecField));
 
-    if (entity != NULL) {
-
-        /* If list is empty, then set as head of list */
-        if (entity->field_list == NULL) {
-            entity->field_list = node;
-        } else {
-            /* Otherwise add to beginning of list since these are out-of-order in
-             * the message */
-            node->next = entity->field_list;
-            entity->field_list = node;
-        }
+    /* If list is empty, then set as head of list */
+    if (entity->field_list == NULL) {
+        entity->field_list = node;
+    } else {
+        /* Otherwise add to beginning of list since these are out-of-order in
+         * the message */
+        node->next = entity->field_list;
+        entity->field_list = node;
     }
 
     return node;
@@ -692,6 +689,9 @@ static uint8_t * GetLine(uint8_t *buf, uint32_t blen, uint8_t **remainPtr,
     } else {
         *remainPtr = buf;
     }
+    if (buf == NULL)
+        return NULL;
+
     tok = buf;
 
     /* length must be specified */
@@ -744,6 +744,8 @@ static uint8_t * GetToken(uint8_t *buf, uint32_t blen, const char *delims,
     } else {
         *remainPtr = buf;
     }
+    if (buf == NULL)
+        return NULL;
 
     /* Must specify length */
     for (i = 0; i < blen && buf[i] != 0; i++) {
