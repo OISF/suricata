@@ -28,6 +28,7 @@
 
 #include "util-spm-bs.h"
 #include "util-unittest.h"
+#include "util-memcmp.h"
 
 /* Character constants */
 #ifndef CR
@@ -56,10 +57,10 @@
 #define MAX_HEADER_NAME     75 /* 75 + ":" = 76 */
 #define MAX_HEADER_VALUE  2000 /* Default - arbitrary limit */
 #define BOUNDARY_BUF       256
-#define CTNT_TYPE_STR     "Content-Type"
-#define CTNT_DISP_STR     "Content-Disposition"
-#define CTNT_TRAN_STR     "Content-Transfer-Encoding"
-#define MSG_ID_STR        "Message-ID"
+#define CTNT_TYPE_STR     "content-type"
+#define CTNT_DISP_STR     "content-disposition"
+#define CTNT_TRAN_STR     "content-transfer-encoding"
+#define MSG_ID_STR        "message-id"
 #define BND_START_STR     "boundary=\""
 #define TOK_END_STR       "\""
 #define MSG_STR           "message/"
@@ -113,7 +114,7 @@ static const char *UrlExeExts[] = { ".exe",
  *
  * \return none
  */
-void PrintChars(int log_level, char *label, char *src, uint32_t len) {
+static void PrintChars(int log_level, char *label, const uint8_t *src, uint32_t len) {
 
     if (log_level <= sc_log_global_log_level) {
 
@@ -127,7 +128,11 @@ void PrintChars(int log_level, char *label, char *src, uint32_t len) {
 
             /* Add label and source */
             int num = snprintf(tempbuf, llen +4 < max_len ? llen + 4 : max_len, "[%s] ", label);
-            strncpy(tempbuf + num, src, len + num < max_len ? len + num : max_len - num - 1);
+            size_t copy = len;
+            if ((len + num + 1) > max_len)
+                copy = max_len - (num + 1);
+            memcpy(tempbuf + num, src, copy);
+            tempbuf[copy] = '\0';
 
             SCLog(log_level, "%s", tempbuf);
         }
@@ -311,10 +316,10 @@ MimeDecField * MimeDecAddField(MimeDecEntity *entity) {
 }
 
 /**
- * \brief Searches for a header field with the specified name (case insensitive)
+ * \brief Searches for a header field with the specified name
  *
  * \param entity The entity to search
- * \param name The header name (case insensitive)
+ * \param name The header name (lowercase)
  *
  * \return The field object, or NULL if not found
  *
@@ -323,9 +328,11 @@ MimeDecField * MimeDecFindField(const MimeDecEntity *entity, const char *name) {
     MimeDecField *curr = entity->field_list;
 
     while (curr != NULL) {
-
-        if (strncasecmp(curr->name, name, curr->name_len) == 0) {
-            break;
+        /* name is stored lowercase */
+        if (strlen(name) == curr->name_len) {
+            if (SCMemcmp(curr->name, name, curr->name_len) == 0) {
+                break;
+            }
         }
         curr = curr->next;
     }
@@ -410,13 +417,11 @@ MimeDecEntity * MimeDecAddEntity(MimeDecEntity *parent) {
  * \param nlen Length of the name
  * \param value String containing the value
  * \param vlen Length of the value
- * \param copy_name_value Flag indicating whether to make copies of the name and
- * value or just point to them
  *
  * \return The field or NULL if the operation fails
  */
-MimeDecField * MimeDecFillField(MimeDecEntity *entity, const char *name,
-        uint32_t nlen, const char *value, uint32_t vlen, int copy_name_value) {
+static MimeDecField * MimeDecFillField(MimeDecEntity *entity, uint8_t *name,
+        uint32_t nlen, const uint8_t *value, uint32_t vlen) {
 
     MimeDecField *field = MimeDecAddField(entity);
     if (unlikely(field == NULL)) {
@@ -424,32 +429,17 @@ MimeDecField * MimeDecFillField(MimeDecEntity *entity, const char *name,
     }
 
     if (nlen > 0) {
-        if (copy_name_value) {
-            field->name = SCMalloc(nlen);
-            if (unlikely(field->name == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
-                SCFree(field);
-                return NULL;
-            }
-            strncpy(field->name, name, nlen);
-        } else {
-            field->name = (char *) name;
-        }
+        /* convert to lowercase and store */
+        uint32_t u;
+        for (u = 0; u < nlen; u++)
+            name[u] = tolower(name[u]);
+
+        field->name = (uint8_t *)name;
         field->name_len = nlen;
     }
 
     if (vlen > 0) {
-        if (copy_name_value) {
-            field->value = SCMalloc(vlen);
-            if (unlikely(field->value == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
-                SCFree(field);
-                return NULL;
-            }
-            strncpy(field->value, value, vlen);
-        } else {
-            field->value = (char *) value;
-        }
+        field->value = (uint8_t *)value;
         field->value_len = vlen;
     }
 
@@ -618,11 +608,11 @@ static void FreeDataValue(DataValue *dv) {
  *
  * \return pointer to a single value, otherwise NULL if it fails or is zero-length
  */
-static char * GetFullValue(DataValue *dv, uint32_t *len) {
+static uint8_t * GetFullValue(DataValue *dv, uint32_t *len) {
 
     DataValue *curr;
     uint32_t offset = 0;
-    char *val = NULL;
+    uint8_t *val = NULL;
 
     /* First calculate total length */
     *len = 0;
@@ -639,7 +629,7 @@ static char * GetFullValue(DataValue *dv, uint32_t *len) {
 
     /* Must have at least one character in the value */
     if (*len > 0) {
-        val = SCMalloc(*len);
+        val = SCCalloc(1, *len);
         if (unlikely(val == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
             *len = 0;
@@ -648,12 +638,12 @@ static char * GetFullValue(DataValue *dv, uint32_t *len) {
 
         curr = dv;
         while (curr != NULL) {
-            strncpy(val + offset, (char *) curr->value, curr->value_len);
+            memcpy(val + offset, curr->value, curr->value_len);
             offset += curr->value_len;
 
             /* Add CRLF except on last one */
             if (curr->next != NULL) {
-                strncpy(val + offset, CRLF, 2);
+                memcpy(val + offset, CRLF, 2);
                 offset += 2;
             }
             curr = curr->next;
@@ -665,18 +655,19 @@ static char * GetFullValue(DataValue *dv, uint32_t *len) {
 
 /**
  * \brief Find a string while searching up to N characters within a source
- * string
+ *        buffer
  *
  * \param src The source string (not null-terminated)
  * \param len The length of the source string
  * \param find The string to find (null-terminated)
+ * \param find_len length of the 'find' string
  *
  * \return Pointer to the position it was found, otherwise NULL if not found
  */
-static inline char * FindString(const char *src, uint32_t len, const char *find) {
-
+static inline uint8_t * FindBuffer(const uint8_t *src, uint32_t len, const uint8_t *find, uint32_t find_len)
+{
     /* Use utility search function */
-    return (char *) BasicSearchNocase((uint8_t *) src, len, (uint8_t *) find, strlen(find));
+    return BasicSearchNocase(src, len, find, find_len);
 }
 
 /**
@@ -689,11 +680,11 @@ static inline char * FindString(const char *src, uint32_t len, const char *find)
  *
  * \return Pointer to line
  */
-static char * GetLine(char *buf, uint32_t blen, char **remainPtr,
+static uint8_t * GetLine(uint8_t *buf, uint32_t blen, uint8_t **remainPtr,
         uint32_t *tokLen) {
 
     uint32_t i;
-    char *tok;
+    uint8_t *tok;
 
     /* So that it can be used just like strtok_r */
     if (buf == NULL) {
@@ -741,11 +732,11 @@ static char * GetLine(char *buf, uint32_t blen, char **remainPtr,
  *
  * \return Pointer to token, or NULL if not found
  */
-static char * GetToken(char *buf, uint32_t blen, const char *delims,
-        char **remainPtr, uint32_t *tokenLen) {
+static uint8_t * GetToken(uint8_t *buf, uint32_t blen, const char *delims,
+        uint8_t **remainPtr, uint32_t *tokenLen) {
 
     uint32_t i, j, delimFound = 0;
-    char *tok = NULL;
+    uint8_t *tok = NULL;
 
     /* So that it can be used just like strtok_r */
     if (buf == NULL) {
@@ -807,7 +798,7 @@ static char * GetToken(char *buf, uint32_t blen, const char *delims,
 static int StoreMimeHeader(MimeDecParseState *state) {
 
     int ret = MIME_DEC_OK, stored = 0;
-    char *val;
+    uint8_t *val;
     uint32_t vlen;
 
     /* Lets save the most recent header */
@@ -823,7 +814,7 @@ static int StoreMimeHeader(MimeDecParseState *state) {
             } else if (state->stack->top != NULL) {
                 /* Store each header name and value */
                 if (MimeDecFillField(state->stack->top->data, state->hname,
-                        state->hlen, val, vlen, 0) == NULL) {
+                            state->hlen, val, vlen) == NULL) {
                     SCLogError(SC_ERR_MEM_ALLOC, "MimeDecFillField() function failed");
                     ret = MIME_DEC_ERR_MEM;
                 } else {
@@ -862,16 +853,16 @@ static int StoreMimeHeader(MimeDecParseState *state) {
  * \retval 1 The url points to an EXE
  * \retval 0 The url does NOT point to an EXE
  */
-static int IsExeUrl(char *url, uint32_t len) {
+static int IsExeUrl(const uint8_t *url, uint32_t len) {
 
     int isExeUrl = 0;
     uint32_t i, extLen;
-    char *ext;
+    uint8_t *ext;
 
     /* Now check for executable extensions and if not found, cut off at first '/' */
     for (i = 0; UrlExeExts[i] != NULL; i++) {
         extLen = strlen(UrlExeExts[i]);
-        ext = FindString(url, len, UrlExeExts[i]);
+        ext = FindBuffer(url, len, (uint8_t *)UrlExeExts[i], strlen(UrlExeExts[i]));
         if (ext != NULL && (ext + extLen - url == (int)len || ext[extLen] == '?')) {
             isExeUrl = 1;
             break;
@@ -890,7 +881,7 @@ static int IsExeUrl(char *url, uint32_t len) {
  * \retval 1 The host is a numeric IP
  * \retval 0 The host is NOT a numeric IP
  */
-static int IsIpv4Host(char *urlhost, uint32_t len) {
+static int IsIpv4Host(const uint8_t *urlhost, uint32_t len) {
 
     struct sockaddr_in sa;
 
@@ -911,8 +902,8 @@ static int IsIpv4Host(char *urlhost, uint32_t len) {
     }
 
     /* Create null-terminated string */
-    strncpy(tempIp, urlhost, i);
-    tempIp[i] = 0;
+    memcpy(tempIp, urlhost, i);
+    tempIp[i] = '\0';
 
     return inet_pton(AF_INET, tempIp, &(sa.sin_addr));
 }
@@ -926,7 +917,7 @@ static int IsIpv4Host(char *urlhost, uint32_t len) {
  * \retval 1 The host is a numeric IP
  * \retval 0 The host is NOT a numeric IP
  */
-static int IsIpv6Host(char *urlhost, uint32_t len) {
+static int IsIpv6Host(const uint8_t *urlhost, uint32_t len) {
 
     struct sockaddr_in sa;
 
@@ -947,8 +938,8 @@ static int IsIpv6Host(char *urlhost, uint32_t len) {
     }
 
     /* Create null-terminated string */
-    strncpy(tempIp, urlhost, i);
-    tempIp[i] = 0;
+    memcpy(tempIp, urlhost, i);
+    tempIp[i] = '\0';
 
     return inet_pton(AF_INET6, tempIp, &(sa.sin_addr));
 }
@@ -958,25 +949,23 @@ static int IsIpv6Host(char *urlhost, uint32_t len) {
  * string
  *
  * \param entity The MIME entity
- * \param url The matching URL string
+ * \param url The matching URL string (lowercase)
  * \param url_len The matching URL string length
  *
  * \return URL object or NULL if not found
  */
-static MimeDecUrl * FindExistingUrl(MimeDecEntity *entity, char *url,
-        uint32_t url_len) {
-
-    uint32_t len;
+static MimeDecUrl *FindExistingUrl(MimeDecEntity *entity, uint8_t *url, uint32_t url_len)
+{
     MimeDecUrl *curr = entity->url_list;
 
     while (curr != NULL) {
-
-        /* Get smaller length */
-        len = curr->url_len < url_len ? curr->url_len : url_len;
-        if (strncasecmp(curr->url, url, len) == 0) {
-            break;
+        if (url_len == curr->url_len) {
+            /* search url and stored url are both in
+             * lowercase, so we can do an exact match */
+            if (SCMemcmp(curr->url, url, url_len) == 0) {
+                break;
+            }
         }
-
         curr = curr->next;
     }
 
@@ -991,7 +980,7 @@ static MimeDecUrl * FindExistingUrl(MimeDecEntity *entity, char *url,
  * the same host, but with only small variations in path.
  *
  * The exception is that URLs with executable file extensions are stored
- * with the full path.
+ * with the full path. They are stored in lowercase.
  *
  * Numeric IPs, malformed numeric IPs, and URLs pointing to executables are
  * also flagged as URLs of interest.
@@ -1002,21 +991,21 @@ static MimeDecUrl * FindExistingUrl(MimeDecEntity *entity, char *url,
  *
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
-static int FindUrlStrings(const char *line, uint32_t len,
+static int FindUrlStrings(const uint8_t *line, uint32_t len,
         MimeDecParseState *state) {
 
     int ret = MIME_DEC_OK;
     MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
-    char *fptr, *remptr, *tok = NULL, *tempUrl;
+    uint8_t *fptr, *remptr, *tok = NULL, *tempUrl;
     uint32_t tokLen, i, tempUrlLen;
     uint8_t urlStrLen = 0, flags = 0;
 
-    remptr = (char *) line;
+    remptr = (uint8_t *)line;
     do {
         SCLogDebug("Looking for URL String starting with: %s", URL_STR);
 
         /* Check for token definition */
-        fptr = FindString(remptr, len - (remptr - line), URL_STR);
+        fptr = FindBuffer(remptr, len - (remptr - line), (uint8_t *)URL_STR, strlen(URL_STR));
         if (fptr != NULL) {
 
             urlStrLen = strlen(URL_STR);
@@ -1041,7 +1030,8 @@ static int FindUrlStrings(const char *line, uint32_t len,
 
                     // URL decoding would probably go here
 
-                    tempUrl[tempUrlLen] = tok[i];
+                    /* url is all lowercase */
+                    tempUrl[tempUrlLen] = tolower(tok[i]);
                     tempUrlLen++;
                 }
 
@@ -1078,15 +1068,16 @@ static int FindUrlStrings(const char *line, uint32_t len,
                     }
 
                     /* Update URL list */
-                    MimeDecUrl *url = FindExistingUrl(entity, tempUrl,
-                            tempUrlLen);
+                    MimeDecUrl *url = FindExistingUrl(entity, tempUrl, tempUrlLen);
                     if (url == NULL) {
 
                         /* Add URL list item */
                         url = MimeDecAddUrl(entity);
-                        url->url = tempUrl;
-                        url->url_len = tempUrlLen;
-                        url->url_flags |= flags;
+                        if (url != NULL) {
+                            url->url = tempUrl;
+                            url->url_len = tempUrlLen;
+                            url->url_flags |= flags;
+                        }
                     } else {
                         SCFree(tempUrl);
                     }
@@ -1116,7 +1107,7 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
         MimeDecParseState *state) {
 
     int ret = MIME_DEC_OK;
-    char *remainPtr, *tok;
+    uint8_t *remainPtr, *tok;
     uint32_t tokLen;
 
     if ((state->stack != NULL) && (state->stack->top != NULL) &&
@@ -1136,19 +1127,19 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
                 } else {
                     /* No remainder from previous line */
                     /* Parse each line one by one */
-                    remainPtr = (char *) chunk;
+                    remainPtr = (uint8_t *)chunk;
                     do {
-                        tok = GetLine(remainPtr, len - (remainPtr - (char *) chunk),
+                        tok = GetLine(remainPtr, len - (remainPtr - (uint8_t *)chunk),
                                 &remainPtr, &tokLen);
                         if (tok != remainPtr) {
                             // DEBUG - ADDED
                             /* If last token found without CR/LF delimiter, then save
                              * and reconstruct with next chunk
                              */
-                            if (tok + tokLen - (char *) chunk == (int)len) {
+                            if (tok + tokLen - (uint8_t *) chunk == (int)len) {
                                 PrintChars(SC_LOG_DEBUG, "LAST CHUNK LINE - CUTOFF",
                                         tok, tokLen);
-                                SCLogDebug("\nCHUNK CUTOFF CHARS: %d delim %ld\n", tokLen, len - (tok + tokLen - (char *) chunk));
+                                SCLogDebug("\nCHUNK CUTOFF CHARS: %d delim %ld\n", tokLen, len - (tok + tokLen - (uint8_t *) chunk));
                             } else {
                                 /* Search line for URL */
                                 ret = FindUrlStrings(tok, tokLen, state);
@@ -1159,7 +1150,7 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
                                 }
                             }
                         }
-                    } while (tok != remainPtr && remainPtr - (char *) chunk < (int)len);
+                    } while (tok != remainPtr && remainPtr - (uint8_t *) chunk < (int)len);
                 }
             }
         }
@@ -1197,7 +1188,7 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
  *
  * \return Number of bytes pulled from the current buffer
  */
-static uint8_t ProcessBase64Remainder(const char *buf, uint32_t len,
+static uint8_t ProcessBase64Remainder(const uint8_t *buf, uint32_t len,
         MimeDecParseState *state, int force) {
 
     uint32_t ret;
@@ -1208,7 +1199,7 @@ static uint8_t ProcessBase64Remainder(const char *buf, uint32_t len,
     /* Fill in block with first few bytes of current line */
     remainder = B64_BLOCK - state->bvr_len;
     remainder = remainder < len ? remainder : len;
-    strncpy(state->bvremain + state->bvr_len, buf, remainder);
+    memcpy(state->bvremain + state->bvr_len, buf, remainder);
     state->bvr_len += remainder;
 
     /* If data chunk buffer will be full, then clear it now */
@@ -1225,7 +1216,7 @@ static uint8_t ProcessBase64Remainder(const char *buf, uint32_t len,
     /* Only decode if divisible by 4 */
     if (state->bvr_len == B64_BLOCK || force) {
         remdec = DecodeBase64(state->data_chunk + state->data_chunk_len,
-                state->bvremain, state->bvr_len);
+                              state->bvremain, state->bvr_len);
         if (remdec > 0) {
 
             /* Track decoded length */
@@ -1270,7 +1261,7 @@ static uint8_t ProcessBase64Remainder(const char *buf, uint32_t len,
  *
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
-static int ProcessBase64BodyLine(const char *buf, uint32_t len,
+static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
         MimeDecParseState *state) {
 
     int ret = MIME_DEC_OK;
@@ -1303,7 +1294,7 @@ static int ProcessBase64BodyLine(const char *buf, uint32_t len,
 
             SCLogDebug("Base64 saving remainder: %u", rem2);
 
-            strncpy(state->bvremain, buf + (len - rem2), rem2);
+            memcpy(state->bvremain, buf + (len - rem2), rem2);
             state->bvr_len = rem2;
         }
 
@@ -1359,7 +1350,7 @@ static int ProcessBase64BodyLine(const char *buf, uint32_t len,
                 state->stack->top->data->anomaly_flags |= ANOM_INVALID_BASE64;
                 state->msg->anomaly_flags |= ANOM_INVALID_BASE64;
                 SCLogDebug("Error: DecodeBase64() function failed");
-                PrintChars(SC_LOG_DEBUG, "Base64 failed string", (char *) (buf + offset), tobuf);
+                PrintChars(SC_LOG_DEBUG, "Base64 failed string", buf + offset, tobuf);
             }
 
             /* Update counts */
@@ -1407,13 +1398,13 @@ static int16_t DecodeQPChar(char h) {
  *
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
-static int ProcessQuotedPrintableBodyLine(const char *buf, uint32_t len,
+static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
         MimeDecParseState *state) {
 
     int ret = MIME_DEC_OK;
     uint32_t remaining, offset;
     MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
-    char c, h1, h2, val;
+    uint8_t c, h1, h2, val;
     int16_t res;
 
     /* Track long line */
@@ -1521,7 +1512,7 @@ static int ProcessQuotedPrintableBodyLine(const char *buf, uint32_t len,
  *
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
-static int ProcessBodyLine(const char *buf, uint32_t len,
+static int ProcessBodyLine(const uint8_t *buf, uint32_t len,
         MimeDecParseState *state) {
 
     int ret = MIME_DEC_OK;
@@ -1606,10 +1597,10 @@ static int ProcessBodyLine(const char *buf, uint32_t len,
  *
  * \return Pointer to header name, or NULL if not found
  */
-static char * FindMimeHeaderStart(const char *buf, uint32_t blen, uint32_t *hlen) {
+static uint8_t * FindMimeHeaderStart(const uint8_t *buf, uint32_t blen, uint32_t *hlen) {
 
     uint32_t i, valid = 0;
-    char *hname = NULL;
+    uint8_t *hname = NULL;
 
     /* Init */
     *hlen = 0;
@@ -1625,7 +1616,7 @@ static char * FindMimeHeaderStart(const char *buf, uint32_t blen, uint32_t *hlen
         } else if (valid > 0 && buf[i] == COLON) {
             /* If ready for printable characters, found some, and found colon
              * delimiter, then a match is found */
-            hname = (char *) buf + i - valid;
+            hname = (uint8_t *) buf + i - valid;
             *hlen = valid;
             break;
         } else {
@@ -1647,11 +1638,11 @@ static char * FindMimeHeaderStart(const char *buf, uint32_t blen, uint32_t *hlen
  *
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
-static int FindMimeHeader(const char *buf, uint32_t blen,
+static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
         MimeDecParseState *state) {
 
     int ret = MIME_DEC_OK;
-    char *hname, *hval = NULL;
+    uint8_t *hname, *hval = NULL;
     DataValue *dv;
     uint32_t hlen, vlen;
     int finish_header = 0, new_header = 0;
@@ -1732,7 +1723,7 @@ static int FindMimeHeader(const char *buf, uint32_t blen,
                 SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
                 return MIME_DEC_ERR_MEM;
             }
-            strncpy(dv->value, (char *) buf, vlen);
+            memcpy(dv->value, buf, vlen);
             dv->value_len = vlen;
             state->hvlen += vlen;
         }
@@ -1773,7 +1764,7 @@ static int FindMimeHeader(const char *buf, uint32_t blen,
             SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
             return MIME_DEC_ERR_MEM;
         }
-        strncpy(state->hname, hname, hlen);
+        memcpy(state->hname, hname, hlen);
         state->hlen = hlen;
 
         if (state->hvalue != NULL) {
@@ -1805,7 +1796,7 @@ static int FindMimeHeader(const char *buf, uint32_t blen,
                     SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
                     return MIME_DEC_ERR_MEM;
                 }
-                strncpy(state->hvalue->value, hval, vlen);
+                memcpy(state->hvalue->value, hval, vlen);
                 state->hvalue->value_len = vlen;
                 state->hvlen += vlen;
             }
@@ -1825,15 +1816,15 @@ static int FindMimeHeader(const char *buf, uint32_t blen,
  *
  * \return A pointer to the token if found, otherwise NULL if not found
  */
-static char * FindMimeHeaderToken(MimeDecField *field, char *search_start,
+static uint8_t * FindMimeHeaderToken(MimeDecField *field, char *search_start,
         char *search_end, uint32_t *tlen) {
 
-    char *fptr, *tptr = NULL, *tok = NULL;
+    uint8_t *fptr, *tptr = NULL, *tok = NULL;
 
     SCLogDebug("Looking for token: %s", search_start);
 
     /* Check for token definition */
-    fptr = FindString(field->value, field->value_len, search_start);
+    fptr = FindBuffer(field->value, field->value_len, (const uint8_t *)search_start, strlen(search_start));
     if (fptr != NULL) {
         fptr += strlen(search_start); /* Start at end of start string */
         tok = GetToken(fptr, field->value_len - (fptr - field->value), search_end,
@@ -1856,12 +1847,12 @@ static char * FindMimeHeaderToken(MimeDecField *field, char *search_start,
  *
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
-static int ProcessMimeHeaders(const char *buf, uint32_t len,
+static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
         MimeDecParseState *state) {
 
     int ret = MIME_DEC_OK;
     MimeDecField *field;
-    char *bptr = NULL, *rptr = NULL;
+    uint8_t *bptr = NULL, *rptr = NULL;
     uint32_t blen = 0;
     MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
 
@@ -1879,10 +1870,10 @@ static int ProcessMimeHeaders(const char *buf, uint32_t len,
         field = MimeDecFindField(entity, CTNT_TRAN_STR);
         if (field != NULL) {
             /* Look for base64 */
-            if (FindString(field->value, field->value_len, BASE64_STR)) {
+            if (FindBuffer(field->value, field->value_len, (const uint8_t *)BASE64_STR, strlen(BASE64_STR))) {
                 SCLogDebug("Base64 encoding found");
                 entity->ctnt_flags |= CTNT_IS_BASE64;
-            } else if (FindString(field->value, field->value_len, QP_STR)) {
+            } else if (FindBuffer(field->value, field->value_len, (const uint8_t *)QP_STR, strlen(QP_STR))) {
                 /* Look for quoted-printable */
                 SCLogDebug("quoted-printable encoding found");
                 entity->ctnt_flags |= CTNT_IS_QP;
@@ -1903,7 +1894,7 @@ static int ProcessMimeHeaders(const char *buf, uint32_t len,
                     SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
                     return MIME_DEC_ERR_MEM;
                 }
-                strncpy(entity->filename, bptr, blen);
+                memcpy(entity->filename, bptr, blen);
                 entity->filename_len = blen;
             }
         }
@@ -1925,7 +1916,7 @@ static int ProcessMimeHeaders(const char *buf, uint32_t len,
                     SCLogError(SC_ERR_MEM_ALLOC, "Memory allocation failed");
                     return MIME_DEC_ERR_MEM;
                 }
-                strncpy(state->stack->top->bdef, bptr, blen);
+                memcpy(state->stack->top->bdef, bptr, blen);
                 state->stack->top->bdef_len = blen;
             }
 
@@ -1942,7 +1933,7 @@ static int ProcessMimeHeaders(const char *buf, uint32_t len,
                         SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
                         return MIME_DEC_ERR_MEM;
                     }
-                    strncpy(entity->filename, bptr, blen);
+                    memcpy(entity->filename, bptr, blen);
                     entity->filename_len = blen;
                 }
             }
@@ -1953,7 +1944,9 @@ static int ProcessMimeHeaders(const char *buf, uint32_t len,
             if (entity->ctnt_type != NULL) {
 
                 /* Check for encapsulated message */
-                if (FindString(entity->ctnt_type, entity->ctnt_type_len, MSG_STR)) {
+                if (FindBuffer(entity->ctnt_type, entity->ctnt_type_len,
+                            (const uint8_t *)MSG_STR, strlen(MSG_STR)))
+                {
                     SCLogDebug("Found encapsulated message entity");
 
                     entity->ctnt_flags |= CTNT_IS_ENV;
@@ -1969,18 +1962,21 @@ static int ProcessMimeHeaders(const char *buf, uint32_t len,
 
                     /* Ready to parse headers */
                     state->state_flag = HEADER_READY;
-                } else if (FindString(entity->ctnt_type, entity->ctnt_type_len,
-                        MULTIPART_STR)) {
+                } else if (FindBuffer(entity->ctnt_type, entity->ctnt_type_len,
+                        (const uint8_t *)MULTIPART_STR, strlen(MULTIPART_STR)))
+                {
                     /* Check for multipart */
                     SCLogDebug("Found multipart entity");
                     entity->ctnt_flags |= CTNT_IS_MULTIPART;
-                } else if (FindString(entity->ctnt_type, entity->ctnt_type_len,
-                        TXT_STR)) {
+                } else if (FindBuffer(entity->ctnt_type, entity->ctnt_type_len,
+                        (const uint8_t *)TXT_STR, strlen(TXT_STR)))
+                {
                     /* Check for plain text */
                     SCLogDebug("Found plain text entity");
                     entity->ctnt_flags |= CTNT_IS_TEXT;
-                } else if (FindString(entity->ctnt_type, entity->ctnt_type_len,
-                        HTML_STR)) {
+                } else if (FindBuffer(entity->ctnt_type, entity->ctnt_type_len,
+                        (const uint8_t *)HTML_STR, strlen(HTML_STR)))
+                {
                     /* Check for html */
                     SCLogDebug("Found html entity");
                     entity->ctnt_flags |= CTNT_IS_HTML;
@@ -2054,11 +2050,11 @@ static int ProcessBodyComplete(MimeDecParseState *state) {
  *
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
-static int ProcessMimeBoundary(const char *buf, uint32_t len, uint32_t bdef_len,
+static int ProcessMimeBoundary(const uint8_t *buf, uint32_t len, uint32_t bdef_len,
         MimeDecParseState *state) {
 
     int ret = MIME_DEC_OK;
-    char *rptr;
+    uint8_t *rptr;
     MimeDecEntity *child;
 
     SCLogDebug("PROCESSING BOUNDARY - START: %d",
@@ -2081,7 +2077,7 @@ static int ProcessMimeBoundary(const char *buf, uint32_t len, uint32_t bdef_len,
     }
 
     /* Update remaining buffer */
-    rptr = (char *) buf + bdef_len + 2;
+    rptr = (uint8_t *) buf + bdef_len + 2;
 
     /* If entity is encapsulated and current and parent didn't define the boundary,
      * then pop out */
@@ -2189,12 +2185,12 @@ static int ProcessMimeBoundary(const char *buf, uint32_t len, uint32_t bdef_len,
  *
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
-static int ProcessMimeBody(const char *buf, uint32_t len,
+static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
         MimeDecParseState *state) {
 
     int ret = MIME_DEC_OK;
-    char temp[BOUNDARY_BUF];
-    char *bstart;
+    uint8_t temp[BOUNDARY_BUF];
+    uint8_t *bstart;
     int body_found = 0;
     uint32_t tlen;
 
@@ -2230,14 +2226,13 @@ static int ProcessMimeBody(const char *buf, uint32_t len,
         if (len > 1 && buf[0] == '-' && buf[1] == '-') {
 
             tlen = node->bdef_len + 2;
-            strncpy(temp, "--", 2);
-            strncpy(temp + 2, node->bdef, node->bdef_len);
-            temp[tlen] = 0;
+            memcpy(temp, "--", 2);
+            memcpy(temp + 2, node->bdef, node->bdef_len);
 
-            SCLogDebug("Boundary to search: [%s]", temp);
+//            SCLogDebug("Boundary to search: [%s]", temp);
 
             /* Find either next boundary or end boundary */
-            bstart = FindString(buf, len, temp);
+            bstart = FindBuffer((const uint8_t *)buf, len, temp, tlen);
             if (bstart != NULL) {
                 ret = ProcessMimeBoundary(buf, len, node->bdef_len, state);
                 if (ret != MIME_DEC_OK) {
@@ -2278,7 +2273,7 @@ static int ProcessMimeBody(const char *buf, uint32_t len,
  *
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
-static int ProcessMimeEntity(const char *buf, uint32_t len,
+static int ProcessMimeEntity(const uint8_t *buf, uint32_t len,
         MimeDecParseState *state) {
 
     int ret = MIME_DEC_OK;
@@ -2479,14 +2474,14 @@ int MimeDecParseComplete(MimeDecParseState *state) {
  *
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
-int MimeDecParseLine(const char *line, const uint32_t len,
+int MimeDecParseLine(const uint8_t *line, const uint32_t len,
         MimeDecParseState *state) {
 
     int ret = MIME_DEC_OK;
 
     /* For debugging purposes */
     if (len > 0) {
-        PrintChars(SC_LOG_DEBUG, "\nSMTP LINE", (char *) line, len);
+        PrintChars(SC_LOG_DEBUG, "\nSMTP LINE", line, len);
     } else {
         SCLogDebug("\nSMTP LINE - EMPTY");
     }
@@ -2512,12 +2507,12 @@ int MimeDecParseLine(const char *line, const uint32_t len,
  *
  * \return A pointer to the decoded MIME message, or NULL if the operation fails
  */
-MimeDecEntity * MimeDecParseFullMsg(const char *buf, uint32_t blen, void *data,
+MimeDecEntity * MimeDecParseFullMsg(const uint8_t *buf, uint32_t blen, void *data,
         int (*dcpfunc)(const uint8_t *chunk, uint32_t len,
                 MimeDecParseState *state)) {
 
     int ret = MIME_DEC_OK;
-    char *remainPtr, *tok;
+    uint8_t *remainPtr, *tok;
     uint32_t tokLen;
 
     MimeDecParseState *state = MimeDecInitParser(data, dcpfunc);
@@ -2530,8 +2525,8 @@ MimeDecEntity * MimeDecParseFullMsg(const char *buf, uint32_t blen, void *data,
     MimeDecEntity *msg = state->msg;
 
     /* Parse each line one by one */
-    remainPtr = (char *) buf;
-    char *line = NULL;
+    remainPtr = (uint8_t *) buf;
+    uint8_t *line = NULL;
     do {
         tok = GetLine(remainPtr, blen - (remainPtr - buf), &remainPtr, &tokLen);
         if (tok != remainPtr) {
@@ -2585,23 +2580,23 @@ static int TestDataChunkCallback(const uint8_t *chunk, uint32_t len,
     /* Add up the line counts */
     if (len > 0) {
 
-        char *remainPtr;
-        char *tok;
+        uint8_t *remainPtr;
+        uint8_t *tok;
         uint32_t tokLen;
 
-        PrintChars(SC_LOG_DEBUG, (char *) "CHUNK", (char *) chunk, len);
+        PrintChars(SC_LOG_DEBUG, "CHUNK", chunk, len);
 
         /* Parse each line one by one */
-        remainPtr = (char *) chunk;
+        remainPtr = (uint8_t *) chunk;
         do {
-            tok = GetLine(remainPtr, len - (remainPtr - (char *) chunk),
+            tok = GetLine(remainPtr, len - (remainPtr - (uint8_t *) chunk),
                     &remainPtr, &tokLen);
             if (tok != NULL && tok != remainPtr) {
                 (*line_count)++;
             }
 
         } while (tok != NULL && tok != remainPtr &&
-                remainPtr - (char *) chunk < len);
+                remainPtr - (uint8_t *) chunk < len);
 
         SCLogDebug("line count (len=%u): %u", len, *line_count);
     }
@@ -2624,27 +2619,26 @@ static int MimeDecParseLineTest01(void) {
     MimeDecParseState *state = MimeDecInitParser(&line_count,
             TestDataChunkCallback);
 
-    char str[256];
-    strcpy(str, "From: Sender1");
-    ret = MimeDecParseLine(str, strlen(str), state);
+    char *str = "From: Sender1";
+    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
-    strcpy(str, "To: Recipient1");
-    ret = MimeDecParseLine(str, strlen(str), state);
+    str = "To: Recipient1";
+    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
-    strcpy(str, "Content-Type: text/plain");
-    ret = MimeDecParseLine(str, strlen(str), state);
+    str = "Content-Type: text/plain";
+    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
-    strcpy(str, "");
-    ret = MimeDecParseLine(str, strlen(str), state);
+    str = "";
+    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
-    strcpy(str, "A simple message line 1");
-    ret = MimeDecParseLine(str, strlen(str), state);
+    str = "A simple message line 1";
+    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
-    strcpy(str, "A simple message line 2");
-    ret = MimeDecParseLine(str, strlen(str), state);
+    str = "A simple message line 2";
+    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
-    strcpy(str, "A simple message line 3");
-    ret = MimeDecParseLine(str, strlen(str), state);
+    str = "A simple message line 3";
+    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
     /* Completed */
     ret = MimeDecParseComplete(state);
@@ -2689,25 +2683,24 @@ static int MimeDecParseLineTest02(void) {
     MimeDecParseState *state = MimeDecInitParser(&line_count,
             TestDataChunkCallback);
 
-    char str[256];
-    strcpy(str, "From: Sender1");
-    ret = MimeDecParseLine(str, strlen(str), state);
+    char *str = "From: Sender1";
+    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
-    strcpy(str, "To: Recipient1");
-    ret = MimeDecParseLine(str, strlen(str), state);
+    str = "To: Recipient1";
+    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
-    strcpy(str, "Content-Type: text/plain");
-    ret = MimeDecParseLine(str, strlen(str), state);
+    str = "Content-Type: text/plain";
+    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
-    strcpy(str, "");
-    ret = MimeDecParseLine(str, strlen(str), state);
+    str = "";
+    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
-    strcpy(str, "A simple message line 1");
-    ret = MimeDecParseLine(str, strlen(str), state);
+    str = "A simple message line 1";
+    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
-    strcpy(str, "A simple message line 2 click on http://www.test.com/malware.exe?"
-            "hahah hopefully you click this link");
-    ret = MimeDecParseLine(str, strlen(str), state);
+    str = "A simple message line 2 click on http://www.test.com/malware.exe?"
+            "hahah hopefully you click this link";
+    ret = MimeDecParseLine((uint8_t *)str, strlen(str), state);
 
     /* Completed */
     ret = MimeDecParseComplete(state);
@@ -2753,7 +2746,7 @@ static int MimeDecParseFullMsgTest01(void) {
             "Line 2\r\n"
             "Line 3\r\n";
 
-    MimeDecEntity *entity = MimeDecParseFullMsg(msg, strlen(msg), &line_count,
+    MimeDecEntity *entity = MimeDecParseFullMsg((uint8_t *)msg, strlen(msg), &line_count,
             TestDataChunkCallback);
     if (entity == NULL) {
         SCLogInfo("Warning: Message failed to parse");
@@ -2780,12 +2773,13 @@ static int MimeBase64DecodeTest01(void){
     char *base64msg = "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXpBQkNERUZHSElKS0xNTk9QU"
             "VJTVFVWV1hZWjEyMzQ1Njc4OTBAIyQlXiYqKCktPV8rLC4vOydbXTw+Pzo=";
 
-    char *dst;
-    dst = (char *)malloc(strlen(msg)-1);
+    uint8_t *dst = SCMalloc(strlen(msg)-1);
+    if (dst == NULL)
+        return 0;
 
-    ret = DecodeBase64((uint8_t *)dst, base64msg, strlen(base64msg));
+    ret = DecodeBase64(dst, (const uint8_t *)base64msg, strlen(base64msg));
 
-    if(strcmp(dst, msg) == 0){
+    if (memcmp(dst, msg, strlen(msg)) == 0) {
         ret = 0;
     }
 
@@ -2797,11 +2791,11 @@ static int MimeIsExeURLTest01(void){
     char *url1 = "http://www.google.com/";
     char *url2 = "http://www.google.com/test.exe";
 
-    if(IsExeUrl(url1, strlen(url1)) != 0){
+    if(IsExeUrl((const uint8_t *)url1, strlen(url1)) != 0){
         SCLogDebug("Debug: URL1 error");
         goto end;
     }
-    if(IsExeUrl(url2, strlen(url2)) != 1){
+    if(IsExeUrl((const uint8_t *)url2, strlen(url2)) != 1){
         SCLogDebug("Debug: URL2 error");
         goto end;
     }
@@ -2814,27 +2808,27 @@ static int MimeIsExeURLTest01(void){
 
 static int MimeIsIpv4HostTest01(void) {
 
-    if(IsIpv4Host("192.168.1.1", 11) != 1) {
+    if(IsIpv4Host((const uint8_t *)"192.168.1.1", 11) != 1) {
         return 1;
     }
 
-    if(IsIpv4Host("999.oogle.com", 14) != 0) {
+    if(IsIpv4Host((const uint8_t *)"999.oogle.com", 14) != 0) {
         return 1;
     }
 
-    if(IsIpv4Host("0:0:0:0:0:0:0:0", 15) != 0) {
+    if(IsIpv4Host((const uint8_t *)"0:0:0:0:0:0:0:0", 15) != 0) {
         return 1;
     }
 
-    if (IsIpv4Host("192.168.255.255", 15) != 1) {
+    if (IsIpv4Host((const uint8_t *)"192.168.255.255", 15) != 1) {
         return 1;
     }
 
-    if (IsIpv4Host("192.168.255.255/testurl.html", 28) != 1) {
+    if (IsIpv4Host((const uint8_t *)"192.168.255.255/testurl.html", 28) != 1) {
         return 1;
     }
 
-    if (IsIpv4Host("www.google.com", 14) != 0) {
+    if (IsIpv4Host((const uint8_t *)"www.google.com", 14) != 0) {
         return 1;
     }
 
@@ -2843,35 +2837,35 @@ static int MimeIsIpv4HostTest01(void) {
 
 static int MimeIsIpv6HostTest01(void) {
 
-    if(IsIpv6Host("0:0:0:0:0:0:0:0", 19) != 1) {
+    if(IsIpv6Host((const uint8_t *)"0:0:0:0:0:0:0:0", 19) != 1) {
         return 1;
     }
 
-    if(IsIpv6Host("0000:0000:0000:0000:0000:0000:0000:0000", 39) != 1) {
+    if(IsIpv6Host((const uint8_t *)"0000:0000:0000:0000:0000:0000:0000:0000", 39) != 1) {
         return 1;
     }
 
-    if(IsIpv6Host("0:0:0:0:0:0:0:0", 19) != 1) {
+    if(IsIpv6Host((const uint8_t *)"0:0:0:0:0:0:0:0", 19) != 1) {
         return 1;
     }
 
-    if(IsIpv6Host("192:168:1:1:0:0:0:0", 19) != 1) {
+    if(IsIpv6Host((const uint8_t *)"192:168:1:1:0:0:0:0", 19) != 1) {
         return 1;
     }
 
-    if(IsIpv6Host("999.oogle.com", 14) != 0) {
+    if(IsIpv6Host((const uint8_t *)"999.oogle.com", 14) != 0) {
         return 1;
     }
 
-    if (IsIpv6Host("192.168.255.255", 15) != 0) {
+    if (IsIpv6Host((const uint8_t *)"192.168.255.255", 15) != 0) {
         return 1;
     }
 
-    if (IsIpv6Host("192.168.255.255/testurl.html", 28) != 0) {
+    if (IsIpv6Host((const uint8_t *)"192.168.255.255/testurl.html", 28) != 0) {
         return 1;
     }
 
-    if (IsIpv6Host("www.google.com", 14) != 0) {
+    if (IsIpv6Host((const uint8_t *)"www.google.com", 14) != 0) {
         return 1;
     }
 

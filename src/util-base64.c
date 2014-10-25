@@ -50,7 +50,7 @@ static const int b64table[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
  *
  * \return The decoded value (0 or above), or -1 if the parameter is invalid
  */
-static inline int GetBase64Value(char c) {
+static inline int GetBase64Value(uint8_t c) {
 
     int val = -1;
 
@@ -86,7 +86,7 @@ static inline void DecodeBase64Block(uint8_t ascii[ASCII_BLOCK], uint8_t b64[B64
  *
  * \return Number of bytes decoded, or 0 if no data is decoded or it fails
  */
-uint32_t DecodeBase64(uint8_t *dest, const char *src, uint32_t len) {
+uint32_t DecodeBase64(uint8_t *dest, const uint8_t *src, uint32_t len) {
 
     int val;
     uint32_t padding = 0, numDecoded = 0, bbidx = 0, valid = 1, i;
